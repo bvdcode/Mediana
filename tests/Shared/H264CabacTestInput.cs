@@ -40,25 +40,42 @@ namespace Mediana.Tests
             }
         }
 
-        public static async Task VerifyIntraContextStatesAsync(string root)
+        public static Task VerifyIntraContextStatesAsync(string root) =>
+            VerifyContextStatesAsync(root, "cabac-intra-contexts.bin", 1,
+                Enumerable.Range(3, 8).Concat(Enumerable.Range(60, 216)).Concat(Enumerable.Range(399, 3)).ToArray(),
+                (qp, _) => H264CabacIntraContexts.Create(qp), H264CabacIntraContexts.GetIndex);
+
+        public static Task VerifyPredictiveContextStatesAsync(string root) =>
+            VerifyContextStatesAsync(root, "cabac-predictive-contexts.bin", 3,
+                Enumerable.Range(11, 13).Concat(Enumerable.Range(40, 236)).Concat(Enumerable.Range(399, 3)).ToArray(),
+                H264CabacPredictiveContexts.Create, H264CabacPredictiveContexts.GetIndex);
+
+        private static async Task VerifyContextStatesAsync(string root, string fileName, int initializations, int[] indices,
+            Func<int, int, H264CabacContext[]> create, Func<int, int> getIndex)
         {
-            byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, "cabac-intra-contexts.bin"));
-            int[] indices = Enumerable.Range(3, 8).Concat(Enumerable.Range(60, 216)).Concat(Enumerable.Range(399, 3)).ToArray();
-            if (expected.Length != indices.Length * 52)
+            byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, fileName));
+            if (expected.Length != indices.Length * 52 * initializations)
             {
-                throw new InvalidDataException("The H.264 intra context reference has an unexpected length.");
+                throw new InvalidDataException("The H.264 context reference has an unexpected length.");
             }
             int offset = 0;
-            for (int qp = 0; qp <= 51; qp++)
+            for (int initialization = 0; initialization < initializations; initialization++)
             {
-                H264CabacContext[] contexts = H264CabacIntraContexts.Create(qp);
-                foreach (int index in indices)
+                for (int qp = 0; qp <= 51; qp++)
                 {
-                    H264CabacContext context = contexts[H264CabacIntraContexts.GetIndex(index)];
-                    int packed = context.State * 2 + (context.MostProbableSymbol ? 1 : 0);
-                    if (packed != expected[offset++])
+                    H264CabacContext[] contexts = create(qp, initialization);
+                    if (contexts.Length != indices.Length)
                     {
-                        throw new InvalidDataException($"H.264 intra context mismatch at QP {qp}, context {index}.");
+                        throw new InvalidDataException("The H.264 context set has an unexpected length.");
+                    }
+                    foreach (int index in indices)
+                    {
+                        H264CabacContext context = contexts[getIndex(index)];
+                        int packed = context.State * 2 + (context.MostProbableSymbol ? 1 : 0);
+                        if (packed != expected[offset++])
+                        {
+                            throw new InvalidDataException($"H.264 context mismatch at initialization {initialization}, QP {qp}, context {index}.");
+                        }
                     }
                 }
             }
