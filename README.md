@@ -5,8 +5,9 @@ Its media implementation is written in C#, with no FFmpeg, external media proces
 native media libraries, or third-party runtime packages.
 
 The current implementation is experimental. It reads metadata and compressed packets from
-non-fragmented MP4/MOV files containing AVC/AAC tracks.
-**Public compressed video/audio decoding and encoding are not available yet.**
+non-fragmented MP4/MOV files containing AVC/AAC tracks. The H.264 source module
+connects limited CAVLC I/P decoding to public video sessions and returns cropped YUV frames.
+**Audio decoding, image export, encoding and complete video previews are not available yet.**
 The sample can inspect real MP4/MOV inputs and run a separate generated RGBA example.
 
 ## Components
@@ -18,7 +19,7 @@ The sample can inspect real MP4/MOV inputs and run a separate generated RGBA exa
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
-| `Mediana.Codecs.H264` | Experimental AVC parsing and internal CAVLC I/P picture reconstruction; no public decoder or package yet |
+| `Mediana.Codecs.H264` | Experimental AVC CAVLC I/P decoder factory, picture ordering and cropped YUV output; source project only |
 | `Mediana.Processing` | Nearest-neighbor resizing of RGBA32 storage |
 | `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video sessions |
@@ -32,8 +33,10 @@ pictures with CAVLC and default scaling, including motion compensation, referenc
 picture management, intra prediction, inverse transforms, PCM blocks and deblocking.
 Two complete Baseline/Main CAVLC sequences and one cropped IDR picture match the
 independent filtered YUV references sample for sample (nineteen pictures total).
-The Main sequence includes explicit prediction weights and reference-list changes. CABAC, B pictures and public
-decoder integration remain open, so file preview extraction is not available yet.
+The Main sequence includes explicit prediction weights and reference-list changes.
+The same nineteen pictures match through MediaEngine, with timing, cropping and
+sample aspect ratio preserved. CABAC, B pictures, RGB conversion and image export
+remain open, so complete file preview generation is not available yet.
 
 ## Build and run
 
@@ -69,10 +72,11 @@ Native AOT requires the platform build toolchain. The resulting executable targe
 one OS/architecture and still uses standard OS runtime facilities.
 See the [.NET Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
 
-Mediana.NativeTests executes internal H.264 I/P reconstruction and compares all
-visible YUV samples in nineteen pictures with the checked-in references. It also
-checks that picture allocations are released. Its fixture loading and comparison
-code is shared with the unit tests. CI is configured to build and run both native
+Mediana.NativeTests executes internal H.264 I/P reconstruction and public MediaEngine
+video sessions. Each path compares all visible YUV samples in nineteen pictures
+with the checked-in references. Public sessions also verify timing, cropping,
+sample aspect ratio and allocation release. Its fixture loading and comparison code
+is shared with the unit tests. CI is configured to build and run both native
 executables on Linux, Windows and macOS.
 
 ## Reading MP4/MOV
@@ -89,7 +93,7 @@ using MediaPacket? packet = await reader.ReadPacketAsync();
 
 The namespaces are Mediana.Containers.Mp4, Mediana.Core, Mediana.Core.Memory and
 Mediana.IO. Mp4ReaderFactory connects the same reader to MediaEngineBuilder.
-An H.264 video decoder must still be supplied for decoded video sessions.
+H264DecoderFactory connects the source H.264 module to decoded video sessions.
 
 The reader requires random access and a known source length. It scans box headers,
 loads the bounded movie metadata and reads individual samples on demand. It does
@@ -119,6 +123,44 @@ Movie storage, header scratch space and returned packet arrays share the supplie
 allocator budget. Immutable stream configuration snapshots and managed object
 overhead are outside that byte-array accounting; their size/count has separate
 limits. Disposing the reader releases its movie storage; retained packets remain valid.
+
+## Decoding H.264
+
+Reference the Mediana.Codecs.H264 source project to use its experimental factory;
+this module is not included in the NuGet packages yet. Register both modules explicitly:
+
+```csharp
+MediaEngine engine = new MediaEngineBuilder()
+    .AddContainer(new Mp4ReaderFactory())
+    .AddVideoDecoder(new H264DecoderFactory())
+    .Build();
+await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
+await using VideoSession session = await engine.OpenVideoAsync(source, streamIndex: 0);
+using VideoFrame? frame = await session.ReadFrameAtOrAfterAsync(
+    new MediaTimestamp(1, new TimeBase(1, 1)));
+```
+
+The namespaces are Mediana, Mediana.Codecs.H264, Mediana.Containers.Mp4,
+Mediana.Core.Timing, Mediana.Core.Video and Mediana.IO. The example selects the first
+remaining frame at or after one second in the original media timeline; it decodes
+forward without seeking. Null means the stream has ended.
+
+The decoder accepts AVC length-prefixed packets with one complete single-slice
+picture and an initial avcC configuration. Supported pictures are progressive
+8-bit YUV 4:2:0 CAVLC I/P with default scaling. Decoding begins with an IDR;
+sequence changes through in-band SPS/PPS also require an IDR. Each output carries
+its own format, color information, sample aspect ratio, presentation timestamp and
+duration. Cropping is applied to YUV storage; rotation, edit lists and display aspect
+transforms are not applied. Missing packet timestamps remain absent; unspecified
+sample aspect ratio and CICP color codes remain unspecified.
+
+Picture order types 0, 1 and 2, bounded delayed output, IDR/MMCO resets, input
+completion, cancellation and buffer ownership have executable checks. SEI message
+boundaries are validated; payload semantics are not interpreted. CABAC, B pictures,
+multiple slices, interlacing, custom scaling, higher bit depths and inferred
+references for frame-number gaps are unsupported. H264DecoderOptions bounds picture
+pixels, configuration bytes, parameter-set bytes, NAL count and reference operations.
+Returned frames remain valid after reset or disposal until their owners release them.
 
 ## Connecting modules
 
@@ -258,11 +300,12 @@ The Native AOT sample has been built and executed locally on Linux x64.
 The workflow defines build, formatting, tests and native publication/execution on
 Linux, Windows and macOS. Other platform results depend on those CI runs.
 The native sample covers the generated-frame pipeline and reading all packets from
-the two real MP4/MOV fixtures. Each future format also requires an executable
-AOT integration test.
+the two original MP4/MOV fixtures. The separate native tests also verify internal
+and public decoding of nineteen reference pictures from three files. Each future
+format also requires an executable AOT integration test.
 
-Current limitations include compressed codec implementations, other container formats, seeking,
-movie-to-stream timeline mapping, dynamic format changes, display transforms,
+Current limitations include broader compressed codec support, other container formats, seeking,
+movie-to-stream timeline mapping, arbitrary changes within a coded sequence, display transforms,
 color conversion, audio processing, encoding/muxing implementations, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
@@ -279,7 +322,7 @@ dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE
 The library projects depend at runtime only on .NET and other Mediana projects.
 Build analyzers and test tools are development dependencies.
 Packages contain an experimental foundation and the limited MP4/MOV reader described
-above. Compressed codecs are not implemented. APIs may change before 1.0.
+above. The experimental H.264 source module is not packaged. APIs may change before 1.0.
 
 | Package | Responsibility |
 | --- | --- |
