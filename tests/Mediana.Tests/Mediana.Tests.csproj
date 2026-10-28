@@ -9,6 +9,10 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
     <ProjectReference Include="../../src/Mediana.Processing/Mediana.Processing.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
     <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="Data/**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

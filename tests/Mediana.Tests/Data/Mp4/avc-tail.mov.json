@@ -1,0 +1,114 @@
+{
+  "packets": [
+    {
+      "stream_index": 0,
+      "pts": 0,
+      "dts": 0,
+      "duration": 2048,
+      "size": "2003",
+      "pos": "36",
+      "flags": "K__",
+      "data_hash": "SHA256:374b93cb2bc22bf0ae0a4613a18428e0e7a647f80f81542a14ce6079f5464495"
+    },
+    {
+      "stream_index": 0,
+      "pts": 2048,
+      "dts": 2048,
+      "duration": 2048,
+      "size": "125",
+      "pos": "2039",
+      "flags": "___",
+      "data_hash": "SHA256:9ec2637cc0ff61e6b10099bb102171c7f3e1ce2875972c88b21c5cb25dadffee"
+    },
+    {
+      "stream_index": 0,
+      "pts": 4096,
+      "dts": 4096,
+      "duration": 2048,
+      "size": "101",
+      "pos": "2164",
+      "flags": "___",
+      "data_hash": "SHA256:40fe3a7f4bcbd8ac696d2b39eb7f2d1318a450f1f1db72e269e0c76cc9e68874"
+    },
+    {
+      "stream_index": 0,
+      "pts": 6144,
+      "dts": 6144,
+      "duration": 2048,
+      "size": "93",
+      "pos": "2265",
+      "flags": "___",
+      "data_hash": "SHA256:a7b86fd8ee4f215bc3a6a25f8b7b22fbe8cee7f03638c2c176ee89461b7ff337"
+    },
+    {
+      "stream_index": 0,
+      "pts": 8192,
+      "dts": 8192,
+      "duration": 2048,
+      "size": "110",
+      "pos": "2358",
+      "flags": "___",
+      "data_hash": "SHA256:2235f622fc23f95a75d7c0a3915047abac4c861b83600b70ba70134e097fffd0"
+    },
+    {
+      "stream_index": 0,
+      "pts": 10240,
+      "dts": 10240,
+      "duration": 2048,
+      "size": "1243",
+      "pos": "2468",
+      "flags": "K__",
+      "data_hash": "SHA256:320a2ef68b24d4d8233297bd56b34be5178ce810ac9d7098233f98186fb17838"
+    }
+  ],
+  "programs": [],
+  "streams": [
+    {
+      "index": 0,
+      "codec_name": "h264",
+      "codec_type": "video",
+      "codec_tag_string": "avc1",
+      "width": 80,
+      "height": 48,
+      "time_base": "1/10240",
+      "duration_ts": 12288,
+      "extradata_size": 39,
+      "extradata_hash": "SHA256:cf1266a6422b567dcc005061df62d19da9f946fa430bac9d201e3416a13b774a",
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "non_diegetic": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "handler_name": "VideoHandler",
+        "vendor_id": "FFMP",
+        "encoder": "Lavc60.31.102 libx264"
+      }
+    }
+  ],
+  "format": {
+    "duration": "1.200000",
+    "tags": {
+      "major_brand": "qt  ",
+      "minor_version": "512",
+      "compatible_brands": "qt  ",
+      "encoder": "Lavf60.16.100"
+    }
+  },
+  "sha256": "11b9461a4f7eac7de748755c7ca6930df47a8a9120c2c98c74106721182d5023"
+}

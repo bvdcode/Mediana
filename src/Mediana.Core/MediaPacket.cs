@@ -9,7 +9,7 @@ namespace Mediana.Core
         private readonly MediaBuffer buffer;
 
         public MediaPacket(int streamIndex, MediaBuffer buffer, MediaTimestamp? presentationTime = null,
-            MediaTimestamp? decodeTime = null, MediaDuration? duration = null)
+            MediaTimestamp? decodeTime = null, MediaDuration? duration = null, bool? isKeyFrame = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
             ArgumentNullException.ThrowIfNull(buffer);
@@ -20,6 +20,7 @@ namespace Mediana.Core
             PresentationTime = presentationTime;
             DecodeTime = decodeTime;
             Duration = duration;
+            IsKeyFrame = isKeyFrame;
             this.buffer = buffer.Retain();
         }
 
@@ -27,8 +28,10 @@ namespace Mediana.Core
         public MediaTimestamp? PresentationTime { get; }
         public MediaTimestamp? DecodeTime { get; }
         public MediaDuration? Duration { get; }
+        /// <summary>Container sync indication, when known. This alone does not prove independent segment decoding.</summary>
+        public bool? IsKeyFrame { get; }
         public ReadOnlyMemory<byte> Data => buffer.Memory;
-        public MediaPacket Retain() => new(StreamIndex, buffer, PresentationTime, DecodeTime, Duration);
+        public MediaPacket Retain() => new(StreamIndex, buffer, PresentationTime, DecodeTime, Duration, IsKeyFrame);
         public void Dispose() => buffer.Dispose();
     }
 }

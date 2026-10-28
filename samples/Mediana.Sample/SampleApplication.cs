@@ -10,9 +10,13 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string[] args)
         {
+            if (args.Length == 2 && args[0] == "--probe-mp4")
+            {
+                return await Mp4ProbeSample.RunAsync(args[1]);
+            }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path>]");
                 return 2;
             }
 

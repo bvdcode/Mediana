@@ -4,10 +4,10 @@ Mediana is an MIT-licensed multimedia library under development for .NET 10.
 Its media implementation is written in C#, with no FFmpeg, external media processes,
 native media libraries, or third-party runtime packages.
 
-The current release is a foundation, not a general-purpose video converter.
-**No production file container or compressed codec is implemented yet.**
-The executable sample uses generated RGBA data. Tests use synthetic container and
-decoder implementations to exercise the public extension contracts.
+The current release is experimental. It reads metadata and compressed packets from
+non-fragmented MP4/MOV files containing AVC/AAC tracks.
+**Compressed video/audio decoding and encoding are not implemented yet.**
+The sample can inspect real MP4/MOV inputs and run a separate generated RGBA example.
 
 ## Components
 
@@ -16,11 +16,12 @@ decoder implementations to exercise the public extension contracts.
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
+| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
 | `Mediana.Processing` | Nearest-neighbor resizing of RGBA32 storage |
 | `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video sessions |
-| `Mediana.Sample` | Executable generated-frame example and Native AOT smoke check |
+| `Mediana.Sample` | Real MP4/MOV packet inspection, generated-frame example and Native AOT checks |
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
@@ -37,9 +38,10 @@ dotnet build Mediana.slnx -c Release --no-restore -p:Version="$PACKAGE_VERSION"
 dotnet test Mediana.slnx -c Release --no-build --no-restore
 dotnet format Mediana.slnx --verify-no-changes --no-restore
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
 ```
 
-The sample decodes a generated 2×2 RGBA packet through the codec protocol, resizes
+The self-test decodes a generated 2×2 RGBA packet through the codec protocol, resizes
 it to 1×1, checks the red output pixel and exact time conversion, then verifies
 that all leased buffer bytes have been released. It does not open a video file.
 
@@ -48,11 +50,57 @@ Publish and execute it with Native AOT on Linux x64:
 ```sh
 dotnet publish samples/Mediana.Sample -c Release -r linux-x64 -p:Version="$PACKAGE_VERSION" -o artifacts/native/linux-x64
 ./artifacts/native/linux-x64/Mediana.Sample --self-test
+./artifacts/native/linux-x64/Mediana.Sample --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
 ```
 
 Native AOT requires the platform build toolchain. The resulting executable targets
 one OS/architecture and still uses standard OS runtime facilities.
 See the [.NET Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
+
+## Reading MP4/MOV
+
+Install the optional Mediana.Containers.Mp4 package to read supported files directly:
+
+```csharp
+MediaBufferAllocator allocator = new(64 * 1024 * 1024);
+await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
+await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+IReadOnlyList<Mp4TrackInfo> tracks = reader.Tracks;
+using MediaPacket? packet = await reader.ReadPacketAsync();
+```
+
+The namespaces are Mediana.Containers.Mp4, Mediana.Core, Mediana.Core.Memory and
+Mediana.IO. Mp4ReaderFactory connects the same reader to MediaEngineBuilder.
+An H.264 video decoder must still be supplied for decoded video sessions.
+
+The reader requires random access and a known source length. It scans box headers,
+loads the bounded movie metadata and reads individual samples on demand. It does
+not load the media data box while opening. It supports movie metadata at either
+end of the file, sample/chunk mapping, decode time runs, signed/unsigned composition
+offsets, sync samples and 32/64-bit chunk offsets. Packets are interleaved by decode
+time; each track retains its sample order.
+
+AVC streams expose the original avcC configuration and length-prefixed NAL packets.
+AAC streams expose the AudioSpecificConfig and raw access units. Container-declared
+audio channels and sample rate are labelled explicitly: codec configuration may
+describe different values, which require codec-level interpretation.
+
+Movie duration, track presentation duration, original media duration and edit lists
+remain separate. Packet timestamps use the media time base before applying edits.
+The reader does not yet map movie time to media time, apply rotation/display
+transforms or seek. A sync-sample flag alone does not establish HLS segment independence.
+
+Fragmented files, encrypted/external data, compressed QuickTime headers, multiple
+sample descriptions and other sample/handler types fail explicitly. The current
+sample entries are avc1/avc3 and version-zero mp4a with AAC object type 2, 5 or 29.
+Empty samples, sample sizes above 2 GiB and time scales above Int32.MaxValue are
+unsupported. Metadata, codec configuration, boxes, tracks, samples and edits have
+configurable limits through Mp4ReadOptions.
+
+Movie storage, header scratch space and returned packet arrays share the supplied
+allocator budget. Immutable stream configuration snapshots and managed object
+overhead are outside that byte-array accounting; their size/count has separate
+limits. Disposing the reader releases its movie storage; retained packets remain valid.
 
 ## Connecting modules
 
@@ -184,15 +232,18 @@ The automated tests exercise signed time conversion, overflow, shared-buffer
 ownership, concurrent releases, allocation limits, video strides and subsampling,
 PCM layouts, non-seekable short reads, probe replay, registration conflicts,
 unsupported configurations, delayed and multiple codec outputs, EOF, cancellation
-during I/O, invalid codec states and cleanup.
+during I/O, invalid codec states and cleanup. Real MP4/MOV fixtures compare every
+packet's data hash, size, timestamps, duration and sync flag with independent
+reference results. Corrupted tables, truncated input and resource limits are checked.
 
 The Native AOT sample has been built and executed locally on Linux x64.
 The workflow defines build, formatting, tests and native publication/execution on
 Linux, Windows and macOS. Other platform results depend on those CI runs.
-The sample's AOT check covers the generated-frame pipeline; each future real format
-also requires an executable AOT integration test.
+The native sample covers the generated-frame pipeline and reading all packets from
+the two real MP4/MOV fixtures. Each future format also requires an executable
+AOT integration test.
 
-Current limitations include production container/codec implementations, seeking,
+Current limitations include compressed codec implementations, other container formats, seeking,
 movie-to-stream timeline mapping, dynamic format changes, display transforms,
 color conversion, audio processing, encoding/muxing implementations, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
@@ -209,8 +260,8 @@ dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE
 
 The library projects depend at runtime only on .NET and other Mediana projects.
 Build analyzers and test tools are development dependencies.
-Packages contain an experimental foundation without production file containers
-or compressed codecs. APIs may change before 1.0.
+Packages contain an experimental foundation and the limited MP4/MOV reader described
+above. Compressed codecs are not implemented. APIs may change before 1.0.
 
 | Package | Responsibility |
 | --- | --- |
@@ -218,12 +269,14 @@ or compressed codecs. APIs may change before 1.0.
 | Mediana.Core | Time, packets, frames and buffer ownership |
 | Mediana.IO | Byte sources and probe replay |
 | Mediana.Containers | Container contracts |
+| Mediana.Containers.Mp4 | Optional MP4/MOV metadata and packet reader |
 | Mediana.Codecs | Codec contracts |
 | Mediana.Processing | RGBA32 resizing |
 | Mediana.Execution | Sequential video decoding pipeline |
 
 Installing Mediana includes its required modules through NuGet dependencies.
-Mediana.Processing is an optional separate package. All packages share one version.
+Mediana.Processing and Mediana.Containers.Mp4 are optional separate packages.
+All packages share one version.
 
 ### Publishing
 

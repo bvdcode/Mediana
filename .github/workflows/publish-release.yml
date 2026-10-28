@@ -73,14 +73,19 @@ jobs:
       - run: dotnet format Mediana.slnx --verify-no-changes --no-restore
       - run: dotnet test Mediana.slnx -c Release --no-build --no-restore --logger trx --results-directory artifacts/test-results
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --self-test
+      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-tail.mov
       - run: dotnet publish samples/Mediana.Sample -c Release -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native
       - name: Run native executable
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
-            ./artifacts/native/Mediana.Sample.exe --self-test
+            sample_executable=./artifacts/native/Mediana.Sample.exe
           else
-            ./artifacts/native/Mediana.Sample --self-test
+            sample_executable=./artifacts/native/Mediana.Sample
           fi
+          "$sample_executable" --self-test
+          "$sample_executable" --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+          "$sample_executable" --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-tail.mov
       - name: Pack
         if: matrix.os == 'ubuntu-latest'
         run: dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/packages
