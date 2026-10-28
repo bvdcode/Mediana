@@ -18,5 +18,6 @@
     <None Update="Data/**" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
+    <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
   </ItemGroup>
 </Project>

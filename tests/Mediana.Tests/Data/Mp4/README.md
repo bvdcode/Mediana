@@ -79,3 +79,21 @@ reference, including transfer-curve and quantization differences.
 ```sh
 ffmpeg -hide_banner -v error -nostdin -y -i avc-weighted.mp4 -vf "zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -f rawvideo avc-weighted.frame0.srgb.rgba
 ```
+
+`avc-weighted-rotated.mp4` preserves all twelve original weighted AVC packets,
+their timing and SAR, and adds a counter-clockwise 90-degree display matrix.
+It was remuxed with FFmpeg 6.1.1; packet hashes and timing were independently
+compared with avc-weighted.mp4. SHA256:
+`c7cb5ae14f1d933b2f6bb6167ae3ad0f815341464d6c9e8fa86d8367afc903df`.
+
+```sh
+ffmpeg -hide_banner -v error -nostdin -y -display_rotation:v:0 90 -i avc-weighted.mp4 -map 0:v:0 -c copy avc-weighted-rotated.mp4
+ffprobe -v error -select_streams v:0 -show_entries stream=width,height,sample_aspect_ratio:stream_side_data -of json avc-weighted-rotated.mp4
+```
+
+The track matrix is `[0 -1 0; 1 0 0; 0 0 1]` in row-vector order. The movie
+matrix is identity. Decoded storage remains 94x62 with SAR 4:3. Fitting within
+100x100 after applying SAR and orientation produces a square-pixel 49x100 PNG.
+Its scanlines are compared with the existing independent sRGB reference, using
+the documented resize sampling positions and counter-clockwise pixel order.
+The same test runs in managed execution and Native AOT.

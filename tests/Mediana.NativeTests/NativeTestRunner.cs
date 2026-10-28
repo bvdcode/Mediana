@@ -41,6 +41,8 @@ namespace Mediana.NativeTests
             }
             await NativePublicVideoTests.RunAsync(root);
             await NativeSrgbTests.RunAsync(root);
+            await RotatedPreviewTestInput.VerifyAsync(root);
+            Console.WriteLine("PASS rotated MP4 preview: display matrix, square-pixel 49x100 PNG, CRCs and all reference pixels match.");
         }
     }
 }

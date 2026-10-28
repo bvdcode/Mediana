@@ -23,12 +23,14 @@ namespace Mediana.Sample
             MediaTimestamp target = new(milliseconds, new TimeBase(1, 1000));
             using VideoFrame decoded = await session.ReadFrameAtOrAfterAsync(target)
                 ?? throw new InvalidDataException("There is no frame at or after the requested timestamp.");
+            VideoDisplayMatrix displayMatrix = session.Stream.DisplayMatrix
+                ?? throw new NotSupportedException("The video stream has no display transform interpretation.");
             MediaBufferAllocator allocator = new(ProcessingBufferBudgetBytes);
             int width;
             int height;
             int encodedLength;
             using (VideoFrame srgb = SrgbConverter.Apply(decoded, allocator))
-            using (VideoFrame preview = DisplayResize.Fit(srgb, maximumWidth, maximumHeight, allocator))
+            using (VideoFrame preview = DisplayResize.Fit(srgb, displayMatrix, maximumWidth, maximumHeight, allocator))
             using (MediaBuffer png = PngEncoder.Encode(preview, allocator))
             {
                 width = preview.Format.Width;
