@@ -18,7 +18,7 @@ The sample can inspect real MP4/MOV inputs and run a separate generated RGBA exa
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
-| `Mediana.Codecs.H264` | Experimental AVC parsing and internal CAVLC IDR picture reconstruction; no public decoder or package yet |
+| `Mediana.Codecs.H264` | Experimental AVC parsing and internal CAVLC I/P picture reconstruction; no public decoder or package yet |
 | `Mediana.Processing` | Nearest-neighbor resizing of RGBA32 storage |
 | `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video sessions |
@@ -27,10 +27,11 @@ The sample can inspect real MP4/MOV inputs and run a separate generated RGBA exa
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
 
-The H.264 work currently reconstructs single-slice progressive 8-bit 4:2:0 IDR
-pictures with CAVLC and default scaling, including intra prediction, inverse
-transforms, PCM blocks and deblocking. Three decoded reference pictures match
-sample for sample, including a cropped picture. Inter pictures, CABAC and public
+The H.264 work currently reconstructs single-slice progressive 8-bit 4:2:0 I/P
+pictures with CAVLC and default scaling, including motion compensation, reference
+picture management, intra prediction, inverse transforms, PCM blocks and deblocking.
+A complete six-picture Baseline sequence and one cropped IDR picture match the
+independent filtered YUV references sample for sample. CABAC, B pictures and public
 decoder integration remain open, so file preview extraction is not available yet.
 
 ## Build and run
@@ -67,8 +68,8 @@ Native AOT requires the platform build toolchain. The resulting executable targe
 one OS/architecture and still uses standard OS runtime facilities.
 See the [.NET Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
 
-Mediana.NativeTests executes internal H.264 IDR reconstruction and compares all
-visible YUV samples in three pictures with the checked-in references. It also
+Mediana.NativeTests executes internal H.264 I/P reconstruction and compares all
+visible YUV samples in seven pictures with the checked-in references. It also
 checks that picture allocations are released. Its fixture loading and comparison
 code is shared with the unit tests. CI builds and runs both native executables
 on Linux, Windows and macOS.
