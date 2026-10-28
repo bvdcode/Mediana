@@ -19,12 +19,36 @@ namespace Mediana.Codecs.H264
             {
                 return reason;
             }
-            if (picture.Cabac || sequence.ScalingMatrix ||
-                sequence.TransformBypass || picture.Transform8x8)
+            if (sequence.ScalingMatrix || sequence.TransformBypass)
             {
-                return "Reconstruction currently requires progressive 8-bit 4:2:0 CAVLC slices with default scaling.";
+                return "Reconstruction currently requires progressive 8-bit 4:2:0 slices with default scaling.";
+            }
+            if (!picture.Cabac && picture.Transform8x8)
+            {
+                return "CAVLC reconstruction does not support 8x8 transforms yet.";
             }
             return null;
+        }
+
+        public static string? GetUnsupportedReason(H264SliceHeader header)
+        {
+            string? reason = GetUnsupportedReason(header.Sequence, header.Picture);
+            if (reason is not null)
+            {
+                return reason;
+            }
+            if (header.FirstMacroblock != 0)
+            {
+                return "H.264 reconstruction currently requires one complete slice per picture.";
+            }
+            return header.Kind switch
+            {
+                H264SliceKind.I => null,
+                H264SliceKind.P when header.Picture.Cabac => "H.264 CABAC P pictures are not implemented yet.",
+                H264SliceKind.P => null,
+                H264SliceKind.B or H264SliceKind.Sp or H264SliceKind.Si => "B, SP and SI pictures are not supported yet.",
+                _ => throw new ArgumentOutOfRangeException(nameof(header))
+            };
         }
 
         public static string? GetUnsupportedReason(H264Configuration configuration)

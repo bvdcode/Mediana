@@ -8,11 +8,10 @@ namespace Mediana.Codecs.H264
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!header.Picture.Cabac || header.Kind != H264SliceKind.I || header.FirstMacroblock != 0 ||
-                H264Support.GetUnsupportedHeaderReason(header.Sequence) is not null ||
-                header.Sequence.ScalingMatrix || header.Sequence.TransformBypass)
+            string? reason = H264Support.GetUnsupportedReason(header);
+            if (!header.Picture.Cabac || reason is not null)
             {
-                throw new NotSupportedException("CABAC reconstruction currently requires one progressive 8-bit 4:2:0 I slice with default scaling.");
+                throw new NotSupportedException(reason ?? "CABAC reconstruction requires a CABAC slice.");
             }
             H264Picture result = new(header.Sequence, allocator);
             bool complete = false;

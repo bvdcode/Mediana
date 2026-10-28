@@ -8,14 +8,14 @@ namespace Mediana.Codecs.H264
             IReadOnlyList<H264ReferencePicture?> references, MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            string? reason = H264Support.GetUnsupportedReason(header.Sequence, header.Picture);
+            string? reason = H264Support.GetUnsupportedReason(header);
             if (reason is not null)
             {
                 throw new NotSupportedException(reason);
             }
-            if (header.FirstMacroblock != 0)
+            if (header.Picture.Cabac)
             {
-                throw new NotSupportedException("H.264 reconstruction currently requires one complete slice per picture.");
+                return H264CabacPictureDecoder.Decode(ref bits, header, allocator, cancellationToken);
             }
             H264Picture result = new(header.Sequence, allocator);
             bool complete = false;

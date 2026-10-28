@@ -26,11 +26,14 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task RejectsUnsupportedCabacAndReleasesStorageAfterTruncatedSlices()
+        public async Task DispatchesCabacAndReleasesStorageAfterTruncatedSlices()
         {
             (H264Configuration high, byte[] cabac) = await ReadIdrAsync("avc-aac.mp4");
             MediaBufferAllocator allocator = new(1024 * 1024);
-            Assert.Throws<NotSupportedException>(() => H264IntraDecoder.Decode(cabac, high, allocator));
+            using (H264Picture picture = H264IntraDecoder.Decode(cabac, high, allocator))
+            {
+                H264TestInput.VerifyPicture(picture, await Mp4TestData.ReadAsync("avc-aac.frame0.yuv"));
+            }
             Assert.Equal(0, allocator.AllocatedBytes);
             (H264Configuration baseline, byte[] nal) = await ReadIdrAsync("avc-tail.mov");
             foreach (int length in new[] { 0, 1, 2, 3, nal.Length / 2, nal.Length - 1 })

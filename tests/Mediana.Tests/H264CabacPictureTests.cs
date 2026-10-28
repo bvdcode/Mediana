@@ -104,6 +104,33 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Fact]
+        public async Task AnActualIntra8FlagFailsAndReleasesPictureAndWorkerStorage()
+        {
+            (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-aac.mp4"), 0);
+            H264BitReader original = H264Nal.Payload(nal, H264Nal.Type(nal));
+            H264SliceHeader header = H264SliceHeaderReader.Read(ref original, configuration, nal[0]);
+            Assert.True(header.Picture.Transform8x8);
+            byte[] initial = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264", "cabac-intra-contexts.bin"));
+            H264CabacIntervalWriter writer = new(header.Qp);
+            writer.Initialize(3, initial[header.Qp * 227]);
+            writer.Initialize(399, initial[header.Qp * 227 + 224]);
+            writer.Decision(false, 3, 0, 0);
+            writer.Decision(true, 399, 0, 0);
+            writer.Termination(true);
+            byte[] payload = writer.ToEbsp();
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            NotSupportedException error = Assert.Throws<NotSupportedException>(() => DecodePayload(payload, header, allocator));
+            Assert.Contains("8x8", error.Message);
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        private static H264Picture DecodePayload(byte[] payload, H264SliceHeader header, MediaBufferAllocator allocator)
+        {
+            H264BitReader bits = new(payload);
+            return H264PictureDecoder.Decode(ref bits, header, [], allocator);
+        }
+
         private static H264Picture Decode(byte[] nal, H264Configuration configuration, MediaBufferAllocator allocator,
             CancellationToken cancellationToken = default)
         {

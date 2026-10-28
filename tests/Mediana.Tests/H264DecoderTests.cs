@@ -15,13 +15,20 @@ namespace Mediana.Tests
         [InlineData("avc-tail.mov", 6, 80, 48, 5, 1, 1)]
         [InlineData("avc-cropped.mp4", 1, 78, 46, 1, 1, 1)]
         [InlineData("avc-weighted.mp4", 12, 94, 62, 10, 4, 3)]
+        [InlineData("avc-cabac-intra.mp4", 6, 94, 62, 5, 4, 3)]
         public async Task PublicEngineDecodesEveryIndependentSampleAndPreservesDisplayMetadata(string file, int count,
             int width, int height, int fps, int aspectWidth, int aspectHeight)
         {
             MediaEngine engine = Engine();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Mp4TestData.PathFor(file)));
             await using VideoSession session = await engine.OpenVideoAsync(source, 0);
-            byte[]? sequence = file == "avc-weighted.mp4" ? await Mp4TestData.ReadAsync("avc-weighted.sequence.yuv") : null;
+            byte[]? sequence = file switch
+            {
+                "avc-weighted.mp4" => await Mp4TestData.ReadAsync("avc-weighted.sequence.yuv"),
+                "avc-cabac-intra.mp4" => await Mp4TestData.ReadAsync("avc-cabac-intra.sequence.yuv"),
+                "avc-tail.mov" or "avc-cropped.mp4" => null,
+                _ => throw new ArgumentOutOfRangeException(nameof(file))
+            };
             int frameBytes = width * height * 3 / 2;
             for (int index = 0; index < count; index++)
             {
@@ -32,7 +39,7 @@ namespace Mediana.Tests
                 Assert.Equal(new SampleAspectRatio(aspectWidth, aspectHeight), frame.Format.SampleAspectRatio);
                 Assert.Equal(ColorRange.Limited, frame.Format.Color.Range);
                 Assert.Equal(ChromaLocation.Left, frame.Format.Color.ChromaLocation);
-                if (file == "avc-weighted.mp4")
+                if (file is "avc-weighted.mp4" or "avc-cabac-intra.mp4")
                 {
                     Assert.Equal(ColorPrimaries.Bt709, frame.Format.Color.Primaries);
                     Assert.Equal(TransferFunction.Bt709, frame.Format.Color.Transfer);
@@ -123,18 +130,23 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task UnsupportedCabacConfigurationIsRejectedBeforeOpeningTheDecodeSession()
+        public async Task PredictiveCabacFailsWithoutReturningDelayedFramesAndDisposalReleasesStorage()
         {
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Mp4TestData.PathFor("avc-aac.mp4")));
-            NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(async () => await Engine().OpenVideoAsync(source, 0));
-            Assert.Contains("CAVLC", error.Message);
+            await using VideoSession session = await Engine().OpenVideoAsync(source, 0);
+            NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(async () => await session.ReadFrameAsync());
+            Assert.Contains("CABAC P", error.Message);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await session.ReadFrameAsync());
+            await session.DisposeAsync();
+            Assert.Equal(0, session.AllocatedBufferBytes);
         }
 
-        internal static async Task<(EncodedStreamInfo Stream, byte[][] Packets)> InputAsync()
+        internal static async Task<(EncodedStreamInfo Stream, byte[][] Packets)> InputAsync(string file = "avc-tail.mov")
         {
-            await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("avc-tail.mov"));
+            await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync(file));
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            EncodedStreamInfo stream = reader.Streams.Single(item => item.Kind == MediaKind.Video);
             List<byte[]> packets = [];
             while (true)
             {
@@ -143,9 +155,12 @@ namespace Mediana.Tests
                 {
                     break;
                 }
-                packets.Add(packet.Data.ToArray());
+                if (packet.StreamIndex == stream.StreamIndex)
+                {
+                    packets.Add(packet.Data.ToArray());
+                }
             }
-            return (reader.Streams[0], packets.ToArray());
+            return (stream, packets.ToArray());
         }
 
         internal static MediaPacket Packet(MediaBufferAllocator allocator, byte[] bytes)

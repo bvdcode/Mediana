@@ -21,6 +21,8 @@ namespace Mediana.NativeTests
                 await File.ReadAllBytesAsync(Path.Combine(root, "avc-cropped.frame0.yuv")), 1, 78, 46, 1, SampleAspectRatio.Square);
             await VerifyAsync(Path.Combine(root, "avc-weighted.mp4"),
                 await File.ReadAllBytesAsync(Path.Combine(root, "avc-weighted.sequence.yuv")), 12, 94, 62, 10, new SampleAspectRatio(4, 3));
+            await VerifyAsync(Path.Combine(root, "avc-cabac-intra.mp4"),
+                await File.ReadAllBytesAsync(Path.Combine(root, "avc-cabac-intra.sequence.yuv")), 6, 94, 62, 5, new SampleAspectRatio(4, 3));
         }
 
         private static async Task VerifyAsync(string path, ReadOnlyMemory<byte> expected, int count, int width,
