@@ -17,6 +17,8 @@ namespace Mediana.Tests
         private BigInteger width = 510 * (BigInteger.One << (CodeBits - 9));
         private int range = 510;
 
+        public void Initialize(int slot, byte packed) => contexts.Add(slot, (packed >> 1, (packed & 1) != 0));
+
         public void Decision(bool value, int slot, sbyte slope, sbyte intercept)
         {
             if (!contexts.TryGetValue(slot, out (int State, bool Mps) context))
