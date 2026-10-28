@@ -67,3 +67,15 @@ filtered visible pictures in packed Y, Cb, Cr order (8742 bytes per picture), SH
 ffmpeg -v error -nostdin -y -f lavfi -i testsrc2=size=94x62:rate=10:duration=1.2 -vf "fade=t=out:st=0:d=1.2,setsar=4/3" -map_metadata -1 -c:v libx264 -profile:v main -coder:v vlc -pix_fmt yuv420p -bf 0 -refs 4 -g 48 -qp 24 -x264-params "weightp=2:8x8dct=0:partitions=all:subme=8:deblock=2,1:scenecut=0" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an avc-weighted.mp4
 ffmpeg -v error -nostdin -y -i avc-weighted.mp4 -pix_fmt yuv420p -f rawvideo avc-weighted.sequence.yuv
 ```
+
+`avc-weighted.frame0.srgb.rgba` contains the first visible picture converted to
+straight sRGB RGBA32 (94x62, 23312 bytes). Generation used FFmpeg 6.1.1 with zimg
+3.0.5, bilinear chroma reconstruction, no dithering and the BT.1886 reference-display
+interpretation of BT.709. SHA256:
+`d08968bc0bfdfae1d2f95fb0dd00333d35f78b3ccef06db66c2fdfa8ec5ca977`.
+Mediana's scalar conversion differs by at most one 8-bit code per channel from this
+reference, including transfer-curve and quantization differences.
+
+```sh
+ffmpeg -hide_banner -v error -nostdin -y -i avc-weighted.mp4 -vf "zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -f rawvideo avc-weighted.frame0.srgb.rgba
+```

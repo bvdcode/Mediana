@@ -17,6 +17,7 @@ namespace Mediana.Core.Video
         public string Name { get; }
         public IReadOnlyList<VideoPlaneFormat> Planes { get; }
 
+        /// <summary>Red, green, blue and straight (unassociated) alpha bytes.</summary>
         public static VideoPixelFormat Rgba32 { get; } = new("rgba32", new VideoPlaneFormat(1, 1, 4));
         public static VideoPixelFormat Yuv420P8 { get; } =
             new("yuv420p8", new VideoPlaneFormat(1, 1, 1), new VideoPlaneFormat(2, 2, 1), new VideoPlaneFormat(2, 2, 1));

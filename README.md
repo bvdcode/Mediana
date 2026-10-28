@@ -20,7 +20,7 @@ The sample can inspect real MP4/MOV inputs and run a separate generated RGBA exa
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC I/P decoder factory, picture ordering and cropped YUV output; source project only |
-| `Mediana.Processing` | Nearest-neighbor resizing of RGBA32 storage |
+| `Mediana.Processing` | Scalar SDR conversion to sRGB and nearest-neighbor RGBA32 resizing |
 | `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video sessions |
 | `Mediana.Sample` | Real MP4/MOV packet inspection, generated-frame example and Native AOT checks |
@@ -35,7 +35,7 @@ Two complete Baseline/Main CAVLC sequences and one cropped IDR picture match the
 independent filtered YUV references sample for sample (nineteen pictures total).
 The Main sequence includes explicit prediction weights and reference-list changes.
 The same nineteen pictures match through MediaEngine, with timing, cropping and
-sample aspect ratio preserved. CABAC, B pictures, RGB conversion and image export
+sample aspect ratio preserved. CABAC, B pictures and image export
 remain open, so complete file preview generation is not available yet.
 
 ## Build and run
@@ -161,6 +161,19 @@ multiple slices, interlacing, custom scaling, higher bit depths and inferred
 references for frame-number gaps are unsupported. H264DecoderOptions bounds picture
 pixels, configuration bytes, parameter-set bytes, NAL count and reference operations.
 Returned frames remain valid after reset or disposal until their owners release them.
+
+SrgbConverter.Apply from Mediana.Processing converts supported YUV420P8 or straight
+RGBA32 to straight sRGB RGBA32. It supports full/limited YCbCr range, five conventional
+YCbCr matrices, all six progressive chroma locations and common D65 primaries.
+Conversion uses linear-light primary transforms and an ideal BT.1886 reference
+display for BT.709/SMPTE 240M signals; RGB excursions and the target sRGB gamut are
+clipped. Alpha, time and sample aspect ratio are preserved. HDR tone mapping and
+unknown color interpretation fail explicitly. An overload accepts an explicit source
+color interpretation; values are not guessed from the frame size.
+The first weighted reference picture matches independent sRGB RGBA within one 8-bit
+code per channel. The numerical definitions follow [ITU H.264 Annex E](https://www.itu.int/rec/T-REC-H.264-202408-S/en),
+[BT.1886](https://www.itu.int/rec/R-REC-BT.1886/en) and
+[sRGB in CSS Color 4](https://www.w3.org/TR/css-color-4/#predefined-sRGB).
 
 ## Connecting modules
 
@@ -306,7 +319,7 @@ format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking,
 movie-to-stream timeline mapping, arbitrary changes within a coded sequence, display transforms,
-color conversion, audio processing, encoding/muxing implementations, scheduling,
+broader color conversion, audio processing, encoding/muxing implementations, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
 
