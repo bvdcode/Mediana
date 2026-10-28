@@ -5,6 +5,9 @@ namespace Mediana.Core.Video
         Unspecified,
         Left,
         Center,
-        TopLeft
+        TopLeft,
+        Top,
+        BottomLeft,
+        Bottom
     }
 }

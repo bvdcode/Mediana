@@ -6,6 +6,17 @@ namespace Mediana.Core.Video
         Rgb,
         Bt601,
         Bt709,
-        Bt2020NonConstant
+        Bt2020NonConstant,
+        Fcc,
+        Smpte240M,
+        YCgCo,
+        Bt2020Constant,
+        Smpte2085,
+        ChromaticityNonConstant,
+        ChromaticityConstant,
+        ICtCp,
+        IptC2,
+        YCgCoRe,
+        YCgCoRo
     }
 }
