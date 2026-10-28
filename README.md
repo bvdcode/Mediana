@@ -7,8 +7,9 @@ native media libraries, or third-party runtime packages.
 The current implementation is experimental. It reads metadata and compressed packets from
 non-fragmented MP4/MOV files containing AVC/AAC tracks. The H.264 source module
 connects limited CAVLC I/P decoding to public video sessions and returns cropped YUV frames.
-**Audio decoding, image export, encoding and complete video previews are not available yet.**
-The sample can inspect real MP4/MOV inputs and run a separate generated RGBA example.
+The sample can extract a supported video frame, convert SDR color to sRGB, correct
+the sample aspect ratio and save a PNG preview. **CABAC, B pictures, audio decoding,
+video/audio encoding and muxing are not available yet.**
 
 ## Components
 
@@ -20,10 +21,11 @@ The sample can inspect real MP4/MOV inputs and run a separate generated RGBA exa
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC I/P decoder factory, picture ordering and cropped YUV output; source project only |
-| `Mediana.Processing` | Scalar SDR conversion to sRGB and nearest-neighbor RGBA32 resizing |
+| `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
+| `Mediana.Processing` | Scalar SDR conversion to sRGB, RGBA32 resizing and square-pixel preview fitting |
 | `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video sessions |
-| `Mediana.Sample` | Real MP4/MOV packet inspection, generated-frame example and Native AOT checks |
+| `Mediana.Sample` | Real MP4/MOV packet inspection, PNG previews and generated-frame checks |
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
@@ -35,8 +37,8 @@ Two complete Baseline/Main CAVLC sequences and one cropped IDR picture match the
 independent filtered YUV references sample for sample (nineteen pictures total).
 The Main sequence includes explicit prediction weights and reference-list changes.
 The same nineteen pictures match through MediaEngine, with timing, cropping and
-sample aspect ratio preserved. CABAC, B pictures and image export
-remain open, so complete file preview generation is not available yet.
+sample aspect ratio preserved. Preview generation currently requires this supported
+CAVLC subset and known color and sample aspect ratio; it does not cover general H.264 files.
 
 ## Build and run
 
@@ -52,18 +54,26 @@ dotnet run --project tests/Mediana.NativeTests -c Release --no-build --no-restor
 dotnet format Mediana.slnx --verify-no-changes --no-restore
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview.png 0 250 100 100
 ```
 
 The self-test decodes a generated 2×2 RGBA packet through the codec protocol, resizes
 it to 1×1, checks the red output pixel and exact time conversion, then verifies
 that all leased buffer bytes have been released. It does not open a video file.
 
+The preview command takes input, a new output path, video stream index, target
+milliseconds in the media timeline, maximum width and maximum height. In this example,
+it selects the first frame at or after 250 ms (300 ms) and writes a 100×49 sRGB PNG
+with square pixels. The output directory must exist. Existing files are not replaced;
+a request beyond the last frame fails without creating an image.
+
 Publish and execute it with Native AOT on Linux x64:
 
 ```sh
-dotnet publish samples/Mediana.Sample -c Release -r linux-x64 -p:Version="$PACKAGE_VERSION" -o artifacts/native/linux-x64
+dotnet publish samples/Mediana.Sample -c Release -r linux-x64 -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -o artifacts/native/linux-x64
 ./artifacts/native/linux-x64/Mediana.Sample --self-test
 ./artifacts/native/linux-x64/Mediana.Sample --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+./artifacts/native/linux-x64/Mediana.Sample --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-native.png 0 250 100 100
 dotnet publish tests/Mediana.NativeTests -c Release -r linux-x64 -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -o artifacts/native-tests/linux-x64
 ./artifacts/native-tests/linux-x64/Mediana.NativeTests
 ```
@@ -76,7 +86,9 @@ Mediana.NativeTests executes internal H.264 I/P reconstruction and public MediaE
 video sessions. Each path compares all visible YUV samples in nineteen pictures
 with the checked-in references. Public sessions also verify timing, cropping,
 sample aspect ratio and allocation release. Its fixture loading and comparison code
-is shared with the unit tests. CI is configured to build and run both native
+is shared with the unit tests. The native checks also compare SDR conversion with
+an independent sRGB reference and decode a square-pixel PNG preview to verify every
+sample, CRC, color tag and pixel aspect ratio. CI is configured to build and run both native
 executables on Linux, Windows and macOS.
 
 ## Reading MP4/MOV
@@ -175,6 +187,44 @@ code per channel. The numerical definitions follow [ITU H.264 Annex E](https://w
 [BT.1886](https://www.itu.int/rec/R-REC-BT.1886/en) and
 [sRGB in CSS Color 4](https://www.w3.org/TR/css-color-4/#predefined-sRGB).
 
+## Creating a PNG preview
+
+With a supported decoded frame and an allocation budget:
+
+```csharp
+using VideoFrame srgb = SrgbConverter.Apply(frame, allocator);
+using VideoFrame preview = DisplayResize.Fit(srgb, maximumWidth: 320, maximumHeight: 180, allocator);
+using MediaBuffer png = PngEncoder.Encode(preview, allocator);
+await output.WriteAsync(png.Memory, cancellationToken);
+```
+
+The additional namespaces are Mediana.Processing, Mediana.Codecs.Png and
+Mediana.Core.Memory. Reference the Mediana.Codecs.Png source project; it is not
+packaged yet. The encoder returns owned PNG bytes and does not open files or streams.
+
+DisplayResize.Fit uses storage width times SAR and the storage height as the
+unscaled display size, fits within the requested box without enlargement, rounds to
+the nearest pixel and produces square pixels. It uses nearest-neighbor sampling,
+preserves color and time, and requires known SAR or an explicit caller interpretation.
+NearestNeighborResize.Apply instead resizes storage and preserves the original SAR.
+Neither operation applies container rotation or edit lists.
+
+PngEncoder accepts straight RGBA32 sRGB with known SAR. It writes non-interlaced
+8-bit RGBA, an sRGB rendering intent and pHYs pixel dimensions, using BCL zlib
+compression and unfiltered scanlines. Alpha is preserved. PNG framing and CRCs follow
+the [PNG specification](https://www.w3.org/TR/png-3/). Encoding reserves a bounded
+output array; the returned buffer exposes its actual encoded length while the
+allocator counts the complete backing capacity. BCL compression workspace is outside
+that budget. Adaptive filters, other pixel layouts, other color encodings and PNG decoding
+are not implemented.
+
+The generated previews from the first and fourth weighted reference pictures were
+read by an independent PNG decoder and compared with independent SDR-to-sRGB output.
+All samples differed by at most one 8-bit code. The fourth picture was selected at
+300 ms for a request at 250 ms. Both previews preserve the source display ratio
+within integer-dimension rounding. Movie rotation and movie-to-media time mapping
+remain open; timestamps used here refer to the original media timeline.
+
 ## Connecting modules
 
 Applications supply container and decoder factories; none are registered implicitly.
@@ -258,7 +308,8 @@ using VideoFrame retained = frame.Retain();
 The relevant namespaces are `Mediana.Core.Memory` and `Mediana.Core.Video`.
 Publishing transfers ownership and invalidates the writable owner. Frames, packets
 and audio frames retain their own read-only lease. `Retain` shares storage without
-copying; every lease must be disposed independently.
+copying; every lease must be disposed independently. Slice returns an independent
+lease over a logical range; the allocator still counts the complete backing array.
 
 Writable owners are single-consumer objects. Borrowed `Memory` or `Span` views must
 not be used after publication/disposal or concurrently with disposal. A retained
@@ -312,14 +363,15 @@ reference results. Corrupted tables, truncated input and resource limits are che
 The Native AOT sample has been built and executed locally on Linux x64.
 The workflow defines build, formatting, tests and native publication/execution on
 Linux, Windows and macOS. Other platform results depend on those CI runs.
-The native sample covers the generated-frame pipeline and reading all packets from
-the two original MP4/MOV fixtures. The separate native tests also verify internal
-and public decoding of nineteen reference pictures from three files. Each future
+The native sample covers the generated-frame pipeline, reading all packets from
+the two original MP4/MOV fixtures and an MP4-to-PNG preview. The separate native tests
+also verify internal and public decoding of nineteen reference pictures from three
+files, SDR conversion and decoded PNG pixels. Each future
 format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking,
 movie-to-stream timeline mapping, arbitrary changes within a coded sequence, display transforms,
-broader color conversion, audio processing, encoding/muxing implementations, scheduling,
+broader color conversion, audio processing, video/audio encoding and muxing, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
 
@@ -335,7 +387,7 @@ dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE
 The library projects depend at runtime only on .NET and other Mediana projects.
 Build analyzers and test tools are development dependencies.
 Packages contain an experimental foundation and the limited MP4/MOV reader described
-above. The experimental H.264 source module is not packaged. APIs may change before 1.0.
+above. The experimental H.264 and PNG source modules are not packaged. APIs may change before 1.0.
 
 | Package | Responsibility |
 | --- | --- |
@@ -345,7 +397,7 @@ above. The experimental H.264 source module is not packaged. APIs may change bef
 | Mediana.Containers | Container contracts |
 | Mediana.Containers.Mp4 | Optional MP4/MOV metadata and packet reader |
 | Mediana.Codecs | Codec contracts |
-| Mediana.Processing | RGBA32 resizing |
+| Mediana.Processing | SDR-to-sRGB conversion and RGBA32 resizing |
 | Mediana.Execution | Sequential video decoding pipeline |
 
 Installing Mediana includes its required modules through NuGet dependencies.
