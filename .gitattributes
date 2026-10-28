@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+*.bin binary
+*.h264 binary
+*.mp4 binary
+*.mov binary
+*.yuv binary
+*.rgba binary
+*.png binary
