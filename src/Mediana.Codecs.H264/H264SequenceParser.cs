@@ -47,6 +47,9 @@ namespace Mediana.Codecs.H264
             int orderType = bits.ReadUe(2);
             int orderBits = 0;
             bool deltaAlwaysZero = false;
+            int nonReferenceOffset = 0;
+            int topToBottomOffset = 0;
+            H264PictureOrderCycle orderCycle = H264PictureOrderCycle.Empty;
             if (orderType == 0)
             {
                 orderBits = bits.ReadUe(12) + 4;
@@ -54,16 +57,18 @@ namespace Mediana.Codecs.H264
             else if (orderType == 1)
             {
                 deltaAlwaysZero = bits.ReadFlag();
-                bits.ReadSe();
-                bits.ReadSe();
+                nonReferenceOffset = bits.ReadSe();
+                topToBottomOffset = bits.ReadSe();
                 int cycle = bits.ReadUe(255);
+                Span<int> offsets = stackalloc int[cycle];
                 for (int index = 0; index < cycle; index++)
                 {
-                    bits.ReadSe();
+                    offsets[index] = bits.ReadSe();
                 }
+                orderCycle = new H264PictureOrderCycle(offsets);
             }
             int references = bits.ReadUe(16);
-            bits.ReadFlag();
+            bool gapsAllowed = bits.ReadFlag();
             int widthMbs = checked(bits.ReadUe(65535) + 1);
             int heightMapUnits = checked(bits.ReadUe(65535) + 1);
             bool frameOnly = bits.ReadFlag();
@@ -108,7 +113,11 @@ namespace Mediana.Codecs.H264
                 PictureOrderType = orderType,
                 PictureOrderBits = orderBits,
                 DeltaPictureOrderAlwaysZero = deltaAlwaysZero,
+                NonReferencePictureOrderOffset = nonReferenceOffset,
+                TopToBottomPictureOrderOffset = topToBottomOffset,
+                PictureOrderCycle = orderCycle,
                 ReferenceFrames = references,
+                FrameNumberGapsAllowed = gapsAllowed,
                 Vui = vui,
                 WidthInMbs = widthMbs,
                 HeightInMapUnits = heightMapUnits,

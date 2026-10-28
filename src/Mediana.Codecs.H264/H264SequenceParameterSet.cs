@@ -16,7 +16,11 @@ namespace Mediana.Codecs.H264
         public int PictureOrderType { get; init; }
         public int PictureOrderBits { get; init; }
         public bool DeltaPictureOrderAlwaysZero { get; init; }
+        public int NonReferencePictureOrderOffset { get; init; }
+        public int TopToBottomPictureOrderOffset { get; init; }
+        public H264PictureOrderCycle PictureOrderCycle { get; init; } = H264PictureOrderCycle.Empty;
         public int ReferenceFrames { get; init; }
+        public bool FrameNumberGapsAllowed { get; init; }
         public H264VuiParameters? Vui { get; init; }
         public int WidthInMbs { get; init; }
         public int HeightInMapUnits { get; init; }
