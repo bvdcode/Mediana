@@ -91,6 +91,11 @@ sample aspect ratio and allocation release. Its fixture loading and comparison c
 is shared with the unit tests. The native checks also compare SDR conversion with
 an independent sRGB reference and decode a square-pixel PNG preview to verify every
 sample, CRC, color tag and pixel aspect ratio, including the rotated MP4 fixture.
+Internal CABAC decision, bypass and termination arithmetic is checked against a
+separate arbitrary-precision interval writer that shares the normative probability
+constants. These arithmetic components and checks are adapted from the MIT-licensed
+[Heic.NET](https://github.com/bvdcode/Heic.NET), with H.264 context initialization
+and bit reading. CABAC slice reconstruction remains unsupported.
 CI is configured to build and run both native
 executables on Linux, Windows and macOS.
 

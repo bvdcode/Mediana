@@ -8,6 +8,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            H264CabacTestInput.VerifyMixedBins();
+            Console.WriteLine("PASS H.264 CABAC arithmetic: mixed decision, bypass and termination bins match exact intervals.");
             (string Name, string Extension, int Packet)[] cases =
                 [("avc-tail", ".mov", 0), ("avc-tail", ".mov", 1), ("avc-tail", ".mov", 2),
                     ("avc-tail", ".mov", 3), ("avc-tail", ".mov", 4), ("avc-tail", ".mov", 5), ("avc-cropped", ".mp4", 0)];

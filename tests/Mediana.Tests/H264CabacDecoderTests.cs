@@ -8,6 +8,9 @@ namespace Mediana.Tests
     public class H264CabacDecoderTests
     {
         [Fact]
+        public void MixedBinsMatchTheExactIntervalWriter() => H264CabacTestInput.VerifyMixedBins();
+
+        [Fact]
         public void MostProbableDecisionAdvancesStateWithoutRenormalizing()
         {
             H264BitReader reader = new([0, 0]);
