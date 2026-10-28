@@ -8,8 +8,9 @@ The current implementation is experimental. It reads metadata and compressed pac
 non-fragmented MP4/MOV files containing AVC/AAC tracks. The H.264 source module
 connects limited CAVLC/CABAC I/P decoding to public video sessions and returns cropped YUV frames.
 The sample can extract a supported video frame, convert SDR color to sRGB, correct
-the sample aspect ratio and right-angle orientation, and save a PNG preview. **B pictures, audio decoding,
-video/audio encoding and muxing are not available yet.**
+the sample aspect ratio and right-angle orientation, and save a PNG preview.
+An experimental MPEG-TS source module packages AVC/AAC access units without decoding.
+**B-picture decoding, audio decoding and video/audio encoding are not available yet.**
 
 ## Components
 
@@ -19,6 +20,7 @@ video/audio encoding and muxing are not available yet.**
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
+| `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC transport-stream writer; source project only |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P decoder factory, picture ordering and cropped YUV output; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
@@ -302,6 +304,61 @@ one code per channel. The High CAVLC and CABAC 8x8 fixtures also select 500 ms a
 produce square-pixel 100×50 PNGs within one code of their independent sRGB references.
 Unit tests and Native AOT execute the same preview checks.
 
+## Writing an MPEG-TS program
+
+Reference the Mediana.Containers.MpegTs source project and configure the output
+with one to sixteen AVC/AAC streams. The module depends on container/core
+contracts and does not require a video or audio decoder.
+
+```csharp
+await using MpegTsWriter writer = MpegTsWriter.Create(output, reader.Streams, allocator);
+while (await reader.ReadPacketAsync(cancellationToken) is MediaPacket packet)
+{
+    using (packet)
+    {
+        await writer.WritePacketAsync(packet, cancellationToken);
+    }
+}
+await writer.CompleteAsync(cancellationToken);
+```
+
+The namespaces are Mediana.Containers.MpegTs and Mediana.Core. Input packets
+contain one complete access unit with explicit PTS and DTS. Decode timestamps
+must increase within each track and must not decrease across calls. The writer
+rescales to the 90 kHz clock with nearest-even rounding and adds the same
+configurable offset to all timestamps; the default is one second. Timestamps
+must leave a 100 ms lead for the program clock. Gaps above the configured limit
+(default sixty seconds) require a new writer.
+
+AVC requires a length-prefixed configuration and an initial IDR access unit on
+each video track. The writer converts NAL lengths to Annex B delimiters, writes
+access-unit delimiters and repeats configured SPS/PPS before IDR pictures.
+Changing parameter sets, data partitioning and AVC extensions are unsupported.
+B pictures can be copied as compressed data. AAC requires AAC-LC, indexed sample
+rates, channel configurations 1 through 7 and 1024-sample frames; each raw access
+unit is wrapped in one ADTS frame. HE-AAC, program-config elements and other
+audio codecs are unsupported.
+
+The output carries PAT/PMT, separate PES timestamps, continuity counters,
+adaptation stuffing and PCRs at intervals no greater than 40 ms. Writes work on
+a non-seekable Stream, borrow its lifetime and use the supplied allocator for
+transport/PES scratch storage and framed access units. CompleteAsync flushes
+without closing the destination. Any failed operation faults the writer and
+releases its buffers; unfinished or failed output must be discarded.
+
+The writer uses the caller's timeline. In particular, the MP4 reader exposes
+media timestamps before edit-list mapping. Passing them directly copies that
+media timeline; movie edits, audio priming/discard metadata and container display
+matrices are not represented by this TS operation. It does not yet define HLS
+segment boundaries, seek or playlists.
+
+Tests remux three real MP4/MOV inputs, including AVC with reordered timestamps,
+AAC and a High CABAC video-only stream. They compare every compressed slice and
+AAC access unit, shifted PTS/DTS, program tables, PCR cadence, counters and
+buffer release in managed execution and Linux Native AOT. Exact byte vectors
+also cover framing, CRC, timestamp markers and packet-boundary stuffing.
+The transport syntax follows [ITU-T H.222.0](https://www.itu.int/rec/T-REC-H.222.0-201410-S/en).
+
 ## Connecting modules
 
 Applications supply container and decoder factories; none are registered implicitly.
@@ -448,7 +505,7 @@ format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking,
 movie-to-stream timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
-broader color conversion, audio processing, video/audio encoding and muxing, scheduling,
+broader color conversion, audio processing, video/audio encoding, other muxers, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
 

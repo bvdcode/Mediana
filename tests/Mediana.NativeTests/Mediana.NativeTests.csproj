@@ -13,6 +13,8 @@
     <ProjectReference Include="../../src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.MpegTs/Mediana.Containers.MpegTs.csproj" />
+    <Compile Include="../Shared/MpegTsTestInput.cs" Link="MpegTsTestInput.cs" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/H264EightByEightTestInput.cs" Link="H264EightByEightTestInput.cs" />
     <Compile Include="../Shared/H264CabacTransformTestInput.cs" Link="H264CabacTransformTestInput.cs" />

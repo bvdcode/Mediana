@@ -16,6 +16,11 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov", "avc-cabac-8x8-2.mp4" })
+            {
+                await MpegTsTestInput.VerifyAsync(root, file);
+            }
+            Console.WriteLine("PASS MPEG-TS remux: AVC/AAC access units, PTS/DTS, PAT/PMT, PCR cadence, continuity and released buffers match.");
             await H264CabacTransformTestInput.VerifyContextsAsync(h264Root);
             await H264CabacTransformTestInput.VerifyResidualsAsync(h264Root, root);
             Console.WriteLine("PASS H.264 CABAC 8x8: all 7072 initial states and every residual position match normative references and exact intervals.");
