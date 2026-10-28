@@ -19,29 +19,8 @@ namespace Mediana.Codecs.H264
 
         public int ReadType(ref H264BitReader bits, int address)
         {
-            int context = 3 + state.TypeCondition(state.Left(address)) + state.TypeCondition(state.Top(address));
-            if (!reader.Read(ref bits, context))
-            {
-                return 0;
-            }
-            if (reader.Termination(ref bits))
-            {
-                return 25;
-            }
-            int type = reader.Read(ref bits, 6) ? 13 : 1;
-            if (reader.Read(ref bits, 7))
-            {
-                type += reader.Read(ref bits, 8) ? 8 : 4;
-            }
-            if (reader.Read(ref bits, 9))
-            {
-                type += 2;
-            }
-            if (reader.Read(ref bits, 10))
-            {
-                type++;
-            }
-            return type;
+            int context = state.TypeCondition(state.Left(address)) + state.TypeCondition(state.Top(address));
+            return H264CabacMacroblockSyntax.ReadIntraType(ref bits, reader, context);
         }
 
         public void ReadPrediction(ref H264BitReader bits, H264SliceHeader header, int address, int type)

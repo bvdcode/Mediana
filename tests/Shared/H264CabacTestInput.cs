@@ -107,7 +107,7 @@ namespace Mediana.Tests
                 throw new InvalidDataException("The H.264 predictive reference has unexpected slice syntax.");
             }
             H264CabacReader reader = new(ref bits, header);
-            if (reader.Read(ref bits, 11) || reader.Read(ref bits, 14) || reader.Read(ref bits, 15) || reader.Read(ref bits, 16))
+            if (H264CabacMacroblockSyntax.ReadSkip(ref bits, reader, 0) || H264CabacMacroblockSyntax.ReadPredictiveType(ref bits, reader) != 0)
             {
                 throw new InvalidDataException("The H.264 predictive reference does not start with the expected non-skipped 16x16 partition.");
             }

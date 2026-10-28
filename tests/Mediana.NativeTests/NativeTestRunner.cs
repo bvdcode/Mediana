@@ -21,6 +21,11 @@ namespace Mediana.NativeTests
             await H264CabacTestInput.VerifyPredictiveContextStatesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
             await H264CabacTestInput.VerifyRealPredictivePrefixAsync(root);
             Console.WriteLine("PASS H.264 CABAC predictive initialization: 252 contexts at 52 quantizers, three initialization selections and the real P prefix match.");
+            for (int initialization = 0; initialization < 3; initialization++)
+            {
+                await H264CabacPredictionTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"), root, initialization);
+            }
+            Console.WriteLine("PASS H.264 CABAC P syntax: skip, macroblock/subblock types, reference indices and signed motion differences match exact intervals.");
             await H264CabacTestInput.VerifyIntraPicturesAsync(root);
             Console.WriteLine("PASS H.264 CABAC intra pictures: seven independent filtered YUV references and storage release match.");
             using (H264ReferenceBuffer references = new())

@@ -105,6 +105,9 @@ real CABAC IDR. P-slice initialization is checked for 252 contexts, all 52 quant
 and all three initialization selections; the first real non-skipped P partition
 matches an independent macroblock trace. The shared residual reader is checked
 against exact intervals with I and all P initialization selections.
+Internal P-slice syntax checks cover skip flags, all 30 permitted macroblock types,
+the four sub-macroblock types, reference indices and signed motion differences,
+including unary/Exp-Golomb boundaries and invalid precision/reference limits.
 Real I/P slice headers match an independent header trace.
 Internal CABAC reconstruction also matches seven independent filtered YUV pictures,
 including mixed 4x4/16x16 intra prediction, cropping and nonzero deblocking offsets.

@@ -16,6 +16,7 @@
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/H264CabacIntervalWriter.cs" Link="H264CabacIntervalWriter.cs" />
     <Compile Include="../Shared/H264CabacTestInput.cs" Link="H264CabacTestInput.cs" />
+    <Compile Include="../Shared/H264CabacPredictionTestInput.cs" Link="H264CabacPredictionTestInput.cs" />
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
     <Compile Include="../Shared/CabacPreviewTestInput.cs" Link="CabacPreviewTestInput.cs" />
