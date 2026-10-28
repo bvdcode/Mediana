@@ -4,9 +4,9 @@ Mediana is an MIT-licensed multimedia library under development for .NET 10.
 Its media implementation is written in C#, with no FFmpeg, external media processes,
 native media libraries, or third-party runtime packages.
 
-The current release is experimental. It reads metadata and compressed packets from
+The current implementation is experimental. It reads metadata and compressed packets from
 non-fragmented MP4/MOV files containing AVC/AAC tracks.
-**Compressed video/audio decoding and encoding are not implemented yet.**
+**Public compressed video/audio decoding and encoding are not available yet.**
 The sample can inspect real MP4/MOV inputs and run a separate generated RGBA example.
 
 ## Components
@@ -18,7 +18,7 @@ The sample can inspect real MP4/MOV inputs and run a separate generated RGBA exa
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
-| `Mediana.Codecs.H264` | AVC parameter-set parsing and CAVLC coefficient primitives under development; no decoder or package yet |
+| `Mediana.Codecs.H264` | Experimental AVC parsing and internal CAVLC IDR picture reconstruction; no public decoder or package yet |
 | `Mediana.Processing` | Nearest-neighbor resizing of RGBA32 storage |
 | `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video sessions |
@@ -26,6 +26,12 @@ The sample can inspect real MP4/MOV inputs and run a separate generated RGBA exa
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
+
+The H.264 work currently reconstructs single-slice progressive 8-bit 4:2:0 IDR
+pictures with CAVLC and default scaling, including intra prediction, inverse
+transforms, PCM blocks and deblocking. Three decoded reference pictures match
+sample for sample, including a cropped picture. Inter pictures, CABAC and public
+decoder integration remain open, so file preview extraction is not available yet.
 
 ## Build and run
 

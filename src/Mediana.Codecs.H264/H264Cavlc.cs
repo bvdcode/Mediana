@@ -2,7 +2,7 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264Cavlc
     {
-        public static int Read(ref H264BitReader bits, Span<int> coefficients, int neighborCount,
+        public static int Read(ref H264BitReader bits, scoped Span<int> coefficients, int neighborCount,
             int maximumPrefix = 19)
         {
             int maximum = coefficients.Length;
