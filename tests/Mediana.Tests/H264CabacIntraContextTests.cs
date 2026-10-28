@@ -27,15 +27,15 @@ namespace Mediana.Tests
         [Theory]
         [InlineData(false, false)]
         [InlineData(true, true)]
-        public async Task RejectsOtherEntropyModesAndPredictiveSlicesBeforeReading(bool cabac, bool predictive)
+        public async Task RejectsOtherEntropyModesAndUnsupportedSlicesBeforeReading(bool cabac, bool unsupported)
         {
             (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-tail.mov"), 0);
             H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
             header = header with { Picture = header.Picture with { Cabac = cabac } };
-            if (predictive)
+            if (unsupported)
             {
-                header = header with { Kind = H264SliceKind.P };
+                header = header with { Kind = H264SliceKind.B };
             }
             Assert.Throws<NotSupportedException>(() => Initialize(header));
         }
@@ -43,7 +43,7 @@ namespace Mediana.Tests
         private static void Initialize(H264SliceHeader header)
         {
             H264BitReader bits = new([]);
-            _ = new H264CabacIntraReader(ref bits, header);
+            _ = new H264CabacReader(ref bits, header);
         }
     }
 }

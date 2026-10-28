@@ -90,10 +90,26 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException("The H.264 intra reference has unexpected slice syntax.");
             }
-            H264CabacIntraReader reader = new(ref bits, header);
+            H264CabacReader reader = new(ref bits, header);
             if (reader.Read(ref bits, 3) || reader.Read(ref bits, 399))
             {
                 throw new InvalidDataException("The H.264 intra reference does not start with the expected 4x4 intra macroblock.");
+            }
+        }
+
+        public static async Task VerifyRealPredictivePrefixAsync(string root)
+        {
+            (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, "avc-aac.mp4"), 1);
+            H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
+            H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+            if (!header.Picture.Cabac || header.Kind != H264SliceKind.P || header.Qp != 25 || header.CabacInitIdc != 0)
+            {
+                throw new InvalidDataException("The H.264 predictive reference has unexpected slice syntax.");
+            }
+            H264CabacReader reader = new(ref bits, header);
+            if (reader.Read(ref bits, 11) || reader.Read(ref bits, 14) || reader.Read(ref bits, 15) || reader.Read(ref bits, 16))
+            {
+                throw new InvalidDataException("The H.264 predictive reference does not start with the expected non-skipped 16x16 partition.");
             }
         }
 

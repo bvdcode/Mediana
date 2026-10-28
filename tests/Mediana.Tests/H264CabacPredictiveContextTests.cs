@@ -8,6 +8,10 @@ namespace Mediana.Tests
         public async Task EveryPredictiveContextInitializationAndQuantizerMatchesTheNormativeReference() =>
             await H264CabacTestInput.VerifyPredictiveContextStatesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
 
+        [Fact]
+        public async Task ReadsTheRealPredictiveSliceThroughAlignedInitializedContexts() =>
+            await H264CabacTestInput.VerifyRealPredictivePrefixAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
+
         [Theory]
         [InlineData(-1)]
         [InlineData(0)]

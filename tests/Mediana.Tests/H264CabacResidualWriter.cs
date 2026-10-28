@@ -2,9 +2,9 @@ using Mediana.Codecs.H264;
 
 namespace Mediana.Tests
 {
-    internal class H264CabacResidualWriter(int qp, byte[] initialStates)
+    internal class H264CabacResidualWriter(int qp, byte[] initialStates, int initialization = -1)
     {
-        private readonly H264CabacIntervalWriter writer = Create(qp, initialStates);
+        private readonly H264CabacIntervalWriter writer = Create(qp, initialStates, initialization);
 
         public void QuantizerDelta(int delta, bool previousNonzero)
         {
@@ -85,13 +85,19 @@ namespace Mediana.Tests
 
         private void Bin(bool value, int index) => writer.Decision(value, index, 0, 0);
 
-        private static H264CabacIntervalWriter Create(int qp, byte[] initialStates)
+        private static H264CabacIntervalWriter Create(int qp, byte[] initialStates, int initialization)
         {
             H264CabacIntervalWriter result = new(qp);
-            int[] indices = Enumerable.Range(3, 8).Concat(Enumerable.Range(60, 216)).Concat(Enumerable.Range(399, 3)).ToArray();
+            int[] indices = initialization switch
+            {
+                -1 => Enumerable.Range(3, 8).Concat(Enumerable.Range(60, 216)).Concat(Enumerable.Range(399, 3)).ToArray(),
+                >= 0 and <= 2 => Enumerable.Range(11, 13).Concat(Enumerable.Range(40, 236)).Concat(Enumerable.Range(399, 3)).ToArray(),
+                _ => throw new ArgumentOutOfRangeException(nameof(initialization))
+            };
+            int offset = (Math.Max(0, initialization) * 52 + qp) * indices.Length;
             for (int index = 0; index < indices.Length; index++)
             {
-                result.Initialize(indices[index], initialStates[qp * indices.Length + index]);
+                result.Initialize(indices[index], initialStates[offset + index]);
             }
             return result;
         }

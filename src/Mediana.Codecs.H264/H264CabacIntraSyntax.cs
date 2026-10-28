@@ -1,6 +1,6 @@
 namespace Mediana.Codecs.H264
 {
-    internal class H264CabacIntraSyntax(H264CabacIntraReader reader, H264Picture target, H264CabacIntraState state) : IH264ResidualReader
+    internal class H264CabacIntraSyntax(H264CabacReader reader, H264Picture target, H264CabacIntraState state) : IH264ResidualReader
     {
         private int previousDelta;
 

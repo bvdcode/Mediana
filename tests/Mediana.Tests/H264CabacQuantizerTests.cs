@@ -22,7 +22,7 @@ namespace Mediana.Tests
             }
             writer.QuantizerDelta(0, false);
             H264BitReader bits = new(writer.Finish());
-            H264CabacIntraReader reader = new(ref bits, header);
+            H264CabacReader reader = new(ref bits, header);
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264Picture target = new(header.Sequence, allocator))
             using (H264CabacIntraState state = new(header.Sequence, allocator))

@@ -101,7 +101,11 @@ constants. These arithmetic components and checks are adapted from the MIT-licen
 [Heic.NET](https://github.com/bvdcode/Heic.NET), with H.264 context initialization
 and bit reading. Internal checks also compare 227 I-slice contexts at every 8-bit
 quantizer with a separate initialization reference and read the beginning of a
-real CABAC IDR. Real I/P slice headers match an independent header trace.
+real CABAC IDR. P-slice initialization is checked for 252 contexts, all 52 quantizers
+and all three initialization selections; the first real non-skipped P partition
+matches an independent macroblock trace. The shared residual reader is checked
+against exact intervals with I and all P initialization selections.
+Real I/P slice headers match an independent header trace.
 Internal CABAC reconstruction also matches seven independent filtered YUV pictures,
 including mixed 4x4/16x16 intra prediction, cropping and nonzero deblocking offsets.
 The public decoder accepts supported CABAC configurations and decodes I pictures.

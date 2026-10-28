@@ -18,7 +18,7 @@ namespace Mediana.Codecs.H264
             try
             {
                 using H264CabacIntraState state = new(header.Sequence, allocator);
-                H264CabacIntraReader reader = new(ref bits, header);
+                H264CabacReader reader = new(ref bits, header);
                 H264CabacIntraSyntax syntax = new(reader, result, state);
                 int qp = header.Qp;
                 for (int address = 0; address < result.Quantizers.Length; address++)

@@ -3,7 +3,7 @@ namespace Mediana.Codecs.H264
     /// <summary>Reads progressive 4:2:0 transform coefficients in scan order under H.264 clause 7.3.5.3.3.</summary>
     internal static class H264CabacResidual
     {
-        public static int Read(ref H264BitReader bits, H264CabacIntraReader reader,
+        public static int Read(ref H264BitReader bits, H264CabacReader reader,
             H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients)
         {
             (int count, int significantOffset, int levelOffset) = category switch
@@ -81,7 +81,7 @@ namespace Mediana.Codecs.H264
             return total;
         }
 
-        private static int ReadExpGolomb(ref H264BitReader bits, H264CabacIntraReader reader)
+        private static int ReadExpGolomb(ref H264BitReader bits, H264CabacReader reader)
         {
             int order = 0;
             int value = 0;
