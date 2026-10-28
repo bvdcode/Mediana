@@ -52,3 +52,18 @@ visible size of 78x46 at QP 39. Its SHA256 is
 ffmpeg -v error -nostdin -f lavfi -i testsrc2=size=78x46:rate=1:duration=1 -map_metadata -1 -c:v libx264 -profile:v baseline -qp 39 -bf 0 -an avc-cropped.mp4
 ffmpeg -v error -i avc-cropped.mp4 -frames:v 1 -pix_fmt yuv420p -f rawvideo avc-cropped.frame0.yuv
 ```
+
+`avc-weighted.mp4` contains twelve Main-profile CAVLC I/P pictures with a fading
+test pattern, weighted prediction, four stored references, nonzero deblocking
+offsets, BT.709 limited-range metadata and a 4:3 sample aspect ratio. The coded
+size is 96x64; the visible size is 94x62. Its SHA256 is
+`575889762181d65817349b14b2bd74e06e6b32425a8ad6927fb2b7879396c555`.
+The picture sequence also exercises fractional motion, small partitions and
+explicit reference-list changes. `avc-weighted.sequence.yuv` contains all twelve
+filtered visible pictures in packed Y, Cb, Cr order (8742 bytes per picture), SHA256
+`5f42c51a79b91870aff4ab2e7af6fe1c9a98d74bc71a101e8b353ed2ec8781d1`.
+
+```sh
+ffmpeg -v error -nostdin -y -f lavfi -i testsrc2=size=94x62:rate=10:duration=1.2 -vf "fade=t=out:st=0:d=1.2,setsar=4/3" -map_metadata -1 -c:v libx264 -profile:v main -coder:v vlc -pix_fmt yuv420p -bf 0 -refs 4 -g 48 -qp 24 -x264-params "weightp=2:8x8dct=0:partitions=all:subme=8:deblock=2,1:scenecut=0" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an avc-weighted.mp4
+ffmpeg -v error -nostdin -y -i avc-weighted.mp4 -pix_fmt yuv420p -f rawvideo avc-weighted.sequence.yuv
+```

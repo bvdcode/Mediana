@@ -30,8 +30,9 @@ and codecs do not perform I/O. The public facade composes these contracts.
 The H.264 work currently reconstructs single-slice progressive 8-bit 4:2:0 I/P
 pictures with CAVLC and default scaling, including motion compensation, reference
 picture management, intra prediction, inverse transforms, PCM blocks and deblocking.
-A complete six-picture Baseline sequence and one cropped IDR picture match the
-independent filtered YUV references sample for sample. CABAC, B pictures and public
+Two complete Baseline/Main CAVLC sequences and one cropped IDR picture match the
+independent filtered YUV references sample for sample (nineteen pictures total).
+The Main sequence includes explicit prediction weights and reference-list changes. CABAC, B pictures and public
 decoder integration remain open, so file preview extraction is not available yet.
 
 ## Build and run
@@ -69,10 +70,10 @@ one OS/architecture and still uses standard OS runtime facilities.
 See the [.NET Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
 
 Mediana.NativeTests executes internal H.264 I/P reconstruction and compares all
-visible YUV samples in seven pictures with the checked-in references. It also
+visible YUV samples in nineteen pictures with the checked-in references. It also
 checks that picture allocations are released. Its fixture loading and comparison
-code is shared with the unit tests. CI builds and runs both native executables
-on Linux, Windows and macOS.
+code is shared with the unit tests. CI is configured to build and run both native
+executables on Linux, Windows and macOS.
 
 ## Reading MP4/MOV
 

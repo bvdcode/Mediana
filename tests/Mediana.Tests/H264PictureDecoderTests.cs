@@ -22,6 +22,47 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public async Task WeightedMainSequencePreservesCropColorAspectRatioAndAllSamples()
+        {
+            byte[] expected = await Mp4TestData.ReadAsync("avc-weighted.sequence.yuv");
+            const int frameBytes = 94 * 62 * 3 / 2;
+            Assert.Equal(12 * frameBytes, expected.Length);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            int weightedFrames = 0;
+            using (H264ReferenceBuffer references = new())
+            {
+                for (int index = 0; index < 12; index++)
+                {
+                    (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-weighted.mp4"), index);
+                    H264SequenceParameterSet sequence = Assert.Single(configuration.Sequences.Values);
+                    Assert.Equal(77, sequence.Profile);
+                    Assert.Equal(96, sequence.CodedWidth);
+                    Assert.Equal(64, sequence.CodedHeight);
+                    Assert.Equal(94, sequence.Width);
+                    Assert.Equal(62, sequence.Height);
+                    H264VuiParameters vui = Assert.IsType<H264VuiParameters>(sequence.Vui);
+                    Assert.Equal(4, vui.AspectRatioWidth);
+                    Assert.Equal(3, vui.AspectRatioHeight);
+                    Assert.Equal(1, vui.ColorPrimaries);
+                    Assert.Equal(1, vui.TransferCharacteristics);
+                    Assert.Equal(1, vui.MatrixCoefficients);
+                    Assert.False(vui.FullRange);
+                    H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
+                    H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+                    Assert.Equal(4, header.AlphaOffset);
+                    Assert.Equal(2, header.BetaOffset);
+                    if (header.Weights is not null)
+                    {
+                        weightedFrames++;
+                    }
+                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, allocator, expected.AsSpan(index * frameBytes, frameBytes));
+                }
+            }
+            Assert.Equal(11, weightedFrames);
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public async Task DamagedPFramesReleaseCurrentStorageAndPreserveReferences()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);

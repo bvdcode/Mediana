@@ -13,5 +13,7 @@
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-tail.mov;../Mediana.Tests/Data/Mp4/avc-tail.frame*.yuv;../Mediana.Tests/Data/Mp4/avc-cropped.mp4;../Mediana.Tests/Data/Mp4/avc-cropped.frame0.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-weighted.mp4;../Mediana.Tests/Data/Mp4/avc-weighted.sequence.yuv"
+          Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

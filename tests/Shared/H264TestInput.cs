@@ -18,7 +18,7 @@ namespace Mediana.Tests
             bool stored = false;
             try
             {
-                VerifyPicture(picture, expected);
+                VerifyPicture(picture, expected, header.FrameNumber);
                 references.Store(picture, header);
                 stored = true;
             }
@@ -79,7 +79,7 @@ namespace Mediana.Tests
             }
         }
 
-        public static void VerifyPicture(H264Picture picture, ReadOnlySpan<byte> expected)
+        public static void VerifyPicture(H264Picture picture, ReadOnlySpan<byte> expected, int? frameNumber = null)
         {
             int offset = 0;
             for (int plane = 0; plane < 3; plane++)
@@ -94,7 +94,7 @@ namespace Mediana.Tests
                     ReadOnlySpan<byte> decoded = picture.Plane(plane).Slice((cropY + row) * picture.Stride(plane) + cropX, width);
                     if (width > expected.Length - offset || !decoded.SequenceEqual(expected.Slice(offset, width)))
                     {
-                        throw new InvalidDataException($"H.264 reference mismatch in plane {plane}, row {row}.");
+                        throw new InvalidDataException($"H.264 reference mismatch in frame {frameNumber}, plane {plane}, row {row}.");
                     }
                     offset += width;
                 }
