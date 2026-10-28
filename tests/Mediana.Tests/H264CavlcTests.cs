@@ -47,6 +47,34 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void LongRunKeepsTheFirstCoefficientAtTheStartOfTheScan()
+        {
+            H264BitReader bits = new(H264TestBits.Rbsp("001 01 000000 00000000001"));
+            int[] coefficients = new int[16];
+            Assert.Equal(2, H264Cavlc.Read(ref bits, coefficients, 0));
+            Assert.Equal(-1, coefficients[0]);
+            Assert.Equal(1, coefficients[15]);
+            Assert.Equal(2, coefficients.Count(value => value != 0));
+            bits.ReadTrailingBits();
+        }
+
+        [Theory]
+        [InlineData(7, "0001")]
+        [InlineData(8, "00001")]
+        [InlineData(9, "000001")]
+        [InlineData(10, "0000001")]
+        [InlineData(11, "00000001")]
+        [InlineData(12, "000000001")]
+        [InlineData(13, "0000000001")]
+        [InlineData(14, "00000000001")]
+        public void LongRunCodesMatchTheNormativeTable(int run, string code)
+        {
+            H264BitReader bits = new(H264TestBits.Rbsp(code));
+            Assert.Equal(run, H264CavlcTables.RunBefore[6].Read(ref bits));
+            bits.ReadTrailingBits();
+        }
+
+        [Fact]
         public void ReadsChromaDcWithItsOwnCoefficientAndZeroTables()
         {
             H264BitReader bits = new(H264TestBits.Rbsp("001 01 01 0"));
