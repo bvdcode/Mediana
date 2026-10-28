@@ -147,11 +147,10 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("The H.264 first macroblock is outside the picture.");
             }
-            if (!sequence.FrameMbsOnly || picture.Cabac || sequence.ChromaFormat != 1 || sequence.SeparateColourPlane ||
-                sequence.LumaBitDepth != 8 || sequence.ChromaBitDepth != 8 || sequence.ScalingMatrix ||
-                sequence.TransformBypass || picture.Transform8x8)
+            string? reason = H264Support.GetUnsupportedReason(sequence, picture);
+            if (reason is not null)
             {
-                throw new NotSupportedException("Reconstruction currently requires progressive 8-bit 4:2:0 CAVLC slices with default scaling.");
+                throw new NotSupportedException(reason);
             }
         }
     }
