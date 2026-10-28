@@ -1,0 +1,10 @@
+workflow: GitHubFlow/v1
+next-version: 0.1.0
+increment: Patch
+commit-message-incrementing: Disabled
+branches:
+  main:
+    mode: ContinuousDeployment
+    label: ''
+    increment: Patch
+    track-merge-message: false

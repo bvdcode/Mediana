@@ -30,8 +30,10 @@ and codecs do not perform I/O. The public facade composes these contracts.
 Install a .NET 10 SDK. The repository accepts newer .NET 10 feature bands.
 
 ```sh
+dotnet tool restore
+PACKAGE_VERSION=$(dotnet gitversion /showvariable SemVer)
 dotnet restore Mediana.slnx
-dotnet build Mediana.slnx -c Release --no-restore
+dotnet build Mediana.slnx -c Release --no-restore -p:Version="$PACKAGE_VERSION"
 dotnet test Mediana.slnx -c Release --no-build --no-restore
 dotnet format Mediana.slnx --verify-no-changes --no-restore
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
@@ -44,7 +46,7 @@ that all leased buffer bytes have been released. It does not open a video file.
 Publish and execute it with Native AOT on Linux x64:
 
 ```sh
-dotnet publish samples/Mediana.Sample -c Release -r linux-x64 -o artifacts/native/linux-x64
+dotnet publish samples/Mediana.Sample -c Release -r linux-x64 -p:Version="$PACKAGE_VERSION" -o artifacts/native/linux-x64
 ./artifacts/native/linux-x64/Mediana.Sample --self-test
 ```
 
@@ -185,13 +187,49 @@ quality comparison against another media implementation has been established.
 ## Packages
 
 ```sh
-dotnet pack Mediana.slnx -c Release --no-build --no-restore -o artifacts/packages
+dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE_VERSION" -o artifacts/packages
 ```
 
 The library projects depend at runtime only on .NET and other Mediana projects.
 Build analyzers and test tools are development dependencies.
-The current packages are local development artifacts, not a published compatibility
-or format-support commitment.
+Packages contain an experimental foundation without production file containers
+or compressed codecs. APIs may change before 1.0.
+
+| Package | Responsibility |
+| --- | --- |
+| Mediana | Public facade and module registration |
+| Mediana.Core | Time, packets, frames and buffer ownership |
+| Mediana.IO | Byte sources and probe replay |
+| Mediana.Containers | Container contracts |
+| Mediana.Codecs | Codec contracts |
+| Mediana.Processing | RGBA32 resizing |
+| Mediana.Execution | Sequential video decoding pipeline |
+
+Installing Mediana includes its required modules through NuGet dependencies.
+Mediana.Processing is an optional separate package. All packages share one version.
+
+### Publishing
+
+GitVersion computes the version from Git history and release tags using
+[GitVersion.yml](GitVersion.yml). All library packages use the same computed version
+for both compilation and packing. Ordinary releases advance the patch version;
+minor and major changes require an explicit versioning decision.
+
+Pushes to main run build, formatting, tests and Native AOT checks on Linux, Windows
+and macOS. After all checks pass, the workflow publishes the packages and symbols
+to NuGet.org, then creates a GitHub release with the matching tag, package assets
+and generated release notes. The published artifacts are the packages produced
+by the validated build. Pull requests run checks without publishing.
+
+Manual runs validate by default; enable the publish input to publish from main.
+Authentication uses [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing).
+Set the NUGET_USER repository variable to the NuGet profile username. Configure
+the matching NuGet policy for repository bvdcode/Mediana, workflow file
+publish-release.yml, environment nuget, and package patterns Mediana and Mediana.*
+with permission to push new packages and versions.
+
+Re-running a partially completed publication skips existing package versions and
+GitHub releases. Package IDs become assigned after successful publication.
 
 ## License
 
