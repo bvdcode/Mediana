@@ -7,6 +7,7 @@
     <Project Path="src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
     <Project Path="src/Mediana.Codecs/Mediana.Codecs.csproj" />
     <Project Path="src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
+    <Project Path="src/Mediana.Containers.MpegTs/Mediana.Containers.MpegTs.csproj" />
     <Project Path="src/Mediana.Containers/Mediana.Containers.csproj" />
     <Project Path="src/Mediana.Core/Mediana.Core.csproj" />
     <Project Path="src/Mediana.Execution/Mediana.Execution.csproj" />
