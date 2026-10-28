@@ -26,7 +26,8 @@ namespace Mediana
         public IReadOnlyList<string> VideoDecoderImplementations { get; }
 
         /// <summary>Opens the explicitly selected stream. Borrows the byte source until the returned session is disposed.
-        /// Opening consumes source bytes even on failure. No implicit rewind or temporary file is used.</summary>
+        /// Sequential sources are consumed even on failure. Random access sources open at their origin
+        /// without changing the caller's sequential position. No temporary file is used.</summary>
         public async ValueTask<VideoSession> OpenVideoAsync(IByteSource source, int streamIndex,
             MediaOpenOptions? options = null, CancellationToken cancellationToken = default)
         {
@@ -49,7 +50,9 @@ namespace Mediana
             int read = 0;
             while (read < probeLength)
             {
-                int count = await source.ReadAsync(writable.Memory[read..], cancellationToken).ConfigureAwait(false);
+                int count = source is IRandomAccessByteSource randomSource
+                    ? await randomSource.ReadAtAsync(read, writable.Memory[read..], cancellationToken).ConfigureAwait(false)
+                    : await source.ReadAsync(writable.Memory[read..], cancellationToken).ConfigureAwait(false);
                 if (count < 0 || count > probeLength - read)
                 {
                     throw new InvalidDataException("The source returned an invalid read length.");
@@ -63,7 +66,9 @@ namespace Mediana
             cancellationToken.ThrowIfCancellationRequested();
             IContainerReaderFactory factory = SelectContainer(writable.Memory.Span[..read]);
             using MediaBuffer prefix = writable.Publish();
-            PrefixByteSource replay = new(source, prefix, read, leaveOpen: true);
+            IByteSource replay = source is IRandomAccessByteSource randomAccess
+                ? new RandomAccessCursorByteSource(randomAccess, leaveOpen: true)
+                : new PrefixByteSource(source, prefix, read, leaveOpen: true);
             IContainerReader? reader = null;
             IMediaCodec<MediaPacket, VideoFrame>? decoder = null;
             VideoDecodePipeline? pipeline = null;

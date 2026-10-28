@@ -1,10 +1,30 @@
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
+using Mediana.IO;
 
 namespace Mediana.Tests
 {
     public class EngineTests
     {
+        [Fact]
+        public async Task RandomAccessOpeningUsesOriginWithoutChangingCallerCursor()
+        {
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(new FixtureContainerFactory())
+                .AddVideoDecoder(new FixtureDecoderFactory()).Build();
+            using MemoryStream stream = new([.. "TEST"u8, 11, 22]);
+            await using RandomAccessStreamByteSource source = new(stream, leaveOpen: true);
+            Assert.Equal(1, await source.ReadAsync(new byte[1]));
+            await using (VideoSession session = await engine.OpenVideoAsync(source, 0))
+            {
+                using VideoFrame? frame = await session.ReadFrameAsync();
+                Assert.NotNull(frame);
+                Assert.Equal(11, frame.Data.Span[0]);
+                Assert.Equal(1, stream.Position);
+            }
+            Assert.True(stream.CanRead);
+            Assert.Equal(1, stream.Position);
+        }
+
         [Fact]
         public async Task NonSeekableShortReadsReplayProbeAndDrainDelayedFrames()
         {

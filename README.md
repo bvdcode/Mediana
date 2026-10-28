@@ -94,8 +94,10 @@ presentation timestamp at or after the target. It does not seek, return the near
 frame, infer missing timestamps or replace an out-of-range request with an earlier
 frame. End of stream returns null. A frame without a timestamp causes a clear error.
 
-Opening borrows the caller's source for the session lifetime and consumes bytes even
-if opening fails. A session owns its reader, decoder and probe replay state.
+Opening borrows the caller's source for the session lifetime. Sequential sources
+are consumed even if opening fails. Random access sources open at their origin
+and preserve the caller's sequential cursor. A session owns its reader, decoder
+and input cursor or probe replay state.
 The source is disposed separately by its caller. Session operations and disposal
 must not overlap. Frames already returned remain valid after the session is disposed.
 
@@ -110,6 +112,9 @@ by the source while it is in use. Reads and disposal must not overlap.
 
 VideoSession remains forward-only. Random access to bytes alone does not implement
 container indexing, decoder reset or video seeking.
+
+RandomAccessCursorByteSource provides an independent sequential cursor over a
+random access source, while preserving range reads and the source's own cursor.
 
 ## Buffer ownership
 
