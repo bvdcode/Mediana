@@ -3,7 +3,12 @@ namespace Mediana.Codecs.H264
     internal static class H264Residuals
     {
         public static void ReadInterLuma(ref H264BitReader bits, H264Picture target, int x, int y,
+            int pattern, int qp, scoped ReadOnlySpan<byte> macroPrediction) =>
+            ReadInterLuma(ref bits, new H264CavlcResidualReader(target), target, x, y, pattern, qp, macroPrediction);
+
+        public static void ReadInterLuma<TReader>(ref H264BitReader bits, TReader reader, H264Picture target, int x, int y,
             int pattern, int qp, scoped ReadOnlySpan<byte> macroPrediction)
+            where TReader : IH264ResidualReader
         {
             Span<int> coefficients = stackalloc int[16];
             Span<int> residual = stackalloc int[16];
@@ -13,7 +18,7 @@ namespace Mediana.Codecs.H264
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
                 coefficients.Clear();
                 int count = (pattern & (1 << (index / 4))) != 0
-                    ? H264Cavlc.Read(ref bits, coefficients, target.NeighbourCount(0, x + blockX, y + blockY), 15) : 0;
+                    ? reader.Read(ref bits, H264ResidualCategory.Luma4x4, 0, x + blockX, y + blockY, coefficients) : 0;
                 target.Counts(0)[target.BlockIndex(0, x + blockX, y + blockY)] = (byte)count;
                 H264InverseTransform.Residual4x4(coefficients, qp, residual);
                 CopyPrediction(macroPrediction, 16, blockX, blockY, prediction);

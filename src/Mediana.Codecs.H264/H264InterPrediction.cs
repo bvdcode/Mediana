@@ -1,0 +1,139 @@
+namespace Mediana.Codecs.H264
+{
+    internal static class H264InterPrediction
+    {
+        public static void Skip(H264Picture target, H264SliceHeader header, IReadOnlyList<H264ReferencePicture?> references,
+            int x, int y, scoped Span<byte> prediction)
+        {
+            (int motionX, int motionY) = H264MotionPrediction.Skip(target, x, y);
+            PredictPartition(target, header, references, x, y, 16, 16, 0, motionX, motionY, prediction);
+        }
+
+        public static bool Read<TReader>(ref H264BitReader bits, TReader reader, H264Picture target, H264SliceHeader header,
+            IReadOnlyList<H264ReferencePicture?> references, int x, int y, int type, scoped Span<byte> prediction)
+            where TReader : IH264PredictionReader
+        {
+            int partitions = type switch
+            {
+                0 => 1,
+                1 or 2 => 2,
+                3 or 4 => 4,
+                _ => throw new InvalidDataException("Invalid H.264 P macroblock type.")
+            };
+            Span<int> subtypes = stackalloc int[4];
+            Span<int> indices = stackalloc int[4];
+            subtypes.Clear();
+            indices.Clear();
+            bool noSmallPartitions = true;
+            if (partitions == 4)
+            {
+                for (int part = 0; part < partitions; part++)
+                {
+                    subtypes[part] = reader.ReadSubType(ref bits);
+                    noSmallPartitions &= subtypes[part] == 0;
+                }
+            }
+            for (int part = 0; part < partitions; part++)
+            {
+                (int partX, int partY) = Position(x, y, type, part);
+                (int width, int height) = Size(type, 0);
+                if (type != 4 && header.ActiveReferencesL0 > 1)
+                {
+                    indices[part] = reader.ReadReference(ref bits, partX, partY, header.ActiveReferencesL0 - 1);
+                }
+                target.SetReference(partX, partY, width, height, indices[part]);
+            }
+            for (int part = 0; part < partitions; part++)
+            {
+                (int width, int height) = Size(type, subtypes[part]);
+                (int partX, int partY) = Position(x, y, type, part);
+                int areaWidth = partitions == 4 ? 8 : width;
+                int areaHeight = partitions == 4 ? 8 : height;
+                for (int subY = 0; subY < areaHeight; subY += height)
+                {
+                    for (int subX = 0; subX < areaWidth; subX += width)
+                    {
+                        (int motionX, int motionY) = H264MotionPrediction.Predict(target, partX + subX, partY + subY,
+                            width, height, indices[part], part);
+                        (int deltaX, int deltaY) = reader.ReadMotionDifference(ref bits, partX + subX, partY + subY, width, height);
+                        motionX += deltaX;
+                        motionY += deltaY;
+                        if (motionX is < short.MinValue or > short.MaxValue || motionY is < short.MinValue or > short.MaxValue)
+                        {
+                            throw new InvalidDataException("The H.264 motion vector exceeds its supported range.");
+                        }
+                        PredictPartition(target, header, references, partX + subX, partY + subY, width, height,
+                            indices[part], motionX, motionY, prediction);
+                    }
+                }
+            }
+            return noSmallPartitions;
+        }
+
+        private static (int Width, int Height) Size(int type, int subtype) => type switch
+        {
+            0 => (16, 16),
+            1 => (16, 8),
+            2 => (8, 16),
+            3 or 4 => subtype switch
+            {
+                0 => (8, 8),
+                1 => (8, 4),
+                2 => (4, 8),
+                3 => (4, 4),
+                _ => throw new InvalidDataException("Invalid H.264 P sub-macroblock type.")
+            },
+            _ => throw new InvalidDataException("Invalid H.264 P macroblock type.")
+        };
+
+        private static (int X, int Y) Position(int x, int y, int type, int part) => type switch
+        {
+            0 => (x, y),
+            1 => (x, y + part * 8),
+            2 => (x + part * 8, y),
+            3 or 4 => (x + part % 2 * 8, y + part / 2 * 8),
+            _ => throw new InvalidDataException("Invalid H.264 P macroblock type.")
+        };
+
+        private static void PredictPartition(H264Picture target, H264SliceHeader header,
+            IReadOnlyList<H264ReferencePicture?> references, int x, int y, int width, int height,
+            int referenceIndex, int motionX, int motionY, Span<byte> prediction)
+        {
+            if ((uint)referenceIndex >= (uint)references.Count || references[referenceIndex] is not H264ReferencePicture reference)
+            {
+                throw new InvalidDataException("The H.264 partition uses an unavailable reference picture.");
+            }
+            target.SetMotion(x, y, width, height, referenceIndex, motionX, motionY);
+            Span<byte> block = stackalloc byte[256];
+            for (int plane = 0; plane < 3; plane++)
+            {
+                int scale = plane == 0 ? 1 : 2;
+                int blockWidth = width / scale;
+                int blockHeight = height / scale;
+                Span<byte> samples = block[..(blockWidth * blockHeight)];
+                if (plane == 0)
+                {
+                    H264MotionCompensation.Luma(reference.Picture, x, y, motionX, motionY, width, height, samples);
+                }
+                else
+                {
+                    H264MotionCompensation.Chroma(reference.Picture, plane, x / 2, y / 2, motionX, motionY, blockWidth, blockHeight, samples);
+                }
+                header.Weights?.Apply(referenceIndex, plane, samples);
+                int destination = plane switch
+                {
+                    0 => 0,
+                    1 => 256,
+                    2 => 320,
+                    _ => throw new ArgumentOutOfRangeException(nameof(plane))
+                };
+                int stride = 16 / scale;
+                destination += ((y % 16) / scale) * stride + (x % 16) / scale;
+                for (int row = 0; row < blockHeight; row++)
+                {
+                    samples.Slice(row * blockWidth, blockWidth).CopyTo(prediction.Slice(destination + row * stride, blockWidth));
+                }
+            }
+        }
+    }
+}

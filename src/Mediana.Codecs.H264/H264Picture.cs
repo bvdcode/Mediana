@@ -194,6 +194,17 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        public void SetReference(int x, int y, int width, int height, int reference)
+        {
+            for (int row = y; row < y + height; row += 4)
+            {
+                for (int column = x; column < x + width; column += 4)
+                {
+                    ReferenceIndices[BlockIndex(0, column, row)] = checked((byte)reference);
+                }
+            }
+        }
+
         private bool IsAvailable(int x, int y, bool constrained) => x >= 0 && x < Width && y >= 0 && y < Height &&
             Modes[BlockIndex(0, x, y)] < 128 && (!constrained || Modes[BlockIndex(0, x, y)] != InterMode);
     }
