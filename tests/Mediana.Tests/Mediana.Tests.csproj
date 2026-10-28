@@ -23,6 +23,6 @@
     <Compile Include="../Shared/H264CabacPredictionTestInput.cs" Link="H264CabacPredictionTestInput.cs" />
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
-    <Compile Include="../Shared/CabacPreviewTestInput.cs" Link="CabacPreviewTestInput.cs" />
+    <Compile Include="../Shared/SdrPreviewTestInput.cs" Link="SdrPreviewTestInput.cs" />
   </ItemGroup>
 </Project>

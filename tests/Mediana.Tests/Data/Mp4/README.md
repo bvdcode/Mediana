@@ -241,3 +241,16 @@ storage. The same checks run in managed execution and Native AOT.
 | avc-cavlc-8x8.sequence.yuv | 59e4ee11c0327cfe6623fbcd5c29430dd3ea0bf798df4f4b06dc95a497efcbb7 |
 | avc-cavlc-8x8-weighted.mp4 | beb676571264087ad7ba5a4a0870ef1b4741b8a0b91632e04e241fe1118dbe89 |
 | avc-cavlc-8x8-weighted.sequence.yuv | 762bcce46051ec61ec72a455b8e7a40a96dae1fa1ce98bc352872907387770fe |
+
+`avc-cavlc-8x8-weighted.frame6.srgb.rgba` is an independent straight sRGB RGBA32
+reference for the seventh picture at 500 ms. It contains 95,760 bytes at 190x126.
+SHA-256: `59fc9896f180d27ca92fd9f5f3f0f0caba7ce8bc8a4edbf13eddbf90bd555dbf`.
+
+```sh
+ffmpeg -hide_banner -v error -nostdin -y -i avc-cavlc-8x8-weighted.mp4 -map 0:v:0 -vf "select=eq(n\,6),zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -fps_mode passthrough -f rawvideo avc-cavlc-8x8-weighted.frame6.srgb.rgba
+```
+
+The public preview check requests 450 ms, selects 500 ms and encodes a
+square-pixel 100x50 sRGB PNG. All decoded channels match the selected reference
+samples within one code; timing, signature, CRCs, dimensions and color/aspect
+metadata are checked in managed execution and Native AOT.

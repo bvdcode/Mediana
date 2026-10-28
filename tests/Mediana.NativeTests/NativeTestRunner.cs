@@ -70,13 +70,15 @@ namespace Mediana.NativeTests
             await NativeSrgbTests.RunAsync(root);
             await RotatedPreviewTestInput.VerifyAsync(root);
             Console.WriteLine("PASS rotated MP4 preview: display matrix, square-pixel 49x100 PNG, CRCs and all reference pixels match.");
-            await CabacPreviewTestInput.VerifyAsync(root, "avc-cabac-intra", 3, 5);
+            await SdrPreviewTestInput.VerifyAsync(root, "avc-cabac-intra", 3, 5, 94, 62, 49);
             Console.WriteLine("PASS CABAC MP4 preview: 450 ms selects 600 ms, square-pixel 100x49 PNG and all independent sRGB samples match.");
             for (int initialization = 0; initialization < 3; initialization++)
             {
-                await CabacPreviewTestInput.VerifyAsync(root, $"avc-cabac-p{initialization}", 5, 10);
+                await SdrPreviewTestInput.VerifyAsync(root, $"avc-cabac-p{initialization}", 5, 10, 94, 62, 49);
             }
             Console.WriteLine("PASS CABAC P previews: all initialization selections, 450 ms selects 500 ms, timing, square-pixel PNG and independent sRGB samples match.");
+            await SdrPreviewTestInput.VerifyAsync(root, "avc-cavlc-8x8-weighted", 6, 12, 190, 126, 50);
+            Console.WriteLine("PASS High CAVLC 8x8 preview: 450 ms selects 500 ms, square-pixel 100x50 PNG and independent sRGB samples match.");
         }
     }
 }

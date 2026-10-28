@@ -62,6 +62,7 @@ dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview t
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-rotated.png 0 0 100 100
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-intra.mp4 artifacts/preview-cabac.png 0 450 100 100
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-p2.mp4 artifacts/preview-cabac-p.png 0 450 100 100
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cavlc-8x8-weighted.mp4 artifacts/preview-high-cavlc.png 0 450 100 100
 ```
 
 The self-test decodes a generated 2×2 RGBA packet through the codec protocol, resizes
@@ -76,6 +77,7 @@ a request beyond the last frame fails without creating an image.
 The rotated fixture writes 49×100 after applying its display matrix and SAR.
 The CABAC intra fixture selects 600 ms for a request at 450 ms and writes 100×49.
 The CABAC P fixture selects 500 ms for the same request and writes 100×49.
+The High CAVLC 8x8 fixture selects 500 ms and writes 100×50.
 
 Publish and execute it with Native AOT on Linux x64:
 
@@ -291,7 +293,9 @@ The CABAC intra fixture also produces a 100×49 PNG from the picture at 600 ms
 for a request at 450 ms, with all samples within one code of an independent
 sRGB reference. All three CABAC P initialization fixtures select 500 ms for the
 same request and produce 100×49 PNGs matching independent sRGB references within
-one code per channel. Unit tests and Native AOT execute the same preview checks.
+one code per channel. The High CAVLC 8x8 fixture also selects 500 ms and produces
+a square-pixel 100×50 PNG within one code of its independent sRGB reference.
+Unit tests and Native AOT execute the same preview checks.
 
 ## Connecting modules
 

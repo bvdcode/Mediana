@@ -9,13 +9,15 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData("avc-cabac-intra", 3, 5)]
-        [InlineData("avc-cabac-p0", 5, 10)]
-        [InlineData("avc-cabac-p1", 5, 10)]
-        [InlineData("avc-cabac-p2", 5, 10)]
-        public async Task CabacMp4SelectsTheNextPresentationTimeAndProducesAnIndependentSrgbPng(string name, int frameIndex, int fps)
+        [InlineData("avc-cabac-intra", 3, 5, 94, 62, 49)]
+        [InlineData("avc-cabac-p0", 5, 10, 94, 62, 49)]
+        [InlineData("avc-cabac-p1", 5, 10, 94, 62, 49)]
+        [InlineData("avc-cabac-p2", 5, 10, 94, 62, 49)]
+        [InlineData("avc-cavlc-8x8-weighted", 6, 12, 190, 126, 50)]
+        public async Task AvcMp4SelectsTheNextPresentationTimeAndProducesAnIndependentSrgbPng(string name, int frameIndex,
+            int fps, int width, int height, int previewHeight)
         {
-            await CabacPreviewTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name, frameIndex, fps);
+            await SdrPreviewTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name, frameIndex, fps, width, height, previewHeight);
         }
     }
 }
