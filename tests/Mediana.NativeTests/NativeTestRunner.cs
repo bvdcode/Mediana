@@ -40,6 +40,7 @@ namespace Mediana.NativeTests
                 throw new InvalidOperationException("H.264 reference picture storage was not released.");
             }
             await NativePublicVideoTests.RunAsync(root);
+            await NativeSrgbTests.RunAsync(root);
         }
     }
 }
