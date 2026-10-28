@@ -74,6 +74,52 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Fact]
+        public async Task ActualInter8x8TransformUseFailsAndReleasesAllWorkers()
+        {
+            H264SliceHeader header = await H264CabacPredictionTestInput.ReadHeaderAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
+            header = header with
+            {
+                Sequence = header.Sequence with { WidthInMbs = 1, HeightInMapUnits = 1, Width = 16, Height = 16 },
+                Picture = header.Picture with { Transform8x8 = true },
+                ActiveReferencesL0 = 1,
+                Weights = null,
+                Qp = 26,
+                DeblockingIdc = 1
+            };
+            byte[] states = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264", "cabac-predictive-contexts.bin"));
+            H264CabacIntervalWriter writer = H264CabacPredictionTestInput.CreateWriter(states, header);
+            foreach (int context in new[] { 11, 14, 15, 16, 40, 47 })
+            {
+                writer.Decision(false, context, 0, 0);
+            }
+            writer.Decision(true, 73, 0, 0);
+            writer.Decision(false, 73, 0, 0);
+            writer.Decision(false, 73, 0, 0);
+            writer.Decision(false, 76, 0, 0);
+            writer.Decision(false, 77, 0, 0);
+            writer.Decision(true, 399, 0, 0);
+            writer.Termination(true);
+            byte[] payload = writer.ToEbsp();
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using (H264Picture reference = new(header.Sequence, allocator))
+            {
+                long retained = allocator.AllocatedBytes;
+                H264ReferencePicture[] references = [new(reference, 0)];
+                NotSupportedException error = Assert.Throws<NotSupportedException>(() => DecodePayload(payload, header, references, allocator));
+                Assert.Contains("inter 8x8", error.Message);
+                Assert.Equal(retained, allocator.AllocatedBytes);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        private static H264Picture DecodePayload(byte[] payload, H264SliceHeader header,
+            IReadOnlyList<H264ReferencePicture?> references, MediaBufferAllocator allocator)
+        {
+            H264BitReader bits = new(payload);
+            return H264CabacPictureDecoder.Decode(ref bits, header, references, allocator);
+        }
+
         private static H264Picture Decode(byte[] nal, H264Configuration configuration,
             IReadOnlyList<H264ReferencePicture?> references, MediaBufferAllocator allocator)
         {

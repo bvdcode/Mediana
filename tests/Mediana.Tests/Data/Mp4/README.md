@@ -187,3 +187,23 @@ All 54 pictures are compared sample for sample through both internal reconstruct
 and public MediaEngine sessions. The public checks include PTS, duration, cropping,
 color metadata, SAR and released storage. The tests read checked-in references;
 they do not start an external media executable.
+
+The three `avc-cabac-p<idc>.frame5.srgb.rgba` files contain the sixth visible
+picture at 500 ms, converted independently to straight sRGB RGBA32. Each is
+94x62, 23,312 bytes. They use the same BT.1886 reference display, bilinear chroma
+and no-dithering settings as the earlier sRGB references:
+
+```sh
+ffmpeg -hide_banner -v error -nostdin -y -i avc-cabac-p<idc>.mp4 -map 0:v:0 -vf "select=eq(n\,5),zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -fps_mode passthrough -f rawvideo avc-cabac-p<idc>.frame5.srgb.rgba
+```
+
+| File | SHA-256 |
+| --- | --- |
+| avc-cabac-p0.frame5.srgb.rgba | acb4093686c184d51973b142c7913042a32587314b6237a072697428a61b5c36 |
+| avc-cabac-p1.frame5.srgb.rgba | 3ec6f7885054e2f6f15f2164b0d8e37e215db04d67c5135a620aaa5d329c64b4 |
+| avc-cabac-p2.frame5.srgb.rgba | 8f2b7c5ffdf0057c8c7ce14ba567c606780aed6c9f093193d0b5eb27f01b7263 |
+
+The public preview checks request 450 ms, select 500 ms, preserve the 100 ms
+duration and encode square-pixel 100x49 PNGs. Every decoded channel matches the
+selected reference samples within one code; signature, CRCs, dimensions, sRGB
+and pHYs metadata are checked in managed execution and Native AOT.

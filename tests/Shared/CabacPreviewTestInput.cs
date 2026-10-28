@@ -11,24 +11,24 @@ namespace Mediana.Tests
 {
     internal static class CabacPreviewTestInput
     {
-        public static async Task VerifyAsync(string root)
+        public static async Task VerifyAsync(string root, string name, int frameIndex, int fps)
         {
             MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory())
                 .AddVideoDecoder(new H264DecoderFactory()).Build();
-            await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, "avc-cabac-intra.mp4")));
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, name + ".mp4")));
             await using VideoSession session = await engine.OpenVideoAsync(source, 0);
             using VideoFrame decoded = await session.ReadFrameAtOrAfterAsync(new MediaTimestamp(450, new TimeBase(1, 1000)))
                 ?? throw new InvalidDataException("The requested CABAC preview frame is missing.");
             MediaTimestamp timestamp = decoded.Timestamp ?? throw new InvalidDataException("The CABAC preview has no PTS.");
             MediaDuration duration = decoded.Duration ?? throw new InvalidDataException("The CABAC preview has no duration.");
-            if (timestamp.CompareTo(new MediaTimestamp(600, new TimeBase(1, 1000))) != 0 ||
-                new MediaTimestamp(duration.Value, duration.TimeBase).CompareTo(new MediaTimestamp(200, new TimeBase(1, 1000))) != 0 ||
+            if (timestamp.CompareTo(new MediaTimestamp(frameIndex, new TimeBase(1, fps))) != 0 ||
+                new MediaTimestamp(duration.Value, duration.TimeBase).CompareTo(new MediaTimestamp(1, new TimeBase(1, fps))) != 0 ||
                 decoded.Format.Width != 94 || decoded.Format.Height != 62 || decoded.Format.SampleAspectRatio != new SampleAspectRatio(4, 3) ||
                 session.Stream.DisplayMatrix != VideoDisplayMatrix.Identity)
             {
                 throw new InvalidDataException("The CABAC preview selection, timing or display metadata differs from the reference.");
             }
-            byte[] reference = await File.ReadAllBytesAsync(Path.Combine(root, "avc-cabac-intra.frame3.srgb.rgba"));
+            byte[] reference = await File.ReadAllBytesAsync(Path.Combine(root, $"{name}.frame{frameIndex}.srgb.rgba"));
             if (reference.Length != 94 * 62 * 4)
             {
                 throw new InvalidDataException("The CABAC sRGB reference has an unexpected length.");
