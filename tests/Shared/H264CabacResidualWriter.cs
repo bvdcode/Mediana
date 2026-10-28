@@ -6,6 +6,15 @@ namespace Mediana.Tests
     {
         private readonly H264CabacIntervalWriter writer = Create(qp, initialStates, initialization);
 
+        public void Initialize8x8(byte[] states)
+        {
+            int offset = ((initialization + 1) * 52 + qp) * 34;
+            for (int index = 0; index < 34; index++)
+            {
+                writer.Initialize(402 + index, states[offset + index]);
+            }
+        }
+
         public void QuantizerDelta(int delta, bool previousNonzero)
         {
             int mapped = delta <= 0 ? -2 * delta : 2 * delta - 1;
@@ -16,26 +25,38 @@ namespace Mediana.Tests
             }
         }
 
-        public void Write(int category, int neighbours, ReadOnlySpan<int> coefficients)
+        public void Write(int category, int neighbours, ReadOnlySpan<int> coefficients, ReadOnlySpan<byte> mapping = default)
         {
-            int[] significanceOffsets = [0, 15, 29, 44, 47];
-            int[] levelOffsets = [0, 10, 20, 30, 39];
+            int[] significanceOffsets = [0, 15, 29, 44, 47, 297];
+            int[] levelOffsets = [0, 10, 20, 30, 39, 199];
+            if (category == 5 && (mapping.Length != 126 || coefficients.Length != 64))
+            {
+                throw new ArgumentException("The 8x8 interval requires a complete significance map and coefficient block.");
+            }
             int last = coefficients.Length - 1;
             while (last >= 0 && coefficients[last] == 0)
             {
                 last--;
             }
-            Bin(last >= 0, 85 + category * 4 + neighbours);
+            if (category != 5)
+            {
+                Bin(last >= 0, 85 + category * 4 + neighbours);
+            }
             if (last < 0)
             {
+                if (category == 5)
+                {
+                    throw new ArgumentException("A coded 8x8 block requires a nonzero coefficient.", nameof(coefficients));
+                }
                 return;
             }
             for (int index = 0; index <= last && index < coefficients.Length - 1; index++)
             {
-                Bin(coefficients[index] != 0, 105 + significanceOffsets[category] + index);
+                Bin(coefficients[index] != 0, 105 + significanceOffsets[category] + (category == 5 ? mapping[index * 2] : index));
                 if (coefficients[index] != 0)
                 {
-                    Bin(index == last, 166 + significanceOffsets[category] + index);
+                    int lastContext = category == 5 ? 417 + mapping[index * 2 + 1] : 166 + significanceOffsets[category] + index;
+                    Bin(index == last, lastContext);
                 }
             }
             int equalOne = 0;

@@ -16,6 +16,9 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            await H264CabacTransformTestInput.VerifyContextsAsync(h264Root);
+            await H264CabacTransformTestInput.VerifyResidualsAsync(h264Root, root);
+            Console.WriteLine("PASS H.264 CABAC 8x8: all 7072 initial states and every residual position match normative references and exact intervals.");
             await H264EightByEightTestInput.VerifyPredictionVectorsAsync(h264Root);
             await H264EightByEightTestInput.VerifyExplicitPicturesAsync(h264Root);
             (int intra8, int inter8) = await H264EightByEightTestInput.VerifySequenceAsync(root, "avc-cavlc-8x8", 18);
