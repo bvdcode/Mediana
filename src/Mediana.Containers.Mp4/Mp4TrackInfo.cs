@@ -1,5 +1,6 @@
 using Mediana.Core;
 using Mediana.Core.Timing;
+using Mediana.Core.Video;
 
 namespace Mediana.Containers.Mp4
 {
@@ -9,7 +10,8 @@ namespace Mediana.Containers.Mp4
     {
         internal Mp4TrackInfo(uint trackId, EncodedStreamInfo stream, string sampleEntry,
             MediaDuration? mediaDuration, MediaDuration? presentationDuration, IReadOnlyList<Mp4Edit> edits,
-            int? width, int? height, int? declaredAudioChannels, int? declaredAudioSampleRate, int sampleCount)
+            int? width, int? height, int? declaredAudioChannels, int? declaredAudioSampleRate, int sampleCount,
+            VideoDisplayMatrix displayMatrix)
         {
             TrackId = trackId;
             Stream = stream;
@@ -22,6 +24,7 @@ namespace Mediana.Containers.Mp4
             DeclaredAudioChannels = declaredAudioChannels;
             DeclaredAudioSampleRate = declaredAudioSampleRate;
             SampleCount = sampleCount;
+            DisplayMatrix = displayMatrix;
         }
 
         public uint TrackId { get; }
@@ -35,5 +38,7 @@ namespace Mediana.Containers.Mp4
         public int? DeclaredAudioChannels { get; }
         public int? DeclaredAudioSampleRate { get; }
         public int SampleCount { get; }
+        /// <summary>The track header matrix before the movie matrix. Video Stream.DisplayMatrix composes both.</summary>
+        public VideoDisplayMatrix DisplayMatrix { get; }
     }
 }

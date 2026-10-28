@@ -1,5 +1,6 @@
 using Mediana.Core;
 using Mediana.Core.Timing;
+using Mediana.Core.Video;
 
 namespace Mediana.Containers.Mp4
 {
@@ -17,7 +18,10 @@ namespace Mediana.Containers.Mp4
             {
                 throw new NotSupportedException("Compressed QuickTime movie headers are not supported.");
             }
-            (TimeBase timeBase, MediaDuration? duration) = ReadTimeHeader(movie.Required("mvhd"), 100, 112);
+            Mp4Box movieHeader = movie.Required("mvhd");
+            (TimeBase timeBase, MediaDuration? duration) = ReadTimeHeader(movieHeader, 100, 112);
+            VideoDisplayMatrix movieMatrix = Mp4DisplayMatrixParser.Read(movieHeader.Payload.Span,
+                movieHeader.Payload.Span[0] == 0 ? 36 : 48);
             List<Mp4TrackInfo> tracks = [];
             List<Mp4SampleTable> tables = [];
             HashSet<uint> trackIds = [];
@@ -39,6 +43,7 @@ namespace Mediana.Containers.Mp4
                 }
                 MediaDuration? presentationDuration = ReadDuration(trackHeader.Span,
                     version == 0 ? 20 : 28, version, timeBase);
+                VideoDisplayMatrix trackMatrix = Mp4DisplayMatrixParser.Read(trackHeader.Span, version == 0 ? 40 : 52);
                 Mp4BoxCollection media = new(track.Required("mdia").Payload, budget);
                 (TimeBase trackTimeBase, MediaDuration? mediaDuration) = ReadTimeHeader(media.Required("mdhd"), 24, 36);
                 ReadOnlyMemory<byte> handler = media.Required("hdlr").Payload;
@@ -60,19 +65,25 @@ namespace Mediana.Containers.Mp4
                     throw new NotSupportedException("The MP4 codec configuration exceeds the configured limit.");
                 }
                 Mp4SampleTable table = new(sampleBoxes, options, dataRanges, cancellationToken);
+                VideoDisplayMatrix? displayMatrix = kind switch
+                {
+                    MediaKind.Video => trackMatrix.Then(movieMatrix),
+                    MediaKind.Audio => null,
+                    _ => throw new InvalidDataException("Unsupported MP4 track kind.")
+                };
                 EncodedStreamInfo stream = new(tracks.Count, kind, description.CodecId,
-                    trackTimeBase, description.Configuration.Span);
+                    trackTimeBase, description.Configuration.Span, displayMatrix);
                 IReadOnlyList<Mp4Edit> edits = ReadEdits(track, timeBase, options, budget);
                 tracks.Add(new Mp4TrackInfo(trackId, stream, description.SampleEntry, mediaDuration,
                     presentationDuration, edits, description.Width, description.Height,
-                    description.AudioChannels, description.AudioSampleRate, table.SampleCount));
+                    description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix));
                 tables.Add(table);
             }
             if (tracks.Count == 0)
             {
                 throw new InvalidDataException("The MP4 movie has no tracks.");
             }
-            return new Mp4Movie(timeBase, duration, tracks.ToArray(), tables.ToArray());
+            return new Mp4Movie(timeBase, duration, movieMatrix, tracks.ToArray(), tables.ToArray());
         }
 
         private static (TimeBase, MediaDuration?) ReadTimeHeader(Mp4Box box, int minimumV0, int minimumV1)

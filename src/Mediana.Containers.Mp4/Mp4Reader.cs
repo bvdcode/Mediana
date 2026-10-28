@@ -1,6 +1,7 @@
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.Core.Video;
 using Mediana.IO;
 
 namespace Mediana.Containers.Mp4
@@ -25,6 +26,7 @@ namespace Mediana.Containers.Mp4
             cursors = movie.Tables.Select(table => new Mp4TrackCursor(table)).ToArray();
             MovieTimeBase = movie.TimeBase;
             Duration = movie.Duration;
+            DisplayMatrix = movie.DisplayMatrix;
             Tracks = Array.AsReadOnly(movie.Tracks);
             Streams = Array.AsReadOnly(movie.Tracks.Select(track => track.Stream).ToArray());
             this.metadata = metadata.Retain();
@@ -32,6 +34,8 @@ namespace Mediana.Containers.Mp4
 
         public TimeBase MovieTimeBase { get; }
         public MediaDuration? Duration { get; }
+        /// <summary>The movie header display matrix, applied after each track header matrix.</summary>
+        public VideoDisplayMatrix DisplayMatrix { get; }
         public IReadOnlyList<Mp4TrackInfo> Tracks { get; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
 
