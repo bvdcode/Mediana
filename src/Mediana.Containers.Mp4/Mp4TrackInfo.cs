@@ -5,7 +5,7 @@ using Mediana.Core.Video;
 namespace Mediana.Containers.Mp4
 {
     /// <summary>Container declarations. Codec configuration may provide different audio channel or sample rate values.
-    /// Media duration and packet times precede application of the edit list.</summary>
+    /// Stream time base and media duration retain the original media timeline.</summary>
     public class Mp4TrackInfo
     {
         internal Mp4TrackInfo(uint trackId, EncodedStreamInfo stream, string sampleEntry,

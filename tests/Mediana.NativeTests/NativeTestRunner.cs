@@ -16,6 +16,8 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            await Mp4TimelineTestInput.VerifyAsync(root);
+            Console.WriteLine("PASS MP4 linear movie timeline: every AVC/AAC packet matches independent bytes, translated PTS/DTS and merged decode order.");
             foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov", "avc-cabac-8x8-2.mp4" })
             {
                 await MpegTsTestInput.VerifyAsync(root, file);

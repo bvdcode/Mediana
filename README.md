@@ -168,9 +168,20 @@ audio channels and sample rate are labelled explicitly: codec configuration may
 describe different values, which require codec-level interpretation.
 
 Movie duration, track presentation duration, original media duration and edit lists
-remain separate. Packet timestamps use the media time base before applying edits.
-The reader does not yet map movie time to media time, apply rotation/display
-transforms or seek. A sync-sample flag alone does not establish HLS segment independence.
+remain separate. By default, packets use original media timestamps. Select
+`Mp4ReadOptions.TimestampMode = Mp4TimestampMode.LinearMovie` to translate one
+unit-rate media edit, optionally preceded by one empty edit, into movie time.
+Packet PTS/DTS and durations use an exact rational time base, and tracks are merged
+by their translated DTS. `reader.Streams` describes that packet time base;
+`reader.Tracks` preserves original declarations and edits. Unsupported edit shapes
+or an unrepresentable exact time base fail explicitly in this mode. The translation
+follows the [QuickTime edit-list mapping](https://developer.apple.com/documentation/quicktime-file-format/edit_list_atom).
+
+Both modes retain every compressed sample, including negative decoder priming,
+audio padding and samples outside the edit interval. LinearMovie translates time;
+it does not trim media, implement repeated segments or apply non-unit playback
+rates. The reader does not apply rotation/display transforms or seek. A sync-sample
+flag alone does not establish HLS segment independence.
 
 Mp4Reader.DisplayMatrix and Mp4TrackInfo.DisplayMatrix preserve the movie and track
 header matrices. A video stream's EncodedStreamInfo.DisplayMatrix composes the track

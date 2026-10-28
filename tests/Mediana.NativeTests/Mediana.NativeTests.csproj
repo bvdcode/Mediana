@@ -15,6 +15,7 @@
     <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.MpegTs/Mediana.Containers.MpegTs.csproj" />
     <Compile Include="../Shared/MpegTsTestInput.cs" Link="MpegTsTestInput.cs" />
+    <Compile Include="../Shared/Mp4TimelineTestInput.cs" Link="Mp4TimelineTestInput.cs" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/H264EightByEightTestInput.cs" Link="H264EightByEightTestInput.cs" />
     <Compile Include="../Shared/H264CabacTransformTestInput.cs" Link="H264CabacTransformTestInput.cs" />
@@ -33,7 +34,7 @@
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../Mediana.Tests/Data/Mp4/avc-aac.mp4"
+    <None Include="../Mediana.Tests/Data/Mp4/avc-aac.mp4;../Mediana.Tests/Data/Mp4/avc-aac.mp4.json"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-aac.frame0.yuv;../Mediana.Tests/Data/Mp4/avc-cabac-intra.mp4;../Mediana.Tests/Data/Mp4/avc-cabac-intra.sequence.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
