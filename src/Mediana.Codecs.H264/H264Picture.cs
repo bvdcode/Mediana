@@ -1,9 +1,11 @@
 using Mediana.Core.Memory;
+using System.Runtime.InteropServices;
 
 namespace Mediana.Codecs.H264
 {
     internal class H264Picture : IDisposable
     {
+        public const byte InterMode = 9;
         private readonly WritableMediaBuffer storage;
         private readonly int lumaBytes;
         private readonly int chromaBytes;
@@ -20,15 +22,20 @@ namespace Mediana.Codecs.H264
             lumaBlocks = lumaBytes / 16;
             chromaBlocks = chromaBytes / 16;
             int macroblocks = lumaBytes / 256;
-            storage = allocator.Allocate(checked(lumaBytes + chromaBytes * 2 + lumaBlocks * 2 + chromaBlocks * 2 + macroblocks));
+            storage = allocator.Allocate(checked(lumaBytes + chromaBytes * 2 + lumaBlocks * 11 + chromaBlocks * 2 + macroblocks));
             Modes.Fill(byte.MaxValue);
+            ReferenceIndices.Fill(byte.MaxValue);
         }
 
         public H264SequenceParameterSet Sequence { get; }
         public int Width { get; }
         public int Height { get; }
-        public Span<byte> Modes => storage.Memory.Span.Slice(lumaBytes + chromaBytes * 2 + lumaBlocks + chromaBlocks * 2, lumaBlocks);
-        public Span<byte> Quantizers => storage.Memory.Span[(lumaBytes + chromaBytes * 2 + lumaBlocks * 2 + chromaBlocks * 2)..];
+        private int ModesOffset => lumaBytes + chromaBytes * 2 + lumaBlocks + chromaBlocks * 2;
+        public Span<byte> Modes => storage.Memory.Span.Slice(ModesOffset, lumaBlocks);
+        public Span<byte> ReferenceIndices => storage.Memory.Span.Slice(ModesOffset + lumaBlocks, lumaBlocks);
+        public Span<int> MotionX => MemoryMarshal.Cast<byte, int>(storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 2, lumaBlocks * 4));
+        public Span<int> MotionY => MemoryMarshal.Cast<byte, int>(storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 6, lumaBlocks * 4));
+        public Span<byte> Quantizers => storage.Memory.Span[(ModesOffset + lumaBlocks * 10)..];
 
         public Span<byte> Plane(int index) => index switch
         {
@@ -58,30 +65,36 @@ namespace Mediana.Codecs.H264
             return x == 0 ? top : y == 0 ? left : (left + top + 1) >> 1;
         }
 
-        public int PredictedMode(int x, int y)
+        public int PredictedMode(int x, int y, bool constrained = false)
         {
             if (x == 0 || y == 0)
             {
                 return 2;
             }
             int index = BlockIndex(0, x, y);
-            return Math.Min(Modes[index - 1] & 127, Modes[index - Width / 4] & 127);
+            int left = Modes[index - 1] & 127;
+            int top = Modes[index - Width / 4] & 127;
+            if (left == 127 || top == 127 || (constrained && (left == InterMode || top == InterMode)))
+            {
+                return 2;
+            }
+            return Math.Min(left == InterMode ? 2 : left, top == InterMode ? 2 : top);
         }
 
         public void SetLumaMode(int x, int y, int mode) => Modes[BlockIndex(0, x, y)] = (byte)(mode | 128);
 
-        public void PredictLuma4x4(int x, int y, int mode, Span<byte> output)
+        public void PredictLuma4x4(int x, int y, int mode, Span<byte> output, bool constrained = false)
         {
             Span<byte> top = stackalloc byte[8];
             Span<byte> left = stackalloc byte[4];
             Span<byte> pixels = Plane(0);
-            bool hasTop = IsAvailable(x, y - 1);
-            bool hasLeft = IsAvailable(x - 1, y);
+            bool hasTop = IsAvailable(x, y - 1, constrained);
+            bool hasLeft = IsAvailable(x - 1, y, constrained);
             if (hasTop)
             {
                 for (int index = 0; index < 8; index++)
                 {
-                    top[index] = IsAvailable(x + index, y - 1) ? pixels[(y - 1) * Width + x + index] : top[3];
+                    top[index] = IsAvailable(x + index, y - 1, constrained) ? pixels[(y - 1) * Width + x + index] : top[3];
                 }
             }
             if (hasLeft)
@@ -91,36 +104,39 @@ namespace Mediana.Codecs.H264
                     left[index] = pixels[(y + index) * Width + x - 1];
                 }
             }
-            byte? corner = IsAvailable(x - 1, y - 1) ? pixels[(y - 1) * Width + x - 1] : null;
+            byte? corner = IsAvailable(x - 1, y - 1, constrained) ? pixels[(y - 1) * Width + x - 1] : null;
             H264IntraPrediction.Luma4x4(mode, hasTop ? top : [], hasLeft ? left : [], corner, output);
         }
 
-        public void PredictMacroblock(int plane, int x, int y, int mode, Span<byte> output)
+        public void PredictMacroblock(int plane, int x, int y, int mode, Span<byte> output, bool constrained = false)
         {
             int size = plane == 0 ? 16 : 8;
             int stride = Stride(plane);
             Span<byte> pixels = Plane(plane);
             Span<byte> top = stackalloc byte[16];
             Span<byte> left = stackalloc byte[16];
-            if (y > 0)
+            int scale = plane == 0 ? 1 : 2;
+            bool hasTop = IsAvailable(x * scale, y * scale - 1, constrained);
+            bool hasLeft = IsAvailable(x * scale - 1, y * scale, constrained);
+            if (hasTop)
             {
                 pixels.Slice((y - 1) * stride + x, size).CopyTo(top);
             }
-            if (x > 0)
+            if (hasLeft)
             {
                 for (int index = 0; index < size; index++)
                 {
                     left[index] = pixels[(y + index) * stride + x - 1];
                 }
             }
-            byte? corner = x > 0 && y > 0 ? pixels[(y - 1) * stride + x - 1] : null;
+            byte? corner = IsAvailable(x * scale - 1, y * scale - 1, constrained) ? pixels[(y - 1) * stride + x - 1] : null;
             if (plane == 0)
             {
-                H264IntraPrediction.Luma16x16(mode, y > 0 ? top : [], x > 0 ? left : [], corner, output);
+                H264IntraPrediction.Luma16x16(mode, hasTop ? top : [], hasLeft ? left : [], corner, output);
             }
             else
             {
-                H264IntraPrediction.Chroma8x8(mode, y > 0 ? top[..8] : [], x > 0 ? left[..8] : [], corner, output);
+                H264IntraPrediction.Chroma8x8(mode, hasTop ? top[..8] : [], hasLeft ? left[..8] : [], corner, output);
             }
         }
 
@@ -147,6 +163,38 @@ namespace Mediana.Codecs.H264
 
         public void Dispose() => storage.Dispose();
 
-        private bool IsAvailable(int x, int y) => x >= 0 && x < Width && y >= 0 && y < Height && Modes[BlockIndex(0, x, y)] < 128;
+        public H264MotionSample MotionAt(int x, int y)
+        {
+            if (x < 0 || x >= Width || y < 0 || y >= Height)
+            {
+                return new H264MotionSample(false, -1, 0, 0);
+            }
+            int index = BlockIndex(0, x, y);
+            if (Modes[index] == byte.MaxValue)
+            {
+                return new H264MotionSample(false, -1, 0, 0);
+            }
+            return (Modes[index] & 127) == InterMode
+                ? new H264MotionSample(true, ReferenceIndices[index], MotionX[index], MotionY[index])
+                : new H264MotionSample(true, -1, 0, 0);
+        }
+
+        public void SetMotion(int x, int y, int width, int height, int reference, int motionX, int motionY)
+        {
+            for (int row = y; row < y + height; row += 4)
+            {
+                for (int column = x; column < x + width; column += 4)
+                {
+                    int index = BlockIndex(0, column, row);
+                    Modes[index] = InterMode | 128;
+                    ReferenceIndices[index] = checked((byte)reference);
+                    MotionX[index] = motionX;
+                    MotionY[index] = motionY;
+                }
+            }
+        }
+
+        private bool IsAvailable(int x, int y, bool constrained) => x >= 0 && x < Width && y >= 0 && y < Height &&
+            Modes[BlockIndex(0, x, y)] < 128 && (!constrained || Modes[BlockIndex(0, x, y)] != InterMode);
     }
 }
