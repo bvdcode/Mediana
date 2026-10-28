@@ -14,6 +14,7 @@
     <Project Path="src/Mediana/Mediana.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Mediana.NativeTests/Mediana.NativeTests.csproj" />
     <Project Path="tests/Mediana.Tests/Mediana.Tests.csproj" />
   </Folder>
 </Solution>

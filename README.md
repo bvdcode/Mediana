@@ -43,6 +43,7 @@ PACKAGE_VERSION=$(dotnet gitversion /showvariable SemVer)
 dotnet restore Mediana.slnx
 dotnet build Mediana.slnx -c Release --no-restore -p:Version="$PACKAGE_VERSION"
 dotnet test Mediana.slnx -c Release --no-build --no-restore
+dotnet run --project tests/Mediana.NativeTests -c Release --no-build --no-restore
 dotnet format Mediana.slnx --verify-no-changes --no-restore
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
@@ -58,11 +59,19 @@ Publish and execute it with Native AOT on Linux x64:
 dotnet publish samples/Mediana.Sample -c Release -r linux-x64 -p:Version="$PACKAGE_VERSION" -o artifacts/native/linux-x64
 ./artifacts/native/linux-x64/Mediana.Sample --self-test
 ./artifacts/native/linux-x64/Mediana.Sample --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+dotnet publish tests/Mediana.NativeTests -c Release -r linux-x64 -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -o artifacts/native-tests/linux-x64
+./artifacts/native-tests/linux-x64/Mediana.NativeTests
 ```
 
 Native AOT requires the platform build toolchain. The resulting executable targets
 one OS/architecture and still uses standard OS runtime facilities.
 See the [.NET Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
+
+Mediana.NativeTests executes internal H.264 IDR reconstruction and compares all
+visible YUV samples in three pictures with the checked-in references. It also
+checks that picture allocations are released. Its fixture loading and comparison
+code is shared with the unit tests. CI builds and runs both native executables
+on Linux, Windows and macOS.
 
 ## Reading MP4/MOV
 

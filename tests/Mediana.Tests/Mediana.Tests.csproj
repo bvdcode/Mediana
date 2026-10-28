@@ -15,5 +15,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Update="Data/**" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
   </ItemGroup>
 </Project>

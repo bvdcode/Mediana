@@ -1,8 +1,5 @@
-using System.Buffers.Binary;
 using System.Security.Cryptography;
 using Mediana.Codecs.H264;
-using Mediana.Containers.Mp4;
-using Mediana.Core;
 using Mediana.Core.Memory;
 
 namespace Mediana.Tests
@@ -23,22 +20,7 @@ namespace Mediana.Tests
             {
                 Assert.Equal(80, actual.Width);
                 Assert.Equal(48, actual.Height);
-                int offset = 0;
-                for (int plane = 0; plane < 3; plane++)
-                {
-                    int subsampling = plane == 0 ? 1 : 2;
-                    int width = actual.Sequence.Width / subsampling;
-                    int height = actual.Sequence.Height / subsampling;
-                    int cropX = actual.Sequence.CropLeft / subsampling;
-                    int cropY = actual.Sequence.CropTop / subsampling;
-                    for (int row = 0; row < height; row++)
-                    {
-                        byte[] decoded = actual.Plane(plane).Slice((cropY + row) * actual.Stride(plane) + cropX, width).ToArray();
-                        Assert.Equal(expected.AsSpan(offset, width).ToArray(), decoded);
-                        offset += width;
-                    }
-                }
-                Assert.Equal(expected.Length, offset);
+                H264TestInput.VerifyPicture(actual, expected);
             }
             Assert.Equal(0, allocator.AllocatedBytes);
         }
@@ -88,32 +70,7 @@ namespace Mediana.Tests
             }
         }
 
-        private static async Task<(H264Configuration Configuration, byte[] Nal)> ReadIdrAsync(string name, int packetIndex = 0)
-        {
-            await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync(name));
-            MediaBufferAllocator allocator = new(1024 * 1024);
-            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
-            H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span, new H264DecoderOptions());
-            for (int index = 0; ; index++)
-            {
-                using MediaPacket packet = (await reader.ReadPacketAsync())!;
-                if (index < packetIndex)
-                {
-                    continue;
-                }
-                ReadOnlySpan<byte> remaining = packet.Data.Span;
-                while (!remaining.IsEmpty)
-                {
-                    int length = checked((int)BinaryPrimitives.ReadUInt32BigEndian(remaining));
-                    ReadOnlySpan<byte> nal = remaining.Slice(4, length);
-                    if ((nal[0] & 31) == 5)
-                    {
-                        return (configuration, nal.ToArray());
-                    }
-                    remaining = remaining[(4 + length)..];
-                }
-                throw new InvalidDataException("The fixture packet has no IDR slice.");
-            }
-        }
+        private static Task<(H264Configuration Configuration, byte[] Nal)> ReadIdrAsync(string name, int packetIndex = 0) =>
+            H264TestInput.ReadIdrAsync(Mp4TestData.PathFor(name), packetIndex);
     }
 }
