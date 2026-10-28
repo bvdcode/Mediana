@@ -26,7 +26,7 @@ namespace Mediana.Codecs.H264
                     {
                         throw new NotSupportedException("The H.264 intra slice does not cover the complete picture.");
                     }
-                    H264IntraMacroblock.Read(ref bits, result, header, address, ref qp);
+                    H264IntraMacroblock.Read(ref bits, result, header, address, bits.ReadUe(25), ref qp);
                 }
                 bits.ReadTrailingBits();
                 H264IntraDeblocking.Apply(result, header, cancellationToken);
