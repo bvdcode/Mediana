@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Memory;
@@ -56,6 +57,38 @@ namespace Mediana.Tests
             }
             configuration[4] = 0xFE;
             Assert.Throws<InvalidDataException>(() => H264Configuration.Parse(configuration, new H264DecoderOptions()));
+        }
+
+        [Fact]
+        public async Task ReplacesInBandParameterSetsWithoutGrowingRepeatedConfigurationOrMutatingPriorState()
+        {
+            byte[] data = await ReadConfigurationAsync("avc-tail.mov");
+            H264DecoderOptions options = new() { MaxConfigurationBytes = data.Length };
+            H264Configuration original = H264Configuration.Parse(data, options);
+            int sequenceLength = BinaryPrimitives.ReadUInt16BigEndian(data.AsSpan(6));
+            byte[] sequence = data.AsSpan(8, sequenceLength).ToArray();
+            int pictureStart = 8 + sequenceLength + 1;
+            int pictureLength = BinaryPrimitives.ReadUInt16BigEndian(data.AsSpan(pictureStart));
+            byte[] picture = data.AsSpan(pictureStart + 2, pictureLength).ToArray();
+            H264Configuration updated = original;
+            for (int index = 0; index < 100; index++)
+            {
+                updated = updated.WithParameterSet(sequence, options).WithParameterSet(picture, options);
+            }
+            Assert.Equal(original.Sequences[0], updated.Sequences[0]);
+            Assert.Equal(original.Pictures[0], updated.Pictures[0]);
+            Assert.Throws<NotSupportedException>(() => updated.WithParameterSet(sequence,
+                options with { MaxConfigurationBytes = data.Length - 1 }));
+            Assert.Throws<NotSupportedException>(() => updated.WithParameterSet(picture,
+                options with { MaxParameterSetBytes = 2 }));
+            Assert.Throws<InvalidDataException>(() => updated.WithParameterSet(sequence.AsSpan(0, sequence.Length - 1), options));
+            byte[] replacement = await ReadConfigurationAsync("avc-weighted.mp4");
+            int replacementLength = BinaryPrimitives.ReadUInt16BigEndian(replacement.AsSpan(6));
+            H264Configuration changed = updated.WithParameterSet(replacement.AsSpan(8, replacementLength), new H264DecoderOptions());
+            Assert.Equal(80, original.Sequences[0].Width);
+            Assert.Equal(94, changed.Sequences[0].Width);
+            Assert.Single(changed.Sequences);
+            Assert.Single(changed.Pictures);
         }
 
         [Fact]
