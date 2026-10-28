@@ -8,7 +8,7 @@ The current implementation is experimental. It reads metadata and compressed pac
 non-fragmented MP4/MOV files containing AVC/AAC tracks. The H.264 source module
 connects limited CAVLC I/P decoding to public video sessions and returns cropped YUV frames.
 The sample can extract a supported video frame, convert SDR color to sRGB, correct
-the sample aspect ratio and save a PNG preview. **CABAC, B pictures, audio decoding,
+the sample aspect ratio and right-angle orientation, and save a PNG preview. **CABAC, B pictures, audio decoding,
 video/audio encoding and muxing are not available yet.**
 
 ## Components
@@ -55,6 +55,7 @@ dotnet format Mediana.slnx --verify-no-changes --no-restore
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview.png 0 250 100 100
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-rotated.png 0 0 100 100
 ```
 
 The self-test decodes a generated 2×2 RGBA packet through the codec protocol, resizes
@@ -66,6 +67,7 @@ milliseconds in the media timeline, maximum width and maximum height. In this ex
 it selects the first frame at or after 250 ms (300 ms) and writes a 100×49 sRGB PNG
 with square pixels. The output directory must exist. Existing files are not replaced;
 a request beyond the last frame fails without creating an image.
+The rotated fixture writes 49×100 after applying its display matrix and SAR.
 
 Publish and execute it with Native AOT on Linux x64:
 
@@ -88,7 +90,8 @@ with the checked-in references. Public sessions also verify timing, cropping,
 sample aspect ratio and allocation release. Its fixture loading and comparison code
 is shared with the unit tests. The native checks also compare SDR conversion with
 an independent sRGB reference and decode a square-pixel PNG preview to verify every
-sample, CRC, color tag and pixel aspect ratio. CI is configured to build and run both native
+sample, CRC, color tag and pixel aspect ratio, including the rotated MP4 fixture.
+CI is configured to build and run both native
 executables on Linux, Windows and macOS.
 
 ## Reading MP4/MOV
@@ -123,6 +126,12 @@ Movie duration, track presentation duration, original media duration and edit li
 remain separate. Packet timestamps use the media time base before applying edits.
 The reader does not yet map movie time to media time, apply rotation/display
 transforms or seek. A sync-sample flag alone does not establish HLS segment independence.
+
+Mp4Reader.DisplayMatrix and Mp4TrackInfo.DisplayMatrix preserve the movie and track
+header matrices. A video stream's EncodedStreamInfo.DisplayMatrix composes the track
+transform followed by the movie transform. VideoSession.Stream exposes this selected
+stream metadata; decoding leaves the raster unchanged. Matrix interpretation follows
+the [QuickTime matrix definition](https://developer.apple.com/documentation/quicktime-file-format/matrices).
 
 Fragmented files, encrypted/external data, compressed QuickTime headers, multiple
 sample descriptions and other sample/handler types fail explicitly. The current
@@ -192,8 +201,10 @@ code per channel. The numerical definitions follow [ITU H.264 Annex E](https://w
 With a supported decoded frame and an allocation budget:
 
 ```csharp
+VideoDisplayMatrix displayMatrix = session.Stream.DisplayMatrix
+    ?? throw new NotSupportedException("A display interpretation is required.");
 using VideoFrame srgb = SrgbConverter.Apply(frame, allocator);
-using VideoFrame preview = DisplayResize.Fit(srgb, maximumWidth: 320, maximumHeight: 180, allocator);
+using VideoFrame preview = DisplayResize.Fit(srgb, displayMatrix, maximumWidth: 320, maximumHeight: 180, allocator);
 using MediaBuffer png = PngEncoder.Encode(preview, allocator);
 await output.WriteAsync(png.Memory, cancellationToken);
 ```
@@ -207,7 +218,12 @@ unscaled display size, fits within the requested box without enlargement, rounds
 the nearest pixel and produces square pixels. It uses nearest-neighbor sampling,
 preserves color and time, and requires known SAR or an explicit caller interpretation.
 NearestNeighborResize.Apply instead resizes storage and preserves the original SAR.
-Neither operation applies container rotation or edit lists.
+The display-matrix overload supports the eight exact right-angle rotations and
+reflections. It applies aspect correction before orientation and fits using the
+final axes in a single sampling pass. Canvas translation is normalized to the
+image's tight bounding rectangle; canvas padding is not added. Scaling, shear,
+perspective and approximate rotations are rejected. The overload without a matrix
+fits the stored raster without orientation. Neither operation maps edit lists.
 
 PngEncoder accepts straight RGBA32 sRGB with known SAR. It writes non-interlaced
 8-bit RGBA, an sRGB rendering intent and pHYs pixel dimensions, using BCL zlib
@@ -222,7 +238,9 @@ The generated previews from the first and fourth weighted reference pictures wer
 read by an independent PNG decoder and compared with independent SDR-to-sRGB output.
 All samples differed by at most one 8-bit code. The fourth picture was selected at
 300 ms for a request at 250 ms. Both previews preserve the source display ratio
-within integer-dimension rounding. Movie rotation and movie-to-media time mapping
+within integer-dimension rounding. The rotated MP4 also produces a 49×100 image
+whose orientation, color and aspect match independent inspection and decoded
+reference samples. Movie-to-media time mapping and broader display transforms
 remain open; timestamps used here refer to the original media timeline.
 
 ## Connecting modules
@@ -370,7 +388,7 @@ files, SDR conversion and decoded PNG pixels. Each future
 format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking,
-movie-to-stream timeline mapping, arbitrary changes within a coded sequence, display transforms,
+movie-to-stream timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
 broader color conversion, audio processing, video/audio encoding and muxing, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
