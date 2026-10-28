@@ -3,12 +3,34 @@ using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Core;
 using Mediana.Core.Memory;
+using Mediana.Core.Video;
 using Mediana.IO;
 
 namespace Mediana.Tests
 {
     internal static class H264TestInput
     {
+        public static void VerifyFrame(VideoFrame frame, ReadOnlySpan<byte> expected)
+        {
+            int offset = 0;
+            for (int plane = 0; plane < frame.Planes.Count; plane++)
+            {
+                for (int row = 0; row < frame.Planes[plane].Height; row++)
+                {
+                    ReadOnlySpan<byte> actual = frame.GetRow(plane, row);
+                    if (actual.Length > expected.Length - offset || !actual.SequenceEqual(expected.Slice(offset, actual.Length)))
+                    {
+                        throw new InvalidDataException($"H.264 output mismatch in plane {plane}, row {row}.");
+                    }
+                    offset += actual.Length;
+                }
+            }
+            if (offset != expected.Length)
+            {
+                throw new InvalidDataException("The H.264 output frame has an unexpected length.");
+            }
+        }
+
         public static void VerifyAndStorePicture(ReadOnlySpan<byte> nal, H264Configuration configuration,
             H264ReferenceBuffer references, MediaBufferAllocator allocator, ReadOnlySpan<byte> expected)
         {
