@@ -57,6 +57,7 @@ dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview.png 0 250 100 100
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-rotated.png 0 0 100 100
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-intra.mp4 artifacts/preview-cabac.png 0 450 100 100
 ```
 
 The self-test decodes a generated 2×2 RGBA packet through the codec protocol, resizes
@@ -69,6 +70,7 @@ it selects the first frame at or after 250 ms (300 ms) and writes a 100×49 sRGB
 with square pixels. The output directory must exist. Existing files are not replaced;
 a request beyond the last frame fails without creating an image.
 The rotated fixture writes 49×100 after applying its display matrix and SAR.
+The CABAC intra fixture selects 600 ms for a request at 450 ms and writes 100×49.
 
 Publish and execute it with Native AOT on Linux x64:
 
@@ -267,6 +269,9 @@ within integer-dimension rounding. The rotated MP4 also produces a 49×100 image
 whose orientation, color and aspect match independent inspection and decoded
 reference samples. Movie-to-media time mapping and broader display transforms
 remain open; timestamps used here refer to the original media timeline.
+The CABAC intra fixture also produces a 100×49 PNG from the picture at 600 ms
+for a request at 450 ms, with all samples within one code of an independent
+sRGB reference. Unit tests and Native AOT execute the same preview checks.
 
 ## Connecting modules
 

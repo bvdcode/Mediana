@@ -50,6 +50,8 @@ namespace Mediana.NativeTests
             await NativeSrgbTests.RunAsync(root);
             await RotatedPreviewTestInput.VerifyAsync(root);
             Console.WriteLine("PASS rotated MP4 preview: display matrix, square-pixel 49x100 PNG, CRCs and all reference pixels match.");
+            await CabacPreviewTestInput.VerifyAsync(root);
+            Console.WriteLine("PASS CABAC MP4 preview: 450 ms selects 600 ms, square-pixel 100x49 PNG and all independent sRGB samples match.");
         }
     }
 }

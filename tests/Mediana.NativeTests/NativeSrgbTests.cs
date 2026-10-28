@@ -50,34 +50,8 @@ namespace Mediana.NativeTests
         {
             using VideoFrame preview = SrgbPreview.Fit(decoded, VideoDisplayMatrix.Identity, 100, 100, allocator);
             using MediaBuffer png = PngEncoder.Encode(preview, allocator);
-            Dictionary<string, byte[]> chunks = PngTestInput.ReadChunks(png.Memory.Span);
-            byte[] header = [0, 0, 0, 100, 0, 0, 0, 49, 8, 6, 0, 0, 0];
-            byte[] physical = [0, 0, 0, 1, 0, 0, 0, 1, 0];
-            if (!chunks["IHDR"].AsSpan().SequenceEqual(header) || !chunks["pHYs"].AsSpan().SequenceEqual(physical) ||
-                !chunks["sRGB"].AsSpan().SequenceEqual(new byte[] { 0 }) || chunks["IEND"].Length != 0)
-            {
-                throw new InvalidDataException("The PNG preview dimensions, color or aspect differ from the reference.");
-            }
-            byte[] filtered = PngTestInput.Inflate(chunks["IDAT"]);
-            if (filtered.Length != 401 * 49)
-            {
-                throw new InvalidDataException("Unexpected PNG scanline length.");
-            }
-            for (int y = 0; y < 49; y++)
-            {
-                if (filtered[y * 401] != 0)
-                {
-                    throw new InvalidDataException("Unexpected PNG scanline filter.");
-                }
-                for (int x = 0; x < 100; x++)
-                {
-                    ReadOnlySpan<byte> source = converted.GetRow(0, y * 62 / 49).Slice(x * 94 / 100 * 4, 4);
-                    if (!source.SequenceEqual(filtered.AsSpan(y * 401 + 1 + x * 4, 4)))
-                    {
-                        throw new InvalidDataException("The PNG preview pixel does not match the selected source sample.");
-                    }
-                }
-            }
+            PngTestInput.VerifyPreview(png.Memory.Span, 100, 49, converted.Data.Span, 94,
+                static (x, y) => (x * 94 / 100, y * 62 / 49), 0);
             Console.WriteLine("PASS public PNG preview: square-pixel 100x49 sRGB, all CRCs and decoded pixels match.");
         }
     }

@@ -21,5 +21,6 @@
     <Compile Include="../Shared/H264CabacTestInput.cs" Link="H264CabacTestInput.cs" />
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
+    <Compile Include="../Shared/CabacPreviewTestInput.cs" Link="CabacPreviewTestInput.cs" />
   </ItemGroup>
 </Project>

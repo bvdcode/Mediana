@@ -111,7 +111,8 @@ ffmpeg -hide_banner -v error -nostdin -y -i avc-aac.mp4 -map 0:v:0 -frames:v 1 -
 `avc-cabac-intra.mp4` contains six Main-profile CABAC IDR pictures, mixing
 4x4 and 16x16 intra prediction. Visible dimensions are 94x62, coded dimensions
 96x64, SAR 4:3, with BT.709 limited-range metadata and deblocking offsets 2/1.
-The internal CABAC decoder matches every visible YUV sample after filtering.
+Both internal reconstruction and public video sessions match every visible YUV
+sample after filtering, including timing, crop and sample aspect ratio.
 Its SHA256 is `b37aa7be62ab872c9bd4f763bcbafa1edaba8b68d583f30946fb92aae4cbbbde`.
 The six-picture packed YUV420 reference, `avc-cabac-intra.sequence.yuv`, has SHA256
 `05eafef18c31ad8823a3cde12c89ad72245411b47fdb7e3c1419ea48b8b0495a`.
@@ -121,3 +122,19 @@ Generation and independent decoding used FFmpeg 6.1.1 with libx264.
 ffmpeg -hide_banner -v error -nostdin -y -f lavfi -i "testsrc2=size=94x62:rate=5:duration=1.2" -vf "setsar=4/3" -c:v libx264 -profile:v main -coder:v ac -pix_fmt yuv420p -g 1 -bf 0 -qp 24 -x264-params "8x8dct=0:aq-mode=1:deblock=2,1" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an avc-cabac-intra.mp4
 ffmpeg -hide_banner -v error -nostdin -y -i avc-cabac-intra.mp4 -pix_fmt yuv420p -f rawvideo avc-cabac-intra.sequence.yuv
 ```
+
+`avc-cabac-intra.frame3.srgb.rgba` contains the fourth visible picture at 600 ms,
+converted independently to straight sRGB RGBA32 (94x62, 23312 bytes). SHA256:
+`867890c417ad168f53a685cfc0295bb8a2dff1df80a4899b3bb48a2af83b90ee`.
+The conversion uses the same BT.1886 reference display, bilinear chroma and
+no-dithering settings as the weighted reference above.
+
+```sh
+ffmpeg -hide_banner -v error -nostdin -y -i avc-cabac-intra.mp4 -map 0:v:0 -vf "select=eq(n\,3),zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -fps_mode passthrough -f rawvideo avc-cabac-intra.frame3.srgb.rgba
+```
+
+The public preview test requests 450 ms, selects 600 ms and checks the 200 ms
+frame duration. Fitting SAR 4:3 within 100x100 produces a square-pixel 100x49
+PNG. Every decoded PNG channel matches the selected reference samples within
+one 8-bit code; signature, chunk order, CRCs, dimensions, color and pixel aspect
+are checked in managed execution and Native AOT.

@@ -38,38 +38,12 @@ namespace Mediana.Tests
                 {
                     throw new InvalidDataException("The rotated preview has unexpected dimensions, color, aspect or timing.");
                 }
-                Dictionary<string, byte[]> chunks = PngTestInput.ReadChunks(png.Memory.Span);
-                byte[] header = [0, 0, 0, 49, 0, 0, 0, 100, 8, 6, 0, 0, 0];
-                byte[] physical = [0, 0, 0, 1, 0, 0, 0, 1, 0];
-                if (!chunks["IHDR"].AsSpan().SequenceEqual(header) || !chunks["pHYs"].AsSpan().SequenceEqual(physical) ||
-                    !chunks["sRGB"].AsSpan().SequenceEqual(new byte[] { 0 }) || chunks["IEND"].Length != 0)
+                if (reference.Length != 94 * 62 * 4)
                 {
-                    throw new InvalidDataException("The rotated PNG does not carry the expected image metadata.");
+                    throw new InvalidDataException("The rotated sRGB reference has an unexpected length.");
                 }
-                byte[] pixels = PngTestInput.Inflate(chunks["IDAT"]);
-                if (pixels.Length != 197 * 100 || reference.Length != 94 * 62 * 4)
-                {
-                    throw new InvalidDataException("Unexpected rotated PNG or reference data length.");
-                }
-                for (int y = 0; y < 100; y++)
-                {
-                    if (pixels[y * 197] != 0)
-                    {
-                        throw new InvalidDataException("Unexpected PNG scanline filter.");
-                    }
-                    for (int x = 0; x < 49; x++)
-                    {
-                        int sourceOffset = ((x * 62 / 49) * 94 + (99 - y) * 94 / 100) * 4;
-                        int outputOffset = y * 197 + 1 + x * 4;
-                        for (int channel = 0; channel < 4; channel++)
-                        {
-                            if (Math.Abs(pixels[outputOffset + channel] - reference[sourceOffset + channel]) > 1)
-                            {
-                                throw new InvalidDataException("A rotated PNG pixel differs from the independent reference.");
-                            }
-                        }
-                    }
-                }
+                PngTestInput.VerifyPreview(png.Memory.Span, 49, 100, reference, 94,
+                    static (x, y) => ((99 - y) * 94 / 100, x * 62 / 49), 1);
             }
             decoded.Dispose();
             await session.DisposeAsync();

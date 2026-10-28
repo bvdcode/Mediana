@@ -18,6 +18,7 @@
     <Compile Include="../Shared/H264CabacTestInput.cs" Link="H264CabacTestInput.cs" />
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
+    <Compile Include="../Shared/CabacPreviewTestInput.cs" Link="CabacPreviewTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-tail.mov;../Mediana.Tests/Data/Mp4/avc-tail.frame*.yuv;../Mediana.Tests/Data/Mp4/avc-cropped.mp4;../Mediana.Tests/Data/Mp4/avc-cropped.frame0.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-weighted.mp4;../Mediana.Tests/Data/Mp4/avc-weighted.sequence.yuv"
@@ -32,5 +33,7 @@
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/H264/cabac-intra-contexts.bin"
           Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-cabac-intra.frame3.srgb.rgba"
+          Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
