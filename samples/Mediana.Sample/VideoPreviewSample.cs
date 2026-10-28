@@ -35,7 +35,7 @@ namespace Mediana.Sample
                 width = preview.Format.Width;
                 height = preview.Format.Height;
                 encodedLength = png.Memory.Length;
-                await SaveAsync(outputPath, png.Memory);
+                await SampleOutputFile.WriteAsync(outputPath, async output => await output.WriteAsync(png.Memory));
             }
             decoded.Dispose();
             await session.DisposeAsync();
@@ -45,25 +45,6 @@ namespace Mediana.Sample
             }
             await Console.Out.WriteLineAsync($"PNG preview: {width}x{height}; {encodedLength} bytes; PTS {decoded.Timestamp?.Value} at {decoded.Timestamp?.TimeBase.Numerator}/{decoded.Timestamp?.TimeBase.Denominator}; square pixels, sRGB. Live buffer bytes: 0.");
             return 0;
-        }
-
-        private static async Task SaveAsync(string outputPath, ReadOnlyMemory<byte> data)
-        {
-            string destination = Path.GetFullPath(outputPath);
-            string temporary = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            try
-            {
-                await using (FileStream stream = new(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                    bufferSize: 4096, FileOptions.Asynchronous))
-                {
-                    await stream.WriteAsync(data);
-                }
-                File.Move(temporary, destination);
-            }
-            finally
-            {
-                File.Delete(temporary);
-            }
         }
     }
 }

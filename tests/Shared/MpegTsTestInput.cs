@@ -10,14 +10,14 @@ namespace Mediana.Tests
 {
     internal static class MpegTsTestInput
     {
-        public static async Task<byte[]> VerifyAsync(string root, string file)
+        public static async Task<byte[]> VerifyAsync(string root, string file, Mp4TimestampMode timestampMode = Mp4TimestampMode.Media)
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             using MemoryStream destination = new();
             List<(int Stream, byte[] Data, long Pts, long Dts)> expected = [];
             IReadOnlyList<EncodedStreamInfo> streams;
             await using (RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, file))))
-            await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
+            await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator, new() { TimestampMode = timestampMode }))
             await using (MpegTsWriter writer = MpegTsWriter.Create(destination, reader.Streams, allocator))
             {
                 streams = reader.Streams;

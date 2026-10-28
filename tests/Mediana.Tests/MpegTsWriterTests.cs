@@ -1,4 +1,5 @@
 using Mediana.Containers.MpegTs;
+using Mediana.Containers.Mp4;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -13,6 +14,14 @@ namespace Mediana.Tests
         [InlineData("avc-cabac-8x8-2.mp4")]
         public async Task RealAvcAacRemuxPreservesEveryAccessUnitAndPtsDts(string file) =>
             await MpegTsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), file);
+
+        [Theory]
+        [InlineData("avc-aac.mp4")]
+        [InlineData("avc-tail.mov")]
+        [InlineData("avc-cabac-8x8-2.mp4")]
+        public async Task RealMovieRemuxPreservesTranslatedDecodeOrderAndPresentationTimes(string file) =>
+            await MpegTsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), file,
+                Mp4TimestampMode.LinearMovie);
 
         [Fact]
         public async Task AudioOnlyProgramFillsClockGapsAndReleasesAllStorage()

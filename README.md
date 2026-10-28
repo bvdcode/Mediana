@@ -357,16 +357,31 @@ transport/PES scratch storage and framed access units. CompleteAsync flushes
 without closing the destination. Any failed operation faults the writer and
 releases its buffers; unfinished or failed output must be discarded.
 
-The writer uses the caller's timeline. In particular, the MP4 reader exposes
-media timestamps before edit-list mapping. Passing them directly copies that
-media timeline; movie edits, audio priming/discard metadata and container display
-matrices are not represented by this TS operation. It does not yet define HLS
-segment boundaries, seek or playlists.
+The writer uses the caller's timeline. The MP4 reader defaults to original media
+timestamps; select LinearMovie for the supported edit-list translation before
+stream copy. Audio priming/discard metadata and container display matrices are not
+represented in TS. This operation does not yet define HLS segment boundaries,
+seek or playlists.
+
+The sample copies every AVC/AAC access unit from a supported MP4/MOV into a new
+TS file, applying LinearMovie timestamps and the writer's one-second offset:
+
+```sh
+dotnet run --project samples/Mediana.Sample -c Release -- \
+  --remux-mp4 input.mp4 output.ts
+```
+
+The sample requires an initial IDR on each video track and timestamps that leave
+the required program-clock lead after the offset. It preserves priming, padding
+and samples outside the edit interval, so it does not perform sample-accurate
+trimming. The output path must be new. A failed conversion removes its temporary
+file and leaves an existing destination unchanged. The same command works with
+the published Native AOT sample executable.
 
 Tests remux three real MP4/MOV inputs, including AVC with reordered timestamps,
 AAC and a High CABAC video-only stream. They compare every compressed slice and
-AAC access unit, shifted PTS/DTS, program tables, PCR cadence, counters and
-buffer release in managed execution and Linux Native AOT. Exact byte vectors
+AAC access unit, shifted PTS/DTS in both timeline modes, program tables, PCR cadence,
+counters and buffer release in managed execution and Native AOT. Exact byte vectors
 also cover framing, CRC, timestamp markers and packet-boundary stuffing.
 The transport syntax follows [ITU-T H.222.0](https://www.itu.int/rec/T-REC-H.222.0-201410-S/en).
 
