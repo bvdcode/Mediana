@@ -47,6 +47,9 @@ namespace Mediana.Codecs.H264
             int stride = picture.Stride(plane);
             int step = vertical ? 1 : stride;
             int along = vertical ? stride : 1;
+            Span<byte> pixels = picture.Plane(plane);
+            int scale = plane == 0 ? 1 : 2;
+            int segmentLength = 4 / scale;
             int currentQp = Qp(picture, header.Picture, plane, address);
             for (int edge = 0; edge < size; edge += 4)
             {
@@ -60,9 +63,8 @@ namespace Mediana.Codecs.H264
                 int indexA = Math.Clamp(averageQp + header.AlphaOffset, 0, 51);
                 int indexB = Math.Clamp(averageQp + header.BetaOffset, 0, 51);
                 int start = y * stride + x + edge * step;
-                for (int sample = 0; sample < size; sample++)
+                for (int sample = 0; sample < size; sample += segmentLength)
                 {
-                    int scale = plane == 0 ? 1 : 2;
                     int lumaX = (x + (vertical ? edge : sample)) * scale;
                     int lumaY = (y + (vertical ? sample : edge)) * scale;
                     int strength = BoundaryStrength(picture, lumaX, lumaY, vertical, edge == 0, references);
@@ -76,8 +78,11 @@ namespace Mediana.Codecs.H264
                     };
                     if (strength != 0)
                     {
-                        Filter(picture.Plane(plane), start + sample * along, step, Alpha[indexA], Beta[indexB],
-                            tc, strength == 4, plane != 0);
+                        for (int offset = 0; offset < segmentLength; offset++)
+                        {
+                            Filter(pixels, start + (sample + offset) * along, step, Alpha[indexA], Beta[indexB],
+                                tc, strength == 4, plane != 0);
+                        }
                     }
                 }
             }
