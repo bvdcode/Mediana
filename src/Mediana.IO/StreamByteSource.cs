@@ -25,10 +25,12 @@ namespace Mediana.IO
 
         public async ValueTask<int> ReadAsync(Memory<byte> destination, CancellationToken cancellationToken = default)
         {
-            ObjectDisposedException.ThrowIf(disposed, this);
+            ThrowIfDisposed();
             cancellationToken.ThrowIfCancellationRequested();
             return await stream.ReadAsync(destination, cancellationToken).ConfigureAwait(false);
         }
+
+        protected void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(disposed, this);
 
         public async ValueTask DisposeAsync()
         {

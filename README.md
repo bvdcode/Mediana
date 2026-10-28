@@ -14,7 +14,7 @@ decoder implementations to exercise the public extension contracts.
 | Project | Current responsibility |
 | --- | --- |
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
-| `Mediana.IO` | Sequential byte sources, stream ownership and replay of bytes consumed during probing |
+| `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
 | `Mediana.Processing` | Nearest-neighbor resizing of RGBA32 storage |
@@ -98,6 +98,18 @@ Opening borrows the caller's source for the session lifetime and consumes bytes 
 if opening fails. A session owns its reader, decoder and probe replay state.
 The source is disposed separately by its caller. Session operations and disposal
 must not overlap. Frames already returned remain valid after the session is disposed.
+
+## Random access sources
+
+RandomAccessStreamByteSource requires a readable, seekable Stream. Its ReadAtAsync
+and ReadExactlyAtAsync operations use offsets relative to the stream's initial
+position and preserve its sequential cursor, including after a failed read.
+Reads at or beyond the captured length return EOF; an exact read throws if the
+requested range is truncated. The underlying stream must remain exclusively owned
+by the source while it is in use. Reads and disposal must not overlap.
+
+VideoSession remains forward-only. Random access to bytes alone does not implement
+container indexing, decoder reset or video seeking.
 
 ## Buffer ownership
 
