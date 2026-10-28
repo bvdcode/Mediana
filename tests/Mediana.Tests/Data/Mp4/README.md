@@ -21,3 +21,29 @@ ffprobe -v error -ignore_editlist 1 -show_streams -show_format -show_packets -sh
 ```
 
 The sha256 root field is the lowercase SHA256 of the complete fixture file.
+
+`avc-tail.frame0.yuv` is the first decoded picture, including the normative deblocking
+filter, in tightly packed Y, Cb, Cr 8-bit 4:2:0 order (80x48, 5760 bytes). Its SHA256 is
+`8df41101ddfc3feb7ad3b4f8f7ac3d94815c0745b0dac7ca4d2d2c174685958c`.
+
+```sh
+ffmpeg -v error -i avc-tail.mov -frames:v 1 -pix_fmt yuv420p -f rawvideo avc-tail.frame0.yuv
+```
+
+`avc-tail.frame5.yuv` contains the next IDR picture in the same layout. Its SHA256 is
+`dcded925869f945a85a604c356348a2f194f0d9ed5b7808b73222ee7307dca3d`.
+
+```sh
+ffmpeg -v error -i avc-tail.mov -vf "select=eq(n\,5)" -frames:v 1 -pix_fmt yuv420p -f rawvideo avc-tail.frame5.yuv
+```
+
+`avc-cropped.mp4` contains a Baseline picture with a coded size of 80x48 and a
+visible size of 78x46 at QP 39. Its SHA256 is
+`cd7f5150bf573aa8c8cbf0997a11117d085eb5db8ec778235c93e55243139b1b`.
+`avc-cropped.frame0.yuv` contains the visible decoded picture (5382 bytes), SHA256
+`fe331966ff4a7fb750238e45a5bd01670d3c284dd273208e3312296a48acd472`.
+
+```sh
+ffmpeg -v error -nostdin -f lavfi -i testsrc2=size=78x46:rate=1:duration=1 -map_metadata -1 -c:v libx264 -profile:v baseline -qp 39 -bf 0 -an avc-cropped.mp4
+ffmpeg -v error -i avc-cropped.mp4 -frames:v 1 -pix_fmt yuv420p -f rawvideo avc-cropped.frame0.yuv
+```
