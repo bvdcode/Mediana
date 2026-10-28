@@ -18,9 +18,12 @@ namespace Mediana.Codecs.H264
                 return;
             }
             bool intra16 = type != 0;
-            for (int index = 0; index < 16; index++)
+            bool transform8x8 = !intra16 && header.Picture.Transform8x8 && bits.ReadFlag();
+            target.Transforms8x8[address] = transform8x8 ? (byte)1 : (byte)0;
+            int blockCount = transform8x8 ? 4 : 16;
+            for (int index = 0; index < blockCount; index++)
             {
-                (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
+                (int blockX, int blockY) = transform8x8 ? (index % 2 * 8, index / 2 * 8) : H264Picture.LumaBlockPosition(index);
                 int mode = 2;
                 if (!intra16)
                 {
@@ -32,7 +35,14 @@ namespace Mediana.Codecs.H264
                         mode = remaining < predicted ? remaining : remaining + 1;
                     }
                 }
-                target.SetLumaMode(x + blockX, y + blockY, mode);
+                if (transform8x8)
+                {
+                    target.SetLuma8x8Mode(x + blockX, y + blockY, mode);
+                }
+                else
+                {
+                    target.SetLumaMode(x + blockX, y + blockY, mode);
+                }
             }
             int chromaMode = bits.ReadUe(3);
             int pattern = intra16 ? (((type - 1) / 12) * 15) + ((((type - 1) / 4) % 3) << 4)

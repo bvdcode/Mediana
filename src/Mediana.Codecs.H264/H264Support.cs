@@ -23,10 +23,6 @@ namespace Mediana.Codecs.H264
             {
                 return "Reconstruction currently requires progressive 8-bit 4:2:0 slices with default scaling.";
             }
-            if (!picture.Cabac && picture.Transform8x8)
-            {
-                return "CAVLC reconstruction does not support 8x8 transforms yet.";
-            }
             return null;
         }
 

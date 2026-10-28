@@ -36,6 +36,9 @@ picture management, intra prediction, inverse transforms, PCM blocks and deblock
 Two complete Baseline/Main CAVLC sequences and one cropped IDR picture match the
 independent filtered YUV references sample for sample (nineteen pictures total).
 The Main sequence includes explicit prediction weights and reference-list changes.
+Two High CAVLC sequences with 4x4/8x8/16x16 intra prediction, inter 8x8 transforms,
+motion, weighted prediction and nonzero deblocking offsets match thirty further
+independent YUV pictures internally and through public sessions.
 The same nineteen pictures, six Main CABAC intra pictures and 54 additional CABAC I/P pictures match through MediaEngine,
 with timing, cropping and sample aspect ratio preserved. Preview generation requires
 the supported CAVLC/CABAC I/P subset and known color and sample aspect ratio;
@@ -90,7 +93,7 @@ one OS/architecture and still uses standard OS runtime facilities.
 See the [.NET Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
 
 Mediana.NativeTests executes internal H.264 I/P reconstruction and public MediaEngine
-video sessions. Each path compares all visible YUV samples in nineteen CAVLC pictures
+video sessions. Each path compares all visible YUV samples in forty-nine CAVLC pictures
 with the checked-in references. Public sessions also compare six CABAC intra pictures and 54 CABAC I/P pictures
 and verify timing, cropping,
 sample aspect ratio and allocation release. Its fixture loading and comparison code
@@ -117,7 +120,9 @@ The public decoder reconstructs supported CABAC I/P pictures, including weighted
 prediction, multiple references and per-partition motion differences. Four complete
 CABAC I/P sequences match 54 independent YUV pictures with all three cabac_init_idc
 selections, mixed intra/inter prediction and cropped storage.
-8x8 intra prediction/transforms, B pictures and broader slice support remain open. A CABAC PPS may permit 8x8 transforms; actual use of the 8x8 flag
+Eight-bit CAVLC supports 8x8 intra prediction/transforms, including all nine
+directional prediction modes checked against explicit independent vectors.
+CABAC 8x8, B pictures and broader slice support remain open. A CABAC PPS may permit 8x8 transforms; actual use of the 8x8 flag
 fails during reconstruction. Unsupported or damaged pictures fault the session
 and release pending output; reset or disposal is required. Unused bits
 in the arithmetic terminal byte are discarded; following zero words are checked.
@@ -199,8 +204,10 @@ forward without seeking. Null means the stream has ended.
 
 The decoder accepts AVC length-prefixed packets with one complete single-slice
 picture and an initial avcC configuration. Supported pictures are progressive
-8-bit YUV 4:2:0 CAVLC/CABAC I/P with default scaling. Decoding begins with an IDR;
-sequence changes through in-band SPS/PPS also require an IDR. Each output carries
+8-bit YUV 4:2:0 CAVLC/CABAC I/P with default scaling. 4x4/8x8 prediction and
+transforms are supported for CAVLC; actual CABAC 8x8 use is unsupported.
+Decoding begins with an IDR; sequence changes through in-band SPS/PPS also
+require an IDR. Each output carries
 its own format, color information, sample aspect ratio, presentation timestamp and
 duration. Cropping is applied to YUV storage; rotation, edit lists and display aspect
 transforms are not applied. Missing packet timestamps remain absent; unspecified

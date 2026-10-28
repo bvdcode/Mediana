@@ -53,6 +53,10 @@ namespace Mediana.Codecs.H264
             int currentQp = Qp(picture, header.Picture, plane, address);
             for (int edge = 0; edge < size; edge += 4)
             {
+                if (plane == 0 && edge % 8 != 0 && picture.Transforms8x8[address] != 0)
+                {
+                    continue;
+                }
                 if (edge == 0 && (vertical ? x == 0 : y == 0))
                 {
                     continue;
@@ -97,7 +101,7 @@ namespace Mediana.Codecs.H264
             {
                 return macroblockEdge ? 4 : 3;
             }
-            if (picture.Counts(0)[previous] != 0 || picture.Counts(0)[current] != 0)
+            if (HasResidual(picture, x - (vertical ? 1 : 0), y - (vertical ? 0 : 1)) || HasResidual(picture, x, y))
             {
                 return 2;
             }
@@ -110,6 +114,19 @@ namespace Mediana.Codecs.H264
             }
             return !ReferenceEquals(p.Picture, q.Picture) || Math.Abs(picture.MotionX[previous] - picture.MotionX[current]) >= 4 ||
                 Math.Abs(picture.MotionY[previous] - picture.MotionY[current]) >= 4 ? 1 : 0;
+        }
+
+        private static bool HasResidual(H264Picture picture, int x, int y)
+        {
+            int address = y / 16 * picture.Sequence.WidthInMbs + x / 16;
+            if (picture.Transforms8x8[address] == 0)
+            {
+                return picture.Counts(0)[picture.BlockIndex(0, x, y)] != 0;
+            }
+            int position = picture.BlockIndex(0, x / 8 * 8, y / 8 * 8);
+            int stride = picture.Width / 4;
+            Span<byte> counts = picture.Counts(0);
+            return counts[position] != 0 || counts[position + 1] != 0 || counts[position + stride] != 0 || counts[position + stride + 1] != 0;
         }
 
         private static int Qp(H264Picture picture, H264PictureParameterSet parameters, int plane, int address) => plane switch

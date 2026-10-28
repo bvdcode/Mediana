@@ -1,4 +1,5 @@
 using Mediana.Codecs.H264;
+using Mediana.Core.Memory;
 
 namespace Mediana.Tests
 {
@@ -7,6 +8,73 @@ namespace Mediana.Tests
         [Fact]
         public async Task AllDirectionalModesMatchEveryIndependentPredictedSample() =>
             await H264EightByEightTestInput.VerifyPredictionVectorsAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
+
+        [Fact]
+        public async Task EveryExplicitIntraModeAlsoMatchesThroughCompletePictureReconstruction() =>
+            await H264EightByEightTestInput.VerifyExplicitPicturesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
+
+        [Theory]
+        [InlineData("avc-cavlc-8x8", 18)]
+        [InlineData("avc-cavlc-8x8-weighted", 12)]
+        public async Task CompleteHighProfileSequenceExercisesIntraAndInter8x8AndMatchesEveryYuvSample(string name, int count) =>
+            await H264EightByEightTestInput.VerifySequenceAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name, count);
+
+        [Fact]
+        public void CavlcResidualGroupsInterleaveAcrossTheComplete8x8Scan()
+        {
+            H264SequenceParameterSet sequence = new() { WidthInMbs = 1, HeightInMapUnits = 1, Width = 16, Height = 16, FrameMbsOnly = true };
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using H264Picture picture = new(sequence, allocator);
+            H264BitReader bits = new(H264TestBits.Rbsp("01 0 1 01 1 011 01 0 010 01 1 000000001"));
+            int[] coefficients = new int[64];
+            H264CavlcResidualReader reader = new(picture);
+            Assert.Equal(4, reader.Read(ref bits, H264ResidualCategory.Luma8x8, 0, 0, 0, coefficients));
+            Assert.Equal(1, coefficients[0]);
+            Assert.Equal(-1, coefficients[5]);
+            Assert.Equal(1, coefficients[10]);
+            Assert.Equal(-1, coefficients[63]);
+            Assert.Equal(4, coefficients.Count(value => value != 0));
+            foreach ((int x, int y) in new[] { (0, 0), (4, 0), (0, 4), (4, 4) })
+            {
+                Assert.Equal(1, picture.Counts(0)[picture.BlockIndex(0, x, y)]);
+            }
+            bits.ReadTrailingBits();
+        }
+
+        [Fact]
+        public async Task TruncatedOrCancelled8x8PicturesReleaseStorageAndPreservePreviousReferences()
+        {
+            (H264Configuration configuration, byte[] first) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-cavlc-8x8.mp4"), 0);
+            (_, byte[] next) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-cavlc-8x8.mp4"), 1);
+            byte[] expected = await Mp4TestData.ReadAsync("avc-cavlc-8x8.sequence.yuv");
+            const int frameBytes = 190 * 126 * 3 / 2;
+            MediaBufferAllocator allocator = new(2 * 1024 * 1024);
+            using (H264ReferenceBuffer references = new())
+            {
+                H264TestInput.VerifyAndStorePicture(first, configuration, references, allocator, expected.AsSpan(0, frameBytes));
+                H264BitReader headerBits = H264Nal.Payload(next, H264Nal.Type(next));
+                H264SliceHeader header = H264SliceHeaderReader.Read(ref headerBits, configuration, next[0]);
+                IReadOnlyList<H264ReferencePicture?> list = references.GetList0(header);
+                long retained = allocator.AllocatedBytes;
+                foreach (int length in new[] { next.Length / 3, next.Length / 2, next.Length - 8 })
+                {
+                    Assert.Throws<InvalidDataException>(() => Decode(next[..length], configuration, list, allocator));
+                    Assert.Equal(retained, allocator.AllocatedBytes);
+                }
+                Assert.Throws<OperationCanceledException>(() => Decode(next, configuration, list, allocator, new CancellationToken(true)));
+                Assert.Equal(retained, allocator.AllocatedBytes);
+                H264TestInput.VerifyAndStorePicture(next, configuration, references, allocator, expected.AsSpan(frameBytes, frameBytes));
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        private static void Decode(byte[] nal, H264Configuration configuration,
+            IReadOnlyList<H264ReferencePicture?> references, MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
+        {
+            H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
+            H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+            using H264Picture picture = H264PictureDecoder.Decode(ref bits, header, references, allocator, cancellationToken);
+        }
 
         [Theory]
         [InlineData(0, 5)]

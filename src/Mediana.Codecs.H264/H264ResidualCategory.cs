@@ -6,6 +6,7 @@ namespace Mediana.Codecs.H264
         Intra16LumaAc,
         Luma4x4,
         ChromaDc,
-        ChromaAc
+        ChromaAc,
+        Luma8x8
     }
 }

@@ -14,6 +14,11 @@ namespace Mediana.Codecs.H264
             where TReader : IH264ResidualReader
         {
             bool intra16 = type != 0;
+            if (!intra16 && target.Transforms8x8[y / 16 * target.Sequence.WidthInMbs + x / 16] != 0)
+            {
+                H264Luma8x8Reconstruction.Read(ref bits, reader, target, x, y, pattern, qp, true, constrained, []);
+                return;
+            }
             Span<int> coefficients = stackalloc int[16];
             Span<int> dc = stackalloc int[16];
             Span<byte> macroPrediction = stackalloc byte[256];

@@ -11,6 +11,7 @@ namespace Mediana.Codecs.H264
         private readonly int chromaBytes;
         private readonly int lumaBlocks;
         private readonly int chromaBlocks;
+        private readonly int macroblocks;
 
         public H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator)
         {
@@ -21,8 +22,8 @@ namespace Mediana.Codecs.H264
             chromaBytes = lumaBytes / 4;
             lumaBlocks = lumaBytes / 16;
             chromaBlocks = chromaBytes / 16;
-            int macroblocks = lumaBytes / 256;
-            storage = allocator.Allocate(checked(lumaBytes + chromaBytes * 2 + lumaBlocks * 11 + chromaBlocks * 2 + macroblocks));
+            macroblocks = lumaBytes / 256;
+            storage = allocator.Allocate(checked(lumaBytes + chromaBytes * 2 + lumaBlocks * 11 + chromaBlocks * 2 + macroblocks * 2));
             Modes.Fill(byte.MaxValue);
             ReferenceIndices.Fill(byte.MaxValue);
         }
@@ -35,7 +36,8 @@ namespace Mediana.Codecs.H264
         public Span<byte> ReferenceIndices => storage.Memory.Span.Slice(ModesOffset + lumaBlocks, lumaBlocks);
         public Span<int> MotionX => MemoryMarshal.Cast<byte, int>(storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 2, lumaBlocks * 4));
         public Span<int> MotionY => MemoryMarshal.Cast<byte, int>(storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 6, lumaBlocks * 4));
-        public Span<byte> Quantizers => storage.Memory.Span[(ModesOffset + lumaBlocks * 10)..];
+        public Span<byte> Quantizers => storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 10, macroblocks);
+        public Span<byte> Transforms8x8 => storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 10 + macroblocks, macroblocks);
 
         public Span<byte> Plane(int index) => index switch
         {
@@ -83,29 +85,53 @@ namespace Mediana.Codecs.H264
 
         public void SetLumaMode(int x, int y, int mode) => Modes[BlockIndex(0, x, y)] = (byte)(mode | 128);
 
-        public void PredictLuma4x4(int x, int y, int mode, Span<byte> output, bool constrained = false)
+        public void SetLuma8x8Mode(int x, int y, int mode)
         {
-            Span<byte> top = stackalloc byte[8];
-            Span<byte> left = stackalloc byte[4];
+            for (int row = 0; row < 8; row += 4)
+            {
+                for (int column = 0; column < 8; column += 4)
+                {
+                    SetLumaMode(x + column, y + row, mode);
+                }
+            }
+        }
+
+        public void PredictLuma4x4(int x, int y, int mode, Span<byte> output, bool constrained = false) =>
+            PredictLuma(x, y, mode, output, constrained, 4);
+
+        public void PredictLuma8x8(int x, int y, int mode, Span<byte> output, bool constrained) =>
+            PredictLuma(x, y, mode, output, constrained, 8);
+
+        private void PredictLuma(int x, int y, int mode, Span<byte> output, bool constrained, int size)
+        {
+            Span<byte> top = stackalloc byte[16];
+            Span<byte> left = stackalloc byte[8];
             Span<byte> pixels = Plane(0);
             bool hasTop = IsAvailable(x, y - 1, constrained);
             bool hasLeft = IsAvailable(x - 1, y, constrained);
             if (hasTop)
             {
-                for (int index = 0; index < 8; index++)
+                for (int index = 0; index < size * 2; index++)
                 {
-                    top[index] = IsAvailable(x + index, y - 1, constrained) ? pixels[(y - 1) * Width + x + index] : top[3];
+                    top[index] = IsAvailable(x + index, y - 1, constrained) ? pixels[(y - 1) * Width + x + index] : top[size - 1];
                 }
             }
             if (hasLeft)
             {
-                for (int index = 0; index < 4; index++)
+                for (int index = 0; index < size; index++)
                 {
                     left[index] = pixels[(y + index) * Width + x - 1];
                 }
             }
             byte? corner = IsAvailable(x - 1, y - 1, constrained) ? pixels[(y - 1) * Width + x - 1] : null;
-            H264IntraPrediction.Luma4x4(mode, hasTop ? top : [], hasLeft ? left : [], corner, output);
+            if (size == 8)
+            {
+                H264IntraPrediction.Luma8x8(mode, hasTop ? top : [], hasLeft ? left : [], corner, output);
+            }
+            else
+            {
+                H264IntraPrediction.Luma4x4(mode, hasTop ? top[..8] : [], hasLeft ? left[..4] : [], corner, output);
+            }
         }
 
         public void PredictMacroblock(int plane, int x, int y, int mode, Span<byte> output, bool constrained = false)
@@ -140,21 +166,33 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        public void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual)
+        public void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual) =>
+            WriteBlock(plane, x, y, prediction, residual, 4);
+
+        public void WriteLuma8x8(int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual) =>
+            WriteBlock(0, x, y, prediction, residual, 8);
+
+        private void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int size)
         {
             int stride = Stride(plane);
             Span<byte> pixels = Plane(plane);
-            for (int row = 0; row < 4; row++)
+            for (int row = 0; row < size; row++)
             {
-                for (int column = 0; column < 4; column++)
+                for (int column = 0; column < size; column++)
                 {
-                    int index = row * 4 + column;
+                    int index = row * size + column;
                     pixels[(y + row) * stride + x + column] = (byte)Math.Clamp((long)prediction[index] + residual[index], 0, 255);
                 }
             }
             if (plane == 0)
             {
-                Modes[BlockIndex(0, x, y)] &= 127;
+                for (int row = 0; row < size; row += 4)
+                {
+                    for (int column = 0; column < size; column += 4)
+                    {
+                        Modes[BlockIndex(0, x + column, y + row)] &= 127;
+                    }
+                }
             }
         }
 

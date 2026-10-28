@@ -19,15 +19,20 @@ namespace Mediana.Codecs.H264
             int x = (address % header.Sequence.WidthInMbs) * 16;
             int y = (address / header.Sequence.WidthInMbs) * 16;
             Span<byte> prediction = stackalloc byte[384];
+            bool noSmallPartitions = true;
             if (skip)
             {
                 H264InterPrediction.Skip(target, header, references, x, y, prediction);
             }
             else
             {
-                H264InterPrediction.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, x, y, type, prediction);
+                noSmallPartitions = H264InterPrediction.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, x, y, type, prediction);
             }
             int pattern = skip ? 0 : CodedPatterns[bits.ReadUe(47)];
+            if ((pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions && bits.ReadFlag())
+            {
+                target.Transforms8x8[address] = 1;
+            }
             if (pattern != 0)
             {
                 qp = (qp + bits.ReadSe(-26, 25) + 52) % 52;

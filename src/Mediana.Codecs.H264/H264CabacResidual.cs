@@ -13,6 +13,7 @@ namespace Mediana.Codecs.H264
                 H264ResidualCategory.Luma4x4 => (16, 29, 20),
                 H264ResidualCategory.ChromaDc => (4, 44, 30),
                 H264ResidualCategory.ChromaAc => (15, 47, 39),
+                H264ResidualCategory.Luma8x8 => throw new NotSupportedException("CABAC 8x8 residuals are not implemented yet."),
                 _ => throw new ArgumentOutOfRangeException(nameof(category))
             };
             ArgumentOutOfRangeException.ThrowIfNegative(neighbourContext);

@@ -15,6 +15,12 @@ namespace Mediana.NativeTests
                     ("avc-tail", ".mov", 3), ("avc-tail", ".mov", 4), ("avc-tail", ".mov", 5), ("avc-cropped", ".mp4", 0)];
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
+            string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            await H264EightByEightTestInput.VerifyPredictionVectorsAsync(h264Root);
+            await H264EightByEightTestInput.VerifyExplicitPicturesAsync(h264Root);
+            (int intra8, int inter8) = await H264EightByEightTestInput.VerifySequenceAsync(root, "avc-cavlc-8x8", 18);
+            (int weightedIntra8, int weightedInter8) = await H264EightByEightTestInput.VerifySequenceAsync(root, "avc-cavlc-8x8-weighted", 12);
+            Console.WriteLine($"PASS H.264 CAVLC 8x8: nine explicit intra modes and 30 complete I/P pictures match; {intra8 + weightedIntra8} intra and {inter8 + weightedInter8} inter 8x8 macroblocks.");
             await H264CabacTestInput.VerifyIntraContextStatesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
             await H264CabacTestInput.VerifyRealIntraPrefixAsync(root);
             Console.WriteLine("PASS H.264 CABAC intra initialization: all 227 contexts at 52 quantizers and the real IDR prefix match.");

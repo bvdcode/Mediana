@@ -207,3 +207,37 @@ The public preview checks request 450 ms, select 500 ms, preserve the 100 ms
 duration and encode square-pixel 100x49 PNGs. Every decoded channel matches the
 selected reference samples within one code; signature, CRCs, dimensions, sRGB
 and pHYs metadata are checked in managed execution and Native AOT.
+
+## High-profile CAVLC 8x8 sequences
+
+`avc-cavlc-8x8.mp4` contains eighteen 190x126 visible pictures in 192x128 coded
+storage: one IDR and seventeen P pictures at 12 fps. It uses High profile, CAVLC,
+three references, flat scaling, square pixels, QP 23/26 and deblocking offsets
+-2/+4. The stream mixes 4x4, 8x8 and 16x16 intra modes with inter partitions,
+fractional motion and skip. The encoder reports 8x8 transforms for 2.8% of intra
+and 19.4% of coded inter luma blocks.
+
+`avc-cavlc-8x8-weighted.mp4` contains twelve pictures at the same dimensions and
+rate, one IDR and eleven P pictures. It uses four references, SAR 4:3, a fade,
+QP 35/38 and deblocking offsets +4/+2. Its quantizers exercise 8x8 scaling below
+and above QP 36. The encoder reports weighted prediction on all P pictures and
+8x8 transforms for 4.1% of intra and 39.2% of coded inter luma blocks.
+Both inputs declare limited BT.709 and left chroma siting.
+
+```sh
+ffmpeg -hide_banner -v info -nostdin -y -f lavfi -i testsrc2=size=190x126:rate=12:duration=1.5 -map_metadata -1 -c:v libx264 -profile:v high -coder:v vlc -pix_fmt yuv420p -bf 0 -refs 3 -g 48 -qp 26 -x264-params "8x8dct=1:partitions=i8x8,p8x8,p4x4:subme=9:deblock=-1,2:scenecut=0" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an avc-cavlc-8x8.mp4
+ffmpeg -hide_banner -v info -nostdin -y -f lavfi -i testsrc2=size=190x126:rate=12:duration=1 -vf "fade=t=out:st=0:d=1,setsar=4/3" -map_metadata -1 -c:v libx264 -profile:v high -coder:v vlc -pix_fmt yuv420p -bf 0 -refs 4 -g 48 -qp 38 -8x8dct 1 -partitions i8x8,p8x8,p4x4 -x264-params "subme=9:deblock=2,1:scenecut=0:weightp=2" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an avc-cavlc-8x8-weighted.mp4
+ffmpeg -hide_banner -v error -nostdin -y -i <input>.mp4 -map 0:v:0 -pix_fmt yuv420p -fps_mode passthrough -f rawvideo <input>.sequence.yuv
+```
+
+The independent YUV420P8 sequences contain every visible sample: 646,380 bytes
+and 430,920 bytes respectively. Internal checks require actual intra and inter
+8x8 use; public checks compare every frame, PTS, duration, crop, SAR and released
+storage. The same checks run in managed execution and Native AOT.
+
+| File | SHA-256 |
+| --- | --- |
+| avc-cavlc-8x8.mp4 | 06c1b571f97edc6f4043397a5e0b9dc2c4d17481d478c9d73be971572a1262d5 |
+| avc-cavlc-8x8.sequence.yuv | 59e4ee11c0327cfe6623fbcd5c29430dd3ea0bf798df4f4b06dc95a497efcbb7 |
+| avc-cavlc-8x8-weighted.mp4 | beb676571264087ad7ba5a4a0870ef1b4741b8a0b91632e04e241fe1118dbe89 |
+| avc-cavlc-8x8-weighted.sequence.yuv | 762bcce46051ec61ec72a455b8e7a40a96dae1fa1ce98bc352872907387770fe |
