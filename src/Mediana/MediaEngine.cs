@@ -85,7 +85,7 @@ namespace Mediana
                 }
                 decoder = SelectDecoder(stream).Create(stream, allocator);
                 pipeline = new VideoDecodePipeline(reader, decoder, streamIndex, options.MaxPacketReads);
-                VideoSession session = new(reader, replay, pipeline, allocator, options.MaxFrameReads);
+                VideoSession session = new(reader, replay, pipeline, allocator, options.MaxFrameReads, stream);
                 cancellationToken.ThrowIfCancellationRequested();
                 transferred = true;
                 return session;

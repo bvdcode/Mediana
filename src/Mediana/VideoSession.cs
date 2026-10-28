@@ -1,4 +1,5 @@
 using Mediana.Containers;
+using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
@@ -22,16 +23,19 @@ namespace Mediana
         private int busy;
 
         internal VideoSession(IContainerReader reader, IByteSource replay, VideoDecodePipeline pipeline,
-            MediaBufferAllocator allocator, long maxFrameReads)
+            MediaBufferAllocator allocator, long maxFrameReads, EncodedStreamInfo stream)
         {
             this.reader = reader;
             this.replay = replay;
             this.pipeline = pipeline;
             this.allocator = allocator;
             this.maxFrameReads = maxFrameReads;
+            Stream = stream;
         }
 
         public long AllocatedBufferBytes => allocator.AllocatedBytes;
+        /// <summary>Immutable selected stream metadata, including container display information.</summary>
+        public EncodedStreamInfo Stream { get; }
 
         public async ValueTask<VideoFrame?> ReadFrameAsync(CancellationToken cancellationToken = default)
         {
