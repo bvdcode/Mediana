@@ -65,7 +65,7 @@ namespace Mediana.Tests
             using MediaBuffer buffer = writable.Publish();
             using VideoFrame input = new(format, buffer, format.CreateTightLayout());
             Assert.Throws<NotSupportedException>(() => DisplayResize.Fit(input, 1, 1, allocator));
-            Assert.Throws<ArgumentException>(() => DisplayResize.Fit(input, default, 1, 1, allocator));
+            Assert.Throws<ArgumentException>(() => DisplayResize.Fit(input, default(SampleAspectRatio), 1, 1, allocator));
             Assert.Throws<ArgumentOutOfRangeException>(() => DisplayResize.Fit(input, SampleAspectRatio.Square, 0, 1, allocator));
             Assert.Throws<OperationCanceledException>(() => DisplayResize.Fit(input, SampleAspectRatio.Square, 1, 1, allocator, new CancellationToken(true)));
             using VideoFrame output = DisplayResize.Fit(input, SampleAspectRatio.Square, 1, 1, allocator);

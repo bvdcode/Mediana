@@ -23,16 +23,44 @@ namespace Mediana.Processing
         public static VideoFrame Fit(VideoFrame input, SampleAspectRatio sourceAspectRatio, int maximumWidth, int maximumHeight,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
+            return FitCore(input, sourceAspectRatio, OrthogonalTransform.Identity, maximumWidth, maximumHeight, allocator, cancellationToken);
+        }
+
+        /// <summary>Fits the transformed image into a tight square-pixel rectangle. Supports exact right-angle rotations
+        /// and reflections. Canvas translation is normalized to the output origin; no canvas padding is added.</summary>
+        public static VideoFrame Fit(VideoFrame input, VideoDisplayMatrix sourceDisplayMatrix, int maximumWidth, int maximumHeight,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            cancellationToken.ThrowIfCancellationRequested();
+            SampleAspectRatio aspectRatio = input.Format.SampleAspectRatio
+                ?? throw new NotSupportedException("Display resizing requires a known sample aspect ratio or an explicit interpretation.");
+            return Fit(input, aspectRatio, sourceDisplayMatrix, maximumWidth, maximumHeight, allocator, cancellationToken);
+        }
+
+        /// <summary>Fits an oriented image using explicit interpretations of source SAR and display matrix.</summary>
+        public static VideoFrame Fit(VideoFrame input, SampleAspectRatio sourceAspectRatio, VideoDisplayMatrix sourceDisplayMatrix,
+            int maximumWidth, int maximumHeight, MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
+        {
+            OrthogonalTransform orientation = OrthogonalTransform.FromMatrix(sourceDisplayMatrix);
+            return FitCore(input, sourceAspectRatio, orientation, maximumWidth, maximumHeight, allocator, cancellationToken);
+        }
+
+        private static VideoFrame FitCore(VideoFrame input, SampleAspectRatio sourceAspectRatio, OrthogonalTransform orientation,
+            int maximumWidth, int maximumHeight, MediaBufferAllocator allocator, CancellationToken cancellationToken)
+        {
             ArgumentNullException.ThrowIfNull(input);
             ArgumentNullException.ThrowIfNull(allocator);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumWidth);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumHeight);
             sourceAspectRatio.Validate();
             cancellationToken.ThrowIfCancellationRequested();
+            int widthLimit = orientation.SwapsAxes ? maximumHeight : maximumWidth;
+            int heightLimit = orientation.SwapsAxes ? maximumWidth : maximumHeight;
             BigInteger displayWidth = (BigInteger)input.Format.Width * sourceAspectRatio.Numerator;
             BigInteger displayHeight = (BigInteger)input.Format.Height * sourceAspectRatio.Denominator;
-            int boxWidth = RoundWithin(displayWidth, sourceAspectRatio.Denominator, maximumWidth);
-            int boxHeight = Math.Min(input.Format.Height, maximumHeight);
+            int boxWidth = RoundWithin(displayWidth, sourceAspectRatio.Denominator, widthLimit);
+            int boxHeight = Math.Min(input.Format.Height, heightLimit);
             int width;
             int height;
             if (displayWidth * boxHeight >= displayHeight * boxWidth)
@@ -45,7 +73,7 @@ namespace Mediana.Processing
                 height = boxHeight;
                 width = RoundWithin(height * displayWidth, displayHeight, boxWidth);
             }
-            return NearestNeighborResize.Apply(input, width, height, SampleAspectRatio.Square, allocator, cancellationToken);
+            return NearestNeighborResize.Apply(input, width, height, SampleAspectRatio.Square, orientation, allocator, cancellationToken);
         }
 
         private static int RoundWithin(BigInteger numerator, BigInteger denominator, int maximum) =>
