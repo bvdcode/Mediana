@@ -26,15 +26,17 @@ namespace Mediana.Codecs.H264
         public void ReadPrediction(ref H264BitReader bits, H264SliceHeader header, int address, int type)
         {
             state.Types[address] = (byte)type;
-            if (type == 0 && header.Picture.Transform8x8 && reader.Read(ref bits, 399))
+            if (type == 0 && header.Picture.Transform8x8)
             {
-                throw new NotSupportedException("CABAC intra 8x8 prediction is not implemented yet.");
+                ReadTransform(ref bits, address);
             }
             int x = address % header.Sequence.WidthInMbs * 16;
             int y = address / header.Sequence.WidthInMbs * 16;
-            for (int index = 0; index < 16; index++)
+            bool transform8x8 = target.Transforms8x8[address] != 0;
+            int blocks = transform8x8 ? 4 : 16;
+            for (int index = 0; index < blocks; index++)
             {
-                (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
+                (int blockX, int blockY) = transform8x8 ? (index % 2 * 8, index / 2 * 8) : H264Picture.LumaBlockPosition(index);
                 int mode = 2;
                 if (type == 0)
                 {
@@ -53,7 +55,14 @@ namespace Mediana.Codecs.H264
                         mode = remaining < predicted ? remaining : remaining + 1;
                     }
                 }
-                target.SetLumaMode(x + blockX, y + blockY, mode);
+                if (transform8x8)
+                {
+                    target.SetLuma8x8Mode(x + blockX, y + blockY, mode);
+                }
+                else
+                {
+                    target.SetLumaMode(x + blockX, y + blockY, mode);
+                }
             }
             int chromaContext = 64 + state.ChromaModeCondition(state.Left(address)) + state.ChromaModeCondition(state.Top(address));
             int chroma = 0;
@@ -66,6 +75,14 @@ namespace Mediana.Codecs.H264
                 }
             }
             state.ChromaModes[address] = (byte)chroma;
+        }
+
+        public void ReadTransform(ref H264BitReader bits, int address)
+        {
+            int left = state.Left(address);
+            int top = state.Top(address);
+            int context = 399 + (left < 0 ? 0 : target.Transforms8x8[left]) + (top < 0 ? 0 : target.Transforms8x8[top]);
+            target.Transforms8x8[address] = reader.Read(ref bits, context) ? (byte)1 : (byte)0;
         }
 
         public int ReadPattern(ref H264BitReader bits, int address, int type)
@@ -127,6 +144,18 @@ namespace Mediana.Codecs.H264
 
         public int Read(ref H264BitReader bits, H264ResidualCategory category, int plane, int x, int y, scoped Span<int> coefficients)
         {
+            if (category == H264ResidualCategory.Luma8x8)
+            {
+                int count = H264CabacResidual.Read(ref bits, reader, category, 0, coefficients);
+                for (int row = 0; row < 2; row++)
+                {
+                    for (int column = 0; column < 2; column++)
+                    {
+                        target.Counts(0)[target.BlockIndex(0, x + column * 4, y + row * 4)] = 1;
+                    }
+                }
+                return count;
+            }
             int context;
             int scale = plane == 0 ? 16 : 8;
             int address = y / scale * target.Sequence.WidthInMbs + x / scale;

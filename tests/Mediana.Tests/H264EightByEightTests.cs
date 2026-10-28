@@ -14,10 +14,13 @@ namespace Mediana.Tests
             await H264EightByEightTestInput.VerifyExplicitPicturesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
 
         [Theory]
-        [InlineData("avc-cavlc-8x8", 18)]
-        [InlineData("avc-cavlc-8x8-weighted", 12)]
-        public async Task CompleteHighProfileSequenceExercisesIntraAndInter8x8AndMatchesEveryYuvSample(string name, int count) =>
-            await H264EightByEightTestInput.VerifySequenceAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name, count);
+        [InlineData("avc-cavlc-8x8", 18, null)]
+        [InlineData("avc-cavlc-8x8-weighted", 12, null)]
+        [InlineData("avc-cabac-8x8-0", 18, 0)]
+        [InlineData("avc-cabac-8x8-1", 12, 1)]
+        [InlineData("avc-cabac-8x8-2", 12, 2)]
+        public async Task CompleteHighProfileSequenceExercisesIntraAndInter8x8AndMatchesEveryYuvSample(string name, int count, int? initialization) =>
+            await H264EightByEightTestInput.VerifySequenceAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name, count, initialization);
 
         [Fact]
         public void CavlcResidualGroupsInterleaveAcrossTheComplete8x8Scan()
@@ -41,12 +44,14 @@ namespace Mediana.Tests
             bits.ReadTrailingBits();
         }
 
-        [Fact]
-        public async Task TruncatedOrCancelled8x8PicturesReleaseStorageAndPreservePreviousReferences()
+        [Theory]
+        [InlineData("avc-cavlc-8x8")]
+        [InlineData("avc-cabac-8x8-0")]
+        public async Task TruncatedOrCancelled8x8PicturesReleaseStorageAndPreservePreviousReferences(string name)
         {
-            (H264Configuration configuration, byte[] first) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-cavlc-8x8.mp4"), 0);
-            (_, byte[] next) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-cavlc-8x8.mp4"), 1);
-            byte[] expected = await Mp4TestData.ReadAsync("avc-cavlc-8x8.sequence.yuv");
+            (H264Configuration configuration, byte[] first) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor(name + ".mp4"), 0);
+            (_, byte[] next) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor(name + ".mp4"), 1);
+            byte[] expected = await Mp4TestData.ReadAsync(name + ".sequence.yuv");
             const int frameBytes = 190 * 126 * 3 / 2;
             MediaBufferAllocator allocator = new(2 * 1024 * 1024);
             using (H264ReferenceBuffer references = new())

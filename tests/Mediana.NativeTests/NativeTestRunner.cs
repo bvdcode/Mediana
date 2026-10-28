@@ -21,9 +21,14 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS H.264 CABAC 8x8: all 7072 initial states and every residual position match normative references and exact intervals.");
             await H264EightByEightTestInput.VerifyPredictionVectorsAsync(h264Root);
             await H264EightByEightTestInput.VerifyExplicitPicturesAsync(h264Root);
-            (int intra8, int inter8) = await H264EightByEightTestInput.VerifySequenceAsync(root, "avc-cavlc-8x8", 18);
-            (int weightedIntra8, int weightedInter8) = await H264EightByEightTestInput.VerifySequenceAsync(root, "avc-cavlc-8x8-weighted", 12);
+            (int intra8, int inter8) = await H264EightByEightTestInput.VerifySequenceAsync(root, "avc-cavlc-8x8", 18, null);
+            (int weightedIntra8, int weightedInter8) = await H264EightByEightTestInput.VerifySequenceAsync(root, "avc-cavlc-8x8-weighted", 12, null);
             Console.WriteLine($"PASS H.264 CAVLC 8x8: nine explicit intra modes and 30 complete I/P pictures match; {intra8 + weightedIntra8} intra and {inter8 + weightedInter8} inter 8x8 macroblocks.");
+            for (int initialization = 0; initialization < 3; initialization++)
+            {
+                (int intra, int inter) = await H264EightByEightTestInput.VerifySequenceAsync(root, $"avc-cabac-8x8-{initialization}", initialization == 0 ? 18 : 12, initialization);
+                Console.WriteLine($"PASS H.264 CABAC 8x8 selection {initialization}: all complete I/P YUV pictures match; {intra} intra and {inter} inter 8x8 macroblocks.");
+            }
             await H264CabacTestInput.VerifyIntraContextStatesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
             await H264CabacTestInput.VerifyRealIntraPrefixAsync(root);
             Console.WriteLine("PASS H.264 CABAC intra initialization: all 227 contexts at 52 quantizers and the real IDR prefix match.");

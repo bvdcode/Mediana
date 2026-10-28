@@ -39,7 +39,9 @@ The Main sequence includes explicit prediction weights and reference-list change
 Two High CAVLC sequences with 4x4/8x8/16x16 intra prediction, inter 8x8 transforms,
 motion, weighted prediction and nonzero deblocking offsets match thirty further
 independent YUV pictures internally and through public sessions.
-The same nineteen pictures, six Main CABAC intra pictures and 54 additional CABAC I/P pictures match through MediaEngine,
+Three High CABAC sequences with the same transform sizes match forty-two further
+independent YUV pictures, including all three CABAC initialization selections.
+All forty-nine CAVLC pictures, six Main CABAC intra pictures and 96 additional CABAC I/P pictures match through MediaEngine,
 with timing, cropping and sample aspect ratio preserved. Preview generation requires
 the supported CAVLC/CABAC I/P subset and known color and sample aspect ratio;
 it does not cover general H.264 files.
@@ -96,7 +98,7 @@ See the [.NET Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet
 
 Mediana.NativeTests executes internal H.264 I/P reconstruction and public MediaEngine
 video sessions. Each path compares all visible YUV samples in forty-nine CAVLC pictures
-with the checked-in references. Public sessions also compare six CABAC intra pictures and 54 CABAC I/P pictures
+with the checked-in references. Public sessions also compare six CABAC intra pictures and 96 CABAC I/P pictures
 and verify timing, cropping,
 sample aspect ratio and allocation release. Its fixture loading and comparison code
 is shared with the unit tests. The native checks also compare SDR conversion with
@@ -122,10 +124,12 @@ The public decoder reconstructs supported CABAC I/P pictures, including weighted
 prediction, multiple references and per-partition motion differences. Four complete
 CABAC I/P sequences match 54 independent YUV pictures with all three cabac_init_idc
 selections, mixed intra/inter prediction and cropped storage.
-Eight-bit CAVLC supports 8x8 intra prediction/transforms, including all nine
-directional prediction modes checked against explicit independent vectors.
-CABAC 8x8, B pictures and broader slice support remain open. A CABAC PPS may permit 8x8 transforms; actual use of the 8x8 flag
-fails during reconstruction. Unsupported or damaged pictures fault the session
+Eight-bit CAVLC and CABAC support 8x8 intra prediction/transforms; all nine
+directional prediction modes match explicit independent vectors. Three High CABAC
+sequences match 42 additional complete I/P pictures with actual intra/inter 8x8
+use. The 34 progressive 8x8 contexts match all 7072 normative initial states;
+residual intervals exercise every scan position, signs and large magnitudes.
+B pictures and broader slice support remain open. Unsupported or damaged pictures fault the session
 and release pending output; reset or disposal is required. Unused bits
 in the arithmetic terminal byte are discarded; following zero words are checked.
 This decoder is not a complete bitstream conformance validator.
@@ -206,8 +210,8 @@ forward without seeking. Null means the stream has ended.
 
 The decoder accepts AVC length-prefixed packets with one complete single-slice
 picture and an initial avcC configuration. Supported pictures are progressive
-8-bit YUV 4:2:0 CAVLC/CABAC I/P with default scaling. 4x4/8x8 prediction and
-transforms are supported for CAVLC; actual CABAC 8x8 use is unsupported.
+8-bit YUV 4:2:0 CAVLC/CABAC I/P with default scaling, including 4x4/8x8
+prediction and transforms.
 Decoding begins with an IDR; sequence changes through in-band SPS/PPS also
 require an IDR. Each output carries
 its own format, color information, sample aspect ratio, presentation timestamp and
@@ -437,8 +441,8 @@ The workflow defines build, formatting, tests and native publication/execution o
 Linux, Windows and macOS. Other platform results depend on those CI runs.
 The native sample covers the generated-frame pipeline, reading all packets from
 the two original MP4/MOV fixtures and an MP4-to-PNG preview. The separate native tests
-also verify internal and public decoding of nineteen CAVLC reference pictures and
-six CABAC intra pictures and 54 additional CABAC I/P pictures, SDR conversion and decoded PNG pixels. Each future
+also verify internal and public decoding of forty-nine CAVLC reference pictures and
+six CABAC intra pictures and 96 additional CABAC I/P pictures, SDR conversion and decoded PNG pixels. Each future
 format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking,

@@ -56,9 +56,9 @@ namespace Mediana.Codecs.H264
                                 result, header, references, x, y, type, prediction);
                         }
                         int pattern = skipped ? 0 : syntax.ReadPattern(ref bits, address, 0);
-                        if (!skipped && (pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions && reader.Read(ref bits, 399))
+                        if (!skipped && (pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions)
                         {
-                            throw new NotSupportedException("CABAC inter 8x8 transforms are not implemented yet.");
+                            syntax.ReadTransform(ref bits, address);
                         }
                         qp = syntax.ReadQuantizer(ref bits, 0, pattern, qp);
                         result.Quantizers[address] = (byte)qp;

@@ -254,3 +254,42 @@ The public preview check requests 450 ms, selects 500 ms and encodes a
 square-pixel 100x50 sRGB PNG. All decoded channels match the selected reference
 samples within one code; timing, signature, CRCs, dimensions and color/aspect
 metadata are checked in managed execution and Native AOT.
+
+## High-profile CABAC 8x8 sequences
+
+`avc-cabac-8x8-0.mp4` contains eighteen 190x126 visible pictures in 192x128
+coded storage: one IDR and seventeen P pictures at 12 fps. It uses High profile,
+CABAC initialization 0, three references, flat scaling, square pixels, QP 23/26
+and deblocking offsets -2/+4. The encoder reports 8x8 transforms for 3.5% of
+intra and 24.8% of coded inter luma blocks.
+
+`avc-cabac-8x8-1.mp4` and `avc-cabac-8x8-2.mp4` contain twelve pictures each at
+the same dimensions and rate. They use CABAC initialization 1 and 2 respectively,
+four references, SAR 4:3, a fade, QP 35/38 and deblocking offsets +4/+2. The
+encoder reports weighted prediction on every P picture and 8x8 transforms for
+47.7%/49.1% of intra and 70.6%/67.0% of coded inter luma blocks. All three inputs
+mix 4x4/8x8/16x16 intra prediction, inter partitions, fractional motion and skip,
+and declare limited BT.709 with left chroma siting.
+
+```sh
+ffmpeg -hide_banner -v info -nostdin -y -f lavfi -i testsrc2=size=190x126:rate=12:duration=1.5 -map_metadata -1 -c:v libx264 -profile:v high -coder:v ac -pix_fmt yuv420p -bf 0 -refs 3 -g 48 -qp 26 -x264-params "8x8dct=1:partitions=i8x8,p8x8,p4x4:subme=9:deblock=-1,2:scenecut=0:weightp=2:cabac-idc=0" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an avc-cabac-8x8-0.mp4
+ffmpeg -hide_banner -v info -nostdin -y -f lavfi -i testsrc2=size=190x126:rate=12:duration=1 -vf "fade=t=out:st=0:d=1,setsar=4/3" -map_metadata -1 -c:v libx264 -profile:v high -coder:v ac -pix_fmt yuv420p -bf 0 -refs 4 -g 48 -qp 38 -x264-params "8x8dct=1:partitions=i8x8,p8x8,p4x4:subme=9:deblock=2,1:scenecut=0:weightp=2:cabac-idc=<idc>" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an avc-cabac-8x8-<idc>.mp4
+ffmpeg -hide_banner -v error -nostdin -y -i <input>.mp4 -map 0:v:0 -pix_fmt yuv420p -f rawvideo <input>.sequence.yuv
+```
+
+The complete independent YUV420P8 sequences contain 646,380, 430,920 and
+430,920 bytes. Internal checks require actual intra/inter 8x8 use and the
+expected CABAC initialization. Public checks compare all 42 pictures, PTS,
+duration, crop, SAR and released storage. A separate exact arithmetic interval
+checks a zero-residual 2x2 intra 8x8 macroblock grid and all three neighbouring
+transform contexts. Damaged and cancelled pictures must release workers and
+preserve previous references.
+
+| File | SHA-256 |
+| --- | --- |
+| avc-cabac-8x8-0.mp4 | 80fa6a0af5e50a5dda7f57e47d6ebcfd92963859fb7ab16c5a5f2f17186e6aef |
+| avc-cabac-8x8-0.sequence.yuv | f285f173d6d49f12527f174ae6acdb14380a247fc167b73b8ea732793d900071 |
+| avc-cabac-8x8-1.mp4 | 32807322f4a0fd5910b4a2a419c3f937172cbb174041d4a8914b917650b58b77 |
+| avc-cabac-8x8-1.sequence.yuv | 11175c47f534c5e5f5633b2ae836cef12bf80f2ba990fd798055f104fa505a20 |
+| avc-cabac-8x8-2.mp4 | b46088cd077eec384f02be607e621871ea97a6de194a1fad73c5f1818ba8f116 |
+| avc-cabac-8x8-2.sequence.yuv | 8b3f3331746441e5a995931158ec3aa262fa2b0145cc6b845ffd2aa47ce15715 |

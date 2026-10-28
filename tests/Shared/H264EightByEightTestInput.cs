@@ -50,7 +50,7 @@ namespace Mediana.Tests
             }
         }
 
-        public static async Task<(int Intra, int Inter)> VerifySequenceAsync(string root, string name, int count)
+        public static async Task<(int Intra, int Inter)> VerifySequenceAsync(string root, string name, int count, int? initialization)
         {
             byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, name + ".sequence.yuv"));
             MediaBufferAllocator allocator = new(2 * 1024 * 1024);
@@ -63,9 +63,15 @@ namespace Mediana.Tests
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), index);
                     H264SequenceParameterSet sequence = configuration.Sequences[0];
                     int frameBytes = sequence.Width * sequence.Height * 3 / 2;
-                    if (expected.Length != count * frameBytes || configuration.Pictures[0].Cabac || !configuration.Pictures[0].Transform8x8)
+                    if (expected.Length != count * frameBytes || configuration.Pictures[0].Cabac != initialization.HasValue || !configuration.Pictures[0].Transform8x8)
                     {
-                        throw new InvalidDataException("The CAVLC 8x8 sequence has unexpected parameters or reference length.");
+                        throw new InvalidDataException("The 8x8 sequence has unexpected parameters or reference length.");
+                    }
+                    H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
+                    H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+                    if (initialization.HasValue && header.Kind == H264SliceKind.P && header.CabacInitIdc != initialization.Value)
+                    {
+                        throw new InvalidDataException("The 8x8 sequence has an unexpected CABAC initialization selection.");
                     }
                     (int pictureIntra, int pictureInter) = DecodeAndVerify(nal, configuration, references, allocator,
                         expected.AsSpan(index * frameBytes, frameBytes));
@@ -75,7 +81,7 @@ namespace Mediana.Tests
             }
             if (allocator.AllocatedBytes != 0 || intra == 0 || inter == 0)
             {
-                throw new InvalidOperationException("The CAVLC sequence did not exercise intra/inter 8x8 or retained storage.");
+                throw new InvalidOperationException("The sequence did not exercise intra/inter 8x8 or retained storage.");
             }
             return (intra, inter);
         }

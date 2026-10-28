@@ -22,6 +22,9 @@ namespace Mediana.Tests
         [InlineData("avc-cabac-motion.mp4", 18, 190, 126, 12, 1, 1)]
         [InlineData("avc-cavlc-8x8.mp4", 18, 190, 126, 12, 1, 1)]
         [InlineData("avc-cavlc-8x8-weighted.mp4", 12, 190, 126, 12, 4, 3)]
+        [InlineData("avc-cabac-8x8-0.mp4", 18, 190, 126, 12, 1, 1)]
+        [InlineData("avc-cabac-8x8-1.mp4", 12, 190, 126, 12, 4, 3)]
+        [InlineData("avc-cabac-8x8-2.mp4", 12, 190, 126, 12, 4, 3)]
         public async Task PublicEngineDecodesEveryIndependentSampleAndPreservesDisplayMetadata(string file, int count,
             int width, int height, int fps, int aspectWidth, int aspectHeight)
         {
@@ -33,7 +36,8 @@ namespace Mediana.Tests
                 "avc-weighted.mp4" => await Mp4TestData.ReadAsync("avc-weighted.sequence.yuv"),
                 "avc-cabac-intra.mp4" => await Mp4TestData.ReadAsync("avc-cabac-intra.sequence.yuv"),
                 "avc-cabac-p0.mp4" or "avc-cabac-p1.mp4" or "avc-cabac-p2.mp4" or "avc-cabac-motion.mp4" or
-                    "avc-cavlc-8x8.mp4" or "avc-cavlc-8x8-weighted.mp4" =>
+                    "avc-cavlc-8x8.mp4" or "avc-cavlc-8x8-weighted.mp4" or
+                    "avc-cabac-8x8-0.mp4" or "avc-cabac-8x8-1.mp4" or "avc-cabac-8x8-2.mp4" =>
                     await Mp4TestData.ReadAsync(Path.GetFileNameWithoutExtension(file) + ".sequence.yuv"),
                 "avc-tail.mov" or "avc-cropped.mp4" => null,
                 _ => throw new ArgumentOutOfRangeException(nameof(file))

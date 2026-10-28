@@ -75,7 +75,7 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task ActualInter8x8TransformUseFailsAndReleasesAllWorkers()
+        public async Task PrematurelyTerminatedInter8x8TransformReleasesAllWorkers()
         {
             H264SliceHeader header = await H264CabacPredictionTestInput.ReadHeaderAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
             header = header with
@@ -106,8 +106,7 @@ namespace Mediana.Tests
             {
                 long retained = allocator.AllocatedBytes;
                 H264ReferencePicture[] references = [new(reference, 0)];
-                NotSupportedException error = Assert.Throws<NotSupportedException>(() => DecodePayload(payload, header, references, allocator));
-                Assert.Contains("inter 8x8", error.Message);
+                Assert.Throws<InvalidDataException>(() => DecodePayload(payload, header, references, allocator));
                 Assert.Equal(retained, allocator.AllocatedBytes);
             }
             Assert.Equal(0, allocator.AllocatedBytes);

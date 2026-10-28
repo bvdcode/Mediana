@@ -105,23 +105,50 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task AnActualIntra8FlagFailsAndReleasesPictureAndWorkerStorage()
+        public async Task ExplicitIntra8DcGridUsesAllTransformNeighbourContextsAndReleasesStorage()
         {
             (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-aac.mp4"), 0);
             H264BitReader original = H264Nal.Payload(nal, H264Nal.Type(nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref original, configuration, nal[0]);
             Assert.True(header.Picture.Transform8x8);
+            header = header with
+            {
+                Sequence = header.Sequence with { WidthInMbs = 2, HeightInMapUnits = 2, Width = 32, Height = 32 },
+                DeblockingIdc = 1
+            };
             byte[] initial = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264", "cabac-intra-contexts.bin"));
             H264CabacIntervalWriter writer = new(header.Qp);
-            writer.Initialize(3, initial[header.Qp * 227]);
-            writer.Initialize(399, initial[header.Qp * 227 + 224]);
-            writer.Decision(false, 3, 0, 0);
-            writer.Decision(true, 399, 0, 0);
-            writer.Termination(true);
+            int[] indices = Enumerable.Range(3, 8).Concat(Enumerable.Range(60, 216)).Concat(Enumerable.Range(399, 3)).ToArray();
+            for (int index = 0; index < indices.Length; index++)
+            {
+                writer.Initialize(indices[index], initial[header.Qp * 227 + index]);
+            }
+            int[] transformContexts = [399, 400, 400, 401];
+            int[][] patterns = [[73, 74, 75, 76], [74, 74, 76, 76], [75, 76, 75, 76], [76, 76, 76, 76]];
+            for (int address = 0; address < 4; address++)
+            {
+                writer.Decision(false, 3, 0, 0);
+                writer.Decision(true, transformContexts[address], 0, 0);
+                for (int block = 0; block < 4; block++)
+                {
+                    writer.Decision(true, 68, 0, 0);
+                }
+                writer.Decision(false, 64, 0, 0);
+                foreach (int context in patterns[address])
+                {
+                    writer.Decision(false, context, 0, 0);
+                }
+                writer.Decision(false, 77, 0, 0);
+                writer.Termination(address == 3);
+            }
             byte[] payload = writer.ToEbsp();
             MediaBufferAllocator allocator = new(1024 * 1024);
-            NotSupportedException error = Assert.Throws<NotSupportedException>(() => DecodePayload(payload, header, allocator));
-            Assert.Contains("8x8", error.Message);
+            using (H264Picture picture = DecodePayload(payload, header, allocator))
+            {
+                H264TestInput.VerifyPicture(picture, Enumerable.Repeat((byte)128, 1536).ToArray());
+                Assert.All(picture.Transforms8x8.ToArray(), flag => Assert.Equal(1, flag));
+                Assert.All(picture.Counts(0).ToArray(), count => Assert.Equal(0, count));
+            }
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
