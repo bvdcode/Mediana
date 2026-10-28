@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/Mediana.Sample/Mediana.Sample.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Mediana.Codecs/Mediana.Codecs.csproj" />
+    <Project Path="src/Mediana.Containers/Mediana.Containers.csproj" />
+    <Project Path="src/Mediana.Core/Mediana.Core.csproj" />
+    <Project Path="src/Mediana.Execution/Mediana.Execution.csproj" />
+    <Project Path="src/Mediana.IO/Mediana.IO.csproj" />
+    <Project Path="src/Mediana.Processing/Mediana.Processing.csproj" />
+    <Project Path="src/Mediana/Mediana.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Mediana.Tests/Mediana.Tests.csproj" />
+  </Folder>
+</Solution>

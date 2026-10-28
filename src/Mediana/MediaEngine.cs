@@ -1,0 +1,164 @@
+using Mediana.Codecs;
+using Mediana.Containers;
+using Mediana.Core;
+using Mediana.Core.Memory;
+using Mediana.Core.Video;
+using Mediana.Execution;
+using Mediana.IO;
+
+namespace Mediana
+{
+    /// <summary>Immutable module registry. Factories must be safe for concurrent creation of independent sessions.</summary>
+    public class MediaEngine
+    {
+        private readonly IContainerReaderFactory[] containers;
+        private readonly IVideoDecoderFactory[] decoders;
+
+        internal MediaEngine(IContainerReaderFactory[] containers, IVideoDecoderFactory[] decoders)
+        {
+            this.containers = containers;
+            this.decoders = decoders;
+            ContainerImplementations = Array.AsReadOnly(containers.Select(item => item.ImplementationId).ToArray());
+            VideoDecoderImplementations = Array.AsReadOnly(decoders.Select(item => item.ImplementationId).ToArray());
+        }
+
+        public IReadOnlyList<string> ContainerImplementations { get; }
+        public IReadOnlyList<string> VideoDecoderImplementations { get; }
+
+        /// <summary>Opens the explicitly selected stream. Borrows the byte source until the returned session is disposed.
+        /// Opening consumes source bytes even on failure. No implicit rewind or temporary file is used.</summary>
+        public async ValueTask<VideoSession> OpenVideoAsync(IByteSource source, int streamIndex,
+            MediaOpenOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
+            options ??= new MediaOpenOptions();
+            options.Validate();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (containers.Length == 0)
+            {
+                throw new NotSupportedException("No container readers are registered.");
+            }
+            int probeLength = containers.Max(item => item.ProbeLength);
+            if (probeLength > options.MaxProbeBytes)
+            {
+                throw new NotSupportedException("Registered container probing exceeds the configured probe limit.");
+            }
+            MediaBufferAllocator allocator = new(options.BufferBudgetBytes);
+            using WritableMediaBuffer writable = allocator.Allocate(probeLength);
+            int read = 0;
+            while (read < probeLength)
+            {
+                int count = await source.ReadAsync(writable.Memory[read..], cancellationToken).ConfigureAwait(false);
+                if (count < 0 || count > probeLength - read)
+                {
+                    throw new InvalidDataException("The source returned an invalid read length.");
+                }
+                if (count == 0)
+                {
+                    break;
+                }
+                read += count;
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            IContainerReaderFactory factory = SelectContainer(writable.Memory.Span[..read]);
+            using MediaBuffer prefix = writable.Publish();
+            PrefixByteSource replay = new(source, prefix, read, leaveOpen: true);
+            IContainerReader? reader = null;
+            IMediaCodec<MediaPacket, VideoFrame>? decoder = null;
+            VideoDecodePipeline? pipeline = null;
+            bool transferred = false;
+            try
+            {
+                reader = await factory.OpenAsync(replay, allocator, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                EncodedStreamInfo stream = reader.Streams.SingleOrDefault(item => item.StreamIndex == streamIndex)
+                    ?? throw new ArgumentException("The requested stream does not exist.", nameof(streamIndex));
+                if (stream.Kind != MediaKind.Video)
+                {
+                    throw new NotSupportedException("The requested stream is not video.");
+                }
+                decoder = SelectDecoder(stream).Create(stream, allocator);
+                pipeline = new VideoDecodePipeline(reader, decoder, streamIndex, options.MaxPacketReads);
+                VideoSession session = new(reader, replay, pipeline, allocator, options.MaxFrameReads);
+                cancellationToken.ThrowIfCancellationRequested();
+                transferred = true;
+                return session;
+            }
+            finally
+            {
+                if (!transferred)
+                {
+                    try
+                    {
+                        if (pipeline is not null)
+                        {
+                            pipeline.Dispose();
+                        }
+                        else
+                        {
+                            decoder?.Dispose();
+                        }
+                    }
+                    finally
+                    {
+                        try
+                        {
+                            if (reader is not null)
+                            {
+                                await reader.DisposeAsync().ConfigureAwait(false);
+                            }
+                        }
+                        finally
+                        {
+                            await replay.DisposeAsync().ConfigureAwait(false);
+                        }
+                    }
+                }
+            }
+        }
+
+        private IContainerReaderFactory SelectContainer(ReadOnlySpan<byte> prefix)
+        {
+            IContainerReaderFactory? selected = null;
+            foreach (IContainerReaderFactory factory in containers)
+            {
+                if (factory.CanRead(prefix))
+                {
+                    if (selected is not null)
+                    {
+                        throw new NotSupportedException("Multiple container readers match; register a single implementation for this input.");
+                    }
+                    selected = factory;
+                }
+            }
+            return selected ?? throw new NotSupportedException("No registered container reader recognizes the input.");
+        }
+
+        private IVideoDecoderFactory SelectDecoder(EncodedStreamInfo stream)
+        {
+            IVideoDecoderFactory? selected = null;
+            List<string> reasons = [];
+            foreach (IVideoDecoderFactory factory in decoders)
+            {
+                if (factory.CodecId != stream.CodecId)
+                {
+                    continue;
+                }
+                string? reason = factory.GetUnsupportedReason(stream);
+                if (reason is not null)
+                {
+                    reasons.Add($"{factory.ImplementationId}: {reason}");
+                    continue;
+                }
+                if (selected is not null)
+                {
+                    throw new NotSupportedException("Multiple video decoders match; register a single implementation for this configuration.");
+                }
+                selected = factory;
+            }
+            return selected ?? throw new NotSupportedException(
+                $"No decoder supports codec '{stream.CodecId}'. {string.Join("; ", reasons)}");
+        }
+    }
+}

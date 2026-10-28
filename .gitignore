@@ -1,0 +1,9 @@
+notes/
+AGENTS.md
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+.vs/
+.idea/
+*.user
