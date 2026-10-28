@@ -22,19 +22,24 @@ ffprobe -v error -ignore_editlist 1 -show_streams -show_format -show_packets -sh
 
 The sha256 root field is the lowercase SHA256 of the complete fixture file.
 
-`avc-tail.frame0.yuv` is the first decoded picture, including the normative deblocking
-filter, in tightly packed Y, Cb, Cr 8-bit 4:2:0 order (80x48, 5760 bytes). Its SHA256 is
-`8df41101ddfc3feb7ad3b4f8f7ac3d94815c0745b0dac7ca4d2d2c174685958c`.
+`avc-tail.frame0.yuv` through `avc-tail.frame5.yuv` contain the complete decoded
+sequence, including the normative deblocking filter, in tightly packed Y, Cb, Cr
+8-bit 4:2:0 order (80x48, 5760 bytes per picture). Frames 0 and 5 are IDR; frames
+1 through 4 are P pictures using up to three reference pictures.
+
+| Frame | SHA256 |
+| --- | --- |
+| 0 | `8df41101ddfc3feb7ad3b4f8f7ac3d94815c0745b0dac7ca4d2d2c174685958c` |
+| 1 | `8538d88b0ef465c585037a1724d87e5b62237a6ff830562c1f82ccdf238d3764` |
+| 2 | `0b46e63d3d5c3064f7a131ede213c7e32d3e5449e31e9e4ba68cb28888b6d0ef` |
+| 3 | `0e9f1c4c1d50bd5124372a70f579595475c6e2b3d3d056678273764d8324978a` |
+| 4 | `d4896b8f4c3124674016e661e399c12281f2f8443ebb09d536da4e67250e568d` |
+| 5 | `dcded925869f945a85a604c356348a2f194f0d9ed5b7808b73222ee7307dca3d` |
+
+To reproduce one reference, replace `N` with its zero-based picture index:
 
 ```sh
-ffmpeg -v error -i avc-tail.mov -frames:v 1 -pix_fmt yuv420p -f rawvideo avc-tail.frame0.yuv
-```
-
-`avc-tail.frame5.yuv` contains the next IDR picture in the same layout. Its SHA256 is
-`dcded925869f945a85a604c356348a2f194f0d9ed5b7808b73222ee7307dca3d`.
-
-```sh
-ffmpeg -v error -i avc-tail.mov -vf "select=eq(n\,5)" -frames:v 1 -pix_fmt yuv420p -f rawvideo avc-tail.frame5.yuv
+ffmpeg -v error -i avc-tail.mov -vf "select=eq(n\,N)" -frames:v 1 -pix_fmt yuv420p -f rawvideo avc-tail.frameN.yuv
 ```
 
 `avc-cropped.mp4` contains a Baseline picture with a coded size of 80x48 and a

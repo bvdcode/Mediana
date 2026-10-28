@@ -9,6 +9,28 @@ namespace Mediana.Tests
 {
     internal static class H264TestInput
     {
+        public static void VerifyAndStorePicture(ReadOnlySpan<byte> nal, H264Configuration configuration,
+            H264ReferenceBuffer references, MediaBufferAllocator allocator, ReadOnlySpan<byte> expected)
+        {
+            H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
+            H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+            H264Picture picture = H264PictureDecoder.Decode(ref bits, header, references.GetList0(header), allocator);
+            bool stored = false;
+            try
+            {
+                VerifyPicture(picture, expected);
+                references.Store(picture, header);
+                stored = true;
+            }
+            finally
+            {
+                if (!stored)
+                {
+                    picture.Dispose();
+                }
+            }
+        }
+
         public static async Task<(H264Configuration Configuration, byte[] Nal)> ReadIdrAsync(string path, int packetIndex)
         {
             (H264Configuration configuration, byte[] nal) = await ReadSliceAsync(path, packetIndex);
