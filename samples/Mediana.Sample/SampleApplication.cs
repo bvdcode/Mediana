@@ -1,3 +1,4 @@
+using System.Globalization;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
@@ -10,13 +11,21 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string[] args)
         {
+            if (args.Length == 7 && args[0] == "--preview" &&
+                int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int streamIndex) &&
+                long.TryParse(args[4], NumberStyles.None, CultureInfo.InvariantCulture, out long milliseconds) &&
+                int.TryParse(args[5], NumberStyles.None, CultureInfo.InvariantCulture, out int maximumWidth) && maximumWidth > 0 &&
+                int.TryParse(args[6], NumberStyles.None, CultureInfo.InvariantCulture, out int maximumHeight) && maximumHeight > 0)
+            {
+                return await VideoPreviewSample.RunAsync(args[1], args[2], streamIndex, milliseconds, maximumWidth, maximumHeight);
+            }
             if (args.Length == 2 && args[0] == "--probe-mp4")
             {
                 return await Mp4ProbeSample.RunAsync(args[1]);
             }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path>]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height>]");
                 return 2;
             }
 
