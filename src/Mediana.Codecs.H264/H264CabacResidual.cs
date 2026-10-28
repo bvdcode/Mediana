@@ -4,15 +4,15 @@ namespace Mediana.Codecs.H264
     internal static class H264CabacResidual
     {
         public static int Read(ref H264BitReader bits, H264CabacIntraReader reader,
-            H264CabacBlockCategory category, int neighbourContext, scoped Span<int> coefficients)
+            H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients)
         {
             (int count, int significantOffset, int levelOffset) = category switch
             {
-                H264CabacBlockCategory.Intra16LumaDc => (16, 0, 0),
-                H264CabacBlockCategory.Intra16LumaAc => (15, 15, 10),
-                H264CabacBlockCategory.Luma4x4 => (16, 29, 20),
-                H264CabacBlockCategory.ChromaDc => (4, 44, 30),
-                H264CabacBlockCategory.ChromaAc => (15, 47, 39),
+                H264ResidualCategory.Intra16LumaDc => (16, 0, 0),
+                H264ResidualCategory.Intra16LumaAc => (15, 15, 10),
+                H264ResidualCategory.Luma4x4 => (16, 29, 20),
+                H264ResidualCategory.ChromaDc => (4, 44, 30),
+                H264ResidualCategory.ChromaAc => (15, 47, 39),
                 _ => throw new ArgumentOutOfRangeException(nameof(category))
             };
             ArgumentOutOfRangeException.ThrowIfNegative(neighbourContext);
@@ -50,7 +50,7 @@ namespace Mediana.Codecs.H264
                 int magnitude = 1;
                 if (reader.Read(ref bits, 227 + levelOffset + firstContext))
                 {
-                    int continuation = 227 + levelOffset + 5 + Math.Min(category == H264CabacBlockCategory.ChromaDc ? 3 : 4, greaterOne);
+                    int continuation = 227 + levelOffset + 5 + Math.Min(category == H264ResidualCategory.ChromaDc ? 3 : 4, greaterOne);
                     int prefix = 1;
                     while (prefix < 14 && reader.Read(ref bits, continuation))
                     {

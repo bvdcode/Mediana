@@ -1,6 +1,6 @@
 namespace Mediana.Codecs.H264
 {
-    internal enum H264CabacBlockCategory
+    internal enum H264ResidualCategory
     {
         Intra16LumaDc,
         Intra16LumaAc,

@@ -12,7 +12,7 @@ namespace Mediana.Tests
         [InlineData(4, 15)]
         public async Task EveryPositionAndNeighbourContextMatchesIndependentIntervals(int categoryIndex, int count)
         {
-            H264CabacBlockCategory category = (H264CabacBlockCategory)categoryIndex;
+            H264ResidualCategory category = (H264ResidualCategory)categoryIndex;
             (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-aac.mp4"), 0);
             byte[] states = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264", "cabac-intra-contexts.bin"));
             H264BitReader headerBits = H264Nal.Payload(nal, H264Nal.Type(nal));

@@ -22,7 +22,12 @@ namespace Mediana.Codecs.H264
         }
 
         public static void ReadChroma(ref H264BitReader bits, H264Picture target, H264PictureParameterSet picture,
+            int x, int y, int pattern, int qp, scoped ReadOnlySpan<byte> macroPrediction) =>
+            ReadChroma(ref bits, new H264CavlcResidualReader(target), target, picture, x, y, pattern, qp, macroPrediction);
+
+        public static void ReadChroma<TReader>(ref H264BitReader bits, TReader reader, H264Picture target, H264PictureParameterSet picture,
             int x, int y, int pattern, int qp, scoped ReadOnlySpan<byte> macroPrediction)
+            where TReader : IH264ResidualReader
         {
             Span<int> coefficients = stackalloc int[15];
             Span<int> dcCoefficients = stackalloc int[8];
@@ -32,8 +37,8 @@ namespace Mediana.Codecs.H264
             dcCoefficients.Clear();
             if (pattern != 0)
             {
-                H264Cavlc.Read(ref bits, dcCoefficients[..4], -1, 15);
-                H264Cavlc.Read(ref bits, dcCoefficients[4..], -1, 15);
+                reader.Read(ref bits, H264ResidualCategory.ChromaDc, 1, x, y, dcCoefficients[..4]);
+                reader.Read(ref bits, H264ResidualCategory.ChromaDc, 2, x, y, dcCoefficients[4..]);
             }
             for (int plane = 1; plane <= 2; plane++)
             {
@@ -46,7 +51,7 @@ namespace Mediana.Codecs.H264
                     int blockY = (index / 2) * 4;
                     coefficients.Clear();
                     int count = pattern == 2
-                        ? H264Cavlc.Read(ref bits, coefficients, target.NeighbourCount(plane, x + blockX, y + blockY), 15) : 0;
+                        ? reader.Read(ref bits, H264ResidualCategory.ChromaAc, plane, x + blockX, y + blockY, coefficients) : 0;
                     target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
                     H264InverseTransform.Residual4x4(coefficients, chromaQp, residual, dc[index]);
                     CopyPrediction(macroPrediction.Slice((plane - 1) * 64, 64), 8, blockX, blockY, prediction);
