@@ -3,7 +3,7 @@ namespace Mediana.Codecs.H264
     internal class H264CabacIntraReader
     {
         private readonly H264CabacContext[] contexts;
-        private readonly H264CabacDecoder decoder;
+        private H264CabacDecoder decoder;
 
         public H264CabacIntraReader(ref H264BitReader bits, H264SliceHeader header)
         {
@@ -22,5 +22,6 @@ namespace Mediana.Codecs.H264
         public bool Bypass(ref H264BitReader bits) => decoder.ReadBypass(ref bits);
         public uint Bits(ref H264BitReader bits, int count) => decoder.ReadBypassBits(ref bits, count);
         public bool Termination(ref H264BitReader bits) => decoder.ReadTermination(ref bits);
+        public void Restart(ref H264BitReader bits) => decoder = new H264CabacDecoder(ref bits);
     }
 }

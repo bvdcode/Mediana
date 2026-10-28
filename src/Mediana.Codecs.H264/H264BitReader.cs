@@ -107,6 +107,24 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        /// <summary>Discards unused bits in the arithmetic terminal byte and validates following zero words.</summary>
+        public void ReadCabacPadding()
+        {
+            available = 0;
+            while (offset < data.Length)
+            {
+                if (zeros == 2 && data[offset] == 3 && offset == data.Length - 1)
+                {
+                    offset++;
+                    break;
+                }
+                if (ReadBits(16) != 0)
+                {
+                    throw new InvalidDataException("The H.264 CABAC zero word is nonzero.");
+                }
+            }
+        }
+
         public void AlignZero()
         {
             while (!ByteAligned)

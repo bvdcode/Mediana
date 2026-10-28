@@ -6,6 +6,16 @@ namespace Mediana.Tests
     {
         private readonly H264CabacIntervalWriter writer = Create(qp, initialStates);
 
+        public void QuantizerDelta(int delta, bool previousNonzero)
+        {
+            int mapped = delta <= 0 ? -2 * delta : 2 * delta - 1;
+            for (int index = 0; index <= mapped; index++)
+            {
+                int context = index == 0 ? (previousNonzero ? 61 : 60) : index == 1 ? 62 : 63;
+                Bin(index < mapped, context);
+            }
+        }
+
         public void Write(int category, int neighbours, ReadOnlySpan<int> coefficients)
         {
             int[] significanceOffsets = [0, 15, 29, 44, 47];

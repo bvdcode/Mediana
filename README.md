@@ -98,7 +98,12 @@ constants. These arithmetic components and checks are adapted from the MIT-licen
 and bit reading. Internal checks also compare 227 I-slice contexts at every 8-bit
 quantizer with a separate initialization reference and read the beginning of a
 real CABAC IDR. Real I/P slice headers match an independent header trace.
-CABAC coefficient and picture reconstruction remain unsupported.
+Internal CABAC reconstruction also matches seven independent filtered YUV pictures,
+including mixed 4x4/16x16 intra prediction, cropping and nonzero deblocking offsets.
+The public decoder still rejects CABAC configurations. Predictive CABAC pictures,
+8x8 intra prediction/transforms and broader slice support remain open. Unused bits
+in the arithmetic terminal byte are discarded; following zero words are checked.
+This decoder is not a complete bitstream conformance validator.
 CI is configured to build and run both native
 executables on Linux, Windows and macOS.
 

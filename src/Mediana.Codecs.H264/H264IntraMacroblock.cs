@@ -45,7 +45,7 @@ namespace Mediana.Codecs.H264
             H264IntraReconstruction.Read(ref bits, new H264CavlcResidualReader(target), target, header, x, y, type, chromaMode, pattern, qp);
         }
 
-        private static void ReadPcm(ref H264BitReader bits, H264Picture target, int x, int y)
+        internal static void ReadPcm(ref H264BitReader bits, H264Picture target, int x, int y)
         {
             bits.AlignZero();
             for (int plane = 0; plane < 3; plane++)

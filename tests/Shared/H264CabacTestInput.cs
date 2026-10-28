@@ -2,11 +2,44 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs.H264;
+using Mediana.Core.Memory;
 
 namespace Mediana.Tests
 {
     internal static class H264CabacTestInput
     {
+        public static async Task VerifyIntraPicturesAsync(string root)
+        {
+            byte[] first = await File.ReadAllBytesAsync(Path.Combine(root, "avc-aac.frame0.yuv"));
+            VerifyIntraPicture(await H264TestInput.ReadSliceAsync(Path.Combine(root, "avc-aac.mp4"), 0), first);
+            byte[] sequence = await File.ReadAllBytesAsync(Path.Combine(root, "avc-cabac-intra.sequence.yuv"));
+            const int pictureBytes = 94 * 62 * 3 / 2;
+            if (sequence.Length != pictureBytes * 6)
+            {
+                throw new InvalidDataException("The H.264 CABAC reference sequence has an unexpected length.");
+            }
+            for (int index = 0; index < 6; index++)
+            {
+                VerifyIntraPicture(await H264TestInput.ReadSliceAsync(Path.Combine(root, "avc-cabac-intra.mp4"), index),
+                    sequence.AsSpan(index * pictureBytes, pictureBytes));
+            }
+        }
+
+        private static void VerifyIntraPicture((H264Configuration Configuration, byte[] Nal) input, ReadOnlySpan<byte> expected)
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            H264BitReader bits = H264Nal.Payload(input.Nal, H264Nal.Type(input.Nal));
+            H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, input.Configuration, input.Nal[0]);
+            using (H264Picture picture = H264CabacPictureDecoder.Decode(ref bits, header, allocator))
+            {
+                H264TestInput.VerifyPicture(picture, expected);
+            }
+            if (allocator.AllocatedBytes != 0)
+            {
+                throw new InvalidOperationException("The H.264 CABAC picture or worker storage was not released.");
+            }
+        }
+
         public static async Task VerifyIntraContextStatesAsync(string root)
         {
             byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, "cabac-intra-contexts.bin"));
