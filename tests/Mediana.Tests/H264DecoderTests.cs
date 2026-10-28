@@ -16,6 +16,10 @@ namespace Mediana.Tests
         [InlineData("avc-cropped.mp4", 1, 78, 46, 1, 1, 1)]
         [InlineData("avc-weighted.mp4", 12, 94, 62, 10, 4, 3)]
         [InlineData("avc-cabac-intra.mp4", 6, 94, 62, 5, 4, 3)]
+        [InlineData("avc-cabac-p0.mp4", 12, 94, 62, 10, 4, 3)]
+        [InlineData("avc-cabac-p1.mp4", 12, 94, 62, 10, 4, 3)]
+        [InlineData("avc-cabac-p2.mp4", 12, 94, 62, 10, 4, 3)]
+        [InlineData("avc-cabac-motion.mp4", 18, 190, 126, 12, 1, 1)]
         public async Task PublicEngineDecodesEveryIndependentSampleAndPreservesDisplayMetadata(string file, int count,
             int width, int height, int fps, int aspectWidth, int aspectHeight)
         {
@@ -26,6 +30,8 @@ namespace Mediana.Tests
             {
                 "avc-weighted.mp4" => await Mp4TestData.ReadAsync("avc-weighted.sequence.yuv"),
                 "avc-cabac-intra.mp4" => await Mp4TestData.ReadAsync("avc-cabac-intra.sequence.yuv"),
+                "avc-cabac-p0.mp4" or "avc-cabac-p1.mp4" or "avc-cabac-p2.mp4" or "avc-cabac-motion.mp4" =>
+                    await Mp4TestData.ReadAsync(Path.GetFileNameWithoutExtension(file) + ".sequence.yuv"),
                 "avc-tail.mov" or "avc-cropped.mp4" => null,
                 _ => throw new ArgumentOutOfRangeException(nameof(file))
             };
@@ -39,7 +45,7 @@ namespace Mediana.Tests
                 Assert.Equal(new SampleAspectRatio(aspectWidth, aspectHeight), frame.Format.SampleAspectRatio);
                 Assert.Equal(ColorRange.Limited, frame.Format.Color.Range);
                 Assert.Equal(ChromaLocation.Left, frame.Format.Color.ChromaLocation);
-                if (file is "avc-weighted.mp4" or "avc-cabac-intra.mp4")
+                if (sequence is not null)
                 {
                     Assert.Equal(ColorPrimaries.Bt709, frame.Format.Color.Primaries);
                     Assert.Equal(TransferFunction.Bt709, frame.Format.Color.Transfer);
@@ -130,12 +136,12 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task PredictiveCabacFailsWithoutReturningDelayedFramesAndDisposalReleasesStorage()
+        public async Task UnsupportedBPictureFailsWithoutReturningDelayedFramesAndDisposalReleasesStorage()
         {
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Mp4TestData.PathFor("avc-aac.mp4")));
             await using VideoSession session = await Engine().OpenVideoAsync(source, 0);
             NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(async () => await session.ReadFrameAsync());
-            Assert.Contains("CABAC P", error.Message);
+            Assert.Contains("B, SP", error.Message);
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await session.ReadFrameAsync());
             await session.DisposeAsync();
             Assert.Equal(0, session.AllocatedBufferBytes);

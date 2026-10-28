@@ -30,13 +30,45 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             H264BitReader bits = H264Nal.Payload(input.Nal, H264Nal.Type(input.Nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, input.Configuration, input.Nal[0]);
-            using (H264Picture picture = H264CabacPictureDecoder.Decode(ref bits, header, allocator))
+            using (H264Picture picture = H264CabacPictureDecoder.Decode(ref bits, header, [], allocator))
             {
                 H264TestInput.VerifyPicture(picture, expected);
             }
             if (allocator.AllocatedBytes != 0)
             {
                 throw new InvalidOperationException("The H.264 CABAC picture or worker storage was not released.");
+            }
+        }
+
+        public static async Task VerifyPredictivePicturesAsync(string root, string name, int count, int width, int height, int initialization)
+        {
+            byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, name + ".sequence.yuv"));
+            int frameBytes = width * height * 3 / 2;
+            if (expected.Length != count * frameBytes)
+            {
+                throw new InvalidDataException("The H.264 CABAC predictive reference sequence has an unexpected length.");
+            }
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using (H264ReferenceBuffer references = new())
+            {
+                for (int index = 0; index < count; index++)
+                {
+                    (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), index);
+                    H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
+                    H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+                    if (!header.Picture.Cabac || header.Sequence.Width != width || header.Sequence.Height != height ||
+                        (index == 0 && (header.Kind != H264SliceKind.I || !header.IsIdr)) ||
+                        (index > 0 && (header.Kind != H264SliceKind.P || header.CabacInitIdc != initialization)))
+                    {
+                        throw new InvalidDataException("The H.264 CABAC predictive fixture has unexpected picture syntax.");
+                    }
+                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, allocator,
+                        expected.AsSpan(index * frameBytes, frameBytes));
+                }
+            }
+            if (allocator.AllocatedBytes != 0)
+            {
+                throw new InvalidOperationException("The H.264 CABAC predictive pictures or worker storage were not released.");
             }
         }
 

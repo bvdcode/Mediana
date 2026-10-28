@@ -6,9 +6,9 @@ native media libraries, or third-party runtime packages.
 
 The current implementation is experimental. It reads metadata and compressed packets from
 non-fragmented MP4/MOV files containing AVC/AAC tracks. The H.264 source module
-connects limited CAVLC I/P and CABAC I decoding to public video sessions and returns cropped YUV frames.
+connects limited CAVLC/CABAC I/P decoding to public video sessions and returns cropped YUV frames.
 The sample can extract a supported video frame, convert SDR color to sRGB, correct
-the sample aspect ratio and right-angle orientation, and save a PNG preview. **CABAC P pictures, B pictures, audio decoding,
+the sample aspect ratio and right-angle orientation, and save a PNG preview. **B pictures, audio decoding,
 video/audio encoding and muxing are not available yet.**
 
 ## Components
@@ -20,7 +20,7 @@ video/audio encoding and muxing are not available yet.**
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
-| `Mediana.Codecs.H264` | Experimental AVC CAVLC I/P and CABAC I decoder factory, picture ordering and cropped YUV output; source project only |
+| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P decoder factory, picture ordering and cropped YUV output; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
 | `Mediana.Processing` | Scalar SDR conversion to sRGB, RGBA32 resizing and square-pixel preview fitting |
 | `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
@@ -31,14 +31,14 @@ Core does not reference the other components. Containers do not reference codecs
 and codecs do not perform I/O. The public facade composes these contracts.
 
 The H.264 work currently reconstructs single-slice progressive 8-bit 4:2:0 I/P
-pictures with CAVLC and default scaling, including motion compensation, reference
+pictures with CAVLC or CABAC and default scaling, including motion compensation, reference
 picture management, intra prediction, inverse transforms, PCM blocks and deblocking.
 Two complete Baseline/Main CAVLC sequences and one cropped IDR picture match the
 independent filtered YUV references sample for sample (nineteen pictures total).
 The Main sequence includes explicit prediction weights and reference-list changes.
-The same nineteen pictures and six Main CABAC intra pictures match through MediaEngine,
+The same nineteen pictures, six Main CABAC intra pictures and 54 additional CABAC I/P pictures match through MediaEngine,
 with timing, cropping and sample aspect ratio preserved. Preview generation requires
-the supported CAVLC I/P or CABAC I subset and known color and sample aspect ratio;
+the supported CAVLC/CABAC I/P subset and known color and sample aspect ratio;
 it does not cover general H.264 files.
 
 ## Build and run
@@ -89,7 +89,7 @@ See the [.NET Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet
 
 Mediana.NativeTests executes internal H.264 I/P reconstruction and public MediaEngine
 video sessions. Each path compares all visible YUV samples in nineteen CAVLC pictures
-with the checked-in references. Public sessions also compare six CABAC intra pictures
+with the checked-in references. Public sessions also compare six CABAC intra pictures and 54 CABAC I/P pictures
 and verify timing, cropping,
 sample aspect ratio and allocation release. Its fixture loading and comparison code
 is shared with the unit tests. The native checks also compare SDR conversion with
@@ -111,9 +111,11 @@ including unary/Exp-Golomb boundaries and invalid precision/reference limits.
 Real I/P slice headers match an independent header trace.
 Internal CABAC reconstruction also matches seven independent filtered YUV pictures,
 including mixed 4x4/16x16 intra prediction, cropping and nonzero deblocking offsets.
-The public decoder accepts supported CABAC configurations and decodes I pictures.
-Predictive CABAC pictures, 8x8 intra prediction/transforms and broader slice support
-remain open. A CABAC PPS may permit 8x8 transforms; actual use of the 8x8 flag
+The public decoder reconstructs supported CABAC I/P pictures, including weighted
+prediction, multiple references and per-partition motion differences. Four complete
+CABAC I/P sequences match 54 independent YUV pictures with all three cabac_init_idc
+selections, mixed intra/inter prediction and cropped storage.
+8x8 intra prediction/transforms, B pictures and broader slice support remain open. A CABAC PPS may permit 8x8 transforms; actual use of the 8x8 flag
 fails during reconstruction. Unsupported or damaged pictures fault the session
 and release pending output; reset or disposal is required. Unused bits
 in the arithmetic terminal byte are discarded; following zero words are checked.
@@ -195,7 +197,7 @@ forward without seeking. Null means the stream has ended.
 
 The decoder accepts AVC length-prefixed packets with one complete single-slice
 picture and an initial avcC configuration. Supported pictures are progressive
-8-bit YUV 4:2:0 CAVLC I/P or CABAC I with default scaling. Decoding begins with an IDR;
+8-bit YUV 4:2:0 CAVLC/CABAC I/P with default scaling. Decoding begins with an IDR;
 sequence changes through in-band SPS/PPS also require an IDR. Each output carries
 its own format, color information, sample aspect ratio, presentation timestamp and
 duration. Cropping is applied to YUV storage; rotation, edit lists and display aspect
@@ -204,7 +206,7 @@ sample aspect ratio and CICP color codes remain unspecified.
 
 Picture order types 0, 1 and 2, bounded delayed output, IDR/MMCO resets, input
 completion, cancellation and buffer ownership have executable checks. SEI message
-boundaries are validated; payload semantics are not interpreted. CABAC P, B pictures,
+boundaries are validated; payload semantics are not interpreted. B pictures,
 multiple slices, interlacing, custom scaling, higher bit depths and inferred
 references for frame-number gaps are unsupported. H264DecoderOptions bounds picture
 pixels, configuration bytes, parameter-set bytes, NAL count and reference operations.
@@ -421,7 +423,7 @@ Linux, Windows and macOS. Other platform results depend on those CI runs.
 The native sample covers the generated-frame pipeline, reading all packets from
 the two original MP4/MOV fixtures and an MP4-to-PNG preview. The separate native tests
 also verify internal and public decoding of nineteen CAVLC reference pictures and
-six CABAC intra pictures, SDR conversion and decoded PNG pixels. Each future
+six CABAC intra pictures and 54 additional CABAC I/P pictures, SDR conversion and decoded PNG pixels. Each future
 format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking,

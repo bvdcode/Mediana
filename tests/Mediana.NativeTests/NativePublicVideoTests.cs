@@ -23,6 +23,14 @@ namespace Mediana.NativeTests
                 await File.ReadAllBytesAsync(Path.Combine(root, "avc-weighted.sequence.yuv")), 12, 94, 62, 10, new SampleAspectRatio(4, 3));
             await VerifyAsync(Path.Combine(root, "avc-cabac-intra.mp4"),
                 await File.ReadAllBytesAsync(Path.Combine(root, "avc-cabac-intra.sequence.yuv")), 6, 94, 62, 5, new SampleAspectRatio(4, 3));
+            for (int initialization = 0; initialization < 3; initialization++)
+            {
+                string name = $"avc-cabac-p{initialization}";
+                await VerifyAsync(Path.Combine(root, name + ".mp4"),
+                    await File.ReadAllBytesAsync(Path.Combine(root, name + ".sequence.yuv")), 12, 94, 62, 10, new SampleAspectRatio(4, 3));
+            }
+            await VerifyAsync(Path.Combine(root, "avc-cabac-motion.mp4"),
+                await File.ReadAllBytesAsync(Path.Combine(root, "avc-cabac-motion.sequence.yuv")), 18, 190, 126, 12, SampleAspectRatio.Square);
         }
 
         private static async Task VerifyAsync(string path, ReadOnlyMemory<byte> expected, int count, int width,

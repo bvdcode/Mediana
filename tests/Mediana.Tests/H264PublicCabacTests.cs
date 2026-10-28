@@ -34,13 +34,13 @@ namespace Mediana.Tests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public async Task PredictiveFailureOrCancellationReleasesDelayedStorageAndResetRecovers(bool cancel)
+        public async Task UnsupportedPictureOrCancellationReleasesDelayedStorageAndResetRecovers(bool cancel)
         {
             (EncodedStreamInfo stream, byte[][] packets) = await H264DecoderTests.InputAsync("avc-aac.mp4");
             MediaBufferAllocator allocator = new(1024 * 1024);
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new H264DecoderFactory().Create(stream, allocator);
             using MediaPacket first = H264DecoderTests.Packet(allocator, packets[0]);
-            using MediaPacket second = H264DecoderTests.Packet(allocator, packets[1]);
+            using MediaPacket second = H264DecoderTests.Packet(allocator, packets[2]);
             Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(first));
             Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
             if (cancel)
@@ -50,7 +50,7 @@ namespace Mediana.Tests
             else
             {
                 NotSupportedException error = Assert.Throws<NotSupportedException>(() => decoder.TrySend(second));
-                Assert.Contains("CABAC P", error.Message);
+                Assert.Contains("B, SP", error.Message);
             }
             Assert.Equal(first.Data.Length + second.Data.Length, allocator.AllocatedBytes);
             Assert.Throws<InvalidOperationException>(() => decoder.Receive());

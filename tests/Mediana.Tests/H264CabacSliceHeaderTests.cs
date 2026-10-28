@@ -32,14 +32,7 @@ namespace Mediana.Tests
             Assert.Equal(initialOffset, arithmetic.Offset);
             Assert.Equal(510, arithmetic.Range);
             MediaBufferAllocator allocator = new(1);
-            if (idr)
-            {
-                Assert.Throws<MediaMemoryLimitException>(() => Decode(nal, configuration, allocator));
-            }
-            else
-            {
-                Assert.Throws<NotSupportedException>(() => Decode(nal, configuration, allocator));
-            }
+            Assert.Throws<MediaMemoryLimitException>(() => Decode(nal, configuration, allocator));
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 

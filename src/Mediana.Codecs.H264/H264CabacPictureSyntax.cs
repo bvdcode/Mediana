@@ -1,6 +1,6 @@
 namespace Mediana.Codecs.H264
 {
-    internal class H264CabacIntraSyntax(H264CabacReader reader, H264Picture target, H264CabacIntraState state) : IH264ResidualReader
+    internal class H264CabacPictureSyntax(H264CabacReader reader, H264Picture target, H264CabacMacroblockState state) : IH264ResidualReader
     {
         private int previousDelta;
 
@@ -130,17 +130,19 @@ namespace Mediana.Codecs.H264
             int context;
             int scale = plane == 0 ? 16 : 8;
             int address = y / scale * target.Sequence.WidthInMbs + x / scale;
+            bool intra = state.IsIntra(address);
             bool dc = category is H264ResidualCategory.Intra16LumaDc or H264ResidualCategory.ChromaDc;
             if (dc)
             {
-                context = state.DcCondition(state.Left(address), plane) + 2 * state.DcCondition(state.Top(address), plane);
+                context = state.DcCondition(state.Left(address), plane, intra) + 2 * state.DcCondition(state.Top(address), plane, intra);
             }
             else
             {
                 Span<byte> counts = target.Counts(plane);
                 int position = target.BlockIndex(plane, x, y);
-                context = x == 0 || counts[position - 1] != 0 ? 1 : 0;
-                context += y == 0 || counts[position - target.Stride(plane) / 4] != 0 ? 2 : 0;
+                int unavailable = intra ? 1 : 0;
+                context = x == 0 ? unavailable : counts[position - 1] != 0 ? 1 : 0;
+                context += 2 * (y == 0 ? unavailable : counts[position - target.Stride(plane) / 4] != 0 ? 1 : 0);
             }
             int total = H264CabacResidual.Read(ref bits, reader, category, context, coefficients);
             if (dc && total != 0)

@@ -28,6 +28,12 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS H.264 CABAC P syntax: skip, macroblock/subblock types, reference indices and signed motion differences match exact intervals.");
             await H264CabacTestInput.VerifyIntraPicturesAsync(root);
             Console.WriteLine("PASS H.264 CABAC intra pictures: seven independent filtered YUV references and storage release match.");
+            for (int initialization = 0; initialization < 3; initialization++)
+            {
+                await H264CabacTestInput.VerifyPredictivePicturesAsync(root, $"avc-cabac-p{initialization}", 12, 94, 62, initialization);
+            }
+            await H264CabacTestInput.VerifyPredictivePicturesAsync(root, "avc-cabac-motion", 18, 190, 126, 2);
+            Console.WriteLine("PASS H.264 CABAC predictive pictures: 54 independent filtered YUV pictures, all initialization selections and storage release match.");
             using (H264ReferenceBuffer references = new())
             {
                 foreach ((string name, string extension, int packet) in cases)

@@ -138,3 +138,52 @@ frame duration. Fitting SAR 4:3 within 100x100 produces a square-pixel 100x49
 PNG. Every decoded PNG channel matches the selected reference samples within
 one 8-bit code; signature, chunk order, CRCs, dimensions, color and pixel aspect
 are checked in managed execution and Native AOT.
+
+## CABAC predictive references
+
+`avc-cabac-p0.mp4`, `avc-cabac-p1.mp4` and `avc-cabac-p2.mp4` contain twelve
+Main-profile pictures each: an IDR followed by eleven P pictures. They use
+CABAC initialization selections 0, 1 and 2 respectively, verified with
+`trace_headers`. The visible size is 94x62, coded size 96x64, rate 10 fps and
+SAR 4:3. The fading pattern uses explicit weighted prediction, four stored
+references, all partition sizes permitted by the encoder, default scaling,
+4x4 transforms, deblocking offsets 2/1 and BT.709 limited-range metadata.
+Each `.sequence.yuv` holds twelve complete filtered Y/Cb/Cr pictures,
+8,742 bytes per picture.
+
+Generation with FFmpeg 6.1.1 and libx264; replace `<idc>` with 0, 1 or 2:
+
+```sh
+ffmpeg -hide_banner -v warning -nostdin -y -f lavfi -i testsrc2=size=94x62:rate=10:duration=1.2 -vf "fade=t=out:st=0:d=1.2,setsar=4/3" -map_metadata -1 -c:v libx264 -profile:v main -coder:v ac -pix_fmt yuv420p -bf 0 -refs 4 -g 48 -qp 24 -x264-params "weightp=2:8x8dct=0:partitions=all:subme=8:deblock=2,1:scenecut=0:cabac-idc=<idc>" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an avc-cabac-p<idc>.mp4
+ffmpeg -hide_banner -v error -nostdin -y -i avc-cabac-p<idc>.mp4 -pix_fmt yuv420p -f rawvideo avc-cabac-p<idc>.sequence.yuv
+ffmpeg -hide_banner -v trace -nostdin -i avc-cabac-p<idc>.mp4 -map 0:v:0 -c copy -bsf:v trace_headers -f null -
+```
+
+`avc-cabac-motion.mp4` contains eighteen Main CABAC I/P pictures at 12 fps,
+visible size 190x126, coded size 192x128 and square pixels. It uses initialization
+2, three stored references and deblocking offsets -1/2. The macroblock trace
+contains intra 4x4/16x16, skip and inter 16x16, 16x8, 8x16 and 8x8 partitions.
+Its `.sequence.yuv` holds eighteen filtered pictures, 35,910 bytes each.
+
+```sh
+ffmpeg -hide_banner -v warning -nostdin -y -f lavfi -i testsrc2=size=190x126:rate=12:duration=1.5 -map_metadata -1 -c:v libx264 -profile:v main -coder:v ac -pix_fmt yuv420p -bf 0 -refs 3 -g 48 -qp 26 -x264-params "weightp=2:8x8dct=0:partitions=all:subme=9:deblock=-1,2:scenecut=0:cabac-idc=2" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an avc-cabac-motion.mp4
+ffmpeg -hide_banner -v error -nostdin -y -i avc-cabac-motion.mp4 -pix_fmt yuv420p -f rawvideo avc-cabac-motion.sequence.yuv
+```
+
+SHA-256:
+
+| File | SHA-256 |
+| --- | --- |
+| avc-cabac-p0.mp4 | fb377820446fb2953f115173410a5c74445dbd12fcca0ee73eb819840918473b |
+| avc-cabac-p0.sequence.yuv | 7a1c0bbd3d1cff2f28518b531218fc09dbe4ceb5790613100cdc32e3981bfb57 |
+| avc-cabac-p1.mp4 | 8c82fbb000139442300ea196d988ff1ee146cdbdfb50e233717a70e779c4f1ac |
+| avc-cabac-p1.sequence.yuv | b63fc16de44cabfb9c51ca6ffc5a6a0b56ce4a033dd54ccd6bdb1a87e08505a2 |
+| avc-cabac-p2.mp4 | d5a86e4fee8607cebccac1c70a701521eaf15241f7fba97f485583d05a0e26d1 |
+| avc-cabac-p2.sequence.yuv | 95091331ad1eb67497ff9d731260e99e3e53c77dbbb299350b613adf596e6ac5 |
+| avc-cabac-motion.mp4 | c95fd21a904118bcf7f100bea574c7060717818ad0ef4d8329e717ef258ac55c |
+| avc-cabac-motion.sequence.yuv | 58f955fee5747b5cd17c3431821a297ac8afa881e7a5e1b7ed39abecd558db08 |
+
+All 54 pictures are compared sample for sample through both internal reconstruction
+and public MediaEngine sessions. The public checks include PTS, duration, cropping,
+color metadata, SAR and released storage. The tests read checked-in references;
+they do not start an external media executable.

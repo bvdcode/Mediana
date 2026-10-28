@@ -25,9 +25,9 @@ namespace Mediana.Tests
             H264CabacReader reader = new(ref bits, header);
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264Picture target = new(header.Sequence, allocator))
-            using (H264CabacIntraState state = new(header.Sequence, allocator))
+            using (H264CabacMacroblockState state = new(header.Sequence, allocator))
             {
-                H264CabacIntraSyntax syntax = new(reader, target, state);
+                H264CabacPictureSyntax syntax = new(reader, target, state);
                 int qp = 0;
                 foreach (int delta in deltas)
                 {

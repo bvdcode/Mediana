@@ -2,13 +2,15 @@ using Mediana.Core.Memory;
 
 namespace Mediana.Codecs.H264
 {
-    internal class H264CabacIntraState : IDisposable
+    internal class H264CabacMacroblockState : IDisposable
     {
+        public const byte Inter = 26;
+        public const byte Skipped = 27;
         private readonly WritableMediaBuffer storage;
         private readonly int count;
         private readonly int columns;
 
-        public H264CabacIntraState(H264SequenceParameterSet sequence, MediaBufferAllocator allocator)
+        public H264CabacMacroblockState(H264SequenceParameterSet sequence, MediaBufferAllocator allocator)
         {
             columns = sequence.WidthInMbs;
             count = checked(columns * sequence.HeightInMapUnits);
@@ -24,6 +26,8 @@ namespace Mediana.Codecs.H264
         public int Top(int address) => address < columns ? -1 : address - columns;
 
         public int TypeCondition(int neighbour) => neighbour >= 0 && Types[neighbour] != 0 ? 1 : 0;
+        public int SkipCondition(int neighbour) => neighbour >= 0 && Types[neighbour] != Skipped ? 1 : 0;
+        public bool IsIntra(int address) => Types[address] <= 25;
 
         public int ChromaModeCondition(int neighbour) =>
             neighbour >= 0 && Types[neighbour] != 25 && ChromaModes[neighbour] != 0 ? 1 : 0;
@@ -76,8 +80,14 @@ namespace Mediana.Codecs.H264
             return (pattern & (1 << (row * 2 + column))) == 0 ? 1 : 0;
         }
 
-        public int DcCondition(int neighbour, int plane) =>
-            neighbour < 0 || Types[neighbour] == 25 || (DcFlags[neighbour] & (1 << plane)) != 0 ? 1 : 0;
+        public int DcCondition(int neighbour, int plane, bool currentIsIntra)
+        {
+            if (neighbour < 0)
+            {
+                return currentIsIntra ? 1 : 0;
+            }
+            return Types[neighbour] == 25 || (DcFlags[neighbour] & (1 << plane)) != 0 ? 1 : 0;
+        }
 
         public void Dispose() => storage.Dispose();
     }
