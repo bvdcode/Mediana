@@ -216,8 +216,7 @@ With a supported decoded frame and an allocation budget:
 ```csharp
 VideoDisplayMatrix displayMatrix = session.Stream.DisplayMatrix
     ?? throw new NotSupportedException("A display interpretation is required.");
-using VideoFrame srgb = SrgbConverter.Apply(frame, allocator);
-using VideoFrame preview = DisplayResize.Fit(srgb, displayMatrix, maximumWidth: 320, maximumHeight: 180, allocator);
+using VideoFrame preview = SrgbPreview.Fit(frame, displayMatrix, maximumWidth: 320, maximumHeight: 180, allocator);
 using MediaBuffer png = PngEncoder.Encode(preview, allocator);
 await output.WriteAsync(png.Memory, cancellationToken);
 ```
@@ -225,6 +224,14 @@ await output.WriteAsync(png.Memory, cancellationToken);
 The additional namespaces are Mediana.Processing, Mediana.Codecs.Png and
 Mediana.Core.Memory. Reference the Mediana.Codecs.Png source project; it is not
 packaged yet. The encoder returns owned PNG bytes and does not open files or streams.
+
+SrgbPreview.Fit combines SDR conversion, aspect correction, orthogonal orientation
+and nearest-neighbor fitting. Its output matches SrgbConverter.Apply followed by
+DisplayResize.Fit; it converts only selected source pixels and allocates one
+preview frame instead of an intermediate full-resolution RGB frame. It requires
+known color and SAR, preserves time and straight alpha, and produces square-pixel
+sRGB RGBA32. The sample uses this combined path. Separate color conversion and
+geometry operations remain available.
 
 DisplayResize.Fit uses storage width times SAR and the storage height as the
 unscaled display size, fits within the requested box without enlargement, rounds to

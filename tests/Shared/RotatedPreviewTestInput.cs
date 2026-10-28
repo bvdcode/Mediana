@@ -29,8 +29,7 @@ namespace Mediana.Tests
             }
             byte[] reference = await File.ReadAllBytesAsync(Path.Combine(root, "avc-weighted.frame0.srgb.rgba"));
             MediaBufferAllocator allocator = new(128 * 1024);
-            using (VideoFrame srgb = SrgbConverter.Apply(decoded, allocator))
-            using (VideoFrame preview = DisplayResize.Fit(srgb, matrix, 100, 100, allocator))
+            using (VideoFrame preview = SrgbPreview.Fit(decoded, matrix, 100, 100, allocator))
             using (MediaBuffer png = PngEncoder.Encode(preview, allocator))
             {
                 VideoColorInfo color = new(ColorPrimaries.Bt709, TransferFunction.Srgb, MatrixCoefficients.Rgb, ColorRange.Full);

@@ -37,7 +37,7 @@ namespace Mediana.NativeTests
                         throw new InvalidDataException($"The sRGB output differs from the reference at byte {index}.");
                     }
                 }
-                VerifyPngPreview(converted, allocator);
+                VerifyPngPreview(decoded, converted, allocator);
             }
             if (allocator.AllocatedBytes != 0)
             {
@@ -46,9 +46,9 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS public SDR conversion: sRGB reference within one 8-bit code per channel, metadata and allocation release match.");
         }
 
-        private static void VerifyPngPreview(VideoFrame converted, MediaBufferAllocator allocator)
+        private static void VerifyPngPreview(VideoFrame decoded, VideoFrame converted, MediaBufferAllocator allocator)
         {
-            using VideoFrame preview = DisplayResize.Fit(converted, 100, 100, allocator);
+            using VideoFrame preview = SrgbPreview.Fit(decoded, VideoDisplayMatrix.Identity, 100, 100, allocator);
             using MediaBuffer png = PngEncoder.Encode(preview, allocator);
             Dictionary<string, byte[]> chunks = PngTestInput.ReadChunks(png.Memory.Span);
             byte[] header = [0, 0, 0, 100, 0, 0, 0, 49, 8, 6, 0, 0, 0];

@@ -29,8 +29,7 @@ namespace Mediana.Sample
             int width;
             int height;
             int encodedLength;
-            using (VideoFrame srgb = SrgbConverter.Apply(decoded, allocator))
-            using (VideoFrame preview = DisplayResize.Fit(srgb, displayMatrix, maximumWidth, maximumHeight, allocator))
+            using (VideoFrame preview = SrgbPreview.Fit(decoded, displayMatrix, maximumWidth, maximumHeight, allocator))
             using (MediaBuffer png = PngEncoder.Encode(preview, allocator))
             {
                 width = preview.Format.Width;

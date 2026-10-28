@@ -24,6 +24,14 @@ namespace Mediana.Processing
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(input);
+            NearestNeighborMap map = new(input.Format.Width, input.Format.Height, input.Format.Width, input.Format.Height,
+                OrthogonalTransform.Identity);
+            return Apply(input, sourceColor, map, input.Format.SampleAspectRatio, allocator, cancellationToken);
+        }
+
+        internal static VideoFrame Apply(VideoFrame input, VideoColorInfo sourceColor, NearestNeighborMap map,
+            SampleAspectRatio? aspectRatio, MediaBufferAllocator allocator, CancellationToken cancellationToken)
+        {
             ArgumentNullException.ThrowIfNull(sourceColor);
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
@@ -39,60 +47,76 @@ namespace Mediana.Processing
             {
                 throw new NotSupportedException("RGB conversion requires full-range straight RGBA32 with an RGB matrix and no chroma subsampling.");
             }
-            VideoFormat format = new(input.Format.Width, input.Format.Height, VideoPixelFormat.Rgba32,
-                SrgbColor, input.Format.SampleAspectRatio);
+            VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio);
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             if (yuv)
             {
-                RenderYuv(input, writable.Memory.Span, planes[0].Stride, matrix, sourceColor.ChromaLocation, transform, cancellationToken);
+                RenderYuv(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken);
             }
             else
             {
-                RenderRgba(input, writable.Memory.Span, planes[0].Stride, transform, cancellationToken);
+                RenderRgba(input, writable.Memory.Span, map, transform, cancellationToken);
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration);
         }
 
-        private static void RenderYuv(VideoFrame input, Span<byte> output, int stride, YuvRgbMatrix matrix,
+        private static void RenderYuv(VideoFrame input, Span<byte> output, NearestNeighborMap map, YuvRgbMatrix matrix,
             ChromaLocation location, SdrRgbTransform transform, CancellationToken cancellationToken)
         {
-            for (int y = 0; y < input.Format.Height; y++)
+            int cachedRow = -1;
+            ReadOnlySpan<byte> luma = default;
+            BilinearChromaRow cb = default;
+            BilinearChromaRow cr = default;
+            for (int y = 0; y < map.OutputHeight; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ReadOnlySpan<byte> luma = input.GetRow(0, y);
-                BilinearChromaRow cb = new(input, 1, y, location);
-                BilinearChromaRow cr = new(input, 2, y, location);
-                Span<byte> row = output.Slice(y * stride, stride);
-                for (int x = 0; x < input.Format.Width; x++)
+                Span<byte> row = output.Slice(y * map.OutputWidth * 4, map.OutputWidth * 4);
+                for (int x = 0; x < map.OutputWidth; x++)
                 {
                     if ((x & 255) == 0)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                     }
-                    (double red, double green, double blue) = matrix.Convert(luma[x], cb.Sample(x), cr.Sample(x));
+                    int sourceX = map.SourceX(x, y);
+                    int sourceY = map.SourceY(x, y);
+                    if (sourceY != cachedRow)
+                    {
+                        luma = input.GetRow(0, sourceY);
+                        cb = new(input, 1, sourceY, location);
+                        cr = new(input, 2, sourceY, location);
+                        cachedRow = sourceY;
+                    }
+                    (double red, double green, double blue) = matrix.Convert(luma[sourceX], cb.Sample(sourceX), cr.Sample(sourceX));
                     transform.Write(row.Slice(x * 4, 4), red, green, blue, 255);
                 }
             }
         }
 
-        private static void RenderRgba(VideoFrame input, Span<byte> output, int stride, SdrRgbTransform transform,
+        private static void RenderRgba(VideoFrame input, Span<byte> output, NearestNeighborMap map, SdrRgbTransform transform,
             CancellationToken cancellationToken)
         {
-            for (int y = 0; y < input.Format.Height; y++)
+            int cachedRow = -1;
+            ReadOnlySpan<byte> source = default;
+            for (int y = 0; y < map.OutputHeight; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ReadOnlySpan<byte> source = input.GetRow(0, y);
-                Span<byte> row = output.Slice(y * stride, stride);
-                for (int x = 0; x < input.Format.Width; x++)
+                Span<byte> row = output.Slice(y * map.OutputWidth * 4, map.OutputWidth * 4);
+                for (int x = 0; x < map.OutputWidth; x++)
                 {
                     if ((x & 255) == 0)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                     }
-                    ReadOnlySpan<byte> pixel = source.Slice(x * 4, 4);
+                    int sourceY = map.SourceY(x, y);
+                    if (sourceY != cachedRow)
+                    {
+                        source = input.GetRow(0, sourceY);
+                        cachedRow = sourceY;
+                    }
+                    ReadOnlySpan<byte> pixel = source.Slice(map.SourceX(x, y) * 4, 4);
                     transform.Write(row.Slice(x * 4, 4), pixel[0] / 255.0, pixel[1] / 255.0, pixel[2] / 255.0, pixel[3]);
                 }
             }
