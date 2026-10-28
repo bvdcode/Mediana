@@ -3,29 +3,64 @@ namespace Mediana.Codecs.H264
     internal static class H264IntraPrediction
     {
         public static void Luma4x4(int mode, ReadOnlySpan<byte> top, ReadOnlySpan<byte> left,
+            byte? corner, Span<byte> output) => Luma(mode, top, left, corner, output, 4);
+
+        public static void Luma8x8(int mode, ReadOnlySpan<byte> top, ReadOnlySpan<byte> left,
             byte? corner, Span<byte> output)
+        {
+            if ((!top.IsEmpty && top.Length != 16) || (!left.IsEmpty && left.Length != 8) || output.Length != 64)
+            {
+                throw new ArgumentException("H.264 intra 8x8 prediction requires 16 top, eight left and 64 output samples.");
+            }
+            Span<byte> filteredTop = stackalloc byte[16];
+            Span<byte> filteredLeft = stackalloc byte[8];
+            FilterReferences(top, corner, filteredTop);
+            FilterReferences(left, corner, filteredLeft);
+            byte? filteredCorner = corner;
+            if (corner is byte value)
+            {
+                filteredCorner = (byte)Quarter(top.IsEmpty ? value : top[0], value, left.IsEmpty ? value : left[0]);
+            }
+            Luma(mode, top.IsEmpty ? [] : filteredTop, left.IsEmpty ? [] : filteredLeft, filteredCorner, output, 8);
+        }
+
+        private static void FilterReferences(ReadOnlySpan<byte> source, byte? corner, Span<byte> output)
+        {
+            if (source.IsEmpty)
+            {
+                return;
+            }
+            for (int index = 0; index < source.Length; index++)
+            {
+                int previous = index == 0 ? corner ?? source[0] : source[index - 1];
+                output[index] = (byte)Quarter(previous, source[index], source[Math.Min(index + 1, source.Length - 1)]);
+            }
+        }
+
+        private static void Luma(int mode, ReadOnlySpan<byte> top, ReadOnlySpan<byte> left,
+            byte? corner, Span<byte> output, int size)
         {
             bool needsTop = mode is 0 or 3 or 4 or 5 or 6 or 7;
             bool needsLeft = mode is 1 or 4 or 5 or 6 or 8;
             ValidateNeighbours(needsTop, needsLeft, mode is 4 or 5 or 6, top, left, corner);
-            for (int y = 0; y < 4; y++)
+            for (int y = 0; y < size; y++)
             {
-                for (int x = 0; x < 4; x++)
+                for (int x = 0; x < size; x++)
                 {
                     int value = mode switch
                     {
                         0 => top[x],
                         1 => left[y],
-                        2 => Dc(top[..Math.Min(top.Length, 4)], left[..Math.Min(left.Length, 4)]),
-                        3 => Quarter(top[x + y], top[x + y + 1], top[Math.Min(x + y + 2, 7)]),
+                        2 => Dc(top[..Math.Min(top.Length, size)], left[..Math.Min(left.Length, size)]),
+                        3 => Quarter(top[x + y], top[x + y + 1], top[Math.Min(x + y + 2, size * 2 - 1)]),
                         4 => Diagonal(x, y, top, left, corner!.Value),
                         5 => VerticalRight(x, y, top, left, corner!.Value),
                         6 => VerticalRight(y, x, left, top, corner!.Value),
                         7 => VerticalLeft(x, y, top),
                         8 => VerticalLeft(y, x, left),
-                        _ => throw new InvalidDataException("Invalid H.264 intra 4x4 prediction mode.")
+                        _ => throw new InvalidDataException("Invalid H.264 directional intra prediction mode.")
                     };
-                    output[y * 4 + x] = (byte)value;
+                    output[y * size + x] = (byte)value;
                 }
             }
         }
@@ -126,7 +161,7 @@ namespace Mediana.Codecs.H264
             {
                 return Quarter(left[0], corner, top[0]);
             }
-            return Quarter(left[y - 1], left[y - 2], Reference(left, corner, y - 3));
+            return Quarter(left[-z - 1], left[-z - 2], Reference(left, corner, -z - 3));
         }
 
         private static int VerticalLeft(int x, int y, ReadOnlySpan<byte> samples)

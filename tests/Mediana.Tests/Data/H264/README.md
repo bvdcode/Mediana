@@ -24,3 +24,27 @@ SHA-256: `6e2bfd1bb2cdd4117e36f6b699fa85eb930a200c087dc092dc74c4bd042bb9fa`.
 Source: [ITU-T H.264 V15 (08/2024)](https://www.itu.int/rec/T-REC-H.264-202408-S/en).
 These are arithmetic initialization references; they do not prove complete
 CABAC picture reconstruction.
+
+## Intra 8x8 prediction reference
+
+`intra8-modes.h264` contains nine explicit High-profile 32x32 IDRs, one for each
+directional Intra_8x8 mode 0..8. Each picture contains three PCM macroblocks
+followed by an Intra_8x8 macroblock with four blocks using the selected mode,
+zero residuals and disabled deblocking. PCM samples follow
+`(29 * x + 17 * y + 73 * address + 41 * plane) % 256` within each plane block.
+The stream uses CAVLC, POC type 2, flat scaling, QP 26 and 8-bit 4:2:0 samples.
+Its 8x8 mode bits explicitly select the intended modes; it is not an encoder's
+automatic mode selection. Right-edge top references require normative extension.
+
+`intra8-modes.yuv` is the independent decoded output, 13,824 bytes. The prediction
+check compares every luma sample in all 36 Intra_8x8 blocks, including filtered
+neighbours and the negative-angle branches at nonzero horizontal positions.
+
+```sh
+ffmpeg -hide_banner -v warning -nostdin -y -i intra8-modes.h264 -map 0:v:0 -pix_fmt yuv420p -fps_mode passthrough -f rawvideo intra8-modes.yuv
+```
+
+| File | SHA-256 |
+| --- | --- |
+| intra8-modes.h264 | a9fbdf806f1a290cea70a9219cacf2b7f20a85144e334d2be4bded8a20d4e166 |
+| intra8-modes.yuv | 9f6b5985c1c38e60be533dc3b31a58a3fe64b759959110221bf2051f8fc8bde5 |
