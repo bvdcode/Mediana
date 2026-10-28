@@ -3,21 +3,25 @@ namespace Mediana.Core.Video
     /// <summary>Storage dimensions and color metadata. Display transforms are not applied implicitly.</summary>
     public class VideoFormat
     {
-        public VideoFormat(int width, int height, VideoPixelFormat pixelFormat, VideoColorInfo? color = null)
+        public VideoFormat(int width, int height, VideoPixelFormat pixelFormat, VideoColorInfo? color = null,
+            SampleAspectRatio? sampleAspectRatio = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
             ArgumentNullException.ThrowIfNull(pixelFormat);
+            sampleAspectRatio?.Validate();
             Width = width;
             Height = height;
             PixelFormat = pixelFormat;
             Color = color ?? new VideoColorInfo();
+            SampleAspectRatio = sampleAspectRatio;
         }
 
         public int Width { get; }
         public int Height { get; }
         public VideoPixelFormat PixelFormat { get; }
         public VideoColorInfo Color { get; }
+        public SampleAspectRatio? SampleAspectRatio { get; }
 
         public PlaneLayout[] CreateTightLayout()
         {

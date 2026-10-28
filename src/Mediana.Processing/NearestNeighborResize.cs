@@ -18,7 +18,7 @@ namespace Mediana.Processing
             {
                 throw new NotSupportedException("This resize implementation supports the RGBA32 pixel format only.");
             }
-            VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, input.Format.Color);
+            VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, input.Format.Color, input.Format.SampleAspectRatio);
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             for (int y = 0; y < height; y++)

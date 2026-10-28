@@ -12,7 +12,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(128);
             VideoFormat format = new(2, 2, VideoPixelFormat.Rgba32,
-                new VideoColorInfo(Transfer: TransferFunction.Srgb, Range: ColorRange.Full));
+                new VideoColorInfo(Transfer: TransferFunction.Srgb, Range: ColorRange.Full), new SampleAspectRatio(4, 3));
             using WritableMediaBuffer writable = allocator.Allocate(24);
             byte[] pixels = [1, 2, 3, 255, 4, 5, 6, 255];
             pixels.CopyTo(writable.Memory.Span);
@@ -25,6 +25,7 @@ namespace Mediana.Tests
             Assert.Equal(new byte[] { 1, 2, 3, 255, 7, 8, 9, 255 }, resized.Data.ToArray());
             Assert.Equal(frame.Timestamp, resized.Timestamp);
             Assert.Equal(format.Color, resized.Format.Color);
+            Assert.Equal(format.SampleAspectRatio, resized.Format.SampleAspectRatio);
         }
 
         [Fact]
