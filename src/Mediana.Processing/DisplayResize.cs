@@ -1,4 +1,3 @@
-using System.Numerics;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 
@@ -51,32 +50,9 @@ namespace Mediana.Processing
         {
             ArgumentNullException.ThrowIfNull(input);
             ArgumentNullException.ThrowIfNull(allocator);
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumWidth);
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumHeight);
-            sourceAspectRatio.Validate();
             cancellationToken.ThrowIfCancellationRequested();
-            int widthLimit = orientation.SwapsAxes ? maximumHeight : maximumWidth;
-            int heightLimit = orientation.SwapsAxes ? maximumWidth : maximumHeight;
-            BigInteger displayWidth = (BigInteger)input.Format.Width * sourceAspectRatio.Numerator;
-            BigInteger displayHeight = (BigInteger)input.Format.Height * sourceAspectRatio.Denominator;
-            int boxWidth = RoundWithin(displayWidth, sourceAspectRatio.Denominator, widthLimit);
-            int boxHeight = Math.Min(input.Format.Height, heightLimit);
-            int width;
-            int height;
-            if (displayWidth * boxHeight >= displayHeight * boxWidth)
-            {
-                width = boxWidth;
-                height = RoundWithin(width * displayHeight, displayWidth, boxHeight);
-            }
-            else
-            {
-                height = boxHeight;
-                width = RoundWithin(height * displayWidth, displayHeight, boxWidth);
-            }
-            return NearestNeighborResize.Apply(input, width, height, SampleAspectRatio.Square, orientation, allocator, cancellationToken);
+            NearestNeighborMap map = NearestNeighborMap.Fit(input.Format, sourceAspectRatio, orientation, maximumWidth, maximumHeight);
+            return NearestNeighborResize.Apply(input, map, SampleAspectRatio.Square, allocator, cancellationToken);
         }
-
-        private static int RoundWithin(BigInteger numerator, BigInteger denominator, int maximum) =>
-            (int)BigInteger.Clamp((numerator * 2 + denominator) / (denominator * 2), BigInteger.One, maximum);
     }
 }
