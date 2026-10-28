@@ -25,6 +25,46 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void NestedSlicesRetainOnlyTheirLogicalRangeAndKeepTheWholeAllocationBudgeted()
+        {
+            MediaBufferAllocator allocator = new(8);
+            using WritableMediaBuffer writable = allocator.Allocate(8);
+            new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 }.CopyTo(writable.Memory);
+            using MediaBuffer original = writable.Publish();
+            using MediaBuffer outer = original.Slice(2, 4);
+            using MediaBuffer nested = outer.Slice(1, 2);
+            using MediaBuffer retained = nested.Retain();
+            original.Dispose();
+            outer.Dispose();
+            nested.Dispose();
+            Assert.Equal(new byte[] { 3, 4 }, retained.Memory.ToArray());
+            Assert.Equal(8, allocator.AllocatedBytes);
+            Assert.Throws<MediaMemoryLimitException>(() => allocator.Allocate(1));
+            retained.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public void SlicesValidateBoundsBeforeRetainingAndEmptyViewsHaveAnIndependentLease()
+        {
+            MediaBufferAllocator allocator = new(8);
+            using WritableMediaBuffer writable = allocator.Allocate(8);
+            using MediaBuffer original = writable.Publish();
+            Assert.Throws<ArgumentOutOfRangeException>(() => original.Slice(-1, 1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => original.Slice(0, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => original.Slice(9, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => original.Slice(1, 8));
+            Assert.Throws<ArgumentOutOfRangeException>(() => original.Slice(int.MaxValue, int.MaxValue));
+            using MediaBuffer empty = original.Slice(8, 0);
+            Assert.Empty(empty.Memory.ToArray());
+            original.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => original.Slice(0, 0));
+            Assert.Equal(8, allocator.AllocatedBytes);
+            empty.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public async Task IndependentLeasesCanBeReleasedConcurrently()
         {
             MediaBufferAllocator allocator = new(64);
