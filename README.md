@@ -18,6 +18,7 @@ The sample can inspect real MP4/MOV inputs and run a separate generated RGBA exa
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
+| `Mediana.Codecs.H264` | AVC parameter-set parsing and CAVLC coefficient primitives under development; no decoder or package yet |
 | `Mediana.Processing` | Nearest-neighbor resizing of RGBA32 storage |
 | `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video sessions |
