@@ -14,6 +14,7 @@ namespace Mediana.Tests
         [InlineData("avc-cabac-p1", 5, 10, 94, 62, 49)]
         [InlineData("avc-cabac-p2", 5, 10, 94, 62, 49)]
         [InlineData("avc-cavlc-8x8-weighted", 6, 12, 190, 126, 50)]
+        [InlineData("avc-cabac-8x8-2", 6, 12, 190, 126, 50)]
         public async Task AvcMp4SelectsTheNextPresentationTimeAndProducesAnIndependentSrgbPng(string name, int frameIndex,
             int fps, int width, int height, int previewHeight)
         {

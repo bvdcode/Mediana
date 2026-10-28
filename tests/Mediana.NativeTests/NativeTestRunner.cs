@@ -87,6 +87,8 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS CABAC P previews: all initialization selections, 450 ms selects 500 ms, timing, square-pixel PNG and independent sRGB samples match.");
             await SdrPreviewTestInput.VerifyAsync(root, "avc-cavlc-8x8-weighted", 6, 12, 190, 126, 50);
             Console.WriteLine("PASS High CAVLC 8x8 preview: 450 ms selects 500 ms, square-pixel 100x50 PNG and independent sRGB samples match.");
+            await SdrPreviewTestInput.VerifyAsync(root, "avc-cabac-8x8-2", 6, 12, 190, 126, 50);
+            Console.WriteLine("PASS High CABAC 8x8 preview: 450 ms selects 500 ms, square-pixel 100x50 PNG and independent sRGB samples match.");
         }
     }
 }

@@ -293,3 +293,17 @@ preserve previous references.
 | avc-cabac-8x8-1.sequence.yuv | 11175c47f534c5e5f5633b2ae836cef12bf80f2ba990fd798055f104fa505a20 |
 | avc-cabac-8x8-2.mp4 | b46088cd077eec384f02be607e621871ea97a6de194a1fad73c5f1818ba8f116 |
 | avc-cabac-8x8-2.sequence.yuv | 8b3f3331746441e5a995931158ec3aa262fa2b0145cc6b845ffd2aa47ce15715 |
+
+`avc-cabac-8x8-2.frame6.srgb.rgba` is the independent straight sRGB RGBA32
+reference for the seventh picture at 500 ms, containing 95,760 bytes at 190x126.
+SHA-256: `98d97be834149cb0a653d26f533c83a168076720ac9a1b69a630f490f99bb5b2`.
+
+```sh
+ffmpeg -hide_banner -v error -nostdin -y -i avc-cabac-8x8-2.mp4 -map 0:v:0 -vf "select=eq(n\,6),zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -fps_mode passthrough -f rawvideo avc-cabac-8x8-2.frame6.srgb.rgba
+```
+
+The public preview check requests 450 ms, selects 500 ms, preserves the
+1/12-second duration and produces a square-pixel 100x50 sRGB PNG. All decoded
+channels match selected reference samples within one code; CRCs, timing, color
+and aspect metadata and allocation release are checked in managed execution
+and Native AOT.
