@@ -58,6 +58,7 @@ namespace Mediana.Containers.Mp4
         }
 
         public int SampleCount { get; }
+        public int ChunkCount => chunks.Count;
         public Mp4Table ChunkRuns { get; }
         public Mp4Table Timing { get; }
         public Mp4Table? Composition { get; }
@@ -76,6 +77,21 @@ namespace Mediana.Containers.Mp4
 
         public long ChunkOffset(int index) => wideOffsets
             ? Mp4Binary.Offset64(chunks.UInt64(index)) : chunks.UInt32(index);
+
+        public long SampleByteCount(int firstSample, int count, CancellationToken cancellationToken)
+        {
+            if (constantSize != 0)
+            {
+                return count == 0 ? 0 : (long)SampleSize(firstSample) * count;
+            }
+            long bytes = 0;
+            for (int index = 0; index < count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                bytes = checked(bytes + SampleSize(firstSample + index));
+            }
+            return bytes;
+        }
 
         private void ValidateRuns(Mp4Table table, CancellationToken cancellationToken)
         {
@@ -150,20 +166,8 @@ namespace Mediana.Containers.Mp4
                 {
                     throw new InvalidDataException("MP4 chunks exceed the sample count.");
                 }
-                long bytes = 0;
-                if (constantSize != 0)
-                {
-                    bytes = (long)count * SampleSize(sample);
-                    sample += (int)count;
-                }
-                else
-                {
-                    for (int index = 0; index < count; index++)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        bytes += SampleSize(sample++);
-                    }
-                }
+                long bytes = SampleByteCount(sample, (int)count, cancellationToken);
+                sample += (int)count;
                 long offset = ChunkOffset(chunk);
                 if (!ContainsMediaRange(ranges, offset, bytes))
                 {

@@ -18,6 +18,12 @@ namespace Mediana.NativeTests
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
             await Mp4TimelineTestInput.VerifyAsync(root);
+            foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov" })
+            {
+                await Mp4SampleAccessTestInput.VerifyAsync(root, file, Mp4TimestampMode.Media);
+                await Mp4SampleAccessTestInput.VerifyAsync(root, file, Mp4TimestampMode.LinearMovie);
+            }
+            Console.WriteLine("PASS MP4 random sample access: every reverse and sequential AVC/AAC packet matches independent offsets, bytes, timing and sync flags in both timelines.");
             Console.WriteLine("PASS MP4 linear movie timeline: every AVC/AAC packet matches independent bytes, translated PTS/DTS and merged decode order.");
             foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov", "avc-cabac-8x8-2.mp4" })
             {

@@ -16,6 +16,7 @@
     <ProjectReference Include="../../src/Mediana.Containers.MpegTs/Mediana.Containers.MpegTs.csproj" />
     <Compile Include="../Shared/MpegTsTestInput.cs" Link="MpegTsTestInput.cs" />
     <Compile Include="../Shared/Mp4TimelineTestInput.cs" Link="Mp4TimelineTestInput.cs" />
+    <Compile Include="../Shared/Mp4SampleAccessTestInput.cs" Link="Mp4SampleAccessTestInput.cs" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/H264EightByEightTestInput.cs" Link="H264EightByEightTestInput.cs" />
     <Compile Include="../Shared/H264CabacTransformTestInput.cs" Link="H264CabacTransformTestInput.cs" />
@@ -26,7 +27,7 @@
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
     <Compile Include="../Shared/SdrPreviewTestInput.cs" Link="SdrPreviewTestInput.cs" />
-    <None Include="../Mediana.Tests/Data/Mp4/avc-tail.mov;../Mediana.Tests/Data/Mp4/avc-tail.frame*.yuv;../Mediana.Tests/Data/Mp4/avc-cropped.mp4;../Mediana.Tests/Data/Mp4/avc-cropped.frame0.yuv"
+    <None Include="../Mediana.Tests/Data/Mp4/avc-tail.mov;../Mediana.Tests/Data/Mp4/avc-tail.mov.json;../Mediana.Tests/Data/Mp4/avc-tail.frame*.yuv;../Mediana.Tests/Data/Mp4/avc-cropped.mp4;../Mediana.Tests/Data/Mp4/avc-cropped.frame0.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-weighted.mp4;../Mediana.Tests/Data/Mp4/avc-weighted.sequence.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

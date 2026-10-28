@@ -16,6 +16,7 @@ namespace Mediana.Containers.Mp4
         private readonly MediaBuffer metadata;
         private readonly Mp4TrackCursor[] cursors;
         private readonly Mp4LinearTimeline[] timelines;
+        private readonly Mp4SampleTable[] tables;
         private bool disposed;
         private int busy;
 
@@ -24,6 +25,7 @@ namespace Mediana.Containers.Mp4
         {
             this.source = source;
             this.allocator = allocator;
+            tables = movie.Tables;
             cursors = movie.Tables.Select(table => new Mp4TrackCursor(table)).ToArray();
             MovieTimeBase = movie.TimeBase;
             Duration = movie.Duration;
@@ -92,15 +94,7 @@ namespace Mediana.Containers.Mp4
                 }
                 Mp4TrackCursor cursor = cursors[selected];
                 Mp4SampleLocation location = cursor.Current;
-                Mp4LinearTimeline timeline = timelines[selected];
-                MediaTimestamp presentationTime = timeline.Map(location.PresentationTime);
-                MediaTimestamp decodeTime = timeline.Map(location.DecodeTime);
-                MediaDuration duration = timeline.MapDuration(location.Duration);
-                using WritableMediaBuffer writable = allocator.Allocate(location.Size);
-                await source.ReadExactlyAtAsync(location.Offset, writable.Memory, cancellationToken).ConfigureAwait(false);
-                cancellationToken.ThrowIfCancellationRequested();
-                using MediaBuffer buffer = writable.Publish();
-                MediaPacket packet = new(selected, buffer, presentationTime, decodeTime, duration, location.IsSync);
+                MediaPacket packet = await ReadSampleAsync(selected, location, cancellationToken).ConfigureAwait(false);
                 cursor.Advance(location);
                 return packet;
             }
@@ -108,6 +102,65 @@ namespace Mediana.Containers.Mp4
             {
                 Volatile.Write(ref busy, 0);
             }
+        }
+
+        /// <summary>Resolves sample metadata without reading media bytes or moving the sequential cursors.
+        /// Table runs and sizes within the containing chunk are scanned; no per-sample index is allocated.</summary>
+        public Mp4SampleInfo GetSampleInfo(int streamIndex, int sampleIndex, CancellationToken cancellationToken = default)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                Mp4SampleLocation location = Locate(streamIndex, sampleIndex, cancellationToken);
+                Mp4LinearTimeline timeline = timelines[streamIndex];
+                return new(streamIndex, sampleIndex, location.Offset, location.Size,
+                    timeline.Map(location.PresentationTime), timeline.Map(location.DecodeTime),
+                    timeline.MapDuration(location.Duration), location.IsSync);
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
+        }
+
+        /// <summary>Reads one encoded sample by its zero-based decode-order index.
+        /// Does not move sequential cursors or reset decoder state. The returned packet belongs to its caller.</summary>
+        public async ValueTask<MediaPacket> ReadPacketAtAsync(int streamIndex, int sampleIndex,
+            CancellationToken cancellationToken = default)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                Mp4SampleLocation location = Locate(streamIndex, sampleIndex, cancellationToken);
+                return await ReadSampleAsync(streamIndex, location, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
+        }
+
+        private Mp4SampleLocation Locate(int streamIndex, int sampleIndex, CancellationToken cancellationToken)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(streamIndex, tables.Length);
+            return Mp4SampleLocator.Find(tables[streamIndex], sampleIndex, cancellationToken);
+        }
+
+        private async ValueTask<MediaPacket> ReadSampleAsync(int streamIndex, Mp4SampleLocation location,
+            CancellationToken cancellationToken)
+        {
+            Mp4LinearTimeline timeline = timelines[streamIndex];
+            MediaTimestamp presentationTime = timeline.Map(location.PresentationTime);
+            MediaTimestamp decodeTime = timeline.Map(location.DecodeTime);
+            MediaDuration duration = timeline.MapDuration(location.Duration);
+            using WritableMediaBuffer writable = allocator.Allocate(location.Size);
+            await source.ReadExactlyAtAsync(location.Offset, writable.Memory, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            using MediaBuffer buffer = writable.Publish();
+            return new(streamIndex, buffer, presentationTime, decodeTime, duration, location.IsSync);
         }
 
         private int SelectTrack()

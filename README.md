@@ -162,6 +162,19 @@ end of the file, sample/chunk mapping, decode time runs, signed/unsigned composi
 offsets, sync samples and 32/64-bit chunk offsets. Packets are interleaved by decode
 time; each track retains its sample order.
 
+`GetSampleInfo(streamIndex, sampleIndex)` resolves the absolute source offset,
+encoded size, PTS/DTS, duration and container sync indication without reading media
+bytes or allocating a per-sample index. `ReadPacketAtAsync(streamIndex, sampleIndex)`
+reads just that encoded sample and returns an owned packet. Both indices are
+zero-based; sample order is decode order. These operations preserve every sequential
+cursor, also after end of stream, and use the selected timestamp mode. Lookup scans
+the compact chunk/timing runs and the sample sizes inside the containing chunk;
+it does not read preceding payloads. The mapping follows the
+[QuickTime sample lookup](https://developer.apple.com/documentation/quicktime-file-format/using_sample_atoms).
+Reader operations must be sequential. A packet read by index does not initialize
+or reset a decoder, and a sync declaration alone does not verify codec-level
+segment independence.
+
 AVC streams expose the original avcC configuration and length-prefixed NAL packets.
 AAC streams expose the AudioSpecificConfig and raw access units. Container-declared
 audio channels and sample rate are labelled explicitly: codec configuration may
