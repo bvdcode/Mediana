@@ -2,6 +2,12 @@ namespace Mediana.Tests
 {
     internal static class H264TestBits
     {
+        public static string Ue(int value)
+        {
+            string binary = Convert.ToString(value + 1, 2);
+            return new string('0', binary.Length - 1) + binary;
+        }
+
         public static byte[] Rbsp(string content, bool trailing = true)
         {
             string bits = content.Replace(" ", string.Empty, StringComparison.Ordinal) + (trailing ? "1" : string.Empty);

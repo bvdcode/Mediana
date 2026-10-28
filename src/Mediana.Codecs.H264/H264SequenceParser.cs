@@ -80,10 +80,7 @@ namespace Mediana.Codecs.H264
                 top = bits.ReadUe();
                 bottom = bits.ReadUe();
             }
-            if (bits.ReadFlag())
-            {
-                H264VuiParser.Parse(ref bits);
-            }
+            H264VuiParameters? vui = bits.ReadFlag() ? H264VuiParser.Parse(ref bits, references) : null;
             bits.ReadTrailingBits();
             int chromaArray = sequence.SeparateColourPlane ? 0 : sequence.ChromaFormat;
             int cropUnitX = chromaArray switch
@@ -112,6 +109,7 @@ namespace Mediana.Codecs.H264
                 PictureOrderBits = orderBits,
                 DeltaPictureOrderAlwaysZero = deltaAlwaysZero,
                 ReferenceFrames = references,
+                Vui = vui,
                 WidthInMbs = widthMbs,
                 HeightInMapUnits = heightMapUnits,
                 FrameMbsOnly = frameOnly,

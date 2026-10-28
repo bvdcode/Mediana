@@ -30,17 +30,17 @@ namespace Mediana.Tests
                 }
             }
             int partitions = type == 0 ? 1 : type <= 2 ? 2 : 4;
-            string syntax = Ue(type);
+            string syntax = H264TestBits.Ue(type);
             if (partitions == 4)
             {
-                syntax += string.Concat(Enumerable.Repeat(Ue(subtype), 4));
+                syntax += string.Concat(Enumerable.Repeat(H264TestBits.Ue(subtype), 4));
             }
             if (type != 4)
             {
                 syntax += string.Concat(Enumerable.Range(0, partitions).Select(part => part % 2 == 0 ? "1" : "0"));
             }
             int subpartitions = partitions != 4 ? 1 : subtype == 0 ? 1 : subtype == 3 ? 4 : 2;
-            syntax += new string('1', partitions * subpartitions * 2) + Ue(0);
+            syntax += new string('1', partitions * subpartitions * 2) + H264TestBits.Ue(0);
             H264BitReader bits = new(H264TestBits.Rbsp(syntax));
             int qp = 26;
             H264InterMacroblock.Read(ref bits, target, header, [new(first, 0), new(second, 1)], 0, ref qp);
@@ -106,12 +106,6 @@ namespace Mediana.Tests
                 int qp = 26;
                 H264InterMacroblock.Read(ref bits, target, header, [null, null], 0, ref qp);
             });
-        }
-
-        private static string Ue(int value)
-        {
-            string binary = Convert.ToString(value + 1, 2);
-            return new string('0', binary.Length - 1) + binary;
         }
 
         private static H264SliceHeader Header() => new(new H264SequenceParameterSet

@@ -28,6 +28,24 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public async Task PreservesRealBaselineVuiMetadata()
+        {
+            H264Configuration configuration = H264Configuration.Parse(await ReadConfigurationAsync("avc-tail.mov"), new H264DecoderOptions());
+            H264SequenceParameterSet sequence = Assert.Single(configuration.Sequences.Values);
+            H264VuiParameters vui = Assert.IsType<H264VuiParameters>(sequence.Vui);
+            Assert.Equal(1, vui.AspectRatioWidth);
+            Assert.Equal(1, vui.AspectRatioHeight);
+            Assert.Equal(1u, vui.UnitsInTick);
+            Assert.Equal(10u, vui.TimeScale);
+            Assert.Equal(0, vui.MaxReorderFrames);
+            Assert.Equal(3, vui.MaxDecodedFrameBuffering);
+            Assert.False(vui.FullRange);
+            Assert.Equal(2, vui.ColorPrimaries);
+            Assert.Equal(2, vui.TransferCharacteristics);
+            Assert.Equal(2, vui.MatrixCoefficients);
+        }
+
+        [Fact]
         public async Task RejectsTruncatedConfigurationsAndReservedLengthSize()
         {
             byte[] configuration = await ReadConfigurationAsync("avc-tail.mov");
