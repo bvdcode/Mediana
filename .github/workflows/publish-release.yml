@@ -75,7 +75,8 @@ jobs:
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --self-test
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-tail.mov
-      - run: dotnet publish samples/Mediana.Sample -c Release -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native
+      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-managed.png 0 250 100 100
+      - run: dotnet publish samples/Mediana.Sample -c Release -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native
       - run: dotnet publish tests/Mediana.NativeTests -c Release -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native-tests
       - name: Run native executable
         run: |
@@ -89,6 +90,7 @@ jobs:
           "$sample_executable" --self-test
           "$sample_executable" --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
           "$sample_executable" --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-tail.mov
+          "$sample_executable" --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-native.png 0 250 100 100
           "$native_tests_executable"
       - name: Pack
         if: matrix.os == 'ubuntu-latest'

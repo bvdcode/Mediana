@@ -1,9 +1,11 @@
 using Mediana.Codecs.H264;
+using Mediana.Codecs.Png;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.IO;
 using Mediana.Processing;
+using Mediana.Tests;
 
 namespace Mediana.NativeTests
 {
@@ -35,12 +37,48 @@ namespace Mediana.NativeTests
                         throw new InvalidDataException($"The sRGB output differs from the reference at byte {index}.");
                     }
                 }
+                VerifyPngPreview(converted, allocator);
             }
             if (allocator.AllocatedBytes != 0)
             {
                 throw new InvalidOperationException("The sRGB conversion retained output storage.");
             }
             Console.WriteLine("PASS public SDR conversion: sRGB reference within one 8-bit code per channel, metadata and allocation release match.");
+        }
+
+        private static void VerifyPngPreview(VideoFrame converted, MediaBufferAllocator allocator)
+        {
+            using VideoFrame preview = DisplayResize.Fit(converted, 100, 100, allocator);
+            using MediaBuffer png = PngEncoder.Encode(preview, allocator);
+            Dictionary<string, byte[]> chunks = PngTestInput.ReadChunks(png.Memory.Span);
+            byte[] header = [0, 0, 0, 100, 0, 0, 0, 49, 8, 6, 0, 0, 0];
+            byte[] physical = [0, 0, 0, 1, 0, 0, 0, 1, 0];
+            if (!chunks["IHDR"].AsSpan().SequenceEqual(header) || !chunks["pHYs"].AsSpan().SequenceEqual(physical) ||
+                !chunks["sRGB"].AsSpan().SequenceEqual(new byte[] { 0 }) || chunks["IEND"].Length != 0)
+            {
+                throw new InvalidDataException("The PNG preview dimensions, color or aspect differ from the reference.");
+            }
+            byte[] filtered = PngTestInput.Inflate(chunks["IDAT"]);
+            if (filtered.Length != 401 * 49)
+            {
+                throw new InvalidDataException("Unexpected PNG scanline length.");
+            }
+            for (int y = 0; y < 49; y++)
+            {
+                if (filtered[y * 401] != 0)
+                {
+                    throw new InvalidDataException("Unexpected PNG scanline filter.");
+                }
+                for (int x = 0; x < 100; x++)
+                {
+                    ReadOnlySpan<byte> source = converted.GetRow(0, y * 62 / 49).Slice(x * 94 / 100 * 4, 4);
+                    if (!source.SequenceEqual(filtered.AsSpan(y * 401 + 1 + x * 4, 4)))
+                    {
+                        throw new InvalidDataException("The PNG preview pixel does not match the selected source sample.");
+                    }
+                }
+            }
+            Console.WriteLine("PASS public PNG preview: square-pixel 100x49 sRGB, all CRCs and decoded pixels match.");
         }
     }
 }

@@ -11,8 +11,10 @@
     <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
     <ProjectReference Include="../../src/Mediana.Processing/Mediana.Processing.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
+    <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-tail.mov;../Mediana.Tests/Data/Mp4/avc-tail.frame*.yuv;../Mediana.Tests/Data/Mp4/avc-cropped.mp4;../Mediana.Tests/Data/Mp4/avc-cropped.frame0.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-weighted.mp4;../Mediana.Tests/Data/Mp4/avc-weighted.sequence.yuv"

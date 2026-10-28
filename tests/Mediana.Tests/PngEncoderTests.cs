@@ -1,6 +1,3 @@
-using System.Buffers.Binary;
-using System.IO.Compression;
-using System.Text;
 using Mediana.Codecs.Png;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
@@ -27,12 +24,12 @@ namespace Mediana.Tests
             using MediaBuffer encoded = PngEncoder.Encode(frame, allocator);
             frame.Dispose();
             pixels.Dispose();
-            Dictionary<string, byte[]> chunks = ReadChunks(encoded.Memory.Span);
+            Dictionary<string, byte[]> chunks = PngTestInput.ReadChunks(encoded.Memory.Span);
             Assert.Equal(new byte[] { 0, 0, 0, 2, 0, 0, 0, 2, 8, 6, 0, 0, 0 }, chunks["IHDR"]);
             Assert.Equal(new byte[] { 0 }, chunks["sRGB"]);
             Assert.Equal(new byte[] { 0, 0, 0, 3, 0, 0, 0, 4, 0 }, chunks["pHYs"]);
             Assert.Empty(chunks["IEND"]);
-            byte[] filtered = Inflate(chunks["IDAT"]);
+            byte[] filtered = PngTestInput.Inflate(chunks["IDAT"]);
             Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 0, 255, 0, 127, 0, 0, 0, 255, 128, 255, 255, 255, 255 }, filtered);
             Assert.True(allocator.AllocatedBytes >= encoded.Memory.Length);
             encoded.Dispose();
@@ -51,8 +48,8 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(pixels.Length * 3L + height * 2L + 1024);
             using VideoFrame frame = Frame(allocator, new VideoFormat(width, height, VideoPixelFormat.Rgba32, Srgb, SampleAspectRatio.Square), pixels);
             using MediaBuffer encoded = PngEncoder.Encode(frame, allocator);
-            Dictionary<string, byte[]> chunks = ReadChunks(encoded.Memory.Span);
-            byte[] filtered = Inflate(chunks["IDAT"]);
+            Dictionary<string, byte[]> chunks = PngTestInput.ReadChunks(encoded.Memory.Span);
+            byte[] filtered = PngTestInput.Inflate(chunks["IDAT"]);
             Assert.Equal(pixels.Length + height, filtered.Length);
             for (int row = 0; row < height; row++)
             {
@@ -96,41 +93,5 @@ namespace Mediana.Tests
             return new VideoFrame(format, buffer, format.CreateTightLayout());
         }
 
-        private static Dictionary<string, byte[]> ReadChunks(ReadOnlySpan<byte> png)
-        {
-            Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Slice(0, 8).ToArray());
-            Dictionary<string, byte[]> chunks = [];
-            int offset = 8;
-            while (offset < png.Length)
-            {
-                int length = BinaryPrimitives.ReadInt32BigEndian(png.Slice(offset, 4));
-                string type = Encoding.ASCII.GetString(png.Slice(offset + 4, 4));
-                uint crc = uint.MaxValue;
-                foreach (byte value in png.Slice(offset + 4, length + 4))
-                {
-                    crc ^= value;
-                    for (int bit = 0; bit < 8; bit++)
-                    {
-                        uint mask = 0u - (crc & 1u);
-                        crc = (crc >> 1) ^ (0xedb88320u & mask);
-                    }
-                }
-                Assert.Equal(~crc, BinaryPrimitives.ReadUInt32BigEndian(png.Slice(offset + 8 + length, 4)));
-                chunks.Add(type, png.Slice(offset + 8, length).ToArray());
-                offset += length + 12;
-            }
-            Assert.Equal(png.Length, offset);
-            Assert.Equal(new[] { "IHDR", "sRGB", "pHYs", "IDAT", "IEND" }, chunks.Keys);
-            return chunks;
-        }
-
-        private static byte[] Inflate(byte[] compressed)
-        {
-            using MemoryStream input = new(compressed, writable: false);
-            using ZLibStream inflater = new(input, CompressionMode.Decompress);
-            using MemoryStream output = new();
-            inflater.CopyTo(output);
-            return output.ToArray();
-        }
     }
 }
