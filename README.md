@@ -95,7 +95,10 @@ Internal CABAC decision, bypass and termination arithmetic is checked against a
 separate arbitrary-precision interval writer that shares the normative probability
 constants. These arithmetic components and checks are adapted from the MIT-licensed
 [Heic.NET](https://github.com/bvdcode/Heic.NET), with H.264 context initialization
-and bit reading. CABAC slice reconstruction remains unsupported.
+and bit reading. Internal checks also compare 227 I-slice contexts at every 8-bit
+quantizer with a separate initialization reference and read the beginning of a
+real CABAC IDR. Real I/P slice headers match an independent header trace.
+CABAC coefficient and picture reconstruction remain unsupported.
 CI is configured to build and run both native
 executables on Linux, Windows and macOS.
 

@@ -15,6 +15,9 @@ namespace Mediana.NativeTests
                     ("avc-tail", ".mov", 3), ("avc-tail", ".mov", 4), ("avc-tail", ".mov", 5), ("avc-cropped", ".mp4", 0)];
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
+            await H264CabacTestInput.VerifyIntraContextStatesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
+            await H264CabacTestInput.VerifyRealIntraPrefixAsync(root);
+            Console.WriteLine("PASS H.264 CABAC intra initialization: all 227 contexts at 52 quantizers and the real IDR prefix match.");
             using (H264ReferenceBuffer references = new())
             {
                 foreach ((string name, string extension, int packet) in cases)

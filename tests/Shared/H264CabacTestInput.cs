@@ -7,6 +7,46 @@ namespace Mediana.Tests
 {
     internal static class H264CabacTestInput
     {
+        public static async Task VerifyIntraContextStatesAsync(string root)
+        {
+            byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, "cabac-intra-contexts.bin"));
+            int[] indices = Enumerable.Range(3, 8).Concat(Enumerable.Range(60, 216)).Concat(Enumerable.Range(399, 3)).ToArray();
+            if (expected.Length != indices.Length * 52)
+            {
+                throw new InvalidDataException("The H.264 intra context reference has an unexpected length.");
+            }
+            int offset = 0;
+            for (int qp = 0; qp <= 51; qp++)
+            {
+                H264CabacContext[] contexts = H264CabacIntraContexts.Create(qp);
+                foreach (int index in indices)
+                {
+                    H264CabacContext context = contexts[H264CabacIntraContexts.GetIndex(index)];
+                    int packed = context.State * 2 + (context.MostProbableSymbol ? 1 : 0);
+                    if (packed != expected[offset++])
+                    {
+                        throw new InvalidDataException($"H.264 intra context mismatch at QP {qp}, context {index}.");
+                    }
+                }
+            }
+        }
+
+        public static async Task VerifyRealIntraPrefixAsync(string root)
+        {
+            (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, "avc-aac.mp4"), 0);
+            H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
+            H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+            if (!header.Picture.Cabac || header.Kind != H264SliceKind.I || header.Qp != 23 || header.FrameNumber != 0)
+            {
+                throw new InvalidDataException("The H.264 intra reference has unexpected slice syntax.");
+            }
+            H264CabacIntraReader reader = new(ref bits, header);
+            if (reader.Read(ref bits, 3) || reader.Read(ref bits, 399))
+            {
+                throw new InvalidDataException("The H.264 intra reference does not start with the expected 4x4 intra macroblock.");
+            }
+        }
+
         public static void VerifyMixedBins()
         {
             sbyte[] slopes = [20, 2, 3, -28, -23, -6, -1, 7];
