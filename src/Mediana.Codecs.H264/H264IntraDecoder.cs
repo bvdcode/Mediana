@@ -9,7 +9,11 @@ namespace Mediana.Codecs.H264
         {
             cancellationToken.ThrowIfCancellationRequested();
             H264BitReader bits = H264Nal.Payload(nal, 5);
-            H264IntraSliceHeader header = H264IntraSliceHeader.Read(ref bits, configuration);
+            H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+            if (header.FirstMacroblock != 0)
+            {
+                throw new NotSupportedException("Intra reconstruction currently requires one complete IDR slice.");
+            }
             H264Picture result = new(header.Sequence, allocator);
             bool complete = false;
             try

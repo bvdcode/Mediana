@@ -7,7 +7,7 @@ namespace Mediana.Codecs.H264
             [47, 31, 15, 0, 23, 27, 29, 30, 7, 11, 13, 14, 39, 43, 45, 46, 16, 3, 5, 10, 12, 19, 21, 26,
                 28, 35, 37, 42, 44, 1, 2, 4, 8, 17, 18, 20, 24, 6, 9, 22, 25, 32, 33, 34, 36, 40, 38, 41];
 
-        public static void Read(ref H264BitReader bits, H264Picture target, H264IntraSliceHeader header, int address, ref int qp)
+        public static void Read(ref H264BitReader bits, H264Picture target, H264SliceHeader header, int address, ref int qp)
         {
             int x = (address % header.Sequence.WidthInMbs) * 16;
             int y = (address / header.Sequence.WidthInMbs) * 16;

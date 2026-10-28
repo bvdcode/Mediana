@@ -13,7 +13,7 @@ namespace Mediana.Codecs.H264
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
                 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 6, 6, 7, 8, 9, 10, 11, 13, 14, 16, 18, 20, 23, 25];
 
-        public static void Apply(H264Picture picture, H264IntraSliceHeader header, CancellationToken cancellationToken)
+        public static void Apply(H264Picture picture, H264SliceHeader header, CancellationToken cancellationToken)
         {
             if (!header.DeblockingEnabled)
             {
@@ -34,7 +34,7 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private static void ApplyEdges(H264Picture picture, H264IntraSliceHeader header, int plane,
+        private static void ApplyEdges(H264Picture picture, H264SliceHeader header, int plane,
             int address, int x, int y, int size, bool vertical)
         {
             int stride = picture.Stride(plane);

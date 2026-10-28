@@ -11,6 +11,16 @@ namespace Mediana.Tests
     {
         public static async Task<(H264Configuration Configuration, byte[] Nal)> ReadIdrAsync(string path, int packetIndex)
         {
+            (H264Configuration configuration, byte[] nal) = await ReadSliceAsync(path, packetIndex);
+            if (H264Nal.Type(nal) != 5)
+            {
+                throw new InvalidDataException("The reference packet has no IDR slice.");
+            }
+            return (configuration, nal);
+        }
+
+        public static async Task<(H264Configuration Configuration, byte[] Nal)> ReadSliceAsync(string path, int packetIndex)
+        {
             await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
@@ -37,13 +47,13 @@ namespace Mediana.Tests
                         _ => throw new InvalidDataException("The reference video has an invalid NAL length size.")
                     };
                     ReadOnlySpan<byte> nal = remaining.Slice(configuration.LengthSize, length);
-                    if (H264Nal.Type(nal) == 5)
+                    if (H264Nal.Type(nal) is 1 or 5)
                     {
                         return (configuration, nal.ToArray());
                     }
                     remaining = remaining[(configuration.LengthSize + length)..];
                 }
-                throw new InvalidDataException("The reference packet has no IDR slice.");
+                throw new InvalidDataException("The reference packet has no slice.");
             }
         }
 
