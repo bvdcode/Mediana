@@ -20,6 +20,7 @@ namespace Mediana.Tests
             Assert.Equal(frameNumber, header.FrameNumber);
             Assert.Equal(references, header.ActiveReferencesL0);
             Assert.Equal(qp, header.Qp);
+            Assert.Equal(0, header.CabacInitIdc);
             Assert.Equal(idr ? H264SliceKind.I : H264SliceKind.P, header.Kind);
             Assert.Equal(0, header.FirstMacroblock);
             Assert.Equal(0, header.DeblockingIdc);

@@ -68,6 +68,30 @@ namespace Mediana.Tests
             }
         }
 
+        [Fact]
+        public void CabacAlignmentRequiresOnesAndPreservesTheNextByte()
+        {
+            for (int prefix = 0; prefix < 8; prefix++)
+            {
+                H264BitReader bits = new([0xff, 0x65]);
+                bits.ReadBits(prefix);
+                bits.AlignOne();
+                Assert.True(bits.ByteAligned);
+                Assert.Equal(prefix == 0 ? 0xffu : 0x65u, bits.ReadBits(8));
+                if (prefix != 0)
+                {
+                    Assert.Throws<InvalidDataException>(() => ReadCabacAlignment(prefix));
+                }
+            }
+        }
+
+        private static void ReadCabacAlignment(int prefix)
+        {
+            H264BitReader bits = new([0xfe]);
+            bits.ReadBits(prefix);
+            bits.AlignOne();
+        }
+
         private static void ReadTrailing(byte[] data)
         {
             H264BitReader bits = new(data);

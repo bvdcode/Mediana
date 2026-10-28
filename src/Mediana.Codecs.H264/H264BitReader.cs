@@ -96,6 +96,17 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        public void AlignOne()
+        {
+            while (!ByteAligned)
+            {
+                if (ReadBit() != 1)
+                {
+                    throw new InvalidDataException("An H.264 CABAC alignment bit is zero.");
+                }
+            }
+        }
+
         public void AlignZero()
         {
             while (!ByteAligned)

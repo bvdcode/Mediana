@@ -19,6 +19,7 @@ namespace Mediana.Codecs.H264
         public bool LongTermReference { get; init; }
         public bool AdaptiveMarking { get; init; }
         public IReadOnlyList<H264MemoryOperation> MemoryOperations { get; init; } = [];
+        public int CabacInitIdc { get; init; }
         public int Qp { get; init; }
         public int DeblockingIdc { get; init; }
         public int AlphaOffset { get; init; }

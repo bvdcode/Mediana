@@ -69,14 +69,19 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
             H264Configuration configuration = H264Configuration.Parse(reader.Streams[0].Configuration.Span, new H264DecoderOptions());
-            for (int index = 0; ; index++)
+            int index = 0;
+            while (true)
             {
                 using MediaPacket? packet = await reader.ReadPacketAsync();
                 if (packet is null)
                 {
                     throw new InvalidDataException("The reference video has no packet at the requested index.");
                 }
-                if (index < packetIndex)
+                if (packet.StreamIndex != reader.Streams[0].StreamIndex)
+                {
+                    continue;
+                }
+                if (index++ < packetIndex)
                 {
                     continue;
                 }

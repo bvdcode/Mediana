@@ -2,10 +2,24 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264Support
     {
+        public static string? GetUnsupportedHeaderReason(H264SequenceParameterSet sequence)
+        {
+            if (!sequence.FrameMbsOnly || sequence.ChromaFormat != 1 || sequence.SeparateColourPlane ||
+                sequence.LumaBitDepth != 8 || sequence.ChromaBitDepth != 8)
+            {
+                return "Slice header parsing currently requires progressive 8-bit 4:2:0 pictures.";
+            }
+            return null;
+        }
+
         public static string? GetUnsupportedReason(H264SequenceParameterSet sequence, H264PictureParameterSet picture)
         {
-            if (!sequence.FrameMbsOnly || picture.Cabac || sequence.ChromaFormat != 1 || sequence.SeparateColourPlane ||
-                sequence.LumaBitDepth != 8 || sequence.ChromaBitDepth != 8 || sequence.ScalingMatrix ||
+            string? reason = GetUnsupportedHeaderReason(sequence);
+            if (reason is not null)
+            {
+                return reason;
+            }
+            if (picture.Cabac || sequence.ScalingMatrix ||
                 sequence.TransformBypass || picture.Transform8x8)
             {
                 return "Reconstruction currently requires progressive 8-bit 4:2:0 CAVLC slices with default scaling.";

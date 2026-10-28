@@ -32,7 +32,7 @@ namespace Mediana.Codecs.H264
                 throw new InvalidDataException("The H.264 slice references an unknown picture parameter set.");
             }
             H264SequenceParameterSet sequence = configuration.Sequences[picture.SequenceId];
-            ValidateConfiguration(sequence, picture, firstMacroblock);
+            ValidateConfiguration(sequence, firstMacroblock);
             int frameNumber = (int)bits.ReadBits(sequence.FrameNumberBits);
             if (idr && frameNumber != 0)
             {
@@ -76,6 +76,11 @@ namespace Mediana.Codecs.H264
                     }
                 }
             }
+            int cabacInitIdc = 0;
+            if (picture.Cabac && kind == H264SliceKind.P)
+            {
+                cabacInitIdc = bits.ReadUe(2);
+            }
             int qp = picture.InitialQp + bits.ReadSe(-51, 51);
             if (qp is < 0 or > 51)
             {
@@ -108,6 +113,7 @@ namespace Mediana.Codecs.H264
                 LongTermReference = longTermReference,
                 AdaptiveMarking = adaptiveMarking,
                 MemoryOperations = operations,
+                CabacInitIdc = cabacInitIdc,
                 Qp = qp,
                 DeblockingIdc = disableDeblocking,
                 AlphaOffset = alphaOffset,
@@ -141,13 +147,13 @@ namespace Mediana.Codecs.H264
             return (lsb, deltaBottom, delta0, delta1);
         }
 
-        private static void ValidateConfiguration(H264SequenceParameterSet sequence, H264PictureParameterSet picture, int firstMacroblock)
+        private static void ValidateConfiguration(H264SequenceParameterSet sequence, int firstMacroblock)
         {
             if (firstMacroblock >= sequence.WidthInMbs * sequence.HeightInMapUnits)
             {
                 throw new InvalidDataException("The H.264 first macroblock is outside the picture.");
             }
-            string? reason = H264Support.GetUnsupportedReason(sequence, picture);
+            string? reason = H264Support.GetUnsupportedHeaderReason(sequence);
             if (reason is not null)
             {
                 throw new NotSupportedException(reason);
