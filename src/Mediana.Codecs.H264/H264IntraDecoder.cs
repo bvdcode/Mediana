@@ -29,7 +29,7 @@ namespace Mediana.Codecs.H264
                     H264IntraMacroblock.Read(ref bits, result, header, address, bits.ReadUe(25), ref qp);
                 }
                 bits.ReadTrailingBits();
-                H264IntraDeblocking.Apply(result, header, cancellationToken);
+                H264Deblocking.Apply(result, header, cancellationToken);
                 complete = true;
                 return result;
             }
