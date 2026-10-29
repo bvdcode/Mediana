@@ -5,6 +5,7 @@
   <Folder Name="/src/">
     <Project Path="src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
     <Project Path="src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
+    <Project Path="src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />
     <Project Path="src/Mediana.Codecs/Mediana.Codecs.csproj" />
     <Project Path="src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
     <Project Path="src/Mediana.Containers.MpegTs/Mediana.Containers.MpegTs.csproj" />
