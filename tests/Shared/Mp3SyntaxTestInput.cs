@@ -36,6 +36,7 @@ namespace Mediana.Tests
                     using IncrementalHash fields = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                     using IncrementalHash main = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                     using IncrementalHash scales = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    using IncrementalHash spectrum = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                     Mp3FrameInfo info = new();
                     int frames = 0;
                     int history = 0;
@@ -43,6 +44,9 @@ namespace Mediana.Tests
                     int totalBits = 0;
                     int scaleBits = 0;
                     int reusedGroups = 0;
+                    int spectralValues = 0;
+                    int spectralNonzero = 0;
+                    int[] coefficients = new int[Mp3ScaleFactorBands.SpectrumLength];
                     int[] blocks = new int[4];
                     byte[][] values = [new byte[39], new byte[39]];
                     byte[] limits = new byte[39];
@@ -103,7 +107,14 @@ namespace Mediana.Tests
                             scales.AppendData(limits);
                             scaleBits += consumed;
                             reusedGroups += BitOperations.PopCount((uint)reuse);
-                            bits.Skip(bits.Remaining);
+                            int coded = Mp3Spectrum.Read(ref bits, header.SampleRate, granule, coefficients);
+                            Append(spectrum, [coded]);
+                            Append(spectrum, coefficients);
+                            spectralValues += coded;
+                            foreach (int coefficient in coefficients)
+                            {
+                                spectralNonzero += coefficient != 0 ? 1 : 0;
+                            }
                             start = bits.Position;
                         }
                         if (start != info.MainDataBits)
@@ -121,6 +132,9 @@ namespace Mediana.Tests
                         || totalBits != item.GetProperty("main_data_bits").GetInt32()
                         || scaleBits != item.GetProperty("scalefactor_bits").GetInt32()
                         || reusedGroups != item.GetProperty("reused_scalefactor_groups").GetInt32()
+                        || spectralValues != item.GetProperty("spectral_coded_values").GetInt32()
+                        || spectralNonzero != item.GetProperty("spectral_nonzero_values").GetInt32()
+                        || Convert.ToHexStringLower(spectrum.GetHashAndReset()) != item.GetProperty("spectrum_sha256").GetString()
                         || Convert.ToHexStringLower(scales.GetHashAndReset()) != item.GetProperty("scalefactors_sha256").GetString()
                         || Convert.ToHexStringLower(fields.GetHashAndReset()) != item.GetProperty("side_fields_sha256").GetString()
                         || Convert.ToHexStringLower(main.GetHashAndReset()) != item.GetProperty("main_data_sha256").GetString())

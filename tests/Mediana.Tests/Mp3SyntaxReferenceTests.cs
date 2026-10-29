@@ -12,7 +12,7 @@ namespace Mediana.Tests
     public class Mp3SyntaxReferenceTests
     {
         [Fact]
-        public async Task AllSideFieldsAndAssembledMainDataMatchIndependentCompleteStreams()
+        public async Task AllSideFieldsMainDataAndSpectraMatchIndependentCompleteStreams()
         {
             await Mp3SyntaxTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3"));
         }

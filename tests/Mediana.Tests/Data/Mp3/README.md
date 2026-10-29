@@ -115,6 +115,24 @@ count1 quadruples leave the cursor/output unchanged for the spectral reader to
 treat as stuffing. Pair escape ordering is x extension, x sign, y extension,
 y sign, with an unsigned extension added to magnitude 15.
 
-These checks establish the entropy-decoding components. Reconstruction of the
-complete MP3 spectrum, stereo processing, filterbank synthesis and PCM comparison
-remain separate requirements; there is still no public MP3 PCM decoder.
+`scalefactor-bands.tsv` records all 18 band-width tables for the nine sample rates,
+including the final implicit band. These numeric assignments were extracted from
+Tables 42–59 of Martin Sieler and Ralph Sperschneider's
+[MPEG Layer3 Bitstream Syntax and Decoding, issue 1.2](https://mp3guessenc.sourceforge.io/MPEG%20Layer3%20Bitstream%20Syntax%20and%20Decoding.pdf)
+and checked against ISO/IEC 11172-3 Table B.8 and ISO/IEC 13818-3 Table B.2 for
+the standardized sample rates. The production tables store cumulative boundaries;
+tests independently sum the published widths.
+
+The syntax manifest includes all 576 quantized spectral values for every granule
+and channel, hashed after decoding raw codewords with a separate bit-string reader.
+The spectrum hash serializes the number of explicitly decoded values followed by
+576 signed little-endian int32 coefficients. In all 846 frames, 2461 channel
+granules contain 697050 explicitly decoded values, including 224325 nonzero values.
+The rest are implicit zeros. Managed and Native AOT corpus tests compare every
+coefficient through these full-stream hashes. Separate vectors cover region-table
+switches, partial final count1 tuples, stuffing, spectrum capacity and the following
+granule boundary.
+
+These checks establish complete quantized spectra. Requantization, stereo
+processing, filterbank synthesis and PCM comparison remain separate requirements;
+there is still no public MP3 PCM decoder.

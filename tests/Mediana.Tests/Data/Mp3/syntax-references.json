@@ -13,6 +13,9 @@
       "scalefactors_sha256": "a536c1addb7ccc1f51e6bfffb88b784c3f54c16bbeea33d9d672f7bdf4b3341e",
       "scalefactor_bits": 60789,
       "reused_scalefactor_groups": 546,
+      "spectrum_sha256": "c9b89d43a66717bd7f09dedb75fccf905af9cadc39ab2363e3c6d8f85d1042c0",
+      "spectral_coded_values": 52568,
+      "spectral_nonzero_values": 25864,
       "maximum_back_bytes": 511,
       "block_counts": [
         488,
@@ -33,6 +36,9 @@
       "scalefactors_sha256": "1c2f7a5297d082eac172b04ce8bfa278c300c51a6c713a72b855f3e441f4724a",
       "scalefactor_bits": 12628,
       "reused_scalefactor_groups": 895,
+      "spectrum_sha256": "80f5bba94b93fe76034e848ec492196cdd5dea4372d63bed41d4ebc96b072893",
+      "spectral_coded_values": 379320,
+      "spectral_nonzero_values": 96995,
       "maximum_back_bytes": 511,
       "block_counts": [
         682,
@@ -53,6 +59,9 @@
       "scalefactors_sha256": "e1ec047f3b9e7eaf5f3fe1e9c7ab4b3cc2c434bab19a50932f30a1168c1f5b2f",
       "scalefactor_bits": 2602,
       "reused_scalefactor_groups": 0,
+      "spectrum_sha256": "07e301537651fd6203efc957ed453cf94506c0c50148c20662afd1e5c639051e",
+      "spectral_coded_values": 50494,
+      "spectral_nonzero_values": 35006,
       "maximum_back_bytes": 255,
       "block_counts": [
         81,
@@ -73,6 +82,9 @@
       "scalefactors_sha256": "2b98ddfdec3ebdf95a35ef56f7dbf87e333b1f2084fd64dc86e573eec4dc4ef3",
       "scalefactor_bits": 631,
       "reused_scalefactor_groups": 0,
+      "spectrum_sha256": "36c8e6497ca9d3ffe9fe6e79e2eceec0e0383acf90218368c657a3a518098545",
+      "spectral_coded_values": 45640,
+      "spectral_nonzero_values": 17224,
       "maximum_back_bytes": 255,
       "block_counts": [
         79,
@@ -93,6 +105,9 @@
       "scalefactors_sha256": "6a0f53fe8155a8b145f5ccc4b03f52660082e9224c93920cb2ea46ac25ed767a",
       "scalefactor_bits": 2167,
       "reused_scalefactor_groups": 72,
+      "spectrum_sha256": "f5cd72a097f2e858b107a12568ef5ae8fb3a6bd73c8c1266577172ecee54fe55",
+      "spectral_coded_values": 33376,
+      "spectral_nonzero_values": 11109,
       "maximum_back_bytes": 511,
       "block_counts": [
         48,
@@ -123,6 +138,9 @@
       "scalefactors_sha256": "d7e770e3cd4007f996ceba17f8dee4b8b277c2f2891feae6f085572435923ab7",
       "scalefactor_bits": 8846,
       "reused_scalefactor_groups": 72,
+      "spectrum_sha256": "4033ec785c025a765feace42c23a46f85b1ba456c3572432b1c8c60317a53559",
+      "spectral_coded_values": 54948,
+      "spectral_nonzero_values": 13978,
       "maximum_back_bytes": 511,
       "block_counts": [
         88,
@@ -153,6 +171,9 @@
       "scalefactors_sha256": "f2f6259586bdc7b3918a2bdd5300eb5226258124ad18570b5624ef9ab2d82d01",
       "scalefactor_bits": 1987,
       "reused_scalefactor_groups": 0,
+      "spectrum_sha256": "f2662b99e2fccbf63cd4f572db0557b823391ad2895ebac5799cf506601277a7",
+      "spectral_coded_values": 22304,
+      "spectral_nonzero_values": 6664,
       "maximum_back_bytes": 255,
       "block_counts": [
         13,
@@ -183,6 +204,9 @@
       "scalefactors_sha256": "6f0bd2afc57d8259dd95720817bcd11ad9afa3629ce8a07dfdaeea49075f9f4b",
       "scalefactor_bits": 4457,
       "reused_scalefactor_groups": 0,
+      "spectrum_sha256": "5d7c43b28bbca23f6b32dd79f1d8a326658de4cbfbc13e79e0f5d8ae50084790",
+      "spectral_coded_values": 37590,
+      "spectral_nonzero_values": 8578,
       "maximum_back_bytes": 255,
       "block_counts": [
         26,
@@ -213,6 +237,9 @@
       "scalefactors_sha256": "9a3ca16b4c68ad2f8805332369691b3538605b120744669829610d3426f97fa0",
       "scalefactor_bits": 879,
       "reused_scalefactor_groups": 0,
+      "spectrum_sha256": "0eab4d2b8260ec7097ca6cc2887769f876c53ce7ce5d055e8d47a4253275e79c",
+      "spectral_coded_values": 7598,
+      "spectral_nonzero_values": 4314,
       "maximum_back_bytes": 132,
       "block_counts": [
         0,
@@ -243,6 +270,9 @@
       "scalefactors_sha256": "e792223776d2347fdfc07efa747538d7d60082f18ea016f3a57084dc1e0cbead",
       "scalefactor_bits": 1280,
       "reused_scalefactor_groups": 0,
+      "spectrum_sha256": "9b28776248629499c64638724fbc41fe35f20a58d62525aa015a84ae01c8caa8",
+      "spectral_coded_values": 13212,
+      "spectral_nonzero_values": 4593,
       "maximum_back_bytes": 107,
       "block_counts": [
         0,
