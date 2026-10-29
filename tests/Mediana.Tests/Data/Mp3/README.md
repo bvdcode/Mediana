@@ -1,8 +1,7 @@
-# MP3 frame and ID3 references
+# MP3 reference corpus
 
 These inputs verify MPEG Layer III framing, ID3v2.3/v2.4 text and original APIC
-bytes, Xing/Info frame declarations and trailing ID3v1 tags. No MP3 PCM decoder
-is provided by this corpus.
+bytes, Xing/Info frame declarations, trailing ID3v1 tags and complete PCM decoding.
 
 | File | Rate/channels | Mode | Leading metadata |
 | --- | --- | --- | --- |
@@ -28,7 +27,7 @@ signals/artwork and their derived files are MIT licensed.
 `mono-speech.mp3` is an MP3 encoding of the existing
 `Lab41-SRI-VOiCES-src-sp0307-ch127535-sg0042.wav` recording from *Voices Obscured in
 Complex Environmental Settings (VOiCES)* by Lab41, In-Q-Tel and SRI International.
-The source and derived MP3 are under
+The source, derived MP3 and decoded PCM reference are under
 [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).
 Changes: lossy MP3 encoding and added title/artist/track tags. See the
 [source attribution](../Waveform/README.md),
@@ -38,7 +37,8 @@ and [license declaration](https://registry.opendata.aws/lab41-sri-voices/).
 Coded timing retains priming and padding. Xing/Info is a metadata frame and is
 excluded from returned packets. A packet does not imply independent decoding:
 Layer III may depend on earlier main-data bytes through its bit reservoir.
-No gapless interpretation, MPEG CRC validation, free-format discovery,
+The reader does not validate MPEG CRC; the decoder verifies protected fields.
+No gapless interpretation, free-format discovery,
 resynchronization or seek claim is made.
 
 Primary format references:
@@ -133,6 +133,36 @@ coefficient through these full-stream hashes. Separate vectors cover region-tabl
 switches, partial final count1 tuples, stuffing, spectrum capacity and the following
 granule boundary.
 
-These checks establish complete quantized spectra. Requantization, stereo
-processing, filterbank synthesis and PCM comparison remain separate requirements;
-there is still no public MP3 PCM decoder.
+These checks establish complete quantized spectra. The PCM checks below additionally
+exercise requantization, stereo processing and filterbank synthesis.
+
+## PCM decoding
+
+`pcm-references.json` covers complete PCM for the ten encoded files and 29
+constructed spectral vectors. Gzip files contain interleaved float32 little-endian
+samples; the manifest records input and uncompressed PCM hashes, format, frame
+counts and absolute comparison tolerances. Encoded delay and padding remain in
+the output. For Xing inputs, FFmpeg decoded the concatenated audio packets without
+the metadata frame, so both decoders produce the same coded sample extent.
+
+The vectors cover all nine sample rates, normal/start/short/stop windows, mixed
+blocks, independently varying short-window gains, intensity stereo, mid/side stereo,
+and their combination. Their pair codebooks differ across the first Huffman region
+boundary, including mixed windows at MPEG-2.5 rates. MPEG-2 vectors also cover
+illegal intensity positions that select ordinary or mid/side stereo for that band.
+
+The numeric reference uses ISO/IEC 11172-3 synthesis equations and window Table
+B.3, ISO/IEC 13818-3 low-rate scalefactors and stereo rules, and the 8 kHz extension
+in Sieler/Sperschneider, *MPEG Layer3 Bitstream Syntax and Decoding*, issue 1.2.
+A separate direct matrix evaluation from the constructed quantized spectra checks
+all 29 vectors. FFmpeg 6.1.1 agrees within the recorded tolerance on the ten encoded
+files and 24 vectors. Five vectors use the matrix reference: three exercise 8 kHz
+mixed blocks, where four low subbands use long transforms and alias reduction;
+two exercise the low-rate illegal-position sentinel. FFmpeg 6.1.1 uses two long
+subbands in the former case and treats the sentinel as an intensity position in
+the latter. Its PCM is therefore not used as the expected output for these cases.
+
+Both managed and Native AOT tests compare every PCM sample, sample count, timestamp,
+end-of-stream state, retained frame ownership and released buffer bytes. The
+numeric vectors and references are test data; runtime decoding uses no external
+codec or media process.

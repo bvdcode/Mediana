@@ -40,7 +40,7 @@ namespace Mediana.Codecs.Mp3
         }
 
         /// <summary>An incomplete final quadruple is stuffing. Failed reads leave the cursor and output unchanged.</summary>
-        public static bool TryReadQuad(ref Mp3BitReader bits, int table, Span<int> values)
+        public static bool TryReadQuad(ref Mp3BitReader bits, int table, scoped Span<int> values)
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(values.Length, 4);
             int codebook = table switch

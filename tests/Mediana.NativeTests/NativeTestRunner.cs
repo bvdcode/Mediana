@@ -13,6 +13,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await Mp3DecodeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3"));
+            await Console.Out.WriteLineAsync("PASS MP3 PCM: complete real files and all-rate stereo/window vectors, every sample, timing and retained ownership match.");
             Mp3HuffmanTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3", "huffman-codes.tsv"));
             Console.WriteLine("PASS MP3 Huffman: all 1410 normative codewords, escape variants, signs, bit alignments and bounded quadruple endings match.");
             await Mp3SyntaxTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3"));

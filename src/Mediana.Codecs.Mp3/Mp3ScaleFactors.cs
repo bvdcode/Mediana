@@ -11,7 +11,7 @@ namespace Mediana.Codecs.Mp3
         private static ReadOnlySpan<byte> SecondLengths => [0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 2, 3];
         private static ReadOnlySpan<byte> LongGroups => [0, 6, 11, 16, 21];
 
-        public static void ReadMpeg1(ref Mp3BitReader bits, Mp3GranuleInfo info, int reuseMask, Span<byte> values)
+        public static void ReadMpeg1(ref Mp3BitReader bits, Mp3GranuleInfo info, int reuseMask, scoped Span<byte> values)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(reuseMask);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(reuseMask, 15);
@@ -43,7 +43,7 @@ namespace Mediana.Codecs.Mp3
         }
 
         public static void ReadLowRate(ref Mp3BitReader bits, Mp3GranuleInfo info, bool intensityChannel,
-            Span<byte> values, Span<byte> intensityLimits)
+            scoped Span<byte> values, scoped Span<byte> intensityLimits)
         {
             Validate(values, info, 511);
             ArgumentOutOfRangeException.ThrowIfLessThan(intensityLimits.Length, Capacity);
@@ -143,7 +143,7 @@ namespace Mediana.Codecs.Mp3
             ArgumentOutOfRangeException.ThrowIfGreaterThan(info.ScaleFactorCompression, maximum);
         }
 
-        private static void ReadValues(ref Mp3BitReader bits, Span<byte> values, int width)
+        private static void ReadValues(ref Mp3BitReader bits, scoped Span<byte> values, int width)
         {
             if (width == 0)
             {

@@ -2,6 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs.Aac;
+using Mediana.Codecs.Mp3;
+using Mediana.Containers.Mp3;
 using Mediana.Codecs.Flac;
 using Mediana.Containers.Flac;
 using Mediana.Codecs.Pcm;
@@ -13,12 +15,14 @@ namespace Mediana.Sample
     internal static class SampleAudioEngine
     {
         public static MediaEngine Create() => new MediaEngineBuilder()
+            .AddContainer(new Mp3ReaderFactory())
             .AddContainer(new FlacReaderFactory())
             .AddContainer(new WaveReaderFactory())
             .AddContainer(new Mp4ReaderFactory())
             .AddAudioDecoder(new FlacDecoderFactory())
             .AddAudioDecoder(new PcmDecoderFactory())
             .AddAudioDecoder(new AacDecoderFactory())
+            .AddAudioDecoder(new Mp3DecoderFactory())
             .Build();
     }
 }

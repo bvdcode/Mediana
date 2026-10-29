@@ -6,7 +6,7 @@ namespace Mediana.Codecs.Mp3
     internal static class Mp3Spectrum
     {
         /// <summary>Reads the remaining granule bits after scalefactors into transmission order, then discards stuffing.</summary>
-        public static int Read(ref Mp3BitReader bits, int sampleRate, Mp3GranuleInfo info, Span<int> values)
+        public static int Read(ref Mp3BitReader bits, int sampleRate, Mp3GranuleInfo info, scoped Span<int> values)
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(values.Length, Mp3ScaleFactorBands.SpectrumLength);
             if ((uint)info.BigValues > Mp3ScaleFactorBands.SpectrumLength / 2)
@@ -56,7 +56,7 @@ namespace Mediana.Codecs.Mp3
             }
         }
 
-        private static void ReadPairs(ref Mp3BitReader bits, Span<int> output, ref int position, int end, int table)
+        private static void ReadPairs(ref Mp3BitReader bits, scoped Span<int> output, ref int position, int end, int table)
         {
             while (position < end)
             {

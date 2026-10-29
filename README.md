@@ -26,6 +26,7 @@ The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float P
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading; source project only |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks; source project only |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing; source project only |
+| `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo; source project only |
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC transport-stream writer; source project only |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
@@ -502,13 +503,51 @@ v2.4 data-length indicators and plain extended headers are handled. Compressed
 or encrypted ID3 frames, extended CRC/update/restriction fields, ID3v2.2,
 VBRI, free-format frame discovery, junk resynchronization, stream format changes,
 seeking, MPEG CRC verification and gapless interpretation are not supported.
-There is no MP3 PCM decoder or encoder yet; adding the reader does not enable
-MP3 waveform export or MP3 transport-stream writing.
+The decoder below verifies MPEG CRCs and enables PCM and waveform export. MP3
+encoding and MP3 transport-stream writing remain unsupported.
 
 The [MP3 reference corpus](tests/Mediana.Tests/Data/Mp3/README.md) verifies every
 packet's bytes and coded timing, text, picture contents, trailing tags and
 ownership against independent evidence for MPEG-1/2/2.5, CBR/VBR and both ID3
 versions. The speech fixture has separate CC BY 4.0 attribution.
+
+## Decoding MP3 audio
+
+Reference the `Mediana.Containers.Mp3` and `Mediana.Codecs.Mp3` source projects:
+
+```csharp
+MediaEngine engine = new MediaEngineBuilder()
+    .AddContainer(new Mp3ReaderFactory())
+    .AddAudioDecoder(new Mp3DecoderFactory())
+    .Build();
+await using AudioSession session = await engine.OpenAudioAsync(source, 0);
+```
+
+The decoder restores MPEG-1/2/2.5 Layer III at all nine standard sample rates,
+mono, stereo, dual channel, intensity stereo and mid/side stereo. It handles the
+bit reservoir, all Huffman tables, long/start/short/stop and mixed windows,
+alias reduction, overlap-add and polyphase synthesis. Output is native-endian,
+interleaved float32 PCM, with 1152 samples per MPEG-1 frame or 576 for MPEG-2/2.5.
+Timestamps follow the input packets. Coded encoder delay and end padding remain;
+LAME gapless trimming is not applied.
+
+`Mp3DecoderFactory(maxFrameBytes)` bounds each complete encoded frame (4096 bytes
+by default). Configuration contains the first four-byte header. Protected fields
+are CRC-checked. The allocator accounts for reservoir, spectrum, synthesis history
+and output storage. Retained output frames survive reset/disposal. Failure or
+cancellation requires reset or disposal; reset clears all decoding history.
+Seeking into reservoir-dependent frames requires decoding the preceding data.
+Free-format input, format changes, de-emphasis and encoding are unsupported.
+
+```bash
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --decode-audio input.mp3 output.f32le 0
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --waveform-audio input.mp3 waveform.json 0 400 10 0.5,0.5
+```
+
+The [PCM corpus](tests/Mediana.Tests/Data/Mp3/README.md#pcm-decoding) compares
+complete real files and constructed all-rate stereo/window vectors with independent
+sample references in managed execution and Native AOT. It documents the distinct
+reference treatment of 8 kHz mixed windows and illegal low-rate intensity positions.
 
 ## Reading native FLAC metadata and pictures
 
