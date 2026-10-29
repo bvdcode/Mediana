@@ -25,12 +25,25 @@ namespace Mediana.Codecs.Aac
                 }
                 Reversed[index] = reversed;
             }
-            for (int width = 2; width <= count; width *= 2)
+            int width = 4;
+            for (; width <= count; width *= 4)
             {
-                for (int offset = 0; offset < width / 2; offset++)
+                int quarter = width / 4;
+                for (int offset = 0; offset < quarter; offset++)
                 {
-                    (double sine, double cosine) = Math.SinCos(-2 * Math.PI * offset / width);
-                    Rotations[width / 2 - 1 + offset] = new Complex(cosine, sine);
+                    for (int factor = 1; factor <= 3; factor++)
+                    {
+                        (double sine, double cosine) = Math.SinCos(-2 * Math.PI * factor * offset / width);
+                        Rotations[quarter - 1 + (factor - 1) * quarter + offset] = new Complex(cosine, sine);
+                    }
+                }
+            }
+            if (width / 4 != count)
+            {
+                for (int offset = 0; offset < count / 2; offset++)
+                {
+                    (double sine, double cosine) = Math.SinCos(-2 * Math.PI * offset / count);
+                    Rotations[count / 2 - 1 + offset] = new Complex(cosine, sine);
                 }
             }
         }
