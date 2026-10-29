@@ -2,6 +2,10 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacHuffman
     {
+        private const int PrefixBits = 8;
+        private const int PrefixCount = 1 << PrefixBits;
+        private static readonly int[] Prefixes = CreatePrefixes();
+
         public static int ReadScaleFactor(ref AacBitReader bits) => ReadSymbol(ref bits, 0) - 60;
 
         public static int ReadSpectrum(ref AacBitReader bits, int codebook, scoped Span<int> values)
@@ -61,8 +65,14 @@ namespace Mediana.Codecs.Aac
         internal static int ReadSymbol(ref AacBitReader bits, int codebook)
         {
             ReadOnlySpan<short> tree = AacHuffmanTables.Get(codebook);
-            int node = 0;
-            for (int length = 0; length < 19; length++)
+            int entry = Prefixes[codebook * PrefixCount + bits.PeekByte()];
+            bits.Skip(entry & 15);
+            int node = entry >> 4;
+            if (node < 0)
+            {
+                return -node - 1;
+            }
+            for (int length = PrefixBits; length < 19; length++)
             {
                 node = tree[node * 2 + bits.Read(1)];
                 if (node < 0)
@@ -71,6 +81,27 @@ namespace Mediana.Codecs.Aac
                 }
             }
             throw new InvalidDataException("The AAC Huffman codeword is invalid.");
+        }
+
+        private static int[] CreatePrefixes()
+        {
+            int[] result = new int[12 * PrefixCount];
+            for (int codebook = 0; codebook < 12; codebook++)
+            {
+                ReadOnlySpan<short> tree = AacHuffmanTables.Get(codebook);
+                for (int prefix = 0; prefix < PrefixCount; prefix++)
+                {
+                    int node = 0;
+                    int length = 0;
+                    while (length < PrefixBits && node >= 0)
+                    {
+                        node = tree[node * 2 + ((prefix >> (PrefixBits - 1 - length)) & 1)];
+                        length++;
+                    }
+                    result[codebook * PrefixCount + prefix] = (node << 4) | length;
+                }
+            }
+            return result;
         }
     }
 }

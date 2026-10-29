@@ -17,6 +17,21 @@ namespace Mediana.Codecs.Aac
         public readonly int Remaining => data.Length * 8 - position;
         public readonly int Position => position;
 
+        public readonly int PeekByte()
+        {
+            if (Remaining == 0)
+            {
+                throw new InvalidDataException("The AAC access unit is truncated.");
+            }
+            int index = position >> 3;
+            int value = data[index] << 8;
+            if (index + 1 < data.Length)
+            {
+                value |= data[index + 1];
+            }
+            return (value >> (8 - (position & 7))) & 255;
+        }
+
         public int Read(int count)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(count);

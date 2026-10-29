@@ -59,6 +59,42 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void EveryCodewordDecodesAtEveryBitAlignmentAndAtEndOfInput()
+        {
+            for (int codebook = 0; codebook < 12; codebook++)
+            {
+                VerifyCodewords(AacHuffmanTables.Get(codebook), codebook, 0, string.Empty);
+            }
+        }
+
+        private static void VerifyCodewords(ReadOnlySpan<short> tree, int codebook, int node, string prefix)
+        {
+            for (int branch = 0; branch < 2; branch++)
+            {
+                int child = tree[node * 2 + branch];
+                string codeword = prefix + (branch == 0 ? "0" : "1");
+                if (child >= 0)
+                {
+                    VerifyCodewords(tree, codebook, child, codeword);
+                    continue;
+                }
+                for (int alignment = 0; alignment < 8; alignment++)
+                {
+                    AacBitReader bits = new(Bytes(new string('1', alignment) + codeword + "10101"));
+                    bits.Skip(alignment);
+                    Assert.Equal(-child - 1, AacHuffman.ReadSymbol(ref bits, codebook));
+                    Assert.Equal(alignment + codeword.Length, bits.Position);
+                    Assert.Equal(21, bits.Read(5));
+                }
+                int padding = (8 - codeword.Length % 8) % 8;
+                AacBitReader tail = new(Bytes(new string('1', padding) + codeword));
+                tail.Skip(padding);
+                Assert.Equal(-child - 1, AacHuffman.ReadSymbol(ref tail, codebook));
+                Assert.Equal(0, tail.Remaining);
+            }
+        }
+
+        [Fact]
         public void TruncatedCodewordsAndOverlongEscapesAreRejected()
         {
             Assert.Throws<InvalidDataException>(ReadTruncatedScaleFactor);
