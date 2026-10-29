@@ -17,12 +17,15 @@ Independent source modules also decode HEIC/HEIF still images, JPEG 2000 and JBI
 and rasterize SVG and TGS/Lottie 2D animation. Their output connects to Mediana
 frames, SDR color conversion and PNG encoding. These modules compile inside
 Mediana and do not depend on Heic.NET or Render.NET packages.
+An experimental PDF module reads page geometry, renders supported vector/text/image
+content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
 **Video encoding and compressed audio encoding are not available yet.**
 
 ## Components
 
 | Project | Current responsibility |
 | --- | --- |
+| `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction; source project only |
 | `Mediana.Drawing` | Managed 2D paths, fills/strokes, clipping, compositing and RGBA surfaces; source project only |
 | `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha; source project only |
 | `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion; source project only |
@@ -1343,3 +1346,17 @@ Apply source license headers with `dotnet run --file UpdateLicense.cs -- .`.
 Validate them without editing files with
 `dotnet run --file UpdateLicense.cs -- . --check`; the build workflow runs this check.
 The updater skips generated files and build-output directories.
+
+
+## PDF previews
+
+```sh
+dotnet run --project samples/Mediana.Sample -c Release -- --pdf-png report.pdf page.png 1 1200
+dotnet run --project samples/Mediana.Sample -c Release -- --pdf-image-png report.pdf image.png 1 0
+```
+
+Pages start at one; decoded image indices start at zero. Output files must be new.
+Page previews use 96 DPI, reduce proportionally to the requested maximum width and
+apply a white background. Image extraction returns RGBA pixels, including masks,
+without the image's placement on the page. The supported PDF subset, limits,
+font behavior and known rendering gaps are described in [docs/pdf.md](docs/pdf.md).

@@ -14,6 +14,18 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string[] args)
         {
+            if (args.Length == 5 && args[0] == "--pdf-png" &&
+                int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int pdfPage) && pdfPage > 0 &&
+                int.TryParse(args[4], NumberStyles.None, CultureInfo.InvariantCulture, out int pdfWidth) && pdfWidth > 0)
+            {
+                return await PdfPreviewSample.RenderAsync(args[1], args[2], pdfPage, pdfWidth);
+            }
+            if (args.Length == 5 && args[0] == "--pdf-image-png" &&
+                int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int imagePage) && imagePage > 0 &&
+                int.TryParse(args[4], NumberStyles.None, CultureInfo.InvariantCulture, out int pdfImage) && pdfImage >= 0)
+            {
+                return await PdfPreviewSample.ImageAsync(args[1], args[2], imagePage, pdfImage);
+            }
             if (args.Length == 6 && args[0] == "--image-png" &&
                 int.TryParse(args[4], NumberStyles.None, CultureInfo.InvariantCulture, out int aspectWidth) && aspectWidth > 0 &&
                 int.TryParse(args[5], NumberStyles.None, CultureInfo.InvariantCulture, out int aspectHeight) && aspectHeight > 0)
@@ -106,7 +118,7 @@ namespace Mediana.Sample
             }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--image-png <heic|jp2|jbig2> <input> <new-output.png> <pixel-aspect-width> <pixel-aspect-height> | --svg-png <input> <new-output.png> <width> | --tgs-png <input> <new-output.png> <seconds> <width> | --self-test | --probe-mp3 <input> | --cover-mp3 <input> <new-image-output> <picture-index> | --probe-flac <input> | --cover-flac <input> <new-image-output> <picture-index> | --probe-mp4 <path> | --cover-mp4 <input> <new-image-output> <cover-index> | --decode-audio <input> <new-output.pcm> <stream-index> | --resample-audio <input> <new-output.pcm> <stream-index> <sample-rate> <comma-separated-channel-gains> | --waveform-audio <input> <new-output.json> <stream-index> <sample-rate> <samples-per-window> <comma-separated-channel-gains> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds> | --hls-mp4 <input> <new-directory> <video-index> <audio-index|none> <target-milliseconds>]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--pdf-png <input> <new-output.png> <page> <max-width> | --pdf-image-png <input> <new-output.png> <page> <image-index> | --image-png <heic|jp2|jbig2> <input> <new-output.png> <pixel-aspect-width> <pixel-aspect-height> | --svg-png <input> <new-output.png> <width> | --tgs-png <input> <new-output.png> <seconds> <width> | --self-test | --probe-mp3 <input> | --cover-mp3 <input> <new-image-output> <picture-index> | --probe-flac <input> | --cover-flac <input> <new-image-output> <picture-index> | --probe-mp4 <path> | --cover-mp4 <input> <new-image-output> <cover-index> | --decode-audio <input> <new-output.pcm> <stream-index> | --resample-audio <input> <new-output.pcm> <stream-index> <sample-rate> <comma-separated-channel-gains> | --waveform-audio <input> <new-output.json> <stream-index> <sample-rate> <samples-per-window> <comma-separated-channel-gains> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds> | --hls-mp4 <input> <new-directory> <video-index> <audio-index|none> <target-milliseconds>]");
                 return 2;
             }
 
