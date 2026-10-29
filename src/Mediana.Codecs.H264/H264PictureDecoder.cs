@@ -58,6 +58,7 @@ namespace Mediana.Codecs.H264
                 }
                 bits.ReadTrailingBits();
                 H264Deblocking.Apply(result, header, cancellationToken, references);
+                result.CaptureReferences(references, []);
                 complete = true;
                 return result;
             }
