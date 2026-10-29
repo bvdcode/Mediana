@@ -91,6 +91,65 @@ namespace Mediana.Tests
                 tail.Skip(padding);
                 Assert.Equal(-child - 1, AacHuffman.ReadSymbol(ref tail, codebook));
                 Assert.Equal(0, tail.Remaining);
+                if (codebook != 0)
+                {
+                    VerifySpectralTuple(codebook, -child - 1, codeword);
+                }
+            }
+        }
+
+        private static void VerifySpectralTuple(int codebook, int symbol, string codeword)
+        {
+            (int dimensions, int radix, int offset, bool signed) = codebook switch
+            {
+                1 or 2 => (4, 3, 1, true),
+                3 or 4 => (4, 3, 0, false),
+                5 or 6 => (2, 9, 4, true),
+                7 or 8 => (2, 8, 0, false),
+                9 or 10 => (2, 13, 0, false),
+                11 => (2, 17, 0, false),
+                _ => throw new ArgumentOutOfRangeException(nameof(codebook))
+            };
+            int[] expected = new int[dimensions];
+            for (int index = dimensions - 1; index >= 0; index--)
+            {
+                expected[index] = symbol % radix - offset;
+                symbol /= radix;
+            }
+            string suffix = string.Empty;
+            if (!signed)
+            {
+                for (int index = 0; index < dimensions; index++)
+                {
+                    if (expected[index] != 0)
+                    {
+                        bool negative = index % 2 == 0;
+                        suffix += negative ? "1" : "0";
+                        if (negative)
+                        {
+                            expected[index] = -expected[index];
+                        }
+                    }
+                }
+            }
+            if (codebook == 11)
+            {
+                foreach (int value in expected)
+                {
+                    if (Math.Abs(value) == 16)
+                    {
+                        suffix += "00000";
+                    }
+                }
+            }
+            Span<int> tuple = stackalloc int[4];
+            for (int alignment = 0; alignment < 8; alignment++)
+            {
+                AacBitReader bits = new(Bytes(new string('1', alignment) + codeword + suffix + "10101"));
+                bits.Skip(alignment);
+                int count = AacHuffman.ReadSpectrum(ref bits, codebook, tuple);
+                Assert.Equal(expected, tuple[..count].ToArray());
+                Assert.Equal(21, bits.Read(5));
             }
         }
 

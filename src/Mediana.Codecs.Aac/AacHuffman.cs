@@ -10,27 +10,15 @@ namespace Mediana.Codecs.Aac
 
         public static int ReadSpectrum(ref AacBitReader bits, int codebook, scoped Span<int> values)
         {
-            (int dimensions, int radix, int offset, bool signed) = codebook switch
-            {
-                1 or 2 => (4, 3, 1, true),
-                3 or 4 => (4, 3, 0, false),
-                5 or 6 => (2, 9, 4, true),
-                7 or 8 => (2, 8, 0, false),
-                9 or 10 => (2, 13, 0, false),
-                11 => (2, 17, 0, false),
-                _ => throw new ArgumentOutOfRangeException(nameof(codebook))
-            };
+            AacSpectralCodebook book = AacSpectralCodebook.Get(codebook);
+            int dimensions = book.Dimensions;
             if (values.Length < dimensions)
             {
                 throw new ArgumentException("The spectral tuple buffer is too small.", nameof(values));
             }
             int symbol = ReadSymbol(ref bits, codebook);
-            for (int index = dimensions - 1; index >= 0; index--)
-            {
-                values[index] = symbol % radix - offset;
-                symbol /= radix;
-            }
-            if (!signed)
+            book.Read(symbol, values);
+            if (!book.Signed)
             {
                 for (int index = 0; index < dimensions; index++)
                 {
