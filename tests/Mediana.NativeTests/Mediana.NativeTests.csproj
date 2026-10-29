@@ -8,6 +8,9 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../Mediana.Tests/Data/Jbig2/*" Link="Data/Jbig2/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Jbig2ReferenceTestInput.cs" Link="Jbig2ReferenceTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Jbig2/Mediana.Codecs.Jbig2.csproj" />
     <None Include="../Mediana.Tests/Data/Jpeg2000/*" Link="Data/Jpeg2000/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Jpeg2000ReferenceTestInput.cs" Link="Jpeg2000ReferenceTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Jpeg2000/Mediana.Codecs.Jpeg2000.csproj" />

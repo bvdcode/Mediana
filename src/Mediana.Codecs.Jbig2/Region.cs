@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+namespace Mediana.Codecs.Jbig2
+{
+    internal record Region(int Width, int Height, int X, int Y, int Op);
+}

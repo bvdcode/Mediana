@@ -13,6 +13,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await Jbig2ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jbig2"));
+            Console.WriteLine("PASS JBIG2: 98 authored pixel references match all packed page bytes.");
             await Jpeg2000ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg2000"));
             Console.WriteLine("PASS JPEG 2000: 70 independent component references, including native precision and signed samples.");
             await Mp3DecodeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3"));
