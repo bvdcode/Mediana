@@ -1,0 +1,14 @@
+[
+  {
+    "file": "graphics.pdf",
+    "sha256": "af4caa52dea88dfac6c75c36a7078742c36a740ab982dc733cb2452588fb3478"
+  },
+  {
+    "file": "report.pdf",
+    "sha256": "ec0253812d0255a7c20e8855556982ae030de57574f1dfbf1ac1e113779a4f14"
+  },
+  {
+    "file": "scan-globals.pdf",
+    "sha256": "92bf92ce3646cc6e80acddb7a6f379a87db72168f7ba4c19a61bb86051378e4d"
+  }
+]

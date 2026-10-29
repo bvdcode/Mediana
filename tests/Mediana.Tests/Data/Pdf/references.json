@@ -1,0 +1,20 @@
+[
+  {
+    "file": "graphics.rgba.gz",
+    "width": 267,
+    "height": 267,
+    "sha256": "3eacc9aed22e25d3c2de5daca3e3089dda3782e29081c1026341e0486f40f013"
+  },
+  {
+    "file": "report.rgba.gz",
+    "width": 534,
+    "height": 400,
+    "sha256": "a95f7b5aaac3d6eb7d35ed4932446e93012f66b6fe9153ee3de2472a2a0a9033"
+  },
+  {
+    "file": "scan.rgba.gz",
+    "width": 320,
+    "height": 120,
+    "sha256": "7f6d4845cbf23328062ef69a4a5c26136b20caecccff55f648db33bd375fba21"
+  }
+]

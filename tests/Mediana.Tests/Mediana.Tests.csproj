@@ -4,6 +4,12 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Documents.Pdf/Mediana.Documents.Pdf.csproj" />
+    <Compile Include="../Shared/PdfStructureTestInput.cs" Link="PdfStructureTestInput.cs" />
+    <Compile Include="../Shared/PdfPixelReference.cs" Link="PdfPixelReference.cs" />
+    <Compile Include="../Shared/PdfTestDocument.cs" Link="PdfTestDocument.cs" />
+    <Compile Include="../Shared/PdfReferenceTestInput.cs" Link="PdfReferenceTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Pdf/*" Link="Data/Pdf/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageFrameTestInput.cs" Link="ImageFrameTestInput.cs" />
     <Compile Include="../Shared/TgsReferenceTestInput.cs" Link="TgsReferenceTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Tgs/Mediana.Images.Tgs.csproj" />

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
+    <ProjectReference Include="../Mediana.Codecs.Jpeg2000/Mediana.Codecs.Jpeg2000.csproj" />
+    <ProjectReference Include="../Mediana.Codecs.Jbig2/Mediana.Codecs.Jbig2.csproj" />
+  </ItemGroup>
+</Project>
