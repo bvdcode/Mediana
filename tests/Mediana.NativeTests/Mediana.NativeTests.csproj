@@ -72,6 +72,8 @@
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-cavlc-b-*.mp4;../Mediana.Tests/Data/Mp4/avc-cavlc-b-*.sequence.yuv;../Mediana.Tests/Data/Mp4/avc-cavlc-b-*.srgb.rgba"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-cabac-b-*.mp4;../Mediana.Tests/Data/Mp4/avc-cabac-b-*.sequence.yuv;../Mediana.Tests/Data/Mp4/avc-cabac-b-*.srgb.rgba"
+          Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-cabac-8x8-*.mp4;../Mediana.Tests/Data/Mp4/avc-cabac-8x8-*.sequence.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-cavlc-8x8-weighted.frame6.srgb.rgba"

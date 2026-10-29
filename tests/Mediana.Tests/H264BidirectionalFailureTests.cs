@@ -8,6 +8,9 @@ namespace Mediana.Tests
         [Theory]
         [InlineData("avc-cavlc-b-spatial.mp4")]
         [InlineData("avc-cavlc-b-temporal.mp4")]
+        [InlineData("avc-cabac-b-0.mp4")]
+        [InlineData("avc-cabac-b-1.mp4")]
+        [InlineData("avc-cabac-b-2.mp4")]
         public async Task DamagedOrTruncatedBPayloadAndCancellationReleaseOnlyTheNewPicture(string file)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);

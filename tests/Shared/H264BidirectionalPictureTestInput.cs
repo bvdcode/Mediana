@@ -79,6 +79,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(2 * 1024 * 1024);
             int bPictures = 0;
             int temporalPictures = 0;
+            int transformedBBlocks = 0;
             int gopStart = 0;
             using (H264ReferenceBuffer references = new())
             {
@@ -115,6 +116,13 @@ namespace Mediana.Tests
                     bool stored = false;
                     try
                     {
+                        if (header.Kind == H264SliceKind.B)
+                        {
+                            foreach (byte transform in picture.Transforms8x8)
+                            {
+                                transformedBBlocks += transform;
+                            }
+                        }
                         int presentation = gopStart + order.Current.Value / 2;
                         H264TestInput.VerifyPicture(picture, expected.AsSpan(presentation * fixture.PictureBytes, fixture.PictureBytes), index);
                         references.Store(picture, header, order.Current);
@@ -130,7 +138,8 @@ namespace Mediana.Tests
                 }
             }
             if (bPictures != fixture.BPictureCount || temporalPictures != fixture.TemporalPictureCount
-                || expected.Length != fixture.PictureCount * fixture.PictureBytes || allocator.AllocatedBytes != 0)
+                || expected.Length != fixture.PictureCount * fixture.PictureBytes || allocator.AllocatedBytes != 0
+                || (fixture.RequireTransform8x8 && transformedBBlocks == 0))
             {
                 throw new InvalidDataException("The B sequence has an unexpected picture count or retained storage.");
             }

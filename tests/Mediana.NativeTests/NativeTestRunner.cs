@@ -22,20 +22,17 @@ namespace Mediana.NativeTests
             await H264BidirectionalTestInput.VerifyReferenceListsAsync(root);
             H264BidirectionalTestInput.VerifyMotion();
             H264BidirectionalDeblockingTestInput.Verify();
-            foreach (string name in new[] { "avc-cavlc-b-spatial", "avc-cavlc-b-temporal", "avc-aac", "avc-segments" })
+            foreach (string name in new[] { "avc-cavlc-b-spatial", "avc-cavlc-b-temporal", "avc-aac", "avc-segments",
+                "avc-cabac-b-0", "avc-cabac-b-1", "avc-cabac-b-2" })
             {
                 await H264BidirectionalPictureTestInput.VerifyPicturesAsync(root, name);
-            }
-            foreach (string name in new[] { "avc-aac", "avc-segments" })
-            {
                 await H264BidirectionalPictureTestInput.VerifySessionAsync(root, name);
             }
-            Console.WriteLine("PASS H.264 CABAC B: 44 independent YUV pictures, public display order, timing and released storage match.");
-            foreach (string name in new[] { "avc-cavlc-b-spatial", "avc-cavlc-b-temporal" })
+            foreach (string name in new[] { "avc-cavlc-b-spatial", "avc-cavlc-b-temporal", "avc-cabac-b-0", "avc-cabac-b-1", "avc-cabac-b-2" })
             {
-                await H264BidirectionalPictureTestInput.VerifySessionAsync(root, name);
                 await H264BidirectionalPictureTestInput.VerifyPreviewAsync(root, name);
             }
+            Console.WriteLine("PASS H.264 CABAC B: 98 independent YUV pictures, all initializations, 8x8 transforms, direct modes, public timing and selected PNG previews match.");
             Console.WriteLine("PASS H.264 CAVLC B: 36 independent YUV pictures, spatial/temporal direct, display order, selected B previews and decoded PNG samples match.");
             H264BiPredictionTestInput.Verify();
             H264BidirectionalPredictionTestInput.Verify();
