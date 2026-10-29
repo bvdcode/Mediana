@@ -2,6 +2,8 @@ namespace Mediana.Sample
 {
     internal static class SampleOutputFile
     {
+        private const int BufferBytes = 64 * 1024;
+
         public static async Task WriteAsync(string outputPath, Func<Stream, Task> write)
         {
             string destination = Path.GetFullPath(outputPath);
@@ -9,7 +11,7 @@ namespace Mediana.Sample
             try
             {
                 await using (FileStream stream = new(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None,
-                    bufferSize: 4096, FileOptions.Asynchronous))
+                    bufferSize: BufferBytes, FileOptions.Asynchronous))
                 {
                     await write(stream);
                 }
