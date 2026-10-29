@@ -1,0 +1,112 @@
+using Mediana.Codecs.Aac;
+
+namespace Mediana.Tests
+{
+    public class AacEntropyTests
+    {
+        [Fact]
+        public void BitsCrossBytesWithoutLosingTheFollowingField()
+        {
+            AacBitReader bits = new([0xab, 0xcd, 0xef, 0x12]);
+            Assert.Equal(10, bits.Read(4));
+            Assert.Equal(0xbcdef, bits.Read(20));
+            Assert.Equal(0x12, bits.Read(8));
+            Assert.Equal(0, bits.Remaining);
+        }
+
+        [Theory]
+        [InlineData("0", 0)]
+        [InlineData("100", -1)]
+        [InlineData("1010", 1)]
+        [InlineData("111111111111101000", -60)]
+        [InlineData("1111111111111110011", 60)]
+        public void ScaleFactorCodewordsIncludeBothExtremes(string codeword, int expected)
+        {
+            AacBitReader bits = new(Bytes(codeword + "10101"));
+            Assert.Equal(expected, AacHuffman.ReadScaleFactor(ref bits));
+            Assert.Equal(21, bits.Read(5));
+        }
+
+        [Theory]
+        [InlineData(1, "11111111000", new[] { -1, -1, -1, -1 })]
+        [InlineData(1, "0", new[] { 0, 0, 0, 0 })]
+        [InlineData(1, "11111110100", new[] { 1, 1, 1, 1 })]
+        [InlineData(3, "1111111111110101010", new[] { -2, 2, -2, 2 })]
+        [InlineData(5, "1111111111111", new[] { -4, -4 })]
+        [InlineData(5, "1111111111110", new[] { 4, 4 })]
+        [InlineData(7, "11111111111110", new[] { -7, 7 })]
+        [InlineData(9, "11111111111111101", new[] { 12, -12 })]
+        [InlineData(11, "0010010100000100000", new[] { -33, 16 })]
+        public void SpectralTuplesReadSignsBeforeEscapeMagnitudes(int codebook, string codeword, int[] expected)
+        {
+            AacBitReader bits = new(Bytes(codeword + "10101"));
+            Span<int> tuple = stackalloc int[4];
+            int count = AacHuffman.ReadSpectrum(ref bits, codebook, tuple);
+            Assert.Equal(expected, tuple[..count].ToArray());
+            Assert.Equal(21, bits.Read(5));
+        }
+
+        [Fact]
+        public void AllNormativeCodebooksAreCompleteAndPrefixFree()
+        {
+            int[] counts = [121, 81, 81, 81, 81, 81, 81, 64, 64, 169, 169, 289];
+            for (int codebook = 0; codebook < counts.Length; codebook++)
+            {
+                HashSet<int> leaves = [];
+                Walk(AacHuffmanTables.Get(codebook), 0, 0, leaves);
+                Assert.Equal(Enumerable.Range(0, counts[codebook]), leaves.Order());
+            }
+        }
+
+        [Fact]
+        public void TruncatedCodewordsAndOverlongEscapesAreRejected()
+        {
+            Assert.Throws<InvalidDataException>(ReadTruncatedScaleFactor);
+            Assert.Throws<InvalidDataException>(() => ReadEscape("0010000111111111"));
+            Assert.Throws<InvalidDataException>(() => ReadEscape("001000010"));
+        }
+
+        private static void Walk(ReadOnlySpan<short> tree, int node, int depth, HashSet<int> leaves)
+        {
+            Assert.InRange(depth, 0, 18);
+            for (int branch = 0; branch < 2; branch++)
+            {
+                int child = tree[node * 2 + branch];
+                if (child < 0)
+                {
+                    Assert.True(leaves.Add(-child - 1));
+                }
+                else
+                {
+                    Assert.InRange(child, 1, tree.Length / 2 - 1);
+                    Walk(tree, child, depth + 1, leaves);
+                }
+            }
+        }
+
+        private static void ReadTruncatedScaleFactor()
+        {
+            AacBitReader bits = new([0xff]);
+            AacHuffman.ReadScaleFactor(ref bits);
+        }
+
+        private static void ReadEscape(string codeword)
+        {
+            AacBitReader bits = new(Bytes(codeword));
+            AacHuffman.ReadSpectrum(ref bits, 11, stackalloc int[4]);
+        }
+
+        private static byte[] Bytes(string codeword)
+        {
+            byte[] data = new byte[(codeword.Length + 7) / 8];
+            for (int index = 0; index < codeword.Length; index++)
+            {
+                if (codeword[index] == '1')
+                {
+                    data[index / 8] |= (byte)(1 << (7 - index % 8));
+                }
+            }
+            return data;
+        }
+    }
+}
