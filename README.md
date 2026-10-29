@@ -27,11 +27,11 @@ The WAVE and PCM source modules read integer/float audio through public audio se
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoder factory, picture ordering and cropped YUV output; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
-| `Mediana.Processing` | Scalar SDR conversion to sRGB, RGBA32 resizing and square-pixel preview fitting |
+| `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and streaming RMS/peak |
 | `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
 | `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
-| `Mediana.Sample` | MP4/MOV packet inspection, PNG previews, WAVE PCM export and generated-frame checks |
+| `Mediana.Sample` | MP4/MOV packet inspection, PNG previews, WAVE PCM export/resampling and generated-frame checks |
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
@@ -72,6 +72,7 @@ dotnet format Mediana.slnx --verify-no-changes --no-restore
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Wave/s24-surround.wav artifacts/surround.pcm 0
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --resample-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/mono-400.s16le 0 400 0.5,0.5
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview.png 0 250 100 100
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-rotated.png 0 0 100 100
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-intra.mp4 artifacts/preview-cabac.png 0 450 100 100
@@ -192,12 +193,61 @@ Channel masks preserve the declared speaker order; unassigned channels remain di
 
 Metadata chunks are skipped within byte/chunk limits. Trailing chunks and padding
 are checked when the stream is drained. RF64, RIFX, compressed WAVE, nested audio
-lists, tag/artwork extraction, downmixing and resampling are unsupported.
+lists and tag/artwork extraction are unsupported.
 The `--decode-audio` sample takes input, a new raw PCM output path and stream index;
 it reports the sample format, rate and channels needed to interpret its output.
 It does not write a WAVE header. The output directory must exist, and existing
 files are not replaced. See the [WAVE fixtures](tests/Mediana.Tests/Data/Wave/README.md)
 for independent references and format definitions.
+
+## Processing PCM
+
+The `Mediana.Processing.Audio` namespace provides independent processing steps.
+`AudioChannelMixer` takes an explicit output-by-input coefficient matrix and channel
+labels. It preserves finite headroom in interleaved float64 output, without implicit
+speaker mapping, gain normalization or clipping. `AudioSampleConverter` changes
+native-endian sample representation and planar/interleaved storage. Integer output
+saturates and rounds to nearest even without dithering; processing rejects NaN,
+infinity and values that exceed finite target float storage. Both operations borrow
+the input frame and return an independently owned frame with preserved timing.
+
+`AudioLevelAccumulator` emits fixed-size mono RMS/peak windows with sample counts,
+PTS and duration. Windows span input frame boundaries; `Complete` emits the final
+partial window. A scaled energy sum supports finite floating-point headroom without
+squaring overflow or underflow. Frames are borrowed, samples are not retained, and
+levels are passed by value to a synchronous callback. Emitted windows are a prefix
+if processing or the callback fails. Display normalization, tapering and waveform
+rendering belong to the application.
+
+`AudioResampler` pulls owned frames from an asynchronous callback and returns
+interleaved float64. It uses a Blackman-windowed sinc low-pass filter before rate
+conversion, a polyphase coefficient bank, bounded sample history and exact rational
+positions. Cutoff, filter support, output block size and coefficient-byte limits are
+configurable. The caller supplies an allocation budget. The input format and PTS
+must remain continuous; unknown timestamps remain unknown. Filter lookahead delays
+availability, while output timestamps retain the original timeline. Input outside
+the recording is zero; output contains `ceil(input samples * output rate / input rate)`
+samples. Equal rates preserve the samples without filtering.
+The rate-conversion basis is described in
+[Windowed Sinc Interpolation](https://www.dsprelated.com/freebooks/pasp/Windowed_Sinc_Interpolation.html).
+
+The resampler owns frames returned by the callback and releases its history on drain,
+failure or disposal. It borrows the callback's source; returned output frames survive
+resampler disposal. Concurrent operations, discontinuities and unsupported exact
+clock/filter dimensions fail explicitly. Managed and Linux Native AOT checks cover
+tone amplitude, independent channels, exact counts/timestamps and output ownership;
+managed checks also cover stop-band rejection, packet boundary invariance, early
+disposal, cancellation, resource limits and invalid input.
+
+The `--resample-audio` sample takes input, a new output path, stream index, target
+sample rate and comma-separated gains in source-channel order. It mixes to mono,
+resamples and streams signed 16-bit little-endian PCM with no header. For stereo,
+`0.5,0.5` selects an average; multichannel gains must be supplied explicitly. This
+provides the PCM shape needed for a 400 Hz waveform. The complete mono mix →
+resample → PCM16 → RMS path is checked on a real WAVE input and analytic tone energy
+in managed and Linux Native AOT execution. Cover art, compressed audio and Cotton
+integration remain open. The filter's finite-recording boundary policy and waveform
+window placement require comparison with the application's existing output.
 
 ## Reading MP4/MOV
 
@@ -692,8 +742,9 @@ their media storage to participate in its accounting.
   Resize currently accepts the predefined RGBA32 layout only and preserves color
   metadata without performing color conversion.
 - Audio storage supports explicit channel order, native-endian PCM samples,
-  planar/interleaved layouts and exact sample-count duration. Audio decoding,
-  resampling, delay/padding correction and playback are not implemented.
+  planar/interleaved layouts and exact sample-count duration. WAVE PCM decoding,
+  explicit channel matrices, storage conversion and streaming sinc resampling are
+  available. Compressed audio, delay/padding correction and playback remain open.
 - A codec can accept several packets before output, or produce several frames
   from one packet. Completing input drains delayed output; resetting discards it.
   Input is borrowed for a call, retained input needs a separate lease, and output
@@ -723,19 +774,22 @@ The Native AOT sample has been built and executed locally on Linux x64.
 The workflow defines build, formatting, tests and native publication/execution on
 Linux, Windows and macOS. Other platform results depend on those CI runs.
 The native sample covers the generated-frame pipeline, reading all packets from
-the two original MP4/MOV fixtures and an MP4-to-PNG preview. The separate native tests
+the two original MP4/MOV fixtures, an MP4-to-PNG preview, WAVE PCM export and resampling.
+The separate native tests
 also verify internal and public decoding of 85 CAVLC reference pictures and
-six CABAC intra pictures and 96 additional CABAC I/P pictures, SDR conversion and decoded PNG pixels. Each future
+six CABAC intra pictures, 96 additional CABAC I/P pictures and 98 CABAC I/P/B pictures,
+SDR conversion, decoded PNG pixels, complete WAVE references and audio resampling. Each future
 format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking,
 movie-to-stream timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
-broader color conversion, audio processing, video/audio encoding, other muxers, scheduling,
+broader color conversion, compressed audio, cover art, waveform integration, video/audio encoding, other muxers, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
 
-Production format scope and performance targets remain open. No throughput or
-quality comparison against another media implementation has been established.
+Production format scope and performance targets remain open. Measurements and
+independent comparisons cover selected inputs and do not establish general
+performance or quality parity across media formats.
 
 ## Packages
 
@@ -746,7 +800,7 @@ dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE
 The library projects depend at runtime only on .NET and other Mediana projects.
 Build analyzers and test tools are development dependencies.
 Packages contain an experimental foundation and the limited MP4/MOV reader described
-above. The experimental H.264 and PNG source modules are not packaged. APIs may change before 1.0.
+above. The experimental H.264, PNG, WAVE and PCM source modules are not packaged. APIs may change before 1.0.
 
 | Package | Responsibility |
 | --- | --- |
