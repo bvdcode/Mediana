@@ -86,3 +86,35 @@ does not change the container reader's CRC policy or establish MP3 PCM decoding.
 The fixed field syntax follows ISO/IEC 11172-3 and ISO/IEC 13818-3; CRC coverage
 and polynomial are also checked against the LAME encoder. MPEG-2.5 uses the
 low-rate side-info layout. No external encoder or decoder runs during tests.
+
+## Scalefactor and Huffman references
+
+The syntax manifest also verifies every decoded scalefactor in all 846 frames.
+For each granule/channel the scalefactor hash contains the consumed bit count as
+little-endian int32, 39 byte values in transmission order, and 39 intensity-limit
+bytes. Untransmitted trailing values are zero. MPEG-1 values preserve only the
+selected previous-granule groups; low-rate values use the four prescribed
+partitions. Limit 255 means no illegal intensity-position code is assigned;
+zero-width low-rate partitions represent the legal intensity position zero.
+Independent bit-string extraction supplies these hashes and consumed-bit totals.
+
+`huffman-codes.tsv` contains the numeric codeword assignments from MPEG-1
+Table 3-B.7, available in the [specification archive](http://www.mp3-tech.org/programmer/docs/iso11172-3.zip),
+`ANNEX_AB.DOC`. Pair tuples pack x in the upper nibble and y in the lower nibble;
+quadruple tables A/B use identifiers 32/33 and four one-bit magnitudes.
+The code lengths exclude signs and escape extensions. The 1410 words have
+complete, prefix-free trees and cover every tuple of their 17 independent tables.
+Every code and length was separately cross-checked against the
+[LAME numeric tables](https://github.com/lameproject/lame/blob/master/libmp3lame/tables.c).
+
+Managed and Native AOT tests check all codewords, every bit alignment, all sign
+combinations, both families of shared escape tables with each linbits width,
+extension values zero/middle/maximum, exact end-of-data and a following sentinel
+field. Table zero consumes no bits. Truncated pairs throw; incomplete final
+count1 quadruples leave the cursor/output unchanged for the spectral reader to
+treat as stuffing. Pair escape ordering is x extension, x sign, y extension,
+y sign, with an unsigned extension added to magnitude 15.
+
+These checks establish the entropy-decoding components. Reconstruction of the
+complete MP3 spectrum, stereo processing, filterbank synthesis and PCM comparison
+remain separate requirements; there is still no public MP3 PCM decoder.
