@@ -1,5 +1,7 @@
 using Mediana.Codecs;
 using Mediana.Containers;
+using Mediana.Core.Audio;
+using Mediana.Core.Video;
 
 namespace Mediana
 {
@@ -8,6 +10,7 @@ namespace Mediana
     {
         private readonly List<IContainerReaderFactory> containers = [];
         private readonly List<IVideoDecoderFactory> decoders = [];
+        private readonly List<IAudioDecoderFactory> audioDecoders = [];
 
         public MediaEngineBuilder AddContainer(IContainerReaderFactory factory)
         {
@@ -24,17 +27,30 @@ namespace Mediana
 
         public MediaEngineBuilder AddVideoDecoder(IVideoDecoderFactory factory)
         {
-            ArgumentNullException.ThrowIfNull(factory);
-            ArgumentException.ThrowIfNullOrWhiteSpace(factory.ImplementationId);
-            ArgumentException.ThrowIfNullOrWhiteSpace(factory.CodecId);
-            if (decoders.Any(item => item.ImplementationId == factory.ImplementationId))
-            {
-                throw new ArgumentException($"Decoder implementation '{factory.ImplementationId}' is already registered.", nameof(factory));
-            }
+            ValidateDecoder<VideoFrame>(factory, decoders);
             decoders.Add(factory);
             return this;
         }
 
-        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray());
+        public MediaEngineBuilder AddAudioDecoder(IAudioDecoderFactory factory)
+        {
+            ValidateDecoder<AudioFrame>(factory, audioDecoders);
+            audioDecoders.Add(factory);
+            return this;
+        }
+
+        private static void ValidateDecoder<TFrame>(IDecoderFactory<TFrame> factory, IEnumerable<IDecoderFactory<TFrame>> existing)
+            where TFrame : class, IDisposable
+        {
+            ArgumentNullException.ThrowIfNull(factory);
+            ArgumentException.ThrowIfNullOrWhiteSpace(factory.ImplementationId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(factory.CodecId);
+            if (existing.Any(item => item.ImplementationId == factory.ImplementationId))
+            {
+                throw new ArgumentException($"Decoder implementation '{factory.ImplementationId}' is already registered.", nameof(factory));
+            }
+        }
+
+        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray());
     }
 }

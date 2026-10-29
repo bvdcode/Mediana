@@ -3,6 +3,7 @@ using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
+using Mediana.Core.Audio;
 using Mediana.Execution;
 using Mediana.IO;
 
@@ -13,23 +14,38 @@ namespace Mediana
     {
         private readonly IContainerReaderFactory[] containers;
         private readonly IVideoDecoderFactory[] decoders;
+        private readonly IAudioDecoderFactory[] audioDecoders;
 
-        internal MediaEngine(IContainerReaderFactory[] containers, IVideoDecoderFactory[] decoders)
+        internal MediaEngine(IContainerReaderFactory[] containers, IVideoDecoderFactory[] decoders, IAudioDecoderFactory[] audioDecoders)
         {
             this.containers = containers;
             this.decoders = decoders;
+            this.audioDecoders = audioDecoders;
+            AudioDecoderImplementations = Array.AsReadOnly(audioDecoders.Select(item => item.ImplementationId).ToArray());
             ContainerImplementations = Array.AsReadOnly(containers.Select(item => item.ImplementationId).ToArray());
             VideoDecoderImplementations = Array.AsReadOnly(decoders.Select(item => item.ImplementationId).ToArray());
         }
 
         public IReadOnlyList<string> ContainerImplementations { get; }
         public IReadOnlyList<string> VideoDecoderImplementations { get; }
+        public IReadOnlyList<string> AudioDecoderImplementations { get; }
 
         /// <summary>Opens the explicitly selected stream. Borrows the byte source until the returned session is disposed.
         /// Sequential sources are consumed even on failure. Random access sources open at their origin
         /// without changing the caller's sequential position. No temporary file is used.</summary>
         public async ValueTask<VideoSession> OpenVideoAsync(IByteSource source, int streamIndex,
-            MediaOpenOptions? options = null, CancellationToken cancellationToken = default)
+            MediaOpenOptions? options = null, CancellationToken cancellationToken = default) =>
+            new(await OpenCoreAsync(source, streamIndex, MediaKind.Video, decoders, options, cancellationToken).ConfigureAwait(false));
+
+        /// <summary>Opens the selected audio stream. Borrows the source; frames belong to the caller.
+        /// Sequential sources are consumed on failure. Random access opening preserves the caller's cursor.</summary>
+        public async ValueTask<AudioSession> OpenAudioAsync(IByteSource source, int streamIndex,
+            MediaOpenOptions? options = null, CancellationToken cancellationToken = default) =>
+            new(await OpenCoreAsync(source, streamIndex, MediaKind.Audio, audioDecoders, options, cancellationToken).ConfigureAwait(false));
+
+        private async ValueTask<MediaDecodeSession<TFrame>> OpenCoreAsync<TFrame>(IByteSource source, int streamIndex,
+            MediaKind kind, IReadOnlyList<IDecoderFactory<TFrame>> factories, MediaOpenOptions? options, CancellationToken cancellationToken)
+            where TFrame : class, IDisposable
         {
             ArgumentNullException.ThrowIfNull(source);
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
@@ -70,8 +86,8 @@ namespace Mediana
                 ? new RandomAccessCursorByteSource(randomAccess, leaveOpen: true)
                 : new PrefixByteSource(source, prefix, read, leaveOpen: true);
             IContainerReader? reader = null;
-            IMediaCodec<MediaPacket, VideoFrame>? decoder = null;
-            VideoDecodePipeline? pipeline = null;
+            IMediaCodec<MediaPacket, TFrame>? decoder = null;
+            MediaDecodePipeline<TFrame>? pipeline = null;
             bool transferred = false;
             try
             {
@@ -79,13 +95,13 @@ namespace Mediana
                 cancellationToken.ThrowIfCancellationRequested();
                 EncodedStreamInfo stream = reader.Streams.SingleOrDefault(item => item.StreamIndex == streamIndex)
                     ?? throw new ArgumentException("The requested stream does not exist.", nameof(streamIndex));
-                if (stream.Kind != MediaKind.Video)
+                if (stream.Kind != kind)
                 {
-                    throw new NotSupportedException("The requested stream is not video.");
+                    throw new NotSupportedException("The requested stream has a different media kind.");
                 }
-                decoder = SelectDecoder(stream).Create(stream, allocator);
-                pipeline = new VideoDecodePipeline(reader, decoder, streamIndex, options.MaxPacketReads);
-                VideoSession session = new(reader, replay, pipeline, allocator, options.MaxFrameReads, stream);
+                decoder = SelectDecoder(stream, factories).Create(stream, allocator);
+                pipeline = new MediaDecodePipeline<TFrame>(reader, decoder, streamIndex, options.MaxPacketReads);
+                MediaDecodeSession<TFrame> session = new(reader, replay, pipeline, allocator, options.MaxFrameReads, stream);
                 cancellationToken.ThrowIfCancellationRequested();
                 transferred = true;
                 return session;
@@ -140,11 +156,12 @@ namespace Mediana
             return selected ?? throw new NotSupportedException("No registered container reader recognizes the input.");
         }
 
-        private IVideoDecoderFactory SelectDecoder(EncodedStreamInfo stream)
+        private static IDecoderFactory<TFrame> SelectDecoder<TFrame>(EncodedStreamInfo stream, IReadOnlyList<IDecoderFactory<TFrame>> factories)
+            where TFrame : class, IDisposable
         {
-            IVideoDecoderFactory? selected = null;
+            IDecoderFactory<TFrame>? selected = null;
             List<string> reasons = [];
-            foreach (IVideoDecoderFactory factory in decoders)
+            foreach (IDecoderFactory<TFrame> factory in factories)
             {
                 if (factory.CodecId != stream.CodecId)
                 {
@@ -158,7 +175,7 @@ namespace Mediana
                 }
                 if (selected is not null)
                 {
-                    throw new NotSupportedException("Multiple video decoders match; register a single implementation for this configuration.");
+                    throw new NotSupportedException("Multiple decoders match; register a single implementation for this configuration.");
                 }
                 selected = factory;
             }
