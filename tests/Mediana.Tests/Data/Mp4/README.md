@@ -32,8 +32,11 @@ one of the corresponding source's 36 YUV pictures, including B-picture reorder.
 The B headers at video packet indices 2 and 3 are checked against FFmpeg 6.1.1
 `trace_headers`, including both active reference counts, picture order, direct
 prediction selection, quantizers, reference marking and CABAC alignment. The
-same checks run in Native AOT. They cover header parsing; reconstruction of this
-CABAC B sequence is still unsupported.
+same checks run in Native AOT. Complete reconstruction now also matches every
+sample in `avc-segments.sequence.yuv`, including reference B pictures. The public
+session verifies all 36 pictures, presentation order, PTS, duration and released
+storage. `avc-aac.sequence.yuv` supplies the same checks for all eight pictures
+of the fast-start input. Each packed YUV420 picture occupies 4608 bytes.
 The first five parsed headers also verify the POC sequence 0, 6, 2, 4, 8 and
 reference retention. At packet 2, L0/L1 select frame numbers 0/1. At packet 3,
 L0 selects 2, 0 and L1 selects 1. These list checks use allocated picture storage
@@ -366,8 +369,8 @@ Managed syntax checks cover every B macroblock and sub-macroblock type, ordering
 of both lists' reference indices and motion differences, and transform eligibility.
 Additional vectors check direct-reference mapping, list swaps in deblocking,
 missing references, damaged payloads, truncation and cancellation. This support
-requires one progressive 8-bit 4:2:0 CAVLC slice per picture; CABAC B reconstruction
-remains unsupported.
+requires one progressive 8-bit 4:2:0 slice per picture with default scaling.
+CABAC B reconstruction is checked separately below.
 
 | File | SHA-256 |
 | --- | --- |
@@ -386,3 +389,52 @@ ffmpeg -hide_banner -v error -nostdin -y -f lavfi -i testsrc2=size=96x64:rate=10
 ffmpeg -hide_banner -v error -nostdin -y -i "avc-cavlc-b-$MODE.mp4" -pix_fmt yuv420p -f rawvideo "avc-cavlc-b-$MODE.sequence.yuv"
 ffmpeg -hide_banner -v error -nostdin -y -threads 1 -filter_threads 1 -i "avc-cavlc-b-$MODE.mp4" -vf "select=eq(n\,2),zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -fps_mode passthrough -f rawvideo "avc-cavlc-b-$MODE.frame2.srgb.rgba"
 ```
+
+
+## CABAC B reconstruction and previews
+
+`avc-cabac-b-0.mp4`, `avc-cabac-b-1.mp4` and `avc-cabac-b-2.mp4` contain
+18 High-profile pictures each at 96x64 and 10 fps. They select `cabac_init_idc`
+0, 1 and 2 respectively, retain four reference pictures and use implicit B
+weighting, default scaling and limited BT.709 color. Each has two closed GOPs
+and 11 B pictures. Initialization 0 uses spatial direct throughout; initializations
+1 and 2 each contain seven temporal-direct and four spatial-direct B pictures,
+as independently confirmed by `trace_headers`.
+
+All 54 full filtered YUV pictures match the independent reference internally and
+through public sessions. Each sequence exercises actual B-picture 8x8 transforms.
+Every public PTS and duration, output ordering, end of stream and allocation
+release is checked. A 150 ms request selects the B picture at 200 ms; its 64x43
+square-pixel sRGB PNG matches selected independent RGBA samples within one code.
+These checks also pass in Linux Native AOT. Together with `avc-aac.mp4` and
+`avc-segments.mp4`, CABAC B reconstruction covers 98 complete reference pictures.
+Damaged/truncated B payloads and cancellation preserve previous references and
+release the new picture and worker storage in managed checks.
+
+Use initialization `IDC` 0, 1 or 2. Set `MODE` to `spatial` for 0 and `temporal`
+for 1 and 2:
+
+```sh
+IDC=0
+MODE=spatial
+ffmpeg -hide_banner -v error -nostdin -y -f lavfi -i testsrc2=size=96x64:rate=10:duration=1.8 -map_metadata -1 -c:v libx264 -profile:v high -coder:v ac -pix_fmt yuv420p -g 12 -keyint_min 12 -sc_threshold 0 -bf 3 -refs 4 -qp 25 -x264-params "8x8dct=1:direct=$MODE:weightb=1:b-adapt=0:open-gop=0:cabac-idc=$IDC" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an -movflags +faststart "avc-cabac-b-$IDC.mp4"
+ffmpeg -hide_banner -v error -nostdin -y -i "avc-cabac-b-$IDC.mp4" -pix_fmt yuv420p -f rawvideo "avc-cabac-b-$IDC.sequence.yuv"
+ffmpeg -hide_banner -v error -nostdin -y -threads 1 -filter_threads 1 -i "avc-cabac-b-$IDC.mp4" -vf "select=eq(n\,2),zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -fps_mode passthrough -f rawvideo "avc-cabac-b-$IDC.frame2.srgb.rgba"
+```
+
+The original 64x48 references use the same raw-video command with `avc-aac` or
+`avc-segments` as the input/output stem.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-aac.sequence.yuv` | `697ab8038faa82a1f8144ef27e5ccaaf3b258c9a4d42ac483581bf70c27c5a7a` |
+| `avc-segments.sequence.yuv` | `e3980ab6f6fbbd680537e00d31a6960d2fe84d8f73efa8d508257d16883f59dc` |
+| `avc-cabac-b-0.frame2.srgb.rgba` | `b8f20a08a06e6cfaa968d177a363676457c268bc6ab56c635a89867d7178877d` |
+| `avc-cabac-b-0.mp4` | `487c29338414ec146fc24746c39fa1faadf8e2f0e218738a5a66d0bb1219d273` |
+| `avc-cabac-b-0.sequence.yuv` | `cdb95d03a4a524c87cef672770bb792a0d1c2fdbbf6c9c4ac9b7cd5eeb70aeec` |
+| `avc-cabac-b-1.frame2.srgb.rgba` | `f38fac8533cab782440235315f7e4de35dc8342066268056595f813a4ce64985` |
+| `avc-cabac-b-1.mp4` | `057415ef250fd4b660ef6d8bd7c96a5e1eb4be60fef6a810d17efd93eb33f58f` |
+| `avc-cabac-b-1.sequence.yuv` | `f48f1773fa16d0fe77839c9dc377acf373e0258612d9ff52fd09f59657c1ac18` |
+| `avc-cabac-b-2.frame2.srgb.rgba` | `e030e3de28d4c2aa934e385c6abb0885eff8847bef106df6c0456d9ecef637bc` |
+| `avc-cabac-b-2.mp4` | `d89c204a8ad679e4bfb4c37de0042b14a0ee945b59abd3501465439153f288d8` |
+| `avc-cabac-b-2.sequence.yuv` | `cfe3662e41ab74a4692bc0d675fa66d99c685206524d4bb97a8ab24ddb030d63` |

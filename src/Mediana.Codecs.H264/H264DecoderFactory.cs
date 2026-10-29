@@ -5,8 +5,8 @@ using Mediana.Core.Video;
 namespace Mediana.Codecs.H264
 {
     /// <summary>Decodes AVC length-prefixed packets containing a complete single-slice picture.
-    /// Supports progressive 8-bit YUV 4:2:0 CAVLC I/P/B and CABAC I/P pictures with default scaling.
-    /// Both entropy modes support 4x4 and 8x8 transforms. CABAC B pictures are not supported.</summary>
+    /// Supports progressive 8-bit YUV 4:2:0 CAVLC and CABAC I/P/B pictures with default scaling.
+    /// Both entropy modes support 4x4 and 8x8 transforms.</summary>
     public class H264DecoderFactory : IVideoDecoderFactory
     {
         private readonly H264DecoderOptions options;

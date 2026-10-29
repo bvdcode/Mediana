@@ -21,6 +21,16 @@ definition as the I-slice reference.
 
 SHA-256: `6e2bfd1bb2cdd4117e36f6b699fa85eb930a200c087dc092dc74c4bd042bb9fa`.
 
+`cabac-bidirectional-contexts.bin` contains B-specific contexts 24–39 from
+table 9-14. The outer order is `cabac_init_idc` 0, 1, 2, then SliceQPY 0–51,
+then ascending context index: 2496 bytes, calculated and packed independently
+with the same floor division and clipping. B slices share contexts 40–275 and
+399–435 with the corresponding P initialization selection. Exact interval checks
+cover all 49 B macroblock types, 13 sub-macroblock types, skip contexts and
+independent reference-index/motion-difference state for both lists.
+
+SHA-256: `09abac329297c5c371e9828403d284797477fabec58df65ecda8ea693740a086`.
+
 Source: [ITU-T H.264 V15 (08/2024)](https://www.itu.int/rec/T-REC-H.264-202408-S/en).
 These are arithmetic initialization references; they do not prove complete
 CABAC picture reconstruction.
@@ -37,10 +47,11 @@ Partition checks exercise single-list and bidirectional prediction with all thre
 weight modes. Linear sample ramps verify fractional luma and chroma interpolation;
 rectangle checks cover 16x16, 16x8, 8x16, 8x8, 8x4, 4x8 and 4x4 placement.
 I/P storage retains its existing byte budget; B storage adds the second motion list.
-The component vectors are supplemented by complete CAVLC B reconstruction checks
+The component vectors are supplemented by complete CAVLC and CABAC B reconstruction checks
 using the MP4 fixtures described in [MP4/MOV fixtures](../Mp4/README.md).
 They include B macroblock syntax, spatial/temporal direct prediction, deblocking,
-presentation order and PNG previews. CABAC B reconstruction remains open.
+presentation order and PNG previews, including all CABAC initialization selections
+and actual B-picture 8x8 transforms.
 
 ## Intra 8x8 prediction reference
 
