@@ -118,6 +118,8 @@ namespace Mediana.Codecs.Aac
         private static void ReadSpectrum(ref AacBitReader bits, AacChannelState channel, CancellationToken cancellationToken)
         {
             AacWindowInfo info = channel.Info;
+            Span<int> quantized = channel.Quantized;
+            ReadOnlySpan<byte> books = channel.Books;
             Span<int> tuple = stackalloc int[4];
             int firstWindow = 0;
             for (int group = 0; group < info.Groups.Length; group++)
@@ -125,7 +127,7 @@ namespace Mediana.Codecs.Aac
                 for (int band = 0; band < info.MaxBands; band++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    int codebook = channel.Books[group * 64 + band];
+                    int codebook = books[group * 64 + band];
                     if (codebook is 0 or 13 or 14 or 15)
                     {
                         continue;
@@ -141,7 +143,7 @@ namespace Mediana.Codecs.Aac
                             {
                                 throw new InvalidDataException("The AAC spectral tuple crosses a band boundary.");
                             }
-                            tuple[..count].CopyTo(channel.Quantized[start..]);
+                            tuple[..count].CopyTo(quantized[start..]);
                             start += count;
                         }
                     }

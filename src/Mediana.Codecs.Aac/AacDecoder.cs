@@ -87,12 +87,13 @@ namespace Mediana.Codecs.Aac
         private void Synthesize(AacChannelState channel, Span<float> output, int channelIndex, CancellationToken cancellationToken)
         {
             AacDecoderWorkspace current = workspace ?? throw new InvalidOperationException("AAC workspace is missing.");
+            Span<double> synthesized = current.Output;
             AacSynthesis.Process(channel.Spectrum, channel.Info.Sequence, channel.Info.Shape, channel.PreviousShape,
-                channel.Overlap, current.Output, current.Time, current.Fourier, cancellationToken);
+                channel.Overlap, synthesized, current.Time, current.Fourier, cancellationToken);
             channel.PreviousShape = channel.Info.Shape;
             for (int index = 0; index < 1024; index++)
             {
-                float value = (float)current.Output[index];
+                float value = (float)synthesized[index];
                 if (!float.IsFinite(value))
                 {
                     throw new InvalidDataException("AAC synthesis produced a nonfinite PCM sample.");

@@ -2,6 +2,9 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacSpectralTools
     {
+        private static readonly double[] Magnitudes = CreateMagnitudes();
+        private static readonly double[] Gains = CreateGains();
+
         public static void Reconstruct(AacChannelState left, AacChannelState? right, bool commonWindow,
             int maskMode, ReadOnlySpan<byte> mask, ref uint noiseState, CancellationToken cancellationToken)
         {
@@ -33,30 +36,54 @@ namespace Mediana.Codecs.Aac
         private static void InverseQuantize(AacChannelState channel)
         {
             AacWindowInfo info = channel.Info;
+            ReadOnlySpan<int> quantized = channel.Quantized;
+            Span<double> spectrum = channel.Spectrum;
+            ReadOnlySpan<byte> books = channel.Books;
+            ReadOnlySpan<int> scales = channel.Scales;
             int firstWindow = 0;
             for (int group = 0; group < info.Groups.Length; group++)
             {
                 for (int band = 0; band < info.MaxBands; band++)
                 {
                     int index = group * 64 + band;
-                    if (channel.Books[index] is < 1 or > 11)
+                    if (books[index] is < 1 or > 11)
                     {
                         continue;
                     }
-                    double gain = Math.Pow(2, 0.25 * (channel.Scales[index] - 100));
+                    double gain = Gains[scales[index]];
                     for (int window = 0; window < info.Groups[group]; window++)
                     {
                         int start = (firstWindow + window) * info.WindowSize + info.Bands[band];
                         int end = (firstWindow + window) * info.WindowSize + info.Bands[band + 1];
                         for (int bin = start; bin < end; bin++)
                         {
-                            int value = channel.Quantized[bin];
-                            channel.Spectrum[bin] = Math.Sign(value) * Math.Pow(Math.Abs(value), 4.0 / 3) * gain;
+                            int value = quantized[bin];
+                            spectrum[bin] = Math.Sign(value) * Magnitudes[Math.Abs(value)] * gain;
                         }
                     }
                 }
                 firstWindow += info.Groups[group];
             }
+        }
+
+        private static double[] CreateMagnitudes()
+        {
+            double[] values = new double[8192];
+            for (int index = 0; index < values.Length; index++)
+            {
+                values[index] = Math.Pow(index, 4.0 / 3);
+            }
+            return values;
+        }
+
+        private static double[] CreateGains()
+        {
+            double[] values = new double[256];
+            for (int index = 0; index < values.Length; index++)
+            {
+                values[index] = Math.Pow(2, 0.25 * (index - 100));
+            }
+            return values;
         }
 
         private static void ApplyIndependentNoise(AacChannelState channel, ref uint noiseState)

@@ -6,6 +6,41 @@ namespace Mediana.Tests
     public class AacSpectralToolsTests
     {
         [Fact]
+        public void EveryQuantizedMagnitudeMatchesThePowerFormula()
+        {
+            MediaBufferAllocator allocator = new(65536);
+            using AacChannelState channel = Channel(allocator, 11, 100);
+            uint noise = 1;
+            for (int magnitude = 0; magnitude <= 8191; magnitude++)
+            {
+                channel.Quantized[0] = magnitude;
+                channel.Quantized[1] = -magnitude;
+                AacSpectralTools.Reconstruct(channel, null, false, 0, [], ref noise, CancellationToken.None);
+                double expected = Math.Pow(magnitude, 4.0 / 3);
+                Assert.Equal(expected, channel.Spectrum[0]);
+                Assert.Equal(-expected, channel.Spectrum[1]);
+            }
+        }
+
+        [Fact]
+        public void EverySpectralScaleMatchesTheQuarterPowerFormula()
+        {
+            MediaBufferAllocator allocator = new(65536);
+            using AacChannelState channel = Channel(allocator, 11, 0);
+            channel.Quantized[0] = 8191;
+            channel.Quantized[1] = -8;
+            uint noise = 1;
+            for (int scale = 0; scale <= 255; scale++)
+            {
+                channel.Scales[0] = scale;
+                AacSpectralTools.Reconstruct(channel, null, false, 0, [], ref noise, CancellationToken.None);
+                double gain = Math.Pow(2, 0.25 * (scale - 100));
+                Assert.Equal(Math.Pow(8191, 4.0 / 3) * gain, channel.Spectrum[0]);
+                Assert.Equal(-Math.Pow(8, 4.0 / 3) * gain, channel.Spectrum[1]);
+            }
+        }
+
+        [Fact]
         public void InverseQuantizationPreservesSignsAndQuarterPowerScales()
         {
             MediaBufferAllocator allocator = new(65536);
