@@ -1232,14 +1232,27 @@ releases.
 
 Publication requires an explicit manual workflow run from main with the publish
 input enabled. Manual runs validate without publishing by default. After all
-checks pass, a publishing run uploads the validated packages and symbols to
-NuGet.org and creates a GitHub release with the matching tag, package assets,
-the same tested native archives and checksums, and generated release notes.
+checks pass, a publishing run uploads the same validated packages to NuGet.org
+and GitHub Packages, and symbols to NuGet.org. The GitHub release is created
+after both registries succeed. Its downloads contain the tested native archives
+and checksums; NuGet packages are available from the registries.
+
+Actions generates the release notes automatically from every commit since the
+previous release, including direct commits without pull requests. The notes include
+commit links, the full comparison and links to the actual packed versions.
+No manually maintained changelog is required. Publication fails if there are no
+changes or if package versions do not match. Build checks exercise the generator
+against isolated release histories.
+
 Authentication uses [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing).
 Set the NUGET_USER repository variable to the NuGet profile username. Configure
 the matching NuGet policy for repository bvdcode/Mediana, workflow file
 publish-release.yml, environment nuget, and package patterns Mediana and Mediana.*
 with permission to push new packages and versions.
+GitHub Packages uses the workflow's `GITHUB_TOKEN` with `packages: write` and the
+feed `https://nuget.pkg.github.com/bvdcode/index.json`. Each package is linked to
+this repository through its `RepositoryUrl`. GitHub package visibility must be
+checked after the first publication; newly created packages default to private.
 
 Re-running a partially completed publication skips existing package versions and
 GitHub releases. Package IDs become assigned after successful publication.
@@ -1247,3 +1260,8 @@ GitHub releases. Package IDs become assigned after successful publication.
 ## License
 
 [MIT](LICENSE).
+
+Apply source license headers with `dotnet run --file UpdateLicense.cs -- .`.
+Validate them without editing files with
+`dotnet run --file UpdateLicense.cs -- . --check`; the build workflow runs this check.
+The updater skips generated files and build-output directories.

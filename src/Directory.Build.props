@@ -9,7 +9,7 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
     <PackageTags>media;multimedia;video;audio;managed;native-aot</PackageTags>
-    <PackageReleaseNotes>Experimental media foundation and non-fragmented MP4/MOV reading for AVC/AAC tracks. Compressed video/audio decoding and encoding are not implemented yet.</PackageReleaseNotes>
+    <PackageReleaseNotes>Changes and supported modules: https://github.com/bvdcode/Mediana/releases/tag/v$(Version)</PackageReleaseNotes>
   </PropertyGroup>
   <ItemGroup>
     <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="/" />
