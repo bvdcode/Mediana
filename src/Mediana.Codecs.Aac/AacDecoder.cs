@@ -91,6 +91,7 @@ namespace Mediana.Codecs.Aac
             AacSynthesis.Process(channel.Spectrum, channel.Info.Sequence, channel.Info.Shape, channel.PreviousShape,
                 channel.Overlap, synthesized, current.Time, current.Fourier, cancellationToken);
             channel.PreviousShape = channel.Info.Shape;
+            int channels = format.Channels.Count;
             for (int index = 0; index < 1024; index++)
             {
                 float value = (float)synthesized[index];
@@ -98,7 +99,7 @@ namespace Mediana.Codecs.Aac
                 {
                     throw new InvalidDataException("AAC synthesis produced a nonfinite PCM sample.");
                 }
-                output[index * format.Channels.Count + channelIndex] = value;
+                output[index * channels + channelIndex] = value;
             }
         }
 

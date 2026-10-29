@@ -50,30 +50,40 @@ namespace Mediana.Codecs.Aac
 
         private static void ApplyLongWindow(Span<double> time, int sequence, int shape, int previousShape)
         {
-            ReadOnlySpan<double> previous = AacWindows.Get(1024, previousShape);
-            ReadOnlySpan<double> current = AacWindows.Get(1024, shape);
-            ReadOnlySpan<double> shortPrevious = AacWindows.Get(128, previousShape);
-            ReadOnlySpan<double> shortCurrent = AacWindows.Get(128, shape);
-            for (int index = 0; index < 1024; index++)
+            switch (sequence)
             {
-                double left = sequence switch
-                {
-                    0 or 1 => previous[index],
-                    3 when index < 448 => 0,
-                    3 when index < 576 => shortPrevious[index - 448],
-                    3 => 1,
-                    _ => throw new InvalidOperationException("The long AAC window sequence is invalid.")
-                };
-                double right = sequence switch
-                {
-                    0 or 3 => current[1023 - index],
-                    1 when index < 448 => 1,
-                    1 when index < 576 => shortCurrent[575 - index],
-                    1 => 0,
-                    _ => throw new InvalidOperationException("The long AAC window sequence is invalid.")
-                };
-                time[index] *= left;
-                time[index + 1024] *= right;
+                case 0:
+                    ApplyWindow(time[..1024], AacWindows.Get(1024, previousShape));
+                    ApplyReversedWindow(time[1024..], AacWindows.Get(1024, shape));
+                    break;
+                case 1:
+                    ApplyWindow(time[..1024], AacWindows.Get(1024, previousShape));
+                    ApplyReversedWindow(time.Slice(1472, 128), AacWindows.Get(128, shape));
+                    time[1600..].Clear();
+                    break;
+                case 3:
+                    time[..448].Clear();
+                    ApplyWindow(time.Slice(448, 128), AacWindows.Get(128, previousShape));
+                    ApplyReversedWindow(time[1024..], AacWindows.Get(1024, shape));
+                    break;
+                default:
+                    throw new InvalidOperationException("The long AAC window sequence is invalid.");
+            }
+        }
+
+        private static void ApplyWindow(Span<double> time, ReadOnlySpan<double> window)
+        {
+            for (int index = 0; index < time.Length; index++)
+            {
+                time[index] *= window[index];
+            }
+        }
+
+        private static void ApplyReversedWindow(Span<double> time, ReadOnlySpan<double> window)
+        {
+            for (int index = 0; index < time.Length; index++)
+            {
+                time[index] *= window[window.Length - 1 - index];
             }
         }
     }

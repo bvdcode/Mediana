@@ -72,11 +72,23 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(1)]
-        [InlineData(2)]
-        [InlineData(3)]
-        public void WindowSwitchingAndOverlapRetainTheCompleteTail(int sequence)
+        [InlineData(0, 0, 0)]
+        [InlineData(0, 0, 1)]
+        [InlineData(0, 1, 0)]
+        [InlineData(0, 1, 1)]
+        [InlineData(1, 0, 0)]
+        [InlineData(1, 0, 1)]
+        [InlineData(1, 1, 0)]
+        [InlineData(1, 1, 1)]
+        [InlineData(2, 0, 0)]
+        [InlineData(2, 0, 1)]
+        [InlineData(2, 1, 0)]
+        [InlineData(2, 1, 1)]
+        [InlineData(3, 0, 0)]
+        [InlineData(3, 0, 1)]
+        [InlineData(3, 1, 0)]
+        [InlineData(3, 1, 1)]
+        public void WindowSwitchingAndOverlapRetainTheCompleteTail(int sequence, int shape, int previousShape)
         {
             double[] spectrum = new double[1024];
             double[] expected = new double[2048];
@@ -85,8 +97,8 @@ namespace Mediana.Tests
                 for (int window = 0; window < 8; window++)
                 {
                     spectrum[window * 128] = 128 * 32768;
-                    ReadOnlySpan<double> left = AacWindows.Get(128, window == 0 ? 0 : 1);
-                    ReadOnlySpan<double> right = AacWindows.Get(128, 1);
+                    ReadOnlySpan<double> left = AacWindows.Get(128, window == 0 ? previousShape : shape);
+                    ReadOnlySpan<double> right = AacWindows.Get(128, shape);
                     for (int index = 0; index < 128; index++)
                     {
                         expected[448 + window * 128 + index] += Math.Cos(Math.PI / 128 * (index + 64.5) * 0.5) * left[index];
@@ -99,8 +111,8 @@ namespace Mediana.Tests
                 spectrum[0] = 1024 * 32768;
                 for (int index = 0; index < 1024; index++)
                 {
-                    double left = sequence == 3 ? StopWindow(index) : AacWindows.Get(1024, 0)[index];
-                    double right = sequence == 1 ? StartWindow(index) : AacWindows.Get(1024, 1)[1023 - index];
+                    double left = sequence == 3 ? StopWindow(index, previousShape) : AacWindows.Get(1024, previousShape)[index];
+                    double right = sequence == 1 ? StartWindow(index, shape) : AacWindows.Get(1024, shape)[1023 - index];
                     expected[index] = Math.Cos(Math.PI / 1024 * (index + 512.5) * 0.5) * left;
                     expected[1024 + index] = Math.Cos(Math.PI / 1024 * (index + 1536.5) * 0.5) * right;
                 }
@@ -109,12 +121,12 @@ namespace Mediana.Tests
             double[] output = new double[1024];
             double[] time = new double[2048];
             Complex[] work = new Complex[2048];
-            AacSynthesis.Process(spectrum, sequence, 1, 0, overlap, output, time, work, CancellationToken.None);
+            AacSynthesis.Process(spectrum, sequence, shape, previousShape, overlap, output, time, work, CancellationToken.None);
             for (int index = 0; index < 1024; index++)
             {
                 Assert.InRange(Math.Abs(expected[index] - output[index]), 0, 2e-14);
             }
-            AacSynthesis.Process(new double[1024], 0, 0, 1, overlap, output, time, work, CancellationToken.None);
+            AacSynthesis.Process(new double[1024], 0, 0, shape, overlap, output, time, work, CancellationToken.None);
             for (int index = 0; index < 1024; index++)
             {
                 Assert.InRange(Math.Abs(expected[1024 + index] - output[index]), 0, 2e-14);
@@ -131,17 +143,17 @@ namespace Mediana.Tests
                 AacImdct.Transform(new double[1024], new double[2048], new Complex[2048], source.Token));
         }
 
-        private static double StopWindow(int index) => index switch
+        private static double StopWindow(int index, int shape) => index switch
         {
             < 448 => 0,
-            < 576 => AacWindows.Get(128, 0)[index - 448],
+            < 576 => AacWindows.Get(128, shape)[index - 448],
             _ => 1
         };
 
-        private static double StartWindow(int index) => index switch
+        private static double StartWindow(int index, int shape) => index switch
         {
             < 448 => 1,
-            < 576 => AacWindows.Get(128, 1)[575 - index],
+            < 576 => AacWindows.Get(128, shape)[575 - index],
             _ => 0
         };
     }
