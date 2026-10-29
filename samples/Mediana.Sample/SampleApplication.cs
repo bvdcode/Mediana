@@ -11,6 +11,14 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string[] args)
         {
+            if (args.Length == 7 && args[0] == "--waveform-audio" &&
+                int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int waveformStreamIndex) &&
+                int.TryParse(args[4], NumberStyles.None, CultureInfo.InvariantCulture, out int waveformRate) && waveformRate > 0 &&
+                int.TryParse(args[5], NumberStyles.None, CultureInfo.InvariantCulture, out int samplesPerWindow) && samplesPerWindow > 0)
+            {
+                double[] gains = args[6].Split(',').Select(value => double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture)).ToArray();
+                return await AudioWaveformSample.RunAsync(args[1], args[2], waveformStreamIndex, waveformRate, samplesPerWindow, gains);
+            }
             if (args.Length == 4 && args[0] == "--cover-mp4" &&
                 int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int coverIndex))
             {
@@ -59,7 +67,7 @@ namespace Mediana.Sample
             }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --cover-mp4 <input> <new-image-output> <cover-index> | --decode-audio <input> <new-output.pcm> <stream-index> | --resample-audio <input> <new-output.pcm> <stream-index> <sample-rate> <comma-separated-channel-gains> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds> | --hls-mp4 <input> <new-directory> <video-index> <audio-index|none> <target-milliseconds>]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --cover-mp4 <input> <new-image-output> <cover-index> | --decode-audio <input> <new-output.pcm> <stream-index> | --resample-audio <input> <new-output.pcm> <stream-index> <sample-rate> <comma-separated-channel-gains> | --waveform-audio <input> <new-output.json> <stream-index> <sample-rate> <samples-per-window> <comma-separated-channel-gains> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds> | --hls-mp4 <input> <new-directory> <video-index> <audio-index|none> <target-milliseconds>]");
                 return 2;
             }
 
