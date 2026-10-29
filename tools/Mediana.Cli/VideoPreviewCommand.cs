@@ -16,13 +16,15 @@ namespace Mediana.Cli
     {
         private const long ProcessingBufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex, long milliseconds,
+        public static async Task<int> RunAsync(string inputPath, string outputPath, int? streamIndex, long milliseconds,
             int maximumWidth, int maximumHeight, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory())
                 .AddVideoDecoder(new H264DecoderFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
-            await using VideoSession session = await engine.OpenVideoAsync(source, streamIndex, cancellationToken: cancellationToken);
+            await using VideoSession session = streamIndex is int selected
+                ? await engine.OpenVideoAsync(source, selected, cancellationToken: cancellationToken)
+                : await engine.OpenVideoAsync(source, cancellationToken: cancellationToken);
             MediaTimestamp target = new(milliseconds, new TimeBase(1, 1000));
             using VideoFrame decoded = await session.ReadFrameAtOrAfterAsync(target, cancellationToken)
                 ?? throw new InvalidDataException("There is no frame at or after the requested timestamp.");

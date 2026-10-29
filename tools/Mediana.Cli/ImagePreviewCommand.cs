@@ -31,14 +31,14 @@ namespace Mediana.Cli
             return 0;
         }
 
-        public static async Task<int> SvgAsync(string inputPath, string outputPath, int width, CancellationToken cancellationToken = default)
+        public static async Task<int> SvgAsync(string inputPath, string outputPath, int? width, CancellationToken cancellationToken = default)
         {
             SvgDocument document = await SvgReader.ReadFileAsync(inputPath, cancellationToken: cancellationToken);
             PixelBuffer image = SvgRenderer.Render(document, new SvgRenderOptions { Width = width }, cancellationToken: cancellationToken);
             return await SaveDrawingAsync(image, outputPath, cancellationToken);
         }
 
-        public static async Task<int> TgsAsync(string inputPath, string outputPath, double seconds, int width, CancellationToken cancellationToken = default)
+        public static async Task<int> TgsAsync(string inputPath, string outputPath, double seconds, int? width, CancellationToken cancellationToken = default)
         {
             TgsDocument document = await TgsReader.ReadFileAsync(inputPath, cancellationToken: cancellationToken);
             PixelBuffer image = TgsRenderer.RenderAtTime(document, seconds, new SvgRenderOptions { Width = width }, cancellationToken: cancellationToken);
