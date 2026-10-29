@@ -13,6 +13,9 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await HeifReferenceTestInput.VerifyWavefrontAsync();
+            await HeifReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
+            Console.WriteLine("PASS HEIC: 42 independent full RGBA references, transforms, grids and alpha.");
             await Jbig2ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jbig2"));
             Console.WriteLine("PASS JBIG2: 98 authored pixel references match all packed page bytes.");
             await Jpeg2000ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg2000"));

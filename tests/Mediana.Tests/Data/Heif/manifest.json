@@ -1,0 +1,516 @@
+[
+  {
+    "file": "basic-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "157E4EAFB82B4650477F94C57B0B3B30837BC024FDC64FA892FAB431618EB2E6",
+    "rgbaSha256": "3C07D5AFE2BD36B835EF06BA16B9D9D1E7036A7F318A7CA045ED87E9CE0ACAB9",
+    "maxPixels": 16777216,
+    "features": [
+      "base"
+    ]
+  },
+  {
+    "file": "basic-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "36AF4BF5C545639EA60A83C62661A424F8D070D60C604B305BE9600392FC90A8",
+    "rgbaSha256": "9B8FD5BB70885277C1699BF660B682D9585C7136CB6C4CD1AF6399F51F833C80",
+    "maxPixels": 16777216,
+    "features": [
+      "ten"
+    ]
+  },
+  {
+    "file": "monochrome.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "8839F108EF04C2064D5C289977F9F2E2B9B7F8AA931A04D18E4E1844B9A005D9",
+    "rgbaSha256": "D774147760B284DB7A5E804014D0D959AF73F01460DA2CCF3A0447A2B06E86AD",
+    "maxPixels": 16777216,
+    "features": [
+      "mono"
+    ]
+  },
+  {
+    "file": "deblocking.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "AB07BFA5B86DEE1F5F7C890CA301B0CB7A89233483AF13E55B40EE22CE9469EB",
+    "rgbaSha256": "4A7D80D701DEECD993319330163F8F893B2E71FA8664937E4411372A092DB354",
+    "maxPixels": 16777216,
+    "features": [
+      "deblock"
+    ]
+  },
+  {
+    "file": "sao.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "E22FCD4E3681D507EFBA22F927A4557BE0245A7617B74F88E446675DA7F045CC",
+    "rgbaSha256": "26D454898E999518F6AB9BEB3253DD8BB8BD2750D82283EC994E2A2AD2FCC5B3",
+    "maxPixels": 16777216,
+    "features": [
+      "sao"
+    ]
+  },
+  {
+    "file": "scaling-lists.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "89F6B8B3D0C1B579EA59F541F2C81BA86150AF53D69989EC1F4974BD9F65CF2E",
+    "rgbaSha256": "3C07D5AFE2BD36B835EF06BA16B9D9D1E7036A7F318A7CA045ED87E9CE0ACAB9",
+    "maxPixels": 16777216,
+    "features": [
+      "scaling"
+    ]
+  },
+  {
+    "file": "rotate-90.heic",
+    "width": 48,
+    "height": 64,
+    "inputSha256": "221BDFD3F608AD133550469849E476680EEF1D983A3AD5EEAD5C3DF3B9A5430D",
+    "rgbaSha256": "A6C3C726D70D6142EDDE9C53510032ED1A1D99AAB49D6C55E46FA85D908DF7D1",
+    "maxPixels": 16777216,
+    "features": [
+      "rotation"
+    ]
+  },
+  {
+    "file": "rotate-180.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "B565F657D25230524A109955FBD4E0564CD373F353AF6E433CFD12D565EFFB7F",
+    "rgbaSha256": "9D2C0A98FBDC9FFAFD680C227123FA20F9CA459FA70FAC022677D993549353B6",
+    "maxPixels": 16777216,
+    "features": [
+      "rotation"
+    ]
+  },
+  {
+    "file": "rotate-270.heic",
+    "width": 48,
+    "height": 64,
+    "inputSha256": "D78DA9B6B5FCDCC3DFD62C20D2727C28D08119B0457317F023CED01AACB794A8",
+    "rgbaSha256": "7102EA91BAC339CCC343A1854F889729FFBA948F10003DFD0F63612104DEF34F",
+    "maxPixels": 16777216,
+    "features": [
+      "rotation"
+    ]
+  },
+  {
+    "file": "mirror-0.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "389A85BE54E21F9748E2E36D4AD8C5EE6A1B613FBACBAD2C66C85D28E70920B0",
+    "rgbaSha256": "3C9287060B06CAF59DC32E34315FE2F3B978C75F5F673F68575E4ACC825C7C74",
+    "maxPixels": 16777216,
+    "features": [
+      "mirror"
+    ]
+  },
+  {
+    "file": "mirror-1.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "C2EDDA78AF71BC8F147F33FCC8E26D14E87594858D57C8FF56A22C735ECF4D05",
+    "rgbaSha256": "9D683C4F4369770ACA19EAB4E0CE0EB254CA5DE0B7CD4268897475C76FE4E9B1",
+    "maxPixels": 16777216,
+    "features": [
+      "mirror"
+    ]
+  },
+  {
+    "file": "rotate-mirror.heic",
+    "width": 48,
+    "height": 64,
+    "inputSha256": "577814652239D6BD3BAA27735E9969E22F00FE34E6C76544FF8438A9190B229C",
+    "rgbaSha256": "BCBA322475648F637AF157B0D1F4AC20DAD05019545AB983C7BCCE17F2B6ADBE",
+    "maxPixels": 16777216,
+    "features": [
+      "rotation",
+      "mirror"
+    ]
+  },
+  {
+    "file": "crop.heic",
+    "width": 40,
+    "height": 24,
+    "inputSha256": "65143644D22CB133B684E337B7114D6EFF09F18D5403BB37E847B80F84A5EFE7",
+    "rgbaSha256": "0093E32F067D392F8F33CA249C718157EA763B8CAB348CA93F52B8D66651CD87",
+    "maxPixels": 16777216,
+    "features": [
+      "clean-aperture"
+    ]
+  },
+  {
+    "file": "grid.heic",
+    "width": 100,
+    "height": 80,
+    "inputSha256": "E309B7FFDEC03DF11421D8AC238D9381E4DAB1BC1960F636F3FEE11163976CA8",
+    "rgbaSha256": "93DB5FD5A0FEA4DFAA0FDD71621024D9824B818C4E93D7694A0439C15AC66767",
+    "maxPixels": 16777216,
+    "features": [
+      "grid",
+      "edge-crop"
+    ]
+  },
+  {
+    "file": "identity.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "AEA25CAF8FF67D4B54C2DF3DD18515B6FDB0F2576DA6308A27DBFFD66D4A8A9F",
+    "rgbaSha256": "3C07D5AFE2BD36B835EF06BA16B9D9D1E7036A7F318A7CA045ED87E9CE0ACAB9",
+    "maxPixels": 16777216,
+    "features": [
+      "identity"
+    ]
+  },
+  {
+    "file": "alpha.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "571D599B63EB3D6DB1F123710FF98113FA4797F530F0A2D74691DD92ABEA205D",
+    "rgbaSha256": "FA3EFD0EF12FD7C4C5C6E6CADB27CD5CDF033E85C25C834412A88B188547FED8",
+    "maxPixels": 16777216,
+    "features": [
+      "alpha"
+    ]
+  },
+  {
+    "file": "alpha-rotated.heic",
+    "width": 48,
+    "height": 64,
+    "inputSha256": "1BABE5F66C369101D067FD8D9C3C77F91942A35F5207E3F4E5B19DD525B8552C",
+    "rgbaSha256": "4A925CA9E3D8B58A11D37163ED93ACB168B9D6D8CD1BA9D37C69AEF4CAB73F5F",
+    "maxPixels": 16777216,
+    "features": [
+      "alpha",
+      "rotation"
+    ]
+  },
+  {
+    "file": "grid-alpha.heic",
+    "width": 100,
+    "height": 80,
+    "inputSha256": "73A1554D14E284CB04E8AF3A07FA0DB216ACD64A633BF2E3D993447323334ED5",
+    "rgbaSha256": "119D18D2724C28627116BE2E152CD65C193E6F65AE93476B09AA6BD1DFE6F3DA",
+    "maxPixels": 16777216,
+    "features": [
+      "grid",
+      "alpha"
+    ]
+  },
+  {
+    "file": "cra-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "1A35D9F5A84A2521F36E3E729C17FE0F6D03388E7F51CD48A48F2E12FF12BBB2",
+    "rgbaSha256": "E000DF0AAFA56DDD96CA6A77F88162DA5DE9C0255F8DF8C7DC4FE7AF7236498C",
+    "maxPixels": 16777216,
+    "features": [
+      "cra",
+      "8bit",
+      "1-slices"
+    ]
+  },
+  {
+    "file": "bla-w-lp-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "EE5A99FB3FE0ABF0336FB5C49A7025C91D3C9C88B1A4571F6D951EF62D4B760A",
+    "rgbaSha256": "E000DF0AAFA56DDD96CA6A77F88162DA5DE9C0255F8DF8C7DC4FE7AF7236498C",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-lp",
+      "8bit",
+      "1-slices"
+    ]
+  },
+  {
+    "file": "bla-w-radl-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "7F36561D1BCD08602435791EF527E4FA7FB635FCC6DF3B54AA5F2F4F2C3FC4A1",
+    "rgbaSha256": "E000DF0AAFA56DDD96CA6A77F88162DA5DE9C0255F8DF8C7DC4FE7AF7236498C",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-radl",
+      "8bit",
+      "1-slices"
+    ]
+  },
+  {
+    "file": "bla-n-lp-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "FF1AD18FAD9E045F05AC3531BA3B492669BB4EE4FF3E514DF10E5129D4B26451",
+    "rgbaSha256": "E000DF0AAFA56DDD96CA6A77F88162DA5DE9C0255F8DF8C7DC4FE7AF7236498C",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-n-lp",
+      "8bit",
+      "1-slices"
+    ]
+  },
+  {
+    "file": "cra-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "B70ABBAE9EFDDBA98C41D6F9121E3291DDB2A813735D9C685CA41C0FAD500984",
+    "rgbaSha256": "DB20A7381CF0CC031C476302BB2CEF116E2A35BC92FDED9B576FBE034D68452D",
+    "maxPixels": 16777216,
+    "features": [
+      "cra",
+      "10bit",
+      "1-slices"
+    ]
+  },
+  {
+    "file": "bla-w-lp-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "6843C1837FBAFE8B106A2A0D74E593BD0889A4C9CE68B95D7A940917CB802E2D",
+    "rgbaSha256": "DB20A7381CF0CC031C476302BB2CEF116E2A35BC92FDED9B576FBE034D68452D",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-lp",
+      "10bit",
+      "1-slices"
+    ]
+  },
+  {
+    "file": "bla-w-radl-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "F36B9A784584BA2A8BCBFDAA26513C0527EF48E9509C11F16B19DF6C4002696B",
+    "rgbaSha256": "DB20A7381CF0CC031C476302BB2CEF116E2A35BC92FDED9B576FBE034D68452D",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-radl",
+      "10bit",
+      "1-slices"
+    ]
+  },
+  {
+    "file": "bla-n-lp-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "D84D310B8E2659D8AD723460EBC10FFFA798765F1AD7C0E7AB67BD9DE174BC63",
+    "rgbaSha256": "DB20A7381CF0CC031C476302BB2CEF116E2A35BC92FDED9B576FBE034D68452D",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-n-lp",
+      "10bit",
+      "1-slices"
+    ]
+  },
+  {
+    "file": "slices2-cra-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "063BCB3076BD17788509C89FC090DD9CDCA7670393DAA8E86D480C834D83A2AF",
+    "rgbaSha256": "CD4DA01309D9843589B920462EDFAAAECFD51E47C0D4FE4DEC82EFA485C90128",
+    "maxPixels": 16777216,
+    "features": [
+      "cra",
+      "8bit",
+      "2-slices"
+    ]
+  },
+  {
+    "file": "slices2-bla-w-lp-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "FF8ABB5E9F6CFFAD6695DC209F5A9C39D7C1AA74C8E75E3523AB7E1B630C0B0B",
+    "rgbaSha256": "CD4DA01309D9843589B920462EDFAAAECFD51E47C0D4FE4DEC82EFA485C90128",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-lp",
+      "8bit",
+      "2-slices"
+    ]
+  },
+  {
+    "file": "slices2-bla-w-radl-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "CC51769E30E8A95BF88087F6359D62C72763788D2C57882E18B6196ABA86C902",
+    "rgbaSha256": "CD4DA01309D9843589B920462EDFAAAECFD51E47C0D4FE4DEC82EFA485C90128",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-radl",
+      "8bit",
+      "2-slices"
+    ]
+  },
+  {
+    "file": "slices2-bla-n-lp-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "AC226A6C207896841DFF58B90E2C386536F7EBFE33CD97E18BD366D76AED0295",
+    "rgbaSha256": "CD4DA01309D9843589B920462EDFAAAECFD51E47C0D4FE4DEC82EFA485C90128",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-n-lp",
+      "8bit",
+      "2-slices"
+    ]
+  },
+  {
+    "file": "slices2-cra-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "277CD4D01E9C8819B17A221B72CBA9A8E87AFA395F9F2FD9BA88AB2AD0B5BF64",
+    "rgbaSha256": "9A39C1A7E6A9B23649EC2DC2E87E45435E269204D9785742F307D93E8B5308D5",
+    "maxPixels": 16777216,
+    "features": [
+      "cra",
+      "10bit",
+      "2-slices"
+    ]
+  },
+  {
+    "file": "slices2-bla-w-lp-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "3BB306AF6824BDDDB586193DAABDAC1C06881C6F85713BA51D0B7D8FFB690039",
+    "rgbaSha256": "9A39C1A7E6A9B23649EC2DC2E87E45435E269204D9785742F307D93E8B5308D5",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-lp",
+      "10bit",
+      "2-slices"
+    ]
+  },
+  {
+    "file": "slices2-bla-w-radl-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "5DE84023E7130C6C8A26AE1D1A5512440392B6041E27E977F56181A38DF7088C",
+    "rgbaSha256": "9A39C1A7E6A9B23649EC2DC2E87E45435E269204D9785742F307D93E8B5308D5",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-radl",
+      "10bit",
+      "2-slices"
+    ]
+  },
+  {
+    "file": "slices2-bla-n-lp-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "0C658798AF92ABA94E4DF2BF80CE63D1B38C1F9E05BE9BF476789AA95FB8FB7C",
+    "rgbaSha256": "9A39C1A7E6A9B23649EC2DC2E87E45435E269204D9785742F307D93E8B5308D5",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-n-lp",
+      "10bit",
+      "2-slices"
+    ]
+  },
+  {
+    "file": "slices3-cra-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "48F6E5B8A1B77F8ACFB9CE34C2C83AB92EB729DEFFC3E87E9DFCC552CA5A2C6F",
+    "rgbaSha256": "E36E32494E710BD8D618AC5D6A7300F6080DE80EEBBBEE5A17BB3DE2DF2B92FA",
+    "maxPixels": 16777216,
+    "features": [
+      "cra",
+      "8bit",
+      "3-slices"
+    ]
+  },
+  {
+    "file": "slices3-bla-w-lp-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "298279773812AEF0026C83DE63CEFC1789D7FD3127FE3EEB635A2F015C1FEDA4",
+    "rgbaSha256": "E36E32494E710BD8D618AC5D6A7300F6080DE80EEBBBEE5A17BB3DE2DF2B92FA",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-lp",
+      "8bit",
+      "3-slices"
+    ]
+  },
+  {
+    "file": "slices3-bla-w-radl-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "B2CE026051CDE96F92AA5836132CF57F1076F250E9217AAE04ADBCA2A5C2559D",
+    "rgbaSha256": "E36E32494E710BD8D618AC5D6A7300F6080DE80EEBBBEE5A17BB3DE2DF2B92FA",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-radl",
+      "8bit",
+      "3-slices"
+    ]
+  },
+  {
+    "file": "slices3-bla-n-lp-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "639FE5058C4999BDE82232DB2920EC64313EDFADD781EE127F0B306E104C32E9",
+    "rgbaSha256": "E36E32494E710BD8D618AC5D6A7300F6080DE80EEBBBEE5A17BB3DE2DF2B92FA",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-n-lp",
+      "8bit",
+      "3-slices"
+    ]
+  },
+  {
+    "file": "slices3-cra-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "5919E361E58436086418BE5BC2E14C43F814B819A386F52BD4AC8FBBCD7FDA55",
+    "rgbaSha256": "F8BEEBB100FECE5925EC28492BA865E16842C5F7CDC9B1A8EC53426E417D6D10",
+    "maxPixels": 16777216,
+    "features": [
+      "cra",
+      "10bit",
+      "3-slices"
+    ]
+  },
+  {
+    "file": "slices3-bla-w-lp-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "2421383BE50427B28E24BA2F0EE1500E9E13F6D2F0EEB211F71390795F1CD913",
+    "rgbaSha256": "F8BEEBB100FECE5925EC28492BA865E16842C5F7CDC9B1A8EC53426E417D6D10",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-lp",
+      "10bit",
+      "3-slices"
+    ]
+  },
+  {
+    "file": "slices3-bla-w-radl-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "5CFFBF0F913627C2CF0DDDB0B8C1CE1CA697B63ECCC8821E26CEDC2B1A60B989",
+    "rgbaSha256": "F8BEEBB100FECE5925EC28492BA865E16842C5F7CDC9B1A8EC53426E417D6D10",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-radl",
+      "10bit",
+      "3-slices"
+    ]
+  },
+  {
+    "file": "slices3-bla-n-lp-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "13BA9A1217A9E80678216AC33F9DBC4D8AB0F1F038119651EFBB5EABEE574498",
+    "rgbaSha256": "F8BEEBB100FECE5925EC28492BA865E16842C5F7CDC9B1A8EC53426E417D6D10",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-n-lp",
+      "10bit",
+      "3-slices"
+    ]
+  }
+]
