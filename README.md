@@ -388,6 +388,14 @@ all PID counters, PCR state and timestamp offsets continue across the boundary.
 No stream is closed. A pending empty segment cannot be completed or skipped.
 Callers select boundaries and keep audio packets in global decode order.
 
+`CaptureSegmentState()` records the current configuration, limits, clocks and
+counters without I/O. After disposing the preceding writer, use
+`MpegTsWriter.ResumeSegment(output, state, allocator)` to write the next segment
+from that state. Its first packet must be the next AVC IDR. Snapshots are immutable,
+retain no I/O resources or media buffers and can be reused for requests in any
+order. Given the same packets, resumed segments match continuous output byte for
+byte. A snapshot does not select packet ranges or prove decoder independence.
+
 The writer uses the caller's timeline. The MP4 reader defaults to original media
 timestamps; select LinearMovie for the supported edit-list translation before
 stream copy. Audio priming/discard metadata and container display matrices are not

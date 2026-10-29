@@ -10,6 +10,7 @@ namespace Mediana.Containers.MpegTs
 
         public MpegTsTrack(EncodedStreamInfo stream, int ordinal)
         {
+            Stream = stream;
             StreamIndex = stream.StreamIndex;
             Pid = MpegTsTables.FirstMediaPid + ordinal;
             switch (stream.Kind, stream.CodecId)
@@ -30,6 +31,7 @@ namespace Mediana.Containers.MpegTs
         }
 
         public int StreamIndex { get; }
+        public EncodedStreamInfo Stream { get; }
         public int Pid { get; }
         public byte Type { get; }
         public int PesStreamId { get; }

@@ -19,6 +19,8 @@ namespace Mediana.Tests
             MemoryStream[] outputs = [first, second, third];
             List<(int Stream, byte[] Data, long Pts, long Dts)> expected = [];
             List<(int Stream, byte[] Data, long Pts, long Dts)>[] windows = [[], [], []];
+            List<(int Stream, int Sample)>[] reads = [[], [], []];
+            MpegTsSegmentState?[] states = new MpegTsSegmentState?[3];
             IReadOnlyList<EncodedStreamInfo> streams;
             await using (RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, "avc-segments.mp4"))))
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator,
@@ -29,27 +31,50 @@ namespace Mediana.Tests
                 streams = reader.Streams;
                 int window = 0;
                 int videoSample = 0;
-                await using MpegTsWriter writer = MpegTsWriter.Create(first, streams, allocator);
-                while (await reader.ReadPacketAsync() is MediaPacket packet)
+                int[] samples = new int[streams.Count];
+                await using (MpegTsWriter writer = MpegTsWriter.Create(first, streams, allocator))
                 {
-                    using (packet)
+                    while (await reader.ReadPacketAsync() is MediaPacket packet)
                     {
-                        if (packet.StreamIndex == 0)
+                        using (packet)
                         {
-                            if (window + 1 < plan.Segments.Count && videoSample == plan.Segments[window + 1].FirstSample)
+                            if (packet.StreamIndex == 0)
                             {
-                                await writer.BeginSegmentAsync(outputs[++window]);
+                                if (window + 1 < plan.Segments.Count && videoSample == plan.Segments[window + 1].FirstSample)
+                                {
+                                    states[window + 1] = writer.CaptureSegmentState();
+                                    await writer.BeginSegmentAsync(outputs[++window]);
+                                }
+                                videoSample++;
                             }
-                            videoSample++;
+                            (int Stream, byte[] Data, long Pts, long Dts) item =
+                                (packet.StreamIndex, packet.Data.ToArray(), Ticks(packet.PresentationTime), Ticks(packet.DecodeTime));
+                            expected.Add(item);
+                            windows[window].Add(item);
+                            reads[window].Add((packet.StreamIndex, samples[packet.StreamIndex]++));
+                            await writer.WritePacketAsync(packet);
                         }
-                        (int Stream, byte[] Data, long Pts, long Dts) item =
-                            (packet.StreamIndex, packet.Data.ToArray(), Ticks(packet.PresentationTime), Ticks(packet.DecodeTime));
-                        expected.Add(item);
-                        windows[window].Add(item);
-                        await writer.WritePacketAsync(packet);
+                    }
+                    await writer.CompleteAsync();
+                }
+                foreach (int number in new[] { 2, 0, 1, 2 })
+                {
+                    using MemoryStream output = new();
+                    await using (MpegTsWriter writer = number == 0 ? MpegTsWriter.Create(output, streams, allocator) :
+                        MpegTsWriter.ResumeSegment(output, states[number]!, allocator))
+                    {
+                        foreach ((int stream, int sample) in reads[number])
+                        {
+                            using MediaPacket packet = await reader.ReadPacketAtAsync(stream, sample);
+                            await writer.WritePacketAsync(packet);
+                        }
+                        await writer.CompleteAsync();
+                    }
+                    if (!output.ToArray().AsSpan().SequenceEqual(outputs[number].ToArray()))
+                    {
+                        throw new InvalidDataException("A resumed TS segment differs from continuous output.");
                     }
                 }
-                await writer.CompleteAsync();
             }
             if (allocator.AllocatedBytes != 0 || outputs.Any(output => !output.CanWrite))
             {

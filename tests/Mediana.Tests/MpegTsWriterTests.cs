@@ -130,6 +130,7 @@ namespace Mediana.Tests
             await Assert.ThrowsAsync<InvalidOperationException>(() => writer.WritePacketAsync(packet).AsTask());
             await Assert.ThrowsAsync<InvalidOperationException>(() => writer.CompleteAsync().AsTask());
             Assert.Throws<InvalidOperationException>(() => writer.DisposeAsync());
+            Assert.Throws<InvalidOperationException>(writer.CaptureSegmentState);
             gate.SetResult();
             await pending;
             await writer.CompleteAsync();

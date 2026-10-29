@@ -20,7 +20,7 @@ namespace Mediana.NativeTests
             await Mp4TimelineTestInput.VerifyAsync(root);
             await HlsPlanTestInput.VerifyAsync(root);
             await MpegTsSegmentTestInput.VerifyAsync(root);
-            Console.WriteLine("PASS MPEG-TS segments: all 36 AVC and 339 AAC packets, decode-order audio windows, PAT/PMT, continuous clocks and counters across files match.");
+            Console.WriteLine("PASS MPEG-TS segments: all 36 AVC and 339 AAC packets, clocks and counters match; restored segments in order 2, 0, 1, 2 equal continuous output byte for byte.");
             await Mp4SampleAccessTestInput.VerifyAsync(root, "avc-segments.mp4", Mp4TimestampMode.LinearMovie);
             Console.WriteLine("PASS AVC video segment plan: inspected IDR boundaries at 0, 3 and 6 seconds, exact durations and reverse access preserve decoder order and reader cursors.");
             foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov" })

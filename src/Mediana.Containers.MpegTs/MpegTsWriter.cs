@@ -6,7 +6,7 @@ namespace Mediana.Containers.MpegTs
 {
     /// <summary>Writes one program of AVC/AAC access units in globally nondecreasing decode order.
     /// Borrows its output stream and input packets. A failed write faults the writer; partial output must be discarded.</summary>
-    public class MpegTsWriter : IContainerWriter
+    public partial class MpegTsWriter : IContainerWriter
     {
         private const int MaximumStreams = 16;
         private const long PcrInterval = 3600;
@@ -158,37 +158,6 @@ namespace Mediana.Containers.MpegTs
                 track.LastDecodeTime = dts;
                 lastDecodeTime = dts;
                 segmentPending = false;
-                success = true;
-            }
-            finally
-            {
-                FinishOperation(success);
-            }
-        }
-
-        /// <summary>Flushes the previous destination and continues the same program in a borrowed writable stream.
-        /// Requires exactly one AVC track and a preceding packet. The next packet must be its IDR access unit.
-        /// Preserves timestamps, continuity counters and clock state; emits PAT/PMT before the new segment's payload.</summary>
-        public async ValueTask BeginSegmentAsync(Stream destination, CancellationToken cancellationToken = default)
-        {
-            Enter();
-            bool success = false;
-            try
-            {
-                EnsureWritable();
-                ArgumentNullException.ThrowIfNull(destination);
-                if (!destination.CanWrite || ReferenceEquals(destination, this.destination))
-                {
-                    throw new ArgumentException("A segment requires a different writable destination.", nameof(destination));
-                }
-                if (!lastDecodeTime.HasValue || segmentPending || tracks.Count(track => track.Type == 0x1B) != 1)
-                {
-                    throw new InvalidOperationException("A segment boundary requires a nonempty program with exactly one AVC track.");
-                }
-                cancellationToken.ThrowIfCancellationRequested();
-                await this.destination.FlushAsync(cancellationToken).ConfigureAwait(false);
-                this.destination = destination;
-                segmentPending = true;
                 success = true;
             }
             finally
