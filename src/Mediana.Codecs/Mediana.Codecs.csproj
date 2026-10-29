@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <InternalsVisibleTo Include="Mediana.Codecs.Jpeg2000" />
     <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />
   </ItemGroup>
 </Project>

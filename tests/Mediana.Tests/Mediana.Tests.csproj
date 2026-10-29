@@ -4,6 +4,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/Jpeg2000ReferenceTestInput.cs" Link="Jpeg2000ReferenceTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Jpeg2000/Mediana.Codecs.Jpeg2000.csproj" />
     <Compile Include="../Shared/Mp3DecodeTestInput.cs" Link="Mp3DecodeTestInput.cs" />
     <Compile Include="../Shared/Mp3HuffmanTestInput.cs" Link="Mp3HuffmanTestInput.cs" />
     <Compile Include="../Shared/Mp3SyntaxTestInput.cs" Link="Mp3SyntaxTestInput.cs" />
