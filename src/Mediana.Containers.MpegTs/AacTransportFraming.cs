@@ -1,3 +1,4 @@
+using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
 namespace Mediana.Containers.MpegTs
@@ -9,21 +10,10 @@ namespace Mediana.Containers.MpegTs
 
         public AacTransportFraming(ReadOnlySpan<byte> configuration)
         {
-            if (configuration.Length < 2)
-            {
-                throw new InvalidDataException("The AAC AudioSpecificConfig is truncated.");
-            }
-            int objectType = configuration[0] >> 3;
-            frequency = (configuration[0] & 7) << 1 | configuration[1] >> 7;
-            channels = configuration[1] >> 3 & 15;
-            if (objectType != 2 || frequency > 12 || channels is < 1 or > 7 || (configuration[1] & 7) != 0)
-            {
-                throw new NotSupportedException("ADTS output requires AAC-LC with an indexed sample rate, channel configuration and 1024-sample frames.");
-            }
-            if (configuration.Length != 2 && !configuration[2..].SequenceEqual(new byte[] { 0x56, 0xE5, 0 }))
-            {
-                throw new NotSupportedException("The AAC configuration extension is not supported by the TS writer.");
-            }
+            AacConfiguration description = AacConfiguration.ReadAudioSpecificConfig(configuration, out string? reason)
+                ?? throw new NotSupportedException(reason);
+            frequency = description.FrequencyIndex;
+            channels = description.ChannelConfiguration;
         }
 
         public MediaBuffer Convert(ReadOnlySpan<byte> data, MediaBufferAllocator allocator)
