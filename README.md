@@ -25,6 +25,7 @@ An experimental MPEG-TS source module packages AVC/AAC access units without deco
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P decoder factory, picture ordering and cropped YUV output; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
 | `Mediana.Processing` | Scalar SDR conversion to sRGB, RGBA32 resizing and square-pixel preview fitting |
+| `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
 | `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video sessions |
 | `Mediana.Sample` | Real MP4/MOV packet inspection, PNG previews and generated-frame checks |
@@ -171,6 +172,8 @@ cursor, also after end of stream, and use the selected timestamp mode. Lookup sc
 the compact chunk/timing runs and the sample sizes inside the containing chunk;
 it does not read preceding payloads. The mapping follows the
 [QuickTime sample lookup](https://developer.apple.com/documentation/quicktime-file-format/using_sample_atoms).
+Successive sample lookups advance a separate metadata cursor so a sequential
+metadata scan stays linear even when many samples share one chunk.
 Reader operations must be sequential. A packet read by index does not initialize
 or reset a decoder, and a sync declaration alone does not verify codec-level
 segment independence.
@@ -234,6 +237,14 @@ The namespaces are Mediana, Mediana.Codecs.H264, Mediana.Containers.Mp4,
 Mediana.Core.Timing, Mediana.Core.Video and Mediana.IO. The example selects the first
 remaining frame at or after one second in the original media timeline; it decodes
 forward without seeking. Null means the stream has ended.
+
+`H264RandomAccessInspector` examines AVC packets without reconstructing pictures.
+`IsIdr(packet)` ignores container key-frame flags and validates access-unit boundaries
+and the supported IDR slice header, including its parameter references. It requires
+a complete single-slice progressive 8-bit 4:2:0 IDR picture; it does not validate
+residual data. Non-IDR slice headers, including B pictures, are not parsed by this
+inspection operation. Packet inspection uses the original configuration and any
+parameter sets carried within that packet, without retaining state between calls.
 
 The decoder accepts AVC length-prefixed packets with one complete single-slice
 picture and an initial avcC configuration. Supported pictures are progressive
@@ -397,6 +408,37 @@ AAC access unit, shifted PTS/DTS in both timeline modes, program tables, PCR cad
 counters and buffer release in managed execution and Native AOT. Exact byte vectors
 also cover framing, CRC, timestamp markers and packet-boundary stuffing.
 The transport syntax follows [ITU-T H.222.0](https://www.itu.int/rec/T-REC-H.222.0-201410-S/en).
+
+## Planning AVC video windows for HLS
+
+Reference the Mediana.Streaming.Hls source project and open the MP4 reader in
+LinearMovie mode. `Mp4AvcSegmentPlan.CreateAsync(reader, videoStreamIndex, options)`
+uses metadata for the complete video timeline and reads payloads only for the
+first sample and container sync candidates. Candidate IDR headers are inspected;
+ordinary I pictures or false sync flags do not create boundaries. The first
+sample must be an IDR. Each subsequent boundary is the first eligible IDR at or
+after TargetDuration from the current segment start, rounded up to a video tick.
+
+Each immutable entry records a zero-based first sample/count, presentation start,
+video duration and an exclusive decode window. Decode order remains distinct from
+presentation order. The final duration follows the last video presentation end.
+Nonpositive sample durations, decreasing DTS, leading pictures or presentation
+overlap at a chosen IDR boundary fail explicitly. MaximumSegments bounds the plan;
+the reader allocator bounds candidate packet storage. Planning and random boundary
+reads preserve sequential reader positions.
+
+```sh
+dotnet run --project samples/Mediana.Sample -c Release -- \
+  --plan-hls-mp4 input.mp4 0 2250
+```
+
+The 7.2-second closed-GOP AVC/AAC fixture produces video windows starting at
+0, 3 and 6 seconds with durations 3, 3 and 1.2 seconds. Managed and Native AOT
+checks verify exact rational times, sample windows and reverse boundary reads.
+This is a video boundary plan: audio coverage, continuous transport state,
+segment output and playlists are still open. It does not claim full HLS support
+or emit INDEPENDENT-SEGMENTS. Segment requirements follow
+[RFC 8216](https://www.rfc-editor.org/rfc/rfc8216.html).
 
 ## Connecting modules
 

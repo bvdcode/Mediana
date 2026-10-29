@@ -13,6 +13,7 @@
     <Project Path="src/Mediana.Execution/Mediana.Execution.csproj" />
     <Project Path="src/Mediana.IO/Mediana.IO.csproj" />
     <Project Path="src/Mediana.Processing/Mediana.Processing.csproj" />
+    <Project Path="src/Mediana.Streaming.Hls/Mediana.Streaming.Hls.csproj" />
     <Project Path="src/Mediana/Mediana.csproj" />
   </Folder>
   <Folder Name="/tests/">

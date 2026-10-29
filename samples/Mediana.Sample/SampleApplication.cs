@@ -27,9 +27,15 @@ namespace Mediana.Sample
             {
                 return await Mp4RemuxSample.RunAsync(args[1], args[2]);
             }
+            if (args.Length == 4 && args[0] == "--plan-hls-mp4" &&
+                int.TryParse(args[2], NumberStyles.None, CultureInfo.InvariantCulture, out int videoIndex) &&
+                long.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out long targetMilliseconds) && targetMilliseconds > 0)
+            {
+                return await HlsPlanSample.RunAsync(args[1], videoIndex, targetMilliseconds);
+            }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts>]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds>]");
                 return 2;
             }
 

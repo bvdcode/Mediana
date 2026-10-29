@@ -18,6 +18,9 @@ namespace Mediana.NativeTests
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
             await Mp4TimelineTestInput.VerifyAsync(root);
+            await HlsPlanTestInput.VerifyAsync(root);
+            await Mp4SampleAccessTestInput.VerifyAsync(root, "avc-segments.mp4", Mp4TimestampMode.LinearMovie);
+            Console.WriteLine("PASS AVC video segment plan: inspected IDR boundaries at 0, 3 and 6 seconds, exact durations and reverse access preserve decoder order and reader cursors.");
             foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov" })
             {
                 await Mp4SampleAccessTestInput.VerifyAsync(root, file, Mp4TimestampMode.Media);
