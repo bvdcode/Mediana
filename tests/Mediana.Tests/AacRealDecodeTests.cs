@@ -5,6 +5,14 @@ namespace Mediana.Tests
         [Theory]
         [InlineData("lc-mono-48")]
         [InlineData("lc-stereo-44")]
+        public async Task WaveformMatchesProcessingOfIndependentDecodedPcm(string name)
+        {
+            await AacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
+        }
+
+        [Theory]
+        [InlineData("lc-mono-48")]
+        [InlineData("lc-stereo-44")]
         [InlineData("lc-pns-48")]
         public async Task CompleteRealSequencesMatchIndependentFloatPcmOrNoiseEnergy(string name)
         {
