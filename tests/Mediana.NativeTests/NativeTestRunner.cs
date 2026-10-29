@@ -21,7 +21,9 @@ namespace Mediana.NativeTests
             await H264BidirectionalTestInput.VerifyReferenceListsAsync(root);
             H264BidirectionalTestInput.VerifyMotion();
             H264BiPredictionTestInput.Verify();
+            H264BidirectionalPredictionTestInput.Verify();
             Console.WriteLine("PASS H.264 B prediction components: independent L0/L1 motion and ordinary, explicit, implicit 8-bit sample weighting match fixed vectors.");
+            Console.WriteLine("PASS H.264 B partitions: single L0/L1 and Bi modes, fractional luma/chroma compensation, all weighting modes and exact partition placement match.");
             Console.WriteLine("PASS H.264 B headers: reference and non-reference slices, both active lists, picture order and CABAC alignment match the independent trace.");
             Console.WriteLine("PASS H.264 B reference lists: parsed I/P/B picture order, retained reference B pictures and both lists match the expected first GOP order.");
             await Mp4TimelineTestInput.VerifyAsync(root);

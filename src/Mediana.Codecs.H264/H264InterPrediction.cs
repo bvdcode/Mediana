@@ -111,28 +111,9 @@ namespace Mediana.Codecs.H264
                 int blockWidth = width / scale;
                 int blockHeight = height / scale;
                 Span<byte> samples = block[..(blockWidth * blockHeight)];
-                if (plane == 0)
-                {
-                    H264MotionCompensation.Luma(reference.Picture, x, y, motionX, motionY, width, height, samples);
-                }
-                else
-                {
-                    H264MotionCompensation.Chroma(reference.Picture, plane, x / 2, y / 2, motionX, motionY, blockWidth, blockHeight, samples);
-                }
+                H264PredictionBlock.Read(reference.Picture, plane, x, y, width, height, motionX, motionY, samples);
                 header.Weights?.Apply(referenceIndex, plane, samples);
-                int destination = plane switch
-                {
-                    0 => 0,
-                    1 => 256,
-                    2 => 320,
-                    _ => throw new ArgumentOutOfRangeException(nameof(plane))
-                };
-                int stride = 16 / scale;
-                destination += ((y % 16) / scale) * stride + (x % 16) / scale;
-                for (int row = 0; row < blockHeight; row++)
-                {
-                    samples.Slice(row * blockWidth, blockWidth).CopyTo(prediction.Slice(destination + row * stride, blockWidth));
-                }
+                H264PredictionBlock.Write(plane, x, y, width, height, samples, prediction);
             }
         }
     }

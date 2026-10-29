@@ -25,6 +25,21 @@ Source: [ITU-T H.264 V15 (08/2024)](https://www.itu.int/rec/T-REC-H.264-202408-S
 These are arithmetic initialization references; they do not prove complete
 CABAC picture reconstruction.
 
+## B prediction component checks
+
+Managed and Native AOT checks cover independent L0/L1 motion storage and spatial
+motion prediction, ordinary averaging, explicit luma/Cb/Cr weights and implicit
+POC-based weights under clauses 8.4.2.3 and 8.4.3. Fixed sample vectors include
+negative weights, rounded offsets, clipping and both implicit weight limits.
+The explicit weight-sum constraint includes the distinct denominator-seven limit.
+
+Partition checks exercise single-list and bidirectional prediction with all three
+weight modes. Linear sample ramps verify fractional luma and chroma interpolation;
+rectangle checks cover 16x16, 16x8, 8x16, 8x8, 8x4, 4x8 and 4x4 placement.
+I/P storage retains its existing byte budget; B storage adds the second motion list.
+These are prediction component checks. B macroblock syntax, direct prediction,
+deblocking and complete B picture reconstruction remain open.
+
 ## Intra 8x8 prediction reference
 
 `intra8-modes.h264` contains nine explicit High-profile 32x32 IDRs, one for each
