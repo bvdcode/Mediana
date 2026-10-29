@@ -112,10 +112,21 @@ the library's scope.
 
 ## Download and run
 
-Each publishing run attaches Native AOT command-line archives to the
-[GitHub release](https://github.com/bvdcode/Mediana/releases). Download the archive
-for your operating system and processor, then extract it. No .NET SDK, .NET runtime
-or FFmpeg installation is needed.
+Each publishing run attaches standalone Native AOT command-line executables to the
+[GitHub release](https://github.com/bvdcode/Mediana/releases). Download the executable
+for your operating system and processor. No .NET SDK, .NET runtime or FFmpeg
+installation is needed.
+
+| Download | Platform |
+| --- | --- |
+| `Mediana-<version>-linux-x64` | Linux x64 (glibc), built on Ubuntu 24.04 |
+| `Mediana-<version>-win-x64.exe` | Windows x64 |
+| `Mediana-<version>-osx-arm64` | macOS on Apple Silicon, built on macOS 15 |
+
+Rename the downloaded file to `mediana` (`mediana.exe` on Windows).
+On Linux/macOS, make it executable with `chmod +x mediana`.
+
+Optional archives include the same executable, this README and the MIT license:
 
 | Archive | Platform | Executable |
 | --- | --- | --- |
@@ -123,11 +134,11 @@ or FFmpeg installation is needed.
 | `Mediana-<version>-win-x64.zip` | Windows x64 | `mediana.exe` |
 | `Mediana-<version>-osx-arm64.tar.gz` | macOS on Apple Silicon, built on macOS 15 | `mediana` |
 
-Archives include this README and the MIT license. Each archive has a matching
-`.sha256` checksum file. For Linux, use Ubuntu 24.04 or a compatible newer glibc
-distribution; the archive does not target Alpine.
+Each executable and archive has a matching `.sha256` checksum file. For Linux,
+use Ubuntu 24.04 or a compatible newer glibc distribution; the executable does not
+target Alpine.
 
-From the extracted directory on Linux/macOS:
+From the download or extraction directory on Linux/macOS:
 
 ```sh
 ./mediana --help
@@ -1338,20 +1349,21 @@ for both compilation and packing. Ordinary releases advance the patch version;
 minor and major changes require an explicit versioning decision.
 
 Pushes to main and pull requests run build, formatting, tests and Native AOT checks
-on Linux x64, Windows x64 and macOS ARM64. Successful builds upload native archives
-and SHA-256 checksums as workflow artifacts.
+on Linux x64, Windows x64 and macOS ARM64. Successful builds upload standalone
+executables, optional archives and SHA-256 checksums as workflow artifacts.
 
 After all checks pass, pushes to main and manual workflow runs from main publish
 the same validated packages to NuGet.org and GitHub Packages, and symbols to
 NuGet.org. Pull requests only validate. The GitHub release is created after both
-registries succeed. Its downloads contain the tested native archives and checksums;
-NuGet packages are available from the registries.
+registries succeed. Its downloads contain the tested native executables, archives
+and checksums; NuGet packages are available from the registries.
 
-Actions generates the release notes automatically from every commit since the
-previous release, including direct commits without pull requests. The notes include
-commit links, the full comparison and links to the actual packed versions.
-No manually maintained changelog is required. Publication fails if there are no
-changes or if package versions do not match. Build checks exercise the generator
+Actions generates the release notes from the full message of the commit being
+released. The message should summarize the milestone's changes and relevant
+validation. The notes also include the full comparison since the previous release
+and links to the actual packed versions. No manually maintained changelog is
+required. Publication fails if there are no changes, the release commit has no
+message or package versions do not match. Build checks exercise the generator
 against isolated release histories.
 
 Authentication uses [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing).
