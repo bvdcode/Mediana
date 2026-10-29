@@ -1227,15 +1227,13 @@ minor and major changes require an explicit versioning decision.
 
 Pushes to main and pull requests run build, formatting, tests and Native AOT checks
 on Linux x64, Windows x64 and macOS ARM64. Successful builds upload native archives
-and SHA-256 checksums as workflow artifacts. They do not publish packages or create
-releases.
+and SHA-256 checksums as workflow artifacts.
 
-Publication requires an explicit manual workflow run from main with the publish
-input enabled. Manual runs validate without publishing by default. After all
-checks pass, a publishing run uploads the same validated packages to NuGet.org
-and GitHub Packages, and symbols to NuGet.org. The GitHub release is created
-after both registries succeed. Its downloads contain the tested native archives
-and checksums; NuGet packages are available from the registries.
+After all checks pass, pushes to main and manual workflow runs from main publish
+the same validated packages to NuGet.org and GitHub Packages, and symbols to
+NuGet.org. Pull requests only validate. The GitHub release is created after both
+registries succeed. Its downloads contain the tested native archives and checksums;
+NuGet packages are available from the registries.
 
 Actions generates the release notes automatically from every commit since the
 previous release, including direct commits without pull requests. The notes include
