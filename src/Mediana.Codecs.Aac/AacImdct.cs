@@ -4,73 +4,81 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacImdct
     {
+        private static readonly AacImdctPlan Short = new(128);
+        private static readonly AacImdctPlan Long = new(1024);
+
         public static void Transform(ReadOnlySpan<double> spectrum, Span<double> output, Span<Complex> work,
             CancellationToken cancellationToken)
         {
             int size = spectrum.Length;
-            if (size is not (128 or 1024) || output.Length < 2 * size || work.Length < 2 * size)
+            if (size is not (128 or 1024) || output.Length < 2 * size || work.Length < size / 2)
             {
                 throw new ArgumentException("AAC IMDCT requires a supported transform size and sufficient workspace.");
             }
-            work = work[..(2 * size)];
-            work.Clear();
-            double phase = Math.PI / (2 * size);
-            for (int index = 0; index < size; index++)
+            cancellationToken.ThrowIfCancellationRequested();
+            AacImdctPlan plan = size switch
             {
-                (double sine, double cosine) = Math.SinCos(-phase * index);
-                work[index] = spectrum[index] * new Complex(cosine, sine);
+                128 => Short,
+                1024 => Long,
+                _ => throw new InvalidOperationException()
+            };
+            work = work[..(size / 2)];
+            ReadOnlySpan<Complex> pre = plan.PreRotation;
+            ReadOnlySpan<int> reversed = plan.Reversed;
+            for (int index = 0; index < work.Length; index++)
+            {
+                double even = spectrum[2 * index];
+                double odd = spectrum[size - 1 - 2 * index];
+                Complex rotation = pre[index];
+                work[reversed[index]] = new Complex(even * rotation.Real - odd * rotation.Imaginary,
+                    even * rotation.Imaginary + odd * rotation.Real);
             }
-            Fourier(work, cancellationToken);
-            for (int index = 0; index < size; index++)
+            Fourier(work, plan.Rotations, cancellationToken);
+            ReadOnlySpan<Complex> post = plan.PostRotation;
+            for (int index = 0; index < work.Length; index++)
             {
-                (double sine, double cosine) = Math.SinCos(-phase * (index + 0.5));
-                work[index] = new Complex((work[index] * new Complex(cosine, sine)).Real / size, 0);
-            }
-            for (int index = 0; index < size / 2; index++)
-            {
-                output[index] = work[size / 2 + index].Real;
-                output[index + 3 * size / 2] = -work[index].Real;
-            }
-            for (int index = 0; index < size; index++)
-            {
-                output[size / 2 + index] = -work[size - 1 - index].Real;
+                Complex value = work[index];
+                Complex rotation = post[index];
+                double even = value.Real * rotation.Real - value.Imaginary * rotation.Imaginary;
+                double odd = -(value.Real * rotation.Imaginary + value.Imaginary * rotation.Real);
+                WriteOutput(output, size, 2 * index, even);
+                WriteOutput(output, size, size - 1 - 2 * index, odd);
             }
         }
 
-        private static void Fourier(Span<Complex> values, CancellationToken cancellationToken)
+        private static void WriteOutput(Span<double> output, int size, int coefficient, double value)
         {
-            int reversed = 0;
-            for (int index = 1; index < values.Length; index++)
+            output[3 * size / 2 - 1 - coefficient] = -value;
+            if (coefficient < size / 2)
             {
-                int bit = values.Length / 2;
-                while ((reversed & bit) != 0)
-                {
-                    reversed ^= bit;
-                    bit >>= 1;
-                }
-                reversed ^= bit;
-                if (index < reversed)
-                {
-                    (values[index], values[reversed]) = (values[reversed], values[index]);
-                }
+                output[3 * size / 2 + coefficient] = -value;
             }
+            else
+            {
+                output[coefficient - size / 2] = value;
+            }
+        }
+
+        private static void Fourier(Span<Complex> values, ReadOnlySpan<Complex> rotations, CancellationToken cancellationToken)
+        {
             for (int width = 2; width <= values.Length; width *= 2)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                (double sine, double cosine) = Math.SinCos(-2 * Math.PI / width);
-                Complex rotation = new(cosine, sine);
+                int half = width / 2;
+                ReadOnlySpan<Complex> stage = rotations.Slice(half - 1, half);
                 for (int start = 0; start < values.Length; start += width)
                 {
-                    Complex factor = Complex.One;
-                    for (int offset = 0; offset < width / 2; offset++)
+                    for (int offset = 0; offset < half; offset++)
                     {
                         int first = start + offset;
-                        int second = first + width / 2;
-                        Complex difference = factor * values[second];
+                        int second = first + half;
+                        Complex factor = stage[offset];
+                        Complex value = values[second];
+                        double real = factor.Real * value.Real - factor.Imaginary * value.Imaginary;
+                        double imaginary = factor.Real * value.Imaginary + factor.Imaginary * value.Real;
                         Complex original = values[first];
-                        values[first] = original + difference;
-                        values[second] = original - difference;
-                        factor *= rotation;
+                        values[first] = new Complex(original.Real + real, original.Imaginary + imaginary);
+                        values[second] = new Complex(original.Real - real, original.Imaginary - imaginary);
                     }
                 }
             }

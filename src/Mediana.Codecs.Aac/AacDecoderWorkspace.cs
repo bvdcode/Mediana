@@ -20,7 +20,7 @@ namespace Mediana.Codecs.Aac
                 {
                     Right = new AacChannelState(allocator);
                 }
-                storage = allocator.Allocate(FourierOffset + 2048 * 2 * sizeof(double));
+                storage = allocator.Allocate(FourierOffset + 512 * 2 * sizeof(double));
                 succeeded = true;
             }
             finally

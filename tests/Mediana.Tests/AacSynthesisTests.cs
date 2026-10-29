@@ -12,7 +12,8 @@ namespace Mediana.Tests
         {
             double[] spectrum = Enumerable.Range(0, length).Select(index => Math.Sin(index * 1.7) * (index % 7 - 3)).ToArray();
             double[] output = new double[length * 2];
-            AacImdct.Transform(spectrum, output, new Complex[length * 2], CancellationToken.None);
+            Complex[] work = Enumerable.Repeat(new Complex(double.NaN, double.NaN), length / 2).ToArray();
+            AacImdct.Transform(spectrum, output, work, CancellationToken.None);
             for (int sample = 0; sample < output.Length; sample++)
             {
                 double expected = 0;
@@ -21,6 +22,29 @@ namespace Mediana.Tests
                     expected += spectrum[coefficient] * Math.Cos(Math.PI / length * (sample + 0.5 + length / 2) * (coefficient + 0.5));
                 }
                 Assert.InRange(Math.Abs(output[sample] - expected / length), 0, 2e-12);
+            }
+        }
+
+        [Theory]
+        [InlineData(128)]
+        [InlineData(1024)]
+        public void ImdctBasisVectorsPreserveEvenOddAndBoundaryCoefficients(int length)
+        {
+            double[] spectrum = new double[length];
+            double[] output = new double[length * 2 + 1];
+            Complex[] work = new Complex[length / 2];
+            output[^1] = 123;
+            foreach (int coefficient in new[] { 0, 1, length / 2 - 1, length / 2, length - 2, length - 1 })
+            {
+                spectrum.AsSpan().Clear();
+                spectrum[coefficient] = -length;
+                AacImdct.Transform(spectrum, output, work, CancellationToken.None);
+                for (int sample = 0; sample < length * 2; sample++)
+                {
+                    double expected = -Math.Cos(Math.PI / length * (sample + 0.5 + length / 2) * (coefficient + 0.5));
+                    Assert.InRange(Math.Abs(output[sample] - expected), 0, 2e-12);
+                }
+                Assert.Equal(123, output[^1]);
             }
         }
 
