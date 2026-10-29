@@ -6,6 +6,7 @@ namespace Mediana.Codecs.H264
     {
         public const byte Inter = 26;
         public const byte Skipped = 27;
+        public const byte Direct = 28;
         private readonly WritableMediaBuffer storage;
         private readonly int count;
         private readonly int columns;
@@ -27,6 +28,7 @@ namespace Mediana.Codecs.H264
 
         public int TypeCondition(int neighbour) => neighbour >= 0 && Types[neighbour] != 0 ? 1 : 0;
         public int SkipCondition(int neighbour) => neighbour >= 0 && Types[neighbour] != Skipped ? 1 : 0;
+        public int BidirectionalTypeCondition(int neighbour) => neighbour >= 0 && Types[neighbour] is not (Skipped or Direct) ? 1 : 0;
         public bool IsIntra(int address) => Types[address] <= 25;
 
         public int ChromaModeCondition(int neighbour) =>

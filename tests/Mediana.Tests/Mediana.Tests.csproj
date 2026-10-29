@@ -22,6 +22,7 @@
     <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalDeblockingTestInput.cs" Link="H264BidirectionalDeblockingTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalPictureTestInput.cs" Link="H264BidirectionalPictureTestInput.cs" />
+    <Compile Include="../Shared/H264BidirectionalFixture.cs" Link="H264BidirectionalFixture.cs" />
     <Compile Include="../Shared/H264BiPredictionTestInput.cs" Link="H264BiPredictionTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalPredictionTestInput.cs" Link="H264BidirectionalPredictionTestInput.cs" />
     <Compile Include="../Shared/MpegTsTestInput.cs" Link="MpegTsTestInput.cs" />

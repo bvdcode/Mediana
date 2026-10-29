@@ -117,7 +117,7 @@ namespace Mediana.Tests
             IReadOnlyList<H264ReferencePicture?> references, MediaBufferAllocator allocator)
         {
             H264BitReader bits = new(payload);
-            return H264CabacPictureDecoder.Decode(ref bits, header, references, allocator);
+            return H264CabacPictureDecoder.Decode(ref bits, header, new(references, []), default, allocator);
         }
 
         private static H264Picture Decode(byte[] nal, H264Configuration configuration,

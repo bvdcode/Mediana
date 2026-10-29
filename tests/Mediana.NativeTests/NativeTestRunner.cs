@@ -22,8 +22,15 @@ namespace Mediana.NativeTests
             await H264BidirectionalTestInput.VerifyReferenceListsAsync(root);
             H264BidirectionalTestInput.VerifyMotion();
             H264BidirectionalDeblockingTestInput.Verify();
-            await H264BidirectionalPictureTestInput.VerifyPicturesAsync(root, "avc-cavlc-b-spatial", true);
-            await H264BidirectionalPictureTestInput.VerifyPicturesAsync(root, "avc-cavlc-b-temporal", false);
+            foreach (string name in new[] { "avc-cavlc-b-spatial", "avc-cavlc-b-temporal", "avc-aac", "avc-segments" })
+            {
+                await H264BidirectionalPictureTestInput.VerifyPicturesAsync(root, name);
+            }
+            foreach (string name in new[] { "avc-aac", "avc-segments" })
+            {
+                await H264BidirectionalPictureTestInput.VerifySessionAsync(root, name);
+            }
+            Console.WriteLine("PASS H.264 CABAC B: 44 independent YUV pictures, public display order, timing and released storage match.");
             foreach (string name in new[] { "avc-cavlc-b-spatial", "avc-cavlc-b-temporal" })
             {
                 await H264BidirectionalPictureTestInput.VerifySessionAsync(root, name);

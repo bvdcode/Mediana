@@ -34,7 +34,7 @@ namespace Mediana.Tests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public async Task UnsupportedPictureOrCancellationReleasesDelayedStorageAndResetRecovers(bool cancel)
+        public async Task MissingReferenceOrCancellationReleasesDelayedStorageAndResetRecovers(bool cancel)
         {
             (EncodedStreamInfo stream, byte[][] packets) = await H264DecoderTests.InputAsync("avc-aac.mp4");
             MediaBufferAllocator allocator = new(1024 * 1024);
@@ -49,8 +49,7 @@ namespace Mediana.Tests
             }
             else
             {
-                NotSupportedException error = Assert.Throws<NotSupportedException>(() => decoder.TrySend(second));
-                Assert.Contains("CABAC B", error.Message);
+                Assert.Throws<InvalidDataException>(() => decoder.TrySend(second));
             }
             Assert.Equal(first.Data.Length + second.Data.Length, allocator.AllocatedBytes);
             Assert.Throws<InvalidOperationException>(() => decoder.Receive());

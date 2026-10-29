@@ -143,13 +143,13 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task UnsupportedCabacBPictureFailsWithoutReturningDelayedFramesAndDisposalReleasesStorage()
+        public async Task EarlyDisposalOfCabacBSessionReleasesDelayedPictures()
         {
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Mp4TestData.PathFor("avc-aac.mp4")));
             await using VideoSession session = await Engine().OpenVideoAsync(source, 0);
-            NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(async () => await session.ReadFrameAsync());
-            Assert.Contains("CABAC B", error.Message);
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => await session.ReadFrameAsync());
+            using VideoFrame frame = await session.ReadFrameAsync() ?? throw new InvalidDataException("The CABAC sequence returned no frame.");
+            H264TestInput.VerifyFrame(frame, await Mp4TestData.ReadAsync("avc-aac.frame0.yuv"));
+            frame.Dispose();
             await session.DisposeAsync();
             Assert.Equal(0, session.AllocatedBufferBytes);
         }

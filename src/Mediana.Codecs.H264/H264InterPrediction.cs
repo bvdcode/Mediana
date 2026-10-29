@@ -29,7 +29,7 @@ namespace Mediana.Codecs.H264
             {
                 for (int part = 0; part < partitions; part++)
                 {
-                    subtypes[part] = reader.ReadSubType(ref bits);
+                    subtypes[part] = reader.ReadSubType(ref bits, H264SliceKind.P);
                     noSmallPartitions &= subtypes[part] == 0;
                 }
             }
@@ -39,7 +39,7 @@ namespace Mediana.Codecs.H264
                 (int width, int height) = Size(type, 0);
                 if (type != 4 && header.ActiveReferencesL0 > 1)
                 {
-                    indices[part] = reader.ReadReference(ref bits, partX, partY, header.ActiveReferencesL0 - 1);
+                    indices[part] = reader.ReadReference(ref bits, H264ReferenceList.L0, partX, partY, width, height, header.ActiveReferencesL0 - 1);
                 }
                 target.SetReference(H264ReferenceList.L0, partX, partY, width, height, indices[part]);
             }
@@ -55,7 +55,7 @@ namespace Mediana.Codecs.H264
                     {
                         (int motionX, int motionY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, partX + subX, partY + subY,
                             width, height, indices[part], part);
-                        (int deltaX, int deltaY) = reader.ReadMotionDifference(ref bits, partX + subX, partY + subY, width, height);
+                        (int deltaX, int deltaY) = reader.ReadMotionDifference(ref bits, H264ReferenceList.L0, partX + subX, partY + subY, width, height);
                         motionX += deltaX;
                         motionY += deltaY;
                         if (motionX is < short.MinValue or > short.MaxValue || motionY is < short.MinValue or > short.MaxValue)

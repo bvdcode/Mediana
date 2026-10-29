@@ -30,7 +30,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             H264BitReader bits = H264Nal.Payload(input.Nal, H264Nal.Type(input.Nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, input.Configuration, input.Nal[0]);
-            using (H264Picture picture = H264CabacPictureDecoder.Decode(ref bits, header, [], allocator))
+            using (H264Picture picture = H264CabacPictureDecoder.Decode(ref bits, header, new([], []), default, allocator))
             {
                 H264TestInput.VerifyPicture(picture, expected);
             }

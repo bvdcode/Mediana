@@ -3,10 +3,18 @@ namespace Mediana.Tests
     public class H264BidirectionalPictureTests
     {
         [Theory]
-        [InlineData("avc-cavlc-b-spatial", true)]
-        [InlineData("avc-cavlc-b-temporal", false)]
-        public Task AllReorderedPicturesMatchIndependentYuv(string name, bool spatial) =>
-            H264BidirectionalPictureTestInput.VerifyPicturesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name, spatial);
+        [InlineData("avc-cavlc-b-spatial")]
+        [InlineData("avc-cavlc-b-temporal")]
+        [InlineData("avc-aac")]
+        [InlineData("avc-segments")]
+        public Task AllReorderedPicturesMatchIndependentYuv(string name) =>
+            H264BidirectionalPictureTestInput.VerifyPicturesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name);
+
+        [Theory]
+        [InlineData("avc-aac")]
+        [InlineData("avc-segments")]
+        public Task CabacPublicSessionMatchesIndependentPicturesAndTiming(string name) =>
+            H264BidirectionalPictureTestInput.VerifySessionAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name);
 
         [Theory]
         [InlineData("avc-cavlc-b-spatial")]

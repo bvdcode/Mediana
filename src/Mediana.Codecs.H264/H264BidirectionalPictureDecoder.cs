@@ -9,9 +9,13 @@ namespace Mediana.Codecs.H264
         {
             cancellationToken.ThrowIfCancellationRequested();
             string? reason = H264Support.GetUnsupportedReason(header);
-            if (header.Kind != H264SliceKind.B || header.Picture.Cabac || reason is not null)
+            if (header.Kind != H264SliceKind.B || reason is not null)
             {
-                throw new NotSupportedException(reason ?? "B reconstruction requires a CAVLC B slice.");
+                throw new NotSupportedException(reason ?? "B reconstruction requires a B slice.");
+            }
+            if (header.Picture.Cabac)
+            {
+                return H264CabacPictureDecoder.Decode(ref bits, header, references, order, allocator, cancellationToken);
             }
             H264Picture result = new(header.Sequence, allocator, header.Kind);
             bool complete = false;
@@ -65,7 +69,7 @@ namespace Mediana.Codecs.H264
             int x = address % header.Sequence.WidthInMbs * 16;
             int y = address / header.Sequence.WidthInMbs * 16;
             Span<byte> prediction = stackalloc byte[384];
-            bool noSmallPartitions = H264BidirectionalSyntax.Read(ref bits, target, header, references, order, x, y, type, prediction);
+            bool noSmallPartitions = H264BidirectionalSyntax.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, order, x, y, type, prediction);
             H264InterMacroblock.ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions, skip);
         }
     }

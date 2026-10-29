@@ -32,7 +32,7 @@ namespace Mediana.Tests
                 }
                 H264BitReader bits = new(H264TestBits.Rbsp(content));
                 byte[] prediction = new byte[384];
-                Assert.True(H264BidirectionalSyntax.Read(ref bits, target, Header(), references, new(2, 2), 0, 0, type, prediction));
+                Assert.True(H264BidirectionalSyntax.Read(ref bits, new H264CavlcPredictionReader(), target, Header(), references, new(2, 2), 0, 0, type, prediction));
                 bits.ReadTrailingBits();
                 for (int row = 0; row < 16; row++)
                 {
@@ -71,7 +71,7 @@ namespace Mediana.Tests
                 + (subtype == 0 ? string.Empty : new string('1', parts * lists * 4 * 2));
             H264BitReader bits = new(H264TestBits.Rbsp(content));
             byte[] prediction = new byte[384];
-            Assert.Equal(noSmall, H264BidirectionalSyntax.Read(ref bits, target, Header(), References(past, future), new(2, 2), 0, 0, 22, prediction));
+            Assert.Equal(noSmall, H264BidirectionalSyntax.Read(ref bits, new H264CavlcPredictionReader(), target, Header(), References(past, future), new(2, 2), 0, 0, 22, prediction));
             bits.ReadTrailingBits();
             Assert.All(prediction, value => Assert.Equal(expected, value));
         }
@@ -86,7 +86,7 @@ namespace Mediana.Tests
             H264BidirectionalReferences references = new([new(past, 0, new(0, 0)), new(future, 1, new(4, 4))],
                 [new(future, 1, new(4, 4)), new(past, 0, new(0, 0))]);
             H264BitReader bits = new(H264TestBits.Rbsp("1001 010 1 00100 1 00110 1 0001000 1"));
-            H264BidirectionalSyntax.Read(ref bits, target, Header() with { ActiveReferencesL0 = 2, ActiveReferencesL1 = 2 }, references,
+            H264BidirectionalSyntax.Read(ref bits, new H264CavlcPredictionReader(), target, Header() with { ActiveReferencesL0 = 2, ActiveReferencesL1 = 2 }, references,
                 new(2, 2), 0, 0, 20, new byte[384]);
             bits.ReadTrailingBits();
             Assert.Equal(new H264MotionSample(true, 0, 1, 0), target.MotionAt(H264ReferenceList.L0, 0, 0));

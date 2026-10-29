@@ -25,6 +25,7 @@
     <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalDeblockingTestInput.cs" Link="H264BidirectionalDeblockingTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalPictureTestInput.cs" Link="H264BidirectionalPictureTestInput.cs" />
+    <Compile Include="../Shared/H264BidirectionalFixture.cs" Link="H264BidirectionalFixture.cs" />
     <Compile Include="../Shared/H264BiPredictionTestInput.cs" Link="H264BiPredictionTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalPredictionTestInput.cs" Link="H264BidirectionalPredictionTestInput.cs" />
     <Compile Include="../Shared/H264EightByEightTestInput.cs" Link="H264EightByEightTestInput.cs" />
@@ -48,6 +49,8 @@
     <None Include="../Mediana.Tests/Data/Mp4/avc-aac.mp4;../Mediana.Tests/Data/Mp4/avc-aac.mp4.json"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-segments.mp4;../Mediana.Tests/Data/Mp4/avc-segments.mp4.json"
+          Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-aac.sequence.yuv;../Mediana.Tests/Data/Mp4/avc-segments.sequence.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-aac.frame0.yuv;../Mediana.Tests/Data/Mp4/avc-cabac-intra.mp4;../Mediana.Tests/Data/Mp4/avc-cabac-intra.sequence.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

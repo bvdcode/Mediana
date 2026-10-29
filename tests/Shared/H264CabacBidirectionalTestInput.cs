@@ -1,4 +1,5 @@
 using Mediana.Codecs.H264;
+using Mediana.Core.Memory;
 
 namespace Mediana.Tests
 {
@@ -44,6 +45,7 @@ namespace Mediana.Tests
                     H264SliceHeader header = source with { Kind = H264SliceKind.B, Qp = qp, CabacInitIdc = initialization };
                     VerifyTypes(states, shared, header);
                     VerifySkipAndSubtypes(states, shared, header);
+                    VerifyPredictionState(states, shared, header);
                 }
             }
         }
@@ -57,6 +59,53 @@ namespace Mediana.Tests
                 writer.Initialize(24 + index, states[offset + index]);
             }
             return writer;
+        }
+
+        private static void VerifyPredictionState(byte[] states, byte[] shared, H264SliceHeader source)
+        {
+            H264SequenceParameterSet sequence = new() { WidthInMbs = 3, HeightInMapUnits = 1, FrameMbsOnly = true };
+            H264SliceHeader header = source with { Sequence = sequence };
+            H264CabacIntervalWriter writer = Writer(states, shared, header);
+            foreach ((int dx, int dy, int sx, int sy) in new[] { (40, -3, 0, 0), (-4, 50, 0, 0), (2, 1, 40, 3), (1, -2, 4, 50) })
+            {
+                H264CabacPredictionTestInput.WriteMotion(writer, dx, false, sx);
+                H264CabacPredictionTestInput.WriteMotion(writer, dy, true, sy);
+            }
+            writer.Decision(true, 54, 0, 0);
+            writer.Decision(false, 58, 0, 0);
+            writer.Decision(false, 54, 0, 0);
+            writer.Decision(false, 55, 0, 0);
+            writer.Decision(true, 54, 0, 0);
+            writer.Decision(false, 58, 0, 0);
+            writer.Decision(false, 54, 0, 0);
+            writer.Termination(true);
+            MediaBufferAllocator allocator = new(8192);
+            using (H264Picture target = new(sequence, allocator, H264SliceKind.B))
+            {
+                H264BitReader bits = new(writer.ToEbsp());
+                H264CabacReader reader = new(ref bits, header);
+                using H264CabacPredictionReader prediction = new(reader, target, allocator);
+                if (prediction.ReadMotionDifference(ref bits, H264ReferenceList.L0, 0, 0, 16, 16) != (40, -3)
+                    || prediction.ReadMotionDifference(ref bits, H264ReferenceList.L1, 0, 0, 16, 16) != (-4, 50)
+                    || prediction.ReadMotionDifference(ref bits, H264ReferenceList.L0, 16, 0, 16, 16) != (2, 1)
+                    || prediction.ReadMotionDifference(ref bits, H264ReferenceList.L1, 16, 0, 16, 16) != (1, -2)
+                    || prediction.ReadReference(ref bits, H264ReferenceList.L0, 0, 0, 16, 16, 1) != 1
+                    || prediction.ReadReference(ref bits, H264ReferenceList.L1, 0, 0, 16, 16, 1) != 0
+                    || prediction.ReadReference(ref bits, H264ReferenceList.L0, 16, 0, 16, 16, 1) != 0
+                    || prediction.ReadReference(ref bits, H264ReferenceList.L1, 16, 0, 16, 16, 1) != 1)
+                {
+                    throw new InvalidDataException("The CABAC B motion or reference contexts share state between lists.");
+                }
+                target.SetMotion(H264ReferenceList.L0, 16, 0, 16, 16, 1, 100, 100);
+                if (prediction.ReadReference(ref bits, H264ReferenceList.L0, 32, 0, 16, 16, 1) != 0 || !reader.Termination(ref bits))
+                {
+                    throw new InvalidDataException("Inferred direct references changed the CABAC syntax context.");
+                }
+            }
+            if (allocator.AllocatedBytes != 0)
+            {
+                throw new InvalidOperationException("CABAC B syntax verification retained picture storage.");
+            }
         }
 
         private static void VerifyTypes(byte[] states, byte[] shared, H264SliceHeader header)
