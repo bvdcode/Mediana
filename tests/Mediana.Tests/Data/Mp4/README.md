@@ -32,8 +32,8 @@ one of the corresponding source's 36 YUV pictures, including B-picture reorder.
 The B headers at video packet indices 2 and 3 are checked against FFmpeg 6.1.1
 `trace_headers`, including both active reference counts, picture order, direct
 prediction selection, quantizers, reference marking and CABAC alignment. The
-same checks run in Native AOT. They cover header parsing; B picture reconstruction
-is still unsupported.
+same checks run in Native AOT. They cover header parsing; reconstruction of this
+CABAC B sequence is still unsupported.
 The first five parsed headers also verify the POC sequence 0, 6, 2, 4, 8 and
 reference retention. At packet 2, L0/L1 select frame numbers 0/1. At packet 3,
 L0 selects 2, 0 and L1 selects 1. These list checks use allocated picture storage
@@ -345,3 +345,44 @@ The public preview check requests 450 ms, selects 500 ms, preserves the
 channels match selected reference samples within one code; CRCs, timing, color
 and aspect metadata and allocation release are checked in managed execution
 and Native AOT.
+
+## CAVLC B reconstruction and previews
+
+`avc-cavlc-b-spatial.mp4` and `avc-cavlc-b-temporal.mp4` contain 18 High-profile
+CAVLC pictures each at 96x64 and 10 fps, with two closed GOPs, four reference
+frames, implicit bidirectional weighting, default scaling and BT.709 limited
+color metadata. Each sequence contains 11 B pictures. The spatial sequence uses
+spatial direct throughout; the temporal sequence contains seven temporal-direct
+and four spatial-direct B pictures, as independently confirmed by `trace_headers`.
+
+All 36 complete filtered YUV pictures match the independent references internally
+and through public sessions. Public sessions use the linear movie timeline and
+verify presentation order, every PTS and duration, end of stream and released
+allocation budgets. A request at 150 ms selects the B picture at 200 ms; its
+square-pixel 64x43 sRGB PNG matches the independent RGBA reference within one
+8-bit code per channel. These checks also execute in Native AOT.
+
+Managed syntax checks cover every B macroblock and sub-macroblock type, ordering
+of both lists' reference indices and motion differences, and transform eligibility.
+Additional vectors check direct-reference mapping, list swaps in deblocking,
+missing references, damaged payloads, truncation and cancellation. This support
+requires one progressive 8-bit 4:2:0 CAVLC slice per picture; CABAC B reconstruction
+remains unsupported.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-cavlc-b-spatial.mp4` | `08aff46834799ae64691e356bad47fa112f5f0f296dc02f8751c0a0b5932bc79` |
+| `avc-cavlc-b-spatial.sequence.yuv` | `66bcbe6f2a665f5d1079480c20ddffee5304dc7cee880a155f2f294baf76f4ca` |
+| `avc-cavlc-b-spatial.frame2.srgb.rgba` | `eaa787926947a097b46d1d000eec797b0670a6af885600567aba71bf86204a54` |
+| `avc-cavlc-b-temporal.mp4` | `cf531a486133ef69f22cbde0e388291684e18ea1363c6aa0f355f10b114f0ae9` |
+| `avc-cavlc-b-temporal.sequence.yuv` | `7e1ab89a04808524b3f7b052d640eb2149b68887df840611b86bf3d45cf2a62a` |
+| `avc-cavlc-b-temporal.frame2.srgb.rgba` | `3dbc4b7bc1811f2d5eb36ffdfaa5e9375c0a68d710cdc601112b8523355cf4c1` |
+
+Use `spatial` and `temporal` as `MODE` to reproduce the two sequences:
+
+```sh
+MODE=spatial
+ffmpeg -hide_banner -v error -nostdin -y -f lavfi -i testsrc2=size=96x64:rate=10:duration=1.8 -map_metadata -1 -c:v libx264 -profile:v high -coder:v vlc -pix_fmt yuv420p -g 12 -keyint_min 12 -sc_threshold 0 -bf 3 -refs 4 -qp 25 -x264-params "8x8dct=1:direct=$MODE:weightb=1:b-adapt=0:open-gop=0" -color_primaries bt709 -color_trc bt709 -colorspace bt709 -color_range tv -an -movflags +faststart "avc-cavlc-b-$MODE.mp4"
+ffmpeg -hide_banner -v error -nostdin -y -i "avc-cavlc-b-$MODE.mp4" -pix_fmt yuv420p -f rawvideo "avc-cavlc-b-$MODE.sequence.yuv"
+ffmpeg -hide_banner -v error -nostdin -y -threads 1 -filter_threads 1 -i "avc-cavlc-b-$MODE.mp4" -vf "select=eq(n\,2),zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -fps_mode passthrough -f rawvideo "avc-cavlc-b-$MODE.frame2.srgb.rgba"
+```

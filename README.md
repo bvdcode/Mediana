@@ -6,11 +6,11 @@ native media libraries, or third-party runtime packages.
 
 The current implementation is experimental. It reads metadata and compressed packets from
 non-fragmented MP4/MOV files containing AVC/AAC tracks. The H.264 source module
-connects limited CAVLC/CABAC I/P decoding to public video sessions and returns cropped YUV frames.
+connects limited CAVLC I/P/B and CABAC I/P decoding to public video sessions and returns cropped YUV frames.
 The sample can extract a supported video frame, convert SDR color to sRGB, correct
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC access units without decoding.
-**B-picture decoding, audio decoding and video/audio encoding are not available yet.**
+**CABAC B-picture decoding, audio decoding and video/audio encoding are not available yet.**
 
 ## Components
 
@@ -22,7 +22,7 @@ An experimental MPEG-TS source module packages AVC/AAC access units without deco
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC transport-stream writer; source project only |
 | `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
-| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P decoder factory, picture ordering and cropped YUV output; source project only |
+| `Mediana.Codecs.H264` | Experimental AVC CAVLC I/P/B and CABAC I/P decoder factory, picture ordering and cropped YUV output; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
 | `Mediana.Processing` | Scalar SDR conversion to sRGB, RGBA32 resizing and square-pixel preview fitting |
 | `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
@@ -33,8 +33,8 @@ An experimental MPEG-TS source module packages AVC/AAC access units without deco
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
 
-The H.264 work currently reconstructs single-slice progressive 8-bit 4:2:0 I/P
-pictures with CAVLC or CABAC and default scaling, including motion compensation, reference
+The H.264 work currently reconstructs single-slice progressive 8-bit 4:2:0 CAVLC I/P/B
+and CABAC I/P pictures with default scaling, including motion compensation, reference
 picture management, intra prediction, inverse transforms, PCM blocks and deblocking.
 Two complete Baseline/Main CAVLC sequences and one cropped IDR picture match the
 independent filtered YUV references sample for sample (nineteen pictures total).
@@ -44,9 +44,13 @@ motion, weighted prediction and nonzero deblocking offsets match thirty further
 independent YUV pictures internally and through public sessions.
 Three High CABAC sequences with the same transform sizes match forty-two further
 independent YUV pictures, including all three CABAC initialization selections.
-All forty-nine CAVLC pictures, six Main CABAC intra pictures and 96 additional CABAC I/P pictures match through MediaEngine,
+Two High CAVLC I/P/B sequences add 36 complete independent YUV pictures, including
+spatial/temporal direct prediction, both reference lists, implicit prediction weights,
+reference B pictures and deblocking. Public sessions preserve presentation order;
+selected B-picture sRGB PNGs match independent pixels within one channel level.
+All 85 CAVLC pictures, six Main CABAC intra pictures and 96 additional CABAC I/P pictures match through MediaEngine,
 with timing, cropping and sample aspect ratio preserved. Preview generation requires
-the supported CAVLC/CABAC I/P subset and known color and sample aspect ratio;
+the supported CAVLC I/P/B or CABAC I/P subset and known color and sample aspect ratio;
 it does not cover general H.264 files.
 
 ## Build and run
@@ -100,8 +104,8 @@ Native AOT requires the platform build toolchain. The resulting executable targe
 one OS/architecture and still uses standard OS runtime facilities.
 See the [.NET Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
 
-Mediana.NativeTests executes internal H.264 I/P reconstruction and public MediaEngine
-video sessions. Each path compares all visible YUV samples in forty-nine CAVLC pictures
+Mediana.NativeTests executes internal H.264 CAVLC I/P/B and CABAC I/P reconstruction and public MediaEngine
+video sessions. Each path compares all visible YUV samples in 85 CAVLC pictures
 with the checked-in references. Public sessions also compare six CABAC intra pictures and 96 CABAC I/P pictures
 and verify timing, cropping,
 sample aspect ratio and allocation release. Its fixture loading and comparison code
@@ -133,7 +137,10 @@ directional prediction modes match explicit independent vectors. Three High CABA
 sequences match 42 additional complete I/P pictures with actual intra/inter 8x8
 use. The 34 progressive 8x8 contexts match all 7072 normative initial states;
 residual intervals exercise every scan position, signs and large magnitudes.
-B pictures and broader slice support remain open. Unsupported or damaged pictures fault the session
+CAVLC B reconstruction covers all macroblock and sub-macroblock types, spatial and
+temporal direct prediction, both reference lists and deblocking. Two real sequences
+verify all 36 reordered pictures and selected B-picture PNG previews. CABAC B pictures
+and broader slice support remain open. Unsupported or damaged pictures fault the session
 and release pending output; reset or disposal is required. Unused bits
 in the arithmetic terminal byte are discarded; following zero words are checked.
 This decoder is not a complete bitstream conformance validator.
@@ -248,7 +255,7 @@ parameter sets carried within that packet, without retaining state between calls
 
 The decoder accepts AVC length-prefixed packets with one complete single-slice
 picture and an initial avcC configuration. Supported pictures are progressive
-8-bit YUV 4:2:0 CAVLC/CABAC I/P with default scaling, including 4x4/8x8
+8-bit YUV 4:2:0 CAVLC I/P/B or CABAC I/P with default scaling, including 4x4/8x8
 prediction and transforms.
 Decoding begins with an IDR; sequence changes through in-band SPS/PPS also
 require an IDR. Each output carries
@@ -259,7 +266,7 @@ sample aspect ratio and CICP color codes remain unspecified.
 
 Picture order types 0, 1 and 2, bounded delayed output, IDR/MMCO resets, input
 completion, cancellation and buffer ownership have executable checks. SEI message
-boundaries are validated; payload semantics are not interpreted. B pictures,
+boundaries are validated; payload semantics are not interpreted. CABAC B pictures,
 multiple slices, interlacing, custom scaling, higher bit depths and inferred
 references for frame-number gaps are unsupported. H264DecoderOptions bounds picture
 pixels, configuration bytes, parameter-set bytes, NAL count and reference operations.
@@ -665,7 +672,7 @@ The workflow defines build, formatting, tests and native publication/execution o
 Linux, Windows and macOS. Other platform results depend on those CI runs.
 The native sample covers the generated-frame pipeline, reading all packets from
 the two original MP4/MOV fixtures and an MP4-to-PNG preview. The separate native tests
-also verify internal and public decoding of forty-nine CAVLC reference pictures and
+also verify internal and public decoding of 85 CAVLC reference pictures and
 six CABAC intra pictures and 96 additional CABAC I/P pictures, SDR conversion and decoded PNG pixels. Each future
 format also requires an executable AOT integration test.
 

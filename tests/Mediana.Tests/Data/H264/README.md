@@ -37,8 +37,10 @@ Partition checks exercise single-list and bidirectional prediction with all thre
 weight modes. Linear sample ramps verify fractional luma and chroma interpolation;
 rectangle checks cover 16x16, 16x8, 8x16, 8x8, 8x4, 4x8 and 4x4 placement.
 I/P storage retains its existing byte budget; B storage adds the second motion list.
-These are prediction component checks. B macroblock syntax, direct prediction,
-deblocking and complete B picture reconstruction remain open.
+The component vectors are supplemented by complete CAVLC B reconstruction checks
+using the MP4 fixtures described in [MP4/MOV fixtures](../Mp4/README.md).
+They include B macroblock syntax, spatial/temporal direct prediction, deblocking,
+presentation order and PNG previews. CABAC B reconstruction remains open.
 
 ## Intra 8x8 prediction reference
 
