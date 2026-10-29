@@ -45,19 +45,24 @@ namespace Mediana.Codecs.H264
 
         public void Apply(int reference, int plane, Span<byte> samples)
         {
+            (int weight, int offset, int denominator) = Get(reference, plane);
+            int rounding = denominator == 0 ? 0 : 1 << (denominator - 1);
+            for (int index = 0; index < samples.Length; index++)
+            {
+                samples[index] = (byte)Math.Clamp(((weight * samples[index] + rounding) >> denominator) + offset, 0, 255);
+            }
+        }
+
+        public (int Weight, int Offset, int Denominator) Get(int reference, int plane)
+        {
             H264PredictionWeight entry = Entries[reference];
-            (int weight, int offset, int denominator) = plane switch
+            return plane switch
             {
                 0 => (entry.LumaWeight, entry.LumaOffset, LumaDenominator),
                 1 => (entry.CbWeight, entry.CbOffset, ChromaDenominator),
                 2 => (entry.CrWeight, entry.CrOffset, ChromaDenominator),
                 _ => throw new ArgumentOutOfRangeException(nameof(plane))
             };
-            int rounding = denominator == 0 ? 0 : 1 << (denominator - 1);
-            for (int index = 0; index < samples.Length; index++)
-            {
-                samples[index] = (byte)Math.Clamp(((weight * samples[index] + rounding) >> denominator) + offset, 0, 255);
-            }
         }
     }
 }
