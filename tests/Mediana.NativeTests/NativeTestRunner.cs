@@ -10,6 +10,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await Mp3SyntaxTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3"));
+            await Console.Out.WriteLineAsync("PASS MP3 side information: all 846 frames, protected-field CRCs, window parameters and complete assembled bit-reservoir bytes match.");
             await Mp3ReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3"));
             await Console.Out.WriteLineAsync("PASS MP3 framing: all independent MPEG1/2/2.5 packets, timestamps, ID3 text, picture bytes, trailing tags and ownership match.");
             foreach (string name in FlacDecodeTestInput.Names)

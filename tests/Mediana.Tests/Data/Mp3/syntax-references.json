@@ -1,0 +1,235 @@
+{
+  "description": "All fields hashed as little-endian int32 in granule-major/channel order. Main-data hash contains int32 bit count followed by ceil(bit count/8) original bytes per frame, located in the complete header/side-info-free slot stream.",
+  "fixtures": [
+    {
+      "name": "stereo-vbr-cover",
+      "input_sha256": "5f5a8de6ef54159e8261c637d57d1c02541bb3082586f54a8bff6042896cf7a4",
+      "frames": 221,
+      "crc": false,
+      "side_fields_sha256": "21bfc0428ffab3a153bfaa27d4a46f01b5c49769958b59f79ed822ad93ac9a68",
+      "main_data_sha256": "6d2153fb4e33f55bd83220b85784f8c0af27cb757be438970d72ab4b10e4d630",
+      "main_data_bits": 253913,
+      "frames_with_history": 220,
+      "maximum_back_bytes": 511,
+      "block_counts": [
+        488,
+        92,
+        212,
+        92
+      ]
+    },
+    {
+      "name": "stereo-cbr-id3v23",
+      "input_sha256": "79d1f14ca04049b2165fa66407c081f12b39292b280f5ef38e59e7929d368542",
+      "frames": 240,
+      "crc": false,
+      "side_fields_sha256": "ce8da531c6dd9f39f680bfe7df8fa4038425f3cd6da396ec0bb7b0b43bab4d60",
+      "main_data_sha256": "4e31352188953d382eacbd7aabb10c4ea664cb1cafc19c4030f56511a6cb2fe0",
+      "main_data_bits": 601405,
+      "frames_with_history": 239,
+      "maximum_back_bytes": 511,
+      "block_counts": [
+        682,
+        72,
+        134,
+        72
+      ]
+    },
+    {
+      "name": "mono-speech",
+      "input_sha256": "b9513a4507ce8dd61167a063d62e9ac736924597a82778e38b5f69bcd02e003d",
+      "frames": 97,
+      "crc": false,
+      "side_fields_sha256": "07824a72ad28d75ac11d56a8c5164dbbafa3c135f843ce610909bf52e5226fe3",
+      "main_data_sha256": "fef173da6e4daef614b620085b3819d193e8dfe67d903e0d2e6b14009afb3e22",
+      "main_data_bits": 155109,
+      "frames_with_history": 96,
+      "maximum_back_bytes": 255,
+      "block_counts": [
+        81,
+        5,
+        6,
+        5
+      ]
+    },
+    {
+      "name": "mono-low-rate",
+      "input_sha256": "aa233c16ccc4bc9b5133cf6ecb85be9c862f0030a321d98d6c68568151e02a12",
+      "frames": 82,
+      "crc": false,
+      "side_fields_sha256": "5f172a211a932582145c620ecff31f57880cb69c8509e17f5d2aa4cba1515eb3",
+      "main_data_sha256": "2f47dc6b6714ae6bee1259e4a6fd49093952eeaf3e521fb00ff4759f9ff92fee",
+      "main_data_bits": 117398,
+      "frames_with_history": 81,
+      "maximum_back_bytes": 255,
+      "block_counts": [
+        79,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "name": "crc-48000-1",
+      "input_sha256": "032979b5d4abf3263e7aacaa9cae00055d1c245191fc3b25c316df8895f84d81",
+      "frames": 43,
+      "crc": true,
+      "side_fields_sha256": "a12b9e66ee3279ee177ee3d78f9a482b834cbcf69168629297806ca83e4054e5",
+      "main_data_sha256": "d0f47480e3b8ed66949db1e9cc9adf1cc4ac0d872180df423395fa0a2aafd82d",
+      "main_data_bits": 78410,
+      "frames_with_history": 42,
+      "maximum_back_bytes": 511,
+      "block_counts": [
+        48,
+        12,
+        14,
+        12
+      ],
+      "generation": {
+        "encoder": "LAME 3.100",
+        "sample_rate": 48000,
+        "channels": 1,
+        "bitrate_kbps": 128,
+        "quality": 2,
+        "error_protection": 1,
+        "write_vbr_tag": 0,
+        "source": "One second of PCM16 tones: channel c uses 440+193*c Hz, amplitude 10000; every fourth 50 ms interval with index modulo 4 equal to 1 is silent."
+      }
+    },
+    {
+      "name": "crc-48000-2",
+      "input_sha256": "e3e2329dadd36e552fe6967c7ef5c97aba98bb6b782c9a15933958109d70a1d8",
+      "frames": 43,
+      "crc": true,
+      "side_fields_sha256": "59a54b9369756b67136b07034c6ff3bbd52729a8842af34493e283d0dcd33935",
+      "main_data_sha256": "4cfb0cdaedfad7dc553f8385f3f0b3b16c24ba420593cdb5ee00ea4e188e830b",
+      "main_data_bits": 110375,
+      "frames_with_history": 42,
+      "maximum_back_bytes": 511,
+      "block_counts": [
+        88,
+        24,
+        36,
+        24
+      ],
+      "generation": {
+        "encoder": "LAME 3.100",
+        "sample_rate": 48000,
+        "channels": 2,
+        "bitrate_kbps": 128,
+        "quality": 2,
+        "error_protection": 1,
+        "write_vbr_tag": 0,
+        "source": "One second of PCM16 tones: channel c uses 440+193*c Hz, amplitude 10000; every fourth 50 ms interval with index modulo 4 equal to 1 is silent."
+      }
+    },
+    {
+      "name": "crc-24000-1",
+      "input_sha256": "69709fc8d4cb8e720ead5818aa7ef9f56bc33cd8858ac372ad94429206e326cf",
+      "frames": 44,
+      "crc": true,
+      "side_fields_sha256": "401497faebeafcc7a3c7b58b2bf02e6a9a8f8d8a2390b3f4278151df6570191d",
+      "main_data_sha256": "a838a14553918fd750a64e0be76ab4aa250460779333fe5777769413b6e40b37",
+      "main_data_bits": 51568,
+      "frames_with_history": 43,
+      "maximum_back_bytes": 255,
+      "block_counts": [
+        13,
+        6,
+        19,
+        6
+      ],
+      "generation": {
+        "encoder": "LAME 3.100",
+        "sample_rate": 24000,
+        "channels": 1,
+        "bitrate_kbps": 64,
+        "quality": 2,
+        "error_protection": 1,
+        "write_vbr_tag": 0,
+        "source": "One second of PCM16 tones: channel c uses 440+193*c Hz, amplitude 10000; every fourth 50 ms interval with index modulo 4 equal to 1 is silent."
+      }
+    },
+    {
+      "name": "crc-24000-2",
+      "input_sha256": "7c93023dea4be2dcfb4bce4db2f275aabba814584a8e333e7f64da8a667a9744",
+      "frames": 44,
+      "crc": true,
+      "side_fields_sha256": "5f9c933e2f998bd206aff87967fe093e69c17998f94159e834d09e63ce93795b",
+      "main_data_sha256": "b918842ef5fd73efbc82e9c0e7c97bc63deeb7dd17e0872d5f34662e0a108cb6",
+      "main_data_bits": 56546,
+      "frames_with_history": 43,
+      "maximum_back_bytes": 255,
+      "block_counts": [
+        26,
+        12,
+        38,
+        12
+      ],
+      "generation": {
+        "encoder": "LAME 3.100",
+        "sample_rate": 24000,
+        "channels": 2,
+        "bitrate_kbps": 64,
+        "quality": 2,
+        "error_protection": 1,
+        "write_vbr_tag": 0,
+        "source": "One second of PCM16 tones: channel c uses 440+193*c Hz, amplitude 10000; every fourth 50 ms interval with index modulo 4 equal to 1 is silent."
+      }
+    },
+    {
+      "name": "crc-8000-1",
+      "input_sha256": "a218d941e60b27d05d709a2d9f88ff190c6aae6991840d4cd824296ac2f6a6d7",
+      "frames": 16,
+      "crc": true,
+      "side_fields_sha256": "0eec45ac95812f09e6fc5e47e18775e02f8d29d86781a4f90fd6c272a645e6cf",
+      "main_data_sha256": "963682c577741a160340b9484319a29190d454df9e6028d6f15039746abf71e3",
+      "main_data_bits": 24209,
+      "frames_with_history": 15,
+      "maximum_back_bytes": 132,
+      "block_counts": [
+        0,
+        1,
+        14,
+        1
+      ],
+      "generation": {
+        "encoder": "LAME 3.100",
+        "sample_rate": 8000,
+        "channels": 1,
+        "bitrate_kbps": 24,
+        "quality": 2,
+        "error_protection": 1,
+        "write_vbr_tag": 0,
+        "source": "One second of PCM16 tones: channel c uses 440+193*c Hz, amplitude 10000; every fourth 50 ms interval with index modulo 4 equal to 1 is silent."
+      }
+    },
+    {
+      "name": "crc-8000-2",
+      "input_sha256": "08ff3234636dfd584f72c7c17d4dbbd768b38772fe3e90fac2c4019a5e113dd7",
+      "frames": 16,
+      "crc": true,
+      "side_fields_sha256": "fc26eaabd6567a02a12f2078e894469a3015d797eb0749695f69b0df992ac9c6",
+      "main_data_sha256": "97f06656164216224abb983a3ace20af39018cf8ef0ade0618152e05463b34c3",
+      "main_data_bits": 24052,
+      "frames_with_history": 15,
+      "maximum_back_bytes": 107,
+      "block_counts": [
+        0,
+        2,
+        28,
+        2
+      ],
+      "generation": {
+        "encoder": "LAME 3.100",
+        "sample_rate": 8000,
+        "channels": 2,
+        "bitrate_kbps": 24,
+        "quality": 2,
+        "error_protection": 1,
+        "write_vbr_tag": 0,
+        "source": "One second of PCM16 tones: channel c uses 440+193*c Hz, amplitude 10000; every fourth 50 ms interval with index modulo 4 equal to 1 is silent."
+      }
+    }
+  ]
+}

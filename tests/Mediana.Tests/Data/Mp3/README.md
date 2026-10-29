@@ -50,3 +50,39 @@ Primary format references:
 MPEG header lengths/rate tables and Xing/Info placement/count semantics were
 cross-checked against the LAME and FFmpeg format implementations. The C# reader
 is an original implementation; no codec implementation was copied.
+
+## Side information and bit-reservoir references
+
+`syntax-references.json` extends the four files above with six `crc-<rate>-<channels>.mp3`
+files: 48000, 24000 and 8000 Hz, each in mono and stereo. The additional files
+were encoded with LAME 3.100, quality 2, CRC protection enabled and Xing writing
+disabled. Rates are 128, 64 and 24 kbit/s respectively. Each source is one second
+of original PCM16: channel c uses a 440+193*c Hz sine with amplitude 10000;
+every fourth 50 ms interval whose index modulo four is one is silent. These
+synthetic signals and their encodings are MIT licensed. FFmpeg 6.1.1 successfully
+decodes each protected input with `-err_detect crccheck+explode`.
+
+All 846 frames are checked in managed and Native AOT tests. The reference uses
+independent textual bit extraction and absolute offsets in the complete slot
+stream, with frame headers, CRC words and side information removed. It checks
+all decoded side fields and assembled main-data bytes, including all four window
+types, both granules of MPEG-1, low-rate scalefactor compression, and references
+to earlier frames. The production reservoir retains at most 511 bytes for MPEG-1
+or 255 bytes for MPEG-2/2.5, in addition to the configured current-frame space.
+
+The side-field hash serializes little-endian int32 values for each frame:
+main-data back offset, total main-data bit count, channel count, granule count,
+left and right scalefactor reuse masks; then for each granule and channel:
+part bit count, big-value pair count, global gain, scalefactor compression,
+block type, mixed flag, three Huffman tables, three subblock gains, both region
+counts, preflag, scalefactor scale and count1 table. Booleans use zero or one.
+The main-data hash serializes the int32 bit count followed by its original
+rounded-up bytes. The last byte can contain alignment bits outside the declared
+part; bounded bit readers expose only the declared granule bits.
+
+The internal decoder syntax validates protected header/side-info CRCs. Separate
+tests corrupt every protected reference frame and require CRC rejection. This
+does not change the container reader's CRC policy or establish MP3 PCM decoding.
+The fixed field syntax follows ISO/IEC 11172-3 and ISO/IEC 13818-3; CRC coverage
+and polynomial are also checked against the LAME encoder. MPEG-2.5 uses the
+low-rate side-info layout. No external encoder or decoder runs during tests.
