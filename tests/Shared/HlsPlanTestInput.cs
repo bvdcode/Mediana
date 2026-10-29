@@ -22,6 +22,11 @@ namespace Mediana.Tests
                 using MediaPacket first = (await reader.ReadPacketAsync())!;
                 HlsPlanningOptions options = new() { TargetDuration = new(9, new TimeBase(1, 4)) };
                 plan = await Mp4AvcSegmentPlan.CreateAsync(reader, 0, options);
+                Mp4AvcSegmentPlan repeated = await Mp4AvcSegmentPlan.CreateAsync(reader, 0, options);
+                if (!plan.Segments.SequenceEqual(repeated.Segments))
+                {
+                    throw new InvalidDataException("Repeated AVC planning changed the immutable video windows.");
+                }
                 if (plan.Segments.Count != 3 || plan.VideoStream != reader.Streams[0])
                 {
                     throw new InvalidDataException("The 7.2-second AVC input must produce three video segment windows.");
