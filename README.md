@@ -30,7 +30,7 @@ The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float P
 | `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoder with long/short windows, TNS, PNS and joint stereo; source project only |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoder factory, picture ordering and cropped YUV output; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
-| `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and streaming RMS/peak |
+| `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
 | `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
 | `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
@@ -315,6 +315,41 @@ levels are passed by value to a synchronous callback. Emitted windows are a pref
 if processing or the callback fails. Display normalization, tapering and waveform
 rendering belong to the application.
 
+`AudioWaveformReader` combines an explicit mono mix, resampling, optional sample
+quantization and level accumulation behind `ReadLevelAsync`. Each call returns
+one `AudioLevel`, or null at EOF. `AudioWaveformOptions` requires the target rate
+and window size; its sample format defaults to float64, preserving finite
+headroom. Selecting `Signed16` applies saturation and PCM16 quantization before
+computing RMS/peak. The final partial window is returned with its exact count,
+timestamp and duration. Returned levels contain no frame leases.
+
+```csharp
+await using AudioWaveformReader waveform = new(
+    session.ReadFrameAsync, new double[] { 0.5, 0.5 },
+    new AudioWaveformOptions(400, 40)
+    {
+        SampleFormat = AudioSampleFormat.Signed16,
+        Resampling = new AudioResampleOptions
+        {
+            CutoffRatio = 0.97,
+            BoundaryMode = AudioBoundaryMode.Reflect
+        }
+    }, allocator);
+while (await waveform.ReadLevelAsync(cancellationToken) is AudioLevel level)
+{
+    ConsumeLevel(level);
+}
+```
+
+The reader owns callback frames and filter storage, borrows the source and uses
+the caller's media-buffer allocator. It keeps bounded processing history and one
+pending level, independent of recording length. EOF, failure, cancellation and
+disposal release owned storage. Failure or cancellation makes the reader terminal;
+concurrent reads/disposal fail explicitly. It infers neither channel mapping nor
+codec priming. To select a decoded range, pass `AudioTrimmer.ReadFrameAsync` as the
+callback. Display shaping remains in the application. Managed and Linux Native
+AOT checks cover independent WAVE/speech references and raw/exact-edited AAC.
+
 `AudioResampler` pulls owned frames from an asynchronous callback and returns
 interleaved float64. It uses a Blackman-windowed sinc low-pass filter before rate
 conversion, a polyphase coefficient bank, bounded sample history and exact rational
@@ -367,6 +402,30 @@ through the renderer's existing PCM decode step. Lossy WebP pixels differ; these
 short inputs establish neither bit-identical rendering nor general media
 equivalence. Application integration and the policy for the final remainder of
 samples beyond Cotton's equal bar windows remain open.
+
+The sample exports waveform data directly from supported WAVE or AAC-LC sources:
+
+```bash
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Waveform/speech.wav artifacts/speech-waveform.json 0 400 40 1
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Aac/lc-stereo-44.m4a artifacts/aac-waveform.json 0 400 16 0.5,0.5
+```
+
+Arguments are input, a new JSON output, stream index, target rate, samples per
+window and gains in source-channel order. The sample explicitly selects PCM16,
+cutoff 0.97 and reflected boundaries. JSON includes RMS/peak, counts and rational
+timestamps/durations; periodic flushes bound writer buffering. Output is published
+only after successful completion. Existing destinations are preserved and failed
+processing removes the temporary output. Like the PCM-export samples, it retains
+complete decoded AAC frames, including priming/padding; application edit selection
+is available through the library API. The same command runs with the Native AOT
+sample executable.
+
+Managed and Native AOT JSON outputs match on recorded speech and stereo AAC.
+A local Linux x64 Native AOT run processed a generated three-minute 48 kHz stereo
+WAVE into 72000 mono samples and 1800 level windows in 2.01 seconds, with an
+observed peak RSS of 13056 KiB. All level counts/times matched an independent PCM
+reference; maximum RMS error was `5.10e-6` and peak error one PCM16 step. This is
+one resource observation, not a controlled throughput comparison.
 
 ## Reading MP4/MOV
 

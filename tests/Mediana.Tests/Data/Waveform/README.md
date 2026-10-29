@@ -45,6 +45,8 @@ checked. Managed tests use input packet sizes 127 and 1024; Native AOT uses 127.
 The fractional input checks a non-integral resampled duration and its final sample.
 Decoder and processing media-buffer budgets are 16 KiB and 256 KiB respectively,
 with no retained media buffers after completion.
+The same independent level windows also verify the public `AudioWaveformReader`,
+with output frames of seven samples to exercise windows spanning frame boundaries.
 
 For normalized PCM, maximum absolute sample error must be at most 0.002 and whole
 signal error RMS at most `1/32768 + 0.01 * reference RMS`. For each level window,
