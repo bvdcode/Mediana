@@ -10,7 +10,8 @@ connects limited CAVLC and CABAC I/P/B decoding to public video sessions and ret
 The sample can extract a supported video frame, convert SDR color to sRGB, correct
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC access units without decoding.
-**Audio decoding and video/audio encoding are not available yet.**
+The WAVE and PCM source modules read integer/float audio through public audio sessions.
+**Compressed audio decoding and video/audio encoding are not available yet.**
 
 ## Components
 
@@ -20,21 +21,23 @@ An experimental MPEG-TS source module packages AVC/AAC access units without deco
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
+| `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading; source project only |
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC transport-stream writer; source project only |
-| `Mediana.Codecs` | Separate input/output codec protocol and video decoder factories |
+| `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
+| `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoder factory, picture ordering and cropped YUV output; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
 | `Mediana.Processing` | Scalar SDR conversion to sRGB, RGBA32 resizing and square-pixel preview fitting |
 | `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
-| `Mediana.Execution` | Pull-driven video decoding, delayed output, bounded container reads and cancellation |
-| `Mediana` | Explicit registration, container detection and forward-only video sessions |
-| `Mediana.Sample` | Real MP4/MOV packet inspection, PNG previews and generated-frame checks |
+| `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
+| `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
+| `Mediana.Sample` | MP4/MOV packet inspection, PNG previews, WAVE PCM export and generated-frame checks |
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
 
 The H.264 work currently reconstructs single-slice progressive 8-bit 4:2:0 CAVLC I/P/B
-and CABAC I/P pictures with default scaling, including motion compensation, reference
+and CABAC I/P/B pictures with default scaling, including motion compensation, reference
 picture management, intra prediction, inverse transforms, PCM blocks and deblocking.
 Two complete Baseline/Main CAVLC sequences and one cropped IDR picture match the
 independent filtered YUV references sample for sample (nineteen pictures total).
@@ -48,9 +51,10 @@ Two High CAVLC I/P/B sequences add 36 complete independent YUV pictures, includi
 spatial/temporal direct prediction, both reference lists, implicit prediction weights,
 reference B pictures and deblocking. Public sessions preserve presentation order;
 selected B-picture sRGB PNGs match independent pixels within one channel level.
-All 85 CAVLC pictures, six Main CABAC intra pictures and 96 additional CABAC I/P pictures match through MediaEngine,
-with timing, cropping and sample aspect ratio preserved. Preview generation requires
-the supported CAVLC I/P/B or CABAC I/P subset and known color and sample aspect ratio;
+All 85 CAVLC pictures, six Main CABAC intra pictures and 96 additional CABAC I/P pictures match through MediaEngine.
+Five CABAC sequences add 98 complete pictures with B prediction and all initialization
+selections. Timing, cropping and sample aspect ratio are preserved. Preview generation requires
+the supported CAVLC/CABAC I/P/B subset and known color and sample aspect ratio;
 it does not cover general H.264 files.
 
 ## Build and run
@@ -67,6 +71,7 @@ dotnet run --project tests/Mediana.NativeTests -c Release --no-build --no-restor
 dotnet format Mediana.slnx --verify-no-changes --no-restore
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Wave/s24-surround.wav artifacts/surround.pcm 0
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview.png 0 250 100 100
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-rotated.png 0 0 100 100
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-intra.mp4 artifacts/preview-cabac.png 0 450 100 100
@@ -95,6 +100,7 @@ Publish and execute it with Native AOT on Linux x64:
 dotnet publish samples/Mediana.Sample -c Release -r linux-x64 -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -o artifacts/native/linux-x64
 ./artifacts/native/linux-x64/Mediana.Sample --self-test
 ./artifacts/native/linux-x64/Mediana.Sample --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+./artifacts/native/linux-x64/Mediana.Sample --decode-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/audio-native.pcm 0
 ./artifacts/native/linux-x64/Mediana.Sample --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-native.png 0 250 100 100
 dotnet publish tests/Mediana.NativeTests -c Release -r linux-x64 -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -o artifacts/native-tests/linux-x64
 ./artifacts/native-tests/linux-x64/Mediana.NativeTests
@@ -150,8 +156,48 @@ Unsupported or damaged pictures fault the session
 and release pending output; reset or disposal is required. Unused bits
 in the arithmetic terminal byte are discarded; following zero words are checked.
 This decoder is not a complete bitstream conformance validator.
-CI is configured to build and run both native
+Seven complete WAVE sequences also match independent PCM references through public
+audio sessions with a 16 KiB media-buffer budget, including unsigned/signed integers,
+both float precisions and six-channel speaker order. Returned audio frames retain
+their storage after session disposal. CI is configured to build and run both native
 executables on Linux, Windows and macOS.
+
+## Reading WAVE PCM
+
+Reference the `Mediana.Containers.Wave` and `Mediana.Codecs.Pcm` source projects:
+
+```csharp
+MediaEngine engine = new MediaEngineBuilder()
+    .AddContainer(new WaveReaderFactory())
+    .AddAudioDecoder(new PcmDecoderFactory())
+    .Build();
+await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
+await using AudioSession session = await engine.OpenAudioAsync(source, 0);
+using AudioFrame? frame = await session.ReadFrameAsync();
+```
+
+The namespaces are Mediana, Mediana.Codecs.Pcm, Mediana.Containers.Wave,
+Mediana.Core.Audio and Mediana.IO. Sequential byte sources are also supported.
+Sessions borrow the source, own decoder/reader state, enforce cancellation and
+configured resource limits, and return independently owned PCM frames. Frame PTS
+and duration use exact sample counts. Random-access opening preserves the source cursor.
+
+The reader supports one little-endian RIFF/WAVE `data` chunk, preceded by its
+`fmt ` configuration. Integer PCM accepts 8/16/24/32-bit storage; IEEE float accepts
+32/64-bit storage. The shared `PcmConfiguration` describes standard WAVEFORMATEX
+or WAVEFORMATEXTENSIBLE bytes, including valid precision and explicit channel order.
+The decoder returns interleaved native-endian samples. Signed 24-bit input expands
+to left-aligned signed 32-bit output; float bit patterns retain their precision.
+Channel masks preserve the declared speaker order; unassigned channels remain discrete.
+
+Metadata chunks are skipped within byte/chunk limits. Trailing chunks and padding
+are checked when the stream is drained. RF64, RIFX, compressed WAVE, nested audio
+lists, tag/artwork extraction, downmixing and resampling are unsupported.
+The `--decode-audio` sample takes input, a new raw PCM output path and stream index;
+it reports the sample format, rate and channels needed to interpret its output.
+It does not write a WAVE header. The output directory must exist, and existing
+files are not replaced. See the [WAVE fixtures](tests/Mediana.Tests/Data/Wave/README.md)
+for independent references and format definitions.
 
 ## Reading MP4/MOV
 
