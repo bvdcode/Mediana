@@ -381,6 +381,13 @@ transport/PES scratch storage and framed access units. CompleteAsync flushes
 without closing the destination. Any failed operation faults the writer and
 releases its buffers; unfinished or failed output must be discarded.
 
+For a program with exactly one AVC track, `BeginSegmentAsync(nextOutput)` flushes
+the previous borrowed stream and continues in a different writable stream.
+The next packet must be that track's IDR access unit. PAT/PMT begin the new file;
+all PID counters, PCR state and timestamp offsets continue across the boundary.
+No stream is closed. A pending empty segment cannot be completed or skipped.
+Callers select boundaries and keep audio packets in global decode order.
+
 The writer uses the caller's timeline. The MP4 reader defaults to original media
 timestamps; select LinearMovie for the supported edit-list translation before
 stream copy. Audio priming/discard metadata and container display matrices are not
@@ -435,8 +442,11 @@ dotnet run --project samples/Mediana.Sample -c Release -- \
 The 7.2-second closed-GOP AVC/AAC fixture produces video windows starting at
 0, 3 and 6 seconds with durations 3, 3 and 1.2 seconds. Managed and Native AOT
 checks verify exact rational times, sample windows and reverse boundary reads.
-This is a video boundary plan: audio coverage, continuous transport state,
-segment output and playlists are still open. It does not claim full HLS support
+Transport tests also split the fixture into three files with one writer, retaining
+all 36 AVC and 339 AAC packets. Every file and their concatenation pass packet,
+timestamp, table, clock and continuity checks in managed execution and Native AOT.
+This remains a video boundary plan: complete HLS orchestration, audio coverage
+planning, playlists and on-demand output are still open. It does not claim full HLS support
 or emit INDEPENDENT-SEGMENTS. Segment requirements follow
 [RFC 8216](https://www.rfc-editor.org/rfc/rfc8216.html).
 

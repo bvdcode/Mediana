@@ -13,7 +13,7 @@ namespace Mediana.Containers.MpegTs
         private const long TableInterval = 9000;
         private const long PcrLead = 9000;
         private static readonly TimeBase Clock = new(1, 90000);
-        private readonly Stream destination;
+        private Stream destination;
         private readonly MediaBufferAllocator allocator;
         private readonly MpegTsWriteOptions options;
         private readonly MpegTsTrack[] tracks;
@@ -31,6 +31,7 @@ namespace Mediana.Containers.MpegTs
         private bool completed;
         private bool faulted;
         private bool disposed;
+        private bool segmentPending;
 
         private MpegTsWriter(Stream destination, MediaBufferAllocator allocator, MpegTsWriteOptions options, MpegTsTrack[] tracks)
         {
@@ -113,8 +114,12 @@ namespace Mediana.Containers.MpegTs
                 {
                     throw new InvalidDataException("Each AVC track must start with an IDR access unit.");
                 }
+                if (segmentPending && (track != clockTrack || !idr))
+                {
+                    throw new InvalidDataException("A new TS segment must start with the program's AVC IDR access unit.");
+                }
                 long clock = dts - PcrLead;
-                if (!lastTables.HasValue)
+                if (!lastTables.HasValue || segmentPending)
                 {
                     await WriteTablesAsync(clock, cancellationToken).ConfigureAwait(false);
                 }
@@ -126,7 +131,7 @@ namespace Mediana.Containers.MpegTs
                 {
                     await WriteClockAsync(lastPcr.Value + PcrInterval, cancellationToken).ConfigureAwait(false);
                 }
-                if ((lastTables.HasValue && clock - lastTables.Value >= TableInterval) || idr)
+                if (!segmentPending && ((lastTables.HasValue && clock - lastTables.Value >= TableInterval) || idr))
                 {
                     await WriteTablesAsync(clock, cancellationToken).ConfigureAwait(false);
                 }
@@ -152,6 +157,38 @@ namespace Mediana.Containers.MpegTs
                 }
                 track.LastDecodeTime = dts;
                 lastDecodeTime = dts;
+                segmentPending = false;
+                success = true;
+            }
+            finally
+            {
+                FinishOperation(success);
+            }
+        }
+
+        /// <summary>Flushes the previous destination and continues the same program in a borrowed writable stream.
+        /// Requires exactly one AVC track and a preceding packet. The next packet must be its IDR access unit.
+        /// Preserves timestamps, continuity counters and clock state; emits PAT/PMT before the new segment's payload.</summary>
+        public async ValueTask BeginSegmentAsync(Stream destination, CancellationToken cancellationToken = default)
+        {
+            Enter();
+            bool success = false;
+            try
+            {
+                EnsureWritable();
+                ArgumentNullException.ThrowIfNull(destination);
+                if (!destination.CanWrite || ReferenceEquals(destination, this.destination))
+                {
+                    throw new ArgumentException("A segment requires a different writable destination.", nameof(destination));
+                }
+                if (!lastDecodeTime.HasValue || segmentPending || tracks.Count(track => track.Type == 0x1B) != 1)
+                {
+                    throw new InvalidOperationException("A segment boundary requires a nonempty program with exactly one AVC track.");
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                await this.destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+                this.destination = destination;
+                segmentPending = true;
                 success = true;
             }
             finally
@@ -170,7 +207,7 @@ namespace Mediana.Containers.MpegTs
                 if (!completed)
                 {
                     EnsureWritable();
-                    if (!lastDecodeTime.HasValue)
+                    if (!lastDecodeTime.HasValue || segmentPending)
                     {
                         throw new InvalidOperationException("An empty TS program cannot be completed.");
                     }
