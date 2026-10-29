@@ -5,8 +5,9 @@ namespace Mediana.Codecs.Mp3
 {
     internal static class Mp3HybridSynthesis
     {
-        private static readonly double[][] LongMatrices = [CreateMatrix(0), CreateMatrix(1), [], CreateMatrix(3)];
-        private static readonly double[] ShortMatrix = CreateMatrix(2);
+        private static readonly double[] LongMatrix = CreateMatrix(18);
+        private static readonly double[] ShortMatrix = CreateMatrix(6);
+        private static readonly double[][] Windows = [CreateWindow(0), CreateWindow(1), CreateWindow(2), CreateWindow(3)];
         private static readonly double[] AliasCosines = CreateAlias(false);
         private static readonly double[] AliasSines = CreateAlias(true);
 
@@ -27,29 +28,36 @@ namespace Mediana.Codecs.Mp3
                 }
             }
             Span<double> time = stackalloc double[36];
+            Span<double> shortTime = stackalloc double[12];
             for (int subband = 0; subband < 32; subband++)
             {
                 ReadOnlySpan<double> input = spectrum.Slice(subband * 18, 18);
                 bool shortBlock = info.BlockType == 2 && subband >= longSubbands;
-                if (shortBlock)
+                if (!input.ContainsAnyExcept(0.0))
+                {
+                    time.Clear();
+                }
+                else if (shortBlock)
                 {
                     time.Clear();
                     for (int window = 0; window < 3; window++)
                     {
                         ReadOnlySpan<double> part = input.Slice(window * 6, 6);
+                        Transform(part, ShortMatrix, shortTime);
                         for (int sample = 0; sample < 12; sample++)
                         {
-                            time[6 + window * 6 + sample] += Mp3TransformMath.Dot(part, ShortMatrix.AsSpan(sample * 6, 6));
+                            time[6 + window * 6 + sample] += shortTime[sample] * Windows[2][sample];
                         }
                     }
                 }
                 else
                 {
                     int shape = info.BlockType == 2 ? 0 : info.BlockType;
-                    ReadOnlySpan<double> matrix = LongMatrices[shape];
+                    Transform(input, LongMatrix, time);
+                    ReadOnlySpan<double> window = Windows[shape];
                     for (int sample = 0; sample < 36; sample++)
                     {
-                        time[sample] = Mp3TransformMath.Dot(input, matrix.Slice(sample * 18, 18));
+                        time[sample] *= window[sample];
                     }
                 }
                 for (int sample = 0; sample < 18; sample++)
@@ -62,13 +70,42 @@ namespace Mediana.Codecs.Mp3
             }
         }
 
-        private static double[] CreateMatrix(int shape)
+        private static void Transform(ReadOnlySpan<double> input, ReadOnlySpan<double> matrix, Span<double> output)
+        {
+            int count = input.Length;
+            for (int index = 0; index < count / 2; index++)
+            {
+                double first = Mp3TransformMath.Dot(input, matrix.Slice(index * count, count));
+                double second = Mp3TransformMath.Dot(input, matrix.Slice((index + count / 2) * count, count));
+                output[index] = first;
+                output[count - 1 - index] = -first;
+                output[count + index] = second;
+                output[2 * count - 1 - index] = second;
+            }
+        }
+
+        private static double[] CreateMatrix(int count)
+        {
+            double[] matrix = new double[count * count];
+            for (int row = 0; row < count; row++)
+            {
+                int sample = row < count / 2 ? row : row + count / 2;
+                for (int frequency = 0; frequency < count; frequency++)
+                {
+                    matrix[row * count + frequency] = Math.Cos(Math.PI / count
+                        * (sample + 0.5 + count / 2.0) * (frequency + 0.5));
+                }
+            }
+            return matrix;
+        }
+
+        private static double[] CreateWindow(int shape)
         {
             int count = shape == 2 ? 6 : 18;
-            double[] matrix = new double[2 * count * count];
+            double[] window = new double[2 * count];
             for (int sample = 0; sample < 2 * count; sample++)
             {
-                double window = shape switch
+                window[sample] = shape switch
                 {
                     0 or 2 => Math.Sin(Math.PI / (2 * count) * (sample + 0.5)),
                     1 when sample < 18 => Math.Sin(Math.PI / 36 * (sample + 0.5)),
@@ -81,13 +118,8 @@ namespace Mediana.Codecs.Mp3
                     3 => Math.Sin(Math.PI / 36 * (sample + 0.5)),
                     _ => throw new InvalidOperationException("The MP3 synthesis window is invalid.")
                 };
-                for (int frequency = 0; frequency < count; frequency++)
-                {
-                    matrix[sample * count + frequency] = window * Math.Cos(Math.PI / count
-                        * (sample + 0.5 + count / 2.0) * (frequency + 0.5));
-                }
             }
-            return matrix;
+            return window;
         }
 
         private static double[] CreateAlias(bool sine)

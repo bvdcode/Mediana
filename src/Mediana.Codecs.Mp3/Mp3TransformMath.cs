@@ -2,11 +2,13 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Mediana.Codecs.Mp3
 {
     internal static class Mp3TransformMath
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double Dot(ReadOnlySpan<double> left, ReadOnlySpan<double> right)
         {
             Vector<double> sum = Vector<double>.Zero;

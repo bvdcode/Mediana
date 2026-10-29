@@ -9,14 +9,14 @@ namespace Mediana.Codecs.Mp3
 {
     internal class Mp3DecoderWorkspace : IDisposable
     {
-        private const int ChannelValues = 576 + 576 + 1024;
+        private const int ChannelBytes = 1152 * sizeof(double) + 1024 * sizeof(float);
         private readonly WritableMediaBuffer storage;
         private readonly int channels;
 
         public Mp3DecoderWorkspace(MediaBufferAllocator allocator, Mp3FrameHeader header, int maxFrameBytes)
         {
             channels = header.ChannelCount;
-            storage = allocator.Allocate((channels * ChannelValues + 576) * sizeof(double));
+            storage = allocator.Allocate(channels * ChannelBytes + 576 * sizeof(double));
             bool succeeded = false;
             try
             {
@@ -35,11 +35,10 @@ namespace Mediana.Codecs.Mp3
 
         public Mp3BitReservoir Reservoir { get; }
         public int[] SynthesisPositions { get; } = new int[2];
-        public Span<double> Spectrum(int channel) => Values.Slice(channel * ChannelValues, 576);
-        public Span<double> Overlap(int channel) => Values.Slice(channel * ChannelValues + 576, 576);
-        public Span<double> History(int channel) => Values.Slice(channel * ChannelValues + 1152, 1024);
-        public Span<double> Subbands => Values.Slice(channels * ChannelValues, 576);
-        private Span<double> Values => MemoryMarshal.Cast<byte, double>(storage.Memory.Span);
+        public Span<double> Spectrum(int channel) => MemoryMarshal.Cast<byte, double>(storage.Memory.Span.Slice(channel * ChannelBytes, 576 * sizeof(double)));
+        public Span<double> Overlap(int channel) => MemoryMarshal.Cast<byte, double>(storage.Memory.Span.Slice(channel * ChannelBytes + 576 * sizeof(double), 576 * sizeof(double)));
+        public Span<float> History(int channel) => MemoryMarshal.Cast<byte, float>(storage.Memory.Span.Slice(channel * ChannelBytes + 1152 * sizeof(double), 1024 * sizeof(float)));
+        public Span<double> Subbands => MemoryMarshal.Cast<byte, double>(storage.Memory.Span[(channels * ChannelBytes)..]);
 
         public void Dispose()
         {

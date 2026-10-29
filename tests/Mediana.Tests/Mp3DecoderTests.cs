@@ -101,9 +101,9 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(33000)]
-        [InlineData(42000)]
-        [InlineData(48000)]
+        [InlineData(30000)]
+        [InlineData(35000)]
+        [InlineData(43000)]
         public async Task FailedWorkspaceReservoirOrOutputAllocationReleasesAllStorage(int budget)
         {
             byte[] data = await FirstPacketAsync();
