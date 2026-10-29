@@ -33,9 +33,16 @@ namespace Mediana.Sample
             {
                 return await HlsPlanSample.RunAsync(args[1], videoIndex, targetMilliseconds);
             }
+            if (args.Length == 6 && args[0] == "--hls-mp4" &&
+                int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int hlsVideoIndex) &&
+                TryAudioIndex(args[4], out int? hlsAudioIndex) &&
+                long.TryParse(args[5], NumberStyles.None, CultureInfo.InvariantCulture, out long hlsTargetMilliseconds) && hlsTargetMilliseconds > 0)
+            {
+                return await HlsCopySample.RunAsync(args[1], args[2], hlsVideoIndex, hlsAudioIndex, hlsTargetMilliseconds);
+            }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds>]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds> | --hls-mp4 <input> <new-directory> <video-index> <audio-index|none> <target-milliseconds>]");
                 return 2;
             }
 
@@ -70,6 +77,22 @@ namespace Mediana.Sample
             await Console.Out.WriteLineAsync(
                 $"Foundation checks passed. Registered production containers: {engine.ContainerImplementations.Count}. Live buffer bytes: {allocator.AllocatedBytes}.");
             return 0;
+        }
+
+        private static bool TryAudioIndex(string text, out int? index)
+        {
+            if (text == "none")
+            {
+                index = null;
+                return true;
+            }
+            if (int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int value))
+            {
+                index = value;
+                return true;
+            }
+            index = null;
+            return false;
         }
     }
 }

@@ -509,6 +509,22 @@ sample windows, all compressed packets, playlists, transport continuity and repe
 requests in order 2, 0, 1, 2. Error tests cover short range reads, cancellation,
 partial output, flush failures, invalid requests and source ownership.
 
+The sample exports the indexed session into a new directory:
+
+```sh
+dotnet run --project samples/Mediana.Sample -c Release -- \
+  --hls-mp4 input.mp4 output-hls 0 1 6000
+```
+
+Use `none` instead of the audio index for video-only output. The directory's parent
+must exist. All files are prepared in a temporary sibling directory, then moved
+into place together; an existing destination is preserved and failures remove the
+temporary output. The same command works with the Native AOT sample executable.
+An independent decoder reads the resulting playlist with all 36 video and 339 AAC
+frame hashes matching the source. Each TS file also decodes its 15/15/6 video frames
+independently. Managed and Native AOT exports produce identical playlist and segment
+bytes; existing-output and failed-export checks preserve destination ownership.
+
 ## Connecting modules
 
 Applications supply container and decoder factories; none are registered implicitly.
