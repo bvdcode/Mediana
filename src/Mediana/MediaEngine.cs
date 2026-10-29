@@ -40,18 +40,31 @@ namespace Mediana
             MediaOpenOptions? options = null, CancellationToken cancellationToken = default) =>
             new(await OpenCoreAsync(source, streamIndex, MediaKind.Video, decoders, options, cancellationToken).ConfigureAwait(false));
 
+        /// <summary>Opens the first video stream in container order. Borrows the source until session disposal.</summary>
+        public async ValueTask<VideoSession> OpenVideoAsync(IByteSource source,
+            MediaOpenOptions? options = null, CancellationToken cancellationToken = default) =>
+            new(await OpenCoreAsync(source, null, MediaKind.Video, decoders, options, cancellationToken).ConfigureAwait(false));
+
         /// <summary>Opens the selected audio stream. Borrows the source; frames belong to the caller.
         /// Sequential sources are consumed on failure. Random access opening preserves the caller's cursor.</summary>
         public async ValueTask<AudioSession> OpenAudioAsync(IByteSource source, int streamIndex,
             MediaOpenOptions? options = null, CancellationToken cancellationToken = default) =>
             new(await OpenCoreAsync(source, streamIndex, MediaKind.Audio, audioDecoders, options, cancellationToken).ConfigureAwait(false));
 
-        private async ValueTask<MediaDecodeSession<TFrame>> OpenCoreAsync<TFrame>(IByteSource source, int streamIndex,
+        /// <summary>Opens the first audio stream in container order. Borrows the source; returned frames belong to the caller.</summary>
+        public async ValueTask<AudioSession> OpenAudioAsync(IByteSource source,
+            MediaOpenOptions? options = null, CancellationToken cancellationToken = default) =>
+            new(await OpenCoreAsync(source, null, MediaKind.Audio, audioDecoders, options, cancellationToken).ConfigureAwait(false));
+
+        private async ValueTask<MediaDecodeSession<TFrame>> OpenCoreAsync<TFrame>(IByteSource source, int? streamIndex,
             MediaKind kind, IReadOnlyList<IDecoderFactory<TFrame>> factories, MediaOpenOptions? options, CancellationToken cancellationToken)
             where TFrame : class, IDisposable
         {
             ArgumentNullException.ThrowIfNull(source);
-            ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
+            if (streamIndex is < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(streamIndex));
+            }
             options ??= new MediaOpenOptions();
             options.Validate();
             cancellationToken.ThrowIfCancellationRequested();
@@ -96,14 +109,23 @@ namespace Mediana
             {
                 reader = await factory.OpenAsync(replay, allocator, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
-                EncodedStreamInfo stream = reader.Streams.SingleOrDefault(item => item.StreamIndex == streamIndex)
-                    ?? throw new ArgumentException("The requested stream does not exist.", nameof(streamIndex));
+                EncodedStreamInfo stream;
+                if (streamIndex is int selectedIndex)
+                {
+                    stream = reader.Streams.SingleOrDefault(item => item.StreamIndex == selectedIndex)
+                        ?? throw new ArgumentException("The requested stream does not exist.", nameof(streamIndex));
+                }
+                else
+                {
+                    stream = reader.Streams.FirstOrDefault(item => item.Kind == kind)
+                        ?? throw new NotSupportedException("The input contains no stream of the requested media kind.");
+                }
                 if (stream.Kind != kind)
                 {
                     throw new NotSupportedException("The requested stream has a different media kind.");
                 }
                 decoder = SelectDecoder(stream, factories).Create(stream, allocator);
-                pipeline = new MediaDecodePipeline<TFrame>(reader, decoder, streamIndex, options.MaxPacketReads);
+                pipeline = new MediaDecodePipeline<TFrame>(reader, decoder, stream.StreamIndex, options.MaxPacketReads);
                 MediaDecodeSession<TFrame> session = new(reader, replay, pipeline, allocator, options.MaxFrameReads, stream);
                 cancellationToken.ThrowIfCancellationRequested();
                 transferred = true;
