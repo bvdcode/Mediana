@@ -321,9 +321,12 @@ conversion, a polyphase coefficient bank, bounded sample history and exact ratio
 positions. Cutoff, filter support, output block size and coefficient-byte limits are
 configurable. The caller supplies an allocation budget. The input format and PTS
 must remain continuous; unknown timestamps remain unknown. Filter lookahead delays
-availability, while output timestamps retain the original timeline. Input outside
-the recording is zero; output contains `ceil(input samples * output rate / input rate)`
-samples. Equal rates preserve the samples without filtering.
+availability, while output timestamps retain the original timeline. `BoundaryMode`
+defaults to `Zero`; `Reflect` mirrors sample positions around the first and last
+sample instants without repeating endpoints. A single-sample recording repeats
+that sample. Both modes use the same bounded history. Output contains
+`ceil(input samples * output rate / input rate)` samples. Equal rates preserve the
+samples without filtering.
 The rate-conversion basis is described in
 [Windowed Sinc Interpolation](https://www.dsprelated.com/freebooks/pasp/Windowed_Sinc_Interpolation.html).
 

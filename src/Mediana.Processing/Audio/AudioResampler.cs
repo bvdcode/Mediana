@@ -7,7 +7,7 @@ namespace Mediana.Processing.Audio
 {
     /// <summary>Pull-driven Blackman-windowed sinc conversion to interleaved float64.
     /// The callback transfers ownership of each input frame; the callback's source remains borrowed.
-    /// Uses a bounded history and exact rational sample positions. Input is zero-extended at both ends;
+    /// Uses a bounded history and exact rational sample positions. Boundary extension is explicit;
     /// output has ceil(input samples * output rate / input rate) samples with compensated filter delay.
     /// Input format and timestamps must remain continuous. Equal rates preserve samples without filtering.</summary>
     public class AudioResampler : IAsyncDisposable
@@ -177,7 +177,11 @@ namespace Mediana.Processing.Audio
                         cancellationToken.ThrowIfCancellationRequested();
                     }
                     long sample = center - filter.Radius + tap;
-                    if (sample >= 0 && sample < inputSamples)
+                    if (sample < 0 || sample >= inputSamples)
+                    {
+                        sample = AudioBoundaryExtension.Resolve(sample, inputSamples, options.BoundaryMode);
+                    }
+                    if (sample >= 0)
                     {
                         value += ring[(int)(sample % filter.Taps) * channels + channel] * weights[tap];
                     }
