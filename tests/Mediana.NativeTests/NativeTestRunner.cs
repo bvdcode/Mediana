@@ -10,6 +10,11 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            foreach (string name in WaveformReferenceTestInput.Names)
+            {
+                (double maximum, double rms) = await WaveformReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Waveform"), name, 127);
+                Console.WriteLine($"PASS waveform reference {name}: full PCM/counts/timing and all RMS/peak windows match declared independent bounds; max {maximum:G6}, RMS {rms:G6}.");
+            }
             foreach (string name in AacDecodeTestInput.Names)
             {
                 double difference = await AacDecodeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);

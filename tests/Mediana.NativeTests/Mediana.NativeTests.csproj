@@ -13,6 +13,8 @@
     <Compile Include="../Shared/AacFeatureTestInput.cs" Link="AacFeatureTestInput.cs" />
     <Compile Include="../Shared/AacWaveformTestInput.cs" Link="AacWaveformTestInput.cs" />
     <Compile Include="../Shared/AacEditedAudioTestInput.cs" Link="AacEditedAudioTestInput.cs" />
+    <Compile Include="../Shared/WaveformReferenceTestInput.cs" Link="WaveformReferenceTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Waveform/*" Link="Data/Waveform/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Aac/*" Link="Data/Aac/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Mp4MetadataTestInput.cs" Link="Mp4MetadataTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Metadata/*" Link="Data/Metadata/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
