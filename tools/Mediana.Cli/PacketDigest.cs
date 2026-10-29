@@ -3,7 +3,7 @@
 
 using System.Security.Cryptography;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
     internal class PacketDigest : IDisposable
     {

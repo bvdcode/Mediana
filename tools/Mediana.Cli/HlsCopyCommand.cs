@@ -8,9 +8,9 @@ using Mediana.Core.Timing;
 using Mediana.IO;
 using Mediana.Streaming.Hls;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class HlsCopySample
+    internal static class HlsCopyCommand
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
@@ -18,7 +18,7 @@ namespace Mediana.Sample
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             int count = 0;
-            await SampleOutputDirectory.WriteAsync(output, async directory =>
+            await CommandOutputDirectory.WriteAsync(output, async directory =>
             {
                 await using (RandomAccessStreamByteSource source = new(File.OpenRead(input)))
                 await using (Mp4HlsSession session = await Mp4HlsSession.OpenAsync(source, allocator, videoIndex, audioIndex,

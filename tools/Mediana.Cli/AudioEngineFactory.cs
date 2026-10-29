@@ -10,9 +10,9 @@ using Mediana.Codecs.Pcm;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.Wave;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class SampleAudioEngine
+    internal static class AudioEngineFactory
     {
         public static MediaEngine Create() => new MediaEngineBuilder()
             .AddContainer(new Mp3ReaderFactory())

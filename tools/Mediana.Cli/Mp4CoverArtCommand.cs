@@ -5,9 +5,9 @@ using Mediana.Containers.Mp4;
 using Mediana.Core.Memory;
 using Mediana.IO;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class Mp4CoverArtSample
+    internal static class Mp4CoverArtCommand
     {
         private const int BufferBudgetBytes = 64 * 1024 * 1024;
 
@@ -23,7 +23,7 @@ namespace Mediana.Sample
             using (MediaBuffer cover = reader.ReadCoverArt(coverIndex))
             {
                 await reader.DisposeAsync();
-                await SampleOutputFile.WriteAsync(outputPath, output => output.WriteAsync(cover.Memory).AsTask());
+                await CommandOutputFile.WriteAsync(outputPath, output => output.WriteAsync(cover.Memory).AsTask());
             }
             if (allocator.AllocatedBytes != 0)
             {

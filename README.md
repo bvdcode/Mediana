@@ -51,7 +51,8 @@ content and exposes decoded image XObjects. See [PDF support and limits](docs/pd
 | `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
 | `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
-| `Mediana.Sample` | MP4/MOV/FLAC inspection and covers, PNG previews, WAVE/AAC/FLAC PCM/waveform export and generated-frame checks |
+| `Mediana.Cli` | Command-line media inspection, conversions, previews and exports |
+| `Mediana.Sample` | Minimal generated-frame example using the public API |
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
@@ -87,11 +88,11 @@ them sRGB. HDR tone mapping is not implemented. JPEG 2000 native component
 precision remains available separately from its optional RGBA8 preview.
 
 ```sh
-dotnet run --project samples/Mediana.Sample -c Release -- --image-png heic photo.heic preview.png 1 1
-dotnet run --project samples/Mediana.Sample -c Release -- --image-png jp2 scan.jp2 preview.png 1 1
-dotnet run --project samples/Mediana.Sample -c Release -- --image-png jbig2 scan.jb2 preview.png 1 1
-dotnet run --project samples/Mediana.Sample -c Release -- --svg-png artwork.svg preview.png 512
-dotnet run --project samples/Mediana.Sample -c Release -- --tgs-png animation.tgs preview.png 0.5 512
+dotnet run --project tools/Mediana.Cli -c Release -- --image-png heic photo.heic preview.png 1 1
+dotnet run --project tools/Mediana.Cli -c Release -- --image-png jp2 scan.jp2 preview.png 1 1
+dotnet run --project tools/Mediana.Cli -c Release -- --image-png jbig2 scan.jb2 preview.png 1 1
+dotnet run --project tools/Mediana.Cli -c Release -- --svg-png artwork.svg preview.png 512
+dotnet run --project tools/Mediana.Cli -c Release -- --tgs-png animation.tgs preview.png 0.5 512
 ```
 
 Raster examples select the primary HEIC item or first JBIG2 page. The final two
@@ -117,9 +118,9 @@ or FFmpeg installation is needed.
 
 | Archive | Platform | Executable |
 | --- | --- | --- |
-| `Mediana-<version>-linux-x64.tar.gz` | Linux x64 (glibc), built on Ubuntu 24.04 | `Mediana.Sample` |
-| `Mediana-<version>-win-x64.zip` | Windows x64 | `Mediana.Sample.exe` |
-| `Mediana-<version>-osx-arm64.tar.gz` | macOS on Apple Silicon, built on macOS 15 | `Mediana.Sample` |
+| `Mediana-<version>-linux-x64.tar.gz` | Linux x64 (glibc), built on Ubuntu 24.04 | `mediana` |
+| `Mediana-<version>-win-x64.zip` | Windows x64 | `mediana.exe` |
+| `Mediana-<version>-osx-arm64.tar.gz` | macOS on Apple Silicon, built on macOS 15 | `mediana` |
 
 Archives include this README and the MIT license. Each archive has a matching
 `.sha256` checksum file. For Linux, use Ubuntu 24.04 or a compatible newer glibc
@@ -128,15 +129,15 @@ distribution; the archive does not target Alpine.
 From the extracted directory on Linux/macOS:
 
 ```sh
-./Mediana.Sample --self-test
-./Mediana.Sample --probe-mp4 input.mp4
-./Mediana.Sample --remux-mp4 input.mp4 output.ts
-./Mediana.Sample --hls-mp4 input.mp4 output-hls 0 1 6000
-./Mediana.Sample --preview input.mp4 preview.png 0 250 320 180
-./Mediana.Sample --decode-audio input.flac output.pcm 0
+./mediana --help
+./mediana --probe-mp4 input.mp4
+./mediana --remux-mp4 input.mp4 output.ts
+./mediana --hls-mp4 input.mp4 output-hls 0 1 6000
+./mediana --preview input.mp4 preview.png 0 250 320 180
+./mediana --decode-audio input.flac output.pcm 0
 ```
 
-On Windows, use `./Mediana.Sample.exe` in PowerShell with the same arguments.
+On Windows, use `./mediana.exe` in PowerShell with the same arguments.
 The MP4 probe lists stream indices; use the appropriate video/audio indices in
 the HLS, preview and audio commands. Use `none` for HLS without audio. Output paths
 must be new, and their parent directories must already exist.
@@ -147,7 +148,7 @@ native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
 H.264 subset described above. Video encoding and compressed audio encoding remain
 unavailable. The command-line arguments match the source examples below: replace
-`dotnet run --project samples/Mediana.Sample -c Release --` with the executable.
+`dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
 
 ## Build and run
 
@@ -162,16 +163,16 @@ dotnet test Mediana.slnx -c Release --no-build --no-restore
 dotnet run --project tests/Mediana.NativeTests -c Release --no-build --no-restore
 dotnet format Mediana.slnx --verify-no-changes --no-restore
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --cover-mp4 tests/Mediana.Tests/Data/Metadata/covers.m4a artifacts/cover.png 0
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Wave/s24-surround.wav artifacts/surround.pcm 0
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --resample-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/mono-400.s16le 0 400 0.5,0.5
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview.png 0 250 100 100
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-rotated.png 0 0 100 100
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-intra.mp4 artifacts/preview-cabac.png 0 450 100 100
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-p2.mp4 artifacts/preview-cabac-p.png 0 450 100 100
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cavlc-8x8-weighted.mp4 artifacts/preview-high-cavlc.png 0 450 100 100
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-8x8-2.mp4 artifacts/preview-high-cabac.png 0 450 100 100
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --cover-mp4 tests/Mediana.Tests/Data/Metadata/covers.m4a artifacts/cover.png 0
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Wave/s24-surround.wav artifacts/surround.pcm 0
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --resample-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/mono-400.s16le 0 400 0.5,0.5
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview.png 0 250 100 100
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-rotated.png 0 0 100 100
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-intra.mp4 artifacts/preview-cabac.png 0 450 100 100
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-p2.mp4 artifacts/preview-cabac-p.png 0 450 100 100
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cavlc-8x8-weighted.mp4 artifacts/preview-high-cavlc.png 0 450 100 100
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-cabac-8x8-2.mp4 artifacts/preview-high-cabac.png 0 450 100 100
 ```
 
 The self-test decodes a generated 2×2 RGBA packet through the codec protocol, resizes
@@ -191,11 +192,11 @@ The High CAVLC and CABAC 8x8 fixtures select 500 ms and write 100×50.
 Publish and execute it with Native AOT on Linux x64:
 
 ```sh
-dotnet publish samples/Mediana.Sample -c Release -r linux-x64 -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -o artifacts/native/linux-x64
-./artifacts/native/linux-x64/Mediana.Sample --self-test
-./artifacts/native/linux-x64/Mediana.Sample --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
-./artifacts/native/linux-x64/Mediana.Sample --decode-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/audio-native.pcm 0
-./artifacts/native/linux-x64/Mediana.Sample --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-native.png 0 250 100 100
+dotnet publish tools/Mediana.Cli -c Release -r linux-x64 -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -o artifacts/native/linux-x64
+./artifacts/native/linux-x64/Mediana.Cli --help
+./artifacts/native/linux-x64/Mediana.Cli --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+./artifacts/native/linux-x64/Mediana.Cli --decode-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/audio-native.pcm 0
+./artifacts/native/linux-x64/Mediana.Cli --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-native.png 0 250 100 100
 dotnet publish tests/Mediana.NativeTests -c Release -r linux-x64 -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -o artifacts/native-tests/linux-x64
 ./artifacts/native-tests/linux-x64/Mediana.NativeTests
 ```
@@ -346,8 +347,8 @@ The same `--decode-audio` and `--resample-audio` commands accept supported M4A
 inputs. Select the audio stream index explicitly:
 
 ```sh
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Aac/lc-stereo-44.m4a artifacts/aac.f32le 0
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --resample-audio tests/Mediana.Tests/Data/Aac/lc-stereo-44.m4a artifacts/aac-mono-400.s16le 0 400 0.5,0.5
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Aac/lc-stereo-44.m4a artifacts/aac.f32le 0
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --resample-audio tests/Mediana.Tests/Data/Aac/lc-stereo-44.m4a artifacts/aac-mono-400.s16le 0 400 0.5,0.5
 ```
 
 ## Processing PCM
@@ -495,8 +496,8 @@ samples beyond Cotton's equal bar windows remain open.
 The sample exports waveform data directly from supported WAVE, AAC-LC or native FLAC sources:
 
 ```bash
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Waveform/speech.wav artifacts/speech-waveform.json 0 400 40 1
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Aac/lc-stereo-44.m4a artifacts/aac-waveform.json 0 400 16 0.5,0.5
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Waveform/speech.wav artifacts/speech-waveform.json 0 400 40 1
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Aac/lc-stereo-44.m4a artifacts/aac-waveform.json 0 400 16 0.5,0.5
 ```
 
 Arguments are input, a new JSON output, stream index, target rate, samples per
@@ -524,8 +525,8 @@ It reads one leading ID3v2.3/v2.4 tag, text and original APIC picture bytes,
 Xing/Info declarations and a final ID3v1 tag. The sample exposes:
 
 ```sh
-dotnet run --project samples/Mediana.Sample -c Release -- --probe-mp3 input.mp3
-dotnet run --project samples/Mediana.Sample -c Release -- --cover-mp3 input.mp3 cover.png 0
+dotnet run --project tools/Mediana.Cli -c Release -- --probe-mp3 input.mp3
+dotnet run --project tools/Mediana.Cli -c Release -- --cover-mp3 input.mp3 cover.png 0
 ```
 
 `Mp3Reader.OpenAsync` borrows the input. `ReadPacketAsync` returns one complete
@@ -584,8 +585,8 @@ Seeking into reservoir-dependent frames requires decoding the preceding data.
 Free-format input, format changes, de-emphasis and encoding are unsupported.
 
 ```bash
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --decode-audio input.mp3 output.f32le 0
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --waveform-audio input.mp3 waveform.json 0 400 10 0.5,0.5
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --decode-audio input.mp3 output.f32le 0
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --waveform-audio input.mp3 waveform.json 0 400 10 0.5,0.5
 ```
 
 The [PCM corpus](tests/Mediana.Tests/Data/Mp3/README.md#pcm-decoding) compares
@@ -639,8 +640,8 @@ in the [FLAC reference documentation](tests/Mediana.Tests/Data/Flac/README.md).
 The original implementation follows [RFC 9639](https://www.rfc-editor.org/rfc/rfc9639.html).
 
 ```bash
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-flac tests/Mediana.Tests/Data/Flac/stereo-covers.flac
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --cover-flac tests/Mediana.Tests/Data/Flac/stereo-covers.flac artifacts/flac-cover.png 0
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --probe-flac tests/Mediana.Tests/Data/Flac/stereo-covers.flac
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --cover-flac tests/Mediana.Tests/Data/Flac/stereo-covers.flac artifacts/flac-cover.png 0
 ```
 
 The probe reads metadata only. Cover extraction preserves an existing output and
@@ -687,8 +688,8 @@ overlap. Failure/cancellation requires reset or disposal. Reset starts again at
 frame zero; returned frames retain independent leases.
 
 ```bash
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Flac/stereo-covers.flac artifacts/flac.s32le 0
-dotnet run --project samples/Mediana.Sample -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Flac/mono-speech.flac artifacts/flac-waveform.json 0 400 37 1
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Flac/stereo-covers.flac artifacts/flac.s32le 0
+dotnet run --project tools/Mediana.Cli -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Flac/mono-speech.flac artifacts/flac-waveform.json 0 400 37 1
 ```
 
 The complete PCM from musical and recorded-speech 16-bit inputs, stereo and 5.1
@@ -997,7 +998,7 @@ The sample copies every AVC/AAC access unit from a supported MP4/MOV into a new
 TS file, applying LinearMovie timestamps and the writer's one-second offset:
 
 ```sh
-dotnet run --project samples/Mediana.Sample -c Release -- \
+dotnet run --project tools/Mediana.Cli -c Release -- \
   --remux-mp4 input.mp4 output.ts
 ```
 
@@ -1034,7 +1035,7 @@ the reader allocator bounds candidate packet storage. Planning and random bounda
 reads preserve sequential reader positions.
 
 ```sh
-dotnet run --project samples/Mediana.Sample -c Release -- \
+dotnet run --project tools/Mediana.Cli -c Release -- \
   --plan-hls-mp4 input.mp4 0 2250
 ```
 
@@ -1103,7 +1104,7 @@ partial output, flush failures, invalid requests and source ownership.
 The sample exports the indexed session into a new directory:
 
 ```sh
-dotnet run --project samples/Mediana.Sample -c Release -- \
+dotnet run --project tools/Mediana.Cli -c Release -- \
   --hls-mp4 input.mp4 output-hls 0 1 6000
 ```
 
@@ -1351,8 +1352,8 @@ The updater skips generated files and build-output directories.
 ## PDF previews
 
 ```sh
-dotnet run --project samples/Mediana.Sample -c Release -- --pdf-png report.pdf page.png 1 1200
-dotnet run --project samples/Mediana.Sample -c Release -- --pdf-image-png report.pdf image.png 1 0
+dotnet run --project tools/Mediana.Cli -c Release -- --pdf-png report.pdf page.png 1 1200
+dotnet run --project tools/Mediana.Cli -c Release -- --pdf-image-png report.pdf image.png 1 0
 ```
 
 Pages start at one; decoded image indices start at zero. Output files must be new.

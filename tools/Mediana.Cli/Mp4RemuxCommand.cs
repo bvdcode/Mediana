@@ -7,9 +7,9 @@ using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.IO;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class Mp4RemuxSample
+    internal static class Mp4RemuxCommand
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
@@ -23,7 +23,7 @@ namespace Mediana.Sample
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator, options))
             {
                 streams = reader.Streams.Count;
-                await SampleOutputFile.WriteAsync(outputPath, async output =>
+                await CommandOutputFile.WriteAsync(outputPath, async output =>
                 {
                     await using MpegTsWriter writer = MpegTsWriter.Create(output, reader.Streams, allocator);
                     while (await reader.ReadPacketAsync() is MediaPacket packet)

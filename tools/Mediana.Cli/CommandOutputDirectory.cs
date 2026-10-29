@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class SampleOutputDirectory
+    internal static class CommandOutputDirectory
     {
         public static async Task WriteAsync(string outputPath, Func<string, Task> write)
         {

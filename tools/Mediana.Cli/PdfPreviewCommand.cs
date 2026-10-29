@@ -6,9 +6,9 @@ using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Documents.Pdf;
 using Mediana.Drawing;
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class PdfPreviewSample
+    internal static class PdfPreviewCommand
     {
         public static async Task<int> RenderAsync(string input, string output, int pageNumber, int maximumWidth)
         {
@@ -35,7 +35,7 @@ namespace Mediana.Sample
         private static async Task WriteAsync(VideoFrame frame, string path, MediaBufferAllocator allocator)
         {
             using MediaBuffer png = PngEncoder.Encode(frame, allocator);
-            await SampleOutputFile.WriteAsync(path, async stream => await stream.WriteAsync(png.Memory));
+            await CommandOutputFile.WriteAsync(path, async stream => await stream.WriteAsync(png.Memory));
         }
     }
 }

@@ -10,9 +10,9 @@ using Mediana.Core.Video;
 using Mediana.IO;
 using Mediana.Processing;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class VideoPreviewSample
+    internal static class VideoPreviewCommand
     {
         private const long ProcessingBufferBudgetBytes = 64 * 1024 * 1024;
 
@@ -38,7 +38,7 @@ namespace Mediana.Sample
                 width = preview.Format.Width;
                 height = preview.Format.Height;
                 encodedLength = png.Memory.Length;
-                await SampleOutputFile.WriteAsync(outputPath, async output => await output.WriteAsync(png.Memory));
+                await CommandOutputFile.WriteAsync(outputPath, async output => await output.WriteAsync(png.Memory));
             }
             decoded.Dispose();
             await session.DisposeAsync();

@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/tools/">
+    <Project Path="tools/Mediana.Cli/Mediana.Cli.csproj" />
+  </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Mediana.Sample/Mediana.Sample.csproj" />
   </Folder>

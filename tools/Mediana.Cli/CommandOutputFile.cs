@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class SampleOutputFile
+    internal static class CommandOutputFile
     {
         private const int BufferBytes = 64 * 1024;
 

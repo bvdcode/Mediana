@@ -52,13 +52,13 @@ jobs:
         include:
           - os: ubuntu-24.04
             rid: linux-x64
-            executable: Mediana.Sample
+            executable: Mediana.Cli
           - os: windows-2025
             rid: win-x64
-            executable: Mediana.Sample.exe
+            executable: Mediana.Cli.exe
           - os: macos-15
             rid: osx-arm64
-            executable: Mediana.Sample
+            executable: Mediana.Cli
     defaults:
       run:
         shell: bash
@@ -81,33 +81,33 @@ jobs:
       - run: dotnet format Mediana.slnx --verify-no-changes --no-restore
       - run: dotnet test Mediana.slnx -c Release --no-build --no-restore --logger trx --results-directory artifacts/test-results
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --self-test
-      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
-      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-tail.mov
-      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --remux-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4 artifacts/remux-managed.ts
-      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --plan-hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 0 2250
-      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 artifacts/hls-managed 0 1 2250
-      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-managed.png 0 250 100 100
-      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-managed-rotated.png 0 0 100 100
-      - run: dotnet publish samples/Mediana.Sample -c Release -r "$RUNTIME_IDENTIFIER" -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native
+      - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+      - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-tail.mov
+      - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- --remux-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4 artifacts/remux-managed.ts
+      - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- --plan-hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 0 2250
+      - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- --hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 artifacts/hls-managed 0 1 2250
+      - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-managed.png 0 250 100 100
+      - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-managed-rotated.png 0 0 100 100
+      - run: dotnet publish tools/Mediana.Cli -c Release -r "$RUNTIME_IDENTIFIER" -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native
       - run: dotnet publish tests/Mediana.NativeTests -c Release -r "$RUNTIME_IDENTIFIER" -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native-tests
       - name: Run native executable
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
-            sample_executable=./artifacts/native/Mediana.Sample.exe
+            cli_executable=./artifacts/native/Mediana.Cli.exe
             native_tests_executable=./artifacts/native-tests/Mediana.NativeTests.exe
           else
-            sample_executable=./artifacts/native/Mediana.Sample
+            cli_executable=./artifacts/native/Mediana.Cli
             native_tests_executable=./artifacts/native-tests/Mediana.NativeTests
           fi
-          "$sample_executable" --self-test
-          "$sample_executable" --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
-          "$sample_executable" --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-tail.mov
-          "$sample_executable" --remux-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4 artifacts/remux-native.ts
-          "$sample_executable" --plan-hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 0 2250
-          "$sample_executable" --hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 artifacts/hls-native 0 1 2250
-          "$sample_executable" --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-native.png 0 250 100 100
-          "$sample_executable" --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-native-rotated.png 0 0 100 100
-          "$sample_executable" --decode-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/audio-native.pcm 0
+          "$cli_executable" --help
+          "$cli_executable" --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+          "$cli_executable" --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-tail.mov
+          "$cli_executable" --remux-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4 artifacts/remux-native.ts
+          "$cli_executable" --plan-hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 0 2250
+          "$cli_executable" --hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 artifacts/hls-native 0 1 2250
+          "$cli_executable" --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-native.png 0 250 100 100
+          "$cli_executable" --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-native-rotated.png 0 0 100 100
+          "$cli_executable" --decode-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/audio-native.pcm 0
           "$native_tests_executable"
       - name: Package native executable
         shell: pwsh
@@ -116,7 +116,9 @@ jobs:
           $packageDirectory = "artifacts/native-package"
           $archiveDirectory = "artifacts/binaries"
           New-Item -ItemType Directory -Path $packageDirectory, $archiveDirectory -Force | Out-Null
-          Copy-Item "artifacts/native/$env:NATIVE_EXECUTABLE", README.md, LICENSE -Destination $packageDirectory
+          $executableName = if ($env:RUNNER_OS -eq "Windows") { "mediana.exe" } else { "mediana" }
+          Copy-Item "artifacts/native/$env:NATIVE_EXECUTABLE" -Destination "$packageDirectory/$executableName"
+          Copy-Item README.md, LICENSE -Destination $packageDirectory
           if ($env:RUNNER_OS -eq "Windows") {
             $archiveName = "$packageName.zip"
             Compress-Archive -Path "$packageDirectory/*" -DestinationPath "$archiveDirectory/$archiveName"

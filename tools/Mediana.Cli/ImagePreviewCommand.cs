@@ -12,9 +12,9 @@ using Mediana.Images.Svg;
 using Mediana.Images.Tgs;
 using Mediana.Processing;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class ImagePreviewSample
+    internal static class ImagePreviewCommand
     {
         private const int MaximumInputBytes = 64 * 1024 * 1024;
         private const int MaximumPixels = 16 * 1024 * 1024;
@@ -108,7 +108,7 @@ namespace Mediana.Sample
         {
             using VideoFrame srgb = SrgbConverter.Apply(frame, allocator);
             using MediaBuffer png = PngEncoder.Encode(srgb, allocator);
-            await SampleOutputFile.WriteAsync(outputPath, async output => await output.WriteAsync(png.Memory));
+            await CommandOutputFile.WriteAsync(outputPath, async output => await output.WriteAsync(png.Memory));
             await Console.Out.WriteLineAsync($"PNG image: {frame.Format.Width}x{frame.Format.Height}; {png.Memory.Length} bytes; sRGB.");
         }
 

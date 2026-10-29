@@ -6,9 +6,9 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.IO;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class FlacProbeSample
+    internal static class FlacProbeCommand
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 

@@ -7,9 +7,9 @@ using Mediana.Core.Timing;
 using Mediana.IO;
 using Mediana.Streaming.Hls;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class HlsPlanSample
+    internal static class HlsPlanCommand
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 

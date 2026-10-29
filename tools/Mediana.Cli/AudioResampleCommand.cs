@@ -8,15 +8,15 @@ using Mediana.Core.Memory;
 using Mediana.IO;
 using Mediana.Processing.Audio;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class AudioResampleSample
+    internal static class AudioResampleCommand
     {
         private const int BufferBudgetBytes = 1024 * 1024;
 
         public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex, int sampleRate, double[] gains)
         {
-            MediaEngine engine = SampleAudioEngine.Create();
+            MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
                 new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes });
@@ -34,7 +34,7 @@ namespace Mediana.Sample
             }
             await using AudioResampler resampler = new(ReadMixedAsync, sampleRate, allocator);
             long samples = 0;
-            await SampleOutputFile.WriteAsync(outputPath, async output =>
+            await CommandOutputFile.WriteAsync(outputPath, async output =>
             {
                 while (true)
                 {

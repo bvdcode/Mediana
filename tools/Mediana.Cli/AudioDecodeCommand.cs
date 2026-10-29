@@ -4,18 +4,18 @@
 using Mediana.Core.Audio;
 using Mediana.IO;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class AudioDecodeSample
+    internal static class AudioDecodeCommand
     {
         public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex)
         {
-            MediaEngine engine = SampleAudioEngine.Create();
+            MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex);
             long samples = 0;
             AudioFormat? format = null;
-            await SampleOutputFile.WriteAsync(outputPath, async output =>
+            await CommandOutputFile.WriteAsync(outputPath, async output =>
             {
                 while (true)
                 {

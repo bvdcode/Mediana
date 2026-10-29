@@ -8,9 +8,9 @@ using Mediana.Core.Timing;
 using Mediana.IO;
 using Mediana.Processing.Audio;
 
-namespace Mediana.Sample
+namespace Mediana.Cli
 {
-    internal static class AudioWaveformSample
+    internal static class AudioWaveformCommand
     {
         private const int BufferBudgetBytes = 1024 * 1024;
         private const int WindowsPerFlush = 64;
@@ -19,7 +19,7 @@ namespace Mediana.Sample
         public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex,
             int sampleRate, int samplesPerWindow, double[] gains)
         {
-            MediaEngine engine = SampleAudioEngine.Create();
+            MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
                 new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes });
@@ -32,7 +32,7 @@ namespace Mediana.Sample
                 }, allocator);
             long samples = 0;
             long windows = 0;
-            await SampleOutputFile.WriteAsync(outputPath, async output =>
+            await CommandOutputFile.WriteAsync(outputPath, async output =>
             {
                 using Utf8JsonWriter json = new(output, new JsonWriterOptions { Indented = true });
                 json.WriteStartObject();
