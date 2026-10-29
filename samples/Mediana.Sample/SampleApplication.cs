@@ -11,6 +11,11 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string[] args)
         {
+            if (args.Length == 4 && args[0] == "--decode-audio" &&
+                int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int audioStreamIndex))
+            {
+                return await AudioDecodeSample.RunAsync(args[1], args[2], audioStreamIndex);
+            }
             if (args.Length == 7 && args[0] == "--preview" &&
                 int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int streamIndex) &&
                 long.TryParse(args[4], NumberStyles.None, CultureInfo.InvariantCulture, out long milliseconds) &&
@@ -42,7 +47,7 @@ namespace Mediana.Sample
             }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds> | --hls-mp4 <input> <new-directory> <video-index> <audio-index|none> <target-milliseconds>]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --decode-audio <input> <new-output.pcm> <stream-index> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds> | --hls-mp4 <input> <new-directory> <video-index> <audio-index|none> <target-milliseconds>]");
                 return 2;
             }
 
