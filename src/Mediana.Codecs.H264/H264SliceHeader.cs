@@ -12,9 +12,13 @@ namespace Mediana.Codecs.H264
         public int DeltaPictureOrderBottom { get; init; }
         public int DeltaPictureOrder0 { get; init; }
         public int DeltaPictureOrder1 { get; init; }
+        public bool DirectSpatialMotionPrediction { get; init; }
         public int ActiveReferencesL0 { get; init; }
+        public int ActiveReferencesL1 { get; init; }
         public IReadOnlyList<H264ReferenceModification> ReferenceModifications { get; init; } = [];
+        public IReadOnlyList<H264ReferenceModification> ReferenceModificationsL1 { get; init; } = [];
         public H264WeightTable? Weights { get; init; }
+        public H264WeightTable? WeightsL1 { get; init; }
         public bool NoOutputOfPriorPictures { get; init; }
         public bool LongTermReference { get; init; }
         public bool AdaptiveMarking { get; init; }

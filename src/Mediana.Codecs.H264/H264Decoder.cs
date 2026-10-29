@@ -150,7 +150,7 @@ namespace Mediana.Codecs.H264
         {
             H264BitReader bits = H264Nal.Payload(unit.Slice.Span, H264Nal.Type(unit.Slice.Span));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, unit.Configuration, unit.Slice.Span[0], options);
-            string? reason = H264Support.GetUnsupportedReason(unit.Configuration);
+            string? reason = H264Support.GetUnsupportedReason(unit.Configuration) ?? H264Support.GetUnsupportedReason(header);
             if (reason is not null)
             {
                 throw new NotSupportedException(reason);

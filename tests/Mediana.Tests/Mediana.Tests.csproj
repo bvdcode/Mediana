@@ -19,6 +19,7 @@
   <ItemGroup>
     <None Update="Data/**" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
+    <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
     <Compile Include="../Shared/MpegTsTestInput.cs" Link="MpegTsTestInput.cs" />
     <Compile Include="../Shared/MpegTsSegmentTestInput.cs" Link="MpegTsSegmentTestInput.cs" />
     <Compile Include="../Shared/Mp4TimelineTestInput.cs" Link="Mp4TimelineTestInput.cs" />

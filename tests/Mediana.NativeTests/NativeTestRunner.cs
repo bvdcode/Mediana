@@ -17,6 +17,8 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            await H264BidirectionalTestInput.VerifyHeadersAsync(root);
+            Console.WriteLine("PASS H.264 B headers: reference and non-reference slices, both active lists, picture order and CABAC alignment match the independent trace.");
             await Mp4TimelineTestInput.VerifyAsync(root);
             await HlsPlanTestInput.VerifyAsync(root);
             await HlsSessionTestInput.VerifyAsync(root);

@@ -29,6 +29,21 @@ are 0, 5, 10, 15, 20, 25, 30 and 35. A 2.25-second target selects video windows
 durations 3, 3 and 1.2 seconds. Independent decoding of each window matches every
 one of the corresponding source's 36 YUV pictures, including B-picture reorder.
 
+The B headers at video packet indices 2 and 3 are checked against FFmpeg 6.1.1
+`trace_headers`, including both active reference counts, picture order, direct
+prediction selection, quantizers, reference marking and CABAC alignment. The
+same checks run in Native AOT. They cover header parsing; B picture reconstruction
+is still unsupported.
+
+| Packet | frame_num | POC LSB | Active L0/L1 | nal_ref_idc | QP |
+| --- | --- | --- | --- | --- | --- |
+| 2 | 2 | 2 | 1/1 | 2 | 26 |
+| 3 | 3 | 4 | 2/1 | 0 | 28 |
+
+```sh
+ffmpeg -hide_banner -loglevel info -i avc-segments.mp4 -map 0:v:0 -c:v copy -bsf:v trace_headers -f null -
+```
+
 ```sh
 ffmpeg -v error -nostdin -f lavfi -i testsrc2=size=64x48:rate=5:duration=7.2 -f lavfi -i sine=frequency=440:sample_rate=48000:duration=7.2 -map_metadata -1 -c:v libx264 -preset medium -pix_fmt yuv420p -g 5 -keyint_min 5 -sc_threshold 0 -bf 2 -x264-params open-gop=0 -c:a aac -b:a 64k -shortest avc-segments.mp4
 ```

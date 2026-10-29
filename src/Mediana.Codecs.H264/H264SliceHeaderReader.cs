@@ -18,8 +18,9 @@ namespace Mediana.Codecs.H264
             H264SliceKind kind = (bits.ReadUe(9) % 5) switch
             {
                 0 => H264SliceKind.P,
+                1 => H264SliceKind.B,
                 2 => H264SliceKind.I,
-                1 or 3 or 4 => throw new NotSupportedException("B, SP and SI slices are not supported yet."),
+                3 or 4 => throw new NotSupportedException("SP and SI slices are not supported yet."),
                 _ => throw new InvalidDataException("Invalid H.264 slice type.")
             };
             if (idr && kind != H264SliceKind.I)
@@ -44,16 +45,30 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException("Redundant H.264 slices are not supported.");
             }
-            int activeReferences = 0;
+            bool directSpatialMotionPrediction = kind == H264SliceKind.B && bits.ReadFlag();
+            int activeReferencesL0 = 0;
+            int activeReferencesL1 = 0;
             IReadOnlyList<H264ReferenceModification> modifications = [];
+            IReadOnlyList<H264ReferenceModification> modificationsL1 = [];
             H264WeightTable? weights = null;
-            if (kind == H264SliceKind.P)
+            H264WeightTable? weightsL1 = null;
+            if (kind is H264SliceKind.P or H264SliceKind.B)
             {
-                activeReferences = bits.ReadFlag() ? bits.ReadUe(31) + 1 : picture.DefaultReferencesL0;
-                modifications = H264ReferenceSyntax.ReadModifications(ref bits, activeReferences, 1 << sequence.FrameNumberBits);
-                if (picture.WeightedPrediction)
+                bool overrideReferences = bits.ReadFlag();
+                activeReferencesL0 = overrideReferences ? bits.ReadUe(31) + 1 : picture.DefaultReferencesL0;
+                if (kind == H264SliceKind.B)
                 {
-                    weights = H264WeightTable.Read(ref bits, activeReferences);
+                    activeReferencesL1 = overrideReferences ? bits.ReadUe(31) + 1 : picture.DefaultReferencesL1;
+                }
+                modifications = H264ReferenceSyntax.ReadModifications(ref bits, activeReferencesL0, 1 << sequence.FrameNumberBits);
+                if (kind == H264SliceKind.B)
+                {
+                    modificationsL1 = H264ReferenceSyntax.ReadModifications(ref bits, activeReferencesL1, 1 << sequence.FrameNumberBits);
+                }
+                if ((kind == H264SliceKind.P && picture.WeightedPrediction)
+                    || (kind == H264SliceKind.B && picture.WeightedBiPrediction == 1))
+                {
+                    (weights, weightsL1) = H264WeightTable.Read(ref bits, activeReferencesL0, activeReferencesL1);
                 }
             }
             bool noPriorOutput = false;
@@ -77,7 +92,7 @@ namespace Mediana.Codecs.H264
                 }
             }
             int cabacInitIdc = 0;
-            if (picture.Cabac && kind == H264SliceKind.P)
+            if (picture.Cabac && kind is H264SliceKind.P or H264SliceKind.B)
             {
                 cabacInitIdc = bits.ReadUe(2);
             }
@@ -106,9 +121,13 @@ namespace Mediana.Codecs.H264
                 DeltaPictureOrderBottom = deltaBottom,
                 DeltaPictureOrder0 = delta0,
                 DeltaPictureOrder1 = delta1,
-                ActiveReferencesL0 = activeReferences,
+                DirectSpatialMotionPrediction = directSpatialMotionPrediction,
+                ActiveReferencesL0 = activeReferencesL0,
+                ActiveReferencesL1 = activeReferencesL1,
                 ReferenceModifications = modifications,
+                ReferenceModificationsL1 = modificationsL1,
                 Weights = weights,
+                WeightsL1 = weightsL1,
                 NoOutputOfPriorPictures = noPriorOutput,
                 LongTermReference = longTermReference,
                 AdaptiveMarking = adaptiveMarking,
