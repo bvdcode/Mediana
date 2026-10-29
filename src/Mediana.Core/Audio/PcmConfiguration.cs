@@ -29,6 +29,75 @@ namespace Mediana.Core.Audio
         public int ValidBitsPerSample { get; }
         public int BlockAlignment => Format.Channels.Count * SourceBitsPerSample / 8;
 
+        /// <summary>Encodes an interleaved PCM description without changing its channel order.
+        /// Named extensible channels must follow WAVE speaker-bit order, followed by any discrete channels.</summary>
+        public static byte[] WriteWaveFormat(AudioFormat format)
+        {
+            ArgumentNullException.ThrowIfNull(format);
+            if (format.Layout != AudioStorageLayout.Interleaved || format.Channels.Count > 32)
+            {
+                throw new NotSupportedException("WAVE requires interleaved PCM with at most 32 channels.");
+            }
+            bool floating = format.SampleFormat switch
+            {
+                AudioSampleFormat.Unsigned8 or AudioSampleFormat.Signed16 or AudioSampleFormat.Signed32 => false,
+                AudioSampleFormat.Float32 or AudioSampleFormat.Float64 => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(format))
+            };
+            bool basic = format.Channels.SequenceEqual(["mono"]) ||
+                format.Channels.SequenceEqual(["front-left", "front-right"]);
+            uint mask = 0;
+            int previousBit = -1;
+            bool discrete = false;
+            if (!basic)
+            {
+                for (int index = 0; index < format.Channels.Count; index++)
+                {
+                    string label = format.Channels[index];
+                    int bit = Array.IndexOf(speakers, label);
+                    if (bit >= 0 && bit > previousBit && !discrete)
+                    {
+                        mask |= 1U << bit;
+                        previousBit = bit;
+                    }
+                    else if (label == $"discrete-{index + 1}")
+                    {
+                        discrete = true;
+                    }
+                    else
+                    {
+                        throw new NotSupportedException("WAVE channel labels must follow speaker-bit order or be explicitly discrete.");
+                    }
+                }
+            }
+            if (mask != 0 && discrete)
+            {
+                throw new NotSupportedException("WAVE output cannot mix named and unassigned channels.");
+            }
+            int bits = format.BytesPerSample * 8;
+            int alignment = checked(format.Channels.Count * format.BytesPerSample);
+            long byteRate = (long)format.SampleRate * alignment;
+            if (byteRate > uint.MaxValue)
+            {
+                throw new NotSupportedException("The PCM byte rate exceeds the WAVE format limit.");
+            }
+            byte[] result = new byte[basic ? (floating ? 18 : 16) : 40];
+            BinaryPrimitives.WriteUInt16LittleEndian(result, basic ? (ushort)(floating ? 3 : 1) : (ushort)0xfffe);
+            BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(2), (ushort)format.Channels.Count);
+            BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4), (uint)format.SampleRate);
+            BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(8), (uint)byteRate);
+            BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(12), (ushort)alignment);
+            BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(14), (ushort)bits);
+            if (!basic)
+            {
+                BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(16), 22);
+                BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(18), (ushort)bits);
+                BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(20), mask);
+                (floating ? floatSubformat : pcmSubformat).TryWriteBytes(result.AsSpan(24));
+            }
+            return result;
+        }
+
         /// <summary>Returns null with a reason for an unsupported encoding; malformed descriptions throw.</summary>
         public static PcmConfiguration? ReadWaveFormat(ReadOnlySpan<byte> configuration, out string? unsupportedReason)
         {
