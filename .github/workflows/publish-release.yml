@@ -47,19 +47,30 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
   build:
-    name: Build and test (${{ matrix.os }})
+    name: Build and test (${{ matrix.rid }})
     needs: version
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-24.04
+            rid: linux-x64
+            executable: Mediana.Sample
+          - os: windows-2025
+            rid: win-x64
+            executable: Mediana.Sample.exe
+          - os: macos-15
+            rid: osx-arm64
+            executable: Mediana.Sample
     defaults:
       run:
         shell: bash
     env:
       PACKAGE_VERSION: ${{ needs.version.outputs.version }}
+      RUNTIME_IDENTIFIER: ${{ matrix.rid }}
+      NATIVE_EXECUTABLE: ${{ matrix.executable }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -80,8 +91,8 @@ jobs:
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 artifacts/hls-managed 0 1 2250
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-managed.png 0 250 100 100
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-managed-rotated.png 0 0 100 100
-      - run: dotnet publish samples/Mediana.Sample -c Release -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native
-      - run: dotnet publish tests/Mediana.NativeTests -c Release -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native-tests
+      - run: dotnet publish samples/Mediana.Sample -c Release -r "$RUNTIME_IDENTIFIER" -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native
+      - run: dotnet publish tests/Mediana.NativeTests -c Release -r "$RUNTIME_IDENTIFIER" -m:1 -p:IlcSingleThreaded=true -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/native-tests
       - name: Run native executable
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
@@ -99,12 +110,37 @@ jobs:
           "$sample_executable" --hls-mp4 tests/Mediana.Tests/Data/Mp4/avc-segments.mp4 artifacts/hls-native 0 1 2250
           "$sample_executable" --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview-native.png 0 250 100 100
           "$sample_executable" --preview tests/Mediana.Tests/Data/Mp4/avc-weighted-rotated.mp4 artifacts/preview-native-rotated.png 0 0 100 100
+          "$sample_executable" --decode-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/audio-native.pcm 0
           "$native_tests_executable"
+      - name: Package native executable
+        shell: pwsh
+        run: |
+          $packageName = "Mediana-$env:PACKAGE_VERSION-$env:RUNTIME_IDENTIFIER"
+          $packageDirectory = "artifacts/native-package"
+          $archiveDirectory = "artifacts/binaries"
+          New-Item -ItemType Directory -Path $packageDirectory, $archiveDirectory -Force | Out-Null
+          Copy-Item "artifacts/native/$env:NATIVE_EXECUTABLE", README.md, LICENSE -Destination $packageDirectory
+          if ($env:RUNNER_OS -eq "Windows") {
+            $archiveName = "$packageName.zip"
+            Compress-Archive -Path "$packageDirectory/*" -DestinationPath "$archiveDirectory/$archiveName"
+          } else {
+            $archiveName = "$packageName.tar.gz"
+            tar -czf "$archiveDirectory/$archiveName" -C $packageDirectory .
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          $hash = (Get-FileHash "$archiveDirectory/$archiveName" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $archiveName" | Set-Content "$archiveDirectory/$archiveName.sha256" -Encoding ascii
+      - name: Upload native executable
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: native-${{ matrix.rid }}
+          path: artifacts/binaries/*
+          if-no-files-found: error
       - name: Pack
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.rid == 'linux-x64'
         run: dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/packages
       - name: Upload packages
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.rid == 'linux-x64'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: nuget-packages
@@ -114,7 +150,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: test-results-${{ matrix.os }}
+          name: test-results-${{ matrix.rid }}
           path: artifacts/test-results/*.trx
           if-no-files-found: ignore
 
@@ -161,13 +197,19 @@ jobs:
         with:
           name: nuget-packages
           path: artifacts/packages
+      - name: Download native executables
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: native-*
+          merge-multiple: true
+          path: artifacts/binaries
       - name: Create release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
         with:
           tag: v${{ needs.version.outputs.version }}
           commit: ${{ github.sha }}
           name: Mediana ${{ needs.version.outputs.version }}
-          artifacts: artifacts/packages/*.nupkg,artifacts/packages/*.snupkg
+          artifacts: artifacts/packages/*.nupkg,artifacts/packages/*.snupkg,artifacts/binaries/*
           artifactErrorsFailBuild: true
           generateReleaseNotes: true
           skipIfReleaseExists: true

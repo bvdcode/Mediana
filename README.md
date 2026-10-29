@@ -63,6 +63,47 @@ selections. Timing, cropping and sample aspect ratio are preserved. Preview gene
 the supported CAVLC/CABAC I/P/B subset and known color and sample aspect ratio;
 it does not cover general H.264 files.
 
+## Download and run
+
+Each publishing run attaches Native AOT command-line archives to the
+[GitHub release](https://github.com/bvdcode/Mediana/releases). Download the archive
+for your operating system and processor, then extract it. No .NET SDK, .NET runtime
+or FFmpeg installation is needed.
+
+| Archive | Platform | Executable |
+| --- | --- | --- |
+| `Mediana-<version>-linux-x64.tar.gz` | Linux x64 (glibc), built on Ubuntu 24.04 | `Mediana.Sample` |
+| `Mediana-<version>-win-x64.zip` | Windows x64 | `Mediana.Sample.exe` |
+| `Mediana-<version>-osx-arm64.tar.gz` | macOS on Apple Silicon, built on macOS 15 | `Mediana.Sample` |
+
+Archives include this README and the MIT license. Each archive has a matching
+`.sha256` checksum file. For Linux, use Ubuntu 24.04 or a compatible newer glibc
+distribution; the archive does not target Alpine.
+
+From the extracted directory on Linux/macOS:
+
+```sh
+./Mediana.Sample --self-test
+./Mediana.Sample --probe-mp4 input.mp4
+./Mediana.Sample --remux-mp4 input.mp4 output.ts
+./Mediana.Sample --hls-mp4 input.mp4 output-hls 0 1 6000
+./Mediana.Sample --preview input.mp4 preview.png 0 250 320 180
+./Mediana.Sample --decode-audio input.flac output.pcm 0
+```
+
+On Windows, use `./Mediana.Sample.exe` in PowerShell with the same arguments.
+The MP4 probe lists stream indices; use the appropriate video/audio indices in
+the HLS, preview and audio commands. Use `none` for HLS without audio. Output paths
+must be new, and their parent directories must already exist.
+
+MP4-to-TS/HLS copies supported AVC/AAC streams without re-encoding. PCM export
+supports WAVE PCM, FLAC and the supported AAC-LC subset in MP4/M4A. It writes raw,
+native-endian interleaved samples without a WAVE header and prints the sample
+format, channel layout and sample rate. Video previews require the supported
+H.264 subset described above. Video encoding and compressed audio encoding remain
+unavailable. The command-line arguments match the source examples below: replace
+`dotnet run --project samples/Mediana.Sample -c Release --` with the executable.
+
 ## Build and run
 
 Install a .NET 10 SDK. The repository accepts newer .NET 10 feature bands.
@@ -1185,13 +1226,15 @@ for both compilation and packing. Ordinary releases advance the patch version;
 minor and major changes require an explicit versioning decision.
 
 Pushes to main and pull requests run build, formatting, tests and Native AOT checks
-on Linux, Windows and macOS. They do not publish packages or create releases.
+on Linux x64, Windows x64 and macOS ARM64. Successful builds upload native archives
+and SHA-256 checksums as workflow artifacts. They do not publish packages or create
+releases.
 
 Publication requires an explicit manual workflow run from main with the publish
 input enabled. Manual runs validate without publishing by default. After all
 checks pass, a publishing run uploads the validated packages and symbols to
-NuGet.org and creates a GitHub release with the matching tag, package assets and
-generated release notes.
+NuGet.org and creates a GitHub release with the matching tag, package assets,
+the same tested native archives and checksums, and generated release notes.
 Authentication uses [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing).
 Set the NUGET_USER repository variable to the NuGet profile username. Configure
 the matching NuGet policy for repository bvdcode/Mediana, workflow file
