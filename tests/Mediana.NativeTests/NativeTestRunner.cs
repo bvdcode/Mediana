@@ -1,5 +1,6 @@
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
+using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Tests;
 
@@ -9,6 +10,10 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await AudioResamplingTestInput.VerifyAsync(48000, 400, AudioStorageLayout.Interleaved);
+            await AudioResamplingTestInput.VerifyAsync(44100, 400, AudioStorageLayout.Planar);
+            await AudioResamplingTestInput.VerifyAsync(8000, 11025, AudioStorageLayout.Interleaved);
+            Console.WriteLine("PASS audio resampling: passband tones, exact timing, channel separation and finite output ownership match.");
             foreach (string name in WavePcmTestInput.Names)
             {
                 await WavePcmTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"), name);
