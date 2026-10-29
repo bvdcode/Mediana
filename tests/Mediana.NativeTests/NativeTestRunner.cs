@@ -19,6 +19,8 @@ namespace Mediana.NativeTests
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
             await Mp4TimelineTestInput.VerifyAsync(root);
             await HlsPlanTestInput.VerifyAsync(root);
+            await HlsSessionTestInput.VerifyAsync(root);
+            Console.WriteLine("PASS MP4 HLS session: exact AVC/AAC windows, VOD playlist, segments requested as 2, 0, 1, 2, all compressed packets and continuous transport state match.");
             await MpegTsSegmentTestInput.VerifyAsync(root);
             Console.WriteLine("PASS MPEG-TS segments: all 36 AVC and 339 AAC packets, clocks and counters match; restored segments in order 2, 0, 1, 2 equal continuous output byte for byte.");
             await Mp4SampleAccessTestInput.VerifyAsync(root, "avc-segments.mp4", Mp4TimestampMode.LinearMovie);

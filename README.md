@@ -453,10 +453,61 @@ checks verify exact rational times, sample windows and reverse boundary reads.
 Transport tests also split the fixture into three files with one writer, retaining
 all 36 AVC and 339 AAC packets. Every file and their concatenation pass packet,
 timestamp, table, clock and continuity checks in managed execution and Native AOT.
-This remains a video boundary plan: complete HLS orchestration, audio coverage
-planning, playlists and on-demand output are still open. It does not claim full HLS support
-or emit INDEPENDENT-SEGMENTS. Segment requirements follow
+The video plan does not include audio or transport state. The session below binds
+them to one source. Neither API declares INDEPENDENT-SEGMENTS. Segment requirements follow
 [RFC 8216](https://www.rfc-editor.org/rfc/rfc8216.html).
+
+## Serving MP4 as HLS without transcoding
+
+The experimental Mediana.Streaming.Hls source module provides `Mp4HlsSession` for
+one supported AVC video track and an optional AAC-LC track. Open it on an immutable
+IRandomAccessByteSource, selecting stream indices explicitly:
+
+```csharp
+await using Mp4HlsSession session = await Mp4HlsSession.OpenAsync(source, allocator,
+    videoStreamIndex: 0, audioStreamIndex: 1, cancellationToken: cancellationToken);
+string playlist = session.CreateVodPlaylist(number => $"segment-{number}.ts");
+await session.WriteSegmentAsync(2, output, cancellationToken);
+```
+
+The session owns its MP4 reader and borrows the source. Opening inspects candidate
+IDR headers and scans the selected compressed packets once, building audio sample
+ranges and immutable transport snapshots. Media payloads and encoded segments are
+not retained. MaximumSegments bounds index entries; MP4 and transport options bound
+metadata, configuration and packet sizes. Unselected tracks are not copied.
+
+Requests may arrive in any order and repeat. Each reads only its indexed sample
+ranges, preserving continuous PID counters, clocks and PTS/DTS across the sequence.
+Video wins equal decode-time ties. Audio packets before the next video's decode
+start belong to the preceding segment. With B pictures this can place audio before
+the first video presentation timestamp in a file. AAC requires PTS equal to DTS,
+positive sample durations and increasing decode timestamps.
+
+CreateVodPlaylist returns LF-delimited text for UTF-8 encoding, version 3, a zero
+media sequence, VOD and ENDLIST. EXTINF follows actual video boundaries on the
+90 kHz transport clock, including any declared audio tail in the last segment;
+TARGETDURATION is the ceiling of the largest interval. Segment URIs are supplied
+by the application and must be bounded, well-formed URI lines. No variant metadata
+or independent-audio claim is inferred.
+
+One session permits one I/O operation at a time. The caller keeps the source
+unchanged and alive, manages concurrent sessions and owns every destination.
+WriteSegmentAsync flushes without closing it. On failure or cancellation discard
+the partial destination; the same segment can be retried using the immutable index.
+Disposal releases reader metadata. Segment metadata and playlist formatting remain
+available afterward.
+
+This copies compressed streams. It does not encode, resize, normalize display
+orientation, recover damaged pictures or trim MP4 edit windows. AAC priming and
+padding are preserved; MP4 discard metadata and a shortened last AAC sample duration
+are not represented in ADTS. Audio-independent decoding, additional codecs and
+multiple renditions remain outside this path. Existing AVC inspection and MPEG-TS
+configuration limits apply.
+
+Managed and Native AOT checks cover the real 36-picture/339-AAC fixture, exact
+sample windows, all compressed packets, playlists, transport continuity and repeated
+requests in order 2, 0, 1, 2. Error tests cover short range reads, cancellation,
+partial output, flush failures, invalid requests and source ownership.
 
 ## Connecting modules
 

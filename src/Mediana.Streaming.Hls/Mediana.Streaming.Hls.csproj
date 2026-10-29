@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
+    <ProjectReference Include="../Mediana.Containers.MpegTs/Mediana.Containers.MpegTs.csproj" />
     <ProjectReference Include="../Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
   </ItemGroup>
 </Project>

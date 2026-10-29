@@ -24,6 +24,7 @@
     <Compile Include="../Shared/Mp4TimelineTestInput.cs" Link="Mp4TimelineTestInput.cs" />
     <Compile Include="../Shared/Mp4SampleAccessTestInput.cs" Link="Mp4SampleAccessTestInput.cs" />
     <Compile Include="../Shared/HlsPlanTestInput.cs" Link="HlsPlanTestInput.cs" />
+    <Compile Include="../Shared/HlsSessionTestInput.cs" Link="HlsSessionTestInput.cs" />
     <Compile Include="../Shared/H264EightByEightTestInput.cs" Link="H264EightByEightTestInput.cs" />
     <Compile Include="../Shared/H264CabacTransformTestInput.cs" Link="H264CabacTransformTestInput.cs" />
     <Compile Include="../Shared/H264CabacResidualWriter.cs" Link="H264CabacResidualWriter.cs" />
