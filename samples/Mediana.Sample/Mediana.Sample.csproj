@@ -8,6 +8,12 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />
+    <ProjectReference Include="../../src/Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
+    <ProjectReference Include="../../src/Mediana.Images.Tgs/Mediana.Images.Tgs.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Jpeg2000/Mediana.Codecs.Jpeg2000.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Jbig2/Mediana.Codecs.Jbig2.csproj" />
+
     <ProjectReference Include="../../src/Mediana.Codecs.Mp3/Mediana.Codecs.Mp3.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp3/Mediana.Containers.Mp3.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Flac/Mediana.Codecs.Flac.csproj" />

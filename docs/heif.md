@@ -32,7 +32,7 @@ session or encode HEIC files.
 Returned pixels use straight alpha. Ordered container transformations and alpha
 composition are already applied. RGB retains the signalled CICP primaries and
 transfer function; embedded ICC bytes are retained in `ColorInformation`.
-RGB is not implicitly sRGB. ICC transforms, HDR tone mapping, fractional clean
+RGB is not implicitly sRGB. `RgbaImage.ToVideoFrame` copies pixels into a Mediana buffer while preserving CICP color interpretation and requiring an explicit pixel aspect ratio; it rejects ICC-profiled images. ICC transforms, HDR tone mapping, fractional clean
 aperture, pixel-aspect correction, HEVC inter prediction, tiles, dependent
 slices, 12-bit/multilayer coding and protected/external items are unsupported.
 

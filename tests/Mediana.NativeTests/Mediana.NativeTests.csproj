@@ -8,6 +8,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/ImageFrameTestInput.cs" Link="ImageFrameTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Tgs/*" Link="Data/Tgs/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/TgsReferenceTestInput.cs" Link="TgsReferenceTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Tgs/Mediana.Images.Tgs.csproj" />

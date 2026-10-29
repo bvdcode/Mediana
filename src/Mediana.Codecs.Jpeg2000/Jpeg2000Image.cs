@@ -6,7 +6,7 @@ using System;
 namespace Mediana.Codecs.Jpeg2000
 {
     /// <summary>A decoded image retaining component precision, signs and sampling.</summary>
-    public class Jpeg2000Image
+    public partial class Jpeg2000Image
     {
         private readonly Jpeg2000Component[] _components;
         internal int X0 { get; }

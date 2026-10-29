@@ -13,8 +13,10 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await ImageFrameTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS image conversion: HEIC, JPEG 2000 and JBIG2 produce owned frames and complete sRGB PNG files.");
             await TgsReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Tgs"));
-            Console.WriteLine("PASS TGS/Lottie: 33 supported animation frames match stored RGBA references.");
+            Console.WriteLine("PASS TGS/Lottie: 33 supported frames match every reference channel within one RGB code and exact alpha.");
             await SvgReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Svg"));
             Console.WriteLine("PASS SVG: 352 filter pixel references and Latin/Cyrillic font rendering.");
             await HeifReferenceTestInput.VerifyWavefrontAsync();

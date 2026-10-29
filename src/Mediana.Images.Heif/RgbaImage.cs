@@ -8,7 +8,7 @@ namespace Mediana.Images.Heif
     /// <summary>
     /// Contains a caller-owned, tightly packed RGBA8 image with rows ordered from top to bottom.
     /// </summary>
-    public class RgbaImage
+    public partial class RgbaImage
     {
         private readonly ReadOnlyMemory<byte> pixels;
 

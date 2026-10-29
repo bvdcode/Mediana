@@ -13,12 +13,22 @@ the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC access units without decoding.
 The WAVE and PCM source modules read integer/float audio through public audio sessions.
 The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float PCM.
+Independent source modules also decode HEIC/HEIF still images, JPEG 2000 and JBIG2,
+and rasterize SVG and TGS/Lottie 2D animation. Their output connects to Mediana
+frames, SDR color conversion and PNG encoding. These modules compile inside
+Mediana and do not depend on Heic.NET or Render.NET packages.
 **Video encoding and compressed audio encoding are not available yet.**
 
 ## Components
 
 | Project | Current responsibility |
 | --- | --- |
+| `Mediana.Drawing` | Managed 2D paths, fills/strokes, clipping, compositing and RGBA surfaces; source project only |
+| `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha; source project only |
+| `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion; source project only |
+| `Mediana.Codecs.Jbig2` | Packed monochrome pages, globals and optional RGBA expansion; source project only |
+| `Mediana.Images.Svg` | SVG paths, styles, text, masks, filters and embedded PNG; source project only |
+| `Mediana.Images.Tgs` | TGS/Lottie 2D keyframes and lazy timed raster frames; source project only |
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
@@ -63,6 +73,37 @@ Five CABAC sequences add 98 complete pictures with B prediction and all initiali
 selections. Timing, cropping and sample aspect ratio are preserved. Preview generation requires
 the supported CAVLC/CABAC I/P/B subset and known color and sample aspect ratio;
 it does not cover general H.264 files.
+
+## Images and 2D animation
+
+The image modules use their own document/component APIs instead of inventing
+video tracks for HEIF items, JBIG2 pages or vector scenes. Raster results expose
+`ToVideoFrame` for the existing processing and PNG APIs. HEIC and JPEG 2000 retain
+native color information; conversion rejects ICC profiles instead of labelling
+them sRGB. HDR tone mapping is not implemented. JPEG 2000 native component
+precision remains available separately from its optional RGBA8 preview.
+
+```sh
+dotnet run --project samples/Mediana.Sample -c Release -- --image-png heic photo.heic preview.png 1 1
+dotnet run --project samples/Mediana.Sample -c Release -- --image-png jp2 scan.jp2 preview.png 1 1
+dotnet run --project samples/Mediana.Sample -c Release -- --image-png jbig2 scan.jb2 preview.png 1 1
+dotnet run --project samples/Mediana.Sample -c Release -- --svg-png artwork.svg preview.png 512
+dotnet run --project samples/Mediana.Sample -c Release -- --tgs-png animation.tgs preview.png 0.5 512
+```
+
+Raster examples select the primary HEIC item or first JBIG2 page. The final two
+arguments explicitly declare pixel aspect ratio; `1 1` means square pixels.
+The APIs also expose item selection, all JBIG2 pages and native JPEG 2000 samples.
+SVG/TGS width preserves the viewport proportions; TGS time is seconds from its
+in-point. Existing output files are never overwritten. Input, output and
+workspace have separate budgets; the output allocator is not a whole-process
+memory limit.
+
+Supported subsets and limits: [HEIC](docs/heif.md),
+[JPEG 2000](docs/jpeg2000.md), [JBIG2](docs/jbig2.md),
+[SVG](docs/svg.md), [TGS/Lottie](docs/tgs.md).
+TGS/Lottie expressions are explicitly unsupported. Standalone PNG decoding,
+PDF page rendering and 3D file formats are not implemented.
 
 ## Download and run
 

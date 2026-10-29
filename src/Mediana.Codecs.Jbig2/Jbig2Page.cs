@@ -9,7 +9,7 @@ using System.Threading;
 namespace Mediana.Codecs.Jbig2
 {
     /// <summary>A monochrome page. Set bits represent black pixels; rows are byte aligned.</summary>
-    public class Jbig2Page
+    public partial class Jbig2Page
     {
         private readonly Bitmap _bitmap;
         internal Jbig2Page(uint number, Bitmap bitmap)

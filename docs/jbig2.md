@@ -18,7 +18,7 @@ bool black = page.GetPixel(20, 10);
 
 Page association numbers are preserved. Packed samples are MSB-first, one means
 black and zero means white. Unused row tail bits are zero. Pages can be processed
-individually without first allocating RGBA output.
+individually without first allocating RGBA output. `Jbig2Page.ToVideoFrame` explicitly expands a selected page to an owned opaque sRGB frame with caller-supplied pixel aspect ratio.
 
 The implementation supports arithmetic and MMR generic regions, symbol
 dictionaries, text regions, refinement, halftones, standard/custom Huffman tables,
