@@ -8,6 +8,9 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Containers.Flac/Mediana.Containers.Flac.csproj" />
+    <Compile Include="../Shared/FlacMetadataTestInput.cs" Link="FlacMetadataTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Flac/*" Link="Data/Flac/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
     <Compile Include="../Shared/AacDecodeTestInput.cs" Link="AacDecodeTestInput.cs" />
     <Compile Include="../Shared/AacFeatureTestInput.cs" Link="AacFeatureTestInput.cs" />

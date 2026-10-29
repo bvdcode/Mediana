@@ -10,6 +10,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await FlacMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Flac"), 127);
+            Console.WriteLine("PASS native FLAC reader: independent STREAMINFO/tags, exact PNG/JPEG leases and all compressed bytes match; PCM decoding is separate.");
             foreach (string name in WaveformReferenceTestInput.Names)
             {
                 (double maximum, double rms) = await WaveformReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Waveform"), name, 127);
