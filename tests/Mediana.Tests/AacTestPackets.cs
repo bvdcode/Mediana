@@ -2,11 +2,18 @@ namespace Mediana.Tests
 {
     internal static class AacTestPackets
     {
-        public static byte[] Mono()
+        public static byte[] Mono(bool noise = false)
         {
             AacTestBitWriter writer = new AacTestBitWriter().Write(0, 3).Write(0, 4).Write(100, 8);
             Window(writer);
-            Spectrum(writer);
+            if (noise)
+            {
+                writer.Write(13, 4).Write(1, 5).Write(256, 9).Write(0, 3);
+            }
+            else
+            {
+                Spectrum(writer);
+            }
             return writer.Write(7, 3).ToArray();
         }
 

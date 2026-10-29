@@ -8,6 +8,10 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
+    <Compile Include="../Shared/AacDecodeTestInput.cs" Link="AacDecodeTestInput.cs" />
+    <Compile Include="../Shared/AacFeatureTestInput.cs" Link="AacFeatureTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Aac/*" Link="Data/Aac/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Mp4MetadataTestInput.cs" Link="Mp4MetadataTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Metadata/*" Link="Data/Metadata/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/AudioSignalSource.cs" Link="AudioSignalSource.cs" />

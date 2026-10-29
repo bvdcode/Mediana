@@ -4,6 +4,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/AacDecodeTestInput.cs" Link="AacDecodeTestInput.cs" />
+    <Compile Include="../Shared/AacFeatureTestInput.cs" Link="AacFeatureTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
     <Compile Include="../Shared/Mp4MetadataTestInput.cs" Link="Mp4MetadataTestInput.cs" />
     <Compile Include="../Shared/AudioSignalSource.cs" Link="AudioSignalSource.cs" />

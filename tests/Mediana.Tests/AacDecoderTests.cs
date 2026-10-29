@@ -95,6 +95,28 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void ResetRestoresNoiseAndOverlapStateWithoutChangingBorrowedPackets()
+        {
+            MediaBufferAllocator allocator = new(128 * 1024);
+            byte[] input = AacTestPackets.Mono(true);
+            using MediaPacket packet = Packet(allocator, input);
+            using IMediaCodec<MediaPacket, AudioFrame> decoder = new AacDecoderFactory().Create(Stream(false), allocator);
+            decoder.TrySend(packet);
+            using AudioFrame first = decoder.Receive().Value;
+            byte[] expected = first.GetPlane(0).ToArray();
+            decoder.TrySend(packet);
+            using AudioFrame following = decoder.Receive().Value;
+            Assert.NotEqual(expected, following.GetPlane(0).ToArray());
+            decoder.Reset();
+            decoder.TrySend(packet);
+            using AudioFrame repeated = decoder.Receive().Value;
+            Assert.Equal(expected, repeated.GetPlane(0).ToArray());
+            Assert.Equal(input, packet.Data.ToArray());
+            decoder.Dispose();
+            Assert.Equal(packet.Data.Length + 3 * expected.Length, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public void PartialWorkspaceAllocationFailureDoesNotLeakTheFirstChannel()
         {
             MediaBufferAllocator allocator = new(32768);

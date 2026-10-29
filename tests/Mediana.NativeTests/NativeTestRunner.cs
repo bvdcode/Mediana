@@ -10,6 +10,12 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            foreach (string name in AacDecodeTestInput.Names)
+            {
+                double difference = await AacDecodeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
+                await AacFeatureTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
+                Console.WriteLine($"PASS AAC-LC {name}: complete PCM/timing/ownership and reference sample or noise energy checks; maximum PCM difference {difference:G9}.");
+            }
             await Mp4MetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
             Console.WriteLine("PASS MP4 metadata: Unicode tags, indexed keys, exact PNG/JPEG covers, unchanged packets and independent cover ownership match.");
             await AudioWaveformTestInput.VerifyAsync();
