@@ -25,6 +25,7 @@ The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float P
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading; source project only |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks; source project only |
+| `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing; source project only |
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC transport-stream writer; source project only |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
@@ -428,6 +429,45 @@ WAVE into 72000 mono samples and 1800 level windows in 2.01 seconds, with an
 observed peak RSS of 13056 KiB. All level counts/times matched an independent PCM
 reference; maximum RMS error was `5.10e-6` and peak error one PCM16 step. This is
 one resource observation, not a controlled throughput comparison.
+
+## Reading MP3 metadata, frames and pictures
+
+The source-only `Mediana.Containers.Mp3` module reads MPEG-1/2/2.5 Layer III
+files from a sequential source, including short reads and unknown source length.
+It reads one leading ID3v2.3/v2.4 tag, text and original APIC picture bytes,
+Xing/Info declarations and a final ID3v1 tag. The sample exposes:
+
+```sh
+dotnet run --project samples/Mediana.Sample -c Release -- --probe-mp3 input.mp3
+dotnet run --project samples/Mediana.Sample -c Release -- --cover-mp3 input.mp3 cover.png 0
+```
+
+`Mp3Reader.OpenAsync` borrows the input. `ReadPacketAsync` returns one complete
+Layer III frame with its own lease and continuous coded-sample PTS/DTS/duration;
+Xing/Info is excluded from audio packets. Bitrate and padding may vary within a
+stream. Frames may depend on previous main data through the bit reservoir, so
+`IsKeyFrame` is unspecified. Coded timing includes codec delay and padding;
+`CodedDuration` is declared by Xing/Info or available after a complete read.
+The declared frame count is checked at EOF. `ByteCount` remains descriptive.
+
+`TextFrames` preserves frame IDs, TXXX descriptions and values; v2.4 supports
+multiple values. `Pictures` describes APIC bytes, and `ReadPicture` returns a
+lease that survives reader disposal. Linked-picture URLs are returned as bytes
+and never retrieved. `TrailingTag` becomes available after EOF and is kept
+separate from ID3v2 text. The metadata probe does not scan the full file.
+
+Metadata/frame sizes and counts are bounded. Unsynchronisation, grouping,
+v2.4 data-length indicators and plain extended headers are handled. Compressed
+or encrypted ID3 frames, extended CRC/update/restriction fields, ID3v2.2,
+VBRI, free-format frame discovery, junk resynchronization, stream format changes,
+seeking, MPEG CRC verification and gapless interpretation are not supported.
+There is no MP3 PCM decoder or encoder yet; adding the reader does not enable
+MP3 waveform export or MP3 transport-stream writing.
+
+The [MP3 reference corpus](tests/Mediana.Tests/Data/Mp3/README.md) verifies every
+packet's bytes and coded timing, text, picture contents, trailing tags and
+ownership against independent evidence for MPEG-1/2/2.5, CBR/VBR and both ID3
+versions. The speech fixture has separate CC BY 4.0 attribution.
 
 ## Reading native FLAC metadata and pictures
 
