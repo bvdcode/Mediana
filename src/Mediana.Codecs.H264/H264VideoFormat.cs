@@ -18,46 +18,10 @@ namespace Mediana.Codecs.H264
             }
             SampleAspectRatio? aspect = vui.AspectRatioWidth > 0 && vui.AspectRatioHeight > 0
                 ? new SampleAspectRatio(vui.AspectRatioWidth, vui.AspectRatioHeight) : null;
-            VideoColorInfo color = new(Primaries(vui.ColorPrimaries), Transfer(vui.TransferCharacteristics),
+            VideoColorInfo color = new(CicpColorimetry.GetPrimaries(vui.ColorPrimaries), CicpColorimetry.GetTransfer(vui.TransferCharacteristics),
                 Matrix(vui.MatrixCoefficients), vui.FullRange ? ColorRange.Full : ColorRange.Limited, Location(topLocation));
             return new VideoFormat(sequence.Width, sequence.Height, VideoPixelFormat.Yuv420P8, color, aspect);
         }
-
-        // Rec. ITU-T H.264, Tables E-3 through E-5. Reserved CICP codes are interpreted as unspecified.
-        private static ColorPrimaries Primaries(int code) => code switch
-        {
-            1 => ColorPrimaries.Bt709,
-            4 => ColorPrimaries.Bt470M,
-            5 => ColorPrimaries.Bt470Bg,
-            6 or 7 => ColorPrimaries.Smpte170M,
-            8 => ColorPrimaries.Film,
-            9 => ColorPrimaries.Bt2020,
-            10 => ColorPrimaries.Xyz,
-            11 => ColorPrimaries.DciP3,
-            12 => ColorPrimaries.DisplayP3,
-            22 => ColorPrimaries.Ebu3213,
-            0 or 2 or 3 or >= 13 and <= 21 or >= 23 and <= 255 => ColorPrimaries.Unspecified,
-            _ => throw new InvalidDataException("Invalid H.264 color primaries code.")
-        };
-
-        private static TransferFunction Transfer(int code) => code switch
-        {
-            1 or 6 or 14 or 15 => TransferFunction.Bt709,
-            4 => TransferFunction.Gamma22,
-            5 => TransferFunction.Gamma28,
-            7 => TransferFunction.Smpte240M,
-            8 => TransferFunction.Linear,
-            9 => TransferFunction.Log100,
-            10 => TransferFunction.Log316,
-            11 => TransferFunction.Iec61966_2_4,
-            12 => TransferFunction.Bt1361Extended,
-            13 => TransferFunction.Srgb,
-            16 => TransferFunction.Pq,
-            17 => TransferFunction.Smpte428,
-            18 => TransferFunction.Hlg,
-            0 or 2 or 3 or >= 19 and <= 255 => TransferFunction.Unspecified,
-            _ => throw new InvalidDataException("Invalid H.264 transfer characteristics code.")
-        };
 
         private static MatrixCoefficients Matrix(int code) => code switch
         {
