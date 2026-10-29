@@ -28,6 +28,7 @@ The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float P
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC transport-stream writer; source project only |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
+| `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC; source project only |
 | `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoder with long/short windows, TNS, PNS and joint stereo; source project only |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoder factory, picture ordering and cropped YUV output; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
@@ -35,7 +36,7 @@ The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float P
 | `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
 | `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
-| `Mediana.Sample` | MP4/MOV/FLAC inspection and covers, PNG previews, WAVE/AAC PCM/waveform export and generated-frame checks |
+| `Mediana.Sample` | MP4/MOV/FLAC inspection and covers, PNG previews, WAVE/AAC/FLAC PCM/waveform export and generated-frame checks |
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
@@ -404,7 +405,7 @@ short inputs establish neither bit-identical rendering nor general media
 equivalence. Application integration and the policy for the final remainder of
 samples beyond Cotton's equal bar windows remain open.
 
-The sample exports waveform data directly from supported WAVE or AAC-LC sources:
+The sample exports waveform data directly from supported WAVE, AAC-LC or native FLAC sources:
 
 ```bash
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Waveform/speech.wav artifacts/speech-waveform.json 0 400 40 1
@@ -480,11 +481,59 @@ dotnet run --project samples/Mediana.Sample -c Release --no-build -- --cover-fla
 
 The probe reads metadata only. Cover extraction preserves an existing output and
 publishes original embedded bytes after successful processing; URI pictures are
-rejected by that sample. The source module is not packaged. FLAC PCM decoding,
-audio-frame CRC/MD5 verification, seeking, encoding, custom channel masks,
+rejected by that sample. The source module is not packaged. Decoded-audio MD5
+verification, seeking, encoding, custom channel masks,
 reserved metadata block types and Ogg/MP4 FLAC mapping remain unsupported.
 The managed and Linux Native AOT samples extract the original reference PNG/JPEG
 bytes exactly and release all retained media buffers.
+
+## Decoding native FLAC audio
+
+Reference the `Mediana.Containers.Flac` and `Mediana.Codecs.Flac` source projects:
+
+```csharp
+MediaEngine engine = new MediaEngineBuilder()
+    .AddContainer(new FlacReaderFactory())
+    .AddAudioDecoder(new FlacDecoderFactory())
+    .Build();
+await using AudioSession session = await engine.OpenAudioAsync(source, 0);
+```
+
+The decoder accepts contiguous encoded chunks with arbitrary boundaries, starting
+at the first audio frame. It restores constant/verbatim subframes, fixed predictors
+of orders 0–4, LPC orders 1–32, partitioned Rice4/Rice5 and escaped residuals,
+wasted bits, independent channels and all three stereo decorrelation modes.
+It uses wide integer arithmetic for predictions and the 33-bit stereo side channel.
+PCM is native-endian, interleaved `Signed32`, with the original 4–32-bit precision
+left-aligned. The 1–8 default channel positions follow RFC 9639 and use the same
+speaker names as the WAVE/AAC modules. Explicit masks matching the default layout
+are accepted; other masks are unsupported.
+
+Frame headers, reserved/forbidden syntax, CRC8/CRC16, zero padding, reconstructed
+sample ranges and continuous frame/sample numbering are checked before output.
+Frame timestamps start at sample zero. Fixed/variable blocking and final short
+blocks are supported; when drained, known STREAMINFO sample totals must match.
+Changing rate/channel count/precision mid-stream is unsupported. STREAMINFO MD5
+verification, seeking and encoding remain open.
+
+`FlacDecoderFactory(maxFrameBytes)` bounds individual encoded frames (default
+4 MiB); nonzero STREAMINFO frame limits also apply. Input packets retain their original leases. Encoded storage, prediction
+workspace and returned PCM use the supplied media allocator. Calls must not
+overlap. Failure/cancellation requires reset or disposal. Reset starts again at
+frame zero; returned frames retain independent leases.
+
+```bash
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Flac/stereo-covers.flac artifacts/flac.s32le 0
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --waveform-audio tests/Mediana.Tests/Data/Flac/mono-speech.flac artifacts/flac-waveform.json 0 400 37 1
+```
+
+The complete PCM from musical and recorded-speech 16-bit inputs, stereo and 5.1
+24-bit files, and a 32-bit mid-side vector matches independent decoded bytes and
+sample counts. One-byte encoded packets are checked. All 400 Hz PCM16 waveform
+RMS/peak windows and timestamps for music/speech match their original WAVE sources
+exactly. The shared decoder checks use a 512 KiB media-buffer budget and verify
+retained frame ownership and full release. See the
+[FLAC references](tests/Mediana.Tests/Data/Flac/README.md) for provenance and commands.
 
 ## Reading MP4/MOV
 
@@ -1045,16 +1094,16 @@ The Native AOT sample has been built and executed locally on Linux x64.
 The workflow defines build, formatting, tests and native publication/execution on
 Linux, Windows and macOS. Other platform results depend on those CI runs.
 The native sample covers the generated-frame pipeline, reading all packets from
-the two original MP4/MOV fixtures, an MP4-to-PNG preview, WAVE/AAC PCM export and resampling.
+the two original MP4/MOV fixtures, an MP4-to-PNG preview, WAVE/AAC/FLAC PCM export and resampling.
 The separate native tests
 also verify internal and public decoding of 85 CAVLC reference pictures and
 six CABAC intra pictures, 96 additional CABAC I/P pictures and 98 CABAC I/P/B pictures,
-SDR conversion, decoded PNG pixels, complete WAVE/AAC references and audio resampling. Each future
+SDR conversion, decoded PNG pixels, complete WAVE/AAC/FLAC references, FLAC waveform data and audio resampling. Each future
 format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking,
 movie-to-stream timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
-broader color conversion, broader compressed audio, artwork in other containers, waveform integration, video/audio encoding, other muxers, scheduling,
+broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, video/audio encoding, other muxers, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
 
