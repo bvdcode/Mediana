@@ -11,11 +11,12 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264ReferenceBuffer references = new())
             {
+                H264PictureOrderState order = new();
                 for (int index = 0; index < 6; index++)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-tail.mov"), index);
                     byte[] expected = await Mp4TestData.ReadAsync($"avc-tail.frame{index}.yuv");
-                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, allocator, expected);
+                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, ref order, allocator, expected);
                 }
             }
             Assert.Equal(0, allocator.AllocatedBytes);
@@ -31,6 +32,7 @@ namespace Mediana.Tests
             int weightedFrames = 0;
             using (H264ReferenceBuffer references = new())
             {
+                H264PictureOrderState order = new();
                 for (int index = 0; index < 12; index++)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-weighted.mp4"), index);
@@ -55,7 +57,7 @@ namespace Mediana.Tests
                     {
                         weightedFrames++;
                     }
-                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, allocator, expected.AsSpan(index * frameBytes, frameBytes));
+                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, ref order, allocator, expected.AsSpan(index * frameBytes, frameBytes));
                 }
             }
             Assert.Equal(11, weightedFrames);
@@ -68,9 +70,10 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264ReferenceBuffer references = new())
             {
+                H264PictureOrderState order = new();
                 (H264Configuration configuration, byte[] idr) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-tail.mov"), 0);
                 byte[] expected = await Mp4TestData.ReadAsync("avc-tail.frame0.yuv");
-                H264TestInput.VerifyAndStorePicture(idr, configuration, references, allocator, expected);
+                H264TestInput.VerifyAndStorePicture(idr, configuration, references, ref order, allocator, expected);
                 (_, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-tail.mov"), 1);
                 long before = allocator.AllocatedBytes;
                 Random random = new(2641);

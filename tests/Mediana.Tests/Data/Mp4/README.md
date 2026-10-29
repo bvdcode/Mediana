@@ -34,6 +34,10 @@ The B headers at video packet indices 2 and 3 are checked against FFmpeg 6.1.1
 prediction selection, quantizers, reference marking and CABAC alignment. The
 same checks run in Native AOT. They cover header parsing; B picture reconstruction
 is still unsupported.
+The first five parsed headers also verify the POC sequence 0, 6, 2, 4, 8 and
+reference retention. At packet 2, L0/L1 select frame numbers 0/1. At packet 3,
+L0 selects 2, 0 and L1 selects 1. These list checks use allocated picture storage
+without reconstructing the B slice payload.
 
 | Packet | frame_num | POC LSB | Active L0/L1 | nal_ref_idc | QP |
 | --- | --- | --- | --- | --- | --- |

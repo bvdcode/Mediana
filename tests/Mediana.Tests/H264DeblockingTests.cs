@@ -13,7 +13,7 @@ namespace Mediana.Tests
             using H264Picture picture = new(header.Sequence, allocator);
             using H264Picture first = new(header.Sequence, allocator);
             using H264Picture second = new(header.Sequence, allocator);
-            IReadOnlyList<H264ReferencePicture?> references = [new(first, 0), new(first, 0), new(second, 1)];
+            IReadOnlyList<H264ReferencePicture?> references = [new(first, 0, new H264PictureOrder(0, 0)), new(first, 0, new H264PictureOrder(0, 0)), new(second, 1, new H264PictureOrder(2, 2))];
             picture.Modes.Fill(H264Picture.InterMode);
             picture.ReferenceIndices.Clear();
             int index = picture.BlockIndex(0, 16, 0);
@@ -64,7 +64,7 @@ namespace Mediana.Tests
                     picture.Counts(0)[index] = residual ? (byte)1 : (byte)0;
                 }
             }
-            H264Deblocking.Apply(picture, header, default, [new(reference, 0)]);
+            H264Deblocking.Apply(picture, header, default, [new(reference, 0, new H264PictureOrder(0, 0))]);
             for (int row = 0; row < 16; row++)
             {
                 Assert.Equal(p0, picture.Plane(0)[row * 32 + 15]);
@@ -82,7 +82,7 @@ namespace Mediana.Tests
             picture.Modes.Fill(H264Picture.InterMode);
             picture.ReferenceIndices.Clear();
             picture.Counts(0)[picture.BlockIndex(0, 20, 4)] = 1;
-            H264ReferencePicture[] references = [new(reference, 0)];
+            H264ReferencePicture[] references = [new(reference, 0, new H264PictureOrder(0, 0))];
             Assert.Equal(0, H264Deblocking.BoundaryStrength(picture, 16, 0, true, true, references));
             Assert.Equal(0, H264Deblocking.BoundaryStrength(picture, 16, 8, false, false, references));
             picture.Transforms8x8[1] = 1;

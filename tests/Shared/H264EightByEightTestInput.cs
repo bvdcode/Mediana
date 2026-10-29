@@ -13,6 +13,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264ReferenceBuffer references = new())
             {
+                H264PictureOrderState order = new();
                 int offset = 0;
                 int frame = 0;
                 while (offset < stream.Length)
@@ -31,7 +32,7 @@ namespace Mediana.Tests
                             configuration = configuration.WithParameterSet(nal, new H264DecoderOptions());
                             break;
                         case 5:
-                            DecodeAndVerify(nal, configuration, references, allocator, reference.AsSpan(frame * 1536, 1536));
+                            DecodeAndVerify(nal, configuration, references, ref order, allocator, reference.AsSpan(frame * 1536, 1536));
                             frame++;
                             break;
                         default:
@@ -58,6 +59,7 @@ namespace Mediana.Tests
             int inter = 0;
             using (H264ReferenceBuffer references = new())
             {
+                H264PictureOrderState order = new();
                 for (int index = 0; index < count; index++)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), index);
@@ -73,7 +75,7 @@ namespace Mediana.Tests
                     {
                         throw new InvalidDataException("The 8x8 sequence has an unexpected CABAC initialization selection.");
                     }
-                    (int pictureIntra, int pictureInter) = DecodeAndVerify(nal, configuration, references, allocator,
+                    (int pictureIntra, int pictureInter) = DecodeAndVerify(nal, configuration, references, ref order, allocator,
                         expected.AsSpan(index * frameBytes, frameBytes));
                     intra += pictureIntra;
                     inter += pictureInter;
@@ -87,10 +89,11 @@ namespace Mediana.Tests
         }
 
         private static (int Intra, int Inter) DecodeAndVerify(ReadOnlySpan<byte> nal, H264Configuration configuration,
-            H264ReferenceBuffer references, MediaBufferAllocator allocator, ReadOnlySpan<byte> expected)
+            H264ReferenceBuffer references, ref H264PictureOrderState order, MediaBufferAllocator allocator, ReadOnlySpan<byte> expected)
         {
             H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+            H264PictureOrderState nextOrder = order.Advance(header);
             H264Picture picture = H264PictureDecoder.Decode(ref bits, header, references.GetList0(header), allocator);
             bool stored = false;
             try
@@ -114,8 +117,9 @@ namespace Mediana.Tests
                         intra++;
                     }
                 }
-                references.Store(picture, header);
+                references.Store(picture, header, nextOrder.Current);
                 stored = true;
+                order = nextOrder;
                 return (intra, inter);
             }
             finally

@@ -54,7 +54,8 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264ReferenceBuffer references = new())
             {
-                H264TestInput.VerifyAndStorePicture(first, configuration, references, allocator, expected.AsSpan(0, 94 * 62 * 3 / 2));
+                H264PictureOrderState order = new();
+                H264TestInput.VerifyAndStorePicture(first, configuration, references, ref order, allocator, expected.AsSpan(0, 94 * 62 * 3 / 2));
                 H264BitReader headerBits = H264Nal.Payload(nal, H264Nal.Type(nal));
                 H264SliceHeader header = H264SliceHeaderReader.Read(ref headerBits, configuration, nal[0]);
                 IReadOnlyList<H264ReferencePicture?> list = references.GetList0(header);
@@ -68,7 +69,7 @@ namespace Mediana.Tests
                 byte[] extra = [.. nal, 1];
                 Assert.Throws<InvalidDataException>(() => Decode(extra, configuration, list, allocator));
                 Assert.Equal(retained, allocator.AllocatedBytes);
-                H264TestInput.VerifyAndStorePicture(nal, configuration, references, allocator,
+                H264TestInput.VerifyAndStorePicture(nal, configuration, references, ref order, allocator,
                     expected.AsSpan(94 * 62 * 3 / 2, 94 * 62 * 3 / 2));
             }
             Assert.Equal(0, allocator.AllocatedBytes);
@@ -105,7 +106,7 @@ namespace Mediana.Tests
             using (H264Picture reference = new(header.Sequence, allocator))
             {
                 long retained = allocator.AllocatedBytes;
-                H264ReferencePicture[] references = [new(reference, 0)];
+                H264ReferencePicture[] references = [new(reference, 0, new H264PictureOrder(0, 0))];
                 Assert.Throws<InvalidDataException>(() => DecodePayload(payload, header, references, allocator));
                 Assert.Equal(retained, allocator.AllocatedBytes);
             }

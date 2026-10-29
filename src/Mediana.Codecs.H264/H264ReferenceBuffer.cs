@@ -1,6 +1,6 @@
 namespace Mediana.Codecs.H264
 {
-    internal class H264ReferenceBuffer : IDisposable
+    internal partial class H264ReferenceBuffer : IDisposable
     {
         private List<H264ReferencePicture> references = [];
         private H264SequenceParameterSet? sequence;
@@ -9,68 +9,8 @@ namespace Mediana.Codecs.H264
 
         public int Count => references.Count;
 
-        public IReadOnlyList<H264ReferencePicture?> GetList0(H264SliceHeader header)
-        {
-            ObjectDisposedException.ThrowIf(disposed, this);
-            ValidateSequence(header);
-            if (header.Kind == H264SliceKind.I)
-            {
-                return [];
-            }
-            if (header.Kind != H264SliceKind.P || header.ActiveReferencesL0 is < 1 or > 32)
-            {
-                throw new InvalidDataException("Invalid active H.264 P reference list.");
-            }
-            int maximum = 1 << header.Sequence.FrameNumberBits;
-            List<H264ReferencePicture?> list = references.Where(value => value.LongTermIndex is null)
-                .OrderByDescending(value => value.PictureNumber(header.FrameNumber, maximum))
-                .Concat(references.Where(value => value.LongTermIndex is not null).OrderBy(value => value.LongTermIndex))
-                .Cast<H264ReferencePicture?>().Take(header.ActiveReferencesL0).ToList();
-            PadList(list, header.ActiveReferencesL0);
-            int predicted = header.FrameNumber;
-            for (int index = 0; index < header.ReferenceModifications.Count; index++)
-            {
-                if (index >= header.ActiveReferencesL0)
-                {
-                    throw new InvalidDataException("Too many H.264 reference list modifications.");
-                }
-                H264ReferenceModification modification = header.ReferenceModifications[index];
-                H264ReferencePicture selected;
-                switch (modification.Operation)
-                {
-                    case 0:
-                    case 1:
-                        int difference = modification.Value + 1;
-                        predicted = modification.Operation == 0 ? (predicted - difference + maximum) % maximum
-                            : (predicted + difference) % maximum;
-                        int number = predicted > header.FrameNumber ? predicted - maximum : predicted;
-                        selected = FindShort(references, number, header.FrameNumber, maximum);
-                        break;
-                    case 2:
-                        selected = FindLong(references, modification.Value);
-                        break;
-                    default:
-                        throw new InvalidDataException("Invalid H.264 reference list modification.");
-                }
-                list.Insert(index, selected);
-                for (int position = list.Count - 1; position > index; position--)
-                {
-                    if (ReferenceEquals(list[position]?.Picture, selected.Picture))
-                    {
-                        list.RemoveAt(position);
-                    }
-                }
-                if (list.Count > header.ActiveReferencesL0)
-                {
-                    list.RemoveRange(header.ActiveReferencesL0, list.Count - header.ActiveReferencesL0);
-                }
-                PadList(list, header.ActiveReferencesL0);
-            }
-            return list.AsReadOnly();
-        }
-
         /// <summary>Transfers picture ownership on successful return. Non-reference pictures are released.</summary>
-        public void Store(H264Picture picture, H264SliceHeader header)
+        public void Store(H264Picture picture, H264SliceHeader header, H264PictureOrder order)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             ValidateSequence(header);
@@ -107,7 +47,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("H.264 reference marking exceeds the reference limit or repeats a short-term frame number.");
             }
-            next.Add(new H264ReferencePicture(picture, frameNumber, longTermIndex));
+            next.Add(new H264ReferencePicture(picture, frameNumber, order, longTermIndex));
             foreach (H264ReferencePicture previous in references)
             {
                 if (!next.Any(value => ReferenceEquals(value.Picture, previous.Picture)))
@@ -214,14 +154,6 @@ namespace Mediana.Codecs.H264
         private static H264ReferencePicture FindLong(IEnumerable<H264ReferencePicture> list, int number) =>
             list.FirstOrDefault(value => value.LongTermIndex == number)
             ?? throw new InvalidDataException("The H.264 long-term reference picture is missing.");
-
-        private static void PadList(List<H264ReferencePicture?> list, int count)
-        {
-            while (list.Count < count)
-            {
-                list.Add(null);
-            }
-        }
 
         private void ValidateSequence(H264SliceHeader header)
         {

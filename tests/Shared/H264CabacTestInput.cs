@@ -51,6 +51,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264ReferenceBuffer references = new())
             {
+                H264PictureOrderState order = new();
                 for (int index = 0; index < count; index++)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), index);
@@ -62,7 +63,7 @@ namespace Mediana.Tests
                     {
                         throw new InvalidDataException("The H.264 CABAC predictive fixture has unexpected picture syntax.");
                     }
-                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, allocator,
+                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, ref order, allocator,
                         expected.AsSpan(index * frameBytes, frameBytes));
                 }
             }

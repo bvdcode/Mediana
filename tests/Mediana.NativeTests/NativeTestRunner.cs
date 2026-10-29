@@ -18,7 +18,9 @@ namespace Mediana.NativeTests
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
             await H264BidirectionalTestInput.VerifyHeadersAsync(root);
+            await H264BidirectionalTestInput.VerifyReferenceListsAsync(root);
             Console.WriteLine("PASS H.264 B headers: reference and non-reference slices, both active lists, picture order and CABAC alignment match the independent trace.");
+            Console.WriteLine("PASS H.264 B reference lists: parsed I/P/B picture order, retained reference B pictures and both lists match the expected first GOP order.");
             await Mp4TimelineTestInput.VerifyAsync(root);
             await HlsPlanTestInput.VerifyAsync(root);
             await HlsSessionTestInput.VerifyAsync(root);
@@ -74,11 +76,12 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS H.264 CABAC predictive pictures: 54 independent filtered YUV pictures, all initialization selections and storage release match.");
             using (H264ReferenceBuffer references = new())
             {
+                H264PictureOrderState order = new();
                 foreach ((string name, string extension, int packet) in cases)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + extension), packet);
                     byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, $"{name}.frame{packet}.yuv"));
-                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, allocator, expected);
+                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, ref order, allocator, expected);
                     Console.WriteLine($"PASS {name}, packet {packet}: all YUV samples match.");
                 }
                 byte[] weighted = await File.ReadAllBytesAsync(Path.Combine(root, "avc-weighted.sequence.yuv"));
@@ -90,7 +93,7 @@ namespace Mediana.NativeTests
                 for (int index = 0; index < 12; index++)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, "avc-weighted.mp4"), index);
-                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, allocator, weighted.AsSpan(index * frameBytes, frameBytes));
+                    H264TestInput.VerifyAndStorePicture(nal, configuration, references, ref order, allocator, weighted.AsSpan(index * frameBytes, frameBytes));
                     Console.WriteLine($"PASS avc-weighted, packet {index}: all YUV samples match.");
                 }
             }

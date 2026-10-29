@@ -43,7 +43,7 @@ namespace Mediana.Tests
             syntax += new string('1', partitions * subpartitions * 2) + H264TestBits.Ue(0);
             H264BitReader bits = new(H264TestBits.Rbsp(syntax));
             int qp = 26;
-            H264InterMacroblock.Read(ref bits, target, header, [new(first, 0), new(second, 1)], 0, ref qp);
+            H264InterMacroblock.Read(ref bits, target, header, [new(first, 0, new H264PictureOrder(0, 0)), new(second, 1, new H264PictureOrder(2, 2))], 0, ref qp);
             bits.ReadTrailingBits();
             for (int plane = 0; plane < 3; plane++)
             {
@@ -86,7 +86,7 @@ namespace Mediana.Tests
             reference.Plane(2).Fill(100);
             H264BitReader bits = new(H264TestBits.Rbsp(string.Empty));
             int qp = 30;
-            H264InterMacroblock.Read(ref bits, target, header, [new(reference, 0)], 0, ref qp, skip: true);
+            H264InterMacroblock.Read(ref bits, target, header, [new(reference, 0, new H264PictureOrder(0, 0))], 0, ref qp, skip: true);
             bits.ReadTrailingBits();
             Assert.All(target.Plane(0).ToArray(), value => Assert.Equal(82, value));
             Assert.All(target.Plane(1).ToArray(), value => Assert.Equal(93, value));

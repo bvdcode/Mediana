@@ -164,7 +164,7 @@ namespace Mediana.Codecs.H264
             {
                 frame = H264FrameExporter.Export(picture, allocator, packet.PresentationTime, packet.Duration, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                references.Store(picture, header);
+                references.Store(picture, header, nextOrder.Current);
                 stored = true;
                 frames.Add(frame, nextOrder.Current, header);
                 queued = true;

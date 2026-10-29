@@ -32,17 +32,19 @@ namespace Mediana.Tests
         }
 
         public static void VerifyAndStorePicture(ReadOnlySpan<byte> nal, H264Configuration configuration,
-            H264ReferenceBuffer references, MediaBufferAllocator allocator, ReadOnlySpan<byte> expected)
+            H264ReferenceBuffer references, ref H264PictureOrderState order, MediaBufferAllocator allocator, ReadOnlySpan<byte> expected)
         {
             H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+            H264PictureOrderState nextOrder = order.Advance(header);
             H264Picture picture = H264PictureDecoder.Decode(ref bits, header, references.GetList0(header), allocator);
             bool stored = false;
             try
             {
                 VerifyPicture(picture, expected, header.FrameNumber);
-                references.Store(picture, header);
+                references.Store(picture, header, nextOrder.Current);
                 stored = true;
+                order = nextOrder;
             }
             finally
             {
