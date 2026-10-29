@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Numerics;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Mediana.Codecs.Mp3;
@@ -31,12 +32,17 @@ namespace Mediana.Tests
                     using Mp3BitReservoir reservoir = new(allocator, reader.FirstFrame.Version, 4096);
                     using IncrementalHash fields = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                     using IncrementalHash main = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                    using IncrementalHash scales = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                     Mp3FrameInfo info = new();
                     int frames = 0;
                     int history = 0;
                     int maximumBack = 0;
                     int totalBits = 0;
+                    int scaleBits = 0;
+                    int reusedGroups = 0;
                     int[] blocks = new int[4];
+                    byte[][] values = [new byte[39], new byte[39]];
+                    byte[] limits = new byte[39];
                     while (true)
                     {
                         using MediaPacket? packet = await reader.ReadPacketAsync();
@@ -64,13 +70,37 @@ namespace Mediana.Tests
                         Append(main, [info.MainDataBits]);
                         main.AppendData(data);
                         int start = 0;
-                        foreach (Mp3GranuleInfo granule in info.Granules)
+                        values[0].AsSpan().Clear();
+                        values[1].AsSpan().Clear();
+                        for (int index = 0; index < info.Granules.Length; index++)
                         {
+                            Mp3GranuleInfo granule = info.Granules[index];
                             Mp3BitReader bits = new(data, start, granule.PartBits);
-                            while (bits.Remaining > 0)
+                            int channel = index % header.ChannelCount;
+                            int reuse = index < header.ChannelCount ? 0
+                                : (channel == 0 ? info.LeftScaleFactorReuse : info.RightScaleFactorReuse);
+                            bool intensity = header.ChannelMode == Mp3ChannelMode.JointStereo
+                                && (header.ModeExtension & 1) != 0 && channel == 1;
+                            switch (header.Version)
                             {
-                                bits.Read(Math.Min(bits.Remaining, 24));
+                                case MpegAudioVersion.Mpeg1:
+                                    Mp3ScaleFactors.ReadMpeg1(ref bits, granule, reuse, values[channel]);
+                                    limits.AsSpan().Fill(byte.MaxValue);
+                                    break;
+                                case MpegAudioVersion.Mpeg2:
+                                case MpegAudioVersion.Mpeg25:
+                                    Mp3ScaleFactors.ReadLowRate(ref bits, granule, intensity, values[channel], limits);
+                                    break;
+                                default:
+                                    throw new InvalidOperationException();
                             }
+                            int consumed = bits.Position - start;
+                            Append(scales, [consumed]);
+                            scales.AppendData(values[channel]);
+                            scales.AppendData(limits);
+                            scaleBits += consumed;
+                            reusedGroups += BitOperations.PopCount((uint)reuse);
+                            bits.Skip(bits.Remaining);
                             start = bits.Position;
                         }
                         if (start != info.MainDataBits)
@@ -86,6 +116,9 @@ namespace Mediana.Tests
                         || history != item.GetProperty("frames_with_history").GetInt32()
                         || maximumBack != item.GetProperty("maximum_back_bytes").GetInt32()
                         || totalBits != item.GetProperty("main_data_bits").GetInt32()
+                        || scaleBits != item.GetProperty("scalefactor_bits").GetInt32()
+                        || reusedGroups != item.GetProperty("reused_scalefactor_groups").GetInt32()
+                        || Convert.ToHexStringLower(scales.GetHashAndReset()) != item.GetProperty("scalefactors_sha256").GetString()
                         || Convert.ToHexStringLower(fields.GetHashAndReset()) != item.GetProperty("side_fields_sha256").GetString()
                         || Convert.ToHexStringLower(main.GetHashAndReset()) != item.GetProperty("main_data_sha256").GetString())
                     {

@@ -10,6 +10,9 @@
       "main_data_sha256": "6d2153fb4e33f55bd83220b85784f8c0af27cb757be438970d72ab4b10e4d630",
       "main_data_bits": 253913,
       "frames_with_history": 220,
+      "scalefactors_sha256": "a536c1addb7ccc1f51e6bfffb88b784c3f54c16bbeea33d9d672f7bdf4b3341e",
+      "scalefactor_bits": 60789,
+      "reused_scalefactor_groups": 546,
       "maximum_back_bytes": 511,
       "block_counts": [
         488,
@@ -27,6 +30,9 @@
       "main_data_sha256": "4e31352188953d382eacbd7aabb10c4ea664cb1cafc19c4030f56511a6cb2fe0",
       "main_data_bits": 601405,
       "frames_with_history": 239,
+      "scalefactors_sha256": "1c2f7a5297d082eac172b04ce8bfa278c300c51a6c713a72b855f3e441f4724a",
+      "scalefactor_bits": 12628,
+      "reused_scalefactor_groups": 895,
       "maximum_back_bytes": 511,
       "block_counts": [
         682,
@@ -44,6 +50,9 @@
       "main_data_sha256": "fef173da6e4daef614b620085b3819d193e8dfe67d903e0d2e6b14009afb3e22",
       "main_data_bits": 155109,
       "frames_with_history": 96,
+      "scalefactors_sha256": "e1ec047f3b9e7eaf5f3fe1e9c7ab4b3cc2c434bab19a50932f30a1168c1f5b2f",
+      "scalefactor_bits": 2602,
+      "reused_scalefactor_groups": 0,
       "maximum_back_bytes": 255,
       "block_counts": [
         81,
@@ -61,6 +70,9 @@
       "main_data_sha256": "2f47dc6b6714ae6bee1259e4a6fd49093952eeaf3e521fb00ff4759f9ff92fee",
       "main_data_bits": 117398,
       "frames_with_history": 81,
+      "scalefactors_sha256": "2b98ddfdec3ebdf95a35ef56f7dbf87e333b1f2084fd64dc86e573eec4dc4ef3",
+      "scalefactor_bits": 631,
+      "reused_scalefactor_groups": 0,
       "maximum_back_bytes": 255,
       "block_counts": [
         79,
@@ -78,6 +90,9 @@
       "main_data_sha256": "d0f47480e3b8ed66949db1e9cc9adf1cc4ac0d872180df423395fa0a2aafd82d",
       "main_data_bits": 78410,
       "frames_with_history": 42,
+      "scalefactors_sha256": "6a0f53fe8155a8b145f5ccc4b03f52660082e9224c93920cb2ea46ac25ed767a",
+      "scalefactor_bits": 2167,
+      "reused_scalefactor_groups": 72,
       "maximum_back_bytes": 511,
       "block_counts": [
         48,
@@ -105,6 +120,9 @@
       "main_data_sha256": "4cfb0cdaedfad7dc553f8385f3f0b3b16c24ba420593cdb5ee00ea4e188e830b",
       "main_data_bits": 110375,
       "frames_with_history": 42,
+      "scalefactors_sha256": "d7e770e3cd4007f996ceba17f8dee4b8b277c2f2891feae6f085572435923ab7",
+      "scalefactor_bits": 8846,
+      "reused_scalefactor_groups": 72,
       "maximum_back_bytes": 511,
       "block_counts": [
         88,
@@ -132,6 +150,9 @@
       "main_data_sha256": "a838a14553918fd750a64e0be76ab4aa250460779333fe5777769413b6e40b37",
       "main_data_bits": 51568,
       "frames_with_history": 43,
+      "scalefactors_sha256": "f2f6259586bdc7b3918a2bdd5300eb5226258124ad18570b5624ef9ab2d82d01",
+      "scalefactor_bits": 1987,
+      "reused_scalefactor_groups": 0,
       "maximum_back_bytes": 255,
       "block_counts": [
         13,
@@ -159,6 +180,9 @@
       "main_data_sha256": "b918842ef5fd73efbc82e9c0e7c97bc63deeb7dd17e0872d5f34662e0a108cb6",
       "main_data_bits": 56546,
       "frames_with_history": 43,
+      "scalefactors_sha256": "6f0bd2afc57d8259dd95720817bcd11ad9afa3629ce8a07dfdaeea49075f9f4b",
+      "scalefactor_bits": 4457,
+      "reused_scalefactor_groups": 0,
       "maximum_back_bytes": 255,
       "block_counts": [
         26,
@@ -186,6 +210,9 @@
       "main_data_sha256": "963682c577741a160340b9484319a29190d454df9e6028d6f15039746abf71e3",
       "main_data_bits": 24209,
       "frames_with_history": 15,
+      "scalefactors_sha256": "9a3ca16b4c68ad2f8805332369691b3538605b120744669829610d3426f97fa0",
+      "scalefactor_bits": 879,
+      "reused_scalefactor_groups": 0,
       "maximum_back_bytes": 132,
       "block_counts": [
         0,
@@ -213,6 +240,9 @@
       "main_data_sha256": "97f06656164216224abb983a3ace20af39018cf8ef0ade0618152e05463b34c3",
       "main_data_bits": 24052,
       "frames_with_history": 15,
+      "scalefactors_sha256": "e792223776d2347fdfc07efa747538d7d60082f18ea016f3a57084dc1e0cbead",
+      "scalefactor_bits": 1280,
+      "reused_scalefactor_groups": 0,
       "maximum_back_bytes": 107,
       "block_counts": [
         0,
