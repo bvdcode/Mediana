@@ -50,7 +50,7 @@ namespace Mediana.Tests
             else
             {
                 NotSupportedException error = Assert.Throws<NotSupportedException>(() => decoder.TrySend(second));
-                Assert.Contains("B, SP", error.Message);
+                Assert.Contains("CABAC B", error.Message);
             }
             Assert.Equal(first.Data.Length + second.Data.Length, allocator.AllocatedBytes);
             Assert.Throws<InvalidOperationException>(() => decoder.Receive());

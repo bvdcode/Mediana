@@ -40,7 +40,8 @@ namespace Mediana.Codecs.H264
             return header.Kind switch
             {
                 H264SliceKind.I or H264SliceKind.P => null,
-                H264SliceKind.B or H264SliceKind.Sp or H264SliceKind.Si => "B, SP and SI pictures are not supported yet.",
+                H264SliceKind.B => header.Picture.Cabac ? "CABAC B pictures are not supported yet." : null,
+                H264SliceKind.Sp or H264SliceKind.Si => "SP and SI pictures are not supported yet.",
                 _ => throw new ArgumentOutOfRangeException(nameof(header))
             };
         }

@@ -26,7 +26,7 @@ namespace Mediana.Tests
             Assert.Equal(1, header.DeblockingIdc);
             Assert.Null(header.Weights);
             Assert.Null(header.WeightsL1);
-            Assert.NotNull(H264Support.GetUnsupportedReason(header));
+            Assert.Null(H264Support.GetUnsupportedReason(header));
         }
 
         [Fact]

@@ -156,7 +156,13 @@ namespace Mediana.Codecs.H264
                 throw new NotSupportedException(reason);
             }
             H264PictureOrderState nextOrder = order.Advance(header);
-            H264Picture picture = H264PictureDecoder.Decode(ref bits, header, references.GetList0(header), allocator, cancellationToken);
+            H264Picture picture = header.Kind switch
+            {
+                H264SliceKind.B => H264BidirectionalPictureDecoder.Decode(ref bits, header, references.GetBidirectionalLists(header, nextOrder.Current), nextOrder.Current, allocator, cancellationToken),
+                H264SliceKind.I or H264SliceKind.P => H264PictureDecoder.Decode(ref bits, header, references.GetList0(header), allocator, cancellationToken),
+                H264SliceKind.Sp or H264SliceKind.Si => throw new NotSupportedException("SP and SI pictures are not supported."),
+                _ => throw new ArgumentOutOfRangeException(nameof(header))
+            };
             VideoFrame? frame = null;
             bool stored = false;
             bool queued = false;
