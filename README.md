@@ -5,7 +5,8 @@ Its media implementation is written in C#, with no FFmpeg, external media proces
 native media libraries, or third-party runtime packages.
 
 The current implementation is experimental. It reads metadata and compressed packets from
-non-fragmented MP4/MOV files containing AVC/AAC tracks. The H.264 source module
+non-fragmented MP4/MOV/M4A files containing AVC/AAC tracks. The MP4 reader also
+exposes movie-level iTunes/indexed metadata and original encoded cover art. The H.264 source module
 connects limited CAVLC and CABAC I/P/B decoding to public video sessions and returns cropped YUV frames.
 The sample can extract a supported video frame, convert SDR color to sRGB, correct
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
@@ -20,7 +21,7 @@ The WAVE and PCM source modules read integer/float audio through public audio se
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
-| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV metadata and AVC/AAC packet reading |
+| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading; source project only |
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC transport-stream writer; source project only |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
@@ -71,6 +72,7 @@ dotnet run --project tests/Mediana.NativeTests -c Release --no-build --no-restor
 dotnet format Mediana.slnx --verify-no-changes --no-restore
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --self-test
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --cover-mp4 tests/Mediana.Tests/Data/Metadata/covers.m4a artifacts/cover.png 0
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --decode-audio tests/Mediana.Tests/Data/Wave/s24-surround.wav artifacts/surround.pcm 0
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --resample-audio tests/Mediana.Tests/Data/Wave/s16-stereo.wav artifacts/mono-400.s16le 0 400 0.5,0.5
 dotnet run --project samples/Mediana.Sample -c Release --no-build -- --preview tests/Mediana.Tests/Data/Mp4/avc-weighted.mp4 artifacts/preview.png 0 250 100 100
@@ -245,8 +247,8 @@ resamples and streams signed 16-bit little-endian PCM with no header. For stereo
 `0.5,0.5` selects an average; multichannel gains must be supplied explicitly. This
 provides the PCM shape needed for a 400 Hz waveform. The complete mono mix →
 resample → PCM16 → RMS path is checked on a real WAVE input and analytic tone energy
-in managed and Linux Native AOT execution. Cover art, compressed audio and Cotton
-integration remain open. The filter's finite-recording boundary policy and waveform
+in managed and Linux Native AOT execution. Compressed audio, cover art in other
+containers and Cotton integration remain open. The filter's finite-recording boundary policy and waveform
 window placement require comparison with the application's existing output.
 
 ## Reading MP4/MOV
@@ -264,6 +266,38 @@ using MediaPacket? packet = await reader.ReadPacketAsync();
 The namespaces are Mediana.Containers.Mp4, Mediana.Core, Mediana.Core.Memory and
 Mediana.IO. Mp4ReaderFactory connects the same reader to MediaEngineBuilder.
 H264DecoderFactory connects the source H.264 module to decoded video sessions.
+
+Movie-level `meta` full boxes expose `Metadata` and `CoverArt`. The reader supports
+iTunes `mdir` item lists in movie user data and indexed `mdta` keys in a movie
+metadata atom. Values retain their namespace, name, declared data type and raw locale;
+repeated/localized values remain separate. `Text` decodes UTF-8/UTF-16BE strictly,
+and is null for other types. `ReadMetadataValue(index)` returns the original bytes
+for binary fields such as track/disc declarations and unsupported data types.
+Freeform iTunes keys retain their explicit namespace and name. Text bytes and value
+counts have additional configured limits within the existing movie/box budgets.
+
+```csharp
+Mp4CoverArtInfo info = reader.CoverArt[0];
+using MediaBuffer cover = reader.ReadCoverArt(0);
+await output.WriteAsync(cover.Memory);
+```
+
+Cover declarations include iTunes `covr` and indexed `com.apple.quicktime.artwork`.
+JPEG/PNG/BMP declarations expose a content type; unsupported declarations retain a
+null content type and accessible original bytes. The reader does not decode or
+validate the image codec. Cover bytes are separate from timed audio/video tracks.
+An extracted lease survives reader disposal and retains the full backing movie
+metadata allocation. Reading metadata/cover values does not move packet or source
+cursors. The `--cover-mp4` sample takes input, a new image output path and cover index;
+it preserves the original encoding and bytes. Existing files are not replaced.
+The caller chooses an output suffix matching the declared image type.
+
+Movie metadata names are not normalized to application fields. Track/media-level
+metadata, locale-list resolution, legacy QuickTime user-data text, headerless QuickTime
+metadata atoms and other handlers/indexed-key namespaces remain unsupported. Malformed structures, invalid text
+and unsupported metadata handlers fail explicitly. See the
+[metadata fixtures](tests/Mediana.Tests/Data/Metadata/README.md) for exact byte,
+Unicode and packet comparisons in managed and Linux Native AOT checks.
 
 The reader requires random access and a known source length. It scans box headers,
 loads the bounded movie metadata and reads individual samples on demand. It does
@@ -783,7 +817,7 @@ format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking,
 movie-to-stream timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
-broader color conversion, compressed audio, cover art, waveform integration, video/audio encoding, other muxers, scheduling,
+broader color conversion, compressed audio, artwork in other containers, waveform integration, video/audio encoding, other muxers, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
 
