@@ -10,6 +10,16 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            foreach (string name in FlacDecodeTestInput.Names)
+            {
+                await FlacDecodeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Flac"), name, 127);
+                Console.WriteLine($"PASS FLAC {name}: every PCM byte, sample count, timestamp and retained output match the independent lossless reference.");
+            }
+            foreach (string name in new[] { "stereo-covers", "mono-speech" })
+            {
+                await FlacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Flac"), name);
+            }
+            Console.WriteLine("PASS FLAC waveform: all 400 Hz PCM16 RMS/peak windows, counts and timestamps match the original WAVE sources exactly.");
             await FlacMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Flac"), 127);
             Console.WriteLine("PASS native FLAC reader: independent STREAMINFO/tags, exact PNG/JPEG leases and all compressed bytes match; PCM decoding is separate.");
             foreach (string name in WaveformReferenceTestInput.Names)

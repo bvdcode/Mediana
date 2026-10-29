@@ -4,6 +4,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/FlacWaveformTestInput.cs" Link="FlacWaveformTestInput.cs" />
+    <Compile Include="../Shared/FlacDecodeTestInput.cs" Link="FlacDecodeTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Flac/Mediana.Codecs.Flac.csproj" />
     <Compile Include="../Shared/FlacMetadataTestInput.cs" Link="FlacMetadataTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Containers.Flac/Mediana.Containers.Flac.csproj" />
