@@ -711,13 +711,14 @@ GitVersion computes the version from Git history and release tags using
 for both compilation and packing. Ordinary releases advance the patch version;
 minor and major changes require an explicit versioning decision.
 
-Pushes to main run build, formatting, tests and Native AOT checks on Linux, Windows
-and macOS. After all checks pass, the workflow publishes the packages and symbols
-to NuGet.org, then creates a GitHub release with the matching tag, package assets
-and generated release notes. The published artifacts are the packages produced
-by the validated build. Pull requests run checks without publishing.
+Pushes to main and pull requests run build, formatting, tests and Native AOT checks
+on Linux, Windows and macOS. They do not publish packages or create releases.
 
-Manual runs validate by default; enable the publish input to publish from main.
+Publication requires an explicit manual workflow run from main with the publish
+input enabled. Manual runs validate without publishing by default. After all
+checks pass, a publishing run uploads the validated packages and symbols to
+NuGet.org and creates a GitHub release with the matching tag, package assets and
+generated release notes.
 Authentication uses [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing).
 Set the NUGET_USER repository variable to the NuGet profile username. Configure
 the matching NuGet policy for repository bvdcode/Mediana, workflow file

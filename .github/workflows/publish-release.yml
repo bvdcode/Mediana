@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish packages and create a release
+        description: Explicitly publish packages to NuGet.org and create a release
         type: boolean
         default: false
 
@@ -120,7 +120,7 @@ jobs:
 
   publish:
     name: Publish to NuGet.org
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.publish)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true
     needs: [version, build]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -150,7 +150,7 @@ jobs:
 
   release:
     name: Create GitHub release
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.publish)
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.publish == true
     needs: [version, publish]
     runs-on: ubuntu-latest
     timeout-minutes: 5
