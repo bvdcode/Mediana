@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Tests
 {
     internal record H264BidirectionalFixture(bool Cabac, int Width, int Height, int PictureCount,

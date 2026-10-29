@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Core.Memory
 {
     /// <summary>Exclusive writable storage. Publish invalidates this owner and all borrowed writable views.</summary>

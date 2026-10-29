@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Containers.Flac
 {
     /// <summary>Original Vorbis comment spelling and value. Compare names with OrdinalIgnoreCase.

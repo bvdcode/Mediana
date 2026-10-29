@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Codecs.H264
 {
     /// <summary>Reads progressive macroblock binarizations under H.264 tables 9-34 through 9-41.</summary>

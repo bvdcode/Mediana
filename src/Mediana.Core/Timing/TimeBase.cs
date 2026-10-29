@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Core.Timing
 {
     /// <summary>Positive seconds per tick. The default value is invalid.</summary>

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 using Mediana.Codecs.Pcm;
 using Mediana.Containers.Wave;
 using Mediana.Core.Audio;

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.IO
 {
     /// <summary>Adapts a readable, seekable stream. Offsets start at its initial position.

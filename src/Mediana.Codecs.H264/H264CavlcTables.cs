@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Codecs.H264
 {
     // ITU-T H.264 (08/2024), Tables 9-5 and 9-7 through 9-10.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Core.Video
 {
     /// <summary>Row-vector display transform: [x y 1] times this matrix, followed by homogeneous division.

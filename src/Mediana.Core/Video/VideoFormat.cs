@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Core.Video
 {
     /// <summary>Storage dimensions and color metadata. Display transforms are not applied implicitly.</summary>

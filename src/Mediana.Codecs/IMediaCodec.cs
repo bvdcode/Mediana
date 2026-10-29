@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Codecs
 {
     /// <summary>A synchronous, single-consumer state machine without I/O.

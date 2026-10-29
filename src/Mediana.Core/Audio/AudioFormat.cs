@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Core.Audio
 {
     /// <summary>Native-endian PCM storage with explicit channel order. Channel labels are unique within the layout.</summary>

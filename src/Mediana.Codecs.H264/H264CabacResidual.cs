@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Codecs.H264
 {
     /// <summary>Reads progressive 4:2:0 transform coefficients in scan order under H.264 clause 7.3.5.3.3.</summary>

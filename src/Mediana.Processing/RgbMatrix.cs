@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Processing
 {
     internal readonly record struct RgbMatrix(double M11, double M12, double M13, double M21, double M22,

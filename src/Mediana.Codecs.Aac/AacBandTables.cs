@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Codecs.Aac
 {
     // ISO/IEC 13818-7:2004, tables 33 and 45–57.

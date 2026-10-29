@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Codecs.H264
 {
     /// <summary>Initializes progressive I-slice contexts under H.264 tables 9-12 and 9-16 through 9-21.</summary>

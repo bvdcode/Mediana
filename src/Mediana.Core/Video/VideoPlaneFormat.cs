@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Core.Video
 {
     /// <summary>Layout of a byte-addressable plane; subsampling is relative to the coded image.</summary>

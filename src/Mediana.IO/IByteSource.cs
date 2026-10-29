@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.IO
 {
     /// <summary>A sequential source. A zero read for a nonempty destination means EOF.

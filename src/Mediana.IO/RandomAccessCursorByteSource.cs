@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.IO
 {
     /// <summary>Provides an independent sequential cursor over the origin of a random access source.

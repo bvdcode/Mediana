@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.IO
 {
     /// <summary>Supports reads relative to the source origin without changing the sequential read position.

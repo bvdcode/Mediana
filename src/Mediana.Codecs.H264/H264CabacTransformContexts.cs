@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 namespace Mediana.Codecs.H264
 {
     /// <summary>Initializes progressive 8x8 residual contexts 402..435 from H.264 Table 9-24.</summary>

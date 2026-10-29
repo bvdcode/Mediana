@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 using Mediana.Codecs.Mp3;
 
 namespace Mediana.Tests
