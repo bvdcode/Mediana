@@ -122,7 +122,26 @@ namespace Mediana.Tests
             }
             await resampler.DisposeAsync();
             await session.DisposeAsync();
-            if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)
+            await using AudioSession readerSession = await engine.OpenAudioAsync(source, 0, new MediaOpenOptions { BufferBudgetBytes = 16384 });
+            await using AudioWaveformReader reader = new(readerSession.ReadFrameAsync, gains, new AudioWaveformOptions(400, 40)
+            {
+                SampleFormat = AudioSampleFormat.Signed16,
+                Resampling = new AudioResampleOptions { SamplesPerFrame = 7, CutoffRatio = 0.97, BoundaryMode = AudioBoundaryMode.Reflect }
+            }, allocator);
+            levelCount = 0;
+            int readerSamples = 0;
+            while (await reader.ReadLevelAsync() is AudioLevel level)
+            {
+                Emit(level);
+                readerSamples += level.SampleCount;
+            }
+            if (readerSamples != expectedSamples || levelCount != (expectedSamples + 39) / 40 || await reader.ReadLevelAsync() is not null)
+            {
+                throw new InvalidDataException("The public waveform reader changed the sample count or final partial window.");
+            }
+            await reader.DisposeAsync();
+            await readerSession.DisposeAsync();
+            if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0 || readerSession.AllocatedBufferBytes != 0)
             {
                 throw new InvalidOperationException("The waveform reference pipeline retained audio storage.");
             }

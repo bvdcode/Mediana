@@ -77,19 +77,40 @@ namespace Mediana.Tests
             }
             for (int index = 0; index < actualLevels.Length; index++)
             {
-                AudioLevel level = actualLevels[index];
-                AudioLevel expectedLevel = expectedLevels[index];
-                if (level.StartSample != index * 16 || level.SampleCount != expectedLevel.SampleCount
-                    || level.Timestamp != new MediaTimestamp(index * 16, new TimeBase(1, 400))
-                    || level.Duration != new MediaDuration(level.SampleCount, new TimeBase(1, 400))
-                    || Math.Abs(level.RootMeanSquare - expectedLevel.RootMeanSquare) > 1.0 / 32768
-                    || Math.Abs(level.Peak - expectedLevel.Peak) > 1.0 / 32768)
-                {
-                    throw new InvalidDataException("AAC waveform RMS, peak or timing differs from independent decoded input.");
-                }
+                VerifyLevel(actualLevels[index], expectedLevels[index], index);
             }
             await session.DisposeAsync();
-            if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)
+            await using AudioSession readerSession = await engine.OpenAudioAsync(source, 0, new MediaOpenOptions { BufferBudgetBytes = 128 * 1024 });
+            await using AudioTrimmer? readerTrimmer = range is Mp4AudioSampleRange readerRange
+                ? new AudioTrimmer(readerSession.ReadFrameAsync, readerRange.StartSample, readerRange.SampleCount, allocator, readerRange.PresentationTime)
+                : null;
+            Func<CancellationToken, ValueTask<AudioFrame?>> readSelected = readerSession.ReadFrameAsync;
+            if (readerTrimmer is not null)
+            {
+                readSelected = readerTrimmer.ReadFrameAsync;
+            }
+            await using AudioWaveformReader waveform = new(readSelected, GetGains(channels), new AudioWaveformOptions(400, 16)
+            {
+                SampleFormat = AudioSampleFormat.Signed16,
+                Resampling = new AudioResampleOptions { SamplesPerFrame = 3 }
+            }, allocator);
+            int levelCount = 0;
+            while (await waveform.ReadLevelAsync() is AudioLevel level)
+            {
+                if (levelCount >= expectedLevels.Length)
+                {
+                    throw new InvalidDataException("The AAC waveform reader produced extra windows.");
+                }
+                VerifyLevel(level, expectedLevels[levelCount], levelCount);
+                levelCount++;
+            }
+            if (levelCount != expectedLevels.Length)
+            {
+                throw new InvalidDataException("The AAC waveform reader omitted a window.");
+            }
+            await waveform.DisposeAsync();
+            await readerSession.DisposeAsync();
+            if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0 || readerSession.AllocatedBufferBytes != 0)
             {
                 throw new InvalidOperationException("The AAC waveform pipeline retained audio storage.");
             }
@@ -98,12 +119,7 @@ namespace Mediana.Tests
         private static async Task<(short[] Samples, AudioLevel[] Levels)> ProcessAsync(
             Func<CancellationToken, ValueTask<AudioFrame?>> read, MediaBufferAllocator allocator, int channels, int blockSize)
         {
-            double[] gains = channels switch
-            {
-                1 => [1],
-                2 => [0.5, 0.5],
-                _ => throw new InvalidDataException("The waveform fixture channel count is unsupported.")
-            };
+            double[] gains = GetGains(channels);
             AudioChannelMixer? mixer = null;
             async ValueTask<AudioFrame?> ReadMixedAsync(CancellationToken cancellationToken)
             {
@@ -132,6 +148,25 @@ namespace Mediana.Tests
             }
             accumulator.Complete(levels.Add);
             return (samples.ToArray(), levels.ToArray());
+        }
+
+        private static double[] GetGains(int channels) => channels switch
+        {
+            1 => [1],
+            2 => [0.5, 0.5],
+            _ => throw new InvalidDataException("The waveform fixture channel count is unsupported.")
+        };
+
+        private static void VerifyLevel(AudioLevel level, AudioLevel expected, int index)
+        {
+            if (level.StartSample != index * 16 || level.SampleCount != expected.SampleCount
+                || level.Timestamp != new MediaTimestamp(index * 16, new TimeBase(1, 400))
+                || level.Duration != new MediaDuration(level.SampleCount, new TimeBase(1, 400))
+                || Math.Abs(level.RootMeanSquare - expected.RootMeanSquare) > 1.0 / 32768
+                || Math.Abs(level.Peak - expected.Peak) > 1.0 / 32768)
+            {
+                throw new InvalidDataException("AAC waveform RMS, peak or timing differs from independent decoded input.");
+            }
         }
     }
 }
