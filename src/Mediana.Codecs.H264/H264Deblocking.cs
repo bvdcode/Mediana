@@ -20,7 +20,7 @@ namespace Mediana.Codecs.H264
                 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 6, 6, 7, 8, 9, 10, 11, 13, 14, 16, 18, 20, 23, 25];
 
         public static void Apply(H264Picture picture, H264SliceHeader header, CancellationToken cancellationToken,
-            IReadOnlyList<H264ReferencePicture?>? references = null)
+            IReadOnlyList<H264ReferencePicture?>? references = null, IReadOnlyList<H264ReferencePicture?>? referencesL1 = null)
         {
             if (!header.DeblockingEnabled)
             {
@@ -35,14 +35,15 @@ namespace Mediana.Codecs.H264
                     int size = plane == 0 ? 16 : 8;
                     int x = (address % columns) * size;
                     int y = (address / columns) * size;
-                    ApplyEdges(picture, header, plane, address, x, y, size, true, references);
-                    ApplyEdges(picture, header, plane, address, x, y, size, false, references);
+                    ApplyEdges(picture, header, plane, address, x, y, size, true, references, referencesL1);
+                    ApplyEdges(picture, header, plane, address, x, y, size, false, references, referencesL1);
                 }
             }
         }
 
         private static void ApplyEdges(H264Picture picture, H264SliceHeader header, int plane,
-            int address, int x, int y, int size, bool vertical, IReadOnlyList<H264ReferencePicture?>? references)
+            int address, int x, int y, int size, bool vertical, IReadOnlyList<H264ReferencePicture?>? references,
+            IReadOnlyList<H264ReferencePicture?>? referencesL1)
         {
             int stride = picture.Stride(plane);
             int step = vertical ? 1 : stride;
@@ -71,7 +72,7 @@ namespace Mediana.Codecs.H264
                 {
                     int lumaX = (x + (vertical ? edge : sample)) * scale;
                     int lumaY = (y + (vertical ? sample : edge)) * scale;
-                    int strength = BoundaryStrength(picture, lumaX, lumaY, vertical, edge == 0, references);
+                    int strength = BoundaryStrength(picture, lumaX, lumaY, vertical, edge == 0, references, referencesL1);
                     int tc = strength switch
                     {
                         0 or 4 => 0,
@@ -93,7 +94,7 @@ namespace Mediana.Codecs.H264
         }
 
         internal static int BoundaryStrength(H264Picture picture, int x, int y, bool vertical,
-            bool macroblockEdge, IReadOnlyList<H264ReferencePicture?>? references)
+            bool macroblockEdge, IReadOnlyList<H264ReferencePicture?>? references, IReadOnlyList<H264ReferencePicture?>? referencesL1 = null)
         {
             int previous = picture.BlockIndex(0, x - (vertical ? 1 : 0), y - (vertical ? 0 : 1));
             int current = picture.BlockIndex(0, x, y);
@@ -105,15 +106,7 @@ namespace Mediana.Codecs.H264
             {
                 return 2;
             }
-            int referenceP = picture.ReferenceIndices(H264ReferenceList.L0)[previous];
-            int referenceQ = picture.ReferenceIndices(H264ReferenceList.L0)[current];
-            if (references is null || referenceP >= references.Count || referenceQ >= references.Count ||
-                references[referenceP] is not H264ReferencePicture p || references[referenceQ] is not H264ReferencePicture q)
-            {
-                throw new InvalidDataException("The H.264 edge uses an unavailable reference picture.");
-            }
-            return !ReferenceEquals(p.Picture, q.Picture) || Math.Abs(picture.MotionX(H264ReferenceList.L0)[previous] - picture.MotionX(H264ReferenceList.L0)[current]) >= 4 ||
-                Math.Abs(picture.MotionY(H264ReferenceList.L0)[previous] - picture.MotionY(H264ReferenceList.L0)[current]) >= 4 ? 1 : 0;
+            return H264DeblockingMotion.Strength(picture, previous, current, references, referencesL1);
         }
 
         private static bool HasResidual(H264Picture picture, int x, int y)

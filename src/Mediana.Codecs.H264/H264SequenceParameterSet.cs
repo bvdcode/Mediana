@@ -26,6 +26,7 @@ namespace Mediana.Codecs.H264
         public int HeightInMapUnits { get; init; }
         public bool FrameMbsOnly { get; init; }
         public bool MbAdaptiveFrameField { get; init; }
+        public bool Direct8x8Inference { get; init; }
         public int CropLeft { get; init; }
         public int CropTop { get; init; }
         public int Width { get; init; }

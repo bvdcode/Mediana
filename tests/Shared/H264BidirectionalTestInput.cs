@@ -101,7 +101,7 @@ namespace Mediana.Tests
                 H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
                 int expectedReferenceIndicator = packet == 2 ? 2 : 0;
                 int expectedQp = packet == 2 ? 26 : 28;
-                if (header.Kind != H264SliceKind.B || header.IsIdr || header.FirstMacroblock != 0
+                if (header.Kind != H264SliceKind.B || header.IsIdr || header.FirstMacroblock != 0 || !header.Sequence.Direct8x8Inference
                     || header.FrameNumber != packet || header.PictureOrderLsb != (packet - 1) * 2
                     || header.ActiveReferencesL0 != packet - 1 || header.ActiveReferencesL1 != 1
                     || !header.DirectSpatialMotionPrediction || header.ReferenceIndicator != expectedReferenceIndicator

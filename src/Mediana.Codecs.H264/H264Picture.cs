@@ -44,6 +44,7 @@ namespace Mediana.Codecs.H264
         public H264SequenceParameterSet Sequence { get; }
         public int Width { get; }
         public int Height { get; }
+        public bool HasBidirectionalMotion => referenceLists == 2;
         private int ModesOffset => lumaBytes + chromaBytes * 2 + lumaBlocks + chromaBlocks * 2;
         public Span<byte> Modes => storage.Memory.Span.Slice(ModesOffset, lumaBlocks);
         private int QuantizersOffset => ModesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);

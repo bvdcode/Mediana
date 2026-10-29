@@ -73,7 +73,7 @@ namespace Mediana.Codecs.H264
             int heightMapUnits = checked(bits.ReadUe(65535) + 1);
             bool frameOnly = bits.ReadFlag();
             bool mbAdaptive = !frameOnly && bits.ReadFlag();
-            bits.ReadFlag();
+            bool direct8x8Inference = bits.ReadFlag();
             int left = 0;
             int right = 0;
             int top = 0;
@@ -123,6 +123,7 @@ namespace Mediana.Codecs.H264
                 HeightInMapUnits = heightMapUnits,
                 FrameMbsOnly = frameOnly,
                 MbAdaptiveFrameField = mbAdaptive,
+                Direct8x8Inference = direct8x8Inference,
                 CropLeft = checked(left * cropUnitX),
                 CropTop = checked(top * cropUnitY),
                 Width = (int)width,
