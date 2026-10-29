@@ -10,6 +10,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await Mp4MetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
+            Console.WriteLine("PASS MP4 metadata: Unicode tags, indexed keys, exact PNG/JPEG covers, unchanged packets and independent cover ownership match.");
             await AudioWaveformTestInput.VerifyAsync();
             await AudioWaveformTestInput.VerifyWaveAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"));
             Console.WriteLine("PASS audio waveform: streaming mono mix, resampling, PCM16 quantization and RMS match analytic tone energy and exact window timing.");
