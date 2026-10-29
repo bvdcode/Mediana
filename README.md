@@ -222,9 +222,9 @@ The decoder accepts AAC-LC with indexed sample rates from 8000 to 96000 Hz,
 standard mono/stereo channel configuration and one `raw_data_block` per packet.
 It returns 1024 native-endian interleaved float32 samples per channel per frame.
 Mono is `front-center`; stereo is `front-left`, `front-right`. Packet PTS is
-preserved, and frame duration is exactly 1024 samples. Encoder delay, final padding
-and MP4 edit-window trimming are preserved rather than removed. The final PCM
-count can therefore exceed the original recording length.
+preserved, and frame duration is exactly 1024 samples. The decoder preserves
+encoder delay and final padding. The final PCM count can therefore exceed the
+original recording length. Explicit sample selection is available after decoding.
 
 All eleven spectral codebooks, escape values, scalefactors, pulse data, long/short
 sine/KBD windows, TNS, perceptual noise substitution, M/S and intensity stereo
@@ -264,6 +264,41 @@ dotnet run --project samples/Mediana.Sample -c Release --no-build -- --resample-
 ## Processing PCM
 
 The `Mediana.Processing.Audio` namespace provides independent processing steps.
+`AudioTrimmer` skips a caller-specified number of decoded samples and optionally
+selects an exact sample count. It pulls owned frames, copies only the selected
+parts into owned output and keeps no recording-sized history. Interleaved and
+planar PCM retain their format, channel order and exact sample bytes. A null count
+reads through EOF; a finite requested range must exist completely. A zero count
+returns EOF without reading. Original timestamps remain continuous unless the
+caller supplies an explicit output origin. It stops reading at the selected end;
+the source remains borrowed and must still be disposed by its owner.
+
+`Mp4AudioSampleRange.FromEditList(track, decodedSampleRate)` translates one
+explicit unit-rate media edit, optionally preceded by an empty edit, into a PCM
+range and the first sample's movie presentation time. It selects sample instants
+in the half-open edit interval using exact rational arithmetic. Leading empty
+edits shift the returned PTS without generating silent PCM. Missing or nonlinear
+edits and unsupported exact clocks fail explicitly; codec delay and roll groups
+are not inferred. Range indices count from media time zero, so decode preceding
+packets from that point before applying the range; arbitrary seeking needs
+separate decoder preroll handling.
+
+```csharp
+Mp4AudioSampleRange range = Mp4AudioSampleRange.FromEditList(track, decodedSampleRate);
+await using AudioTrimmer trimmer = new(session.ReadFrameAsync,
+    range.StartSample, range.SampleCount, allocator, range.PresentationTime);
+using AudioFrame? frame = await trimmer.ReadFrameAsync();
+```
+
+Pass `null` instead of `range.SampleCount` to remove only the leading samples.
+These policies differ: on the stereo AAC reference, ordinary FFmpeg decoding
+returns 16384 samples after removing priming, while the exact edit selects 16317.
+Both complete results are checked against independent decoding in managed and
+Linux Native AOT execution. The exact edit also feeds the complete mono 400 Hz
+PCM16 and RMS pipeline; its samples and levels match processing of the independently
+decoded and cropped reference, including both edges. Edit-list time is distinct from AAC frame duration;
+see Apple's [explicit encoder-delay representation](https://developer.apple.com/documentation/quicktime-file-format/using_track_structures_to_represent_encode_delay_explictly).
+
 `AudioChannelMixer` takes an explicit output-by-input coefficient matrix and channel
 labels. It preserves finite headroom in interleaved float64 output, without implicit
 speaker mapping, gain normalization or clipping. `AudioSampleConverter` changes
@@ -839,7 +874,8 @@ their media storage to participate in its accounting.
   planar/interleaved layouts and exact sample-count duration. WAVE PCM decoding,
   explicit channel matrices, storage conversion and streaming sinc resampling are
   available, including limited AAC-LC decoding. Broader compressed audio,
-  delay/padding correction and playback remain open.
+  inferred delay/padding correction and playback remain open. Explicit sample
+  trimming and selection from supported MP4 edit lists are available.
 - A codec can accept several packets before output, or produce several frames
   from one packet. Completing input drains delayed output; resetting discards it.
   Input is borrowed for a call, retained input needs a separate lease, and output
