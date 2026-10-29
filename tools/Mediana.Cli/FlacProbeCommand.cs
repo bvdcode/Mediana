@@ -12,11 +12,11 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string path)
+        public static async Task<int> RunAsync(string path, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             await using StreamByteSource source = new(File.OpenRead(path));
-            await using FlacReader reader = await FlacReader.OpenAsync(source, allocator);
+            await using FlacReader reader = await FlacReader.OpenAsync(source, allocator, cancellationToken: cancellationToken);
             FlacConfiguration configuration = reader.Configuration;
             await Console.Out.WriteLineAsync($"Native FLAC: {configuration.SampleRate} Hz; {configuration.ChannelCount} channels; {configuration.BitsPerSample} bits; declared samples {configuration.TotalSamples} (0 means unknown).");
             await Console.Out.WriteLineAsync($"Block size {configuration.MinimumBlockSize}..{configuration.MaximumBlockSize}; first audio byte {reader.AudioOffset}; vendor {reader.Vendor}.");

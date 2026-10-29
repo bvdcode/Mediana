@@ -12,11 +12,11 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string path)
+        public static async Task<int> RunAsync(string path, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             await using StreamByteSource source = new(File.OpenRead(path));
-            await using Mp3Reader reader = await Mp3Reader.OpenAsync(source, allocator);
+            await using Mp3Reader reader = await Mp3Reader.OpenAsync(source, allocator, cancellationToken: cancellationToken);
             Mp3FrameHeader header = reader.FirstFrame;
             await Console.Out.WriteLineAsync($"MP3 {header.Version}: {header.SampleRate} Hz; {header.ChannelCount} channels; {header.SamplesPerFrame} coded samples/frame; first audio byte {reader.AudioOffset}.");
             if (reader.VbrInfo is Mp3VbrInfo info)

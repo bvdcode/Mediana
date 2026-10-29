@@ -11,11 +11,11 @@ namespace Mediana.Cli
     {
         private const int BufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int coverIndex)
+        public static async Task<int> RunAsync(string inputPath, string outputPath, int coverIndex, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
-            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator, cancellationToken: cancellationToken);
             ArgumentOutOfRangeException.ThrowIfNegative(coverIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(coverIndex, reader.CoverArt.Count);
             Mp4CoverArtInfo info = reader.CoverArt[coverIndex];
@@ -23,7 +23,7 @@ namespace Mediana.Cli
             using (MediaBuffer cover = reader.ReadCoverArt(coverIndex))
             {
                 await reader.DisposeAsync();
-                await CommandOutputFile.WriteAsync(outputPath, output => output.WriteAsync(cover.Memory).AsTask());
+                await CommandOutputFile.WriteAsync(outputPath, output => output.WriteAsync(cover.Memory, cancellationToken).AsTask(), cancellationToken: cancellationToken);
             }
             if (allocator.AllocatedBytes != 0)
             {

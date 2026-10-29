@@ -14,12 +14,12 @@ namespace Mediana.Cli
     {
         private const int BufferBudgetBytes = 1024 * 1024;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex, int sampleRate, double[] gains)
+        public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex, int sampleRate, double[] gains, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
-                new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes });
+                new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes }, cancellationToken: cancellationToken);
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             AudioChannelMixer? mixer = null;
             async ValueTask<AudioFrame?> ReadMixedAsync(CancellationToken cancellationToken)
@@ -38,22 +38,22 @@ namespace Mediana.Cli
             {
                 while (true)
                 {
-                    using AudioFrame? frame = await resampler.ReadFrameAsync();
+                    using AudioFrame? frame = await resampler.ReadFrameAsync(cancellationToken);
                     if (frame is null)
                     {
                         break;
                     }
-                    using AudioFrame pcm = AudioSampleConverter.Apply(frame, AudioSampleFormat.Signed16, AudioStorageLayout.Interleaved, allocator);
+                    using AudioFrame pcm = AudioSampleConverter.Apply(frame, AudioSampleFormat.Signed16, AudioStorageLayout.Interleaved, allocator, cancellationToken: cancellationToken);
                     using WritableMediaBuffer littleEndian = allocator.Allocate(pcm.GetPlane(0).Length);
                     ReadOnlySpan<short> values = MemoryMarshal.Cast<byte, short>(pcm.GetPlane(0).Span);
                     for (int index = 0; index < values.Length; index++)
                     {
                         BinaryPrimitives.WriteInt16LittleEndian(littleEndian.Memory.Span[(index * sizeof(short))..], values[index]);
                     }
-                    await output.WriteAsync(littleEndian.Memory);
+                    await output.WriteAsync(littleEndian.Memory, cancellationToken);
                     samples = checked(samples + frame.SamplesPerChannel);
                 }
-            });
+            }, cancellationToken: cancellationToken);
             await resampler.DisposeAsync();
             await session.DisposeAsync();
             if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)

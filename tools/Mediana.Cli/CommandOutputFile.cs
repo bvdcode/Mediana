@@ -7,8 +7,9 @@ namespace Mediana.Cli
     {
         private const int BufferBytes = 64 * 1024;
 
-        public static async Task WriteAsync(string outputPath, Func<Stream, Task> write)
+        public static async Task WriteAsync(string outputPath, Func<Stream, Task> write, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             string destination = Path.GetFullPath(outputPath);
             string temporary = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
@@ -18,6 +19,7 @@ namespace Mediana.Cli
                 {
                     await write(stream);
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 File.Move(temporary, destination);
             }
             finally

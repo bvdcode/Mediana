@@ -17,12 +17,12 @@ namespace Mediana.Cli
         private const double CutoffRatio = 0.97;
 
         public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex,
-            int sampleRate, int samplesPerWindow, double[] gains)
+            int sampleRate, int samplesPerWindow, double[] gains, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
-                new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes });
+                new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes }, cancellationToken: cancellationToken);
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             await using AudioWaveformReader reader = new(session.ReadFrameAsync, gains,
                 new AudioWaveformOptions(sampleRate, samplesPerWindow)
@@ -48,22 +48,22 @@ namespace Mediana.Cli
                 }
                 json.WriteEndArray();
                 json.WriteStartArray("windows");
-                while (await reader.ReadLevelAsync() is AudioLevel level)
+                while (await reader.ReadLevelAsync(cancellationToken) is AudioLevel level)
                 {
                     WriteLevel(json, level);
                     samples = checked(samples + level.SampleCount);
                     windows = checked(windows + 1);
                     if (windows % WindowsPerFlush == 0)
                     {
-                        await json.FlushAsync();
+                        await json.FlushAsync(cancellationToken);
                     }
                 }
                 json.WriteEndArray();
                 json.WriteNumber("sampleCount", samples);
                 json.WriteNumber("windowCount", windows);
                 json.WriteEndObject();
-                await json.FlushAsync();
-            });
+                await json.FlushAsync(cancellationToken);
+            }, cancellationToken: cancellationToken);
             await reader.DisposeAsync();
             await session.DisposeAsync();
             if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)

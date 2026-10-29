@@ -8,18 +8,18 @@ namespace Mediana.Cli
 {
     internal static class AudioDecodeCommand
     {
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex)
+        public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
-            await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex);
+            await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex, cancellationToken: cancellationToken);
             long samples = 0;
             AudioFormat? format = null;
             await CommandOutputFile.WriteAsync(outputPath, async output =>
             {
                 while (true)
                 {
-                    using AudioFrame? frame = await session.ReadFrameAsync();
+                    using AudioFrame? frame = await session.ReadFrameAsync(cancellationToken);
                     if (frame is null)
                     {
                         break;
@@ -35,10 +35,10 @@ namespace Mediana.Cli
                     {
                         throw new NotSupportedException("The raw PCM output requires interleaved samples.");
                     }
-                    await output.WriteAsync(frame.GetPlane(0));
+                    await output.WriteAsync(frame.GetPlane(0), cancellationToken);
                     samples = checked(samples + frame.SamplesPerChannel);
                 }
-            });
+            }, cancellationToken: cancellationToken);
             await session.DisposeAsync();
             if (session.AllocatedBufferBytes != 0)
             {

@@ -12,11 +12,11 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string path)
+        public static async Task<int> RunAsync(string path, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
-            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator, cancellationToken: cancellationToken);
             await Console.Out.WriteLineAsync($"MP4/MOV: {reader.Tracks.Count} tracks; movie time base {reader.MovieTimeBase.Numerator}/{reader.MovieTimeBase.Denominator}; duration {reader.Duration?.Value}.");
             foreach (Mp4MetadataItem item in reader.Metadata)
             {
@@ -31,7 +31,7 @@ namespace Mediana.Cli
                     digests.Add(new PacketDigest());
                     await Console.Out.WriteLineAsync($"Stream {track.Stream.StreamIndex}: {track.Stream.Kind}; {track.Stream.CodecId}/{track.SampleEntry}; samples {track.SampleCount}; time base {track.Stream.TimeBase.Numerator}/{track.Stream.TimeBase.Denominator}; media duration {track.MediaDuration?.Value}; edits {track.Edits.Count}.");
                 }
-                while (await reader.ReadPacketAsync() is MediaPacket packet)
+                while (await reader.ReadPacketAsync(cancellationToken) is MediaPacket packet)
                 {
                     using (packet)
                     {

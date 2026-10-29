@@ -11,11 +11,11 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int pictureIndex)
+        public static async Task<int> RunAsync(string inputPath, string outputPath, int pictureIndex, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             await using StreamByteSource source = new(File.OpenRead(inputPath));
-            await using Mp3Reader reader = await Mp3Reader.OpenAsync(source, allocator);
+            await using Mp3Reader reader = await Mp3Reader.OpenAsync(source, allocator, cancellationToken: cancellationToken);
             ArgumentOutOfRangeException.ThrowIfNegative(pictureIndex);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pictureIndex, reader.Pictures.Count);
             Id3PictureInfo info = reader.Pictures[pictureIndex];
@@ -26,7 +26,7 @@ namespace Mediana.Cli
             using (MediaBuffer picture = reader.ReadPicture(pictureIndex))
             {
                 await reader.DisposeAsync();
-                await CommandOutputFile.WriteAsync(outputPath, output => output.WriteAsync(picture.Memory).AsTask());
+                await CommandOutputFile.WriteAsync(outputPath, output => output.WriteAsync(picture.Memory, cancellationToken).AsTask(), cancellationToken: cancellationToken);
             }
             if (allocator.AllocatedBytes != 0)
             {

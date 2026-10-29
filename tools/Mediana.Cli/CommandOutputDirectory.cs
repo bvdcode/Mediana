@@ -5,8 +5,9 @@ namespace Mediana.Cli
 {
     internal static class CommandOutputDirectory
     {
-        public static async Task WriteAsync(string outputPath, Func<string, Task> write)
+        public static async Task WriteAsync(string outputPath, Func<string, Task> write, CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             string destination = Path.GetFullPath(outputPath);
             if (Directory.Exists(destination) || File.Exists(destination))
             {
@@ -22,6 +23,7 @@ namespace Mediana.Cli
             try
             {
                 await write(temporary);
+                cancellationToken.ThrowIfCancellationRequested();
                 Directory.Move(temporary, destination);
             }
             finally

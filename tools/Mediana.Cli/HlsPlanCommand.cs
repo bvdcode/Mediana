@@ -13,16 +13,16 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string path, int streamIndex, long targetMilliseconds)
+        public static async Task<int> RunAsync(string path, int streamIndex, long targetMilliseconds, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             Mp4AvcSegmentPlan plan;
             await using (RandomAccessStreamByteSource source = new(File.OpenRead(path)))
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator,
-                new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
+                new() { TimestampMode = Mp4TimestampMode.LinearMovie }, cancellationToken: cancellationToken))
             {
                 plan = await Mp4AvcSegmentPlan.CreateAsync(reader, streamIndex,
-                    new() { TargetDuration = new(targetMilliseconds, new TimeBase(1, 1000)) });
+                    new() { TargetDuration = new(targetMilliseconds, new TimeBase(1, 1000)) }, cancellationToken: cancellationToken);
             }
             foreach (Mp4AvcSegment segment in plan.Segments)
             {
