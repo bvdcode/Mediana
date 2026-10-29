@@ -1,7 +1,5 @@
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
-using Mediana.Codecs.Pcm;
-using Mediana.Containers.Wave;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.IO;
@@ -15,8 +13,7 @@ namespace Mediana.Sample
 
         public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex, int sampleRate, double[] gains)
         {
-            MediaEngine engine = new MediaEngineBuilder().AddContainer(new WaveReaderFactory())
-                .AddAudioDecoder(new PcmDecoderFactory()).Build();
+            MediaEngine engine = SampleAudioEngine.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
                 new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes });

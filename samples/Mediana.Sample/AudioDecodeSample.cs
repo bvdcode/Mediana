@@ -1,5 +1,3 @@
-using Mediana.Codecs.Pcm;
-using Mediana.Containers.Wave;
 using Mediana.Core.Audio;
 using Mediana.IO;
 
@@ -9,8 +7,7 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex)
         {
-            MediaEngine engine = new MediaEngineBuilder().AddContainer(new WaveReaderFactory())
-                .AddAudioDecoder(new PcmDecoderFactory()).Build();
+            MediaEngine engine = SampleAudioEngine.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex);
             long samples = 0;
