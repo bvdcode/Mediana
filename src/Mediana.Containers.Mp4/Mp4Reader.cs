@@ -16,7 +16,7 @@ namespace Mediana.Containers.Mp4
         private readonly MediaBuffer metadata;
         private readonly Mp4TrackCursor[] cursors;
         private readonly Mp4LinearTimeline[] timelines;
-        private readonly Mp4SampleTable[] tables;
+        private readonly Mp4SampleLookup[] lookups;
         private bool disposed;
         private int busy;
 
@@ -25,7 +25,7 @@ namespace Mediana.Containers.Mp4
         {
             this.source = source;
             this.allocator = allocator;
-            tables = movie.Tables;
+            lookups = movie.Tables.Select(table => new Mp4SampleLookup(table)).ToArray();
             cursors = movie.Tables.Select(table => new Mp4TrackCursor(table)).ToArray();
             MovieTimeBase = movie.TimeBase;
             Duration = movie.Duration;
@@ -105,7 +105,8 @@ namespace Mediana.Containers.Mp4
         }
 
         /// <summary>Resolves sample metadata without reading media bytes or moving the sequential cursors.
-        /// Table runs and sizes within the containing chunk are scanned; no per-sample index is allocated.</summary>
+        /// Successive lookups advance a separate metadata cursor. Other lookups scan table runs and
+        /// sizes within the containing chunk; no per-sample index is allocated.</summary>
         public Mp4SampleInfo GetSampleInfo(int streamIndex, int sampleIndex, CancellationToken cancellationToken = default)
         {
             Enter();
@@ -145,8 +146,8 @@ namespace Mediana.Containers.Mp4
         private Mp4SampleLocation Locate(int streamIndex, int sampleIndex, CancellationToken cancellationToken)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(streamIndex, tables.Length);
-            return Mp4SampleLocator.Find(tables[streamIndex], sampleIndex, cancellationToken);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(streamIndex, lookups.Length);
+            return lookups[streamIndex].Find(sampleIndex, cancellationToken);
         }
 
         private async ValueTask<MediaPacket> ReadSampleAsync(int streamIndex, Mp4SampleLocation location,
