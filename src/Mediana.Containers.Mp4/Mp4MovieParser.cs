@@ -83,7 +83,8 @@ namespace Mediana.Containers.Mp4
             {
                 throw new InvalidDataException("The MP4 movie has no tracks.");
             }
-            return new Mp4Movie(timeBase, duration, movieMatrix, tracks.ToArray(), tables.ToArray());
+            Mp4MetadataParser metadataParser = new(metadata, options, budget);
+            return new Mp4Movie(timeBase, duration, movieMatrix, tracks.ToArray(), tables.ToArray(), metadataParser.Parse(movie));
         }
 
         private static (TimeBase, MediaDuration?) ReadTimeHeader(Mp4Box box, int minimumV0, int minimumV1)

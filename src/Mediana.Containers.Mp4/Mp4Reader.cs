@@ -14,6 +14,7 @@ namespace Mediana.Containers.Mp4
         private readonly IRandomAccessByteSource source;
         private readonly MediaBufferAllocator allocator;
         private readonly MediaBuffer metadata;
+        private readonly Mp4MetadataValue[] metadataValues;
         private readonly Mp4TrackCursor[] cursors;
         private readonly Mp4LinearTimeline[] timelines;
         private readonly Mp4SampleLookup[] lookups;
@@ -31,6 +32,9 @@ namespace Mediana.Containers.Mp4
             Duration = movie.Duration;
             DisplayMatrix = movie.DisplayMatrix;
             Tracks = Array.AsReadOnly(movie.Tracks);
+            metadataValues = movie.Metadata;
+            Metadata = Array.AsReadOnly(movie.Metadata.Select(value => value.Item).ToArray());
+            CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(movie.Metadata));
             TimestampMode = timestampMode;
             timelines = new Mp4LinearTimeline[movie.Tracks.Length];
             EncodedStreamInfo[] streams = new EncodedStreamInfo[movie.Tracks.Length];
@@ -58,6 +62,8 @@ namespace Mediana.Containers.Mp4
         /// <summary>The movie header display matrix, applied after each track header matrix.</summary>
         public VideoDisplayMatrix DisplayMatrix { get; }
         public IReadOnlyList<Mp4TrackInfo> Tracks { get; }
+        public IReadOnlyList<Mp4MetadataItem> Metadata { get; }
+        public IReadOnlyList<Mp4CoverArtInfo> CoverArt { get; }
         public Mp4TimestampMode TimestampMode { get; }
         /// <summary>Packet stream configurations in the selected time base. Tracks preserve original declarations.</summary>
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
@@ -141,6 +147,32 @@ namespace Mediana.Containers.Mp4
             {
                 Volatile.Write(ref busy, 0);
             }
+        }
+
+        /// <summary>Returns an owned view of the original data atom value without moving any packet cursor.
+        /// The view survives reader disposal and retains the complete movie metadata allocation.</summary>
+        public MediaBuffer ReadMetadataValue(int itemIndex)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                ArgumentOutOfRangeException.ThrowIfNegative(itemIndex);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(itemIndex, metadataValues.Length);
+                Mp4MetadataValue value = metadataValues[itemIndex];
+                return metadata.Slice(value.Offset, value.Item.ByteLength);
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
+        }
+
+        public MediaBuffer ReadCoverArt(int coverIndex)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(coverIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(coverIndex, CoverArt.Count);
+            return ReadMetadataValue(CoverArt[coverIndex].MetadataItemIndex);
         }
 
         private Mp4SampleLocation Locate(int streamIndex, int sampleIndex, CancellationToken cancellationToken)
