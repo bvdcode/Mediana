@@ -25,7 +25,7 @@ namespace Mediana.Tests
             VideoFrame exported;
             MediaTimestamp timestamp = new(7, new TimeBase(1, 30));
             MediaDuration duration = new(1, new TimeBase(1, 30));
-            using (H264Picture picture = new(sequence, allocator))
+            using (H264Picture picture = new(sequence, allocator, H264SliceKind.P))
             {
                 for (int plane = 0; plane < 3; plane++)
                 {
@@ -69,7 +69,7 @@ namespace Mediana.Tests
         public void ExportCancellationAndMemoryLimitLeaveTheReferencePictureIntact()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
-            using H264Picture picture = new(Sequence(), allocator);
+            using H264Picture picture = new(Sequence(), allocator, H264SliceKind.P);
             picture.Plane(0).Fill(77);
             long before = allocator.AllocatedBytes;
             Assert.Throws<MediaMemoryLimitException>(() => H264FrameExporter.Export(picture, new MediaBufferAllocator(32), null, null, default));

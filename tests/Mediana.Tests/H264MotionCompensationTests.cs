@@ -126,6 +126,6 @@ namespace Mediana.Tests
             FrameMbsOnly = true,
             Width = 16,
             Height = 16
-        }, new MediaBufferAllocator(1024 * 1024));
+        }, new MediaBufferAllocator(1024 * 1024), H264SliceKind.P);
     }
 }

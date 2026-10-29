@@ -104,7 +104,7 @@ namespace Mediana.Tests
                 MemoryOperations =
                 [new(4, MaxLongTermFrameIndexPlusOne: 2), new(1, DifferenceMinusOne: 0), new(2, LongTermPictureNumber: 1)]
             };
-            using H264Picture input = new(invalid.Sequence, allocator);
+            using H264Picture input = new(invalid.Sequence, allocator, invalid.Kind);
             long before = allocator.AllocatedBytes;
             Assert.Throws<InvalidDataException>(() => buffer.Store(input, invalid, new H264PictureOrder(2, 2)));
             Assert.Equal(before, allocator.AllocatedBytes);
@@ -122,7 +122,7 @@ namespace Mediana.Tests
             using H264ReferenceBuffer buffer = new();
             Store(buffer, allocator, Header(0, idr: true) with { LongTermReference = true });
             H264SliceHeader invalid = Header(1) with { AdaptiveMarking = true, MemoryOperations = [new(operation), new(operation)] };
-            using H264Picture input = new(invalid.Sequence, allocator);
+            using H264Picture input = new(invalid.Sequence, allocator, invalid.Kind);
             Assert.Throws<InvalidDataException>(() => buffer.Store(input, invalid, new H264PictureOrder(2, 2)));
             Assert.Equal(1, buffer.Count);
         }
@@ -143,7 +143,7 @@ namespace Mediana.Tests
         private static int?[] Numbers(IReadOnlyList<H264ReferencePicture?> references) => references.Select(value => value?.FrameNumber).ToArray();
 
         private static void Store(H264ReferenceBuffer buffer, MediaBufferAllocator allocator, H264SliceHeader header) =>
-            buffer.Store(new H264Picture(header.Sequence, allocator), header, new H264PictureOrder(header.FrameNumber * 2, header.FrameNumber * 2));
+            buffer.Store(new H264Picture(header.Sequence, allocator, header.Kind), header, new H264PictureOrder(header.FrameNumber * 2, header.FrameNumber * 2));
 
         private static H264SliceHeader Header(int number, bool idr = false)
         {

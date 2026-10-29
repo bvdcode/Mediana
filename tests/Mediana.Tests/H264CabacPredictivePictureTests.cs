@@ -27,7 +27,7 @@ namespace Mediana.Tests
             H264SequenceParameterSet sequence = configuration.Sequences[0];
             MediaBufferAllocator measurement = new(1024 * 1024);
             long pictureBytes;
-            using (H264Picture picture = new(sequence, measurement))
+            using (H264Picture picture = new(sequence, measurement, H264SliceKind.P))
             {
                 pictureBytes = measurement.AllocatedBytes;
             }
@@ -103,7 +103,7 @@ namespace Mediana.Tests
             writer.Termination(true);
             byte[] payload = writer.ToEbsp();
             MediaBufferAllocator allocator = new(1024 * 1024);
-            using (H264Picture reference = new(header.Sequence, allocator))
+            using (H264Picture reference = new(header.Sequence, allocator, header.Kind))
             {
                 long retained = allocator.AllocatedBytes;
                 H264ReferencePicture[] references = [new(reference, 0, new H264PictureOrder(0, 0))];

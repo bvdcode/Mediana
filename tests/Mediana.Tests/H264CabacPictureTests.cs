@@ -63,7 +63,7 @@ namespace Mediana.Tests
             H264SequenceParameterSet sequence = configuration.Sequences[0];
             MediaBufferAllocator measurement = new(1024 * 1024);
             long pictureBytes;
-            using (H264Picture picture = new(sequence, measurement))
+            using (H264Picture picture = new(sequence, measurement, H264SliceKind.P))
             {
                 pictureBytes = measurement.AllocatedBytes;
             }

@@ -2,14 +2,15 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264MotionPrediction
     {
-        public static (int X, int Y) Predict(H264Picture picture, int x, int y, int width, int height, int reference, int partition)
+        public static (int X, int Y) Predict(H264Picture picture, H264ReferenceList list,
+            int x, int y, int width, int height, int reference, int partition)
         {
-            H264MotionSample a = picture.MotionAt(x - 1, y);
-            H264MotionSample b = picture.MotionAt(x, y - 1);
-            H264MotionSample c = picture.MotionAt(x + width, y - 1);
+            H264MotionSample a = picture.MotionAt(list, x - 1, y);
+            H264MotionSample b = picture.MotionAt(list, x, y - 1);
+            H264MotionSample c = picture.MotionAt(list, x + width, y - 1);
             if (!c.Available)
             {
-                c = picture.MotionAt(x - 1, y - 1);
+                c = picture.MotionAt(list, x - 1, y - 1);
             }
             if (width == 16 && height == 8)
             {
@@ -49,14 +50,14 @@ namespace Mediana.Codecs.H264
 
         public static (int X, int Y) Skip(H264Picture picture, int x, int y)
         {
-            H264MotionSample a = picture.MotionAt(x - 1, y);
-            H264MotionSample b = picture.MotionAt(x, y - 1);
+            H264MotionSample a = picture.MotionAt(H264ReferenceList.L0, x - 1, y);
+            H264MotionSample b = picture.MotionAt(H264ReferenceList.L0, x, y - 1);
             if (!a.Available || !b.Available || (a.ReferenceIndex == 0 && a.X == 0 && a.Y == 0) ||
                 (b.ReferenceIndex == 0 && b.X == 0 && b.Y == 0))
             {
                 return (0, 0);
             }
-            return Predict(picture, x, y, 16, 16, 0, 0);
+            return Predict(picture, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
         }
 
         private static int Median(int a, int b, int c) => Math.Max(Math.Min(a, b), Math.Min(Math.Max(a, b), c));

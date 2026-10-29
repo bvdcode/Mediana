@@ -105,15 +105,15 @@ namespace Mediana.Codecs.H264
             {
                 return 2;
             }
-            int referenceP = picture.ReferenceIndices[previous];
-            int referenceQ = picture.ReferenceIndices[current];
+            int referenceP = picture.ReferenceIndices(H264ReferenceList.L0)[previous];
+            int referenceQ = picture.ReferenceIndices(H264ReferenceList.L0)[current];
             if (references is null || referenceP >= references.Count || referenceQ >= references.Count ||
                 references[referenceP] is not H264ReferencePicture p || references[referenceQ] is not H264ReferencePicture q)
             {
                 throw new InvalidDataException("The H.264 edge uses an unavailable reference picture.");
             }
-            return !ReferenceEquals(p.Picture, q.Picture) || Math.Abs(picture.MotionX[previous] - picture.MotionX[current]) >= 4 ||
-                Math.Abs(picture.MotionY[previous] - picture.MotionY[current]) >= 4 ? 1 : 0;
+            return !ReferenceEquals(p.Picture, q.Picture) || Math.Abs(picture.MotionX(H264ReferenceList.L0)[previous] - picture.MotionX(H264ReferenceList.L0)[current]) >= 4 ||
+                Math.Abs(picture.MotionY(H264ReferenceList.L0)[previous] - picture.MotionY(H264ReferenceList.L0)[current]) >= 4 ? 1 : 0;
         }
 
         private static bool HasResidual(H264Picture picture, int x, int y)

@@ -19,6 +19,7 @@ namespace Mediana.NativeTests
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
             await H264BidirectionalTestInput.VerifyHeadersAsync(root);
             await H264BidirectionalTestInput.VerifyReferenceListsAsync(root);
+            H264BidirectionalTestInput.VerifyMotion();
             Console.WriteLine("PASS H.264 B headers: reference and non-reference slices, both active lists, picture order and CABAC alignment match the independent trace.");
             Console.WriteLine("PASS H.264 B reference lists: parsed I/P/B picture order, retained reference B pictures and both lists match the expected first GOP order.");
             await Mp4TimelineTestInput.VerifyAsync(root);

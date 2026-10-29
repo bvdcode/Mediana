@@ -13,7 +13,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException(reason ?? "CABAC reconstruction requires a CABAC slice.");
             }
-            H264Picture result = new(header.Sequence, allocator);
+            H264Picture result = new(header.Sequence, allocator, header.Kind);
             bool complete = false;
             try
             {

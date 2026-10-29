@@ -1,9 +1,8 @@
 using Mediana.Core.Memory;
-using System.Runtime.InteropServices;
 
 namespace Mediana.Codecs.H264
 {
-    internal class H264Picture : IDisposable
+    internal partial class H264Picture : IDisposable
     {
         public const byte InterMode = 9;
         private readonly WritableMediaBuffer storage;
@@ -12,9 +11,18 @@ namespace Mediana.Codecs.H264
         private readonly int lumaBlocks;
         private readonly int chromaBlocks;
         private readonly int macroblocks;
+        private readonly int referenceLists;
+        private const int MotionBytesPerBlock = sizeof(byte) + 2 * sizeof(int);
 
-        public H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator)
+        public H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, H264SliceKind kind)
         {
+            referenceLists = kind switch
+            {
+                H264SliceKind.I or H264SliceKind.P => 1,
+                H264SliceKind.B => 2,
+                H264SliceKind.Sp or H264SliceKind.Si => throw new NotSupportedException("SP and SI picture storage is not supported."),
+                _ => throw new ArgumentOutOfRangeException(nameof(kind))
+            };
             Sequence = sequence;
             Width = sequence.CodedWidth;
             Height = sequence.CodedHeight;
@@ -23,9 +31,14 @@ namespace Mediana.Codecs.H264
             lumaBlocks = lumaBytes / 16;
             chromaBlocks = chromaBytes / 16;
             macroblocks = lumaBytes / 256;
-            storage = allocator.Allocate(checked(lumaBytes + chromaBytes * 2 + lumaBlocks * 11 + chromaBlocks * 2 + macroblocks * 2));
+            storage = allocator.Allocate(checked(lumaBytes + chromaBytes * 2 + lumaBlocks * (2 + MotionBytesPerBlock * referenceLists)
+                + chromaBlocks * 2 + macroblocks * 2));
             Modes.Fill(byte.MaxValue);
-            ReferenceIndices.Fill(byte.MaxValue);
+            ReferenceIndices(H264ReferenceList.L0).Fill(byte.MaxValue);
+            if (referenceLists == 2)
+            {
+                ReferenceIndices(H264ReferenceList.L1).Fill(byte.MaxValue);
+            }
         }
 
         public H264SequenceParameterSet Sequence { get; }
@@ -33,11 +46,9 @@ namespace Mediana.Codecs.H264
         public int Height { get; }
         private int ModesOffset => lumaBytes + chromaBytes * 2 + lumaBlocks + chromaBlocks * 2;
         public Span<byte> Modes => storage.Memory.Span.Slice(ModesOffset, lumaBlocks);
-        public Span<byte> ReferenceIndices => storage.Memory.Span.Slice(ModesOffset + lumaBlocks, lumaBlocks);
-        public Span<int> MotionX => MemoryMarshal.Cast<byte, int>(storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 2, lumaBlocks * 4));
-        public Span<int> MotionY => MemoryMarshal.Cast<byte, int>(storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 6, lumaBlocks * 4));
-        public Span<byte> Quantizers => storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 10, macroblocks);
-        public Span<byte> Transforms8x8 => storage.Memory.Span.Slice(ModesOffset + lumaBlocks * 10 + macroblocks, macroblocks);
+        private int QuantizersOffset => ModesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
+        public Span<byte> Quantizers => storage.Memory.Span.Slice(QuantizersOffset, macroblocks);
+        public Span<byte> Transforms8x8 => storage.Memory.Span.Slice(QuantizersOffset + macroblocks, macroblocks);
 
         public Span<byte> Plane(int index) => index switch
         {
@@ -200,48 +211,6 @@ namespace Mediana.Codecs.H264
             (((index / 4) % 2) * 8 + (index % 2) * 4, (index / 8) * 8 + ((index % 4) / 2) * 4);
 
         public void Dispose() => storage.Dispose();
-
-        public H264MotionSample MotionAt(int x, int y)
-        {
-            if (x < 0 || x >= Width || y < 0 || y >= Height)
-            {
-                return new H264MotionSample(false, -1, 0, 0);
-            }
-            int index = BlockIndex(0, x, y);
-            if (Modes[index] == byte.MaxValue)
-            {
-                return new H264MotionSample(false, -1, 0, 0);
-            }
-            return (Modes[index] & 127) == InterMode
-                ? new H264MotionSample(true, ReferenceIndices[index], MotionX[index], MotionY[index])
-                : new H264MotionSample(true, -1, 0, 0);
-        }
-
-        public void SetMotion(int x, int y, int width, int height, int reference, int motionX, int motionY)
-        {
-            for (int row = y; row < y + height; row += 4)
-            {
-                for (int column = x; column < x + width; column += 4)
-                {
-                    int index = BlockIndex(0, column, row);
-                    Modes[index] = InterMode | 128;
-                    ReferenceIndices[index] = checked((byte)reference);
-                    MotionX[index] = motionX;
-                    MotionY[index] = motionY;
-                }
-            }
-        }
-
-        public void SetReference(int x, int y, int width, int height, int reference)
-        {
-            for (int row = y; row < y + height; row += 4)
-            {
-                for (int column = x; column < x + width; column += 4)
-                {
-                    ReferenceIndices[BlockIndex(0, column, row)] = checked((byte)reference);
-                }
-            }
-        }
 
         private bool IsAvailable(int x, int y, bool constrained) => x >= 0 && x < Width && y >= 0 && y < Height &&
             Modes[BlockIndex(0, x, y)] < 128 && (!constrained || Modes[BlockIndex(0, x, y)] != InterMode);

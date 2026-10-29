@@ -27,7 +27,7 @@ namespace Mediana.Tests
         {
             H264SequenceParameterSet sequence = new() { WidthInMbs = 1, HeightInMapUnits = 1, Width = 16, Height = 16, FrameMbsOnly = true };
             MediaBufferAllocator allocator = new(1024 * 1024);
-            using H264Picture picture = new(sequence, allocator);
+            using H264Picture picture = new(sequence, allocator, H264SliceKind.P);
             H264BitReader bits = new(H264TestBits.Rbsp("01 0 1 01 1 011 01 0 010 01 1 000000001"));
             int[] coefficients = new int[64];
             H264CavlcResidualReader reader = new(picture);

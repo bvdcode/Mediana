@@ -150,7 +150,7 @@ namespace Mediana.Tests
         private static int?[] Numbers(IReadOnlyList<H264ReferencePicture?> references) => references.Select(value => value?.FrameNumber).ToArray();
 
         private static void Store(H264ReferenceBuffer buffer, MediaBufferAllocator allocator, H264SliceHeader header, H264PictureOrder order) =>
-            buffer.Store(new H264Picture(header.Sequence, allocator), header, order);
+            buffer.Store(new H264Picture(header.Sequence, allocator, header.Kind), header, order);
 
         private static H264SliceHeader Header(int number, bool idr = false)
         {

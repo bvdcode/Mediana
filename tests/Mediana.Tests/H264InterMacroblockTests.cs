@@ -18,9 +18,9 @@ namespace Mediana.Tests
         {
             H264SliceHeader header = Header();
             MediaBufferAllocator allocator = new(1024 * 1024);
-            using H264Picture target = new(header.Sequence, allocator);
-            using H264Picture first = new(header.Sequence, allocator);
-            using H264Picture second = new(header.Sequence, allocator);
+            using H264Picture target = new(header.Sequence, allocator, header.Kind);
+            using H264Picture first = new(header.Sequence, allocator, header.Kind);
+            using H264Picture second = new(header.Sequence, allocator, header.Kind);
             for (int plane = 0; plane < 3; plane++)
             {
                 for (int index = 0; index < first.Plane(plane).Length; index++)
@@ -79,8 +79,8 @@ namespace Mediana.Tests
                 Weights = new H264WeightTable(0, 0, [new(1, 2, 1, 3, 1, 4)])
             };
             MediaBufferAllocator allocator = new(1024 * 1024);
-            using H264Picture reference = new(header.Sequence, allocator);
-            using H264Picture target = new(header.Sequence, allocator);
+            using H264Picture reference = new(header.Sequence, allocator, header.Kind);
+            using H264Picture target = new(header.Sequence, allocator, header.Kind);
             reference.Plane(0).Fill(80);
             reference.Plane(1).Fill(90);
             reference.Plane(2).Fill(100);
@@ -99,7 +99,7 @@ namespace Mediana.Tests
         {
             H264SliceHeader header = Header();
             MediaBufferAllocator allocator = new(1024 * 1024);
-            using H264Picture target = new(header.Sequence, allocator);
+            using H264Picture target = new(header.Sequence, allocator, header.Kind);
             Assert.Throws<InvalidDataException>(() =>
             {
                 H264BitReader bits = new(H264TestBits.Rbsp("1 1 11 1"));

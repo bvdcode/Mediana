@@ -41,7 +41,7 @@ namespace Mediana.Codecs.H264
                 {
                     indices[part] = reader.ReadReference(ref bits, partX, partY, header.ActiveReferencesL0 - 1);
                 }
-                target.SetReference(partX, partY, width, height, indices[part]);
+                target.SetReference(H264ReferenceList.L0, partX, partY, width, height, indices[part]);
             }
             for (int part = 0; part < partitions; part++)
             {
@@ -53,7 +53,7 @@ namespace Mediana.Codecs.H264
                 {
                     for (int subX = 0; subX < areaWidth; subX += width)
                     {
-                        (int motionX, int motionY) = H264MotionPrediction.Predict(target, partX + subX, partY + subY,
+                        (int motionX, int motionY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, partX + subX, partY + subY,
                             width, height, indices[part], part);
                         (int deltaX, int deltaY) = reader.ReadMotionDifference(ref bits, partX + subX, partY + subY, width, height);
                         motionX += deltaX;
@@ -103,7 +103,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("The H.264 partition uses an unavailable reference picture.");
             }
-            target.SetMotion(x, y, width, height, referenceIndex, motionX, motionY);
+            target.SetMotion(H264ReferenceList.L0, x, y, width, height, referenceIndex, motionX, motionY);
             Span<byte> block = stackalloc byte[256];
             for (int plane = 0; plane < 3; plane++)
             {

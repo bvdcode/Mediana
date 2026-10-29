@@ -5,6 +5,44 @@ namespace Mediana.Tests
 {
     internal static class H264BidirectionalTestInput
     {
+        public static void VerifyMotion()
+        {
+            MediaBufferAllocator allocator = new(8192);
+            H264SequenceParameterSet sequence = new()
+            {
+                WidthInMbs = 3,
+                HeightInMapUnits = 3,
+                FrameMbsOnly = true,
+                Width = 48,
+                Height = 48
+            };
+            using (H264Picture picture = new(sequence, allocator, H264SliceKind.B))
+            {
+                picture.SetMotion(H264ReferenceList.L0, 12, 16, 4, 4, 0, 4, 20);
+                picture.SetMotion(H264ReferenceList.L0, 16, 12, 4, 4, 1, 12, 4);
+                picture.SetMotion(H264ReferenceList.L0, 32, 12, 4, 4, 0, 8, 12);
+                picture.SetMotion(H264ReferenceList.L1, 12, 16, 4, 4, 2, -4, -20);
+                picture.SetMotion(H264ReferenceList.L1, 16, 12, 4, 4, 0, -12, -4);
+                picture.SetMotion(H264ReferenceList.L1, 32, 12, 4, 4, 2, -8, -12);
+                if (H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 16, 16, 16, 0, 0) != (8, 12)
+                    || H264MotionPrediction.Predict(picture, H264ReferenceList.L1, 16, 16, 16, 16, 2, 0) != (-8, -12)
+                    || H264MotionPrediction.Predict(picture, H264ReferenceList.L1, 16, 16, 16, 16, 0, 0) != (-12, -4))
+                {
+                    throw new InvalidDataException("Independent L0/L1 spatial motion predictions differ from the expected vectors.");
+                }
+                picture.SetReference(H264ReferenceList.L1, 16, 16, 8, 8, 3);
+                if (picture.ReferenceIndices(H264ReferenceList.L0)[picture.BlockIndex(0, 16, 16)] != byte.MaxValue
+                    || picture.ReferenceIndices(H264ReferenceList.L1)[picture.BlockIndex(0, 20, 20)] != 3)
+                {
+                    throw new InvalidDataException("The picture reference lists share storage.");
+                }
+            }
+            if (allocator.AllocatedBytes != 0)
+            {
+                throw new InvalidOperationException("Bidirectional motion verification retained picture storage.");
+            }
+        }
+
         public static async Task VerifyReferenceListsAsync(string root)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
@@ -32,7 +70,7 @@ namespace Mediana.Tests
                             throw new InvalidDataException("The B reference lists differ from the expected decoded reference picture order.");
                         }
                     }
-                    H264Picture picture = new(header.Sequence, allocator);
+                    H264Picture picture = new(header.Sequence, allocator, header.Kind);
                     bool stored = false;
                     try
                     {

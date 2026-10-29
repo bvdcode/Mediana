@@ -56,7 +56,7 @@ namespace Mediana.Codecs.H264
             {
                 return 0;
             }
-            byte index = target.ReferenceIndices[target.BlockIndex(0, x, y)];
+            byte index = target.ReferenceIndices(H264ReferenceList.L0)[target.BlockIndex(0, x, y)];
             return index != byte.MaxValue && index > 0 ? 1 : 0;
         }
 

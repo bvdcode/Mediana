@@ -9,35 +9,35 @@ namespace Mediana.Tests
         public void MedianAndUniqueReferenceMatchUseAvailableNeighbours()
         {
             using H264Picture picture = CreatePicture();
-            picture.SetMotion(12, 16, 4, 4, 0, 4, 20);
-            picture.SetMotion(16, 12, 4, 4, 1, 12, 4);
-            picture.SetMotion(32, 12, 4, 4, 0, 8, 12);
-            Assert.Equal((8, 12), H264MotionPrediction.Predict(picture, 16, 16, 16, 16, 0, 0));
-            Assert.Equal((12, 4), H264MotionPrediction.Predict(picture, 16, 16, 16, 16, 1, 0));
-            Assert.Equal((8, 12), H264MotionPrediction.Predict(picture, 16, 16, 16, 16, 2, 0));
+            picture.SetMotion(H264ReferenceList.L0, 12, 16, 4, 4, 0, 4, 20);
+            picture.SetMotion(H264ReferenceList.L0, 16, 12, 4, 4, 1, 12, 4);
+            picture.SetMotion(H264ReferenceList.L0, 32, 12, 4, 4, 0, 8, 12);
+            Assert.Equal((8, 12), H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 16, 16, 16, 0, 0));
+            Assert.Equal((12, 4), H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 16, 16, 16, 1, 0));
+            Assert.Equal((8, 12), H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 16, 16, 16, 2, 0));
         }
 
         [Fact]
         public void MissingTopRightUsesTopLeftAndTopRowUsesTheLeftVector()
         {
             using H264Picture picture = CreatePicture();
-            picture.SetMotion(12, 0, 4, 4, 0, -7, 9);
-            Assert.Equal((-7, 9), H264MotionPrediction.Predict(picture, 16, 0, 16, 16, 0, 0));
-            picture.SetMotion(12, 12, 4, 4, 2, 31, -17);
-            Assert.Equal((31, -17), H264MotionPrediction.Predict(picture, 16, 16, 16, 16, 2, 0));
+            picture.SetMotion(H264ReferenceList.L0, 12, 0, 4, 4, 0, -7, 9);
+            Assert.Equal((-7, 9), H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 0, 16, 16, 0, 0));
+            picture.SetMotion(H264ReferenceList.L0, 12, 12, 4, 4, 2, 31, -17);
+            Assert.Equal((31, -17), H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 16, 16, 16, 2, 0));
         }
 
         [Fact]
         public void SplitMacroblocksPreferTheSpecifiedEdgeNeighbour()
         {
             using H264Picture picture = CreatePicture();
-            picture.SetMotion(12, 16, 4, 4, 0, 4, 20);
-            picture.SetMotion(16, 12, 4, 4, 0, 12, 4);
-            picture.SetMotion(24, 12, 4, 4, 0, 8, 12);
-            Assert.Equal((12, 4), H264MotionPrediction.Predict(picture, 16, 16, 16, 8, 0, 0));
-            Assert.Equal((4, 20), H264MotionPrediction.Predict(picture, 16, 16, 16, 8, 0, 1));
-            Assert.Equal((4, 20), H264MotionPrediction.Predict(picture, 16, 16, 8, 16, 0, 0));
-            Assert.Equal((8, 12), H264MotionPrediction.Predict(picture, 16, 16, 8, 16, 0, 1));
+            picture.SetMotion(H264ReferenceList.L0, 12, 16, 4, 4, 0, 4, 20);
+            picture.SetMotion(H264ReferenceList.L0, 16, 12, 4, 4, 0, 12, 4);
+            picture.SetMotion(H264ReferenceList.L0, 24, 12, 4, 4, 0, 8, 12);
+            Assert.Equal((12, 4), H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 16, 16, 8, 0, 0));
+            Assert.Equal((4, 20), H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 16, 16, 8, 0, 1));
+            Assert.Equal((4, 20), H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 16, 8, 16, 0, 0));
+            Assert.Equal((8, 12), H264MotionPrediction.Predict(picture, H264ReferenceList.L0, 16, 16, 8, 16, 0, 1));
         }
 
         [Fact]
@@ -45,11 +45,11 @@ namespace Mediana.Tests
         {
             using H264Picture picture = CreatePicture();
             Assert.Equal((0, 0), H264MotionPrediction.Skip(picture, 16, 0));
-            picture.SetMotion(12, 16, 4, 4, 0, 4, 20);
-            picture.SetMotion(16, 12, 4, 4, 0, 0, 0);
+            picture.SetMotion(H264ReferenceList.L0, 12, 16, 4, 4, 0, 4, 20);
+            picture.SetMotion(H264ReferenceList.L0, 16, 12, 4, 4, 0, 0, 0);
             Assert.Equal((0, 0), H264MotionPrediction.Skip(picture, 16, 16));
-            picture.SetMotion(16, 12, 4, 4, 0, 12, 4);
-            picture.SetMotion(32, 12, 4, 4, 0, 8, 12);
+            picture.SetMotion(H264ReferenceList.L0, 16, 12, 4, 4, 0, 12, 4);
+            picture.SetMotion(H264ReferenceList.L0, 32, 12, 4, 4, 0, 8, 12);
             Assert.Equal((8, 12), H264MotionPrediction.Skip(picture, 16, 16));
         }
 
@@ -57,8 +57,8 @@ namespace Mediana.Tests
         public void ConstrainedIntraPredictionExcludesReconstructedInterNeighbours()
         {
             using H264Picture picture = CreatePicture();
-            picture.SetMotion(0, 16, 16, 16, 0, 0, 0);
-            picture.SetMotion(16, 0, 16, 16, 0, 0, 0);
+            picture.SetMotion(H264ReferenceList.L0, 0, 16, 16, 16, 0, 0, 0);
+            picture.SetMotion(H264ReferenceList.L0, 16, 0, 16, 16, 0, 0, 0);
             for (int index = 0; index < picture.Modes.Length; index++)
             {
                 if (picture.Modes[index] == (H264Picture.InterMode | 128))
@@ -88,6 +88,6 @@ namespace Mediana.Tests
             FrameMbsOnly = true,
             Width = 48,
             Height = 48
-        }, new MediaBufferAllocator(1024 * 1024));
+        }, new MediaBufferAllocator(1024 * 1024), H264SliceKind.P);
     }
 }
