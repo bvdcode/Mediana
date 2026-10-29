@@ -35,8 +35,8 @@ namespace Mediana.Codecs.H264
             int selection = kind switch
             {
                 H264SliceKind.I => 0,
-                H264SliceKind.P => initialization + 1,
-                _ => throw new NotSupportedException("8x8 CABAC contexts support I and P slices.")
+                H264SliceKind.P or H264SliceKind.B => initialization + 1,
+                _ => throw new NotSupportedException("8x8 CABAC contexts support I, P and B slices.")
             };
             H264CabacContext[] contexts = new H264CabacContext[Count];
             int offset = selection * Count * 2;

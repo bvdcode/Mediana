@@ -33,6 +33,7 @@
     <Compile Include="../Shared/H264CabacIntervalWriter.cs" Link="H264CabacIntervalWriter.cs" />
     <Compile Include="../Shared/H264CabacTestInput.cs" Link="H264CabacTestInput.cs" />
     <Compile Include="../Shared/H264CabacPredictionTestInput.cs" Link="H264CabacPredictionTestInput.cs" />
+    <Compile Include="../Shared/H264CabacBidirectionalTestInput.cs" Link="H264CabacBidirectionalTestInput.cs" />
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
     <Compile Include="../Shared/SdrPreviewTestInput.cs" Link="SdrPreviewTestInput.cs" />
@@ -51,6 +52,8 @@
     <None Include="../Mediana.Tests/Data/Mp4/avc-aac.frame0.yuv;../Mediana.Tests/Data/Mp4/avc-cabac-intra.mp4;../Mediana.Tests/Data/Mp4/avc-cabac-intra.sequence.yuv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/H264/cabac-intra-contexts.bin;../Mediana.Tests/Data/H264/cabac-predictive-contexts.bin"
+          Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/H264/cabac-bidirectional-contexts.bin"
           Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-cabac-intra.frame3.srgb.rgba"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

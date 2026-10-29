@@ -17,6 +17,7 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            await H264CabacBidirectionalTestInput.VerifyAsync(h264Root, root);
             await H264BidirectionalTestInput.VerifyHeadersAsync(root);
             await H264BidirectionalTestInput.VerifyReferenceListsAsync(root);
             H264BidirectionalTestInput.VerifyMotion();

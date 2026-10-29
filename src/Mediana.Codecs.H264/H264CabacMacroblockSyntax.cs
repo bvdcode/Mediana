@@ -10,6 +10,62 @@ namespace Mediana.Codecs.H264
             return reader.Read(ref bits, 11 + neighbourContext);
         }
 
+        public static bool ReadBidirectionalSkip(ref H264BitReader bits, H264CabacReader reader, int neighbourContext)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(neighbourContext);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(neighbourContext, 2);
+            return reader.Read(ref bits, 24 + neighbourContext);
+        }
+
+        public static int ReadBidirectionalType(ref H264BitReader bits, H264CabacReader reader, int neighbourContext)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(neighbourContext);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(neighbourContext, 2);
+            if (!reader.Read(ref bits, 27 + neighbourContext))
+            {
+                return 0;
+            }
+            if (!reader.Read(ref bits, 30))
+            {
+                return reader.Read(ref bits, 32) ? 2 : 1;
+            }
+            int code = reader.Read(ref bits, 31) ? 8 : 0;
+            for (int bit = 2; bit >= 0; bit--)
+            {
+                code |= (reader.Read(ref bits, 32) ? 1 : 0) << bit;
+            }
+            return code switch
+            {
+                < 8 => code + 3,
+                >= 8 and <= 12 => 12 + (code - 8) * 2 + (reader.Read(ref bits, 32) ? 1 : 0),
+                13 => 23 + ReadIntra(ref bits, reader, 32, true),
+                14 => 11,
+                15 => 22,
+                _ => throw new InvalidDataException("Invalid H.264 CABAC B macroblock code.")
+            };
+        }
+
+        public static int ReadBidirectionalSubType(ref H264BitReader bits, H264CabacReader reader)
+        {
+            if (!reader.Read(ref bits, 36))
+            {
+                return 0;
+            }
+            if (!reader.Read(ref bits, 37))
+            {
+                return reader.Read(ref bits, 39) ? 2 : 1;
+            }
+            if (!reader.Read(ref bits, 38))
+            {
+                return 3 + (reader.Read(ref bits, 39) ? 2 : 0) + (reader.Read(ref bits, 39) ? 1 : 0);
+            }
+            if (reader.Read(ref bits, 39))
+            {
+                return reader.Read(ref bits, 39) ? 12 : 11;
+            }
+            return 7 + (reader.Read(ref bits, 39) ? 2 : 0) + (reader.Read(ref bits, 39) ? 1 : 0);
+        }
+
         public static int ReadIntraType(ref H264BitReader bits, H264CabacReader reader, int neighbourContext)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(neighbourContext);
@@ -107,16 +163,17 @@ namespace Mediana.Codecs.H264
             {
                 return 25;
             }
-            int type = reader.Read(ref bits, predictive ? 18 : 6) ? 13 : 1;
-            if (reader.Read(ref bits, predictive ? 19 : 7))
+            int suffix = predictive ? firstContext + 1 : 6;
+            int type = reader.Read(ref bits, suffix) ? 13 : 1;
+            if (reader.Read(ref bits, suffix + 1))
             {
-                type += reader.Read(ref bits, predictive ? 19 : 8) ? 8 : 4;
+                type += reader.Read(ref bits, suffix + (predictive ? 1 : 2)) ? 8 : 4;
             }
-            if (reader.Read(ref bits, predictive ? 20 : 9))
+            if (reader.Read(ref bits, suffix + (predictive ? 2 : 3)))
             {
                 type += 2;
             }
-            if (reader.Read(ref bits, predictive ? 20 : 10))
+            if (reader.Read(ref bits, suffix + (predictive ? 2 : 4)))
             {
                 type++;
             }

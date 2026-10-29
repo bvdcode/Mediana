@@ -35,7 +35,7 @@ namespace Mediana.Tests
             header = header with { Picture = header.Picture with { Cabac = cabac } };
             if (unsupported)
             {
-                header = header with { Kind = H264SliceKind.B };
+                header = header with { Kind = H264SliceKind.Sp };
             }
             Assert.Throws<NotSupportedException>(() => Initialize(header));
         }
