@@ -1,0 +1,276 @@
+[
+  {
+    "name": "u8-mono",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "aevalsrc='0.6*sin(2*PI*73*t)+if(eq(n,3),0.2,0)':s=8000:d=0.137375:c=mono",
+      "-map_metadata",
+      "-1",
+      "-c:a",
+      "pcm_u8",
+      "-metadata",
+      "title=PCM verification signal",
+      "tests/Mediana.Tests/Data/Wave/u8-mono.wav"
+    ],
+    "wave_sha256": "4a594ddd33da8bfcef06555bea32ddfd68b0e553b4d7936cead647936a0d6f32",
+    "pcm_sha256": "ff442a0f1fba39b34ff9c251ca095655a01f73d2872481acbd49c12693a623e1",
+    "expected_pcm": "u8",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_u8",
+          "sample_rate": "8000",
+          "channels": 1,
+          "bits_per_sample": 8,
+          "time_base": "1/8000",
+          "duration_ts": 1099
+        }
+      ]
+    }
+  },
+  {
+    "name": "s16-stereo",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "aevalsrc='0.6*sin(2*PI*73*t)+if(eq(n,3),0.2,0)|0.6*sin(2*PI*180*t)+if(eq(n,8),0.2,0)':s=44100:d=0.137375:c=stereo",
+      "-map_metadata",
+      "-1",
+      "-c:a",
+      "pcm_s16le",
+      "-metadata",
+      "title=PCM verification signal",
+      "tests/Mediana.Tests/Data/Wave/s16-stereo.wav"
+    ],
+    "wave_sha256": "e880c1af44abfb7c4266cea971170194237a9953fe8c0ff8d40b628ebf2b7b08",
+    "pcm_sha256": "3c43064a7a7904bd027c9b77d53eb714cc3965c931ed10e64ac51dfa529de55b",
+    "expected_pcm": "s16le",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s16le",
+          "sample_rate": "44100",
+          "channels": 2,
+          "bits_per_sample": 16,
+          "time_base": "1/44100",
+          "duration_ts": 6058
+        }
+      ]
+    }
+  },
+  {
+    "name": "s24-stereo",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "aevalsrc='0.6*sin(2*PI*73*t)+if(eq(n,3),0.2,0)|0.6*sin(2*PI*180*t)+if(eq(n,8),0.2,0)':s=48000:d=0.137375:c=stereo",
+      "-map_metadata",
+      "-1",
+      "-c:a",
+      "pcm_s24le",
+      "-metadata",
+      "title=PCM verification signal",
+      "tests/Mediana.Tests/Data/Wave/s24-stereo.wav"
+    ],
+    "wave_sha256": "1810208b852d9e863a0e97570753d5bc9b140ecfc3397ca9e449d7a2819d639d",
+    "pcm_sha256": "55dd6ff7a222f0fff9727c94ba32dfd5e9b64700811b129dec9a135412197023",
+    "expected_pcm": "s32le",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s24le",
+          "sample_rate": "48000",
+          "channels": 2,
+          "channel_layout": "stereo",
+          "bits_per_sample": 24,
+          "time_base": "1/48000",
+          "duration_ts": 6594,
+          "bits_per_raw_sample": "24"
+        }
+      ]
+    }
+  },
+  {
+    "name": "s32-stereo",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "aevalsrc='0.6*sin(2*PI*73*t)+if(eq(n,3),0.2,0)|0.6*sin(2*PI*180*t)+if(eq(n,8),0.2,0)':s=48000:d=0.137375:c=stereo",
+      "-map_metadata",
+      "-1",
+      "-c:a",
+      "pcm_s32le",
+      "-metadata",
+      "title=PCM verification signal",
+      "tests/Mediana.Tests/Data/Wave/s32-stereo.wav"
+    ],
+    "wave_sha256": "2cee2a99e5916a72bf6f8e3cbacf9a0d48d1de1b85b3efc2e81e856aec2d6e7b",
+    "pcm_sha256": "90a1c43c989a69acbe88cd3ae4a5d6f08d4dc9ee74e43b7c31b8351f9ca3aa4c",
+    "expected_pcm": "s32le",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s32le",
+          "sample_rate": "48000",
+          "channels": 2,
+          "channel_layout": "stereo",
+          "bits_per_sample": 32,
+          "time_base": "1/48000",
+          "duration_ts": 6594,
+          "bits_per_raw_sample": "32"
+        }
+      ]
+    }
+  },
+  {
+    "name": "f32-stereo",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "aevalsrc='0.6*sin(2*PI*73*t)+if(eq(n,3),0.2,0)|0.6*sin(2*PI*180*t)+if(eq(n,8),0.2,0)':s=44100:d=0.137375:c=stereo",
+      "-map_metadata",
+      "-1",
+      "-c:a",
+      "pcm_f32le",
+      "-metadata",
+      "title=PCM verification signal",
+      "tests/Mediana.Tests/Data/Wave/f32-stereo.wav"
+    ],
+    "wave_sha256": "86a1b928b87df73c7f83b83c44feb7c7bbeed7f3153f1b9d1d09894f818b8a26",
+    "pcm_sha256": "2ef38ef0ca367f7dbe90d327204e64a24cc819c87c6e452d08231794ca5ef034",
+    "expected_pcm": "f32le",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_f32le",
+          "sample_rate": "44100",
+          "channels": 2,
+          "channel_layout": "stereo",
+          "bits_per_sample": 32,
+          "time_base": "1/44100",
+          "duration_ts": 6058
+        }
+      ]
+    }
+  },
+  {
+    "name": "f64-stereo",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "aevalsrc='0.6*sin(2*PI*73*t)+if(eq(n,3),0.2,0)|0.6*sin(2*PI*180*t)+if(eq(n,8),0.2,0)':s=48000:d=0.137375:c=stereo",
+      "-map_metadata",
+      "-1",
+      "-c:a",
+      "pcm_f64le",
+      "-metadata",
+      "title=PCM verification signal",
+      "tests/Mediana.Tests/Data/Wave/f64-stereo.wav"
+    ],
+    "wave_sha256": "0544e50bb9a49d2adec59afdf9e61b92796498667734b74c76e64873ecf1c8c6",
+    "pcm_sha256": "7c47c240071d01276c0bf9aee50416d512835a2dbb498c3b4b717421d0a670e7",
+    "expected_pcm": "f64le",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_f64le",
+          "sample_rate": "48000",
+          "channels": 2,
+          "channel_layout": "stereo",
+          "bits_per_sample": 64,
+          "time_base": "1/48000",
+          "duration_ts": 6594
+        }
+      ]
+    }
+  },
+  {
+    "name": "s24-surround",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-y",
+      "-f",
+      "lavfi",
+      "-i",
+      "aevalsrc='0.6*sin(2*PI*73*t)+if(eq(n,3),0.2,0)|0.6*sin(2*PI*180*t)+if(eq(n,8),0.2,0)|0.6*sin(2*PI*287*t)+if(eq(n,13),0.2,0)|0.6*sin(2*PI*394*t)+if(eq(n,18),0.2,0)|0.6*sin(2*PI*501*t)+if(eq(n,23),0.2,0)|0.6*sin(2*PI*608*t)+if(eq(n,28),0.2,0)':s=48000:d=0.137375:c=5.1",
+      "-map_metadata",
+      "-1",
+      "-c:a",
+      "pcm_s24le",
+      "-metadata",
+      "title=PCM verification signal",
+      "tests/Mediana.Tests/Data/Wave/s24-surround.wav"
+    ],
+    "wave_sha256": "347c66b271d6861fdc26a07fd4246d13b317a289443ac7bd5a9f2344656adf75",
+    "pcm_sha256": "e5d793eb54f5ece824a71fdf9117d5b2d1af376a9e611656d31045e9bee3318f",
+    "expected_pcm": "s32le",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s24le",
+          "sample_rate": "48000",
+          "channels": 6,
+          "channel_layout": "5.1",
+          "bits_per_sample": 24,
+          "time_base": "1/48000",
+          "duration_ts": 6594,
+          "bits_per_raw_sample": "24"
+        }
+      ]
+    }
+  }
+]

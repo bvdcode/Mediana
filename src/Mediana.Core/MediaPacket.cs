@@ -3,7 +3,7 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Core
 {
-    /// <summary>A compressed packet with its own lease. Packet boundaries need not equal frame boundaries.</summary>
+    /// <summary>An encoded media packet with its own lease. Packet boundaries need not equal frame boundaries.</summary>
     public class MediaPacket : IDisposable
     {
         private readonly MediaBuffer buffer;

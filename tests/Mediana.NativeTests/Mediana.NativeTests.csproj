@@ -8,6 +8,9 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/WavePcmTestInput.cs" Link="WavePcmTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Wave/Mediana.Containers.Wave.csproj" />
     <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
     <ProjectReference Include="../../src/Mediana.Processing/Mediana.Processing.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
@@ -80,5 +83,8 @@
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-cabac-8x8-2.frame6.srgb.rgba"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../Mediana.Tests/Data/Wave/*.wav;../Mediana.Tests/Data/Wave/*.pcm" Link="Data/Wave/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -9,6 +9,11 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            foreach (string name in WavePcmTestInput.Names)
+            {
+                await WavePcmTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"), name);
+            }
+            Console.WriteLine("PASS WAVE PCM: integer/float samples, six-channel assignment, durations, public audio timestamps and independent frame ownership match.");
             H264CabacTestInput.VerifyMixedBins();
             Console.WriteLine("PASS H.264 CABAC arithmetic: mixed decision, bypass and termination bins match exact intervals.");
             (string Name, string Extension, int Packet)[] cases =
