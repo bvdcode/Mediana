@@ -15,6 +15,11 @@ namespace Mediana.Sample
             await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
             await Console.Out.WriteLineAsync($"MP4/MOV: {reader.Tracks.Count} tracks; movie time base {reader.MovieTimeBase.Numerator}/{reader.MovieTimeBase.Denominator}; duration {reader.Duration?.Value}.");
+            foreach (Mp4MetadataItem item in reader.Metadata)
+            {
+                await Console.Out.WriteLineAsync($"Metadata {item.Namespace}:{item.Name}; type {item.DataType}; locale {item.Locale}; {item.ByteLength} bytes; text {item.Text}.");
+            }
+            await Console.Out.WriteLineAsync($"Cover images: {reader.CoverArt.Count}.");
             List<PacketDigest> digests = [];
             try
             {

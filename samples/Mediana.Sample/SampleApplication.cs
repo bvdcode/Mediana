@@ -11,6 +11,11 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string[] args)
         {
+            if (args.Length == 4 && args[0] == "--cover-mp4" &&
+                int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int coverIndex))
+            {
+                return await Mp4CoverArtSample.RunAsync(args[1], args[2], coverIndex);
+            }
             if (args.Length == 6 && args[0] == "--resample-audio" &&
                 int.TryParse(args[3], NumberStyles.None, CultureInfo.InvariantCulture, out int resampleStreamIndex) &&
                 int.TryParse(args[4], NumberStyles.None, CultureInfo.InvariantCulture, out int sampleRate) && sampleRate > 0)
@@ -54,7 +59,7 @@ namespace Mediana.Sample
             }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --decode-audio <input> <new-output.pcm> <stream-index> | --resample-audio <input> <new-output.pcm> <stream-index> <sample-rate> <comma-separated-channel-gains> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds> | --hls-mp4 <input> <new-directory> <video-index> <audio-index|none> <target-milliseconds>]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --probe-mp4 <path> | --cover-mp4 <input> <new-image-output> <cover-index> | --decode-audio <input> <new-output.pcm> <stream-index> | --resample-audio <input> <new-output.pcm> <stream-index> <sample-rate> <comma-separated-channel-gains> | --preview <input> <new-output.png> <stream-index> <milliseconds> <max-width> <max-height> | --remux-mp4 <input> <new-output.ts> | --plan-hls-mp4 <input> <stream-index> <target-milliseconds> | --hls-mp4 <input> <new-directory> <video-index> <audio-index|none> <target-milliseconds>]");
                 return 2;
             }
 
