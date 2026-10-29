@@ -4,6 +4,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/SvgReferenceTestInput.cs" Link="SvgReferenceTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
     <Compile Include="../Shared/IntraPictureFixture.cs" Link="IntraPictureFixture.cs" />
     <Compile Include="../Shared/HeifReferenceTestInput.cs" Link="HeifReferenceTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />

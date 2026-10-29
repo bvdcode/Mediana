@@ -13,6 +13,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await SvgReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Svg"));
+            Console.WriteLine("PASS SVG: 352 filter pixel references and Latin/Cyrillic font rendering.");
             await HeifReferenceTestInput.VerifyWavefrontAsync();
             await HeifReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
             Console.WriteLine("PASS HEIC: 42 independent full RGBA references, transforms, grids and alpha.");
