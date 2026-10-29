@@ -251,7 +251,7 @@ resampling, PCM16 quantization and streaming RMS/peak in managed and Linux Nativ
 AOT execution. Every resulting PCM16 sample differs by at most one from processing
 the independently decoded float reference, with matching sample counts, PTS,
 durations and final partial level windows. This isolates the effect of AAC
-decoding; comparison with Cotton's final waveform rendering remains open.
+decoding. A separate comparison with Cotton's waveform renderer is described below.
 
 The same `--decode-audio` and `--resample-audio` commands accept supported M4A
 inputs. Select the audio stream index explicitly:
@@ -346,8 +346,27 @@ provides the PCM shape needed for a 400 Hz waveform. The complete mono mix →
 resample → PCM16 → RMS path is checked on a real WAVE input and analytic tone energy
 in managed and Linux Native AOT execution. AAC-LC now supplies compressed input
 for the same processing steps. Other compressed audio, cover art in other
-containers and Cotton integration remain open. The filter's finite-recording boundary policy and waveform
-window placement require comparison with the application's existing output.
+containers and Cotton integration remain open.
+
+An explicit `CutoffRatio = 0.97`, `BoundaryMode = Reflect` profile is checked
+against independent mono 400 Hz PCM16 references for silence, endpoint impulses,
+a synthetic musical signal, recorded speech and a fractional-duration recording.
+Every sample, timestamp and RMS/peak window is checked in managed and Linux
+Native AOT execution; the [corpus documentation](tests/Mediana.Tests/Data/Waveform/README.md)
+states the numeric bounds and speech attribution. General defaults remain 0.94
+and zero extension.
+
+A local comparison passed these five WAVE inputs and three AAC-LC M4A inputs
+through Cotton's existing 150-pixel waveform renderer. For AAC it removed only
+the explicit edit's leading samples, preserving final decoded padding to match
+the existing application policy. Mediana's output had the same PCM length on all
+eight inputs. The maximum sample difference was 34 PCM16 steps; alpha-silhouette
+intersection over union ranged from 99.64% to 100%. The comparison supplied
+Mediana PCM through a 400 Hz WAVE wrapper and independently verified byte identity
+through the renderer's existing PCM decode step. Lossy WebP pixels differ; these
+short inputs establish neither bit-identical rendering nor general media
+equivalence. Application integration and the policy for the final remainder of
+samples beyond Cotton's equal bar windows remain open.
 
 ## Reading MP4/MOV
 
