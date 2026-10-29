@@ -41,6 +41,17 @@ check hashes, format, channel order, every presentation timestamp and duration,
 sample count, EOF, a 128 KiB media-buffer budget, unchanged borrowed-source
 position, retained-frame lifetime and final buffer release.
 
+Two additional policies are checked separately on the mono/stereo files without
+PNS. Removing only the first 1024 samples matches ordinary FFmpeg decoding,
+including the final frame padding (18432 and 16384 samples per channel).
+Selecting the exact edit interval removes both ends and returns 17760 and 16317
+samples, matching FFmpeg followed by an explicit `atrim=end_sample=...` filter.
+`references.json` records both commands, complete-output hashes and sample counts.
+The stored full-frame reference supplies both verified PCM slices without adding
+duplicate raw files. Shared managed/Native AOT checks exercise the actual MP4
+range mapper and streaming trimmer, exact output PTS/durations and independent
+output ownership after disposing the trimmer and audio session.
+
 AAC numeric codebooks, scalefactor bands and window/TNS equations come from
 ISO/IEC 13818-7:2004 and ISO/IEC 14496-3:2009. The decoder implementation is
 original C# code. The all-ones M/S mask with intensity-stereo books is rejected,

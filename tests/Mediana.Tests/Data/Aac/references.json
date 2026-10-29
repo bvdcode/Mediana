@@ -358,7 +358,45 @@
             }
           }
         ]
-      }
+      },
+      "defaultPcmSha256": "bfcb0d1eef26f305843f81ca79f5303855216cae09b9d60da62d7b6c9656b21e",
+      "defaultSamplesPerChannel": 18432,
+      "defaultDecodeCommand": [
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        "tests/Mediana.Tests/Data/Aac/lc-mono-48.m4a",
+        "-map",
+        "0:a:0",
+        "-c:a",
+        "pcm_f32le",
+        "-f",
+        "f32le",
+        "<output>.default.f32le"
+      ],
+      "exactEditPcmSha256": "3af551affa4a08682849978804fd932a977b3ee5897427d8d19579e95f5e9dec",
+      "exactEditSamplesPerChannel": 17760,
+      "exactEditDecodeCommand": [
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        "tests/Mediana.Tests/Data/Aac/lc-mono-48.m4a",
+        "-map",
+        "0:a:0",
+        "-af",
+        "atrim=end_sample=17760",
+        "-c:a",
+        "pcm_f32le",
+        "-f",
+        "f32le",
+        "<output>.exactEdit.f32le"
+      ]
     },
     {
       "name": "lc-stereo-44",
@@ -691,7 +729,45 @@
             }
           }
         ]
-      }
+      },
+      "defaultPcmSha256": "b31feb1bea491b6098a4c255380295d8960e0895259766be1a9044bd640f1ca5",
+      "defaultSamplesPerChannel": 16384,
+      "defaultDecodeCommand": [
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        "tests/Mediana.Tests/Data/Aac/lc-stereo-44.m4a",
+        "-map",
+        "0:a:0",
+        "-c:a",
+        "pcm_f32le",
+        "-f",
+        "f32le",
+        "<output>.default.f32le"
+      ],
+      "exactEditPcmSha256": "4dde48fab994660aefa17bb75e20848cf8c961d809cdffce4b1ea182238e9a94",
+      "exactEditSamplesPerChannel": 16317,
+      "exactEditDecodeCommand": [
+        "ffmpeg",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-i",
+        "tests/Mediana.Tests/Data/Aac/lc-stereo-44.m4a",
+        "-map",
+        "0:a:0",
+        "-af",
+        "atrim=end_sample=16317",
+        "-c:a",
+        "pcm_f32le",
+        "-f",
+        "f32le",
+        "<output>.exactEdit.f32le"
+      ]
     },
     {
       "name": "lc-pns-48",
