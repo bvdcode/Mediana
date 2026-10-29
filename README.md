@@ -24,6 +24,7 @@ The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float P
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading; source project only |
+| `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks; source project only |
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC transport-stream writer; source project only |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
@@ -34,7 +35,7 @@ The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float P
 | `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
 | `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
-| `Mediana.Sample` | MP4/MOV packet inspection, PNG previews, WAVE/AAC PCM export/resampling and generated-frame checks |
+| `Mediana.Sample` | MP4/MOV/FLAC inspection and covers, PNG previews, WAVE/AAC PCM/waveform export and generated-frame checks |
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
@@ -426,6 +427,64 @@ WAVE into 72000 mono samples and 1800 level windows in 2.01 seconds, with an
 observed peak RSS of 13056 KiB. All level counts/times matched an independent PCM
 reference; maximum RMS error was `5.10e-6` and peak error one PCM16 step. This is
 one resource observation, not a controlled throughput comparison.
+
+## Reading native FLAC metadata and pictures
+
+The source `Mediana.Containers.Flac` module reads native files beginning with
+`fLaC`. STREAMINFO supplies rate, channels, precision, block/frame bounds, total
+samples and the stored decoded-audio MD5. A zero total sample count has unknown
+duration. `FlacConfiguration` preserves these declarations without decoding PCM
+or verifying the MD5.
+
+```csharp
+MediaBufferAllocator allocator = new(32 * 1024 * 1024);
+await using StreamByteSource source = new(File.OpenRead(path));
+await using FlacReader reader = await FlacReader.OpenAsync(source, allocator);
+IReadOnlyList<FlacComment> comments = reader.Comments;
+IReadOnlyList<FlacPictureInfo> pictures = reader.Pictures;
+using MediaBuffer picture = reader.ReadPicture(0);
+await output.WriteAsync(picture.Memory);
+```
+
+The namespaces are `Mediana.Containers.Flac`, `Mediana.Core.Memory` and
+`Mediana.IO`. The reader consumes the source from its current position and
+borrows it through disposal. Comment spelling, UTF-8 values, repeated names and
+file order remain available; compare comment names with `OrdinalIgnoreCase`.
+Text decoding is strict. Original picture bytes have independent leases that
+survive reader disposal and account for the complete picture metadata block.
+Picture dimensions and media types are declarations, not image validation.
+Media type `-->` exposes URI bytes without retrieving the resource.
+
+`ReadPacketAsync` streams bounded compressed byte chunks in file order. They
+have arbitrary boundaries and no frame timestamps/durations or key-frame flag;
+a FLAC codec must recover actual frames and sample timing. The reader validates
+metadata structure, block uniqueness, padding and seek-table entry ordering.
+Application blocks and cuesheets are skipped; they are not interpreted. Limits
+bound metadata bytes/blocks, individual text values, comments, pictures and packet
+size. Media bytes use the supplied allocator. Cancellation/failure is terminal
+and releases owned storage; concurrent operations/disposal fail explicitly.
+
+Native metadata, exact compressed bytes and original PNG/JPEG pictures match
+independent references on stereo musical and recorded-speech files, with 127- and
+16384-byte chunk limits; Linux Native AOT executes the same verifier with 127-byte
+chunks and a 128 KiB media-buffer budget. Parser checks include one-byte source reads, Unicode,
+repeated comments, linked pictures, retained leases, malformed data, configured
+limits, cancellation and concurrency. Source attribution and exact commands are
+in the [FLAC reference documentation](tests/Mediana.Tests/Data/Flac/README.md).
+The original implementation follows [RFC 9639](https://www.rfc-editor.org/rfc/rfc9639.html).
+
+```bash
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --probe-flac tests/Mediana.Tests/Data/Flac/stereo-covers.flac
+dotnet run --project samples/Mediana.Sample -c Release --no-build -- --cover-flac tests/Mediana.Tests/Data/Flac/stereo-covers.flac artifacts/flac-cover.png 0
+```
+
+The probe reads metadata only. Cover extraction preserves an existing output and
+publishes original embedded bytes after successful processing; URI pictures are
+rejected by that sample. The source module is not packaged. FLAC PCM decoding,
+audio-frame CRC/MD5 verification, seeking, encoding, custom channel masks,
+reserved metadata block types and Ogg/MP4 FLAC mapping remain unsupported.
+The managed and Linux Native AOT samples extract the original reference PNG/JPEG
+bytes exactly and release all retained media buffers.
 
 ## Reading MP4/MOV
 
