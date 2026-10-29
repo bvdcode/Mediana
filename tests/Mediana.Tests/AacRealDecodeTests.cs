@@ -13,11 +13,13 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData("lc-mono-48")]
-        [InlineData("lc-stereo-44")]
-        public async Task WaveformMatchesProcessingOfIndependentDecodedPcm(string name)
+        [InlineData("lc-mono-48", false)]
+        [InlineData("lc-stereo-44", false)]
+        [InlineData("lc-mono-48", true)]
+        [InlineData("lc-stereo-44", true)]
+        public async Task WaveformMatchesProcessingOfIndependentDecodedPcm(string name, bool trimToEdit)
         {
-            await AacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
+            await AacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name, trimToEdit);
         }
 
         [Theory]

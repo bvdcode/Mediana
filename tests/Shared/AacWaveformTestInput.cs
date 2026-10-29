@@ -13,7 +13,7 @@ namespace Mediana.Tests
 {
     internal static class AacWaveformTestInput
     {
-        public static async Task VerifyAsync(string root, string name)
+        public static async Task VerifyAsync(string root, string name, bool trimToEdit = false)
         {
             using JsonDocument references = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "references.json")));
             JsonElement entry = references.RootElement.GetProperty("fixtures").EnumerateArray()
@@ -30,8 +30,25 @@ namespace Mediana.Tests
             MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory())
                 .AddAudioDecoder(new AacDecoderFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, name + ".m4a")));
+            Mp4AudioSampleRange? range = null;
+            if (trimToEdit)
+            {
+                await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+                range = Mp4AudioSampleRange.FromEditList(reader.Tracks[0], rate);
+                reference = reference.AsSpan(checked((int)range.Value.StartSample * channels * sizeof(float)),
+                    checked((int)range.Value.SampleCount * channels * sizeof(float))).ToArray();
+                sourceSamples = range.Value.SampleCount;
+            }
             await using AudioSession session = await engine.OpenAudioAsync(source, 0, new MediaOpenOptions { BufferBudgetBytes = 128 * 1024 });
-            (short[] actual, AudioLevel[] actualLevels) = await ProcessAsync(session.ReadFrameAsync, allocator, channels, 7);
+            await using AudioTrimmer? trimmer = range is Mp4AudioSampleRange selected
+                ? new AudioTrimmer(session.ReadFrameAsync, selected.StartSample, selected.SampleCount, allocator, selected.PresentationTime)
+                : null;
+            Func<CancellationToken, ValueTask<AudioFrame?>> read = session.ReadFrameAsync;
+            if (trimmer is not null)
+            {
+                read = trimmer.ReadFrameAsync;
+            }
+            (short[] actual, AudioLevel[] actualLevels) = await ProcessAsync(read, allocator, channels, 7);
             string[] channelNames = channels switch
             {
                 1 => ["front-center"],
