@@ -1,11 +1,13 @@
 using System.Buffers.Binary;
+using System.Globalization;
+using Mediana.Core.Audio;
 
 namespace Mediana.Containers.Flac
 {
     internal static class FlacMetadataParser
     {
         public static string ReadComments(ReadOnlySpan<byte> data, List<FlacComment> comments, FlacReadOptions options,
-            CancellationToken cancellationToken)
+            FlacConfiguration configuration, CancellationToken cancellationToken)
         {
             FlacMetadataCursor cursor = new(data, options.MaxTextBytes);
             string vendor = cursor.ReadText(littleEndian: true);
@@ -30,7 +32,16 @@ namespace Mediana.Containers.Flac
                 string name = field[..separator];
                 if (name.Equals("WAVEFORMATEXTENSIBLE_CHANNEL_MASK", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new NotSupportedException("Custom FLAC channel masks are not supported.");
+                    ReadOnlySpan<char> value = field.AsSpan(separator + 1);
+                    if (!value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                        || !uint.TryParse(value[2..], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out uint mask))
+                    {
+                        throw new InvalidDataException("The FLAC channel mask must be a hexadecimal value preceded by 0x.");
+                    }
+                    if (mask != configuration.DefaultChannelMask)
+                    {
+                        throw new NotSupportedException("Custom FLAC channel masks are not supported.");
+                    }
                 }
                 comments.Add(new FlacComment(name, field[(separator + 1)..]));
             }

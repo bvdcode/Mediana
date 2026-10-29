@@ -42,6 +42,20 @@ namespace Mediana.Core.Audio
         public long TotalSamples { get; }
         public ReadOnlyMemory<byte> Md5 { get; }
 
+        /// <summary>Speaker mask for the default FLAC channel order, before any Vorbis comment override.</summary>
+        public uint DefaultChannelMask => ChannelCount switch
+        {
+            1 => 0x4,
+            2 => 0x3,
+            3 => 0x7,
+            4 => 0x33,
+            5 => 0x37,
+            6 => 0x3f,
+            7 => 0x70f,
+            8 => 0x63f,
+            _ => throw new InvalidOperationException("The FLAC channel count is invalid.")
+        };
+
         public static FlacConfiguration ReadStreamInfo(ReadOnlySpan<byte> data)
         {
             if (data.Length != StreamInfoBytes)

@@ -149,7 +149,7 @@ namespace Mediana.Containers.Flac
                     FlacMetadataParser.ValidateSeekTable(block.Memory.Span[..length], cancellationToken);
                     break;
                 case 4:
-                    Vendor = FlacMetadataParser.ReadComments(block.Memory.Span[..length], comments, options, cancellationToken);
+                    Vendor = FlacMetadataParser.ReadComments(block.Memory.Span[..length], comments, options, Configuration, cancellationToken);
                     break;
                 case 6:
                     FlacPictureInfo info = FlacMetadataParser.ReadPicture(block.Memory.Span[..length], options, out int offset);

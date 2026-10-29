@@ -3,6 +3,7 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.IO;
 
 namespace Mediana.Tests
 {
@@ -110,7 +111,29 @@ namespace Mediana.Tests
             await RejectAsync<InvalidDataException>(valid[..^1]);
             await RejectAsync<NotSupportedException>(FlacTestInput.File([], (0, FlacTestInput.StreamInfo()), (7, [])));
             await RejectAsync<NotSupportedException>(FlacTestInput.File([], (0, FlacTestInput.StreamInfo()),
-                (4, FlacTestInput.Comments("WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x3"))));
+                (4, FlacTestInput.Comments("WAVEFORMATEXTENSIBLE_CHANNEL_MASK=0x4"))));
+        }
+
+        [Theory]
+        [InlineData(1, "0X0004")]
+        [InlineData(2, "0x3")]
+        [InlineData(3, "0x7")]
+        [InlineData(4, "0x33")]
+        [InlineData(5, "0x37")]
+        [InlineData(6, "0X003F")]
+        [InlineData(7, "0x70f")]
+        [InlineData(8, "0x63F")]
+        public async Task ExplicitDefaultChannelMasksPreserveTheStandardOrder(int channels, string mask)
+        {
+            byte[] file = FlacTestInput.File([], (0, FlacTestInput.StreamInfo(channels: channels)),
+                (4, FlacTestInput.Comments("waveformatextensible_channel_mask=" + mask)));
+            MediaBufferAllocator allocator = new(16384);
+            await using StreamByteSource source = new(new MemoryStream(file));
+            await using FlacReader reader = await FlacReader.OpenAsync(source, allocator);
+            Assert.Equal(channels, reader.Configuration.ChannelCount);
+            Assert.Equal(mask, reader.Comments.Single().Value);
+            await reader.DisposeAsync();
+            Assert.Equal(0, allocator.AllocatedBytes);
         }
 
         [Fact]
