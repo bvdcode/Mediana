@@ -3,7 +3,7 @@
 
 using System.Buffers.Binary;
 
-namespace Mediana.Core.Audio
+namespace Mediana.Formats.Audio
 {
     /// <summary>Immutable native FLAC STREAMINFO. A zero total sample count means unknown.
     /// The stored MD5 is descriptive; parsing does not verify decoded audio integrity.</summary>

@@ -8,6 +8,8 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     public class Mp3DecoderTests

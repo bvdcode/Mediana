@@ -2,8 +2,9 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Buffers.Binary;
+using Mediana.Core.Audio;
 
-namespace Mediana.Core.Audio
+namespace Mediana.Formats.Audio
 {
     /// <summary>PCM storage described by WAVE format or AIFF common-chunk fields.
     /// Decoded integer samples are left-aligned in their native-endian storage type.

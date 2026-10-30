@@ -4,6 +4,8 @@
 using System.Buffers.Binary;
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     public class Mp3FrameHeaderTests

@@ -3,6 +3,8 @@
 
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     public class AacConfigurationTests

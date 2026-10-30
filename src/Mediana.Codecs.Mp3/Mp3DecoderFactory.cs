@@ -5,6 +5,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Mp3
 {
     /// <summary>Decodes MPEG-1/2/2.5 Layer III frames to native-endian interleaved float32 PCM.

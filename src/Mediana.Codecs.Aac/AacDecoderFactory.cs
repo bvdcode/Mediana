@@ -5,6 +5,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Aac
 {
     /// <summary>Decodes mono/stereo AAC-LC, one raw_data_block per packet, with 1024 samples per frame.

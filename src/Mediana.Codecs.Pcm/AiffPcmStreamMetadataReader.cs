@@ -3,6 +3,8 @@
 
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Pcm
 {
     /// <summary>Reads PCM parameters from a FORM type and AIFF/AIFF-C common-chunk configuration.</summary>

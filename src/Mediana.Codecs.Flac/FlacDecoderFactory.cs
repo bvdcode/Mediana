@@ -5,6 +5,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Flac
 {
     /// <summary>Decodes FLAC frames from arbitrary contiguous encoded chunks, starting at frame zero.

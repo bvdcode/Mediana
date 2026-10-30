@@ -5,6 +5,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Metadata;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Mp3
 {
     /// <summary>Reads sample rate and channel count from the opening MPEG Layer III frame header.</summary>

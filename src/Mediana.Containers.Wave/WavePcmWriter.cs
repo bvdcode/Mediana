@@ -5,6 +5,8 @@ using System.Buffers.Binary;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Containers.Wave
 {
     /// <summary>Streams PCM frames into RIFF/WAVE, borrowing frames, allocator and an empty seekable destination.

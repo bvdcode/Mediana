@@ -12,6 +12,8 @@ using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     public class AudioStreamMetadataTests

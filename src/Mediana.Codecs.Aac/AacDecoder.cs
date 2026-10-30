@@ -6,6 +6,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Aac
 {
     internal class AacDecoder : IMediaCodec<MediaPacket, AudioFrame>

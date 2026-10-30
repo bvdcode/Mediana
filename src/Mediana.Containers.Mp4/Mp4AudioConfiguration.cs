@@ -6,6 +6,8 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Containers.Mp4
 {
     internal static class Mp4AudioConfiguration

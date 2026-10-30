@@ -8,6 +8,8 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Containers.Aiff
 {
     /// <summary>Sequential mono/stereo PCM reader for AIFF and AIFF-C. Borrows its source.

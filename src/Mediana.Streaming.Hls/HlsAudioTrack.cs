@@ -4,6 +4,8 @@
 using Mediana.Core;
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Streaming.Hls
 {
     internal class HlsAudioTrack(EncodedStreamInfo stream)

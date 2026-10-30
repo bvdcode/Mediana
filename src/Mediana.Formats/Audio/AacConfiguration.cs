@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Core.Audio
+namespace Mediana.Formats.Audio
 {
     /// <summary>AAC-LC configuration for 1024-sample frames and an indexed sampling frequency.</summary>
     public class AacConfiguration

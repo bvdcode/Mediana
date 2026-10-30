@@ -7,6 +7,8 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Aac
 {
     /// <summary>Encodes contiguous mono/stereo interleaved Float32 PCM as AAC-LC raw access units.

@@ -5,6 +5,8 @@ using System.Buffers.Binary;
 using System.Globalization;
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Containers.Flac
 {
     internal static class FlacMetadataParser

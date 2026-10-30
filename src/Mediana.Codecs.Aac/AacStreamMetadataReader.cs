@@ -5,6 +5,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Metadata;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Aac
 {
     /// <summary>Reads indexed AAC-LC sample rate and channel count from AudioSpecificConfig.

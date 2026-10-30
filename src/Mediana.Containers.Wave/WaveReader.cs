@@ -8,6 +8,8 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Containers.Wave
 {
     /// <summary>Reads one RIFF/WAVE PCM data chunk sequentially. Borrows its source.

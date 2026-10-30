@@ -8,6 +8,8 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Containers.Mp3
 {
     /// <summary>Forward-only Layer III frames and ID3 metadata; borrows its source at the file start.

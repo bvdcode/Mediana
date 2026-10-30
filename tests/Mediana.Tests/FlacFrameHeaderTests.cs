@@ -4,6 +4,8 @@
 using Mediana.Codecs.Flac;
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     public class FlacFrameHeaderTests

@@ -5,6 +5,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Metadata;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Flac
 {
     /// <summary>Reads sample parameters from native FLAC STREAMINFO without interpreting channel-layout comments.</summary>

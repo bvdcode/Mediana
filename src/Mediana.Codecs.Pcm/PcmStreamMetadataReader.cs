@@ -5,6 +5,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Metadata;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Pcm
 {
     /// <summary>Reads PCM sample precision and channel order from WAVE format configuration.</summary>

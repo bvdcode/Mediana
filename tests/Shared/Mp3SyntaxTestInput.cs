@@ -12,6 +12,8 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     internal static class Mp3SyntaxTestInput

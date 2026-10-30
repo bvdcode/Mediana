@@ -5,6 +5,8 @@ using System.Buffers.Binary;
 using Mediana.Codecs.Mp3;
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     public class Mp3FrameInfoTests

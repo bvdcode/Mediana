@@ -3,7 +3,7 @@
 
 using System.Buffers.Binary;
 
-namespace Mediana.Core.Audio
+namespace Mediana.Formats.Audio
 {
     /// <summary>MPEG Layer III frame header. Free-format framing is not supported.
     /// Frame duration includes coded delay/padding; a header does not establish independent decodability.</summary>

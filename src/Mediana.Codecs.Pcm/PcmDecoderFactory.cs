@@ -5,6 +5,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Pcm
 {
     /// <summary>Decodes little-endian PCM with a WAVEFORMATEX or WAVEFORMATEXTENSIBLE configuration.</summary>
