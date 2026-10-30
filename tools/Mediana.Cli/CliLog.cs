@@ -7,7 +7,7 @@ namespace Mediana.Cli
 {
     internal static partial class CliLog
     {
-        [LoggerMessage(1, LogLevel.Debug, "Starting {Operation}.")]
+        [LoggerMessage(1, LogLevel.Information, "Starting {Operation}.")]
         public static partial void Starting(ILogger logger, string operation);
 
         [LoggerMessage(2, LogLevel.Information, "{Operation} completed in {ElapsedMilliseconds:F0} ms.")]
@@ -21,5 +21,8 @@ namespace Mediana.Cli
 
         [LoggerMessage(5, LogLevel.Warning, "Operation cancelled.")]
         public static partial void Cancelled(ILogger logger);
+
+        [LoggerMessage(6, LogLevel.Information, "time={MediaTime} speed={Speed:F2}x size={OutputMebibytes:F2} MiB")]
+        public static partial void Progress(ILogger logger, string mediaTime, double speed, double outputMebibytes);
     }
 }

@@ -6,6 +6,7 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.IO;
 using Mediana.Processing.Audio;
+using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
@@ -13,8 +14,9 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 1024 * 1024;
 
-        public static async Task<int> RunAsync(string input, string output, int? stream, CancellationToken cancellationToken)
+        public static async Task<int> RunAsync(string input, string output, int? stream, ILogger logger, CancellationToken cancellationToken)
         {
+            AudioProgress progress = new(logger, TimeProvider.System);
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             await using AudioSession session = stream is int selected
@@ -26,10 +28,12 @@ namespace Mediana.Cli
                 first.Format.Channels.ToArray());
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             long samples = 0;
+            long outputBytes = 0;
             await CommandOutputFile.WriteAsync(output, async destination =>
             {
                 await using WavePcmWriter writer = await WavePcmWriter.OpenAsync(destination, format, allocator, cancellationToken);
                 await WriteAsync(writer, first, allocator, cancellationToken);
+                progress.Report(writer.SamplesPerChannel, format.SampleRate, destination.Position);
                 while (true)
                 {
                     using AudioFrame? frame = await session.ReadFrameAsync(cancellationToken);
@@ -38,10 +42,13 @@ namespace Mediana.Cli
                         break;
                     }
                     await WriteAsync(writer, frame, allocator, cancellationToken);
+                    progress.Report(writer.SamplesPerChannel, format.SampleRate, destination.Position);
                 }
                 await writer.CompleteAsync(cancellationToken);
                 samples = writer.SamplesPerChannel;
+                outputBytes = destination.Position;
             }, cancellationToken);
+            progress.Report(samples, format.SampleRate, outputBytes, completed: true);
             first.Dispose();
             await session.DisposeAsync();
             if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)

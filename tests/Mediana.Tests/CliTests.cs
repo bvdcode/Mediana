@@ -132,12 +132,15 @@ namespace Mediana.Tests
             }
         }
 
-        [Fact]
-        public async Task SimpleConversionDetectsInputByContentAndWritesRealWave()
+        [Theory]
+        [InlineData(".wav")]
+        [InlineData(".wave")]
+        [InlineData(".WAVE")]
+        public async Task SimpleConversionDetectsInputByContentAndWritesRealWave(string extension)
         {
             string input = Path.Combine(directory, "input.bin");
             await File.WriteAllBytesAsync(input, await File.ReadAllBytesAsync(Data("Wave", "s16-stereo.wav")));
-            string output = Path.Combine(directory, "output.wav");
+            string output = Path.Combine(directory, "output" + extension);
             (int code, _, string error) = await RunAsync(["-i", input, output, "--no-color"]);
             Assert.Equal(0, code);
             Assert.StartsWith("Mediana ", error, StringComparison.Ordinal);

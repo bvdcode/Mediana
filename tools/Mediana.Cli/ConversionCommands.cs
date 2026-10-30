@@ -2,10 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using ConsoleAppFramework;
+using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class ConversionCommands : MediaCommands
+    internal class ConversionCommands(ILogger logger) : MediaCommands
     {
         /// <summary>Convert media: mediana -i input output.wav|output.png|output.ts.</summary>
         /// <param name="output">New output file. Its extension selects the output format.</param>
@@ -25,10 +26,11 @@ namespace Mediana.Cli
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
             return ExecuteAsync(input, output, () => Path.GetExtension(output).ToLowerInvariant() switch
             {
-                ".wav" => WaveAudioCommand.RunAsync(input, output, stream, cancellationToken),
+                ".wav" or ".wave" => WaveAudioCommand.RunAsync(input, output, stream, logger, cancellationToken),
                 ".png" => FilePreviewCommand.RunAsync(input, output, stream, timeMs, page, cancellationToken),
                 ".ts" => Mp4RemuxCommand.RunAsync(input, output, cancellationToken),
-                _ => throw new NotSupportedException("Supported output extensions are .wav (PCM16), .png (one image/frame/page) and .ts (AVC/AAC stream copy).")
+                _ => throw new NotSupportedException("Cannot select an output format from the extension '" + Path.GetExtension(output)
+                    + "'. Use .wav or .wave (PCM16), .png (one image/frame/page), or .ts (AVC/AAC stream copy).")
             });
         }
     }

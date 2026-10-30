@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using ConsoleAppFramework;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
@@ -15,6 +16,7 @@ namespace Mediana.Cli
             Action<string> previousLog = ConsoleApp.Log;
             Action<string> previousError = ConsoleApp.LogError;
             string? previousVersion = ConsoleApp.Version;
+            IServiceProvider? previousServices = ConsoleApp.ServiceProvider;
             bool parserError = false;
             bool matchedCommand = false;
             ConsoleApp.Version = CliBuildInfo.Version;
@@ -38,6 +40,12 @@ namespace Mediana.Cli
                     return new CliSettings(level, noColor);
                 });
                 app.UseFilter<CliLoggingFilter>();
+                app.ConfigureServices((context, configuration, services) =>
+                {
+                    CliSettings settings = (CliSettings)context.GlobalOptions!;
+                    services.AddLogging(builder => CliLogging.Configure(builder, settings.LogLevel, settings.NoColor));
+                    services.AddSingleton(provider => provider.GetRequiredService<ILoggerFactory>().CreateLogger("mediana"));
+                });
                 app.Add<ConversionCommands>();
                 app.Add<AudioCommands>("audio");
                 app.Add<VideoCommands>("video");
@@ -60,6 +68,7 @@ namespace Mediana.Cli
                 ConsoleApp.Log = previousLog;
                 ConsoleApp.LogError = previousError;
                 ConsoleApp.Version = previousVersion;
+                ConsoleApp.ServiceProvider = previousServices;
                 Environment.ExitCode = previousExitCode;
             }
         }

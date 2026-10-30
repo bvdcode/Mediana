@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class CliLoggingFilter(ConsoleAppFilter next) : ConsoleAppFilter(next)
+    internal class CliLoggingFilter(ILogger logger, ConsoleAppFilter next) : ConsoleAppFilter(next)
     {
         public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
         {
@@ -23,8 +23,6 @@ namespace Mediana.Cli
                 Environment.ExitCode = CliExitCodes.Usage;
                 return;
             }
-            using ILoggerFactory factory = CliLogging.Create(settings.LogLevel, settings.NoColor);
-            ILogger logger = factory.CreateLogger("mediana");
             long start = Stopwatch.GetTimestamp();
             try
             {
@@ -33,11 +31,16 @@ namespace Mediana.Cli
                 {
                     throw new ArgumentException("Input arguments are required. Run mediana " + context.CommandName + " --help.");
                 }
-                CliLog.Starting(logger, context.CommandName);
+                string operation = context.CommandName;
+                if (string.IsNullOrEmpty(operation))
+                {
+                    operation = "conversion";
+                }
+                CliLog.Starting(logger, operation);
                 await Next.InvokeAsync(context, cancellationToken);
                 if (Environment.ExitCode == CliExitCodes.Success)
                 {
-                    CliLog.Completed(logger, context.CommandName, Stopwatch.GetElapsedTime(start).TotalMilliseconds);
+                    CliLog.Completed(logger, operation, Stopwatch.GetElapsedTime(start).TotalMilliseconds);
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

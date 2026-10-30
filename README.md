@@ -166,7 +166,7 @@ unavailable. The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
 
 The main command is `mediana -i input output`. Input content determines its
-format; the output extension selects WAVE PCM16 (`.wav`), PNG (`.png`) or
+format; the output extension selects WAVE PCM16 (`.wav` or `.wave`), PNG (`.png`) or
 MPEG-TS stream copy (`.ts`). WAVE conversion preserves sample rate and channel
 order and performs no resampling or dithering. RIFF output must fit its 32-bit
 size fields; RF64 is not supported. Named multichannel audio must follow WAVE
@@ -183,6 +183,9 @@ Add `--log-level Debug` after the command to include diagnostic details, or
 `--log-level None` to disable diagnostics. Logs go to stderr; command results go
 to stdout. Colors are automatic in an interactive terminal; `--no-color` or the
 `NO_COLOR` environment variable disables them.
+WAVE conversion reports processed audio time, speed relative to playback and
+output size immediately, at one-second intervals, and when the output is complete.
+It does not report an estimated percentage when total duration is unknown.
 
 Ctrl+C cancels processing and removes incomplete output. Existing destinations
 are never replaced. Exit codes are 0 for success, 1 for an unexpected failure,
