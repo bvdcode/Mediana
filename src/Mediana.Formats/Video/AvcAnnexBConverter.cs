@@ -6,6 +6,7 @@ using Mediana.Core.Memory;
 
 namespace Mediana.Formats.Video
 {
+    /// <summary>Converts complete length-prefixed AVC access units to Annex B with an AUD and IDR parameter sets. Configuration is copied at construction.</summary>
     public class AvcAnnexBConverter
     {
         private readonly int lengthSize;
@@ -14,6 +15,7 @@ namespace Mediana.Formats.Video
 
         public AvcAnnexBConverter(ReadOnlyMemory<byte> configuration)
         {
+            configuration = configuration.ToArray();
             ReadOnlySpan<byte> data = configuration.Span;
             if (data.Length < 7 || data[0] != 1 || (data[4] & 0xFC) != 0xFC || (data[5] & 0xE0) != 0xE0)
             {
@@ -41,7 +43,7 @@ namespace Mediana.Formats.Video
                 }
                 if (data[offset + 3] != 0)
                 {
-                    throw new NotSupportedException("AVC sequence parameter extensions are not supported by the TS writer.");
+                    throw new NotSupportedException("AVC sequence parameter extensions are not supported by the converter.");
                 }
                 offset += 4;
             }
@@ -52,8 +54,11 @@ namespace Mediana.Formats.Video
             parameterBytes = parameters.Sum(parameter => 4 + parameter.Length);
         }
 
+        /// <summary>Returns an owned output buffer; input storage is borrowed only for this call.</summary>
         public MediaBuffer Convert(ReadOnlySpan<byte> data, MediaBufferAllocator allocator, int maximumBytes, out bool idr)
         {
+            ArgumentNullException.ThrowIfNull(allocator);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             idr = false;
             bool nonIdr = false;
             long size = 6;
@@ -82,13 +87,13 @@ namespace Mediana.Formats.Video
                         }
                         if (!known)
                         {
-                            throw new NotSupportedException("Changing AVC parameter sets requires a new TS writer.");
+                            throw new NotSupportedException("Changing AVC parameter sets requires a new converter.");
                         }
                         break;
                     case 6 or 9 or 10 or 11 or 12:
                         break;
                     default:
-                        throw new NotSupportedException("The AVC NAL type is not supported by the TS writer.");
+                        throw new NotSupportedException("The AVC NAL type is not supported by the converter.");
                 }
                 if (type != 9)
                 {
@@ -97,7 +102,7 @@ namespace Mediana.Formats.Video
             }
             if (idr == nonIdr)
             {
-                throw new InvalidDataException("A TS video packet must contain one AVC access unit with a consistent IDR indication.");
+                throw new InvalidDataException("An AVC input packet must contain one AVC access unit with a consistent IDR indication.");
             }
             size += idr ? parameterBytes : 0;
             if (size > maximumBytes)
@@ -131,7 +136,7 @@ namespace Mediana.Formats.Video
         {
             if (count == 0)
             {
-                throw new NotSupportedException("TS output requires out-of-band AVC sequence and picture parameters.");
+                throw new NotSupportedException("Annex B output requires out-of-band AVC sequence and picture parameters.");
             }
             for (int index = 0; index < count; index++)
             {

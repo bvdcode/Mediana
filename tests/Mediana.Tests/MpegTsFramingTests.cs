@@ -12,6 +12,18 @@ namespace Mediana.Tests
 {
     public class MpegTsFramingTests
     {
+        [Fact]
+        public void AvcConfigurationIsIndependentOfCallerStorage()
+        {
+            byte[] configuration = Configuration(1);
+            AvcAnnexBConverter framing = new(configuration);
+            configuration.AsSpan().Clear();
+            MediaBufferAllocator allocator = new(1024);
+            using MediaBuffer output = framing.Convert([2, 0x65, 0x88], allocator, 1024, out bool idr);
+            Assert.True(idr);
+            Assert.Equal(Convert.FromHexString("0000000109F00000000167420000000168CE000000016588"), output.Memory.ToArray());
+        }
+
         [Theory]
         [InlineData(1)]
         [InlineData(2)]

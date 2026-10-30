@@ -24,8 +24,12 @@ namespace Mediana.Core
         public string PacketFraming { get; }
         public EncodedPacketBoundary Boundary { get; }
 
-        public string? GetUnsupportedReason(EncodedStreamFormat actual) => this == actual ? null :
-            $"Expected {ConfigurationSyntax}/{PacketFraming}/{Boundary}; received {actual.ConfigurationSyntax}/{actual.PacketFraming}/{actual.Boundary}.";
+        public string? GetUnsupportedReason(EncodedStreamFormat actual)
+        {
+            ArgumentNullException.ThrowIfNull(actual);
+            return this == actual ? null :
+                $"Expected {ConfigurationSyntax}/{PacketFraming}/{Boundary}; received {actual.ConfigurationSyntax}/{actual.PacketFraming}/{actual.Boundary}.";
+        }
 
         public void Require(EncodedStreamFormat actual)
         {

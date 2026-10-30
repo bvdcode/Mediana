@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Core.Audio;
 using Mediana.Core.Memory;
-
-using Mediana.Formats.Audio;
 
 namespace Mediana.Formats.Audio
 {
+    /// <summary>Adds an ADTS header to a raw AAC access unit using parsed AudioSpecificConfig parameters.</summary>
     public class AacAdtsConverter
     {
         private readonly int frequency;
@@ -21,8 +19,10 @@ namespace Mediana.Formats.Audio
             channels = description.ChannelConfiguration;
         }
 
+        /// <summary>Returns an owned ADTS frame. Configuration and payload storage are not retained.</summary>
         public MediaBuffer Convert(ReadOnlySpan<byte> data, MediaBufferAllocator allocator)
         {
+            ArgumentNullException.ThrowIfNull(allocator);
             if (data.Length is < 1 or > 8184)
             {
                 throw new InvalidDataException("The AAC access unit does not fit a single ADTS frame.");
