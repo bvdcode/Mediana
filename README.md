@@ -1195,14 +1195,18 @@ seek or playlists.
 
 `MediaEngine.DecodeImageAsync(source, allocator, request)` decodes one complete
 registered image or document page into the same owned `VideoFrame` used by video
-processing. Register `HeicImageDecoder`, `Jpeg2000ImageDecoder` and
-`Jbig2ImageDecoder` explicitly; no format modules are loaded by discovery.
+processing. Register `HeicImageDecoder`, `Jpeg2000ImageDecoder`,
+`Jbig2ImageDecoder`, `SvgImageDecoder`, `TgsImageDecoder` and `PdfImageDecoder`
+explicitly as needed; no format modules are loaded by discovery.
 
 ```csharp
 MediaEngine engine = new MediaEngineBuilder()
     .AddImageDecoder(new Jpeg2000ImageDecoder(SampleAspectRatio.Square))
     .AddImageDecoder(new HeicImageDecoder(SampleAspectRatio.Square))
     .AddImageDecoder(new Jbig2ImageDecoder(SampleAspectRatio.Square))
+    .AddImageDecoder(new SvgImageDecoder())
+    .AddImageDecoder(new TgsImageDecoder())
+    .AddImageDecoder(new PdfImageDecoder())
     .Build();
 MediaBufferAllocator allocator = new(64 * 1024 * 1024);
 await using RandomAccessStreamByteSource source = new(File.OpenRead("input.jp2"));
@@ -1220,7 +1224,19 @@ or convert every input to sRGB. Existing processing operations consume this fram
 not the page association identifier. Nonzero page/time selection is rejected when
 the decoder does not declare that capability. Recognized malformed input fails in
 the selected decoder; ambiguous recognition is rejected without trying another
-implementation. SVG, TGS and PDF retain their format-specific reading/rendering APIs.
+implementation. `ImageProbeLength` and `RecognizeImage(prefix)` expose the same
+registry for bounded routing; recognition does not validate the complete input.
+The CLI uses these registrations for `mediana -i input output.png`, including
+renamed files. A recognized image failure propagates from that decoder.
+
+SVG XML bytes retain their BOM and encoding declaration; external entities and
+implicit external resources remain disabled. TGS/Lottie uses elapsed time from
+its in-point, returns the requested timestamp and the selected fractional-frame
+duration at TimeSpan resolution. PDF uses zero-based `PageIndex`, defaults to
+96 DPI and keeps its page transforms and rendering limits. CLI `--page` remains
+one-based and `--time-ms` selects animation time. A container stream selector is
+not applicable to images or pages. Format-specific scene/document APIs remain
+available for callers that need them.
 
 The caller owns the source and returned frame. Random access starts at source
 origin while preserving its sequential cursor; sequential probing is replayed and
@@ -1235,7 +1251,10 @@ registries and allocators support independent concurrent requests.
 The registered raster path matches independent references for 42 HEIC, 98 JBIG2
 and 24 JP2 inputs, including transformed/alpha HEIC, 16-bit component conversion
 and a two-page JBIG2 selection check. These checks run in managed .NET and Linux
-Native AOT. This is integration coverage for the supported decoder subsets.
+Native AOT. The registered vector/document path also checks 352 SVG filter
+references, 33 supported TGS frames and independent PDF render references, plus
+second-page selection. These checks cover the supported decoder subsets and
+retain the existing reference tolerances; unsupported features still fail.
 
 `MediaEngine.ProbeAsync(source)` returns container identity, nullable declared
 duration and an immutable snapshot of encoded streams through the same registered
