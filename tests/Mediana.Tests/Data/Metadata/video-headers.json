@@ -1,0 +1,573 @@
+[
+  {
+    "input": "avc-high10.mp4",
+    "sha256": "4a85be4f80be52a6f0cd281261d5b6c0df0fbd118cc3a542080e86f0ae8f9353",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-n",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=gray:s=96x80:r=25",
+      "-frames:v",
+      "1",
+      "-vf",
+      "setsar=4/3",
+      "-pix_fmt",
+      "yuv420p10le",
+      "-c:v",
+      "libx264",
+      "-threads",
+      "1",
+      "-preset",
+      "ultrafast",
+      "-profile:v",
+      "high10",
+      "-color_primaries",
+      "bt2020",
+      "-color_trc",
+      "smpte2084",
+      "-colorspace",
+      "bt2020nc",
+      "-color_range",
+      "pc",
+      "-x264-params",
+      "keyint=1:ref=1:chromaloc=2",
+      "-map_metadata",
+      "-1",
+      "-movflags",
+      "+faststart",
+      "tests/Mediana.Tests/Data/Metadata/avc-high10.mp4"
+    ],
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/avc-high10.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "High 10 Intra",
+          "codec_type": "video",
+          "width": 96,
+          "height": 80,
+          "coded_width": 96,
+          "coded_height": 80,
+          "sample_aspect_ratio": "4:3",
+          "pix_fmt": "yuv420p10le",
+          "level": 10,
+          "color_range": "pc",
+          "color_space": "bt2020nc",
+          "color_transfer": "smpte2084",
+          "color_primaries": "bt2020",
+          "chroma_location": "topleft",
+          "field_order": "progressive"
+        }
+      ]
+    },
+    "profileBytes": "6e100a"
+  },
+  {
+    "input": "avc-high422.mp4",
+    "sha256": "290d909f54ac114ea5084904373f3b91a4cb4b98625de978f74245bcd4ad0372",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-n",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=gray:s=96x80:r=25",
+      "-frames:v",
+      "1",
+      "-vf",
+      "setsar=4/3",
+      "-pix_fmt",
+      "yuv422p",
+      "-c:v",
+      "libx264",
+      "-threads",
+      "1",
+      "-preset",
+      "ultrafast",
+      "-profile:v",
+      "high422",
+      "-map_metadata",
+      "-1",
+      "-movflags",
+      "+faststart",
+      "tests/Mediana.Tests/Data/Metadata/avc-high422.mp4"
+    ],
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/avc-high422.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "High 4:2:2",
+          "codec_type": "video",
+          "width": 96,
+          "height": 80,
+          "coded_width": 96,
+          "coded_height": 80,
+          "sample_aspect_ratio": "4:3",
+          "pix_fmt": "yuv422p",
+          "level": 10,
+          "chroma_location": "left",
+          "field_order": "progressive"
+        }
+      ]
+    },
+    "profileBytes": "7a000a"
+  },
+  {
+    "input": "avc-high444.mp4",
+    "sha256": "d68182dd3aea820d62db38426532c4298a5afdfe2e6f1f8040f6ba122ebf948a",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-n",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=gray:s=96x80:r=25",
+      "-frames:v",
+      "1",
+      "-vf",
+      "setsar=4/3",
+      "-pix_fmt",
+      "yuv444p",
+      "-c:v",
+      "libx264",
+      "-threads",
+      "1",
+      "-preset",
+      "ultrafast",
+      "-profile:v",
+      "high444",
+      "-map_metadata",
+      "-1",
+      "-movflags",
+      "+faststart",
+      "tests/Mediana.Tests/Data/Metadata/avc-high444.mp4"
+    ],
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/avc-high444.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "High 4:4:4 Predictive",
+          "codec_type": "video",
+          "width": 96,
+          "height": 80,
+          "coded_width": 96,
+          "coded_height": 80,
+          "sample_aspect_ratio": "4:3",
+          "pix_fmt": "yuv444p",
+          "level": 10,
+          "chroma_location": "left",
+          "field_order": "progressive"
+        }
+      ]
+    },
+    "profileBytes": "f4000a"
+  },
+  {
+    "input": "avc-interlaced.mp4",
+    "sha256": "8e8ecc95702b07fa0d7e0868c6b48115353df7ec22936036ad4f947188d13940",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-n",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=gray:s=96x80:r=25",
+      "-frames:v",
+      "1",
+      "-vf",
+      "setsar=4/3",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:v",
+      "libx264",
+      "-threads",
+      "1",
+      "-preset",
+      "ultrafast",
+      "-profile:v",
+      "high",
+      "-flags",
+      "+ilme+ildct",
+      "-x264-params",
+      "tff=1:interlaced=1:keyint=1:ref=1",
+      "-map_metadata",
+      "-1",
+      "-movflags",
+      "+faststart",
+      "tests/Mediana.Tests/Data/Metadata/avc-interlaced.mp4"
+    ],
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/avc-interlaced.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "Main",
+          "codec_type": "video",
+          "width": 96,
+          "height": 80,
+          "coded_width": 96,
+          "coded_height": 80,
+          "sample_aspect_ratio": "4:3",
+          "pix_fmt": "yuv420p",
+          "level": 21,
+          "chroma_location": "left",
+          "field_order": "tt"
+        }
+      ]
+    },
+    "profileBytes": "4d4015"
+  },
+  {
+    "input": "avc-8k.mp4",
+    "sha256": "493b9efb7e934dc15251248b15bec935a81a5f2f2a38a7c7bf6102b3db7011d8",
+    "generation": [
+      "ffmpeg",
+      "-hide_banner",
+      "-v",
+      "error",
+      "-nostdin",
+      "-n",
+      "-f",
+      "lavfi",
+      "-i",
+      "color=c=gray:s=7680x4320:r=25",
+      "-frames:v",
+      "1",
+      "-vf",
+      "setsar=4/3",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:v",
+      "libx264",
+      "-threads",
+      "1",
+      "-preset",
+      "ultrafast",
+      "-profile:v",
+      "baseline",
+      "-tune",
+      "zerolatency",
+      "-x264-params",
+      "keyint=1:ref=1",
+      "-map_metadata",
+      "-1",
+      "-movflags",
+      "+faststart",
+      "tests/Mediana.Tests/Data/Metadata/avc-8k.mp4"
+    ],
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/avc-8k.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "Constrained Baseline",
+          "codec_type": "video",
+          "width": 7680,
+          "height": 4320,
+          "coded_width": 7680,
+          "coded_height": 4320,
+          "sample_aspect_ratio": "4:3",
+          "pix_fmt": "yuv420p",
+          "level": 60,
+          "chroma_location": "left",
+          "field_order": "progressive"
+        }
+      ]
+    },
+    "profileBytes": "42c03c"
+  },
+  {
+    "input": "../Mp4/avc-tail.mov",
+    "sha256": "11b9461a4f7eac7de748755c7ca6930df47a8a9120c2c98c74106721182d5023",
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/../Mp4/avc-tail.mov"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "Constrained Baseline",
+          "codec_type": "video",
+          "width": 80,
+          "height": 48,
+          "coded_width": 80,
+          "coded_height": 48,
+          "sample_aspect_ratio": "1:1",
+          "pix_fmt": "yuv420p",
+          "level": 10,
+          "chroma_location": "left",
+          "field_order": "progressive"
+        }
+      ]
+    },
+    "profileBytes": "42c00a"
+  },
+  {
+    "input": "../Mp4/avc-aac.mp4",
+    "sha256": "975f3b0250be372307632daf40743d1fe26b8a74b0dc50528f78dc7f6c9d27e8",
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/../Mp4/avc-aac.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "High",
+          "codec_type": "video",
+          "width": 64,
+          "height": 48,
+          "coded_width": 64,
+          "coded_height": 48,
+          "sample_aspect_ratio": "1:1",
+          "pix_fmt": "yuv420p",
+          "level": 10,
+          "chroma_location": "left",
+          "field_order": "progressive"
+        },
+        {
+          "index": 1,
+          "profile": "LC",
+          "codec_type": "audio"
+        }
+      ]
+    },
+    "profileBytes": "64000a"
+  },
+  {
+    "input": "../Mp4/avc-weighted.mp4",
+    "sha256": "575889762181d65817349b14b2bd74e06e6b32425a8ad6927fb2b7879396c555",
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/../Mp4/avc-weighted.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "Main",
+          "codec_type": "video",
+          "width": 94,
+          "height": 62,
+          "coded_width": 94,
+          "coded_height": 62,
+          "sample_aspect_ratio": "4:3",
+          "pix_fmt": "yuv420p",
+          "level": 10,
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709",
+          "chroma_location": "left",
+          "field_order": "progressive"
+        }
+      ]
+    },
+    "profileBytes": "4d400a"
+  },
+  {
+    "input": "../Mp4/avc-weighted-rotated.mp4",
+    "sha256": "c7cb5ae14f1d933b2f6bb6167ae3ad0f815341464d6c9e8fa86d8367afc903df",
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/../Mp4/avc-weighted-rotated.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "Main",
+          "codec_type": "video",
+          "width": 94,
+          "height": 62,
+          "coded_width": 94,
+          "coded_height": 62,
+          "sample_aspect_ratio": "4:3",
+          "pix_fmt": "yuv420p",
+          "level": 10,
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709",
+          "chroma_location": "left",
+          "field_order": "progressive",
+          "side_data_list": [
+            {}
+          ]
+        }
+      ]
+    },
+    "profileBytes": "4d400a"
+  },
+  {
+    "input": "../Mp4/avc-cropped.mp4",
+    "sha256": "cd7f5150bf573aa8c8cbf0997a11117d085eb5db8ec778235c93e55243139b1b",
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/../Mp4/avc-cropped.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "Constrained Baseline",
+          "codec_type": "video",
+          "width": 78,
+          "height": 46,
+          "coded_width": 78,
+          "coded_height": 46,
+          "sample_aspect_ratio": "1:1",
+          "pix_fmt": "yuv420p",
+          "level": 10,
+          "chroma_location": "left",
+          "field_order": "progressive"
+        }
+      ]
+    },
+    "profileBytes": "42c00a"
+  },
+  {
+    "input": "../Mp4/avc-multislice-cabac.mp4",
+    "sha256": "c1e1a7cc0c8aa795afa4b58a85248b75fbf0ede74eec5a2066ddfacdaef27e58",
+    "probeCommand": [
+      "ffprobe",
+      "-v",
+      "error",
+      "-show_entries",
+      "stream=index,codec_type,profile,level,width,height,coded_width,coded_height,pix_fmt,sample_aspect_ratio,color_range,color_space,color_transfer,color_primaries,chroma_location,field_order:stream_disposition=:stream_tags=",
+      "-of",
+      "json",
+      "tests/Mediana.Tests/Data/Metadata/../Mp4/avc-multislice-cabac.mp4"
+    ],
+    "reference": {
+      "programs": [],
+      "streams": [
+        {
+          "index": 0,
+          "profile": "High",
+          "codec_type": "video",
+          "width": 96,
+          "height": 80,
+          "coded_width": 96,
+          "coded_height": 80,
+          "sample_aspect_ratio": "1:1",
+          "pix_fmt": "yuv420p",
+          "level": 10,
+          "color_range": "tv",
+          "color_space": "bt709",
+          "color_transfer": "bt709",
+          "color_primaries": "bt709",
+          "chroma_location": "left",
+          "field_order": "progressive"
+        }
+      ]
+    },
+    "profileBytes": "64000a"
+  }
+]

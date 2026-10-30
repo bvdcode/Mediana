@@ -53,6 +53,8 @@
     <Compile Include="../Shared/MediaProbeTestInput.cs" Link="MediaProbeTestInput.cs" />
     <Compile Include="../Shared/MediaTagTestInput.cs" Link="MediaTagTestInput.cs" />
     <Compile Include="../Shared/AudioStreamMetadataTestInput.cs" Link="AudioStreamMetadataTestInput.cs" />
+    <Compile Include="../Shared/VideoStreamMetadataTestInput.cs" Link="VideoStreamMetadataTestInput.cs" />
+    <Compile Include="../Shared/H264MetadataTestInput.cs" Link="H264MetadataTestInput.cs" />
     <Compile Include="../Shared/WavePcmTestInput.cs" Link="WavePcmTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Wave/Mediana.Containers.Wave.csproj" />

@@ -93,6 +93,8 @@ namespace Mediana.NativeTests
                 await MediaProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), index);
             }
             Console.WriteLine("PASS media probe: declared durations, codec IDs and owned snapshots match header references without decoders.");
+            await VideoStreamMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS video header metadata: all opening SPS descriptions, 8K, HDR, sampling and field declarations match independent references without picture allocation.");
             await AudioStreamMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS audio header metadata: PCM, AIFF, FLAC, MP3 and AAC sample parameters match independent references without decoders.");
             await MediaTagTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
