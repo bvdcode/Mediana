@@ -66,6 +66,9 @@
     <Compile Include="../Shared/AudioResamplingTestInput.cs" Link="AudioResamplingTestInput.cs" />
     <Compile Include="../Shared/MediaProbeTestInput.cs" Link="MediaProbeTestInput.cs" />
     <Compile Include="../Shared/MediaTagTestInput.cs" Link="MediaTagTestInput.cs" />
+    <Compile Include="../Shared/AudioStreamMetadataTestInput.cs" Link="AudioStreamMetadataTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Wave/references.json" Link="Data/Wave/references.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-mp3-*.mp4.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/WavePcmTestInput.cs" Link="WavePcmTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Wave/Mediana.Containers.Wave.csproj" />

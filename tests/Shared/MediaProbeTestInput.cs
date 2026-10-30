@@ -13,12 +13,14 @@ namespace Mediana.Tests
 {
     internal static class MediaProbeTestInput
     {
-        public static MediaEngine CreateEngine() => new MediaEngineBuilder()
+        public static MediaEngine CreateEngine() => CreateBuilder().Build();
+
+        public static MediaEngineBuilder CreateBuilder() => new MediaEngineBuilder()
             .AddContainer(new Mp4ReaderFactory())
             .AddContainer(new Mp3ReaderFactory())
             .AddContainer(new FlacReaderFactory())
             .AddContainer(new WaveReaderFactory())
-            .AddContainer(new AiffReaderFactory()).Build();
+            .AddContainer(new AiffReaderFactory());
 
         public static readonly (string Folder, string File, string Format, long Value, int Denominator, string[] Codecs)[] Cases =
         [
