@@ -16,7 +16,7 @@ namespace Mediana.Processing
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(input);
-            return Fit(input, input.Format.Color, displayMatrix, maximumWidth, maximumHeight, allocator, cancellationToken);
+            return Fit(input, input.Format.GetColorInterpretation(), displayMatrix, maximumWidth, maximumHeight, allocator, cancellationToken);
         }
 
         /// <summary>Fits a preview using an explicit source color interpretation without changing frame metadata.</summary>

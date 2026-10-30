@@ -7,7 +7,7 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264VideoFormat
     {
-        public static VideoFormat Create(H264SequenceParameterSet sequence)
+        public static VideoFormat Create(H264SequenceParameterSet sequence, VideoColorDescription? colorDescription = null)
         {
             H264VuiParameters vui = sequence.Vui ?? new H264VuiParameters();
             int topLocation = vui.ChromaLocationTop ?? 0;
@@ -17,7 +17,7 @@ namespace Mediana.Codecs.H264
                 throw new NotSupportedException("Different top and bottom field chroma locations are not represented in a progressive video format.");
             }
             return new VideoFormat(sequence.Width, sequence.Height, VideoPixelFormat.Yuv420P8,
-                ReadColor(vui, topLocation), ReadSampleAspectRatio(vui));
+                ReadColor(vui, topLocation), ReadSampleAspectRatio(vui), colorDescription);
         }
 
         internal static SampleAspectRatio? ReadSampleAspectRatio(H264VuiParameters? vui) =>
@@ -38,29 +38,8 @@ namespace Mediana.Codecs.H264
                 false => ColorRange.Limited
             };
             return new VideoColorInfo(CicpColorimetry.GetPrimaries(vui.ColorPrimaries), CicpColorimetry.GetTransfer(vui.TransferCharacteristics),
-                Matrix(vui.MatrixCoefficients), range, chromaLocation);
+                CicpColorimetry.GetMatrix(vui.MatrixCoefficients), range, chromaLocation);
         }
-
-        private static MatrixCoefficients Matrix(int code) => code switch
-        {
-            0 => MatrixCoefficients.Rgb,
-            1 => MatrixCoefficients.Bt709,
-            2 or 3 or >= 18 and <= 255 => MatrixCoefficients.Unspecified,
-            4 => MatrixCoefficients.Fcc,
-            5 or 6 => MatrixCoefficients.Bt601,
-            7 => MatrixCoefficients.Smpte240M,
-            8 => MatrixCoefficients.YCgCo,
-            9 => MatrixCoefficients.Bt2020NonConstant,
-            10 => MatrixCoefficients.Bt2020Constant,
-            11 => MatrixCoefficients.Smpte2085,
-            12 => MatrixCoefficients.ChromaticityNonConstant,
-            13 => MatrixCoefficients.ChromaticityConstant,
-            14 => MatrixCoefficients.ICtCp,
-            15 => MatrixCoefficients.IptC2,
-            16 => MatrixCoefficients.YCgCoRe,
-            17 => MatrixCoefficients.YCgCoRo,
-            _ => throw new InvalidDataException("Invalid H.264 matrix coefficients code.")
-        };
 
         private static ChromaLocation Location(int code) => code switch
         {

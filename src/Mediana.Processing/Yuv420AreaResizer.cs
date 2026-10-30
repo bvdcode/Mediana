@@ -46,7 +46,7 @@ namespace Mediana.Processing
             }
             (int horizontal, int vertical) = ChromaSamplePosition.InHalfLumaSamples(inputFormat.Color.ChromaLocation);
             SampleAspectRatio? aspect = ResizeGeometry.PreserveDisplayAspect(inputFormat, width, height);
-            VideoFormat outputFormat = new(width, height, VideoPixelFormat.Yuv420P8, inputFormat.Color, aspect);
+            VideoFormat outputFormat = new(width, height, VideoPixelFormat.Yuv420P8, inputFormat.Color, aspect, inputFormat.ColorDescription);
             WritableMediaBuffer storage = allocator.Allocate(checked((width + height + width / 2 + height / 2) * RangeBytes));
             bool succeeded = false;
             try
@@ -93,6 +93,7 @@ namespace Mediana.Processing
                 cancellationToken.ThrowIfCancellationRequested();
                 if (input.Format.Width != inputFormat.Width || input.Format.Height != inputFormat.Height ||
                     input.Format.PixelFormat != inputFormat.PixelFormat || input.Format.Color != inputFormat.Color ||
+                    !Equals(input.Format.ColorDescription, inputFormat.ColorDescription) ||
                     input.Format.SampleAspectRatio != inputFormat.SampleAspectRatio)
                 {
                     throw new NotSupportedException("The input frame differs from the video resizer configuration.");

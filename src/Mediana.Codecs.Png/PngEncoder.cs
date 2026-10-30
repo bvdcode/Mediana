@@ -23,7 +23,7 @@ namespace Mediana.Codecs.Png
             ArgumentNullException.ThrowIfNull(input);
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
-            if (!ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32) || input.Format.Color != Srgb)
+            if (!ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32) || input.Format.GetColorInterpretation() != Srgb)
             {
                 throw new NotSupportedException("PNG encoding requires straight RGBA32 pixels in full-range sRGB.");
             }

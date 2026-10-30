@@ -27,6 +27,7 @@
     <Compile Include="../Shared/ImageFrameTestInput.cs" Link="ImageFrameTestInput.cs" />
     <Compile Include="../Shared/ImageProbeTestInput.cs" Link="ImageProbeTestInput.cs" />
     <Compile Include="../Shared/ContainerPictureTestInput.cs" Link="ContainerPictureTestInput.cs" />
+    <Compile Include="../Shared/ContainerColorTestInput.cs" Link="ContainerColorTestInput.cs" />
     <Compile Include="../Shared/ImageEngineTestInput.cs" Link="ImageEngineTestInput.cs" />
     <Compile Include="../Shared/VectorImageEngineTestInput.cs" Link="VectorImageEngineTestInput.cs" />
     <Compile Include="../Shared/Jbig2TestInput.cs" Link="Jbig2TestInput.cs" />

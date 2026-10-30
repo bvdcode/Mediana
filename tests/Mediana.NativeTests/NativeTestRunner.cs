@@ -13,6 +13,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await ContainerColorTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Preview"));
+            Console.WriteLine("PASS container colors: nclx/nclc precedence, native-range YUV sequences, SDR previews, resizing and encoding.");
             await ContainerPictureTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS container pictures: MP3, FLAC and MP4 original bytes, empty lists, packet cursors and owned backing storage.");
             await EncodingOperationTestInput.VerifyAsync();

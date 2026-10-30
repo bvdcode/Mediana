@@ -19,7 +19,7 @@ namespace Mediana.Processing
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(input);
-            return Apply(input, input.Format.Color, allocator, cancellationToken);
+            return Apply(input, input.Format.GetColorInterpretation(), allocator, cancellationToken);
         }
 
         /// <summary>Uses the explicitly supplied source color interpretation in place of the frame metadata.</summary>

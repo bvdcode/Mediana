@@ -31,7 +31,8 @@ namespace Mediana.Processing
             }
             int outputWidth = map.OutputWidth;
             int outputHeight = map.OutputHeight;
-            VideoFormat format = new(outputWidth, outputHeight, VideoPixelFormat.Rgba32, input.Format.Color, outputAspectRatio);
+            VideoFormat format = new(outputWidth, outputHeight, VideoPixelFormat.Rgba32, input.Format.Color, outputAspectRatio,
+                input.Format.ColorDescription);
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             for (int y = 0; y < outputHeight; y++)

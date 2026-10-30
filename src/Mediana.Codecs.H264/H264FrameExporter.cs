@@ -10,10 +10,10 @@ namespace Mediana.Codecs.H264
     internal static class H264FrameExporter
     {
         public static VideoFrame Export(H264Picture picture, MediaBufferAllocator allocator,
-            MediaTimestamp? timestamp, MediaDuration? duration, CancellationToken cancellationToken)
+            MediaTimestamp? timestamp, MediaDuration? duration, CancellationToken cancellationToken, VideoColorDescription? colorDescription = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            VideoFormat format = H264VideoFormat.Create(picture.Sequence);
+            VideoFormat format = H264VideoFormat.Create(picture.Sequence, colorDescription);
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)layout[^1].EndOffset));
             for (int plane = 0; plane < layout.Length; plane++)

@@ -94,6 +94,7 @@ namespace Mediana.Codecs.H264
 
         private static void WriteVui(H264BitWriter bits, VideoFormat format)
         {
+            VideoColorInfo color = format.GetColorInterpretation();
             bits.WriteFlag(format.SampleAspectRatio is not null);
             if (format.SampleAspectRatio is SampleAspectRatio aspect)
             {
@@ -108,7 +109,7 @@ namespace Mediana.Codecs.H264
             bits.WriteFlag(false);
             bits.WriteFlag(true);
             bits.WriteBits(5, 3);
-            bits.WriteFlag(format.Color.Range switch
+            bits.WriteFlag(color.Range switch
             {
                 ColorRange.Full => true,
                 ColorRange.Limited => false,
@@ -116,11 +117,11 @@ namespace Mediana.Codecs.H264
                 _ => throw new ArgumentOutOfRangeException(nameof(format))
             });
             bits.WriteFlag(true);
-            bits.WriteBits((uint)Primaries(format.Color.Primaries), 8);
-            bits.WriteBits((uint)Transfer(format.Color.Transfer), 8);
-            bits.WriteBits((uint)Matrix(format.Color.Matrix), 8);
+            bits.WriteBits((uint)Primaries(color.Primaries), 8);
+            bits.WriteBits((uint)Transfer(color.Transfer), 8);
+            bits.WriteBits((uint)Matrix(color.Matrix), 8);
             bits.WriteFlag(true);
-            int location = format.Color.ChromaLocation switch
+            int location = color.ChromaLocation switch
             {
                 ChromaLocation.Left => 0,
                 ChromaLocation.Center => 1,

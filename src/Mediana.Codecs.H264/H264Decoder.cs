@@ -8,7 +8,7 @@ using Mediana.Core.Video;
 namespace Mediana.Codecs.H264
 {
     internal class H264Decoder(int streamIndex, H264Configuration initialConfiguration,
-        MediaBufferAllocator allocator, H264DecoderOptions options) : IMediaCodec<MediaPacket, VideoFrame>
+        MediaBufferAllocator allocator, H264DecoderOptions options, VideoColorDescription? colorDescription = null) : IMediaCodec<MediaPacket, VideoFrame>
     {
         private readonly H264Configuration startupConfiguration = initialConfiguration;
         private H264Configuration configuration = initialConfiguration;
@@ -169,7 +169,7 @@ namespace Mediana.Codecs.H264
             bool queued = false;
             try
             {
-                frame = H264FrameExporter.Export(picture, allocator, packet.PresentationTime, packet.Duration, cancellationToken);
+                frame = H264FrameExporter.Export(picture, allocator, packet.PresentationTime, packet.Duration, cancellationToken, colorDescription);
                 cancellationToken.ThrowIfCancellationRequested();
                 references.Store(picture, header, nextOrder.Current);
                 stored = true;

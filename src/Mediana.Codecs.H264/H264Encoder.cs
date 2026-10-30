@@ -17,6 +17,7 @@ namespace Mediana.Codecs.H264
         private readonly MediaBufferAllocator allocator;
         private readonly H264EncoderOptions options;
         private readonly VideoFormat format;
+        private readonly VideoColorInfo color;
         private readonly H264SequenceParameterSet sequence;
         private MediaPacket? pending;
         private MediaTimestamp? previousEnd;
@@ -30,6 +31,7 @@ namespace Mediana.Codecs.H264
             MediaBufferAllocator allocator, H264EncoderOptions options)
         {
             this.format = format;
+            color = format.GetColorInterpretation();
             Stream = stream;
             this.sequence = sequence;
             this.allocator = allocator;
@@ -151,7 +153,7 @@ namespace Mediana.Codecs.H264
         private MediaTimestamp ValidateFrame(VideoFrame input)
         {
             if (input.Format.Width != format.Width || input.Format.Height != format.Height ||
-                input.Format.PixelFormat != format.PixelFormat || input.Format.Color != format.Color ||
+                input.Format.PixelFormat != format.PixelFormat || input.Format.GetColorInterpretation() != color ||
                 input.Format.SampleAspectRatio != format.SampleAspectRatio)
             {
                 throw new NotSupportedException("The input frame differs from the H.264 encoder configuration.");
