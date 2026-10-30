@@ -9,6 +9,8 @@ namespace Mediana.Codecs.Aac
     {
         private static readonly uint[][] Codes = CreateCodes();
 
+        public static int CountSymbol(int codebook, int symbol) => (int)(Codes[codebook][symbol] & 31);
+
         public static void WriteSymbol(ref AacBitWriter bits, int codebook, int symbol)
         {
             uint packed = Codes[codebook][symbol];
