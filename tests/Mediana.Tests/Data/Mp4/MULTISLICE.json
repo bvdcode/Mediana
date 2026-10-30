@@ -1,0 +1,32 @@
+[
+  {
+    "file": "avc-multislice-cavlc.mp4",
+    "bytes": 23095,
+    "sha256": "bcbe615d4a27a58c555fbf9723f23bc7256d91a112812a957beb915aee1eb605"
+  },
+  {
+    "file": "avc-multislice-cavlc.sequence.yuv",
+    "bytes": 207360,
+    "sha256": "5e1042a42b6be34d417ef15d531f045836a611e7330c6fca191736604277eb5f"
+  },
+  {
+    "file": "avc-multislice-cabac.mp4",
+    "bytes": 22955,
+    "sha256": "c1e1a7cc0c8aa795afa4b58a85248b75fbf0ede74eec5a2066ddfacdaef27e58"
+  },
+  {
+    "file": "avc-multislice-cabac.sequence.yuv",
+    "bytes": 207360,
+    "sha256": "3d889595c077deb7921be60ea6cb82513e74fb64715856512cc5f204855478da"
+  },
+  {
+    "file": "avc-multislice-cabac-sliced.mp4",
+    "bytes": 21805,
+    "sha256": "be468bd6f52d140ba2dd64dba911e6e60ac6b83f96a7bbb4d2508f9319746fee"
+  },
+  {
+    "file": "avc-multislice-cabac-sliced.sequence.yuv",
+    "bytes": 207360,
+    "sha256": "249cc094af99ba1950d2cf6786f5dd9d0c7878e074f5127a03bb1266477bfed5"
+  }
+]
