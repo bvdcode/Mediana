@@ -64,13 +64,10 @@ also checks an uncommon sample rate. The 5.1 file explicitly declares the standa
 speaker mask `0x3f`.
 
 The installed FFmpeg 6.1.1 FLAC encoder reduces 32-bit input to 24 bits, so it is
-not used to construct the 32-bit vector. Run
-`python3 tests/Mediana.Tests/Data/Flac/build-stereo32.py` from the repository root to
-rebuild that MIT-licensed vector and its original PCM. It contains full-range
+not used to construct the 32-bit vector. The MIT-licensed vector contains full-range
 32-bit endpoints and odd/negative mid-side values, requiring 33-bit side samples.
 The independent FFmpeg decoder reproduces all 158 original interleaved values
-exactly. This vector generator is test data tooling; no production encoder is
-provided.
+exactly.
 
 For `stereo-covers` and `mono-speech`, every 400 Hz mono PCM16 RMS/peak window,
 final partial count and timestamp matches processing the original WAVE source

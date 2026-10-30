@@ -1,5 +1,5 @@
 {
-  "method": "Python Fraction exact rational integration, nearest integer with half upward, clamp-to-edge cells",
+  "method": "Exact rational integration, nearest integer with half upward, clamp-to-edge cells",
   "cases": [
     {
       "reference": "area-6x4-Left.yuv",

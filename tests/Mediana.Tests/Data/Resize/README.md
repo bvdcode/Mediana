@@ -20,8 +20,8 @@ Each sample occupies a unit cell centered at its integer coordinate. The first
 and last cells extend to the image boundaries and beyond. Integrate the source
 over a rectangle of width `rx` and height `ry` centered at the mapped position,
 divide by its area, then round once to the nearest integer with half upward.
-The reference generator uses Python `fractions.Fraction`; it does not call the
-production resizer or round intermediate horizontal results.
+The references use exact rational arithmetic independently of the production
+resizer, without rounding intermediate horizontal results.
 
 The synthetic 10x8 input uses `(23*x + 31*y + 57*plane) mod 256`, with local
 coordinates in each plane. Six 6x4 outputs cover every chroma location. Complete

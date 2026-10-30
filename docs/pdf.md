@@ -94,5 +94,5 @@ RGB error at most 3/255 and at least 95% of pixels within 8 per channel; alpha
 matches exactly. Antialiasing and unhinted glyph edges differ. The report's
 observed mean error is 2.19/255 with 95.67% within 8. Extracted JBIG2 pixels match
 the original synthetic scan exactly. These are bounded regression comparisons,
-not arbitrary-document conformance evidence. Poppler and Python are development
-tools only.
+not arbitrary-document conformance evidence. Poppler is used for development
+verification only.

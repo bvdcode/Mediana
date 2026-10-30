@@ -1573,13 +1573,10 @@ NuGet.org. Pull requests only validate. The GitHub release is created after both
 registries succeed. Its downloads contain the tested native executables, archives
 and checksums; NuGet packages are available from the registries.
 
-Actions generates the release notes from the full message of the commit being
-released. The message should summarize the milestone's changes and relevant
-validation. The notes also include the full comparison since the previous release
-and links to the actual packed versions. No manually maintained changelog is
-required. Publication fails if there are no changes, the release commit has no
-message or package versions do not match. Build checks exercise the generator
-against isolated release histories.
+The release action uses the push's final commit message as its description.
+The message should summarize the milestone's changes and relevant validation.
+No separate release-description generator or manually maintained changelog is
+required.
 
 Authentication uses [NuGet Trusted Publishing](https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing).
 Set the NUGET_USER repository variable to the NuGet profile username. Configure

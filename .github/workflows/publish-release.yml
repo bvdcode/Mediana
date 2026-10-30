@@ -149,28 +149,6 @@ jobs:
       - name: Pack
         if: matrix.rid == 'linux-x64'
         run: dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/packages
-      - name: Test release notes generation
-        if: matrix.rid == 'linux-x64'
-        run: |
-          python3 -m venv artifacts/release-tools
-          artifacts/release-tools/bin/python -m pip install -r .github/scripts/requirements.txt
-          artifacts/release-tools/bin/python -m black --check .github/scripts
-          artifacts/release-tools/bin/python -m isort --check-only --profile black .github/scripts
-          artifacts/release-tools/bin/python -m mypy --strict .github/scripts
-          python3 -m unittest discover -s .github/scripts -p 'test_*.py'
-      - name: Generate release notes from the release commit
-        if: matrix.rid == 'linux-x64'
-        run: >-
-          python3 .github/scripts/release_notes.py --repository "$GITHUB_REPOSITORY"
-          --version "$PACKAGE_VERSION" --commit "$GITHUB_SHA"
-          --packages artifacts/packages --output artifacts/release-notes.md
-      - name: Upload release notes
-        if: matrix.rid == 'linux-x64'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: release-notes
-          path: artifacts/release-notes.md
-          if-no-files-found: error
       - name: Upload packages
         if: matrix.rid == 'linux-x64'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -250,10 +228,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          name: release-notes
-          path: artifacts
       - name: Download native executables
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -268,5 +242,5 @@ jobs:
           name: Mediana ${{ needs.version.outputs.version }}
           artifacts: artifacts/binaries/*
           artifactErrorsFailBuild: true
-          bodyFile: artifacts/release-notes.md
+          body: ${{ github.event.head_commit.message }}
           skipIfReleaseExists: true

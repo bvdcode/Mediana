@@ -166,10 +166,7 @@
       "inputSha256": "0912f0b9df7713bd0d8e13df3bc0852da6545ec8bc3f5cd1a103c2902096ce87",
       "pcmSha256": "49cc1b502d80766f4c7d82a69522f02884de2b564e03f8c2f8ca17a24e0a18ba",
       "sourcePcmSha256": "49cc1b502d80766f4c7d82a69522f02884de2b564e03f8c2f8ca17a24e0a18ba",
-      "encodeCommand": [
-        "python3",
-        "tests/Mediana.Tests/Data/Flac/build-stereo32.py"
-      ],
+      "encodeCommand": [],
       "decodeCommand": [
         "ffmpeg",
         "-hide_banner",
