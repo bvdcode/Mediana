@@ -19,10 +19,12 @@ namespace Mediana.Cli
         /// <param name="qp">Fixed H264 quantizer from 0 to 51; defaults to 26 when encoding.</param>
         /// <param name="width">Maximum encoded video storage width; rounded down to an even size without enlargement.</param>
         /// <param name="height">Maximum encoded video storage height; rounded down to an even size without enlargement.</param>
+        /// <param name="audioCodec">Encode an audio-only TS file with AAC-LC.</param>
+        /// <param name="audioBitRate">Raw AAC bitrate ceiling in bits/second; defaults to 128000.</param>
         [Command("")]
         public Task<int> Convert([Argument] string output, string input, int? stream = null, long timeMs = 0, int page = 1,
             VideoCodecMode videoCodec = VideoCodecMode.Copy, bool videoOnly = false, int? qp = null,
-            int? width = null, int? height = null,
+            int? width = null, int? height = null, AudioCodecMode? audioCodec = null, int? audioBitRate = null,
             CancellationToken cancellationToken = default)
         {
             if (stream is < 0)
@@ -41,6 +43,15 @@ namespace Mediana.Cli
                 VideoCodecMode.H264 => true,
                 _ => throw new ArgumentOutOfRangeException(nameof(videoCodec))
             };
+            if (audioCodec is not null || audioBitRate is not null)
+            {
+                if (audioCodec is not AudioCodecMode.Aac || !Path.GetExtension(output).Equals(".ts", StringComparison.OrdinalIgnoreCase) ||
+                    encode || videoOnly || qp is not null || width is not null || height is not null)
+                {
+                    throw new NotSupportedException("AAC encoding requires .ts output and --audio-codec Aac; video encoding options cannot be combined with audio-only output.");
+                }
+                return ExecuteAsync(input, output, () => AudioEncodeCommand.RunAsync(input, output, stream, audioBitRate ?? 128000, logger, cancellationToken));
+            }
             if (encode || videoOnly || qp is not null || width is not null || height is not null)
             {
                 if (!encode || !videoOnly || !Path.GetExtension(output).Equals(".ts", StringComparison.OrdinalIgnoreCase))
