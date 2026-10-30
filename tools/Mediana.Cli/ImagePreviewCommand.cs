@@ -2,9 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
-// SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Vadim Belov <https://belov.us>
-
 using Mediana.Codecs;
 using Mediana.Codecs.Png;
 using Mediana.Core.Memory;
