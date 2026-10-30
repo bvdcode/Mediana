@@ -6,6 +6,7 @@ namespace Mediana.Codecs.H264
     internal class H264Vlc
     {
         private readonly int[] branches;
+        private readonly Dictionary<int, (ulong Bits, int Length)> codes = [];
 
         public H264Vlc(string[] codes, int[]? symbols = null)
         {
@@ -13,6 +14,7 @@ namespace Mediana.Codecs.H264
             for (int index = 0; index < codes.Length; index++)
             {
                 string code = codes[index];
+                this.codes.Add(symbols?[index] ?? index, (Convert.ToUInt64(code, 2), code.Length));
                 int node = 0;
                 for (int bit = 0; bit < code.Length; bit++)
                 {
@@ -60,6 +62,15 @@ namespace Mediana.Codecs.H264
                 }
                 node = next;
             }
+        }
+
+        public void Write(H264BitWriter bits, int symbol)
+        {
+            if (!codes.TryGetValue(symbol, out (ulong Bits, int Length) code))
+            {
+                throw new ArgumentOutOfRangeException(nameof(symbol));
+            }
+            bits.WriteBits(code.Bits, code.Length);
         }
     }
 }
