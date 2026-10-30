@@ -1,0 +1,151 @@
+[
+  {
+    "name": "s8-mono",
+    "source": "../Wave/u8-mono.wav",
+    "encoding": "pcm_s8",
+    "reference_storage": "u8",
+    "input_sha256": "1533cabb20d9c5081e13d320ff5b1b0a064e0e465d6776340cefd80e7851b122",
+    "reference_sha256": "ff442a0f1fba39b34ff9c251ca095655a01f73d2872481acbd49c12693a623e1",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s8",
+          "sample_rate": "8000",
+          "channels": 1,
+          "bits_per_sample": 8,
+          "time_base": "1/8000",
+          "duration_ts": 1099
+        }
+      ]
+    }
+  },
+  {
+    "name": "s16-stereo",
+    "source": "../Wave/s16-stereo.wav",
+    "encoding": "pcm_s16be",
+    "reference_storage": "s16le",
+    "input_sha256": "0f7217b16d0efa538d974d7a1c428ebd49a1d6eea6efe722544c2f57610b69ee",
+    "reference_sha256": "3c43064a7a7904bd027c9b77d53eb714cc3965c931ed10e64ac51dfa529de55b",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s16be",
+          "sample_rate": "44100",
+          "channels": 2,
+          "bits_per_sample": 16,
+          "time_base": "1/44100",
+          "duration_ts": 6058
+        }
+      ]
+    }
+  },
+  {
+    "name": "s24-stereo",
+    "source": "../Wave/s24-stereo.wav",
+    "encoding": "pcm_s24be",
+    "reference_storage": "s32le",
+    "input_sha256": "2468027b0801f0b92acd05580d428e0d4e06e9916ddde5089c3cebe63c48019b",
+    "reference_sha256": "55dd6ff7a222f0fff9727c94ba32dfd5e9b64700811b129dec9a135412197023",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s24be",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bits_per_sample": 24,
+          "time_base": "1/48000",
+          "duration_ts": 6594,
+          "bits_per_raw_sample": "24"
+        }
+      ]
+    }
+  },
+  {
+    "name": "s32-stereo",
+    "source": "../Wave/s32-stereo.wav",
+    "encoding": "pcm_s32be",
+    "reference_storage": "s32le",
+    "input_sha256": "c2c72981ad19286be9e19848b686cc76078684eae0a4244304348ff2aff172b2",
+    "reference_sha256": "90a1c43c989a69acbe88cd3ae4a5d6f08d4dc9ee74e43b7c31b8351f9ca3aa4c",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s32be",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bits_per_sample": 32,
+          "time_base": "1/48000",
+          "duration_ts": 6594,
+          "bits_per_raw_sample": "32"
+        }
+      ]
+    }
+  },
+  {
+    "name": "f32-stereo",
+    "source": "../Wave/f32-stereo.wav",
+    "encoding": "pcm_f32be",
+    "reference_storage": "f32le",
+    "input_sha256": "199f8f7b72c6c8cf0f6a289ab4d0e645bed690fc37ab36ffb5edbcd42849cbbc",
+    "reference_sha256": "2ef38ef0ca367f7dbe90d327204e64a24cc819c87c6e452d08231794ca5ef034",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_f32be",
+          "sample_rate": "44100",
+          "channels": 2,
+          "bits_per_sample": 32,
+          "time_base": "1/44100",
+          "duration_ts": 6058
+        }
+      ]
+    }
+  },
+  {
+    "name": "f64-stereo",
+    "source": "../Wave/f64-stereo.wav",
+    "encoding": "pcm_f64be",
+    "reference_storage": "f64le",
+    "input_sha256": "ed550a998de687ab57134bf16b1526485fc1fe501293b1a3e2647a9245264c23",
+    "reference_sha256": "7c47c240071d01276c0bf9aee50416d512835a2dbb498c3b4b717421d0a670e7",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_f64be",
+          "sample_rate": "48000",
+          "channels": 2,
+          "bits_per_sample": 64,
+          "time_base": "1/48000",
+          "duration_ts": 6594
+        }
+      ]
+    }
+  },
+  {
+    "name": "s16le-stereo",
+    "source": "../Wave/s16-stereo.wav",
+    "encoding": "pcm_s16le",
+    "reference_storage": "s16le",
+    "input_sha256": "054562efe7bce1766a3375f3dd9c85643bc1518ecd4a721dbfe3499913a5c10f",
+    "reference_sha256": "3c43064a7a7904bd027c9b77d53eb714cc3965c931ed10e64ac51dfa529de55b",
+    "probe": {
+      "programs": [],
+      "streams": [
+        {
+          "codec_name": "pcm_s16le",
+          "sample_rate": "44100",
+          "channels": 2,
+          "bits_per_sample": 16,
+          "time_base": "1/44100",
+          "duration_ts": 6058
+        }
+      ]
+    }
+  }
+]

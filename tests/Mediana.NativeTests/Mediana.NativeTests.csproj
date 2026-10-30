@@ -8,6 +8,10 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Containers.Aiff/Mediana.Containers.Aiff.csproj" />
+    <Compile Include="../Shared/PcmReferenceTestInput.cs" Link="PcmReferenceTestInput.cs" />
+    <Compile Include="../Shared/AiffPcmReferenceTestInput.cs" Link="AiffPcmReferenceTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Aiff/*" Link="Data/Aiff/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Documents.Pdf/Mediana.Documents.Pdf.csproj" />
     <Compile Include="../Shared/PdfStructureTestInput.cs" Link="PdfStructureTestInput.cs" />
     <Compile Include="../Shared/PdfPixelReference.cs" Link="PdfPixelReference.cs" />

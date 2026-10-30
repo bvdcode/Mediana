@@ -28,13 +28,6 @@ namespace Mediana.Tests
             };
             AudioFormat expectedFormat = new(rate, format, AudioStorageLayout.Interleaved, channels);
             byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, name + ".pcm"));
-            if (!BitConverter.IsLittleEndian)
-            {
-                for (int index = 0; index < expected.Length; index += expectedFormat.BytesPerSample)
-                {
-                    Array.Reverse(expected, index, expectedFormat.BytesPerSample);
-                }
-            }
             int sampleBytes = expectedFormat.BytesPerSample * channels.Length;
             int samples = expected.Length / sampleBytes;
             MediaBufferAllocator metadataAllocator = new(16384);
@@ -53,51 +46,7 @@ namespace Mediana.Tests
             }
             MediaEngine engine = new MediaEngineBuilder().AddContainer(new WaveReaderFactory(new WaveReadOptions { SamplesPerPacket = 127 }))
                 .AddAudioDecoder(new PcmDecoderFactory()).Build();
-            await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, name + ".wav")));
-            await using AudioSession session = await engine.OpenAudioAsync(source, 0, new MediaOpenOptions { BufferBudgetBytes = 16384 });
-            AudioFrame? retained = null;
-            int position = 0;
-            try
-            {
-                while (true)
-                {
-                    using AudioFrame? frame = await session.ReadFrameAsync();
-                    if (frame is null)
-                    {
-                        break;
-                    }
-                    int bytes = frame.SamplesPerChannel * sampleBytes;
-                    if (frame.Format.SampleFormat != format || frame.Format.SampleRate != rate || !frame.Format.Channels.SequenceEqual(channels)
-                        || frame.Format.Layout != AudioStorageLayout.Interleaved || frame.SamplesPerChannel > 127
-                        || !frame.GetPlane(0).Span.SequenceEqual(expected.AsSpan(position * sampleBytes, bytes))
-                        || frame.Timestamp != new MediaTimestamp(position, new TimeBase(1, rate))
-                        || frame.Duration != new MediaDuration(frame.SamplesPerChannel, new TimeBase(1, rate)))
-                    {
-                        throw new InvalidDataException($"WAVE PCM mismatch at sample {position} in {name}.");
-                    }
-                    position += frame.SamplesPerChannel;
-                    retained?.Dispose();
-                    retained = frame.Retain();
-                }
-                if (position != samples || await session.ReadFrameAsync() is not null)
-                {
-                    throw new InvalidDataException("WAVE PCM changed its sample count or end of stream.");
-                }
-                await session.DisposeAsync();
-                if (retained is null || session.AllocatedBufferBytes != retained.GetPlane(0).Length
-                    || !retained.GetPlane(0).Span.SequenceEqual(expected.AsSpan(expected.Length - retained.GetPlane(0).Length)))
-                {
-                    throw new InvalidOperationException("PCM frame ownership did not survive audio session disposal.");
-                }
-            }
-            finally
-            {
-                retained?.Dispose();
-            }
-            if (session.AllocatedBufferBytes != 0)
-            {
-                throw new InvalidOperationException("The public audio session retained PCM storage.");
-            }
+            await PcmReferenceTestInput.VerifyAsync(engine, Path.Combine(root, name + ".wav"), expected, expectedFormat);
         }
     }
 }

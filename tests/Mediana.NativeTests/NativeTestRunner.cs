@@ -83,6 +83,11 @@ namespace Mediana.NativeTests
                 await WavePcmTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"), name);
             }
             Console.WriteLine("PASS WAVE PCM: integer/float samples, six-channel assignment, durations, public audio timestamps and independent frame ownership match.");
+            foreach (string name in AiffPcmReferenceTestInput.Names)
+            {
+                await AiffPcmReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aiff"), name);
+            }
+            Console.WriteLine("PASS AIFF PCM: signed integer/float samples, both byte orders, durations, public timestamps and independent frame ownership match.");
             H264CabacTestInput.VerifyMixedBins();
             Console.WriteLine("PASS H.264 CABAC arithmetic: mixed decision, bypass and termination bins match exact intervals.");
             (string Name, string Extension, int Packet)[] cases =

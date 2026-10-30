@@ -6,6 +6,9 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Mediana.Containers.Aiff/Mediana.Containers.Aiff.csproj" />
     <Compile Include="../Shared/AiffTestInput.cs" Link="AiffTestInput.cs" />
+    <Compile Include="../Shared/PcmReferenceTestInput.cs" Link="PcmReferenceTestInput.cs" />
+    <Compile Include="../Shared/AiffPcmReferenceTestInput.cs" Link="AiffPcmReferenceTestInput.cs" />
+    <None Include="Data/Aiff/*" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../tools/Mediana.Cli/Mediana.Cli.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Pdf/Mediana.Documents.Pdf.csproj" />
     <Compile Include="../Shared/PdfStructureTestInput.cs" Link="PdfStructureTestInput.cs" />
