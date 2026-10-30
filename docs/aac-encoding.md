@@ -101,9 +101,14 @@ Progress reports source media time, speed and bytes through the standard logger.
 
 TS retains all priming and padded samples and uses the existing one-second
 transport timestamp offset. It does not carry gapless trimming metadata. Standalone
-ADTS output, MP4 audio writing and encoding audio within HLS variants remain open.
-The existing HLS command can still copy an original AAC/MP3 track while encoding
-video; that operation is separate from this new audio encoder.
+ADTS output and MP4 audio writing remain open.
+
+The [HLS encoding command](hls-encoding.md) can also combine this encoder with AVC
+video variants through `--audio-stream 1 --audio-codec Aac`. That path explicitly
+applies the input MP4 edit to decoded PCM and preserves its movie origin before
+encoding. It retains the new encoder's priming and padding and shares the encoded
+audio across all widths. The standalone audio-only command above retains the
+source decoder's complete media timeline.
 
 ## Verification
 

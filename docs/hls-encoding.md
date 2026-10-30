@@ -1,6 +1,7 @@
 The HLS source module can segment encoded AVC video as packets arrive and format
-VOD media/master playlists, including optional copied AAC-LC or MPEG-1/2 Layer III
-audio. It depends on Mediana container/core/AVC modules;
+VOD media/master playlists, including optional AAC-LC or MPEG-1/2 Layer III
+audio. The CLI can copy the original audio or encode it with the AAC source module.
+The HLS module depends on Mediana container/core/AVC modules;
 encoding and resizing remain separate components. The existing `Mp4HlsSession`
 continues to provide indexed AVC/AAC/MP3 stream copy.
 
@@ -61,7 +62,7 @@ Both configured tracks must contain packets before completion.
 
 The common audio/video clock uses an exact denominator; unrepresentable clocks
 are rejected before opening any destination. Transport timestamps use the TS
-90 kHz clock and configured offset with nearest-even rounding. Copied audio
+90 kHz clock and configured offset with nearest-even rounding. Audio
 does not claim independent segment decoding: AAC overlap and MP3 reservoir state
 can depend on earlier packets. Continuous playlist decoding retains that state.
 
@@ -105,6 +106,7 @@ object types from the [MP4 Registration Authority](https://mp4ra.org/registered-
 ```sh
 mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-av --audio-stream 1 --segment-ms 6000 --qp 26 --widths 1280 640
+mediana hls encode input.mp4 output-aac --audio-stream 1 --audio-codec Aac --audio-bit-rate 128000 --widths 1280 640
 ```
 
 The CLI decodes supported MP4/MOV AVC input once. Each frame passes sequentially to
@@ -116,16 +118,41 @@ standard logging options. The parent directory must exist, and the destination
 must be new. Files are published together only after every variant completes.
 
 Choose either `--video-only` or `--audio-stream`; they are mutually exclusive.
-Audio copy uses an additional indexed reader over the same random-access source
-and copies each selected audio packet to all variants without decoding it. Video
+Without `--audio-codec`, audio copy uses an additional indexed reader over the same
+random-access source and copies each selected audio packet to all variants without decoding it. Video
 decoding still reads the container's sequential packets. Audio is read again for
 copy; no whole-file payload queue is retained. Input edit timing uses the linear
 movie timeline for both readers. Unsupported, empty or missing audio tracks fail.
 
-The mode uses one fixed QP
-for all variants, with independently coded IDR pictures. It has no target bitrate
-or inter-frame compression. Arbitrary display transforms, audio encoding,
-live/event playlists, fragmented MP4, encryption
+With `--audio-codec Aac`, a separate audio decoder reads the selected track in
+media time. Existing PCM sample selection applies the explicit MP4 edit list:
+one unit-rate media edit, optionally preceded by one empty edit. Samples before
+the edit are decoded for codec state and discarded; the exact selected end clips
+the source tail. The movie origin preserves a leading empty-edit delay, including
+origins between sample instants. With no edits, all decoded samples are retained.
+Nonlinear edits, gaps, unavailable sample ranges and unsupported formats fail.
+No resampling, downmix or silent PCM insertion is implicit.
+
+The AAC encoder uses the selected rate/channel order, one shared audio bit ceiling
+for all variants and exactly the same encoded audio packets in each variant.
+`--audio-bit-rate` requires `--audio-codec Aac`; its default is 128000 raw bits/second.
+It is a variable bitrate ceiling excluding transport overhead, rather than a target
+file size. The source's explicit edit removes its declared codec delay; newly
+encoded AAC introduces its own 1024-sample priming. That packet starts before the
+selected PCM origin. Final drain emits the overlap tail and at most 1023 padding
+samples; TS retains them without gapless trimming metadata. No priming is repeated
+at segment boundaries. The playlist's final duration includes the encoded tail.
+
+Audio decoding/encoding happens once for all widths. Packet delivery keeps one
+lookahead packet and writes video before audio at equal DTS. PCM conversion,
+trimming and encoder working storage use bounded frame buffers; the recording is
+not collected in memory. Decoders still read their own sequential container data.
+The command reports input PCM count and final AAC priming/padding at completion.
+[AAC quality and rate limits](aac-encoding.md) apply to this path too.
+
+The mode uses one fixed QP for all variants, with independently coded IDR pictures.
+It has no target video bitrate or inter-frame compression. Per-variant audio rates,
+arbitrary display transforms, live/event playlists, fragmented MP4, encryption
 and playback scheduling remain outside this path.
 
 ## Checks
@@ -167,3 +194,23 @@ produces two variants with 301 segments each. Every one of 10,802 pictures and
 presentation intervals, audio bytes and full decoded PCM hashes match. This
 checks complete A/V processing and bounded media storage on a small source,
 without establishing HD throughput or independent audio restart quality.
+
+Encoded-audio checks cover complete AAC, MPEG-1 Layer III and MPEG-2 Layer III
+inputs across six variants, 160 pictures and 54 segments. Independently selected
+source PCM is encoded separately; every resulting AAC byte and all independently
+decoded PCM match the audio in the HLS playlists. Every audio PTS/DTS retains its
+exact movie origin minus AAC priming and the 1024-sample cadence, rounded to the
+transport clock. Managed and Native AOT commands produce 129 identical transport
+and playlist files, including reference outputs. Tests also cover fractional
+sample origins, absent edits, finite clipping, pending packet cancellation,
+resource disposal and rejected audio options.
+
+The full 30-minute A/V input also passes with newly encoded audio: 86,400,000
+selected mono PCM samples produce 84,376 AAC packets per variant, including
+1024 priming samples and no final padding. Both variants preserve all 10,802
+video pictures across 301 segments each. Every audio packet and the complete
+independently decoded PCM match separate encoding of the selected source PCM;
+every audio PTS/DTS follows the exact expected timeline. This uses repeated
+96x80 video and a continuous audio signal. It does not establish perceptual
+quality or HD throughput. In-progress SIGINT returns 130 and removes the
+unpublished directory, including all temporary segments.

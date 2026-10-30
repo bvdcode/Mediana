@@ -22,7 +22,7 @@ An experimental PDF module reads page geometry, renders supported vector/text/im
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
 Experimental fixed-QP H.264 intra encoding and YUV downscaling are available.
 Experimental AAC-LC audio encoding to MPEG-TS is also available; perceptual
-allocation, transient handling and encoded audio in HLS remain open.
+allocation and transient handling remain open. HLS variants can copy or encode audio.
 
 ## Components
 
@@ -52,7 +52,7 @@ allocation, transient handling and encoded audio in HLS remain open.
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
-| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with optional copied AAC/MP3 and measured playlists; source project only |
+| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists; source project only |
 | `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
 | `Mediana.Cli` | Command-line media inspection, conversions, previews and exports |
@@ -1116,8 +1116,8 @@ even rounding to preserve display aspect. Both bounds must be at least two.
 The command requires an identity display transform and reports progress during longer
 operations. Output is published only after successful completion. Temporal
 prediction, motion search, CABAC encoding and bitrate/quality control remain open.
-Experimental [AAC encoding](docs/aac-encoding.md) has a separate audio-only TS path;
-combined encoding in HLS remains open. HLS video variants use the same encoder and area
+Experimental [AAC encoding](docs/aac-encoding.md) supports audio-only TS and
+combined encoding in HLS. HLS video variants use the same encoder and area
 filter through the [HLS encoding path](docs/hls-encoding.md). This initial
 all-IDR mode does not promise bitrate efficiency comparable to inter-frame encoding.
 
@@ -1327,6 +1327,7 @@ bytes; existing-output and failed-export checks preserve destination ownership.
 ```sh
 mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-av --audio-stream 1 --segment-ms 6000 --qp 26 --widths 1280 640
+mediana hls encode input.mp4 output-aac --audio-stream 1 --audio-codec Aac --audio-bit-rate 128000 --widths 1280 640
 ```
 
 The command decodes supported MP4/MOV AVC video once and produces one smaller
@@ -1334,21 +1335,26 @@ YUV420P8/H.264 sequence per width. Width bounds round down to even storage sizes
 without enlargement; bounds that produce identical dimensions fail. `--widths`
 uses space-separated integers and must be the final option. Audio omission is
 explicit through `--video-only`; alternatively, `--audio-stream` copies one selected
-AAC-LC or MPEG-1/2 Layer III track to every variant. These options are mutually
-exclusive. The command requires an identity display transform.
+AAC-LC or MPEG-1/2 Layer III track to every variant. Adding `--audio-codec Aac`
+decodes that track and uses the experimental AAC encoder instead. Its optional
+`--audio-bit-rate` ceiling defaults to 128000 raw bits/second for every variant;
+rate and channel order are preserved. The command requires an identity display
+transform.
 
 Each variant contains IDR-aligned TS segments and a VOD
 media playlist. The master playlist records actual peak/average transport bitrates
 and the video/audio codec identifiers. Only video-only output declares independent
-segments. Audio bytes and linear-movie timing are preserved, including priming
-and a final audio tail. Segment timelines must match across variants. Output
+segments. Copy mode preserves original audio bytes and linear-movie timing.
+AAC encoding applies the exact input MP4 sample edit, preserves its movie origin
+and writes one shared encoded audio sequence with its own priming and final tail.
+Segment timelines must match across variants. Output
 is prepared in one temporary directory and published together after completion;
 errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
 streaming encoded packets without a source-container dependency.
 
 The current mode uses fixed-QP all-IDR video. Inter-frame compression, target
-bitrate control and encoding audio within HLS variants
-remain open. See [HLS encoding contracts and checks](docs/hls-encoding.md).
+bitrate control, perceptual AAC quality and per-variant audio rates remain open.
+See [HLS encoding contracts and checks](docs/hls-encoding.md).
 
 ## Connecting modules
 
@@ -1516,7 +1522,7 @@ format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, audio seeking,
 more general movie timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
-broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, inter-frame video encoding, perceptual AAC encoding and combined A/V transcoding, other muxers, scheduling,
+broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, inter-frame video encoding, perceptual AAC encoding, per-variant audio rates, other muxers, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
 
