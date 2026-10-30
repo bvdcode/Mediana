@@ -8,11 +8,14 @@ namespace Mediana.Codecs.H264
     /// <summary>Inspects AVC packets with slices in increasing macroblock order without reconstructing pictures.
     /// IDR results validate access-unit boundaries and all supported slice headers,
     /// not residual data or complete macroblock coverage. Each call uses the original configuration plus parameters in that packet.</summary>
-    public class H264RandomAccessInspector
+    public class H264RandomAccessInspector : IRandomAccessInspector
     {
         private readonly int streamIndex;
         private readonly H264Configuration configuration;
         private readonly H264DecoderOptions options;
+
+        public bool IsRandomAccess(MediaPacket packet, CancellationToken cancellationToken = default) =>
+            IsIdr(packet, cancellationToken);
 
         public H264RandomAccessInspector(EncodedStreamInfo stream, H264DecoderOptions? options = null)
         {

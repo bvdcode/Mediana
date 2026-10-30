@@ -10,7 +10,7 @@ namespace Mediana.Codecs.H264
     /// <summary>Decodes AVC length-prefixed packets containing a complete picture with slices in increasing macroblock order.
     /// Supports progressive 8-bit YUV 4:2:0 CAVLC and CABAC I/P/B pictures with default scaling.
     /// Both entropy modes support 4x4 and 8x8 transforms.</summary>
-    public class H264DecoderFactory : IVideoDecoderFactory
+    public class H264DecoderFactory : IVideoDecoderFactory, IRandomAccessDecoderFactory
     {
         private readonly H264DecoderOptions options;
 
@@ -22,6 +22,9 @@ namespace Mediana.Codecs.H264
 
         public string ImplementationId => "mediana.h264";
         public string CodecId => "h264";
+
+        public IRandomAccessInspector CreateRandomAccessInspector(EncodedStreamInfo stream) =>
+            new H264RandomAccessInspector(stream, options);
 
         public string? GetUnsupportedReason(EncodedStreamInfo stream)
         {
