@@ -20,7 +20,12 @@ namespace Mediana.Processing.Audio
             cancellationToken.ThrowIfCancellationRequested();
             AudioFormat format = new(input.Format.SampleRate, sampleFormat, layout, input.Format.Channels.ToArray());
             using WritableMediaBuffer writable = allocator.Allocate(format.GetBufferSize(input.SamplesPerChannel));
-            if (input.Format.Layout == AudioStorageLayout.Interleaved && layout == AudioStorageLayout.Interleaved &&
+            if (input.Format.SampleFormat == sampleFormat && input.Format.Layout == layout &&
+                sampleFormat is AudioSampleFormat.Unsigned8 or AudioSampleFormat.Signed16 or AudioSampleFormat.Signed32)
+            {
+                CopyStorage(input, writable.Memory.Span, cancellationToken);
+            }
+            else if (input.Format.Layout == AudioStorageLayout.Interleaved && layout == AudioStorageLayout.Interleaved &&
                 sampleFormat == AudioSampleFormat.Signed16 && input.Format.SampleFormat is AudioSampleFormat.Float32 or AudioSampleFormat.Signed32)
             {
                 ReadOnlySpan<byte> source = input.GetPlane(0).Span;
@@ -61,6 +66,24 @@ namespace Mediana.Processing.Audio
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new AudioFrame(format, input.SamplesPerChannel, buffer, input.Timestamp);
+        }
+
+        private static void CopyStorage(AudioFrame input, Span<byte> output, CancellationToken token)
+        {
+            const int BlockBytes = 16 * 1024;
+            int destination = 0;
+            for (int plane = 0; plane < input.Format.PlaneCount; plane++)
+            {
+                ReadOnlySpan<byte> source = input.GetPlane(plane).Span;
+                for (int offset = 0; offset < source.Length;)
+                {
+                    token.ThrowIfCancellationRequested();
+                    int count = Math.Min(BlockBytes, source.Length - offset);
+                    source.Slice(offset, count).CopyTo(output.Slice(destination, count));
+                    offset += count;
+                    destination += count;
+                }
+            }
         }
     }
 }
