@@ -12,7 +12,8 @@ The sample can extract a supported video frame, convert SDR color to sRGB, corre
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC/MP3 access units without decoding.
 The WAVE and PCM source modules read integer/float audio through public audio sessions.
-The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float PCM.
+The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float PCM
+and encodes contiguous PCM as experimental AAC-LC access units.
 Independent source modules also decode HEIC/HEIF still images, JPEG 2000 and JBIG2,
 and rasterize SVG and TGS/Lottie 2D animation. Their output connects to Mediana
 frames, SDR color conversion and PNG encoding. These modules compile inside
@@ -20,7 +21,8 @@ Mediana and do not depend on Heic.NET or Render.NET packages.
 An experimental PDF module reads page geometry, renders supported vector/text/image
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
 Experimental fixed-QP H.264 intra encoding and YUV downscaling are available.
-Compressed audio encoding remains open.
+Experimental AAC-LC audio encoding to MPEG-TS is also available; perceptual
+allocation, transient handling and encoded audio in HLS remain open.
 
 ## Components
 
@@ -46,7 +48,7 @@ Compressed audio encoding remains open.
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC; source project only |
-| `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoder with long/short windows, TNS, PNS and joint stereo; source project only |
+| `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoding and experimental long-window PCM encoding; source project only |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
@@ -156,6 +158,7 @@ From the download or extraction directory on Linux/macOS:
 ./mediana -i input.mp4 output.ts
 ./mediana -i input.mp4 encoded.ts --video-codec H264 --video-only --qp 26
 ./mediana -i input.mp4 small.ts --video-codec H264 --video-only --width 640 --height 360
+./mediana -i input.mp3 audio.ts --audio-codec Aac --audio-bit-rate 128000
 ./mediana probe mp4 input.mp4
 ./mediana hls create input.mp4 output-hls --audio-stream 1
 ```
@@ -171,7 +174,8 @@ supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
 H.264 subset described above. An explicit `--video-codec H264 --video-only` selects
-fixed-QP intra video encoding to TS; compressed audio encoding remains unavailable.
+fixed-QP intra video encoding to TS. `--audio-codec Aac` selects audio-only AAC-LC
+encoding to TS; see [audio encoding contracts and limits](docs/aac-encoding.md).
 The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
 
@@ -1111,8 +1115,9 @@ never enlarge the source. YUV area filtering precedes encoding, and SAR compensa
 even rounding to preserve display aspect. Both bounds must be at least two.
 The command requires an identity display transform and reports progress during longer
 operations. Output is published only after successful completion. Temporal
-prediction, motion search, CABAC encoding, bitrate/quality control and
-audio encoding remain open. HLS video variants use the same encoder and area
+prediction, motion search, CABAC encoding and bitrate/quality control remain open.
+Experimental [AAC encoding](docs/aac-encoding.md) has a separate audio-only TS path;
+combined encoding in HLS remains open. HLS video variants use the same encoder and area
 filter through the [HLS encoding path](docs/hls-encoding.md). This initial
 all-IDR mode does not promise bitrate efficiency comparable to inter-frame encoding.
 
@@ -1342,7 +1347,7 @@ errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
 streaming encoded packets without a source-container dependency.
 
 The current mode uses fixed-QP all-IDR video. Inter-frame compression, target
-bitrate control and compressed audio encoding
+bitrate control and encoding audio within HLS variants
 remain open. See [HLS encoding contracts and checks](docs/hls-encoding.md).
 
 ## Connecting modules
@@ -1511,7 +1516,7 @@ format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, audio seeking,
 more general movie timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
-broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, inter-frame video encoding, compressed audio encoding, other muxers, scheduling,
+broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, inter-frame video encoding, perceptual AAC encoding and combined A/V transcoding, other muxers, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
 
