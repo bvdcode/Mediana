@@ -12,10 +12,14 @@ namespace Mediana.Codecs.Aac
         private static readonly AacSpectralCodebook LargePairs = new(2, 13, 0, false);
         private static readonly AacSpectralCodebook EscapePairs = new(2, 17, 0, false);
         private readonly uint[] tuples;
+        private readonly int radix;
+        private readonly int offset;
 
         private AacSpectralCodebook(int dimensions, int radix, int offset, bool signed)
         {
             Dimensions = dimensions;
+            this.radix = radix;
+            this.offset = offset;
             Signed = signed;
             int count = 1;
             for (int index = 0; index < dimensions; index++)
@@ -38,6 +42,26 @@ namespace Mediana.Codecs.Aac
 
         public int Dimensions { get; }
         public bool Signed { get; }
+
+        public int Symbol(ReadOnlySpan<int> values)
+        {
+            int symbol = 0;
+            for (int index = 0; index < Dimensions; index++)
+            {
+                int value = Signed ? values[index] : Math.Abs(values[index]);
+                if (ReferenceEquals(this, EscapePairs))
+                {
+                    value = Math.Min(value, 16);
+                }
+                value += offset;
+                if ((uint)value >= (uint)radix)
+                {
+                    return -1;
+                }
+                symbol = symbol * radix + value;
+            }
+            return symbol;
+        }
 
         public void Read(int symbol, Span<int> values)
         {
