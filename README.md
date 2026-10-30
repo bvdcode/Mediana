@@ -50,7 +50,7 @@ Compressed audio encoding remains open.
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
-| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC video segments and measured variant playlists; source project only |
+| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with optional copied AAC/MP3 and measured playlists; source project only |
 | `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
 | `Mediana.Cli` | Command-line media inspection, conversions, previews and exports |
@@ -162,7 +162,8 @@ From the download or extraction directory on Linux/macOS:
 
 On Windows, use `./mediana.exe` in PowerShell with the same arguments.
 The MP4 probe lists stream indices; use the appropriate video/audio indices in
-the HLS, preview and audio commands. Omit `--audio-stream` for HLS without audio. Output paths
+the HLS, preview and audio commands. Omit `--audio-stream` for `hls create` without
+audio; use explicit `--video-only` for `hls encode` without audio. Output paths
 must be new, and their parent directories must already exist.
 
 MP4-to-TS/HLS copies supported AVC/AAC/MP3 streams without re-encoding. PCM export
@@ -1320,23 +1321,28 @@ bytes; existing-output and failed-export checks preserve destination ownership.
 
 ```sh
 mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 --widths 1280 640
+mediana hls encode input.mp4 output-av --audio-stream 1 --segment-ms 6000 --qp 26 --widths 1280 640
 ```
 
 The command decodes supported MP4/MOV AVC video once and produces one smaller
 YUV420P8/H.264 sequence per width. Width bounds round down to even storage sizes
 without enlargement; bounds that produce identical dimensions fail. `--widths`
 uses space-separated integers and must be the final option. Audio omission is
-explicit. The command requires an identity display transform.
+explicit through `--video-only`; alternatively, `--audio-stream` copies one selected
+AAC-LC or MPEG-1/2 Layer III track to every variant. These options are mutually
+exclusive. The command requires an identity display transform.
 
-Each variant contains independently restartable IDR-aligned TS segments and a VOD
+Each variant contains IDR-aligned TS segments and a VOD
 media playlist. The master playlist records actual peak/average transport bitrates
-and the AVC codec identifier. Segment timelines must match across variants. Output
+and the video/audio codec identifiers. Only video-only output declares independent
+segments. Audio bytes and linear-movie timing are preserved, including priming
+and a final audio tail. Segment timelines must match across variants. Output
 is prepared in one temporary directory and published together after completion;
 errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
 streaming encoded packets without a source-container dependency.
 
 The current mode uses fixed-QP all-IDR video. Inter-frame compression, target
-bitrate control, encoded audio and combined audio/video rendition transcoding
+bitrate control and compressed audio encoding
 remain open. See [HLS encoding contracts and checks](docs/hls-encoding.md).
 
 ## Connecting modules

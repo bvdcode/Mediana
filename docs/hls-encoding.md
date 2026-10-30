@@ -1,5 +1,6 @@
 The HLS source module can segment encoded AVC video as packets arrive and format
-VOD media/master playlists. It depends on Mediana container/core/AVC modules;
+VOD media/master playlists, including optional copied AAC-LC or MPEG-1/2 Layer III
+audio. It depends on Mediana container/core/AVC modules;
 encoding and resizing remain separate components. The existing `Mp4HlsSession`
 continues to provide indexed AVC/AAC/MP3 stream copy.
 
@@ -28,8 +29,8 @@ string masterPlaylist = HlsMasterPlaylist.Create([variant]);
 Use the `Mediana.Streaming.Hls` namespace and the encoder's configured stream.
 Packets must contain valid length-prefixed AVC access units, known PTS equal to
 DTS, positive durations and nonoverlapping presentation intervals. Timing must
-be exactly representable in the stream clock. The first packet must contain an
-IDR; subsequent boundaries use the first IDR at or beyond the requested interval.
+be exactly representable in the stream clock. The first video packet must contain
+an IDR; subsequent boundaries use the first IDR at or beyond the requested interval.
 Slice-header inspection ignores the container's key-frame flag. It validates
 restart headers, rather than reconstructing every residual or proving arbitrary
 untrusted bitstreams conformant.
@@ -48,12 +49,29 @@ the final destination and is required before either playlist is available. An
 empty presentation cannot complete. Completed metadata and playlists remain
 available after disposal.
 
+For audiovisual output, use the `Create(videoStream, audioStream, factory,
+allocator, options)` overload. Stream indices must differ. Both tracks require
+known PTS equal to DTS, positive durations and nonoverlapping per-track intervals.
+Submit packets in globally increasing DTS order, with video before audio at equal
+DTS. An audio packet starting before a cut stays in the preceding segment even
+when its duration crosses the boundary. Every packet is written once. Initial
+audio priming may precede the first video packet and is retained. The playlist
+starts at the first video PTS; its final duration includes any later audio tail.
+Both configured tracks must contain packets before completion.
+
+The common audio/video clock uses an exact denominator; unrepresentable clocks
+are rejected before opening any destination. Transport timestamps use the TS
+90 kHz clock and configured offset with nearest-even rounding. Copied audio
+does not claim independent segment decoding: AAC overlap and MP3 reservoir state
+can depend on earlier packets. Continuous playlist decoding retains that state.
+
 ## Variant metadata
 
 Media playlists include floating-point `EXTINF`, a ceiling of the longest
-duration as `TARGETDURATION`, VOD completion and `INDEPENDENT-SEGMENTS`. Every
-segment starts with a verified AVC IDR and contains video only. Segment intervals
-extend to the next boundary; the last ends at the final packet's PTS plus duration.
+duration as `TARGETDURATION` and VOD completion. Video-only output also declares
+`INDEPENDENT-SEGMENTS`. Every segment's video starts with a verified AVC IDR.
+Segment intervals extend to the next video boundary; the last ends at the later
+of the final video/audio PTS plus duration.
 Source timing gaps are preserved in these intervals.
 
 `CreateVariant` measures complete output. `BANDWIDTH` is the maximum bitrate of
@@ -66,7 +84,8 @@ provide a defined peak; `CreateVariant` rejects it. Its media playlist is still
 available. No guessed bitrate is substituted.
 
 The codec identifier takes profile, compatibility and level bytes from the actual
-AVC configuration. Optional display dimensions are caller-supplied. The CLI emits
+AVC configuration. Audio adds `mp4a.40.2` for AAC-LC, `mp4a.6B` for MPEG-1 Layer III,
+or `mp4a.69` for MPEG-2 Layer III. Optional display dimensions are caller-supplied. The CLI emits
 `RESOLUTION` only when known SAR produces an exact integer display width at the
 encoded height; otherwise it leaves that optional attribute absent. The encoded
 SPS retains the exact SAR in either case.
@@ -78,15 +97,17 @@ starts and durations before writing its master playlist.
 
 These rules follow [RFC 8216](https://www.rfc-editor.org/rfc/rfc8216.html), sections
 4.1, 4.3.3, 4.3.4.2 and 4.3.5.1, and
-[RFC 6381](https://www.rfc-editor.org/rfc/rfc6381.html), section 3.3.
+[RFC 6381](https://www.rfc-editor.org/rfc/rfc6381.html), section 3.3, with audio
+object types from the [MP4 Registration Authority](https://mp4ra.org/registered-types/object-types).
 
 ## Console workflow and limits
 
 ```sh
 mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 --widths 1280 640
+mediana hls encode input.mp4 output-av --audio-stream 1 --segment-ms 6000 --qp 26 --widths 1280 640
 ```
 
-The CLI reads supported MP4/MOV AVC input once. Each frame passes sequentially to
+The CLI decodes supported MP4/MOV AVC input once. Each frame passes sequentially to
 the reused YUV area plans and fixed-QP AVC encoders for the selected widths.
 Frames and pending encoded packets are released as processing proceeds. Each
 variant uses a `variant-<requested-width>` directory with `index.m3u8` and numbered
@@ -94,10 +115,17 @@ TS segments; the output root contains the master `index.m3u8`. Progress uses the
 standard logging options. The parent directory must exist, and the destination
 must be new. Files are published together only after every variant completes.
 
-The mode is video-only and requires explicit `--video-only`. It uses one fixed QP
+Choose either `--video-only` or `--audio-stream`; they are mutually exclusive.
+Audio copy uses an additional indexed reader over the same random-access source
+and copies each selected audio packet to all variants without decoding it. Video
+decoding still reads the container's sequential packets. Audio is read again for
+copy; no whole-file payload queue is retained. Input edit timing uses the linear
+movie timeline for both readers. Unsupported, empty or missing audio tracks fail.
+
+The mode uses one fixed QP
 for all variants, with independently coded IDR pictures. It has no target bitrate
 or inter-frame compression. Arbitrary display transforms, audio encoding,
-combined audio/video transcoding, live/event playlists, fragmented MP4, encryption
+live/event playlists, fragmented MP4, encryption
 and playback scheduling remain outside this path.
 
 ## Checks
@@ -123,3 +151,19 @@ picture, PTS and duration matching its reference. Master bitrates also match an
 independent calculation from file sizes and TS presentation times. This small,
 repeated source checks complete processing and timing; it does not establish
 throughput or compression quality for ordinary HD video.
+
+Audiovisual checks retain every AAC/MP3 packet, PTS/DTS and transport counter
+alongside newly encoded AVC video in managed and Native AOT execution. Six short
+variants contain 160 pictures across 54 segments. Independent decoding reads
+every playlist and every segment's video; complete audio elementary bytes and
+decoded PCM match the original audio, and packet times retain the configured
+one-second TS offset to within the TS clock resolution. All 126 generated
+playlist/segment files match between managed and native commands, including the
+video-only reference outputs.
+
+A complete 30-minute A/V input with repeated 96x80 video and continuous 48 kHz AAC
+produces two variants with 301 segments each. Every one of 10,802 pictures and
+84,376 audio packets survives in each variant; independent picture samples,
+presentation intervals, audio bytes and full decoded PCM hashes match. This
+checks complete A/V processing and bounded media storage on a small source,
+without establishing HD throughput or independent audio restart quality.

@@ -19,7 +19,7 @@ namespace Mediana.Tests
             AvcAudioHlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name, codecs);
 
         [Fact]
-        public async Task AudioAtTheSameTimestampMustFollowVideoBeforeOpeningAnyDestination()
+        public async Task VideoAfterAudioAtEqualTimestampIsRejectedWithoutAppendingBytes()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             VideoFormat format = H264EncoderTests.Format(16, 16);
