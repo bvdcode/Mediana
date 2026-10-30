@@ -59,6 +59,10 @@ namespace Mediana.NativeTests
                 await AacFeatureTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
                 Console.WriteLine($"PASS AAC-LC {name}: complete PCM/timing/ownership and reference sample or noise energy checks; maximum PCM difference {difference:G9}.");
             }
+            await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48", 64000, 19);
+            await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-stereo-44", 128000, 17);
+            await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-pns-48", 192000, 19);
+            Console.WriteLine("PASS AAC encoding: every decoded sample in 55 owned AAC-LC packets matches independent mono/stereo references, preserving priming, padding and timing.");
             await AacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48");
             await AacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-stereo-44");
             foreach (string name in new[] { "lc-mono-48", "lc-stereo-44" })

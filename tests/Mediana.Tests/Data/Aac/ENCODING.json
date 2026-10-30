@@ -1,0 +1,33 @@
+{
+  "independent_decoder": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "format": "Interleaved float32 little endian; includes all priming and final padded frames.",
+  "cases": [
+    {
+      "name": "lc-mono-48",
+      "bitrate_ceiling": 64000,
+      "source_sha256": "29937fec86cfc64078b51f7d3ecaf023c92de33b3ad647de6905bfac36ccb444",
+      "transport_sha256": "98745188df2438988e8ad21a080f546926bde25636a529d42a0da7a6321cfccd",
+      "reference_sha256": "7fa1936fb879ac2dfa3120dbc6c70942dce071f5c2e848903c65ca51cef657ae",
+      "encode_command": "mediana -i lc-mono-48.wav lc-mono-48.ts --audio-codec Aac --audio-bit-rate 64000",
+      "decode_command": "ffmpeg -v error -xerror -threads 1 -i lc-mono-48.ts -map 0:a:0 -c:a pcm_f32le -f f32le lc-mono-48.encoded-64k.f32le"
+    },
+    {
+      "name": "lc-stereo-44",
+      "bitrate_ceiling": 128000,
+      "source_sha256": "6b0fe76cb3d84b2387743bac01b21ac9737c30868f4116176daf06e05a33cc14",
+      "transport_sha256": "3c38ac9d4eb33802884dfd1a869e662a4e06663ea3e24c5d980649ee4df56287",
+      "reference_sha256": "c16d2bf27a01fdac0fa78fefc69ddf9e3f77100a7ff120fe6862961928e1cade",
+      "encode_command": "mediana -i lc-stereo-44.wav lc-stereo-44.ts --audio-codec Aac --audio-bit-rate 128000",
+      "decode_command": "ffmpeg -v error -xerror -threads 1 -i lc-stereo-44.ts -map 0:a:0 -c:a pcm_f32le -f f32le lc-stereo-44.encoded-128k.f32le"
+    },
+    {
+      "name": "lc-pns-48",
+      "bitrate_ceiling": 192000,
+      "source_sha256": "7ebf6730f1eecf8471b7e7e3f45febe4c327b36591d005fca7043b5c2b59c9a3",
+      "transport_sha256": "c19c460ddf2fb9186a053eabbf28ee3a00ae397e7bbf27e63f7f05508b703842",
+      "reference_sha256": "277ef4bd290953498e18a67600ec7cfc94efa0392de2d440490ad4bffdd3f0b3",
+      "encode_command": "mediana -i lc-pns-48.wav lc-pns-48.ts --audio-codec Aac --audio-bit-rate 192000",
+      "decode_command": "ffmpeg -v error -xerror -threads 1 -i lc-pns-48.ts -map 0:a:0 -c:a pcm_f32le -f f32le lc-pns-48.encoded-192k.f32le"
+    }
+  ]
+}
