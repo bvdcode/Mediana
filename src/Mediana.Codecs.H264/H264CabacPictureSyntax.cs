@@ -173,8 +173,9 @@ namespace Mediana.Codecs.H264
                 Span<byte> counts = target.Counts(plane);
                 int position = target.BlockIndex(plane, x, y);
                 int unavailable = intra ? 1 : 0;
-                context = x == 0 ? unavailable : counts[position - 1] != 0 ? 1 : 0;
-                context += 2 * (y == 0 ? unavailable : counts[position - target.Stride(plane) / 4] != 0 ? 1 : 0);
+                int sampleScale = plane == 0 ? 1 : 2;
+                context = !target.IsInCurrentSlice(x * sampleScale - 1, y * sampleScale) ? unavailable : counts[position - 1] != 0 ? 1 : 0;
+                context += 2 * (!target.IsInCurrentSlice(x * sampleScale, y * sampleScale - 1) ? unavailable : counts[position - target.Stride(plane) / 4] != 0 ? 1 : 0);
             }
             int total = H264CabacResidual.Read(ref bits, reader, category, context, coefficients);
             if (dc && total != 0)

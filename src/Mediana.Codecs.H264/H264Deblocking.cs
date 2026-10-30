@@ -23,14 +23,26 @@ namespace Mediana.Codecs.H264
                 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 6, 6, 7, 8, 9, 10, 11, 13, 14, 16, 18, 20, 23, 25];
 
         public static void Apply(H264Picture picture, H264SliceHeader header, CancellationToken cancellationToken,
-            IReadOnlyList<H264ReferencePicture?>? references = null, IReadOnlyList<H264ReferencePicture?>? referencesL1 = null)
+            IReadOnlyList<H264ReferencePicture?>? references = null, IReadOnlyList<H264ReferencePicture?>? referencesL1 = null) =>
+            ApplyRange(picture, header, picture.Quantizers.Length, cancellationToken, references, referencesL1);
+
+        public static void Apply(H264Picture picture, IReadOnlyList<H264SliceRegion> slices, CancellationToken cancellationToken)
+        {
+            foreach (H264SliceRegion slice in slices)
+            {
+                ApplyRange(picture, slice.Header, slice.EndMacroblock, cancellationToken, null, null);
+            }
+        }
+
+        private static void ApplyRange(H264Picture picture, H264SliceHeader header, int endMacroblock, CancellationToken cancellationToken,
+            IReadOnlyList<H264ReferencePicture?>? references, IReadOnlyList<H264ReferencePicture?>? referencesL1)
         {
             if (!header.DeblockingEnabled)
             {
                 return;
             }
             int columns = header.Sequence.WidthInMbs;
-            for (int address = 0; address < picture.Quantizers.Length; address++)
+            for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 for (int plane = 0; plane < 3; plane++)
@@ -61,7 +73,8 @@ namespace Mediana.Codecs.H264
                 {
                     continue;
                 }
-                if (edge == 0 && (vertical ? x == 0 : y == 0))
+                if (edge == 0 && ((vertical ? x == 0 : y == 0) ||
+                    (header.DeblockingIdc == 2 && address - (vertical ? 1 : header.Sequence.WidthInMbs) < header.FirstMacroblock)))
                 {
                     continue;
                 }

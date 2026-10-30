@@ -74,11 +74,11 @@ namespace Mediana.Codecs.H264
         }
 
         private int DifferenceAt(int x, int y, Span<short> differences) =>
-            x < 0 || y < 0 || x >= target.Width || y >= target.Height ? 0 : Math.Abs((int)differences[target.BlockIndex(0, x, y)]);
+            !target.IsInCurrentSlice(x, y) ? 0 : Math.Abs((int)differences[target.BlockIndex(0, x, y)]);
 
         private int ReferenceCondition(H264ReferenceList list, int x, int y)
         {
-            if (x < 0 || y < 0 || x >= target.Width || y >= target.Height)
+            if (!target.IsInCurrentSlice(x, y))
             {
                 return 0;
             }

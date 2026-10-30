@@ -16,7 +16,7 @@ namespace Mediana.Codecs.H264
         public H264MotionSample MotionAt(H264ReferenceList list, int x, int y)
         {
             Span<byte> indices = ReferenceIndices(list);
-            if (x < 0 || x >= Width || y < 0 || y >= Height)
+            if (!IsInCurrentSlice(x, y))
             {
                 return new H264MotionSample(false, -1, 0, 0);
             }

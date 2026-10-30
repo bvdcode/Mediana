@@ -13,9 +13,11 @@ namespace Mediana.Codecs.H264
         private readonly WritableMediaBuffer storage;
         private readonly int count;
         private readonly int columns;
+        private readonly int firstMacroblock;
 
-        public H264CabacMacroblockState(H264SequenceParameterSet sequence, MediaBufferAllocator allocator)
+        public H264CabacMacroblockState(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, int firstMacroblock = 0)
         {
+            this.firstMacroblock = firstMacroblock;
             columns = sequence.WidthInMbs;
             count = checked(columns * sequence.HeightInMapUnits);
             storage = allocator.Allocate(checked(count * 4));
@@ -26,8 +28,8 @@ namespace Mediana.Codecs.H264
         public Span<byte> ChromaModes => storage.Memory.Span.Slice(count * 2, count);
         public Span<byte> DcFlags => storage.Memory.Span.Slice(count * 3, count);
 
-        public int Left(int address) => address % columns == 0 ? -1 : address - 1;
-        public int Top(int address) => address < columns ? -1 : address - columns;
+        public int Left(int address) => address % columns == 0 || address - 1 < firstMacroblock ? -1 : address - 1;
+        public int Top(int address) => address - columns < firstMacroblock ? -1 : address - columns;
 
         public int TypeCondition(int neighbour) => neighbour >= 0 && Types[neighbour] != 0 ? 1 : 0;
         public int SkipCondition(int neighbour) => neighbour >= 0 && Types[neighbour] != Skipped ? 1 : 0;

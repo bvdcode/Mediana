@@ -48,6 +48,7 @@ namespace Mediana.Codecs.H264
         public int Width { get; }
         public int Height { get; }
         public bool HasBidirectionalMotion => referenceLists == 2;
+        public int FirstMacroblock { get; set; }
         private int ModesOffset => lumaBytes + chromaBytes * 2 + lumaBlocks + chromaBlocks * 2;
         public Span<byte> Modes => storage.Memory.Span.Slice(ModesOffset, lumaBlocks);
         private int QuantizersOffset => ModesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
@@ -77,14 +78,17 @@ namespace Mediana.Codecs.H264
         {
             Span<byte> counts = Counts(plane);
             int index = BlockIndex(plane, x, y);
-            int left = x == 0 ? 0 : counts[index - 1];
-            int top = y == 0 ? 0 : counts[index - Stride(plane) / 4];
-            return x == 0 ? top : y == 0 ? left : (left + top + 1) >> 1;
+            int scale = plane == 0 ? 1 : 2;
+            bool hasLeft = IsInCurrentSlice(x * scale - 1, y * scale);
+            bool hasTop = IsInCurrentSlice(x * scale, y * scale - 1);
+            int left = hasLeft ? counts[index - 1] : 0;
+            int top = hasTop ? counts[index - Stride(plane) / 4] : 0;
+            return !hasLeft ? top : !hasTop ? left : (left + top + 1) >> 1;
         }
 
         public int PredictedMode(int x, int y, bool constrained = false)
         {
-            if (x == 0 || y == 0)
+            if (!IsInCurrentSlice(x - 1, y) || !IsInCurrentSlice(x, y - 1))
             {
                 return 2;
             }
@@ -216,7 +220,10 @@ namespace Mediana.Codecs.H264
 
         public void Dispose() => storage.Dispose();
 
-        private bool IsAvailable(int x, int y, bool constrained) => x >= 0 && x < Width && y >= 0 && y < Height &&
+        public bool IsInCurrentSlice(int x, int y) => x >= 0 && x < Width && y >= 0 && y < Height &&
+            y / 16 * Sequence.WidthInMbs + x / 16 >= FirstMacroblock;
+
+        private bool IsAvailable(int x, int y, bool constrained) => IsInCurrentSlice(x, y) &&
             Modes[BlockIndex(0, x, y)] < 128 && (!constrained || Modes[BlockIndex(0, x, y)] != InterMode);
     }
 }
