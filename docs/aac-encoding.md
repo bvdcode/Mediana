@@ -25,7 +25,7 @@ writes and disposes each caller-owned `MediaPacket`, and stops at `InputRequired
 or `EndOfStream`. Complete input and drain to `EndOfStream` before reading final
 padding metadata. The packet's `Stream` configuration is an AudioSpecificConfig
 for the configured rate and channel layout; it can be passed to `MpegTsWriter`.
-`AacConfiguration.Create` and `ToAudioSpecificConfig` also expose configuration
+`Mediana.Formats.Audio.AacConfiguration.Create` and `ToAudioSpecificConfig` also expose configuration
 construction separately.
 
 Inputs require interleaved Float32 storage. Mono accepts `mono` or `front-center`;

@@ -28,38 +28,40 @@ allocation and transient handling remain open. HLS variants can copy or encode a
 
 | Project | Current responsibility |
 | --- | --- |
-| `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction; source project only |
-| `Mediana.Drawing` | Managed 2D paths, fills/strokes, clipping, compositing and RGBA surfaces; source project only |
-| `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha; source project only |
-| `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion; source project only |
-| `Mediana.Codecs.Jbig2` | Packed monochrome pages, globals and optional RGBA expansion; source project only |
-| `Mediana.Images.Svg` | SVG paths, styles, text, masks, filters and embedded PNG; source project only |
-| `Mediana.Images.Tgs` | TGS/Lottie 2D keyframes and lazy timed raster frames; source project only |
+| `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction |
+| `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
+| `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha |
+| `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion |
+| `Mediana.Codecs.Jbig2` | Packed monochrome pages, globals and optional RGBA expansion |
+| `Mediana.Images.Svg` | SVG paths, styles, text, masks, filters and embedded PNG |
+| `Mediana.Images.Tgs` | TGS/Lottie 2D keyframes and lazy timed raster frames |
+| `Mediana.Formats` | Shared codec configuration syntax, elementary framing and access-unit conversion |
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
-| `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
+| `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC/MP3 packet reading |
-| `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading; source project only |
-| `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading; source project only |
-| `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks; source project only |
-| `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing; source project only |
-| `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo; source project only |
-| `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC/MP3 transport-stream writer; source project only |
-| `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
-| `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
-| `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC; source project only |
-| `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoding and experimental long-window PCM encoding; source project only |
-| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding; source project only |
-| `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
+| `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
+| `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
+| `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
+| `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
+| `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo |
+| `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC/MP3 transport-stream writer |
+| `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder/encoder factories |
+| `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
+| `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
+| `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoding and experimental long-window PCM encoding |
+| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding |
+| `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
-| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists; source project only |
-| `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
-| `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
+| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists |
+| `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |
+| `Mediana` | Explicit input/output registration, container detection and individual or combined A/V sessions |
 | `Mediana.Cli` | Command-line media inspection, conversions, previews and exports |
 | `Mediana.Sample` | Minimal generated-frame example using the public API |
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
+See [module boundaries, stream contracts and reusable operations](docs/architecture.md).
 
 The H.264 work currently reconstructs progressive 8-bit 4:2:0 CAVLC I/P/B
 and CABAC I/P/B pictures with default scaling, including motion compensation, reference
@@ -353,7 +355,7 @@ and duration use exact sample counts. Random-access opening preserves the source
 
 The reader supports one little-endian RIFF/WAVE `data` chunk, preceded by its
 `fmt ` configuration. Integer PCM accepts 8/16/24/32-bit storage; IEEE float accepts
-32/64-bit storage. The shared `PcmConfiguration` describes standard WAVEFORMATEX
+32/64-bit storage. The shared `Mediana.Formats.Audio.PcmConfiguration` describes standard WAVEFORMATEX
 or WAVEFORMATEXTENSIBLE bytes, including valid precision and explicit channel order.
 The decoder returns interleaved native-endian samples. Signed 24-bit input expands
 to left-aligned signed 32-bit output; float bit patterns retain their precision.
@@ -705,7 +707,7 @@ reference treatment of 8 kHz mixed windows and illegal low-rate intensity positi
 The source `Mediana.Containers.Flac` module reads native files beginning with
 `fLaC`. STREAMINFO supplies rate, channels, precision, block/frame bounds, total
 samples and the stored decoded-audio MD5. A zero total sample count has unknown
-duration. `FlacConfiguration` preserves these declarations without decoding PCM
+duration. `Mediana.Formats.Audio.FlacConfiguration` preserves these declarations without decoding PCM
 or verifying the MD5.
 
 ```csharp
@@ -753,7 +755,7 @@ dotnet run --project tools/Mediana.Cli -c Release --no-build -- cover flac tests
 The probe reads metadata only. Cover extraction publishes original embedded bytes
 after successful processing; replacement requires confirmation or explicit
 `--overwrite` / `-y`. URI pictures are
-rejected by that sample. The source module is not packaged. Decoded-audio MD5
+rejected by that sample. Decoded-audio MD5
 verification, seeking, encoding, custom channel masks,
 reserved metadata block types and Ogg/MP4 FLAC mapping remain unsupported.
 The managed and Linux Native AOT samples extract the original reference PNG/JPEG
@@ -934,8 +936,7 @@ limits. Disposing the reader releases its movie storage; retained packets remain
 
 ## Decoding H.264
 
-Reference the Mediana.Codecs.H264 source project to use its experimental factory;
-this module is not included in the NuGet packages yet. Register both modules explicitly:
+Reference `Mediana.Codecs.H264` and `Mediana.Containers.Mp4`. Register both modules explicitly:
 
 ```csharp
 MediaEngine engine = new MediaEngineBuilder()
@@ -1014,8 +1015,7 @@ await output.WriteAsync(png.Memory, cancellationToken);
 ```
 
 The additional namespaces are Mediana.Processing, Mediana.Codecs.Png and
-Mediana.Core.Memory. Reference the Mediana.Codecs.Png source project; it is not
-packaged yet. The encoder returns owned PNG bytes and does not open files or streams.
+Mediana.Core.Memory. Reference `Mediana.Codecs.Png`. The encoder returns owned PNG bytes and does not open files or streams.
 
 SrgbPreview.Fit combines SDR conversion, aspect correction, orthogonal orientation
 and nearest-neighbor fitting. Its output matches SrgbConverter.Apply followed by
@@ -1725,23 +1725,17 @@ dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE
 
 The library projects depend at runtime only on .NET and other Mediana projects.
 Build analyzers and test tools are development dependencies.
-Packages contain an experimental foundation and the limited MP4/MOV reader described
-above. The experimental H.264, PNG, WAVE, PCM and AAC source modules are not packaged. APIs may change before 1.0.
+Release packaging includes all 28 library projects in the [component table](#components).
+Every module has its own package; application and test projects are excluded.
+Installing `Mediana` brings in the facade's contract and execution dependencies.
+Concrete containers, codecs, image/document adapters, drawing, processing and HLS
+remain optional packages. All packages use the same computed release version.
 
-| Package | Responsibility |
-| --- | --- |
-| Mediana | Public facade and module registration |
-| Mediana.Core | Time, packets, frames and buffer ownership |
-| Mediana.IO | Byte sources and probe replay |
-| Mediana.Containers | Container contracts |
-| Mediana.Containers.Mp4 | Optional MP4/MOV metadata and packet reader |
-| Mediana.Codecs | Codec contracts |
-| Mediana.Processing | SDR-to-sRGB conversion, RGBA32 resizing and YUV420 area downscaling |
-| Mediana.Execution | Sequential video decoding pipeline |
-
-Installing Mediana includes its required modules through NuGet dependencies.
-Mediana.Processing and Mediana.Containers.Mp4 are optional separate packages.
-All packages share one version.
+The release checks restore the complete media test application from the newly
+built packages, reject unresolved or project-based dependencies, publish it with
+Native AOT and execute its reference tests. This checks package resources and
+transitive dependencies as well as compilation. Packages are published only by
+the release workflow described below.
 
 ### Publishing
 

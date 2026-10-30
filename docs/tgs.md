@@ -1,18 +1,19 @@
 # TGS and Lottie animation
 
 `Mediana.Images.Tgs` reads gzip-compressed TGS and Lottie JSON and rasterizes 2D
-frames through Mediana's drawing and SVG modules. It is an independent source
+frames directly through `Mediana.Drawing`. It builds typed paths, paints, masks
+and effects without serializing SVG or reparsing path strings. It is an independent
 module, derived from the same author's MIT-licensed Render.NET algorithms at
 commit `03cb502`. It has no JavaScript engine or external runtime dependencies.
 
 ```csharp
 using Mediana.Images.Tgs;
-using Mediana.Images.Svg;
+using Mediana.Drawing;
 
 TgsDocument document = await TgsReader.ReadFileAsync("animation.tgs", cancellationToken: cancellationToken);
 foreach (TgsFrame frame in TgsRenderer.RenderFrames(document,
     new TgsAnimationOptions { FrameRate = 30, MaximumFrames = 300 },
-    new SvgRenderOptions { Width = 256 }, cancellationToken))
+    new DrawingRenderOptions { Width = 256 }, cancellationToken))
 {
     // Consume frame.Image, frame.Timestamp and frame.Duration.
 }
@@ -40,3 +41,6 @@ original synthetic animations also produce equal output from JSON and gzip at
 four positions each. Timing, frame limits, cancellation and malformed input
 bounds are checked separately. The hashes are renderer regression references,
 not independent Lottie conformance evidence.
+
+Concurrent renders of one composition use independent scene state and effect-buffer budgets.
+A failed render releases temporary effect buffers; later renders can reuse the composition.

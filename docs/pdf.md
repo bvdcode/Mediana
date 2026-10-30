@@ -3,7 +3,7 @@
 `Mediana.Documents.Pdf` reads PDF structure and interprets page painting commands
 with managed C# code. It uses Mediana's drawing, TrueType, JPEG 2000 and JBIG2
 implementations. There are no PDF parser packages, native libraries or external
-processes in the runtime path. The module is experimental and not yet packaged.
+processes in the runtime path. The module is packaged as `Mediana.Documents.Pdf`.
 
 ```csharp
 using Mediana.Documents.Pdf;

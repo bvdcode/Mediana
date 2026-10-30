@@ -16,7 +16,7 @@ using Mediana.Codecs.Png;
 
 SvgDocument document = await SvgReader.ReadFileAsync("image.svg", cancellationToken: cancellationToken);
 PixelBuffer pixels = SvgRenderer.Render(document,
-    new SvgRenderOptions { Width = 512, MaximumSamples = 4_000_000 }, cancellationToken);
+    new DrawingRenderOptions { Width = 512, MaximumSamples = 4_000_000 }, cancellationToken);
 MediaBufferAllocator allocator = new(16 * 1024 * 1024);
 using VideoFrame frame = pixels.ToVideoFrame(allocator, cancellationToken);
 using MediaBuffer png = PngEncoder.Encode(frame, allocator, cancellationToken);
