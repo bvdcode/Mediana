@@ -14,6 +14,7 @@ namespace Mediana
         private readonly List<IContainerReaderFactory> containers = [];
         private readonly List<IVideoDecoderFactory> decoders = [];
         private readonly List<IAudioDecoderFactory> audioDecoders = [];
+        private readonly List<IStreamMetadataReader> metadataReaders = [];
 
         public MediaEngineBuilder AddContainer(IContainerReaderFactory factory)
         {
@@ -42,6 +43,19 @@ namespace Mediana
             return this;
         }
 
+        public MediaEngineBuilder AddStreamMetadataReader(IStreamMetadataReader reader)
+        {
+            ArgumentNullException.ThrowIfNull(reader);
+            ArgumentException.ThrowIfNullOrWhiteSpace(reader.ImplementationId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(reader.CodecId);
+            if (metadataReaders.Any(item => item.ImplementationId == reader.ImplementationId || item.CodecId == reader.CodecId))
+            {
+                throw new ArgumentException("A metadata reader with the same implementation or codec identifier is already registered.", nameof(reader));
+            }
+            metadataReaders.Add(reader);
+            return this;
+        }
+
         private static void ValidateDecoder<TFrame>(IDecoderFactory<TFrame> factory, IEnumerable<IDecoderFactory<TFrame>> existing)
             where TFrame : class, IDisposable
         {
@@ -54,6 +68,6 @@ namespace Mediana
             }
         }
 
-        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray());
+        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray());
     }
 }
