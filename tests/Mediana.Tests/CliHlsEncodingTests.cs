@@ -120,6 +120,43 @@ namespace Mediana.Tests
             Assert.Empty(Directory.GetFileSystemEntries(directory));
         }
 
+        [Theory]
+        [InlineData("avc-aac.mp4")]
+        [InlineData("avc-mp3-44.mp4")]
+        [InlineData("avc-mp3-22.mp4")]
+        public async Task EncodedAacCreatesCompleteAlignedAudiovisualVariants(string name)
+        {
+            string output = Path.Combine(directory, "hls");
+            (int code, _, _) = await CliTests.RunAsync(["hls", "encode", Data(name), output,
+                "--audio-stream", "1", "--audio-codec", "Aac", "--audio-bit-rate", "128000",
+                "--segment-ms", "500", "--widths", "64", "32"]);
+            Assert.Equal(0, code);
+            string master = await File.ReadAllTextAsync(Path.Combine(output, "index.m3u8"));
+            Assert.Equal(2, master.Split("CODECS=\"avc1.42C029,mp4a.40.2\"").Length - 1);
+            string[] media = await Task.WhenAll(new[] { 64, 32 }.Select(width => File.ReadAllTextAsync(
+                Path.Combine(output, "variant-" + width.ToString(CultureInfo.InvariantCulture), "index.m3u8"))));
+            Assert.Equal(media[0], media[1]);
+            Assert.Contains("#EXT-X-ENDLIST", media[0]);
+            Assert.DoesNotContain("#EXT-X-INDEPENDENT-SEGMENTS", media[0]);
+            Assert.Single(Directory.GetFileSystemEntries(directory));
+        }
+
+        [Theory]
+        [InlineData("--audio-stream 1 --audio-bit-rate 128000", 2)]
+        [InlineData("--video-only --audio-codec Aac", 2)]
+        [InlineData("--audio-stream 1 --audio-codec Aac --audio-bit-rate 0", 2)]
+        [InlineData("--audio-stream 1 --audio-codec Aac --audio-bit-rate 5000000", 2)]
+        [InlineData("--audio-stream 1 --audio-codec 7", 2)]
+        public async Task InvalidEncodingOptionsPublishNothing(string options, int expected)
+        {
+            List<string> arguments = ["hls", "encode", Data("avc-aac.mp4"), Path.Combine(directory, "hls")];
+            arguments.AddRange(options.Split(' '));
+            arguments.AddRange(["--widths", "32"]);
+            (int code, _, _) = await CliTests.RunAsync(arguments.ToArray());
+            Assert.Equal(expected, code);
+            Assert.Empty(Directory.GetFileSystemEntries(directory));
+        }
+
         public void Dispose()
         {
             Directory.Delete(directory, recursive: true);

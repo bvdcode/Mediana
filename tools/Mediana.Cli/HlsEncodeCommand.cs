@@ -16,7 +16,8 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string input, string output, int videoIndex, int? audioIndex, int[] widths,
+        public static async Task<int> RunAsync(string input, string output, int videoIndex, int? audioIndex,
+            AudioCodecMode? audioCodec, int audioBitRate, int[] widths,
             int qp, long targetMilliseconds, ILogger logger, CancellationToken token)
         {
             MediaEngine engine = new MediaEngineBuilder()
@@ -31,7 +32,12 @@ namespace Mediana.Cli
             using VideoFrame first = await session.ReadFrameAsync(token)
                 ?? throw new InvalidDataException("The input contains no decoded video frames.");
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
-            await using HlsAudioSource? audio = audioIndex is int index ? await HlsCopyAudioSource.OpenAsync(source, index, allocator, token) : null;
+            await using HlsAudioSource? audio = audioIndex is int index ? audioCodec switch
+            {
+                null => await HlsCopyAudioSource.OpenAsync(source, index, allocator, token),
+                AudioCodecMode.Aac => await HlsAacAudioSource.OpenAsync(source, index, audioBitRate, allocator, token),
+                _ => throw new ArgumentOutOfRangeException(nameof(audioCodec))
+            } : null;
             long frames = 0;
             int segments = 0;
             await CommandOutputDirectory.WriteAsync(output, async directory =>
@@ -109,6 +115,10 @@ namespace Mediana.Cli
                     throw new InvalidOperationException("HLS encoding buffers were not released.");
                 }
             }, token);
+            if (audio is HlsAacAudioSource encoded)
+            {
+                await Console.Out.WriteLineAsync($"AAC-LC: {encoded.InputSamplesPerChannel} input samples per channel; priming {encoded.PrimingSamples}; padding {encoded.PaddingSamples}.");
+            }
             await Console.Out.WriteLineAsync($"HLS encoding: {frames} input frames; {audio?.PacketsWritten ?? 0} audio packets; {widths.Length} variants; {segments} aligned segments per variant. Live buffer bytes: 0.");
             return 0;
         }
