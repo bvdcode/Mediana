@@ -10,6 +10,8 @@ using System.Numerics;
 using System.Text;
 using System.Xml.Linq;
 
+using Mediana.Drawing.Fonts;
+
 namespace Mediana.Images.Svg
 {
     internal partial class SvgSceneBuilder
@@ -50,7 +52,7 @@ namespace Mediana.Images.Svg
             return items.Select(item => item.EndsWith('%') ? SvgLength.Parse(item, percent) : TextLength(item, size)).ToArray();
         }
 
-        private static float Baseline(Dictionary<string, string> style, SvgTrueType font, float size)
+        private static float Baseline(Dictionary<string, string> style, TrueTypeFont font, float size)
         {
             string value = Value(style, "dominant-baseline", Value(style, "alignment-baseline", "auto"));
             float offset = value switch
@@ -72,14 +74,14 @@ namespace Mediana.Images.Svg
             });
         }
 
-        private (SvgTrueType Font, int Glyph) TextFont(Dictionary<string, string> style, int character)
+        private (TrueTypeFont Font, int Glyph) TextFont(Dictionary<string, string> style, int character)
         {
             string family = Value(style, "font-family", "sans-serif");
             string weight = Value(style, "font-weight", "400");
             int numeric = weight is "bold" or "bolder" ? 700 : int.TryParse(weight, out int parsed) ? parsed : 400;
             SvgFontRequest? request = new SvgFontRequest(family, numeric, Value(style, "font-style", "normal") is "italic" or "oblique");
-            SvgTrueType[] fonts = TextFonts(request);
-            foreach (SvgTrueType font in fonts)
+            TrueTypeFont[] fonts = TextFonts(request);
+            foreach (TrueTypeFont font in fonts)
             {
                 int glyph = font.Glyph(character);
                 if (glyph != 0)
@@ -92,17 +94,17 @@ namespace Mediana.Images.Svg
             return (fonts[0], 0);
         }
 
-        private SvgTrueType[] TextFonts(SvgFontRequest request)
+        private TrueTypeFont[] TextFonts(SvgFontRequest request)
         {
-            if (!_fonts.TryGetValue(request, out SvgTrueType[]? fonts))
+            if (!_fonts.TryGetValue(request, out TrueTypeFont[]? fonts))
             {
-                var list = new List<SvgTrueType>();
+                var list = new List<TrueTypeFont>();
                 foreach (string candidate in request.Family.Split(','))
                 {
                     ReadOnlyMemory<byte> custom = _limits.FontResolver?.Invoke(request with { Family = candidate.Trim().Trim('\'', '"') }) ?? default;
                     if (!custom.IsEmpty)
                     {
-                        list.Add(new SvgTrueType(custom));
+                        list.Add(new TrueTypeFont(custom));
                     }
                 }
 
@@ -116,14 +118,14 @@ namespace Mediana.Images.Svg
             return fonts;
         }
 
-        private SvgTrueType BundledFont(string name)
+        private TrueTypeFont BundledFont(string name)
         {
-            if (_bundledFonts.TryGetValue(name, out SvgTrueType? cached))
+            if (_bundledFonts.TryGetValue(name, out TrueTypeFont? cached))
             {
                 return cached;
             }
 
-            SvgTrueType font = new(Resources.BundledResources.Read(name));
+            TrueTypeFont font = new(Resources.BundledResources.Read(name));
             _bundledFonts.Add(name, font);
             return font;
         }

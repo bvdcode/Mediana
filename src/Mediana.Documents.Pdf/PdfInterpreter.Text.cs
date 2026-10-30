@@ -5,7 +5,9 @@ using System.Buffers.Binary;
 using System.Globalization;
 using System.Numerics;
 using Mediana.Drawing;
-using Mediana.Images.Svg;
+
+using Mediana.Drawing.Fonts;
+
 namespace Mediana.Documents.Pdf
 {
     internal partial class PdfInterpreter
@@ -32,7 +34,7 @@ namespace Mediana.Documents.Pdf
             PdfValue descriptor = Get(dictionary, "FontDescriptor");
             PdfValue file = descriptor.Get("FontFile2");
             if (file.Kind == PdfValueKind.Null) { return null; }
-            SvgTrueType face = new(storage.Decode(storage.Object(file, token), token));
+            TrueTypeFont face = new(storage.Decode(storage.Object(file, token), token));
             Dictionary<int, int> glyphs = [];
             Dictionary<int, double> widths = [];
             double defaultWidth;

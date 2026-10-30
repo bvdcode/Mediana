@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing.Fonts
 {
     internal record GlyphShape(List<FontPoint> Points, List<int> Ends);
 }

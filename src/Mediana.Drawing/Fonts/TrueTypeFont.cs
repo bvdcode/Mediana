@@ -10,9 +10,10 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing.Fonts
 {
-    internal partial class SvgTrueType
+    /// <summary>Managed TrueType outlines, metrics and character maps. Instances require a single consumer; returned outlines are independent copies.</summary>
+    public partial class TrueTypeFont
     {
         private readonly byte[] _data;
         private readonly Dictionary<string, (int Start, int Length)> _tables = new(StringComparer.Ordinal);
@@ -21,16 +22,16 @@ namespace Mediana.Images.Svg
         private readonly int _locaFormat;
         private readonly Dictionary<int, VectorPath> _outlines = new();
         private readonly Dictionary<(int, int), float> _pairs = new();
-        internal float Units { get; }
-        internal float Ascent { get; }
-        internal float Descent { get; }
-        internal float XHeight { get; }
+        public float Units { get; }
+        public float Ascent { get; }
+        public float Descent { get; }
+        public float XHeight { get; }
 
-        internal SvgTrueType(ReadOnlyMemory<byte> source)
+        public TrueTypeFont(ReadOnlyMemory<byte> source)
         {
             if (source.Length > 32 * 1024 * 1024 || source.Length < 12)
             {
-                throw new InvalidDataException("Invalid SVG font length (maximum 32 MiB).");
+                throw new InvalidDataException("Invalid font length (maximum 32 MiB).");
             }
 
             _data = DecodeWoff(source.ToArray());
@@ -78,7 +79,7 @@ namespace Mediana.Images.Svg
         {
             if (!_tables.TryGetValue(name, out (int Start, int Length) table) || table.Length < minimum)
             {
-                throw new NotSupportedException("SVG font requires an OpenType " + name + " table with TrueType outlines.");
+                throw new NotSupportedException("Font requires an OpenType " + name + " table with TrueType outlines.");
             }
 
             return table.Start;
@@ -128,7 +129,7 @@ namespace Mediana.Images.Svg
             return Encoding.ASCII.GetString(_data, position, 4);
         }
 
-        internal int Glyph(int codepoint)
+        public int Glyph(int codepoint)
         {
             int table = Table("cmap", 4), count = U16(table + 2);
             int selected = 0, rank = -1;
@@ -254,8 +255,8 @@ namespace Mediana.Images.Svg
             return glyph == 0 ? 0 : (glyph + S16(delta + (lo * 2))) & 65535;
         }
 
-        internal float Advance(int glyph) => U16(Table("hmtx", 0) + (Math.Min(glyph, _metrics - 1) * 4));
-        internal VectorPath Outline(int glyph)
+        public float Advance(int glyph) => U16(Table("hmtx", 0) + (Math.Min(glyph, _metrics - 1) * 4));
+        public VectorPath Outline(int glyph)
         {
             if (!_outlines.TryGetValue(glyph, out VectorPath? path))
             {
@@ -264,7 +265,7 @@ namespace Mediana.Images.Svg
                 _outlines.Add(glyph, path);
             }
 
-            return path;
+            return path.Transform(Matrix3x2.Identity);
         }
 
         private static byte[] DecodeWoff(byte[] data)

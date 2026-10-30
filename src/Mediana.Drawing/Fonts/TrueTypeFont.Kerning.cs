@@ -6,11 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing.Fonts
 {
-    internal partial class SvgTrueType
+    public partial class TrueTypeFont
     {
-        internal float Kerning(int left, int right)
+        public float Kerning(int left, int right)
         {
             if (_pairs.TryGetValue((left, right), out float cached))
             {

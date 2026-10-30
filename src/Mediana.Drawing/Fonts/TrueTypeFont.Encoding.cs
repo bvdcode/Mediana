@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing.Fonts
 {
-    internal partial class SvgTrueType
+    public partial class TrueTypeFont
     {
-        internal int EncodedGlyph(int code, int platform, int encoding)
+        public int EncodedGlyph(int code, int platform, int encoding)
         {
             int table = Table("cmap", 4), count = U16(table + 2);
             for (int i = 0; i < count; i++)

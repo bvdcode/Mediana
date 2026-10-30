@@ -10,12 +10,14 @@ using System.Numerics;
 using System.Text;
 using System.Xml.Linq;
 
+using Mediana.Drawing.Fonts;
+
 namespace Mediana.Images.Svg
 {
     internal partial class SvgSceneBuilder
     {
-        private readonly Dictionary<SvgFontRequest, SvgTrueType[]> _fonts = new();
-        private readonly Dictionary<string, SvgTrueType> _bundledFonts = new(StringComparer.Ordinal);
+        private readonly Dictionary<SvgFontRequest, TrueTypeFont[]> _fonts = new();
+        private readonly Dictionary<string, TrueTypeFont> _bundledFonts = new(StringComparer.Ordinal);
 
 
 
@@ -35,13 +37,13 @@ namespace Mediana.Images.Svg
         {
             var glyphs = new List<PlacedGlyph>();
             float x = 0, y = 0;
-            SvgTrueType? previousFont = null;
+            TrueTypeFont? previousFont = null;
             int previousGlyph = 0;
             foreach (TextCharacter character in text)
             {
                 _token.ThrowIfCancellationRequested();
                 bool chunk = Position(character.Span, ref x, ref y, out float rotation);
-                (SvgTrueType font, int glyph) = TextFont(character.Span.Style, character.Rune.Value);
+                (TrueTypeFont font, int glyph) = TextFont(character.Span.Style, character.Rune.Value);
                 float scale = character.Span.Size / font.Units;
                 if (!chunk && previousFont == font && Value(character.Span.Style, "font-kerning", "auto") != "none")
                 {
