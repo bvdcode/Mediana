@@ -3,9 +3,9 @@
 
 using Mediana.Core.Timing;
 
-namespace Mediana.Cli
+namespace Mediana.Execution
 {
-    internal class MediaTimeEstimator(MediaDuration? totalDuration)
+    public class MediaTimeEstimator(MediaDuration? totalDuration)
     {
         private static readonly TimeSpan Warmup = TimeSpan.FromSeconds(2);
         private static readonly TimeSpan Smoothing = TimeSpan.FromSeconds(5);

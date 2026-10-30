@@ -4,6 +4,8 @@
 using Mediana.Cli;
 using Mediana.Core.Timing;
 
+using Mediana.Execution;
+
 namespace Mediana.Tests
 {
     public class MediaTimeEstimatorTests

@@ -9,12 +9,14 @@ using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Processing;
 using Mediana.Streaming.Hls;
+using Mediana.Execution;
 
 namespace Mediana.Cli
 {
     internal class HlsVideoRendition(Yuv420AreaResizer resizer, H264Encoder encoder, AvcHlsWriter writer,
         string directory, string name) : IAsyncDisposable
     {
+        private readonly MediaEncodePipeline<VideoFrame> pipeline = new(encoder, writer);
         public AvcHlsWriter Writer { get; } = writer;
         public VideoFormat Format => resizer.OutputFormat;
 
@@ -54,12 +56,16 @@ namespace Mediana.Cli
             }
         }
 
-        public ValueTask WriteAsync(VideoFrame input, CancellationToken token) =>
-            VideoEncoding.WriteAsync(encoder, Writer, input, resizer, token);
+        public async ValueTask WriteAsync(VideoFrame input, CancellationToken token)
+        {
+            using VideoFrame prepared = resizer.Apply(input, token);
+            await pipeline.WriteAsync(prepared, token);
+        }
 
         public async ValueTask<HlsVariant> CompleteAsync(CancellationToken token)
         {
-            await VideoEncoding.CompleteAsync(encoder, Writer, token);
+            await pipeline.CompleteInputAsync(token);
+            await Writer.CompleteAsync(token);
             string playlist = Writer.CreateVodPlaylist(SegmentName);
             await File.WriteAllTextAsync(Path.Combine(directory, "index.m3u8"), playlist, new UTF8Encoding(false), token);
             int? displayWidth = null;

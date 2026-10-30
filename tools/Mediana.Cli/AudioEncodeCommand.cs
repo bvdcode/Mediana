@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Execution;
 using Mediana.Codecs;
 using Mediana.Codecs.Aac;
 using Mediana.Containers.MpegTs;
@@ -34,46 +35,30 @@ namespace Mediana.Cli
             await outputFile.WriteAsync(async destination =>
             {
                 await using MpegTsWriter writer = MpegTsWriter.Create(destination, [encoder.Stream], allocator);
-                await WriteAsync(prepared);
-                prepared.Dispose();
-                first.Dispose();
-                while (await session.ReadFrameAsync(token) is AudioFrame frame)
+                bool opening = true;
+                MediaOperationProgress result = await MediaOperations.EncodeAudioAsync(ReadAsync, encoder, writer, update =>
                 {
-                    using (frame)
-                    using (AudioFrame converted = AudioSampleConverter.Apply(frame, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, allocator, token))
+                    if (update.ProcessedDuration is MediaDuration duration)
                     {
-                        await WriteAsync(converted);
+                        samples = duration.Value;
+                        progress.Report(duration, writer.BytesWritten, update.IsComplete);
                     }
-                }
-                encoder.CompleteInput();
-                await DrainAsync();
-                await writer.CompleteAsync(token);
-                progress.Report(new MediaDuration(samples, new TimeBase(1, prepared.Format.SampleRate)), writer.BytesWritten, completed: true);
+                }, token);
+                packets = result.Packets;
 
-                async ValueTask WriteAsync(AudioFrame frame)
+                async ValueTask<AudioFrame?> ReadAsync(CancellationToken cancellationToken)
                 {
-                    if (encoder.TrySend(frame, token) != CodecInputStatus.Accepted)
+                    if (opening)
                     {
-                        throw new InvalidOperationException("The AAC encoder did not accept its next PCM block.");
+                        opening = false;
+                        AudioFrame result = prepared.Retain();
+                        prepared.Dispose();
+                        first.Dispose();
+                        return result;
                     }
-                    samples = checked(samples + frame.SamplesPerChannel);
-                    await DrainAsync();
-                    progress.Report(new MediaDuration(samples, new TimeBase(1, prepared.Format.SampleRate)), writer.BytesWritten);
-                }
-
-                async ValueTask DrainAsync()
-                {
-                    while (true)
-                    {
-                        CodecOutput<MediaPacket> result = encoder.Receive(token);
-                        if (result.Status != CodecOutputStatus.Available)
-                        {
-                            return;
-                        }
-                        using MediaPacket packet = result.Value;
-                        await writer.WritePacketAsync(packet, token);
-                        packets++;
-                    }
+                    using AudioFrame? frame = await session.ReadFrameAsync(cancellationToken);
+                    return frame is null ? null : AudioSampleConverter.Apply(frame,
+                        AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, allocator, cancellationToken);
                 }
             }, token);
             int? padding = encoder.PaddingSamples;

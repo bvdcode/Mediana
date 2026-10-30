@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Codecs;
+using Mediana.Containers;
+using Mediana.Execution;
+using Mediana.Core.Timing;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
@@ -21,7 +25,9 @@ namespace Mediana.Cli
         {
             MediaEngine engine = new MediaEngineBuilder()
                 .AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
-                .AddVideoDecoder(new H264DecoderFactory()).Build();
+                .AddVideoDecoder(new H264DecoderFactory())
+                .AddVideoEncoder(new H264EncoderFactory(new() { Quantizer = quantizer }))
+                .AddContainerWriter(new MpegTsWriterFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             await using VideoSession session = streamIndex is int index
                 ? await engine.OpenVideoAsync(source, index, cancellationToken: cancellationToken)
@@ -36,31 +42,32 @@ namespace Mediana.Cli
             using Yuv420AreaResizer? resizer = maximumWidth is not null || maximumHeight is not null
                 ? Yuv420AreaResizer.CreateFit(first.Format, maximumWidth ?? first.Format.Width,
                     maximumHeight ?? first.Format.Height, allocator, cancellationToken) : null;
-            using H264Encoder encoder = H264Encoder.Create(resizer?.OutputFormat ?? first.Format, session.Stream.TimeBase, allocator,
-                new() { Quantizer = quantizer });
+            using IMediaEncoder<VideoFrame> encoder = engine.CreateVideoEncoder("h264", resizer?.OutputFormat ?? first.Format, session.Stream.TimeBase, allocator);
             long frames = 0;
-            long reportedAt = TimeProvider.System.GetTimestamp();
+            MediaProgress progress = new(logger, TimeProvider.System, session.Stream.CodedDuration);
             await outputFile.WriteAsync(async destination =>
             {
-                await using MpegTsWriter writer = MpegTsWriter.Create(destination, [encoder.Stream], allocator);
-                await VideoEncoding.WriteAsync(encoder, writer, first, resizer, cancellationToken);
-                frames++;
-                while (true)
+                await using IContainerWriter writer = engine.CreateContainerWriter("mpegts", destination, [encoder.Stream], allocator);
+                bool opening = true;
+                MediaOperationProgress result = await MediaOperations.EncodeVideoAsync(ReadAsync, encoder, writer, update =>
                 {
-                    using VideoFrame? frame = await session.ReadFrameAsync(cancellationToken);
-                    if (frame is null)
+                    if (update.ProcessedDuration is MediaDuration duration)
                     {
-                        break;
+                        progress.Report(duration, destination.Position, update.IsComplete);
                     }
-                    await VideoEncoding.WriteAsync(encoder, writer, frame, resizer, cancellationToken);
-                    frames++;
-                    if (TimeProvider.System.GetElapsedTime(reportedAt) >= TimeSpan.FromSeconds(1))
+                }, cancellationToken);
+                frames = result.Frames;
+
+                async ValueTask<VideoFrame?> ReadAsync(CancellationToken token)
+                {
+                    using VideoFrame? frame = opening ? first.Retain() : await session.ReadFrameAsync(token);
+                    if (opening)
                     {
-                        logger.LogInformation("Video encoding: {Frames} frames; {Bytes} output bytes.", frames, destination.Position);
-                        reportedAt = TimeProvider.System.GetTimestamp();
+                        opening = false;
+                        first.Dispose();
                     }
+                    return frame is null ? null : resizer is null ? frame.Retain() : resizer.Apply(frame, token);
                 }
-                await VideoEncoding.CompleteAsync(encoder, writer, cancellationToken);
             }, cancellationToken);
             encoder.Dispose();
             resizer?.Dispose();
