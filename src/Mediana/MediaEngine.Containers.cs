@@ -32,28 +32,10 @@ namespace Mediana
             }
             MediaBufferAllocator allocator = new(options.BufferBudgetBytes);
             using WritableMediaBuffer writable = allocator.Allocate(probeLength);
-            int read = 0;
-            while (read < probeLength)
-            {
-                int count = source is IRandomAccessByteSource randomSource
-                    ? await randomSource.ReadAtAsync(read, writable.Memory[read..], cancellationToken).ConfigureAwait(false)
-                    : await source.ReadAsync(writable.Memory[read..], cancellationToken).ConfigureAwait(false);
-                if (count < 0 || count > probeLength - read)
-                {
-                    throw new InvalidDataException("The source returned an invalid read length.");
-                }
-                if (count == 0)
-                {
-                    break;
-                }
-                read += count;
-            }
-            cancellationToken.ThrowIfCancellationRequested();
+            int read = await MediaInputProbe.ReadAsync(source, writable.Memory, cancellationToken).ConfigureAwait(false);
             IContainerReaderFactory factory = SelectContainer(writable.Memory.Span[..read]);
             using MediaBuffer prefix = writable.Publish();
-            IByteSource replay = source is IRandomAccessByteSource randomAccess
-                ? new RandomAccessCursorByteSource(randomAccess, leaveOpen: true)
-                : new PrefixByteSource(source, prefix, read, leaveOpen: true);
+            IByteSource replay = MediaInputProbe.Replay(source, prefix, read);
             IContainerReader? reader = null;
             bool transferred = false;
             try
