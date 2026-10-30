@@ -52,6 +52,21 @@ namespace Mediana.Tests
             Assert.Contains("#EXT-X-TARGETDURATION:1\n", playlist);
             Assert.Contains("#EXT-X-INDEPENDENT-SEGMENTS\n", playlist);
             Assert.Equal(5, playlist.Split("#EXTINF:0.2,\n").Length - 1);
+            HlsVariant variant = writer.CreateVariant("video/index.m3u8", 16, 12);
+            Assert.Equal("avc1.42C029", variant.Codecs);
+            Assert.Equal(all.LongLength * 8, variant.AverageBandwidth);
+            long peak = 0;
+            for (int first = 0; first < 5; first++)
+            {
+                for (int count = 3; first + count <= 5; count++)
+                {
+                    long bytes = writer.Segments.Skip(first).Take(count).Sum(segment => segment.ByteLength);
+                    peak = Math.Max(peak, (long)decimal.Ceiling(bytes * 8m / (count * 0.2m)));
+                }
+            }
+            Assert.Equal(peak, variant.Bandwidth);
+            string master = HlsMasterPlaylist.Create([variant]);
+            Assert.Contains("CODECS=\"avc1.42C029\",RESOLUTION=16x12\nvideo/index.m3u8\n", master);
             encoder.Dispose();
             Assert.Equal(0, allocator.AllocatedBytes);
         }
