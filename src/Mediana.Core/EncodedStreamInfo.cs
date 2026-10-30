@@ -9,12 +9,13 @@ namespace Mediana.Core
     /// <summary>Immutable stream configuration. Codec identifiers are independent of implementations.</summary>
     public class EncodedStreamInfo
     {
-        public EncodedStreamInfo(int streamIndex, MediaKind kind, string codecId, TimeBase timeBase,
+        public EncodedStreamInfo(int streamIndex, MediaKind kind, string codecId, EncodedStreamFormat format, TimeBase timeBase,
             ReadOnlySpan<byte> configuration = default, VideoDisplayMatrix? displayMatrix = null,
             MediaDuration? codedDuration = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
             ArgumentException.ThrowIfNullOrWhiteSpace(codecId);
+            ArgumentNullException.ThrowIfNull(format);
             if (!Enum.IsDefined(kind))
             {
                 throw new ArgumentOutOfRangeException(nameof(kind));
@@ -29,6 +30,7 @@ namespace Mediana.Core
             StreamIndex = streamIndex;
             Kind = kind;
             CodecId = codecId;
+            Format = format;
             TimeBase = timeBase;
             Configuration = configuration.ToArray();
             DisplayMatrix = displayMatrix;
@@ -38,6 +40,7 @@ namespace Mediana.Core
         public int StreamIndex { get; }
         public MediaKind Kind { get; }
         public string CodecId { get; }
+        public EncodedStreamFormat Format { get; }
         public TimeBase TimeBase { get; }
         public ReadOnlyMemory<byte> Configuration { get; }
         /// <summary>Optional container display transform. Null means unspecified; decoding does not apply it.</summary>

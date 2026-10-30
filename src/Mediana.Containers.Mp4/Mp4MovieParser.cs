@@ -74,7 +74,7 @@ namespace Mediana.Containers.Mp4
                     MediaKind.Audio => null,
                     _ => throw new InvalidDataException("Unsupported MP4 track kind.")
                 };
-                EncodedStreamInfo stream = new(tracks.Count, kind, description.CodecId,
+                EncodedStreamInfo stream = new(tracks.Count, kind, description.CodecId, description.Format,
                     trackTimeBase, description.Configuration.Span, displayMatrix);
                 IReadOnlyList<Mp4Edit> edits = ReadEdits(track, timeBase, options, budget);
                 tracks.Add(new Mp4TrackInfo(trackId, stream, description.SampleEntry, mediaDuration,

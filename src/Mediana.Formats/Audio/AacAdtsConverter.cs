@@ -6,14 +6,14 @@ using Mediana.Core.Memory;
 
 using Mediana.Formats.Audio;
 
-namespace Mediana.Containers.MpegTs
+namespace Mediana.Formats.Audio
 {
-    internal class AacTransportFraming
+    public class AacAdtsConverter
     {
         private readonly int frequency;
         private readonly int channels;
 
-        public AacTransportFraming(ReadOnlySpan<byte> configuration)
+        public AacAdtsConverter(ReadOnlySpan<byte> configuration)
         {
             AacConfiguration description = AacConfiguration.ReadAudioSpecificConfig(configuration, out string? reason)
                 ?? throw new NotSupportedException(reason);

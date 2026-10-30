@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 
@@ -33,6 +34,11 @@ namespace Mediana.Codecs.H264
             {
                 return "The stream is not H.264 video.";
             }
+            string? formatReason = StreamFormats.Avc.GetUnsupportedReason(stream.Format);
+            if (formatReason is not null)
+            {
+                return formatReason;
+            }
             return H264Support.GetUnsupportedReason(H264Configuration.Parse(stream.Configuration.Span, options));
         }
 
@@ -47,6 +53,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException("The stream is not H.264 video.");
             }
+            StreamFormats.Avc.Require(stream.Format);
             H264Configuration configuration = H264Configuration.Parse(stream.Configuration.Span, options);
             string? reason = H264Support.GetUnsupportedReason(configuration);
             if (reason is not null)

@@ -8,6 +8,8 @@ using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.IO;
 
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     public class H264StreamMetadataTests
@@ -68,8 +70,8 @@ namespace Mediana.Tests
             sequence[1] = 255;
             Assert.Null(reader.Read(H264MetadataTestInput.Stream(H264MetadataTestInput.Configuration([sequence], [H264MetadataTestInput.Picture()]))));
             Assert.Throws<ArgumentNullException>(() => reader.Read(null!));
-            Assert.Throws<ArgumentException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Audio, "h264", new TimeBase(1, 1))));
-            Assert.Throws<ArgumentException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Video, "other", new TimeBase(1, 1))));
+            Assert.Throws<ArgumentException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Audio, "h264", StreamFormats.Avc, new TimeBase(1, 1))));
+            Assert.Throws<ArgumentException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Video, "other", new EncodedStreamFormat("none", "other", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 1))));
             Assert.Throws<ArgumentOutOfRangeException>(() => new H264StreamMetadataReader(new H264MetadataOptions { MaxConfigurationBytes = 0 }));
             Assert.Throws<ArgumentOutOfRangeException>(() => new H264StreamMetadataReader(new H264MetadataOptions { MaxParameterSetBytes = 0 }));
         }

@@ -33,12 +33,12 @@ namespace Mediana.Tests
         [Fact]
         public void StreamRetainsAnExplicitVideoTransformAndKeepsUnknownDistinctFromIdentity()
         {
-            EncodedStreamInfo unspecified = new(0, MediaKind.Video, "test", new TimeBase(1, 1));
+            EncodedStreamInfo unspecified = new(0, MediaKind.Video, "test", new EncodedStreamFormat("none", "test", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 1));
             Assert.Null(unspecified.DisplayMatrix);
             VideoDisplayMatrix transform = new(0, 1, 0, -1, 0, 0, 0, 0, 1);
-            EncodedStreamInfo video = new(1, MediaKind.Video, "test", new TimeBase(1, 1), displayMatrix: transform);
+            EncodedStreamInfo video = new(1, MediaKind.Video, "test", new EncodedStreamFormat("none", "test", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 1), displayMatrix: transform);
             Assert.Equal(transform, video.DisplayMatrix);
-            Assert.Throws<ArgumentException>(() => new EncodedStreamInfo(0, MediaKind.Audio, "test", new TimeBase(1, 1), displayMatrix: transform));
+            Assert.Throws<ArgumentException>(() => new EncodedStreamInfo(0, MediaKind.Audio, "test", new EncodedStreamFormat("none", "test", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 1), displayMatrix: transform));
         }
     }
 }

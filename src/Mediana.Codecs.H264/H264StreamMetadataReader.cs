@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Metadata;
 
 namespace Mediana.Codecs.H264
@@ -28,6 +29,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new ArgumentException("The stream is not H.264 video.", nameof(stream));
             }
+            StreamFormats.Avc.Require(stream.Format);
             H264ConfigurationRecord record = new(stream.Configuration.Span, options.MaxConfigurationBytes, options.MaxParameterSetBytes);
             Dictionary<int, H264SequenceParameterSet> sequences = [];
             for (int index = 0; index < record.SequenceCount; index++)

@@ -4,15 +4,15 @@
 using System.Buffers.Binary;
 using Mediana.Core.Memory;
 
-namespace Mediana.Containers.MpegTs
+namespace Mediana.Formats.Video
 {
-    internal class AvcTransportFraming
+    public class AvcAnnexBConverter
     {
         private readonly int lengthSize;
         private readonly List<ReadOnlyMemory<byte>> parameters = [];
         private readonly int parameterBytes;
 
-        public AvcTransportFraming(ReadOnlyMemory<byte> configuration)
+        public AvcAnnexBConverter(ReadOnlyMemory<byte> configuration)
         {
             ReadOnlySpan<byte> data = configuration.Span;
             if (data.Length < 7 || data[0] != 1 || (data[4] & 0xFC) != 0xFC || (data[5] & 0xE0) != 0xE0)

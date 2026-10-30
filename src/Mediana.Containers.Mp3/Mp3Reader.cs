@@ -10,6 +10,8 @@ using Mediana.IO;
 
 using Mediana.Formats.Audio;
 
+using Mediana.Formats;
+
 namespace Mediana.Containers.Mp3
 {
     /// <summary>Forward-only Layer III frames and ID3 metadata; borrows its source at the file start.
@@ -110,7 +112,7 @@ namespace Mediana.Containers.Mp3
             }
             FirstFrame = header;
             AudioOffset = position - header.FrameBytes;
-            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, Mp3FrameHeader.CodecId,
+            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, Mp3FrameHeader.CodecId, StreamFormats.Mp3,
                 new TimeBase(1, header.SampleRate), pending.Memory.Span[..4], codedDuration: VbrInfo?.FrameCount is uint count
                     ? new MediaDuration((long)count * header.SamplesPerFrame, new TimeBase(1, header.SampleRate)) : null) });
         }

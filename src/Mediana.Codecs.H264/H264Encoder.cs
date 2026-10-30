@@ -6,6 +6,8 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
 
+using Mediana.Formats;
+
 namespace Mediana.Codecs.H264
 {
     /// <summary>Progressive Baseline CAVLC intra encoding with fixed QP and one independently decodable IDR per input.
@@ -47,7 +49,7 @@ namespace Mediana.Codecs.H264
             options.Validate();
             byte[] configuration = H264EncoderConfiguration.Create(format, allocator, options.Quantizer);
             H264Configuration parsed = H264Configuration.Parse(configuration, new H264DecoderOptions());
-            EncodedStreamInfo stream = new(streamIndex, MediaKind.Video, "h264", timeBase, configuration, VideoDisplayMatrix.Identity);
+            EncodedStreamInfo stream = new(streamIndex, MediaKind.Video, "h264", StreamFormats.Avc, timeBase, configuration, VideoDisplayMatrix.Identity);
             return new(format, stream, parsed.Sequences[0], allocator, options);
         }
 

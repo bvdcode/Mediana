@@ -6,6 +6,8 @@ using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     public class MpegTsSegmentTests
@@ -142,10 +144,10 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
-        private static EncodedStreamInfo Video(int stream = 0) => new(stream, MediaKind.Video, "h264", new(1, 1000),
+        private static EncodedStreamInfo Video(int stream = 0) => new(stream, MediaKind.Video, "h264", StreamFormats.Avc, new(1, 1000),
             [1, 66, 0, 30, 0xFC, 0xE1, 0, 2, 0x67, 0x42, 1, 0, 2, 0x68, 0xCE]);
 
-        private static EncodedStreamInfo Audio() => new(1, MediaKind.Audio, "aac", new(1, 1000), [0x11, 0x88]);
+        private static EncodedStreamInfo Audio() => new(1, MediaKind.Audio, "aac", StreamFormats.Aac, new(1, 1000), [0x11, 0x88]);
 
         private static MediaPacket Packet(MediaBufferAllocator allocator, int stream, bool idr, int milliseconds)
         {

@@ -16,7 +16,7 @@ namespace Mediana.Tests
         public int PacketReads { get; private set; }
         public bool IsDisposed { get; private set; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; } =
-            [new EncodedStreamInfo(0, MediaKind.Video, "fixture.rgba", new TimeBase(1, 1))];
+            [new EncodedStreamInfo(0, MediaKind.Video, "fixture.rgba", new EncodedStreamFormat("none", "fixture.rgba", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 1))];
 
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
         {

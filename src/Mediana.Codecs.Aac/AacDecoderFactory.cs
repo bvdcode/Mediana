@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
@@ -31,6 +32,11 @@ namespace Mediana.Codecs.Aac
             if (stream.Kind != MediaKind.Audio || stream.CodecId != CodecId)
             {
                 return "The stream is not AAC audio.";
+            }
+            string? formatReason = StreamFormats.Aac.GetUnsupportedReason(stream.Format);
+            if (formatReason is not null)
+            {
+                return formatReason;
             }
             AacConfiguration? configuration = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out string? reason);
             if (configuration is null)

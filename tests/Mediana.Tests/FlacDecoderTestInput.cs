@@ -11,6 +11,8 @@ using Mediana.Core.Timing;
 
 using Mediana.Formats.Audio;
 
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     internal static class FlacDecoderTestInput
@@ -87,7 +89,7 @@ namespace Mediana.Tests
             {
                 info[1] = 64;
             }
-            EncodedStreamInfo stream = new(0, MediaKind.Audio, FlacConfiguration.CodecId, new TimeBase(1, 48000), info);
+            EncodedStreamInfo stream = new(0, MediaKind.Audio, FlacConfiguration.CodecId, StreamFormats.Flac, new TimeBase(1, 48000), info);
             return new FlacDecoderFactory(maxFrameBytes).Create(stream, allocator);
         }
 

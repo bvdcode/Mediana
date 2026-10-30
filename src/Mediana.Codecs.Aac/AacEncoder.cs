@@ -9,6 +9,8 @@ using Mediana.Core.Timing;
 
 using Mediana.Formats.Audio;
 
+using Mediana.Formats;
+
 namespace Mediana.Codecs.Aac
 {
     /// <summary>Encodes contiguous mono/stereo interleaved Float32 PCM as AAC-LC raw access units.
@@ -72,7 +74,7 @@ namespace Mediana.Codecs.Aac
             _ = AacBandTables.Get(configuration.FrequencyIndex, false);
             options ??= new();
             options.Validate(format.SampleRate, format.Channels.Count);
-            EncodedStreamInfo stream = new(streamIndex, MediaKind.Audio, AacConfiguration.CodecId, clock, configuration.ToAudioSpecificConfig());
+            EncodedStreamInfo stream = new(streamIndex, MediaKind.Audio, AacConfiguration.CodecId, StreamFormats.Aac, clock, configuration.ToAudioSpecificConfig());
             return new(format, configuration, stream, allocator, options);
         }
 

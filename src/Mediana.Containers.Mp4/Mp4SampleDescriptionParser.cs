@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 
 namespace Mediana.Containers.Mp4
 {
@@ -49,7 +50,7 @@ namespace Mediana.Containers.Mp4
             {
                 throw new InvalidDataException("The MP4 AVC configuration record is invalid.");
             }
-            return new Mp4SampleDescription(entry.Type, "h264", configuration, Width: width, Height: height);
+            return new Mp4SampleDescription(entry.Type, "h264", StreamFormats.Avc, configuration, Width: width, Height: height);
         }
 
         private static Mp4SampleDescription ParseAudio(Mp4Box entry, Mp4ParseBudget budget)
@@ -69,7 +70,13 @@ namespace Mediana.Containers.Mp4
             RejectEncryption(children);
             (string codecId, ReadOnlyMemory<byte> configuration) = Mp4ElementaryStreamDescriptor.ReadAudioConfiguration(
                 children.Required("esds").Payload);
-            return new Mp4SampleDescription(entry.Type, codecId, configuration,
+            EncodedStreamFormat format = codecId switch
+            {
+                "aac" => StreamFormats.Aac,
+                "mp3" => StreamFormats.Mp3,
+                _ => throw new NotSupportedException("Unsupported MP4 audio representation.")
+            };
+            return new Mp4SampleDescription(entry.Type, codecId, format, configuration,
                 AudioChannels: channels, AudioSampleRate: (int)(rate >> 16));
         }
 

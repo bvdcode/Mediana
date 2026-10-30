@@ -10,6 +10,8 @@ using Mediana.IO;
 
 using Mediana.Formats.Audio;
 
+using Mediana.Formats;
+
 namespace Mediana.Containers.Wave
 {
     /// <summary>Reads one RIFF/WAVE PCM data chunk sequentially. Borrows its source.
@@ -110,7 +112,7 @@ namespace Mediana.Containers.Wave
                             await ReadAsync(format.Memory, cancellationToken).ConfigureAwait(false);
                             Configuration = PcmConfiguration.ReadWaveFormat(format.Memory.Span, out string? reason)
                                 ?? throw new NotSupportedException(reason);
-                            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, PcmConfiguration.CodecId,
+                            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, PcmConfiguration.CodecId, StreamFormats.WavePcm,
                                 new TimeBase(1, Configuration.Format.SampleRate), format.Memory.Span) });
                         }
                         formatRead = true;
@@ -125,7 +127,7 @@ namespace Mediana.Containers.Wave
                         dataPadding = (chunkSize & 1) != 0;
                         SamplesPerChannel = chunkSize / Configuration.BlockAlignment;
                         EncodedStreamInfo stream = Streams[0];
-                        Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(stream.StreamIndex, stream.Kind, stream.CodecId,
+                        Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(stream.StreamIndex, stream.Kind, stream.CodecId, stream.Format,
                             stream.TimeBase, stream.Configuration.Span, codedDuration: Duration) });
                         return;
                     default:

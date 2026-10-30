@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Audio;
 using Mediana.Core.Metadata;
 
@@ -14,6 +15,7 @@ namespace Mediana.Codecs.Pcm
     {
         public virtual string ImplementationId => "mediana.pcm.metadata";
         public virtual string CodecId => PcmConfiguration.CodecId;
+        protected virtual EncodedStreamFormat ExpectedFormat => StreamFormats.WavePcm;
 
         public StreamMetadata? Read(EncodedStreamInfo stream)
         {
@@ -22,6 +24,7 @@ namespace Mediana.Codecs.Pcm
             {
                 throw new ArgumentException("The stream is not the expected PCM encoding.", nameof(stream));
             }
+            ExpectedFormat.Require(stream.Format);
             PcmConfiguration? configuration = ReadConfiguration(stream.Configuration.Span);
             if (configuration is null)
             {

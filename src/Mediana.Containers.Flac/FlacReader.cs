@@ -10,6 +10,8 @@ using Mediana.IO;
 
 using Mediana.Formats.Audio;
 
+using Mediana.Formats;
+
 namespace Mediana.Containers.Flac
 {
     /// <summary>Forward-only native FLAC metadata and compressed byte chunks; borrows its source at the file signature.
@@ -120,7 +122,7 @@ namespace Mediana.Containers.Flac
                         }
                         await ReadExactlyAsync(scratch.Memory[..length], cancellationToken).ConfigureAwait(false);
                         Configuration = FlacConfiguration.ReadStreamInfo(scratch.Memory.Span[..length]);
-                        Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, FlacConfiguration.CodecId,
+                        Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, FlacConfiguration.CodecId, StreamFormats.Flac,
                             new TimeBase(1, Configuration.SampleRate), scratch.Memory.Span[..length],
                             codedDuration: Configuration.TotalSamples == 0 ? null : new MediaDuration(Configuration.TotalSamples,
                                 new TimeBase(1, Configuration.SampleRate))) });

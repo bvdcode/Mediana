@@ -12,6 +12,8 @@ using Mediana.Core.Timing;
 
 using Mediana.Formats.Audio;
 
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     public class AiffPcmTests
@@ -150,7 +152,7 @@ namespace Mediana.Tests
         }
 
         private static IMediaCodec<MediaPacket, AudioFrame> Create(int bits, string? compression, MediaBufferAllocator allocator) =>
-            new AiffPcmDecoderFactory().Create(new EncodedStreamInfo(0, MediaKind.Audio, PcmConfiguration.AiffCodecId,
+            new AiffPcmDecoderFactory().Create(new EncodedStreamInfo(0, MediaKind.Audio, PcmConfiguration.AiffCodecId, StreamFormats.AiffPcm,
                 new TimeBase(1, 48000), AiffTestInput.Configuration(bits, compression)), allocator);
 
         private static MediaPacket Packet(byte[] bytes, MediaBufferAllocator allocator)

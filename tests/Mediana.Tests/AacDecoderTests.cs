@@ -8,6 +8,8 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     public class AacDecoderTests
@@ -164,7 +166,7 @@ namespace Mediana.Tests
             Assert.Equal(stereo.Data.Length, stereoAllocator.AllocatedBytes);
         }
 
-        private static EncodedStreamInfo Stream(bool stereo) => new(0, MediaKind.Audio, "aac", new TimeBase(1, 48000),
+        private static EncodedStreamInfo Stream(bool stereo) => new(0, MediaKind.Audio, "aac", StreamFormats.Aac, new TimeBase(1, 48000),
             stereo ? new byte[] { 0x11, 0x90 } : new byte[] { 0x11, 0x88 });
 
         private static MediaPacket Packet(MediaBufferAllocator allocator, byte[] data)

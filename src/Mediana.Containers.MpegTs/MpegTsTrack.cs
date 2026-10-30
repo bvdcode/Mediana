@@ -2,14 +2,19 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Memory;
+
+using Mediana.Formats.Video;
+
+using Mediana.Formats.Audio;
 
 namespace Mediana.Containers.MpegTs
 {
     internal class MpegTsTrack
     {
-        private readonly AvcTransportFraming? avc;
-        private readonly AacTransportFraming? aac;
+        private readonly AvcAnnexBConverter? avc;
+        private readonly AacAdtsConverter? aac;
         private readonly Mp3TransportFraming? mp3;
 
         public MpegTsTrack(EncodedStreamInfo stream, int ordinal)
@@ -20,16 +25,19 @@ namespace Mediana.Containers.MpegTs
             switch (stream.Kind, stream.CodecId)
             {
                 case (MediaKind.Video, "h264"):
+                    StreamFormats.Avc.Require(stream.Format);
                     Type = 0x1B;
                     PesStreamId = 0xE0 + ordinal;
                     avc = new(stream.Configuration);
                     break;
                 case (MediaKind.Audio, "aac"):
+                    StreamFormats.Aac.Require(stream.Format);
                     Type = 0x0F;
                     PesStreamId = 0xC0 + ordinal;
                     aac = new(stream.Configuration.Span);
                     break;
                 case (MediaKind.Audio, "mp3"):
+                    StreamFormats.Mp3.Require(stream.Format);
                     mp3 = new(stream.Configuration.Span);
                     Type = mp3.StreamType;
                     PesStreamId = 0xC0 + ordinal;
