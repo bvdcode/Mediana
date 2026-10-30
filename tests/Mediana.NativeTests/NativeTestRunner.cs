@@ -105,6 +105,10 @@ namespace Mediana.NativeTests
             await HlsEncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 96, 80, 18, 6);
             await HlsEncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 48, 40, 18, 6);
             await HlsEncodingTestInput.VerifyAsync(root, "avc-weighted", 48, 30, 12, 3);
+            await AvcAudioHlsTestInput.VerifyAsync(root, "avc-aac.mp4", "mp4a.40.2");
+            await AvcAudioHlsTestInput.VerifyAsync(root, "avc-mp3-44.mp4", "mp4a.6B");
+            await AvcAudioHlsTestInput.VerifyAsync(root, "avc-mp3-22.mp4", "mp4a.69");
+            Console.WriteLine("PASS audiovisual HLS encoding: every AAC and MPEG-1/2 Layer III packet, timestamp and transport counter is preserved alongside encoded video.");
             Console.WriteLine("PASS HLS encoding: 48 independent reference pictures, 15 aligned IDR segments, exact transport timing and released output ownership match.");
             await YuvScalingTestInput.VerifySyntheticAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Resize"));
             await YuvScalingTestInput.VerifySequenceAsync(root, "avc-multislice-cabac", 48, 40, 18, new(1, 1));

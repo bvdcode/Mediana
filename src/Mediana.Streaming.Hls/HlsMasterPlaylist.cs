@@ -6,7 +6,8 @@ using System.Text;
 
 namespace Mediana.Streaming.Hls
 {
-    /// <summary>Formats video-only AVC VOD variants. The caller must provide matching timelines and measured metadata.</summary>
+    /// <summary>Formats AVC VOD variants with optional AAC-LC or MPEG-1/2 Layer III audio.
+    /// The caller must provide matching timelines and measured metadata.</summary>
     public static class HlsMasterPlaylist
     {
         public static string Create(IReadOnlyList<HlsVariant> variants, int maximumUriCharacters = 4096)
@@ -23,8 +24,7 @@ namespace Mediana.Streaming.Hls
             {
                 HlsUri.Validate(variant.PlaylistUri, maximumUriCharacters);
                 if (!uris.Add(variant.PlaylistUri) || variant.Bandwidth <= 0 || variant.AverageBandwidth <= 0 ||
-                    variant.Codecs is null || variant.Codecs.Length != 11 || !variant.Codecs.StartsWith("avc1.", StringComparison.Ordinal) ||
-                    variant.Codecs.AsSpan(5).ContainsAnyExcept("0123456789abcdefABCDEF") ||
+                    !ValidCodecs(variant.Codecs) ||
                     (variant.DisplayWidth is null) != (variant.DisplayHeight is null) || variant.DisplayWidth is <= 0 || variant.DisplayHeight is <= 0)
                 {
                     throw new ArgumentException("HLS variants require unique URIs, positive bitrates, an AVC codec identifier and optional positive display dimensions.", nameof(variants));
@@ -48,6 +48,16 @@ namespace Mediana.Streaming.Hls
                 text.Append('\n');
             }
             return text.ToString();
+        }
+
+        private static bool ValidCodecs(string? codecs)
+        {
+            if (codecs is null || codecs.Length < 11 || !codecs.StartsWith("avc1.", StringComparison.Ordinal) ||
+                codecs.AsSpan(5, 6).ContainsAnyExcept("0123456789abcdefABCDEF"))
+            {
+                return false;
+            }
+            return codecs[11..] is "" or ",mp4a.40.2" or ",mp4a.6B" or ",mp4a.69";
         }
     }
 }

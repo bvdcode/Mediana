@@ -10,12 +10,14 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Streaming.Hls
 {
-    /// <summary>Streams one AVC video track into IDR-aligned MPEG-TS segments.
-    /// Requires nonoverlapping PTS = DTS with positive durations. Borrows packets and allocator;
+    /// <summary>Streams one AVC video track and optional AAC/MP3 audio into IDR-aligned MPEG-TS segments.
+    /// Requires per-track nonoverlapping PTS = DTS, positive durations and global decode order with video first at ties. Borrows packets and allocator;
     /// owns streams returned by the destination factory. Failure faults the writer; discard partial output.</summary>
-    public class AvcHlsWriter : IContainerWriter
+    public partial class AvcHlsWriter : IContainerWriter
     {
         private readonly EncodedStreamInfo stream;
+        private readonly HlsAudioTrack? audio;
+        private readonly TimeBase clock;
         private readonly Func<int, CancellationToken, ValueTask<Stream>> openSegment;
         private readonly MediaBufferAllocator allocator;
         private readonly AvcHlsWriteOptions options;
@@ -26,15 +28,20 @@ namespace Mediana.Streaming.Hls
         private long segmentStart;
         private long segmentBytesStart;
         private long? lastEnd;
+        private long? audioEnd;
+        private long? lastDecodeTime;
+        private bool lastWasAudio;
         private bool completed;
         private bool faulted;
         private bool disposed;
         private int busy;
 
-        private AvcHlsWriter(EncodedStreamInfo stream, Func<int, CancellationToken, ValueTask<Stream>> openSegment,
+        private AvcHlsWriter(EncodedStreamInfo stream, HlsAudioTrack? audio, Func<int, CancellationToken, ValueTask<Stream>> openSegment,
             MediaBufferAllocator allocator, AvcHlsWriteOptions options)
         {
             this.stream = stream;
+            this.audio = audio;
+            clock = audio is null ? stream.TimeBase : HlsClock.Common(stream.TimeBase, audio.Stream.TimeBase);
             this.openSegment = openSegment;
             this.allocator = allocator;
             this.options = options;
@@ -54,49 +61,23 @@ namespace Mediana.Streaming.Hls
             ArgumentNullException.ThrowIfNull(allocator);
             options ??= new();
             options.Validate();
-            return new(stream, openSegment, allocator, options);
+            return new(stream, null, openSegment, allocator, options);
         }
 
-        public async ValueTask WritePacketAsync(MediaPacket packet, CancellationToken cancellationToken = default)
+        public static AvcHlsWriter Create(EncodedStreamInfo video, EncodedStreamInfo audio,
+            Func<int, CancellationToken, ValueTask<Stream>> openSegment, MediaBufferAllocator allocator, AvcHlsWriteOptions? options = null)
         {
-            Enter();
-            bool success = false;
-            try
+            ArgumentNullException.ThrowIfNull(video);
+            ArgumentNullException.ThrowIfNull(audio);
+            ArgumentNullException.ThrowIfNull(openSegment);
+            ArgumentNullException.ThrowIfNull(allocator);
+            if (video.StreamIndex == audio.StreamIndex)
             {
-                EnsureWritable();
-                ArgumentNullException.ThrowIfNull(packet);
-                cancellationToken.ThrowIfCancellationRequested();
-                if (packet.StreamIndex != stream.StreamIndex || packet.PresentationTime is not MediaTimestamp pts ||
-                    packet.DecodeTime is not MediaTimestamp dts || pts != dts || packet.Duration is not MediaDuration duration || duration.Value == 0)
-                {
-                    throw new NotSupportedException("AVC HLS writing requires the configured video stream, known PTS = DTS and a positive duration.");
-                }
-                long start = ExactTicks(pts);
-                long length = ExactTicks(new(duration.Value, duration.TimeBase));
-                long end = checked(start + length);
-                if (lastEnd > start)
-                {
-                    throw new InvalidDataException("AVC HLS access units must not overlap or move backwards in presentation time.");
-                }
-                bool boundary = transport is null || new MediaTimestamp(checked(start - segmentStart), stream.TimeBase)
-                    .CompareTo(new(options.TargetDuration.Value, options.TargetDuration.TimeBase)) >= 0;
-                if (boundary && inspector.IsIdr(packet, cancellationToken))
-                {
-                    await BeginAsync(start, cancellationToken).ConfigureAwait(false);
-                }
-                if (transport is null)
-                {
-                    throw new InvalidDataException("The first AVC HLS packet must contain an IDR access unit.");
-                }
-                await transport.WritePacketAsync(packet, cancellationToken).ConfigureAwait(false);
-                lastEnd = end;
-                success = true;
+                throw new ArgumentException("HLS video and audio stream indices must differ.", nameof(audio));
             }
-            finally
-            {
-                faulted |= !success;
-                Volatile.Write(ref busy, 0);
-            }
+            options ??= new();
+            options.Validate();
+            return new(video, new HlsAudioTrack(audio), openSegment, allocator, options);
         }
 
         public async ValueTask CompleteAsync(CancellationToken cancellationToken = default)
@@ -110,12 +91,12 @@ namespace Mediana.Streaming.Hls
                 {
                     EnsureWritable();
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (transport is null || lastEnd is null)
+                    if (transport is null || lastEnd is null || (audio is not null && audioEnd is null))
                     {
-                        throw new InvalidOperationException("An empty AVC HLS presentation cannot be completed.");
+                        throw new InvalidOperationException("Every configured HLS track must contain at least one access unit.");
                     }
                     await transport.CompleteAsync(cancellationToken).ConfigureAwait(false);
-                    AddSegment(lastEnd.Value);
+                    AddSegment(Math.Max(lastEnd.Value, audioEnd ?? lastEnd.Value));
                     await destination!.DisposeAsync().ConfigureAwait(false);
                     destination = null;
                     completed = true;
@@ -129,7 +110,8 @@ namespace Mediana.Streaming.Hls
             }
         }
 
-        /// <summary>Creates an independent video VOD playlist after successful completion. Metadata remains usable after disposal.</summary>
+        /// <summary>Creates a VOD playlist after successful completion. Only video-only output declares independent segments.
+        /// Leading audio priming is retained; the playlist starts at the first video PTS and includes any final audio tail.</summary>
         public string CreateVodPlaylist(Func<int, string> segmentUri)
         {
             if (!completed)
@@ -137,7 +119,7 @@ namespace Mediana.Streaming.Hls
                 throw new InvalidOperationException("Complete the HLS presentation before creating its playlist.");
             }
             return HlsVodPlaylist.Create(Segments, static segment => segment.Duration, segmentUri,
-                options.MaximumSegmentUriCharacters, independent: true);
+                options.MaximumSegmentUriCharacters, independent: audio is null);
         }
 
         /// <summary>Measures peak/average bitrates from complete TS output. Peak uses the RFC 8216 contiguous-duration window.
@@ -150,7 +132,12 @@ namespace Mediana.Streaming.Hls
             }
             HlsUri.Validate(playlistUri, options.MaximumSegmentUriCharacters);
             (long peak, long average) = HlsBandwidth.Calculate(Segments);
-            return new(playlistUri, "avc1." + Convert.ToHexString(stream.Configuration.Span.Slice(1, 3)), peak, average,
+            string codecs = "avc1." + Convert.ToHexString(stream.Configuration.Span.Slice(1, 3));
+            if (audio is not null)
+            {
+                codecs += "," + audio.Codecs;
+            }
+            return new(playlistUri, codecs, peak, average,
                 displayWidth, displayHeight);
         }
 
@@ -172,7 +159,7 @@ namespace Mediana.Streaming.Hls
                 }
                 if (transport is null)
                 {
-                    transport = MpegTsWriter.Create(next, [stream], allocator, options.Transport);
+                    transport = MpegTsWriter.Create(next, audio is null ? [stream] : [stream, audio.Stream], allocator, options.Transport);
                 }
                 else
                 {
@@ -198,12 +185,12 @@ namespace Mediana.Streaming.Hls
             }
         }
 
-        private void AddSegment(long end) => segments.Add(new(segments.Count, new(segmentStart, stream.TimeBase),
-            new(checked(end - segmentStart), stream.TimeBase), checked(transport!.BytesWritten - segmentBytesStart)));
+        private void AddSegment(long end) => segments.Add(new(segments.Count, new(segmentStart, clock),
+            new(checked(end - segmentStart), clock), checked(transport!.BytesWritten - segmentBytesStart)));
 
         private long ExactTicks(MediaTimestamp timestamp)
         {
-            MediaTimestamp scaled = timestamp.Rescale(stream.TimeBase, TimestampRounding.TowardZero);
+            MediaTimestamp scaled = timestamp.Rescale(clock, TimestampRounding.TowardZero);
             if (scaled != timestamp)
             {
                 throw new NotSupportedException("HLS access-unit timing must be exactly representable in the configured stream clock.");
