@@ -83,6 +83,9 @@
     <Compile Include="../Shared/H264MultiSliceTestInput.cs" Link="H264MultiSliceTestInput.cs" />
     <Compile Include="../Shared/VideoSeekTestInput.cs" Link="VideoSeekTestInput.cs" />
     <Compile Include="../Shared/H264EncodingTestInput.cs" Link="H264EncodingTestInput.cs" />
+    <Compile Include="../Shared/YuvScalingTestInput.cs" Link="YuvScalingTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Resize/*" Link="Data/Resize/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-weighted.scaled-*.yuv" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-multislice-*" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalDeblockingTestInput.cs" Link="H264BidirectionalDeblockingTestInput.cs" />

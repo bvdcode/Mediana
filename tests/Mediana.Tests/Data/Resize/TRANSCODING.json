@@ -1,0 +1,47 @@
+{
+  "independent_decoder": "FFmpeg 6.1.1 native H.264, single thread, every picture",
+  "cases": [
+    {
+      "name": "avc-multislice-cabac",
+      "width": 48,
+      "height": 40,
+      "pictures": 18,
+      "qp": 26,
+      "decoded_yuv": "avc-multislice-cabac.scaled-48x40.encoded-qp26.yuv",
+      "decoded_sha256": "c9b3c59f44a00704c8330a35fa01a55d8b3311b1a23af0b94d8fb53aac7b0789",
+      "ts_sha256": "2eaffbeb758413366c1dafb5e65ed59e52401834ef90e502adf96ad61bff64de",
+      "stream": {
+        "width": 48,
+        "height": 40,
+        "sample_aspect_ratio": "1:1",
+        "display_aspect_ratio": "6:5",
+        "color_space": "bt709",
+        "color_transfer": "bt709",
+        "color_primaries": "bt709",
+        "chroma_location": "left",
+        "nb_read_frames": "18"
+      }
+    },
+    {
+      "name": "avc-weighted",
+      "width": 48,
+      "height": 30,
+      "pictures": 12,
+      "qp": 26,
+      "decoded_yuv": "avc-weighted.scaled-48x30.encoded-qp26.yuv",
+      "decoded_sha256": "6d56532c5869577f08064300406a720bae184c9a6bea95568e8bfc4df580a6b7",
+      "ts_sha256": "46c49a09ca59cd263227c5b986ce8d3563cb77d029842e1deee2e9b5006b4876",
+      "stream": {
+        "width": 48,
+        "height": 30,
+        "sample_aspect_ratio": "235:186",
+        "display_aspect_ratio": "188:93",
+        "color_space": "bt709",
+        "color_transfer": "bt709",
+        "color_primaries": "bt709",
+        "chroma_location": "left",
+        "nb_read_frames": "12"
+      }
+    }
+  ]
+}

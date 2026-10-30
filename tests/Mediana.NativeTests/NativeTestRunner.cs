@@ -102,6 +102,10 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            await YuvScalingTestInput.VerifySyntheticAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Resize"));
+            await YuvScalingTestInput.VerifySequenceAsync(root, "avc-multislice-cabac", 48, 40, 18, new(1, 1));
+            await YuvScalingTestInput.VerifySequenceAsync(root, "avc-weighted", 48, 30, 12, new(235, 186));
+            Console.WriteLine("PASS YUV area scaling: six chroma locations and 30 complete video pictures match exact rational references, preserving timing and display aspect.");
             await H264EncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 26, 18);
             await H264EncodingTestInput.VerifyAsync(root, "avc-multislice-cavlc", 38, 18);
             await H264EncodingTestInput.VerifyAsync(root, "avc-weighted", 18, 12);

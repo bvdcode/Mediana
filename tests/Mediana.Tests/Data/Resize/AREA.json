@@ -1,0 +1,55 @@
+{
+  "method": "Python Fraction exact rational integration, nearest integer with half upward, clamp-to-edge cells",
+  "cases": [
+    {
+      "reference": "area-6x4-Left.yuv",
+      "sha256": "4b9bf92d27a5810370c9bd5290f74d9653a79976b887a3f476e6875ba1c0e1fa",
+      "bytes": 36,
+      "location": "Left"
+    },
+    {
+      "reference": "area-6x4-Center.yuv",
+      "sha256": "39aada066dd41107cc4376094f8777eac1d9a87c27220a02832f73b17c24284c",
+      "bytes": 36,
+      "location": "Center"
+    },
+    {
+      "reference": "area-6x4-TopLeft.yuv",
+      "sha256": "1caaa5d68e554c29d078bb2384f830187c09a743b5976b9169e74ea579683750",
+      "bytes": 36,
+      "location": "TopLeft"
+    },
+    {
+      "reference": "area-6x4-Top.yuv",
+      "sha256": "9d18adb7357e208f0af5e965d655442114cc19a4f12db66cf44e59525977ae67",
+      "bytes": 36,
+      "location": "Top"
+    },
+    {
+      "reference": "area-6x4-BottomLeft.yuv",
+      "sha256": "02cba0ec0f645bffccc47043f6319ddc2e3baed01b6d848bc1c5f688939fb22f",
+      "bytes": 36,
+      "location": "BottomLeft"
+    },
+    {
+      "reference": "area-6x4-Bottom.yuv",
+      "sha256": "d137b0b522d428221a5577321d2ebb36c337ab9e64f39c64039f15866faa3dfd",
+      "bytes": 36,
+      "location": "Bottom"
+    },
+    {
+      "reference": "avc-multislice-cabac.scaled-48x40.yuv",
+      "sha256": "3f568308d5e04105734b41737b5b2c6d7dcd649d707d73c2b03a0d1ac8974f61",
+      "bytes": 51840,
+      "frames": 18,
+      "input_yuv_sha256": "3d889595c077deb7921be60ea6cb82513e74fb64715856512cc5f204855478da"
+    },
+    {
+      "reference": "avc-weighted.scaled-48x30.yuv",
+      "sha256": "9561a83288cc61848faa89531d33ba2c4d6b8a3ab07f11bc8bbcd423e4d777db",
+      "bytes": 25920,
+      "frames": 12,
+      "input_yuv_sha256": "5f42c51a79b91870aff4ab2e7af6fe1c9a98d74bc71a101e8b353ed2ec8781d1"
+    }
+  ]
+}

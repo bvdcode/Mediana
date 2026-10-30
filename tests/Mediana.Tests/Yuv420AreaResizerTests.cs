@@ -10,6 +10,16 @@ namespace Mediana.Tests
 {
     public class Yuv420AreaResizerTests
     {
+        [Fact]
+        public async Task AllChromaLocationsMatchExactRationalReferences() =>
+            await YuvScalingTestInput.VerifySyntheticAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Resize"));
+
+        [Theory]
+        [InlineData("avc-multislice-cabac", 48, 40, 18, 1, 1)]
+        [InlineData("avc-weighted", 48, 30, 12, 235, 186)]
+        public async Task CompleteVideoSequencesMatchExactRationalReferences(string name, int width, int height, int count, int numerator, int denominator) =>
+            await YuvScalingTestInput.VerifySequenceAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name, width, height, count, new(numerator, denominator));
+
         [Theory]
         [InlineData(ChromaLocation.Left)]
         [InlineData(ChromaLocation.Center)]

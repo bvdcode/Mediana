@@ -51,7 +51,7 @@ namespace Mediana.Tests
             }
         }
 
-        private static int VerifyFrame(VideoFrame input, H264Encoder encoder, IMediaCodec<MediaPacket, VideoFrame> decoder,
+        internal static int VerifyFrame(VideoFrame input, H264Encoder encoder, IMediaCodec<MediaPacket, VideoFrame> decoder,
             byte[] expected, int offset)
         {
             if (encoder.TrySend(input) != CodecInputStatus.Accepted)
