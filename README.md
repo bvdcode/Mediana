@@ -1193,6 +1193,50 @@ stream copy. Audio priming/discard metadata and container display matrices are n
 represented in TS. This operation does not yet define HLS segment boundaries,
 seek or playlists.
 
+`MediaEngine.DecodeImageAsync(source, allocator, request)` decodes one complete
+registered image or document page into the same owned `VideoFrame` used by video
+processing. Register `HeicImageDecoder`, `Jpeg2000ImageDecoder` and
+`Jbig2ImageDecoder` explicitly; no format modules are loaded by discovery.
+
+```csharp
+MediaEngine engine = new MediaEngineBuilder()
+    .AddImageDecoder(new Jpeg2000ImageDecoder(SampleAspectRatio.Square))
+    .AddImageDecoder(new HeicImageDecoder(SampleAspectRatio.Square))
+    .AddImageDecoder(new Jbig2ImageDecoder(SampleAspectRatio.Square))
+    .Build();
+MediaBufferAllocator allocator = new(64 * 1024 * 1024);
+await using RandomAccessStreamByteSource source = new(File.OpenRead("input.jp2"));
+using VideoFrame frame = await engine.DecodeImageAsync(source, allocator);
+```
+
+Raster decoder registration requires an explicit pixel-aspect interpretation.
+HEIF primary-image transforms are already applied; ICC conversion remains
+unsupported. JP2 uses its supported container color space; raw J2K requires a
+known source color space supplied to the decoder. Native component APIs retain
+their higher precision. The generic result does not infer unknown color metadata
+or convert every input to sRGB. Existing processing operations consume this frame.
+
+`ImageDecodeRequest.PageIndex` is zero-based; JBIG2 selects by document page order,
+not the page association identifier. Nonzero page/time selection is rejected when
+the decoder does not declare that capability. Recognized malformed input fails in
+the selected decoder; ambiguous recognition is rejected without trying another
+implementation. SVG, TGS and PDF retain their format-specific reading/rendering APIs.
+
+The caller owns the source and returned frame. Random access starts at source
+origin while preserving its sequential cursor; sequential probing is replayed and
+consumes input even on failure. `ImageOpenOptions` bounds encoded bytes and probe
+size. The supplied allocator counts probe, encoded input, growth buffers and frame
+leases. Unknown-length inputs start with up to 8 KiB of encoded capacity and grow
+within the byte limit; capacity slack stays counted. Codec workspace and owned
+document/component arrays have their module-specific limits. The decoded frame
+retains no source or input-buffer lease and survives source disposal. Shared
+registries and allocators support independent concurrent requests.
+
+The registered raster path matches independent references for 42 HEIC, 98 JBIG2
+and 24 JP2 inputs, including transformed/alpha HEIC, 16-bit component conversion
+and a two-page JBIG2 selection check. These checks run in managed .NET and Linux
+Native AOT. This is integration coverage for the supported decoder subsets.
+
 `MediaEngine.ProbeAsync(source)` returns container identity, nullable declared
 duration and an immutable snapshot of encoded streams through the same registered
 readers as decoding. It needs no decoder registrations, does not iterate packets,
