@@ -5,9 +5,9 @@ using Mediana.Drawing;
 using System;
 using System.Numerics;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal static class SvgArc
+    internal static class EllipticalArc
     {
         internal static void Append(VectorPath path, Vector2 start, Vector2 end, float radiusX, float radiusY, float angle, bool large, bool sweep)
         {

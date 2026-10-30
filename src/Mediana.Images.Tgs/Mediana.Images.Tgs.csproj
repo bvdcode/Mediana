@@ -3,7 +3,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
+    <ProjectReference Include="../Mediana.Drawing/Mediana.Drawing.csproj" />
     <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
     <ProjectReference Include="../Mediana.IO/Mediana.IO.csproj" />
   </ItemGroup>

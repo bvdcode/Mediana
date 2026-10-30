@@ -5,7 +5,6 @@ using Mediana.Drawing;
 using System;
 using System.Linq;
 using System.Threading;
-using Mediana.Images.Svg;
 
 namespace Mediana.Images.Tgs
 {
@@ -33,15 +32,22 @@ namespace Mediana.Images.Tgs
             }
 
             TgsSceneBuilder builder = new(document, cancellationToken);
-            SvgDocument scene = builder.Build(frame, options.AllowPartialRendering);
+            SceneNode scene = builder.Build(frame, options.AllowPartialRendering);
             return new TgsFrame
             {
                 SourceFrame = frame,
                 Timestamp = TimeSpan.FromSeconds((frame - document.InPoint) / document.FrameRate),
                 Duration = TimeSpan.FromSeconds(Math.Min(1, document.OutPoint - frame) / document.FrameRate),
-                Image = SvgRenderer.Render(scene, options, cancellationToken),
-                Warnings = Array.AsReadOnly(document.UnsupportedFeatures.Concat(builder.Warnings).Concat(scene.UnsupportedFeatures).Distinct().Order().ToArray())
+                Image = SceneRasterizer.Render(scene, document.Width, document.Height, options,
+                    (width, height) => Viewport(document, width, height), cancellationToken),
+                Warnings = Array.AsReadOnly(document.UnsupportedFeatures.Concat(builder.Warnings).Distinct().Order().ToArray())
             };
+        }
+
+        private static System.Numerics.Matrix3x2 Viewport(TgsDocument document, int width, int height)
+        {
+            float scale = Math.Min(width / (float)document.Width, height / (float)document.Height);
+            return System.Numerics.Matrix3x2.CreateScale(scale) * System.Numerics.Matrix3x2.CreateTranslation((width - (document.Width * scale)) / 2, (height - (document.Height * scale)) / 2);
         }
 
         /// <summary>Renders the frame at an elapsed time from the composition's in-point.</summary>

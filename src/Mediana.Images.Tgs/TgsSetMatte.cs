@@ -7,13 +7,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace Mediana.Images.Tgs
 {
     internal partial class TgsSceneBuilder
     {
-        private void SetMatte(JsonElement layer, XElement content, JsonElement[] layers,
+        private void SetMatte(JsonElement layer, TgsLayer content, JsonElement[] layers,
             Dictionary<double, JsonElement> byIndex, double frame, int depth, HashSet<int> active)
         {
             foreach (JsonElement effect in ExpandEffects(TgsJson.Get(layer, "ef")).Where(effect => TgsEffectInfo.Type(effect) == 28))
@@ -39,10 +38,11 @@ namespace Mediana.Images.Tgs
                     throw new InvalidDataException("Missing Lottie Set Matte source layer.");
                 }
 
-                XElement drawing = PaintLayer(layers, index, byIndex, frame, depth + 1, active, includeHidden: true);
-                string mask = Matte(drawing, Scalar(2) == 0 ? 1 : 2);
-                XElement group = new("g", new XAttribute("mask", "url(#" + mask + ")"), content.Nodes().ToArray());
-                content.ReplaceNodes(group);
+                TgsLayer drawing = PaintLayer(layers, index, byIndex, frame, depth + 1, active, includeHidden: true);
+                SceneMask mask = Matte(drawing, Scalar(2) == 0 ? 1 : 2);
+                TgsLayer group = new(content.Children.ToArray()) { Mask = mask };
+                content.Children.Clear();
+                content.Children.Add(group);
             }
         }
     }

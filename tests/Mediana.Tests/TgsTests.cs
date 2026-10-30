@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
-using Mediana.Images.Svg;
 using Mediana.Images.Tgs;
 
 namespace Mediana.Tests
@@ -64,6 +63,33 @@ namespace Mediana.Tests
             Assert.True(iterator.MoveNext());
             await cancellation.CancelAsync();
             Assert.Throws<OperationCanceledException>(() => iterator.MoveNext());
+        }
+
+        [Fact]
+        public async Task RenderingTheSameCompositionIsIndependentAcrossConcurrentFrames()
+        {
+            TgsDocument document = await TgsReader.ReadFileAsync(Path.Combine(Root, "effects.tgs"));
+            DrawingRenderOptions options = new() { Width = 64, Height = 64, Supersampling = 1 };
+            double[] positions = [0, .25, .5, .75];
+            byte[][] expected = positions.Select(position => TgsRenderer.RenderFrame(document,
+                document.InPoint + ((document.OutPoint - document.InPoint) * position), options).Pixels.ToArray()).ToArray();
+            await Task.WhenAll(Enumerable.Range(0, 12).Select(index => Task.Run(() =>
+            {
+                int selected = index % positions.Length;
+                PixelBuffer image = TgsRenderer.RenderFrame(document,
+                    document.InPoint + ((document.OutPoint - document.InPoint) * positions[selected]), options);
+                Assert.Equal(expected[selected], image.Pixels.ToArray());
+            })));
+        }
+
+        [Fact]
+        public async Task EffectMemoryBudgetAppliesToDirectScenesAndResetsForTheNextRender()
+        {
+            TgsDocument document = await TgsReader.ReadFileAsync(Path.Combine(Root, "effects.tgs"));
+            DrawingRenderOptions options = new() { Width = 64, Height = 64, Supersampling = 1 };
+            Assert.Throws<InvalidOperationException>(() => TgsRenderer.RenderFrame(document, document.InPoint,
+                options with { MaximumEffectBytes = 1 }));
+            Assert.Equal(64 * 64 * 4, TgsRenderer.RenderFrame(document, document.InPoint, options).Pixels.Length);
         }
 
         [Fact]

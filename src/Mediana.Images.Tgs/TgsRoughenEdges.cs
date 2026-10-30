@@ -4,13 +4,14 @@
 using Mediana.Drawing;
 using System;
 using System.Text.Json;
-using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Numerics;
 
 namespace Mediana.Images.Tgs
 {
     internal partial class TgsSceneBuilder
     {
-        private void RoughenEdges(XElement filter, Func<int, double, double> scalar, JsonElement[] values, double frame)
+        private void RoughenEdges(List<SceneFilterStep> filter, Func<int, double, double> scalar, JsonElement[] values, double frame)
         {
             double border = scalar(2, 0);
             if (border == 0)
@@ -29,13 +30,14 @@ namespace Mediana.Images.Tgs
 
             string original = Id(), alpha = Id(), blurred = Id(), noise = Id(), matte = Id();
             double contrast = Math.Max(.25, sharpness) * 4;
-            filter.Add(
-                new XElement("feColorMatrix", new XAttribute("result", original)),
-                new XElement("feColorMatrix", new XAttribute("in", original), new XAttribute("values", "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"), new XAttribute("result", alpha)),
-                new XElement("feGaussianBlur", new XAttribute("in", alpha), new XAttribute("stdDeviation", F(border / 2)), new XAttribute("result", blurred)),
-                new XElement("feTurbulence", new XAttribute("type", "fractalNoise"), new XAttribute("baseFrequency", F(1 / scale)), new XAttribute("numOctaves", F(complexity)), new XAttribute("seed", F(scalar(13, 0))), new XAttribute("result", noise)),
-                new XElement("feComposite", new XAttribute("in", blurred), new XAttribute("in2", noise), new XAttribute("operator", "arithmetic"), new XAttribute("k2", F(contrast)), new XAttribute("k3", F((-contrast * influence) / 2)), new XAttribute("k4", F(.5 - (contrast * .75) + ((contrast * influence) / 4))), new XAttribute("result", matte)),
-                new XElement("feComposite", new XAttribute("in", original), new XAttribute("in2", matte), new XAttribute("operator", "in")));
+            filter.AddRange([
+                SceneEffects.Identity() with { Result = original },
+                SceneEffects.Matrix([0,0,0,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,0,1,0]) with { Input = original, Result = alpha },
+                SceneEffects.Blur(new Vector2(Number(border / 2))) with { Input = alpha, Result = blurred },
+                SceneEffects.Noise(new Vector2(Number(1 / scale)), (int)complexity, (long)Number(scalar(13, 0))) with { Result = noise },
+                SceneEffects.Composite("arithmetic", new Vector4(0, Number(contrast), Number((-contrast * influence) / 2), Number(.5 - (contrast * .75) + ((contrast * influence) / 4)))) with { Input = blurred, SecondInput = noise, Result = matte },
+                SceneEffects.Composite("in") with { Input = original, SecondInput = matte }
+            ]);
         }
 
         private static bool SupportedRoughenMode(Func<int, double, double> scalar, JsonElement[] values, double frame)

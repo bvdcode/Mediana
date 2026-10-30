@@ -5,7 +5,6 @@ using Mediana.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Mediana.Images.Svg;
 
 namespace Mediana.Images.Tgs
 {

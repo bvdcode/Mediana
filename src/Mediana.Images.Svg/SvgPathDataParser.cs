@@ -124,7 +124,7 @@ namespace Mediana.Images.Svg
                     bool large = _numbers.Flag();
                     bool sweep = _numbers.Flag();
                     end = Point(relative);
-                    SvgArc.Append(_path, _point, end, rx, ry, angle, large, sweep);
+                    EllipticalArc.Append(_path, _point, end, rx, ry, angle, large, sweep);
                     _point = end;
                     break;
                 default:

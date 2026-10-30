@@ -8,24 +8,22 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text.Json;
-using System.Xml.Linq;
-using Mediana.Images.Svg;
 
 namespace Mediana.Images.Tgs
 {
     internal partial class TgsSceneBuilder
     {
-        private XElement Shapes(JsonElement array, double frame, int depth, JsonElement[]? inheritedStyles = null, JsonElement[]? inheritedTrims = null)
+        private TgsLayer Shapes(JsonElement[] source, double frame, int depth, JsonElement[]? inheritedStyles = null, JsonElement[]? inheritedTrims = null)
         {
             Count(depth);
-            JsonElement[] items = TgsJson.Array(array);
+            JsonElement[] items = source;
             inheritedStyles ??= Array.Empty<JsonElement>();
             items = items.Concat(inheritedTrims ?? Array.Empty<JsonElement>()).ToArray();
             JsonElement transform = items.LastOrDefault(x => TgsJson.Text(x, "ty") == "tr" && !TgsJson.Flag(x, "hd"));
             double opacity = Math.Clamp(TgsValues.Scalar(TgsJson.Get(transform, "o"), frame, 100) / 100, 0, 1);
             if (opacity == 0)
             {
-                return new XElement("g");
+                return new TgsLayer();
             }
 
             if (opacity != 1)
@@ -41,14 +39,14 @@ namespace Mediana.Images.Tgs
             }
 
             CheckTrimScopes(items);
-            XElement? group = new XElement("g");
-            group.SetAttributeValue("transform", Matrix(Transform(transform, frame)));
-            group.SetAttributeValue("opacity", F(opacity));
+            TgsLayer? group = new TgsLayer();
+            group.Transform = Transform(transform, frame);
+            group.Opacity = Number(opacity);
             PaintShapes(group, items, inheritedStyles, frame, depth);
             return group;
         }
 
-        private void PaintShapes(XElement group, JsonElement[] items, JsonElement[] inheritedStyles, double frame, int depth)
+        private void PaintShapes(TgsLayer group, JsonElement[] items, JsonElement[] inheritedStyles, double frame, int depth)
         {
             for (int i = items.Length - 1; i >= 0; i--)
             {
@@ -64,15 +62,15 @@ namespace Mediana.Images.Tgs
                     JsonElement[] following = items[(i + 1)..];
                     JsonElement[] styles = following.Where(x => TgsJson.Text(x, "ty") is "fl" or "st" or "gf" or "gs").Concat(inheritedStyles).ToArray();
                     JsonElement[] trims = following.Where(x => TgsJson.Text(x, "ty") == "tm" && !TgsJson.Flag(x, "hd")).ToArray();
-                    group.Add(Shapes(TgsJson.Get(items[i], "it"), frame, depth + 1, styles, trims));
+                    group.Children.Add(Shapes(TgsJson.Array(TgsJson.Get(items[i], "it")), frame, depth + 1, styles, trims));
                 }
                 else if (type is "fl" or "st" or "gf" or "gs")
                 {
                     VectorPath path = Collect(items, i, frame, depth);
                     Geometry(path);
-                    XElement paint = PathElement(path);
+                    TgsLayer paint = PathElement(path);
                     ApplyStyle(paint, items[i], frame);
-                    group.Add(paint);
+                    group.Children.Add(paint);
                 }
             }
         }
@@ -270,8 +268,11 @@ namespace Mediana.Images.Tgs
             }
 
             bool reverse = TgsJson.Number(item, "d", 1) == 3;
-            string sweep = reverse ? "0" : "1";
-            return SvgPathParser.Parse($"M{F(p.X)} {F(p.Y - r.Y)}A{F(r.X)} {F(r.Y)} 0 1 {sweep} {F(p.X)} {F(p.Y + r.Y)}A{F(r.X)} {F(r.Y)} 0 1 {sweep} {F(p.X)} {F(p.Y - r.Y)}Z");
+            Vector2 top = new(p.X, p.Y - r.Y), bottom = new(p.X, p.Y + r.Y);
+            VectorPath path = new VectorPath().MoveTo(top.X, top.Y);
+            EllipticalArc.Append(path, top, bottom, r.X, r.Y, 0, true, !reverse);
+            EllipticalArc.Append(path, bottom, top, r.X, r.Y, 0, true, !reverse);
+            return path.Close();
         }
 
         private static VectorPath Rectangle(JsonElement item, double frame)

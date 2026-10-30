@@ -9,7 +9,6 @@ using Mediana.Codecs;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
-using Mediana.Images.Svg;
 
 namespace Mediana.Images.Tgs
 {
