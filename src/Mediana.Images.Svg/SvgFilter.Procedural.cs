@@ -12,7 +12,7 @@ namespace Mediana.Images.Svg
 {
     internal partial record SvgFilter
     {
-        private static PixelBuffer Turbulence(XElement p, PixelBuffer source, Matrix3x2 matrix, (float X, float Y, float Width, float Height) region, bool linear, SvgRenderContext context)
+        private static PixelBuffer Turbulence(XElement p, PixelBuffer source, Matrix3x2 matrix, (float X, float Y, float Width, float Height) region, bool linear, SceneRenderContext context)
         {
             Vector2 frequency = Pair(p, "baseFrequency");
             int octaves = (int)Number(p, "numOctaves", 1);
@@ -46,7 +46,7 @@ namespace Mediana.Images.Svg
                 amplitude *= .5f;
             }
 
-            return SvgPixels.Map(source, (x, y) =>
+            return ScenePixels.Map(source, (x, y) =>
             {
                 Vector2 point = Vector2.Transform(new Vector2(x + .5f, y + .5f), inverse);
                 Vector4 sum = Vector4.Zero;
@@ -71,7 +71,7 @@ namespace Mediana.Images.Svg
             return low > 0 && value / low < high / value ? low : high;
         }
 
-        private static PixelBuffer Lighting(XElement p, PixelBuffer input, Matrix3x2 units, Matrix3x2 matrix, bool linear, SvgRenderContext context)
+        private static PixelBuffer Lighting(XElement p, PixelBuffer input, Matrix3x2 units, Matrix3x2 matrix, bool linear, SceneRenderContext context)
         {
             XElement? light = p.Elements().FirstOrDefault();
             if (light is null || !Matrix3x2.Invert(matrix, out Matrix3x2 inverse))
@@ -84,14 +84,14 @@ namespace Mediana.Images.Svg
             Vector3 color = new(ink.R / 255f, ink.G / 255f, ink.B / 255f);
             if (linear)
             {
-                color = new Vector3(SvgPixels.Linear(color.X), SvgPixels.Linear(color.Y), SvgPixels.Linear(color.Z));
+                color = new Vector3(ScenePixels.Linear(color.X), ScenePixels.Linear(color.Y), ScenePixels.Linear(color.Z));
             }
 
             float surface = Number(p, "surfaceScale", 1), constant = Number(p, specular ? "specularConstant" : "diffuseConstant", 1), exponent = Number(p, "specularExponent", 1);
             Vector2 step = Pair(p, "kernelUnitLength", 1);
             Vector2 dx = Vector2.TransformNormal(new Vector2(step.X, 0), units), dy = Vector2.TransformNormal(new Vector2(0, step.Y), units);
-            float Height(float x, float y) => SvgPixels.Sample(input, x, y, false, "duplicate").W * surface;
-            return SvgPixels.Map(input, (x, y) =>
+            float Height(float x, float y) => ScenePixels.Sample(input, x, y, false, "duplicate").W * surface;
+            return ScenePixels.Map(input, (x, y) =>
             {
                 float gx = 0, gy = 0;
                 for (int i = -1; i <= 1; i++)

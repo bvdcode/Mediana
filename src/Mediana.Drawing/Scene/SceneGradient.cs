@@ -8,9 +8,9 @@ using System.Numerics;
 using System.Linq;
 using System.Threading;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal record SvgGradient(bool Radial, bool ObjectBox, Matrix3x2 Transform, string Spread, Vector2 Start, Vector2 End, float Radius, float FocalRadius, (float Offset, Rgba32 Color)[] Stops) : SvgPaint
+    internal record SceneGradient(bool Radial, bool ObjectBox, Matrix3x2 Transform, string Spread, Vector2 Start, Vector2 End, float Radius, float FocalRadius, (float Offset, Rgba32 Color)[] Stops) : ScenePaint
     {
         internal bool Linear { get; init; }
 
@@ -22,7 +22,7 @@ namespace Mediana.Images.Svg
             }
 
             Matrix3x2 shader = ObjectBox ? Transform * Matrix3x2.CreateScale(box.Width, box.Height) * Matrix3x2.CreateTranslation(box.X, box.Y) : Transform;
-            canvas.DrawShader(p => SvgColor.Alpha(Sample(p), opacity), shader * matrix, cancellationToken: token);
+            canvas.DrawShader(p => ScenePixels.Alpha(Sample(p), opacity), shader * matrix, cancellationToken: token);
         }
 
         internal override void Draw(RasterCanvas canvas, VectorPath path, Matrix3x2 matrix, FillRule rule, float opacity, StrokeStyle? stroke, CancellationToken token)
@@ -51,7 +51,7 @@ namespace Mediana.Images.Svg
                     canvas.ClipStrokePath(path, stroke, matrix, token);
                 }
 
-                canvas.DrawShader(p => SvgColor.Alpha(Sample(p), opacity), shader * matrix, cancellationToken: token);
+                canvas.DrawShader(p => ScenePixels.Alpha(Sample(p), opacity), shader * matrix, cancellationToken: token);
             }
             finally
             {
@@ -88,7 +88,7 @@ namespace Mediana.Images.Svg
             (float Offset, Rgba32 Color) b = Stops[next];
             float weight = b.Offset == a.Offset ? 1 : (float)((t - a.Offset) / (b.Offset - a.Offset));
             byte Mix(byte x, byte y) => (byte)Math.Clamp((int)MathF.Round(x + ((y - x) * weight)), 0, 255);
-            byte LinearMix(byte x, byte y) => PixelCompositor.Byte(SvgPixels.Srgb(SvgPixels.Linear(x / 255f) + ((SvgPixels.Linear(y / 255f) - SvgPixels.Linear(x / 255f)) * weight)));
+            byte LinearMix(byte x, byte y) => PixelCompositor.Byte(ScenePixels.Srgb(ScenePixels.Linear(x / 255f) + ((ScenePixels.Linear(y / 255f) - ScenePixels.Linear(x / 255f)) * weight)));
             return Linear ? new Rgba32(LinearMix(a.Color.R, b.Color.R), LinearMix(a.Color.G, b.Color.G), LinearMix(a.Color.B, b.Color.B), Mix(a.Color.A, b.Color.A)) : new Rgba32(Mix(a.Color.R, b.Color.R), Mix(a.Color.G, b.Color.G), Mix(a.Color.B, b.Color.B), Mix(a.Color.A, b.Color.A));
         }
 

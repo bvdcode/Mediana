@@ -8,18 +8,18 @@ using System.Numerics;
 using System.Linq;
 using System.Threading;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal record SvgNode(VectorPath? Path, SvgPaint? Fill, SvgPaint? Stroke, StrokeStyle Pen, FillRule Rule, FillRule ClipRule, Matrix3x2 Transform, float Opacity, float FillOpacity, float StrokeOpacity, SvgClip? Clip, SvgNode[] Children)
+    internal record SceneNode(VectorPath? Path, ScenePaint? Fill, ScenePaint? Stroke, StrokeStyle Pen, FillRule Rule, FillRule ClipRule, Matrix3x2 Transform, float Opacity, float FillOpacity, float StrokeOpacity, SceneClip? Clip, SceneNode[] Children)
     {
-        internal SvgMask? Mask { get; init; }
-        internal SvgFilter? Filter { get; init; }
+        internal SceneMask? Mask { get; init; }
+        internal SceneEffect? Filter { get; init; }
         internal ColorBlendMode BlendMode { get; init; }
         internal PixelBuffer? Image { get; init; }
         internal Matrix3x2 ImageTransform { get; init; } = Matrix3x2.Identity;
         internal VectorPath? ImageViewport { get; init; }
 
-        internal void Draw(RasterCanvas canvas, Matrix3x2 parent, SvgRenderContext context)
+        internal void Draw(RasterCanvas canvas, Matrix3x2 parent, SceneRenderContext context)
         {
             CancellationToken token = context.Token;
             token.ThrowIfCancellationRequested();
@@ -41,7 +41,7 @@ namespace Mediana.Images.Svg
                 ApplyClip(canvas, matrix, token);
                 if (Opacity < 1 || BlendMode != ColorBlendMode.Normal)
                 {
-                    using SvgBufferScope buffers = context.BeginBuffers();
+                    using SceneBufferScope buffers = context.BeginBuffers();
                     PixelBuffer group = context.CreateBuffer(canvas.Buffer.Width, canvas.Buffer.Height);
                     canvas.DrawLayer(layer => Paint(layer, matrix, context), group, Opacity, BlendMode, token);
                 }
@@ -73,9 +73,9 @@ namespace Mediana.Images.Svg
             canvas.ClipUnion(Clip.Shapes.Select(p => (p.Path, clipMatrix, p.Rule)), token);
         }
 
-        private void DrawEffects(RasterCanvas canvas, Matrix3x2 matrix, SvgRenderContext context)
+        private void DrawEffects(RasterCanvas canvas, Matrix3x2 matrix, SceneRenderContext context)
         {
-            using SvgBufferScope buffers = context.BeginBuffers();
+            using SceneBufferScope buffers = context.BeginBuffers();
             PixelBuffer source = context.CreateBuffer(canvas.Buffer.Width, canvas.Buffer.Height);
             Paint(new RasterCanvas(source), matrix, context);
             (float X, float Y, float Width, float Height) box = Bounds(context.Token);
@@ -102,7 +102,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private void Paint(RasterCanvas canvas, Matrix3x2 matrix, SvgRenderContext context)
+        private void Paint(RasterCanvas canvas, Matrix3x2 matrix, SceneRenderContext context)
         {
             CancellationToken token = context.Token;
             if (Image is not null)
@@ -132,14 +132,14 @@ namespace Mediana.Images.Svg
                 }
             }
 
-            foreach (SvgNode child in Children)
+            foreach (SceneNode child in Children)
             {
                 child.Draw(canvas, matrix, context);
             }
         }
 
         internal (float X, float Y, float Width, float Height) Bounds(CancellationToken token) => Outline(Matrix3x2.Identity).GetBounds(token);
-        internal void ClipShapes(Matrix3x2 parent, List<SvgClipShape> result)
+        internal void ClipShapes(Matrix3x2 parent, List<SceneClipShape> result)
         {
             if (Clip is not null)
             {
@@ -148,10 +148,10 @@ namespace Mediana.Images.Svg
 
             if (Path is not null)
             {
-                result.Add(new SvgClipShape(Path.Transform(parent), ClipRule));
+                result.Add(new SceneClipShape(Path.Transform(parent), ClipRule));
             }
 
-            foreach (SvgNode child in Children)
+            foreach (SceneNode child in Children)
             {
                 child.ClipShapes(child.Transform * parent, result);
             }
@@ -170,7 +170,7 @@ namespace Mediana.Images.Svg
                 result.Append(Path.Transform(parent));
             }
 
-            foreach (SvgNode child in Children)
+            foreach (SceneNode child in Children)
             {
                 result.Append(child.Outline(child.Transform * parent));
             }

@@ -10,7 +10,7 @@ namespace Mediana.Images.Svg
 {
     internal partial record SvgFilter
     {
-        private static PixelBuffer GaussianRotated(PixelBuffer input, Vector2 direction, float[] kernel, bool linear, string edge, SvgRenderContext context)
+        private static PixelBuffer GaussianRotated(PixelBuffer input, Vector2 direction, float[] kernel, bool linear, string edge, SceneRenderContext context)
         {
             SvgPixelRegion source = SvgPixelRegion.AlphaBounds(input, context.Token);
             PixelBuffer result = context.CreateBuffer(input.Width, input.Height);
@@ -47,7 +47,7 @@ namespace Mediana.Images.Svg
                         value += samples.Sample(x + (direction.X * i), y + (direction.Y * i)) * kernel[i + radius];
                     }
 
-                    SvgPixels.Write(result.Pixels.Span, ((y * input.Width) + x) * 4, value, linear);
+                    ScenePixels.Write(result.Pixels.Span, ((y * input.Width) + x) * 4, value, linear);
                 }
             });
             return result;

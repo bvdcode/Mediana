@@ -8,7 +8,7 @@ using System.Numerics;
 using System.Linq;
 using System.Threading;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal record SvgClip(SvgClipShape[] Shapes, bool ObjectBox);
+    internal record SceneClipShape(VectorPath Path, FillRule Rule);
 }

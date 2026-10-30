@@ -5,13 +5,13 @@ using Mediana.Drawing;
 using System;
 using System.Numerics;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal record SvgMask(SvgNode Content, SvgRegion Region, bool ContentBox, bool Luminance, bool Linear)
+    internal record SceneMask(SceneNode Content, SceneRegion Region, bool ContentBox, bool Luminance, bool Linear)
     {
-        internal void Apply(PixelBuffer source, (float X, float Y, float Width, float Height) box, Matrix3x2 matrix, SvgRenderContext context)
+        internal void Apply(PixelBuffer source, (float X, float Y, float Width, float Height) box, Matrix3x2 matrix, SceneRenderContext context)
         {
-            using SvgBufferScope buffers = context.BeginBuffers();
+            using SceneBufferScope buffers = context.BeginBuffers();
             PixelBuffer mask = context.CreateBuffer(source.Width, source.Height);
             RasterCanvas? canvas = new RasterCanvas(mask);
             canvas.ClipPath(Region.Path(box), matrix, cancellationToken: context.Token);
@@ -28,7 +28,7 @@ namespace Mediana.Images.Svg
                     float alpha = values[i + 3] / 255f;
                     if (Luminance)
                     {
-                        Vector4 c = SvgPixels.Read(values, i, Linear, false);
+                        Vector4 c = ScenePixels.Read(values, i, Linear, false);
                         alpha *= (0.2126f * c.X) + (0.7152f * c.Y) + (0.0722f * c.Z);
                     }
 

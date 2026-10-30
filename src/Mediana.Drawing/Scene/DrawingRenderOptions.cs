@@ -5,14 +5,14 @@ using Mediana.Drawing;
 using System;
 using System.Collections.Generic;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    /// <summary>Raster output settings for an SVG viewport.</summary>
-    public record SvgRenderOptions
+    /// <summary>Raster output settings for an vector scene.</summary>
+    public record DrawingRenderOptions
     {
-        /// <summary>Gets output width; defaults to the intrinsic SVG width.</summary>
+        /// <summary>Gets output width; defaults to the intrinsic scene width.</summary>
         public int? Width { get; init; }
-        /// <summary>Gets output height; defaults to the intrinsic SVG height. One supplied dimension preserves intrinsic proportions.</summary>
+        /// <summary>Gets output height; defaults to the intrinsic scene height. One supplied dimension preserves intrinsic proportions.</summary>
         public int? Height { get; init; }
         /// <summary>Gets a supersampling factor from 1 to 4; defaults to 2.</summary>
         public int Supersampling { get; init; } = 2;

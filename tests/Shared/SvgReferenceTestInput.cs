@@ -16,7 +16,7 @@ namespace Mediana.Tests
             foreach (JsonElement entry in manifest.RootElement.GetProperty("Cases").EnumerateArray())
             {
                 SvgDocument document = SvgReader.Read(entry.GetProperty("Svg").GetString()!);
-                PixelBuffer image = SvgRenderer.Render(document, new SvgRenderOptions { Supersampling = 1 });
+                PixelBuffer image = SvgRenderer.Render(document, new DrawingRenderOptions { Supersampling = 1 });
                 if (document.UnsupportedFeatures.Count != 0 ||
                     Convert.ToHexStringLower(SHA256.HashData(image.Pixels.Span)) != entry.GetProperty("Sha256").GetString())
                 {
@@ -24,7 +24,7 @@ namespace Mediana.Tests
                 }
             }
             SvgDocument text = SvgReader.Read("<svg width='160' height='30'><text x='2' y='23'>Hello Мир</text></svg>");
-            PixelBuffer rendered = SvgRenderer.Render(text, new SvgRenderOptions { Supersampling = 1 });
+            PixelBuffer rendered = SvgRenderer.Render(text, new DrawingRenderOptions { Supersampling = 1 });
             if (!rendered.Pixels.Span.ContainsAnyExcept((byte)0))
             {
                 throw new InvalidDataException("Bundled font rendering returned an empty image.");

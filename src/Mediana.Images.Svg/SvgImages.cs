@@ -44,7 +44,7 @@ namespace Mediana.Images.Svg
                     throw new InvalidDataException("Resolved SVG image exceeds MaximumImagePixels.");
                 }
 
-                image = SvgPixels.Copy(resolved);
+                image = ScenePixels.Copy(resolved);
             }
             else
             {

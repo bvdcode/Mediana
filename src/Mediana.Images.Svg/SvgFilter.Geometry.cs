@@ -13,7 +13,7 @@ namespace Mediana.Images.Svg
 {
     internal partial record SvgFilter
     {
-        private static PixelBuffer Gaussian(PixelBuffer input, Vector2 sigma, Matrix3x2 units, bool linear, string edge, SvgRenderContext context, bool overwrite = false)
+        private static PixelBuffer Gaussian(PixelBuffer input, Vector2 sigma, Matrix3x2 units, bool linear, string edge, SceneRenderContext context, bool overwrite = false)
         {
             if (sigma.X < 0 || sigma.Y < 0)
             {
@@ -23,7 +23,7 @@ namespace Mediana.Images.Svg
             Vector2 x = Vector2.TransformNormal(new Vector2(sigma.X, 0), units), y = Vector2.TransformNormal(new Vector2(0, sigma.Y), units);
             if (x.Length() < .01f && y.Length() < .01f)
             {
-                return overwrite ? input : SvgPixels.Copy(input, context);
+                return overwrite ? input : ScenePixels.Copy(input, context);
             }
 
             PixelBuffer first = GaussianAxis(input, x, linear, edge, context);
@@ -37,12 +37,12 @@ namespace Mediana.Images.Svg
             return result;
         }
 
-        private static PixelBuffer GaussianAxis(PixelBuffer input, Vector2 axis, bool linear, string edge, SvgRenderContext context)
+        private static PixelBuffer GaussianAxis(PixelBuffer input, Vector2 axis, bool linear, string edge, SceneRenderContext context)
         {
             float sigma = axis.Length();
             if (sigma < .01f)
             {
-                return SvgPixels.Copy(input, context);
+                return ScenePixels.Copy(input, context);
             }
 
             if (!float.IsFinite(sigma) || sigma > 256)
@@ -76,8 +76,8 @@ namespace Mediana.Images.Svg
             return GaussianRotated(input, direction, kernel, linear, edge, context);
         }
 
-        private static PixelBuffer Offset(PixelBuffer input, Vector2 delta, bool linear, SvgRenderContext context) => SvgPixels.Map(input, (x, y) => SvgPixels.Sample(input, x - delta.X, y - delta.Y, linear), linear, context);
-        private static PixelBuffer Morphology(XElement p, PixelBuffer input, Matrix3x2 units, bool linear, SvgRenderContext context, bool overwrite)
+        private static PixelBuffer Offset(PixelBuffer input, Vector2 delta, bool linear, SceneRenderContext context) => ScenePixels.Map(input, (x, y) => ScenePixels.Sample(input, x - delta.X, y - delta.Y, linear), linear, context);
+        private static PixelBuffer Morphology(XElement p, PixelBuffer input, Matrix3x2 units, bool linear, SceneRenderContext context, bool overwrite)
         {
             Vector2 radius = Pair(p, "radius");
             if (radius.X < 0 || radius.Y < 0)
@@ -98,7 +98,7 @@ namespace Mediana.Images.Svg
             return result;
         }
 
-        private static PixelBuffer MorphAxis(PixelBuffer input, Vector2 axis, bool dilate, bool linear, SvgRenderContext context)
+        private static PixelBuffer MorphAxis(PixelBuffer input, Vector2 axis, bool dilate, bool linear, SceneRenderContext context)
         {
             float length = axis.Length();
             if (length > 256)
@@ -113,12 +113,12 @@ namespace Mediana.Images.Svg
             }
 
             Vector2 direction = length == 0 ? Vector2.Zero : axis / length;
-            return SvgPixels.Map(input, (x, y) =>
+            return ScenePixels.Map(input, (x, y) =>
             {
                 Vector4 result = dilate ? Vector4.Zero : Vector4.One;
                 for (int i = -radius; i <= radius; i++)
                 {
-                    Vector4 sample = SvgPixels.Sample(input, x + (direction.X * i), y + (direction.Y * i), linear);
+                    Vector4 sample = ScenePixels.Sample(input, x + (direction.X * i), y + (direction.Y * i), linear);
                     result = dilate ? Vector4.Max(result, sample) : Vector4.Min(result, sample);
                 }
 
@@ -126,7 +126,7 @@ namespace Mediana.Images.Svg
             }, linear, context);
         }
 
-        private static PixelBuffer Convolve(XElement p, PixelBuffer input, Matrix3x2 units, bool linear, SvgRenderContext context)
+        private static PixelBuffer Convolve(XElement p, PixelBuffer input, Matrix3x2 units, bool linear, SceneRenderContext context)
         {
             (int width, int height, float[] kernel) = ConvolutionKernel(p);
             float divisor = Number(p, "divisor", kernel.Sum());
@@ -143,7 +143,7 @@ namespace Mediana.Images.Svg
             Vector2 dx = p.Attribute("kernelUnitLength") is null ? Vector2.UnitX : Vector2.TransformNormal(new Vector2(step.X, 0), units);
             Vector2 dy = p.Attribute("kernelUnitLength") is null ? Vector2.UnitY : Vector2.TransformNormal(new Vector2(0, step.Y), units);
             string edge = Text(p, "edgeMode", "duplicate");
-            return SvgPixels.Map(input, (x, y) =>
+            return ScenePixels.Map(input, (x, y) =>
             {
                 Vector4 sum = Vector4.Zero;
                 for (int row = 0; row < height; row++)
@@ -151,7 +151,7 @@ namespace Mediana.Images.Svg
                     for (int col = 0; col < width; col++)
                     {
                         Vector2 d = (dx * (col - tx)) + (dy * (row - ty));
-                        Vector4 sample = SvgPixels.Sample(input, x + d.X, y + d.Y, linear, edge);
+                        Vector4 sample = ScenePixels.Sample(input, x + d.X, y + d.Y, linear, edge);
                         if (preserve && sample.W > 0)
                         {
                             sample = new Vector4(new Vector3(sample.X, sample.Y, sample.Z) / sample.W, sample.W);
@@ -184,15 +184,15 @@ namespace Mediana.Images.Svg
             return (width, height, kernel);
         }
 
-        private static PixelBuffer Displace(XElement p, PixelBuffer input, PixelBuffer second, Matrix3x2 units, bool linear, SvgRenderContext context)
+        private static PixelBuffer Displace(XElement p, PixelBuffer input, PixelBuffer second, Matrix3x2 units, bool linear, SceneRenderContext context)
         {
             float scale = Number(p, "scale");
             int xc = Channel(Text(p, "xChannelSelector", "A")), yc = Channel(Text(p, "yChannelSelector", "A"));
-            return SvgPixels.Map(input, (x, y) =>
+            return ScenePixels.Map(input, (x, y) =>
             {
-                Vector4 control = SvgPixels.At(second, x, y, linear, premultiplied: false);
+                Vector4 control = ScenePixels.At(second, x, y, linear, premultiplied: false);
                 Vector2 delta = Vector2.TransformNormal(new Vector2((control[xc] - .5f) * scale, (control[yc] - .5f) * scale), units);
-                return SvgPixels.Sample(input, x + delta.X, y + delta.Y, linear);
+                return ScenePixels.Sample(input, x + delta.X, y + delta.Y, linear);
             }, linear, context);
         }
 
@@ -203,20 +203,20 @@ namespace Mediana.Images.Svg
             "B" => 2,
             _ => 3
         };
-        private static PixelBuffer Tile(PixelBuffer input, (float X, float Y, float Width, float Height) region, Matrix3x2 matrix, bool linear, SvgRenderContext context)
+        private static PixelBuffer Tile(PixelBuffer input, (float X, float Y, float Width, float Height) region, Matrix3x2 matrix, bool linear, SceneRenderContext context)
         {
             if (region.Width <= 0 || region.Height <= 0 || !Matrix3x2.Invert(matrix, out Matrix3x2 inverse))
             {
                 return context.CreateBuffer(input.Width, input.Height);
             }
 
-            return SvgPixels.Map(input, (x, y) =>
+            return ScenePixels.Map(input, (x, y) =>
             {
                 Vector2 local = Vector2.Transform(new Vector2(x + .5f, y + .5f), inverse);
                 float Wrap(float v, float origin, float size) => origin + ((((v - origin) % size) + size) % size);
                 local = new Vector2(Wrap(local.X, region.X, region.Width), Wrap(local.Y, region.Y, region.Height));
                 Vector2 point = Vector2.Transform(local, matrix) - new Vector2(.5f);
-                return SvgPixels.Sample(input, point.X, point.Y, linear);
+                return ScenePixels.Sample(input, point.X, point.Y, linear);
             }, linear, context);
         }
     }

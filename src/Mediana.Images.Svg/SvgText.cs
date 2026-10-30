@@ -22,7 +22,7 @@ namespace Mediana.Images.Svg
 
 
 
-        private SvgNode[] TextNodes(XElement e, Dictionary<string, string> style, int depth)
+        private SceneNode[] TextNodes(XElement e, Dictionary<string, string> style, int depth)
         {
             var raw = new List<TextCharacter>();
             GatherText(e, style, null, 16, Matrix3x2.Identity, false, raw, depth);
@@ -68,21 +68,21 @@ namespace Mediana.Images.Svg
             return glyphs;
         }
 
-        private SvgNode[] BuildTextNodes(List<PlacedGlyph> glyphs, int depth)
+        private SceneNode[] BuildTextNodes(List<PlacedGlyph> glyphs, int depth)
         {
-            var result = new List<SvgNode>();
-            var spans = new Dictionary<TextSpan, (SvgNode Node, List<SvgNode> Children)>();
-            List<SvgNode> Container(TextSpan span)
+            var result = new List<SceneNode>();
+            var spans = new Dictionary<TextSpan, (SceneNode Node, List<SceneNode> Children)>();
+            List<SceneNode> Container(TextSpan span)
             {
                 if (span.Parent is null)
                 {
                     return result;
                 }
 
-                if (!spans.TryGetValue(span, out (SvgNode Node, List<SvgNode> Children) group))
+                if (!spans.TryGetValue(span, out (SceneNode Node, List<SceneNode> Children) group))
                 {
-                    var children = new List<SvgNode>();
-                    SvgNode node = Empty with
+                    var children = new List<SceneNode>();
+                    SceneNode node = Empty with
                     {
                         Opacity = Opacity(span.Style, "opacity"),
                         Clip = Clip(Value(span.Style, "clip-path", "none"), depth + 1),
@@ -100,12 +100,12 @@ namespace Mediana.Images.Svg
             {
                 VectorPath path = PlaceTextGlyph(glyph);
                 path = ValidatePath(path, glyph.Style) ?? new VectorPath();
-                Container(glyph.Span).Add(new SvgNode(path, Paint(Value(glyph.Style, "fill", "black"), glyph.Style), Paint(Value(glyph.Style, "stroke", "none"), glyph.Style), Pen(glyph.Style), Rule(Value(glyph.Style, "fill-rule", "nonzero")), FillRule.NonZero, Matrix3x2.Identity, 1, Opacity(glyph.Style, "fill-opacity"), Opacity(glyph.Style, "stroke-opacity"), null, Array.Empty<SvgNode>()));
+                Container(glyph.Span).Add(new SceneNode(path, Paint(Value(glyph.Style, "fill", "black"), glyph.Style), Paint(Value(glyph.Style, "stroke", "none"), glyph.Style), Pen(glyph.Style), Rule(Value(glyph.Style, "fill-rule", "nonzero")), FillRule.NonZero, Matrix3x2.Identity, 1, Opacity(glyph.Style, "fill-opacity"), Opacity(glyph.Style, "stroke-opacity"), null, Array.Empty<SceneNode>()));
             }
 
-            SvgNode Finish(SvgNode node)
+            SceneNode Finish(SceneNode node)
             {
-                foreach ((SvgNode Node, List<SvgNode> Children) group in spans.Values)
+                foreach ((SceneNode Node, List<SceneNode> Children) group in spans.Values)
                 {
                     if (ReferenceEquals(group.Node, node))
                     {

@@ -5,24 +5,24 @@ using Mediana.Drawing;
 using System;
 using System.Threading;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal class SvgRenderContext : IDisposable
+    internal class SceneRenderContext : IDisposable
     {
         private long _reserved;
-        internal SvgRenderOptions Options { get; }
+        internal DrawingRenderOptions Options { get; }
         internal CancellationToken Token { get; }
-        internal SvgBufferPool Buffers { get; }
-        internal SvgBufferScope? Scope { get; set; }
+        internal SceneBufferPool Buffers { get; }
+        internal SceneBufferScope? Scope { get; set; }
 
-        internal SvgRenderContext(SvgRenderOptions options, CancellationToken token)
+        internal SceneRenderContext(DrawingRenderOptions options, CancellationToken token)
         {
             Options = options;
             Token = token;
-            Buffers = new SvgBufferPool(this);
+            Buffers = new SceneBufferPool(this);
         }
 
-        internal SvgBufferScope BeginBuffers() => Scope = new SvgBufferScope(this, Scope);
+        internal SceneBufferScope BeginBuffers() => Scope = new SceneBufferScope(this, Scope);
 
         internal PixelBuffer CreateBuffer(int width, int height)
         {
@@ -43,11 +43,11 @@ namespace Mediana.Images.Svg
 
             if (bytes > Options.MaximumEffectBytes - _reserved)
             {
-                throw new InvalidOperationException("SVG effects exceed MaximumEffectBytes.");
+                throw new InvalidOperationException("Drawing effects exceed MaximumEffectBytes.");
             }
 
             _reserved += bytes;
-            return new SvgBufferReservation(this, bytes);
+            return new SceneBufferReservation(this, bytes);
         }
 
         internal void ReleaseReservation(long bytes) => _reserved -= bytes;

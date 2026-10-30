@@ -7,10 +7,12 @@ using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal static class SvgPixels
+    internal static class ScenePixels
     {
+        internal static Rgba32 Alpha(Rgba32 color, float opacity) => color with { A = PixelCompositor.Byte((color.A / 255f) * opacity) };
+
         private static readonly float[] LinearChannels = CreateLinearChannels();
 
         private static float[] CreateLinearChannels()
@@ -100,7 +102,7 @@ namespace Mediana.Images.Svg
             return Read(image.Pixels.Span, ((y * image.Width) + x) * 4, linear, premultiplied);
         }
 
-        internal static PixelBuffer Map(PixelBuffer size, Func<int, int, Vector4> sample, bool linear, SvgRenderContext context, bool premultiplied = true, bool parallel = false, PixelBuffer? destination = null)
+        internal static PixelBuffer Map(PixelBuffer size, Func<int, int, Vector4> sample, bool linear, SceneRenderContext context, bool premultiplied = true, bool parallel = false, PixelBuffer? destination = null)
         {
             PixelBuffer output = destination ?? context.CreateBuffer(size.Width, size.Height);
             void Row(int y)
@@ -127,7 +129,7 @@ namespace Mediana.Images.Svg
             return output;
         }
 
-        internal static PixelBuffer Copy(PixelBuffer image, SvgRenderContext context)
+        internal static PixelBuffer Copy(PixelBuffer image, SceneRenderContext context)
         {
             PixelBuffer result = context.CreateBuffer(image.Width, image.Height);
             image.Pixels.CopyTo(result.Pixels);

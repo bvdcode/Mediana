@@ -29,7 +29,7 @@ namespace Mediana.Tests
                 TgsDocument document = await TgsReader.ReadFileAsync(Path.Combine(root, name));
                 int size = entry.GetProperty("size").GetInt32();
                 PixelBuffer image = TgsRenderer.RenderFrame(document, entry.GetProperty("frame").GetDouble(),
-                    new SvgRenderOptions { Width = size, Height = size, Supersampling = 1 });
+                    new DrawingRenderOptions { Width = size, Height = size, Supersampling = 1 });
                 byte[] reference = new byte[checked(size * size * 4)];
                 await using FileStream encoded = File.OpenRead(Path.Combine(root, entry.GetProperty("pixels").GetString()!));
                 await using GZipStream pixels = new(encoded, CompressionMode.Decompress);

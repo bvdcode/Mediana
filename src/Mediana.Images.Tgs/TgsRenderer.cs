@@ -13,14 +13,14 @@ namespace Mediana.Images.Tgs
     public static partial class TgsRenderer
     {
         /// <summary>Renders an absolute frame number in [InPoint, OutPoint). Fractional frames are supported.</summary>
-        public static PixelBuffer RenderFrame(TgsDocument document, double frame, SvgRenderOptions? options = null, CancellationToken cancellationToken = default)
+        public static PixelBuffer RenderFrame(TgsDocument document, double frame, DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
             => RenderFrameDetailed(document, frame, options, cancellationToken).Image;
 
         /// <summary>Renders one frame with timing and detected feature diagnostics.</summary>
-        public static TgsFrame RenderFrameDetailed(TgsDocument document, double frame, SvgRenderOptions? options = null, CancellationToken cancellationToken = default)
+        public static TgsFrame RenderFrameDetailed(TgsDocument document, double frame, DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(document);
-            options ??= new SvgRenderOptions();
+            options ??= new DrawingRenderOptions();
             cancellationToken.ThrowIfCancellationRequested();
             if (!double.IsFinite(frame) || frame < document.InPoint || frame >= document.OutPoint)
             {
@@ -45,7 +45,7 @@ namespace Mediana.Images.Tgs
         }
 
         /// <summary>Renders the frame at an elapsed time from the composition's in-point.</summary>
-        public static PixelBuffer RenderAtTime(TgsDocument document, double seconds, SvgRenderOptions? options = null, CancellationToken cancellationToken = default)
+        public static PixelBuffer RenderAtTime(TgsDocument document, double seconds, DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(document);
             return RenderFrame(document, document.InPoint + (seconds * document.FrameRate), options, cancellationToken);

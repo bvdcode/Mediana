@@ -39,7 +39,7 @@ namespace Mediana.Images.Svg
                 return Vector4.Zero;
             }
 
-            return SvgPixels.Read(image.Pixels.Span, ((y * image.Width) + x) * 4, linear);
+            return ScenePixels.Read(image.Pixels.Span, ((y * image.Width) + x) * 4, linear);
         }
     }
 }

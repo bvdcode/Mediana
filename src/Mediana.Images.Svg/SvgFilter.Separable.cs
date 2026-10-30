@@ -10,7 +10,7 @@ namespace Mediana.Images.Svg
 {
     internal partial record SvgFilter
     {
-        private static PixelBuffer GaussianAligned(PixelBuffer input, float[] kernel, bool horizontal, bool reverse, bool linear, string edge, SvgRenderContext context)
+        private static PixelBuffer GaussianAligned(PixelBuffer input, float[] kernel, bool horizontal, bool reverse, bool linear, string edge, SceneRenderContext context)
         {
             int length = horizontal ? input.Width : input.Height;
             int lines = horizontal ? input.Height : input.Width;
@@ -42,7 +42,7 @@ namespace Mediana.Images.Svg
             return result;
         }
 
-        private static PixelBuffer MorphAligned(PixelBuffer input, int radius, bool horizontal, bool reverse, bool dilate, bool linear, SvgRenderContext context)
+        private static PixelBuffer MorphAligned(PixelBuffer input, int radius, bool horizontal, bool reverse, bool dilate, bool linear, SceneRenderContext context)
         {
             int length = horizontal ? input.Width : input.Height;
             int lines = horizontal ? input.Height : input.Width;
@@ -76,7 +76,7 @@ namespace Mediana.Images.Svg
 
         private static Vector4 Extremum(Vector4 a, Vector4 b, bool dilate) => dilate ? Vector4.Max(a, b) : Vector4.Min(a, b);
 
-        private static (int First, int Last) ReadAxisLine(PixelBuffer input, Vector4[] samples, int line, int radius, bool horizontal, bool reverse, bool linear, string edge, SvgRenderContext context)
+        private static (int First, int Last) ReadAxisLine(PixelBuffer input, Vector4[] samples, int line, int radius, bool horizontal, bool reverse, bool linear, string edge, SceneRenderContext context)
         {
             context.Token.ThrowIfCancellationRequested();
             int length = horizontal ? input.Width : input.Height;
@@ -84,7 +84,7 @@ namespace Mediana.Images.Svg
             for (int i = 0; i < samples.Length; i++)
             {
                 int coordinate = reverse ? length - 1 - (i - radius) : i - radius;
-                Vector4 value = horizontal ? SvgPixels.At(input, coordinate, line, linear, edge) : SvgPixels.At(input, line, coordinate, linear, edge);
+                Vector4 value = horizontal ? ScenePixels.At(input, coordinate, line, linear, edge) : ScenePixels.At(input, line, coordinate, linear, edge);
                 samples[i] = value;
                 if (value != Vector4.Zero)
                 {
@@ -101,7 +101,7 @@ namespace Mediana.Images.Svg
             int length = horizontal ? output.Width : output.Height;
             coordinate = reverse ? length - 1 - coordinate : coordinate;
             int x = horizontal ? coordinate : line, y = horizontal ? line : coordinate;
-            SvgPixels.Write(output.Pixels.Span, ((y * output.Width) + x) * 4, value, linear);
+            ScenePixels.Write(output.Pixels.Span, ((y * output.Width) + x) * 4, value, linear);
         }
     }
 }

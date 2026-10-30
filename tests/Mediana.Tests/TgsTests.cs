@@ -36,7 +36,7 @@ namespace Mediana.Tests
         {
             TgsDocument json = await TgsReader.ReadFileAsync(Path.Combine(Root, name + ".json"));
             TgsDocument gzip = await TgsReader.ReadFileAsync(Path.Combine(Root, name + ".tgs"));
-            SvgRenderOptions options = new() { Width = 64, Height = 64, Supersampling = 1 };
+            DrawingRenderOptions options = new() { Width = 64, Height = 64, Supersampling = 1 };
             foreach (double position in new[] { 0, .25, .5, .75 })
             {
                 double frame = json.InPoint + (json.OutPoint - json.InPoint) * position;

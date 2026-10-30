@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Drawing;
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 using Mediana.Codecs;
 using Mediana.Codecs.Png;
 using Mediana.Core.Memory;
@@ -44,10 +48,10 @@ namespace Mediana.Cli
         }
 
         public static Task<int> SvgAsync(string inputPath, CommandOutputFile outputFile, int? width, CancellationToken cancellationToken = default) =>
-            RunAsync(new SvgImageDecoder(renderOptions: new SvgRenderOptions { Width = width }), inputPath, outputFile, cancellationToken: cancellationToken);
+            RunAsync(new SvgImageDecoder(renderOptions: new DrawingRenderOptions { Width = width }), inputPath, outputFile, cancellationToken: cancellationToken);
 
         public static Task<int> TgsAsync(string inputPath, CommandOutputFile outputFile, double seconds, int? width, CancellationToken cancellationToken = default) =>
-            RunAsync(new TgsImageDecoder(renderOptions: new SvgRenderOptions { Width = width }), inputPath, outputFile,
+            RunAsync(new TgsImageDecoder(renderOptions: new DrawingRenderOptions { Width = width }), inputPath, outputFile,
                 new ImageDecodeRequest { Time = new MediaTimestamp(TimeSpan.FromSeconds(seconds).Ticks, TimeBase.TimeSpanTicks) }, cancellationToken);
     }
 }

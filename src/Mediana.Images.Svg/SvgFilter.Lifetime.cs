@@ -35,7 +35,7 @@ namespace Mediana.Images.Svg
 
         private static void ReleaseResults(Dictionary<string, PixelBuffer> results,
             Dictionary<PixelBuffer, (float X, float Y, float Width, float Height)> regions, PixelBuffer previous,
-            Dictionary<string, int> lastUses, int index, SvgBufferScope buffers)
+            Dictionary<string, int> lastUses, int index, SceneBufferScope buffers)
         {
             foreach (string name in results.Keys.Where(name => lastUses.GetValueOrDefault(name, -1) <= index).ToArray())
             {
@@ -52,7 +52,7 @@ namespace Mediana.Images.Svg
             buffers.Retain(retained);
         }
 
-        private static bool CanOverwrite(PixelBuffer input, Dictionary<string, PixelBuffer> results, Dictionary<string, int> lastUses, int index, SvgBufferScope buffers)
+        private static bool CanOverwrite(PixelBuffer input, Dictionary<string, PixelBuffer> results, Dictionary<string, int> lastUses, int index, SceneBufferScope buffers)
             => buffers.Owns(input) && !results.Any(pair => ReferenceEquals(pair.Value, input) && lastUses.GetValueOrDefault(pair.Key, -1) > index);
 
         private static bool UsesSecondInput(XElement primitive) => primitive.Name.LocalName is "feComposite" or "feBlend" or "feDisplacementMap";

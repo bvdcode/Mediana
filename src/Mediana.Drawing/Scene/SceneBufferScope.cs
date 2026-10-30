@@ -6,9 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal class SvgBufferScope(SvgRenderContext context, SvgBufferScope? parent) : IDisposable
+    internal class SceneBufferScope(SceneRenderContext context, SceneBufferScope? parent) : IDisposable
     {
         private readonly HashSet<PixelBuffer> _owned = new();
 

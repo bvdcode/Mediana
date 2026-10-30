@@ -12,15 +12,15 @@ using System.Xml.Linq;
 
 namespace Mediana.Images.Svg
 {
-    internal partial record SvgFilter(SvgRegion Region, bool PrimitiveBox, XElement[] Primitives, bool Linear)
+    internal partial record SvgFilter(SvgRegion Region, bool PrimitiveBox, XElement[] Primitives, bool Linear) : SceneEffect
     {
-        internal IReadOnlyDictionary<XElement, SvgNode> Images { get; init; } = new Dictionary<XElement, SvgNode>();
+        internal IReadOnlyDictionary<XElement, SceneNode> Images { get; init; } = new Dictionary<XElement, SceneNode>();
         internal bool Unbounded { get; init; }
 
         internal static readonly HashSet<string> Operations = new("feGaussianBlur feOffset feColorMatrix feComponentTransfer feComposite feBlend feMerge feFlood feTile feMorphology feConvolveMatrix feDisplacementMap feTurbulence feDiffuseLighting feSpecularLighting feDropShadow feImage".Split(' '));
-        internal PixelBuffer Apply(PixelBuffer source, (float X, float Y, float Width, float Height) box, Matrix3x2 matrix, SvgRenderContext context, PixelBuffer background, SvgPaint? fill, SvgPaint? stroke, float fillOpacity, float strokeOpacity)
+        internal override PixelBuffer Apply(PixelBuffer source, (float X, float Y, float Width, float Height) box, Matrix3x2 matrix, SceneRenderContext context, PixelBuffer background, ScenePaint? fill, ScenePaint? stroke, float fillOpacity, float strokeOpacity)
         {
-            using SvgBufferScope buffers = context.BeginBuffers();
+            using SceneBufferScope buffers = context.BeginBuffers();
             buffers.Adopt(source);
             Dictionary<string, int> lastUses = LastUses();
             var results = new Dictionary<string, PixelBuffer>(StringComparer.Ordinal)
@@ -73,7 +73,7 @@ namespace Mediana.Images.Svg
             return buffers.Transfer(previous);
         }
 
-        private static PixelBuffer Input(string name, PixelBuffer fallback, Dictionary<string, PixelBuffer> results, PixelBuffer source, SvgRenderContext context)
+        private static PixelBuffer Input(string name, PixelBuffer fallback, Dictionary<string, PixelBuffer> results, PixelBuffer source, SceneRenderContext context)
         {
             if (name.Length == 0)
             {
@@ -87,7 +87,7 @@ namespace Mediana.Images.Svg
 
             if (name == "SourceAlpha")
             {
-                PixelBuffer alpha = SvgPixels.Map(source, (x, y) => new Vector4(0, 0, 0, source[x, y].A / 255f), false, context);
+                PixelBuffer alpha = ScenePixels.Map(source, (x, y) => new Vector4(0, 0, 0, source[x, y].A / 255f), false, context);
                 results[name] = alpha;
                 return alpha;
             }
@@ -95,7 +95,7 @@ namespace Mediana.Images.Svg
             return context.CreateBuffer(source.Width, source.Height);
         }
 
-        private PixelBuffer Execute(XElement p, PixelBuffer input, PixelBuffer second, Dictionary<string, PixelBuffer> results, PixelBuffer source, Matrix3x2 units, Matrix3x2 matrix, (float X, float Y, float Width, float Height) region, (float X, float Y, float Width, float Height) inputRegion, bool linear, SvgRenderContext context, bool overwrite) => ColorOperations.Contains(p.Name.LocalName) ? ExecuteColor(p, input, second, results, source, linear, context, overwrite) : p.Name.LocalName switch
+        private PixelBuffer Execute(XElement p, PixelBuffer input, PixelBuffer second, Dictionary<string, PixelBuffer> results, PixelBuffer source, Matrix3x2 units, Matrix3x2 matrix, (float X, float Y, float Width, float Height) region, (float X, float Y, float Width, float Height) inputRegion, bool linear, SceneRenderContext context, bool overwrite) => ColorOperations.Contains(p.Name.LocalName) ? ExecuteColor(p, input, second, results, source, linear, context, overwrite) : p.Name.LocalName switch
         {
             "feGaussianBlur" => Gaussian(input, Pair(p, "stdDeviation"), units, linear, Text(p, "edgeMode", "none"), context, overwrite),
             "feOffset" => Offset(input, Vector2.TransformNormal(new Vector2(Number(p, "dx"), Number(p, "dy")), units), linear, context),
@@ -107,10 +107,10 @@ namespace Mediana.Images.Svg
             "feDiffuseLighting" or "feSpecularLighting" => Lighting(p, input, units, matrix, linear, context),
             "feTile" => Tile(input, inputRegion, matrix, linear, context),
             "feImage" => FilterImage(p, source, units, matrix, region, context),
-            _ => SvgPixels.Copy(input, context)
+            _ => ScenePixels.Copy(input, context)
         };
         private static readonly HashSet<string> ColorOperations = new("feColorMatrix feComponentTransfer feComposite feBlend feMerge feFlood".Split(' '));
-        private static PixelBuffer ExecuteColor(XElement p, PixelBuffer input, PixelBuffer second, Dictionary<string, PixelBuffer> results, PixelBuffer source, bool linear, SvgRenderContext context, bool overwrite) => p.Name.LocalName switch
+        private static PixelBuffer ExecuteColor(XElement p, PixelBuffer input, PixelBuffer second, Dictionary<string, PixelBuffer> results, PixelBuffer source, bool linear, SceneRenderContext context, bool overwrite) => p.Name.LocalName switch
         {
             "feColorMatrix" => ColorMatrix(p, input, linear, context, overwrite),
             "feComponentTransfer" => Transfer(p, input, linear, context, overwrite),
@@ -118,16 +118,16 @@ namespace Mediana.Images.Svg
             "feBlend" => BlendPixels(p, input, second, linear, context),
             "feMerge" => Merge(p, input, results, source, context),
             "feFlood" => Flood(p, source, context),
-            _ => SvgPixels.Copy(input, context)
+            _ => ScenePixels.Copy(input, context)
         };
-        private (float X, float Y, float Width, float Height) PrimitiveRegion(XElement primitive, (float X, float Y, float Width, float Height) box, SvgRenderContext context)
+        private (float X, float Y, float Width, float Height) PrimitiveRegion(XElement primitive, (float X, float Y, float Width, float Height) box, SceneRenderContext context)
         {
             (float X, float Y, float Width, float Height) region = Region.Path(box).GetBounds(context.Token);
             float Get(string name, float fallback, float size, float origin, float viewport) => primitive.Attribute(name) is { } a ? PrimitiveBox ? (SvgLength.Parse(a.Value, 1) * size) + origin : SvgLength.Parse(a.Value, viewport) : fallback;
             return (Get("x", region.X, box.Width, box.X, Region.ViewWidth), Get("y", region.Y, box.Height, box.Y, Region.ViewHeight), Get("width", region.Width, box.Width, 0, Region.ViewWidth), Get("height", region.Height, box.Height, 0, Region.ViewHeight));
         }
 
-        private static void Clip(PixelBuffer image, (float X, float Y, float Width, float Height) region, Matrix3x2 matrix, SvgRenderContext context, bool clearColor = false)
+        private static void Clip(PixelBuffer image, (float X, float Y, float Width, float Height) region, Matrix3x2 matrix, SceneRenderContext context, bool clearColor = false)
         {
             VectorPath? path = region.Width <= 0 || region.Height <= 0 ? new VectorPath() : new VectorPath().Rectangle(region.X, region.Y, region.Width, region.Height);
             int[] lefts = new int[image.Height], rights = new int[image.Height];
@@ -168,7 +168,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private void ClipPrimitive(PixelBuffer image, (float X, float Y, float Width, float Height) region, Matrix3x2 matrix, SvgRenderContext context)
+        private void ClipPrimitive(PixelBuffer image, (float X, float Y, float Width, float Height) region, Matrix3x2 matrix, SceneRenderContext context)
         {
             if (!Unbounded)
             {
@@ -176,7 +176,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private void PrepareInputs(Dictionary<string, PixelBuffer> results, PixelBuffer background, SvgPaint? fill, SvgPaint? stroke, float fillOpacity, float strokeOpacity, (float X, float Y, float Width, float Height) box, Matrix3x2 matrix, PixelBuffer source, SvgRenderContext context)
+        private void PrepareInputs(Dictionary<string, PixelBuffer> results, PixelBuffer background, ScenePaint? fill, ScenePaint? stroke, float fillOpacity, float strokeOpacity, (float X, float Y, float Width, float Height) box, Matrix3x2 matrix, PixelBuffer source, SceneRenderContext context)
         {
             HashSet<string> requested = Primitives.SelectMany(p => p.DescendantsAndSelf()).SelectMany(p => p.Attributes()).Where(a => a.Name.LocalName is "in" or "in2").Select(a => a.Value).ToHashSet(StringComparer.Ordinal);
             if (requested.Contains("BackgroundImage"))
@@ -186,10 +186,10 @@ namespace Mediana.Images.Svg
 
             if (requested.Contains("BackgroundAlpha"))
             {
-                results["BackgroundAlpha"] = SvgPixels.Map(source, (x, y) => new Vector4(0, 0, 0, background[x, y].A / 255f), false, context);
+                results["BackgroundAlpha"] = ScenePixels.Map(source, (x, y) => new Vector4(0, 0, 0, background[x, y].A / 255f), false, context);
             }
 
-            void Paint(string name, SvgPaint? paint, float opacity)
+            void Paint(string name, ScenePaint? paint, float opacity)
             {
                 if (requested.Contains(name))
                 {
@@ -203,10 +203,10 @@ namespace Mediana.Images.Svg
             Paint("StrokePaint", stroke, strokeOpacity);
         }
 
-        private PixelBuffer FilterImage(XElement p, PixelBuffer source, Matrix3x2 units, Matrix3x2 matrix, (float X, float Y, float Width, float Height) region, SvgRenderContext context)
+        private PixelBuffer FilterImage(XElement p, PixelBuffer source, Matrix3x2 units, Matrix3x2 matrix, (float X, float Y, float Width, float Height) region, SceneRenderContext context)
         {
             PixelBuffer? result = context.CreateBuffer(source.Width, source.Height);
-            if (!Images.TryGetValue(p, out SvgNode? node) || region.Width <= 0 || region.Height <= 0)
+            if (!Images.TryGetValue(p, out SceneNode? node) || region.Width <= 0 || region.Height <= 0)
             {
                 return result;
             }

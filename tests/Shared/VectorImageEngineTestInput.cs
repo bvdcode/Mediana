@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Drawing;
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -20,7 +24,7 @@ namespace Mediana.Tests
     {
         public static async Task VerifyAsync(string root)
         {
-            MediaEngine svgEngine = CreateEngine(new SvgRenderOptions { Supersampling = 1 });
+            MediaEngine svgEngine = CreateEngine(new DrawingRenderOptions { Supersampling = 1 });
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             using (JsonDocument manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "Svg", "filter-reference.json"))))
             {
@@ -59,7 +63,7 @@ namespace Mediana.Tests
                     int size = entry.GetProperty("size").GetInt32();
                     MediaTimestamp time = new(TimeSpan.FromSeconds((entry.GetProperty("frame").GetDouble() - document.InPoint) / document.FrameRate).Ticks,
                         TimeBase.TimeSpanTicks);
-                    MediaEngine engine = CreateEngine(new SvgRenderOptions { Width = size, Height = size, Supersampling = 1 });
+                    MediaEngine engine = CreateEngine(new DrawingRenderOptions { Width = size, Height = size, Supersampling = 1 });
                     using (VideoFrame frame = await DecodeAsync(engine, encoded, allocator, new ImageDecodeRequest { Time = time }))
                     {
                         byte[] reference = new byte[checked(size * size * 4)];
@@ -107,7 +111,7 @@ namespace Mediana.Tests
             VerifyReleased(allocator);
         }
 
-        private static MediaEngine CreateEngine(SvgRenderOptions? vectorOptions = null, PdfRenderOptions? pdfOptions = null) =>
+        private static MediaEngine CreateEngine(DrawingRenderOptions? vectorOptions = null, PdfRenderOptions? pdfOptions = null) =>
             new MediaEngineBuilder().AddImageDecoder(new SvgImageDecoder(renderOptions: vectorOptions))
                 .AddImageDecoder(new TgsImageDecoder(renderOptions: vectorOptions))
                 .AddImageDecoder(new PdfImageDecoder(renderOptions: pdfOptions)).Build();

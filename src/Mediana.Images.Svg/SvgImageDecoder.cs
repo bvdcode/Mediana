@@ -9,7 +9,7 @@ using Mediana.Drawing;
 namespace Mediana.Images.Svg
 {
     /// <summary>Registered SVG rasterization with bounded XML and rendering. No external resources are loaded implicitly.</summary>
-    public class SvgImageDecoder(SvgReaderOptions? readerOptions = null, SvgRenderOptions? renderOptions = null) : IImageDecoder
+    public class SvgImageDecoder(SvgReaderOptions? readerOptions = null, DrawingRenderOptions? renderOptions = null) : IImageDecoder
     {
         public string ImplementationId => "svg.managed.image";
         public int ProbeLength => 512;

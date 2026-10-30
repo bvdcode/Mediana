@@ -34,7 +34,7 @@ namespace Mediana.Tests
             };
             string xml = $"<?xml version='1.0' encoding='{name}'?><svg width='20' height='20'><text x='0' y='15'>é</text></svg>";
             byte[] input = [.. encoding.GetPreamble(), .. encoding.GetBytes(xml)];
-            SvgRenderOptions options = new() { Supersampling = 1 };
+            DrawingRenderOptions options = new() { Supersampling = 1 };
             PixelBuffer expected = SvgRenderer.Render(SvgReader.Read(xml), options);
             Assert.True(expected.Pixels.Span.ContainsAnyExcept((byte)0));
             SvgImageDecoder decoder = new(renderOptions: options);

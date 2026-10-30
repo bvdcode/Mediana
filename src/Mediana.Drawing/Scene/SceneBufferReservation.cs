@@ -5,9 +5,9 @@ using Mediana.Drawing;
 using System;
 using System.Threading;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal class SvgBufferReservation(SvgRenderContext owner, long bytes) : IDisposable
+    internal class SceneBufferReservation(SceneRenderContext owner, long bytes) : IDisposable
     {
         public void Dispose() => owner.ReleaseReservation(bytes);
     }
