@@ -12,7 +12,7 @@ namespace Mediana.Codecs.H264
 {
     /// <summary>Progressive Baseline CAVLC intra encoding with fixed QP and one independently decodable IDR per input.
     /// Borrows input frames; returns owned length-prefixed AVC packets. Calls and disposal must not overlap.</summary>
-    public class H264Encoder : IMediaCodec<VideoFrame, MediaPacket>
+    public class H264Encoder : IMediaEncoder<VideoFrame>
     {
         private readonly MediaBufferAllocator allocator;
         private readonly H264EncoderOptions options;

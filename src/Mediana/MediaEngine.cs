@@ -22,9 +22,13 @@ namespace Mediana
         private readonly Dictionary<string, IStreamMetadataReader> metadataReaders;
 
         internal MediaEngine(IContainerReaderFactory[] containers, IVideoDecoderFactory[] decoders, IAudioDecoderFactory[] audioDecoders,
-            IStreamMetadataReader[] metadataReaders, IImageDecoder[] imageDecoders)
+            IStreamMetadataReader[] metadataReaders, IImageDecoder[] imageDecoders,
+            IAudioEncoderFactory[] audioEncoders, IVideoEncoderFactory[] videoEncoders, IContainerWriterFactory[] writers)
         {
             this.containers = containers;
+            this.audioEncoders = audioEncoders.ToDictionary(item => item.CodecId, StringComparer.Ordinal);
+            this.videoEncoders = videoEncoders.ToDictionary(item => item.CodecId, StringComparer.Ordinal);
+            this.writers = writers.ToDictionary(item => item.FormatId, StringComparer.Ordinal);
             this.imageDecoders = imageDecoders;
             ImageProbeLength = imageDecoders.Length == 0 ? 0 : imageDecoders.Max(item => item.ProbeLength);
             ImageDecoderImplementations = Array.AsReadOnly(imageDecoders.Select(item => item.ImplementationId).ToArray());
