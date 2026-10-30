@@ -5,7 +5,7 @@ namespace Mediana.Containers.Mp4
 {
     internal static class Mp4ElementaryStreamDescriptor
     {
-        public static ReadOnlyMemory<byte> ReadAudioConfiguration(ReadOnlyMemory<byte> data)
+        public static (string CodecId, ReadOnlyMemory<byte> Configuration) ReadAudioConfiguration(ReadOnlyMemory<byte> data)
         {
             Mp4Binary.FullBox(data.Span);
             ReadOnlyMemory<byte> elementary = Find(data[4..], 3);
@@ -27,9 +27,24 @@ namespace Mediana.Containers.Mp4
             Mp4Binary.Range(elementary.Span, 0, offset);
             ReadOnlyMemory<byte> decoder = Find(elementary[offset..], 4);
             Mp4Binary.Range(decoder.Span, 0, 13);
-            if (decoder.Span[0] != 0x40 || (decoder.Span[1] >> 2) != 5)
+            if ((decoder.Span[1] >> 2) != 5)
             {
-                throw new NotSupportedException("The MP4 elementary stream is not MPEG-4 audio.");
+                throw new NotSupportedException("The MP4 elementary stream descriptor is not audio.");
+            }
+            switch (decoder.Span[0])
+            {
+                case 0x69:
+                case 0x6b:
+                    ReadOnlyMemory<byte>? specific = Find(decoder[13..], 5, required: false);
+                    if (specific.HasValue && !specific.Value.IsEmpty)
+                    {
+                        throw new NotSupportedException("MP4 MPEG audio decoder-specific configuration is not supported.");
+                    }
+                    return ("mp3", ReadOnlyMemory<byte>.Empty);
+                case 0x40:
+                    break;
+                default:
+                    throw new NotSupportedException("The MP4 audio object type indication is not supported.");
             }
             ReadOnlyMemory<byte> configuration = Find(decoder[13..], 5);
             if (configuration.Length < 2)
@@ -41,10 +56,13 @@ namespace Mediana.Containers.Mp4
             {
                 throw new NotSupportedException($"MPEG-4 audio object type {objectType} is not supported.");
             }
-            return configuration;
+            return ("aac", configuration);
         }
 
-        private static ReadOnlyMemory<byte> Find(ReadOnlyMemory<byte> data, byte expectedTag)
+        private static ReadOnlyMemory<byte> Find(ReadOnlyMemory<byte> data, byte expectedTag) =>
+            Find(data, expectedTag, required: true)!.Value;
+
+        private static ReadOnlyMemory<byte>? Find(ReadOnlyMemory<byte> data, byte expectedTag, bool required)
         {
             ReadOnlyMemory<byte>? found = null;
             int offset = 0;
@@ -76,7 +94,11 @@ namespace Mediana.Containers.Mp4
                 }
                 offset += length;
             }
-            return found ?? throw new InvalidDataException($"The required MP4 descriptor {expectedTag} is missing.");
+            if (required && found is null)
+            {
+                throw new InvalidDataException($"The required MP4 descriptor {expectedTag} is missing.");
+            }
+            return found;
         }
     }
 }

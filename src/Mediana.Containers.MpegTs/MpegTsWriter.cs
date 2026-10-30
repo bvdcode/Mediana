@@ -7,7 +7,7 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Containers.MpegTs
 {
-    /// <summary>Writes one program of AVC/AAC access units in globally nondecreasing decode order.
+    /// <summary>Writes one program of AVC/AAC/MP3 access units in globally nondecreasing decode order.
     /// Borrows its output stream and input packets. A failed write faults the writer; partial output must be discarded.</summary>
     public partial class MpegTsWriter : IContainerWriter
     {

@@ -67,9 +67,9 @@ namespace Mediana.Containers.Mp4
             }
             Mp4BoxCollection children = new(entry.Payload[28..], budget);
             RejectEncryption(children);
-            ReadOnlyMemory<byte> configuration = Mp4ElementaryStreamDescriptor.ReadAudioConfiguration(
+            (string codecId, ReadOnlyMemory<byte> configuration) = Mp4ElementaryStreamDescriptor.ReadAudioConfiguration(
                 children.Required("esds").Payload);
-            return new Mp4SampleDescription(entry.Type, "aac", configuration,
+            return new Mp4SampleDescription(entry.Type, codecId, configuration,
                 AudioChannels: channels, AudioSampleRate: (int)(rate >> 16));
         }
 

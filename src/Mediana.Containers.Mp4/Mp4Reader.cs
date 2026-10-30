@@ -85,6 +85,7 @@ namespace Mediana.Containers.Mp4
                 options, budget, cancellationToken).ConfigureAwait(false);
             Mp4Movie movie = Mp4MovieParser.Parse(layout.Metadata.Memory, layout.DataRanges,
                 options, budget, cancellationToken);
+            await Mp4AudioConfiguration.ReadAsync(movie, source, allocator, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             return new Mp4Reader(source, allocator, layout.Metadata, movie, options.TimestampMode);
         }

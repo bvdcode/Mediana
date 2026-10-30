@@ -43,5 +43,9 @@ namespace Mediana.Containers.Mp4
         public int SampleCount { get; }
         /// <summary>The track header matrix before the movie matrix. Video Stream.DisplayMatrix composes both.</summary>
         public VideoDisplayMatrix DisplayMatrix { get; }
+
+        internal Mp4TrackInfo WithStream(EncodedStreamInfo stream) => new(TrackId, stream, SampleEntry,
+            MediaDuration, PresentationDuration, Edits, Width, Height, DeclaredAudioChannels,
+            DeclaredAudioSampleRate, SampleCount, DisplayMatrix);
     }
 }

@@ -10,6 +10,7 @@ namespace Mediana.Containers.MpegTs
     {
         private readonly AvcTransportFraming? avc;
         private readonly AacTransportFraming? aac;
+        private readonly Mp3TransportFraming? mp3;
 
         public MpegTsTrack(EncodedStreamInfo stream, int ordinal)
         {
@@ -28,8 +29,13 @@ namespace Mediana.Containers.MpegTs
                     PesStreamId = 0xC0 + ordinal;
                     aac = new(stream.Configuration.Span);
                     break;
+                case (MediaKind.Audio, "mp3"):
+                    mp3 = new(stream.Configuration.Span);
+                    Type = mp3.StreamType;
+                    PesStreamId = 0xC0 + ordinal;
+                    break;
                 default:
-                    throw new NotSupportedException("The TS writer supports length-prefixed AVC and raw AAC-LC streams.");
+                    throw new NotSupportedException("The TS writer supports length-prefixed AVC, raw AAC-LC and MPEG-1/2 Layer III streams.");
             }
         }
 
@@ -55,6 +61,11 @@ namespace Mediana.Containers.MpegTs
                     throw new NotSupportedException("The ADTS frame exceeds the configured packet limit.");
                 }
                 return aac.Convert(data, allocator);
+            }
+            if (mp3 is not null)
+            {
+                idr = false;
+                return mp3.Convert(data, allocator);
             }
             throw new InvalidOperationException("The TS track has no elementary stream framing.");
         }

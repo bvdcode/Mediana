@@ -5,6 +5,7 @@ using System.Buffers.Binary;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
 using Mediana.Core;
+using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
@@ -132,6 +133,13 @@ namespace Mediana.Tests
                                 {
                                     "h264" => 0x1B,
                                     "aac" => 0x0F,
+                                    "mp3" => Mp3FrameHeader.Read(streams[index].Configuration.Span).Version switch
+                                    {
+                                        MpegAudioVersion.Mpeg1 => 0x03,
+                                        MpegAudioVersion.Mpeg2 => 0x04,
+                                        MpegAudioVersion.Mpeg25 => throw new InvalidDataException("MPEG-2.5 transport is unsupported."),
+                                        _ => throw new InvalidDataException("The MPEG audio version is invalid.")
+                                    },
                                     _ => throw new InvalidDataException("The reference codec is unsupported.")
                                 };
                                 if (section[entry] != type || ((section[entry + 1] & 31) << 8 | section[entry + 2]) != 0x100 + index)
@@ -221,7 +229,7 @@ namespace Mediana.Tests
             return (long)(data[0] & 14) << 29 | (long)data[1] << 22 | (long)(data[2] & 0xFE) << 14 | (long)data[3] << 7 | (long)data[4] >> 1;
         }
 
-        private static long Ticks(MediaTimestamp? timestamp)
+        public static long Ticks(MediaTimestamp? timestamp)
         {
             MediaTimestamp value = timestamp ?? throw new InvalidDataException("The input timestamp is missing.");
             return (long)decimal.Round((decimal)value.Value * value.TimeBase.Numerator * 90000 / value.TimeBase.Denominator,
@@ -232,6 +240,12 @@ namespace Mediana.Tests
         {
             switch (stream.CodecId)
             {
+                case "mp3":
+                    if (!original.AsSpan().SequenceEqual(output))
+                    {
+                        throw new InvalidDataException("The TS payload changed a compressed MP3 frame.");
+                    }
+                    break;
                 case "aac":
                     int length = (output[3] & 3) << 11 | output[4] << 3 | output[5] >> 5;
                     if (output[0] != 0xFF || output[1] != 0xF1 || length != output.Length || !original.AsSpan().SequenceEqual(output.AsSpan(7)))
