@@ -3,10 +3,10 @@
 
 namespace Mediana.Core.Video
 {
-    /// <summary>Maps CICP primaries and transfer codes to supported color metadata. Reserved codes remain unspecified.</summary>
+    /// <summary>Maps CICP codes to color metadata. Reserved codes remain unspecified.</summary>
     public static class CicpColorimetry
     {
-        // Rec. ITU-T H.273 (07/2024), Tables 2 and 3.
+        // Rec. ITU-T H.273 (07/2024), Tables 2–4.
         public static ColorPrimaries GetPrimaries(int code) => code switch
         {
             1 => ColorPrimaries.Bt709,
@@ -23,6 +23,26 @@ namespace Mediana.Core.Video
             _ => throw new InvalidDataException("Invalid CICP color primaries code.")
         };
 
+        public static MatrixCoefficients GetMatrix(int code) => code switch
+        {
+            0 => MatrixCoefficients.Rgb,
+            1 => MatrixCoefficients.Bt709,
+            2 or 3 or >= 18 and <= 255 => MatrixCoefficients.Unspecified,
+            4 => MatrixCoefficients.Fcc,
+            5 or 6 => MatrixCoefficients.Bt601,
+            7 => MatrixCoefficients.Smpte240M,
+            8 => MatrixCoefficients.YCgCo,
+            9 => MatrixCoefficients.Bt2020NonConstant,
+            10 => MatrixCoefficients.Bt2020Constant,
+            11 => MatrixCoefficients.Smpte2085,
+            12 => MatrixCoefficients.ChromaticityNonConstant,
+            13 => MatrixCoefficients.ChromaticityConstant,
+            14 => MatrixCoefficients.ICtCp,
+            15 => MatrixCoefficients.IptC2,
+            16 => MatrixCoefficients.YCgCoRe,
+            17 => MatrixCoefficients.YCgCoRo,
+            _ => throw new InvalidDataException("Invalid CICP matrix coefficients code.")
+        };
         public static TransferFunction GetTransfer(int code) => code switch
         {
             1 or 6 or 14 or 15 => TransferFunction.Bt709,

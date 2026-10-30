@@ -7,7 +7,7 @@ namespace Mediana.Core.Video
     public class VideoFormat
     {
         public VideoFormat(int width, int height, VideoPixelFormat pixelFormat, VideoColorInfo? color = null,
-            SampleAspectRatio? sampleAspectRatio = null)
+            SampleAspectRatio? sampleAspectRatio = null, VideoColorDescription? colorDescription = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
@@ -18,6 +18,7 @@ namespace Mediana.Core.Video
             PixelFormat = pixelFormat;
             Color = color ?? new VideoColorInfo();
             SampleAspectRatio = sampleAspectRatio;
+            ColorDescription = colorDescription;
         }
 
         public int Width { get; }
@@ -25,6 +26,11 @@ namespace Mediana.Core.Video
         public VideoPixelFormat PixelFormat { get; }
         public VideoColorInfo Color { get; }
         public SampleAspectRatio? SampleAspectRatio { get; }
+        /// <summary>Optional source description. Color retains the codec's labels.</summary>
+        public VideoColorDescription? ColorDescription { get; }
+
+        /// <summary>Applies the source description's precedence without modifying the stored metadata or sample values.</summary>
+        public VideoColorInfo GetColorInterpretation() => ColorDescription?.Resolve(Color) ?? Color;
 
         public PlaneLayout[] CreateTightLayout()
         {

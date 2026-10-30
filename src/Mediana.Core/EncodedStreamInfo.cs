@@ -11,7 +11,7 @@ namespace Mediana.Core
     {
         public EncodedStreamInfo(int streamIndex, MediaKind kind, string codecId, EncodedStreamFormat format, TimeBase timeBase,
             ReadOnlySpan<byte> configuration = default, VideoDisplayMatrix? displayMatrix = null,
-            MediaDuration? codedDuration = null)
+            MediaDuration? codedDuration = null, VideoColorDescription? colorDescription = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
             ArgumentException.ThrowIfNullOrWhiteSpace(codecId);
@@ -27,6 +27,10 @@ namespace Mediana.Core
             {
                 throw new ArgumentException("A video display matrix requires a video stream.", nameof(displayMatrix));
             }
+            if (colorDescription is not null && kind != MediaKind.Video)
+            {
+                throw new ArgumentException("A color description requires a video stream.", nameof(colorDescription));
+            }
             StreamIndex = streamIndex;
             Kind = kind;
             CodecId = codecId;
@@ -35,6 +39,7 @@ namespace Mediana.Core
             Configuration = configuration.ToArray();
             DisplayMatrix = displayMatrix;
             CodedDuration = codedDuration;
+            ColorDescription = colorDescription;
         }
 
         public int StreamIndex { get; }
@@ -47,5 +52,7 @@ namespace Mediana.Core
         public VideoDisplayMatrix? DisplayMatrix { get; }
         /// <summary>Total coded media duration, including codec delay/padding and excluding container edits. Null means unknown.</summary>
         public MediaDuration? CodedDuration { get; }
+        /// <summary>Optional source color description, independent of codec configuration.</summary>
+        public VideoColorDescription? ColorDescription { get; }
     }
 }
