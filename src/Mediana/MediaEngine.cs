@@ -17,13 +17,16 @@ namespace Mediana
     {
         private readonly IContainerReaderFactory[] containers;
         private readonly IVideoDecoderFactory[] decoders;
+        private readonly IImageDecoder[] imageDecoders;
         private readonly IAudioDecoderFactory[] audioDecoders;
         private readonly Dictionary<string, IStreamMetadataReader> metadataReaders;
 
         internal MediaEngine(IContainerReaderFactory[] containers, IVideoDecoderFactory[] decoders, IAudioDecoderFactory[] audioDecoders,
-            IStreamMetadataReader[] metadataReaders)
+            IStreamMetadataReader[] metadataReaders, IImageDecoder[] imageDecoders)
         {
             this.containers = containers;
+            this.imageDecoders = imageDecoders;
+            ImageDecoderImplementations = Array.AsReadOnly(imageDecoders.Select(item => item.ImplementationId).ToArray());
             this.decoders = decoders;
             this.audioDecoders = audioDecoders;
             this.metadataReaders = metadataReaders.ToDictionary(item => item.CodecId, StringComparer.Ordinal);
@@ -33,6 +36,7 @@ namespace Mediana
             VideoDecoderImplementations = Array.AsReadOnly(decoders.Select(item => item.ImplementationId).ToArray());
         }
 
+        public IReadOnlyList<string> ImageDecoderImplementations { get; }
         public IReadOnlyList<string> StreamMetadataReaderImplementations { get; }
         public IReadOnlyList<string> ContainerImplementations { get; }
         public IReadOnlyList<string> VideoDecoderImplementations { get; }

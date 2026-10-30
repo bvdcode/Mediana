@@ -15,6 +15,7 @@ namespace Mediana
         private readonly List<IVideoDecoderFactory> decoders = [];
         private readonly List<IAudioDecoderFactory> audioDecoders = [];
         private readonly List<IStreamMetadataReader> metadataReaders = [];
+        private readonly List<IImageDecoder> imageDecoders = [];
 
         public MediaEngineBuilder AddContainer(IContainerReaderFactory factory)
         {
@@ -56,6 +57,20 @@ namespace Mediana
             return this;
         }
 
+        public MediaEngineBuilder AddImageDecoder(IImageDecoder decoder)
+        {
+            ArgumentNullException.ThrowIfNull(decoder);
+            ArgumentException.ThrowIfNullOrWhiteSpace(decoder.ImplementationId);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(decoder.ProbeLength);
+            new ImageDecodeRequest().Validate(decoder.Features);
+            if (imageDecoders.Any(item => item.ImplementationId == decoder.ImplementationId))
+            {
+                throw new ArgumentException($"Image decoder '{decoder.ImplementationId}' is already registered.", nameof(decoder));
+            }
+            imageDecoders.Add(decoder);
+            return this;
+        }
+
         private static void ValidateDecoder<TFrame>(IDecoderFactory<TFrame> factory, IEnumerable<IDecoderFactory<TFrame>> existing)
             where TFrame : class, IDisposable
         {
@@ -68,6 +83,6 @@ namespace Mediana
             }
         }
 
-        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray());
+        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray(), imageDecoders.ToArray());
     }
 }
