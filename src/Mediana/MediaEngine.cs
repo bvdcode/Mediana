@@ -26,6 +26,7 @@ namespace Mediana
         {
             this.containers = containers;
             this.imageDecoders = imageDecoders;
+            ImageProbeLength = imageDecoders.Length == 0 ? 0 : imageDecoders.Max(item => item.ProbeLength);
             ImageDecoderImplementations = Array.AsReadOnly(imageDecoders.Select(item => item.ImplementationId).ToArray());
             this.decoders = decoders;
             this.audioDecoders = audioDecoders;
@@ -36,6 +37,8 @@ namespace Mediana
             VideoDecoderImplementations = Array.AsReadOnly(decoders.Select(item => item.ImplementationId).ToArray());
         }
 
+        /// <summary>Maximum prefix length requested by registered image recognizers, or zero when none are registered.</summary>
+        public int ImageProbeLength { get; }
         public IReadOnlyList<string> ImageDecoderImplementations { get; }
         public IReadOnlyList<string> StreamMetadataReaderImplementations { get; }
         public IReadOnlyList<string> ContainerImplementations { get; }

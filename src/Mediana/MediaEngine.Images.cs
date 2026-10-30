@@ -26,14 +26,15 @@ namespace Mediana
             {
                 throw new NotSupportedException("No image decoders are registered.");
             }
-            int probeLength = imageDecoders.Max(item => item.ProbeLength);
+            int probeLength = ImageProbeLength;
             if (probeLength > options.MaxProbeBytes)
             {
                 throw new NotSupportedException("Registered image recognition exceeds the configured probe byte limit.");
             }
             using WritableMediaBuffer writable = allocator.Allocate(Math.Min(probeLength, options.MaxInputBytes));
             int read = await MediaInputProbe.ReadAsync(source, writable.Memory, cancellationToken).ConfigureAwait(false);
-            IImageDecoder decoder = SelectImageDecoder(writable.Memory.Span[..read]);
+            IImageDecoder decoder = FindImageDecoder(writable.Memory.Span[..read])
+                ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
             request.Validate(decoder.Features);
             using MediaBuffer prefix = writable.Publish();
             await using IByteSource replay = MediaInputProbe.Replay(source, prefix, read);
@@ -55,7 +56,11 @@ namespace Mediana
             }
         }
 
-        private IImageDecoder SelectImageDecoder(ReadOnlySpan<byte> prefix)
+        /// <summary>Returns the uniquely recognized image implementation, or null. The prefix may be shorter than
+        /// ImageProbeLength at EOF. Recognition does not validate the complete file; ambiguity throws.</summary>
+        public string? RecognizeImage(ReadOnlySpan<byte> prefix) => FindImageDecoder(prefix)?.ImplementationId;
+
+        private IImageDecoder? FindImageDecoder(ReadOnlySpan<byte> prefix)
         {
             IImageDecoder? selected = null;
             foreach (IImageDecoder decoder in imageDecoders)
@@ -69,7 +74,7 @@ namespace Mediana
                     selected = decoder;
                 }
             }
-            return selected ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
+            return selected;
         }
     }
 }

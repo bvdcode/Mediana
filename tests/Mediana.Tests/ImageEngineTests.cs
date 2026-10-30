@@ -70,6 +70,23 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Fact]
+        public void PrefixRecognitionUsesTheSameImmutableUnambiguousRegistryAsDecoding()
+        {
+            MediaEngineBuilder builder = new();
+            MediaEngine empty = builder.Build();
+            builder.AddImageDecoder(new FixtureImageDecoder());
+            MediaEngine single = builder.Build();
+            builder.AddImageDecoder(new FixtureImageDecoder("second") { ProbeLength = 8 });
+            Assert.Equal(0, empty.ImageProbeLength);
+            Assert.Null(empty.RecognizeImage("TEST"u8));
+            Assert.Equal(4, single.ImageProbeLength);
+            Assert.Null(single.RecognizeImage("TES"u8));
+            Assert.Equal("test.image", single.RecognizeImage("TESTdata"u8));
+            Assert.Equal(8, builder.Build().ImageProbeLength);
+            Assert.Throws<NotSupportedException>(() => builder.Build().RecognizeImage("TEST"u8));
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
