@@ -7,6 +7,7 @@ using Mediana.Containers.MpegTs;
 using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 using Mediana.IO;
 using Mediana.Processing.Audio;
 using Microsoft.Extensions.Logging;
@@ -27,7 +28,7 @@ namespace Mediana.Cli
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             using AudioFrame prepared = AudioSampleConverter.Apply(first, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, allocator, token);
             using AacEncoder encoder = AacEncoder.Create(prepared.Format, new(1, prepared.Format.SampleRate), allocator, new() { BitRate = bitRate });
-            AudioProgress progress = new(logger, TimeProvider.System);
+            MediaProgress progress = new(logger, TimeProvider.System, session.Stream.CodedDuration);
             long samples = 0;
             long packets = 0;
             await CommandOutputFile.WriteAsync(output, async destination =>
@@ -47,7 +48,7 @@ namespace Mediana.Cli
                 encoder.CompleteInput();
                 await DrainAsync();
                 await writer.CompleteAsync(token);
-                progress.Report(samples, prepared.Format.SampleRate, writer.BytesWritten, completed: true);
+                progress.Report(new MediaDuration(samples, new TimeBase(1, prepared.Format.SampleRate)), writer.BytesWritten, completed: true);
 
                 async ValueTask WriteAsync(AudioFrame frame)
                 {
@@ -57,7 +58,7 @@ namespace Mediana.Cli
                     }
                     samples = checked(samples + frame.SamplesPerChannel);
                     await DrainAsync();
-                    progress.Report(samples, prepared.Format.SampleRate, writer.BytesWritten);
+                    progress.Report(new MediaDuration(samples, new TimeBase(1, prepared.Format.SampleRate)), writer.BytesWritten);
                 }
 
                 async ValueTask DrainAsync()

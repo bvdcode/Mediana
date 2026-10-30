@@ -197,9 +197,14 @@ Add `--log-level Debug` after the command to include diagnostic details, or
 `--log-level None` to disable diagnostics. Logs go to stderr; command results go
 to stdout. Colors are automatic in an interactive terminal; `--no-color` or the
 `NO_COLOR` environment variable disables them.
-WAVE conversion reports processed audio time, speed relative to playback and
-output size immediately, at one-second intervals, and when the output is complete.
-It does not report an estimated percentage when total duration is unknown.
+WAVE and AAC conversion report processed media time, speed relative to playback
+and output size immediately, at one-second intervals, and on completion. When
+`EncodedStreamInfo.CodedDuration` is known, a shared media-time estimator adds
+`eta=hh:mm:ss` after a short warmup using smoothed recent processing speed.
+The total comes from container metadata, including codec delay and padding; it
+does not apply presentation edits. MP3 Xing/Info, WAVE, AIFF and FLAC with a known
+sample count provide this metadata. Unknown totals, insufficient progress, stalls
+and completion omit the ETA field. No extra file scan or bitrate estimate is used.
 
 Ctrl+C cancels processing and removes incomplete output. Existing destinations
 are never replaced. Exit codes are 0 for success, 1 for an unexpected failure,
