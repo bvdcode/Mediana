@@ -31,6 +31,7 @@ namespace Mediana.Tests
                 Assert.Equal(2, reader.Configuration.ChannelCount);
                 Assert.Equal(16, reader.Configuration.BitsPerSample);
                 Assert.Equal(new MediaDuration(17760, new TimeBase(1, 48000)), reader.Duration);
+                Assert.Equal(reader.Duration, Assert.Single(reader.Streams).CodedDuration);
                 Assert.Equal("flac", Assert.Single(reader.Streams).CodecId);
                 Assert.Equal("Mediana test", reader.Vendor);
                 Assert.Equal(new[] { "Речь 🎵", "First", "Second", "", "a=b" }, reader.Comments.Select(item => item.Value));
@@ -77,6 +78,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(16384);
             await using FlacReader reader = await FlacReader.OpenAsync(source, allocator, new FlacReadOptions { PacketBytes = 3 });
             Assert.Null(reader.Duration);
+            Assert.Null(Assert.Single(reader.Streams).CodedDuration);
             Assert.Equal("-->", Assert.Single(reader.Pictures).MediaType);
             using MediaBuffer picture = reader.ReadPicture(0);
             Assert.Equal(link, picture.Memory.ToArray());

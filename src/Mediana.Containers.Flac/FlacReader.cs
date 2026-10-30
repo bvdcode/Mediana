@@ -112,7 +112,9 @@ namespace Mediana.Containers.Flac
                         await ReadExactlyAsync(scratch.Memory[..length], cancellationToken).ConfigureAwait(false);
                         Configuration = FlacConfiguration.ReadStreamInfo(scratch.Memory.Span[..length]);
                         Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, FlacConfiguration.CodecId,
-                            new TimeBase(1, Configuration.SampleRate), scratch.Memory.Span[..length]) });
+                            new TimeBase(1, Configuration.SampleRate), scratch.Memory.Span[..length],
+                            codedDuration: Configuration.TotalSamples == 0 ? null : new MediaDuration(Configuration.TotalSamples,
+                                new TimeBase(1, Configuration.SampleRate))) });
                         break;
                     case 1:
                     case 2:

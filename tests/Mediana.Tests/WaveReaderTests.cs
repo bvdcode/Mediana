@@ -24,6 +24,7 @@ namespace Mediana.Tests
             {
                 Assert.Equal(5, reader.SamplesPerChannel);
                 Assert.Equal(new MediaDuration(5, new TimeBase(1, 8000)), reader.Duration);
+                Assert.Equal(reader.Duration, Assert.Single(reader.Streams).CodedDuration);
                 for (int index = 0; index < 3; index++)
                 {
                     using MediaPacket packet = (await reader.ReadPacketAsync())!;

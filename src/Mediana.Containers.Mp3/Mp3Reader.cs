@@ -102,7 +102,8 @@ namespace Mediana.Containers.Mp3
             FirstFrame = header;
             AudioOffset = position - header.FrameBytes;
             Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, Mp3FrameHeader.CodecId,
-                new TimeBase(1, header.SampleRate), pending.Memory.Span[..4]) });
+                new TimeBase(1, header.SampleRate), pending.Memory.Span[..4], codedDuration: VbrInfo?.FrameCount is uint count
+                    ? new MediaDuration((long)count * header.SamplesPerFrame, new TimeBase(1, header.SampleRate)) : null) });
         }
 
         private async ValueTask ReadTagAsync(CancellationToken cancellationToken)

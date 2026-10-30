@@ -120,6 +120,9 @@ namespace Mediana.Containers.Wave
                         dataRemaining = chunkSize;
                         dataPadding = (chunkSize & 1) != 0;
                         SamplesPerChannel = chunkSize / Configuration.BlockAlignment;
+                        EncodedStreamInfo stream = Streams[0];
+                        Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(stream.StreamIndex, stream.Kind, stream.CodecId,
+                            stream.TimeBase, stream.Configuration.Span, codedDuration: Duration) });
                         return;
                     default:
                         await SkipChunkAsync(id, chunkSize, cancellationToken).ConfigureAwait(false);

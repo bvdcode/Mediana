@@ -55,6 +55,7 @@ namespace Mediana.Tests
                 Assert.Equal("Обложка", Assert.Single(reader.Pictures).Description);
                 retained = reader.ReadPicture(0);
                 Assert.Null(reader.CodedDuration);
+                Assert.Null(Assert.Single(reader.Streams).CodedDuration);
                 using MediaPacket packet = Assert.IsType<MediaPacket>(await reader.ReadPacketAsync());
                 Assert.Equal(first, packet.Data.ToArray());
                 Assert.Equal(new MediaTimestamp(0, new TimeBase(1, 44100)), packet.PresentationTime);
@@ -90,6 +91,7 @@ namespace Mediana.Tests
                 Assert.Equal((uint)2, reader.VbrInfo!.FrameCount);
                 Assert.Equal(frame.Length, reader.AudioOffset);
                 Assert.Equal(new MediaDuration(samples * 2, new TimeBase(1, rate)), reader.CodedDuration);
+                Assert.Equal(reader.CodedDuration, Assert.Single(reader.Streams).CodedDuration);
                 for (int index = 0; index < 2; index++)
                 {
                     using MediaPacket packet = Assert.IsType<MediaPacket>(await reader.ReadPacketAsync());

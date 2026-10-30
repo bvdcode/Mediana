@@ -10,7 +10,8 @@ namespace Mediana.Core
     public class EncodedStreamInfo
     {
         public EncodedStreamInfo(int streamIndex, MediaKind kind, string codecId, TimeBase timeBase,
-            ReadOnlySpan<byte> configuration = default, VideoDisplayMatrix? displayMatrix = null)
+            ReadOnlySpan<byte> configuration = default, VideoDisplayMatrix? displayMatrix = null,
+            MediaDuration? codedDuration = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
             ArgumentException.ThrowIfNullOrWhiteSpace(codecId);
@@ -20,6 +21,7 @@ namespace Mediana.Core
             }
             timeBase.Validate();
             displayMatrix?.Validate();
+            codedDuration?.TimeBase.Validate();
             if (displayMatrix is not null && kind != MediaKind.Video)
             {
                 throw new ArgumentException("A video display matrix requires a video stream.", nameof(displayMatrix));
@@ -30,6 +32,7 @@ namespace Mediana.Core
             TimeBase = timeBase;
             Configuration = configuration.ToArray();
             DisplayMatrix = displayMatrix;
+            CodedDuration = codedDuration;
         }
 
         public int StreamIndex { get; }
@@ -39,5 +42,7 @@ namespace Mediana.Core
         public ReadOnlyMemory<byte> Configuration { get; }
         /// <summary>Optional container display transform. Null means unspecified; decoding does not apply it.</summary>
         public VideoDisplayMatrix? DisplayMatrix { get; }
+        /// <summary>Total coded media duration, including codec delay/padding and excluding container edits. Null means unknown.</summary>
+        public MediaDuration? CodedDuration { get; }
     }
 }
