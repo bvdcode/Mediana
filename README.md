@@ -46,7 +46,7 @@ content and exposes decoded image XObjects. See [PDF support and limits](docs/pd
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC; source project only |
 | `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoder with long/short windows, TNS, PNS and joint stereo; source project only |
-| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoder factory, picture ordering and cropped YUV output; source project only |
+| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
 | `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
@@ -153,6 +153,7 @@ From the download or extraction directory on Linux/macOS:
 ./mediana -i report.pdf page.png --page 1
 ./mediana -i input.mp4 frame.png --time-ms 250
 ./mediana -i input.mp4 output.ts
+./mediana -i input.mp4 encoded.ts --video-codec H264 --video-only --qp 26
 ./mediana probe mp4 input.mp4
 ./mediana hls create input.mp4 output-hls --audio-stream 1
 ```
@@ -166,13 +167,14 @@ MP4-to-TS/HLS copies supported AVC/AAC/MP3 streams without re-encoding. PCM expo
 supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It writes raw,
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
-H.264 subset described above. Video encoding and compressed audio encoding remain
-unavailable. The command-line arguments match the source examples below: replace
+H.264 subset described above. An explicit `--video-codec H264 --video-only` selects
+fixed-QP intra video encoding to TS; compressed audio encoding remains unavailable.
+The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
 
 The main command is `mediana -i input output`. Input content determines its
 format; the output extension selects WAVE PCM16 (`.wav` or `.wave`), PNG (`.png`) or
-MPEG-TS stream copy (`.ts`). WAVE conversion preserves sample rate and channel
+MPEG-TS (`.ts`, stream copy by default). WAVE conversion preserves sample rate and channel
 order and performs no resampling or dithering. RIFF output must fit its 32-bit
 size fields; RF64 is not supported. Named multichannel audio must follow WAVE
 speaker order. PNG output is one image, a video frame at or after `--time-ms`
@@ -1036,6 +1038,57 @@ one code per channel. The High CAVLC and CABAC 8x8 fixtures also select 500 ms a
 produce square-pixel 100×50 PNGs within one code of their independent sRGB references.
 Unit tests and Native AOT execute the same preview checks.
 
+## Encoding H.264
+
+`H264Encoder` accepts progressive, even-sized 8-bit planar YUV 4:2:0 frames.
+It writes Constrained Baseline level 4.1 AVC, using intra4x4 DC prediction,
+integer transforms, scalar quantization, chroma DC transforms and CAVLC residuals.
+Each input becomes one independently decodable IDR packet; deblocking is disabled.
+The fixed quantizer is an H.264 QP from 0 to 51, with 26 as the default.
+
+```csharp
+using H264Encoder encoder = H264Encoder.Create(frame.Format, timeBase, allocator,
+    new H264EncoderOptions { Quantizer = 26 });
+if (encoder.TrySend(frame, cancellationToken) != CodecInputStatus.Accepted)
+{
+    throw new InvalidOperationException("Receive pending encoder output first.");
+}
+using MediaPacket packet = encoder.Receive(cancellationToken).Value
+    ?? throw new InvalidOperationException("The encoder produced no packet.");
+```
+
+Reference Mediana.Codecs.H264 and use the Mediana.Codecs, Mediana.Core,
+Mediana.Core.Memory and Mediana.Core.Timing namespaces. `encoder.Stream` supplies
+the AVC configuration and stream clock for `MpegTsWriter`; packets use four-byte
+NAL lengths, preserve exact input PTS/durations and have DTS equal to PTS.
+Inputs need positive, exact durations and nonoverlapping timestamps in that clock.
+Dimensions, pixel format, SAR and color metadata must remain constant. Range and
+chroma location require explicit values. Padding repeats edge samples and crop
+fields retain visible dimensions. Frame dimensions/rate, access-unit size and
+per-frame bitrate are bounded against level 4.1 limits; this is not rate control.
+
+The encoder borrows input storage, retains at most one owned output packet and
+uses the caller's allocator for picture reconstruction and bounded encoded storage.
+Receive pending output before sending another frame. `CompleteInput` drains that
+packet; `Reset` discards pending state and permits a new sequence. Cancellation or
+failure requires reset or disposal. Returned packets survive both operations.
+
+The CLI can decode supported MP4/MOV video and encode it to a video-only TS file:
+
+```sh
+mediana -i input.mp4 output.ts --video-codec H264 --video-only --qp 26
+```
+
+Audio omission must be explicit. The command preserves original dimensions and
+SAR, requires an identity display transform and reports progress during longer
+operations. Output is published only after successful completion. Temporal
+prediction, motion search, CABAC encoding, bitrate/quality control, resizing and
+audio encoding remain open, as does HLS rendition transcoding. This initial
+all-IDR mode does not promise bitrate efficiency comparable to inter-frame encoding.
+
+All visible samples in 48 encoded pictures match independent decoder references
+in managed and Native AOT tests. See the [reference manifest and commands](tests/Mediana.Tests/Data/Mp4/ENCODING.md).
+
 ## Writing an MPEG-TS program
 
 Reference the Mediana.Containers.MpegTs source project and configure the output
@@ -1400,7 +1453,7 @@ format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, audio seeking,
 more general movie timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
-broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, video/audio encoding, other muxers, scheduling,
+broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, inter-frame video encoding, compressed audio encoding, other muxers, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
 
