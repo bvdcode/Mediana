@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Codecs;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
-using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.IO;
@@ -45,7 +43,7 @@ namespace Mediana.Cli
             await CommandOutputFile.WriteAsync(output, async destination =>
             {
                 await using MpegTsWriter writer = MpegTsWriter.Create(destination, [encoder.Stream], allocator);
-                await WriteAsync(encoder, writer, first, resizer, cancellationToken);
+                await VideoEncoding.WriteAsync(encoder, writer, first, resizer, cancellationToken);
                 frames++;
                 while (true)
                 {
@@ -54,7 +52,7 @@ namespace Mediana.Cli
                     {
                         break;
                     }
-                    await WriteAsync(encoder, writer, frame, resizer, cancellationToken);
+                    await VideoEncoding.WriteAsync(encoder, writer, frame, resizer, cancellationToken);
                     frames++;
                     if (TimeProvider.System.GetElapsedTime(reportedAt) >= TimeSpan.FromSeconds(1))
                     {
@@ -62,12 +60,7 @@ namespace Mediana.Cli
                         reportedAt = TimeProvider.System.GetTimestamp();
                     }
                 }
-                encoder.CompleteInput();
-                if (encoder.Receive(cancellationToken).Status != CodecOutputStatus.EndOfStream)
-                {
-                    throw new InvalidOperationException("The intra encoder retained delayed output.");
-                }
-                await writer.CompleteAsync(cancellationToken);
+                await VideoEncoding.CompleteAsync(encoder, writer, cancellationToken);
             }, cancellationToken);
             encoder.Dispose();
             resizer?.Dispose();
@@ -81,17 +74,5 @@ namespace Mediana.Cli
             return 0;
         }
 
-        private static async ValueTask WriteAsync(H264Encoder encoder, MpegTsWriter writer, VideoFrame frame,
-            Yuv420AreaResizer? resizer, CancellationToken token)
-        {
-            using VideoFrame prepared = resizer is null ? frame.Retain() : resizer.Apply(frame, token);
-            if (encoder.TrySend(prepared, token) != CodecInputStatus.Accepted)
-            {
-                throw new InvalidOperationException("The intra encoder did not accept its next frame.");
-            }
-            using MediaPacket packet = encoder.Receive(token).Value
-                ?? throw new InvalidOperationException("The intra encoder produced no packet.");
-            await writer.WritePacketAsync(packet, token);
-        }
     }
 }
