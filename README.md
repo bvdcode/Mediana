@@ -257,7 +257,9 @@ video sessions. Each path compares all visible YUV samples in 85 CAVLC pictures
 with the checked-in references. Public sessions also compare six CABAC intra pictures and 96 CABAC I/P pictures
 and verify timing, cropping,
 sample aspect ratio and allocation release. Its fixture loading and comparison code
-is shared with the unit tests. The native checks also compare SDR conversion with
+is shared with the unit tests. Indexed video seeking is checked against six
+independent YUV sequences, including backward targets, EOF restart and retained
+frames. The native checks also compare SDR conversion with
 an independent sRGB reference and decode a square-pixel PNG preview to verify every
 sample, CRC, color tag and pixel aspect ratio, including the rotated MP4 fixture.
 Internal CABAC decision, bypass and termination arithmetic is checked against a
@@ -874,8 +876,16 @@ follows the [QuickTime edit-list mapping](https://developer.apple.com/documentat
 Both modes retain every compressed sample, including negative decoder priming,
 audio padding and samples outside the edit interval. LinearMovie translates time;
 it does not trim media, implement repeated segments or apply non-unit playback
-rates. The reader does not apply rotation/display transforms or seek. A sync-sample
+rates. The reader does not apply rotation/display transforms. A sync-sample
 flag alone does not establish HLS segment independence.
+
+`Mp4Reader` implements the optional `IIndexedContainerReader` contract. Packet
+counts, timestamp-based sync candidates and packet reads by index preserve the
+reader's sequential cursors. Candidate lookup uses the sample tables, including
+composition offsets and the selected edit-list mapping, without reading encoded
+media. A candidate is a container declaration; the decoder must validate that it
+can restart there. Sample lookup follows the
+[QuickTime seeking procedure](https://developer.apple.com/documentation/quicktime-file-format/seeking_with_a_quicktime_file).
 
 Mp4Reader.DisplayMatrix and Mp4TrackInfo.DisplayMatrix preserve the movie and track
 header matrices. A video stream's EncodedStreamInfo.DisplayMatrix composes the track
@@ -908,14 +918,16 @@ MediaEngine engine = new MediaEngineBuilder()
     .Build();
 await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
 await using VideoSession session = await engine.OpenVideoAsync(source, streamIndex: 0);
-using VideoFrame? frame = await session.ReadFrameAtOrAfterAsync(
-    new MediaTimestamp(1, new TimeBase(1, 1)));
+MediaTimestamp target = new(1, new TimeBase(1, 1));
+await session.SeekAsync(target);
+using VideoFrame? frame = await session.ReadFrameAtOrAfterAsync(target);
 ```
 
 The namespaces are Mediana, Mediana.Codecs.H264, Mediana.Containers.Mp4,
 Mediana.Core.Timing, Mediana.Core.Video and Mediana.IO. The example selects the first
-remaining frame at or after one second in the original media timeline; it decodes
-forward without seeking. Null means the stream has ended.
+frame at or after one second in the original media timeline. It restarts at a
+validated IDR access point and decodes forward from there, including reordered
+pictures. Null means the stream has ended.
 
 `H264RandomAccessInspector` examines AVC packets without reconstructing pictures.
 `IsIdr(packet)` ignores container key-frame flags and validates access-unit boundaries
@@ -1228,6 +1240,8 @@ Applications supply container and decoder factories; none are registered implici
 Factories declare stable implementation identifiers, and decoder factories also
 declare the codec identifier and validate a specific stream configuration.
 Factories must have immutable descriptors and support independent session creation.
+Decoder factories may implement `IRandomAccessDecoderFactory` to provide restart
+inspection; indexed containers implement `IIndexedContainerReader` independently.
 
 Duplicate implementation identifiers are rejected when registering. If two factories
 match the same input/configuration, opening fails explicitly. There is no arbitrary
@@ -1262,6 +1276,16 @@ presentation timestamp at or after the target. It does not seek, return the near
 frame, infer missing timestamps or replace an out-of-range request with an earlier
 frame. End of stream returns null. A frame without a timestamp causes a clear error.
 
+`VideoSession.CanSeek` reports whether the container supplies indexed packets and
+the decoder supplies restart inspection. `SeekAsync(target)` restarts at a
+codec-validated candidate at or before the target, or at the first packet when
+the target precedes it. Follow it with `ReadFrameAtOrAfterAsync(target)` to discard
+preroll. Seeking can move backward and restart after EOF; retained frames remain
+valid. The MP4/MOV and H.264 combination supports this operation. A container
+sync flag alone cannot authorize decoder restart. Unsupported seeking fails
+explicitly. Cancellation or seek failure makes the session terminal; dispose it.
+Packet and frame budgets remain cumulative across seeks.
+
 Opening borrows the caller's source for the session lifetime. Sequential sources
 are consumed even if opening fails. Random access sources open at their origin
 and preserve the caller's sequential cursor. A session owns its reader, decoder
@@ -1278,8 +1302,8 @@ Reads at or beyond the captured length return EOF; an exact read throws if the
 requested range is truncated. The underlying stream must remain exclusively owned
 by the source while it is in use. Reads and disposal must not overlap.
 
-VideoSession remains forward-only. Random access to bytes alone does not implement
-container indexing, decoder reset or video seeking.
+Random access to bytes alone does not provide video seeking. The selected
+container and decoder must also support indexing and restart inspection.
 
 RandomAccessCursorByteSource provides an independent sequential cursor over a
 random access source, while preserving range reads and the source's own cursor.
@@ -1343,7 +1367,8 @@ their media storage to participate in its accounting.
   or launch worker pools. One codec instance is not called concurrently.
 - Cancellation is cooperative. Cancellation or decode failure makes the session
   terminal and releases decoder state; dispose the session to release reader state.
-- `MaxPacketReads` counts all container reads, including skipped streams and EOF
+- `MaxPacketReads` counts all container reads, including seek candidate inspection,
+  skipped streams and EOF
   checks. `MaxFrameReads` counts session reads, including EOF checks and frames
   consumed while selecting a timestamp. Both are optional positive work budgets;
   null, the default, permits complete media of any duration. Memory and format
@@ -1373,8 +1398,8 @@ six CABAC intra pictures, 96 additional CABAC I/P pictures and 98 CABAC I/P/B pi
 SDR conversion, decoded PNG pixels, complete WAVE/AAC/FLAC references, FLAC waveform data and audio resampling. Each future
 format also requires an executable AOT integration test.
 
-Current limitations include broader compressed codec support, other container formats, seeking,
-movie-to-stream timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
+Current limitations include broader compressed codec support, other container formats, audio seeking,
+more general movie timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
 broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, video/audio encoding, other muxers, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may
 change before 1.0.
