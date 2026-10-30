@@ -165,4 +165,8 @@
   <ItemGroup>
     <None Include="../Mediana.Tests/Data/Wave/*.wav;../Mediana.Tests/Data/Wave/*.pcm" Link="Data/Wave/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup Condition="'$(MedianaPackageVersion)' != ''">
+    <PackageReference Include="@(ProjectReference->'%(Filename)')" Version="[$(MedianaPackageVersion)]" />
+    <ProjectReference Remove="@(ProjectReference)" />
+  </ItemGroup>
 </Project>

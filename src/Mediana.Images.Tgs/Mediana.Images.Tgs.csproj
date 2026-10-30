@@ -1,7 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Mediana.Drawing/Mediana.Drawing.csproj" />
     <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
