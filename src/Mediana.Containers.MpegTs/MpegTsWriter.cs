@@ -36,6 +36,9 @@ namespace Mediana.Containers.MpegTs
         private bool disposed;
         private bool segmentPending;
 
+        /// <summary>Bytes successfully written by this instance, including tables and clock packets across segment boundaries.</summary>
+        public long BytesWritten { get; private set; }
+
         private MpegTsWriter(Stream destination, MediaBufferAllocator allocator, MpegTsWriteOptions options, MpegTsTrack[] tracks)
         {
             this.destination = destination;
@@ -243,8 +246,11 @@ namespace Mediana.Containers.MpegTs
             lastPcr = clock;
         }
 
-        private ValueTask WriteScratchAsync(CancellationToken cancellationToken) =>
-            destination.WriteAsync(scratch.Memory[..MpegTsPacket.Size], cancellationToken);
+        private async ValueTask WriteScratchAsync(CancellationToken cancellationToken)
+        {
+            await destination.WriteAsync(scratch.Memory[..MpegTsPacket.Size], cancellationToken).ConfigureAwait(false);
+            BytesWritten = checked(BytesWritten + MpegTsPacket.Size);
+        }
 
         private long Timestamp(MediaTimestamp? value) => checked((value ?? throw new InvalidDataException("TS packets require explicit PTS and DTS."))
             .Rescale(Clock, TimestampRounding.NearestEven).Value + timestampOffset);
