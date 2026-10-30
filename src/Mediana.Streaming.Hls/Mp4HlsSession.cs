@@ -39,7 +39,7 @@ namespace Mediana.Streaming.Hls
         /// <summary>Creates a VOD media playlist using actual presentation intervals and caller-provided segment URIs.
         /// Returns LF-delimited text for UTF-8 encoding. Does not declare independent audio decoding or variants.</summary>
         public string CreateVodPlaylist(Func<int, string> segmentUri) =>
-            HlsVodPlaylist.Create(Segments, segmentUri, options.MaximumSegmentUriCharacters);
+            HlsVodPlaylist.Create(Segments, static segment => segment.Duration, segmentUri, options.MaximumSegmentUriCharacters);
 
         /// <summary>Inspects IDR candidates and scans the selected compressed packets once to establish transport state.
         /// Retains bounded segment metadata and reader metadata, without storing media payloads or output segments.</summary>
