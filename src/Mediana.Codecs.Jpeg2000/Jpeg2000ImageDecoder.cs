@@ -2,12 +2,13 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Memory;
+using Mediana.Core.Metadata;
 using Mediana.Core.Video;
 
 namespace Mediana.Codecs.Jpeg2000
 {
     /// <summary>Registered JP2/J2K decoding with an explicit pixel-aspect interpretation.</summary>
-    public class Jpeg2000ImageDecoder : IImageDecoder
+    public class Jpeg2000ImageDecoder : IImageDecoder, IImageInfoReader
     {
         private readonly SampleAspectRatio sampleAspectRatio;
         private readonly Jpeg2000DecodeOptions options;
@@ -28,6 +29,19 @@ namespace Mediana.Codecs.Jpeg2000
         public bool CanDecode(ReadOnlySpan<byte> prefix) =>
             prefix.StartsWith<byte>([0, 0, 0, 12, 0x6a, 0x50, 0x20, 0x20, 13, 10, 0x87, 10])
             || prefix.StartsWith<byte>([0xff, 0x4f, 0xff, 0x51]);
+
+        public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
+        {
+            DecodeBudget budget = new(options, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (encoded.Length > options.MaximumEncodedBytes)
+            {
+                throw new InvalidDataException("JPEG 2000 exceeds MaximumEncodedBytes.");
+            }
+            (ReadOnlyMemory<byte> Stream, ContainerInfo Info) container = Jp2Container.Read(encoded);
+            CodestreamSize size = CodestreamSize.Read(new ByteReader(container.Stream), container.Info, budget);
+            return ValueTask.FromResult(new ImageInfo("jpeg2000", size.X1 - size.X0, size.Y1 - size.Y0, ImageDimensionUnit.Pixels));
+        }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
