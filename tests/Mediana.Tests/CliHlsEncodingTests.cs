@@ -76,6 +76,50 @@ namespace Mediana.Tests
 
         private static string Data(string name) => Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", name);
 
+        [Theory]
+        [InlineData("avc-aac.mp4", "mp4a.40.2")]
+        [InlineData("avc-mp3-44.mp4", "mp4a.6B")]
+        [InlineData("avc-mp3-22.mp4", "mp4a.69")]
+        public async Task AudioCopyCreatesMatchingVariantTimelinesAndCompleteCodecMetadata(string name, string codec)
+        {
+            string output = Path.Combine(directory, "hls");
+            (int code, _, _) = await CliTests.RunAsync(["hls", "encode", Data(name), output,
+                "--audio-stream", "1", "--segment-ms", "500", "--widths", "64", "32"]);
+            Assert.Equal(0, code);
+            string master = await File.ReadAllTextAsync(Path.Combine(output, "index.m3u8"));
+            Assert.Equal(2, master.Split("CODECS=\"avc1.42C029," + codec + "\"").Length - 1);
+            string? timeline = null;
+            foreach (int width in new[] { 64, 32 })
+            {
+                string variant = Path.Combine(output, "variant-" + width.ToString(CultureInfo.InvariantCulture));
+                string media = await File.ReadAllTextAsync(Path.Combine(variant, "index.m3u8"));
+                Assert.DoesNotContain("#EXT-X-INDEPENDENT-SEGMENTS", media);
+                string current = string.Join('\n', media.Split('\n').Where(line => line.StartsWith("#EXTINF:", StringComparison.Ordinal)));
+                Assert.NotEmpty(current);
+                if (timeline is not null)
+                {
+                    Assert.Equal(timeline, current);
+                }
+                timeline = current;
+                Assert.True(Directory.GetFiles(variant, "*.ts").Length > 1);
+            }
+        }
+
+        [Theory]
+        [InlineData("--audio-stream 1 --video-only")]
+        [InlineData("--audio-stream -1")]
+        [InlineData("--audio-stream 0")]
+        [InlineData("--audio-stream 2")]
+        public async Task InvalidAudioSelectionPublishesNoDirectory(string options)
+        {
+            List<string> arguments = ["hls", "encode", Data("avc-aac.mp4"), Path.Combine(directory, "hls")];
+            arguments.AddRange(options.Split(' '));
+            arguments.AddRange(["--widths", "32"]);
+            (int code, _, _) = await CliTests.RunAsync(arguments.ToArray());
+            Assert.Equal(2, code);
+            Assert.Empty(Directory.GetFileSystemEntries(directory));
+        }
+
         public void Dispose()
         {
             Directory.Delete(directory, recursive: true);

@@ -4,8 +4,8 @@
 using System.Globalization;
 using System.Text;
 using Mediana.Codecs.H264;
+using Mediana.Core;
 using Mediana.Core.Memory;
-using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Processing;
 using Mediana.Streaming.Hls;
@@ -18,7 +18,7 @@ namespace Mediana.Cli
         public AvcHlsWriter Writer { get; } = writer;
         public VideoFormat Format => resizer.OutputFormat;
 
-        public static HlsVideoRendition Create(VideoFormat source, TimeBase clock, MediaBufferAllocator allocator,
+        public static HlsVideoRendition Create(VideoFormat source, EncodedStreamInfo video, EncodedStreamInfo? audio, MediaBufferAllocator allocator,
             int width, int qp, long targetMilliseconds, string root)
         {
             Yuv420AreaResizer resizer = Yuv420AreaResizer.CreateFit(source, width, source.Height, allocator);
@@ -26,17 +26,20 @@ namespace Mediana.Cli
             bool success = false;
             try
             {
-                encoder = H264Encoder.Create(resizer.OutputFormat, clock, allocator, new() { Quantizer = qp });
+                encoder = H264Encoder.Create(resizer.OutputFormat, video.TimeBase, allocator, new() { Quantizer = qp }, video.StreamIndex);
                 string name = "variant-" + width.ToString(CultureInfo.InvariantCulture);
                 string directory = Path.Combine(root, name);
                 Directory.CreateDirectory(directory);
-                AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, (number, token) =>
+                ValueTask<Stream> OpenSegment(int number, CancellationToken token)
                 {
                     token.ThrowIfCancellationRequested();
                     Stream destination = new FileStream(Path.Combine(directory, SegmentName(number)), FileMode.CreateNew,
                         FileAccess.Write, FileShare.None, bufferSize: 4096, FileOptions.Asynchronous);
                     return ValueTask.FromResult(destination);
-                }, allocator, new() { TargetDuration = new(targetMilliseconds, new(1, 1000)) });
+                }
+                AvcHlsWriteOptions options = new() { TargetDuration = new(targetMilliseconds, new(1, 1000)) };
+                AvcHlsWriter writer = audio is null ? AvcHlsWriter.Create(encoder.Stream, OpenSegment, allocator, options) :
+                    AvcHlsWriter.Create(encoder.Stream, audio, OpenSegment, allocator, options);
                 HlsVideoRendition result = new(resizer, encoder, writer, directory, name);
                 success = true;
                 return result;

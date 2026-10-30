@@ -16,7 +16,7 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string input, string output, int videoIndex, int[] widths,
+        public static async Task<int> RunAsync(string input, string output, int videoIndex, int? audioIndex, int[] widths,
             int qp, long targetMilliseconds, ILogger logger, CancellationToken token)
         {
             MediaEngine engine = new MediaEngineBuilder()
@@ -31,6 +31,7 @@ namespace Mediana.Cli
             using VideoFrame first = await session.ReadFrameAsync(token)
                 ?? throw new InvalidDataException("The input contains no decoded video frames.");
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            await using HlsAudioSource? audio = audioIndex is int index ? await HlsAudioSource.OpenAsync(source, index, allocator, token) : null;
             long frames = 0;
             int segments = 0;
             await CommandOutputDirectory.WriteAsync(output, async directory =>
@@ -41,13 +42,17 @@ namespace Mediana.Cli
                     HashSet<(int Width, int Height)> dimensions = [];
                     foreach (int width in widths)
                     {
-                        HlsVideoRendition rendition = HlsVideoRendition.Create(first.Format, session.Stream.TimeBase,
+                        HlsVideoRendition rendition = HlsVideoRendition.Create(first.Format, session.Stream, audio?.Stream,
                             allocator, width, qp, targetMilliseconds, directory);
                         renditions.Add(rendition);
                         if (!dimensions.Add((rendition.Format.Width, rendition.Format.Height)))
                         {
                             throw new ArgumentException("The selected width bounds produce duplicate encoded dimensions.", nameof(widths));
                         }
+                    }
+                    if (audio is not null)
+                    {
+                        await audio.CopyBeforeAsync(first.Timestamp, renditions, token);
                     }
                     foreach (HlsVideoRendition rendition in renditions)
                     {
@@ -60,6 +65,10 @@ namespace Mediana.Cli
                     {
                         using (frame)
                         {
+                            if (audio is not null)
+                            {
+                                await audio.CopyBeforeAsync(frame.Timestamp, renditions, token);
+                            }
                             foreach (HlsVideoRendition rendition in renditions)
                             {
                                 await rendition.WriteAsync(frame, token);
@@ -72,6 +81,10 @@ namespace Mediana.Cli
                                 frames, renditions.Count, renditions.Sum(rendition => rendition.Writer.BytesWritten));
                             reportedAt = TimeProvider.System.GetTimestamp();
                         }
+                    }
+                    if (audio is not null)
+                    {
+                        await audio.CopyBeforeAsync(null, renditions, token);
                     }
                     List<HlsVariant> variants = [];
                     foreach (HlsVideoRendition rendition in renditions)
@@ -86,13 +99,17 @@ namespace Mediana.Cli
                 {
                     await Task.WhenAll(renditions.Select(rendition => rendition.DisposeAsync().AsTask()));
                 }
+                if (audio is not null)
+                {
+                    await audio.DisposeAsync();
+                }
                 await session.DisposeAsync();
                 if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)
                 {
                     throw new InvalidOperationException("HLS encoding buffers were not released.");
                 }
             }, token);
-            await Console.Out.WriteLineAsync($"HLS video encoding: {frames} input frames; {widths.Length} variants; {segments} aligned segments per variant. Live buffer bytes: 0.");
+            await Console.Out.WriteLineAsync($"HLS encoding: {frames} input frames; {audio?.PacketsCopied ?? 0} copied audio packets; {widths.Length} variants; {segments} aligned segments per variant. Live buffer bytes: 0.");
             return 0;
         }
 
