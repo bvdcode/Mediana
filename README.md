@@ -1033,7 +1033,18 @@ DisplayResize.Fit; it converts only selected source pixels and allocates one
 preview frame instead of an intermediate full-resolution RGB frame. It requires
 known color and SAR, preserves time and straight alpha, and produces square-pixel
 sRGB RGBA32. The sample uses this combined path. Separate color conversion and
-geometry operations remain available.
+geometry operations remain available. The explicit-source-color overload accepts
+an application interpretation while preserving the original frame metadata.
+
+The CLI video preview commands infer missing SDR color labels and log the chosen
+values once. Explicit decoder labels take precedence. Missing primaries or matrix
+first use the declared matrix or primaries when available; otherwise SD storage
+up to 1024x576 uses BT.601 (SMPTE 170M at up to 480 lines, BT.470BG above 480),
+and larger storage uses BT.709. Missing SDR transfer uses BT.709; straight RGB
+uses sRGB defaults. This is a preview policy, not a measurement of the source
+color space. Range, chroma location and sample aspect ratio still come from the
+decoder. The library conversion APIs require explicit color interpretation.
+PQ/HLG input still requires tone mapping.
 
 DisplayResize.Fit uses storage width times SAR and the storage height as the
 unscaled display size, fits within the requested box without enlargement, rounds to

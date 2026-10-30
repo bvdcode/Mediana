@@ -2,10 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using ConsoleAppFramework;
+using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class VideoCommands(CommandOutputPolicy outputs) : MediaCommands(outputs)
+    internal class VideoCommands(ILogger logger, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
         /// <summary>Extract a supported H.264 frame to an sRGB PNG.</summary>
         /// <param name="input">Existing MP4/MOV file.</param>
@@ -21,7 +22,7 @@ namespace Mediana.Cli
             ArgumentOutOfRangeException.ThrowIfNegative(timeMs);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
-            return ExecuteFileAsync(input, output, outputFile => VideoPreviewCommand.RunAsync(input, outputFile, stream, timeMs, width, height, cancellationToken), cancellationToken);
+            return ExecuteFileAsync(input, output, outputFile => VideoPreviewCommand.RunAsync(input, outputFile, stream, timeMs, width, height, logger, cancellationToken), cancellationToken);
         }
     }
 }

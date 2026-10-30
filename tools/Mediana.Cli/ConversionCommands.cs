@@ -86,7 +86,7 @@ namespace Mediana.Cli
             return ExecuteFileAsync(input, output, outputFile => Path.GetExtension(output).ToLowerInvariant() switch
             {
                 ".wav" or ".wave" => WaveAudioCommand.RunAsync(input, outputFile, stream, logger, cancellationToken),
-                ".png" => FilePreviewCommand.RunAsync(input, outputFile, stream, timeMs, page, cancellationToken),
+                ".png" => FilePreviewCommand.RunAsync(input, outputFile, stream, timeMs, page, logger, cancellationToken),
                 ".ts" => MpegTsRemuxCommand.RunAsync(input, outputFile, stream, cancellationToken),
                 _ => throw new NotSupportedException("Cannot select an output format from the extension '" + Path.GetExtension(output)
                     + "'. Use .wav or .wave (PCM16), .png (one image/frame/page), or .ts (AVC/AAC/MP3 stream copy).")

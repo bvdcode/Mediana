@@ -4,12 +4,13 @@
 using Mediana.Codecs;
 using Mediana.Core.Timing;
 using Mediana.IO;
+using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
     internal static class FilePreviewCommand
     {
-        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? stream, long milliseconds, int page, CancellationToken token)
+        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? stream, long milliseconds, int page, ILogger logger, CancellationToken token)
         {
             MediaEngine images = ImageEngineFactory.Create();
             byte[] probe = new byte[images.ImageProbeLength];
@@ -34,7 +35,7 @@ namespace Mediana.Cli
             {
                 throw new NotSupportedException("Video preview does not support document page selection.");
             }
-            return await VideoPreviewCommand.RunAsync(input, outputFile, stream, milliseconds, int.MaxValue, int.MaxValue, token);
+            return await VideoPreviewCommand.RunAsync(input, outputFile, stream, milliseconds, int.MaxValue, int.MaxValue, logger, token);
         }
     }
 }
