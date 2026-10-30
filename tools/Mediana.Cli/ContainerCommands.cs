@@ -7,7 +7,7 @@ namespace Mediana.Cli
 {
     internal class ContainerCommands : MediaCommands
     {
-        /// <summary>Copy supported AVC/AAC streams from MP4/MOV to MPEG-TS.</summary>
+        /// <summary>Copy supported AVC, AAC and MP3 streams from MP4/MOV to MPEG-TS.</summary>
         /// <param name="input">Existing MP4/MOV file.</param>
         /// <param name="output">New MPEG-TS file.</param>
         public Task<int> Remux([Argument] string input, [Argument] string output, CancellationToken cancellationToken = default) =>

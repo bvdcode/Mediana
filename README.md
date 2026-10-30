@@ -5,12 +5,12 @@ Its media implementation is written in C#, with no FFmpeg, external media proces
 native media libraries, or third-party runtime packages.
 
 The current implementation is experimental. It reads metadata and compressed packets from
-non-fragmented MP4/MOV/M4A files containing AVC/AAC tracks. The MP4 reader also
+non-fragmented MP4/MOV/M4A files containing AVC, AAC or MP3 tracks. The MP4 reader also
 exposes movie-level iTunes/indexed metadata and original encoded cover art. The H.264 source module
 connects limited CAVLC and CABAC I/P/B decoding to public video sessions and returns cropped YUV frames.
 The sample can extract a supported video frame, convert SDR color to sRGB, correct
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
-An experimental MPEG-TS source module packages AVC/AAC access units without decoding.
+An experimental MPEG-TS source module packages AVC/AAC/MP3 access units without decoding.
 The WAVE and PCM source modules read integer/float audio through public audio sessions.
 The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float PCM.
 Independent source modules also decode HEIC/HEIF still images, JPEG 2000 and JBIG2,
@@ -35,13 +35,13 @@ content and exposes decoded image XObjects. See [PDF support and limits](docs/pd
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
-| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC packet reading |
+| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC/MP3 packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading; source project only |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading; source project only |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks; source project only |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing; source project only |
 | `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo; source project only |
-| `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC transport-stream writer; source project only |
+| `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC/MP3 transport-stream writer; source project only |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC; source project only |
@@ -158,7 +158,7 @@ The MP4 probe lists stream indices; use the appropriate video/audio indices in
 the HLS, preview and audio commands. Omit `--audio-stream` for HLS without audio. Output paths
 must be new, and their parent directories must already exist.
 
-MP4-to-TS/HLS copies supported AVC/AAC streams without re-encoding. PCM export
+MP4-to-TS/HLS copies supported AVC/AAC/MP3 streams without re-encoding. PCM export
 supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It writes raw,
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
@@ -846,6 +846,13 @@ or reset a decoder, and a sync declaration alone does not verify codec-level
 segment independence.
 
 AVC streams expose the original avcC configuration and length-prefixed NAL packets.
+MP3 `mp4a` entries with ES object type `0x69`/`0x6B` obtain their configuration
+from a bounded four-byte read of the first Layer III frame, without moving packet
+cursors. Each sample contains one complete MP3 frame. Container declarations
+remain available separately from the parsed frame configuration. Empty MP3 tracks,
+Layer I/II and free-format audio are unsupported. The existing MP3 decoder can
+decode these streams through the public audio session; edit-list trimming remains
+an explicit application operation.
 AAC streams expose the AudioSpecificConfig and raw access units. Container-declared
 audio channels and sample rate are labelled explicitly: codec configuration may
 describe different values, which require codec-level interpretation.
@@ -874,7 +881,8 @@ the [QuickTime matrix definition](https://developer.apple.com/documentation/quic
 
 Fragmented files, encrypted/external data, compressed QuickTime headers, multiple
 sample descriptions and other sample/handler types fail explicitly. The current
-sample entries are avc1/avc3 and version-zero mp4a with AAC object type 2, 5 or 29.
+sample entries are avc1/avc3 and version-zero mp4a with AAC object type 2, 5 or 29,
+or MPEG-1/2 Layer III under ES object type indication 0x6B/0x69.
 Empty samples, sample sizes above 2 GiB and time scales above Int32.MaxValue are
 unsupported. Metadata, codec configuration, boxes, tracks, samples and edits have
 configurable limits through Mp4ReadOptions.
@@ -1009,7 +1017,7 @@ Unit tests and Native AOT execute the same preview checks.
 ## Writing an MPEG-TS program
 
 Reference the Mediana.Containers.MpegTs source project and configure the output
-with one to sixteen AVC/AAC streams. The module depends on container/core
+with one to sixteen AVC/AAC/MP3 streams. The module depends on container/core
 contracts and does not require a video or audio decoder.
 
 ```csharp
@@ -1127,7 +1135,7 @@ them to one source. Neither API declares INDEPENDENT-SEGMENTS. Segment requireme
 ## Serving MP4 as HLS without transcoding
 
 The experimental Mediana.Streaming.Hls source module provides `Mp4HlsSession` for
-one supported AVC video track and an optional AAC-LC track. Open it on an immutable
+one supported AVC video track and an optional AAC-LC or MPEG-1/2 Layer III track. Open it on an immutable
 IRandomAccessByteSource, selecting stream indices explicitly:
 
 ```csharp
@@ -1170,6 +1178,18 @@ padding are preserved; MP4 discard metadata and a shortened last AAC sample dura
 are not represented in ADTS. Audio-independent decoding, additional codecs and
 multiple renditions remain outside this path. Existing AVC inspection and MPEG-TS
 configuration limits apply.
+
+MP3 frames are copied byte-for-byte with MPEG-1/2 transport stream types
+`0x03`/`0x04`. Each packet must contain one complete frame with stable sample rate,
+version and channel count; VBR and frame padding are preserved. MPEG-2.5 transport
+is unsupported. Audio reservoir dependencies and synthesis history remain intact,
+so starting a segment alone can lose leading audio; the playlist does not declare
+`EXT-X-INDEPENDENT-SEGMENTS` or add preroll. This path supplies continuous stream
+copy and does not promise sample-exact independent audio starts.
+
+[MP3-in-MP4 references](tests/Mediana.Tests/Data/Mp4/MP3.md) cover independent
+packet hashes/timestamps, both MPEG versions, TS program tables and repeatable
+HLS segments in managed and Linux Native AOT execution.
 
 Managed and Native AOT checks cover the real 36-picture/339-AAC fixture, exact
 sample windows, all compressed packets, playlists, transport continuity and repeated

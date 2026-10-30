@@ -30,7 +30,7 @@ namespace Mediana.Cli
                 ".png" => FilePreviewCommand.RunAsync(input, output, stream, timeMs, page, cancellationToken),
                 ".ts" => Mp4RemuxCommand.RunAsync(input, output, cancellationToken),
                 _ => throw new NotSupportedException("Cannot select an output format from the extension '" + Path.GetExtension(output)
-                    + "'. Use .wav or .wave (PCM16), .png (one image/frame/page), or .ts (AVC/AAC stream copy).")
+                    + "'. Use .wav or .wave (PCM16), .png (one image/frame/page), or .ts (AVC/AAC/MP3 stream copy).")
             });
         }
     }
