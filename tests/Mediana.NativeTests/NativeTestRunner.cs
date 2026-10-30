@@ -93,6 +93,8 @@ namespace Mediana.NativeTests
                 await MediaProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), index);
             }
             Console.WriteLine("PASS media probe: declared durations, codec IDs and owned snapshots match header references without decoders.");
+            await MediaTagTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS header text tags: MP3 ID3, FLAC Vorbis and MP4 native keys match independent references after source disposal.");
             foreach (string name in WavePcmTestInput.Names)
             {
                 await WavePcmTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"), name);

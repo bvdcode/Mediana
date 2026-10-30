@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Core.Metadata;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -57,7 +58,8 @@ namespace Mediana.Containers.Flac
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
-                reader.Info = new ContainerInfo("flac", reader.Duration);
+                reader.Info = new ContainerInfo("flac", reader.Duration,
+                    reader.Comments.Select(comment => new MediaTag("vorbis", comment.Name, comment.Value)));
                 opened = true;
                 return reader;
             }

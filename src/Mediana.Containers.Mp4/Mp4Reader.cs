@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Core.Metadata;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
@@ -33,11 +34,12 @@ namespace Mediana.Containers.Mp4
             cursors = movie.Tables.Select(table => new Mp4TrackCursor(table)).ToArray();
             MovieTimeBase = movie.TimeBase;
             Duration = movie.Duration;
-            Info = new ContainerInfo("mp4", movie.Duration);
             DisplayMatrix = movie.DisplayMatrix;
             Tracks = Array.AsReadOnly(movie.Tracks);
             metadataValues = movie.Metadata;
             Metadata = Array.AsReadOnly(movie.Metadata.Select(value => value.Item).ToArray());
+            Info = new ContainerInfo("mp4", movie.Duration, Metadata.Where(item => item.Text is not null)
+                .Select(item => new MediaTag(item.Namespace, item.Name, item.Text!, locale: item.Locale)));
             CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(movie.Metadata));
             TimestampMode = timestampMode;
             timelines = new Mp4LinearTimeline[movie.Tracks.Length];

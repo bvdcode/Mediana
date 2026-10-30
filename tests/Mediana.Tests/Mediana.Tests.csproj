@@ -51,6 +51,7 @@
     <Compile Include="../Shared/AudioWaveformTestInput.cs" Link="AudioWaveformTestInput.cs" />
     <Compile Include="../Shared/AudioResamplingTestInput.cs" Link="AudioResamplingTestInput.cs" />
     <Compile Include="../Shared/MediaProbeTestInput.cs" Link="MediaProbeTestInput.cs" />
+    <Compile Include="../Shared/MediaTagTestInput.cs" Link="MediaTagTestInput.cs" />
     <Compile Include="../Shared/WavePcmTestInput.cs" Link="WavePcmTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Wave/Mediana.Containers.Wave.csproj" />

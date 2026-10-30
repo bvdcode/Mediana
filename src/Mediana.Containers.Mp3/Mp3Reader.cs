@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Core.Metadata;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -61,7 +62,8 @@ namespace Mediana.Containers.Mp3
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
-                reader.Info = new ContainerInfo("mp3", reader.CodedDuration);
+                reader.Info = new ContainerInfo("mp3", reader.CodedDuration,
+                    reader.TextFrames.Select(frame => new MediaTag("id3v2", frame.FrameId, frame.Values, frame.Description)));
                 opened = true;
                 return reader;
             }
