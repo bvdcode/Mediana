@@ -63,6 +63,18 @@ namespace Mediana.Tests
             Assert.Single(Directory.GetFiles(directory));
         }
 
+        [Fact]
+        public async Task SvgProbeRecognizesContentWithoutProducingAnImage()
+        {
+            string input = Path.Combine(directory, "input.bin");
+            await File.WriteAllTextAsync(input, "<svg width='800' height='800'><path d='invalid'/></svg>");
+            (int code, string output, string error) = await CliTests.RunAsync(["probe", input]);
+            Assert.True(code == 0, error);
+            Assert.Contains("Image: svg; 800x800 pixels.", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("probe .", error, StringComparison.Ordinal);
+            Assert.Single(Directory.GetFiles(directory));
+        }
+
         public void Dispose()
         {
             Directory.Delete(directory, recursive: true);

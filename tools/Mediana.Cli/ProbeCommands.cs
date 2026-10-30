@@ -7,8 +7,8 @@ namespace Mediana.Cli
 {
     internal class ProbeCommands(TextWriter output, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
-        /// <summary>Inspect container identity, declared duration and streams without decoding or a packet scan.</summary>
-        /// <param name="input">Existing supported media file; its content determines the container.</param>
+        /// <summary>Inspect media identity, image dimensions, declared duration and streams without decoding.</summary>
+        /// <param name="input">Existing supported media file; its content determines the format.</param>
         [Command("")]
         public Task<int> Info([Argument] string input, CancellationToken cancellationToken = default) =>
             ExecuteAsync(input, null, () => MediaProbeCommand.RunAsync(input, output, cancellationToken));

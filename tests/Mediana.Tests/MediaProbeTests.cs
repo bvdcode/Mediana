@@ -27,9 +27,9 @@ namespace Mediana.Tests
             MediaEngine engine = new MediaEngineBuilder().AddContainer(factory).Build();
             await using ShortReadSource source = new([.. "TEST"u8, 11, 22]);
             MediaInfo info = await engine.ProbeAsync(source);
-            Assert.Equal("fixture", info.Container.FormatId);
+            Assert.Equal("fixture", info.Container!.FormatId);
             Assert.Equal("fixture.rgba", Assert.Single(info.Streams).CodecId);
-            Assert.Null(info.Container.DeclaredDuration);
+            Assert.Null(info.Container!.DeclaredDuration);
             Assert.True(factory.LastReader!.IsDisposed);
             Assert.Equal(0, factory.LastReader.PacketReads);
             Assert.False(source.IsDisposed);
@@ -52,7 +52,7 @@ namespace Mediana.Tests
                 Assert.True(memory.CanRead);
             }
             Assert.Equal(format, info.Streams[0].Configuration.ToArray());
-            Assert.Equal(new MediaDuration(1, new TimeBase(1, 44100)), info.Container.DeclaredDuration);
+            Assert.Equal(new MediaDuration(1, new TimeBase(1, 44100)), info.Container!.DeclaredDuration);
         }
 
         [Theory]
@@ -69,7 +69,7 @@ namespace Mediana.Tests
             data.AsSpan((int)firstPayload, (int)(payloadEnd - firstPayload)).Clear();
             await using TrackingRandomAccessSource source = new(data, 7);
             MediaInfo info = await MediaProbeTestInput.CreateEngine().ProbeAsync(source);
-            Assert.Equal("mp4", info.Container.FormatId);
+            Assert.Equal("mp4", info.Container!.FormatId);
             Assert.All(source.Reads, read => Assert.True(read.Offset + read.Length <= firstPayload || read.Offset >= payloadEnd));
             Assert.False(source.IsDisposed);
         }
@@ -80,8 +80,8 @@ namespace Mediana.Tests
             byte[] frame = Mp3TestInput.Frame();
             await using TrackingRandomAccessSource source = new([.. frame, .. new byte[1024 * 1024]]);
             MediaInfo info = await MediaProbeTestInput.CreateEngine().ProbeAsync(source);
-            Assert.Equal("mp3", info.Container.FormatId);
-            Assert.Null(info.Container.DeclaredDuration);
+            Assert.Equal("mp3", info.Container!.FormatId);
+            Assert.Null(info.Container!.DeclaredDuration);
             Assert.Null(Assert.Single(info.Streams).CodedDuration);
             Assert.All(source.Reads, read => Assert.True(read.Offset + read.Length <= frame.Length));
         }
@@ -91,10 +91,10 @@ namespace Mediana.Tests
         {
             await using ShortReadSource unknown = new(FlacTestInput.File([0], (0, FlacTestInput.StreamInfo(samples: 0))));
             MediaInfo flac = await MediaProbeTestInput.CreateEngine().ProbeAsync(unknown);
-            Assert.Null(flac.Container.DeclaredDuration);
+            Assert.Null(flac.Container!.DeclaredDuration);
             await using ShortReadSource empty = new(WaveTestInput.File(("fmt ", WaveTestInput.Format()), ("data", [])));
             MediaInfo wave = await MediaProbeTestInput.CreateEngine().ProbeAsync(empty);
-            Assert.Equal(0, wave.Container.DeclaredDuration!.Value.Value);
+            Assert.Equal(0, wave.Container!.DeclaredDuration!.Value.Value);
         }
 
         [Fact]

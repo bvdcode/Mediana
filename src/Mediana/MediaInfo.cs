@@ -18,7 +18,17 @@ namespace Mediana
             StreamMetadata = new ReadOnlyDictionary<int, StreamMetadata>(streamMetadata);
         }
 
-        public ContainerInfo Container { get; }
+        internal MediaInfo(ImageInfo image)
+        {
+            Image = image;
+            Streams = Array.Empty<EncodedStreamInfo>();
+            StreamMetadata = ReadOnlyDictionary<int, StreamMetadata>.Empty;
+        }
+
+        /// <summary>Container metadata, or null for an image/document input.</summary>
+        public ContainerInfo? Container { get; }
+        /// <summary>Image/document metadata, or null for a packet container. Exactly one representation is present.</summary>
+        public ImageInfo? Image { get; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
         /// <summary>Codec header facts keyed by stream index. Missing entries mean no reader is registered
         /// or the registered reader does not support that configuration.</summary>

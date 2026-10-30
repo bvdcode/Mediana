@@ -31,7 +31,7 @@ namespace Mediana.Cli
                 {
                     throw new ArgumentException("Input arguments are required. Run mediana " + context.CommandName + " --help.");
                 }
-                string operation = context.CommandName;
+                string operation = context.CommandName.Trim();
                 if (string.IsNullOrEmpty(operation))
                 {
                     operation = "conversion";

@@ -51,25 +51,11 @@ namespace Mediana.Images.Svg
 
         private SvgDocument BuildViewport()
         {
-            float[]? v = _root.Attribute("viewBox") is { } box ? SvgNumbers.List(box.Value) : null;
-            if (v is not null && (v.Length != 4 || v[2] <= 0 || v[3] <= 0))
-            {
-                throw new InvalidDataException("Invalid SVG viewBox.");
-            }
-
-            _width = Length(_root, "width", v?[2] ?? 300, 300);
-            _height = Length(_root, "height", v?[3] ?? 150, 150);
-            if (_width <= 0 || _height <= 0)
-            {
-                throw new InvalidDataException("SVG viewport must be positive.");
-            }
-
-            (float, float, float, float) viewBox = v is null ? (0, 0, _width, _height) : (v[0], v[1], v[2], v[3]);
-            float intrinsicWidth = _width, intrinsicHeight = _height;
-            _width = viewBox.Item3;
-            _height = viewBox.Item4;
+            SvgViewport viewport = SvgViewport.Read(_root);
+            _width = viewport.ViewBox.Width;
+            _height = viewport.ViewBox.Height;
             SceneNode node = Node(_root, new Dictionary<string, string>(), 0, true);
-            return new SvgDocument(node, intrinsicWidth, intrinsicHeight, viewBox, (string?)_root.Attribute("preserveAspectRatio") ?? "xMidYMid meet", _warnings.Order().ToArray());
+            return new SvgDocument(node, viewport.Width, viewport.Height, viewport.ViewBox, (string?)_root.Attribute("preserveAspectRatio") ?? "xMidYMid meet", _warnings.Order().ToArray());
         }
 
         private static bool IsSvgElement(XElement element) => element.Name.NamespaceName.Length == 0 || element.Name.NamespaceName == "http://www.w3.org/2000/svg";

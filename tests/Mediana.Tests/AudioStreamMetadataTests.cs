@@ -91,7 +91,7 @@ namespace Mediana.Tests
             MediaInfo rich = await AudioStreamMetadataTestInput.CreateEngine().ProbeAsync(after);
             Assert.Equal(before.Reads, after.Reads);
             Assert.Equal(basic.Streams[0].Configuration.ToArray(), rich.Streams[0].Configuration.ToArray());
-            Assert.Null(rich.Container.DeclaredDuration);
+            Assert.Null(rich.Container!.DeclaredDuration);
             Assert.Null(rich.Streams[0].CodedDuration);
             Assert.IsType<AudioStreamMetadata>(rich.StreamMetadata[0]);
         }

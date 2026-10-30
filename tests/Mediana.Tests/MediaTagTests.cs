@@ -60,7 +60,7 @@ namespace Mediana.Tests
             byte[] picture = Mp3TestInput.MetadataFrame("APIC", Mp3TestInput.Picture([1, 2, 3]));
             byte[] body = [.. title, .. custom, .. empty, .. picture];
             MediaInfo info = await ProbeAsync([.. Mp3TestInput.Tag(4, body), .. Mp3TestInput.Frame(), .. new byte[1024]]);
-            IReadOnlyList<MediaTag> tags = Assert.IsAssignableFrom<IReadOnlyList<MediaTag>>(info.Container.Tags);
+            IReadOnlyList<MediaTag> tags = Assert.IsAssignableFrom<IReadOnlyList<MediaTag>>(info.Container!.Tags);
             Assert.Equal(new[] { "TIT2", "TXXX", "TALB" }, tags.Select(tag => tag.Name));
             Assert.All(tags, tag => { Assert.Equal("id3v2", tag.Namespace); Assert.Null(tag.Locale); });
             Assert.Equal("Название 🎵", Assert.Single(tags[0].Values));
@@ -76,7 +76,7 @@ namespace Mediana.Tests
             byte[] file = FlacTestInput.File([0xff], (0, FlacTestInput.StreamInfo()),
                 (4, FlacTestInput.Comments("ARTIST=First", "artist=Second", "EMPTY=", "EQUALS=a=b", " =space", "TITLE=Музыка 🎵")));
             MediaInfo info = await ProbeAsync(file);
-            IReadOnlyList<MediaTag> tags = info.Container.Tags!;
+            IReadOnlyList<MediaTag> tags = info.Container!.Tags!;
             Assert.Equal(new[] { "ARTIST", "artist", "EMPTY", "EQUALS", " ", "TITLE" }, tags.Select(tag => tag.Name));
             Assert.Equal(new[] { "First", "Second", "", "a=b", "space", "Музыка 🎵" }, tags.Select(tag => Assert.Single(tag.Values)));
             Assert.All(tags, tag => { Assert.Equal("vorbis", tag.Namespace); Assert.Null(tag.Description); Assert.Null(tag.Locale); });
@@ -93,7 +93,7 @@ namespace Mediana.Tests
             byte[] file = await Mp4MetadataTestData.FileAsync(Mp4MetadataTestData.Box("udta",
                 Mp4MetadataTestData.Meta("mdir", [.. localized, .. custom, .. binary])));
             MediaInfo info = await ProbeAsync(file);
-            IReadOnlyList<MediaTag> tags = info.Container.Tags!;
+            IReadOnlyList<MediaTag> tags = info.Container!.Tags!;
             Assert.Equal(new[] { "©nam", "©nam", "code" }, tags.Select(tag => tag.Name));
             Assert.Equal(new[] { "mdir", "mdir", "catalog" }, tags.Select(tag => tag.Namespace));
             Assert.Equal(new[] { "Title 🌊", "Локальный", "" }, tags.Select(tag => Assert.Single(tag.Values)));
@@ -105,13 +105,13 @@ namespace Mediana.Tests
         public async Task UnavailableTextMetadataAndNoTagsFoundRemainDistinct()
         {
             MediaInfo wave = await ProbeAsync(WaveTestInput.File(("fmt ", WaveTestInput.Format()), ("data", [])));
-            Assert.Null(wave.Container.Tags);
+            Assert.Null(wave.Container!.Tags);
             MediaInfo mp3 = await ProbeAsync(Mp3TestInput.Frame());
-            Assert.NotNull(mp3.Container.Tags);
-            Assert.Empty(mp3.Container.Tags);
+            Assert.NotNull(mp3.Container!.Tags);
+            Assert.Empty(mp3.Container!.Tags);
             MediaInfo flac = await ProbeAsync(FlacTestInput.File([], (0, FlacTestInput.StreamInfo())));
-            Assert.NotNull(flac.Container.Tags);
-            Assert.Empty(flac.Container.Tags);
+            Assert.NotNull(flac.Container!.Tags);
+            Assert.Empty(flac.Container!.Tags);
         }
 
         [Fact]

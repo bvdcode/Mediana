@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Mediana.Core;
+using Mediana.Containers;
 using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
 using Mediana.IO;
@@ -16,8 +17,14 @@ namespace Mediana.Cli
             MediaEngine engine = MetadataEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             MediaInfo info = await engine.ProbeAsync(source, cancellationToken: cancellationToken);
-            await output.WriteLineAsync($"Container: {info.Container.FormatId}; {info.Streams.Count} streams.");
-            if (info.Container.DeclaredDuration is MediaDuration duration)
+            if (info.Image is ImageInfo image)
+            {
+                await ImageInfoFormatter.WriteAsync(image, output);
+                return 0;
+            }
+            ContainerInfo container = info.Container ?? throw new InvalidOperationException("Media metadata has no representation.");
+            await output.WriteLineAsync($"Container: {container.FormatId}; {info.Streams.Count} streams.");
+            if (container.DeclaredDuration is MediaDuration duration)
             {
                 double seconds = (double)duration.Value * duration.TimeBase.Numerator / duration.TimeBase.Denominator;
                 await output.WriteLineAsync($"Declared duration: {seconds.ToString("0.#########", CultureInfo.InvariantCulture)} seconds.");
@@ -34,7 +41,7 @@ namespace Mediana.Cli
                     await StreamMetadataFormatter.WriteAsync(metadata, output, cancellationToken);
                 }
             }
-            if (info.Container.Tags is IReadOnlyList<MediaTag> tags)
+            if (container.Tags is IReadOnlyList<MediaTag> tags)
             {
                 await output.WriteLineAsync($"Header text tags: {tags.Count}.");
                 foreach (MediaTag tag in tags)
