@@ -1,66 +1,52 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Containers.Mp4;
 using Mediana.Core;
-using Mediana.Core.Memory;
 using Mediana.Core.Timing;
-using Mediana.IO;
 
 namespace Mediana.Cli
 {
-    internal class HlsAudioSource(Mp4Reader reader, EncodedStreamInfo stream) : IAsyncDisposable
+    internal abstract class HlsAudioSource : IAsyncDisposable
     {
-        private int sample;
-        public EncodedStreamInfo Stream { get; } = stream;
-        public int PacketsCopied => sample;
+        private MediaPacket? pending;
+        private bool disposed;
+        public abstract EncodedStreamInfo Stream { get; }
+        public long PacketsWritten { get; private set; }
 
-        public static async ValueTask<HlsAudioSource> OpenAsync(IRandomAccessByteSource source, int streamIndex,
-            MediaBufferAllocator allocator, CancellationToken token)
-        {
-            Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator,
-                new() { TimestampMode = Mp4TimestampMode.LinearMovie }, token);
-            bool success = false;
-            try
-            {
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(streamIndex, reader.Streams.Count);
-                EncodedStreamInfo stream = reader.Streams[streamIndex];
-                if (stream.Kind != MediaKind.Audio || stream.CodecId is not ("aac" or "mp3") || reader.Tracks[streamIndex].SampleCount == 0)
-                {
-                    throw new NotSupportedException("HLS audio copy requires a nonempty AAC-LC or MPEG-1/2 Layer III track.");
-                }
-                HlsAudioSource result = new(reader, stream);
-                success = true;
-                return result;
-            }
-            finally
-            {
-                if (!success)
-                {
-                    await reader.DisposeAsync();
-                }
-            }
-        }
+        protected abstract ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken token);
+        protected abstract ValueTask DisposeCoreAsync();
 
-        public async ValueTask CopyBeforeAsync(MediaTimestamp? boundary, IReadOnlyList<HlsVideoRendition> renditions, CancellationToken token)
+        public async ValueTask WriteBeforeAsync(MediaTimestamp? boundary, IReadOnlyList<HlsVideoRendition> renditions, CancellationToken token)
         {
-            while (sample < reader.Tracks[Stream.StreamIndex].SampleCount)
+            ObjectDisposedException.ThrowIf(disposed, this);
+            while (true)
             {
                 token.ThrowIfCancellationRequested();
-                Mp4SampleInfo info = reader.GetSampleInfo(Stream.StreamIndex, sample, token);
-                if (boundary is MediaTimestamp limit && info.DecodeTime.CompareTo(limit) >= 0)
+                pending ??= await ReadPacketAsync(token);
+                if (pending is null || (boundary is MediaTimestamp limit && pending.DecodeTime!.Value.CompareTo(limit) >= 0))
                 {
-                    break;
+                    return;
                 }
-                using MediaPacket packet = await reader.ReadPacketAtAsync(Stream.StreamIndex, sample, token);
                 foreach (HlsVideoRendition rendition in renditions)
                 {
-                    await rendition.Writer.WritePacketAsync(packet, token);
+                    await rendition.Writer.WritePacketAsync(pending, token);
                 }
-                sample++;
+                pending.Dispose();
+                pending = null;
+                PacketsWritten++;
             }
         }
 
-        public ValueTask DisposeAsync() => reader.DisposeAsync();
+        public async ValueTask DisposeAsync()
+        {
+            if (!disposed)
+            {
+                disposed = true;
+                pending?.Dispose();
+                pending = null;
+                await DisposeCoreAsync();
+            }
+            GC.SuppressFinalize(this);
+        }
     }
 }

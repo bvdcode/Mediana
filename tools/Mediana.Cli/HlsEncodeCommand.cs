@@ -31,7 +31,7 @@ namespace Mediana.Cli
             using VideoFrame first = await session.ReadFrameAsync(token)
                 ?? throw new InvalidDataException("The input contains no decoded video frames.");
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
-            await using HlsAudioSource? audio = audioIndex is int index ? await HlsAudioSource.OpenAsync(source, index, allocator, token) : null;
+            await using HlsAudioSource? audio = audioIndex is int index ? await HlsCopyAudioSource.OpenAsync(source, index, allocator, token) : null;
             long frames = 0;
             int segments = 0;
             await CommandOutputDirectory.WriteAsync(output, async directory =>
@@ -52,7 +52,7 @@ namespace Mediana.Cli
                     }
                     if (audio is not null)
                     {
-                        await audio.CopyBeforeAsync(first.Timestamp, renditions, token);
+                        await audio.WriteBeforeAsync(first.Timestamp, renditions, token);
                     }
                     foreach (HlsVideoRendition rendition in renditions)
                     {
@@ -67,7 +67,7 @@ namespace Mediana.Cli
                         {
                             if (audio is not null)
                             {
-                                await audio.CopyBeforeAsync(frame.Timestamp, renditions, token);
+                                await audio.WriteBeforeAsync(frame.Timestamp, renditions, token);
                             }
                             foreach (HlsVideoRendition rendition in renditions)
                             {
@@ -84,7 +84,7 @@ namespace Mediana.Cli
                     }
                     if (audio is not null)
                     {
-                        await audio.CopyBeforeAsync(null, renditions, token);
+                        await audio.WriteBeforeAsync(null, renditions, token);
                     }
                     List<HlsVariant> variants = [];
                     foreach (HlsVideoRendition rendition in renditions)
@@ -109,7 +109,7 @@ namespace Mediana.Cli
                     throw new InvalidOperationException("HLS encoding buffers were not released.");
                 }
             }, token);
-            await Console.Out.WriteLineAsync($"HLS encoding: {frames} input frames; {audio?.PacketsCopied ?? 0} copied audio packets; {widths.Length} variants; {segments} aligned segments per variant. Live buffer bytes: 0.");
+            await Console.Out.WriteLineAsync($"HLS encoding: {frames} input frames; {audio?.PacketsWritten ?? 0} audio packets; {widths.Length} variants; {segments} aligned segments per variant. Live buffer bytes: 0.");
             return 0;
         }
 
