@@ -102,6 +102,10 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            await HlsEncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 96, 80, 18, 6);
+            await HlsEncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 48, 40, 18, 6);
+            await HlsEncodingTestInput.VerifyAsync(root, "avc-weighted", 48, 30, 12, 3);
+            Console.WriteLine("PASS HLS encoding: 48 independent reference pictures, 15 aligned IDR segments, exact transport timing and released output ownership match.");
             await YuvScalingTestInput.VerifySyntheticAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Resize"));
             await YuvScalingTestInput.VerifySequenceAsync(root, "avc-multislice-cabac", 48, 40, 18, new(1, 1));
             await YuvScalingTestInput.VerifySequenceAsync(root, "avc-weighted", 48, 30, 12, new(235, 186));

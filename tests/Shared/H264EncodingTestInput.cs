@@ -59,7 +59,13 @@ namespace Mediana.Tests
                 throw new InvalidOperationException("The reference encoder did not accept its input.");
             }
             using MediaPacket packet = encoder.Receive().Value ?? throw new InvalidDataException("The encoder produced no packet.");
-            if (!new H264RandomAccessInspector(encoder.Stream).IsIdr(packet) || packet.PresentationTime != input.Timestamp ||
+            return VerifyPacket(input, encoder.Stream, packet, decoder, expected, offset);
+        }
+
+        internal static int VerifyPacket(VideoFrame input, EncodedStreamInfo stream, MediaPacket packet,
+            IMediaCodec<MediaPacket, VideoFrame> decoder, byte[] expected, int offset)
+        {
+            if (!new H264RandomAccessInspector(stream).IsIdr(packet) || packet.PresentationTime != input.Timestamp ||
                 packet.DecodeTime != input.Timestamp || packet.Duration != input.Duration || packet.IsKeyFrame != true)
             {
                 throw new InvalidDataException("The encoded packet changed input timing or lacks independent restart headers.");

@@ -71,6 +71,7 @@
     <Compile Include="../Shared/H264MultiSliceTestInput.cs" Link="H264MultiSliceTestInput.cs" />
     <Compile Include="../Shared/VideoSeekTestInput.cs" Link="VideoSeekTestInput.cs" />
     <Compile Include="../Shared/H264EncodingTestInput.cs" Link="H264EncodingTestInput.cs" />
+    <Compile Include="../Shared/HlsEncodingTestInput.cs" Link="HlsEncodingTestInput.cs" />
     <Compile Include="../Shared/YuvScalingTestInput.cs" Link="YuvScalingTestInput.cs" />
     <None Include="Data/Resize/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
