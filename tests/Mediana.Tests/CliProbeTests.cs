@@ -28,6 +28,30 @@ namespace Mediana.Tests
             Assert.Single(Directory.GetFiles(directory));
         }
 
+        [Theory]
+        [InlineData("Metadata", "lc-surround-48.m4a", 48000, 6, null)]
+        [InlineData("Mp4", "avc-aac.mp4", 48000, 1, null)]
+        [InlineData("Mp4", "avc-mp3-22.mp4", 22050, 1, null)]
+        [InlineData("Mp3", "stereo-vbr-cover.mp3", 44100, 2, null)]
+        [InlineData("Flac", "surround24.flac", 48000, 6, 24)]
+        [InlineData("Wave", "s16-stereo.wav", 44100, 2, 16)]
+        [InlineData("Aiff", "f64-stereo.aiff", 48000, 2, 64)]
+        public async Task ProbeReportsKnownAudioFactsWithoutInventingLossyPrecision(string folder, string file, int rate, int channels, int? bits)
+        {
+            string input = Path.Combine(AppContext.BaseDirectory, "Data", folder, file);
+            (int code, string output, string error) = await CliTests.RunAsync(["probe", input]);
+            Assert.True(code == 0, error);
+            Assert.Contains($"Audio: {rate} Hz; channels: {channels}.", output, StringComparison.Ordinal);
+            if (bits is int precision)
+            {
+                Assert.Contains($"Sample precision: {precision} bits.", output, StringComparison.Ordinal);
+            }
+            else
+            {
+                Assert.DoesNotContain("Sample precision:", output, StringComparison.Ordinal);
+            }
+        }
+
         [Fact]
         public async Task UnknownDurationIsExplicitAndDoesNotTriggerAFullScan()
         {

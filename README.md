@@ -1210,7 +1210,7 @@ duration in its original time base. Missing declarations stay unknown; file size
 and bit rate are not used to guess duration. MP3 duration includes coded delay and
 padding, and MP4 movie duration need not equal the last presented timestamp.
 Headers and decoder configuration are inspected; this is not a complete file
-validation, a packet index export or a common tags/cover-art API. The existing
+validation, a packet index export or a cover-art API. The existing
 format-specific probe commands provide their additional diagnostics.
 
 `ContainerInfo.Tags` exposes immutable header text without changing native keys.
@@ -1232,6 +1232,32 @@ Native MP3/FLAC/MP4 readers build this common snapshot once, at the first metada
 access; plain packet copying and decoding do not project unused text tags.
 Delayed access still uses opening header declarations, including after EOF and
 reader disposal, and retains no media-buffer lease.
+
+Register `IStreamMetadataReader` modules with
+`MediaEngineBuilder.AddStreamMetadataReader` to inspect codec configuration during
+`ProbeAsync`. The immutable `MediaInfo.StreamMetadata` dictionary uses actual
+stream indices and contains typed `AudioStreamMetadata`: sample rate, channel
+count, nullable sample precision and nullable explicit channel order. Encoded
+`Streams` retain their original configuration. There is at most one metadata
+reader per codec identifier; missing entries mean no reader was registered or
+its configuration is unsupported. Malformed configuration throws, and media-kind
+mismatches are rejected. Readers perform no I/O, create no decoder and must support
+concurrent independent probes.
+
+`PcmStreamMetadataReader`, `AiffPcmStreamMetadataReader`,
+`FlacStreamMetadataReader`, `Mp3StreamMetadataReader` and
+`AacStreamMetadataReader` reuse the codec configuration parsers. PCM reports
+valid sample precision separately from storage width and retains explicit channel
+order. FLAC reports STREAMINFO precision without interpreting channel-layout
+comment overrides. Lossy MP3/AAC precision and unestablished channel order remain
+unknown. AAC-LC indexed multichannel headers can be inspected independently of
+the mono/stereo decoder limits. Unsupported AAC profiles or PCM representations
+remain unavailable; opening configuration is not proof of whole-file consistency.
+The generic CLI probe registers these readers and prints known audio parameters.
+Average VBR bit rate, video parameters and stream-level tags are not yet exposed
+through this metadata view. Audio header checks cover 30 real WAVE, AIFF, FLAC,
+MP3 and AAC inputs, including MP4 audio tracks and AAC 5.1 outside the decoder's
+channel support. These checks pass in managed .NET and Linux Native AOT.
 
 The CLI uses the same registered container probes as audio/video decoding.
 `MediaEngine.OpenContainerAsync` opens a `ContainerSession` of encoded packets
