@@ -13,6 +13,7 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await MultiStreamTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-aac.mp4"));
             await PdfReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Pdf"));
             Console.WriteLine("PASS PDF: detached pages, vector order, clipping and transparency.");
             await VectorImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
