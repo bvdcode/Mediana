@@ -79,5 +79,45 @@ namespace Mediana.Tests
         }
 
         private static MediaEngine Engine() => new MediaEngineBuilder().AddContainer(new WaveReaderFactory()).AddAudioDecoder(new PcmDecoderFactory()).Build();
+
+        [Fact]
+        public async Task DefaultSessionReachesEofAfterMoreThanOneHundredThousandFrames()
+        {
+            const int sampleCount = 100_001;
+            byte[] data = WaveTestInput.File(("fmt ", WaveTestInput.Format(8, 1)), ("data", new byte[sampleCount]));
+            MediaEngine engine = new MediaEngineBuilder()
+                .AddContainer(new WaveReaderFactory(new WaveReadOptions { SamplesPerPacket = 1 }))
+                .AddAudioDecoder(new PcmDecoderFactory()).Build();
+            await using ShortReadSource source = new(data);
+            await using AudioSession session = await engine.OpenAudioAsync(source);
+            int frames = 0;
+            while (true)
+            {
+                using AudioFrame? frame = await session.ReadFrameAsync();
+                if (frame is null)
+                {
+                    break;
+                }
+                Assert.Equal(1, frame.SamplesPerChannel);
+                frames++;
+            }
+            Assert.Equal(sampleCount, frames);
+            Assert.Null(new MediaOpenOptions().MaxPacketReads);
+            Assert.Null(new MediaOpenOptions().MaxFrameReads);
+            await session.DisposeAsync();
+            Assert.Equal(0, session.AllocatedBufferBytes);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public async Task NonPositiveExplicitWorkLimitsAreRejected(long limit)
+        {
+            await using ShortReadSource source = new([]);
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+                await Engine().OpenAudioAsync(source, new MediaOpenOptions { MaxPacketReads = limit }));
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+                await Engine().OpenAudioAsync(source, new MediaOpenOptions { MaxFrameReads = limit }));
+        }
     }
 }

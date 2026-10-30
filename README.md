@@ -1279,7 +1279,9 @@ their media storage to participate in its accounting.
   terminal and releases decoder state; dispose the session to release reader state.
 - `MaxPacketReads` counts all container reads, including skipped streams and EOF
   checks. `MaxFrameReads` counts session reads, including EOF checks and frames
-  consumed while selecting a timestamp. These are work limits, not timeouts.
+  consumed while selecting a timestamp. Both are optional positive work budgets;
+  null, the default, permits complete media of any duration. Memory and format
+  validation limits remain active. Work budgets are not timeouts.
 
 No source or module is selected through reflection or runtime assembly discovery.
 Libraries enable AOT/trimming analysis, and compiler/analyzer warnings fail the build.

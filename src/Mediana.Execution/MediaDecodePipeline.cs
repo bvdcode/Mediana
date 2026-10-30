@@ -15,7 +15,7 @@ namespace Mediana.Execution
         private readonly IContainerReader reader;
         private readonly IMediaCodec<MediaPacket, TFrame> decoder;
         private readonly int streamIndex;
-        private readonly long maxPacketReads;
+        private readonly long? maxPacketReads;
         private long packetReads;
         private bool inputCompleted;
         private bool ended;
@@ -25,19 +25,22 @@ namespace Mediana.Execution
         private int busy;
 
         public MediaDecodePipeline(IContainerReader reader, IMediaCodec<MediaPacket, TFrame> decoder,
-            int streamIndex, long maxPacketReads)
+            int streamIndex, long? maxPacketReads = null)
         {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentNullException.ThrowIfNull(decoder);
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPacketReads);
+            if (maxPacketReads is long limit)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+            }
             this.reader = reader;
             this.decoder = decoder;
             this.streamIndex = streamIndex;
             this.maxPacketReads = maxPacketReads;
         }
 
-        /// <summary>Returns an owned frame or null at EOF. The limit counts all container reads, including EOF.</summary>
+        /// <summary>Returns an owned frame or null at EOF. An optional limit counts all container reads, including EOF.</summary>
         public async ValueTask<TFrame?> ReadAsync(CancellationToken cancellationToken = default)
         {
             Enter();
@@ -106,11 +109,14 @@ namespace Mediana.Execution
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (packetReads == maxPacketReads)
+                if (maxPacketReads is long limit)
                 {
-                    throw new InvalidOperationException("The container read limit has been reached.");
+                    if (packetReads == limit)
+                    {
+                        throw new InvalidOperationException($"The configured container limit of {limit} packet reads has been reached.");
+                    }
+                    packetReads++;
                 }
-                packetReads++;
                 using MediaPacket? packet = await reader.ReadPacketAsync(cancellationToken).ConfigureAwait(false);
                 if (packet is null)
                 {

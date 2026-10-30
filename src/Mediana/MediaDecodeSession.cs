@@ -17,14 +17,14 @@ namespace Mediana
         private readonly IByteSource replay;
         private readonly MediaDecodePipeline<TFrame> pipeline;
         private readonly MediaBufferAllocator allocator;
-        private readonly long maxFrameReads;
+        private readonly long? maxFrameReads;
         private long frameReads;
         private bool disposed;
         private bool faulted;
         private int busy;
 
         internal MediaDecodeSession(IContainerReader reader, IByteSource replay, MediaDecodePipeline<TFrame> pipeline,
-            MediaBufferAllocator allocator, long maxFrameReads, EncodedStreamInfo stream)
+            MediaBufferAllocator allocator, long? maxFrameReads, EncodedStreamInfo stream)
         {
             this.reader = reader;
             this.replay = replay;
@@ -62,11 +62,14 @@ namespace Mediana
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (frameReads == maxFrameReads)
+                if (maxFrameReads is long limit)
                 {
-                    throw new InvalidOperationException("The session frame read limit has been reached.");
+                    if (frameReads == limit)
+                    {
+                        throw new InvalidOperationException($"The configured session limit of {limit} frame reads has been reached.");
+                    }
+                    frameReads++;
                 }
-                frameReads++;
                 TFrame? frame = await pipeline.ReadAsync(cancellationToken).ConfigureAwait(false);
                 succeeded = true;
                 return frame;
