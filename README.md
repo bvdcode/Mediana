@@ -50,7 +50,7 @@ Compressed audio encoding remains open.
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding; source project only |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
-| `Mediana.Streaming.Hls` | Experimental AVC MP4 video boundary planning with inspected IDR headers; source project only |
+| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC video segments and measured variant playlists; source project only |
 | `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
 | `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
 | `Mediana.Cli` | Command-line media inspection, conversions, previews and exports |
@@ -1111,7 +1111,8 @@ even rounding to preserve display aspect. Both bounds must be at least two.
 The command requires an identity display transform and reports progress during longer
 operations. Output is published only after successful completion. Temporal
 prediction, motion search, CABAC encoding, bitrate/quality control and
-audio encoding remain open, as does HLS rendition transcoding. This initial
+audio encoding remain open. HLS video variants use the same encoder and area
+filter through the [HLS encoding path](docs/hls-encoding.md). This initial
 all-IDR mode does not promise bitrate efficiency comparable to inter-frame encoding.
 
 All visible samples in 48 encoded pictures match independent decoder references
@@ -1306,7 +1307,7 @@ dotnet run --project tools/Mediana.Cli -c Release -- \
   hls create input.mp4 output-hls --video-stream 0 --audio-stream 1 --segment-ms 6000
 ```
 
-Use `none` instead of the audio index for video-only output. The directory's parent
+Omit `--audio-stream` for video-only output. The directory's parent
 must exist. All files are prepared in a temporary sibling directory, then moved
 into place together; an existing destination is preserved and failures remove the
 temporary output. The same command works with the Native AOT sample executable.
@@ -1314,6 +1315,29 @@ An independent decoder reads the resulting playlist with all 36 video and 339 AA
 frame hashes matching the source. Each TS file also decodes its 15/15/6 video frames
 independently. Managed and Native AOT exports produce identical playlist and segment
 bytes; existing-output and failed-export checks preserve destination ownership.
+
+## Encoding HLS video variants
+
+```sh
+mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 --widths 1280 640
+```
+
+The command decodes supported MP4/MOV AVC video once and produces one smaller
+YUV420P8/H.264 sequence per width. Width bounds round down to even storage sizes
+without enlargement; bounds that produce identical dimensions fail. `--widths`
+uses space-separated integers and must be the final option. Audio omission is
+explicit. The command requires an identity display transform.
+
+Each variant contains independently restartable IDR-aligned TS segments and a VOD
+media playlist. The master playlist records actual peak/average transport bitrates
+and the AVC codec identifier. Segment timelines must match across variants. Output
+is prepared in one temporary directory and published together after completion;
+errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
+streaming encoded packets without a source-container dependency.
+
+The current mode uses fixed-QP all-IDR video. Inter-frame compression, target
+bitrate control, encoded audio and combined audio/video rendition transcoding
+remain open. See [HLS encoding contracts and checks](docs/hls-encoding.md).
 
 ## Connecting modules
 
