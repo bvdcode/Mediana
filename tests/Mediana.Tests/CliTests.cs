@@ -224,6 +224,37 @@ namespace Mediana.Tests
         }
 
         [Theory]
+        [InlineData("--width", "49")]
+        [InlineData("--height", "41")]
+        public async Task EncodingCanFitEitherStorageDimension(string option, string value)
+        {
+            string output = Path.Combine(directory, "scaled.ts");
+            (int code, _, _) = await RunAsync(["-i", Data("Mp4", "avc-multislice-cabac.mp4"), output,
+                "--video-codec", "H264", "--video-only", option, value]);
+            Assert.Equal(0, code);
+            byte[] expected = await File.ReadAllBytesAsync(Data("Mp4", "avc-multislice-cabac.scaled-48x40.ts"));
+            Assert.Equal(expected, await File.ReadAllBytesAsync(output));
+        }
+
+        [Theory]
+        [InlineData("--width", "1", true, ".ts", 2)]
+        [InlineData("--height", "0", true, ".ts", 2)]
+        [InlineData("--width", "48", false, ".ts", 3)]
+        [InlineData("--height", "40", true, ".png", 3)]
+        public async Task InvalidScalingOptionsPublishNothing(string option, string value, bool encode, string extension, int expected)
+        {
+            string output = Path.Combine(directory, "invalid" + extension);
+            List<string> arguments = ["-i", Data("Mp4", "avc-multislice-cabac.mp4"), output, option, value];
+            if (encode)
+            {
+                arguments.AddRange(["--video-codec", "H264", "--video-only"]);
+            }
+            (int code, _, _) = await RunAsync(arguments.ToArray());
+            Assert.Equal(expected, code);
+            Assert.Empty(Directory.GetFiles(directory));
+        }
+
+        [Theory]
         [InlineData("avc-aac.mp4", false, 26, 3)]
         [InlineData("avc-weighted-rotated.mp4", true, 26, 3)]
         [InlineData("avc-aac.mp4", true, 52, 2)]

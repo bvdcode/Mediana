@@ -9,6 +9,7 @@ using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.IO;
+using Mediana.Processing;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
@@ -18,7 +19,7 @@ namespace Mediana.Cli
         private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string input, string output, int? streamIndex, int quantizer,
-            ILogger logger, CancellationToken cancellationToken)
+            int? maximumWidth, int? maximumHeight, ILogger logger, CancellationToken cancellationToken)
         {
             MediaEngine engine = new MediaEngineBuilder()
                 .AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
@@ -34,14 +35,17 @@ namespace Mediana.Cli
             using VideoFrame first = await session.ReadFrameAsync(cancellationToken)
                 ?? throw new InvalidDataException("The input contains no decoded video frames.");
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
-            using H264Encoder encoder = H264Encoder.Create(first.Format, session.Stream.TimeBase, allocator,
+            using Yuv420AreaResizer? resizer = maximumWidth is not null || maximumHeight is not null
+                ? Yuv420AreaResizer.CreateFit(first.Format, maximumWidth ?? first.Format.Width,
+                    maximumHeight ?? first.Format.Height, allocator, cancellationToken) : null;
+            using H264Encoder encoder = H264Encoder.Create(resizer?.OutputFormat ?? first.Format, session.Stream.TimeBase, allocator,
                 new() { Quantizer = quantizer });
             long frames = 0;
             long reportedAt = TimeProvider.System.GetTimestamp();
             await CommandOutputFile.WriteAsync(output, async destination =>
             {
                 await using MpegTsWriter writer = MpegTsWriter.Create(destination, [encoder.Stream], allocator);
-                await WriteAsync(encoder, writer, first, cancellationToken);
+                await WriteAsync(encoder, writer, first, resizer, cancellationToken);
                 frames++;
                 while (true)
                 {
@@ -50,7 +54,7 @@ namespace Mediana.Cli
                     {
                         break;
                     }
-                    await WriteAsync(encoder, writer, frame, cancellationToken);
+                    await WriteAsync(encoder, writer, frame, resizer, cancellationToken);
                     frames++;
                     if (TimeProvider.System.GetElapsedTime(reportedAt) >= TimeSpan.FromSeconds(1))
                     {
@@ -66,6 +70,7 @@ namespace Mediana.Cli
                 await writer.CompleteAsync(cancellationToken);
             }, cancellationToken);
             encoder.Dispose();
+            resizer?.Dispose();
             first.Dispose();
             await session.DisposeAsync();
             if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)
@@ -76,9 +81,11 @@ namespace Mediana.Cli
             return 0;
         }
 
-        private static async ValueTask WriteAsync(H264Encoder encoder, MpegTsWriter writer, VideoFrame frame, CancellationToken token)
+        private static async ValueTask WriteAsync(H264Encoder encoder, MpegTsWriter writer, VideoFrame frame,
+            Yuv420AreaResizer? resizer, CancellationToken token)
         {
-            if (encoder.TrySend(frame, token) != CodecInputStatus.Accepted)
+            using VideoFrame prepared = resizer is null ? frame.Retain() : resizer.Apply(frame, token);
+            if (encoder.TrySend(prepared, token) != CodecInputStatus.Accepted)
             {
                 throw new InvalidOperationException("The intra encoder did not accept its next frame.");
             }
