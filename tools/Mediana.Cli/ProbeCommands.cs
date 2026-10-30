@@ -5,8 +5,14 @@ using ConsoleAppFramework;
 
 namespace Mediana.Cli
 {
-    internal class ProbeCommands : MediaCommands
+    internal class ProbeCommands(TextWriter output) : MediaCommands
     {
+        /// <summary>Inspect container identity, declared duration and streams without decoding or a packet scan.</summary>
+        /// <param name="input">Existing supported media file; its content determines the container.</param>
+        [Command("")]
+        public Task<int> Info([Argument] string input, CancellationToken cancellationToken = default) =>
+            ExecuteAsync(input, null, () => MediaProbeCommand.RunAsync(input, output, cancellationToken));
+
         /// <summary>Inspect supported containers and metadata. Format: Mp4.</summary>
         /// <param name="input">Existing input media file.</param>
         public Task<int> Mp4([Argument] string input, CancellationToken cancellationToken = default)

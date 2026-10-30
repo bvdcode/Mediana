@@ -1193,6 +1193,26 @@ stream copy. Audio priming/discard metadata and container display matrices are n
 represented in TS. This operation does not yet define HLS segment boundaries,
 seek or playlists.
 
+`MediaEngine.ProbeAsync(source)` returns container identity, nullable declared
+duration and an immutable snapshot of encoded streams through the same registered
+readers as decoding. It needs no decoder registrations, does not iterate packets,
+and releases reader buffers before returning. Random access preserves the source
+cursor; sequential input consumes its opening headers. The source remains owned
+by the caller. Existing probe and buffer limits apply.
+
+```sh
+mediana probe input.bin
+```
+
+Content selects the reader, including for renamed files. WAVE/AIFF frame counts,
+FLAC STREAMINFO, MP3 Xing/Info frame counts and MP4 movie headers supply declared
+duration in its original time base. Missing declarations stay unknown; file size
+and bit rate are not used to guess duration. MP3 duration includes coded delay and
+padding, and MP4 movie duration need not equal the last presented timestamp.
+Headers and decoder configuration are inspected; this is not a complete file
+validation, a packet index export or a common tags/cover-art API. The existing
+format-specific probe commands provide their additional diagnostics.
+
 The CLI uses the same registered container probes as audio/video decoding.
 `MediaEngine.OpenContainerAsync` opens a `ContainerSession` of encoded packets
 without a decoder; the session borrows the source and owns its reader, replay
