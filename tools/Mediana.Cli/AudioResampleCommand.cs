@@ -14,7 +14,7 @@ namespace Mediana.Cli
     {
         private const int BufferBudgetBytes = 1024 * 1024;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex, int sampleRate, double[] gains, CancellationToken cancellationToken = default)
+        public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int streamIndex, int sampleRate, double[] gains, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
@@ -34,7 +34,7 @@ namespace Mediana.Cli
             }
             await using AudioResampler resampler = new(ReadMixedAsync, sampleRate, allocator);
             long samples = 0;
-            await CommandOutputFile.WriteAsync(outputPath, async output =>
+            await outputFile.WriteAsync(async output =>
             {
                 while (true)
                 {

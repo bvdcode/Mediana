@@ -11,7 +11,7 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int pictureIndex, CancellationToken cancellationToken = default)
+        public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int pictureIndex, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             await using StreamByteSource source = new(File.OpenRead(inputPath));
@@ -26,7 +26,7 @@ namespace Mediana.Cli
             using (MediaBuffer picture = reader.ReadPicture(pictureIndex))
             {
                 await reader.DisposeAsync();
-                await CommandOutputFile.WriteAsync(outputPath, output => output.WriteAsync(picture.Memory, cancellationToken).AsTask(), cancellationToken: cancellationToken);
+                await outputFile.WriteAsync(output => output.WriteAsync(picture.Memory, cancellationToken).AsTask(), cancellationToken: cancellationToken);
             }
             if (allocator.AllocatedBytes != 0)
             {

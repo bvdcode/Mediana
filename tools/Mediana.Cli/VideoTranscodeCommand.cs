@@ -16,7 +16,7 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string input, string output, int? streamIndex, int quantizer,
+        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, int quantizer,
             int? maximumWidth, int? maximumHeight, ILogger logger, CancellationToken cancellationToken)
         {
             MediaEngine engine = new MediaEngineBuilder()
@@ -40,7 +40,7 @@ namespace Mediana.Cli
                 new() { Quantizer = quantizer });
             long frames = 0;
             long reportedAt = TimeProvider.System.GetTimestamp();
-            await CommandOutputFile.WriteAsync(output, async destination =>
+            await outputFile.WriteAsync(async destination =>
             {
                 await using MpegTsWriter writer = MpegTsWriter.Create(destination, [encoder.Stream], allocator);
                 await VideoEncoding.WriteAsync(encoder, writer, first, resizer, cancellationToken);

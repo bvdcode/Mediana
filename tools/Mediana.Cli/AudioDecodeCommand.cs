@@ -8,14 +8,14 @@ namespace Mediana.Cli
 {
     internal static class AudioDecodeCommand
     {
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex, CancellationToken cancellationToken = default)
+        public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int streamIndex, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex, cancellationToken: cancellationToken);
             long samples = 0;
             AudioFormat? format = null;
-            await CommandOutputFile.WriteAsync(outputPath, async output =>
+            await outputFile.WriteAsync(async output =>
             {
                 while (true)
                 {

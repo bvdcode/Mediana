@@ -10,7 +10,7 @@ namespace Mediana.Cli
 {
     internal static class PdfPreviewCommand
     {
-        public static async Task<int> RenderAsync(string input, string output, int pageNumber, int maximumWidth, CancellationToken cancellationToken = default)
+        public static async Task<int> RenderAsync(string input, CommandOutputFile output, int pageNumber, int maximumWidth, CancellationToken cancellationToken = default)
         {
             using PdfDocument document = await PdfReader.ReadFileAsync(input, cancellationToken: cancellationToken);
             PdfPage page = document.GetPage(pageNumber, cancellationToken);
@@ -21,7 +21,7 @@ namespace Mediana.Cli
             await Console.Out.WriteLineAsync($"PDF page {pageNumber}/{document.PageCount}: {page.Width} x {page.Height} pt; {image.Width} x {image.Height} px.");
             return 0;
         }
-        public static async Task<int> ImageAsync(string input, string output, int pageNumber, int index, CancellationToken cancellationToken = default)
+        public static async Task<int> ImageAsync(string input, CommandOutputFile output, int pageNumber, int index, CancellationToken cancellationToken = default)
         {
             using PdfDocument document = await PdfReader.ReadFileAsync(input, cancellationToken: cancellationToken);
             PdfPage page = document.GetPage(pageNumber, cancellationToken);
@@ -32,10 +32,10 @@ namespace Mediana.Cli
             await WriteAsync(frame, output, allocator, cancellationToken);
             return 0;
         }
-        private static async Task WriteAsync(VideoFrame frame, string path, MediaBufferAllocator allocator, CancellationToken cancellationToken)
+        private static async Task WriteAsync(VideoFrame frame, CommandOutputFile output, MediaBufferAllocator allocator, CancellationToken cancellationToken)
         {
             using MediaBuffer png = PngEncoder.Encode(frame, allocator, cancellationToken: cancellationToken);
-            await CommandOutputFile.WriteAsync(path, async stream => await stream.WriteAsync(png.Memory, cancellationToken), cancellationToken: cancellationToken);
+            await output.WriteAsync(async stream => await stream.WriteAsync(png.Memory, cancellationToken), cancellationToken: cancellationToken);
         }
     }
 }

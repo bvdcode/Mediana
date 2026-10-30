@@ -166,8 +166,18 @@ From the download or extraction directory on Linux/macOS:
 On Windows, use `./mediana.exe` in PowerShell with the same arguments.
 The MP4 probe lists stream indices; use the appropriate video/audio indices in
 the HLS, preview and audio commands. Omit `--audio-stream` for `hls create` without
-audio; use explicit `--video-only` for `hls encode` without audio. Output paths
-must be new, and their parent directories must already exist.
+audio; use explicit `--video-only` for `hls encode` without audio. Output parent
+directories must already exist. Interactive file commands ask before replacing an
+existing output, with No as the default. `--overwrite` permits file replacement;
+`-y` / `--yes` answers Yes to all confirmation prompts. Redirected input requires
+one of these options to replace a file. File output is staged beside the destination
+and published only after successful processing; cancellation or failure preserves
+the previous file. HLS output directories must be new.
+
+```sh
+mediana -i audio.mp3 out.wav --overwrite
+mediana -y -i audio.mp3 out.wav
+```
 
 TS stream copy accepts supported MP4/MOV AVC/AAC/MP3 tracks and native MPEG-1/2
 Layer III files. MP4-to-HLS copies the supported AVC/AAC/MP3 tracks without re-encoding. PCM export
@@ -241,7 +251,7 @@ The self-test decodes a generated 2×2 RGBA packet through the codec protocol, r
 it to 1×1, checks the red output pixel and exact time conversion, then verifies
 that all leased buffer bytes have been released. It does not open a video file.
 
-The preview command takes input, a new output path, video stream index, target
+The preview command takes input, an output path, video stream index, target
 `--time-ms` in the media timeline, `--width` and `--height`. In this example,
 it selects the first frame at or after 250 ms (300 ms) and writes a 100×49 sRGB PNG
 with square pixels. The output directory must exist. Existing files are not replaced;
@@ -352,10 +362,10 @@ Channel masks preserve the declared speaker order; unassigned channels remain di
 Metadata chunks are skipped within byte/chunk limits. Trailing chunks and padding
 are checked when the stream is drained. RF64, RIFX, compressed WAVE, nested audio
 lists and tag/artwork extraction are unsupported.
-The `audio decode` command takes input, a new raw PCM output path and `--stream`;
+The `audio decode` command takes input, a raw PCM output path and `--stream`;
 it reports the sample format, rate and channels needed to interpret its output.
-It does not write a WAVE header. The output directory must exist, and existing
-files are not replaced. See the [WAVE fixtures](tests/Mediana.Tests/Data/Wave/README.md)
+It does not write a WAVE header. The output directory must exist; replacement of
+an existing file requires confirmation or explicit `--overwrite` / `-y`. See the [WAVE fixtures](tests/Mediana.Tests/Data/Wave/README.md)
 for independent references and format definitions.
 
 ## Reading AIFF audio
@@ -559,7 +569,7 @@ tone amplitude, independent channels, exact counts/timestamps and output ownersh
 managed checks also cover stop-band rejection, packet boundary invariance, early
 disposal, cancellation, resource limits and invalid input.
 
-The `audio resample` command takes input, a new output path, `--stream`,
+The `audio resample` command takes input, an output path, `--stream`,
 `--sample-rate` and space-separated `--gains` in source-channel order. It mixes to mono,
 resamples and streams signed 16-bit little-endian PCM with no header. For stereo,
 `--gains 0.5 0.5` selects an average; multichannel gains must be supplied explicitly. This
@@ -740,8 +750,9 @@ dotnet run --project tools/Mediana.Cli -c Release --no-build -- probe flac tests
 dotnet run --project tools/Mediana.Cli -c Release --no-build -- cover flac tests/Mediana.Tests/Data/Flac/stereo-covers.flac artifacts/flac-cover.png --index 0
 ```
 
-The probe reads metadata only. Cover extraction preserves an existing output and
-publishes original embedded bytes after successful processing; URI pictures are
+The probe reads metadata only. Cover extraction publishes original embedded bytes
+after successful processing; replacement requires confirmation or explicit
+`--overwrite` / `-y`. URI pictures are
 rejected by that sample. The source module is not packaged. Decoded-audio MD5
 verification, seeking, encoding, custom channel masks,
 reserved metadata block types and Ogg/MP4 FLAC mapping remain unsupported.
@@ -1373,8 +1384,9 @@ mediana -i input.mp4 audio.ts --stream 1
 The sample requires an initial IDR on each video track and timestamps that leave
 the required program-clock lead after the offset. It preserves priming, padding
 and samples outside the edit interval, so it does not perform sample-accurate
-trimming. The output path must be new. A failed conversion removes its temporary
-file and leaves an existing destination unchanged. The same command works with
+trimming. Replacing an existing output requires confirmation or explicit
+`--overwrite` / `-y`. A failed conversion removes its temporary file and preserves
+the previous destination. The same command works with
 the published Native AOT sample executable.
 
 Tests remux three real MP4/MOV inputs, including AVC with reordered timestamps,

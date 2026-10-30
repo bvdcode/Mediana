@@ -6,10 +6,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class ConversionCommands(ILogger logger) : MediaCommands
+    internal class ConversionCommands(ILogger logger, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
         /// <summary>Convert media: mediana -i input output.wav|output.png|output.ts.</summary>
-        /// <param name="output">New output file. Its extension selects the output format.</param>
+        /// <param name="output">Output file. Its extension selects the output format.</param>
         /// <param name="input">-i, Existing input file; its content determines the input format.</param>
         /// <param name="stream">Audio or video stream index; defaults to the first stream of the required kind.</param>
         /// <param name="timeMs">Video/animation frame timestamp in milliseconds for PNG output.</param>
@@ -50,7 +50,7 @@ namespace Mediana.Cli
                 {
                     throw new NotSupportedException("AAC encoding requires .ts output and --audio-codec Aac; video encoding options cannot be combined with audio-only output.");
                 }
-                return ExecuteAsync(input, output, () => AudioEncodeCommand.RunAsync(input, output, stream, audioBitRate ?? 128000, logger, cancellationToken));
+                return ExecuteFileAsync(input, output, outputFile => AudioEncodeCommand.RunAsync(input, outputFile, stream, audioBitRate ?? 128000, logger, cancellationToken), cancellationToken);
             }
             if (encode || videoOnly || qp is not null || width is not null || height is not null)
             {
@@ -70,17 +70,17 @@ namespace Mediana.Cli
                 {
                     throw new ArgumentOutOfRangeException(nameof(height), "Encoded video dimensions must be at least two.");
                 }
-                return ExecuteAsync(input, output, () => VideoTranscodeCommand.RunAsync(input, output, stream, qp ?? 26,
-                    width, height, logger, cancellationToken));
+                return ExecuteFileAsync(input, output, outputFile => VideoTranscodeCommand.RunAsync(input, outputFile, stream, qp ?? 26,
+                    width, height, logger, cancellationToken), cancellationToken);
             }
-            return ExecuteAsync(input, output, () => Path.GetExtension(output).ToLowerInvariant() switch
+            return ExecuteFileAsync(input, output, outputFile => Path.GetExtension(output).ToLowerInvariant() switch
             {
-                ".wav" or ".wave" => WaveAudioCommand.RunAsync(input, output, stream, logger, cancellationToken),
-                ".png" => FilePreviewCommand.RunAsync(input, output, stream, timeMs, page, cancellationToken),
-                ".ts" => MpegTsRemuxCommand.RunAsync(input, output, stream, cancellationToken),
+                ".wav" or ".wave" => WaveAudioCommand.RunAsync(input, outputFile, stream, logger, cancellationToken),
+                ".png" => FilePreviewCommand.RunAsync(input, outputFile, stream, timeMs, page, cancellationToken),
+                ".ts" => MpegTsRemuxCommand.RunAsync(input, outputFile, stream, cancellationToken),
                 _ => throw new NotSupportedException("Cannot select an output format from the extension '" + Path.GetExtension(output)
                     + "'. Use .wav or .wave (PCM16), .png (one image/frame/page), or .ts (AVC/AAC/MP3 stream copy).")
-            });
+            }, cancellationToken);
         }
     }
 }

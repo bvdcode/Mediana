@@ -17,15 +17,15 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 256L * 1024 * 1024;
 
-        public static async Task<int> RunAsync(IImageDecoder decoder, string inputPath, string outputPath,
+        public static async Task<int> RunAsync(IImageDecoder decoder, string inputPath, CommandOutputFile outputFile,
             ImageDecodeRequest? request = null, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = new MediaEngineBuilder().AddImageDecoder(decoder).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
-            return await RunAsync(engine, source, outputPath, request, cancellationToken);
+            return await RunAsync(engine, source, outputFile, request, cancellationToken);
         }
 
-        public static async Task<int> RunAsync(MediaEngine engine, IByteSource source, string outputPath,
+        public static async Task<int> RunAsync(MediaEngine engine, IByteSource source, CommandOutputFile outputFile,
             ImageDecodeRequest? request = null, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
@@ -33,7 +33,7 @@ namespace Mediana.Cli
             using (VideoFrame srgb = SrgbConverter.Apply(frame, allocator, cancellationToken: cancellationToken))
             using (MediaBuffer png = PngEncoder.Encode(srgb, allocator, cancellationToken: cancellationToken))
             {
-                await CommandOutputFile.WriteAsync(outputPath, async output => await output.WriteAsync(png.Memory, cancellationToken), cancellationToken: cancellationToken);
+                await outputFile.WriteAsync(async output => await output.WriteAsync(png.Memory, cancellationToken), cancellationToken: cancellationToken);
                 await Console.Out.WriteLineAsync($"PNG image: {frame.Format.Width}x{frame.Format.Height}; {png.Memory.Length} bytes; sRGB.");
             }
             if (allocator.AllocatedBytes != 0)
@@ -43,11 +43,11 @@ namespace Mediana.Cli
             return 0;
         }
 
-        public static Task<int> SvgAsync(string inputPath, string outputPath, int? width, CancellationToken cancellationToken = default) =>
-            RunAsync(new SvgImageDecoder(renderOptions: new SvgRenderOptions { Width = width }), inputPath, outputPath, cancellationToken: cancellationToken);
+        public static Task<int> SvgAsync(string inputPath, CommandOutputFile outputFile, int? width, CancellationToken cancellationToken = default) =>
+            RunAsync(new SvgImageDecoder(renderOptions: new SvgRenderOptions { Width = width }), inputPath, outputFile, cancellationToken: cancellationToken);
 
-        public static Task<int> TgsAsync(string inputPath, string outputPath, double seconds, int? width, CancellationToken cancellationToken = default) =>
-            RunAsync(new TgsImageDecoder(renderOptions: new SvgRenderOptions { Width = width }), inputPath, outputPath,
+        public static Task<int> TgsAsync(string inputPath, CommandOutputFile outputFile, double seconds, int? width, CancellationToken cancellationToken = default) =>
+            RunAsync(new TgsImageDecoder(renderOptions: new SvgRenderOptions { Width = width }), inputPath, outputFile,
                 new ImageDecodeRequest { Time = new MediaTimestamp(TimeSpan.FromSeconds(seconds).Ticks, TimeBase.TimeSpanTicks) }, cancellationToken);
     }
 }

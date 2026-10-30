@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class HlsCommands(ILogger logger) : MediaCommands
+    internal class HlsCommands(ILogger logger, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
         /// <summary>List HLS segment boundaries for an MP4/MOV video track.</summary>
         /// <param name="input">Existing MP4/MOV file.</param>

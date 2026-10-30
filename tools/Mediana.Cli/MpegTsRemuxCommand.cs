@@ -13,7 +13,7 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int? streamIndex = null, CancellationToken cancellationToken = default)
+        public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int? streamIndex = null, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = ContainerEngineFactory.CreateBuilder(Mp4TimestampMode.LinearMovie).Build();
             MediaOpenOptions options = new() { BufferBudgetBytes = BufferBudgetBytes };
@@ -28,7 +28,7 @@ namespace Mediana.Cli
                     : reader.Streams.ToArray();
                 streams = selected.Length;
                 MediaBufferAllocator allocator = new(BufferBudgetBytes);
-                await CommandOutputFile.WriteAsync(outputPath, async output =>
+                await outputFile.WriteAsync(async output =>
                 {
                     await using MpegTsWriter writer = MpegTsWriter.Create(output, selected, allocator);
                     while (await reader.ReadPacketAsync(cancellationToken) is MediaPacket packet)

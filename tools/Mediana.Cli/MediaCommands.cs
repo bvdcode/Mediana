@@ -4,15 +4,11 @@
 
 namespace Mediana.Cli
 {
-    internal abstract class MediaCommands
+    internal abstract class MediaCommands(CommandOutputPolicy outputs)
     {
         protected static Task<int> ExecuteAsync(string input, string? output, Func<Task<int>> execute)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(input);
-            if (!File.Exists(input))
-            {
-                throw new FileNotFoundException("Input media file does not exist.", input);
-            }
+            ValidateInput(input);
             if (output is not null)
             {
                 ArgumentException.ThrowIfNullOrWhiteSpace(output);
@@ -27,6 +23,27 @@ namespace Mediana.Cli
                 }
             }
             return execute();
+        }
+
+        protected async Task<int> ExecuteFileAsync(string input, string output, Func<CommandOutputFile, Task<int>> execute,
+            CancellationToken cancellationToken = default)
+        {
+            ValidateInput(input);
+            CommandOutputFile? file = await outputs.PrepareFileAsync(input, output, cancellationToken);
+            if (file is null)
+            {
+                return CliExitCodes.Cancelled;
+            }
+            return await execute(file);
+        }
+
+        private static void ValidateInput(string input)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(input);
+            if (!File.Exists(input))
+            {
+                throw new FileNotFoundException("Input media file does not exist.", input);
+            }
         }
 
         protected static void ValidateGains(double[] gains)

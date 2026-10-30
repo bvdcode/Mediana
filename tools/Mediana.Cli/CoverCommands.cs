@@ -5,36 +5,36 @@ using ConsoleAppFramework;
 
 namespace Mediana.Cli
 {
-    internal class CoverCommands : MediaCommands
+    internal class CoverCommands(CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
         /// <summary>Extract an embedded cover without re-encoding. Format: Mp4.</summary>
         /// <param name="input">Existing input media file.</param>
-        /// <param name="output">New image file.</param>
+        /// <param name="output">Output image file.</param>
         /// <param name="index">Zero-based cover index.</param>
         public Task<int> Mp4([Argument] string input, [Argument] string output, int index = 0, CancellationToken cancellationToken = default)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);
-            return ExecuteAsync(input, output, () => Mp4CoverArtCommand.RunAsync(input, output, index, cancellationToken));
+            return ExecuteFileAsync(input, output, outputFile => Mp4CoverArtCommand.RunAsync(input, outputFile, index, cancellationToken), cancellationToken);
         }
 
         /// <summary>Extract an embedded cover without re-encoding. Format: Mp3.</summary>
         /// <param name="input">Existing input media file.</param>
-        /// <param name="output">New image file.</param>
+        /// <param name="output">Output image file.</param>
         /// <param name="index">Zero-based cover index.</param>
         public Task<int> Mp3([Argument] string input, [Argument] string output, int index = 0, CancellationToken cancellationToken = default)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);
-            return ExecuteAsync(input, output, () => Mp3PictureCommand.RunAsync(input, output, index, cancellationToken));
+            return ExecuteFileAsync(input, output, outputFile => Mp3PictureCommand.RunAsync(input, outputFile, index, cancellationToken), cancellationToken);
         }
 
         /// <summary>Extract an embedded cover without re-encoding. Format: Flac.</summary>
         /// <param name="input">Existing input media file.</param>
-        /// <param name="output">New image file.</param>
+        /// <param name="output">Output image file.</param>
         /// <param name="index">Zero-based cover index.</param>
         public Task<int> Flac([Argument] string input, [Argument] string output, int index = 0, CancellationToken cancellationToken = default)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);
-            return ExecuteAsync(input, output, () => FlacPictureCommand.RunAsync(input, output, index, cancellationToken));
+            return ExecuteFileAsync(input, output, outputFile => FlacPictureCommand.RunAsync(input, outputFile, index, cancellationToken), cancellationToken);
         }
     }
 }

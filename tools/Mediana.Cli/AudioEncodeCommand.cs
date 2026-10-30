@@ -18,7 +18,7 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 16 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string input, string output, int? streamIndex, int bitRate, ILogger logger, CancellationToken token)
+        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, int bitRate, ILogger logger, CancellationToken token)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
@@ -31,7 +31,7 @@ namespace Mediana.Cli
             MediaProgress progress = new(logger, TimeProvider.System, session.Stream.CodedDuration);
             long samples = 0;
             long packets = 0;
-            await CommandOutputFile.WriteAsync(output, async destination =>
+            await outputFile.WriteAsync(async destination =>
             {
                 await using MpegTsWriter writer = MpegTsWriter.Create(destination, [encoder.Stream], allocator);
                 await WriteAsync(prepared);

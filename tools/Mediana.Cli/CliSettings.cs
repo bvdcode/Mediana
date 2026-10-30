@@ -5,5 +5,5 @@ using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal record CliSettings(LogLevel LogLevel, bool NoColor);
+    internal record CliSettings(LogLevel LogLevel, bool NoColor, bool Overwrite, bool AssumeYes);
 }

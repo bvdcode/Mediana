@@ -16,7 +16,7 @@ namespace Mediana.Cli
     {
         private const long ProcessingBufferBudgetBytes = 64 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int? streamIndex, long milliseconds,
+        public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int? streamIndex, long milliseconds,
             int maximumWidth, int maximumHeight, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory())
@@ -41,7 +41,7 @@ namespace Mediana.Cli
                 width = preview.Format.Width;
                 height = preview.Format.Height;
                 encodedLength = png.Memory.Length;
-                await CommandOutputFile.WriteAsync(outputPath, async output => await output.WriteAsync(png.Memory, cancellationToken), cancellationToken: cancellationToken);
+                await outputFile.WriteAsync(async output => await output.WriteAsync(png.Memory, cancellationToken), cancellationToken: cancellationToken);
             }
             decoded.Dispose();
             await session.DisposeAsync();
