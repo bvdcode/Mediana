@@ -6,6 +6,9 @@ namespace Mediana.Codecs.H264
     internal static class H264SequenceParser
     {
         public static H264SequenceParameterSet Parse(ReadOnlySpan<byte> nal, H264DecoderOptions options)
+            => Parse(nal, options.MaxPicturePixels);
+
+        public static H264SequenceParameterSet Parse(ReadOnlySpan<byte> nal, int? maxPicturePixels)
         {
             H264BitReader bits = H264Nal.Payload(nal, 7);
             int profile = (int)bits.ReadBits(8);
@@ -17,7 +20,7 @@ namespace Mediana.Codecs.H264
             int level = (int)bits.ReadBits(8);
             int id = bits.ReadUe(31);
             H264SequenceParameterSet sequence = new() { Id = id, Profile = profile, Constraints = constraints, Level = level };
-            if (profile is 100 or 110 or 122 or 244 or 44 or 83 or 86 or 118 or 128 or 138 or 139 or 134 or 135)
+            if (HasExtendedSyntax(profile))
             {
                 int chromaFormat = bits.ReadUe(3);
                 bool separateColourPlane = chromaFormat == 3 && bits.ReadFlag();
@@ -106,7 +109,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("H.264 cropping removes the complete picture.");
             }
-            if (codedWidth * codedHeight > options.MaxPicturePixels)
+            if (maxPicturePixels is int limit && codedWidth * codedHeight > limit)
             {
                 throw new NotSupportedException("The H.264 picture exceeds the configured pixel limit.");
             }
@@ -133,6 +136,11 @@ namespace Mediana.Codecs.H264
                 Height = (int)height
             };
         }
+
+        internal static bool IsSupportedProfile(int profile) => profile is 66 or 77 or 88 || HasExtendedSyntax(profile);
+
+        private static bool HasExtendedSyntax(int profile) =>
+            profile is 100 or 110 or 122 or 244 or 44 or 83 or 86 or 118 or 128 or 138 or 139 or 134 or 135;
 
         private static void ReadScalingList(ref H264BitReader bits, int size)
         {
