@@ -5,9 +5,9 @@ using Mediana.Drawing;
 using System;
 using System.Numerics;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal class SvgPixelSampler(PixelBuffer image, SvgPixelRegion region, bool linear, string edge)
+    internal class ScenePixelSampler(PixelBuffer image, ScenePixelRegion region, bool linear, string edge)
     {
         internal Vector4 Sample(float x, float y)
         {

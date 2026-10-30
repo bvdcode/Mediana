@@ -6,13 +6,13 @@ using System;
 using System.Numerics;
 using System.Threading.Tasks;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal partial record SvgFilter
+    internal static partial class SceneFilterKernels
     {
         private static PixelBuffer GaussianRotated(PixelBuffer input, Vector2 direction, float[] kernel, bool linear, string edge, SceneRenderContext context)
         {
-            SvgPixelRegion source = SvgPixelRegion.AlphaBounds(input, context.Token);
+            ScenePixelRegion source = ScenePixelRegion.AlphaBounds(input, context.Token);
             PixelBuffer result = context.CreateBuffer(input.Width, input.Height);
             if (source.Empty)
             {
@@ -20,10 +20,10 @@ namespace Mediana.Images.Svg
             }
 
             int radius = kernel.Length / 2;
-            SvgPixelRegion target = edge == "none"
+            ScenePixelRegion target = edge == "none"
                 ? source.Expand(Vector2.Abs(direction) * radius, input.Width, input.Height)
-                : new SvgPixelRegion(0, 0, input.Width, input.Height);
-            SvgPixelSampler samples = new(input, source, linear, edge);
+                : new ScenePixelRegion(0, 0, input.Width, input.Height);
+            ScenePixelSampler samples = new(input, source, linear, edge);
             Parallel.For(target.Top, target.Bottom, new ParallelOptions { CancellationToken = context.Token }, y =>
             {
                 context.Token.ThrowIfCancellationRequested();

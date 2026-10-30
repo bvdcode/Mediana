@@ -4,34 +4,28 @@
 using Mediana.Drawing;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml.Linq;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal partial record SvgFilter
+    internal partial record SceneFilter
     {
         private Dictionary<string, int> LastUses()
         {
             var uses = new Dictionary<string, int>(System.StringComparer.Ordinal);
-            for (int index = 0; index < Primitives.Length; index++)
+            for (int index = 0; index < Steps.Length; index++)
             {
-                if (UsesSecondInput(Primitives[index]) && Primitives[index].Attribute("in2") is null)
+                foreach (string input in Steps[index].Inputs)
                 {
-                    uses["SourceGraphic"] = index;
-                }
-
-                foreach (XAttribute attribute in Primitives[index].DescendantsAndSelf().Attributes().Where(a => a.Name.LocalName is "in" or "in2"))
-                {
-                    uses[attribute.Value] = index;
-                    if (attribute.Value == "SourceAlpha")
+                    uses[input] = index;
+                    if (input == "SourceAlpha")
                     {
                         uses["SourceGraphic"] = index;
                     }
                 }
             }
-
             return uses;
         }
+
 
         private static void ReleaseResults(Dictionary<string, PixelBuffer> results,
             Dictionary<PixelBuffer, (float X, float Y, float Width, float Height)> regions, PixelBuffer previous,
@@ -55,6 +49,5 @@ namespace Mediana.Images.Svg
         private static bool CanOverwrite(PixelBuffer input, Dictionary<string, PixelBuffer> results, Dictionary<string, int> lastUses, int index, SceneBufferScope buffers)
             => buffers.Owns(input) && !results.Any(pair => ReferenceEquals(pair.Value, input) && lastUses.GetValueOrDefault(pair.Key, -1) > index);
 
-        private static bool UsesSecondInput(XElement primitive) => primitive.Name.LocalName is "feComposite" or "feBlend" or "feDisplacementMap";
     }
 }

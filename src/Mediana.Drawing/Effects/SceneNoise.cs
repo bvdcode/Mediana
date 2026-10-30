@@ -6,17 +6,16 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Xml.Linq;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal class SvgNoise
+    internal class SceneNoise
     {
         private readonly int[] _permutation = new int[256];
         private readonly Vector4[] _gradientX = new Vector4[256];
         private readonly Vector4[] _gradientY = new Vector4[256];
         private long _seed;
-        internal SvgNoise(long seed)
+        internal SceneNoise(long seed)
         {
             _seed = seed <= 0 ? 1 - (seed % 2147483646) : Math.Min(seed, 2147483646);
             for (int i = 0; i < 256; i++)

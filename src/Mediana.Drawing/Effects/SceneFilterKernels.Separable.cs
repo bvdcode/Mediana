@@ -6,9 +6,9 @@ using System;
 using System.Numerics;
 using System.Threading.Tasks;
 
-namespace Mediana.Images.Svg
+namespace Mediana.Drawing
 {
-    internal partial record SvgFilter
+    internal static partial class SceneFilterKernels
     {
         private static PixelBuffer GaussianAligned(PixelBuffer input, float[] kernel, bool horizontal, bool reverse, bool linear, string edge, SceneRenderContext context)
         {

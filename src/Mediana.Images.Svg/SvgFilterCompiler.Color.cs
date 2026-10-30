@@ -11,7 +11,7 @@ using System.Xml.Linq;
 
 namespace Mediana.Images.Svg
 {
-    internal partial record SvgFilter
+    internal static partial class SvgFilterCompiler
     {
         private static PixelBuffer ColorMatrix(XElement p, PixelBuffer input, bool linear, SceneRenderContext context, bool overwrite)
         {
@@ -93,17 +93,7 @@ namespace Mediana.Images.Svg
 
                 : numbers
             };
-            if (m.Length != 20)
-            {
-                throw new InvalidDataException("SVG color matrix requires 20 values.");
-            }
-
-            return ScenePixels.Map(input, (x, y) =>
-            {
-                Vector4 c = ScenePixels.At(input, x, y, linear, premultiplied: false);
-                float Row(int i) => (c.X * m[i]) + (c.Y * m[i + 1]) + (c.Z * m[i + 2]) + (c.W * m[i + 3]) + m[i + 4];
-                return Vector4.Clamp(new Vector4(Row(0), Row(5), Row(10), Row(15)), Vector4.Zero, Vector4.One);
-            }, linear, context, false, destination: overwrite ? input : null);
+            return SceneFilterKernels.ColorMatrix(m, input, linear, context, overwrite);
         }
 
         private static float[] HueMatrix(float angle)
@@ -137,11 +127,7 @@ namespace Mediana.Images.Svg
         private static PixelBuffer Transfer(XElement p, PixelBuffer input, bool linear, SceneRenderContext context, bool overwrite)
         {
             Func<float, float>[] functions = "RGBA".Select(c => TransferFunction(p.Elements().LastOrDefault(e => e.Name.LocalName == "feFunc" + c))).ToArray();
-            return ScenePixels.Map(input, (x, y) =>
-            {
-                Vector4 c = ScenePixels.At(input, x, y, linear, premultiplied: false);
-                return new Vector4(functions[0](c.X), functions[1](c.Y), functions[2](c.Z), functions[3](c.W));
-            }, linear, context, false, destination: overwrite ? input : null);
+            return SceneFilterKernels.Transfer(functions, input, linear, context, overwrite);
         }
 
         private static Func<float, float> TransferFunction(XElement? function)
@@ -160,44 +146,22 @@ namespace Mediana.Images.Svg
                 "linear" => x => (slope * x) + intercept,
                 "gamma" => x => (amplitude * MathF.Pow(x, exponent)) + offset,
                 "discrete" when table.Length > 0 => x => table[Math.Min(table.Length - 1, (int)(x * table.Length))],
-                "table" when table.Length > 1 => x => TableValue(table, x),
+                "table" when table.Length > 1 => x => SceneFilterKernels.TableValue(table, x),
                 "table" when table.Length == 1 => _ => table[0],
                 _ => x => x
             };
         }
 
-        private static float TableValue(float[] table, float x)
-        {
-            float position = x * (table.Length - 1);
-            int i = Math.Min(table.Length - 2, (int)position);
-            return table[i] + ((table[i + 1] - table[i]) * (position - i));
-        }
+
 
         private static PixelBuffer Composite(XElement p, PixelBuffer input, PixelBuffer second, bool linear, SceneRenderContext context, bool overwrite)
         {
             string operation = Text(p, "operator", "over");
             Vector4 coefficients = new Vector4(Number(p, "k1"), Number(p, "k2"), Number(p, "k3"), Number(p, "k4"));
-            return ScenePixels.Map(input, (x, y) =>
-            {
-                Vector4 a = ScenePixels.At(input, x, y, linear), b = ScenePixels.At(second, x, y, linear);
-                return operation switch
-                {
-                    "in" => a * b.W,
-                    "out" => a * (1 - b.W),
-                    "atop" => (a * b.W) + (b * (1 - a.W)),
-                    "xor" => (a * (1 - b.W)) + (b * (1 - a.W)),
-                    "arithmetic" => Arithmetic(a, b, coefficients),
-                    "lighter" => Vector4.Min(a + b, Vector4.One),
-                    _ => a + (b * (1 - a.W))
-                };
-            }, linear, context, destination: overwrite ? input : null);
+            return SceneFilterKernels.Composite(operation, coefficients, input, second, linear, context, overwrite);
         }
 
-        private static Vector4 Arithmetic(Vector4 a, Vector4 b, Vector4 k)
-        {
-            Vector4 c = Vector4.Clamp((k.X * a * b) + (k.Y * a) + (k.Z * b) + new Vector4(k.W), Vector4.Zero, Vector4.One);
-            return Vector4.Min(c, new Vector4(c.W));
-        }
+
 
         private static PixelBuffer BlendPixels(XElement p, PixelBuffer input, PixelBuffer second, bool linear, SceneRenderContext context)
         {
@@ -207,40 +171,16 @@ namespace Mediana.Images.Svg
                 throw new NotSupportedException("SVG filter blend mode: " + name);
             }
 
-            PixelBuffer? output = ScenePixels.Copy(second, context);
-            for (int y = 0; y < input.Height; y++)
-            {
-                context.Token.ThrowIfCancellationRequested();
-                for (int x = 0; x < input.Width; x++)
-                {
-                    int i = ((y * input.Width) + x) * 4;
-                    Rgba32 color = input[x, y];
-                    if (linear)
-                    {
-                        Vector4 a = ScenePixels.At(input, x, y, true, premultiplied: false), b = ScenePixels.At(second, x, y, true, premultiplied: false);
-                        ScenePixels.Write(output.Pixels.Span, i, b, false, false);
-                        color = new Rgba32(PixelCompositor.Byte(a.X), PixelCompositor.Byte(a.Y), PixelCompositor.Byte(a.Z), PixelCompositor.Byte(a.W));
-                    }
-
-                    PixelCompositor.Blend(output.Pixels.Span, i, color, mode);
-                    if (linear)
-                    {
-                        Vector4 c = ScenePixels.Read(output.Pixels.Span, i, false, false);
-                        ScenePixels.Write(output.Pixels.Span, i, c, true, false);
-                    }
-                }
-            }
-
-            return output;
+            return SceneFilterKernels.BlendPixels(mode, input, second, linear, context);
         }
 
-        private static PixelBuffer Merge(XElement p, PixelBuffer previous, Dictionary<string, PixelBuffer> results, PixelBuffer source, SceneRenderContext context)
+        private static PixelBuffer Merge(XElement p, PixelBuffer previous, Func<string, PixelBuffer> resolve, PixelBuffer source, SceneRenderContext context)
         {
             PixelBuffer? output = context.CreateBuffer(source.Width, source.Height);
             RasterCanvas? canvas = new RasterCanvas(output);
             foreach (XElement child in p.Elements().Where(e => e.Name.LocalName == "feMergeNode"))
             {
-                canvas.DrawImage(Input(Text(child, "in"), previous, results, source, context), Matrix3x2.Identity, cancellationToken: context.Token);
+                canvas.DrawImage(resolve(Text(child, "in")), Matrix3x2.Identity, cancellationToken: context.Token);
             }
 
             return output;
@@ -255,17 +195,7 @@ namespace Mediana.Images.Svg
         }
 
         private static PixelBuffer DropShadow(XElement p, PixelBuffer input, Matrix3x2 units, bool linear, SceneRenderContext context)
-        {
-            PixelBuffer alpha = ScenePixels.Map(input, (x, y) => new Vector4(0, 0, 0, input[x, y].A / 255f), false, context);
-            PixelBuffer blur = Gaussian(alpha, Pair(p, "stdDeviation", 2), units, linear, "none", context, overwrite: true);
-            PixelBuffer offset = Offset(blur, Vector2.TransformNormal(new Vector2(Number(p, "dx", 2), Number(p, "dy", 2)), units), linear, context);
-            context.Release(blur);
-            Rgba32 color = SvgColor.Parse(Text(p, "flood-color", "black"));
-            float opacity = Number(p, "flood-opacity", 1);
-            PixelBuffer result = ScenePixels.Map(input, (x, y) => new Vector4(color.R / 255f, color.G / 255f, color.B / 255f, (offset[x, y].A / 255f) * opacity * (color.A / 255f)), false, context, false);
-            context.Release(offset);
-            new RasterCanvas(result).DrawImage(input, Matrix3x2.Identity, cancellationToken: context.Token);
-            return result;
-        }
+            => SceneFilterKernels.DropShadow(Pair(p, "stdDeviation", 2), new Vector2(Number(p, "dx", 2), Number(p, "dy", 2)), SvgColor.Parse(Text(p, "flood-color", "black")), Number(p, "flood-opacity", 1), input, units, linear, context);
+
     }
 }
