@@ -55,3 +55,24 @@ For the conflict input these hashes are
 `5f42c51a79b91870aff4ab2e7af6fe1c9a98d74bc71a101e8b353ed2ec8781d1`.
 No pixel-format conversion is requested when checking native YUV samples;
 forcing limited-range YUV output would change full-range samples.
+
+Four `*.frame0.srgb.rgba` files contain complete independent zimg sRGB references
+for the first picture. They retain source storage dimensions, with bilinear chroma
+reconstruction, no dithering and the same ideal BT.1886 display used by the
+other SDR references. Input color parameters are explicit so the conflict case
+tests container precedence even when an external decoder prefers SPS labels.
+Every RGBA channel is checked within one 8-bit code.
+
+```sh
+ffmpeg -i container-709-limited.mp4 -vf "zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba" -frames:v 1 -f rawvideo container-709-limited.frame0.srgb.rgba
+```
+
+Use full range for `container-709-full`; nclc uses limited range here.
+The conflict reference uses `matrixin=6:primariesin=6:rangein=full`.
+
+| Reference | SHA-256 |
+| --- | --- |
+| `container-709-limited.frame0.srgb.rgba` | `6110b2cf9a1447adf712a50e117fb52a021a00709f7d52af0ea86301171c5b71` |
+| `container-709-full.frame0.srgb.rgba` | `0fe0069ff86375a3bfa247dc01b66e49d028681d295d2f7607f4c2f9a58cce62` |
+| `container-709.frame0.srgb.rgba` | `6110b2cf9a1447adf712a50e117fb52a021a00709f7d52af0ea86301171c5b71` |
+| `container-601-conflict.frame0.srgb.rgba` | `4e04dc71186bb4cc8e676bbb3ebbdedfe5440028ef06114baed583928e588e86` |

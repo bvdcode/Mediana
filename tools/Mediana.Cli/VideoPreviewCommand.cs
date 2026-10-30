@@ -33,18 +33,19 @@ namespace Mediana.Cli
             VideoDisplayMatrix displayMatrix = session.Stream.DisplayMatrix
                 ?? throw new NotSupportedException("The video stream has no display transform interpretation.");
             VideoColorInfo color = PreviewColorPolicy.Resolve(decoded.Format);
-            if (color != decoded.Format.Color)
+            VideoColorInfo declared = decoded.Format.GetColorInterpretation();
+            if (color != declared)
             {
                 List<string> missing = [];
-                if (decoded.Format.Color.Primaries == ColorPrimaries.Unspecified)
+                if (declared.Primaries == ColorPrimaries.Unspecified)
                 {
                     missing.Add("primaries");
                 }
-                if (decoded.Format.Color.Transfer == TransferFunction.Unspecified)
+                if (declared.Transfer == TransferFunction.Unspecified)
                 {
                     missing.Add("transfer");
                 }
-                if (decoded.Format.Color.Matrix == MatrixCoefficients.Unspecified)
+                if (declared.Matrix == MatrixCoefficients.Unspecified)
                 {
                     missing.Add("matrix");
                 }

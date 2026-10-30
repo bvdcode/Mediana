@@ -54,6 +54,46 @@ in an arbitrary byte stream.
 FLAC and PCM configuration belongs to `Mediana.Formats`, shared by readers,
 decoders and output modules without introducing container-to-codec dependencies.
 
+## Source color descriptions
+
+`EncodedStreamInfo.ColorDescription` carries an immutable source description
+independently of the codec configuration. The H.264 decoder passes it to each
+`VideoFormat.ColorDescription` without applying a pixel transform.
+`VideoFormat.Color` continues to describe codec labels;
+`GetColorInterpretation()` applies the source description's precedence.
+Opening SPS metadata remains unchanged.
+
+MP4/MOV reads ordered `colr` boxes from the visual sample entry. The reader
+selects the first recognized CICP description, or the first ICC description when
+there is no CICP alternative. `Mp4TrackInfo.ColorDescriptions` retains all
+recognized alternatives in their original order. Unknown color types are ignored.
+The selection and precedence follow [ISO BMFF color information](https://cdn.standards.iteh.ai/samples/55969/793ac5ceebdc4c969abb2fe52ebd9368/ISO-IEC-14496-12-2008-FDAmd-2.pdf).
+
+`CicpColorDescription` retains the original 16-bit primaries, transfer and matrix
+codes. Code 2 remains unspecified even when it overrides codec labels; reserved
+codes remain inspectable and fail color interpretation. An `nclx` description
+declares full or limited range. QuickTime `nclc` has no range field and preserves
+the codec's range: [QuickTime color parameter atom](https://developer.apple.com/documentation/quicktime-file-format/color_parameter_atom).
+Neither description changes chroma siting.
+
+`IccColorDescription` owns original profile bytes and retains the restricted
+profile declaration. Profile contents are neither validated nor applied.
+Raw packet and frame decoding remain available; current color interpretation
+rejects ICC-only sources. Copied profile data is bounded by MP4's metadata input
+limit and is shared by stream/frame descriptions, outside the pooled buffer budget.
+
+Default `SrgbConverter` and `SrgbPreview` operations resolve the source description
+before conversion. Explicit source-color overloads use the caller's interpretation.
+Sample-domain resizing preserves the description; sRGB conversion produces a frame
+with sRGB labels and no source description. PNG validates the effective color;
+the H.264 encoder writes the effective CICP labels into its own SPS.
+
+The CLI probes original container codes separately from codec metadata and only
+infers missing SDR labels after resolving the source description. Reserved codes,
+ICC profiles and declared HDR characteristics do not become missing SDR metadata.
+MPEG-TS stream copying retains original AVC parameter sets; it does not transfer
+MP4-only color descriptions or rewrite those parameter sets.
+
 ## Media inspection
 
 `MediaEngine.ProbeAsync` uses the registered content recognizers for packet

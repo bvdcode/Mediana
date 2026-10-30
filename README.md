@@ -274,7 +274,7 @@ that all leased buffer bytes have been released. It does not open a video file.
 The preview command takes input, an output path, video stream index, target
 `--time-ms` in the media timeline, `--width` and `--height`. In this example,
 it selects the first frame at or after 250 ms (300 ms) and writes a 100×49 sRGB PNG
-with square pixels. The output directory must exist. Existing files are not replaced;
+with square pixels. The output directory must exist. Existing outputs follow the CLI overwrite policy;
 a request beyond the last frame fails without creating an image.
 The rotated fixture writes 49×100 after applying its display matrix and SAR.
 The CABAC intra fixture selects 600 ms for a request at 450 ms and writes 100×49.
@@ -995,6 +995,14 @@ its own format, color information, sample aspect ratio, presentation timestamp a
 duration. Cropping is applied to YUV storage; rotation, edit lists and display aspect
 transforms are not applied. Missing packet timestamps remain absent; unspecified
 sample aspect ratio and CICP color codes remain unspecified.
+
+MP4/MOV `colr` descriptions are retained separately from codec labels.
+`VideoFormat.GetColorInterpretation()` resolves source precedence; default sRGB
+conversion, previews and H.264 encoding use it. `nclx` declares range, while
+QuickTime `nclc` preserves the codec range. Probe displays container CICP codes or
+ICC profile declarations alongside original codec metadata. ICC transforms and
+HDR tone mapping remain separate unsupported operations. See
+[source color contracts](docs/architecture.md#source-color-descriptions).
 
 Picture order types 0, 1 and 2, bounded delayed output, IDR/MMCO resets, input
 completion, cancellation and buffer ownership have executable checks. SEI message

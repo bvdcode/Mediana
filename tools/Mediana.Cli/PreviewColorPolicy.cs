@@ -19,7 +19,7 @@ namespace Mediana.Cli
         internal static VideoColorInfo Resolve(VideoFormat format)
         {
             ArgumentNullException.ThrowIfNull(format);
-            VideoColorInfo declared = format.Color;
+            VideoColorInfo declared = format.GetColorInterpretation();
             if (declared.Transfer is TransferFunction.Pq or TransferFunction.Hlg)
             {
                 throw new NotSupportedException("HDR preview requires a tone mapping operation.");
@@ -29,7 +29,7 @@ namespace Mediana.Cli
             {
                 return declared;
             }
-            VideoColorInfo defaults = SelectDefaults(format);
+            VideoColorInfo defaults = SelectDefaults(format, declared);
             VideoColorInfo resolved = declared;
             if (declared.Primaries == ColorPrimaries.Unspecified)
             {
@@ -46,19 +46,19 @@ namespace Mediana.Cli
             return resolved;
         }
 
-        private static VideoColorInfo SelectDefaults(VideoFormat format)
+        private static VideoColorInfo SelectDefaults(VideoFormat format, VideoColorInfo declared)
         {
             if (ReferenceEquals(format.PixelFormat, VideoPixelFormat.Rgba32))
             {
                 return VideoColorInfo.Srgb;
             }
-            return format.Color.Matrix switch
+            return declared.Matrix switch
             {
                 MatrixCoefficients.Bt709 => Hd,
                 MatrixCoefficients.Bt601 => Sd(format.Height),
                 MatrixCoefficients.Smpte240M => Smpte,
                 MatrixCoefficients.Bt2020NonConstant or MatrixCoefficients.Bt2020Constant => Wide,
-                MatrixCoefficients.Unspecified => FromPrimaries(format),
+                MatrixCoefficients.Unspecified => FromPrimaries(format, declared),
                 MatrixCoefficients.Rgb or MatrixCoefficients.Fcc or MatrixCoefficients.YCgCo or MatrixCoefficients.Smpte2085 or
                     MatrixCoefficients.ChromaticityNonConstant or MatrixCoefficients.ChromaticityConstant or MatrixCoefficients.ICtCp or
                     MatrixCoefficients.IptC2 or MatrixCoefficients.YCgCoRe or MatrixCoefficients.YCgCoRo => Geometry(format),
@@ -66,7 +66,7 @@ namespace Mediana.Cli
             };
         }
 
-        private static VideoColorInfo FromPrimaries(VideoFormat format) => format.Color.Primaries switch
+        private static VideoColorInfo FromPrimaries(VideoFormat format, VideoColorInfo declared) => declared.Primaries switch
         {
             ColorPrimaries.Bt709 => Hd,
             ColorPrimaries.Bt470Bg => Pal,

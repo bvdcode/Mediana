@@ -36,6 +36,10 @@ namespace Mediana.Cli
             foreach (EncodedStreamInfo stream in info.Streams)
             {
                 await output.WriteLineAsync($"Stream {stream.StreamIndex}: {stream.Kind}; {stream.CodecId}; time base {stream.TimeBase.Numerator}/{stream.TimeBase.Denominator}.");
+                if (stream.ColorDescription is not null)
+                {
+                    await VideoColorDescriptionFormatter.WriteAsync(stream.ColorDescription, output);
+                }
                 if (info.StreamMetadata.TryGetValue(stream.StreamIndex, out StreamMetadata? metadata))
                 {
                     await StreamMetadataFormatter.WriteAsync(metadata, output, cancellationToken);
