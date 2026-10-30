@@ -13,8 +13,16 @@ namespace Mediana.Images.Tgs
     internal partial class TgsSceneBuilder
     {
         private SceneRegion FullRegion => new(-_document.Width * 8, -_document.Height * 8, _document.Width * 17, _document.Height * 17, false);
-        private SceneFilter Filter(List<SceneFilterStep> steps) => new(FullRegion, false, steps.ToArray(), false);
-        private SceneMask FullMask(TgsLayer content, bool luminance) => new(content.Build(), FullRegion, false, luminance, false);
+        private SceneFilter Filter(List<SceneFilterStep> steps)
+        {
+            const int maximumEffectSteps = 128;
+            if (steps.Count > maximumEffectSteps)
+            {
+                throw new InvalidDataException("Lottie effect graph exceeds 128 operations.");
+            }
+            return new(FullRegion, false, steps.ToArray(), false);
+        }
+        private SceneMask FullMask(TgsLayer content, bool luminance) => new(content.Build(_sceneBudget), FullRegion, false, luminance, false);
         private void Mask(JsonElement layer, TgsLayer content, double frame)
         {
             JsonElement[] masks = TgsJson.Array(TgsJson.Get(layer, "masksProperties")).Where(m => TgsJson.Text(m, "mode", "a") != "n").ToArray();
@@ -31,7 +39,7 @@ namespace Mediana.Images.Tgs
                 TgsLayer drawing = PathElement(path);
                 drawing.Fill = new SceneSolid(new Rgba32(255, 255, 255, 255));
                 drawing.Opacity = Number(Math.Clamp(TgsValues.Scalar(TgsJson.Get(mask, "o"), frame, 100) / 100, 0, 1));
-                filter.Add(SceneEffects.Image(drawing.Build()));
+                filter.Add(SceneEffects.Image(drawing.Build(_sceneBudget)));
                 float expansion = Number(TgsValues.Scalar(TgsJson.Get(mask, "x"), frame));
                 if (expansion != 0) { filter.Add(SceneEffects.Morphology(Math.Abs(expansion), expansion > 0)); }
                 Vector2 feather = TgsValues.Point(TgsJson.Get(mask, "f"), frame);
@@ -64,7 +72,7 @@ namespace Mediana.Images.Tgs
             return FullMask(inverted, false);
         }
         private static SceneFilterStep InvertRgb(string result) => SceneEffects.Transfer(x => 1 - x, x => 1 - x, x => 1 - x, x => x) with { Result = result };
-        private static ColorBlendMode BlendMode(int mode) => mode switch
+        private static ColorBlendMode? BlendMode(int mode) => mode switch
         {
             0 => ColorBlendMode.Normal,
             1 => ColorBlendMode.Multiply,
@@ -84,7 +92,7 @@ namespace Mediana.Images.Tgs
             15 => ColorBlendMode.Luminosity,
             16 => ColorBlendMode.Add,
             17 => ColorBlendMode.HardMix,
-            _ => throw new NotSupportedException("Unknown Lottie blend mode: " + mode)
+            _ => null
         };
     }
 }

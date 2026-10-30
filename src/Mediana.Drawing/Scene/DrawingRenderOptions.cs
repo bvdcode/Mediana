@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace Mediana.Drawing
 {
-    /// <summary>Raster output settings for an vector scene.</summary>
+    /// <summary>Raster output settings for a vector scene.</summary>
     public record DrawingRenderOptions
     {
         /// <summary>Gets output width; defaults to the intrinsic scene width.</summary>

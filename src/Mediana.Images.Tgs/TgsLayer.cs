@@ -26,7 +26,12 @@ namespace Mediana.Images.Tgs
         internal List<TgsLayer> Children { get; } = [];
         internal TgsLayer(params TgsLayer[] children) => Children.AddRange(children);
         internal int NodeCount => checked(1 + Children.Sum(child => child.NodeCount));
-        internal SceneNode Build() => new(Path, Fill, Stroke, Pen, Rule, FillRule.NonZero, Transform, Opacity, FillOpacity, StrokeOpacity, Clip, Children.Select(child => child.Build()).ToArray())
-        { Mask = Mask, Filter = Filter, BlendMode = Blend };
+        internal SceneNode Build(TgsSceneBudget budget, int depth = 0)
+        {
+            budget.Visit(depth, Path);
+            return new SceneNode(Path, Fill, Stroke, Pen, Rule, FillRule.NonZero, Transform, Opacity, FillOpacity, StrokeOpacity, Clip,
+                Children.Select(child => child.Build(budget, depth + 1)).ToArray())
+            { Mask = Mask, Filter = Filter, BlendMode = Blend };
+        }
     }
 }

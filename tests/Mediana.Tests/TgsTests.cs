@@ -93,6 +93,36 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void UnsupportedBlendRequiresExplicitPartialRenderingAndRemainsDiagnosed()
+        {
+            byte[] json = System.Text.Encoding.UTF8.GetBytes("""
+                {"v":"5.7","w":32,"h":32,"fr":30,"ip":0,"op":60,
+                 "layers":[{"ty":1,"ip":0,"op":60,"sw":32,"sh":32,"sc":"#ff0000","bm":99}]}
+                """);
+            TgsDocument document = TgsReader.Read(json);
+            Assert.Throws<NotSupportedException>(() => TgsRenderer.RenderFrame(document, 0));
+            TgsFrame frame = TgsRenderer.RenderFrameDetailed(document, 0, new() { AllowPartialRendering = true, Supersampling = 1 });
+            Assert.Contains("Lottie blend modes", frame.Warnings);
+            Assert.Equal(new Rgba32(255, 0, 0, 255), frame.Image[16, 16]);
+        }
+
+        [Fact]
+        public void RepeatedGeometryCountsTowardTheExpandedPathBudget()
+        {
+            byte[] json = System.Text.Encoding.UTF8.GetBytes("""
+                {"v":"5.7","w":32,"h":32,"fr":30,"ip":0,"op":60,"layers":[
+                  {"ty":4,"ip":0,"op":60,"shapes":[
+                    {"ty":"rc","p":{"k":[16,16]},"s":{"k":[8,8]},"r":{"k":0}},
+                    {"ty":"fl","c":{"k":[1,0,0,1]},"o":{"k":100}},
+                    {"ty":"rp","c":{"k":20},"o":{"k":0},"tr":{"p":{"k":[0,0]},"s":{"k":[100,100]},"so":{"k":100},"eo":{"k":100}}}]}]}
+                """);
+            TgsDocument limited = TgsReader.Read(json, new() { MaximumPathCommands = 100 });
+            Assert.Throws<InvalidDataException>(() => TgsRenderer.RenderFrame(limited, 0));
+            TgsDocument allowed = TgsReader.Read(json, new() { MaximumPathCommands = 1000 });
+            Assert.Equal(32, TgsRenderer.RenderFrame(allowed, 0, new() { Supersampling = 1 }).Width);
+        }
+
+        [Fact]
         public async Task InputLimitsAndUnsupportedFramePositionsAreRejected()
         {
             byte[] data = await File.ReadAllBytesAsync(Path.Combine(Root, "orbit.tgs"));

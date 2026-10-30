@@ -20,6 +20,7 @@ namespace Mediana.Images.Tgs
         private readonly Dictionary<string, JsonElement> _assets = new(StringComparer.Ordinal);
         private readonly HashSet<string> _activeAssets = new();
         private readonly HashSet<string> _warnings = new();
+        private readonly TgsSceneBudget _sceneBudget;
         private int _items;
         private int _commands;
         private int _id;
@@ -27,6 +28,7 @@ namespace Mediana.Images.Tgs
         internal TgsSceneBuilder(TgsDocument document, CancellationToken token)
         {
             _document = document;
+            _sceneBudget = new TgsSceneBudget(document.Limits, token);
             _token = token;
             foreach (JsonElement asset in TgsJson.Array(TgsJson.Get(document.Root, "assets")))
             {
@@ -45,7 +47,7 @@ namespace Mediana.Images.Tgs
                 throw new NotSupportedException(string.Join("; ", _warnings.Order()));
             }
 
-            return root.Build();
+            return root.Build(_sceneBudget);
         }
 
         private TgsLayer Layers(JsonElement array, double frame, int depth, double width = 0, double height = 0)
@@ -126,7 +128,14 @@ namespace Mediana.Images.Tgs
                     result.Mask = Matte(drawing, matte);
                 }
 
-                result.Blend = BlendMode((int)TgsJson.Number(layer, "bm"));
+                if (BlendMode((int)TgsJson.Number(layer, "bm")) is ColorBlendMode blend)
+                {
+                    result.Blend = blend;
+                }
+                else
+                {
+                    _warnings.Add("Lottie blend modes");
+                }
 
                 return result;
             }
