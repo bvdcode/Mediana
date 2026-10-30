@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
@@ -19,22 +20,42 @@ namespace Mediana.Processing.Audio
             cancellationToken.ThrowIfCancellationRequested();
             AudioFormat format = new(input.Format.SampleRate, sampleFormat, layout, input.Format.Channels.ToArray());
             using WritableMediaBuffer writable = allocator.Allocate(format.GetBufferSize(input.SamplesPerChannel));
-            for (int sample = 0; sample < input.SamplesPerChannel; sample++)
+            if (input.Format.Layout == AudioStorageLayout.Interleaved && layout == AudioStorageLayout.Interleaved &&
+                sampleFormat == AudioSampleFormat.Signed16 && input.Format.SampleFormat is AudioSampleFormat.Float32 or AudioSampleFormat.Signed32)
             {
-                if ((sample & 255) == 0)
+                ReadOnlySpan<byte> source = input.GetPlane(0).Span;
+                Span<short> destination = MemoryMarshal.Cast<byte, short>(writable.Memory.Span);
+                switch (input.Format.SampleFormat)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    case AudioSampleFormat.Float32:
+                        Pcm16Converter.Convert(MemoryMarshal.Cast<byte, float>(source), destination, cancellationToken);
+                        break;
+                    case AudioSampleFormat.Signed32:
+                        Pcm16Converter.Convert(MemoryMarshal.Cast<byte, int>(source), destination, cancellationToken);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(input));
                 }
-                for (int channel = 0; channel < format.Channels.Count; channel++)
+            }
+            else
+            {
+                for (int sample = 0; sample < input.SamplesPerChannel; sample++)
                 {
-                    int index = format.Layout switch
+                    if ((sample & 255) == 0)
                     {
-                        AudioStorageLayout.Interleaved => sample * format.Channels.Count + channel,
-                        AudioStorageLayout.Planar => channel * input.SamplesPerChannel + sample,
-                        _ => throw new ArgumentOutOfRangeException(nameof(layout))
-                    };
-                    PcmSampleAccess.Write(writable.Memory.Span[(index * format.BytesPerSample)..], sampleFormat,
-                        PcmSampleAccess.Read(input, sample, channel));
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
+                    for (int channel = 0; channel < format.Channels.Count; channel++)
+                    {
+                        int index = format.Layout switch
+                        {
+                            AudioStorageLayout.Interleaved => sample * format.Channels.Count + channel,
+                            AudioStorageLayout.Planar => channel * input.SamplesPerChannel + sample,
+                            _ => throw new ArgumentOutOfRangeException(nameof(layout))
+                        };
+                        PcmSampleAccess.Write(writable.Memory.Span[(index * format.BytesPerSample)..], sampleFormat,
+                            PcmSampleAccess.Read(input, sample, channel));
+                    }
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();
