@@ -81,6 +81,7 @@ jobs:
       - run: dotnet format Mediana.slnx --verify-no-changes --no-restore
       - run: dotnet test Mediana.slnx -c Release --no-build --no-restore --logger trx --results-directory artifacts/test-results
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --self-test
+      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --transcode tests/Mediana.Tests/Data/Mp4/avc-aac.mp4 artifacts/sample-transcode.ts
       - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- -i tests/Mediana.Tests/Data/Mp3/stereo-cbr-id3v23.mp3 artifacts/audio-managed.wav
       - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- -i tests/Mediana.Tests/Data/Pdf/report.pdf artifacts/page-managed.png
       - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- probe mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4

@@ -8,6 +8,12 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/BufferedVideoEncoder.cs" Link="BufferedVideoEncoder.cs" />
+    <Compile Include="../Shared/CollectingPacketWriter.cs" Link="CollectingPacketWriter.cs" />
+    <Compile Include="../Shared/FrameFixture.cs" Link="FrameFixture.cs" />
+    <Compile Include="../Shared/EncodingOperationTestInput.cs" Link="EncodingOperationTestInput.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="../Shared/MultiStreamTestInput.cs" Link="MultiStreamTestInput.cs" />
     <Compile Include="../Shared/Mp3HlsTestInput.cs" Link="Mp3HlsTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-mp3-*.mp4" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

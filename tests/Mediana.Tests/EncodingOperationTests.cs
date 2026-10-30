@@ -14,23 +14,7 @@ namespace Mediana.Tests
         [Fact]
         public async Task OperationDrainsMultiplePacketsAndDelayedTailAndBorrowsComponents()
         {
-            MediaBufferAllocator allocator = new(4096);
-            using BufferedVideoEncoder encoder = new(allocator);
-            await using CollectingPacketWriter writer = new();
-            List<MediaOperationProgress> updates = [];
-            int index = 0;
-            ValueTask<VideoFrame?> Read(CancellationToken token) => ValueTask.FromResult<VideoFrame?>(index < 3 ? FrameFixture.Create(allocator, (byte)(10 * ++index), index) : null);
-            MediaOperationProgress result = await MediaOperations.EncodeVideoAsync(Read, encoder, writer, updates.Add);
-            Assert.Equal(new byte[] { 10, 11, 20, 21, 30, 31 }, writer.Packets.SelectMany(packet => packet).ToArray());
-            Assert.Equal(3, result.Frames);
-            Assert.Equal(6, result.Packets);
-            Assert.Equal(6, result.PayloadBytes);
-            Assert.True(result.IsComplete);
-            Assert.True(writer.IsComplete);
-            Assert.False(writer.IsDisposed);
-            Assert.False(encoder.IsDisposed);
-            Assert.Equal(0, allocator.AllocatedBytes);
-            Assert.Equal(result, updates[^1]);
+            await EncodingOperationTestInput.VerifyAsync();
         }
 
         [Fact]
