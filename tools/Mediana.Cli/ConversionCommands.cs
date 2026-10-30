@@ -14,8 +14,12 @@ namespace Mediana.Cli
         /// <param name="stream">Audio or video stream index; defaults to the first stream of the required kind.</param>
         /// <param name="timeMs">Video/animation frame timestamp in milliseconds for PNG output.</param>
         /// <param name="page">One-based PDF page number for PNG output.</param>
+        /// <param name="videoCodec">TS video mode: Copy preserves encoded streams; H264 encodes fixed-QP intra video.</param>
+        /// <param name="videoOnly">Explicitly omit audio when encoding H264 to TS.</param>
+        /// <param name="qp">Fixed H264 quantizer from 0 to 51; defaults to 26 when encoding.</param>
         [Command("")]
         public Task<int> Convert([Argument] string output, string input, int? stream = null, long timeMs = 0, int page = 1,
+            VideoCodecMode videoCodec = VideoCodecMode.Copy, bool videoOnly = false, int? qp = null,
             CancellationToken cancellationToken = default)
         {
             if (stream is < 0)
@@ -24,6 +28,28 @@ namespace Mediana.Cli
             }
             ArgumentOutOfRangeException.ThrowIfNegative(timeMs);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
+            if (!Enum.IsDefined(videoCodec))
+            {
+                throw new ArgumentOutOfRangeException(nameof(videoCodec));
+            }
+            bool encode = videoCodec switch
+            {
+                VideoCodecMode.Copy => false,
+                VideoCodecMode.H264 => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(videoCodec))
+            };
+            if (encode || videoOnly || qp is not null)
+            {
+                if (!encode || !videoOnly || !Path.GetExtension(output).Equals(".ts", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new NotSupportedException("H264 encoding requires .ts output, --video-codec H264 and --video-only; encoding options do not apply to stream copy or other outputs.");
+                }
+                if (qp is < 0 or > 51)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(qp));
+                }
+                return ExecuteAsync(input, output, () => VideoTranscodeCommand.RunAsync(input, output, stream, qp ?? 26, logger, cancellationToken));
+            }
             return ExecuteAsync(input, output, () => Path.GetExtension(output).ToLowerInvariant() switch
             {
                 ".wav" or ".wave" => WaveAudioCommand.RunAsync(input, output, stream, logger, cancellationToken),

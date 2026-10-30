@@ -208,6 +208,38 @@ namespace Mediana.Tests
 
         private static string Data(string format, string name) => Path.Combine(AppContext.BaseDirectory, "Data", format, name);
 
+        [Fact]
+        public async Task ExplicitVideoEncodingWritesTransportPackets()
+        {
+            string output = Path.Combine(directory, "encoded.ts");
+            (int code, _, _) = await RunAsync(["-i", Data("Mp4", "avc-multislice-cabac.mp4"), output,
+                "--video-codec", "H264", "--video-only", "--qp", "26"]);
+            Assert.Equal(0, code);
+            byte[] encoded = await File.ReadAllBytesAsync(output);
+            Assert.Equal(0, encoded.Length % 188);
+            for (int offset = 0; offset < encoded.Length; offset += 188)
+            {
+                Assert.Equal(0x47, encoded[offset]);
+            }
+        }
+
+        [Theory]
+        [InlineData("avc-aac.mp4", false, 26, 3)]
+        [InlineData("avc-weighted-rotated.mp4", true, 26, 3)]
+        [InlineData("avc-aac.mp4", true, 52, 2)]
+        public async Task UnsupportedEncodingOptionsOrDisplayTransformsPublishNothing(string input, bool videoOnly, int qp, int expected)
+        {
+            string output = Path.Combine(directory, "encoded.ts");
+            List<string> arguments = ["-i", Data("Mp4", input), output, "--video-codec", "H264", "--qp", qp.ToString(CultureInfo.InvariantCulture)];
+            if (videoOnly)
+            {
+                arguments.Add("--video-only");
+            }
+            (int code, _, _) = await RunAsync(arguments.ToArray());
+            Assert.Equal(expected, code);
+            Assert.Empty(Directory.GetFiles(directory));
+        }
+
         private static async Task<(int Code, string Output, string Error)> RunAsync(string[] arguments, CancellationToken token = default)
         {
             using StringWriter output = new(CultureInfo.InvariantCulture);
