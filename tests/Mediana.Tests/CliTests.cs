@@ -173,6 +173,21 @@ namespace Mediana.Tests
         }
 
         [Theory]
+        [InlineData("s16-stereo")]
+        [InlineData("s16le-stereo")]
+        public async Task AiffSignatureSelectsTheContainerAndConvertsAllSamples(string name)
+        {
+            string input = Path.Combine(directory, "input.bin");
+            await File.WriteAllBytesAsync(input, await File.ReadAllBytesAsync(Data("Aiff", name + ".aiff")));
+            string output = Path.Combine(directory, "output.wav");
+            (int code, _, _) = await RunAsync(["-i", input, output, "--no-color"]);
+            Assert.Equal(0, code);
+            byte[] wave = await File.ReadAllBytesAsync(output);
+            byte[] expected = await File.ReadAllBytesAsync(Data("Wave", "s16-stereo.pcm"));
+            Assert.Equal(expected, wave.AsSpan(44).ToArray());
+        }
+
+        [Theory]
         [InlineData("Pdf", "report.pdf")]
         [InlineData("Heif", "basic-8bit.heic")]
         [InlineData("Jpeg2000", "L-63x45.jp2")]

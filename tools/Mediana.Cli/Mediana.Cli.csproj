@@ -16,6 +16,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Mediana.Documents.Pdf/Mediana.Documents.Pdf.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Aiff/Mediana.Containers.Aiff.csproj" />
     <ProjectReference Include="../../src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />
     <ProjectReference Include="../../src/Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
     <ProjectReference Include="../../src/Mediana.Images.Tgs/Mediana.Images.Tgs.csproj" />

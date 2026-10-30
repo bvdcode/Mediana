@@ -9,6 +9,7 @@ using Mediana.Containers.Flac;
 using Mediana.Codecs.Pcm;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.Wave;
+using Mediana.Containers.Aiff;
 
 namespace Mediana.Cli
 {
@@ -18,9 +19,11 @@ namespace Mediana.Cli
             .AddContainer(new Mp3ReaderFactory())
             .AddContainer(new FlacReaderFactory())
             .AddContainer(new WaveReaderFactory())
+            .AddContainer(new AiffReaderFactory())
             .AddContainer(new Mp4ReaderFactory())
             .AddAudioDecoder(new FlacDecoderFactory())
             .AddAudioDecoder(new PcmDecoderFactory())
+            .AddAudioDecoder(new AiffPcmDecoderFactory())
             .AddAudioDecoder(new AacDecoderFactory())
             .AddAudioDecoder(new Mp3DecoderFactory())
             .Build();

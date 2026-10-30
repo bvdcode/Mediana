@@ -37,6 +37,7 @@ content and exposes decoded image XObjects. See [PDF support and limits](docs/pd
 | `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading; source project only |
+| `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading; source project only |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks; source project only |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing; source project only |
 | `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo; source project only |
@@ -158,7 +159,7 @@ the HLS, preview and audio commands. Omit `--audio-stream` for HLS without audio
 must be new, and their parent directories must already exist.
 
 MP4-to-TS/HLS copies supported AVC/AAC streams without re-encoding. PCM export
-supports WAVE PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It writes raw,
+supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It writes raw,
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
 H.264 subset described above. Video encoding and compressed audio encoding remain
@@ -335,6 +336,38 @@ it reports the sample format, rate and channels needed to interpret its output.
 It does not write a WAVE header. The output directory must exist, and existing
 files are not replaced. See the [WAVE fixtures](tests/Mediana.Tests/Data/Wave/README.md)
 for independent references and format definitions.
+
+## Reading AIFF audio
+
+`Mediana.Containers.Aiff` reads one `SSND` chunk from AIFF or AIFF-C, with exact
+sample counts and timestamps. Add `AiffReaderFactory` to the container registry
+and `AiffPcmDecoderFactory` from `Mediana.Codecs.Pcm` to the audio decoder registry.
+The decoder shares PCM conversion with the WAVE path. Its `pcm.aiff` configuration
+contains the four-byte FORM type followed by the complete `COMM` payload.
+
+Supported input is mono/stereo signed integer AIFF with 1–32 bits of precision,
+AIFF-C `NONE`, 16-bit `sowt`/`twos`, and big-endian `fl32`/`fl64`. Decoded integer
+storage is native-endian and left-aligned; signed 8-bit input becomes unsigned
+8-bit PCM. A positive integral sample rate must fit `AudioFormat`.
+
+The reader borrows the source, streams bounded packets and honors `SSND` offsets
+and trailing block fill. `COMM` and the AIFF-C version chunk must precede `SSND`;
+other chunk orders requiring a backwards read are unsupported. Unknown metadata
+chunks are skipped within byte/count limits. Tags, artwork, multichannel layouts,
+fractional sample rates and compressed AIFF-C codecs are not supported.
+Trailing chunks and padding are checked when the stream is drained.
+
+The CLI detects AIFF by content for WAVE conversion, raw PCM, resampling and
+waveform data:
+
+```sh
+mediana -i recording.aiff output.wav
+mediana audio waveform recording.aiff waveform.json --gains 0.5 0.5
+```
+
+[AIFF references](tests/Mediana.Tests/Data/Aiff/README.md) cover complete integer
+and float sequences through the public session, including sample timing,
+independent frame ownership and a 16 KiB media-buffer budget.
 
 ## Decoding AAC-LC
 
