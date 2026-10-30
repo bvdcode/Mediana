@@ -24,6 +24,22 @@ namespace Mediana.Core.Audio
         public int ChannelCount => ChannelConfiguration == 7 ? 8 : ChannelConfiguration;
         public int SamplesPerFrame => 1024;
 
+        public static AacConfiguration Create(int sampleRate, int channelConfiguration)
+        {
+            int frequency = SampleRates.IndexOf(sampleRate);
+            if (frequency < 0 || channelConfiguration is < 1 or > 7)
+            {
+                throw new ArgumentOutOfRangeException(nameof(sampleRate), "AAC-LC requires an indexed sample rate and a channel configuration from 1 to 7.");
+            }
+            return new(frequency, channelConfiguration);
+        }
+
+        public byte[] ToAudioSpecificConfig()
+        {
+            int value = (2 << 11) | (FrequencyIndex << 7) | (ChannelConfiguration << 3);
+            return [(byte)(value >> 8), (byte)value];
+        }
+
         /// <summary>Returns null for an unsupported configuration and throws for truncated or reserved syntax.</summary>
         public static AacConfiguration? ReadAudioSpecificConfig(ReadOnlySpan<byte> data, out string? unsupportedReason)
         {

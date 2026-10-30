@@ -33,6 +33,8 @@ namespace Mediana.Tests
                 Assert.Equal(channels, value.ChannelConfiguration);
                 Assert.Equal(channels == 7 ? 8 : channels, value.ChannelCount);
                 Assert.Equal(1024, value.SamplesPerFrame);
+                AacConfiguration created = AacConfiguration.Create(rate, channels);
+                Assert.Equal(bytes, created.ToAudioSpecificConfig());
             }
         }
 
