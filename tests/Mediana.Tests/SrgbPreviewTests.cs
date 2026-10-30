@@ -120,6 +120,25 @@ namespace Mediana.Tests
             Assert.Equal(48, allocator.AllocatedBytes);
         }
 
+        [Fact]
+        public void ExplicitSourceColorProducesAnOwnedPreviewWithoutChangingUnknownMetadata()
+        {
+            MediaBufferAllocator allocator = new(128);
+            VideoFormat format = new(3, 2, VideoPixelFormat.Rgba32, sampleAspectRatio: SampleAspectRatio.Square);
+            using VideoFrame input = Frame(allocator, format, 24, format.CreateTightLayout());
+            Assert.Throws<NotSupportedException>(() => SrgbPreview.Fit(input, VideoDisplayMatrix.Identity, 3, 2, allocator));
+            Assert.Throws<ArgumentNullException>(() => SrgbPreview.Fit(input, null!, VideoDisplayMatrix.Identity, 3, 2, allocator));
+            using VideoFrame actual = SrgbPreview.Fit(input, VideoColorInfo.Srgb, VideoDisplayMatrix.Identity, 3, 2, allocator);
+            Assert.Equal(input.Data.ToArray(), actual.Data.ToArray());
+            Assert.Equal(VideoColorInfo.Srgb, actual.Format.Color);
+            Assert.Equal(ColorPrimaries.Unspecified, input.Format.Color.Primaries);
+            input.Dispose();
+            Assert.Equal(24, allocator.AllocatedBytes);
+            Assert.Equal(24, actual.Data.Length);
+            actual.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         private static VideoFrame Frame(MediaBufferAllocator allocator, VideoFormat format, int length, PlaneLayout[] planes)
         {
             using WritableMediaBuffer writable = allocator.Allocate(length);
