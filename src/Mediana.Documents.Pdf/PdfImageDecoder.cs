@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Mediana.Core.Metadata;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Drawing;
@@ -9,12 +10,23 @@ using Mediana.Drawing;
 namespace Mediana.Documents.Pdf
 {
     /// <summary>Registered PDF page rendering with zero-based page selection and explicit resolution limits.</summary>
-    public class PdfImageDecoder(PdfReaderOptions? readerOptions = null, PdfRenderOptions? renderOptions = null) : IImageDecoder
+    public class PdfImageDecoder(PdfReaderOptions? readerOptions = null, PdfRenderOptions? renderOptions = null) : IImageDecoder, IImageInfoReader
     {
         public string ImplementationId => "pdf.managed.image";
         public int ProbeLength => 5;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.Pages;
         public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.StartsWith("%PDF-"u8);
+
+        public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
+        {
+            using PdfDocument document = PdfReader.ReadBorrowed(encoded, readerOptions, cancellationToken);
+            if (document.PageCount == 0)
+            {
+                throw new InvalidDataException("PDF contains no pages.");
+            }
+            PdfPageInfo page = document.GetPageInfo(1);
+            return ValueTask.FromResult(new ImageInfo("pdf", page.Width, page.Height, ImageDimensionUnit.Points, document.PageCount));
+        }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
