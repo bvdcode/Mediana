@@ -28,6 +28,7 @@ namespace Mediana.Containers.Mp3
         private bool disposed;
         private bool faulted;
         private int busy;
+        private Lazy<ContainerInfo> info = null!;
 
         private Mp3Reader(IByteSource source, MediaBufferAllocator allocator, Mp3ReadOptions options)
         {
@@ -38,7 +39,7 @@ namespace Mediana.Containers.Mp3
         }
 
         public Mp3FrameHeader FirstFrame { get; private set; } = null!;
-        public ContainerInfo Info { get; private set; } = null!;
+        public ContainerInfo Info => info.Value;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
         public IReadOnlyList<Id3TextFrame> TextFrames { get; private set; } = [];
         public IReadOnlyList<Id3PictureInfo> Pictures { get; private set; } = [];
@@ -62,8 +63,10 @@ namespace Mediana.Containers.Mp3
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
-                reader.Info = new ContainerInfo("mp3", reader.CodedDuration,
-                    reader.TextFrames.Select(frame => new MediaTag("id3v2", frame.FrameId, frame.Values, frame.Description)));
+                MediaDuration? declaredDuration = reader.CodedDuration;
+                IReadOnlyList<Id3TextFrame> textFrames = reader.TextFrames;
+                reader.info = new Lazy<ContainerInfo>(() => new ContainerInfo("mp3", declaredDuration,
+                    textFrames.Select(frame => new MediaTag("id3v2", frame.FrameId, frame.Values, frame.Description))));
                 opened = true;
                 return reader;
             }

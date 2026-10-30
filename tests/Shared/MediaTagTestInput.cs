@@ -3,6 +3,9 @@
 
 using System.Text.Json;
 using Mediana.Core.Metadata;
+using Mediana.Containers.Mp3;
+using Mediana.Core;
+using Mediana.Core.Memory;
 using Mediana.IO;
 
 namespace Mediana.Tests
@@ -11,6 +14,7 @@ namespace Mediana.Tests
     {
         public static async Task VerifyAsync(string root)
         {
+            await VerifyOpeningSnapshotAsync(root);
             foreach (string name in new[] { "stereo-vbr-cover", "stereo-cbr-id3v23", "mono-speech" })
             {
                 MediaInfo info = await ProbeAsync(Path.Combine(root, "Mp3", name + ".mp3"));
@@ -61,6 +65,27 @@ namespace Mediana.Tests
                 {
                     throw new InvalidDataException("Binary metadata was misrepresented as text.");
                 }
+            }
+        }
+
+        private static async Task VerifyOpeningSnapshotAsync(string root)
+        {
+            MediaBufferAllocator allocator = new(128 * 1024);
+            await using StreamByteSource source = new(File.OpenRead(Path.Combine(root, "Mp3", "mono-low-rate.mp3")));
+            await using Mp3Reader reader = await Mp3Reader.OpenAsync(source, allocator);
+            if (reader.CodedDuration is not null)
+            {
+                throw new InvalidDataException("The no-Xing reference must not declare a coded duration.");
+            }
+            while (await reader.ReadPacketAsync() is MediaPacket packet)
+            {
+                packet.Dispose();
+            }
+            await reader.DisposeAsync();
+            if (reader.CodedDuration is null || reader.Info.DeclaredDuration is not null || allocator.AllocatedBytes != 0
+                || reader.Info.Tags!.Single(tag => tag.Name == "TIT2").Values[0] != "MP3 reference")
+            {
+                throw new InvalidDataException("Delayed metadata access changed the opening snapshot or retained media buffers.");
             }
         }
 

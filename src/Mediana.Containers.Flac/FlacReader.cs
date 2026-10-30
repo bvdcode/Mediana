@@ -26,6 +26,7 @@ namespace Mediana.Containers.Flac
         private bool disposed;
         private bool faulted;
         private int busy;
+        private Lazy<ContainerInfo> info = null!;
 
         private FlacReader(IByteSource source, MediaBufferAllocator allocator, FlacReadOptions options)
         {
@@ -36,7 +37,7 @@ namespace Mediana.Containers.Flac
         }
 
         public FlacConfiguration Configuration { get; private set; } = null!;
-        public ContainerInfo Info { get; private set; } = null!;
+        public ContainerInfo Info => info.Value;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
         public IReadOnlyList<FlacComment> Comments { get; private set; } = [];
         public IReadOnlyList<FlacPictureInfo> Pictures { get; private set; } = [];
@@ -58,8 +59,10 @@ namespace Mediana.Containers.Flac
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
-                reader.Info = new ContainerInfo("flac", reader.Duration,
-                    reader.Comments.Select(comment => new MediaTag("vorbis", comment.Name, comment.Value)));
+                MediaDuration? declaredDuration = reader.Duration;
+                IReadOnlyList<FlacComment> comments = reader.Comments;
+                reader.info = new Lazy<ContainerInfo>(() => new ContainerInfo("flac", declaredDuration,
+                    comments.Select(comment => new MediaTag("vorbis", comment.Name, comment.Value))));
                 opened = true;
                 return reader;
             }

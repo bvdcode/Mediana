@@ -1228,6 +1228,10 @@ The generic CLI probe prints these tags as quoted, escaped text; each value grou
 is a JSON array. Embedded newlines and terminal controls cannot create extra
 output lines. Reading tags reuses the opening parse and does not scan audio or
 video packets. Container metadata byte/count limits still apply.
+Native MP3/FLAC/MP4 readers build this common snapshot once, at the first metadata
+access; plain packet copying and decoding do not project unused text tags.
+Delayed access still uses opening header declarations, including after EOF and
+reader disposal, and retains no media-buffer lease.
 
 The CLI uses the same registered container probes as audio/video decoding.
 `MediaEngine.OpenContainerAsync` opens a `ContainerSession` of encoded packets

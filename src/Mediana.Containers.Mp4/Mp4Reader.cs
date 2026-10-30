@@ -19,6 +19,7 @@ namespace Mediana.Containers.Mp4
         private readonly MediaBufferAllocator allocator;
         private readonly MediaBuffer metadata;
         private readonly Mp4MetadataValue[] metadataValues;
+        private readonly Lazy<ContainerInfo> info;
         private readonly Mp4TrackCursor[] cursors;
         private readonly Mp4LinearTimeline[] timelines;
         private readonly Mp4SampleLookup[] lookups;
@@ -38,8 +39,11 @@ namespace Mediana.Containers.Mp4
             Tracks = Array.AsReadOnly(movie.Tracks);
             metadataValues = movie.Metadata;
             Metadata = Array.AsReadOnly(movie.Metadata.Select(value => value.Item).ToArray());
-            Info = new ContainerInfo("mp4", movie.Duration, Metadata.Where(item => item.Text is not null)
-                .Select(item => new MediaTag(item.Namespace, item.Name, item.Text!, locale: item.Locale)));
+            MediaDuration? declaredDuration = movie.Duration;
+            IReadOnlyList<Mp4MetadataItem> metadataItems = Metadata;
+            info = new Lazy<ContainerInfo>(() => new ContainerInfo("mp4", declaredDuration,
+                metadataItems.Where(item => item.Text is not null)
+                    .Select(item => new MediaTag(item.Namespace, item.Name, item.Text!, locale: item.Locale))));
             CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(movie.Metadata));
             TimestampMode = timestampMode;
             timelines = new Mp4LinearTimeline[movie.Tracks.Length];
@@ -63,7 +67,7 @@ namespace Mediana.Containers.Mp4
             this.metadata = metadata.Retain();
         }
 
-        public ContainerInfo Info { get; }
+        public ContainerInfo Info => info.Value;
         public TimeBase MovieTimeBase { get; }
         public MediaDuration? Duration { get; }
         /// <summary>The movie header display matrix, applied after each track header matrix.</summary>

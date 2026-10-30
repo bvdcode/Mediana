@@ -7,6 +7,8 @@ using Mediana.Containers.Flac;
 using Mediana.Containers.Mp3;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Metadata;
+using Mediana.Core;
+using Mediana.Core.Memory;
 using Mediana.IO;
 
 namespace Mediana.Tests
@@ -122,6 +124,30 @@ namespace Mediana.Tests
             Assert.False(source.IsDisposed);
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                 await engine.ProbeAsync(source, cancellationToken: new CancellationToken(true)));
+        }
+
+        [Fact]
+        public async Task FirstMetadataAccessAfterDrainAndDisposalKeepsTheOpeningHeaderSnapshot()
+        {
+            byte[] body = Mp3TestInput.MetadataFrame("TIT2", [3, .. "Header title"u8.ToArray()]);
+            byte[] bytes = [.. Mp3TestInput.Tag(4, body), .. Mp3TestInput.Frame(), .. Mp3TestInput.Frame()];
+            using MemoryStream memory = new(bytes);
+            await using StreamByteSource source = new(memory, leaveOpen: true);
+            MediaBufferAllocator allocator = new(128 * 1024);
+            await using Mp3Reader reader = await Mp3Reader.OpenAsync(source, allocator);
+            while (await reader.ReadPacketAsync() is MediaPacket packet)
+            {
+                packet.Dispose();
+            }
+            Assert.NotNull(reader.CodedDuration);
+            await reader.DisposeAsync();
+            ContainerInfo[] snapshots = new ContainerInfo[32];
+            Parallel.For(0, snapshots.Length, index => snapshots[index] = reader.Info);
+            Assert.All(snapshots, info => Assert.Same(snapshots[0], info));
+            Assert.Null(snapshots[0].DeclaredDuration);
+            Assert.Equal("Header title", Assert.Single(Assert.Single(snapshots[0].Tags!).Values));
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.True(memory.CanRead);
         }
 
         private static async Task<MediaInfo> ProbeAsync(byte[] bytes)
