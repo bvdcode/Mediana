@@ -77,18 +77,21 @@ namespace Mediana.Codecs.Pcm
                 {
                     case AudioSampleFormat.Unsigned8:
                         ValidatePadding(input[0], paddingMask);
-                        sample[0] = input[0];
+                        sample[0] = (byte)(input[0] ^ (configuration.IsSigned8Bit ? 0x80 : 0));
                         break;
                     case AudioSampleFormat.Signed16:
-                        ushort word = BinaryPrimitives.ReadUInt16LittleEndian(input);
+                        ushort word = configuration.IsBigEndian
+                            ? BinaryPrimitives.ReadUInt16BigEndian(input) : BinaryPrimitives.ReadUInt16LittleEndian(input);
                         ValidatePadding(word, paddingMask);
                         MemoryMarshal.Write(sample, in word);
                         break;
                     case AudioSampleFormat.Signed32:
                         uint integer = sourceBytes switch
                         {
-                            3 => (uint)(input[0] | input[1] << 8 | input[2] << 16),
-                            4 => BinaryPrimitives.ReadUInt32LittleEndian(input),
+                            3 => configuration.IsBigEndian
+                                ? (uint)(input[2] | input[1] << 8 | input[0] << 16) : (uint)(input[0] | input[1] << 8 | input[2] << 16),
+                            4 => configuration.IsBigEndian
+                                ? BinaryPrimitives.ReadUInt32BigEndian(input) : BinaryPrimitives.ReadUInt32LittleEndian(input),
                             _ => throw new InvalidOperationException("The PCM integer storage size is invalid.")
                         };
                         ValidatePadding(integer, paddingMask);
@@ -96,11 +99,13 @@ namespace Mediana.Codecs.Pcm
                         MemoryMarshal.Write(sample, in integer);
                         break;
                     case AudioSampleFormat.Float32:
-                        uint single = BinaryPrimitives.ReadUInt32LittleEndian(input);
+                        uint single = configuration.IsBigEndian
+                            ? BinaryPrimitives.ReadUInt32BigEndian(input) : BinaryPrimitives.ReadUInt32LittleEndian(input);
                         MemoryMarshal.Write(sample, in single);
                         break;
                     case AudioSampleFormat.Float64:
-                        ulong number = BinaryPrimitives.ReadUInt64LittleEndian(input);
+                        ulong number = configuration.IsBigEndian
+                            ? BinaryPrimitives.ReadUInt64BigEndian(input) : BinaryPrimitives.ReadUInt64LittleEndian(input);
                         MemoryMarshal.Write(sample, in number);
                         break;
                     default:

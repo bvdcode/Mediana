@@ -5,10 +5,10 @@ using System.Buffers.Binary;
 
 namespace Mediana.Core.Audio
 {
-    /// <summary>Little-endian PCM described by WAVEFORMATEX or WAVEFORMATEXTENSIBLE.
+    /// <summary>PCM storage described by WAVE format or AIFF common-chunk fields.
     /// Decoded integer samples are left-aligned in their native-endian storage type.
     /// Unassigned extensible channels retain their interleaved order as discrete channels.</summary>
-    public class PcmConfiguration
+    public partial class PcmConfiguration
     {
         public const string CodecId = "pcm";
         private static readonly Guid pcmSubformat = new("00000001-0000-0010-8000-00aa00389b71");
@@ -17,16 +17,21 @@ namespace Mediana.Core.Audio
             "back-left", "back-right", "front-left-of-center", "front-right-of-center", "back-center", "side-left", "side-right",
             "top-center", "top-front-left", "top-front-center", "top-front-right", "top-back-left", "top-back-center", "top-back-right"];
 
-        private PcmConfiguration(AudioFormat format, int sourceBits, int validBits)
+        private PcmConfiguration(AudioFormat format, int sourceBits, int validBits,
+            bool isBigEndian = false, bool isSigned8Bit = false)
         {
             Format = format;
             SourceBitsPerSample = sourceBits;
             ValidBitsPerSample = validBits;
+            IsBigEndian = isBigEndian;
+            IsSigned8Bit = isSigned8Bit;
         }
 
         public AudioFormat Format { get; }
         public int SourceBitsPerSample { get; }
         public int ValidBitsPerSample { get; }
+        public bool IsBigEndian { get; }
+        public bool IsSigned8Bit { get; }
         public int BlockAlignment => Format.Channels.Count * SourceBitsPerSample / 8;
 
         /// <summary>Encodes an interleaved PCM description without changing its channel order.

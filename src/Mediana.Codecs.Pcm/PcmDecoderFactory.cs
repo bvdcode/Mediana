@@ -18,8 +18,8 @@ namespace Mediana.Codecs.Pcm
             this.maxSamplesPerFrame = maxSamplesPerFrame;
         }
 
-        public string ImplementationId => "mediana.pcm";
-        public string CodecId => PcmConfiguration.CodecId;
+        public virtual string ImplementationId => "mediana.pcm";
+        public virtual string CodecId => PcmConfiguration.CodecId;
 
         public string? GetUnsupportedReason(EncodedStreamInfo stream)
         {
@@ -28,7 +28,7 @@ namespace Mediana.Codecs.Pcm
             {
                 return "The stream is not PCM audio.";
             }
-            PcmConfiguration.ReadWaveFormat(stream.Configuration.Span, out string? reason);
+            ReadConfiguration(stream.Configuration.Span, out string? reason);
             return reason;
         }
 
@@ -40,9 +40,12 @@ namespace Mediana.Codecs.Pcm
             {
                 throw new NotSupportedException(reason);
             }
-            PcmConfiguration configuration = PcmConfiguration.ReadWaveFormat(stream.Configuration.Span, out reason)
+            PcmConfiguration configuration = ReadConfiguration(stream.Configuration.Span, out reason)
                 ?? throw new NotSupportedException(reason);
             return new PcmDecoder(stream.StreamIndex, configuration, allocator, maxSamplesPerFrame);
         }
+
+        protected virtual PcmConfiguration? ReadConfiguration(ReadOnlySpan<byte> bytes, out string? unsupportedReason) =>
+            PcmConfiguration.ReadWaveFormat(bytes, out unsupportedReason);
     }
 }
