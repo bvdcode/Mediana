@@ -11,6 +11,10 @@ namespace Mediana.Tests
 {
     public class ImageProbeTests
     {
+        [Fact]
+        public async Task BuiltInImageMetadataAndOwnershipMatchNativeTestExpectations() =>
+            await ImageProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+
         [Theory]
         [InlineData("width='800' height='800'", 800, 800)]
         [InlineData("viewBox='0 0 42 21'", 42, 21)]

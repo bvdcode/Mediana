@@ -20,6 +20,8 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS PDF: detached pages, vector order, clipping and transparency.");
             await VectorImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS registered vector decoding: 352 SVG cases, 33 timed TGS frames and PDF pages match independent pixels.");
+            await ImageProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS image metadata: SVG, TGS, PDF, HEIF, JPEG 2000 and JBIG2 dimensions and source ownership.");
             await ImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS registered image decoding: HEIC, JPEG 2000 and JBIG2 match independent pixels with owned frames and unchanged source cursors.");
             await ImageFrameTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));

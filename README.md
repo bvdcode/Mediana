@@ -152,6 +152,8 @@ From the download or extraction directory on Linux/macOS:
 
 ```sh
 ./mediana --help
+./mediana -i audio.mp3
+./mediana probe artwork.svg
 ./mediana -i audio.mp3 out.wav
 ./mediana -i photo.heic out.png
 ./mediana -i artwork.svg out.png
@@ -164,6 +166,14 @@ From the download or extraction directory on Linux/macOS:
 ./mediana probe mp4 input.mp4
 ./mediana hls create input.mp4 output-hls --audio-stream 1
 ```
+
+`mediana -i input` inspects media when no output path is supplied, using the same
+operation as `mediana probe input`. Detection uses file contents. Containers report
+streams and declared metadata; SVG, HEIF, JPEG 2000, JBIG2, PDF and TGS/Lottie report
+image, first-page or animation-canvas dimensions without rendering. PDF dimensions
+are points (1/72 inch); animation metadata includes duration and frame rate. Image
+inspection reads bounded input and does not decode pixel data. Conversion options
+require an output path.
 
 On Windows, use `./mediana.exe` in PowerShell with the same arguments.
 The MP4 probe lists stream indices; use the appropriate video/audio indices in

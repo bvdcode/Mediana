@@ -54,6 +54,29 @@ in an arbitrary byte stream.
 FLAC and PCM configuration belongs to `Mediana.Formats`, shared by readers,
 decoders and output modules without introducing container-to-codec dependencies.
 
+## Media inspection
+
+`MediaEngine.ProbeAsync` uses the registered content recognizers for packet
+containers and complete-file images. Recognized images take precedence over a
+generic container signature, such as the ISO BMFF signature shared by MP4 and HEIF.
+An ambiguous image match fails; a parser failure is not retried as another format.
+
+Image adapters implement the optional `IImageInfoReader` capability. Inspection
+reads declarations without invoking pixel decoding or rendering. SVG shares viewport
+parsing with rendering; JPEG 2000 and JBIG2 share their structural header readers
+with decoding. PDF exposes the first page's visible size in points, HEIF applies
+container crop/orientation to the declared dimensions, and TGS/Lottie exposes canvas
+dimensions and composition timing.
+
+`MediaInfo` contains exactly one of `Container` and `Image`. Image results have
+empty `Streams` and `StreamMetadata` collections; they do not invent packet streams.
+Metadata survives source disposal. Random access inspection preserves the source
+cursor; sequential probing replays the recognized prefix. Container inspection does
+not scan encoded packets. Image readers may inspect the entire input, bounded by
+`MaxImageInputBytes`; encoded buffers share `BufferBudgetBytes`, and each module
+retains its own parsing-work limits. A successful probe describes declared metadata
+and does not guarantee support for every encoded feature.
+
 ## Encoding and copying
 
 `IMediaEncoder<TFrame>` extends the codec send/receive protocol and exposes its
