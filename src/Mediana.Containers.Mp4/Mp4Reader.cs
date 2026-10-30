@@ -45,6 +45,7 @@ namespace Mediana.Containers.Mp4
                 metadataItems.Where(item => item.Text is not null)
                     .Select(item => new MediaTag(item.Namespace, item.Name, item.Text!, locale: item.Locale))));
             CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(movie.Metadata));
+            InitializePictureInfo();
             TimestampMode = timestampMode;
             timelines = new Mp4LinearTimeline[movie.Tracks.Length];
             EncodedStreamInfo[] streams = new EncodedStreamInfo[movie.Tracks.Length];

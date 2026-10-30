@@ -17,7 +17,7 @@ namespace Mediana.Containers.Flac
     /// <summary>Forward-only native FLAC metadata and compressed byte chunks; borrows its source at the file signature.
     /// Packet boundaries are arbitrary and carry no frame timestamps. Audio framing, CRCs, PCM and MD5 verification
     /// belong to a decoder. Pictures retain their original metadata backing storage within the caller's budget.</summary>
-    public class FlacReader : IContainerReader
+    public partial class FlacReader : IContainerReader
     {
         private const int ScratchBytes = 4096;
         private readonly IByteSource source;
@@ -63,6 +63,7 @@ namespace Mediana.Containers.Flac
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
+                reader.InitializePictureInfo();
                 MediaDuration? declaredDuration = reader.Duration;
                 IReadOnlyList<FlacComment> comments = reader.Comments;
                 reader.info = new Lazy<ContainerInfo>(() => new ContainerInfo("flac", declaredDuration,

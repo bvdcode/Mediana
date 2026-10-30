@@ -13,6 +13,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await ContainerPictureTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS container pictures: MP3, FLAC and MP4 original bytes, empty lists, packet cursors and owned backing storage.");
             await EncodingOperationTestInput.VerifyAsync();
             Console.WriteLine("PASS encode operation: multiple packets, delayed output, finalization and frame ownership.");
             await MultiStreamTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-aac.mp4"));
