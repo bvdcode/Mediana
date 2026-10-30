@@ -30,7 +30,7 @@ namespace Mediana.Containers.Aiff
                 ?? throw new NotSupportedException(reason);
             SamplesPerChannel = BinaryPrimitives.ReadUInt32BigEndian(common.Memory.Span[6..]);
             Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, PcmConfiguration.AiffCodecId,
-                new TimeBase(1, Configuration.Format.SampleRate), common.Memory.Span) });
+                new TimeBase(1, Configuration.Format.SampleRate), common.Memory.Span, codedDuration: Duration) });
             await ReadPaddingAsync(size, cancellationToken).ConfigureAwait(false);
         }
 

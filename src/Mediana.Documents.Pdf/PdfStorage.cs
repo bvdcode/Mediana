@@ -15,12 +15,12 @@ namespace Mediana.Documents.Pdf
         private readonly HashSet<int> _sections = [];
         internal PdfBudget Budget { get; }
         internal PdfValue Trailer { get; }
-        internal PdfStorage(byte[] data, PdfReaderOptions options, CancellationToken token)
+        internal PdfStorage(ReadOnlyMemory<byte> data, PdfReaderOptions options, CancellationToken token)
         {
             _data = data;
             Budget = new(options);
-            if (!data.AsSpan().StartsWith("%PDF-"u8)) { throw new InvalidDataException("Missing PDF header."); }
-            int marker = data.AsSpan().LastIndexOf("startxref"u8);
+            if (!data.Span.StartsWith("%PDF-"u8)) { throw new InvalidDataException("Missing PDF header."); }
+            int marker = data.Span.LastIndexOf("startxref"u8);
             if (marker < 0) { throw new InvalidDataException("Missing PDF cross-reference offset."); }
             PdfSyntax end = Syntax(marker + 9, token);
             int offset = end.Read().Integer();

@@ -169,7 +169,8 @@ the HLS, preview and audio commands. Omit `--audio-stream` for `hls create` with
 audio; use explicit `--video-only` for `hls encode` without audio. Output paths
 must be new, and their parent directories must already exist.
 
-MP4-to-TS/HLS copies supported AVC/AAC/MP3 streams without re-encoding. PCM export
+TS stream copy accepts supported MP4/MOV AVC/AAC/MP3 tracks and native MPEG-1/2
+Layer III files. MP4-to-HLS copies the supported AVC/AAC/MP3 tracks without re-encoding. PCM export
 supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It writes raw,
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
@@ -197,9 +198,14 @@ Add `--log-level Debug` after the command to include diagnostic details, or
 `--log-level None` to disable diagnostics. Logs go to stderr; command results go
 to stdout. Colors are automatic in an interactive terminal; `--no-color` or the
 `NO_COLOR` environment variable disables them.
-WAVE conversion reports processed audio time, speed relative to playback and
-output size immediately, at one-second intervals, and when the output is complete.
-It does not report an estimated percentage when total duration is unknown.
+WAVE and AAC conversion report processed media time, speed relative to playback
+and output size immediately, at one-second intervals, and on completion. When
+`EncodedStreamInfo.CodedDuration` is known, a shared media-time estimator adds
+`eta=hh:mm:ss` after a short warmup using smoothed recent processing speed.
+The total comes from container metadata, including codec delay and padding; it
+does not apply presentation edits. MP3 Xing/Info, WAVE, AIFF and FLAC with a known
+sample count provide this metadata. Unknown totals, insufficient progress, stalls
+and completion omit the ETA field. No extra file scan or bitrate estimate is used.
 
 Ctrl+C cancels processing and removes incomplete output. Existing destinations
 are never replaced. Exit codes are 0 for success, 1 for an unexpected failure,
@@ -1187,12 +1193,181 @@ stream copy. Audio priming/discard metadata and container display matrices are n
 represented in TS. This operation does not yet define HLS segment boundaries,
 seek or playlists.
 
-The sample copies every AVC/AAC access unit from a supported MP4/MOV into a new
-TS file, applying LinearMovie timestamps and the writer's one-second offset:
+`MediaEngine.DecodeImageAsync(source, allocator, request)` decodes one complete
+registered image or document page into the same owned `VideoFrame` used by video
+processing. Register `HeicImageDecoder`, `Jpeg2000ImageDecoder`,
+`Jbig2ImageDecoder`, `SvgImageDecoder`, `TgsImageDecoder` and `PdfImageDecoder`
+explicitly as needed; no format modules are loaded by discovery.
+
+```csharp
+MediaEngine engine = new MediaEngineBuilder()
+    .AddImageDecoder(new Jpeg2000ImageDecoder(SampleAspectRatio.Square))
+    .AddImageDecoder(new HeicImageDecoder(SampleAspectRatio.Square))
+    .AddImageDecoder(new Jbig2ImageDecoder(SampleAspectRatio.Square))
+    .AddImageDecoder(new SvgImageDecoder())
+    .AddImageDecoder(new TgsImageDecoder())
+    .AddImageDecoder(new PdfImageDecoder())
+    .Build();
+MediaBufferAllocator allocator = new(64 * 1024 * 1024);
+await using RandomAccessStreamByteSource source = new(File.OpenRead("input.jp2"));
+using VideoFrame frame = await engine.DecodeImageAsync(source, allocator);
+```
+
+Raster decoder registration requires an explicit pixel-aspect interpretation.
+HEIF primary-image transforms are already applied; ICC conversion remains
+unsupported. JP2 uses its supported container color space; raw J2K requires a
+known source color space supplied to the decoder. Native component APIs retain
+their higher precision. The generic result does not infer unknown color metadata
+or convert every input to sRGB. Existing processing operations consume this frame.
+
+`ImageDecodeRequest.PageIndex` is zero-based; JBIG2 selects by document page order,
+not the page association identifier. Nonzero page/time selection is rejected when
+the decoder does not declare that capability. Recognized malformed input fails in
+the selected decoder; ambiguous recognition is rejected without trying another
+implementation. `ImageProbeLength` and `RecognizeImage(prefix)` expose the same
+registry for bounded routing; recognition does not validate the complete input.
+The CLI uses these registrations for `mediana -i input output.png`, including
+renamed files. A recognized image failure propagates from that decoder.
+
+SVG XML bytes retain their BOM and encoding declaration; external entities and
+implicit external resources remain disabled. TGS/Lottie uses elapsed time from
+its in-point, returns the requested timestamp and the selected fractional-frame
+duration at TimeSpan resolution. PDF uses zero-based `PageIndex`, defaults to
+96 DPI and keeps its page transforms and rendering limits. CLI `--page` remains
+one-based and `--time-ms` selects animation time. A container stream selector is
+not applicable to images or pages. Format-specific scene/document APIs remain
+available for callers that need them.
+
+The caller owns the source and returned frame. Random access starts at source
+origin while preserving its sequential cursor; sequential probing is replayed and
+consumes input even on failure. `ImageOpenOptions` bounds encoded bytes and probe
+size. The supplied allocator counts probe, encoded input, growth buffers and frame
+leases. Unknown-length inputs start with up to 8 KiB of encoded capacity and grow
+within the byte limit; capacity slack stays counted. Codec workspace and owned
+document/component arrays have their module-specific limits. The decoded frame
+retains no source or input-buffer lease and survives source disposal. Shared
+registries and allocators support independent concurrent requests.
+
+The registered raster path matches independent references for 42 HEIC, 98 JBIG2
+and 24 JP2 inputs, including transformed/alpha HEIC, 16-bit component conversion
+and a two-page JBIG2 selection check. These checks run in managed .NET and Linux
+Native AOT. The registered vector/document path also checks 352 SVG filter
+references, 33 supported TGS frames and independent PDF render references, plus
+second-page selection. These checks cover the supported decoder subsets and
+retain the existing reference tolerances; unsupported features still fail.
+
+`MediaEngine.ProbeAsync(source)` returns container identity, nullable declared
+duration and an immutable snapshot of encoded streams through the same registered
+readers as decoding. It needs no decoder registrations, does not iterate packets,
+and releases reader buffers before returning. Random access preserves the source
+cursor; sequential input consumes its opening headers. The source remains owned
+by the caller. Existing probe and buffer limits apply.
+
+```sh
+mediana probe input.bin
+```
+
+Content selects the reader, including for renamed files. WAVE/AIFF frame counts,
+FLAC STREAMINFO, MP3 Xing/Info frame counts and MP4 movie headers supply declared
+duration in its original time base. Missing declarations stay unknown; file size
+and bit rate are not used to guess duration. MP3 duration includes coded delay and
+padding, and MP4 movie duration need not equal the last presented timestamp.
+Headers and decoder configuration are inspected; this is not a complete file
+validation, a packet index export or a cover-art API. The existing
+format-specific probe commands provide their additional diagnostics.
+
+`ContainerInfo.Tags` exposes immutable header text without changing native keys.
+ID3v2 frames use namespace `id3v2`; FLAC Vorbis comments use `vorbis`; MP4 text
+items keep their native `mdir`, `mdta` or freeform namespace. Repeated names,
+value groups, file order, original spelling, custom descriptions and opaque MP4
+locale IDs are preserved. Application naming, case matching and normalization
+remain with the consumer. `null` means the reader does not expose header text
+(currently WAVE/AIFF); an empty list means none was found in the inspected
+supported structures. MP3 trailing ID3v1, binary MP4 track/disc values, cover bytes
+and unimplemented tag structures are outside this text view. Format-specific APIs
+retain their additional metadata and binary access.
+
+The generic CLI probe prints these tags as quoted, escaped text; each value group
+is a JSON array. Embedded newlines and terminal controls cannot create extra
+output lines. Reading tags reuses the opening parse and does not scan audio or
+video packets. Container metadata byte/count limits still apply.
+Native MP3/FLAC/MP4 readers build this common snapshot once, at the first metadata
+access; plain packet copying and decoding do not project unused text tags.
+Delayed access still uses opening header declarations, including after EOF and
+reader disposal, and retains no media-buffer lease.
+
+Register `IStreamMetadataReader` modules with
+`MediaEngineBuilder.AddStreamMetadataReader` to inspect codec configuration during
+`ProbeAsync`. The immutable `MediaInfo.StreamMetadata` dictionary uses actual
+stream indices and contains typed `AudioStreamMetadata` and `VideoStreamMetadata`.
+Audio metadata reports sample rate, channel count, nullable sample precision and
+nullable explicit channel order. Encoded
+`Streams` retain their original configuration. There is at most one metadata
+reader per codec identifier; missing entries mean no reader was registered or
+its configuration is unsupported. Malformed configuration throws, and media-kind
+mismatches are rejected. Readers perform no I/O, create no decoder and must support
+concurrent independent probes.
+
+`PcmStreamMetadataReader`, `AiffPcmStreamMetadataReader`,
+`FlacStreamMetadataReader`, `Mp3StreamMetadataReader` and
+`AacStreamMetadataReader` reuse the codec configuration parsers. PCM reports
+valid sample precision separately from storage width and retains explicit channel
+order. FLAC reports STREAMINFO precision without interpreting channel-layout
+comment overrides. Lossy MP3/AAC precision and unestablished channel order remain
+unknown. AAC-LC indexed multichannel headers can be inspected independently of
+the mono/stereo decoder limits. Unsupported AAC profiles or PCM representations
+remain unavailable; opening configuration is not proof of whole-file consistency.
+The generic CLI probe registers these readers and prints known audio parameters.
+Average VBR bit rate and stream-level tags are not yet exposed through this
+metadata view. Audio header checks cover 30 real WAVE, AIFF, FLAC,
+MP3 and AAC inputs, including MP4 audio tracks and AAC 5.1 outside the decoder's
+channel support. These checks pass in managed .NET and Linux Native AOT.
+
+`H264StreamMetadataReader` reads all SPS descriptions in the opening AVC
+configuration, with bounded configuration/parameter-set bytes and no decoded
+surface allocation. It exposes each SPS as `H264SequenceMetadata` through
+`VideoStreamMetadata.Configurations`: visible cropped sample dimensions, chroma
+sampling, luma/chroma precision, declared sample aspect ratio and colorimetry.
+These dimensions do not apply pixel aspect ratio or container rotation. Native
+SPS identifiers, profile/constraints/level, coded dimensions, crop offsets,
+frame/field flags, raw color codes and nullable VUI clock declarations remain
+available. Clock declarations are not an average frame rate. Missing syntax
+uses H.264 inference rules; unknown color codes remain available in the native
+properties even when the common color enum is unspecified.
+
+No opening SPS is implicitly treated as active. `IsProgressive` is true when
+`frame_mbs_only_flag` establishes progressive coding; false syntax permits both
+frames and fields, so the common scan property stays unknown. A common chroma
+location is assigned only for progressive 4:2:0 with matching top/bottom field
+locations. Initial configurations do not describe every later in-band change.
+The reader validates AVC configuration bounds and PPS identifiers/references,
+without parsing complete PPS reconstruction syntax. Unsupported SPS profiles
+return no metadata; malformed supported syntax throws.
+
+The generic CLI probe prints all opening video descriptions through this reader.
+Metadata availability is independent of decoding support: independent header
+checks cover eleven real AVC inputs, including 10-bit, 4:2:2, 4:4:4, interlaced,
+8K, cropped and rotated files. They pass with a 32 KiB media-buffer budget in
+managed .NET and Linux Native AOT without decoder registration. These checks do
+not expand the decoder's supported pixel formats, resolution or field coding.
+
+The CLI uses the same registered container probes as audio/video decoding.
+`MediaEngine.OpenContainerAsync` opens a `ContainerSession` of encoded packets
+without a decoder; the session borrows the source and owns its reader, replay
+buffer and read budget. Adding a container registers its reader factory; the
+command does not choose readers by filename or try parsers in sequence.
+
+TS stream copy accepts AVC/AAC/MP3 tracks from supported MP4/MOV files and native
+MPEG-1/2 Layer III files, including renamed inputs. It preserves encoded access
+units, applies LinearMovie timestamps to MP4 and adds the writer's one-second
+offset. The root command copies all tracks by default; `--stream` selects one:
+
 
 ```sh
 dotnet run --project tools/Mediana.Cli -c Release -- \
   remux input.mp4 output.ts
+mediana -i input.mp3 output.ts
+mediana -i input.mp4 audio.ts --stream 1
 ```
 
 The sample requires an initial IDR on each video track and timestamps that leave

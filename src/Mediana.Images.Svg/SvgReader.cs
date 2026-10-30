@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Drawing;
+using Mediana.IO;
 using System;
 using System.IO;
 using System.Text;
@@ -28,7 +28,23 @@ namespace Mediana.Images.Svg
             }
 
             using StringReader? source = new StringReader(xml);
-            using XmlReader reader = XmlReader.Create(source, new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null, MaxCharactersInDocument = options.MaximumInputBytes });
+            using XmlReader reader = XmlReader.Create(source, Settings(options));
+            XElement root = XElement.Load(reader);
+            return new SvgSceneBuilder(root, options, cancellationToken).Build();
+        }
+
+        /// <summary>Parses borrowed XML bytes using their BOM and encoding declaration. The returned scene owns its data.</summary>
+        public static SvgDocument Read(ReadOnlyMemory<byte> xml, SvgReaderOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            options ??= new SvgReaderOptions();
+            Validate(options);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (xml.Length > options.MaximumInputBytes)
+            {
+                throw new InvalidDataException("SVG exceeds MaximumInputBytes.");
+            }
+            using ReadOnlyMemoryStream source = new(xml);
+            using XmlReader reader = XmlReader.Create(source, Settings(options));
             XElement root = XElement.Load(reader);
             return new SvgSceneBuilder(root, options, cancellationToken).Build();
         }
@@ -52,9 +68,7 @@ namespace Mediana.Images.Svg
                 await data.WriteAsync(buffer.AsMemory(0, count), cancellationToken).ConfigureAwait(false);
             }
 
-            data.Position = 0;
-            using StreamReader? text = new StreamReader(data, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            return Read(await text.ReadToEndAsync(cancellationToken).ConfigureAwait(false), options, cancellationToken);
+            return Read(data.GetBuffer().AsMemory(0, checked((int)data.Length)), options, cancellationToken);
         }
 
         /// <summary>Reads a local SVG file.</summary>
@@ -63,6 +77,13 @@ namespace Mediana.Images.Svg
             await using FileStream? source = File.OpenRead(path);
             return await ReadAsync(source, options, cancellationToken).ConfigureAwait(false);
         }
+
+        private static XmlReaderSettings Settings(SvgReaderOptions options) => new()
+        {
+            DtdProcessing = DtdProcessing.Ignore,
+            XmlResolver = null,
+            MaxCharactersInDocument = options.MaximumInputBytes
+        };
 
         private static void Validate(SvgReaderOptions o)
         {

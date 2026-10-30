@@ -6,5 +6,6 @@
     <InternalsVisibleTo Include="Mediana.Tests" />
     <InternalsVisibleTo Include="Mediana.NativeTests" />
     <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />
+    <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
   </ItemGroup>
 </Project>

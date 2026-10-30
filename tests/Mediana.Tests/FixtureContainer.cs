@@ -12,6 +12,8 @@ namespace Mediana.Tests
     internal class FixtureContainer(IByteSource source, MediaBufferAllocator allocator) : IContainerReader
     {
         private int index;
+        public ContainerInfo Info { get; } = new("fixture");
+        public int PacketReads { get; private set; }
         public bool IsDisposed { get; private set; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; } =
             [new EncodedStreamInfo(0, MediaKind.Video, "fixture.rgba", new TimeBase(1, 1))];
@@ -19,6 +21,7 @@ namespace Mediana.Tests
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
         {
             ObjectDisposedException.ThrowIf(IsDisposed, this);
+            PacketReads++;
             using WritableMediaBuffer writable = allocator.Allocate(1);
             int read = await source.ReadAsync(writable.Memory, cancellationToken);
             if (read == 0)

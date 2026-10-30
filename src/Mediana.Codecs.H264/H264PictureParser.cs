@@ -5,16 +5,23 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264PictureParser
     {
-        public static H264PictureParameterSet Parse(ReadOnlySpan<byte> nal,
+        public static (int Id, int SequenceId) ReadIdentity(ref H264BitReader bits,
             IReadOnlyDictionary<int, H264SequenceParameterSet> sequences)
         {
-            H264BitReader bits = H264Nal.Payload(nal, 8);
             int id = bits.ReadUe(255);
             int sequenceId = bits.ReadUe(31);
             if (!sequences.ContainsKey(sequenceId))
             {
                 throw new InvalidDataException("The H.264 picture parameter set references a missing sequence.");
             }
+            return (id, sequenceId);
+        }
+
+        public static H264PictureParameterSet Parse(ReadOnlySpan<byte> nal,
+            IReadOnlyDictionary<int, H264SequenceParameterSet> sequences)
+        {
+            H264BitReader bits = H264Nal.Payload(nal, 8);
+            (int id, int sequenceId) = ReadIdentity(ref bits, sequences);
             bool cabac = bits.ReadFlag();
             bool bottomOrder = bits.ReadFlag();
             if (bits.ReadUe(7) != 0)

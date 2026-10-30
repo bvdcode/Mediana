@@ -16,11 +16,29 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException("Different top and bottom field chroma locations are not represented in a progressive video format.");
             }
-            SampleAspectRatio? aspect = vui.AspectRatioWidth > 0 && vui.AspectRatioHeight > 0
+            return new VideoFormat(sequence.Width, sequence.Height, VideoPixelFormat.Yuv420P8,
+                ReadColor(vui, topLocation), ReadSampleAspectRatio(vui));
+        }
+
+        internal static SampleAspectRatio? ReadSampleAspectRatio(H264VuiParameters? vui) =>
+            vui is { AspectRatioWidth: > 0, AspectRatioHeight: > 0 }
                 ? new SampleAspectRatio(vui.AspectRatioWidth, vui.AspectRatioHeight) : null;
-            VideoColorInfo color = new(CicpColorimetry.GetPrimaries(vui.ColorPrimaries), CicpColorimetry.GetTransfer(vui.TransferCharacteristics),
-                Matrix(vui.MatrixCoefficients), vui.FullRange ? ColorRange.Full : ColorRange.Limited, Location(topLocation));
-            return new VideoFormat(sequence.Width, sequence.Height, VideoPixelFormat.Yuv420P8, color, aspect);
+
+        internal static VideoColorInfo ReadColor(H264VuiParameters? parameters, int? location)
+        {
+            H264VuiParameters vui = parameters ?? new H264VuiParameters();
+            ChromaLocation chromaLocation = location switch
+            {
+                null => ChromaLocation.Unspecified,
+                int code => Location(code)
+            };
+            ColorRange range = vui.FullRange switch
+            {
+                true => ColorRange.Full,
+                false => ColorRange.Limited
+            };
+            return new VideoColorInfo(CicpColorimetry.GetPrimaries(vui.ColorPrimaries), CicpColorimetry.GetTransfer(vui.TransferCharacteristics),
+                Matrix(vui.MatrixCoefficients), range, chromaLocation);
         }
 
         private static MatrixCoefficients Matrix(int code) => code switch

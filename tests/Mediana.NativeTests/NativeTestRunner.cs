@@ -15,6 +15,10 @@ namespace Mediana.NativeTests
         {
             await PdfReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Pdf"));
             Console.WriteLine("PASS PDF: detached pages, vector order, clipping and transparency.");
+            await VectorImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS registered vector decoding: 352 SVG cases, 33 timed TGS frames and PDF pages match independent pixels.");
+            await ImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS registered image decoding: HEIC, JPEG 2000 and JBIG2 match independent pixels with owned frames and unchanged source cursors.");
             await ImageFrameTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS image conversion: HEIC, JPEG 2000 and JBIG2 produce owned frames and complete sRGB PNG files.");
             await TgsReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Tgs"));
@@ -88,6 +92,17 @@ namespace Mediana.NativeTests
             await AudioResamplingTestInput.VerifyAsync(44100, 400, AudioStorageLayout.Planar);
             await AudioResamplingTestInput.VerifyAsync(8000, 11025, AudioStorageLayout.Interleaved);
             Console.WriteLine("PASS audio resampling: passband tones, exact timing, channel separation and finite output ownership match.");
+            for (int index = 0; index < MediaProbeTestInput.Cases.Length; index++)
+            {
+                await MediaProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), index);
+            }
+            Console.WriteLine("PASS media probe: declared durations, codec IDs and owned snapshots match header references without decoders.");
+            await VideoStreamMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS video header metadata: all opening SPS descriptions, 8K, HDR, sampling and field declarations match independent references without picture allocation.");
+            await AudioStreamMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS audio header metadata: PCM, AIFF, FLAC, MP3 and AAC sample parameters match independent references without decoders.");
+            await MediaTagTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS header text tags: MP3 ID3, FLAC Vorbis and MP4 native keys match independent references after source disposal.");
             foreach (string name in WavePcmTestInput.Names)
             {
                 await WavePcmTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"), name);

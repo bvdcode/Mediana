@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 
 namespace Mediana.Core.Video
 {
@@ -11,7 +12,7 @@ namespace Mediana.Core.Video
         /// <summary>Copies tight rows. The allocator counts the destination, not source or decoder workspace.</summary>
         public static VideoFrame CopyFrom(ReadOnlySpan<byte> pixels, int width, int height,
             VideoColorInfo color, MediaBufferAllocator allocator, SampleAspectRatio? sampleAspectRatio = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default, MediaTimestamp? timestamp = null, MediaDuration? duration = null)
         {
             ArgumentNullException.ThrowIfNull(color);
             ArgumentNullException.ThrowIfNull(allocator);
@@ -34,7 +35,7 @@ namespace Mediana.Core.Video
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new VideoFrame(format, buffer, layout);
+            return new VideoFrame(format, buffer, layout, timestamp, duration);
         }
     }
 }

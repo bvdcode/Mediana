@@ -67,19 +67,42 @@ buffer bound. The output is variable bitrate: silence can use substantially less
 than the ceiling. There is no bit reservoir, constant-rate fill or target-file-size
 guarantee.
 
-Analysis currently uses long sine windows for every frame. Each channel has one
-global quantizer scale; nonuniform quantization rounds magnitude to the nearest
-integer. The encoder selects spectral codebooks 1–11 per band and skips zero bands.
-It increases quantizer scale until the exact Huffman/sign/escape/section bit count
-fits the channel budget. Stereo channels are independent within a common window.
+Analysis uses long sine windows for every frame. Each frequency band has a
+separate quantizer scale. A coefficient selects the closer of the two adjacent
+reconstructed magnitudes, using the normative `magnitude^(4/3)` reconstruction
+and quarter-power gain. Spectral codebooks 1–11 are selected per band; zero bands
+omit spectral data and scale symbols. Scale differences skip zero bands and must
+remain within −60 through +60; reconstructed scales remain within 0 through 255.
+Stereo channels are independent within a common window.
 
-Short-window switching, psychoacoustic per-band allocation, mid/side or intensity
-encoding, TNS and PNS encoding remain open. This first path does not promise
-production perceptual quality or parity with established encoders. The three
-generated tone/noise/impulse fixtures measure approximately 16.3, 16.4 and 20.7 dB
-unweighted source SNR at their respective 64/128/192 kbit/s ceilings after removing
-declared delay/padding. Simple stationary-tone tests exceed 25 dB. These measurements
-characterize those inputs only; they are not a listening-quality assessment.
+Rate control first finds a uniform-scale seed within the bit ceiling. Bounded
+local refinement then spends unused bits or trades precision between bands when
+that reduces total squared spectral reconstruction error. Each move counts actual
+scale Huffman symbols, section runs, spectral tuples, signs and escapes. Search
+examines up to four adjacent scales in each direction and accepts at most
+32 moves per channel frame. Pair search considers up to four refinement and
+four coarsening candidates. It retains a valid budget after
+every accepted move; it does not claim a globally optimal allocation. Powered
+magnitudes reuse transform scratch storage; band scales add 64 bytes per channel.
+
+The before/after checks use the same raw ceilings and generated tone/noise/impulse
+sources, independently decoded and aligned by the declared delay:
+
+| Source | Ceiling, kbit/s | Previous SNR, dB | Current SNR, dB | Previous/current actual raw kbit/s |
+| --- | --- | --- | --- | --- |
+| Mono 48 kHz | 64 | 16.32 | 19.10 | 57.34 / 61.64 |
+| Stereo 44.1 kHz | 128 | 16.43 | 19.63 | 112.58 / 124.23 |
+| Stereo 48 kHz | 192 | 20.74 | 23.27 | 181.62 / 189.22 |
+
+The metric is unweighted source SNR after removing priming and padding. Increased
+use of the available bit ceiling contributes to the improvement; these are not
+equal-size output comparisons. Simple stationary-tone tests exceed 25 dB.
+
+Short-window switching, auditory masking, mid/side or intensity encoding, TNS,
+PNS encoding and bit-reservoir control remain open. This allocation minimizes
+an unweighted spectral error measure rather than a psychoacoustic noise threshold.
+It does not establish production listening quality, transient performance or
+parity with established encoders. Tests on real music and speech remain required.
 
 Syntax, scale reconstruction and filterbank rules follow ISO/IEC 13818-7:2004,
 clauses 6–11, clause 15 and Annexes A/C, and ISO/IEC 14496-3:2009 AAC-LC rules.
@@ -98,6 +121,8 @@ conversion; the source rate and channel order are preserved. Unsupported rates
 or layouts fail. Video encoding options cannot be combined with this mode. The
 destination must be new; failures and cancellation discard its temporary file.
 Progress reports source media time, speed and bytes through the standard logger.
+A known coded duration enables a smoothed remaining-time estimate; unknown totals
+omit the ETA field.
 
 TS retains all priming and padded samples and uses the existing one-second
 transport timestamp offset. It does not carry gapless trimming metadata. Standalone
@@ -113,8 +138,11 @@ source decoder's complete media timeline.
 ## Verification
 
 Forward MDCT tests compare every coefficient at both supported transform sizes
-with the direct cosine formula. Entropy tests cover signed tuples and escape
-magnitudes through 8191. Different PCM block sizes produce identical packets;
+with the direct cosine formula. Entropy tests cover signed tuples, escape
+magnitudes through 8191 and every DPCM scale symbol. Quantizer tests check both sides of every reconstruction
+decision boundary at scales 0, 100 and 255. Band tests compare exact written bit
+counts, round-trip every coefficient and preserve zero-band scale semantics.
+Different PCM block sizes produce identical packets;
 state tests cover backpressure, timing gaps, bounds, cancellation, reset, delay,
 padding and output ownership.
 
@@ -128,9 +156,19 @@ Native and managed commands produce identical TS bytes for all three reference
 inputs. A complete ten-minute 44.1 kHz stereo PCM sequence produces 25,841 AAC
 packets and 26,461,184 decoded samples per channel, including 1024 priming and
 160 padding samples. Every packet's PTS and raw bit budget is checked, and the
-complete decoded PCM agrees with the independent decoder within 0.00000015.
+complete decoded PCM agrees with the independent decoder within 0.00000018.
 An in-progress SIGINT returns 130 and removes the temporary output file.
 Standalone Native AOT commands also convert complete MP3, 24-bit FLAC, 24-bit
 AIFF and MP4 AAC inputs; every resulting TS decodes independently without errors.
 A 44117 Hz FLAC input is rejected without publishing output, preserving the
 explicit supported-rate contract.
+
+A Native AOT before/after comparison encodes the complete ten-minute stereo input
+at a 128 kbit/s frame ceiling, with two runs per implementation in alternating
+order on one pinned CPU. The surrounding CLI sources are identical. Median
+process CPU falls from 114.49 to 97.62 seconds; median peak RSS is 26.06 and
+26.13 MiB respectively. Repeated outputs are byte-identical within each version.
+The host is shared, and the before runs span 103.66–125.31 CPU seconds, so these
+measurements describe this input and environment. The band allocator also uses
+more of the bit budget and changes encoded bytes; this is not a comparison at
+equal average bitrate or a quality comparison with another encoder.

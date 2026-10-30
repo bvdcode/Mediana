@@ -4,6 +4,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Mediana.Drawing/Mediana.Drawing.csproj" />
+    <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
+    <ProjectReference Include="../Mediana.IO/Mediana.IO.csproj" />
     <EmbeddedResource Update="BundledResources.resx" LogicalName="Mediana.Images.Svg.Resources.BundledResources.resources" />
   </ItemGroup>
 </Project>

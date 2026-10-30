@@ -43,6 +43,7 @@ namespace Mediana.Cli
                 app.ConfigureServices((context, configuration, services) =>
                 {
                     CliSettings settings = (CliSettings)context.GlobalOptions!;
+                    services.AddSingleton<TextWriter>(output ?? Console.Out);
                     services.AddLogging(builder => CliLogging.Configure(builder, settings.LogLevel, settings.NoColor));
                     services.AddSingleton(provider => provider.GetRequiredService<ILoggerFactory>().CreateLogger("mediana"));
                 });

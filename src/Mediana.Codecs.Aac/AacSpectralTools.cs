@@ -5,9 +5,6 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacSpectralTools
     {
-        private static readonly double[] Magnitudes = CreateMagnitudes();
-        private static readonly double[] Gains = CreateGains();
-
         public static void Reconstruct(AacChannelState left, AacChannelState? right, bool commonWindow,
             int maskMode, ReadOnlySpan<byte> mask, ref uint noiseState, CancellationToken cancellationToken)
         {
@@ -53,7 +50,7 @@ namespace Mediana.Codecs.Aac
                     {
                         continue;
                     }
-                    double gain = Gains[scales[index]];
+                    double gain = AacQuantizer.Gain(scales[index]);
                     for (int window = 0; window < info.Groups[group]; window++)
                     {
                         int start = (firstWindow + window) * info.WindowSize + info.Bands[band];
@@ -61,32 +58,12 @@ namespace Mediana.Codecs.Aac
                         for (int bin = start; bin < end; bin++)
                         {
                             int value = quantized[bin];
-                            spectrum[bin] = Math.Sign(value) * Magnitudes[Math.Abs(value)] * gain;
+                            spectrum[bin] = Math.Sign(value) * AacQuantizer.Magnitude(Math.Abs(value)) * gain;
                         }
                     }
                 }
                 firstWindow += info.Groups[group];
             }
-        }
-
-        private static double[] CreateMagnitudes()
-        {
-            double[] values = new double[8192];
-            for (int index = 0; index < values.Length; index++)
-            {
-                values[index] = Math.Pow(index, 4.0 / 3);
-            }
-            return values;
-        }
-
-        private static double[] CreateGains()
-        {
-            double[] values = new double[256];
-            for (int index = 0; index < values.Length; index++)
-            {
-                values[index] = Math.Pow(2, 0.25 * (index - 100));
-            }
-            return values;
         }
 
         private static void ApplyIndependentNoise(AacChannelState channel, ref uint noiseState)

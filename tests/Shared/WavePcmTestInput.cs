@@ -35,6 +35,7 @@ namespace Mediana.Tests
             await using (WaveReader reader = await WaveReader.OpenAsync(input, metadataAllocator))
             {
                 if (reader.SamplesPerChannel != samples || reader.Duration != new MediaDuration(samples, new TimeBase(1, rate))
+                    || reader.Streams[0].CodedDuration != reader.Duration
                     || reader.Configuration.Format.SampleFormat != format || !reader.Configuration.Format.Channels.SequenceEqual(channels))
                 {
                     throw new InvalidDataException("WAVE metadata does not match the independent PCM reference.");

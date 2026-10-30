@@ -25,6 +25,19 @@ namespace Mediana.Documents.Pdf
             }
             return new(new PdfStorage(output.ToArray(), options, cancellationToken), cancellationToken);
         }
+        /// <summary>The caller keeps input valid until the document and its parsing operations are disposed.</summary>
+        internal static PdfDocument ReadBorrowed(ReadOnlyMemory<byte> input, PdfReaderOptions? options, CancellationToken cancellationToken)
+        {
+            options ??= new();
+            Validate(options);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (input.Length > options.MaximumInputBytes)
+            {
+                throw new InvalidDataException("PDF encoded input exceeds its byte limit.");
+            }
+            return new(new PdfStorage(input, options, cancellationToken), cancellationToken);
+        }
+
         private static void Validate(PdfReaderOptions options)
         {
             if (options.MaximumInputBytes <= 0 || options.MaximumDecodedBytes <= 0 || options.MaximumObjects <= 0 || options.MaximumValues <= 0 || options.MaximumDepth is < 1 or > 256 || options.MaximumPages <= 0 || options.MaximumOperations <= 0 || options.MaximumImagePixels <= 0 || options.MaximumImageBytes <= 0)

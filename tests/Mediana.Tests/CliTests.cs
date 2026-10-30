@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Buffers.Binary;
+using System.Text;
 using Mediana.Cli;
 
 namespace Mediana.Tests
@@ -204,6 +205,43 @@ namespace Mediana.Tests
             Assert.Equal(0, code);
             byte[] bytes = await File.ReadAllBytesAsync(output);
             Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, bytes.AsSpan(0, 8).ToArray());
+        }
+
+        [Fact]
+        public async Task SimplePngConversionHonorsPdfPageAndAnimationTime()
+        {
+            foreach ((string folder, string name, string option, string value, string[] explicitArguments) in new[]
+            {
+                ("Pdf", "graphics.pdf", "--page", "2", new[] { "pdf", "render", "--page", "2" }),
+                ("Tgs", "geometry.tgs", "--time-ms", "250", new[] { "image", "tgs", "--time", "0.25", "--width", "400" })
+            })
+            {
+                string source = Data(folder, name);
+                string output = Path.Combine(directory, folder + "-common.png");
+                string expected = Path.Combine(directory, folder + "-explicit.png");
+                (int result, _, _) = await RunAsync(["-i", source, output, option, value]);
+                Assert.Equal(0, result);
+                (int direct, _, _) = await RunAsync([.. explicitArguments[..2], source, expected, .. explicitArguments[2..]]);
+                Assert.Equal(0, direct);
+                Assert.Equal(await File.ReadAllBytesAsync(expected), await File.ReadAllBytesAsync(output));
+            }
+        }
+
+        [Fact]
+        public async Task SimplePngConversionRecognizesUtf16XmlAndRejectsUnsupportedSelectors()
+        {
+            string input = Path.Combine(directory, "source.bin");
+            string output = Path.Combine(directory, "output.png");
+            await File.WriteAllTextAsync(input, "<?xml version='1.0' encoding='utf-16'?><svg width='2' height='1'/>", Encoding.Unicode);
+            (int code, _, _) = await RunAsync(["-i", input, output]);
+            Assert.Equal(0, code);
+            File.Delete(output);
+            foreach (string[] selector in new[] { new[] { "--page", "2" }, ["--time-ms", "1"], ["--stream", "0"] })
+            {
+                (int invalid, _, _) = await RunAsync(["-i", input, output, .. selector]);
+                Assert.Equal(3, invalid);
+                Assert.False(File.Exists(output));
+            }
         }
 
         private static string Data(string format, string name) => Path.Combine(AppContext.BaseDirectory, "Data", format, name);

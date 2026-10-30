@@ -24,5 +24,8 @@ namespace Mediana.Cli
 
         [LoggerMessage(6, LogLevel.Information, "time={MediaTime} speed={Speed:F2}x size={OutputMebibytes:F2} MiB")]
         public static partial void Progress(ILogger logger, string mediaTime, double speed, double outputMebibytes);
+
+        [LoggerMessage(7, LogLevel.Information, "time={MediaTime} speed={Speed:F2}x size={OutputMebibytes:F2} MiB eta={RemainingTime}")]
+        public static partial void ProgressWithEstimate(ILogger logger, string mediaTime, double speed, double outputMebibytes, string remainingTime);
     }
 }

@@ -6,12 +6,17 @@ using System.Text.Json;
 
 namespace Mediana.Cli.Updates
 {
-    internal class GitHubReleaseClient(HttpClient httpClient, ReleasePlatform platform)
+    internal class GitHubReleaseClient(HttpClient httpClient, ReleasePlatform platform, UpdateRetryPolicy retry)
     {
         private const string Sha256Prefix = "sha256:";
         private static readonly Uri LatestReleaseUrl = new($"https://api.github.com/repos/{ReleaseAssets.Repository}/releases/latest");
 
-        public async Task<GitHubRelease> GetLatestAsync(CancellationToken token)
+        public Task<GitHubRelease> GetLatestAsync(CancellationToken token)
+        {
+            return retry.ExecuteAsync(GetLatestCoreAsync, token);
+        }
+
+        private async Task<GitHubRelease> GetLatestCoreAsync(CancellationToken token)
         {
             using HttpResponseMessage response = await httpClient.GetAsync(LatestReleaseUrl, HttpCompletionOption.ResponseHeadersRead, token);
             response.EnsureSuccessStatusCode();
@@ -67,6 +72,13 @@ namespace Mediana.Cli.Updates
         {
             await using FileStream file = new(destination, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None,
                 bufferSize: 81920, FileOptions.Asynchronous);
+            await retry.ExecuteAsync(attemptToken => DownloadCoreAsync(release, file, attemptToken), token);
+        }
+
+        private async Task<long> DownloadCoreAsync(GitHubRelease release, FileStream file, CancellationToken token)
+        {
+            file.SetLength(0);
+            file.Position = 0;
             using HttpResponseMessage response = await httpClient.GetAsync(release.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, token);
             response.EnsureSuccessStatusCode();
             await using Stream stream = await response.Content.ReadAsStreamAsync(token);
@@ -82,6 +94,7 @@ namespace Mediana.Cli.Updates
             {
                 throw new InvalidDataException("SHA-256 verification failed. The installed executable has not been changed.");
             }
+            return file.Length;
         }
     }
 }

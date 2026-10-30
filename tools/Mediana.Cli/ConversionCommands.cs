@@ -13,7 +13,7 @@ namespace Mediana.Cli
         /// <param name="input">-i, Existing input file; its content determines the input format.</param>
         /// <param name="stream">Audio or video stream index; defaults to the first stream of the required kind.</param>
         /// <param name="timeMs">Video/animation frame timestamp in milliseconds for PNG output.</param>
-        /// <param name="page">One-based PDF page number for PNG output.</param>
+        /// <param name="page">One-based document page number for PNG output.</param>
         /// <param name="videoCodec">TS video mode: Copy preserves encoded streams; H264 encodes fixed-QP intra video.</param>
         /// <param name="videoOnly">Explicitly omit audio when encoding H264 to TS.</param>
         /// <param name="qp">Fixed H264 quantizer from 0 to 51; defaults to 26 when encoding.</param>
@@ -77,7 +77,7 @@ namespace Mediana.Cli
             {
                 ".wav" or ".wave" => WaveAudioCommand.RunAsync(input, output, stream, logger, cancellationToken),
                 ".png" => FilePreviewCommand.RunAsync(input, output, stream, timeMs, page, cancellationToken),
-                ".ts" => Mp4RemuxCommand.RunAsync(input, output, cancellationToken),
+                ".ts" => MpegTsRemuxCommand.RunAsync(input, output, stream, cancellationToken),
                 _ => throw new NotSupportedException("Cannot select an output format from the extension '" + Path.GetExtension(output)
                     + "'. Use .wav or .wave (PCM16), .png (one image/frame/page), or .ts (AVC/AAC/MP3 stream copy).")
             });

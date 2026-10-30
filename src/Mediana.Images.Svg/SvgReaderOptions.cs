@@ -10,7 +10,7 @@ namespace Mediana.Images.Svg
     /// <summary>Bounds for XML input and interpreted geometry. External entities/resources are disabled.</summary>
     public record SvgReaderOptions
     {
-        /// <summary>Gets the maximum UTF-8 input length; defaults to 16 MiB.</summary>
+        /// <summary>Gets the maximum encoded input length; strings are counted as UTF-8. Defaults to 16 MiB.</summary>
         public int MaximumInputBytes { get; init; } = 16 * 1024 * 1024;
         /// <summary>Gets the maximum XML element and expanded-reference count.</summary>
         public int MaximumElements { get; init; } = 100_000;

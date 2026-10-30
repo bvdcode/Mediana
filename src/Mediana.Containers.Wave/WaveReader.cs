@@ -41,6 +41,7 @@ namespace Mediana.Containers.Wave
             scratch = allocator.Allocate(ReadBufferBytes);
         }
 
+        public ContainerInfo Info { get; private set; } = null!;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
         public PcmConfiguration Configuration { get; private set; } = null!;
         public long SamplesPerChannel { get; private set; }
@@ -59,6 +60,7 @@ namespace Mediana.Containers.Wave
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
+                reader.Info = new ContainerInfo("wave", reader.Duration);
                 opened = true;
                 return reader;
             }
@@ -120,6 +122,9 @@ namespace Mediana.Containers.Wave
                         dataRemaining = chunkSize;
                         dataPadding = (chunkSize & 1) != 0;
                         SamplesPerChannel = chunkSize / Configuration.BlockAlignment;
+                        EncodedStreamInfo stream = Streams[0];
+                        Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(stream.StreamIndex, stream.Kind, stream.CodecId,
+                            stream.TimeBase, stream.Configuration.Span, codedDuration: Duration) });
                         return;
                     default:
                         await SkipChunkAsync(id, chunkSize, cancellationToken).ConfigureAwait(false);

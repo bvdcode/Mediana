@@ -4,6 +4,7 @@
 using Mediana.Codecs.Pcm;
 using Mediana.Containers.Wave;
 using Mediana.Core.Audio;
+using Mediana.Core.Timing;
 using Mediana.IO;
 
 namespace Mediana.Tests
@@ -19,6 +20,7 @@ namespace Mediana.Tests
             await using (AudioSession session = await engine.OpenAudioAsync(sequential, 0))
             using (AudioFrame frame = (await session.ReadFrameAsync())!)
             {
+                Assert.Equal(new MediaDuration(4, new TimeBase(1, 8000)), session.Stream.CodedDuration);
                 Assert.Equal(new byte[] { 0, 64, 128, 255 }, frame.GetPlane(0).ToArray());
                 Assert.Null(await session.ReadFrameAsync());
             }
@@ -29,6 +31,7 @@ namespace Mediana.Tests
             await using (AudioSession session = await engine.OpenAudioAsync(random, 0))
             using (AudioFrame frame = (await session.ReadFrameAsync())!)
             {
+                Assert.Equal(new MediaDuration(4, new TimeBase(1, 8000)), session.Stream.CodedDuration);
                 Assert.Equal(new byte[] { 0, 64, 128, 255 }, frame.GetPlane(0).ToArray());
                 Assert.Equal(3, memory.Position);
             }

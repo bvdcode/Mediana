@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Core.Metadata;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -25,6 +26,7 @@ namespace Mediana.Containers.Flac
         private bool disposed;
         private bool faulted;
         private int busy;
+        private Lazy<ContainerInfo> info = null!;
 
         private FlacReader(IByteSource source, MediaBufferAllocator allocator, FlacReadOptions options)
         {
@@ -35,6 +37,7 @@ namespace Mediana.Containers.Flac
         }
 
         public FlacConfiguration Configuration { get; private set; } = null!;
+        public ContainerInfo Info => info.Value;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
         public IReadOnlyList<FlacComment> Comments { get; private set; } = [];
         public IReadOnlyList<FlacPictureInfo> Pictures { get; private set; } = [];
@@ -56,6 +59,10 @@ namespace Mediana.Containers.Flac
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
+                MediaDuration? declaredDuration = reader.Duration;
+                IReadOnlyList<FlacComment> comments = reader.Comments;
+                reader.info = new Lazy<ContainerInfo>(() => new ContainerInfo("flac", declaredDuration,
+                    comments.Select(comment => new MediaTag("vorbis", comment.Name, comment.Value))));
                 opened = true;
                 return reader;
             }
@@ -112,7 +119,9 @@ namespace Mediana.Containers.Flac
                         await ReadExactlyAsync(scratch.Memory[..length], cancellationToken).ConfigureAwait(false);
                         Configuration = FlacConfiguration.ReadStreamInfo(scratch.Memory.Span[..length]);
                         Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, FlacConfiguration.CodecId,
-                            new TimeBase(1, Configuration.SampleRate), scratch.Memory.Span[..length]) });
+                            new TimeBase(1, Configuration.SampleRate), scratch.Memory.Span[..length],
+                            codedDuration: Configuration.TotalSamples == 0 ? null : new MediaDuration(Configuration.TotalSamples,
+                                new TimeBase(1, Configuration.SampleRate))) });
                         break;
                     case 1:
                     case 2:

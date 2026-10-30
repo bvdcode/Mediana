@@ -8,6 +8,7 @@ namespace Mediana.Tests
 {
     internal class BlockingContainer : IContainerReader
     {
+        public ContainerInfo Info { get; } = new("blocking");
         public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public IReadOnlyList<EncodedStreamInfo> Streams => [];
 
