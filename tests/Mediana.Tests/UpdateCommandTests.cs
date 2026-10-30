@@ -9,31 +9,40 @@ namespace Mediana.Tests
     [Collection("CommandLine")]
     public class UpdateCommandTests
     {
-        [Fact]
-        public async Task UpdateHelpExplainsCheckWithoutNetworkAccess()
+        [Theory]
+        [InlineData("update")]
+        [InlineData("--update")]
+        [InlineData("-u")]
+        public async Task UpdateHelpExplainsCheckWithoutNetworkAccess(string command)
         {
             using StringWriter output = new(CultureInfo.InvariantCulture);
             using StringWriter error = new(CultureInfo.InvariantCulture);
-            int code = await CliApplication.RunAsync(["update", "--help"], output, error);
+            int code = await CliApplication.RunAsync([command, "--help"], output, error);
             Assert.Equal(CliExitCodes.Success, code);
             Assert.Contains("--check", output.ToString(), StringComparison.Ordinal);
         }
 
-        [Fact]
-        public async Task ManagedInvocationCannotReplaceTheHostExecutable()
+        [Theory]
+        [InlineData("update")]
+        [InlineData("--update")]
+        [InlineData("-u")]
+        public async Task ManagedInvocationCannotReplaceTheHostExecutable(string command)
         {
             using StringWriter output = new(CultureInfo.InvariantCulture);
             using StringWriter error = new(CultureInfo.InvariantCulture);
-            int code = await CliApplication.RunAsync(["update"], output, error);
+            int code = await CliApplication.RunAsync([command], output, error);
             Assert.Equal(CliExitCodes.Unsupported, code);
         }
 
-        [Fact]
-        public async Task MediaArgumentsAreRejectedByUpdate()
+        [Theory]
+        [InlineData("update")]
+        [InlineData("--update")]
+        [InlineData("-u")]
+        public async Task MediaArgumentsAreRejectedByUpdate(string command)
         {
             using StringWriter output = new(CultureInfo.InvariantCulture);
             using StringWriter error = new(CultureInfo.InvariantCulture);
-            int code = await CliApplication.RunAsync(["update", "input.mp4"], output, error);
+            int code = await CliApplication.RunAsync([command, "input.mp4"], output, error);
             Assert.Equal(CliExitCodes.Usage, code);
         }
     }

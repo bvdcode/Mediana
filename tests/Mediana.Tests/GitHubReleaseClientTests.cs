@@ -4,12 +4,14 @@
 using System.Net;
 using System.Text.Json.Nodes;
 using Mediana.Cli.Updates;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Mediana.Tests
 {
     public class GitHubReleaseClientTests : IDisposable
     {
         private static readonly byte[] Payload = [1, 2, 3, 4];
+        private static readonly UpdateRetryPolicy Retry = new(NullLogger.Instance);
         private readonly string directory = Directory.CreateTempSubdirectory("mediana-release-").FullName;
 
         [Theory]
@@ -20,7 +22,7 @@ namespace Mediana.Tests
         {
             using UpdateHttpHandler handler = new(UpdateTestRelease.Metadata("1.2.3", Payload).ToJsonString(), Payload);
             using HttpClient http = new(handler);
-            GitHubReleaseClient client = new(http, (ReleasePlatform)platform);
+            GitHubReleaseClient client = new(http, (ReleasePlatform)platform, Retry);
             GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
             string destination = Path.Combine(directory, "download");
             await client.DownloadAsync(release, destination, CancellationToken.None);
@@ -101,7 +103,7 @@ namespace Mediana.Tests
             JsonObject metadata = UpdateTestRelease.Metadata("1.2.3", Payload);
             metadata["assets"]![0]!["size"] = size;
             using HttpClient http = new(new UpdateHttpHandler(metadata.ToJsonString(), Payload));
-            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64);
+            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, Retry);
             GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
             await Assert.ThrowsAsync<InvalidDataException>(() => client.DownloadAsync(release, Path.Combine(directory, "download"), CancellationToken.None));
         }
@@ -110,7 +112,7 @@ namespace Mediana.Tests
         public async Task HttpFailureIsReported()
         {
             using HttpClient http = new(new UpdateHttpHandler("{}", [], status: HttpStatusCode.Forbidden));
-            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64);
+            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, Retry);
             await Assert.ThrowsAsync<HttpRequestException>(() => client.GetLatestAsync(CancellationToken.None));
         }
 
@@ -121,7 +123,7 @@ namespace Mediana.Tests
             await File.WriteAllBytesAsync(destination, Payload);
             using UpdateHttpHandler handler = new(UpdateTestRelease.Metadata("1.2.3", Payload).ToJsonString(), Payload);
             using HttpClient http = new(handler);
-            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64);
+            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, Retry);
             GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
             await Assert.ThrowsAsync<IOException>(() => client.DownloadAsync(release, destination, CancellationToken.None));
             Assert.Equal(Payload, await File.ReadAllBytesAsync(destination));
@@ -131,7 +133,7 @@ namespace Mediana.Tests
         private static async Task AssertMetadataRejectedAsync(JsonObject metadata)
         {
             using HttpClient http = new(new UpdateHttpHandler(metadata.ToJsonString(), Payload));
-            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64);
+            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, Retry);
             await Assert.ThrowsAsync<InvalidDataException>(() => client.GetLatestAsync(CancellationToken.None));
         }
 

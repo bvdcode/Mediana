@@ -12,6 +12,8 @@ Install a newer version with:
 ./mediana update
 ```
 
+`./mediana --update` and `./mediana -u` run the same command and also accept `--check`.
+
 On Windows, use `./mediana.exe` with the same arguments. Self-update supports
 the published Windows x64, Linux x64 and macOS ARM64 executables. It preserves
 the executable's location and custom filename. Linux and macOS retain the existing
@@ -22,6 +24,13 @@ architecture. Before replacement, it verifies the download size, GitHub's SHA-25
 digest, product identity and version. A check does not download the executable;
 an installed newer version is never downgraded. Updating requires a published
 Native AOT executable.
+
+Release checks and downloads retry connection failures, interrupted transfers,
+timeouts, HTTP 408, HTTP 429 and HTTP 5xx responses. There are up to six attempts,
+with delays of 1, 2, 4, 8 and 16 seconds. Each retry reports its delay and attempt
+number. Interrupted downloads restart from the beginning. Ctrl+C cancels both
+requests and retry delays. A persistent firewall block must be allowed locally;
+retries do not change firewall settings.
 
 On Linux and macOS, the verified download replaces the installed file in the same
 directory. The running process finishes with its original executable. On Windows,

@@ -146,7 +146,7 @@ namespace Mediana.Tests
         private static async Task UpdateAsync(UpdateHttpHandler handler, string installed, bool checkOnly = false, CancellationToken token = default)
         {
             using HttpClient http = new(handler);
-            SelfUpdater updater = new(new GitHubReleaseClient(http, ReleaseAssets.CurrentPlatform),
+            SelfUpdater updater = new(new GitHubReleaseClient(http, ReleaseAssets.CurrentPlatform, new UpdateRetryPolicy(NullLogger.Instance)),
                 new UpdateInstaller(NullLogger.Instance), NullLogger.Instance);
             await updater.UpdateAsync(installed, checkOnly, token);
         }
