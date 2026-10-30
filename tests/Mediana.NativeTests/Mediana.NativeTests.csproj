@@ -81,6 +81,7 @@
     <Compile Include="../Shared/HlsSessionTestInput.cs" Link="HlsSessionTestInput.cs" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/H264MultiSliceTestInput.cs" Link="H264MultiSliceTestInput.cs" />
+    <Compile Include="../Shared/VideoSeekTestInput.cs" Link="VideoSeekTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-multislice-*" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalDeblockingTestInput.cs" Link="H264BidirectionalDeblockingTestInput.cs" />

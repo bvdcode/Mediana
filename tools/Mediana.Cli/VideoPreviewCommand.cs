@@ -26,6 +26,7 @@ namespace Mediana.Cli
                 ? await engine.OpenVideoAsync(source, selected, cancellationToken: cancellationToken)
                 : await engine.OpenVideoAsync(source, cancellationToken: cancellationToken);
             MediaTimestamp target = new(milliseconds, new TimeBase(1, 1000));
+            await session.SeekAsync(target, cancellationToken);
             using VideoFrame decoded = await session.ReadFrameAtOrAfterAsync(target, cancellationToken)
                 ?? throw new InvalidDataException("There is no frame at or after the requested timestamp.");
             VideoDisplayMatrix displayMatrix = session.Stream.DisplayMatrix
