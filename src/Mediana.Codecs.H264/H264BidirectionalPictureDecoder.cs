@@ -11,6 +11,10 @@ namespace Mediana.Codecs.H264
             H264PictureOrder order, MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (header.FirstMacroblock != 0)
+            {
+                throw new InvalidDataException("Single-slice reconstruction must start at macroblock zero.");
+            }
             string? reason = H264Support.GetUnsupportedReason(header);
             if (header.Kind != H264SliceKind.B || reason is not null)
             {
@@ -24,28 +28,7 @@ namespace Mediana.Codecs.H264
             bool complete = false;
             try
             {
-                int qp = header.Qp;
-                int address = 0;
-                while (address < result.Quantizers.Length && bits.MoreRbspData())
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    int skip = bits.ReadUe(result.Quantizers.Length - address);
-                    for (int index = 0; index < skip; index++)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        ReadMacroblock(ref bits, result, header, references, order, address++, ref qp, true);
-                    }
-                    if (address == result.Quantizers.Length || skip > 0 && !bits.MoreRbspData())
-                    {
-                        break;
-                    }
-                    ReadMacroblock(ref bits, result, header, references, order, address++, ref qp, false);
-                }
-                if (address != result.Quantizers.Length)
-                {
-                    throw new NotSupportedException("The H.264 slice does not cover the complete picture.");
-                }
-                bits.ReadTrailingBits();
+                DecodeSlice(ref bits, header, references, order, result, result.Quantizers.Length, cancellationToken);
                 H264Deblocking.Apply(result, header, cancellationToken, references.L0, references.L1);
                 result.CaptureReferences(references.L0, references.L1);
                 complete = true;
@@ -58,6 +41,34 @@ namespace Mediana.Codecs.H264
                     result.Dispose();
                 }
             }
+        }
+
+        public static void DecodeSlice(ref H264BitReader bits, H264SliceHeader header,
+            H264BidirectionalReferences references, H264PictureOrder order, H264Picture result, int endMacroblock,
+            CancellationToken cancellationToken = default)
+        {
+            int qp = header.Qp;
+            int address = header.FirstMacroblock;
+            while (address < endMacroblock && bits.MoreRbspData())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int skip = bits.ReadUe(endMacroblock - address);
+                for (int index = 0; index < skip; index++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    ReadMacroblock(ref bits, result, header, references, order, address++, ref qp, true);
+                }
+                if (address == endMacroblock || skip > 0 && !bits.MoreRbspData())
+                {
+                    break;
+                }
+                ReadMacroblock(ref bits, result, header, references, order, address++, ref qp, false);
+            }
+            if (address != endMacroblock)
+            {
+                throw new InvalidDataException("The H.264 slice does not cover its declared macroblock range.");
+            }
+            bits.ReadTrailingBits();
         }
 
         private static void ReadMacroblock(ref H264BitReader bits, H264Picture target, H264SliceHeader header,

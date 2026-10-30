@@ -6,6 +6,7 @@ namespace Mediana.Codecs.H264
     internal record H264SliceHeader(H264SequenceParameterSet Sequence, H264PictureParameterSet Picture)
     {
         public H264SliceKind Kind { get; init; }
+        public bool AllSlicesSameKind { get; init; }
         public bool IsIdr { get; init; }
         public int ReferenceIndicator { get; init; }
         public int FirstMacroblock { get; init; }

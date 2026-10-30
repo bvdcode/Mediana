@@ -5,9 +5,9 @@ using Mediana.Core;
 
 namespace Mediana.Codecs.H264
 {
-    /// <summary>Inspects single-slice AVC packets without reconstructing pictures.
-    /// IDR results validate access-unit boundaries and the complete supported slice header,
-    /// not residual data. Each call uses the original configuration plus parameters in that packet.</summary>
+    /// <summary>Inspects AVC packets with slices in increasing macroblock order without reconstructing pictures.
+    /// IDR results validate access-unit boundaries and all supported slice headers,
+    /// not residual data or complete macroblock coverage. Each call uses the original configuration plus parameters in that packet.</summary>
     public class H264RandomAccessInspector
     {
         private readonly int streamIndex;
@@ -27,7 +27,7 @@ namespace Mediana.Codecs.H264
         }
 
         /// <summary>Ignores the container key-frame flag. Non-IDR slice headers, including B headers,
-        /// are not parsed. IDR headers require a progressive 8-bit 4:2:0 picture starting at macroblock zero.</summary>
+        /// are not fully parsed. IDR headers require a progressive 8-bit 4:2:0 picture starting at macroblock zero.</summary>
         public bool IsIdr(MediaPacket packet, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(packet);
@@ -37,16 +37,11 @@ namespace Mediana.Codecs.H264
             }
             cancellationToken.ThrowIfCancellationRequested();
             H264AccessUnit unit = H264AccessUnitReader.Read(packet.Data, configuration, options, cancellationToken);
-            if (unit.Slice.IsEmpty || H264Nal.Type(unit.Slice.Span) != 5)
+            if (unit.Slices.Count == 0 || H264Nal.Type(unit.Slices[0].Span) != 5)
             {
                 return false;
             }
-            H264BitReader bits = H264Nal.Payload(unit.Slice.Span, 5);
-            H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, unit.Configuration, unit.Slice.Span[0], options);
-            if (header.FirstMacroblock != 0)
-            {
-                throw new NotSupportedException("AVC random access inspection requires one complete slice starting at macroblock zero.");
-            }
+            H264SliceHeaders.Read(unit, options, cancellationToken);
             return true;
         }
     }

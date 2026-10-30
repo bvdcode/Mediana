@@ -35,7 +35,7 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task InvalidIdrHeadersAndMultipleSlicesAreRejected()
+        public async Task InvalidIdrHeadersAndDuplicateSlicesAreRejected()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("avc-tail.mov"));
@@ -46,14 +46,7 @@ namespace Mediana.Tests
             {
                 using MediaBuffer data = Copy(bytes, allocator);
                 using MediaPacket packet = new(0, data);
-                if (bytes.Length > 8)
-                {
-                    Assert.Throws<NotSupportedException>(() => inspector.IsIdr(packet));
-                }
-                else
-                {
-                    Assert.Throws<InvalidDataException>(() => inspector.IsIdr(packet));
-                }
+                Assert.Throws<InvalidDataException>(() => inspector.IsIdr(packet));
             }
         }
 

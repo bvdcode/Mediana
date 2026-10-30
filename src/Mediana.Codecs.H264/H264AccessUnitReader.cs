@@ -13,7 +13,8 @@ namespace Mediana.Codecs.H264
                 throw new InvalidDataException("An AVC access unit cannot be empty.");
             }
             H264NalReader reader = new(packet, configuration.LengthSize, options.MaxNalsPerPacket);
-            ReadOnlyMemory<byte> slice = default;
+            List<ReadOnlyMemory<byte>> slices = [];
+            int previousMacroblock = -1;
             bool seenNal = false;
             bool endSequence = false;
             bool endStream = false;
@@ -29,17 +30,24 @@ namespace Mediana.Codecs.H264
                 {
                     case 1:
                     case 5:
-                        if (!slice.IsEmpty)
+                        H264BitReader sliceBits = H264Nal.Payload(nal.Span, type);
+                        int firstMacroblock = sliceBits.ReadUe();
+                        if (firstMacroblock <= previousMacroblock)
                         {
-                            throw new NotSupportedException("Each AVC packet must contain one complete single-slice picture.");
+                            throw new InvalidDataException("AVC slice macroblock ranges must be strictly increasing within one picture.");
                         }
-                        slice = nal;
+                        if (slices.Count == 0 && firstMacroblock != 0)
+                        {
+                            throw new NotSupportedException("AVC pictures must start at macroblock zero; arbitrary slice order is not supported.");
+                        }
+                        previousMacroblock = firstMacroblock;
+                        slices.Add(nal);
                         break;
                     case 6:
                     case 7:
                     case 8:
                     case 9:
-                        if (!slice.IsEmpty || (type == 9 && seenNal))
+                        if (slices.Count != 0 || (type == 9 && seenNal))
                         {
                             throw new InvalidDataException("The AVC packet crosses an access unit boundary.");
                         }
@@ -69,7 +77,7 @@ namespace Mediana.Codecs.H264
                 }
                 seenNal = true;
             }
-            return new H264AccessUnit(configuration, slice, endSequence, endStream);
+            return new H264AccessUnit(configuration, slices, endSequence, endStream);
         }
 
         private static void ReadAuxiliary(ReadOnlySpan<byte> nal, int type, CancellationToken cancellationToken)

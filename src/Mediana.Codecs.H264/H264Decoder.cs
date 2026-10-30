@@ -48,7 +48,7 @@ namespace Mediana.Codecs.H264
                     throw new InvalidDataException("The H.264 stream has already ended.");
                 }
                 H264AccessUnit unit = H264AccessUnitReader.Read(input.Data, configuration, options, cancellationToken);
-                if (!unit.Slice.IsEmpty)
+                if (unit.Slices.Count != 0)
                 {
                     DecodePicture(unit, input, cancellationToken);
                 }
@@ -151,21 +151,19 @@ namespace Mediana.Codecs.H264
 
         private void DecodePicture(H264AccessUnit unit, MediaPacket packet, CancellationToken cancellationToken)
         {
-            H264BitReader bits = H264Nal.Payload(unit.Slice.Span, H264Nal.Type(unit.Slice.Span));
-            H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, unit.Configuration, unit.Slice.Span[0], options);
-            string? reason = H264Support.GetUnsupportedReason(unit.Configuration) ?? H264Support.GetUnsupportedReason(header);
+            IReadOnlyList<H264SliceRegion> slices = H264SliceHeaders.Read(unit, options, cancellationToken);
+            H264SliceHeader header = slices[0].Header;
+            string? reason = H264Support.GetUnsupportedReason(unit.Configuration);
+            foreach (H264SliceRegion slice in slices)
+            {
+                reason ??= H264Support.GetUnsupportedReason(slice.Header);
+            }
             if (reason is not null)
             {
                 throw new NotSupportedException(reason);
             }
             H264PictureOrderState nextOrder = order.Advance(header);
-            H264Picture picture = header.Kind switch
-            {
-                H264SliceKind.B => H264BidirectionalPictureDecoder.Decode(ref bits, header, references.GetBidirectionalLists(header, nextOrder.Current), nextOrder.Current, allocator, cancellationToken),
-                H264SliceKind.I or H264SliceKind.P => H264PictureDecoder.Decode(ref bits, header, references.GetList0(header), allocator, cancellationToken),
-                H264SliceKind.Sp or H264SliceKind.Si => throw new NotSupportedException("SP and SI pictures are not supported."),
-                _ => throw new ArgumentOutOfRangeException(nameof(header))
-            };
+            H264Picture picture = H264MultiSliceDecoder.Decode(unit, slices, references, nextOrder.Current, allocator, options, cancellationToken);
             VideoFrame? frame = null;
             bool stored = false;
             bool queued = false;

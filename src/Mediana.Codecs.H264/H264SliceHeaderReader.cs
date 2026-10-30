@@ -18,7 +18,8 @@ namespace Mediana.Codecs.H264
                 throw new InvalidDataException("Invalid H.264 slice NAL header.");
             }
             int firstMacroblock = bits.ReadUe();
-            H264SliceKind kind = (bits.ReadUe(9) % 5) switch
+            int sliceType = bits.ReadUe(9);
+            H264SliceKind kind = (sliceType % 5) switch
             {
                 0 => H264SliceKind.P,
                 1 => H264SliceKind.B,
@@ -115,6 +116,7 @@ namespace Mediana.Codecs.H264
             return new H264SliceHeader(sequence, picture)
             {
                 Kind = kind,
+                AllSlicesSameKind = sliceType >= 5,
                 IsIdr = idr,
                 ReferenceIndicator = referenceIndicator,
                 FirstMacroblock = firstMacroblock,

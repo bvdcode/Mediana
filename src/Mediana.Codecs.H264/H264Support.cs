@@ -36,10 +36,6 @@ namespace Mediana.Codecs.H264
             {
                 return reason;
             }
-            if (header.FirstMacroblock != 0)
-            {
-                return "H.264 reconstruction currently requires one complete slice per picture.";
-            }
             return header.Kind switch
             {
                 H264SliceKind.I or H264SliceKind.P or H264SliceKind.B => null,

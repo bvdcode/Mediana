@@ -14,7 +14,7 @@ namespace Mediana.Tests
             (H264Configuration configuration, byte[] slice) = await InputAsync();
             byte[] packet = Packet([9, 0xF0], [6, 200, 4, 0, 0, 3, 0, 4, 128], slice, [12, 255, 255, 128], [10], [11]);
             H264AccessUnit unit = H264AccessUnitReader.Read(packet, configuration, new H264DecoderOptions());
-            Assert.Equal(slice, unit.Slice.ToArray());
+            Assert.Equal(slice, Assert.Single(unit.Slices).ToArray());
             Assert.Same(configuration, unit.Configuration);
             Assert.True(unit.EndSequence);
             Assert.True(unit.EndStream);
@@ -40,7 +40,7 @@ namespace Mediana.Tests
         public async Task RejectsMultiplePicturesInvalidBoundariesAndDataAfterEndMarkers()
         {
             (H264Configuration configuration, byte[] slice) = await InputAsync();
-            Assert.Throws<NotSupportedException>(() => Read(Packet(slice, slice)));
+            Assert.Throws<InvalidDataException>(() => Read(Packet(slice, slice)));
             Assert.Throws<InvalidDataException>(() => Read(Packet(slice, [6, 200, 0, 128])));
             Assert.Throws<InvalidDataException>(() => Read(Packet([12, 128], [9, 0xF0], slice)));
             Assert.Throws<InvalidDataException>(() => Read(Packet([10], slice)));
