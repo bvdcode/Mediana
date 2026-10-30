@@ -58,9 +58,13 @@ content and exposes decoded image XObjects. See [PDF support and limits](docs/pd
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
 
-The H.264 work currently reconstructs single-slice progressive 8-bit 4:2:0 CAVLC I/P/B
+The H.264 work currently reconstructs progressive 8-bit 4:2:0 CAVLC I/P/B
 and CABAC I/P/B pictures with default scaling, including motion compensation, reference
 picture management, intra prediction, inverse transforms, PCM blocks and deblocking.
+Each packet contains a complete picture, with one or more slices in increasing
+macroblock order. Three further CAVLC/CABAC multislice sequences match all 54
+independent reference pictures, including slice starts inside macroblock rows,
+per-slice quantizers, temporal/spatial B prediction and filtering across slice edges.
 Two complete Baseline/Main CAVLC sequences and one cropped IDR picture match the
 independent filtered YUV references sample for sample (nineteen pictures total).
 The Main sequence includes explicit prediction weights and reference-list changes.
@@ -915,13 +919,15 @@ forward without seeking. Null means the stream has ended.
 
 `H264RandomAccessInspector` examines AVC packets without reconstructing pictures.
 `IsIdr(packet)` ignores container key-frame flags and validates access-unit boundaries
-and the supported IDR slice header, including its parameter references. It requires
-a complete single-slice progressive 8-bit 4:2:0 IDR picture; it does not validate
-residual data. Non-IDR slice headers, including B pictures, are not parsed by this
+and all supported IDR slice headers, including their parameter references and picture
+identity. It requires a progressive 8-bit 4:2:0 IDR picture whose first slice starts at
+macroblock zero and whose remaining slices proceed in increasing order. It does not
+validate residual data or prove complete macroblock coverage. Full non-IDR slice
+headers, including B pictures, are not parsed by this
 inspection operation. Packet inspection uses the original configuration and any
 parameter sets carried within that packet, without retaining state between calls.
 
-The decoder accepts AVC length-prefixed packets with one complete single-slice
+The decoder accepts AVC length-prefixed packets with one complete
 picture and an initial avcC configuration. Supported pictures are progressive
 8-bit YUV 4:2:0 CAVLC or CABAC I/P/B with default scaling, including 4x4/8x8
 prediction and transforms.
@@ -934,9 +940,13 @@ sample aspect ratio and CICP color codes remain unspecified.
 
 Picture order types 0, 1 and 2, bounded delayed output, IDR/MMCO resets, input
 completion, cancellation and buffer ownership have executable checks. SEI message
-boundaries are validated; payload semantics are not interpreted. Multiple slices,
-interlacing, custom scaling, higher bit depths and inferred
-references for frame-number gaps are unsupported. H264DecoderOptions bounds picture
+boundaries are validated; payload semantics are not interpreted. Slices have independent
+prediction and entropy state; deblocking follows complete picture reconstruction,
+honouring each slice's controls and reference identities. Missing or overlapping
+macroblock ranges and conflicting picture identities or reference marking fail explicitly.
+Arbitrary slice order, slice groups, redundant slices, interlacing, custom scaling,
+higher bit depths and inferred references for frame-number gaps are unsupported.
+H264DecoderOptions bounds picture
 pixels, configuration bytes, parameter-set bytes, NAL count and reference operations.
 Returned frames remain valid after reset or disposal until their owners release them.
 
