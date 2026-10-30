@@ -9,12 +9,15 @@ namespace Mediana.Tests
 {
     internal static class PdfPixelReference
     {
-        internal static async Task VerifyAsync(string root, string name, PixelBuffer image, bool exact = false)
+        internal static Task VerifyAsync(string root, string name, PixelBuffer image, bool exact = false) =>
+            VerifyAsync(root, name, image.Width, image.Height, image.Pixels, exact);
+
+        internal static async Task VerifyAsync(string root, string name, int width, int height, ReadOnlyMemory<byte> pixels, bool exact = false)
         {
             using JsonDocument manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "references.json")));
             JsonElement entry = manifest.RootElement.EnumerateArray().Single(x => x.GetProperty("file").GetString() == name + ".rgba.gz");
-            if (image.Width != entry.GetProperty("width").GetInt32() || image.Height != entry.GetProperty("height").GetInt32()) { throw new InvalidDataException("PDF reference dimensions differ: " + name); }
-            byte[] reference = new byte[image.Pixels.Length];
+            if (width != entry.GetProperty("width").GetInt32() || height != entry.GetProperty("height").GetInt32()) { throw new InvalidDataException("PDF reference dimensions differ: " + name); }
+            byte[] reference = new byte[pixels.Length];
             await using FileStream input = File.OpenRead(Path.Combine(root, name + ".rgba.gz"));
             await using GZipStream decoder = new(input, CompressionMode.Decompress);
             await decoder.ReadExactlyAsync(reference);
@@ -23,8 +26,8 @@ namespace Mediana.Tests
             for (int i = 0; i < reference.Length; i += 4)
             {
                 int maximum = 0;
-                for (int c = 0; c < 3; c++) { int delta = Math.Abs(image.Pixels.Span[i + c] - reference[i + c]); error += delta; maximum = Math.Max(maximum, delta); }
-                if (image.Pixels.Span[i + 3] != reference[i + 3]) { throw new InvalidDataException("PDF reference alpha differs."); }
+                for (int c = 0; c < 3; c++) { int delta = Math.Abs(pixels.Span[i + c] - reference[i + c]); error += delta; maximum = Math.Max(maximum, delta); }
+                if (pixels.Span[i + 3] != reference[i + 3]) { throw new InvalidDataException("PDF reference alpha differs."); }
                 if (maximum <= 8) { matching++; }
             }
             double mae = error / (reference.Length / 4.0 * 3);
