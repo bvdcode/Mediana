@@ -9,7 +9,7 @@ using Mediana.IO;
 
 namespace Mediana.Streaming.Hls
 {
-    /// <summary>Indexes one AVC video track and optional AAC track for repeatable MPEG-TS segment output.
+    /// <summary>Indexes one AVC video track and optional AAC/MP3 track for repeatable MPEG-TS segment output.
     /// Borrows an immutable random-access source. Owns its reader; I/O operations must not overlap.</summary>
     public class Mp4HlsSession : IAsyncDisposable
     {
@@ -70,9 +70,9 @@ namespace Mediana.Streaming.Hls
                 {
                     ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(audioStreamIndex.Value, reader.Streams.Count);
                     EncodedStreamInfo audio = reader.Streams[audioStreamIndex.Value];
-                    if (audio.Kind != MediaKind.Audio || audio.CodecId != "aac")
+                    if (audio.Kind != MediaKind.Audio || audio.CodecId is not ("aac" or "mp3"))
                     {
-                        throw new NotSupportedException("MP4 HLS sessions require AAC-LC for the selected audio track.");
+                        throw new NotSupportedException("MP4 HLS sessions require AAC-LC or MPEG-1/2 Layer III for the selected audio track.");
                     }
                     streams = [reader.Streams[videoStreamIndex], audio];
                 }

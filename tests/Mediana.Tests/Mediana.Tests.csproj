@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/Mp3HlsTestInput.cs" Link="Mp3HlsTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Containers.Aiff/Mediana.Containers.Aiff.csproj" />
     <Compile Include="../Shared/AiffTestInput.cs" Link="AiffTestInput.cs" />
     <Compile Include="../Shared/PcmReferenceTestInput.cs" Link="PcmReferenceTestInput.cs" />

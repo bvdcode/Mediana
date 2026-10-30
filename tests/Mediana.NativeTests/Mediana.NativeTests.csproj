@@ -8,6 +8,8 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/Mp3HlsTestInput.cs" Link="Mp3HlsTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-mp3-*.mp4" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Containers.Aiff/Mediana.Containers.Aiff.csproj" />
     <Compile Include="../Shared/PcmReferenceTestInput.cs" Link="PcmReferenceTestInput.cs" />
     <Compile Include="../Shared/AiffPcmReferenceTestInput.cs" Link="AiffPcmReferenceTestInput.cs" />

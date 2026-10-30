@@ -70,6 +70,12 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS edited AAC: leading-delay removal, exact edit selection and trimmed 400 Hz waveform match independent PCM, timing and ownership.");
             Console.WriteLine("PASS AAC waveform: explicit mono mix, complete 400 Hz PCM16, exact timing, RMS and peak match processing of independent decoded references.");
             await Mp4MetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
+            foreach (string file in new[] { "avc-mp3-44.mp4", "avc-mp3-22.mp4" })
+            {
+                await MpegTsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), file);
+                await Mp3HlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), file);
+            }
+            Console.WriteLine("PASS MP3 in MP4/TS/HLS: MPEG-1/2 frames, timestamps, transport tables and repeatable segments match.");
             Console.WriteLine("PASS MP4 metadata: Unicode tags, indexed keys, exact PNG/JPEG covers, unchanged packets and independent cover ownership match.");
             await AudioWaveformTestInput.VerifyAsync();
             await AudioWaveformTestInput.VerifyWaveAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"));

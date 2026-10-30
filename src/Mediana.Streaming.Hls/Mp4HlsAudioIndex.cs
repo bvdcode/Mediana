@@ -14,7 +14,7 @@ namespace Mediana.Streaming.Hls
             int count = reader.Tracks[streamIndex].SampleCount;
             if (count == 0)
             {
-                throw new NotSupportedException("The selected AAC track must contain samples.");
+                throw new NotSupportedException("The selected audio track must contain samples.");
             }
             Mp4HlsAudioRange[] ranges = new Mp4HlsAudioRange[video.Count];
             int sample = 0;
@@ -36,7 +36,7 @@ namespace Mediana.Streaming.Hls
                     if (info.Duration.Value == 0 || info.PresentationTime != info.DecodeTime ||
                         (previous.HasValue && info.DecodeTime.CompareTo(previous.Value) <= 0))
                     {
-                        throw new NotSupportedException("AAC coverage requires positive durations, increasing DTS and PTS equal to DTS.");
+                        throw new NotSupportedException("Audio coverage requires positive durations, increasing DTS and PTS equal to DTS.");
                     }
                     start ??= info.PresentationTime;
                     MediaTimestamp sampleEnd = new(checked(info.PresentationTime.Value + info.Duration.Value), info.Duration.TimeBase);
