@@ -10,12 +10,14 @@ namespace Mediana.Execution
     /// <summary>Pull-driven decoding with no unbounded packet queue.
     /// Owns the decoder after construction; borrows the container reader.
     /// Cancellation or failure makes the pipeline terminal. Calls and disposal must not overlap.</summary>
-    public class MediaDecodePipeline<TFrame> : IDisposable where TFrame : class, IDisposable
+    public partial class MediaDecodePipeline<TFrame> : IDisposable where TFrame : class, IDisposable
     {
         private readonly IContainerReader reader;
         private readonly IMediaCodec<MediaPacket, TFrame> decoder;
         private readonly int streamIndex;
         private readonly long? maxPacketReads;
+        private readonly IRandomAccessInspector? randomAccessInspector;
+        private MediaPacket? pendingPacket;
         private long packetReads;
         private bool inputCompleted;
         private bool ended;
@@ -25,7 +27,7 @@ namespace Mediana.Execution
         private int busy;
 
         public MediaDecodePipeline(IContainerReader reader, IMediaCodec<MediaPacket, TFrame> decoder,
-            int streamIndex, long? maxPacketReads = null)
+            int streamIndex, long? maxPacketReads = null, IRandomAccessInspector? randomAccessInspector = null)
         {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentNullException.ThrowIfNull(decoder);
@@ -34,10 +36,12 @@ namespace Mediana.Execution
             {
                 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
             }
-            this.reader = reader;
+            this.reader = reader is IIndexedContainerReader indexed && randomAccessInspector is not null
+                ? new IndexedPacketReader(indexed, streamIndex) : reader;
             this.decoder = decoder;
             this.streamIndex = streamIndex;
             this.maxPacketReads = maxPacketReads;
+            this.randomAccessInspector = randomAccessInspector;
         }
 
         /// <summary>Returns an owned frame or null at EOF. An optional limit counts all container reads, including EOF.</summary>
@@ -109,15 +113,7 @@ namespace Mediana.Execution
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (maxPacketReads is long limit)
-                {
-                    if (packetReads == limit)
-                    {
-                        throw new InvalidOperationException($"The configured container limit of {limit} packet reads has been reached.");
-                    }
-                    packetReads++;
-                }
-                using MediaPacket? packet = await reader.ReadPacketAsync(cancellationToken).ConfigureAwait(false);
+                using MediaPacket? packet = await ReadNextPacketAsync(cancellationToken).ConfigureAwait(false);
                 if (packet is null)
                 {
                     decoder.CompleteInput();
@@ -137,6 +133,29 @@ namespace Mediana.Execution
                     default:
                         throw new InvalidOperationException("The decoder returned an invalid input state.");
                 }
+            }
+        }
+
+        private async ValueTask<MediaPacket?> ReadNextPacketAsync(CancellationToken cancellationToken)
+        {
+            if (pendingPacket is MediaPacket packet)
+            {
+                pendingPacket = null;
+                return packet;
+            }
+            CountPacketRead();
+            return await reader.ReadPacketAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        private void CountPacketRead()
+        {
+            if (maxPacketReads is long limit)
+            {
+                if (packetReads == limit)
+                {
+                    throw new InvalidOperationException($"The configured container limit of {limit} packet reads has been reached.");
+                }
+                packetReads++;
             }
         }
 
@@ -163,7 +182,15 @@ namespace Mediana.Execution
             if (!decoderDisposed)
             {
                 decoderDisposed = true;
-                decoder.Dispose();
+                try
+                {
+                    decoder.Dispose();
+                }
+                finally
+                {
+                    pendingPacket?.Dispose();
+                    pendingPacket = null;
+                }
             }
         }
 

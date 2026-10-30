@@ -9,9 +9,9 @@ using Mediana.IO;
 
 namespace Mediana
 {
-    /// <summary>Forward-only decoding. Owns container/decoder state but not the caller's source.
+    /// <summary>Owns container/decoder state but not the caller's source.
     /// Returned frames survive session disposal until their owners release them.</summary>
-    internal class MediaDecodeSession<TFrame> : IAsyncDisposable where TFrame : class, IDisposable
+    internal partial class MediaDecodeSession<TFrame> : IAsyncDisposable where TFrame : class, IDisposable
     {
         private readonly IContainerReader reader;
         private readonly IByteSource replay;

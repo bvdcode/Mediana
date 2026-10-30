@@ -124,8 +124,11 @@ namespace Mediana
                 {
                     throw new NotSupportedException("The requested stream has a different media kind.");
                 }
-                decoder = SelectDecoder(stream, factories).Create(stream, allocator);
-                pipeline = new MediaDecodePipeline<TFrame>(reader, decoder, stream.StreamIndex, options.MaxPacketReads);
+                IDecoderFactory<TFrame> decoderFactory = SelectDecoder(stream, factories);
+                decoder = decoderFactory.Create(stream, allocator);
+                IRandomAccessInspector? inspector = decoderFactory is IRandomAccessDecoderFactory randomAccessFactory
+                    ? randomAccessFactory.CreateRandomAccessInspector(stream) : null;
+                pipeline = new MediaDecodePipeline<TFrame>(reader, decoder, stream.StreamIndex, options.MaxPacketReads, inspector);
                 MediaDecodeSession<TFrame> session = new(reader, replay, pipeline, allocator, options.MaxFrameReads, stream);
                 cancellationToken.ThrowIfCancellationRequested();
                 transferred = true;
