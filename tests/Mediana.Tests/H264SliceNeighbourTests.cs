@@ -58,6 +58,44 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Theory]
+        [InlineData(0, true)]
+        [InlineData(1, true)]
+        [InlineData(2, true)]
+        [InlineData(0, false)]
+        [InlineData(1, false)]
+        [InlineData(2, false)]
+        public void DeblockingUsesTheCurrentSliceControlAtVerticalAndHorizontalBoundaries(int control, bool vertical)
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            H264SequenceParameterSet sequence = Sequence() with
+            {
+                WidthInMbs = vertical ? 2 : 1,
+                HeightInMapUnits = vertical ? 1 : 2,
+                Width = vertical ? 32 : 16,
+                Height = vertical ? 16 : 32
+            };
+            H264PictureParameterSet parameters = new(0, 0, false, false, 26, 0, 0, true, false, false, false, 1, 1, false, 0);
+            H264SliceHeader first = new(sequence, parameters);
+            H264SliceHeader second = first with { FirstMacroblock = 1, DeblockingIdc = control };
+            using (H264Picture picture = new(sequence, allocator, H264SliceKind.I))
+            {
+                picture.Modes.Fill(2);
+                picture.Quantizers.Fill(36);
+                for (int y = 0; y < picture.Height; y++)
+                {
+                    for (int x = 0; x < picture.Width; x++)
+                    {
+                        picture.Plane(0)[y * picture.Width + x] = (vertical ? x : y) < 16 ? (byte)80 : (byte)100;
+                    }
+                }
+                H264Deblocking.Apply(picture, new H264SliceRegion[] { new(first, 1), new(second, 2) }, default);
+                int position = vertical ? 16 : 16 * picture.Width;
+                Assert.Equal(control == 0, picture.Plane(0)[position] < 100);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         private static H264SequenceParameterSet Sequence() => new()
         {
             WidthInMbs = 3,
