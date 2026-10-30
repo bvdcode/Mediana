@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Containers;
 using Mediana.Core;
-using Mediana.Core.Memory;
 using Mediana.Execution;
-using Mediana.IO;
 
 namespace Mediana
 {
@@ -13,28 +10,24 @@ namespace Mediana
     /// Returned frames survive session disposal until their owners release them.</summary>
     internal partial class MediaDecodeSession<TFrame> : IAsyncDisposable where TFrame : class, IDisposable
     {
-        private readonly IContainerReader reader;
-        private readonly IByteSource replay;
+        private readonly ContainerSession container;
         private readonly MediaDecodePipeline<TFrame> pipeline;
-        private readonly MediaBufferAllocator allocator;
         private readonly long? maxFrameReads;
         private long frameReads;
         private bool disposed;
         private bool faulted;
         private int busy;
 
-        internal MediaDecodeSession(IContainerReader reader, IByteSource replay, MediaDecodePipeline<TFrame> pipeline,
-            MediaBufferAllocator allocator, long? maxFrameReads, EncodedStreamInfo stream)
+        internal MediaDecodeSession(ContainerSession container, MediaDecodePipeline<TFrame> pipeline,
+            long? maxFrameReads, EncodedStreamInfo stream)
         {
-            this.reader = reader;
-            this.replay = replay;
+            this.container = container;
             this.pipeline = pipeline;
-            this.allocator = allocator;
             this.maxFrameReads = maxFrameReads;
             Stream = stream;
         }
 
-        public long AllocatedBufferBytes => allocator.AllocatedBytes;
+        public long AllocatedBufferBytes => container.AllocatedBufferBytes;
         /// <summary>Immutable selected stream metadata, including container display information.</summary>
         public EncodedStreamInfo Stream { get; }
 
@@ -98,14 +91,7 @@ namespace Mediana
                     }
                     finally
                     {
-                        try
-                        {
-                            await reader.DisposeAsync().ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            await replay.DisposeAsync().ConfigureAwait(false);
-                        }
+                        await container.DisposeAsync().ConfigureAwait(false);
                     }
                 }
             }
