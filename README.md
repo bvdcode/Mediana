@@ -169,7 +169,8 @@ the HLS, preview and audio commands. Omit `--audio-stream` for `hls create` with
 audio; use explicit `--video-only` for `hls encode` without audio. Output paths
 must be new, and their parent directories must already exist.
 
-MP4-to-TS/HLS copies supported AVC/AAC/MP3 streams without re-encoding. PCM export
+TS stream copy accepts supported MP4/MOV AVC/AAC/MP3 tracks and native MPEG-1/2
+Layer III files. MP4-to-HLS copies the supported AVC/AAC/MP3 tracks without re-encoding. PCM export
 supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It writes raw,
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
@@ -1192,12 +1193,23 @@ stream copy. Audio priming/discard metadata and container display matrices are n
 represented in TS. This operation does not yet define HLS segment boundaries,
 seek or playlists.
 
-The sample copies every AVC/AAC access unit from a supported MP4/MOV into a new
-TS file, applying LinearMovie timestamps and the writer's one-second offset:
+The CLI uses the same registered container probes as audio/video decoding.
+`MediaEngine.OpenContainerAsync` opens a `ContainerSession` of encoded packets
+without a decoder; the session borrows the source and owns its reader, replay
+buffer and read budget. Adding a container registers its reader factory; the
+command does not choose readers by filename or try parsers in sequence.
+
+TS stream copy accepts AVC/AAC/MP3 tracks from supported MP4/MOV files and native
+MPEG-1/2 Layer III files, including renamed inputs. It preserves encoded access
+units, applies LinearMovie timestamps to MP4 and adds the writer's one-second
+offset. The root command copies all tracks by default; `--stream` selects one:
+
 
 ```sh
 dotnet run --project tools/Mediana.Cli -c Release -- \
   remux input.mp4 output.ts
+mediana -i input.mp3 output.ts
+mediana -i input.mp4 audio.ts --stream 1
 ```
 
 The sample requires an initial IDR on each video track and timestamps that leave
