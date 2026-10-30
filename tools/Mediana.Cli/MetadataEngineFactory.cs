@@ -3,6 +3,7 @@
 
 using Mediana.Codecs.Aac;
 using Mediana.Codecs.Flac;
+using Mediana.Codecs.H264;
 using Mediana.Codecs.Mp3;
 using Mediana.Codecs.Pcm;
 
@@ -15,6 +16,7 @@ namespace Mediana.Cli
             .AddStreamMetadataReader(new AiffPcmStreamMetadataReader())
             .AddStreamMetadataReader(new FlacStreamMetadataReader())
             .AddStreamMetadataReader(new Mp3StreamMetadataReader())
-            .AddStreamMetadataReader(new AacStreamMetadataReader()).Build();
+            .AddStreamMetadataReader(new AacStreamMetadataReader())
+            .AddStreamMetadataReader(new H264StreamMetadataReader()).Build();
     }
 }

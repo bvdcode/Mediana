@@ -1236,8 +1236,9 @@ reader disposal, and retains no media-buffer lease.
 Register `IStreamMetadataReader` modules with
 `MediaEngineBuilder.AddStreamMetadataReader` to inspect codec configuration during
 `ProbeAsync`. The immutable `MediaInfo.StreamMetadata` dictionary uses actual
-stream indices and contains typed `AudioStreamMetadata`: sample rate, channel
-count, nullable sample precision and nullable explicit channel order. Encoded
+stream indices and contains typed `AudioStreamMetadata` and `VideoStreamMetadata`.
+Audio metadata reports sample rate, channel count, nullable sample precision and
+nullable explicit channel order. Encoded
 `Streams` retain their original configuration. There is at most one metadata
 reader per codec identifier; missing entries mean no reader was registered or
 its configuration is unsupported. Malformed configuration throws, and media-kind
@@ -1254,10 +1255,38 @@ unknown. AAC-LC indexed multichannel headers can be inspected independently of
 the mono/stereo decoder limits. Unsupported AAC profiles or PCM representations
 remain unavailable; opening configuration is not proof of whole-file consistency.
 The generic CLI probe registers these readers and prints known audio parameters.
-Average VBR bit rate, video parameters and stream-level tags are not yet exposed
-through this metadata view. Audio header checks cover 30 real WAVE, AIFF, FLAC,
+Average VBR bit rate and stream-level tags are not yet exposed through this
+metadata view. Audio header checks cover 30 real WAVE, AIFF, FLAC,
 MP3 and AAC inputs, including MP4 audio tracks and AAC 5.1 outside the decoder's
 channel support. These checks pass in managed .NET and Linux Native AOT.
+
+`H264StreamMetadataReader` reads all SPS descriptions in the opening AVC
+configuration, with bounded configuration/parameter-set bytes and no decoded
+surface allocation. It exposes each SPS as `H264SequenceMetadata` through
+`VideoStreamMetadata.Configurations`: visible cropped sample dimensions, chroma
+sampling, luma/chroma precision, declared sample aspect ratio and colorimetry.
+These dimensions do not apply pixel aspect ratio or container rotation. Native
+SPS identifiers, profile/constraints/level, coded dimensions, crop offsets,
+frame/field flags, raw color codes and nullable VUI clock declarations remain
+available. Clock declarations are not an average frame rate. Missing syntax
+uses H.264 inference rules; unknown color codes remain available in the native
+properties even when the common color enum is unspecified.
+
+No opening SPS is implicitly treated as active. `IsProgressive` is true when
+`frame_mbs_only_flag` establishes progressive coding; false syntax permits both
+frames and fields, so the common scan property stays unknown. A common chroma
+location is assigned only for progressive 4:2:0 with matching top/bottom field
+locations. Initial configurations do not describe every later in-band change.
+The reader validates AVC configuration bounds and PPS identifiers/references,
+without parsing complete PPS reconstruction syntax. Unsupported SPS profiles
+return no metadata; malformed supported syntax throws.
+
+The generic CLI probe prints all opening video descriptions through this reader.
+Metadata availability is independent of decoding support: independent header
+checks cover eleven real AVC inputs, including 10-bit, 4:2:2, 4:4:4, interlaced,
+8K, cropped and rotated files. They pass with a 32 KiB media-buffer budget in
+managed .NET and Linux Native AOT without decoder registration. These checks do
+not expand the decoder's supported pixel formats, resolution or field coding.
 
 The CLI uses the same registered container probes as audio/video decoding.
 `MediaEngine.OpenContainerAsync` opens a `ContainerSession` of encoded packets

@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Globalization;
-using System.Text.Json;
 using Mediana.Core;
 using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
@@ -30,18 +29,9 @@ namespace Mediana.Cli
             foreach (EncodedStreamInfo stream in info.Streams)
             {
                 await output.WriteLineAsync($"Stream {stream.StreamIndex}: {stream.Kind}; {stream.CodecId}; time base {stream.TimeBase.Numerator}/{stream.TimeBase.Denominator}.");
-                if (info.StreamMetadata.TryGetValue(stream.StreamIndex, out StreamMetadata? metadata) && metadata is AudioStreamMetadata audio)
+                if (info.StreamMetadata.TryGetValue(stream.StreamIndex, out StreamMetadata? metadata))
                 {
-                    await output.WriteLineAsync($"  Audio: {audio.SampleRate} Hz; channels: {audio.ChannelCount}.");
-                    if (audio.BitsPerSample is int bits)
-                    {
-                        await output.WriteLineAsync($"  Sample precision: {bits} bits.");
-                    }
-                    if (audio.ChannelOrder is IReadOnlyList<string> channels)
-                    {
-                        string order = string.Join(", ", channels.Select(channel => $"\"{JsonEncodedText.Encode(channel)}\""));
-                        await output.WriteLineAsync($"  Channel order: [{order}].");
-                    }
+                    await StreamMetadataFormatter.WriteAsync(metadata, output, cancellationToken);
                 }
             }
             if (info.Container.Tags is IReadOnlyList<MediaTag> tags)
