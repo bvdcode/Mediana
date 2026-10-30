@@ -25,6 +25,7 @@ namespace Mediana.Execution
             }
         }
 
+        public ContainerInfo Info => source.Info;
         public long Count { get; }
         public IReadOnlyList<EncodedStreamInfo> Streams => source.Streams;
 

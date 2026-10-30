@@ -35,6 +35,7 @@ namespace Mediana.Containers.Flac
         }
 
         public FlacConfiguration Configuration { get; private set; } = null!;
+        public ContainerInfo Info { get; private set; } = null!;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
         public IReadOnlyList<FlacComment> Comments { get; private set; } = [];
         public IReadOnlyList<FlacPictureInfo> Pictures { get; private set; } = [];
@@ -56,6 +57,7 @@ namespace Mediana.Containers.Flac
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
+                reader.Info = new ContainerInfo("flac", reader.Duration);
                 opened = true;
                 return reader;
             }

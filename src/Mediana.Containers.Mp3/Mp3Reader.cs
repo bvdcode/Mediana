@@ -37,6 +37,7 @@ namespace Mediana.Containers.Mp3
         }
 
         public Mp3FrameHeader FirstFrame { get; private set; } = null!;
+        public ContainerInfo Info { get; private set; } = null!;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
         public IReadOnlyList<Id3TextFrame> TextFrames { get; private set; } = [];
         public IReadOnlyList<Id3PictureInfo> Pictures { get; private set; } = [];
@@ -60,6 +61,7 @@ namespace Mediana.Containers.Mp3
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
+                reader.Info = new ContainerInfo("mp3", reader.CodedDuration);
                 opened = true;
                 return reader;
             }

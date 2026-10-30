@@ -33,6 +33,7 @@ namespace Mediana.Containers.Mp4
             cursors = movie.Tables.Select(table => new Mp4TrackCursor(table)).ToArray();
             MovieTimeBase = movie.TimeBase;
             Duration = movie.Duration;
+            Info = new ContainerInfo("mp4", movie.Duration);
             DisplayMatrix = movie.DisplayMatrix;
             Tracks = Array.AsReadOnly(movie.Tracks);
             metadataValues = movie.Metadata;
@@ -60,6 +61,7 @@ namespace Mediana.Containers.Mp4
             this.metadata = metadata.Retain();
         }
 
+        public ContainerInfo Info { get; }
         public TimeBase MovieTimeBase { get; }
         public MediaDuration? Duration { get; }
         /// <summary>The movie header display matrix, applied after each track header matrix.</summary>

@@ -29,6 +29,7 @@ namespace Mediana
 
         internal IContainerReader Reader { get; }
         internal MediaBufferAllocator Allocator { get; }
+        public ContainerInfo Info => Reader.Info;
         public IReadOnlyList<EncodedStreamInfo> Streams => Reader.Streams;
         public long AllocatedBufferBytes => Allocator.AllocatedBytes;
 

@@ -88,6 +88,11 @@ namespace Mediana.NativeTests
             await AudioResamplingTestInput.VerifyAsync(44100, 400, AudioStorageLayout.Planar);
             await AudioResamplingTestInput.VerifyAsync(8000, 11025, AudioStorageLayout.Interleaved);
             Console.WriteLine("PASS audio resampling: passband tones, exact timing, channel separation and finite output ownership match.");
+            for (int index = 0; index < MediaProbeTestInput.Cases.Length; index++)
+            {
+                await MediaProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), index);
+            }
+            Console.WriteLine("PASS media probe: declared durations, codec IDs and owned snapshots match header references without decoders.");
             foreach (string name in WavePcmTestInput.Names)
             {
                 await WavePcmTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"), name);

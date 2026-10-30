@@ -12,6 +12,7 @@ namespace Mediana.Sample
     {
         private bool emitted;
         private bool disposed;
+        public ContainerInfo Info { get; } = new("sample.generated");
         public IReadOnlyList<EncodedStreamInfo> Streams { get; } =
             [new EncodedStreamInfo(0, MediaKind.Video, "sample.rgba", new TimeBase(1, 1))];
 

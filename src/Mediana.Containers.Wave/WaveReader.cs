@@ -41,6 +41,7 @@ namespace Mediana.Containers.Wave
             scratch = allocator.Allocate(ReadBufferBytes);
         }
 
+        public ContainerInfo Info { get; private set; } = null!;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
         public PcmConfiguration Configuration { get; private set; } = null!;
         public long SamplesPerChannel { get; private set; }
@@ -59,6 +60,7 @@ namespace Mediana.Containers.Wave
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
+                reader.Info = new ContainerInfo("wave", reader.Duration);
                 opened = true;
                 return reader;
             }
