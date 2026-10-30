@@ -6,10 +6,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class ConversionCommands(ILogger logger, CommandOutputPolicy outputs) : MediaCommands(outputs)
+    internal class ConversionCommands(ILogger logger, TextWriter writer, CliOperation operation, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
-        /// <summary>Convert media: mediana -i input output.wav|output.png|output.ts.</summary>
-        /// <param name="output">Output file. Its extension selects the output format.</param>
+        /// <summary>Inspect media: mediana -i input. Convert media: mediana -i input output.wav|output.png|output.ts.</summary>
+        /// <param name="output">Optional output file. Omit to inspect the input; its extension selects the conversion format.</param>
         /// <param name="input">-i, Existing input file; its content determines the input format.</param>
         /// <param name="stream">Audio or video stream index; defaults to the first stream of the required kind.</param>
         /// <param name="timeMs">Video/animation frame timestamp in milliseconds for PNG output.</param>
@@ -22,11 +22,21 @@ namespace Mediana.Cli
         /// <param name="audioCodec">Encode an audio-only TS file with AAC-LC.</param>
         /// <param name="audioBitRate">Raw AAC bitrate ceiling in bits/second; defaults to 128000.</param>
         [Command("")]
-        public Task<int> Convert([Argument] string output, string input, int? stream = null, long timeMs = 0, int page = 1,
+        public Task<int> Convert(string input, [Argument] string? output = null, int? stream = null, long timeMs = 0, int page = 1,
             VideoCodecMode videoCodec = VideoCodecMode.Copy, bool videoOnly = false, int? qp = null,
             int? width = null, int? height = null, AudioCodecMode? audioCodec = null, int? audioBitRate = null,
             CancellationToken cancellationToken = default)
         {
+            operation.Start(output is null ? "probe" : "conversion");
+            if (output is null)
+            {
+                if (stream is not null || timeMs != 0 || page != 1 || videoCodec != VideoCodecMode.Copy || videoOnly ||
+                    qp is not null || width is not null || height is not null || audioCodec is not null || audioBitRate is not null)
+                {
+                    throw new ArgumentException("Conversion options require an output file. Use mediana -i input to inspect media.");
+                }
+                return ExecuteAsync(input, null, () => MediaProbeCommand.RunAsync(input, writer, cancellationToken));
+            }
             if (stream is < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(stream));

@@ -2,12 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using ConsoleAppFramework;
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class CliLoggingFilter(ILogger logger, ConsoleAppFilter next) : ConsoleAppFilter(next)
+    internal class CliLoggingFilter(ILogger logger, CliOperation operation, ConsoleAppFilter next) : ConsoleAppFilter(next)
     {
         public override async Task InvokeAsync(ConsoleAppContext context, CancellationToken cancellationToken)
         {
@@ -23,7 +22,6 @@ namespace Mediana.Cli
                 Environment.ExitCode = CliExitCodes.Usage;
                 return;
             }
-            long start = Stopwatch.GetTimestamp();
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -31,16 +29,15 @@ namespace Mediana.Cli
                 {
                     throw new ArgumentException("Input arguments are required. Run mediana " + context.CommandName + " --help.");
                 }
-                string operation = context.CommandName.Trim();
-                if (string.IsNullOrEmpty(operation))
+                string name = context.CommandName.Trim();
+                if (name.Length != 0)
                 {
-                    operation = "conversion";
+                    operation.Start(name);
                 }
-                CliLog.Starting(logger, operation);
                 await Next.InvokeAsync(context, cancellationToken);
                 if (Environment.ExitCode == CliExitCodes.Success)
                 {
-                    CliLog.Completed(logger, operation, Stopwatch.GetElapsedTime(start).TotalMilliseconds);
+                    operation.Complete();
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

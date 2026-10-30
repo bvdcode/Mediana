@@ -71,7 +71,56 @@ namespace Mediana.Tests
             (int code, string output, string error) = await CliTests.RunAsync(["probe", input]);
             Assert.True(code == 0, error);
             Assert.Contains("Image: svg; 800x800 pixels.", output, StringComparison.Ordinal);
-            Assert.DoesNotContain("probe .", error, StringComparison.Ordinal);
+            Assert.Single(Directory.GetFiles(directory));
+        }
+
+        [Theory]
+        [InlineData("Mp3", "stereo-vbr-cover.mp3")]
+        [InlineData("Mp4", "avc-aac.mp4")]
+        [InlineData("Svg", "vector-preview.svg")]
+        [InlineData("Tgs", "geometry.tgs")]
+        [InlineData("Pdf", "graphics.pdf")]
+        [InlineData("Heif", "rotate-90.heic")]
+        [InlineData("Jpeg2000", "RGB-129x101.jp2")]
+        [InlineData("Jbig2", "mmr-white.jb2")]
+        public async Task InputWithoutOutputUsesTheSameProbeForEveryMediaFamily(string folder, string file)
+        {
+            string input = Path.Combine(directory, "input.bin");
+            File.Copy(Path.Combine(AppContext.BaseDirectory, "Data", folder, file), input);
+            (int explicitCode, string expected, string explicitError) = await CliTests.RunAsync(["probe", input]);
+            Assert.True(explicitCode == 0, explicitError);
+            (int code, string output, string error) = await CliTests.RunAsync(["-i", input]);
+            Assert.True(code == 0, error);
+            Assert.Equal(expected, output);
+            Assert.Single(Directory.GetFiles(directory));
+        }
+
+        [Theory]
+        [InlineData("--stream", "0")]
+        [InlineData("--time-ms", "1")]
+        [InlineData("--page", "2")]
+        [InlineData("--video-codec", "H264")]
+        [InlineData("--audio-codec", "Aac")]
+        [InlineData("--width", "320")]
+        [InlineData("--audio-bit-rate", "128000")]
+        public async Task ConversionOptionsWithoutOutputAreRejectedInsteadOfBeingIgnored(string option, string value)
+        {
+            string input = Path.Combine(AppContext.BaseDirectory, "Data", "Mp3", "stereo-vbr-cover.mp3");
+            (int code, string output, _) = await CliTests.RunAsync(["-i", input, option, value]);
+            Assert.Equal(CliExitCodes.Usage, code);
+            Assert.Empty(output);
+            Assert.Empty(Directory.GetFiles(directory));
+        }
+
+        [Fact]
+        public async Task InputOnlyMissingFileAndUnknownMediaRetainProbeErrors()
+        {
+            string input = Path.Combine(directory, "input.bin");
+            (int missing, _, _) = await CliTests.RunAsync(["-i", input]);
+            Assert.Equal(CliExitCodes.IoFailure, missing);
+            await File.WriteAllBytesAsync(input, [1, 2, 3, 4]);
+            (int unsupported, _, _) = await CliTests.RunAsync(["-i", input]);
+            Assert.Equal(CliExitCodes.Unsupported, unsupported);
             Assert.Single(Directory.GetFiles(directory));
         }
 

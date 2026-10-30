@@ -48,6 +48,7 @@ namespace Mediana.Cli
                     CommandConfirmation confirmation = new(settings.AssumeYes, !Console.IsInputRedirected,
                         Console.In, error ?? Console.Error);
                     services.AddSingleton(confirmation);
+                    services.AddSingleton<CliOperation>();
                     services.AddSingleton(new CommandOutputPolicy(settings.Overwrite, confirmation));
                     services.AddSingleton<TextWriter>(output ?? Console.Out);
                     services.AddLogging(builder => CliLogging.Configure(builder, settings.LogLevel, settings.NoColor));
