@@ -2,6 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using ConsoleAppFramework;
+using Mediana.Codecs;
+using Mediana.Core.Video;
 
 namespace Mediana.Cli
 {
@@ -13,7 +15,7 @@ namespace Mediana.Cli
         /// <param name="aspectWidth">Pixel aspect ratio numerator.</param>
         /// <param name="aspectHeight">Pixel aspect ratio denominator.</param>
         public Task<int> Heic([Argument] string input, [Argument] string output, int aspectWidth = 1, int aspectHeight = 1,
-            CancellationToken cancellationToken = default) => RasterAsync("heic", input, output, aspectWidth, aspectHeight, cancellationToken);
+            CancellationToken cancellationToken = default) => RasterAsync(ImageEngineFactory.CreateHeic(new SampleAspectRatio(aspectWidth, aspectHeight)), input, output, cancellationToken);
 
         /// <summary>Decode a supported JPEG 2000 image to PNG.</summary>
         /// <param name="input">Existing JP2/J2K file.</param>
@@ -21,7 +23,7 @@ namespace Mediana.Cli
         /// <param name="aspectWidth">Pixel aspect ratio numerator.</param>
         /// <param name="aspectHeight">Pixel aspect ratio denominator.</param>
         public Task<int> Jp2([Argument] string input, [Argument] string output, int aspectWidth = 1, int aspectHeight = 1,
-            CancellationToken cancellationToken = default) => RasterAsync("jp2", input, output, aspectWidth, aspectHeight, cancellationToken);
+            CancellationToken cancellationToken = default) => RasterAsync(ImageEngineFactory.CreateJpeg2000(new SampleAspectRatio(aspectWidth, aspectHeight)), input, output, cancellationToken);
 
         /// <summary>Decode the first supported JBIG2 page to PNG.</summary>
         /// <param name="input">Existing standalone JBIG2 file.</param>
@@ -29,7 +31,7 @@ namespace Mediana.Cli
         /// <param name="aspectWidth">Pixel aspect ratio numerator.</param>
         /// <param name="aspectHeight">Pixel aspect ratio denominator.</param>
         public Task<int> Jbig2([Argument] string input, [Argument] string output, int aspectWidth = 1, int aspectHeight = 1,
-            CancellationToken cancellationToken = default) => RasterAsync("jbig2", input, output, aspectWidth, aspectHeight, cancellationToken);
+            CancellationToken cancellationToken = default) => RasterAsync(ImageEngineFactory.CreateJbig2(new SampleAspectRatio(aspectWidth, aspectHeight)), input, output, cancellationToken);
 
         /// <summary>Rasterize an SVG document to PNG.</summary>
         /// <param name="input">Existing SVG file.</param>
@@ -58,12 +60,7 @@ namespace Mediana.Cli
             return ExecuteAsync(input, output, () => ImagePreviewCommand.TgsAsync(input, output, time, width, cancellationToken));
         }
 
-        private static Task<int> RasterAsync(string kind, string input, string output, int aspectWidth, int aspectHeight, CancellationToken token)
-        {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(aspectWidth);
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(aspectHeight);
-            return ExecuteAsync(input, output, () => ImagePreviewCommand.RasterAsync(kind, input, output,
-                new Mediana.Core.Video.SampleAspectRatio(aspectWidth, aspectHeight), token));
-        }
+        private static Task<int> RasterAsync(IImageDecoder decoder, string input, string output, CancellationToken token) =>
+            ExecuteAsync(input, output, () => ImagePreviewCommand.RunAsync(decoder, input, output, cancellationToken: token));
     }
 }
