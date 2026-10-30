@@ -271,7 +271,7 @@ namespace Mediana.Tests
             Assert.Empty(Directory.GetFiles(directory));
         }
 
-        private static async Task<(int Code, string Output, string Error)> RunAsync(string[] arguments, CancellationToken token = default)
+        internal static async Task<(int Code, string Output, string Error)> RunAsync(string[] arguments, CancellationToken token = default)
         {
             using StringWriter output = new(CultureInfo.InvariantCulture);
             using StringWriter error = new(CultureInfo.InvariantCulture);
