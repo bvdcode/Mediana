@@ -102,6 +102,10 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            await H264EncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 26, 18);
+            await H264EncodingTestInput.VerifyAsync(root, "avc-multislice-cavlc", 38, 18);
+            await H264EncodingTestInput.VerifyAsync(root, "avc-weighted", 18, 12);
+            Console.WriteLine("PASS H.264 encoding: 48 fixed-QP IDR pictures match every independently decoded YUV sample and preserve timing, color and SAR.");
             await H264CabacBidirectionalTestInput.VerifyAsync(h264Root, root);
             await VideoSeekTestInput.VerifyAsync(root, "avc-multislice-cavlc", 18, 96, 80, 6);
             await VideoSeekTestInput.VerifyAsync(root, "avc-multislice-cabac", 18, 96, 80, 6);

@@ -1,0 +1,56 @@
+{
+  "reference_decoder": "FFmpeg 6.1.1, native H.264, one decoder thread, yuv420p, passthrough timestamps",
+  "cases": [
+    {
+      "input": "avc-multislice-cabac.mp4",
+      "quantizer": 26,
+      "frames": 18,
+      "width": 96,
+      "height": 80,
+      "reference": "avc-multislice-cabac.encoded-qp26.yuv",
+      "reference_bytes": 207360,
+      "reference_sha256": "baaf93a4890f13349b3b2bdd633e4cca28d1e52748f8be428ad864036c5e007c",
+      "input_sha256": "c1e1a7cc0c8aa795afa4b58a85248b75fbf0ede74eec5a2066ddfacdaef27e58",
+      "input_yuv_sha256": "3d889595c077deb7921be60ea6cb82513e74fb64715856512cc5f204855478da",
+      "ts_sha256": "d2a779b7620af45f0100110b8860db4e3309414bd3cd7b5ac67132f3e914010e",
+      "ts_bytes": 75388,
+      "mse": 6.17758487654321,
+      "psnr_db": 40.22261639790777,
+      "maximum_absolute_error": 18
+    },
+    {
+      "input": "avc-multislice-cavlc.mp4",
+      "quantizer": 38,
+      "frames": 18,
+      "width": 96,
+      "height": 80,
+      "reference": "avc-multislice-cavlc.encoded-qp38.yuv",
+      "reference_bytes": 207360,
+      "reference_sha256": "51ddbd033c87094fefa680c50cb010b7ceb2f58872e6222ca060a0b7f5a9e789",
+      "input_sha256": "bcbe615d4a27a58c555fbf9723f23bc7256d91a112812a957beb915aee1eb605",
+      "input_yuv_sha256": "5e1042a42b6be34d417ef15d531f045836a611e7330c6fca191736604277eb5f",
+      "ts_sha256": "4a1e5aa8f0fbfa1f1dc33c7a50503b26a154076abdcdd2bdd18391ae97850bfe",
+      "ts_bytes": 51700,
+      "mse": 63.60459104938272,
+      "psnr_db": 30.095918962344093,
+      "maximum_absolute_error": 76
+    },
+    {
+      "input": "avc-weighted.mp4",
+      "quantizer": 18,
+      "frames": 12,
+      "width": 94,
+      "height": 62,
+      "reference": "avc-weighted.encoded-qp18.yuv",
+      "reference_bytes": 104904,
+      "reference_sha256": "cdde63964df34f99279feb43c6da7e04d122fafb2bf9f5ce77aa1645b3cc5455",
+      "input_sha256": "575889762181d65817349b14b2bd74e06e6b32425a8ad6927fb2b7879396c555",
+      "input_yuv_sha256": "5f42c51a79b91870aff4ab2e7af6fe1c9a98d74bc71a101e8b353ed2ec8781d1",
+      "ts_sha256": "118f0a36503ca321d53b25bd688a629ab6015f4f4a0d41d4c99af482e06e1b4c",
+      "ts_bytes": 33652,
+      "mse": 0.7764527568062228,
+      "psnr_db": 49.22965324605707,
+      "maximum_absolute_error": 7
+    }
+  ]
+}

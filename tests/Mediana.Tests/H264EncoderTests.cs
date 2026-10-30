@@ -13,6 +13,13 @@ namespace Mediana.Tests
     public class H264EncoderTests
     {
         [Theory]
+        [InlineData("avc-multislice-cabac", 26, 18)]
+        [InlineData("avc-multislice-cavlc", 38, 18)]
+        [InlineData("avc-weighted", 18, 12)]
+        public async Task EveryEncodedPictureMatchesTheIndependentDecoder(string name, int qp, int count) =>
+            await H264EncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name, qp, count);
+
+        [Theory]
         [InlineData(32, 32, 0)]
         [InlineData(32, 32, 26)]
         [InlineData(30, 22, 38)]
