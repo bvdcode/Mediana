@@ -27,7 +27,7 @@ namespace Mediana.Cli
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (context.CommandArguments is { IsEmpty: true })
+                if (context.CommandArguments is { IsEmpty: true } && context.CommandName != "update")
                 {
                     throw new ArgumentException("Input arguments are required. Run mediana " + context.CommandName + " --help.");
                 }

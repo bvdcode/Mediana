@@ -55,6 +55,7 @@ namespace Mediana.Cli
                 app.Add<CoverCommands>("cover");
                 app.Add<ContainerCommands>();
                 app.Add<HlsCommands>("hls");
+                app.Add<UpdateCommands>();
                 await app.RunAsync(args.Length == 0 ? ["--help"] : args, cancellationToken);
                 if (args.Length > 0 && !matchedCommand && !CliHelp.IsRequested(args))
                 {
