@@ -14,7 +14,7 @@ namespace Mediana.Containers.Mp4
         internal Mp4TrackInfo(uint trackId, EncodedStreamInfo stream, string sampleEntry,
             MediaDuration? mediaDuration, MediaDuration? presentationDuration, IReadOnlyList<Mp4Edit> edits,
             int? width, int? height, int? declaredAudioChannels, int? declaredAudioSampleRate, int sampleCount,
-            VideoDisplayMatrix displayMatrix)
+            VideoDisplayMatrix displayMatrix, IReadOnlyList<VideoColorDescription>? colorDescriptions = null)
         {
             TrackId = trackId;
             Stream = stream;
@@ -28,6 +28,7 @@ namespace Mediana.Containers.Mp4
             DeclaredAudioSampleRate = declaredAudioSampleRate;
             SampleCount = sampleCount;
             DisplayMatrix = displayMatrix;
+            ColorDescriptions = colorDescriptions ?? Array.Empty<VideoColorDescription>();
         }
 
         public uint TrackId { get; }
@@ -43,9 +44,11 @@ namespace Mediana.Containers.Mp4
         public int SampleCount { get; }
         /// <summary>The track header matrix before the movie matrix. Video Stream.DisplayMatrix composes both.</summary>
         public VideoDisplayMatrix DisplayMatrix { get; }
+        /// <summary>Recognized source color descriptions in sample-entry order. Stream.ColorDescription is the selected representation.</summary>
+        public IReadOnlyList<VideoColorDescription> ColorDescriptions { get; }
 
         internal Mp4TrackInfo WithStream(EncodedStreamInfo stream) => new(TrackId, stream, SampleEntry,
             MediaDuration, PresentationDuration, Edits, Width, Height, DeclaredAudioChannels,
-            DeclaredAudioSampleRate, SampleCount, DisplayMatrix);
+            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, ColorDescriptions);
     }
 }

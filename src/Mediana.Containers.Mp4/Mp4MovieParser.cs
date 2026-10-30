@@ -75,11 +75,12 @@ namespace Mediana.Containers.Mp4
                     _ => throw new InvalidDataException("Unsupported MP4 track kind.")
                 };
                 EncodedStreamInfo stream = new(tracks.Count, kind, description.CodecId, description.Format,
-                    trackTimeBase, description.Configuration.Span, displayMatrix);
+                    trackTimeBase, description.Configuration.Span, displayMatrix,
+                    colorDescription: Mp4ColorDescriptionParser.Select(description.ColorDescriptions));
                 IReadOnlyList<Mp4Edit> edits = ReadEdits(track, timeBase, options, budget);
                 tracks.Add(new Mp4TrackInfo(trackId, stream, description.SampleEntry, mediaDuration,
                     presentationDuration, edits, description.Width, description.Height,
-                    description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix));
+                    description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix, description.ColorDescriptions));
                 tables.Add(table);
             }
             if (tracks.Count == 0)

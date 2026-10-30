@@ -50,7 +50,8 @@ namespace Mediana.Containers.Mp4
             {
                 throw new InvalidDataException("The MP4 AVC configuration record is invalid.");
             }
-            return new Mp4SampleDescription(entry.Type, "h264", StreamFormats.Avc, configuration, Width: width, Height: height);
+            return new Mp4SampleDescription(entry.Type, "h264", StreamFormats.Avc, configuration, Width: width, Height: height,
+                ColorDescriptions: Mp4ColorDescriptionParser.Read(children));
         }
 
         private static Mp4SampleDescription ParseAudio(Mp4Box entry, Mp4ParseBudget budget)
