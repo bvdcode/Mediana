@@ -77,6 +77,32 @@ not scan encoded packets. Image readers may inspect the entire input, bounded by
 retains its own parsing-work limits. A successful probe describes declared metadata
 and does not guarantee support for every encoded feature.
 
+## Container pictures
+
+`IContainerPictureReader` is an optional reader capability implemented by MP3,
+FLAC and MP4/M4A. `ContainerSession.Pictures` returns immutable declarations in
+container order. Null means the reader does not expose this capability; an empty
+list means no pictures were found in the inspected metadata. A picture does not
+become a timed video stream or an attachment merely because it is embedded.
+
+`ReadPictureAsync(index)` returns an owned view of the original bytes without
+moving packet cursors. No image decoder or output encoder is involved. The lease
+survives session disposal and accounts for the full backing metadata allocation,
+including bytes outside the picture slice. Repeated extraction shares storage.
+The session borrows its source and rejects concurrent picture, packet or disposal calls.
+An invalid index leaves it usable; cancellation or a reader failure faults it.
+
+Declarations retain media type, description and ID3/FLAC picture type when present.
+They do not validate the image encoding or choose a preferred cover. The format's
+reader retains its detailed metadata API. External reference bytes remain data;
+there is no automatic network or file retrieval. ID3 APIC and FLAC PICTURE define
+the `-->` marker for this case: [ID3v2.4 §4.14](https://id3.org/id3v2.4.0-frames),
+[RFC 9639 §8.8](https://www.rfc-editor.org/rfc/rfc9639.html#section-8.8).
+
+The CLI uses the same registered container recognizers and session capability for
+`cover input output`. Its explicitly named container commands share the executor
+and verify the detected container. File replacement remains an application policy.
+
 ## Encoding and copying
 
 `IMediaEncoder<TFrame>` extends the codec send/receive protocol and exposes its

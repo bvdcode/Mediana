@@ -154,6 +154,7 @@ From the download or extraction directory on Linux/macOS:
 ./mediana --help
 ./mediana -i audio.mp3
 ./mediana probe artwork.svg
+./mediana cover audio.mp3 cover.png
 ./mediana -i audio.mp3 out.wav
 ./mediana -i photo.heic out.png
 ./mediana -i artwork.svg out.png
@@ -174,6 +175,13 @@ image, first-page or animation-canvas dimensions without rendering. PDF dimensio
 are points (1/72 inch); animation metadata includes duration and frame rate. Image
 inspection reads bounded input and does not decode pixel data. Conversion options
 require an output path.
+
+`mediana cover input output --index N` extracts original picture bytes from MP3,
+FLAC or MP4/M4A metadata. Detection uses input contents, and indices follow
+container order; no preference for the front or largest cover is applied. The
+output path does not select an image encoder. External picture references are
+reported without fetching or writing them as images. `cover mp3`, `cover flac`
+and `cover mp4` use the same operation and require their named container.
 
 On Windows, use `./mediana.exe` in PowerShell with the same arguments.
 The MP4 probe lists stream indices; use the appropriate video/audio indices in
@@ -856,8 +864,9 @@ null content type and accessible original bytes. The reader does not decode or
 validate the image codec. Cover bytes are separate from timed audio/video tracks.
 An extracted lease survives reader disposal and retains the full backing movie
 metadata allocation. Reading metadata/cover values does not move packet or source
-cursors. The `cover mp4` command takes input, a new image output path and `--index`;
-it preserves the original encoding and bytes. Existing files are not replaced.
+cursors. The `cover` and `cover mp4` commands take input, an image output path and
+`--index`; they preserve the original encoding and bytes. Existing files follow
+the shared confirmation and `--overwrite` policy.
 The caller chooses an output suffix matching the declared image type.
 
 Movie metadata names are not normalized to application fields. Track/media-level
