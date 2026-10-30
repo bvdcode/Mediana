@@ -1213,6 +1213,22 @@ Headers and decoder configuration are inspected; this is not a complete file
 validation, a packet index export or a common tags/cover-art API. The existing
 format-specific probe commands provide their additional diagnostics.
 
+`ContainerInfo.Tags` exposes immutable header text without changing native keys.
+ID3v2 frames use namespace `id3v2`; FLAC Vorbis comments use `vorbis`; MP4 text
+items keep their native `mdir`, `mdta` or freeform namespace. Repeated names,
+value groups, file order, original spelling, custom descriptions and opaque MP4
+locale IDs are preserved. Application naming, case matching and normalization
+remain with the consumer. `null` means the reader does not expose header text
+(currently WAVE/AIFF); an empty list means none was found in the inspected
+supported structures. MP3 trailing ID3v1, binary MP4 track/disc values, cover bytes
+and unimplemented tag structures are outside this text view. Format-specific APIs
+retain their additional metadata and binary access.
+
+The generic CLI probe prints these tags as quoted, escaped text; each value group
+is a JSON array. Embedded newlines and terminal controls cannot create extra
+output lines. Reading tags reuses the opening parse and does not scan audio or
+video packets. Container metadata byte/count limits still apply.
+
 The CLI uses the same registered container probes as audio/video decoding.
 `MediaEngine.OpenContainerAsync` opens a `ContainerSession` of encoded packets
 without a decoder; the session borrows the source and owns its reader, replay

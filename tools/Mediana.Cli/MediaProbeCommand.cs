@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Mediana.Core;
+using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
@@ -28,6 +29,19 @@ namespace Mediana.Cli
             foreach (EncodedStreamInfo stream in info.Streams)
             {
                 await output.WriteLineAsync($"Stream {stream.StreamIndex}: {stream.Kind}; {stream.CodecId}; time base {stream.TimeBase.Numerator}/{stream.TimeBase.Denominator}.");
+            }
+            if (info.Container.Tags is IReadOnlyList<MediaTag> tags)
+            {
+                await output.WriteLineAsync($"Header text tags: {tags.Count}.");
+                foreach (MediaTag tag in tags)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    await output.WriteLineAsync(MediaTagFormatter.Format(tag));
+                }
+            }
+            else
+            {
+                await output.WriteLineAsync("Header text tags: unavailable.");
             }
             return 0;
         }
