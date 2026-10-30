@@ -19,7 +19,8 @@ frames, SDR color conversion and PNG encoding. These modules compile inside
 Mediana and do not depend on Heic.NET or Render.NET packages.
 An experimental PDF module reads page geometry, renders supported vector/text/image
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
-**Video encoding and compressed audio encoding are not available yet.**
+Experimental fixed-QP H.264 intra encoding and YUV downscaling are available.
+Compressed audio encoding remains open.
 
 ## Components
 
@@ -154,6 +155,7 @@ From the download or extraction directory on Linux/macOS:
 ./mediana -i input.mp4 frame.png --time-ms 250
 ./mediana -i input.mp4 output.ts
 ./mediana -i input.mp4 encoded.ts --video-codec H264 --video-only --qp 26
+./mediana -i input.mp4 small.ts --video-codec H264 --video-only --width 640 --height 360
 ./mediana probe mp4 input.mp4
 ./mediana hls create input.mp4 output-hls --audio-stream 1
 ```
@@ -1013,6 +1015,28 @@ image's tight bounding rectangle; canvas padding is not added. Scaling, shear,
 perspective and approximate rotations are rejected. The overload without a matrix
 fits the stored raster without orientation. Neither operation maps edit lists.
 
+`Yuv420AreaResizer` filters progressive, even-sized YUV420P8 video directly in its
+three planes. `Create` selects exact smaller dimensions; `CreateFit` fits storage
+into an even-sized box without enlargement. It adjusts known SAR to preserve exact
+display aspect, and preserves unknown SAR, color, PTS and duration. Explicit chroma
+location is required. All six positions follow H.264 Figure E-1; unspecified or
+invalid positions fail rather than receiving an assumed interpretation.
+
+```csharp
+using Yuv420AreaResizer resizer = Yuv420AreaResizer.CreateFit(frame.Format, 640, 360, allocator);
+using VideoFrame smaller = resizer.Apply(frame, cancellationToken);
+```
+
+Reference Mediana.Processing. Reuse one plan for frames with the same dimensions,
+pixel format, SAR and color; calls and disposal must not overlap. The plan stores
+allocator-budgeted integer sample ranges and creates one owned output buffer per
+frame. Input row strides may include padding. Output survives plan/input disposal;
+cancellation and allocation failure leave the plan reusable. The area filter
+integrates stored sample values with repeated edges and one final integer rounding.
+It does not perform linear-light filtering, orientation, color conversion or
+upsampling. Six chroma-position cases and 30 complete decoded pictures match
+[exact rational references](tests/Mediana.Tests/Data/Resize/README.md).
+
 PngEncoder accepts straight RGBA32 sRGB with known SAR. It writes non-interlaced
 8-bit RGBA, an sRGB rendering intent and pHYs pixel dimensions, using BCL zlib
 compression and unfiltered scanlines. Alpha is preserved. PNG framing and CRCs follow
@@ -1079,10 +1103,14 @@ The CLI can decode supported MP4/MOV video and encode it to a video-only TS file
 mediana -i input.mp4 output.ts --video-codec H264 --video-only --qp 26
 ```
 
-Audio omission must be explicit. The command preserves original dimensions and
-SAR, requires an identity display transform and reports progress during longer
+Audio omission must be explicit. Without sizing options the command preserves
+original dimensions and SAR. Optional `--width` and `--height` bound encoded storage
+dimensions; either may be given alone. Bounds are rounded down to even values and
+never enlarge the source. YUV area filtering precedes encoding, and SAR compensates
+even rounding to preserve display aspect. Both bounds must be at least two.
+The command requires an identity display transform and reports progress during longer
 operations. Output is published only after successful completion. Temporal
-prediction, motion search, CABAC encoding, bitrate/quality control, resizing and
+prediction, motion search, CABAC encoding, bitrate/quality control and
 audio encoding remain open, as does HLS rendition transcoding. This initial
 all-IDR mode does not promise bitrate efficiency comparable to inter-frame encoding.
 
@@ -1480,7 +1508,7 @@ above. The experimental H.264, PNG, WAVE, PCM and AAC source modules are not pac
 | Mediana.Containers | Container contracts |
 | Mediana.Containers.Mp4 | Optional MP4/MOV metadata and packet reader |
 | Mediana.Codecs | Codec contracts |
-| Mediana.Processing | SDR-to-sRGB conversion and RGBA32 resizing |
+| Mediana.Processing | SDR-to-sRGB conversion, RGBA32 resizing and YUV420 area downscaling |
 | Mediana.Execution | Sequential video decoding pipeline |
 
 Installing Mediana includes its required modules through NuGet dependencies.
