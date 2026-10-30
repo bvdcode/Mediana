@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Drawing;
+using Mediana.IO;
 using System;
 using System.IO;
 using System.IO.Compression;
@@ -25,9 +25,9 @@ namespace Mediana.Images.Tgs
                 throw new InvalidDataException("TGS exceeds MaximumInputBytes.");
             }
 
-            using MemoryStream? source = new MemoryStream(data.ToArray(), writable: false);
             if (data.Length >= 2 && data.Span[0] == 0x1f && data.Span[1] == 0x8b)
             {
+                using ReadOnlyMemoryStream source = new(data);
                 using GZipStream? gzip = new GZipStream(source, CompressionMode.Decompress);
                 using MemoryStream? json = new MemoryStream();
                 byte[] buffer = new byte[8192];
@@ -43,7 +43,7 @@ namespace Mediana.Images.Tgs
                     json.Write(buffer, 0, n);
                 }
 
-                return Parse(json.ToArray(), options, cancellationToken);
+                return Parse(json.GetBuffer().AsMemory(0, checked((int)json.Length)), options, cancellationToken);
             }
 
             if (data.Length > options.MaximumJsonBytes)
@@ -73,7 +73,7 @@ namespace Mediana.Images.Tgs
                 await data.WriteAsync(buffer.AsMemory(0, n), cancellationToken).ConfigureAwait(false);
             }
 
-            return Read(data.ToArray(), options, cancellationToken);
+            return Read(data.GetBuffer().AsMemory(0, checked((int)data.Length)), options, cancellationToken);
         }
 
         /// <summary>Reads a local TGS or Lottie JSON file.</summary>
