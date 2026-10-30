@@ -32,6 +32,42 @@ namespace Mediana
         public ContainerInfo Info => Reader.Info;
         public IReadOnlyList<EncodedStreamInfo> Streams => Reader.Streams;
         public long AllocatedBufferBytes => Allocator.AllocatedBytes;
+        /// <summary>Picture declarations in container order. Null means the reader does not expose pictures;
+        /// an empty list means no pictures were found in its supported inspected metadata.</summary>
+        public IReadOnlyList<ContainerPictureInfo>? Pictures => (Reader as IContainerPictureReader)?.Pictures;
+
+        /// <summary>Reads original picture/reference bytes without advancing packets or selecting a cover.
+        /// Returned storage belongs to the caller and survives session disposal. Cancellation or a reader
+        /// failure faults the session; an unsupported capability or invalid index leaves it usable.</summary>
+        public async ValueTask<MediaBuffer> ReadPictureAsync(int pictureIndex, CancellationToken cancellationToken = default)
+        {
+            Enter();
+            bool started = false;
+            bool succeeded = false;
+            try
+            {
+                RequireActive();
+                if (Reader is not IContainerPictureReader pictures)
+                {
+                    throw new NotSupportedException("The container reader does not expose pictures.");
+                }
+                ArgumentOutOfRangeException.ThrowIfNegative(pictureIndex);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pictureIndex, pictures.Pictures.Count);
+                started = true;
+                cancellationToken.ThrowIfCancellationRequested();
+                MediaBuffer picture = await pictures.ReadPictureAsync(pictureIndex, cancellationToken).ConfigureAwait(false);
+                succeeded = true;
+                return picture;
+            }
+            finally
+            {
+                if (started && !succeeded)
+                {
+                    faulted = true;
+                }
+                Volatile.Write(ref busy, 0);
+            }
+        }
 
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
         {
@@ -39,11 +75,7 @@ namespace Mediana
             bool succeeded = false;
             try
             {
-                ObjectDisposedException.ThrowIf(disposed, this);
-                if (faulted)
-                {
-                    throw new InvalidOperationException("The container session has failed and must be disposed.");
-                }
+                RequireActive();
                 cancellationToken.ThrowIfCancellationRequested();
                 if (maxPacketReads is long limit)
                 {
@@ -90,6 +122,15 @@ namespace Mediana
                 Volatile.Write(ref busy, 0);
             }
             GC.SuppressFinalize(this);
+        }
+
+        private void RequireActive()
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (faulted)
+            {
+                throw new InvalidOperationException("The container session has failed and must be disposed.");
+            }
         }
 
         private void Enter()
