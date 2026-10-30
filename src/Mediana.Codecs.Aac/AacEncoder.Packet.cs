@@ -38,9 +38,9 @@ namespace Mediana.Codecs.Aac
                     analysis[FrameSamples + index] = samples[FrameSamples + index] * window[FrameSamples - 1 - index];
                 }
                 AacMdct.Transform(analysis, current.Spectrum(channel), current.Folded, analysis, current.Fourier, token);
-                int gain = AacChannelEncoder.Quantize(current.Spectrum(channel), current.Quantized(channel), current.Books(channel),
+                int gain = AacChannelEncoder.Quantize(current.Spectrum(channel), current.Folded, current.Quantized(channel), current.Books(channel), current.Scales(channel),
                     configuration.FrequencyIndex, channelBudget, token);
-                AacChannelEncoder.Write(ref bits, gain, current.Quantized(channel), current.Books(channel), configuration.FrequencyIndex, channels == 2);
+                AacChannelEncoder.Write(ref bits, gain, current.Quantized(channel), current.Books(channel), current.Scales(channel), configuration.FrequencyIndex, channels == 2);
             }
             int length = bits.Finish();
             token.ThrowIfCancellationRequested();

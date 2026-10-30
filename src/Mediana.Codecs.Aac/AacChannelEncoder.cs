@@ -5,79 +5,74 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacChannelEncoder
     {
-        public static int Quantize(Span<double> spectrum, Span<int> quantized, Span<byte> books,
-            int frequencyIndex, int budget, CancellationToken token)
+        public static int Quantize(ReadOnlySpan<double> spectrum, Span<double> powered, Span<int> quantized,
+            Span<byte> books, Span<byte> scales, int frequencyIndex, int budget, CancellationToken token)
         {
             double maximum = 0;
             for (int bin = 0; bin < spectrum.Length; bin++)
             {
-                double value = spectrum[bin];
-                double magnitude = Math.Pow(Math.Abs(value), 0.75);
-                spectrum[bin] = Math.CopySign(magnitude, value);
-                maximum = Math.Max(maximum, magnitude);
+                powered[bin] = Math.Pow(Math.Abs(spectrum[bin]), 0.75);
+                maximum = Math.Max(maximum, powered[bin]);
             }
-            double required = maximum == 0 ? 0 : Math.Ceiling(100 + 16.0 / 3 * Math.Log2(maximum / 8191));
-            if (!double.IsFinite(required) || required > 255)
+            double required = maximum == 0 ? 0 : Math.Ceiling(100 + 16.0 / 3 * Math.Log2(maximum / AacQuantizer.MaximumMagnitude));
+            if (!double.IsFinite(required) || required > AacQuantizer.MaximumScale)
             {
                 throw new NotSupportedException("The PCM magnitude exceeds the AAC quantizer range.");
             }
-            ReadOnlySpan<int> bands = AacBandTables.Get(frequencyIndex, false);
-            for (int gain = Math.Max(0, (int)required); gain <= 255; gain++)
+            ReadOnlySpan<int> boundaries = AacBandTables.Get(frequencyIndex, false);
+            int count = boundaries.Length - 1;
+            Span<AacBandQuantization> bands = stackalloc AacBandQuantization[count];
+            Span<AacBandQuantization> candidates = stackalloc AacBandQuantization[count * 2];
+            AacBandAllocator allocation = new(spectrum, powered, boundaries, quantized, bands, candidates);
+            allocation.Allocate(Math.Max(0, (int)required), budget, token);
+            int gain = 0;
+            bool first = true;
+            for (int band = 0; band < count; band++)
             {
                 token.ThrowIfCancellationRequested();
-                double factor = Math.Pow(2, -3.0 * (gain - 100) / 16);
-                bool representable = true;
-                for (int bin = 0; bin < spectrum.Length; bin++)
+                AacBandQuantization selected = bands[band];
+                int start = boundaries[band];
+                int length = boundaries[band + 1] - start;
+                _ = AacQuantizer.Quantize(spectrum.Slice(start, length), powered.Slice(start, length), quantized.Slice(start, length), selected.Scale);
+                books[band] = selected.Book;
+                scales[band] = (byte)selected.Scale;
+                if (first && selected.Book != 0)
                 {
-                    double magnitude = Math.Floor(Math.Abs(spectrum[bin]) * factor + 0.5);
-                    if (magnitude > 8191)
-                    {
-                        representable = false;
-                        break;
-                    }
-                    quantized[bin] = spectrum[bin] < 0 ? -(int)magnitude : (int)magnitude;
-                }
-                if (representable && SelectBooks(quantized, books, bands) <= budget)
-                {
-                    return gain;
+                    gain = selected.Scale;
+                    first = false;
                 }
             }
-            throw new NotSupportedException("The PCM frame cannot fit the configured AAC bit budget.");
+            return gain;
         }
 
-        private static int SelectBooks(ReadOnlySpan<int> quantized, Span<byte> books, ReadOnlySpan<int> bands)
+        public static int Count(ReadOnlySpan<AacBandQuantization> bands)
         {
             int total = 11;
-            for (int band = 0; band < bands.Length - 1; band++)
+            int previous = -1;
+            for (int band = 0; band < bands.Length; band++)
             {
-                ReadOnlySpan<int> values = quantized[bands[band]..bands[band + 1]];
-                int maximum = 0;
-                foreach (int value in values)
+                AacBandQuantization current = bands[band];
+                if (!double.IsFinite(current.Error))
                 {
-                    maximum = Math.Max(maximum, Math.Abs(value));
+                    return int.MaxValue;
                 }
-                if (maximum == 0)
+                if (current.Book == 0)
                 {
-                    books[band] = 0;
                     continue;
                 }
-                int best = int.MaxValue;
-                for (int codebook = 1; codebook <= 11; codebook++)
+                int difference = previous < 0 ? 0 : current.Scale - previous;
+                if (difference is < -60 or > 60)
                 {
-                    int count = AacHuffmanEncoder.Count(codebook, values);
-                    if (count < best)
-                    {
-                        best = count;
-                        books[band] = (byte)codebook;
-                    }
+                    return int.MaxValue;
                 }
-                total += best + 1;
+                total += current.Bits + AacHuffmanEncoder.CountSymbol(0, difference + 60);
+                previous = current.Scale;
             }
             int start = 0;
-            while (start < bands.Length - 1)
+            while (start < bands.Length)
             {
                 int end = start + 1;
-                while (end < bands.Length - 1 && books[end] == books[start])
+                while (end < bands.Length && bands[end].Book == bands[start].Book)
                 {
                     end++;
                 }
@@ -95,7 +90,7 @@ namespace Mediana.Codecs.Aac
         }
 
         public static void Write(ref AacBitWriter bits, int gain, ReadOnlySpan<int> quantized,
-            ReadOnlySpan<byte> books, int frequencyIndex, bool commonWindow)
+            ReadOnlySpan<byte> books, ReadOnlySpan<byte> scales, int frequencyIndex, bool commonWindow)
         {
             bits.Write((uint)gain, 8);
             if (!commonWindow)
@@ -121,11 +116,13 @@ namespace Mediana.Codecs.Aac
                 bits.Write((uint)remaining, 5);
                 start = end;
             }
+            int previous = gain;
             for (int band = 0; band < bands.Length - 1; band++)
             {
                 if (books[band] != 0)
                 {
-                    AacHuffmanEncoder.WriteSymbol(ref bits, 0, 60);
+                    AacHuffmanEncoder.WriteSymbol(ref bits, 0, scales[band] - previous + 60);
+                    previous = scales[band];
                 }
             }
             bits.Write(0, 3);
