@@ -80,33 +80,7 @@ namespace Mediana.Containers.Mp4
             throw new InvalidDataException("The MP4 composition runs do not contain the requested sample.");
         }
 
-        private static bool IsSync(Mp4Table? sync, int sample)
-        {
-            if (sync is null)
-            {
-                return true;
-            }
-            int low = 0;
-            int high = sync.Count - 1;
-            uint number = (uint)sample + 1;
-            while (low <= high)
-            {
-                int middle = low + (high - low) / 2;
-                uint candidate = sync.UInt32(middle);
-                if (candidate == number)
-                {
-                    return true;
-                }
-                if (candidate < number)
-                {
-                    low = middle + 1;
-                }
-                else
-                {
-                    high = middle - 1;
-                }
-            }
-            return false;
-        }
+        private static bool IsSync(Mp4Table? sync, int sample) =>
+            Mp4SyncSampleLookup.AtOrBefore(sync, sample) == sample;
     }
 }

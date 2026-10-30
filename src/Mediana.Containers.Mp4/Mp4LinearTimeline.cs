@@ -49,6 +49,20 @@ namespace Mediana.Containers.Mp4
 
         public MediaDuration MapDuration(uint value) => new((long)value * Scale, TimeBase);
 
+        public Int128 UnmapFloor(MediaTimestamp target)
+        {
+            target.TimeBase.Validate();
+            Int128 numerator = (Int128)target.Value * target.TimeBase.Numerator * TimeBase.Denominator;
+            Int128 denominator = (Int128)target.TimeBase.Denominator * TimeBase.Numerator;
+            return FloorDivide(FloorDivide(numerator, denominator) - Offset, Scale);
+        }
+
+        private static Int128 FloorDivide(Int128 numerator, Int128 denominator)
+        {
+            Int128 quotient = numerator / denominator;
+            return numerator % denominator < 0 ? quotient - 1 : quotient;
+        }
+
         private static int GreatestCommonDivisor(int a, int b)
         {
             while (b != 0)

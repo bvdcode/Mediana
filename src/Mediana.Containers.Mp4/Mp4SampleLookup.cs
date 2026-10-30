@@ -8,6 +8,9 @@ namespace Mediana.Containers.Mp4
         private Mp4TrackCursor cursor = new(table);
         private int sample;
 
+        public int? FindSeekSample(Int128 target, int beforeSample, CancellationToken cancellationToken) =>
+            Mp4SeekPointLookup.Find(table, target, beforeSample, cancellationToken);
+
         public Mp4SampleLocation Find(int index, CancellationToken cancellationToken)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);
