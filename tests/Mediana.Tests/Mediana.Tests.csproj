@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/ImageOutputAllocationTestInput.cs" Link="ImageOutputAllocationTestInput.cs" />
     <Compile Include="../Shared/H264PcmEncodingTestInput.cs" Link="H264PcmEncodingTestInput.cs" />
     <Compile Include="../Shared/H264LevelBurstTestInput.cs" Link="H264LevelBurstTestInput.cs" />
     <None Include="Data/H264/level-burst.sha256" CopyToOutputDirectory="PreserveNewest" />

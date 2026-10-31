@@ -14,9 +14,9 @@ namespace Mediana.Cli
         {
             using PdfDocument document = await PdfReader.ReadFileAsync(input, cancellationToken: cancellationToken);
             PdfPage page = document.GetPage(pageNumber, cancellationToken);
-            PixelBuffer image = PdfRenderer.Render(page, new() { MaximumWidth = maximumWidth }, cancellationToken: cancellationToken);
             MediaBufferAllocator allocator = new(256L * 1024 * 1024);
-            using VideoFrame frame = image.ToVideoFrame(allocator, cancellationToken);
+            using PixelBuffer image = PdfRenderer.Render(page, new() { MaximumWidth = maximumWidth }, cancellationToken, allocator);
+            using VideoFrame frame = image.PublishVideoFrame(cancellationToken);
             await WriteAsync(frame, output, allocator, cancellationToken);
             await Console.Out.WriteLineAsync($"PDF page {pageNumber}/{document.PageCount}: {page.Width} x {page.Height} pt; {image.Width} x {image.Height} px.");
             return 0;

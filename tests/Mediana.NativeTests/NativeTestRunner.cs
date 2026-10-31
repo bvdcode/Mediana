@@ -71,6 +71,8 @@ namespace Mediana.NativeTests
             await PdfReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Pdf"));
             Console.WriteLine("PASS PDF: detached pages, vector order, clipping and transparency.");
             await VectorImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            await ImageOutputAllocationTestInput.VerifyAsync();
+            Console.WriteLine("PASS image output allocation: SVG, TGS and PDF complete RGBA frames stay below the duplicate-buffer threshold and release every lease.");
             Console.WriteLine("PASS registered vector decoding: 352 SVG cases, 33 timed TGS frames and PDF pages match independent pixels.");
             await ImageProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS image metadata: SVG, TGS, PDF, HEIF, JPEG 2000 and JBIG2 dimensions and source ownership.");
