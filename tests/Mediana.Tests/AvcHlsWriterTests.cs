@@ -46,7 +46,8 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             VideoFormat format = H264EncoderTests.Format(16, 16);
-            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator,
+                new() { KeyFrameInterval = TimeSpan.FromMilliseconds(200) });
             int opened = 0;
             HlsTestDestination destination = new();
             await using AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, (_, _) =>
@@ -72,7 +73,8 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             VideoFormat format = H264EncoderTests.Format(16, 16);
-            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator,
+                new() { KeyFrameInterval = TimeSpan.FromMilliseconds(200) });
             List<HlsTestDestination> destinations = [];
             await using AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, (number, _) =>
             {

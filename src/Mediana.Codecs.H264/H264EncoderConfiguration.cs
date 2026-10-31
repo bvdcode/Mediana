@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Buffers.Binary;
+using System.Numerics;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 
@@ -17,7 +18,7 @@ namespace Mediana.Codecs.H264
         internal const int MaximumFramesPerSecond = 172;
         internal const int MinimumCompressionRatio = 2;
 
-        public static byte[] Create(VideoFormat format, MediaBufferAllocator allocator, int qp)
+        public static byte[] Create(VideoFormat format, MediaBufferAllocator allocator, H264EncoderOptions options)
         {
             if (format.PixelFormat != VideoPixelFormat.Yuv420P8 || (format.Width & 1) != 0 || (format.Height & 1) != 0)
             {
@@ -37,7 +38,8 @@ namespace Mediana.Codecs.H264
             sequence.WriteUnsigned(0);
             sequence.WriteUnsigned(0);
             sequence.WriteUnsigned(2);
-            sequence.WriteUnsigned(0);
+            uint references = options.KeyFrameInterval > TimeSpan.Zero ? 1U : 0U;
+            sequence.WriteUnsigned(references);
             sequence.WriteFlag(false);
             sequence.WriteUnsigned((uint)(width - 1));
             sequence.WriteUnsigned((uint)(height - 1));
@@ -53,7 +55,7 @@ namespace Mediana.Codecs.H264
                 sequence.WriteUnsigned((uint)(height * 16 - format.Height) / 2);
             }
             sequence.WriteFlag(true);
-            WriteVui(sequence, format);
+            WriteVui(sequence, format, references, options.MotionSearchRange);
             using MediaBuffer sps = sequence.Finish();
             using H264BitWriter picture = new(allocator, 4096, 0x68);
             picture.WriteUnsigned(0);
@@ -65,7 +67,7 @@ namespace Mediana.Codecs.H264
             picture.WriteUnsigned(0);
             picture.WriteFlag(false);
             picture.WriteBits(0, 2);
-            picture.WriteSigned(qp - 26);
+            picture.WriteSigned(options.Quantizer - 26);
             picture.WriteSigned(0);
             picture.WriteSigned(0);
             picture.WriteFlag(true);
@@ -92,7 +94,7 @@ namespace Mediana.Codecs.H264
             return (long)bytes * MaximumFramesPerSecond * MinimumCompressionRatio > 384 * pictureLimit;
         }
 
-        private static void WriteVui(H264BitWriter bits, VideoFormat format)
+        private static void WriteVui(H264BitWriter bits, VideoFormat format, uint references, int motionRange)
         {
             VideoColorInfo color = format.GetColorInterpretation();
             bits.WriteFlag(format.SampleAspectRatio is not null);
@@ -142,10 +144,11 @@ namespace Mediana.Codecs.H264
             bits.WriteFlag(true);
             bits.WriteUnsigned(0);
             bits.WriteUnsigned(0);
+            uint motionBits = references == 0 || motionRange == 0 ? 0U : (uint)BitOperations.Log2((uint)(motionRange * 4)) + 1;
+            bits.WriteUnsigned(motionBits);
+            bits.WriteUnsigned(motionBits);
             bits.WriteUnsigned(0);
-            bits.WriteUnsigned(0);
-            bits.WriteUnsigned(0);
-            bits.WriteUnsigned(0);
+            bits.WriteUnsigned(references);
         }
 
         private static int Primaries(ColorPrimaries value) => value switch

@@ -59,7 +59,8 @@ namespace Mediana.Tests
                 throw new InvalidDataException("The scaling plan changed the expected dimensions or display aspect.");
             }
             using VideoFrame retained = resizer.Apply(first);
-            using H264Encoder encoder = H264Encoder.Create(resizer.OutputFormat, session.Stream.TimeBase, allocator);
+            using H264Encoder encoder = H264Encoder.Create(resizer.OutputFormat, session.Stream.TimeBase, allocator,
+                new() { KeyFrameInterval = TimeSpan.Zero });
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new H264DecoderFactory().Create(encoder.Stream, allocator);
             int encodedOffset = H264EncodingTestInput.VerifyFrame(retained, encoder, decoder, encoded, 0);
             int frameBytes = width * height * 3 / 2;
