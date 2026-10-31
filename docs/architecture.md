@@ -423,3 +423,9 @@ operation's allocator and publish it. Supersampling writes its downsampled pixel
 directly into that output. The output budget is reserved before rasterization
 and released if rendering fails. Temporary supersampling and drawing effects
 remain governed by their rendering limits, separately from the final frame.
+
+Preparing already-canonical, tightly packed sRGB pixels with `SrgbConverter`
+retains their storage when geometry, color metadata and aspect ratio also remain
+unchanged. Each returned frame has an independent lease. The original allocator
+keeps counting shared bytes until the final lease is released. Pixel conversion,
+resizing, repacking and metadata changes retain the conversion path.

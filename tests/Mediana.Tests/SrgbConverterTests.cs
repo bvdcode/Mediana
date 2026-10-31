@@ -17,6 +17,21 @@ namespace Mediana.Tests
             MatrixCoefficients.Rgb, ColorRange.Full, ChromaLocation.Unspecified);
 
         [Fact]
+        public void AlreadySrgbStorageIsRetainedWithinOneFrameBudgetAndSurvivesInputDisposal()
+        {
+            MediaBufferAllocator allocator = new(4);
+            using VideoFrame input = Frame(allocator, new VideoFormat(1, 1, VideoPixelFormat.Rgba32, Srgb), [12, 34, 56, 78]);
+            using VideoFrame output = SrgbConverter.Apply(input, allocator);
+            Assert.NotSame(input, output);
+            Assert.True(input.Data.Equals(output.Data));
+            input.Dispose();
+            Assert.Equal(new byte[] { 12, 34, 56, 78 }, output.Data.ToArray());
+            Assert.Equal(4, allocator.AllocatedBytes);
+            output.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public void SrgbRoundtripPreservesEveryByteIncludingStraightAlphaAndOutputOwnsItsStorage()
         {
             byte[] pixels = new byte[256 * 4];
