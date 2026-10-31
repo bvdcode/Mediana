@@ -21,8 +21,8 @@ Mediana and do not depend on Heic.NET or Render.NET packages.
 An experimental PDF module reads page geometry, renders supported vector/text/image
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
 Experimental fixed-QP H.264 intra encoding and YUV downscaling are available.
-Experimental AAC-LC audio encoding to MPEG-TS is also available; perceptual
-allocation and transient handling remain open. HLS variants can copy or encode audio.
+Experimental AAC-LC audio encoding to MPEG-TS selects long/short windows for
+transients; perceptual allocation remains open. HLS variants can copy or encode audio.
 
 ## Components
 
@@ -49,7 +49,7 @@ allocation and transient handling remain open. HLS variants can copy or encode a
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder/encoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
-| `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoding and experimental long-window PCM encoding |
+| `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoding and experimental PCM encoding with automatic long/short windows |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
