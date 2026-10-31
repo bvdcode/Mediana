@@ -183,6 +183,47 @@ The real percussive recording improves in both channels, while harpsichord and
 piano retain small objective regressions. No listening panel or perceptual
 transparency result is established by these SNR measurements.
 
+## Frequency-masking allocation experiment
+
+A separate allocation experiment applied frequency-dependent error weights to
+the current encoder. It calculated energy in each ungrouped MDCT scalefactor
+band, applied a 29 dB tonal masking offset and directional maximum spreading at
+15 dB/Bark towards higher frequencies and 30 dB/Bark towards lower frequencies,
+then summed short-window thresholds within each coding group. These components
+follow the approach in [ETSI TS 126 403, sections 5.4.2 and 5.4.4](https://www.etsi.org/deliver/etsi_ts/126400_126499/126403/19.00.00_60/ts_126403v190000p.pdf).
+The experiment used the Zwicker–Terhardt frequency mapping described in
+[Völk, DAGA 2015, equation 9](https://pub.dega-akustik.de/DAGA_2015/data/articles/000054.pdf).
+
+The experiment replaced channel-relative squared error with band noise-to-mask
+error in the existing bounded search. It did not implement absolute hearing
+thresholds, temporal threshold history or relaxation of masking requirements to
+the available bitrate. It therefore tests frequency weighting alone, rather than
+the complete specified psychoacoustic model. Window selection, quantization,
+candidate limits and exact packet budgets were unchanged.
+
+Complete independent decoding at a 128 kbit/s ceiling produced these results:
+
+| SQAM track | Current left/right SNR, dB | Frequency-weighted left/right SNR, dB |
+| --- | --- | --- |
+| 27, castanets | 20.82 / 20.83 | 19.19 / 19.09 |
+| 40, harpsichord | 19.84 / 20.02 | 19.16 / 19.13 |
+| 60, piano | 41.48 / 42.02 | 39.01 / 39.39 |
+| 66, wind ensemble | 23.70 / 23.83 | 22.20 / 22.54 |
+| 69, pop | 24.99 / 24.74 | 23.34 / 23.40 |
+
+Recorded mono speech at 32 kbit/s changed from 24.19 to 22.57 dB. The quiet
+channel in the unequal-amplitude stereo input changed from 37.37 to 35.63 dB.
+A separate half-Bark FFT noise-to-mask diagnostic also worsened in mean on all
+five music recordings. Neither measurement establishes listening quality.
+
+Ten complete inputs, 228.23 source seconds and 19,556 packets across both
+versions passed every packet budget and timestamp check. Independent and
+Mediana decoding agreed for every output sample within 1.79e-7. Both versions
+used Linux x64 Native AOT. The frequency-only change was rejected; the current
+encoder retains channel-relative allocation. Further masking work must address
+bitrate adaptation, quiet thresholds and temporal control before broader quality
+acceptance. This experiment establishes no performance improvement.
+
 ## Console path
 
 ```sh
