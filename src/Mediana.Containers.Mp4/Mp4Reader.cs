@@ -47,7 +47,7 @@ namespace Mediana.Containers.Mp4
                 movie.Tracks.Select(track => new ContainerStreamInfo(track.Stream.StreamIndex,
                     track.PresentationDuration, track.MetadataScope.Tags, track.PacketIndex,
                     track.Language.Language, dates: track.HeaderDates.GetTags("tkhd", "trak/tkhd")
-                        .Concat(track.MediaDates.GetTags("mdhd", "trak/mdia/mdhd")))),
+                        .Concat(track.MediaDates.GetTags("mdhd", "trak/mdia/mdhd")), averageFrameRate: track.AverageFrameRate)),
                 dates: HeaderDates.GetTags("mvhd", "moov/mvhd")));
             CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(metadataScope.Values));
             InitializePictureInfo();

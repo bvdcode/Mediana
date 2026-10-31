@@ -32,6 +32,12 @@ namespace Mediana.Containers.Mp4
             DisplayMatrix = displayMatrix;
             ColorDescriptions = colorDescriptions ?? Array.Empty<VideoColorDescription>();
             PacketIndex = packetIndex;
+            AverageFrameRate = stream.Kind switch
+            {
+                MediaKind.Video => FrameRate.FromFrameCount(packetIndex.PacketCount, packetIndex.DecodeDuration),
+                MediaKind.Audio => null,
+                _ => throw new ArgumentException("The MP4 track kind is unsupported.", nameof(stream))
+            };
             Language = language;
             HeaderDates = headerDates;
             MediaDates = mediaDates;
@@ -53,6 +59,8 @@ namespace Mediana.Containers.Mp4
         public int SampleCount { get; }
         /// <summary>Complete sample-index totals, independent of mdhd/tkhd duration declarations and edit lists.</summary>
         public ContainerPacketIndexInfo PacketIndex { get; }
+        /// <summary>Mean indexed AVC picture rate before edit-list translation, not a constant-cadence declaration.</summary>
+        public FrameRate? AverageFrameRate { get; }
         public Mp4LanguageInfo Language { get; }
         /// <summary>Original tkhd creation/modification declarations, independent of media dates.</summary>
         public Mp4HeaderDates HeaderDates { get; }

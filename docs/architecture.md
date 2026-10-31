@@ -138,6 +138,15 @@ count decoded pictures or PCM samples, apply presentation edits, or define a rat
 when their duration is zero. Null metadata means unavailable; an inspected empty
 collection remains distinct. All snapshots survive reader and source disposal.
 
+`ContainerStreamInfo.AverageFrameRate` is optional container-index video timing,
+separate from codec configuration timing and decoded output frames. `FrameRate`
+retains an exact positive fraction with 128-bit terms. MP4 derives the mean coded
+picture rate from complete video sample count and summed `stts` decode durations;
+audio packets do not receive a video rate. Empty counts and zero intervals expose
+no rate. Movie/track duration declarations, edit lists and timestamp-mode changes
+do not replace that original index statistic. An average does not assert constant
+cadence or a presentation display rate.
+
 Native text tags can carry `SourcePath`, a structural container location rather
 than a filesystem path. MP4 preserves movie, track and media `meta` locations and
 their value order. Track values remain separate from movie tags; original typed
