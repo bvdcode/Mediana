@@ -427,7 +427,18 @@ at most 64 KiB of scratch storage charged to the supplied allocator. Each primit
 sample is swapped through `BinaryPrimitives`, preserving integer and floating-point
 bits, including signed zero and NaN payloads. The caller supplies the sample format
 and keeps the borrowed frame and destination valid until the asynchronous write
-completes. Failed writes may leave partial output. WAVE writing uses this mechanism.
+completes. Failed writes may leave partial output. WAVE writing and raw PCM16LE
+resampling output share this mechanism.
+
+A Linux x64 Native AOT comparison processed a complete 1,840-second stereo
+recording into mono PCM16LE at 16 kHz, with equal channel gains and one pinned
+logical CPU. The source repeats a 92-second recording twenty times. Three
+alternating before/after pairs produced byte-identical output, with 29,440,000
+samples per run. Median process CPU changed from 17.077922 to 16.164612 seconds
+and peak RSS remained 23.375 MiB. This measurement covers that full resampling
+command on a shared host. A separate unity-rate check matches every one of
+4,057,200 output samples against independent integer mixing and quantization;
+complete WAVE output also remains byte-identical.
 
 `Yuv420AreaResizer.Apply` returns independent, tightly packed output storage.
 `ResizeOrRetain` explicitly permits retaining unchanged dimensions, preserving
