@@ -87,8 +87,8 @@ examines up to four adjacent scales in each direction and accepts at most
 four refinement and four coarsening candidates. It retains a valid budget after
 every accepted move; it does not claim a globally optimal allocation. Candidate
 costing recounts only changed channels and preserves each channel's scale history.
-Powered magnitudes reuse transform scratch storage; sharing the channel budget
-does not enlarge the encoder's pooled workspace.
+Powered magnitudes reuse transform scratch storage. Analysis storage reserves
+128 band slots per channel to accommodate up to eight short-window groups.
 
 The before/after checks compare independent half-budget stereo allocation with
 shared allocation at the same raw ceiling. Inputs include generated signals and
@@ -118,7 +118,7 @@ from 46.90 to 55.02 dB while right-channel SNR falls from 46.55 to 34.38 dB.
 Minimizing the absolute sum of squared errors favors the louder channel; it does
 not preserve equal relative distortion or a separate quality floor per channel.
 
-Short-window switching, auditory masking, mid/side or intensity encoding, TNS,
+Automatic short-window selection, auditory masking, mid/side or intensity encoding, TNS,
 PNS encoding and bit-reservoir control remain open. This allocation minimizes
 an unweighted spectral error measure rather than a psychoacoustic noise threshold.
 It does not establish production listening quality, transient performance or
@@ -177,6 +177,19 @@ runs in Native AOT.
 [The reference manifest](../tests/Mediana.Tests/Data/Aac/ENCODING.json) records input,
 output and reference hashes and the complete independent decoding commands.
 
+The shared analysis and packet encoder also support long-start, eight-short and
+long-stop windows, sine/KBD shapes and grouped short spectra. A separate controlled
+mono/stereo sequence exercises every permitted window-sequence transition and
+four short-window groupings. Its 28 packets produce 14,336 decoded samples per
+channel in each stream, including 1024 priming samples and the complete tail.
+Every decoded sample agrees with the independent reference within 0.00002;
+the verifier also checks window declarations, packet budgets, timestamps and
+storage release. [Its manifest](../tests/Mediana.Tests/Data/Aac/WINDOWS.json)
+records the original signal, exact window decisions and reference hashes.
+These controlled decisions verify the packet implementation. The public encoder
+continues to select long sine windows; automatic transient detection and the
+required decision lookahead remain open.
+
 Native and managed commands produce identical TS bytes on the complete tone,
 noise, unequal-channel, speech and impulse checks. A complete ten-minute 44.1 kHz
 stereo PCM sequence produces 25,841 AAC
@@ -209,3 +222,22 @@ is 1.55%. Repeated outputs are byte-identical within each version. Candidate-cos
 caching also preserves every output byte of the preceding shared-budget
 implementation, including the complete ten-minute TS. That implementation's
 separate four-run measurement used 111.59 seconds median CPU before the cache.
+
+A further four-run ABBA comparison checks the shared analysis and packet path
+against the preceding shared-budget implementation, with automatic window
+selection still disabled. Both Native AOT binaries encode the same complete
+ten-minute input at the same ceiling on CPU 2. All four TS outputs are
+byte-identical; every packet timestamp, budget and independently decoded PCM
+sample is checked again.
+
+| Process measurement | Previous long-window path | Shared analysis and packet path |
+| --- | --- | --- |
+| Median CPU, seconds | 95.65 | 92.33 |
+| CPU range, seconds | 94.42–96.88 | 90.44–94.21 |
+| Median wall time, seconds | 97.69 | 95.69 |
+| Median peak RSS, MiB | 27.19 | 26.94 |
+
+The observed median CPU reduction is 3.47%. There are two runs per binary on a
+shared host; this measurement does not establish a general speedup or predict the
+cost of automatic short-window selection. The workspace's additional band slots
+require 128 extra accounted bytes per channel; process RSS includes other memory.
