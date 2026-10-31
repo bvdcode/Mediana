@@ -7,6 +7,9 @@ namespace Mediana.Formats.Video
     public static class H264VuiParser
     {
         public static H264VuiParameters Parse(ref H264BitReader bits, int referenceFrames)
+            => Parse(ref bits, referenceFrames, out _, out _);
+
+        internal static H264VuiParameters Parse(ref H264BitReader bits, int referenceFrames, out int signalStart, out int signalEnd)
         {
             H264VuiParameters result = new();
             if (bits.ReadFlag())
@@ -40,6 +43,7 @@ namespace Mediana.Formats.Video
             {
                 result = result with { OverscanAppropriate = bits.ReadFlag() };
             }
+            signalStart = bits.BitPosition;
             if (bits.ReadFlag())
             {
                 int videoFormat = (int)bits.ReadBits(3);
@@ -58,6 +62,7 @@ namespace Mediana.Formats.Video
                     };
                 }
             }
+            signalEnd = bits.BitPosition;
             if (bits.ReadFlag())
             {
                 result = result with { ChromaLocationTop = bits.ReadUe(5), ChromaLocationBottom = bits.ReadUe(5) };

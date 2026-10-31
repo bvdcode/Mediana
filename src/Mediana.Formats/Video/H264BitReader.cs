@@ -11,8 +11,10 @@ namespace Mediana.Formats.Video
         private int available;
         private int current;
         private int zeros;
+        private int preventionBytes;
 
         public bool ByteAligned => available == 0;
+        public int BitPosition => checked((offset - preventionBytes) * 8 - available);
 
         public uint ReadBits(int count)
         {
@@ -120,6 +122,7 @@ namespace Mediana.Formats.Video
                 if (zeros == 2 && data[offset] == 3 && offset == data.Length - 1)
                 {
                     offset++;
+                    preventionBytes++;
                     break;
                 }
                 if (ReadBits(16) != 0)
@@ -156,6 +159,7 @@ namespace Mediana.Formats.Video
                         throw new InvalidDataException("The H.264 emulation prevention byte is invalid.");
                     }
                     value = data[offset++];
+                    preventionBytes++;
                     zeros = 0;
                 }
                 else if (value < 3)
