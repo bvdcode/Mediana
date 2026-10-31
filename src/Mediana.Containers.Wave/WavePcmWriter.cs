@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
+using Mediana.IO;
 
 using Mediana.Formats.Audio;
 
@@ -88,25 +89,7 @@ namespace Mediana.Containers.Wave
                 {
                     throw new NotSupportedException("The output exceeds RIFF/WAVE's 32-bit size limit; RF64 is not supported.");
                 }
-                if (BitConverter.IsLittleEndian || format.BytesPerSample == 1)
-                {
-                    await destination.WriteAsync(samples, cancellationToken).ConfigureAwait(false);
-                }
-                else
-                {
-                    using WritableMediaBuffer ordered = allocator.Allocate(samples.Length);
-                    for (int offset = 0; offset < samples.Length; offset += format.BytesPerSample)
-                    {
-                        if ((offset & 4095) == 0)
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
-                        }
-                        Span<byte> value = ordered.Memory.Span.Slice(offset, format.BytesPerSample);
-                        samples.Span.Slice(offset, format.BytesPerSample).CopyTo(value);
-                        value.Reverse();
-                    }
-                    await destination.WriteAsync(ordered.Memory, cancellationToken).ConfigureAwait(false);
-                }
+                await PcmStreamWriter.WriteLittleEndianAsync(destination, frame, allocator, cancellationToken).ConfigureAwait(false);
                 dataBytes = next;
                 success = true;
             }

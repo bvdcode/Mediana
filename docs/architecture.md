@@ -421,6 +421,14 @@ the available decoded PCM. Natural EOF may end that selection early; decoder,
 source and timing errors still fail. Neither operation inserts samples.
 Container edit durations describe selection windows, not guaranteed PCM counts.
 
+`PcmStreamWriter` writes interleaved frames in an explicit little- or big-endian
+byte order. Matching byte order writes the frame memory directly; swapping uses
+at most 64 KiB of scratch storage charged to the supplied allocator. Each primitive
+sample is swapped through `BinaryPrimitives`, preserving integer and floating-point
+bits, including signed zero and NaN payloads. The caller supplies the sample format
+and keeps the borrowed frame and destination valid until the asynchronous write
+completes. Failed writes may leave partial output. WAVE writing uses this mechanism.
+
 `Yuv420AreaResizer.Apply` returns independent, tightly packed output storage.
 `ResizeOrRetain` explicitly permits retaining unchanged dimensions, preserving
 the source planes, timing, color and aspect ratio. Each returned frame has its own
