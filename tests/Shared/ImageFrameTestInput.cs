@@ -18,7 +18,8 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             foreach ((string name, int components, int bits) in new[]
-                { ("L-3x5", 1, 8), ("RGB-3x5", 3, 8), ("RGBA-3x5", 4, 8), ("I16-3x5", 1, 16) })
+                { ("L-3x5", 1, 8), ("RGB-3x5", 3, 8), ("RGBA-3x5", 4, 8), ("I16-3x5", 1, 16),
+                    ("L-129x101", 1, 8), ("RGB-129x101", 3, 8), ("RGBA-129x101", 4, 8), ("I16-129x101", 1, 16) })
             {
                 byte[] input = await File.ReadAllBytesAsync(Path.Combine(root, "Jpeg2000", name + ".jp2"));
                 byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, "Jpeg2000", name + ".raw"));
@@ -41,6 +42,7 @@ namespace Mediana.Tests
                         }
                     }
                 }
+                VerifyRgbaDestination(image, frame);
                 VerifyPng(frame, allocator);
             }
             byte[] packed = await File.ReadAllBytesAsync(Path.Combine(root, "Jbig2", "mmr-odd.bin"));
@@ -74,6 +76,27 @@ namespace Mediana.Tests
             if (allocator.AllocatedBytes != 0)
             {
                 throw new InvalidDataException("Image conversion retained an output buffer lease.");
+            }
+        }
+
+        internal static void VerifyRgbaDestination(Jpeg2000Image image, VideoFrame expected)
+        {
+            byte[] guarded = new byte[expected.Data.Length + 2];
+            Array.Fill(guarded, (byte)0xa5);
+            for (int i = 0; i < 3; i++)
+            {
+                image.WriteRgbaTo(guarded.AsSpan(1, expected.Data.Length));
+            }
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int i = 0; i < 3; i++)
+            {
+                image.WriteRgbaTo(guarded.AsSpan(1, expected.Data.Length));
+            }
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            if (allocated != 0 || guarded[0] != 0xa5 || guarded[^1] != 0xa5
+                || !guarded.AsSpan(1, expected.Data.Length).SequenceEqual(expected.Data.Span))
+            {
+                throw new InvalidDataException("JPEG 2000 caller-storage conversion allocated, changed pixels or exceeded its destination.");
             }
         }
 

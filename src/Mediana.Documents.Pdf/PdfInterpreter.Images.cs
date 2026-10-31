@@ -3,8 +3,6 @@
 
 using Mediana.Codecs.Jbig2;
 using Mediana.Codecs.Jpeg2000;
-using Mediana.Core.Memory;
-using Mediana.Core.Video;
 using Mediana.Drawing;
 namespace Mediana.Documents.Pdf
 {
@@ -34,9 +32,17 @@ namespace Mediana.Documents.Pdf
                     if (obj.Value.Get("Decode").Kind != PdfValueKind.Null || Get(obj.Value, "SMaskInData").Number != 0) { throw new NotSupportedException("JPX Decode and SMaskInData overrides are not supported yet."); }
                     Jpeg2000Image jpeg = Jpeg2000Decoder.Decode(data, new() { MaximumEncodedBytes = storage.Budget.Options.MaximumInputBytes, MaximumPixels = storage.Budget.Options.MaximumImagePixels, MaximumWorkingBytes = storage.Budget.Options.MaximumImageBytes, ExpectedWidth = width, ExpectedHeight = height }, token);
                     if (jpeg.Width != width || jpeg.Height != height) { throw new InvalidDataException("PDF JPEG 2000 dimensions differ."); }
-                    MediaBufferAllocator allocator = new(checked((long)width * height * 4));
-                    using VideoFrame frame = jpeg.ToVideoFrame(allocator, SampleAspectRatio.Square, cancellationToken: token);
-                    pixels = new(width, height); frame.Data.Span.CopyTo(pixels.Pixels.Span);
+                    pixels = new(width, height);
+                    bool converted = false;
+                    try
+                    {
+                        jpeg.WriteRgbaTo(pixels.Pixels.Span, cancellationToken: token);
+                        converted = true;
+                    }
+                    finally
+                    {
+                        if (!converted) { pixels.Dispose(); }
+                    }
                 }
                 else
                 {

@@ -21,6 +21,17 @@ namespace Mediana.Tests
                 if (rgb[i * 3] != pixels.Pixels.Span[i * 4] || rgb[i * 3 + 1] != pixels.Pixels.Span[i * 4 + 1] || rgb[i * 3 + 2] != pixels.Pixels.Span[i * 4 + 2] || pixels.Pixels.Span[i * 4 + 3] != 255)
                 { throw new InvalidDataException("PDF JP2 pixels differ from the independent RGB source."); }
             }
+            byte[] maskedImage = PdfTestDocument.Stream(jp2, "/Type /XObject /Subtype /Image /Width 129 /Height 101 /Filter /JPXDecode /SMask 6 0 R");
+            byte[] mask = PdfTestDocument.Stream([128], "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8");
+            byte[] maskedPdf = PdfTestDocument.Create("/I Do /I Do", resources: "/XObject << /I 5 0 R >>", extraObjects: [maskedImage, mask]);
+            using PdfDocument masked = await PdfReader.ReadAsync(new MemoryStream(maskedPdf));
+            PdfImage maskedPixels = masked.GetPage(1).Images.Single(value => value.Name == "I");
+            for (int i = 0; i < rgb.Length / 3; i++)
+            {
+                if (rgb[i * 3] != maskedPixels.Pixels.Span[i * 4] || rgb[i * 3 + 1] != maskedPixels.Pixels.Span[i * 4 + 1]
+                    || rgb[i * 3 + 2] != maskedPixels.Pixels.Span[i * 4 + 2] || maskedPixels.Pixels.Span[i * 4 + 3] != 128)
+                { throw new InvalidDataException("PDF JP2 soft mask or repeated image reuse differs."); }
+            }
         }
         internal static async Task VerifyAsync(string root)
         {
