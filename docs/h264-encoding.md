@@ -52,7 +52,14 @@ Calls and disposal must not overlap.
 
 ## Prediction and residual coding
 
-IDR pictures use intra4x4 DC and chroma DC prediction. P pictures use P16x16 or
+IDR pictures select among all nine legal intra4x4 directions using reconstructed
+neighbours and minimum absolute prediction error. Ties prefer the predicted
+mode's shorter syntax. Chroma uses DC prediction. Only residual groups with
+nonzero quantized coefficients are signalled. Selection retains coefficients for
+one macroblock and reconstructs each luma block before selecting the next one.
+[Complete directional prediction checks](h264-intra-prediction.md) include every
+direction, boundary availability, independent pixels and measured error/size
+tradeoffs. P pictures use P16x16 or
 P_Skip, integer 4x4 residual transforms, per-block quantization, chroma DC
 transforms and CAVLC. The reference contains reconstructed pixels, so quantization
 errors do not create an encoder/decoder prediction mismatch. Deblocking is
@@ -185,7 +192,7 @@ records original-signal, transport and decoded hashes and independent commands.
 The original 48-picture all-IDR corpus remains checked with an explicit zero
 interval. Failure tests cover invalid options, cancellation with a live reference,
 reset replay, returned-packet ownership, allocation failure and packet limits.
-The full managed suite has 2364 passing tests; the strict Linux x64 Native AOT
+The full managed suite has 2544 passing tests; the strict Linux x64 Native AOT
 runner also passes.
 
 Six additional rate-controlled sequences cover another 480 pictures, initial
@@ -205,6 +212,10 @@ match the separate audio encoding reference. All 129 transport/playlist files ar
 byte-identical between managed and Native AOT.
 
 ## Complete before/after measurement
+
+The following two resource comparisons use the preceding DC intra predictor.
+Current directional prediction and complete corpus results are recorded
+[separately](h264-intra-prediction.md).
 
 A complete 1800.333-second, 96x80, 6 fps input contains 10,802 pictures. The
 generated sequence repeats; it checks sustained processing, reference lifetime
