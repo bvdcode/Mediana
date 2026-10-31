@@ -37,7 +37,7 @@ namespace Mediana.Tests
             }
         }
 
-        public static async Task<(byte[] Transport, byte[] Source, byte[] Decoded)> EncodeAsync(int mode, int qp)
+        public static async Task<(byte[] Transport, byte[] Source, byte[] Decoded)> EncodeAsync(int mode, int qp, H264RateControlOptions? rate = null)
         {
             (int width, int height) = mode switch
             {
@@ -51,7 +51,7 @@ namespace Mediana.Tests
                 new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709, ColorRange.Limited, ChromaLocation.Left),
                 new SampleAspectRatio(4, 3));
             MediaBufferAllocator allocator = new(8 * 1024 * 1024);
-            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator, new() { Quantizer = qp });
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator, new() { Quantizer = qp, RateControl = rate });
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new H264DecoderFactory().Create(encoder.Stream, allocator);
             using MemoryStream transport = new();
             using MemoryStream source = new();
@@ -67,6 +67,8 @@ namespace Mediana.Tests
             MediaTimestamp[] timestamps = new MediaTimestamp[FrameCount];
             MediaDuration[] durations = new MediaDuration[FrameCount];
             int pictures = 0;
+            List<(long Timestamp, int Bytes)> ratePackets = [];
+            HashSet<int> quantizers = [];
             long clock = -120;
             long keyClock = clock;
             int frameNumber = 0;
@@ -91,6 +93,8 @@ namespace Mediana.Tests
                 }
                 H264BitReader bits = H264Nal.Payload(packet.Data.Span[4..], key ? 5 : 1);
                 H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, packet.Data.Span[4]);
+                quantizers.Add(header.Qp);
+                ratePackets.Add((clock, packet.Data.Length));
                 if (packet.IsKeyFrame != key || header.IsIdr != key || header.FrameNumber != frameNumber ||
                     header.Kind != (key ? H264SliceKind.I : H264SliceKind.P) ||
                     packet.PresentationTime != input.Timestamp || packet.DecodeTime != input.Timestamp || packet.Duration != input.Duration)
@@ -114,6 +118,26 @@ namespace Mediana.Tests
             decoder.CompleteInput();
             Drain();
             await hls.CompleteAsync();
+            if (rate is not null)
+            {
+                long capacity = (long)((Int128)rate.BitRate * rate.BufferDuration.Ticks / TimeSpan.TicksPerSecond);
+                for (int start = 0; start < ratePackets.Count; start++)
+                {
+                    long bytes = 0;
+                    for (int end = start; end < ratePackets.Count; end++)
+                    {
+                        bytes += ratePackets[end].Bytes;
+                        if (bytes * 8 * 1000 > capacity * 1000 + (ratePackets[end].Timestamp - ratePackets[start].Timestamp) * rate.BitRate)
+                        {
+                            throw new InvalidDataException("The complete AVC packet stream exceeds its sliding media-time rate envelope.");
+                        }
+                    }
+                }
+                if (quantizers.Count < 2 || quantizers.Any(value => value < 0 || value > 51))
+                {
+                    throw new InvalidDataException("Rate control did not adapt valid slice quantizers.");
+                }
+            }
             if (segments.Count != 2 || hls.Segments[0].Start != timestamps[0] ||
                 hls.BytesWritten != segments.Sum(segment => segment.ToArray().LongLength) || segments.Any(segment => segment.CanWrite) ||
                 !hls.CreateVodPlaylist(number => $"{number}.ts").Contains("#EXT-X-INDEPENDENT-SEGMENTS\n", StringComparison.Ordinal))
