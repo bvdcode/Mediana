@@ -7,10 +7,8 @@ namespace Mediana.Codecs.H264
 {
     internal class H264RateController(H264RateControlOptions options, TimeBase timeBase, int initialQuantizer)
     {
-        private readonly Int128 capacity = (Int128)options.BufferBits * timeBase.Denominator;
+        private readonly H264BitCredit credit = new(options.BitRate, options.BufferBits, timeBase);
         private readonly int initial = initialQuantizer;
-        private Int128 credit = (Int128)options.BufferBits * timeBase.Denominator;
-        private MediaTimestamp? previous;
         private long intraCost;
         private long interCost;
         private int intraQuantizer = initialQuantizer;
@@ -18,7 +16,8 @@ namespace Mediana.Codecs.H264
 
         public H264FrameRateBudget Prepare(MediaTimestamp timestamp, long duration, bool keyFrame)
         {
-            Int128 available = Available(timestamp);
+            Int128 available = credit.Available(timestamp.Value);
+            Int128 capacity = credit.Capacity;
             int maximumBytes = (int)(available / timeBase.Denominator / 8);
             Int128 nominal = Int128.Min(capacity, (Int128)options.BitRate * duration * timeBase.Numerator);
             Int128 spending = nominal + (available - capacity / 2) * nominal / capacity;
@@ -48,8 +47,7 @@ namespace Mediana.Codecs.H264
 
         public void Commit(MediaTimestamp timestamp, int quantizer, int bytes, bool keyFrame)
         {
-            credit = Available(timestamp) - (Int128)bytes * 8 * timeBase.Denominator;
-            previous = timestamp;
+            credit.Commit(timestamp.Value, bytes);
             long observed = (long)bytes * 8 * Scale(quantizer);
             if (keyFrame)
             {
@@ -65,22 +63,11 @@ namespace Mediana.Codecs.H264
 
         public void Reset()
         {
-            credit = capacity;
-            previous = null;
+            credit.Reset();
             intraCost = 0;
             interCost = 0;
             intraQuantizer = initial;
             interQuantizer = initial;
-        }
-
-        private Int128 Available(MediaTimestamp timestamp)
-        {
-            if (previous is not MediaTimestamp last)
-            {
-                return capacity;
-            }
-            Int128 elapsed = (Int128)timestamp.Value - last.Value;
-            return Int128.Min(capacity, credit + elapsed * timeBase.Numerator * options.BitRate);
         }
 
         public static int NextQuantizer(int quantizer, int bytes, int maximumBytes)
