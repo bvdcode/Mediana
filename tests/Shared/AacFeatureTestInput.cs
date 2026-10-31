@@ -44,7 +44,7 @@ namespace Mediana.Tests
             {
                 AacConfiguration configuration = AacConfiguration.ReadAudioSpecificConfig(reader.Streams[streamIndex].Configuration.Span, out _)
                     ?? throw new InvalidDataException("The AAC fixture configuration is unsupported.");
-                using AacDecoderWorkspace workspace = new(allocator, configuration.ChannelCount);
+                using AacDecoderWorkspace workspace = new(allocator, new AacChannelLayout(configuration.ChannelConfiguration));
                 uint noiseState = 0x13579bdf;
                 while (true)
                 {
@@ -59,7 +59,7 @@ namespace Mediana.Tests
                     }
                     midSideBands += CountMidSideBands(packet.Data.Span, configuration.FrequencyIndex);
                     AacAccessUnitParser.Read(packet.Data.Span, configuration.FrequencyIndex, workspace, ref noiseState, default);
-                    foreach (AacChannelState channel in workspace.Right is null ? new[] { workspace.Left } : new[] { workspace.Left, workspace.Right })
+                    foreach (AacChannelState channel in workspace.Channels)
                     {
                         sequences |= 1 << channel.Info.Sequence;
                         shapes |= 1 << channel.Info.Shape;

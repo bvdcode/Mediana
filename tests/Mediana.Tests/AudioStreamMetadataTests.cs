@@ -47,7 +47,7 @@ namespace Mediana.Tests
         [InlineData(5, 5)]
         [InlineData(6, 6)]
         [InlineData(7, 8)]
-        public void AacHeadersDoNotInheritDecoderChannelAndBandTableLimits(int configuration, int count)
+        public void AacHeadersDoNotInheritDecoderBandTableLimits(int configuration, int count)
         {
             EncodedStreamInfo stream = new(19, MediaKind.Audio, "aac", StreamFormats.Aac, new TimeBase(1, 17),
                 AacConfiguration.Create(7350, configuration).ToAudioSpecificConfig());

@@ -42,7 +42,8 @@ namespace Mediana.Tests
             await using MemoryStream file = new(input, writable: false);
             await using RandomAccessStreamByteSource source = new(file, leaveOpen: true);
             await source.ReadAsync(new byte[3]);
-            await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex, new MediaOpenOptions { BufferBudgetBytes = 128 * 1024 });
+            await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
+                new MediaOpenOptions { BufferBudgetBytes = Math.Max(128 * 1024, channels * 64 * 1024) });
             AudioFrame? retained = null;
             byte[]? lastBytes = null;
             List<byte> actual = [];
@@ -121,6 +122,12 @@ namespace Mediana.Tests
         {
             1 => ["front-center"],
             2 => ["front-left", "front-right"],
+            3 => ["front-left", "front-right", "front-center"],
+            4 => ["front-left", "front-right", "front-center", "back-center"],
+            5 => ["front-left", "front-right", "front-center", "back-left", "back-right"],
+            6 => ["front-left", "front-right", "front-center", "low-frequency", "back-left", "back-right"],
+            8 => ["front-left", "front-right", "front-center", "low-frequency", "back-left", "back-right",
+                "front-left-of-center", "front-right-of-center"],
             _ => throw new InvalidDataException("The AAC fixture channel count is unsupported.")
         };
 

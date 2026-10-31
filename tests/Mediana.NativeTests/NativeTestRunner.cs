@@ -15,6 +15,13 @@ namespace Mediana.NativeTests
         {
             H264MotionInterpolationTestInput.Verify();
             Console.WriteLine("PASS H.264 motion interpolation: all luma phases, complete blocks, borders and extreme coordinates match scalar convolution.");
+            foreach (int configuration in new[] { 3, 4, 5, 6, 7 })
+            {
+                await AacMultichannelTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "AacMultichannel"), configuration);
+            }
+            Console.WriteLine("PASS multichannel AAC-LC: configurations 3–7, every speaker sample, timing, EOF and retained frame ownership match independent decoding.");
+            await AacMultichannelTestInput.VerifyTransitionsAsync(Path.Combine(AppContext.BaseDirectory, "Data", "AacMultichannel"));
+            Console.WriteLine("PASS stereo AAC-LC: every window sequence/shape transition and independent/common window histories match FAAD2 PCM.");
             LanguageTagTestInput.Verify();
             Console.WriteLine("PASS language tag syntax: RFC 5646 examples and malformed subtags match without a registry lookup.");
             await Mp4TrackMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));

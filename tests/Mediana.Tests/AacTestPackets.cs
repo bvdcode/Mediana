@@ -43,6 +43,35 @@ namespace Mediana.Tests
             return writer.Write(7, 3).ToArray();
         }
 
+        public static byte[] Elements(params (int Type, int Tag)[] elements)
+        {
+            AacTestBitWriter writer = new();
+            foreach ((int type, int tag) in elements)
+            {
+                writer.Write(type, 3).Write(tag, 4);
+                switch (type)
+                {
+                    case 0:
+                    case 3:
+                        writer.Write(100, 8);
+                        Window(writer);
+                        Spectrum(writer);
+                        break;
+                    case 1:
+                        writer.Write(1, 1);
+                        Window(writer);
+                        writer.Write(0, 2).Write(100, 8);
+                        Spectrum(writer);
+                        writer.Write(100, 8);
+                        Spectrum(writer);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(elements));
+                }
+            }
+            return writer.Write(7, 3).ToArray();
+        }
+
         private static void Window(AacTestBitWriter writer) => writer.Write(0, 4).Write(1, 6).Write(0, 1);
 
         private static void Spectrum(AacTestBitWriter writer) =>
