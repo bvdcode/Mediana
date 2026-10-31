@@ -115,6 +115,64 @@ FFmpeg, reaches EOF and releases all media buffers. The measured Y/U/V PSNR is
 taskset -c 2 mediana -i input.mov output.ts --video-codec H264 --video-only --qp 26 --no-color
 ```
 
-These admission checks do not establish complete Annex C HRD timing conformance.
-Broader source acceptance, HLS A/V encoding at HD resolution and perceptual quality
-remain open.
+The admission checks above are separate from the external timing verification
+below. Broader source acceptance, HLS A/V encoding at HD resolution and perceptual
+quality remain open.
+
+## I_PCM selection resource check
+
+The macroblock-size correction (`a36baba`) was measured with the same complete
+source, fixed QP26, Native AOT and logical CPU 2. Independent verification ran
+after the measured command completed.
+
+| Build | CPU | Elapsed | Peak RSS | TS bytes |
+| --- | ---: | ---: | ---: | ---: |
+| Before (`9b76808`) | 1390.37 s | 1446.59 s | 109.50 MiB | 424,707,980 |
+| After (`a49a566`) | 1393.35 s | 1442.08 s | 129.69 MiB | 424,707,980 |
+
+The complete transport files are byte-identical, with SHA256
+`709e43275e9bb4bea2eeab34774da19b36f3766037647be6f31913c07a8402c6`.
+Consequently, the complete picture, timestamp, decoded-sample and quality checks
+above also apply to the new output. The new operation reaches EOF with zero live
+media-buffer bytes. The separate noisy QP0/QP6 references exercise I_PCM selection;
+this film retains its previous QP26 output.
+
+Observed CPU increased by 0.21%; peak RSS increased by 20.19 MiB (18.44%).
+This single pair on a shared host establishes neither a throughput change nor
+the cause or repeatability of the RSS increase. Zero retained media-buffer bytes
+at EOF does not explain process peak RSS. The memory difference remains open.
+
+## External HRD timing verification
+
+The complete fixed-QP output also passes an exact external arrival/removal
+calculation under Annex C of [ITU-T H.264 V16](https://www.itu.int/rec/T-REC-H.264-202606-I/en).
+The supplied timing and buffering parameters are external, as permitted by E.2.1;
+the output does not acquire in-band HRD parameters or timing messages.
+
+| Bit domain | Arrival rate | CPB capacity | Maximum fullness |
+| --- | ---: | ---: | ---: |
+| VCL | 50,000,000 bit/s | 62,500,000 bits | 75,462,752 / 3 bits |
+| Entire Annex B byte stream | 60,000,000 bit/s | 75,000,000 bits | 28,986,944 bits |
+
+Each domain uses one VBR schedule, a zero low-delay flag and 32-bit initial-delay
+fields. Rate and capacity use scale zero, so the supplied integer values are
+exactly representable. The sum of initial delay and delay offset is 112,500
+ticks at 90 kHz. Initial delays at successive IDRs range from 150 to 2,806 ticks
+for VCL and from 125 to 2,339 ticks for Annex B.
+
+The calculation includes every access unit and every fullness maximum, with no
+underflow or overflow. Reinitialization at each of the 299 IDRs passes for every
+remaining picture: 2,141,737 access-unit checks per domain. Buffering-period gap
+constraints and final empty-buffer state also pass. The calculation's own checks
+include hand-derived schedules, a full buffer, and rejection of underflow,
+overflow, infeasible demand and an invalid buffering-period delay.
+
+Independent header parsing checks all 14,315 slices, frame numbers and reference
+marking. The declared one-reference DPB retains each required reference and
+outputs each picture at its removal time. All removal/output intervals satisfy
+level 4.1. An external clock of 1/48 second represents every picture delay exactly;
+the maximum CPB-removal delay is 96 ticks and every DPB-output delay is zero.
+
+These results cover this complete fixed-QP stream with the stated external
+parameters. They do not establish HRD timing for every accepted input or for the
+separate packet-rate controller.
