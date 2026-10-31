@@ -28,7 +28,7 @@ namespace Mediana.Containers.MpegTs
                     StreamFormats.Avc.Require(stream.Format);
                     Type = 0x1B;
                     PesStreamId = 0xE0 + ordinal;
-                    avc = new(stream.Configuration, stream.ColorDescription, allocator, maximumConfigurationBytes);
+                    avc = new(stream.Configuration, stream.ColorDescription, allocator, maximumConfigurationBytes, stream.AspectRatioDescription);
                     break;
                 case (MediaKind.Audio, "aac"):
                     StreamFormats.Aac.Require(stream.Format);

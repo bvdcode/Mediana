@@ -14,10 +14,11 @@ namespace Mediana.Formats.Video
         private readonly List<AvcParameterSet> parameters = [];
         private readonly int parameterBytes;
 
-        /// <summary>Optional CICP colors replace every configuration SPS and its known in-band occurrences.
+        /// <summary>Optional source color and pixel geometry apply to every configuration SPS and its known in-band occurrences.
         /// Rewriting uses the supplied allocator and a per-SPS byte limit; retained parameter arrays are ordinary managed metadata.</summary>
         public AvcAnnexBConverter(ReadOnlyMemory<byte> configuration, VideoColorDescription? colorDescription = null,
-            MediaBufferAllocator? allocator = null, int maximumParameterSetBytes = ushort.MaxValue)
+            MediaBufferAllocator? allocator = null, int maximumParameterSetBytes = ushort.MaxValue,
+            VideoAspectRatioDescription? aspectRatioDescription = null)
         {
             CicpColorDescription? color = colorDescription switch
             {
@@ -25,11 +26,11 @@ namespace Mediana.Formats.Video
                 CicpColorDescription cicp => cicp,
                 _ => throw new NotSupportedException("The source color description cannot be represented in H.264 SPS parameters.")
             };
-            if (color is not null)
+            if (color is not null || aspectRatioDescription is not null)
             {
                 ArgumentNullException.ThrowIfNull(allocator);
                 ArgumentOutOfRangeException.ThrowIfLessThan(maximumParameterSetBytes, 8);
-                color.Resolve(new VideoColorInfo());
+                color?.Resolve(new VideoColorInfo());
             }
             configuration = configuration.ToArray();
             ReadOnlySpan<byte> data = configuration.Span;
@@ -43,13 +44,13 @@ namespace Mediana.Formats.Video
                 throw new InvalidDataException("The AVC NAL length size is reserved.");
             }
             int offset = 6;
-            ReadParameters(configuration, ref offset, data[5] & 31, 7, color, allocator, maximumParameterSetBytes);
+            ReadParameters(configuration, ref offset, data[5] & 31, 7, color, aspectRatioDescription, allocator, maximumParameterSetBytes);
             if (offset >= data.Length)
             {
                 throw new InvalidDataException("The AVC picture parameter count is missing.");
             }
             int pictureCount = data[offset++];
-            ReadParameters(configuration, ref offset, pictureCount, 8, color, allocator, maximumParameterSetBytes);
+            ReadParameters(configuration, ref offset, pictureCount, 8, color, aspectRatioDescription, allocator, maximumParameterSetBytes);
             if (offset < data.Length)
             {
                 if (data[1] is not (100 or 110 or 122 or 144) || data.Length - offset < 4 ||
@@ -143,7 +144,7 @@ namespace Mediana.Formats.Video
         }
 
         private void ReadParameters(ReadOnlyMemory<byte> data, ref int offset, int count, int type,
-            CicpColorDescription? color, MediaBufferAllocator? allocator, int maximumBytes)
+            CicpColorDescription? color, VideoAspectRatioDescription? aspectRatio, MediaBufferAllocator? allocator, int maximumBytes)
         {
             if (count == 0)
             {
@@ -163,9 +164,9 @@ namespace Mediana.Formats.Video
                 }
                 ReadOnlyMemory<byte> original = data.Slice(offset, length);
                 ReadOnlyMemory<byte> output = original;
-                if (type == 7 && color is not null)
+                if (type == 7 && (color is not null || aspectRatio is not null))
                 {
-                    using MediaBuffer rewritten = H264ColorDescriptionWriter.Rewrite(original.Span, color, allocator!, maximumBytes);
+                    using MediaBuffer rewritten = H264SequenceDescriptionWriter.Rewrite(original.Span, color, aspectRatio, allocator!, maximumBytes);
                     output = rewritten.Memory.ToArray();
                 }
                 parameters.Add(new(original, output));

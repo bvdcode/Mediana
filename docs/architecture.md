@@ -72,6 +72,12 @@ The default does not replace an explicit non-square H.264 VUI declaration.
 ISO MP4 without `pasp` retains unknown container geometry. Processing still
 requires a known aspect ratio and does not guess it from resolution.
 
+TS/HLS stream copying writes the resolved source aspect ratio into every SPS
+from `avcC` and replaces its known in-band occurrences. Existing codec ratios
+survive format defaults. Unchanged aspect-only SPS data stays byte-identical;
+PPS, SEI and coded slices are preserved. An unrepresentable ratio fails before
+destination I/O. Color and geometry use one bounded SPS rewriting pass.
+
 ## Source color descriptions
 
 `EncodedStreamInfo.ColorDescription` carries an immutable source description

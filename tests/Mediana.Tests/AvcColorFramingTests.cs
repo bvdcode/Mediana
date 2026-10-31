@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Buffers.Binary;
+using static Mediana.Tests.AvcFramingTestData;
 using Mediana.Containers.MpegTs;
 using Mediana.Core;
 using Mediana.Core.Memory;
@@ -109,32 +109,5 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
-        private static byte[] Packet(int lengthSize, params byte[][] nals)
-        {
-            using MemoryStream bytes = new();
-            Span<byte> length = stackalloc byte[4];
-            foreach (byte[] nal in nals)
-            {
-                BinaryPrimitives.WriteInt32BigEndian(length, nal.Length);
-                bytes.Write(length[(4 - lengthSize)..]);
-                bytes.Write(nal);
-            }
-            return bytes.ToArray();
-        }
-
-        private static List<byte[]> Nals(ReadOnlySpan<byte> output)
-        {
-            List<byte[]> result = [];
-            while (!output.IsEmpty)
-            {
-                Assert.Equal(new byte[] { 0, 0, 0, 1 }, output[..4].ToArray());
-                output = output[4..];
-                int next = output.IndexOf(new byte[] { 0, 0, 0, 1 });
-                int count = next < 0 ? output.Length : next;
-                result.Add(output[..count].ToArray());
-                output = output[count..];
-            }
-            return result;
-        }
     }
 }

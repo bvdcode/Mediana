@@ -9,7 +9,7 @@ namespace Mediana.Formats.Video
         public static H264SequenceParameterSet Parse(ReadOnlySpan<byte> nal, int? maxPicturePixels = null)
             => Parse(nal, maxPicturePixels, out _);
 
-        internal static H264SequenceParameterSet Parse(ReadOnlySpan<byte> nal, int? maxPicturePixels, out H264ColorSyntax colorSyntax)
+        internal static H264SequenceParameterSet Parse(ReadOnlySpan<byte> nal, int? maxPicturePixels, out H264VuiSyntax vuiSyntax)
         {
             H264BitReader bits = H264Nal.Payload(nal, 7);
             int profile = (int)bits.ReadBits(8);
@@ -93,11 +93,12 @@ namespace Mediana.Formats.Video
                 bottom = bits.ReadUe();
             }
             int vuiFlag = bits.BitPosition;
+            int aspectEnd = -1;
             int signalStart = -1;
             int signalEnd = -1;
             H264VuiParameters? vui = bits.ReadFlag()
-                ? H264VuiParser.Parse(ref bits, references, out signalStart, out signalEnd) : null;
-            colorSyntax = new(vuiFlag, signalStart, signalEnd, bits.BitPosition);
+                ? H264VuiParser.Parse(ref bits, references, out aspectEnd, out signalStart, out signalEnd) : null;
+            vuiSyntax = new(vuiFlag, aspectEnd, signalStart, signalEnd, bits.BitPosition);
             bits.ReadTrailingBits();
             int chromaArray = sequence.SeparateColourPlane ? 0 : sequence.ChromaFormat;
             int cropUnitX = chromaArray switch
