@@ -28,7 +28,8 @@ namespace Mediana.Cli
             bool success = false;
             try
             {
-                encoder = H264Encoder.Create(resizer.OutputFormat, video.TimeBase, allocator, new() { Quantizer = qp }, video.StreamIndex);
+                encoder = H264Encoder.Create(resizer.OutputFormat, video.TimeBase, allocator,
+                    new() { Quantizer = qp, KeyFrameInterval = TimeSpan.FromTicks(checked(targetMilliseconds * TimeSpan.TicksPerMillisecond)) }, video.StreamIndex);
                 string name = "variant-" + width.ToString(CultureInfo.InvariantCulture);
                 string directory = Path.Combine(root, name);
                 Directory.CreateDirectory(directory);

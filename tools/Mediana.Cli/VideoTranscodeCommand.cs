@@ -77,7 +77,7 @@ namespace Mediana.Cli
             {
                 throw new InvalidOperationException("Video encoding buffers were not released.");
             }
-            await Console.Out.WriteLineAsync($"MPEG-TS video encoding: {frames} frames; Baseline CAVLC intra; QP {quantizer}; video only. Live buffer bytes: 0.");
+            await Console.Out.WriteLineAsync($"MPEG-TS video encoding: {frames} frames; Baseline CAVLC I/P; QP {quantizer}; video only. Live buffer bytes: 0.");
             return 0;
         }
 
