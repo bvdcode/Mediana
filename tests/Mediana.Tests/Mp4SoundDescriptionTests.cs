@@ -10,6 +10,73 @@ namespace Mediana.Tests
 {
     public class Mp4SoundDescriptionTests
     {
+        [Theory]
+        [InlineData(48000)]
+        [InlineData(96000)]
+        [InlineData(44100)]
+        public async Task Version2UsesExtendedDeclarationsAndDefinitiveCodecConfiguration(int declaredRate)
+        {
+            byte[] file = await Mp4TestData.ReadAsync("avc-sound-v2.mov");
+            int payload = Mp4TestData.PayloadOffset(file, "mp4a");
+            double rate = declaredRate;
+            BinaryPrimitives.WriteInt64BigEndian(file.AsSpan(payload + 32), BitConverter.DoubleToInt64Bits(rate));
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(file, 7);
+            await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
+            {
+                Mp4TrackInfo audio = Assert.Single(reader.Tracks, track => track.Stream.CodecId == "aac");
+                Assert.Equal((int)rate, audio.DeclaredAudioSampleRate);
+                Assert.Equal(1, audio.DeclaredAudioChannels);
+                AacConfiguration? configuration = AacConfiguration.ReadAudioSpecificConfig(audio.Stream.Configuration.Span, out string? reason);
+                Assert.Null(reason);
+                Assert.NotNull(configuration);
+                Assert.Equal(48000, configuration.SampleRate);
+                Assert.Equal(1, configuration.ChannelCount);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(16, 0)]
+        [InlineData(18, 0)]
+        [InlineData(20, 0)]
+        [InlineData(22, 1)]
+        public async Task Version2ValidatesReservedLegacyConstants(int offset, ushort value)
+        {
+            byte[] file = await Mp4TestData.ReadAsync("avc-sound-v2.mov");
+            BinaryPrimitives.WriteUInt16BigEndian(file.AsSpan(Mp4TestData.PayloadOffset(file, "mp4a") + offset), value);
+            await RejectAsync<InvalidDataException>(file);
+        }
+
+        [Theory]
+        [InlineData(28, 71)]
+        [InlineData(28, 76)]
+        [InlineData(48, 16)]
+        [InlineData(52, 1)]
+        [InlineData(56, 1)]
+        [InlineData(40, 0)]
+        [InlineData(40, uint.MaxValue)]
+        public async Task UnsupportedVersion2StructuresFailWithoutRetainingStorage(int offset, uint value)
+        {
+            byte[] file = await Mp4TestData.ReadAsync("avc-sound-v2.mov");
+            BinaryPrimitives.WriteUInt32BigEndian(file.AsSpan(Mp4TestData.PayloadOffset(file, "mp4a") + offset), value);
+            await RejectAsync<NotSupportedException>(file);
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(-48000)]
+        [InlineData(48000.5)]
+        [InlineData(double.NaN)]
+        [InlineData(double.PositiveInfinity)]
+        [InlineData(2147483648d)]
+        public async Task UnsupportedVersion2RatesAreExplicit(double rate)
+        {
+            byte[] file = await Mp4TestData.ReadAsync("avc-sound-v2.mov");
+            BinaryPrimitives.WriteInt64BigEndian(file.AsSpan(Mp4TestData.PayloadOffset(file, "mp4a") + 32), BitConverter.DoubleToInt64Bits(rate));
+            await RejectAsync<NotSupportedException>(file);
+        }
+
         [Fact]
         public Task Complete96KhzAacWithZeroContainerRateMatchesIndependentPcm() =>
             HighRateAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
@@ -92,7 +159,7 @@ namespace Mediana.Tests
         public async Task UnsupportedSoundDescriptionVersionIsExplicit()
         {
             byte[] file = await ReadAsync();
-            BinaryPrimitives.WriteUInt16BigEndian(file.AsSpan(Mp4TestData.PayloadOffset(file, "mp4a") + 8), 2);
+            BinaryPrimitives.WriteUInt16BigEndian(file.AsSpan(Mp4TestData.PayloadOffset(file, "mp4a") + 8), 3);
             await RejectAsync<NotSupportedException>(file);
         }
 

@@ -23,6 +23,7 @@ namespace Mediana.Tests
         [InlineData("avc-tail.mov", 3, false, false, false, true)]
         [InlineData("avc-tail.mov", 7, true, true, true, true)]
         [InlineData("avc-timecode.mov", 7, false, false)]
+        [InlineData("avc-sound-v2.mov", 5, false, false)]
         public async Task RealFilesMatchIndependentPacketBytesAndTiming(string name, int maxRead,
             bool wideOffsets, bool wideHeaders, bool aliasReference = false, bool videoTerminator = false)
         {

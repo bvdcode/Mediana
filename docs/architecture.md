@@ -204,6 +204,14 @@ rejected. Reserved variable-rate packet/frame byte counts must be zero and the
 timing are preserved; the extension's nominal samples-per-packet field does not
 replace indexed durations.
 
+Version-2 `mp4a` descriptions read their extended integer-valued IEEE-754 sample
+rate and 32-bit channel count, rather than legacy placeholder fields. The 72-byte
+structure, reserved constants and variable-rate compressed-audio fields are
+validated before reading `wave/esds`. Codec configuration still defines decoded
+audio; declared packet-frame counts do not replace indexed durations. Fractional,
+non-finite or out-of-range declarations and unknown structure sizes are rejected.
+See Apple's [version-2 sound description](https://developer.apple.com/documentation/quicktime-file-format/sound_sample_description_version_2).
+
 For compressed AAC, the AudioSpecificConfig remains definitive for sample rate
 and channel layout. The original integer sample-rate declaration remains visible
 on `Mp4TrackInfo`, including zero; a zero container declaration does not invalidate
