@@ -39,6 +39,16 @@ Format references: [metadata keys](https://developer.apple.com/documentation/qui
 [data values](https://developer.apple.com/documentation/quicktime-file-format/data_atom),
 [declared types](https://developer.apple.com/documentation/quicktime-file-format/well-known_types).
 
+`header-dates-future.mov` contains three copied AVC/AAC tracks with version-1
+QuickTime AAC sound descriptions. Compression ID -2 declares sample tables for
+compressed frames; the reserved packet/frame byte counts are zero. Decoder
+configuration is inside `wave/esds`, with a matching `frma` value of `mp4a`.
+The container headers use 64-bit creation/modification fields and retain the
+original media offsets. The file SHA-256 is
+`8a9cc75354e1d16411f48c8feb4e26a611b2b2825815743e5c061e6ecc3f50f4`.
+See Apple's [sound description](https://developer.apple.com/documentation/quicktime-file-format/sound_sample_description_version_1)
+and [decompressor configuration](https://developer.apple.com/documentation/quicktime-file-format/sidecompressionparam_atom).
+
 | File | SHA-256 |
 | --- | --- |
 | `covers.m4a` | `40b36b570c706b82040aa1e67c948ba9870cebee280323683ac62b20bc380edc` |

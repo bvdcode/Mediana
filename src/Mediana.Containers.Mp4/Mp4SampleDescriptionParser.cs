@@ -57,9 +57,24 @@ namespace Mediana.Containers.Mp4
         private static Mp4SampleDescription ParseAudio(Mp4Box entry, Mp4ParseBudget budget)
         {
             Mp4Binary.Range(entry.Payload.Span, 0, 28);
-            if (Mp4Binary.UInt16(entry.Payload.Span, 8) != 0)
+            ushort version = Mp4Binary.UInt16(entry.Payload.Span, 8);
+            int headerLength = version switch
             {
-                throw new NotSupportedException("Versioned QuickTime sound sample entries are not supported.");
+                0 => 28,
+                1 => 44,
+                _ => throw new NotSupportedException($"QuickTime sound sample description version {version} is not supported.")
+            };
+            Mp4Binary.Range(entry.Payload.Span, 0, headerLength);
+            if (version == 1)
+            {
+                if (Mp4Binary.UInt16(entry.Payload.Span, 20) != 0xfffe)
+                {
+                    throw new NotSupportedException("QuickTime compressed audio requires redefined sample tables (compression ID -2).");
+                }
+                if (Mp4Binary.UInt32(entry.Payload.Span, 32) != 0 || Mp4Binary.UInt32(entry.Payload.Span, 36) != 0)
+                {
+                    throw new InvalidDataException("QuickTime variable-rate audio reserves bytes-per-packet and bytes-per-frame as zero.");
+                }
             }
             int channels = Mp4Binary.UInt16(entry.Payload.Span, 16);
             uint rate = Mp4Binary.UInt32(entry.Payload.Span, 24);
@@ -67,10 +82,10 @@ namespace Mediana.Containers.Mp4
             {
                 throw new NotSupportedException("The MP4 audio sample declaration is not supported.");
             }
-            Mp4BoxCollection children = new(entry.Payload[28..], budget);
+            Mp4BoxCollection children = new(entry.Payload[headerLength..], budget);
             RejectEncryption(children);
             (string codecId, ReadOnlyMemory<byte> configuration) = Mp4ElementaryStreamDescriptor.ReadAudioConfiguration(
-                children.Required("esds").Payload);
+                ReadAudioDescriptor(children, version, budget));
             EncodedStreamFormat format = codecId switch
             {
                 "aac" => StreamFormats.Aac,
@@ -79,6 +94,30 @@ namespace Mediana.Containers.Mp4
             };
             return new Mp4SampleDescription(entry.Type, codecId, format, configuration,
                 AudioChannels: channels, AudioSampleRate: (int)(rate >> 16));
+        }
+
+        private static ReadOnlyMemory<byte> ReadAudioDescriptor(Mp4BoxCollection children, ushort version, Mp4ParseBudget budget)
+        {
+            switch (version)
+            {
+                case 0:
+                    return children.Required("esds").Payload;
+                case 1:
+                    if (children.Optional("esds") is not null)
+                    {
+                        throw new InvalidDataException("QuickTime version 1 MPEG-4 audio requires its descriptor inside wave.");
+                    }
+                    Mp4BoxCollection wave = new(children.Required("wave").Payload, budget);
+                    RejectEncryption(wave);
+                    ReadOnlyMemory<byte> format = wave.Required("frma").Payload;
+                    if (format.Length != 4 || !format.Span.SequenceEqual("mp4a"u8))
+                    {
+                        throw new InvalidDataException("The QuickTime wave format does not match its mp4a sample entry.");
+                    }
+                    return wave.Required("esds").Payload;
+                default:
+                    throw new NotSupportedException($"QuickTime sound sample description version {version} is not supported.");
+            }
         }
 
         private static void RejectEncryption(Mp4BoxCollection children)
