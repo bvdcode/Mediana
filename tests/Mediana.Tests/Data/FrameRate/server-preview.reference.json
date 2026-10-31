@@ -1,0 +1,732 @@
+{
+  "hd_generation_command": [
+    "ffmpeg",
+    "-nostdin",
+    "-v",
+    "error",
+    "-n",
+    "-f",
+    "lavfi",
+    "-i",
+    "testsrc2=size=1280x720:rate=12:duration=3",
+    "-f",
+    "lavfi",
+    "-i",
+    "sine=frequency=523:sample_rate=48000:duration=3",
+    "-map",
+    "0:v",
+    "-map",
+    "1:a",
+    "-c:v",
+    "libx264",
+    "-threads:v",
+    "1",
+    "-profile:v",
+    "main",
+    "-level:v",
+    "3.1",
+    "-g",
+    "12",
+    "-bf",
+    "2",
+    "-x264-params",
+    "ref=2:weightp=2:weightb=1:threads=1",
+    "-pix_fmt",
+    "yuv420p",
+    "-colorspace",
+    "bt709",
+    "-color_primaries",
+    "bt709",
+    "-color_trc",
+    "bt709",
+    "-c:a",
+    "aac",
+    "-threads:a",
+    "1",
+    "-b:a",
+    "64k",
+    "-video_track_timescale",
+    "90000",
+    "-movflags",
+    "+faststart",
+    "tests/Mediana.Tests/Data/FrameRate/preview-hd.mp4"
+  ],
+  "decoder": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "files": [
+    {
+      "file": "frame-rate-cfr.mp4",
+      "sha256": "32cd4ae3c261085a2f73a18f1027f095fe34f635fb833da13b2e126bfa9b86f4",
+      "width": 96,
+      "height": 80,
+      "time_base": "1/90000",
+      "raw_ffprobe_duration": "1.067733",
+      "movie_ffprobe_duration": "1.001000",
+      "movie_ffprobe_first_pts": 0,
+      "movie_probe_command": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-select_streams",
+        "v:0",
+        "-show_frames",
+        "-show_streams",
+        "-show_format",
+        "-show_entries",
+        "frame=pts:stream=time_base,width,height:format=duration",
+        "-of",
+        "json",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-cfr.mp4"
+      ],
+      "declared_ticks": 1001,
+      "declared_scale": 1000,
+      "edit_media_start": 6006,
+      "edit_duration_movie_ticks": 1001,
+      "midpoint_microseconds": 500500,
+      "requests": [
+        {
+          "target_microseconds": 0,
+          "selected": {
+            "pts": 0,
+            "sha256": "fdd37d38a20ffd658e0d004cae25204aa2175a2be679da4531189dfa6573df3d"
+          }
+        },
+        {
+          "target_microseconds": 500500,
+          "selected": {
+            "pts": 45045,
+            "sha256": "51eea09575a69a3b2094d3087c63df947431462d8cf8a5dde9cf97fe508079bc"
+          }
+        },
+        {
+          "target_microseconds": 100000,
+          "selected": {
+            "pts": 9009,
+            "sha256": "03b7a7443cceb630a7751e7af9ac467d5a446796a0bd9d363604b7601bf73724"
+          }
+        },
+        {
+          "target_microseconds": 300000,
+          "selected": {
+            "pts": 27027,
+            "sha256": "bad7e508371e5b8ea2b90a44fafe7f648b37c46a669d4b4871f5278f61abc63b"
+          }
+        },
+        {
+          "target_microseconds": 700000,
+          "selected": {
+            "pts": 63063,
+            "sha256": "4e5c8703450fc0860c37e81dad7f5665ff829ccf4c8f6a823aa370bb2477ca01"
+          }
+        },
+        {
+          "target_microseconds": 967633,
+          "selected": {
+            "pts": 87087,
+            "sha256": "8f8ed94f9c9a8b048a995f440eff72f7779bdf4a0c8158ac9aaf226c24933da4"
+          }
+        },
+        {
+          "target_microseconds": 967634,
+          "selected": null
+        },
+        {
+          "target_microseconds": 1067733,
+          "selected": null
+        },
+        {
+          "target_microseconds": 1567733,
+          "selected": null
+        },
+        {
+          "target_microseconds": 0,
+          "selected": {
+            "pts": 0,
+            "sha256": "fdd37d38a20ffd658e0d004cae25204aa2175a2be679da4531189dfa6573df3d"
+          }
+        }
+      ],
+      "probe_command": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ignore_editlist",
+        "1",
+        "-select_streams",
+        "v:0",
+        "-show_frames",
+        "-show_streams",
+        "-show_format",
+        "-show_entries",
+        "frame=pts:stream=time_base,width,height:format=duration",
+        "-of",
+        "json",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-cfr.mp4"
+      ],
+      "decode_command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ignore_editlist",
+        "1",
+        "-i",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-cfr.mp4",
+        "-map",
+        "0:v:0",
+        "-fps_mode",
+        "passthrough",
+        "-pix_fmt",
+        "yuv420p",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1"
+      ],
+      "seek_command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ss",
+        "0.500500",
+        "-i",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-cfr.mp4",
+        "-map",
+        "0:v:0",
+        "-frames:v",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1"
+      ],
+      "preview": null
+    },
+    {
+      "file": "frame-rate-vfr.mp4",
+      "sha256": "5d961397c871fe6551daac99dbada8413a2c5b481bfc94125d8f68e7e625cca5",
+      "width": 96,
+      "height": 80,
+      "time_base": "1/90000",
+      "raw_ffprobe_duration": "1.113766",
+      "movie_ffprobe_duration": "1.047033",
+      "movie_ffprobe_first_pts": 0,
+      "movie_probe_command": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-select_streams",
+        "v:0",
+        "-show_frames",
+        "-show_streams",
+        "-show_format",
+        "-show_entries",
+        "frame=pts:stream=time_base,width,height:format=duration",
+        "-of",
+        "json",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-vfr.mp4"
+      ],
+      "declared_ticks": 1048,
+      "declared_scale": 1000,
+      "edit_media_start": 6006,
+      "edit_duration_movie_ticks": 1048,
+      "midpoint_microseconds": 524000,
+      "requests": [
+        {
+          "target_microseconds": 0,
+          "selected": {
+            "pts": 0,
+            "sha256": "1c2486c10f76d76b521d96f7448d73f2c8976d6d6a54f2d40444bd536dc87035"
+          }
+        },
+        {
+          "target_microseconds": 524000,
+          "selected": {
+            "pts": 48030,
+            "sha256": "fb5d9131be2ca5ecfbb8cdb4a7d8113af4a980fa11cf146cde5cd87ebba55902"
+          }
+        },
+        {
+          "target_microseconds": 100000,
+          "selected": {
+            "pts": 9009,
+            "sha256": "6ac270199b54a422496f84433573e6790b069fc4fdfc0b29819772431eb14d3e"
+          }
+        },
+        {
+          "target_microseconds": 300000,
+          "selected": {
+            "pts": 27027,
+            "sha256": "b22402007896e72d0097dedda9f21db805859b26f6eb3bbed3db313619191468"
+          }
+        },
+        {
+          "target_microseconds": 700000,
+          "selected": {
+            "pts": 66030,
+            "sha256": "64bb7c202ae62aafe422304590d162027851de61a95dbb5068106706a9712028"
+          }
+        },
+        {
+          "target_microseconds": 1013666,
+          "selected": {
+            "pts": 91230,
+            "sha256": "d31383584843112d2201a74bbd87e6f5bb321706abe19382adebb5b40731fec6"
+          }
+        },
+        {
+          "target_microseconds": 1013667,
+          "selected": null
+        },
+        {
+          "target_microseconds": 1113766,
+          "selected": null
+        },
+        {
+          "target_microseconds": 1613766,
+          "selected": null
+        },
+        {
+          "target_microseconds": 0,
+          "selected": {
+            "pts": 0,
+            "sha256": "1c2486c10f76d76b521d96f7448d73f2c8976d6d6a54f2d40444bd536dc87035"
+          }
+        }
+      ],
+      "probe_command": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ignore_editlist",
+        "1",
+        "-select_streams",
+        "v:0",
+        "-show_frames",
+        "-show_streams",
+        "-show_format",
+        "-show_entries",
+        "frame=pts:stream=time_base,width,height:format=duration",
+        "-of",
+        "json",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-vfr.mp4"
+      ],
+      "decode_command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ignore_editlist",
+        "1",
+        "-i",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-vfr.mp4",
+        "-map",
+        "0:v:0",
+        "-fps_mode",
+        "passthrough",
+        "-pix_fmt",
+        "yuv420p",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1"
+      ],
+      "seek_command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ss",
+        "0.524000",
+        "-i",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-vfr.mp4",
+        "-map",
+        "0:v:0",
+        "-frames:v",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1"
+      ],
+      "preview": null
+    },
+    {
+      "file": "frame-rate-edited.mp4",
+      "sha256": "9ee19f569eb0620f823d967f204a731ee95cb2a4ef871ca90616c3a4f460097b",
+      "width": 96,
+      "height": 80,
+      "time_base": "1/90000",
+      "raw_ffprobe_duration": "0.976189",
+      "movie_ffprobe_duration": "0.760000",
+      "movie_ffprobe_first_pts": 0,
+      "movie_probe_command": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-select_streams",
+        "v:0",
+        "-show_frames",
+        "-show_streams",
+        "-show_format",
+        "-show_entries",
+        "frame=pts:stream=time_base,width,height:format=duration",
+        "-of",
+        "json",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-edited.mp4"
+      ],
+      "declared_ticks": 760,
+      "declared_scale": 1000,
+      "edit_media_start": 19506,
+      "edit_duration_movie_ticks": 760,
+      "midpoint_microseconds": 0,
+      "requests": [
+        {
+          "target_microseconds": 0,
+          "selected": {
+            "pts": 1515,
+            "sha256": "9035c4ab92615b1a82ff13ac665eb3c2dc2a5cb1e181ba586db91dc9212dbde2"
+          }
+        },
+        {
+          "target_microseconds": 0,
+          "selected": {
+            "pts": 1515,
+            "sha256": "9035c4ab92615b1a82ff13ac665eb3c2dc2a5cb1e181ba586db91dc9212dbde2"
+          }
+        },
+        {
+          "target_microseconds": 100000,
+          "selected": {
+            "pts": 10524,
+            "sha256": "9d3150e639325bf1a04509e0222c8437b30e9ba97bddb5db772df39507a4ff62"
+          }
+        },
+        {
+          "target_microseconds": 300000,
+          "selected": {
+            "pts": 30030,
+            "sha256": "020b36f717c0f55679b09476f800bdf604dd83e0a9c350a11281ce79ab7f4609"
+          }
+        },
+        {
+          "target_microseconds": 700000,
+          "selected": {
+            "pts": 63330,
+            "sha256": "83d2ef4d0d9aa9f84f933080a05d1bc0a041eefe145f74653a2553f5401ec1c4"
+          }
+        },
+        {
+          "target_microseconds": 723666,
+          "selected": {
+            "pts": 65130,
+            "sha256": "85f367897623315ee2ff09641c16f892ab74f200196b4c8b80df872b2c316256"
+          }
+        },
+        {
+          "target_microseconds": 723667,
+          "selected": null
+        },
+        {
+          "target_microseconds": 976189,
+          "selected": null
+        },
+        {
+          "target_microseconds": 1476189,
+          "selected": null
+        },
+        {
+          "target_microseconds": 0,
+          "selected": {
+            "pts": 1515,
+            "sha256": "9035c4ab92615b1a82ff13ac665eb3c2dc2a5cb1e181ba586db91dc9212dbde2"
+          }
+        }
+      ],
+      "probe_command": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ignore_editlist",
+        "1",
+        "-select_streams",
+        "v:0",
+        "-show_frames",
+        "-show_streams",
+        "-show_format",
+        "-show_entries",
+        "frame=pts:stream=time_base,width,height:format=duration",
+        "-of",
+        "json",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-edited.mp4"
+      ],
+      "decode_command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ignore_editlist",
+        "1",
+        "-i",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-edited.mp4",
+        "-map",
+        "0:v:0",
+        "-fps_mode",
+        "passthrough",
+        "-pix_fmt",
+        "yuv420p",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1"
+      ],
+      "seek_command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ss",
+        "0.000000",
+        "-i",
+        "tests/Mediana.Tests/Data/FrameRate/frame-rate-edited.mp4",
+        "-map",
+        "0:v:0",
+        "-frames:v",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1"
+      ],
+      "preview": null
+    },
+    {
+      "file": "preview-hd.mp4",
+      "sha256": "fd2dba7748b853c853d74764898b698c0a08857502aaf76eb161c89c2f1f6184",
+      "width": 1280,
+      "height": 720,
+      "time_base": "1/90000",
+      "raw_ffprobe_duration": "3.166667",
+      "movie_ffprobe_duration": "3.000000",
+      "movie_ffprobe_first_pts": 0,
+      "movie_probe_command": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-select_streams",
+        "v:0",
+        "-show_frames",
+        "-show_streams",
+        "-show_format",
+        "-show_entries",
+        "frame=pts:stream=time_base,width,height:format=duration",
+        "-of",
+        "json",
+        "tests/Mediana.Tests/Data/FrameRate/preview-hd.mp4"
+      ],
+      "declared_ticks": 3000,
+      "declared_scale": 1000,
+      "edit_media_start": 15000,
+      "edit_duration_movie_ticks": 3000,
+      "midpoint_microseconds": 1500000,
+      "requests": [
+        {
+          "target_microseconds": 0,
+          "selected": {
+            "pts": 0,
+            "sha256": "801f086b4bb93974275c22394b69b60bfa2d609711c03eeda829374720af6be1"
+          }
+        },
+        {
+          "target_microseconds": 1500000,
+          "selected": {
+            "pts": 135000,
+            "sha256": "08986367a5d9253279e401077cea39dde8d06e5eaded12eccf29fed743ea4261"
+          }
+        },
+        {
+          "target_microseconds": 100000,
+          "selected": {
+            "pts": 15000,
+            "sha256": "bde48d11d16c6d5019a49286b2006e6ced15ffbb149415f63cca6fb3bbb39d4b"
+          }
+        },
+        {
+          "target_microseconds": 300000,
+          "selected": {
+            "pts": 30000,
+            "sha256": "98af95acbe39f9a56427ea5735802c9473144cd18e46a93f4fff028809aa0659"
+          }
+        },
+        {
+          "target_microseconds": 700000,
+          "selected": {
+            "pts": 67500,
+            "sha256": "d05a0ef4d22a648ccd06a3df14cfae79a13033365f95e5343cc6247ca627c1aa"
+          }
+        },
+        {
+          "target_microseconds": 2916666,
+          "selected": {
+            "pts": 262500,
+            "sha256": "78acb63f9113cde5db1c4926a0c9fded781c57198a6fa15528d4d0b8f9db4491"
+          }
+        },
+        {
+          "target_microseconds": 2916667,
+          "selected": null
+        },
+        {
+          "target_microseconds": 3166667,
+          "selected": null
+        },
+        {
+          "target_microseconds": 3666667,
+          "selected": null
+        },
+        {
+          "target_microseconds": 0,
+          "selected": {
+            "pts": 0,
+            "sha256": "801f086b4bb93974275c22394b69b60bfa2d609711c03eeda829374720af6be1"
+          }
+        }
+      ],
+      "probe_command": [
+        "ffprobe",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ignore_editlist",
+        "1",
+        "-select_streams",
+        "v:0",
+        "-show_frames",
+        "-show_streams",
+        "-show_format",
+        "-show_entries",
+        "frame=pts:stream=time_base,width,height:format=duration",
+        "-of",
+        "json",
+        "tests/Mediana.Tests/Data/FrameRate/preview-hd.mp4"
+      ],
+      "decode_command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ignore_editlist",
+        "1",
+        "-i",
+        "tests/Mediana.Tests/Data/FrameRate/preview-hd.mp4",
+        "-map",
+        "0:v:0",
+        "-fps_mode",
+        "passthrough",
+        "-pix_fmt",
+        "yuv420p",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1"
+      ],
+      "seek_command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-threads",
+        "1",
+        "-ss",
+        "1.500000",
+        "-i",
+        "tests/Mediana.Tests/Data/FrameRate/preview-hd.mp4",
+        "-map",
+        "0:v:0",
+        "-frames:v",
+        "1",
+        "-pix_fmt",
+        "yuv420p",
+        "-threads",
+        "1",
+        "-f",
+        "rawvideo",
+        "pipe:1"
+      ],
+      "preview": {
+        "file": "preview-hd.midpoint.srgb.rgba",
+        "width": 150,
+        "height": 84,
+        "bytes": 50400,
+        "sha256": "ade5eed8591596b4fd160cdc8738cbb6d6aeb728c0ff2bd1313584ce4b389abf",
+        "color_command": [
+          "ffmpeg",
+          "-nostdin",
+          "-v",
+          "error",
+          "-threads",
+          "1",
+          "-ss",
+          "1.500000",
+          "-i",
+          "tests/Mediana.Tests/Data/FrameRate/preview-hd.mp4",
+          "-map",
+          "0:v:0",
+          "-frames:v",
+          "1",
+          "-vf",
+          "zscale=matrixin=709:transferin=709:primariesin=709:rangein=limited:chromalin=left:matrix=gbr:transfer=iec61966-2-1:primaries=709:range=full:filter=bilinear:dither=none:agamma=0,format=gbrp,format=rgba",
+          "-pix_fmt",
+          "rgba",
+          "-threads",
+          "1",
+          "-f",
+          "rawvideo",
+          "pipe:1"
+        ]
+      }
+    }
+  ]
+}

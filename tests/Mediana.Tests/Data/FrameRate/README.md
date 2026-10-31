@@ -5,6 +5,31 @@ variable timing, B-picture reordering and a copied edit interval. The reference
 records exact FFmpeg/ffprobe 6.1.1 commands and input/configuration/packet hashes.
 No external media tool runs in Mediana or its tests.
 
+`preview-hd.mp4` is an additional original generated 1280×720, 12 fps, three-second
+Main-profile AVC/AAC input with CABAC, B pictures and explicit BT.709 SDR labels.
+`server-preview.reference.json` records its generation command and independent
+decode/seek commands, together with the three timing files above. Forty out-of-order
+requests check the exact first picture at or after each target, including midpoint
+selection, end of stream and restarting an exhausted session. Every selected
+picture's complete YUV hash is checked.
+
+The preview references parse `mvhd` duration and the video `elst` independently.
+They apply its media-time offset to every independently decoded original PTS.
+An average rate or a declared duration is not substituted for picture timestamps.
+FFmpeg's accurate input seek separately confirms the midpoint picture pixels.
+For the edited file, its normal demuxer rebases the first remaining PTS from the
+exact linear movie time 1515/90000 seconds to zero; the linear mapping retains
+1515/90000. Identical selected picture bytes do not imply identical timestamps.
+See [accurate seeking](https://ffmpeg.org/ffmpeg.html#Main-options) and the
+[MOV edit-list timestamp handling](https://github.com/FFmpeg/FFmpeg/blob/n6.1.1/libavformat/mov.c#L4099).
+
+The complete sample produces a 150×84 sRGB PNG from the HD midpoint. The separate
+`preview-hd.midpoint.srgb.rgba` reference uses independent zscale conversion followed
+by the declared nearest-neighbor sample grid. Tests validate all PNG chunk CRCs,
+dimensions, sRGB/square-pixel labels and every channel within one code.
+The generated HD input checks functionality and does not establish
+performance or camera-file coverage.
+
 | File | Coded pictures | Exact average pictures/s |
 | --- | --- | --- |
 | `frame-rate-cfr.mp4` | 30 | 30000/1001 |
