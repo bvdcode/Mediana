@@ -20,8 +20,10 @@ namespace Mediana.Tests
         [InlineData("avc-tail.mov", 7, true, true)]
         [InlineData("avc-aac.mp4", 13, false, false, true)]
         [InlineData("avc-tail.mov", 5, true, true, true)]
+        [InlineData("avc-tail.mov", 3, false, false, false, true)]
+        [InlineData("avc-tail.mov", 7, true, true, true, true)]
         public async Task RealFilesMatchIndependentPacketBytesAndTiming(string name, int maxRead,
-            bool wideOffsets, bool wideHeaders, bool aliasReference = false)
+            bool wideOffsets, bool wideHeaders, bool aliasReference = false, bool videoTerminator = false)
         {
             byte[] data = await Mp4TestData.ReadAsync(name);
             using JsonDocument reference = JsonDocument.Parse(await File.ReadAllBytesAsync(Mp4TestData.PathFor(name + ".json")));
@@ -38,6 +40,10 @@ namespace Mediana.Tests
             if (wideOffsets)
             {
                 data = Mp4TestData.Use64BitChunkOffsets(data);
+            }
+            if (videoTerminator)
+            {
+                data = Mp4TestData.AppendToVisualDescription(data, new byte[4]);
             }
             JsonElement[] packets = reference.RootElement.GetProperty("packets").EnumerateArray().ToArray();
             MediaBufferAllocator allocator = new(1024 * 1024);

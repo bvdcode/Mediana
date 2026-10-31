@@ -217,6 +217,9 @@ Both require version 0 and exactly the self-reference flag. Chunk locations must
 still lie inside this file's media-data ranges. External aliases, URLs and
 resource-fork references are rejected without opening another source. These rules
 follow Apple's [data reference declaration](https://developer.apple.com/documentation/quicktime-file-format/media_data_reference_atom/data_references).
+Visual sample-description extensions accept the optional four-zero-byte terminator
+defined by Apple's [video sample description](https://developer.apple.com/documentation/quicktime-file-format/video_sample_description).
+This termination rule does not apply to movie, track or sample-table box lists.
 
 `IContainerPictureReader` is an optional reader capability implemented by MP3,
 FLAC and MP4/M4A. `ContainerSession.Pictures` returns immutable declarations in

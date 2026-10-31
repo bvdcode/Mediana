@@ -43,7 +43,7 @@ namespace Mediana.Containers.Mp4
             {
                 throw new InvalidDataException("The MP4 visual sample dimensions are invalid.");
             }
-            Mp4BoxCollection children = new(entry.Payload[78..], budget);
+            Mp4BoxCollection children = new(entry.Payload[78..], budget, allowSampleDescriptionTerminator: true);
             RejectEncryption(children);
             ReadOnlyMemory<byte> configuration = children.Required("avcC").Payload;
             if (configuration.Length < 7 || configuration.Span[0] != 1)

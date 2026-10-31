@@ -11,6 +11,25 @@ namespace Mediana.Tests
     public class Mp4ValidationTests
     {
         [Theory]
+        [InlineData(3, 0)]
+        [InlineData(4, 1)]
+        [InlineData(5, 0)]
+        public async Task MalformedVisualDescriptionTerminatorsAreRejected(int length, byte last)
+        {
+            byte[] suffix = new byte[length];
+            suffix[^1] = last;
+            byte[] data = Mp4TestData.AppendToVisualDescription(await Mp4TestData.ReadAsync("avc-tail.mov"), suffix);
+            await AssertOpenFailureAsync<InvalidDataException>(data);
+        }
+
+        [Fact]
+        public async Task SampleDescriptionTerminatorDoesNotPermitTrailingBytesInMovieBoxes()
+        {
+            byte[] data = Mp4MetadataTestData.AppendTo(await Mp4TestData.ReadAsync("avc-tail.mov"), new byte[4], "moov");
+            await AssertOpenFailureAsync<InvalidDataException>(data);
+        }
+
+        [Theory]
         [InlineData("url ", 0)]
         [InlineData("alis", 0)]
         [InlineData("alis", 3)]
