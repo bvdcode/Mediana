@@ -23,12 +23,13 @@ namespace Mediana.Tests
         public void SnapshotsPreserveEmptyNativeTextAndDoNotExposeMutableCollections()
         {
             string[] values = ["First", "", "Русский 🎵"];
-            MediaTag tag = new("native", " Title ", values, "", uint.MaxValue);
+            MediaTag tag = new("native", " Title ", values, "", uint.MaxValue, sourcePath: "track/raw");
             values[0] = "changed";
             Assert.Equal(new[] { "First", "", "Русский 🎵" }, tag.Values);
             Assert.Equal(" Title ", tag.Name);
             Assert.Equal("", tag.Description);
             Assert.Equal(uint.MaxValue, tag.Locale);
+            Assert.Equal("track/raw", tag.SourcePath);
             IList<string> exposedValues = Assert.IsAssignableFrom<IList<string>>(tag.Values);
             Assert.Throws<NotSupportedException>(() => exposedValues[0] = "changed");
             List<MediaTag> tags = [tag];

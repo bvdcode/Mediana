@@ -10,7 +10,7 @@ namespace Mediana.Containers
     public class ContainerStreamInfo
     {
         public ContainerStreamInfo(int streamIndex, MediaDuration? declaredDuration = null,
-            IEnumerable<MediaTag>? tags = null, ContainerPacketIndexInfo? packetIndex = null)
+            IEnumerable<MediaTag>? tags = null, ContainerPacketIndexInfo? packetIndex = null, string? language = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
             declaredDuration?.TimeBase.Validate();
@@ -18,6 +18,11 @@ namespace Mediana.Containers
             DeclaredDuration = declaredDuration;
             Tags = ContainerMetadataSnapshot.CopyTags(tags);
             PacketIndex = packetIndex;
+            if (language is not null)
+            {
+                ArgumentException.ThrowIfNullOrWhiteSpace(language);
+            }
+            Language = language;
         }
 
         public int StreamIndex { get; }
@@ -27,5 +32,8 @@ namespace Mediana.Containers
         public IReadOnlyList<MediaTag>? Tags { get; }
         /// <summary>Complete packet-index totals, or null when not exposed. A zero duration does not define a rate.</summary>
         public ContainerPacketIndexInfo? PacketIndex { get; }
+        /// <summary>Declared language identifier (ISO 639 or BCP 47), or null when unavailable.
+        /// Original declarations and format-specific selection rules belong to the reader module.</summary>
+        public string? Language { get; }
     }
 }

@@ -14,7 +14,7 @@ namespace Mediana.Tests
         {
             MediaTag[] tags = [new("mdta", "title", "Audio")];
             ContainerPacketIndexInfo index = new(17, 12345, new(17408, new(1, 48000)));
-            ContainerStreamInfo stream = new(4, new(362, new(1, 1000)), tags, index);
+            ContainerStreamInfo stream = new(4, new(362, new(1, 1000)), tags, index, "en-GB");
             ContainerStreamInfo[] streams = [stream];
             ContainerInfo container = new("fixture", streamInfo: streams);
             tags[0] = new("mdta", "title", "Changed");
@@ -25,6 +25,7 @@ namespace Mediana.Tests
             Assert.Equal(new MediaDuration(17408, new(1, 48000)), stream.PacketIndex!.DecodeDuration);
             Assert.Equal(17, stream.PacketIndex.PacketCount);
             Assert.Equal(12345, stream.PacketIndex.PayloadBytes);
+            Assert.Equal("en-GB", stream.Language);
             Assert.Throws<NotSupportedException>(() => ((IDictionary<int, ContainerStreamInfo>)container.StreamInfo).Clear());
             Assert.Throws<NotSupportedException>(() => ((IList<MediaTag>)stream.Tags).Clear());
         }
@@ -38,6 +39,7 @@ namespace Mediana.Tests
             Assert.Null(unknown.DeclaredDuration);
             Assert.Null(unknown.PacketIndex);
             Assert.Null(unknown.Tags);
+            Assert.Null(unknown.Language);
             ContainerStreamInfo zero = new(0, new(0, new(1, 1)), [], new(0, 0, new(0, new(1, 2))));
             Assert.Equal(0, zero.PacketIndex!.DecodeDuration.Value);
             Assert.Empty(zero.Tags!);
@@ -47,6 +49,7 @@ namespace Mediana.Tests
         public void InvalidMetadataDoesNotCreateAmbiguousIndicesOrCounters()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new ContainerStreamInfo(-1));
+            Assert.Throws<ArgumentException>(() => new ContainerStreamInfo(0, language: " "));
             Assert.Throws<ArgumentException>(() => new ContainerStreamInfo(0, tags: [null!]));
             Assert.Throws<ArgumentException>(() => new ContainerInfo("fixture", streamInfo: [new(1), new(1)]));
             Assert.Throws<ArgumentNullException>(() => new ContainerInfo("fixture", streamInfo: [null!]));
