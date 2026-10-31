@@ -21,9 +21,13 @@ namespace Mediana.Sample
             {
                 return await VideoPreviewSample.RunAsync(args[1], args[2]);
             }
+            if (args.Length == 2 && args[0] == "--waveform")
+            {
+                return await AudioWaveformSample.RunAsync(args[1]);
+            }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --transcode input.mp4 output.ts | --preview input.mp4 output.png]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --transcode input.mp4 output.ts | --preview input.mp4 output.png | --waveform input]");
                 return 2;
             }
 

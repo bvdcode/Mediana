@@ -88,6 +88,8 @@
     <Compile Include="../Shared/Mp4FrameRateTestInput.cs" Link="Mp4FrameRateTestInput.cs" />
     <Compile Include="../Shared/ServerVideoPreviewTestInput.cs" Link="ServerVideoPreviewTestInput.cs" />
     <Compile Include="../../samples/Mediana.Sample/VideoPreviewSample.cs" Link="VideoPreviewSample.cs" />
+    <Compile Include="../../samples/Mediana.Sample/AudioWaveformSample.cs" Link="AudioWaveformSample.cs" />
+    <Compile Include="../Shared/ServerAudioWaveformTestInput.cs" Link="ServerAudioWaveformTestInput.cs" />
     <Compile Include="../Shared/QuickTimeAacTestInput.cs" Link="QuickTimeAacTestInput.cs" />
     <Compile Include="../Shared/AacStereoNoiseTestInput.cs" Link="AacStereoNoiseTestInput.cs" />
     <Compile Include="../Shared/MediaTagTestInput.cs" Link="MediaTagTestInput.cs" />
