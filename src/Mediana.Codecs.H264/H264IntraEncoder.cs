@@ -11,7 +11,7 @@ namespace Mediana.Codecs.H264
         public static MediaBuffer? Encode(VideoFrame input, H264Picture reconstructed, int qp, int initialQuantizer, int idrId,
             MediaBufferAllocator allocator, int maximumBytes, bool measureOverflow, out int encodedLength, CancellationToken cancellationToken)
         {
-            using H264BitWriter bits = new(allocator, maximumBytes, 0x65, lengthPrefixed: true, measureOverflow: measureOverflow);
+            using H264BitWriter bits = new(allocator, maximumBytes, 0x65, lengthPrefixed: true, measureOverflow: true);
             bits.WriteUnsigned(0);
             bits.WriteUnsigned(7);
             bits.WriteUnsigned(0);
@@ -26,7 +26,14 @@ namespace Mediana.Codecs.H264
                 for (int x = 0; x < reconstructed.Width; x += 16)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    H264BitWriterCheckpoint checkpoint = bits.CreateCheckpoint();
                     WriteMacroblock(bits, input, reconstructed, x, y, qp);
+                    H264PcmMacroblockEncoder.ReplaceOversized(bits, checkpoint, input, reconstructed, x, y, H264SliceKind.I);
+                    if (!measureOverflow && bits.EncodedLength > maximumBytes)
+                    {
+                        encodedLength = bits.EncodedLength;
+                        return null;
+                    }
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();

@@ -40,6 +40,10 @@ namespace Mediana.Codecs.H264
                         accepted = true;
                         return result;
                     }
+                    if (options.RateControl is null)
+                    {
+                        throw new NotSupportedException("The encoded H.264 packet exceeds the configured byte limit at the fixed quantizer.");
+                    }
                     if (quantizer == 51)
                     {
                         throw new NotSupportedException("The H.264 rate budget cannot fit the picture at QP51; increase its bitrate or buffer duration.");

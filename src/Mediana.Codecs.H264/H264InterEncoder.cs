@@ -11,7 +11,7 @@ namespace Mediana.Codecs.H264
         public static MediaBuffer? Encode(VideoFrame input, H264Picture target, H264Picture reference, int frameNumber, int quantizer,
             MediaBufferAllocator allocator, H264EncoderOptions options, int maximumBytes, bool measureOverflow, out int encodedLength, CancellationToken token)
         {
-            using H264BitWriter bits = new(allocator, maximumBytes, 0x41, lengthPrefixed: true, measureOverflow: measureOverflow);
+            using H264BitWriter bits = new(allocator, maximumBytes, 0x41, lengthPrefixed: true, measureOverflow: true);
             bits.WriteUnsigned(0);
             bits.WriteUnsigned(5);
             bits.WriteUnsigned(0);
@@ -42,7 +42,9 @@ namespace Mediana.Codecs.H264
                         pattern |= H264ChromaEncoder.Analyze(input, x / 2, y / 2, quantizer, prediction[256..], coefficients[256..]) << 4;
                     }
                     (int skipX, int skipY) = H264MotionPrediction.Skip(target, x, y);
-                    if (pattern == 0 && motionX == skipX && motionY == skipY)
+                    bool skip = pattern == 0 && motionX == skipX && motionY == skipY;
+                    H264BitWriterCheckpoint checkpoint = default;
+                    if (skip)
                     {
                         skipped++;
                     }
@@ -51,6 +53,7 @@ namespace Mediana.Codecs.H264
                         (int predictedX, int predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
                         bits.WriteUnsigned((uint)skipped);
                         skipped = 0;
+                        checkpoint = bits.CreateCheckpoint();
                         bits.WriteUnsigned(0);
                         bits.WriteSigned(motionX - predictedX);
                         bits.WriteSigned(motionY - predictedY);
@@ -64,6 +67,15 @@ namespace Mediana.Codecs.H264
                     target.Quantizers[y / 16 * target.Sequence.WidthInMbs + x / 16] = (byte)quantizer;
                     WriteLuma(bits, target, x, y, quantizer, pattern, prediction[..256], coefficients[..256]);
                     H264ChromaEncoder.Write(bits, target, x / 2, y / 2, quantizer, pattern >> 4, prediction[256..], coefficients[256..]);
+                    if (!skip)
+                    {
+                        H264PcmMacroblockEncoder.ReplaceOversized(bits, checkpoint, input, target, x, y, H264SliceKind.P);
+                    }
+                    if (!measureOverflow && bits.EncodedLength > maximumBytes)
+                    {
+                        encodedLength = bits.EncodedLength;
+                        return null;
+                    }
                 }
             }
             token.ThrowIfCancellationRequested();
