@@ -17,6 +17,7 @@ namespace Mediana.Cli
             {
                 await output.WriteLineAsync($"  Language: {MediaTagFormatter.Quote(language)}.");
             }
+            await MediaDateTimeFormatter.WriteAsync(track.Dates, output, "  ", cancellationToken);
             if (track.DeclaredDuration is MediaDuration declared)
             {
                 await output.WriteLineAsync($"  Declared track duration: {MediaDurationFormatter.Seconds(declared)} seconds.");

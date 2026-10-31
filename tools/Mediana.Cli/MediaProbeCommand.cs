@@ -31,6 +31,7 @@ namespace Mediana.Cli
             {
                 await output.WriteLineAsync("Declared duration: unknown.");
             }
+            await MediaDateTimeFormatter.WriteAsync(container.Dates, output, "", cancellationToken);
             foreach (EncodedStreamInfo stream in info.Streams)
             {
                 await output.WriteLineAsync($"Stream {stream.StreamIndex}: {stream.Kind}; {stream.CodecId}; time base {stream.TimeBase.Numerator}/{stream.TimeBase.Denominator}.");
