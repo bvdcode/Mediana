@@ -13,6 +13,14 @@ namespace Mediana
     {
         internal MediaInfo(ContainerInfo container, IReadOnlyList<EncodedStreamInfo> streams, Dictionary<int, StreamMetadata> streamMetadata)
         {
+            if (container.StreamInfo is not null)
+            {
+                HashSet<int> indices = streams.Select(stream => stream.StreamIndex).ToHashSet();
+                if (container.StreamInfo.Keys.Any(index => !indices.Contains(index)))
+                {
+                    throw new InvalidOperationException("Container metadata refers to an undeclared stream index.");
+                }
+            }
             Container = container;
             Streams = Array.AsReadOnly(streams.ToArray());
             StreamMetadata = new ReadOnlyDictionary<int, StreamMetadata>(streamMetadata);

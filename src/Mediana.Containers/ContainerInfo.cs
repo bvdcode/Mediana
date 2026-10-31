@@ -3,6 +3,7 @@
 
 using Mediana.Core.Timing;
 using Mediana.Core.Metadata;
+using System.Collections.ObjectModel;
 
 namespace Mediana.Containers
 {
@@ -10,18 +11,24 @@ namespace Mediana.Containers
     /// Declared duration is not a scan result or a guarantee of decoded or gapless playback length.</summary>
     public class ContainerInfo
     {
-        public ContainerInfo(string formatId, MediaDuration? declaredDuration = null, IEnumerable<MediaTag>? tags = null)
+        public ContainerInfo(string formatId, MediaDuration? declaredDuration = null, IEnumerable<MediaTag>? tags = null,
+            IEnumerable<ContainerStreamInfo>? streamInfo = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
             declaredDuration?.TimeBase.Validate();
-            if (tags is not null)
+            Tags = ContainerMetadataSnapshot.CopyTags(tags);
+            if (streamInfo is not null)
             {
-                MediaTag[] snapshot = tags.ToArray();
-                if (snapshot.Any(tag => tag is null))
+                Dictionary<int, ContainerStreamInfo> snapshot = [];
+                foreach (ContainerStreamInfo item in streamInfo)
                 {
-                    throw new ArgumentException("Metadata tags cannot contain null.", nameof(tags));
+                    ArgumentNullException.ThrowIfNull(item);
+                    if (!snapshot.TryAdd(item.StreamIndex, item))
+                    {
+                        throw new ArgumentException("Container stream metadata indices must be unique.", nameof(streamInfo));
+                    }
                 }
-                Tags = Array.AsReadOnly(snapshot);
+                StreamInfo = new ReadOnlyDictionary<int, ContainerStreamInfo>(snapshot);
             }
             FormatId = formatId;
             DeclaredDuration = declaredDuration;
@@ -35,5 +42,8 @@ namespace Mediana.Containers
         /// header text tags; an empty list means none were found in the supported inspected metadata.
         /// Later metadata, binary values and unimplemented tag structures are not included.</summary>
         public IReadOnlyList<MediaTag>? Tags { get; }
+        /// <summary>Header/index facts keyed by encoded stream index. Null means the reader does not expose track metadata;
+        /// a missing entry means facts are unavailable for that stream. Values survive source/reader disposal.</summary>
+        public IReadOnlyDictionary<int, ContainerStreamInfo>? StreamInfo { get; }
     }
 }

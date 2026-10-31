@@ -129,6 +129,15 @@ not scan encoded packets. Image readers may inspect the entire input, bounded by
 retains its own parsing-work limits. A successful probe describes declared metadata
 and does not guarantee support for every encoded feature.
 
+`ContainerInfo.StreamInfo` exposes container facts keyed by encoded stream index.
+Track text tags retain their native keys and scope; they are independent of global
+tags and codec header metadata. A declared track duration retains the container's
+clock. Optional `ContainerPacketIndexInfo` totals describe a complete packet index:
+packet count, compressed payload bytes and the sum of decode durations. They do not
+count decoded pictures or PCM samples, apply presentation edits, or define a rate
+when their duration is zero. Null metadata means unavailable; an inspected empty
+collection remains distinct. All snapshots survive reader and source disposal.
+
 ## Container pictures
 
 `IContainerPictureReader` is an optional reader capability implemented by MP3,

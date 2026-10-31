@@ -9,10 +9,10 @@ using Mediana.IO;
 
 namespace Mediana.Tests
 {
-    internal class FixtureContainer(IByteSource source, MediaBufferAllocator allocator) : IContainerReader
+    internal class FixtureContainer(IByteSource source, MediaBufferAllocator allocator, ContainerInfo? info = null) : IContainerReader
     {
         private int index;
-        public ContainerInfo Info { get; } = new("fixture");
+        public ContainerInfo Info { get; } = info ?? new("fixture");
         public int PacketReads { get; private set; }
         public bool IsDisposed { get; private set; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; } =
