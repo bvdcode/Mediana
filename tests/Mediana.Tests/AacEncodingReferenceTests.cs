@@ -12,5 +12,11 @@ namespace Mediana.Tests
         [InlineData("channel-budget", 96000, 107)]
         public Task EveryEncodedSampleMatchesIndependentDecoding(string name, int bitRate, int packets) =>
             AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name, bitRate, packets);
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public Task EveryWindowTransitionMatchesIndependentDecoding(int channels) =>
+            AacSwitchedEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), channels);
     }
 }

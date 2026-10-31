@@ -128,6 +128,9 @@ namespace Mediana.NativeTests
             await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-stereo-44", 128000, 17);
             await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-pns-48", 192000, 19);
             await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "channel-budget", 96000, 107);
+            await AacSwitchedEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), 1);
+            await AacSwitchedEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), 2);
+            Console.WriteLine("PASS AAC switched-window encoding: mono/stereo, every sine/KBD transition, grouped spectrum, PCM sample, budget and timestamp match independent decoding.");
             Console.WriteLine("PASS AAC encoding: every decoded sample in complete mono/stereo references matches, preserving priming, padding, timing and packet ownership.");
             await AacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48");
             await AacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-stereo-44");

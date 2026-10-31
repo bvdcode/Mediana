@@ -1,0 +1,95 @@
+{
+  "independent_decoder": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "source": "window-switch.wav",
+  "source_sha256": "77d82b460f95a0bf34260d955435c87f00cd33f540378c96f2df89031fbf7e13",
+  "sample_rate": 48000,
+  "source_samples_per_channel": 13312,
+  "source_channels": 2,
+  "source_definition": "Original PCM16LE, round(value*32767). Let e=((n//128)%7+1)/8 and p=.36 at n%1024 in [0,447,448,575,576,1023], else 0. L=e*(.35*sin(2*pi*311*n/48000)+.12*cos(2*pi*1333*n/48000))+p; R=e*(.29*sin(2*pi*701*n/48000+.3)+.1*cos(2*pi*2459*n/48000))-p. Mono selects L.",
+  "encoder_entry_point": "tests/Shared/AacSwitchedEncodingTestInput.cs: EncodeAsync calls the production AacPacketEncoder with controlled window decisions.",
+  "sequences": [
+    0,
+    1,
+    2,
+    2,
+    3,
+    1,
+    2,
+    2,
+    3,
+    0,
+    1,
+    3,
+    0,
+    0
+  ],
+  "shapes": [
+    0,
+    1,
+    0,
+    1,
+    0,
+    1,
+    0,
+    1,
+    0,
+    1,
+    0,
+    1,
+    0,
+    1
+  ],
+  "short_groups_by_packet": {
+    "2": [
+      8
+    ],
+    "3": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "6": [
+      1,
+      3,
+      2,
+      2
+    ],
+    "7": [
+      3,
+      3,
+      2
+    ]
+  },
+  "format": "Interleaved Float32 little endian; all priming and tail samples, no trimming.",
+  "cases": [
+    {
+      "channels": 1,
+      "bitrate_ceiling": 96000,
+      "packets": 14,
+      "decoded_samples_per_channel": 14336,
+      "priming_samples": 1024,
+      "padding_samples": 0,
+      "transport_sha256": "ea76fef9caba03507a2c1b8d122ba394153373ef556147eecc3e3d4e277425c4",
+      "reference_sha256": "138ab45fe86243001eead8a1508ee305539cb93a372439f87af5c06b64173d18",
+      "reference_file": "window-switch-1.encoded-96k.f32le",
+      "decode_command": "ffmpeg -nostdin -v error -xerror -threads 1 -i window-switch-1.ts -map 0:a:0 -c:a pcm_f32le -f f32le window-switch-1.encoded-96k.f32le"
+    },
+    {
+      "channels": 2,
+      "bitrate_ceiling": 192000,
+      "packets": 14,
+      "decoded_samples_per_channel": 14336,
+      "priming_samples": 1024,
+      "padding_samples": 0,
+      "transport_sha256": "1ce3b6368a46849376c8c32af9a1cc94b64818914ed979a7073af75679867b88",
+      "reference_sha256": "2c90ff5f07b76b07ce0260cf8a43c05d95d2c1eda4c6e0fa49be406bf93400ba",
+      "reference_file": "window-switch-2.encoded-192k.f32le",
+      "decode_command": "ffmpeg -nostdin -v error -xerror -threads 1 -i window-switch-2.ts -map 0:a:0 -c:a pcm_f32le -f f32le window-switch-2.encoded-192k.f32le"
+    }
+  ]
+}

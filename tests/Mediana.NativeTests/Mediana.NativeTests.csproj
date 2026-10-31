@@ -69,6 +69,7 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
     <Compile Include="../Shared/AacDecodeTestInput.cs" Link="AacDecodeTestInput.cs" />
     <Compile Include="../Shared/AacEncodingTestInput.cs" Link="AacEncodingTestInput.cs" />
+    <Compile Include="../Shared/AacSwitchedEncodingTestInput.cs" Link="AacSwitchedEncodingTestInput.cs" />
     <Compile Include="../Shared/AacBandAllocationTestInput.cs" Link="AacBandAllocationTestInput.cs" />
     <Compile Include="../Shared/AacAnalysisTestInput.cs" Link="AacAnalysisTestInput.cs" />
     <Compile Include="../Shared/AacWindowGroupingTestInput.cs" Link="AacWindowGroupingTestInput.cs" />
