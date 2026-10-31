@@ -62,8 +62,10 @@ must not overlap.
 `BitRate` is a raw AAC bit ceiling distributed over 1024-sample frames; it defaults
 to 128000 bits/second for the whole stream. Fractional budgets are carried between
 frames and rounded down to complete output bytes. Transport/ADTS overhead is
-additional. The requested budget must fit syntax and the AAC 6144-bit per-channel
-buffer bound. The output is variable bitrate: silence can use substantially less
+additional. The requested budget must fit syntax and the AAC element buffer bound:
+6144 bits for mono or 12288 bits for a channel pair. Stereo channels share the
+complete element budget; an individual channel need not use half of it.
+The output is variable bitrate: silence can use substantially less
 than the ceiling. There is no bit reservoir, constant-rate fill or target-file-size
 guarantee.
 
@@ -73,36 +75,55 @@ reconstructed magnitudes, using the normative `magnitude^(4/3)` reconstruction
 and quarter-power gain. Spectral codebooks 1–11 are selected per band; zero bands
 omit spectral data and scale symbols. Scale differences skip zero bands and must
 remain within −60 through +60; reconstructed scales remain within 0 through 255.
-Stereo channels are independent within a common window.
+Stereo spectra have independent gain, scale-difference and section syntax within
+a common window, while their bit allocation is shared.
 
 Rate control first finds a uniform-scale seed within the bit ceiling. Bounded
 local refinement then spends unused bits or trades precision between bands when
 that reduces total squared spectral reconstruction error. Each move counts actual
 scale Huffman symbols, section runs, spectral tuples, signs and escapes. Search
 examines up to four adjacent scales in each direction and accepts at most
-32 moves per channel frame. Pair search considers up to four refinement and
-four coarsening candidates. It retains a valid budget after
-every accepted move; it does not claim a globally optimal allocation. Powered
-magnitudes reuse transform scratch storage; band scales add 64 bytes per channel.
+32 moves for mono or 64 moves across a stereo pair. Pair search considers up to
+four refinement and four coarsening candidates. It retains a valid budget after
+every accepted move; it does not claim a globally optimal allocation. Candidate
+costing recounts only changed channels and preserves each channel's scale history.
+Powered magnitudes reuse transform scratch storage; sharing the channel budget
+does not enlarge the encoder's pooled workspace.
 
-The before/after checks use the same raw ceilings and generated tone/noise/impulse
-sources, independently decoded and aligned by the declared delay:
+The before/after checks compare independent half-budget stereo allocation with
+shared allocation at the same raw ceiling. Inputs include generated signals and
+an existing recorded speech excerpt, independently decoded and aligned by the
+declared delay:
 
 | Source | Ceiling, kbit/s | Previous SNR, dB | Current SNR, dB | Previous/current actual raw kbit/s |
 | --- | --- | --- | --- | --- |
-| Mono 48 kHz | 64 | 16.32 | 19.10 | 57.34 / 61.64 |
-| Stereo 44.1 kHz | 128 | 16.43 | 19.63 | 112.58 / 124.23 |
-| Stereo 48 kHz | 192 | 20.74 | 23.27 | 181.62 / 189.22 |
+| Mono 48 kHz | 64 | 19.10 | 19.10 | 61.64 / 61.64 |
+| Stereo 44.1 kHz | 128 | 19.63 | 19.67 | 124.23 / 124.46 |
+| Stereo 48 kHz | 192 | 23.27 | 23.24 | 189.22 / 189.41 |
+| Silent right channel | 96 | 46.90 | 62.59 | 48.99 / 94.13 |
+| Right channel at 5% amplitude | 96 | 46.90 | 53.93 | 94.12 / 94.13 |
+| Alternating active channels | 96 | 33.68 | 33.96 | 56.55 / 94.13 |
+| Generated music | 128 | 68.24 | 68.47 | 122.58 / 122.27 |
+| Recorded speech, mono | 32 | 23.63 | 23.63 | 31.20 / 31.20 |
+| Impulses | 96 | 3.81 | 6.16 | 9.21 / 11.06 |
 
 The metric is unweighted source SNR after removing priming and padding. Increased
 use of the available bit ceiling contributes to the improvement; these are not
-equal-size output comparisons. Simple stationary-tone tests exceed 25 dB.
+equal-size output comparisons. Balanced stereo changes are small, including a
+0.02 dB reduction in one case. Mono output remains byte-identical. The impulse
+result remains poor and does not establish transient quality.
+
+The channel tradeoff is visible in the 5%-amplitude case: left-channel SNR rises
+from 46.90 to 55.02 dB while right-channel SNR falls from 46.55 to 34.38 dB.
+Minimizing the absolute sum of squared errors favors the louder channel; it does
+not preserve equal relative distortion or a separate quality floor per channel.
 
 Short-window switching, auditory masking, mid/side or intensity encoding, TNS,
 PNS encoding and bit-reservoir control remain open. This allocation minimizes
 an unweighted spectral error measure rather than a psychoacoustic noise threshold.
 It does not establish production listening quality, transient performance or
-parity with established encoders. Tests on real music and speech remain required.
+parity with established encoders. Broader real music and speech testing remains
+required.
 
 Syntax, scale reconstruction and filterbank rules follow ISO/IEC 13818-7:2004,
 clauses 6–11, clause 15 and Annexes A/C, and ISO/IEC 14496-3:2009 AAC-LC rules.
@@ -142,33 +163,49 @@ with the direct cosine formula. Entropy tests cover signed tuples, escape
 magnitudes through 8191 and every DPCM scale symbol. Quantizer tests check both sides of every reconstruction
 decision boundary at scales 0, 100 and 255. Band tests compare exact written bit
 counts, round-trip every coefficient and preserve zero-band scale semantics.
+Shared-budget tests cover either active channel, silence, unequal amplitudes,
+and a channel-pair budget above the mono element capacity.
 Different PCM block sizes produce identical packets;
 state tests cover backpressure, timing gaps, bounds, cancellation, reset, delay,
 padding and output ownership.
 
-Three complete mono/stereo WAV sequences produce 55 packets. Every sample decoded
-by Mediana agrees with independently decoded Float32 references within 0.00002,
-including priming and padded tails. The same verifier runs in Native AOT.
+Four complete mono/stereo WAV sequences produce 162 packets. One includes a
+silent or quiet second channel followed by alternating channel activity.
+Every sample decoded by Mediana agrees with independently decoded Float32
+references within 0.00002, including priming and padded tails. The same verifier
+runs in Native AOT.
 [The reference manifest](../tests/Mediana.Tests/Data/Aac/ENCODING.json) records input,
 output and reference hashes and the complete independent decoding commands.
 
-Native and managed commands produce identical TS bytes for all three reference
-inputs. A complete ten-minute 44.1 kHz stereo PCM sequence produces 25,841 AAC
+Native and managed commands produce identical TS bytes on the complete tone,
+noise, unequal-channel, speech and impulse checks. A complete ten-minute 44.1 kHz
+stereo PCM sequence produces 25,841 AAC
 packets and 26,461,184 decoded samples per channel, including 1024 priming and
 160 padding samples. Every packet's PTS and raw bit budget is checked, and the
-complete decoded PCM agrees with the independent decoder within 0.00000018.
+complete decoded PCM agrees with the independent decoder within 0.00000015.
 An in-progress SIGINT returns 130 and removes the temporary output file.
 Standalone Native AOT commands also convert complete MP3, 24-bit FLAC, 24-bit
 AIFF and MP4 AAC inputs; every resulting TS decodes independently without errors.
 A 44117 Hz FLAC input is rejected without publishing output, preserving the
 explicit supported-rate contract.
 
-A Native AOT before/after comparison encodes the complete ten-minute stereo input
-at a 128 kbit/s frame ceiling, with two runs per implementation in alternating
-order on one pinned CPU. The surrounding CLI sources are identical. Median
-process CPU falls from 114.49 to 97.62 seconds; median peak RSS is 26.06 and
-26.13 MiB respectively. Repeated outputs are byte-identical within each version.
-The host is shared, and the before runs span 103.66–125.31 CPU seconds, so these
-measurements describe this input and environment. The band allocator also uses
-more of the bit budget and changes encoded bytes; this is not a comparison at
-equal average bitrate or a quality comparison with another encoder.
+A Native AOT comparison encodes that complete ten-minute generated stereo input
+at a 128 kbit/s frame ceiling. The baseline allocates independent half-budgets;
+the current implementation shares the budget and caches candidate costs until
+their channel changes. Both use identical surrounding CLI sources, .NET 10.0.13
+on Linux x64 and CPU affinity to one core. Four complete runs alternate in
+before/after/after/before order.
+
+| Process measurement | Independent budgets | Shared budget with cost cache |
+| --- | --- | --- |
+| Median CPU, seconds | 94.66 | 96.12 |
+| CPU range, seconds | 91.01–98.31 | 95.33–96.92 |
+| Median wall time, seconds | 96.41 | 98.54 |
+| Median peak RSS, MiB | 27.00 | 27.19 |
+| Actual raw AAC, kbit/s | 124.63 | 124.92 |
+
+The host is shared and the CPU ranges overlap; the observed median CPU increase
+is 1.55%. Repeated outputs are byte-identical within each version. Candidate-cost
+caching also preserves every output byte of the preceding shared-budget
+implementation, including the complete ten-minute TS. That implementation's
+separate four-run measurement used 111.59 seconds median CPU before the cache.
