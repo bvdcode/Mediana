@@ -51,10 +51,10 @@ namespace Mediana.Containers.Mp4
             }
             Mp4Box? sync = boxes.Optional("stss");
             SyncSamples = sync is null ? null : new Mp4Table(sync.Value.Payload, 4);
-            DecodeDurationTicks = ValidateRuns(Timing, cancellationToken, accumulateDuration: true);
+            DecodeDurationTicks = ValidateRuns(Timing, cancellationToken, compositionOffsets: false).Duration;
             if (Composition is not null)
             {
-                ValidateRuns(Composition, cancellationToken);
+                DecodeTimeLeadTicks = ValidateRuns(Composition, cancellationToken, compositionOffsets: true).DecodeTimeLead;
             }
             ValidateSyncSamples(cancellationToken);
             ValidateChunks(dataRanges, cancellationToken);
@@ -63,6 +63,7 @@ namespace Mediana.Containers.Mp4
         public int SampleCount { get; }
         public long PayloadBytes { get; private set; }
         public long DecodeDurationTicks { get; }
+        public long DecodeTimeLeadTicks { get; }
         public int ChunkCount => chunks.Count;
         public Mp4Table ChunkRuns { get; }
         public Mp4Table Timing { get; }
@@ -98,10 +99,12 @@ namespace Mediana.Containers.Mp4
             return bytes;
         }
 
-        private long ValidateRuns(Mp4Table table, CancellationToken cancellationToken, bool accumulateDuration = false)
+        private (long Duration, long DecodeTimeLead) ValidateRuns(Mp4Table table, CancellationToken cancellationToken,
+            bool compositionOffsets)
         {
             long count = 0;
             long duration = 0;
+            long decodeTimeLead = 0;
             for (int index = 0; index < table.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -115,7 +118,12 @@ namespace Mediana.Containers.Mp4
                 {
                     throw new InvalidDataException("MP4 timing runs exceed the sample count.");
                 }
-                if (accumulateDuration)
+                if (compositionOffsets)
+                {
+                    long offset = SignedComposition ? table.Int32(index, 4) : table.UInt32(index, 4);
+                    decodeTimeLead = Math.Max(decodeTimeLead, -offset);
+                }
+                else
                 {
                     duration = checked(duration + (long)run * table.UInt32(index, 4));
                 }
@@ -124,7 +132,7 @@ namespace Mediana.Containers.Mp4
             {
                 throw new InvalidDataException("MP4 timing runs do not cover every sample.");
             }
-            return duration;
+            return (duration, decodeTimeLead);
         }
 
         private void ValidateSyncSamples(CancellationToken cancellationToken)

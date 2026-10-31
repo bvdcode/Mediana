@@ -18,6 +18,75 @@ namespace Mediana.Tests
             await Mp4TimelineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
 
         [Theory]
+        [InlineData(false, 1, false)]
+        [InlineData(false, 1, true)]
+        [InlineData(true, 0, false)]
+        [InlineData(true, 0, true)]
+        [InlineData(true, 1, false)]
+        [InlineData(true, 1, true)]
+        public async Task NegativeCompositionOffsetsAdvanceOnlyDecodeTimeAndMergeAllTracks(bool quickTime,
+            byte version, bool fractionalEdit)
+        {
+            byte[] data = await Mp4TestData.ReadAsync("avc-timecode.mov");
+            data = fractionalEdit
+                ? Mp4EditTestData.Replace(data, false, (1, -1, 65536), (1600, 7, 65536))
+                : Mp4EditTestData.Replace(data, false);
+            Mp4TestData.SetBrand(data, quickTime ? "qt  "u8 : "isom"u8);
+            Mp4TestData.ShiftCompositionOffsets(data, version, -8192);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource mediaSource = new(data, 7);
+            await using TrackingRandomAccessSource movieSource = new(data, 7);
+            await using (Mp4Reader media = await Mp4Reader.OpenAsync(mediaSource, allocator))
+            await using (Mp4Reader movie = await Mp4Reader.OpenAsync(movieSource, allocator, MovieOptions))
+            {
+                TimeBase expectedClock = fractionalEdit ? new(1, 256000) : new(1, 10240);
+                int scale = fractionalEdit ? 25 : 1;
+                long offset = fractionalEdit ? 81 : 0;
+                Assert.Equal(new MediaTimestamp(0, new(1, 10240)), media.GetSampleInfo(0, 0).DecodeTime);
+                Assert.Equal(-4096, media.GetSampleInfo(0, 0).PresentationTime.Value);
+                Assert.Equal(new MediaTimestamp(-6144L * scale + offset, expectedClock), movie.GetSampleInfo(0, 0).DecodeTime);
+                Assert.Equal(new MediaTimestamp(-4096L * scale + offset, expectedClock), movie.GetSampleInfo(0, 0).PresentationTime);
+                int[] positions = new int[3];
+                MediaTimestamp? previous = null;
+                while (await movie.ReadPacketAsync() is MediaPacket packet)
+                {
+                    using (packet)
+                    {
+                        int stream = packet.StreamIndex;
+                        int index = positions[stream]++;
+                        Mp4SampleInfo original = media.GetSampleInfo(stream, index);
+                        Mp4SampleInfo mapped = movie.GetSampleInfo(stream, index);
+                        Assert.Equal(mapped.DecodeTime, packet.DecodeTime);
+                        Assert.Equal(mapped.PresentationTime, packet.PresentationTime);
+                        Assert.True(mapped.PresentationTime.CompareTo(mapped.DecodeTime) >= 0);
+                        Assert.True(previous is null || previous.Value.CompareTo(mapped.DecodeTime) <= 0);
+                        previous = mapped.DecodeTime;
+                        if (stream == 0)
+                        {
+                            Assert.Equal(new MediaTimestamp(original.PresentationTime.Value * scale + offset, expectedClock), mapped.PresentationTime);
+                            Assert.Equal(new MediaTimestamp((original.DecodeTime.Value - 6144) * scale + offset, expectedClock), mapped.DecodeTime);
+                            Assert.Equal(new MediaDuration(original.Duration.Value * scale, expectedClock), mapped.Duration);
+                        }
+                        else
+                        {
+                            Assert.Equal(original.PresentationTime.Value - movie.Tracks[stream].Edits[0].MediaTime, mapped.PresentationTime.Value);
+                            Assert.Equal(mapped.PresentationTime, mapped.DecodeTime);
+                            Assert.Equal(original.Duration, mapped.Duration);
+                        }
+                        using MediaPacket random = await movie.ReadPacketAtAsync(stream, index);
+                        using MediaPacket raw = await media.ReadPacketAtAsync(stream, index);
+                        Assert.Equal(packet.PresentationTime, random.PresentationTime);
+                        Assert.Equal(packet.DecodeTime, random.DecodeTime);
+                        Assert.Equal(raw.Data.ToArray(), packet.Data.ToArray());
+                        Assert.Equal(raw.Data.ToArray(), random.Data.ToArray());
+                    }
+                }
+                Assert.Equal(new[] { 8, 76, 1 }, positions);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
         [InlineData(false, 1, 5, 256000, 131)]
         [InlineData(true, 1, 5, 256000, 131)]
         [InlineData(false, 1000, 5, 10240, 10235)]

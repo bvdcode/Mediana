@@ -21,7 +21,7 @@ namespace Mediana.Containers.Mp4
             {
                 throw new NotSupportedException("Audio sample selection requires an audio track with an explicit edit list.");
             }
-            Mp4LinearTimeline timeline = Mp4LinearTimeline.Create(track.Stream.TimeBase, track.Edits);
+            Mp4LinearTimeline timeline = Mp4LinearTimeline.Create(track.Stream.TimeBase, track.Edits, decodeTimeLead: 0);
             Mp4Edit edit = track.Edits[^1];
             int denominator = LeastCommonMultiple(LeastCommonMultiple(sampleRate, timeline.TimeBase.Denominator), edit.Duration.TimeBase.Denominator);
             TimeBase timeBase = new(1, denominator);

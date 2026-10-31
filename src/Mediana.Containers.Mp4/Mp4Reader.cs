@@ -61,7 +61,8 @@ namespace Mediana.Containers.Mp4
                 Mp4LinearTimeline timeline = timestampMode switch
                 {
                     Mp4TimestampMode.Media => Mp4LinearTimeline.Identity(original.TimeBase),
-                    Mp4TimestampMode.LinearMovie => Mp4LinearTimeline.Create(original.TimeBase, track.Edits),
+                    Mp4TimestampMode.LinearMovie => Mp4LinearTimeline.Create(original.TimeBase, track.Edits,
+                        movie.Tables[index].DecodeTimeLeadTicks),
                     _ => throw new ArgumentOutOfRangeException(nameof(timestampMode))
                 };
                 timelines[index] = timeline;
@@ -150,7 +151,7 @@ namespace Mediana.Containers.Mp4
                 Mp4SampleLocation location = Locate(streamIndex, sampleIndex, cancellationToken);
                 Mp4LinearTimeline timeline = timelines[streamIndex];
                 return new(streamIndex, sampleIndex, location.Offset, location.Size,
-                    timeline.Map(location.PresentationTime), timeline.Map(location.DecodeTime),
+                    timeline.Map(location.PresentationTime), timeline.MapDecode(location.DecodeTime),
                     timeline.MapDuration(location.Duration), location.IsSync);
             }
             finally
@@ -244,7 +245,7 @@ namespace Mediana.Containers.Mp4
         {
             Mp4LinearTimeline timeline = timelines[streamIndex];
             MediaTimestamp presentationTime = timeline.Map(location.PresentationTime);
-            MediaTimestamp decodeTime = timeline.Map(location.DecodeTime);
+            MediaTimestamp decodeTime = timeline.MapDecode(location.DecodeTime);
             MediaDuration duration = timeline.MapDuration(location.Duration);
             using WritableMediaBuffer writable = allocator.Allocate(location.Size);
             await source.ReadExactlyAtAsync(location.Offset, writable.Memory, cancellationToken).ConfigureAwait(false);
@@ -261,7 +262,7 @@ namespace Mediana.Containers.Mp4
             {
                 if (cursors[index].HasSample)
                 {
-                    MediaTimestamp timestamp = timelines[index].Map(cursors[index].Current.DecodeTime);
+                    MediaTimestamp timestamp = timelines[index].MapDecode(cursors[index].Current.DecodeTime);
                     if (earliest is null || timestamp.CompareTo(earliest.Value) < 0)
                     {
                         selected = index;

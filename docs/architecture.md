@@ -192,10 +192,19 @@ duration clock, including after MP3 configuration is inferred from its frame hea
 QuickTime-compatible movies interpret composition offsets as signed values,
 including version-0 `ctts` atoms. ISO-only and unbranded version-0 tables retain
 unsigned offsets; version 1 is signed in both formats. Sequential reads, random
-sample access and seek-point lookup use the same table interpretation. Media
-decode time starts at zero and presentation time adds the declared offset, without
+sample access and seek-point lookup use the same table interpretation. In media
+mode, decode time starts at zero and presentation time adds the declared offset, without
 shifting decode time to make offsets nonnegative. See Apple's
 [composition offset definition](https://developer.apple.com/documentation/quicktime-file-format/composition_offset_atom).
+
+Linear-movie mode also advances each track's decode schedule by the largest
+negative composition offset in its complete sample table. Presentation times and
+durations retain the exact edit mapping; no sample is removed. This makes decode
+time no later than presentation time while preserving decode intervals. Sequential
+merging orders packets by these adjusted decode times, and random access exposes
+the same schedule. Media mode retains the original zero-based decode schedule.
+The lead is calculated during table validation without reading encoded media or
+depending on an optional `cslg` summary.
 
 `ContainerInfo.Dates` and `ContainerStreamInfo.Dates` expose immutable calendar
 metadata separately from text and packet timestamps. Each `MediaDateTimeTag`
