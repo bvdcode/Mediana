@@ -20,6 +20,7 @@ namespace Mediana.Codecs.Aac
             storage.Memory.Span.Clear();
         }
 
+        public int Channels => channels;
         public Span<double> Input(int channel) => MemoryMarshal.Cast<byte, double>(storage.Memory.Span.Slice(channel * 2048 * sizeof(double), 2048 * sizeof(double)));
         public Span<double> Spectra => MemoryMarshal.Cast<byte, double>(storage.Memory.Span.Slice(channels * 2048 * sizeof(double), channels * 1024 * sizeof(double)));
         public Span<double> Spectrum(int channel) => Spectra.Slice(channel * 1024, 1024);

@@ -12,38 +12,13 @@ namespace Mediana.Codecs.Aac
         private MediaPacket Encode(CancellationToken token)
         {
             AacEncoderWorkspace current = workspace ?? throw new InvalidOperationException("AAC analysis workspace is missing.");
-            int channels = format.Channels.Count;
             long budget = budgetRemainder + (long)options.BitRate * FrameSamples;
             int frameBits = (int)(budget / format.SampleRate) & ~7;
             budgetRemainder = budget % format.SampleRate;
             Span<int> offsets = stackalloc int[AacSpectrumQuantizer.ChannelBands + 1];
             AacEncodingWindow window = new(configuration.FrequencyIndex, 0, 0, [1], offsets);
             Span<byte> encoded = stackalloc byte[1536];
-            AacBitWriter bits = new(encoded[..(frameBits / 8)]);
-            bits.Write(channels == 1 ? 0u : 1, 3);
-            bits.Write(0, 4);
-            if (channels == 2)
-            {
-                bits.Write(1, 1);
-                AacChannelEncoder.WriteWindow(ref bits, window);
-                bits.Write(0, 2);
-            }
-            for (int channel = 0; channel < channels; channel++)
-            {
-                AacAnalysis.Transform(current.Input(channel), window.Sequence, window.Shape, 0, current.Spectrum(channel), current.Window,
-                    current.Folded, current.Fourier, token);
-            }
-            Span<int> gains = stackalloc int[channels];
-            AacSpectrumQuantizer.Quantize(current.Spectra, current.Window, current.Quantized, current.Books, current.Scales,
-                gains, window, frameBits - 64, token);
-            for (int channel = 0; channel < channels; channel++)
-            {
-                AacChannelEncoder.Write(ref bits, gains[channel], current.Quantized.Slice(channel * FrameSamples, FrameSamples),
-                    current.Books.Slice(channel * AacSpectrumQuantizer.ChannelBands, AacSpectrumQuantizer.ChannelBands),
-                    current.Scales.Slice(channel * AacSpectrumQuantizer.ChannelBands, AacSpectrumQuantizer.ChannelBands),
-                    window, channels == 2);
-            }
-            int length = bits.Finish();
+            int length = AacPacketEncoder.Encode(current, window, 0, frameBits, encoded, token);
             token.ThrowIfCancellationRequested();
             using WritableMediaBuffer storage = allocator.Allocate(length);
             encoded[..length].CopyTo(storage.Memory.Span);
