@@ -329,3 +329,20 @@ speedup or a comparison with another encoder. Automatic selection changes the
 encoded data and actual rate. Repeated outputs are byte-identical within each
 version. The extra lookahead requires 8192 accounted bytes per channel; the full
 stereo workspace is 107008 bytes. Process RSS includes other memory.
+
+## Matching PCM preparation
+
+CLI audio encoding and HLS audio preparation retain an independently disposable
+lease when decoded PCM is already interleaved Float32. Sample validation still
+rejects NaN and infinity. A sample-type or layout change still converts into new
+storage; explicit channel mixing retains its existing matrix operation.
+
+A complete stereo AAC recording at 44,100 Hz, containing 4,059,136 samples per
+channel (92.044 seconds), was transcoded before and after this change. Three
+alternating pairs of fresh Linux x64 Native AOT processes, pinned to one CPU,
+produced byte-identical MPEG-TS files. Median process CPU changed from 9.684 to
+9.302 seconds, a 3.94% reduction; median peak RSS stayed at 24.125 MiB. This
+measurement covers that complete input and is not a general encoder speed claim.
+Separate complete 92-second PCM16 WAVE and FLAC conversions produced identical
+WAVE files; every sample also matched independent decoding. No WAVE speedup
+was established.

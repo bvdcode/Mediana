@@ -30,7 +30,7 @@ namespace Mediana.Cli
         {
             if (mixer is null)
             {
-                return AudioSampleConverter.Apply(input, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, allocator, token);
+                return AudioSampleConverter.ConvertOrRetain(input, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, allocator, token);
             }
             return mixer.Apply(input, allocator, token);
         }

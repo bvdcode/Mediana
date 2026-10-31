@@ -62,7 +62,7 @@ namespace Mediana.Cli
 
         private static async ValueTask WriteAsync(WavePcmWriter writer, AudioFrame input, MediaBufferAllocator allocator, CancellationToken token)
         {
-            using AudioFrame pcm = AudioSampleConverter.Apply(input, AudioSampleFormat.Signed16, AudioStorageLayout.Interleaved, allocator, token);
+            using AudioFrame pcm = AudioSampleConverter.ConvertOrRetain(input, AudioSampleFormat.Signed16, AudioStorageLayout.Interleaved, allocator, token);
             await writer.WriteFrameAsync(pcm, token);
         }
     }

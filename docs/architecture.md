@@ -409,7 +409,8 @@ allocator. Both operations preserve sample rate, channel order and sample timing
 
 Matching floating-point storage is checked for non-finite samples before it is
 retained; finite headroom and signed zero remain bit-exact. Conversion retains
-the existing saturation and rounding rules.
+the existing saturation and rounding rules. The CLI uses `ConvertOrRetain` for
+WAVE output and AAC input preparation, including the shared HLS audio path.
 
 Audio trimming returns a tightly packed selection in its destination allocator.
 This independent allocation prevents a small selected range from keeping an
