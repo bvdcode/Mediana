@@ -249,5 +249,36 @@ interval gives:
 
 All packet bytes are identical. CPU decreased by 6.71%; peak RSS increased by
 2.28 MiB in this pair. This is a bounded single pair on a shared host. It does not
-establish repeatability, memory improvement, a complete-film speedup or parity
-with FFmpeg. Complete-film verification of this change remains open.
+establish repeatability, memory improvement or parity with FFmpeg. The complete
+current operation is reported separately below.
+
+## Complete current HD operation
+
+The current Native AOT CLI (`56610aa`) also processes the entire original film
+with the same 10 Mbit/s packet target, two-second buffer, initial QP26 and logical
+CPU 2. It emits all 14,315 pictures, reaches EOF and releases media storage.
+
+| Build | CPU | Elapsed | Peak RSS | TS bytes | Aggregate PSNR |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Historical directional prediction (`b499276`) | 1450.57 s | 1499.30 s | 118.57 MiB | 769,197,112 | 41.286 dB |
+| Current (`56610aa`) | 1121.34 s | 1151.66 s | 114.70 MiB | 769,460,688 | 41.336 dB |
+
+Observed CPU is 22.70% lower and peak RSS is 3.86 MiB lower than the retained
+historical run. The historical build predates the subsequent level-admission and
+macroblock-mode corrections. Its output differs from the current result, so
+this comparison does not isolate the interpolation change. The separate
+60-second pair above does isolate that change and preserves every encoded byte.
+Neither series establishes repeatability on a shared host.
+
+The current full output passed fresh independent verification. Every packet
+PTS, DTS and duration, all 299 IDRs, the configured packet envelope, access-unit
+limits and VCL/Annex B level windows pass. Lossless remuxing preserves every VCL
+NAL byte. Independent decoding and source comparison cover all 19,789,056,000
+visible samples; the source picture hashes match their earlier independent
+references. The current public Native AOT consumer agrees with every independent
+reconstructed sample and timestamp and reaches EOF with no retained media bytes.
+
+Current Y/U/V PSNR is 39.967/46.779/47.668 dB. The operation still uses 8.08 times
+the CPU of the earlier libx264 veryfast run, whose aggregate PSNR is 49.213 dB.
+The packet target and x264 VBV remain different controls; these figures do not
+establish equivalent coding searches, perceptual quality or rate-control behavior.
