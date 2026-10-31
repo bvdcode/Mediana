@@ -10,6 +10,7 @@ namespace Mediana.Tests
     {
         public static void VerifySharedBudget(int frequency, int budget, int activeChannel, double quietGain)
         {
+            AacEncodingWindow window = new(frequency, 0, 0, [1], new int[AacSpectrumQuantizer.ChannelBands + 1]);
             double[] spectrum = new double[2048];
             for (int bin = 0; bin < 1024; bin++)
             {
@@ -21,25 +22,25 @@ namespace Mediana.Tests
             for (int channel = 0; channel < 2; channel++)
             {
                 int[] values = new int[1024];
-                byte[] localBooks = new byte[64];
-                byte[] localScales = new byte[64];
+                byte[] localBooks = new byte[AacSpectrumQuantizer.ChannelBands];
+                byte[] localScales = new byte[AacSpectrumQuantizer.ChannelBands];
                 AacSpectrumQuantizer.Quantize(spectrum.AsSpan(channel * 1024, 1024), new double[1024], values,
-                    localBooks, localScales, new int[1], frequency, budget / 2, default);
+                    localBooks, localScales, new int[1], window, budget / 2, default);
                 independentError += Error(spectrum.AsSpan(channel * 1024, 1024), values, localScales, frequency);
             }
             int[] quantized = new int[2048];
-            byte[] books = new byte[128];
-            byte[] scales = new byte[128];
+            byte[] books = new byte[2 * AacSpectrumQuantizer.ChannelBands];
+            byte[] scales = new byte[2 * AacSpectrumQuantizer.ChannelBands];
             int[] gains = new int[2];
-            AacSpectrumQuantizer.Quantize(spectrum, new double[2048], quantized, books, scales, gains, frequency, budget, default);
+            AacSpectrumQuantizer.Quantize(spectrum, new double[2048], quantized, books, scales, gains, window, budget, default);
             int total = 0;
             double error = 0;
             for (int channel = 0; channel < 2; channel++)
             {
                 int[] values = quantized.AsSpan(channel * 1024, 1024).ToArray();
-                byte[] localBooks = books.AsSpan(channel * 64, 64).ToArray();
-                byte[] localScales = scales.AsSpan(channel * 64, 64).ToArray();
-                int bits = VerifySyntax(frequency, gains[channel], values, localBooks, localScales, budget);
+                byte[] localBooks = books.AsSpan(channel * AacSpectrumQuantizer.ChannelBands, AacSpectrumQuantizer.ChannelBands).ToArray();
+                byte[] localScales = scales.AsSpan(channel * AacSpectrumQuantizer.ChannelBands, AacSpectrumQuantizer.ChannelBands).ToArray();
+                int bits = VerifySyntax(frequency, window, gains[channel], values, localBooks, localScales, budget, true);
                 total += bits;
                 error += Error(spectrum.AsSpan(channel * 1024, 1024), values, localScales, frequency);
                 if (channel == activeChannel && bits <= budget / 2)
@@ -73,9 +74,10 @@ namespace Mediana.Tests
             return total;
         }
 
-        public static int VerifySyntax(int frequency, int gain, int[] quantized, byte[] books, byte[] scales, int budget)
+        public static int VerifySyntax(int frequency, scoped AacEncodingWindow window, int gain, int[] quantized,
+            byte[] books, byte[] scales, int budget, bool commonWindow)
         {
-            ReadOnlySpan<int> boundaries = AacBandTables.Get(frequency, false);
+            ReadOnlySpan<int> boundaries = window.Boundaries;
             AacBandQuantization[] state = new AacBandQuantization[boundaries.Length - 1];
             for (int band = 0; band < state.Length; band++)
             {
@@ -84,26 +86,45 @@ namespace Mediana.Tests
             }
             byte[] encoded = new byte[2048];
             AacBitWriter writer = new(encoded);
-            AacChannelEncoder.Write(ref writer, gain, quantized, books, scales, frequency, true);
-            if (AacChannelEncoder.Count(state) != writer.Position || writer.Position < 1 || writer.Position > budget)
+            int sharedBits = 0;
+            if (commonWindow)
+            {
+                AacChannelEncoder.WriteWindow(ref writer, window);
+                sharedBits = writer.Position;
+            }
+            AacChannelEncoder.Write(ref writer, gain, quantized, books, scales, window, commonWindow);
+            int count = writer.Position - sharedBits;
+            int expected = AacChannelEncoder.Count(state, window.BandsPerGroup, window.SectionLengthBits);
+            if (!commonWindow)
+            {
+                expected += window.ShortWindow ? 15 : 11;
+            }
+            if (expected != count || count < 1 || count > budget)
             {
                 throw new InvalidDataException("AAC scale, section and spectral costs differ from the complete channel syntax.");
             }
-            int count = writer.Position;
             writer.Write(21, 5);
             MediaBufferAllocator allocator = new(32768);
             using AacChannelState channel = new(allocator);
             AacBitReader reader = new(encoded);
-            AacChannelParser.Read(ref reader, channel, frequency, new(frequency, 0, 0, state.Length, [1]), false, default);
-            if (!quantized.AsSpan().SequenceEqual(channel.Quantized))
+            AacWindowInfo? common = commonWindow ? AacWindowInfo.Read(ref reader, frequency) : null;
+            AacChannelParser.Read(ref reader, channel, frequency, common, false, default);
+            int[] unpacked = new int[1024];
+            window.Ungroup<int>(quantized, unpacked);
+            if (!unpacked.AsSpan().SequenceEqual(channel.Quantized) || channel.Info.Sequence != window.Sequence || channel.Info.Shape != window.Shape)
             {
                 throw new InvalidDataException("AAC allocation changed a quantized spectral coefficient during syntax decoding.");
             }
             for (int band = 0; band < state.Length; band++)
             {
+                int decodedBand = band / window.BandsPerGroup * 64 + band % window.BandsPerGroup;
+                if (books[band] != channel.Books[decodedBand])
+                {
+                    throw new InvalidDataException("AAC allocation changed a spectral section during syntax decoding.");
+                }
                 if (books[band] != 0)
                 {
-                    if (scales[band] != channel.Scales[band])
+                    if (scales[band] != channel.Scales[decodedBand])
                     {
                         throw new InvalidDataException("AAC allocation changed a band scale during syntax decoding.");
                     }

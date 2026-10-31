@@ -6,10 +6,10 @@ namespace Mediana.Codecs.Aac
     internal static class AacSpectrumQuantizer
     {
         private const int ChannelBins = 1024;
-        internal const int ChannelBands = 64;
+        internal const int ChannelBands = 128;
 
         public static void Quantize(ReadOnlySpan<double> spectrum, Span<double> powered, Span<int> quantized,
-            Span<byte> books, Span<byte> scales, Span<int> gains, int frequencyIndex, int budget, CancellationToken token)
+            Span<byte> books, Span<byte> scales, Span<int> gains, scoped AacEncodingWindow window, int budget, CancellationToken token)
         {
             int channels = gains.Length;
             if (channels is not (1 or 2) || spectrum.Length != channels * ChannelBins || powered.Length < spectrum.Length ||
@@ -28,11 +28,11 @@ namespace Mediana.Codecs.Aac
             {
                 throw new NotSupportedException("The PCM magnitude exceeds the AAC quantizer range.");
             }
-            ReadOnlySpan<int> boundaries = AacBandTables.Get(frequencyIndex, false);
+            ReadOnlySpan<int> boundaries = window.Boundaries;
             int channelBands = boundaries.Length - 1;
             Span<AacBandQuantization> bands = stackalloc AacBandQuantization[channels * channelBands];
             Span<AacBandQuantization> candidates = stackalloc AacBandQuantization[bands.Length * 2];
-            AacBandAllocator allocation = new(spectrum, powered, boundaries, quantized, bands, candidates);
+            AacBandAllocator allocation = new(spectrum, powered, window, quantized, bands, candidates);
             allocation.Allocate(Math.Max(0, (int)required), budget, token);
             for (int channel = 0; channel < channels; channel++)
             {

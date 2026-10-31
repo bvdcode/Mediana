@@ -110,6 +110,15 @@ namespace Mediana.NativeTests
             }
             AacAnalysisTestInput.VerifyTransitions();
             Console.WriteLine("PASS AAC analysis: long/start/short/stop direct coefficients, sine/KBD transitions, complete reconstruction and workspace bounds.");
+            for (int frequency = 0; frequency < 12; frequency++)
+            {
+                AacWindowGroupingTestInput.VerifyFrequency(frequency);
+            }
+            AacWindowGroupingTestInput.VerifyAllocation(0, 0, 1, 1400);
+            AacWindowGroupingTestInput.VerifyAllocation(3, 1, 2, 4000);
+            AacWindowGroupingTestInput.VerifyAllocation(6, 2, 2, 3200);
+            AacWindowGroupingTestInput.VerifyAllocation(11, 3, 1, 2500);
+            Console.WriteLine("PASS AAC short groups: every sample rate, grouped order, scale history, exact sections and mono/stereo element budgets.");
             await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48", 64000, 19);
             AacBandAllocationTestInput.VerifySharedBudget(3, 2400, 0, 0);
             AacBandAllocationTestInput.VerifySharedBudget(4, 3200, 1, 0);

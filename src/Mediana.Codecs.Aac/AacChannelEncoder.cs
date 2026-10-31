@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacChannelEncoder
     {
-        public static int Count(ReadOnlySpan<AacBandQuantization> bands)
+        public static int Count(ReadOnlySpan<AacBandQuantization> bands, int bandsPerGroup, int sectionBits)
         {
             int total = 11;
             int previous = -1;
@@ -28,53 +28,75 @@ namespace Mediana.Codecs.Aac
                 total += current.Bits + AacHuffmanEncoder.CountSymbol(0, difference + 60);
                 previous = current.Scale;
             }
-            int start = 0;
-            while (start < bands.Length)
+            int escape = (1 << sectionBits) - 1;
+            for (int firstBand = 0; firstBand < bands.Length; firstBand += bandsPerGroup)
             {
-                int end = start + 1;
-                while (end < bands.Length && bands[end].Book == bands[start].Book)
+                int groupEnd = Math.Min(bands.Length, firstBand + bandsPerGroup);
+                int start = firstBand;
+                while (start < groupEnd)
                 {
-                    end++;
+                    int end = start + 1;
+                    while (end < groupEnd && bands[end].Book == bands[start].Book)
+                    {
+                        end++;
+                    }
+                    total += 4 + sectionBits;
+                    for (int remaining = end - start; remaining >= escape; remaining -= escape)
+                    {
+                        total += sectionBits;
+                    }
+                    start = end;
                 }
-                total += 4 + 5 * ((end - start) / 31 + 1);
-                start = end;
             }
             return total;
         }
 
-        public static void WriteWindow(ref AacBitWriter bits, int frequencyIndex)
+        public static void WriteWindow(ref AacBitWriter bits, scoped AacEncodingWindow window)
         {
-            bits.Write(0, 4);
-            bits.Write((uint)(AacBandTables.Get(frequencyIndex, false).Length - 1), 6);
-            bits.Write(0, 1);
+            bits.Write((uint)(window.Sequence << 1 | window.Shape), 4);
+            if (window.ShortWindow)
+            {
+                bits.Write((uint)window.BandsPerGroup, 4);
+                bits.Write((uint)window.Grouping, 7);
+            }
+            else
+            {
+                bits.Write((uint)window.BandsPerGroup, 6);
+                bits.Write(0, 1);
+            }
         }
 
         public static void Write(ref AacBitWriter bits, int gain, ReadOnlySpan<int> quantized,
-            ReadOnlySpan<byte> books, ReadOnlySpan<byte> scales, int frequencyIndex, bool commonWindow)
+            ReadOnlySpan<byte> books, ReadOnlySpan<byte> scales, scoped AacEncodingWindow window, bool commonWindow)
         {
             bits.Write((uint)gain, 8);
             if (!commonWindow)
             {
-                WriteWindow(ref bits, frequencyIndex);
+                WriteWindow(ref bits, window);
             }
-            ReadOnlySpan<int> bands = AacBandTables.Get(frequencyIndex, false);
-            int start = 0;
-            while (start < bands.Length - 1)
+            ReadOnlySpan<int> bands = window.Boundaries;
+            int escape = (1 << window.SectionLengthBits) - 1;
+            for (int firstBand = 0; firstBand < window.BandCount; firstBand += window.BandsPerGroup)
             {
-                int end = start + 1;
-                while (end < bands.Length - 1 && books[end] == books[start])
+                int groupEnd = firstBand + window.BandsPerGroup;
+                int start = firstBand;
+                while (start < groupEnd)
                 {
-                    end++;
+                    int end = start + 1;
+                    while (end < groupEnd && books[end] == books[start])
+                    {
+                        end++;
+                    }
+                    bits.Write(books[start], 4);
+                    int remaining = end - start;
+                    while (remaining >= escape)
+                    {
+                        bits.Write((uint)escape, window.SectionLengthBits);
+                        remaining -= escape;
+                    }
+                    bits.Write((uint)remaining, window.SectionLengthBits);
+                    start = end;
                 }
-                bits.Write(books[start], 4);
-                int remaining = end - start;
-                while (remaining >= 31)
-                {
-                    bits.Write(31, 5);
-                    remaining -= 31;
-                }
-                bits.Write((uint)remaining, 5);
-                start = end;
             }
             int previous = gain;
             for (int band = 0; band < bands.Length - 1; band++)
