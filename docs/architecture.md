@@ -311,6 +311,11 @@ components and decides how to discard or replace the destination. File selection
 overwrite confirmation, atomic file replacement and console logging belong to the
 application.
 
+CLI MPEG-TS copying selects audio and video tracks by default. Data tracks such
+as QuickTime timecode remain inspectable without becoming automatic transport
+outputs. An explicit stream selection still reaches writer validation; unsupported
+representations fail before publishing an output file.
+
 Progress is `MediaOperationProgress`: submitted frames, written packets, encoded
 payload bytes, processed duration when known, and successful completion. Payload
 bytes exclude container overhead. `MediaTimeEstimator` consumes known duration

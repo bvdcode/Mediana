@@ -18,6 +18,10 @@ namespace Mediana.Tests
         [InlineData("Mp3", "stereo-vbr-cover.mp3", "mp3", true)]
         [InlineData("Mp3", "mono-speech.mp3", "mp3", false)]
         [InlineData("Mp4", "avc-aac.mp4", "aac", true)]
+        [InlineData("Mp4", "avc-timecode.mov", "aac", false)]
+        [InlineData("Mp4", "avc-timecode.mov", "aac", true)]
+        [InlineData("Mp4", "avc-sound-v2.mov", "aac", false)]
+        [InlineData("Mp4", "avc-sound-v2.mov", "aac", true)]
         [InlineData("Mp4", "avc-mp3-44.mp4", "mp3", false)]
         [InlineData("Mp4", "avc-mp3-22.mp4", "mp3", true)]
         public async Task RootAndRemuxCommandsDetectRenamedInputsAndPreserveEveryPacket(string format, string file, string codec, bool namedCommand)
@@ -32,17 +36,32 @@ namespace Mediana.Tests
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             await using ContainerSession session = await engine.OpenContainerAsync(source);
             Assert.Contains(session.Streams, stream => stream.CodecId == codec);
+            EncodedStreamInfo[] selected = session.Streams.Where(stream => stream.Kind is MediaKind.Audio or MediaKind.Video).ToArray();
+            HashSet<int> selectedIndices = selected.Select(stream => stream.StreamIndex).ToHashSet();
             List<(int Stream, byte[] Data, long Pts, long Dts)> expected = [];
             while (await session.ReadPacketAsync() is MediaPacket packet)
             {
                 using (packet)
                 {
-                    expected.Add((packet.StreamIndex, packet.Data.ToArray(), MpegTsTestInput.Ticks(packet.PresentationTime),
-                        MpegTsTestInput.Ticks(packet.DecodeTime)));
+                    if (selectedIndices.Contains(packet.StreamIndex))
+                    {
+                        expected.Add((packet.StreamIndex, packet.Data.ToArray(), MpegTsTestInput.Ticks(packet.PresentationTime),
+                            MpegTsTestInput.Ticks(packet.DecodeTime)));
+                    }
                 }
             }
-            MpegTsTestInput.Verify(await File.ReadAllBytesAsync(output), session.Streams, expected);
+            MpegTsTestInput.Verify(await File.ReadAllBytesAsync(output), selected, expected);
             Assert.Equal(2, Directory.GetFiles(directory).Length);
+        }
+
+        [Fact]
+        public async Task ExplicitTimecodeSelectionIsRejectedWithoutPublishingOutput()
+        {
+            string input = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-timecode.mov");
+            string output = Path.Combine(directory, "timecode.ts");
+            (int code, _, _) = await CliTests.RunAsync(["-i", input, output, "--stream", "2"]);
+            Assert.Equal(3, code);
+            Assert.Empty(Directory.GetFiles(directory));
         }
 
         [Fact]

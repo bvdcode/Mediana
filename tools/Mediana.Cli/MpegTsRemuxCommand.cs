@@ -27,7 +27,7 @@ namespace Mediana.Cli
                 EncodedStreamInfo[] selected = streamIndex is int index
                     ? [reader.Streams.SingleOrDefault(item => item.StreamIndex == index)
                         ?? throw new ArgumentException("The requested stream does not exist.", nameof(streamIndex))]
-                    : reader.Streams.ToArray();
+                    : reader.Streams.Where(stream => stream.Kind is MediaKind.Audio or MediaKind.Video).ToArray();
                 streams = selected.Length;
                 MediaBufferAllocator allocator = new(BufferBudgetBytes);
                 await outputFile.WriteAsync(async output =>
