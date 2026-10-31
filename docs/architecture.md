@@ -138,6 +138,25 @@ count decoded pictures or PCM samples, apply presentation edits, or define a rat
 when their duration is zero. Null metadata means unavailable; an inspected empty
 collection remains distinct. All snapshots survive reader and source disposal.
 
+Native text tags can carry `SourcePath`, a structural container location rather
+than a filesystem path. MP4 preserves movie, track and media `meta` locations and
+their value order. Track values remain separate from movie tags; original typed
+bytes are accessible with `Mp4Reader.ReadTrackMetadataValue`. Text/value budgets
+apply to the whole movie, including all tracks and decoded metadata key names.
+
+`ContainerStreamInfo.Language` contains the selected declared language identifier.
+MP4 also exposes original `mdhd` codes and `elng` strings in `Mp4TrackInfo.Language`.
+A well-formed extended tag has priority; malformed extended tags retain their
+original bytes as Latin-1 code points and yield an unknown selected language.
+The parser checks [RFC 5646 syntax](https://www.rfc-editor.org/rfc/rfc5646) without
+registry access or identifier canonicalization. Packed ISO 639-2/T codes retain
+their spelling. Macintosh code interpretation requires an explicit QuickTime major
+or compatible brand; unbranded files retain those codes without inventing a
+language. Original `ftyp` major brands are available as `Mp4Reader.MajorBrand`.
+See Apple's [language codes](https://developer.apple.com/documentation/quicktime-file-format/language_code_values),
+[extended tags](https://developer.apple.com/documentation/quicktime-file-format/extended_language_tag_atom)
+and [file types](https://developer.apple.com/documentation/quicktime-file-format/file_type_compatibility_atom).
+
 MP4 computes these totals during its existing sample-table validation, without a
 second index pass or packet payload scan. Indexed decode duration also supplies
 `EncodedStreamInfo.CodedDuration`; `mvhd`, `tkhd`, `mdhd` and edit declarations

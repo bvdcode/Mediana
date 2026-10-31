@@ -15,6 +15,7 @@ namespace Mediana.Containers.Mp4
             MediaDuration? mediaDuration, MediaDuration? presentationDuration, IReadOnlyList<Mp4Edit> edits,
             int? width, int? height, int? declaredAudioChannels, int? declaredAudioSampleRate, int sampleCount,
             VideoDisplayMatrix displayMatrix, ContainerPacketIndexInfo packetIndex,
+            Mp4LanguageInfo language, Mp4MetadataValue[] metadata,
             IReadOnlyList<VideoColorDescription>? colorDescriptions = null)
         {
             TrackId = trackId;
@@ -31,6 +32,9 @@ namespace Mediana.Containers.Mp4
             DisplayMatrix = displayMatrix;
             ColorDescriptions = colorDescriptions ?? Array.Empty<VideoColorDescription>();
             PacketIndex = packetIndex;
+            Language = language;
+            MetadataValues = metadata;
+            Metadata = Array.AsReadOnly(metadata.Select(value => value.Item).ToArray());
         }
 
         public uint TrackId { get; }
@@ -46,6 +50,10 @@ namespace Mediana.Containers.Mp4
         public int SampleCount { get; }
         /// <summary>Complete sample-index totals, independent of mdhd/tkhd duration declarations and edit lists.</summary>
         public ContainerPacketIndexInfo PacketIndex { get; }
+        public Mp4LanguageInfo Language { get; }
+        /// <summary>Track and media metadata in structural file order, retaining native source paths.</summary>
+        public IReadOnlyList<Mp4MetadataItem> Metadata { get; }
+        internal Mp4MetadataValue[] MetadataValues { get; }
         /// <summary>The track header matrix before the movie matrix. Video Stream.DisplayMatrix composes both.</summary>
         public VideoDisplayMatrix DisplayMatrix { get; }
         /// <summary>Recognized source color descriptions in sample-entry order. Stream.ColorDescription is the selected representation.</summary>
@@ -53,6 +61,6 @@ namespace Mediana.Containers.Mp4
 
         internal Mp4TrackInfo WithStream(EncodedStreamInfo stream) => new(TrackId, stream, SampleEntry,
             MediaDuration, PresentationDuration, Edits, Width, Height, DeclaredAudioChannels,
-            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, ColorDescriptions);
+            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, Language, MetadataValues, ColorDescriptions);
     }
 }

@@ -10,7 +10,7 @@ namespace Mediana.Containers.Mp4
     internal static class Mp4MovieParser
     {
         public static Mp4Movie Parse(ReadOnlyMemory<byte> metadata, IReadOnlyList<Mp4DataRange> dataRanges,
-            Mp4ReadOptions options, Mp4ParseBudget budget, CancellationToken cancellationToken)
+            Mp4ReadOptions options, Mp4ParseBudget budget, bool quickTime, CancellationToken cancellationToken)
         {
             Mp4BoxCollection movie = new(metadata, budget);
             if (movie.Optional("mvex") is not null)
@@ -48,7 +48,9 @@ namespace Mediana.Containers.Mp4
                     version == 0 ? 20 : 28, version, timeBase);
                 VideoDisplayMatrix trackMatrix = Mp4DisplayMatrixParser.Read(trackHeader.Span, version == 0 ? 40 : 52);
                 Mp4BoxCollection media = new(track.Required("mdia").Payload, budget);
-                (TimeBase trackTimeBase, MediaDuration? mediaDuration) = ReadTimeHeader(media.Required("mdhd"), 24, 36);
+                Mp4Box mediaHeader = media.Required("mdhd");
+                (TimeBase trackTimeBase, MediaDuration? mediaDuration) = ReadTimeHeader(mediaHeader, 24, 36);
+                Mp4LanguageInfo language = Mp4LanguageParser.Parse(mediaHeader.Payload.Span, media.Optional("elng"), quickTime, budget);
                 ReadOnlyMemory<byte> handler = media.Required("hdlr").Payload;
                 Mp4Binary.FullBox(handler.Span);
                 Mp4Binary.Range(handler.Span, 0, 24);
@@ -80,9 +82,11 @@ namespace Mediana.Containers.Mp4
                     trackTimeBase, description.Configuration.Span, displayMatrix, codedDuration: packetIndex.DecodeDuration,
                     colorDescription: Mp4ColorDescriptionParser.Select(description.ColorDescriptions));
                 IReadOnlyList<Mp4Edit> edits = ReadEdits(track, timeBase, options, budget);
+                Mp4MetadataValue[] trackMetadata = new Mp4MetadataParser(metadata, options, budget).Parse(track, "trak", media);
                 tracks.Add(new Mp4TrackInfo(trackId, stream, description.SampleEntry, mediaDuration,
                     presentationDuration, edits, description.Width, description.Height,
-                    description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix, packetIndex, description.ColorDescriptions));
+                    description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix, packetIndex,
+                    language, trackMetadata, description.ColorDescriptions));
                 tables.Add(table);
             }
             if (tracks.Count == 0)
@@ -90,7 +94,7 @@ namespace Mediana.Containers.Mp4
                 throw new InvalidDataException("The MP4 movie has no tracks.");
             }
             Mp4MetadataParser metadataParser = new(metadata, options, budget);
-            return new Mp4Movie(timeBase, duration, movieMatrix, tracks.ToArray(), tables.ToArray(), metadataParser.Parse(movie));
+            return new Mp4Movie(timeBase, duration, movieMatrix, tracks.ToArray(), tables.ToArray(), metadataParser.Parse(movie, "moov"));
         }
 
         private static (TimeBase, MediaDuration?) ReadTimeHeader(Mp4Box box, int minimumV0, int minimumV1)

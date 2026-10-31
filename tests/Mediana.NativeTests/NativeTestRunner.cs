@@ -14,6 +14,7 @@ namespace Mediana.NativeTests
         public static async Task RunAsync()
         {
             LanguageTagTestInput.Verify();
+            await Mp4TrackMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
             Console.WriteLine("PASS language tag syntax: RFC 5646 examples and malformed subtags match without a registry lookup.");
             await ContainerColorTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Preview"));
             await AvcColorRemuxTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Preview"));

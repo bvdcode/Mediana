@@ -1,0 +1,227 @@
+{
+  "sha256": "433db41f3e3dd595b1868526a0efef385a9c87afd6ddfe1fab2cf46ffcd7f926",
+  "tags": [
+    {
+      "namespace": "mdta",
+      "name": "major_brand",
+      "type": 1,
+      "locale": 0,
+      "byte_length": 4,
+      "text": "isom",
+      "source_path": "moov/udta/meta",
+      "sha256": "2c42f720d41266a5f9a5fe70f96a0e62dd50c0690bd91160c7d58810c5c8a4b8"
+    },
+    {
+      "namespace": "mdta",
+      "name": "minor_version",
+      "type": 1,
+      "locale": 0,
+      "byte_length": 3,
+      "text": "512",
+      "source_path": "moov/udta/meta",
+      "sha256": "94f8607915dff25f013e45fc0642fb9830b0fb25ab0ab46d477eaf1061def379"
+    },
+    {
+      "namespace": "mdta",
+      "name": "compatible_brands",
+      "type": 1,
+      "locale": 0,
+      "byte_length": 16,
+      "text": "isomiso2avc1mp41",
+      "source_path": "moov/udta/meta",
+      "sha256": "32c9c4fc1924a84b28fc5df862fadd54543aa2e18371a8b81afa877b1e254968"
+    },
+    {
+      "namespace": "mdta",
+      "name": "title",
+      "type": 1,
+      "locale": 0,
+      "byte_length": 14,
+      "text": "Track metadata",
+      "source_path": "moov/udta/meta",
+      "sha256": "2f1d330bd1e74bf6b42dd2c882ace6e76aedf30f00c95fbf1315088af1e1474b"
+    },
+    {
+      "namespace": "mdta",
+      "name": "encoder",
+      "type": 1,
+      "locale": 0,
+      "byte_length": 13,
+      "text": "Lavf60.16.100",
+      "source_path": "moov/udta/meta",
+      "sha256": "9a463ed8293cda7bf1b197c7bca25351bcf9bf14cf6e1f2c0732a81bd66e4c7a"
+    }
+  ],
+  "tracks": [
+    {
+      "index": 0,
+      "code": 21956,
+      "extended_tag": null,
+      "language": "und",
+      "language_source": "mdhd",
+      "ffprobe_language": "und",
+      "tags": [
+        {
+          "namespace": "mdir",
+          "name": "©nam",
+          "type": 1,
+          "locale": 0,
+          "byte_length": 7,
+          "text": "Media 0",
+          "source_path": "trak/mdia/meta",
+          "sha256": "29e095bb846f9e2923d33af6f67dd3d34119c83722b9f0fafc8b0dc5a90e265b"
+        },
+        {
+          "namespace": "mdir",
+          "name": "©nam",
+          "type": 2,
+          "locale": 1195513287,
+          "byte_length": 14,
+          "text": "Медиа 0",
+          "source_path": "trak/mdia/meta",
+          "sha256": "3d520c00d1a3e92e21f0c7f31fd856de12c9e6ab7f4b3683cc9e8cf5660885ba"
+        },
+        {
+          "namespace": "mdta",
+          "name": "example.track.title",
+          "type": 1,
+          "locale": 1,
+          "byte_length": 10,
+          "text": "Video 🎞",
+          "source_path": "trak/meta",
+          "sha256": "e527707bbfd990c0b0ec817acb292ba6facebbdc72777bab862e8db996c75436"
+        },
+        {
+          "namespace": "mdta",
+          "name": "example.track.blob",
+          "type": 16777217,
+          "locale": 0,
+          "byte_length": 3,
+          "text": null,
+          "source_path": "trak/meta",
+          "sha256": "ae974d4a74c2371d8cfe842b7aa4f6698de8570526eeb3db1941b0b72311d470"
+        }
+      ],
+      "codec": "h264",
+      "time_base": "1/10240",
+      "packet_count": 8,
+      "payload_bytes": 3215,
+      "decode_duration": 16384,
+      "packet_sha256": "d57b09edb94c1d751e634db2e9a97197ec9b71610062270803f2dd7be352fe07"
+    },
+    {
+      "index": 1,
+      "code": 19123,
+      "extended_tag": "ru-RU",
+      "language": "ru-RU",
+      "language_source": "elng",
+      "ffprobe_language": "rus",
+      "tags": [
+        {
+          "namespace": "mdir",
+          "name": "©nam",
+          "type": 1,
+          "locale": 0,
+          "byte_length": 7,
+          "text": "Media 1",
+          "source_path": "trak/mdia/udta/meta",
+          "sha256": "ca877fbebe2cd59ce94da28e8cabc041dcdde8754f95c3d690e675a46b8b299d"
+        },
+        {
+          "namespace": "mdir",
+          "name": "©nam",
+          "type": 2,
+          "locale": 1195513287,
+          "byte_length": 14,
+          "text": "Медиа 1",
+          "source_path": "trak/mdia/udta/meta",
+          "sha256": "2c3620acef941ec978cba9f3cebacd7226fafc69c377ae167acc408b156e58ad"
+        },
+        {
+          "namespace": "mdta",
+          "name": "example.track.title",
+          "type": 1,
+          "locale": 2,
+          "byte_length": 29,
+          "text": "Русская дорожка",
+          "source_path": "trak/meta",
+          "sha256": "b45d125b1a05bc5564f394bf292dd94ef3b2b120336f9fdf4015c3f0503722a2"
+        },
+        {
+          "namespace": "mdta",
+          "name": "example.track.blob",
+          "type": 16777217,
+          "locale": 1,
+          "byte_length": 3,
+          "text": null,
+          "source_path": "trak/meta",
+          "sha256": "26a66b061e8f48f39927c312f25293959729eee95978e2892d49d3512a5cc092"
+        }
+      ],
+      "codec": "aac",
+      "time_base": "1/48000",
+      "packet_count": 76,
+      "payload_bytes": 13169,
+      "decode_duration": 77824,
+      "packet_sha256": "35f5b590f056669dfe5d85674f4aa7a0e194554eabdcb03929881038d334d876"
+    },
+    {
+      "index": 2,
+      "code": 5575,
+      "extended_tag": "en-GB",
+      "language": "en-GB",
+      "language_source": "elng",
+      "ffprobe_language": "eng",
+      "tags": [
+        {
+          "namespace": "mdir",
+          "name": "©nam",
+          "type": 1,
+          "locale": 0,
+          "byte_length": 7,
+          "text": "Media 2",
+          "source_path": "trak/mdia/meta",
+          "sha256": "87f13ebbe70519f3d0846c01130dd30c06fbac5a6fd5ba20284629e675d29b11"
+        },
+        {
+          "namespace": "mdir",
+          "name": "©nam",
+          "type": 2,
+          "locale": 1195513287,
+          "byte_length": 14,
+          "text": "Медиа 2",
+          "source_path": "trak/mdia/meta",
+          "sha256": "a5ae6783fbd32b071288100ff1f5d27776a2f9a5f20231478f375be52886d856"
+        },
+        {
+          "namespace": "mdta",
+          "name": "example.track.title",
+          "type": 1,
+          "locale": 3,
+          "byte_length": 0,
+          "text": "",
+          "source_path": "trak/meta",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "namespace": "mdta",
+          "name": "example.track.blob",
+          "type": 16777217,
+          "locale": 2,
+          "byte_length": 3,
+          "text": null,
+          "source_path": "trak/meta",
+          "sha256": "81f3b92f222078b1606cfc3eebfee22216cc40ac99e6524b00fbaa933a6bcd47"
+        }
+      ],
+      "codec": "aac",
+      "time_base": "1/48000",
+      "packet_count": 76,
+      "payload_bytes": 13169,
+      "decode_duration": 77824,
+      "packet_sha256": "35f5b590f056669dfe5d85674f4aa7a0e194554eabdcb03929881038d334d876"
+    }
+  ],
+  "metadata_values": 17,
+  "metadata_text_bytes": 326
+}
