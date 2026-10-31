@@ -23,5 +23,11 @@ namespace Mediana.Containers
         public long PayloadBytes { get; }
         /// <summary>Sum of indexed decode durations. Excludes presentation offsets and edits; does not count decoded PCM or pictures.</summary>
         public MediaDuration DecodeDuration { get; }
+
+        /// <summary>Approximate mean encoded payload bits per second over the complete indexed decode duration.
+        /// Includes packet framing, excludes container overhead and presentation edits. Null for zero duration.</summary>
+        public double? AveragePayloadBitRate => DecodeDuration.Value == 0 ? null :
+            (double)PayloadBytes * 8 * DecodeDuration.TimeBase.Denominator /
+            DecodeDuration.Value / DecodeDuration.TimeBase.Numerator;
     }
 }

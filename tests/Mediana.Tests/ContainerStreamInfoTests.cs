@@ -11,6 +11,21 @@ namespace Mediana.Tests
     public class ContainerStreamInfoTests
     {
         [Fact]
+        public void IndexedPayloadRateUsesTheDecodeClockAndKeepsUnknownDistinctFromZero()
+        {
+            ContainerPacketIndexInfo index = new(2, 100, new(10, new(1, 3)));
+            ContainerStreamInfo stream = new(0, new(1, new(1, 1)), packetIndex: index);
+            Assert.Equal(240.0, stream.PacketIndex!.AveragePayloadBitRate);
+            Assert.Null(new ContainerPacketIndexInfo(2, 100, new(0, new(1, 3))).AveragePayloadBitRate);
+            Assert.Equal(0.0, new ContainerPacketIndexInfo(2, 0, new(10, new(1, 3))).AveragePayloadBitRate);
+            Assert.Equal(8.0, new ContainerPacketIndexInfo(long.MaxValue, long.MaxValue,
+                new(long.MaxValue, new(int.MaxValue, int.MaxValue))).AveragePayloadBitRate);
+            double maximumRate = new ContainerPacketIndexInfo(1, long.MaxValue,
+                new(1, new(1, int.MaxValue))).AveragePayloadBitRate!.Value;
+            Assert.True(double.IsFinite(maximumRate) && maximumRate > long.MaxValue);
+        }
+
+        [Fact]
         public void HeaderDeclarationsAndIndexTotalsRemainDistinctAndImmutable()
         {
             MediaTag[] tags = [new("mdta", "title", "Audio")];

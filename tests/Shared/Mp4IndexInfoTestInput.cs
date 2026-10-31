@@ -59,6 +59,12 @@ namespace Mediana.Tests
                     {
                         throw new InvalidDataException($"MP4 packet-index totals differ from independent packets for {file}, stream {index}.");
                     }
+                    double expectedRate = 8.0 * bytes / (duration * (double)timeBase.Numerator / timeBase.Denominator);
+                    if (facts.AveragePayloadBitRate is not double actualRate ||
+                        Math.Abs(actualRate - expectedRate) > Math.Max(1, expectedRate) * 1e-12)
+                    {
+                        throw new InvalidDataException($"MP4 mean indexed payload rate differs from independent packets for {file}, stream {index}.");
+                    }
                 }
             }
         }

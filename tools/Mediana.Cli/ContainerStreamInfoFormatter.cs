@@ -32,9 +32,8 @@ namespace Mediana.Cli
                 await output.WriteLineAsync($"  Indexed packets: {index.PacketCount}; encoded payload: {index.PayloadBytes} bytes.");
                 MediaDuration duration = index.DecodeDuration;
                 await output.WriteLineAsync($"  Indexed decode duration: {MediaDurationFormatter.Seconds(duration)} seconds.");
-                if (duration.Value > 0)
+                if (index.AveragePayloadBitRate is double rate)
                 {
-                    double rate = (double)index.PayloadBytes * 8 * duration.TimeBase.Denominator / duration.Value / duration.TimeBase.Numerator;
                     await output.WriteLineAsync($"  Mean indexed payload bitrate: {rate.ToString("0.###", CultureInfo.InvariantCulture)} bits/s.");
                 }
             }

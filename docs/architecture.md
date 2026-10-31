@@ -166,6 +166,13 @@ count decoded pictures or PCM samples, apply presentation edits, or define a rat
 when their duration is zero. Null metadata means unavailable; an inspected empty
 collection remains distinct. All snapshots survive reader and source disposal.
 
+`ContainerPacketIndexInfo.AveragePayloadBitRate` exposes the approximate mean
+encoded payload bits per second using those same complete-index byte and duration
+totals. Packet framing is included; container overhead is excluded. A zero decode
+duration returns null, while zero payload over a positive duration returns zero.
+The original integer counters and rational duration remain available. The CLI
+uses this common property without recalculating the rate from movie duration.
+
 `ContainerStreamInfo.AverageFrameRate` is optional container-index video timing,
 separate from codec configuration timing and decoded output frames. `FrameRate`
 retains an exact positive fraction with 128-bit terms. MP4 derives the mean coded
