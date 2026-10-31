@@ -1,4 +1,4 @@
-# Complete HD decoding and stream-copy verification
+# HD decoding, previews and stream-copy verification
 
 The complete original 720p release of Big Buck Bunny was checked through the
 public container, video-session, MPEG-TS and HLS operations. The source contains
@@ -33,6 +33,25 @@ Linear-movie timestamps advance the decode schedule by the complete table's
 required lead, preserve presentation times, and merge tracks by adjusted DTS.
 Default CLI copying selects audio and video; timecode remains available to probing
 and explicit stream selection. See [module contracts](architecture.md).
+
+## PNG preview
+
+Requesting a preview at 298.231 seconds selected the picture at 298.250 seconds
+(PTS 715800 at 1/2400). The result is a 1280x720 square-pixel sRGB PNG.
+The original QuickTime file has neither a `pasp` declaration nor an SPS sample
+aspect ratio. Its format-defined square-pixel geometry reaches the decoder
+through the shared source-description contract.
+
+Native AOT and managed builds produced identical PNG files. Independent decoding
+selected the same picture and matched its YUV SHA256. Comparing all 3,686,400
+RGBA values against FFmpeg/zimg with explicit BT.709, limited range, top-left
+chroma and sRGB conversion found a maximum difference of one 8-bit code and a
+mean absolute difference of 0.001181. PNG structure, CRCs, sRGB and square-pixel
+declarations were checked; the preview operation released all media storage.
+
+The complete TS/HLS comparisons were repeated after carrying this geometry into
+SPS parameters. Both outputs declare SAR 1:1; all picture hashes, presentation
+times, frame durations and original AAC packets still match the source.
 
 ## CPU and memory
 
