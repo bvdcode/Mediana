@@ -202,13 +202,7 @@ namespace Mediana.NativeTests
             }
             Console.WriteLine("PASS MP3 in MP4/TS/HLS: MPEG-1/2 frames, timestamps, transport tables and repeatable segments match.");
             Console.WriteLine("PASS MP4 metadata: Unicode tags, indexed keys, exact PNG/JPEG covers, unchanged packets and independent cover ownership match.");
-            await AudioWaveformTestInput.VerifyAsync();
-            await AudioWaveformTestInput.VerifyWaveAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"));
-            Console.WriteLine("PASS audio waveform: streaming mono mix, resampling, PCM16 quantization and RMS match analytic tone energy and exact window timing.");
-            await AudioResamplingTestInput.VerifyAsync(48000, 400, AudioStorageLayout.Interleaved);
-            await AudioResamplingTestInput.VerifyAsync(44100, 400, AudioStorageLayout.Planar);
-            await AudioResamplingTestInput.VerifyAsync(8000, 11025, AudioStorageLayout.Interleaved);
-            Console.WriteLine("PASS audio resampling: passband tones, exact timing, channel separation and finite output ownership match.");
+            await NativeAudioProcessingTests.RunAsync();
             for (int index = 0; index < MediaProbeTestInput.Cases.Length; index++)
             {
                 await MediaProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), index);

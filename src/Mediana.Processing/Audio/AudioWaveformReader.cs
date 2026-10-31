@@ -28,14 +28,33 @@ namespace Mediana.Processing.Audio
 
         public AudioWaveformReader(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame,
             ReadOnlySpan<double> channelGains, AudioWaveformOptions options, MediaBufferAllocator allocator)
+            : this(readFrame, channelGains, null, options, allocator)
+        {
+        }
+
+        /// <summary>Uses the supplied immutable mono mixer directly, before resampling and quantization.
+        /// Its input format must match every callback frame; no second mixing frame is created.</summary>
+        public AudioWaveformReader(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame,
+            AudioChannelMixer mixer, AudioWaveformOptions options, MediaBufferAllocator allocator)
+            : this(readFrame, [], mixer ?? throw new ArgumentNullException(nameof(mixer)), options, allocator)
+        {
+        }
+
+        private AudioWaveformReader(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame,
+            ReadOnlySpan<double> channelGains, AudioChannelMixer? mixer, AudioWaveformOptions options,
+            MediaBufferAllocator allocator)
         {
             ArgumentNullException.ThrowIfNull(readFrame);
             ArgumentNullException.ThrowIfNull(options);
             ArgumentNullException.ThrowIfNull(allocator);
             options.Validate();
-            if (channelGains.IsEmpty)
+            if (mixer is null && channelGains.IsEmpty)
             {
                 throw new ArgumentException("An explicit mono coefficient is required for every input channel.", nameof(channelGains));
+            }
+            if (mixer is not null && mixer.OutputFormat.Channels.Count != 1)
+            {
+                throw new ArgumentException("The waveform mixer must produce exactly one channel.", nameof(mixer));
             }
             foreach (double gain in channelGains)
             {
@@ -46,6 +65,7 @@ namespace Mediana.Processing.Audio
             }
             this.readFrame = readFrame;
             this.channelGains = channelGains.ToArray();
+            this.mixer = mixer;
             this.options = options;
             this.allocator = allocator;
             accumulator = new AudioLevelAccumulator(options.SamplesPerWindow);
