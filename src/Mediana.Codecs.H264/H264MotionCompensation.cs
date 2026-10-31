@@ -12,6 +12,11 @@ namespace Mediana.Codecs.H264
         {
             ValidateOutput(width, height, output);
             ReadOnlySpan<byte> samples = reference.Plane(0);
+            if (((motionX | motionY) & 3) == 0)
+            {
+                CopyInteger(samples, reference.Width, reference.Height, (long)x + (motionX >> 2), (long)y + (motionY >> 2), width, height, output);
+                return;
+            }
             for (int row = 0; row < height; row++)
             {
                 for (int column = 0; column < width; column++)
@@ -34,6 +39,11 @@ namespace Mediana.Codecs.H264
             ReadOnlySpan<byte> samples = reference.Plane(plane);
             int stride = reference.Width / 2;
             int rows = reference.Height / 2;
+            if (((motionX | motionY) & 7) == 0)
+            {
+                CopyInteger(samples, stride, rows, (long)x + (motionX >> 3), (long)y + (motionY >> 3), width, height, output);
+                return;
+            }
             for (int row = 0; row < height; row++)
             {
                 for (int column = 0; column < width; column++)
@@ -51,6 +61,21 @@ namespace Mediana.Codecs.H264
                     output[row * width + column] = (byte)(((8 - dx) * (8 - dy) * a + dx * (8 - dy) * b +
                         (8 - dx) * dy * c + dx * dy * d + 32) >> 6);
                 }
+            }
+        }
+
+        private static void CopyInteger(ReadOnlySpan<byte> samples, int stride, int rows, long x, long y, int width, int height, Span<byte> output)
+        {
+            int left = (int)Math.Clamp(-x, 0, width);
+            int start = (int)Math.Clamp(x, 0, stride);
+            int count = (int)Math.Clamp((long)stride - Math.Max(x, 0), 0, width - left);
+            for (int row = 0; row < height; row++)
+            {
+                ReadOnlySpan<byte> source = samples.Slice((int)Math.Clamp(y + row, 0, rows - 1) * stride, stride);
+                Span<byte> destination = output.Slice(row * width, width);
+                destination[..left].Fill(source[0]);
+                source.Slice(start, count).CopyTo(destination[left..]);
+                destination[(left + count)..].Fill(source[^1]);
             }
         }
 
