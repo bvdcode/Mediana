@@ -20,7 +20,7 @@ frames, SDR color conversion and PNG encoding. These modules compile inside
 Mediana and do not depend on Heic.NET or Render.NET packages.
 An experimental PDF module reads page geometry, renders supported vector/text/image
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
-Experimental fixed-QP H.264 intra encoding and YUV downscaling are available.
+Experimental fixed-QP H.264 I/P encoding and YUV downscaling are available.
 Experimental AAC-LC audio encoding to MPEG-TS selects long/short windows for
 transients; perceptual allocation remains open. HLS variants can copy or encode audio.
 
@@ -50,7 +50,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoding and experimental PCM encoding with automatic long/short windows |
-| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding |
+| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
 | `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists |
@@ -205,7 +205,7 @@ supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
 H.264 subset described above. An explicit `--video-codec H264 --video-only` selects
-fixed-QP intra video encoding to TS. `--audio-codec Aac` selects audio-only AAC-LC
+fixed-QP I/P video encoding to TS. `--audio-codec Aac` selects audio-only AAC-LC
 encoding to TS; see [audio encoding contracts and limits](docs/aac-encoding.md).
 The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
@@ -1148,60 +1148,22 @@ Unit tests and Native AOT execute the same preview checks.
 
 ## Encoding H.264
 
-`H264Encoder` accepts progressive, even-sized 8-bit planar YUV 4:2:0 frames.
-It writes Constrained Baseline level 4.1 AVC, using intra4x4 DC prediction,
-integer transforms, scalar quantization, chroma DC transforms and CAVLC residuals.
-Each input becomes one independently decodable IDR packet; deblocking is disabled.
-The fixed quantizer is an H.264 QP from 0 to 51, with 26 as the default.
-
-```csharp
-using H264Encoder encoder = H264Encoder.Create(frame.Format, timeBase, allocator,
-    new H264EncoderOptions { Quantizer = 26 });
-if (encoder.TrySend(frame, cancellationToken) != CodecInputStatus.Accepted)
-{
-    throw new InvalidOperationException("Receive pending encoder output first.");
-}
-using MediaPacket packet = encoder.Receive(cancellationToken).Value
-    ?? throw new InvalidOperationException("The encoder produced no packet.");
-```
-
-Reference Mediana.Codecs.H264 and use the Mediana.Codecs, Mediana.Core,
-Mediana.Core.Memory and Mediana.Core.Timing namespaces. `encoder.Stream` supplies
-the AVC configuration and stream clock for `MpegTsWriter`; packets use four-byte
-NAL lengths, preserve exact input PTS/durations and have DTS equal to PTS.
-Inputs need positive, exact durations and nonoverlapping timestamps in that clock.
-Dimensions, pixel format, SAR and color metadata must remain constant. Range and
-chroma location require explicit values. Padding repeats edge samples and crop
-fields retain visible dimensions. Frame dimensions/rate, access-unit size and
-per-frame bitrate are bounded against level 4.1 limits; this is not rate control.
-
-The encoder borrows input storage, retains at most one owned output packet and
-uses the caller's allocator for picture reconstruction and bounded encoded storage.
-Receive pending output before sending another frame. `CompleteInput` drains that
-packet; `Reset` discards pending state and permits a new sequence. Cancellation or
-failure requires reset or disposal. Returned packets survive both operations.
-
-The CLI can decode supported MP4/MOV video and encode it to a video-only TS file:
+`H264Encoder` accepts progressive, even-sized 8-bit planar YUV 4:2:0 and
+writes Constrained Baseline level 4.1 AVC. IDR groups use a media-time interval,
+with P16x16/skip pictures referencing the preceding reconstruction. Defaults are
+QP26, a two-second IDR interval and a 16-pixel motion-search range. An explicit
+zero interval selects all-IDR encoding. Input timing, SAR and source color are
+preserved; output packet ownership and reconstructed storage are bounded.
 
 ```sh
 mediana -i input.mp4 output.ts --video-codec H264 --video-only --qp 26
 ```
 
-Audio omission must be explicit. Without sizing options the command preserves
-original dimensions and SAR. Optional `--width` and `--height` bound encoded storage
-dimensions; either may be given alone. Bounds are rounded down to even values and
-never enlarge the source. YUV area filtering precedes encoding, and SAR compensates
-even rounding to preserve display aspect. Both bounds must be at least two.
-The command requires an identity display transform and reports progress during longer
-operations. Output is published only after successful completion. Temporal
-prediction, motion search, CABAC encoding and bitrate/quality control remain open.
-Experimental [AAC encoding](docs/aac-encoding.md) supports audio-only TS and
-combined encoding in HLS. HLS video variants use the same encoder and area
-filter through the [HLS encoding path](docs/hls-encoding.md). This initial
-all-IDR mode does not promise bitrate efficiency comparable to inter-frame encoding.
-
-All visible samples in 48 encoded pictures match independent decoder references
-in managed and Native AOT tests. See the [reference manifest and commands](tests/Mediana.Tests/Data/Mp4/ENCODING.md).
+Optional `--width`/`--height` bounds apply YUV area filtering before encoding;
+[HLS variants](docs/hls-encoding.md) share video decoding and align IDRs with the
+requested segment duration. See [H.264 contracts, algorithms and verification](docs/h264-encoding.md)
+for the public API, independent 480-picture I/P corpus, original all-IDR corpus
+and complete performance measurements. Target-bitrate/VBV control remains open.
 
 ## Writing an MPEG-TS program
 
@@ -1601,7 +1563,7 @@ is prepared in one temporary directory and published together after completion;
 errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
 streaming encoded packets without a source-container dependency.
 
-The current mode uses fixed-QP all-IDR video. Inter-frame compression, target
+The current mode uses fixed-QP I/P video with IDRs aligned to segment targets. Target
 bitrate control, perceptual AAC quality and per-variant audio rates remain open.
 See [HLS encoding contracts and checks](docs/hls-encoding.md).
 

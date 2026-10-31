@@ -150,20 +150,38 @@ not collected in memory. Decoders still read their own sequential container data
 The command reports input PCM count and final AAC priming/padding at completion.
 [AAC quality and rate limits](aac-encoding.md) apply to this path too.
 
-The mode uses one fixed QP for all variants, with independently coded IDR pictures.
-It has no target video bitrate or inter-frame compression. Per-variant audio rates,
-arbitrary display transforms, live/event playlists, fragmented MP4, encryption
+The mode uses one fixed QP for all variants, with IDR groups and P16x16/skip
+inter-frame compression. Each encoder uses the requested segment duration as
+its media-time IDR interval; the first eligible frame starts the next aligned
+segment. One reconstructed reference is retained per variant. It has no target
+video bitrate or VBV control. See [H.264 encoding](h264-encoding.md).
+Per-variant audio rates, arbitrary display transforms, live/event playlists,
+fragmented MP4, encryption
 and playback scheduling remain outside this path.
 
 ## Checks
 
-Complete managed pipelines compare all visible samples in 48 output pictures
+The explicit all-IDR corpus compares all visible samples in 48 output pictures
 against independent decoder references, including resized and non-square-pixel
 video. Their 15 segments preserve every AVC packet, presentation time, TS table,
 clock and continuity counter. The same verifier is included in the Native AOT
 runner. Tests also cover non-seekable outputs, ownership, cancellation, I/O failure,
 overlapping calls, false key-frame flags, repeated PTS, segment limits, undefined
 short-video peak rates, injected metadata and atomic CLI directory output.
+
+Current I/P HLS commands independently verify six variants, 160 video pictures,
+1090 AAC packets and 54 segments per mode, including every individual segment.
+All video pictures match separate video-only encoding, and full audio bytes/PCM
+and PTS/DTS match separate audio encoding. All 129 managed/Native AOT TS and
+playlist files are byte-identical.
+
+The [complete temporal-encoding measurement](h264-encoding.md#complete-beforeafter-measurement)
+checks all 10,802 pictures of a 30-minute video-only conversion. Long audiovisual
+HLS with the current I/P encoder remains to be checked.
+
+### Earlier all-IDR command checks
+
+The following complete command checks used the original all-IDR encoder.
 
 Linux x64 Native AOT runs the complete picture/transport verifier. Standalone
 managed and native commands produce identical bytes for all 25 playlist/segment
