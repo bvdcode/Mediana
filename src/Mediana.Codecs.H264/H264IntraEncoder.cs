@@ -38,44 +38,24 @@ namespace Mediana.Codecs.H264
         private static void WriteMacroblock(H264BitWriter bits, VideoFrame input, H264Picture reconstructed, int x, int y, int qp)
         {
             bits.WriteUnsigned(0);
-            for (int index = 0; index < 16; index++)
-            {
-                bits.WriteFlag(true);
-            }
-            bits.WriteUnsigned(0);
-            bits.WriteUnsigned(0);
-            bits.WriteSigned(0);
-            Span<byte> prediction = stackalloc byte[16];
-            Span<int> transformed = stackalloc int[16];
-            Span<int> levels = stackalloc int[16];
-            Span<int> residual = stackalloc int[16];
-            for (int index = 0; index < 16; index++)
-            {
-                (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
-                int px = x + blockX;
-                int py = y + blockY;
-                reconstructed.SetLumaMode(px, py, 2);
-                reconstructed.PredictLuma4x4(px, py, 2, prediction);
-                H264EncodingBlocks.Transform(input, 0, px, py, prediction, transformed);
-                H264ForwardTransform.Quantize4x4(transformed, qp, levels);
-                int count = H264CavlcWriter.Write(bits, levels, reconstructed.NeighbourCount(0, px, py));
-                reconstructed.Counts(0)[reconstructed.BlockIndex(0, px, py)] = (byte)count;
-                H264InverseTransform.Residual4x4(levels, qp, residual);
-                reconstructed.WriteBlock(0, px, py, prediction, residual);
-            }
-            WriteChroma(bits, input, reconstructed, x / 2, y / 2, qp);
-        }
-
-        private static void WriteChroma(H264BitWriter bits, VideoFrame input, H264Picture reconstructed, int x, int y, int qp)
-        {
+            Span<int> luma = stackalloc int[256];
+            int pattern = H264IntraLumaEncoder.Analyze(bits, input, reconstructed, x, y, qp, luma);
             Span<byte> prediction = stackalloc byte[128];
             Span<int> coefficients = stackalloc int[H264ChromaEncoder.CoefficientCount];
             for (int plane = 1; plane <= 2; plane++)
             {
-                reconstructed.PredictMacroblock(plane, x, y, 0, prediction.Slice((plane - 1) * 64, 64));
+                reconstructed.PredictMacroblock(plane, x / 2, y / 2, 0, prediction.Slice((plane - 1) * 64, 64));
             }
-            H264ChromaEncoder.Analyze(input, x, y, qp, prediction, coefficients);
-            H264ChromaEncoder.Write(bits, reconstructed, x, y, qp, 2, prediction, coefficients);
+            int chromaPattern = H264ChromaEncoder.Analyze(input, x / 2, y / 2, qp, prediction, coefficients);
+            bits.WriteUnsigned(0);
+            bits.WriteUnsigned((uint)H264IntraMacroblock.CodedPatterns.IndexOf((byte)(pattern | (chromaPattern << 4))));
+            if (pattern != 0 || chromaPattern != 0)
+            {
+                bits.WriteSigned(0);
+            }
+            reconstructed.Quantizers[y / 16 * reconstructed.Sequence.WidthInMbs + x / 16] = (byte)qp;
+            H264IntraLumaEncoder.Write(bits, reconstructed, x, y, pattern, luma);
+            H264ChromaEncoder.Write(bits, reconstructed, x / 2, y / 2, qp, chromaPattern, prediction, coefficients);
         }
     }
 }

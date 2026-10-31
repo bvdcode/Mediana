@@ -2,8 +2,10 @@ The encoded references exercise the managed H.264 encoder using the existing
 MP4 source pictures. `ENCODING.json` records the input hashes, fixed quantizers,
 picture counts, complete reference YUV hashes and measured sample errors.
 
-The encoder performs intra4x4 DC prediction, integer transforms, scalar
-quantization, chroma DC transforms and CAVLC coding. Each picture is a separate
+The encoder selects among the nine legal intra4x4 directions using reconstructed
+neighbours and minimum absolute prediction error. Equal errors prefer the predicted
+mode's shorter syntax. Zero residual groups are omitted. It uses integer transforms,
+scalar quantization, chroma DC prediction/transforms and CAVLC coding. Each picture is a separate
 IDR in Constrained Baseline level 4.1; deblocking is disabled. These are compressed
 residuals, with no I_PCM macroblocks. Output preserves visible dimensions,
 sample aspect ratio, color metadata and packet presentation times.

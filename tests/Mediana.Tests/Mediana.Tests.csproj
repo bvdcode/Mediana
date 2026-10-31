@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/H264IntraModeTestInput.cs" Link="H264IntraModeTestInput.cs" />
     <Compile Include="../Shared/H264RateEncodingTestInput.cs" Link="H264RateEncodingTestInput.cs" />
     <None Include="Data/H264/rate-*.yuv;Data/H264/RATE-ENCODING.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264TemporalEncodingTestInput.cs" Link="H264TemporalEncodingTestInput.cs" />

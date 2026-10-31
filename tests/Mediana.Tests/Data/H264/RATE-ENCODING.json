@@ -13,7 +13,7 @@
       "height": 32,
       "frames": 80,
       "source_sha256": "a0a9a75db809fed935e3bd65a4674f6d9dbf4917f859f1032d9fea00e931f142",
-      "transport_sha256": "7761b23dcad4b25c92b634b5300bf2b7f941e0edb367df731e74c1c4f80ab2b1",
+      "transport_sha256": "6269b899f598dd3063ca83d605bfd1de47ac6d057c1b4a339b0a5fcf3a905093",
       "decoded_sha256": "fc223b220f6f310e257749073d18c0a5a2b126cab838bd0c99dfface6db11300",
       "mse": 0.07083333333333333,
       "psnr_db": 59.62842681201242,
@@ -34,7 +34,7 @@
         "yuv420p",
         "-f",
         "rawvideo",
-        "rate-0-qp26-8000.yuv"
+        "rate-0-qp26-8000.independent.yuv"
       ]
     },
     {
@@ -47,10 +47,10 @@
       "height": 34,
       "frames": 80,
       "source_sha256": "1c8d7b5fb91cb9f7387a2d42226c75dd91e9523fcb29c19322c6512008d4f558",
-      "transport_sha256": "108f4917b2280b85f4300082485fde8bb937e5a7e7b066073092d93b9e69d8c6",
-      "decoded_sha256": "551114b00ecf29467ac4e9254814f209a2f2928bdbb674c49ca89cb7cac5b4d1",
-      "mse": 18.83813938618926,
-      "psnr_db": 35.380423548852974,
+      "transport_sha256": "a028e8b1d6fae7706064e812a6323f23b48c5fa56e9c565cb77d8193ea6dec94",
+      "decoded_sha256": "d4cb66138069dd22992347e61f81e1c2ff72d2420116d3e97df743c81bf807b1",
+      "mse": 11.961636828644501,
+      "psnr_db": 37.35289748355273,
       "independent_command": [
         "ffmpeg",
         "-v",
@@ -68,7 +68,7 @@
         "yuv420p",
         "-f",
         "rawvideo",
-        "rate-1-qp26-32000.yuv"
+        "rate-1-qp26-32000.independent.yuv"
       ]
     },
     {
@@ -81,7 +81,7 @@
       "height": 48,
       "frames": 80,
       "source_sha256": "de2d04fc338cf4b4e849c50a2e969fc003975ba9eb75a4aab632e96e1ab08975",
-      "transport_sha256": "b51f8a261c23921d53747ea4a88910f74235dc42f3e18f3c345dbe319b799356",
+      "transport_sha256": "597e7b43fd05d857b505b49fe91111ce942c45bc1c947b26517245a1116f74ec",
       "decoded_sha256": "f8e62d30dd5411717d0f8a27993639ffe8e04996bbde292332fe6b2e1df01a6a",
       "mse": 0.09032118055555556,
       "psnr_db": 58.57290755407458,
@@ -102,7 +102,7 @@
         "yuv420p",
         "-f",
         "rawvideo",
-        "rate-2-qp26-48000.yuv"
+        "rate-2-qp26-48000.independent.yuv"
       ]
     },
     {
@@ -115,10 +115,10 @@
       "height": 34,
       "frames": 80,
       "source_sha256": "3c75df77282f9307a4aa5e551e3a66db0ebe952dcfb99662c4b14d28ed97e4e8",
-      "transport_sha256": "570c7d88e4e0127927a59f59499d27240d4ed06694790f45d039dde101efa14d",
-      "decoded_sha256": "1a1d8b89e3f822fd4e2c6f50c3a99bf369f9ea9d8c8e98060abc3fa6742146c7",
-      "mse": 75.01352941176471,
-      "psnr_db": 29.379407612233166,
+      "transport_sha256": "836e718c24cfb3493eee14a30c40f00cef48a2ad424f37a6b8f665d7c94b2439",
+      "decoded_sha256": "cbd4b526916bda6ccc5b461bc38afdea1290f3f08ac7eccf13837b827262e8d8",
+      "mse": 63.08500490196079,
+      "psnr_db": 30.131542197259545,
       "independent_command": [
         "ffmpeg",
         "-v",
@@ -136,7 +136,7 @@
         "yuv420p",
         "-f",
         "rawvideo",
-        "rate-3-qp26-40000.yuv"
+        "rate-3-qp26-40000.independent.yuv"
       ]
     },
     {
@@ -149,10 +149,10 @@
       "height": 34,
       "frames": 80,
       "source_sha256": "1c8d7b5fb91cb9f7387a2d42226c75dd91e9523fcb29c19322c6512008d4f558",
-      "transport_sha256": "aed670e3a8d3a4c3597ac7eff106386c519c6bb2278d38e363c5302de4054dad",
-      "decoded_sha256": "3948aa7c13a3819f2c45139860bcea4eecd93cf17f69e62980d8a0ee941f27d0",
-      "mse": 18.16389599317988,
-      "psnr_db": 35.53871354410473,
+      "transport_sha256": "2427aaec08e52606f0d7b94a731ec87c28f7bba59735c160420781ecc5ddaee2",
+      "decoded_sha256": "100b05007f9c04ea738e6852af749bd4739ccc6159437becafc41540ef02cca3",
+      "mse": 12.210400682011935,
+      "psnr_db": 37.26350445397096,
       "independent_command": [
         "ffmpeg",
         "-v",
@@ -170,7 +170,7 @@
         "yuv420p",
         "-f",
         "rawvideo",
-        "rate-1-qp0-32000.yuv"
+        "rate-1-qp0-32000.independent.yuv"
       ]
     },
     {
@@ -183,10 +183,10 @@
       "height": 34,
       "frames": 80,
       "source_sha256": "3c75df77282f9307a4aa5e551e3a66db0ebe952dcfb99662c4b14d28ed97e4e8",
-      "transport_sha256": "6e80770c2b2a8b5fb93578447097d9fd24d850723980f210892ea2dc84253aac",
-      "decoded_sha256": "ea27359a66c98026ef6c32814cb792f43ac584481ad9a482ef9abb6cc2118f33",
-      "mse": 181.82486764705882,
-      "psnr_db": 25.534270807535346,
+      "transport_sha256": "a1faf01b58ff951ec66aa1a0b1797f113914c33b262fcceb7a9289833ecf7bbc",
+      "decoded_sha256": "eec34a0e80f5f1d0f05f66ad5ac90f9109c61ed09732dfe0546a53138a862ae1",
+      "mse": 167.64376960784313,
+      "psnr_db": 25.88692943128204,
       "independent_command": [
         "ffmpeg",
         "-v",
@@ -204,7 +204,7 @@
         "yuv420p",
         "-f",
         "rawvideo",
-        "rate-3-qp51-40000.yuv"
+        "rate-3-qp51-40000.independent.yuv"
       ]
     }
   ]
