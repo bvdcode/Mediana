@@ -7,7 +7,8 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264VideoFormat
     {
-        public static VideoFormat Create(H264SequenceParameterSet sequence, VideoColorDescription? colorDescription = null)
+        public static VideoFormat Create(H264SequenceParameterSet sequence, VideoColorDescription? colorDescription = null,
+            VideoAspectRatioDescription? aspectRatioDescription = null)
         {
             H264VuiParameters vui = sequence.Vui ?? new H264VuiParameters();
             int topLocation = vui.ChromaLocationTop ?? 0;
@@ -16,8 +17,10 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException("Different top and bottom field chroma locations are not represented in a progressive video format.");
             }
+            SampleAspectRatio? codecAspect = ReadSampleAspectRatio(vui);
+            SampleAspectRatio? aspect = aspectRatioDescription?.Resolve(codecAspect) ?? codecAspect;
             return new VideoFormat(sequence.Width, sequence.Height, VideoPixelFormat.Yuv420P8,
-                ReadColor(vui, topLocation), ReadSampleAspectRatio(vui), colorDescription);
+                ReadColor(vui, topLocation), aspect, colorDescription);
         }
 
         internal static SampleAspectRatio? ReadSampleAspectRatio(H264VuiParameters? vui) =>

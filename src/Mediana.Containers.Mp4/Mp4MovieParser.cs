@@ -66,7 +66,7 @@ namespace Mediana.Containers.Mp4
                 Mp4BoxCollection mediaInfo = new(media.Required("minf").Payload, budget);
                 ValidateDataReference(mediaInfo, budget);
                 Mp4BoxCollection sampleBoxes = new(mediaInfo.Required("stbl").Payload, budget);
-                Mp4SampleDescription description = Mp4SampleDescriptionParser.Parse(sampleBoxes.Required("stsd"), kind, budget);
+                Mp4SampleDescription description = Mp4SampleDescriptionParser.Parse(sampleBoxes.Required("stsd"), kind, budget, quickTime);
                 if (description.Configuration.Length > options.MaxCodecConfigurationBytes)
                 {
                     throw new NotSupportedException("The MP4 codec configuration exceeds the configured limit.");
@@ -83,7 +83,8 @@ namespace Mediana.Containers.Mp4
                 };
                 EncodedStreamInfo stream = new(tracks.Count, kind, description.CodecId, description.Format,
                     trackTimeBase, description.Configuration.Span, displayMatrix, codedDuration: packetIndex.DecodeDuration,
-                    colorDescription: Mp4ColorDescriptionParser.Select(description.ColorDescriptions));
+                    colorDescription: Mp4ColorDescriptionParser.Select(description.ColorDescriptions),
+                    aspectRatioDescription: description.AspectRatioDescription);
                 IReadOnlyList<Mp4Edit> edits = ReadEdits(track, timeBase, options, budget);
                 Mp4MetadataScope trackMetadata = new Mp4MetadataParser(metadata, options, budget, quickTime).Parse(track, "trak", media);
                 tracks.Add(new Mp4TrackInfo(trackId, stream, description.SampleEntry, mediaDuration,

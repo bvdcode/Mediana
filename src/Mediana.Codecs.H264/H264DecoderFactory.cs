@@ -60,7 +60,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException(reason);
             }
-            return new H264Decoder(stream.StreamIndex, configuration, allocator, options, stream.ColorDescription);
+            return new H264Decoder(stream.StreamIndex, configuration, allocator, options, stream.ColorDescription, stream.AspectRatioDescription);
         }
     }
 }

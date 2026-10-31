@@ -8,7 +8,7 @@ namespace Mediana.Containers.Mp4
 {
     internal static class Mp4SampleDescriptionParser
     {
-        public static Mp4SampleDescription Parse(Mp4Box box, MediaKind kind, Mp4ParseBudget budget)
+        public static Mp4SampleDescription Parse(Mp4Box box, MediaKind kind, Mp4ParseBudget budget, bool quickTime)
         {
             Mp4Binary.FullBox(box.Payload.Span);
             uint count = Mp4Binary.UInt32(box.Payload.Span, 4);
@@ -28,7 +28,7 @@ namespace Mediana.Containers.Mp4
             }
             return (kind, entry.Type) switch
             {
-                (MediaKind.Video, "avc1" or "avc3") => ParseVideo(entry, budget),
+                (MediaKind.Video, "avc1" or "avc3") => ParseVideo(entry, budget, quickTime),
                 (MediaKind.Audio, "mp4a") => ParseAudio(entry, budget),
                 (MediaKind.Data, "tmcd") => ParseTimecode(entry),
                 _ => throw new NotSupportedException($"MP4 sample entry '{entry.Type}' is not supported.")
@@ -41,7 +41,7 @@ namespace Mediana.Containers.Mp4
             return new Mp4SampleDescription(entry.Type, "tmcd", StreamFormats.QuickTimeTimecode32, entry.Payload[8..]);
         }
 
-        private static Mp4SampleDescription ParseVideo(Mp4Box entry, Mp4ParseBudget budget)
+        private static Mp4SampleDescription ParseVideo(Mp4Box entry, Mp4ParseBudget budget, bool quickTime)
         {
             Mp4Binary.Range(entry.Payload.Span, 0, 78);
             int width = Mp4Binary.UInt16(entry.Payload.Span, 24);
@@ -58,7 +58,7 @@ namespace Mediana.Containers.Mp4
                 throw new InvalidDataException("The MP4 AVC configuration record is invalid.");
             }
             return new Mp4SampleDescription(entry.Type, "h264", StreamFormats.Avc, configuration, Width: width, Height: height,
-                ColorDescriptions: Mp4ColorDescriptionParser.Read(children));
+                ColorDescriptions: Mp4ColorDescriptionParser.Read(children), AspectRatioDescription: Mp4AspectRatioParser.Read(children, quickTime));
         }
 
         private static Mp4SampleDescription ParseAudio(Mp4Box entry, Mp4ParseBudget budget)

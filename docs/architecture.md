@@ -56,6 +56,22 @@ decoders and output modules without introducing container-to-codec dependencies.
 The same module owns H.264 RBSP reading/writing and SPS/VUI syntax; the decoder
 uses these headers while retaining reconstruction and reference-picture state.
 
+## Source pixel geometry
+
+`EncodedStreamInfo.AspectRatioDescription` carries a source pixel aspect ratio
+without changing codec configuration. Explicit declarations override the codec;
+a format default applies only when the codec leaves its ratio unspecified.
+The H.264 decoder resolves this description for every output frame, including
+in-band SPS changes. Opening SPS metadata keeps the original declarations.
+
+MP4/MOV reads `pasp` horizontal/vertical spacing as an exact reduced ratio.
+Zero spacing, malformed lengths and duplicate boxes are rejected. QuickTime
+without `pasp` provides a square-pixel format default, following its
+[pixel aspect ratio extension](https://developer.apple.com/documentation/quicktime-file-format/pixel_aspect_ratio).
+The default does not replace an explicit non-square H.264 VUI declaration.
+ISO MP4 without `pasp` retains unknown container geometry. Processing still
+requires a known aspect ratio and does not guess it from resolution.
+
 ## Source color descriptions
 
 `EncodedStreamInfo.ColorDescription` carries an immutable source description

@@ -11,7 +11,8 @@ namespace Mediana.Core
     {
         public EncodedStreamInfo(int streamIndex, MediaKind kind, string codecId, EncodedStreamFormat format, TimeBase timeBase,
             ReadOnlySpan<byte> configuration = default, VideoDisplayMatrix? displayMatrix = null,
-            MediaDuration? codedDuration = null, VideoColorDescription? colorDescription = null)
+            MediaDuration? codedDuration = null, VideoColorDescription? colorDescription = null,
+            VideoAspectRatioDescription? aspectRatioDescription = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
             ArgumentException.ThrowIfNullOrWhiteSpace(codecId);
@@ -31,6 +32,10 @@ namespace Mediana.Core
             {
                 throw new ArgumentException("A color description requires a video stream.", nameof(colorDescription));
             }
+            if (aspectRatioDescription is not null && kind != MediaKind.Video)
+            {
+                throw new ArgumentException("An aspect ratio description requires a video stream.", nameof(aspectRatioDescription));
+            }
             StreamIndex = streamIndex;
             Kind = kind;
             CodecId = codecId;
@@ -40,6 +45,7 @@ namespace Mediana.Core
             DisplayMatrix = displayMatrix;
             CodedDuration = codedDuration;
             ColorDescription = colorDescription;
+            AspectRatioDescription = aspectRatioDescription;
         }
 
         public int StreamIndex { get; }
@@ -54,5 +60,7 @@ namespace Mediana.Core
         public MediaDuration? CodedDuration { get; }
         /// <summary>Optional source color description, independent of codec configuration.</summary>
         public VideoColorDescription? ColorDescription { get; }
+        /// <summary>Optional source pixel geometry, independent of codec configuration.</summary>
+        public VideoAspectRatioDescription? AspectRatioDescription { get; }
     }
 }

@@ -68,7 +68,8 @@ namespace Mediana.Containers.Mp4
                 timelines[index] = timeline;
                 streams[index] = timeline.TimeBase == original.TimeBase ? original :
                     new EncodedStreamInfo(original.StreamIndex, original.Kind, original.CodecId, original.Format,
-                        timeline.TimeBase, original.Configuration.Span, original.DisplayMatrix, original.CodedDuration, original.ColorDescription);
+                        timeline.TimeBase, original.Configuration.Span, original.DisplayMatrix, original.CodedDuration, original.ColorDescription,
+                        original.AspectRatioDescription);
             }
             Streams = Array.AsReadOnly(streams);
             this.metadata = metadata.Retain();

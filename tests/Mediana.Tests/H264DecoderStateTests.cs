@@ -90,11 +90,24 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task InBandConfigurationChangesBeginWithIdrAndResetRestoresTheOriginalConfiguration(bool startsWithIdr)
+        [InlineData(false, null, 4, 3)]
+        [InlineData(false, false, 1, 1)]
+        [InlineData(false, true, 4, 3)]
+        [InlineData(true, null, 4, 3)]
+        [InlineData(true, false, 1, 1)]
+        [InlineData(true, true, 4, 3)]
+        public async Task InBandConfigurationChangesBeginWithIdrAndResetRestoresTheOriginalConfiguration(bool startsWithIdr,
+            bool? sourceIsDefault, int aspectWidth, int aspectHeight)
         {
             (EncodedStreamInfo original, byte[][] packets) = await H264DecoderTests.InputAsync();
+            VideoAspectRatioDescription? aspect = null;
+            if (sourceIsDefault is bool isDefault)
+            {
+                aspect = new VideoAspectRatioDescription(SampleAspectRatio.Square, isDefault);
+            }
+            original = new EncodedStreamInfo(original.StreamIndex, original.Kind, original.CodecId, original.Format,
+                original.TimeBase, original.Configuration.Span, original.DisplayMatrix, original.CodedDuration,
+                original.ColorDescription, aspect);
             byte[] file = await Mp4TestData.ReadAsync("avc-weighted.mp4");
             int start = Mp4TestData.PayloadOffset(file, "avcC");
             int size = (int)BinaryPrimitives.ReadUInt32BigEndian(file.AsSpan(start - 8)) - 8;
@@ -120,7 +133,7 @@ namespace Mediana.Tests
                     Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(changed));
                     using VideoFrame next = decoder.Receive().Value;
                     Assert.Equal(94, next.Format.Width);
-                    Assert.Equal(new SampleAspectRatio(4, 3), next.Format.SampleAspectRatio);
+                    Assert.Equal(new SampleAspectRatio(aspectWidth, aspectHeight), next.Format.SampleAspectRatio);
                     byte[] expected = await Mp4TestData.ReadAsync("avc-weighted.sequence.yuv");
                     H264TestInput.VerifyFrame(next, expected.AsSpan(0, 94 * 62 * 3 / 2));
                 }
@@ -133,6 +146,7 @@ namespace Mediana.Tests
                 Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(first));
                 using VideoFrame restored = decoder.Receive().Value;
                 Assert.Equal(80, restored.Format.Width);
+                Assert.Equal(SampleAspectRatio.Square, restored.Format.SampleAspectRatio);
                 H264TestInput.VerifyFrame(restored, await Mp4TestData.ReadAsync("avc-tail.frame0.yuv"));
             }
             Assert.Equal(0, allocator.AllocatedBytes);
