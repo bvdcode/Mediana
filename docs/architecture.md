@@ -398,6 +398,23 @@ player or other synchronizing consumer owns the presentation clock. The source i
 borrowed and must support the selected container reader's access requirements.
 Media allocation budgets bound owned media buffers, not the entire process heap.
 
+## PCM preparation and ownership
+
+`AudioSampleConverter.Apply` always returns separate storage charged to the
+supplied allocator, even when sample format and layout already match.
+`ConvertOrRetain` explicitly permits reuse: matching storage keeps its original
+allocation budget and returns an independently disposable frame lease. A change
+of sample type or channel layout allocates and converts into the supplied
+allocator. Both operations preserve sample rate, channel order and sample timing.
+
+Matching floating-point storage is checked for non-finite samples before it is
+retained; finite headroom and signed zero remain bit-exact. Conversion retains
+the existing saturation and rounding rules.
+
+Audio trimming returns a tightly packed selection in its destination allocator.
+This independent allocation prevents a small selected range from keeping an
+entire source allocation alive; planar selections also require repacking.
+
 ## Shared drawing
 
 `Mediana.Drawing` owns vector paths, scene rendering, paints, masks, effect graphs,

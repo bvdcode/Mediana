@@ -10,6 +10,13 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            foreach (AudioSampleFormat sampleFormat in new[] { AudioSampleFormat.Unsigned8, AudioSampleFormat.Signed16,
+                AudioSampleFormat.Signed32, AudioSampleFormat.Float32, AudioSampleFormat.Float64 })
+            {
+                AudioSamplePreparationTestInput.Verify(sampleFormat, AudioStorageLayout.Interleaved);
+                AudioSamplePreparationTestInput.Verify(sampleFormat, AudioStorageLayout.Planar);
+            }
+            Console.WriteLine("PASS PCM preparation: matching sample storage, timing, original allocation budget and retained frame ownership.");
             await AudioWaveformTestInput.VerifyAsync();
             await WaveformMixerTestInput.VerifyAsync(AudioStorageLayout.Interleaved, 1);
             await WaveformMixerTestInput.VerifyAsync(AudioStorageLayout.Planar, 83);
