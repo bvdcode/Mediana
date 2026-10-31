@@ -1587,7 +1587,11 @@ explicit through `--video-only`; alternatively, `--audio-stream` copies one sele
 AAC-LC or MPEG-1/2 Layer III track to every variant. Adding `--audio-codec Aac`
 decodes that track and uses the experimental AAC encoder instead. Its optional
 `--audio-bit-rate` ceiling defaults to 128000 raw bits/second for every variant;
-rate and channel order are preserved. The command requires an identity display
+alternatively, `--audio-bit-rates 96000,128000,192000` assigns one raw ceiling per
+width in the same order. The two bitrate options are mutually exclusive. Equal
+settings share an encoder; distinct settings encode the same decoded PCM through
+independent AAC states. Rate and channel order are preserved unless an explicit
+downmix is selected. The command requires an identity display
 transform.
 
 Each variant contains IDR-aligned TS segments and a VOD
@@ -1595,7 +1599,9 @@ media playlist. The master playlist records actual peak/average transport bitrat
 and the video/audio codec identifiers. Only video-only output declares independent
 segments. Copy mode preserves original audio bytes and linear-movie timing.
 AAC encoding applies the exact input MP4 sample edit, preserves its movie origin
-and writes one shared encoded audio sequence with its own priming and final tail.
+and writes each selected AAC sequence with its own priming and final tail.
+[Per-variant audio verification](docs/hls-audio-rates.md) covers the shared input,
+exact packet budgets, complete decoding and master playlist measurements.
 Segment timelines must match across variants. Output
 is prepared in one temporary directory and published together after completion;
 errors or cancellation remove it. The library also exposes `AvcHlsWriter` for

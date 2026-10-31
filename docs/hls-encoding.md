@@ -136,9 +136,18 @@ origins between sample instants. With no edits, all decoded samples are retained
 Nonlinear edits, gaps, unavailable sample ranges and unsupported formats fail.
 No resampling, downmix or silent PCM insertion is implicit.
 
-The AAC encoder uses the selected rate/channel order, one shared audio bit ceiling
-for all variants and exactly the same encoded audio packets in each variant.
+The AAC encoder uses the selected sample rate/channel order. With one shared audio
+bit ceiling, all variants receive exactly the same encoded audio packets.
 `--audio-bit-rate` requires `--audio-codec Aac`; its default is 128000 raw bits/second.
+Alternatively, `--audio-bit-rates` supplies one positive raw AAC ceiling per width,
+in the same order, and cannot be combined with `--audio-bit-rate`. Identical
+settings share one encoder; each distinct bit ceiling has an independent encoder.
+All consume the same decoded, edited and converted PCM frames. For example:
+
+```bash
+mediana hls encode input.mp4 output-audio-rates --audio-stream 1 --audio-codec Aac --audio-bit-rates 96000,128000,192000 --widths 1920 1280 854
+```
+
 It is a variable bitrate ceiling excluding transport overhead, rather than a target
 file size. The source's explicit edit removes its declared codec delay; newly
 encoded AAC introduces its own 1024-sample priming. That packet starts before the
@@ -146,11 +155,16 @@ selected PCM origin. Final drain emits the overlap tail and at most 1023 padding
 samples; TS retains them without gapless trimming metadata. No priming is repeated
 at segment boundaries. The playlist's final duration includes the encoded tail.
 
-Audio decoding/encoding happens once for all widths. Packet delivery keeps one
-lookahead packet and writes video before audio at equal DTS. PCM conversion,
+Audio decoding, edit selection and PCM conversion happen once for all widths.
+The generic `MediaEncodeGroup<AudioFrame>` submits each borrowed frame to the
+distinct encoder pipelines sequentially and drains their available output.
+Each encoder has a bounded pending packet buffer; delivery writes only packets
+before the next video DTS to its assigned variants. Video precedes audio at equal DTS. PCM conversion,
 trimming and encoder working storage use bounded frame buffers; the recording is
 not collected in memory. Decoders still read their own sequential container data.
 The command reports input PCM count and final AAC priming/padding at completion.
+[Complete per-variant checks](hls-audio-rates.md) include unchanged uniform-rate
+output, independent AAC bytes, full PCM and measured master playlist bandwidth.
 [AAC quality and rate limits](aac-encoding.md) apply to this path too.
 
 By default the mode uses one fixed QP for all variants, with IDR groups and P16x16/skip
