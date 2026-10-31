@@ -1154,16 +1154,18 @@ with P16x16/skip pictures referencing the preceding reconstruction. Defaults are
 QP26, a two-second IDR interval and a 16-pixel motion-search range. An explicit
 zero interval selects all-IDR encoding. Input timing, SAR and source color are
 preserved; output packet ownership and reconstructed storage are bounded.
+Optional rate control adapts slice QP within a media-time packet budget.
 
 ```sh
 mediana -i input.mp4 output.ts --video-codec H264 --video-only --qp 26
+mediana -i input.mp4 output.ts --video-codec H264 --video-only --video-bit-rate 1500000
 ```
 
 Optional `--width`/`--height` bounds apply YUV area filtering before encoding;
 [HLS variants](docs/hls-encoding.md) share video decoding and align IDRs with the
 requested segment duration. See [H.264 contracts, algorithms and verification](docs/h264-encoding.md)
-for the public API, independent 480-picture I/P corpus, original all-IDR corpus
-and complete performance measurements. Target-bitrate/VBV control remains open.
+for the public API, complete independent I/P and adaptive-rate corpora, original
+all-IDR corpus and performance measurements. Full HRD conformance remains open.
 
 ## Writing an MPEG-TS program
 
@@ -1563,8 +1565,9 @@ is prepared in one temporary directory and published together after completion;
 errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
 streaming encoded packets without a source-container dependency.
 
-The current mode uses fixed-QP I/P video with IDRs aligned to segment targets. Target
-bitrate control, perceptual AAC quality and per-variant audio rates remain open.
+The current mode uses I/P video with IDRs aligned to segment targets. Optional
+per-variant video packet rates use adaptive QP; otherwise QP is fixed. Full HRD
+conformance, perceptual AAC quality and per-variant audio rates remain open.
 See [HLS encoding contracts and checks](docs/hls-encoding.md).
 
 ## Connecting modules

@@ -75,11 +75,12 @@ their coded-block pattern from actual quantized coefficients. P_Skip is emitted
 only when all residual coefficients are zero and its derived motion vector
 matches the selected vector. Consecutive skips share `mb_skip_run` syntax.
 
-`Quantizer` is a fixed H.264 QP from 0 through 51, defaulting to 26. Dimensions,
+Without `RateControl`, `Quantizer` is a fixed H.264 QP from 0 through 51,
+defaulting to 26. Dimensions,
 frame intervals, access-unit size and per-frame coded bits are checked against
 level 4.1 bounds. These bounds do not implement a target bitrate, VBV model or
 quality guarantee. Adaptive intra/inter decisions, subpixel motion search,
-multiple references, CABAC encoding and practical rate control remain open.
+multiple references and CABAC encoding remain open.
 
 Syntax and reconstruction follow
 [ITU-T H.264 V15 (08/2024)](https://www.itu.int/rec/T-REC-H.264-202408-S/en),
@@ -87,11 +88,70 @@ clauses 7.3.2–5, 8.2.1.3, 8.2.4–5, 8.3–5 and 9.1–2, and Annexes A/E.
 Search and forward quantization are encoder decisions; the independent decoder
 checks their emitted normative representation.
 
+## Constrained variable packet rate
+
+Set `H264EncoderOptions.RateControl` to enable adaptive slice quantization:
+
+```csharp
+H264EncoderOptions options = new()
+{
+    Quantizer = 26,
+    RateControl = new H264RateControlOptions
+    {
+        BitRate = 1500000,
+        BufferDuration = TimeSpan.FromSeconds(2)
+    }
+};
+```
+
+`BitRate` sets the refill rate in bits/second and the nominal spending target.
+`BufferDuration` defaults to two seconds. Capacity is
+`floor(BitRate * BufferDuration.TotalSeconds)` bits and must be between 64 and
+62,500,000 bits; the rate must be positive and at most 50,000,000 bits/second.
+These conservative maxima follow Baseline level 4.1's VCL rate/buffer limits.
+Invalid settings fail creation before media allocation.
+
+The packet budget starts full and refills from exact differences between input
+PTS values, including variable cadence and gaps. Fractional bits carry between
+frames without per-frame rounding loss; a gap cannot refill beyond capacity.
+For every consecutive group of returned packets, the contract is:
+
+```text
+sum(packet bytes * 8) <= capacity bits + BitRate * (last PTS - first PTS)
+```
+
+This counts each AVC packet's NAL header and four-byte length prefix. It excludes
+out-of-band configuration, parameter sets inserted by a writer, AUDs, transport
+tables, audio and container overhead. HLS master bandwidth continues to use
+measured complete transport sizes. A full initial buffer permits an initial burst;
+short-file mean rate can therefore exceed `BitRate`. There is no filler or minimum
+rate, so easily compressed input can remain below the nominal target. This packet
+envelope does not claim full Annex C HRD conformance or supply HRD timing messages.
+
+The controller estimates I and P costs separately from completed pictures,
+normalizes them by a six-step quantizer scale and smooths each cost over successive
+observations. Available credit adjusts the media-duration spending target. QP
+normally changes by at most six from the last picture of the same kind. This is
+an encoder model, not a perceptual quality guarantee or an optimal allocation.
+
+If a trial exceeds the available byte budget, the encoder increases QP and
+re-encodes the same input. At most eight trials are made, including QP51 when
+needed. The bit writer counts complete escaped output after its storage limit
+without growing beyond that limit. Each rejected reconstruction and buffer is
+released before the next trial. Only an accepted picture updates the reference,
+packet credit, timing and cost history. An impossible QP51 budget fails explicitly;
+the encoder does not drop pictures or silently exceed the configured envelope.
+`MaximumPacketBytes` and the existing level bounds also constrain every accepted
+picture. Cancellation/failure and reset retain the existing ownership contract;
+reset also restores initial credit and rate-model history.
+
 ## Console and HLS
 
 ```sh
 mediana -i input.mp4 output.ts --video-codec H264 --video-only --qp 26
+mediana -i input.mp4 output.ts --video-codec H264 --video-only --video-bit-rate 1500000 --video-buffer-ms 2000
 mediana hls encode input.mp4 output --video-only --segment-ms 2000 --widths 640 320
+mediana hls encode input.mp4 output --video-only --video-bit-rates 1500000,400000 --widths 640 320
 ```
 
 The standalone command preserves storage dimensions/SAR unless `--width` or
@@ -104,6 +164,11 @@ HLS decodes video once and maintains one encoder/reference per width. Each encod
 uses the requested segment duration as its media-time IDR interval. Segments begin
 at actual IDRs, and all widths share those boundaries. Copied or newly encoded
 audio uses the existing common timeline. See [HLS encoding](hls-encoding.md).
+Standalone `--video-bit-rate` selects constrained variable rate;
+`--video-buffer-ms` requires a rate and defaults to 2000 milliseconds. HLS
+`--video-bit-rates` accepts comma-separated values, one per width in the same
+order. Each rendition has independent credit and cost history. `--qp` is the
+initial quantizer in this mode; omitting rates retains fixed-QP behavior.
 
 ## Verification
 
@@ -120,8 +185,18 @@ records original-signal, transport and decoded hashes and independent commands.
 The original 48-picture all-IDR corpus remains checked with an explicit zero
 interval. Failure tests cover invalid options, cancellation with a live reference,
 reset replay, returned-packet ownership, allocation failure and packet limits.
-The full managed suite has 2338 passing tests; the strict Linux x64 Native AOT
+The full managed suite has 2364 passing tests; the strict Linux x64 Native AOT
 runner also passes.
+
+Six additional rate-controlled sequences cover another 480 pictures, initial
+QP0/26/51, static content, moving texture, chroma-only changes and variable-cadence
+scene changes. Every visible sample matches independent decoding; the common
+verifier checks every consecutive packet interval against the rate envelope and
+requires adaptive valid slice QPs. See the
+[rate-control manifest](../tests/Mediana.Tests/Data/H264/RATE-ENCODING.json).
+Tests separately cover fractional 30000/1001 cadence without refill drift, extreme
+timestamp origins and capacity-bounded gaps, reset replay, owned packets, rejected
+settings, impossible budgets and exact escaped-byte counting without buffer growth.
 
 Public managed and Native AOT HLS commands check six variants, 160 video pictures,
 1,090 AAC packets and 54 segments per mode. Complete playlists and every separate
@@ -168,4 +243,45 @@ canonical SPS/PPS headers. Every original coded slice NAL is checked byte for
 byte against that remux; none is re-encoded or altered. Header normalization
 is part of this verification command, not an input-repair path in the library.
 Long audiovisual HLS with temporal encoding, representative HD sources,
-adaptive quality and practical target-bitrate control remain to be checked.
+perceptual allocation and complete HRD timing/conformance remain to be checked.
+
+## Complete rate-control measurement
+
+A separate measurement uses the same complete 1800.333-second, 96x80, 6 fps
+generated/repeated source. Three modes run twice each in ABC/CBA order, pinned
+to one CPU on the same shared Linux host. Builds finish before measurements;
+independent decoding follows them. The controlled mode uses
+48,000 packet bits/second and a two-second, 96,000-bit buffer; QP26 initializes
+the model. Both other modes use fixed QP26 and the same two-second IDR interval.
+
+| Metric | Previous fixed-QP build | New fixed-QP mode | New controlled mode |
+| --- | ---: | ---: | ---: |
+| Process CPU, median | 17.62 s | 17.27 s | 17.17 s |
+| Process CPU, observed range | 17.61–17.62 s | 17.01–17.54 s | 16.97–17.36 s |
+| Wall time, median | 18.57 s | 17.34 s | 17.27 s |
+| Peak RSS, median | 24.00 MiB | 24.25 MiB | 24.44 MiB |
+| Complete TS size | 30,408,624 bytes | 30,408,624 bytes | 26,106,056 bytes |
+| AVC packet rate | 65.56 kbit/s | 65.56 kbit/s | 48.03 kbit/s |
+| Aggregate visible-sample MSE | 7.9594 | 7.9594 | 22.1257 |
+| Aggregate visible-sample PSNR | 39.12 dB | 39.12 dB | 34.68 dB |
+
+The fixed-QP streams are byte-identical across builds and runs. The controlled
+stream is also identical across its two runs, and its TS is 14.15% smaller than
+fixed QP. CPU observations are similar on this small source; this is not a
+general speedup claim. Reducing the rate increases sample error, so these are
+different quality points rather than an equal-quality compression comparison.
+
+Every output preserves all 10,802 pictures, 901 IDRs, 9,901 P pictures and their
+exact presentation times, with DTS equal to PTS. Complete native decoded YUV
+matches independent decoding, including every one of 124,439,040 visible bytes
+per output. Canonical-header remux verification also checks every coded slice
+NAL unchanged, as in the preceding measurement.
+
+An independent scan of all coded slices counts their original NAL lengths plus
+four-byte packet prefixes and evaluates the envelope for every consecutive
+interval. The maximum observed `sum(bits) - BitRate * elapsed media time` is
+65,048 bits, below the configured 96,000-bit capacity. The 48.03 kbit/s mean
+packet rate includes the permitted initial burst. Parameter sets/AUDs raise the
+independently demuxed video rate to 48.45 kbit/s; transport overhead is additional.
+This sustained small-source check does not replace representative HD quality,
+real-source throughput or full audiovisual HLS acceptance.

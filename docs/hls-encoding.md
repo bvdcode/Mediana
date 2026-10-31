@@ -150,11 +150,17 @@ not collected in memory. Decoders still read their own sequential container data
 The command reports input PCM count and final AAC priming/padding at completion.
 [AAC quality and rate limits](aac-encoding.md) apply to this path too.
 
-The mode uses one fixed QP for all variants, with IDR groups and P16x16/skip
+By default the mode uses one fixed QP for all variants, with IDR groups and P16x16/skip
 inter-frame compression. Each encoder uses the requested segment duration as
 its media-time IDR interval; the first eligible frame starts the next aligned
-segment. One reconstructed reference is retained per variant. It has no target
-video bitrate or VBV control. See [H.264 encoding](h264-encoding.md).
+segment. One reconstructed reference is retained per variant.
+Optional `--video-bit-rates 1500000,400000 --widths 640 320` selects independent
+adaptive packet-rate controllers, one rate per width in the same order.
+`--video-buffer-ms` sets their common buffer duration, defaulting to 2000.
+The limit counts AVC packet bytes and excludes inserted parameter sets, audio
+and transport overhead; master bandwidth still measures complete TS segments.
+There is no filler or complete HRD timing/conformance claim.
+See [H.264 encoding](h264-encoding.md#constrained-variable-packet-rate).
 Per-variant audio rates, arbitrary display transforms, live/event playlists,
 fragmented MP4, encryption
 and playback scheduling remain outside this path.
