@@ -109,6 +109,20 @@ namespace Mediana.NativeTests
                 }
             }
             AacAnalysisTestInput.VerifyTransitions();
+            AacWindowSelectionTestInput.VerifyDetector();
+            for (int shape = 0; shape < 2; shape++)
+            {
+                for (int previousShape = 0; previousShape < 2; previousShape++)
+                {
+                    AacWindowSelectionTestInput.VerifyGrouping(1, shape, previousShape);
+                    AacWindowSelectionTestInput.VerifyGrouping(2, shape, previousShape);
+                }
+            }
+            for (int pattern = 0; pattern < 64; pattern++)
+            {
+                AacWindowSelectionTestInput.VerifyDecisions(pattern);
+            }
+            Console.WriteLine("PASS AAC lookahead: every six-block attack pattern preserves legal transitions and all unquantized samples, including initial short windows.");
             Console.WriteLine("PASS AAC analysis: long/start/short/stop direct coefficients, sine/KBD transitions, complete reconstruction and workspace bounds.");
             for (int frequency = 0; frequency < 12; frequency++)
             {
