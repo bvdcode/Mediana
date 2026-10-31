@@ -13,6 +13,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            LanguageTagTestInput.Verify();
+            Console.WriteLine("PASS language tag syntax: RFC 5646 examples and malformed subtags match without a registry lookup.");
             await ContainerColorTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Preview"));
             await AvcColorRemuxTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Preview"));
             Console.WriteLine("PASS container colors: nclx/nclc precedence, native-range YUV sequences, SDR previews, resizing and encoding.");
