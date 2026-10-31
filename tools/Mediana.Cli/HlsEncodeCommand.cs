@@ -17,7 +17,7 @@ namespace Mediana.Cli
         private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string input, string output, int videoIndex, int? audioIndex,
-            AudioCodecMode? audioCodec, int audioBitRate, int[] widths,
+            AudioCodecMode? audioCodec, int audioBitRate, int[] widths, H264RateControlOptions?[]? videoRates,
             int qp, long targetMilliseconds, ILogger logger, CancellationToken token)
         {
             MediaEngine engine = new MediaEngineBuilder()
@@ -46,10 +46,11 @@ namespace Mediana.Cli
                 try
                 {
                     HashSet<(int Width, int Height)> dimensions = [];
-                    foreach (int width in widths)
+                    for (int variantIndex = 0; variantIndex < widths.Length; variantIndex++)
                     {
+                        int width = widths[variantIndex];
                         HlsVideoRendition rendition = HlsVideoRendition.Create(first.Format, session.Stream, audio?.Stream,
-                            allocator, width, qp, targetMilliseconds, directory);
+                            allocator, width, qp, videoRates?[variantIndex], targetMilliseconds, directory);
                         renditions.Add(rendition);
                         if (!dimensions.Add((rendition.Format.Width, rendition.Format.Height)))
                         {

@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using ConsoleAppFramework;
+using Mediana.Codecs.H264;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
@@ -14,24 +15,28 @@ namespace Mediana.Cli
         /// <param name="stream">Audio or video stream index; defaults to the first stream of the required kind.</param>
         /// <param name="timeMs">Video/animation frame timestamp in milliseconds for PNG output.</param>
         /// <param name="page">One-based document page number for PNG output.</param>
-        /// <param name="videoCodec">TS video mode: Copy preserves encoded streams; H264 encodes fixed-QP intra video.</param>
+        /// <param name="videoCodec">TS video mode: Copy preserves encoded streams; H264 encodes I/P video.</param>
         /// <param name="videoOnly">Explicitly omit audio when encoding H264 to TS.</param>
-        /// <param name="qp">Fixed H264 quantizer from 0 to 51; defaults to 26 when encoding.</param>
+        /// <param name="qp">H264 quantizer from 0 to 51; fixed without video-bit-rate, otherwise the initial value. Defaults to 26.</param>
         /// <param name="width">Maximum encoded video storage width; rounded down to an even size without enlargement.</param>
         /// <param name="height">Maximum encoded video storage height; rounded down to an even size without enlargement.</param>
+        /// <param name="videoBitRate">Constrained variable AVC packet rate in bits/second; omit for fixed QP.</param>
+        /// <param name="videoBufferMs">Video packet buffer duration in milliseconds; requires video-bit-rate, defaults to 2000.</param>
         /// <param name="audioCodec">Encode an audio-only TS file with AAC-LC.</param>
         /// <param name="audioBitRate">Raw AAC bitrate ceiling in bits/second; defaults to 128000.</param>
         [Command("")]
         public Task<int> Convert(string input, [Argument] string? output = null, int? stream = null, long timeMs = 0, int page = 1,
             VideoCodecMode videoCodec = VideoCodecMode.Copy, bool videoOnly = false, int? qp = null,
-            int? width = null, int? height = null, AudioCodecMode? audioCodec = null, int? audioBitRate = null,
+            int? width = null, int? height = null, int? videoBitRate = null, long? videoBufferMs = null,
+            AudioCodecMode? audioCodec = null, int? audioBitRate = null,
             CancellationToken cancellationToken = default)
         {
             operation.Start(output is null ? "probe" : "conversion");
             if (output is null)
             {
                 if (stream is not null || timeMs != 0 || page != 1 || videoCodec != VideoCodecMode.Copy || videoOnly ||
-                    qp is not null || width is not null || height is not null || audioCodec is not null || audioBitRate is not null)
+                    qp is not null || width is not null || height is not null || videoBitRate is not null || videoBufferMs is not null ||
+                    audioCodec is not null || audioBitRate is not null)
                 {
                     throw new ArgumentException("Conversion options require an output file. Use mediana -i input to inspect media.");
                 }
@@ -56,13 +61,13 @@ namespace Mediana.Cli
             if (audioCodec is not null || audioBitRate is not null)
             {
                 if (audioCodec is not AudioCodecMode.Aac || !Path.GetExtension(output).Equals(".ts", StringComparison.OrdinalIgnoreCase) ||
-                    encode || videoOnly || qp is not null || width is not null || height is not null)
+                    encode || videoOnly || qp is not null || width is not null || height is not null || videoBitRate is not null || videoBufferMs is not null)
                 {
                     throw new NotSupportedException("AAC encoding requires .ts output and --audio-codec Aac; video encoding options cannot be combined with audio-only output.");
                 }
                 return ExecuteFileAsync(input, output, outputFile => AudioEncodeCommand.RunAsync(input, outputFile, stream, audioBitRate ?? 128000, logger, cancellationToken), cancellationToken);
             }
-            if (encode || videoOnly || qp is not null || width is not null || height is not null)
+            if (encode || videoOnly || qp is not null || width is not null || height is not null || videoBitRate is not null || videoBufferMs is not null)
             {
                 if (!encode || !videoOnly || !Path.GetExtension(output).Equals(".ts", StringComparison.OrdinalIgnoreCase))
                 {
@@ -80,7 +85,8 @@ namespace Mediana.Cli
                 {
                     throw new ArgumentOutOfRangeException(nameof(height), "Encoded video dimensions must be at least two.");
                 }
-                return ExecuteFileAsync(input, output, outputFile => VideoTranscodeCommand.RunAsync(input, outputFile, stream, qp ?? 26,
+                H264EncoderOptions options = new() { Quantizer = qp ?? 26, RateControl = VideoRateOptions.Create(videoBitRate, videoBufferMs) };
+                return ExecuteFileAsync(input, output, outputFile => VideoTranscodeCommand.RunAsync(input, outputFile, stream, options,
                     width, height, logger, cancellationToken), cancellationToken);
             }
             return ExecuteFileAsync(input, output, outputFile => Path.GetExtension(output).ToLowerInvariant() switch

@@ -21,7 +21,7 @@ namespace Mediana.Cli
         public VideoFormat Format => resizer.OutputFormat;
 
         public static HlsVideoRendition Create(VideoFormat source, EncodedStreamInfo video, EncodedStreamInfo? audio, MediaBufferAllocator allocator,
-            int width, int qp, long targetMilliseconds, string root)
+            int width, int qp, H264RateControlOptions? rate, long targetMilliseconds, string root)
         {
             Yuv420AreaResizer resizer = Yuv420AreaResizer.CreateFit(source, width, source.Height, allocator);
             H264Encoder? encoder = null;
@@ -29,7 +29,7 @@ namespace Mediana.Cli
             try
             {
                 encoder = H264Encoder.Create(resizer.OutputFormat, video.TimeBase, allocator,
-                    new() { Quantizer = qp, KeyFrameInterval = TimeSpan.FromTicks(checked(targetMilliseconds * TimeSpan.TicksPerMillisecond)) }, video.StreamIndex);
+                    new() { Quantizer = qp, RateControl = rate, KeyFrameInterval = TimeSpan.FromTicks(checked(targetMilliseconds * TimeSpan.TicksPerMillisecond)) }, video.StreamIndex);
                 string name = "variant-" + width.ToString(CultureInfo.InvariantCulture);
                 string directory = Path.Combine(root, name);
                 Directory.CreateDirectory(directory);

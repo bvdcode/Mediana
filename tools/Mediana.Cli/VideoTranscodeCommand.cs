@@ -20,13 +20,13 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, int quantizer,
+        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, H264EncoderOptions options,
             int? maximumWidth, int? maximumHeight, ILogger logger, CancellationToken cancellationToken)
         {
             MediaEngine engine = new MediaEngineBuilder()
                 .AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
                 .AddVideoDecoder(new H264DecoderFactory())
-                .AddVideoEncoder(new H264EncoderFactory(new() { Quantizer = quantizer }))
+                .AddVideoEncoder(new H264EncoderFactory(options))
                 .AddContainerWriter(new MpegTsWriterFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             await using VideoSession session = streamIndex is int index
@@ -77,7 +77,9 @@ namespace Mediana.Cli
             {
                 throw new InvalidOperationException("Video encoding buffers were not released.");
             }
-            await Console.Out.WriteLineAsync($"MPEG-TS video encoding: {frames} frames; Baseline CAVLC I/P; QP {quantizer}; video only. Live buffer bytes: 0.");
+            string quality = options.RateControl is H264RateControlOptions rate
+                ? $"variable packet rate {rate.BitRate} bits/s; initial QP {options.Quantizer}" : $"QP {options.Quantizer}";
+            await Console.Out.WriteLineAsync($"MPEG-TS video encoding: {frames} frames; Baseline CAVLC I/P; {quality}; video only. Live buffer bytes: 0.");
             return 0;
         }
 

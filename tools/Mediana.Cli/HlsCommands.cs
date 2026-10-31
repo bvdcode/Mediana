@@ -47,11 +47,14 @@ namespace Mediana.Cli
         /// <param name="audioBitRate">Raw AAC bit ceiling for all variants; requires audio-codec Aac. Defaults to 128000.</param>
         /// <param name="videoStream">Video stream index.</param>
         /// <param name="segmentMs">Target segment duration in milliseconds.</param>
-        /// <param name="qp">Fixed H264 quantizer from 0 to 51.</param>
+        /// <param name="qp">H264 quantizer from 0 to 51; initial value when video-bit-rates are supplied.</param>
+        /// <param name="videoBitRates">Optional comma-separated AVC packet rates in bits/second, one per width in the same order.</param>
+        /// <param name="videoBufferMs">Common video buffer duration in milliseconds; requires video-bit-rates, defaults to 2000.</param>
         /// <param name="widths">Maximum storage widths, separated by spaces; no enlargement. Put this option last.</param>
         public Task<int> Encode([Argument] string input, [Argument] string output, bool videoOnly = false,
             int videoStream = 0, int? audioStream = null, AudioCodecMode? audioCodec = null, int? audioBitRate = null,
-            long segmentMs = 6000, int qp = 26, CancellationToken cancellationToken = default, params int[] widths)
+            long segmentMs = 6000, int qp = 26, int[]? videoBitRates = null, long? videoBufferMs = null,
+            CancellationToken cancellationToken = default, params int[] widths)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(videoStream);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(segmentMs);
@@ -74,8 +77,9 @@ namespace Mediana.Cli
             {
                 throw new ArgumentException("Supply unique --widths values of at least two, separated by spaces.", nameof(widths));
             }
+            Mediana.Codecs.H264.H264RateControlOptions?[]? rates = VideoRateOptions.CreateVariants(videoBitRates, videoBufferMs, widths.Length);
             return ExecuteAsync(input, output, () => HlsEncodeCommand.RunAsync(input, output, videoStream, audioStream,
-                audioCodec, audioBitRate ?? 128000, widths, qp, segmentMs, logger, cancellationToken));
+                audioCodec, audioBitRate ?? 128000, widths, rates, qp, segmentMs, logger, cancellationToken));
         }
     }
 }
