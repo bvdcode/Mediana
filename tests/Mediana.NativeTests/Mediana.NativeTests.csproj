@@ -83,6 +83,7 @@
     <Compile Include="../Shared/AacAnalysisTestInput.cs" Link="AacAnalysisTestInput.cs" />
     <Compile Include="../Shared/AacWindowGroupingTestInput.cs" Link="AacWindowGroupingTestInput.cs" />
     <Compile Include="../Shared/AacFeatureTestInput.cs" Link="AacFeatureTestInput.cs" />
+    <Compile Include="../Shared/AudioDownmixTestInput.cs" Link="AudioDownmixTestInput.cs" />
     <Compile Include="../Shared/AacMultichannelTestInput.cs" Link="AacMultichannelTestInput.cs" />
     <None Include="../Mediana.Tests/Data/AacMultichannel/*" Link="Data/AacMultichannel/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/AacWaveformTestInput.cs" Link="AacWaveformTestInput.cs" />

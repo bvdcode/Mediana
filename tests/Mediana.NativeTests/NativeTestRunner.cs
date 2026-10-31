@@ -13,6 +13,17 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            foreach (bool stereo in new[] { false, true })
+            {
+                foreach (AudioStorageLayout layout in new[] { AudioStorageLayout.Interleaved, AudioStorageLayout.Planar })
+                {
+                    AudioDownmixTestInput.Verify(stereo, layout);
+                    AudioDownmixTestInput.Verify(stereo, layout, AudioSampleFormat.Float32);
+                    AudioDownmixTestInput.Verify(stereo, layout, AudioSampleFormat.Float32, sideSurround: true);
+                }
+            }
+            AudioDownmixTestInput.VerifyBalance();
+            Console.WriteLine("PASS explicit audio downmix: shuffled speakers, mono/stereo coefficients, correlated peaks, timing and released storage.");
             H264MotionInterpolationTestInput.Verify();
             Console.WriteLine("PASS H.264 motion interpolation: all luma phases, complete blocks, borders and extreme coordinates match scalar convolution.");
             foreach (int configuration in new[] { 3, 4, 5, 6, 7 })
