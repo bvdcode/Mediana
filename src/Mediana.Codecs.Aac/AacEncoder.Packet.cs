@@ -26,17 +26,10 @@ namespace Mediana.Codecs.Aac
                 AacChannelEncoder.WriteWindow(ref bits, configuration.FrequencyIndex);
                 bits.Write(0, 2);
             }
-            ReadOnlySpan<double> window = AacWindows.Get(FrameSamples, 0);
             for (int channel = 0; channel < channels; channel++)
             {
-                Span<double> analysis = current.Window;
-                ReadOnlySpan<double> samples = current.Input(channel);
-                for (int index = 0; index < FrameSamples; index++)
-                {
-                    analysis[index] = samples[index] * window[index];
-                    analysis[FrameSamples + index] = samples[FrameSamples + index] * window[FrameSamples - 1 - index];
-                }
-                AacMdct.Transform(analysis, current.Spectrum(channel), current.Folded, analysis, current.Fourier, token);
+                AacAnalysis.Transform(current.Input(channel), 0, 0, 0, current.Spectrum(channel), current.Window,
+                    current.Folded, current.Fourier, token);
             }
             Span<int> gains = stackalloc int[channels];
             AacSpectrumQuantizer.Quantize(current.Spectra, current.Window, current.Quantized, current.Books, current.Scales,

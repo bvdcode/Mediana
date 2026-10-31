@@ -70,6 +70,7 @@
     <Compile Include="../Shared/AacDecodeTestInput.cs" Link="AacDecodeTestInput.cs" />
     <Compile Include="../Shared/AacEncodingTestInput.cs" Link="AacEncodingTestInput.cs" />
     <Compile Include="../Shared/AacBandAllocationTestInput.cs" Link="AacBandAllocationTestInput.cs" />
+    <Compile Include="../Shared/AacAnalysisTestInput.cs" Link="AacAnalysisTestInput.cs" />
     <Compile Include="../Shared/AacFeatureTestInput.cs" Link="AacFeatureTestInput.cs" />
     <Compile Include="../Shared/AacWaveformTestInput.cs" Link="AacWaveformTestInput.cs" />
     <Compile Include="../Shared/AacEditedAudioTestInput.cs" Link="AacEditedAudioTestInput.cs" />

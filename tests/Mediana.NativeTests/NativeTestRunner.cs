@@ -98,6 +98,18 @@ namespace Mediana.NativeTests
                 await AacFeatureTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
                 Console.WriteLine($"PASS AAC-LC {name}: complete PCM/timing/ownership and reference sample or noise energy checks; maximum PCM difference {difference:G9}.");
             }
+            for (int sequence = 0; sequence < 4; sequence++)
+            {
+                for (int shape = 0; shape < 2; shape++)
+                {
+                    for (int previousShape = 0; previousShape < 2; previousShape++)
+                    {
+                        AacAnalysisTestInput.VerifyTransform(sequence, shape, previousShape);
+                    }
+                }
+            }
+            AacAnalysisTestInput.VerifyTransitions();
+            Console.WriteLine("PASS AAC analysis: long/start/short/stop direct coefficients, sine/KBD transitions, complete reconstruction and workspace bounds.");
             await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48", 64000, 19);
             AacBandAllocationTestInput.VerifySharedBudget(3, 2400, 0, 0);
             AacBandAllocationTestInput.VerifySharedBudget(4, 3200, 1, 0);
