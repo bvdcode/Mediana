@@ -33,7 +33,7 @@ movie metadata allocation. Image codec validation and tag normalization are sepa
 Parser checks also cover localized repeated values, UTF-16BE, iTunes freeform keys,
 unknown typed bytes, empty values, invalid Unicode, key indices, duplicated boxes
 and configured text/value limits. ISO-style `meta` full boxes are supported; legacy
-QuickTime user-data text and headerless QuickTime metadata remain unsupported.
+international QuickTime user-data lists and headerless QuickTime metadata remain unsupported.
 
 Format references: [metadata keys](https://developer.apple.com/documentation/quicktime-file-format/metadata_item_keys_atom),
 [data values](https://developer.apple.com/documentation/quicktime-file-format/data_atom),
@@ -52,7 +52,21 @@ duplicating the audio track. Its three tracks declare `und`, `rus` and `eng` in
 Movie, track and media `meta` boxes exercise indexed keys, UTF-8, UTF-16BE,
 locales, repeated names, empty text and unknown binary data types. Every metadata
 value and each track's complete packet bytes/timing have independent hashes in
-`track-metadata.reference.json`. Text and key bytes total 326; typed values total 17.
+`track-metadata.reference.json`. Typed text and key bytes total 326; typed values
+total 17. The two original `trak/udta/name` UTF-8 names add 48 text bytes and two
+values, giving whole-file limits of 374 bytes and 19 recognized metadata values.
+
+`track-user-data.mp4` retains all three tracks and every packet from that file,
+adding movie/track/media user-data names, localized UTF-8 and UTF-16BE `tnam`
+payloads, repeated and empty names, an unspecified language code and an unknown
+user-data atom. The localized atom payloads follow Apple's
+[track name fields](https://developer.apple.com/documentation/quicktime-file-format/track_name_atom).
+Its independent reference records all original payload hashes, native language
+codes, ordered common tags and every packet's timing/bytes. Whole-file limits are
+29 recognized values and 509 decoded text/key bytes. The file SHA-256 is
+`0f6c67355bb94fcf88b5e853d5c2645fddf864ba22788abc8105fb92c2c7961d`.
+The original FFmpeg titles remain separately verifiable through ffprobe; the
+localized `tnam` records use their declared syntax rather than ffprobe tag aliases.
 
 The base copy was produced with FFmpeg 6.1.1:
 

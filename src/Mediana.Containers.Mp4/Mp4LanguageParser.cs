@@ -45,7 +45,12 @@ namespace Mediana.Containers.Mp4
                 }
                 return null;
             }
-            if ((code & 0x8000) != 0)
+            return ReadPackedCode(code);
+        }
+
+        public static string? ReadPackedCode(ushort code)
+        {
+            if (code == 0x7fff || (code & 0x8000) != 0)
             {
                 return null;
             }

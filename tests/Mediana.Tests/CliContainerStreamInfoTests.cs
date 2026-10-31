@@ -27,9 +27,24 @@ namespace Mediana.Tests
             Assert.Contains("source=\"trak/mdia/meta\"", output, StringComparison.Ordinal);
             Assert.Contains("source=\"trak/meta\"", output, StringComparison.Ordinal);
             Assert.Contains("Русская дорожка", output, StringComparison.Ordinal);
-            Assert.Equal(3, output.Split('\n').Count(line => line.Contains("Stream text tags: 3.", StringComparison.Ordinal)));
+            Assert.Contains("Основная дорожка", output, StringComparison.Ordinal);
+            Assert.Equal(1, output.Split('\n').Count(line => line.Contains("Stream text tags: 3.", StringComparison.Ordinal)));
+            Assert.Equal(2, output.Split('\n').Count(line => line.Contains("Stream text tags: 4.", StringComparison.Ordinal)));
             Assert.Contains("Header text tags: 5.", output, StringComparison.Ordinal);
             Assert.DoesNotContain("example.track.blob", output, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task CommonProbePrintsLocalizedNamesWithoutChangingTheStreamLanguage()
+        {
+            string input = Path.Combine(AppContext.BaseDirectory, "Data", "Metadata", "track-user-data.mp4");
+            (int code, string output, string error) = await CliTests.RunAsync(["-i", input]);
+            Assert.True(code == 0, error);
+            Assert.Contains("Language: \"und\".", output, StringComparison.Ordinal);
+            Assert.Contains("Tag \"udta\"/\"tnam\" source=\"trak/udta\" language=\"rus\": [\"Видео", output, StringComparison.Ordinal);
+            Assert.Contains("Tag \"udta\"/\"tnam\" source=\"trak/mdia/udta\" language=\"fra\": [\"Nom média\"]", output, StringComparison.Ordinal);
+            Assert.Contains("Tag \"udta\"/\"name\" source=\"moov/udta\": [\"Movie object\"]", output, StringComparison.Ordinal);
+            Assert.DoesNotContain("zzzz", output, StringComparison.Ordinal);
         }
 
         [Fact]

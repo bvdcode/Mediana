@@ -144,6 +144,17 @@ their value order. Track values remain separate from movie tags; original typed
 bytes are accessible with `Mp4Reader.ReadTrackMetadataValue`. Text/value budgets
 apply to the whole movie, including all tracks and decoded metadata key names.
 
+MP4/MOV also reads UTF-8 `udta/name` and localized `udta/tnam` names, preserving
+their position among typed metadata values in the common tag list. `MediaTag.Language`
+qualifies the text independently of the stream language and the opaque locale field.
+`tnam` retains its original packed ISO 639-2/T code; invalid codes do not inherit the
+track language. Its terminated UTF-8 or BOM-marked UTF-16BE text follows Apple's
+[track name declaration](https://developer.apple.com/documentation/quicktime-file-format/track_name_atom).
+`Mp4Reader.UserData` and `Mp4TrackInfo.UserData` describe these atoms separately
+from typed `data` values. Their read methods return the complete original payload,
+including string framing, through the same retained movie storage and ownership
+rules. Unknown user-data atom types are ignored.
+
 `ContainerStreamInfo.Language` contains the selected declared language identifier.
 MP4 also exposes original `mdhd` codes and `elng` strings in `Mp4TrackInfo.Language`.
 A well-formed extended tag has priority; malformed extended tags retain their

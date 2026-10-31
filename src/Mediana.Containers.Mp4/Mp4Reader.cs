@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
-using Mediana.Core.Metadata;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
@@ -18,7 +17,7 @@ namespace Mediana.Containers.Mp4
         private readonly IRandomAccessByteSource source;
         private readonly MediaBufferAllocator allocator;
         private readonly MediaBuffer metadata;
-        private readonly Mp4MetadataValue[] metadataValues;
+        private readonly Mp4MetadataScope metadataScope;
         private readonly Lazy<ContainerInfo> info;
         private readonly Mp4TrackCursor[] cursors;
         private readonly Mp4LinearTimeline[] timelines;
@@ -38,16 +37,16 @@ namespace Mediana.Containers.Mp4
             Duration = movie.Duration;
             DisplayMatrix = movie.DisplayMatrix;
             Tracks = Array.AsReadOnly(movie.Tracks);
-            metadataValues = movie.Metadata;
-            Metadata = Array.AsReadOnly(movie.Metadata.Select(value => value.Item).ToArray());
+            metadataScope = movie.Metadata;
+            Metadata = Array.AsReadOnly(metadataScope.Values.Select(value => value.Item).ToArray());
+            UserData = Array.AsReadOnly(metadataScope.UserData.Select(value => value.Item).ToArray());
             MediaDuration? declaredDuration = movie.Duration;
-            IReadOnlyList<Mp4MetadataItem> metadataItems = Metadata;
             info = new Lazy<ContainerInfo>(() => new ContainerInfo("mp4", declaredDuration,
-                Mp4MetadataParser.GetTextTags(metadataItems),
+                metadataScope.Tags,
                 movie.Tracks.Select(track => new ContainerStreamInfo(track.Stream.StreamIndex,
-                    track.PresentationDuration, Mp4MetadataParser.GetTextTags(track.Metadata), track.PacketIndex,
+                    track.PresentationDuration, track.MetadataScope.Tags, track.PacketIndex,
                     track.Language.Language))));
-            CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(movie.Metadata));
+            CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(metadataScope.Values));
             InitializePictureInfo();
             TimestampMode = timestampMode;
             timelines = new Mp4LinearTimeline[movie.Tracks.Length];
@@ -80,6 +79,7 @@ namespace Mediana.Containers.Mp4
         public VideoDisplayMatrix DisplayMatrix { get; }
         public IReadOnlyList<Mp4TrackInfo> Tracks { get; }
         public IReadOnlyList<Mp4MetadataItem> Metadata { get; }
+        public IReadOnlyList<Mp4UserDataItem> UserData { get; }
         public IReadOnlyList<Mp4CoverArtInfo> CoverArt { get; }
         public Mp4TimestampMode TimestampMode { get; }
         /// <summary>Packet stream configurations in the selected time base. Tracks preserve original declarations.</summary>
@@ -169,29 +169,45 @@ namespace Mediana.Containers.Mp4
 
         /// <summary>Returns an owned view of the original data atom value without moving any packet cursor.
         /// The view survives reader disposal and retains the complete movie metadata allocation.</summary>
-        public MediaBuffer ReadMetadataValue(int itemIndex) => ReadMetadataValue(null, itemIndex);
+        public MediaBuffer ReadMetadataValue(int itemIndex) => ReadMetadataBytes(null, itemIndex, userData: false);
 
         /// <summary>Returns original track/media metadata bytes without moving packet cursors.
         /// The owned view survives reader disposal and retains movie metadata storage.</summary>
-        public MediaBuffer ReadTrackMetadataValue(int streamIndex, int itemIndex) => ReadMetadataValue(streamIndex, itemIndex);
+        public MediaBuffer ReadTrackMetadataValue(int streamIndex, int itemIndex) => ReadMetadataBytes(streamIndex, itemIndex, userData: false);
 
-        private MediaBuffer ReadMetadataValue(int? streamIndex, int itemIndex)
+        /// <summary>Returns the complete original user-data atom payload, including string framing.
+        /// The owned view retains movie storage and does not move packet cursors.</summary>
+        public MediaBuffer ReadUserDataValue(int itemIndex) => ReadMetadataBytes(null, itemIndex, userData: true);
+
+        /// <summary>Returns an owned view of one track/media user-data atom payload, retaining movie storage.</summary>
+        public MediaBuffer ReadTrackUserDataValue(int streamIndex, int itemIndex) => ReadMetadataBytes(streamIndex, itemIndex, userData: true);
+
+        private MediaBuffer ReadMetadataBytes(int? streamIndex, int itemIndex, bool userData)
         {
             Enter();
             try
             {
                 ObjectDisposedException.ThrowIf(disposed, this);
-                Mp4MetadataValue[] values = metadataValues;
+                Mp4MetadataScope scope = metadataScope;
                 if (streamIndex is int index)
                 {
                     ArgumentOutOfRangeException.ThrowIfNegative(index);
                     ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Tracks.Count);
-                    values = Tracks[index].MetadataValues;
+                    scope = Tracks[index].MetadataScope;
                 }
                 ArgumentOutOfRangeException.ThrowIfNegative(itemIndex);
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(itemIndex, values.Length);
-                Mp4MetadataValue value = values[itemIndex];
-                return metadata.Slice(value.Offset, value.Item.ByteLength);
+                if (userData)
+                {
+                    ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(itemIndex, scope.UserData.Length);
+                    Mp4UserDataValue value = scope.UserData[itemIndex];
+                    return metadata.Slice(value.Offset, value.Item.ByteLength);
+                }
+                else
+                {
+                    ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(itemIndex, scope.Values.Length);
+                    Mp4MetadataValue value = scope.Values[itemIndex];
+                    return metadata.Slice(value.Offset, value.Item.ByteLength);
+                }
             }
             finally
             {

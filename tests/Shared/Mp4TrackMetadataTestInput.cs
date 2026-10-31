@@ -17,8 +17,14 @@ namespace Mediana.Tests
     {
         public static async Task VerifyAsync(string root)
         {
-            string file = Path.Combine(root, "track-metadata.mp4");
-            using JsonDocument reference = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "track-metadata.reference.json")));
+            await VerifyFileAsync(root, "track-metadata");
+            await VerifyFileAsync(root, "track-user-data");
+        }
+
+        private static async Task VerifyFileAsync(string root, string name)
+        {
+            string file = Path.Combine(root, name + ".mp4");
+            using JsonDocument reference = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, name + ".reference.json")));
             JsonElement expected = reference.RootElement;
             if (Convert.ToHexStringLower(SHA256.HashData(await File.ReadAllBytesAsync(file))) != expected.GetProperty("sha256").GetString())
             {
@@ -35,9 +41,10 @@ namespace Mediana.Tests
                 MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory(limits)).Build();
                 info = await engine.ProbeAsync(input);
             }
-            VerifyCommonTags(info.Container!.Tags!, expected.GetProperty("tags"));
+            VerifyCommonTags(info.Container!.Tags!, expected.GetProperty("text_tags"));
             MediaBufferAllocator allocator = new(1024 * 1024);
             MediaBuffer? retained = null;
+            MediaBuffer? retainedName = null;
             try
             {
                 await using FileStream stream = File.OpenRead(file);
@@ -46,6 +53,7 @@ namespace Mediana.Tests
                 await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator, limits))
                 {
                     VerifyItems(reader.Metadata, expected.GetProperty("tags"), reader.ReadMetadataValue);
+                    VerifyUserData(reader.UserData, expected.GetProperty("user_data"), reader.ReadUserDataValue);
                     foreach (JsonElement track in expected.GetProperty("tracks").EnumerateArray())
                     {
                         int index = track.GetProperty("index").GetInt32();
@@ -58,16 +66,20 @@ namespace Mediana.Tests
                             throw new InvalidDataException("A track language declaration was lost or mixed with another track.");
                         }
                         VerifyItems(native.Metadata, track.GetProperty("tags"), item => reader.ReadTrackMetadataValue(index, item));
-                        VerifyCommonTags(info.Container.StreamInfo[index].Tags!, track.GetProperty("tags"));
+                        VerifyUserData(native.UserData, track.GetProperty("user_data"), item => reader.ReadTrackUserDataValue(index, item));
+                        VerifyCommonTags(info.Container.StreamInfo[index].Tags!, track.GetProperty("text_tags"));
                     }
                     retained = reader.ReadTrackMetadataValue(2, 3);
+                    retainedName = reader.ReadTrackUserDataValue(1, 0);
                     await VerifyPacketsAsync(reader, expected.GetProperty("tracks"));
                     if (stream.Position != 3)
                     {
                         throw new InvalidDataException("Track metadata access advanced the borrowed source cursor.");
                     }
                 }
-                if (!stream.CanRead || allocator.AllocatedBytes == 0 || !retained.Memory.Span.SequenceEqual(new byte[] { 0, 2, 255 }))
+                if (!stream.CanRead || allocator.AllocatedBytes == 0 || !retained.Memory.Span.SequenceEqual(new byte[] { 0, 2, 255 }) ||
+                    Convert.ToHexStringLower(SHA256.HashData(retainedName.Memory.Span)) !=
+                    expected.GetProperty("tracks")[1].GetProperty("user_data")[0].GetProperty("sha256").GetString())
                 {
                     throw new InvalidDataException("Owned track metadata did not survive reader disposal.");
                 }
@@ -75,10 +87,38 @@ namespace Mediana.Tests
             finally
             {
                 retained?.Dispose();
+                retainedName?.Dispose();
             }
             if (allocator.AllocatedBytes != 0)
             {
                 throw new InvalidDataException("Track metadata leaked retained storage.");
+            }
+        }
+
+        private static void VerifyUserData(IReadOnlyList<Mp4UserDataItem> items, JsonElement expected, Func<int, MediaBuffer> read)
+        {
+            if (items.Count != expected.GetArrayLength())
+            {
+                throw new InvalidDataException("Scoped user-data item count differs.");
+            }
+            for (int index = 0; index < items.Count; index++)
+            {
+                JsonElement value = expected[index];
+                Mp4UserDataItem item = items[index];
+                ushort? languageCode = null;
+                if (value.GetProperty("language_code").ValueKind != JsonValueKind.Null)
+                {
+                    languageCode = value.GetProperty("language_code").GetUInt16();
+                }
+                using MediaBuffer raw = read(index);
+                if (item.Name != value.GetProperty("name").GetString() || item.Text != value.GetProperty("text").GetString() ||
+                    item.LanguageCode != languageCode || item.Language != value.GetProperty("language").GetString() ||
+                    item.SourcePath != value.GetProperty("source_path").GetString() ||
+                    item.ByteLength != value.GetProperty("byte_length").GetInt32() || raw.Memory.Length != item.ByteLength ||
+                    Convert.ToHexStringLower(SHA256.HashData(raw.Memory.Span)) != value.GetProperty("sha256").GetString())
+                {
+                    throw new InvalidDataException("A native user-data declaration or original atom payload differs.");
+                }
             }
         }
 
@@ -106,7 +146,7 @@ namespace Mediana.Tests
 
         private static void VerifyCommonTags(IReadOnlyList<MediaTag> actual, JsonElement expected)
         {
-            JsonElement[] text = expected.EnumerateArray().Where(value => value.GetProperty("text").ValueKind != JsonValueKind.Null).ToArray();
+            JsonElement[] text = expected.EnumerateArray().ToArray();
             if (actual.Count != text.Length)
             {
                 throw new InvalidDataException("Common metadata tags lost their scope or included binary values.");
@@ -115,8 +155,14 @@ namespace Mediana.Tests
             {
                 MediaTag tag = actual[index];
                 JsonElement value = text[index];
+                uint? locale = null;
+                if (value.GetProperty("locale").ValueKind != JsonValueKind.Null)
+                {
+                    locale = value.GetProperty("locale").GetUInt32();
+                }
                 if (tag.Namespace != value.GetProperty("namespace").GetString() || tag.Name != value.GetProperty("name").GetString() ||
-                    tag.SourcePath != value.GetProperty("source_path").GetString() || tag.Locale != value.GetProperty("locale").GetUInt32() ||
+                    tag.SourcePath != value.GetProperty("source_path").GetString() || tag.Locale != locale ||
+                    tag.Language != value.GetProperty("language").GetString() ||
                     tag.Values.Count != 1 || tag.Values[0] != value.GetProperty("text").GetString())
                 {
                     throw new InvalidDataException("Common metadata projection changed a native tag.");

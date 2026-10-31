@@ -15,7 +15,7 @@ namespace Mediana.Containers.Mp4
             MediaDuration? mediaDuration, MediaDuration? presentationDuration, IReadOnlyList<Mp4Edit> edits,
             int? width, int? height, int? declaredAudioChannels, int? declaredAudioSampleRate, int sampleCount,
             VideoDisplayMatrix displayMatrix, ContainerPacketIndexInfo packetIndex,
-            Mp4LanguageInfo language, Mp4MetadataValue[] metadata,
+            Mp4LanguageInfo language, Mp4MetadataScope metadata,
             IReadOnlyList<VideoColorDescription>? colorDescriptions = null)
         {
             TrackId = trackId;
@@ -33,8 +33,9 @@ namespace Mediana.Containers.Mp4
             ColorDescriptions = colorDescriptions ?? Array.Empty<VideoColorDescription>();
             PacketIndex = packetIndex;
             Language = language;
-            MetadataValues = metadata;
-            Metadata = Array.AsReadOnly(metadata.Select(value => value.Item).ToArray());
+            MetadataScope = metadata;
+            Metadata = Array.AsReadOnly(metadata.Values.Select(value => value.Item).ToArray());
+            UserData = Array.AsReadOnly(metadata.UserData.Select(value => value.Item).ToArray());
         }
 
         public uint TrackId { get; }
@@ -53,7 +54,9 @@ namespace Mediana.Containers.Mp4
         public Mp4LanguageInfo Language { get; }
         /// <summary>Track and media metadata in structural file order, retaining native source paths.</summary>
         public IReadOnlyList<Mp4MetadataItem> Metadata { get; }
-        internal Mp4MetadataValue[] MetadataValues { get; }
+        /// <summary>Recognized user-data names in structural order, with original payload access through the reader.</summary>
+        public IReadOnlyList<Mp4UserDataItem> UserData { get; }
+        internal Mp4MetadataScope MetadataScope { get; }
         /// <summary>The track header matrix before the movie matrix. Video Stream.DisplayMatrix composes both.</summary>
         public VideoDisplayMatrix DisplayMatrix { get; }
         /// <summary>Recognized source color descriptions in sample-entry order. Stream.ColorDescription is the selected representation.</summary>
@@ -61,6 +64,6 @@ namespace Mediana.Containers.Mp4
 
         internal Mp4TrackInfo WithStream(EncodedStreamInfo stream) => new(TrackId, stream, SampleEntry,
             MediaDuration, PresentationDuration, Edits, Width, Height, DeclaredAudioChannels,
-            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, Language, MetadataValues, ColorDescriptions);
+            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, Language, MetadataScope, ColorDescriptions);
     }
 }

@@ -11,11 +11,13 @@ namespace Mediana.Containers.Mp4
         private static readonly UTF8Encoding Utf8 = new(false, true);
         private static readonly UnicodeEncoding Utf16 = new(true, false, true);
         private readonly List<Mp4MetadataValue> values = [];
+        private readonly List<Mp4UserDataValue> userData = [];
+        private readonly List<MediaTag> tags = [];
 
-        public Mp4MetadataValue[] Parse(Mp4BoxCollection scope, string sourcePath, Mp4BoxCollection? media = null)
+        public Mp4MetadataScope Parse(Mp4BoxCollection scope, string sourcePath, Mp4BoxCollection? media = null)
         {
             ReadScope(scope, sourcePath, media);
-            return values.ToArray();
+            return new(values.ToArray(), userData.ToArray(), tags.ToArray());
         }
 
         private void ReadScope(Mp4BoxCollection scope, string sourcePath, Mp4BoxCollection? media = null)
@@ -30,14 +32,36 @@ namespace Mediana.Containers.Mp4
                         ReadMeta(box, sourcePath + "/meta");
                         break;
                     case "udta":
-                        Mp4BoxCollection children = new(box.Payload, budget);
-                        if (children.Optional("meta") is Mp4Box metadata)
-                        {
-                            ReadMeta(metadata, sourcePath + "/udta/meta");
-                        }
+                        ReadUserData(box, sourcePath + "/udta");
                         break;
                     case "mdia" when media is not null:
                         ReadScope(media, sourcePath + "/mdia");
+                        break;
+                }
+            }
+        }
+
+        private void ReadUserData(Mp4Box box, string sourcePath)
+        {
+            Mp4BoxCollection children = new(box.Payload, budget);
+            children.Optional("meta");
+            foreach (Mp4Box child in children.Boxes)
+            {
+                switch (child.Type)
+                {
+                    case "meta":
+                        ReadMeta(child, sourcePath + "/meta");
+                        break;
+                    case "name":
+                    case "tnam":
+                        Mp4UserDataItem item = Mp4UserDataParser.Read(child, sourcePath, budget);
+                        int offset = 0;
+                        if (!child.Payload.IsEmpty && (!root.Span.Overlaps(child.Payload.Span, out offset) || offset < 0))
+                        {
+                            throw new InvalidDataException("The MP4 user-data value lies outside its movie storage.");
+                        }
+                        userData.Add(new(item, offset));
+                        tags.Add(new MediaTag("udta", item.Name, item.Text, sourcePath: item.SourcePath, language: item.Language));
                         break;
                 }
             }
@@ -153,6 +177,10 @@ namespace Mediana.Containers.Mp4
                 throw new InvalidDataException("The MP4 metadata value lies outside its movie storage.");
             }
             values.Add(new Mp4MetadataValue(new Mp4MetadataItem(keyNamespace, name, type, locale, data.Length, text, sourcePath), offset));
+            if (text is not null)
+            {
+                tags.Add(new MediaTag(keyNamespace, name, text, locale: locale, sourcePath: sourcePath));
+            }
         }
 
         private string ReadText(ReadOnlySpan<byte> data, Encoding encoding)
@@ -182,9 +210,5 @@ namespace Mediana.Containers.Mp4
             }
             return covers.ToArray();
         }
-
-        public static IEnumerable<MediaTag> GetTextTags(IEnumerable<Mp4MetadataItem> metadata) =>
-            metadata.Where(item => item.Text is not null).Select(item => new MediaTag(item.Namespace, item.Name,
-                item.Text!, locale: item.Locale, sourcePath: item.SourcePath));
     }
 }

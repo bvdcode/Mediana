@@ -117,8 +117,8 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(16, 326)]
-        [InlineData(17, 325)]
+        [InlineData(18, 374)]
+        [InlineData(19, 373)]
         public async Task MetadataLimitsApplyAcrossAllTracksMediaAndMovie(int values, int textBytes)
         {
             byte[] data = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata", "track-metadata.mp4"));
@@ -165,7 +165,7 @@ namespace Mediana.Tests
             Parallel.For(0, snapshots.Length, index => snapshots[index] = reader.Info);
             Assert.All(snapshots, info => Assert.Same(snapshots[0], info));
             Assert.Equal("ru-RU", snapshots[0].StreamInfo![1].Language);
-            Assert.Equal(3, snapshots[0].StreamInfo![1].Tags!.Count);
+            Assert.Equal(4, snapshots[0].StreamInfo![1].Tags!.Count);
             Assert.All(source.Reads, read => Assert.True(read.Offset + read.Length <= first || read.Offset >= end));
             Assert.Throws<ObjectDisposedException>(() => reader.ReadTrackMetadataValue(0, 0));
         }
