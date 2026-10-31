@@ -10,6 +10,27 @@ namespace Mediana.Tests
 {
     public class Mp4ValidationTests
     {
+        [Fact]
+        public async Task UserDataAllowsItsSpecifiedZeroTerminatorWithoutLosingTags()
+        {
+            byte[] data = await Mp4MetadataTestData.FileAsync(Mp4MetadataTestData.Box("udta",
+                Mp4MetadataTestData.Box("name", "example"u8.ToArray()), new byte[4]));
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(data, 5);
+            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            Assert.Contains(reader.Info.Tags!, tag => tag.Name == "name" && tag.Values.SequenceEqual(new[] { "example" }));
+            int packets = 0;
+            while (await reader.ReadPacketAsync() is MediaPacket packet)
+            {
+                packet.Dispose();
+                packets++;
+            }
+            Assert.Equal(6, packets);
+            await reader.DisposeAsync();
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.False(source.IsDisposed);
+        }
+
         [Theory]
         [InlineData(3, 0)]
         [InlineData(4, 1)]

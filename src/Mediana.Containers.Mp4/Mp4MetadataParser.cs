@@ -43,7 +43,7 @@ namespace Mediana.Containers.Mp4
 
         private void ReadUserData(Mp4Box box, string sourcePath)
         {
-            Mp4BoxCollection children = new(box.Payload, budget);
+            Mp4BoxCollection children = new(box.Payload, budget, allowTerminator: true);
             children.Optional("meta");
             foreach (Mp4Box child in children.Boxes)
             {

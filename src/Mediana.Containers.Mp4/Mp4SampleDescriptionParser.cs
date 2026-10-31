@@ -30,8 +30,15 @@ namespace Mediana.Containers.Mp4
             {
                 (MediaKind.Video, "avc1" or "avc3") => ParseVideo(entry, budget),
                 (MediaKind.Audio, "mp4a") => ParseAudio(entry, budget),
+                (MediaKind.Data, "tmcd") => ParseTimecode(entry),
                 _ => throw new NotSupportedException($"MP4 sample entry '{entry.Type}' is not supported.")
             };
+        }
+
+        private static Mp4SampleDescription ParseTimecode(Mp4Box entry)
+        {
+            Mp4Binary.Range(entry.Payload.Span, 0, 26);
+            return new Mp4SampleDescription(entry.Type, "tmcd", StreamFormats.QuickTimeTimecode32, entry.Payload[8..]);
         }
 
         private static Mp4SampleDescription ParseVideo(Mp4Box entry, Mp4ParseBudget budget)
@@ -43,7 +50,7 @@ namespace Mediana.Containers.Mp4
             {
                 throw new InvalidDataException("The MP4 visual sample dimensions are invalid.");
             }
-            Mp4BoxCollection children = new(entry.Payload[78..], budget, allowSampleDescriptionTerminator: true);
+            Mp4BoxCollection children = new(entry.Payload[78..], budget, allowTerminator: true);
             RejectEncryption(children);
             ReadOnlyMemory<byte> configuration = children.Required("avcC").Payload;
             if (configuration.Length < 7 || configuration.Span[0] != 1)

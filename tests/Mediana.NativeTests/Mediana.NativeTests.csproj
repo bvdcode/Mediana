@@ -8,6 +8,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../Mediana.Tests/Data/Mp4/avc-timecode.mov;../Mediana.Tests/Data/Mp4/avc-timecode.mov.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264RateEncodingTestInput.cs" Link="H264RateEncodingTestInput.cs" />
     <None Include="../Mediana.Tests/Data/H264/rate-*.yuv;../Mediana.Tests/Data/H264/RATE-ENCODING.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264TemporalEncodingTestInput.cs" Link="H264TemporalEncodingTestInput.cs" />

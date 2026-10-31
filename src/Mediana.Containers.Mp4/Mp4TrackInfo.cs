@@ -36,6 +36,7 @@ namespace Mediana.Containers.Mp4
             {
                 MediaKind.Video => FrameRate.FromFrameCount(packetIndex.PacketCount, packetIndex.DecodeDuration),
                 MediaKind.Audio => null,
+                MediaKind.Data => null,
                 _ => throw new ArgumentException("The MP4 track kind is unsupported.", nameof(stream))
             };
             Language = language;

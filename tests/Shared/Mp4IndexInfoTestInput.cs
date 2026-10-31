@@ -13,7 +13,7 @@ namespace Mediana.Tests
 {
     internal static class Mp4IndexInfoTestInput
     {
-        public static readonly string[] Names = ["avc-aac.mp4", "avc-tail.mov", "avc-mp3-22.mp4", "avc-mp3-44.mp4"];
+        public static readonly string[] Names = ["avc-aac.mp4", "avc-tail.mov", "avc-mp3-22.mp4", "avc-mp3-44.mp4", "avc-timecode.mov"];
 
         public static async Task VerifyAsync(string root, string file)
         {

@@ -220,6 +220,14 @@ follow Apple's [data reference declaration](https://developer.apple.com/document
 Visual sample-description extensions accept the optional four-zero-byte terminator
 defined by Apple's [video sample description](https://developer.apple.com/documentation/quicktime-file-format/video_sample_description).
 This termination rule does not apply to movie, track or sample-table box lists.
+QuickTime `udta` lists independently allow their specified four-byte zero terminator:
+[user data atoms](https://developer.apple.com/library/archive/documentation/QuickTime/QTFF/QTFFChap2/qtff2.html).
+
+QuickTime `tmcd` tracks remain data streams with their original sample-description
+fields, packet bytes and indexed clocks. They are not video pictures and receive
+no average video frame rate. The `QuickTimeTimecode32` representation identifies
+big-endian 32-bit counter samples; interpreting tape labels and drop-frame rules
+remains separate from reading the container. See Apple's [timecode description](https://developer.apple.com/documentation/quicktime-file-format/timecode_sample_description).
 
 `IContainerPictureReader` is an optional reader capability implemented by MP3,
 FLAC and MP4/M4A. `ContainerSession.Pictures` returns immutable declarations in

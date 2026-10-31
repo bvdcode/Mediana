@@ -60,6 +60,7 @@ namespace Mediana.Containers.Mp4
                 {
                     "vide" => MediaKind.Video,
                     "soun" => MediaKind.Audio,
+                    "tmcd" => MediaKind.Data,
                     _ => throw new NotSupportedException($"MP4 track handler '{handlerType}' is not supported.")
                 };
                 Mp4BoxCollection mediaInfo = new(media.Required("minf").Payload, budget);
@@ -77,6 +78,7 @@ namespace Mediana.Containers.Mp4
                 {
                     MediaKind.Video => trackMatrix.Then(movieMatrix),
                     MediaKind.Audio => null,
+                    MediaKind.Data => null,
                     _ => throw new InvalidDataException("Unsupported MP4 track kind.")
                 };
                 EncodedStreamInfo stream = new(tracks.Count, kind, description.CodecId, description.Format,
