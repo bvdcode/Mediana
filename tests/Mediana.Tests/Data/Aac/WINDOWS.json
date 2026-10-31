@@ -86,8 +86,8 @@
       "decoded_samples_per_channel": 14336,
       "priming_samples": 1024,
       "padding_samples": 0,
-      "transport_sha256": "1ce3b6368a46849376c8c32af9a1cc94b64818914ed979a7073af75679867b88",
-      "reference_sha256": "2c90ff5f07b76b07ce0260cf8a43c05d95d2c1eda4c6e0fa49be406bf93400ba",
+      "transport_sha256": "7afc9abf4ff3c7eb0d90b0d88acd940c13679ed1a264397399b66ca941542c1f",
+      "reference_sha256": "f926a82bf0d236b38913c5638b6615340aac900a8148c07ddbc9bf37c743d175",
       "reference_file": "window-switch-2.encoded-192k.f32le",
       "decode_command": "ffmpeg -nostdin -v error -xerror -threads 1 -i window-switch-2.ts -map 0:a:0 -c:a pcm_f32le -f f32le window-switch-2.encoded-192k.f32le"
     }

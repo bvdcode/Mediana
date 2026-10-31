@@ -62,6 +62,7 @@
     <ProjectReference Include="../../src/Mediana.Containers.Flac/Mediana.Containers.Flac.csproj" />
     <Compile Include="../Shared/AacDecodeTestInput.cs" Link="AacDecodeTestInput.cs" />
     <Compile Include="../Shared/AacEncodingTestInput.cs" Link="AacEncodingTestInput.cs" />
+    <Compile Include="../Shared/AacEncodingQualityTestInput.cs" Link="AacEncodingQualityTestInput.cs" />
     <Compile Include="../Shared/AacSwitchedEncodingTestInput.cs" Link="AacSwitchedEncodingTestInput.cs" />
     <Compile Include="../Shared/AacWindowSelectionTestInput.cs" Link="AacWindowSelectionTestInput.cs" />
     <Compile Include="../Shared/AacBandAllocationTestInput.cs" Link="AacBandAllocationTestInput.cs" />

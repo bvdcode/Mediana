@@ -170,6 +170,8 @@ namespace Mediana.NativeTests
             AacWindowGroupingTestInput.VerifyAllocation(11, 3, 1, 2500);
             Console.WriteLine("PASS AAC short groups: every sample rate, grouped order, scale history, exact sections and mono/stereo element budgets.");
             await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48", 64000, 19);
+            AacEncodingQualityTestInput.Verify(0);
+            AacEncodingQualityTestInput.Verify(1);
             AacBandAllocationTestInput.VerifySharedBudget(3, 2400, 0, 0);
             AacBandAllocationTestInput.VerifySharedBudget(4, 3200, 1, 0);
             AacBandAllocationTestInput.VerifySharedBudget(3, 2400, 0, 0.05);

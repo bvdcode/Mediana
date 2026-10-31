@@ -87,7 +87,7 @@ a common window, while their bit allocation is shared.
 
 Rate control first finds a uniform-scale seed within the bit ceiling. Bounded
 local refinement then spends unused bits or trades precision between bands when
-that reduces total squared spectral reconstruction error. Each move counts actual
+that reduces the selected spectral distortion measure. Each move counts actual
 scale Huffman symbols, section runs, spectral tuples, signs and escapes. Search
 examines up to four adjacent scales in each direction and accepts at most
 32 moves for mono or 64 moves across a stereo pair. Pair search considers up to
@@ -97,12 +97,19 @@ costing recounts only changed channels and preserves each channel's scale histor
 Powered magnitudes reuse transform scratch storage. Analysis storage reserves
 128 band slots per channel to accommodate up to eight short-window groups.
 
-Minimizing absolute squared spectral error favors louder channels. It does not
-preserve equal relative distortion or a separate quality floor per channel.
+For stereo, each band's squared reconstruction error is divided by its channel's
+complete spectral energy for that access unit. Shared refinement therefore
+compares relative channel error while keeping every channel's actual syntax cost.
+Mono retains the absolute-error objective; a zero-energy channel contributes zero
+error without division. The initial uniform-scale seed and bounded search remain
+unchanged. Normalization uses at most two stack values and no additional pooled
+or heap storage. It can exchange precision in a louder channel for reduced
+relative noise in a quieter one; it does not guarantee equal channel SNR or a
+minimum quality floor.
 
 Auditory masking, mid/side or intensity encoding, TNS,
-PNS encoding and bit-reservoir control remain open. This allocation minimizes
-an unweighted spectral error measure rather than a psychoacoustic noise threshold.
+PNS encoding and bit-reservoir control remain open. This allocation uses channel
+energy normalization without frequency-dependent auditory masking thresholds.
 It does not establish production listening quality or
 parity with established encoders. Broader real music and speech testing remains
 required.
@@ -131,8 +138,8 @@ remain within a factor of four in every channel. A quiet channel can split a gro
 independently of a louder channel. Digital silence groups together; a transition
 from zero to nonzero energy separates groups. Group lengths sum to eight.
 
-Complete independent decoding compares the preceding long-window encoder with
-automatic selection at the same raw ceilings:
+The following complete independent decoding comparison isolates automatic window
+selection before channel-energy normalization, at the same raw ceilings:
 
 | Source | Ceiling, kbit/s | Long SNR, dB | Automatic SNR, dB | Long/automatic actual raw kbit/s |
 | --- | --- | --- | --- | --- |

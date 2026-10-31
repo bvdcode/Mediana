@@ -10,6 +10,7 @@ namespace Mediana.Codecs.Aac
         private const int PairCandidates = 4;
         private readonly ReadOnlySpan<double> spectrum;
         private readonly ReadOnlySpan<double> powered;
+        private readonly ReadOnlySpan<double> energy;
         private readonly ReadOnlySpan<int> boundaries;
         private readonly int bandsPerGroup;
         private readonly int sectionBits;
@@ -17,11 +18,12 @@ namespace Mediana.Codecs.Aac
         private readonly Span<AacBandQuantization> bands;
         private readonly Span<AacBandQuantization> candidates;
 
-        public AacBandAllocator(ReadOnlySpan<double> spectrum, ReadOnlySpan<double> powered, AacEncodingWindow window,
+        public AacBandAllocator(ReadOnlySpan<double> spectrum, ReadOnlySpan<double> powered, ReadOnlySpan<double> energy, AacEncodingWindow window,
             Span<int> scratch, Span<AacBandQuantization> bands, Span<AacBandQuantization> candidates)
         {
             this.spectrum = spectrum;
             this.powered = powered;
+            this.energy = energy;
             boundaries = window.Boundaries;
             bandsPerGroup = window.BandsPerGroup;
             sectionBits = window.SectionLengthBits;
@@ -204,7 +206,13 @@ namespace Mediana.Codecs.Aac
             int localBand = band % channelBands;
             int start = band / channelBands * boundaries[^1] + boundaries[localBand];
             int count = boundaries[localBand + 1] - boundaries[localBand];
-            return AacBandQuantization.Measure(spectrum.Slice(start, count), powered.Slice(start, count), scratch[..count], scale);
+            AacBandQuantization measured = AacBandQuantization.Measure(spectrum.Slice(start, count), powered.Slice(start, count), scratch[..count], scale);
+            double channelEnergy = energy[band / channelBands];
+            if (energy.Length == 1 || channelEnergy == 0 || !double.IsFinite(measured.Error))
+            {
+                return measured;
+            }
+            return measured with { Error = measured.Error / channelEnergy };
         }
 
         private int Count()

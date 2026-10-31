@@ -17,10 +17,13 @@ namespace Mediana.Codecs.Aac
             {
                 throw new ArgumentException("AAC spectral allocation requires complete mono or stereo channel workspaces.");
             }
+            Span<double> energy = stackalloc double[channels];
+            energy.Clear();
             double maximum = 0;
             for (int bin = 0; bin < spectrum.Length; bin++)
             {
                 powered[bin] = Math.Pow(Math.Abs(spectrum[bin]), 0.75);
+                energy[bin / ChannelBins] += spectrum[bin] * spectrum[bin];
                 maximum = Math.Max(maximum, powered[bin]);
             }
             double required = maximum == 0 ? 0 : Math.Ceiling(100 + 16.0 / 3 * Math.Log2(maximum / AacQuantizer.MaximumMagnitude));
@@ -32,7 +35,7 @@ namespace Mediana.Codecs.Aac
             int channelBands = boundaries.Length - 1;
             Span<AacBandQuantization> bands = stackalloc AacBandQuantization[channels * channelBands];
             Span<AacBandQuantization> candidates = stackalloc AacBandQuantization[bands.Length * 2];
-            AacBandAllocator allocation = new(spectrum, powered, window, quantized, bands, candidates);
+            AacBandAllocator allocation = new(spectrum, powered, energy, window, quantized, bands, candidates);
             allocation.Allocate(Math.Max(0, (int)required), budget, token);
             for (int channel = 0; channel < channels; channel++)
             {
