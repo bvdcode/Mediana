@@ -63,7 +63,17 @@ tradeoffs. P pictures use P16x16 or
 P_Skip, integer 4x4 residual transforms, per-block quantization, chroma DC
 transforms and CAVLC. The reference contains reconstructed pixels, so quantization
 errors do not create an encoder/decoder prediction mismatch. Deblocking is
-disabled in the coded slice. No I_PCM blocks are used.
+disabled in the coded slice.
+
+Each transformed macroblock is checked against the 3200-bit CAVLC
+`macroblock_layer` limit in Annex A.3.1(n). A block exceeding that limit uses
+I_PCM in either an I or P slice. Its samples are copied exactly, with byte
+alignment and edge padding; subsequent blocks retain the slice's quantizer.
+The bit count excludes NAL framing and emulation-prevention bytes. Selecting
+I_PCM restores the current macroblock's bit position and reconstruction state
+without copying the preceding packet or retaining another picture. The final
+escaped packet still obeys its byte and rate budgets. A fixed-QP packet that
+cannot fit fails without changing QP.
 
 Motion search examines zero displacement and the neighboring-vector predictor,
 then bounded four-direction full-pixel diamond steps. `MotionSearchRange` is the
@@ -203,8 +213,18 @@ records original-signal, transport and decoded hashes and independent commands.
 The original 48-picture all-IDR corpus remains checked with an explicit zero
 interval. Failure tests cover invalid options, cancellation with a live reference,
 reset replay, returned-packet ownership, allocation failure and packet limits.
-The full managed suite has 2544 passing tests; the strict Linux x64 Native AOT
-runner also passes.
+The strict Linux x64 Native AOT runner also checks these references.
+
+Four complete PCM sequences add 32 pictures and 111,264 visible YUV samples,
+all exactly matching independent decoding. QP0 and QP6 exercise I/P PCM beside
+transformed blocks, deferred P skips, cropped edges and padded input strides.
+Every macroblock's RBSP length and the unchanged slice quantizer are checked.
+The [PCM reference manifest](../tests/Mediana.Tests/Data/H264/PCM-ENCODING.json)
+records decoded hashes and independent commands. A single noisy 16x16 picture
+also checks exact PCM samples, successful encoding at the final packet's exact
+byte limit, refusal one byte below it, and reset without retained temporary
+storage. Bit-writer checks cover unaligned checkpoints, emulation prevention,
+buffer growth, measured overflow and invalidated checkpoints.
 
 Six additional rate-controlled sequences cover another 480 pictures, initial
 QP0/26/51, static content, moving texture, chroma-only changes and variable-cadence
