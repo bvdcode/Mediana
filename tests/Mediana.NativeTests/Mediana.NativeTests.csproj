@@ -8,6 +8,8 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/H264TemporalEncodingTestInput.cs" Link="H264TemporalEncodingTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/H264/temporal-*.yuv;../Mediana.Tests/Data/H264/TEMPORAL-ENCODING.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HighRateAacTestInput.cs" Link="HighRateAacTestInput.cs" />
     <Compile Include="../Shared/AacAutomaticEncodingTestInput.cs" Link="AacAutomaticEncodingTestInput.cs" />
     <Using Include="Mediana.Formats.Video" />

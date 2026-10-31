@@ -237,6 +237,11 @@ namespace Mediana.NativeTests
             await H264EncodingTestInput.VerifyAsync(root, "avc-multislice-cavlc", 38, 18);
             await H264EncodingTestInput.VerifyAsync(root, "avc-weighted", 18, 12);
             Console.WriteLine("PASS H.264 encoding: 48 fixed-QP IDR pictures match every independently decoded YUV sample and preserve timing, color and SAR.");
+            foreach ((int mode, int qp) in new (int, int)[] { (0, 26), (1, 26), (2, 38), (3, 18), (1, 0), (1, 51) })
+            {
+                await H264TemporalEncodingTestInput.VerifyAsync(h264Root, mode, qp);
+            }
+            Console.WriteLine("PASS H.264 temporal encoding: 480 I/P pictures, complete independent pixels, VFR timing, IDR intervals, frame-number rollover and allocation release match.");
             await H264CabacBidirectionalTestInput.VerifyAsync(h264Root, root);
             await VideoSeekTestInput.VerifyAsync(root, "avc-multislice-cavlc", 18, 96, 80, 6);
             await VideoSeekTestInput.VerifyAsync(root, "avc-multislice-cabac", 18, 96, 80, 6);
