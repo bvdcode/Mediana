@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
-    internal ref struct H264BitReader(ReadOnlySpan<byte> payload)
+    /// <summary>Reads an H.264 EBSP payload with checked emulation prevention, alignment and RBSP endings.</summary>
+    public ref struct H264BitReader(ReadOnlySpan<byte> payload)
     {
         private readonly ReadOnlySpan<byte> data = payload;
         private int offset;

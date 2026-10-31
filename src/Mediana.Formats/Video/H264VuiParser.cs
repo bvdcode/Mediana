@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
-    internal static class H264VuiParser
+    /// <summary>Reads VUI declarations and validates bounded timing, HRD and picture-buffering syntax.</summary>
+    public static class H264VuiParser
     {
         public static H264VuiParameters Parse(ref H264BitReader bits, int referenceFrames)
         {

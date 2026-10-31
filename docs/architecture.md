@@ -53,6 +53,8 @@ in an arbitrary byte stream.
 `Mediana.Core` contains time, ownership and stream/frame types. Parsing AAC, MP3,
 FLAC and PCM configuration belongs to `Mediana.Formats`, shared by readers,
 decoders and output modules without introducing container-to-codec dependencies.
+The same module owns H.264 RBSP reading/writing and SPS/VUI syntax; the decoder
+uses these headers while retaining reconstruction and reference-picture state.
 
 ## Source color descriptions
 

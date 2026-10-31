@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
-    internal class H264PictureOrderCycle(ReadOnlySpan<int> offsets) : IEquatable<H264PictureOrderCycle>
+    public class H264PictureOrderCycle(ReadOnlySpan<int> offsets) : IEquatable<H264PictureOrderCycle>
     {
         private readonly int[] values = offsets.ToArray();
 

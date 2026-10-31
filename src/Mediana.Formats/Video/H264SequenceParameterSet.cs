@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
-    internal record H264SequenceParameterSet
+    public record H264SequenceParameterSet
     {
         public int Id { get; init; }
         public int Profile { get; init; }

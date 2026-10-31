@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Using Include="Mediana.Formats.Video" />
     <Compile Include="../Shared/BufferedVideoEncoder.cs" Link="BufferedVideoEncoder.cs" />
     <Compile Include="../Shared/CollectingPacketWriter.cs" Link="CollectingPacketWriter.cs" />
     <Compile Include="../Shared/FrameFixture.cs" Link="FrameFixture.cs" />

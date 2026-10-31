@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
-    internal record H264VuiParameters
+    public record H264VuiParameters
     {
         public int AspectRatioWidth { get; init; }
         public int AspectRatioHeight { get; init; }

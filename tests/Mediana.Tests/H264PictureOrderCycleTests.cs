@@ -11,8 +11,8 @@ namespace Mediana.Tests
         public void PreservesTypeOneOffsetsAndFrameNumberGapSignalling()
         {
             byte[] nal = [0x67, .. H264TestBits.Rbsp("01000010 00000000 00001010 1 1 010 0 00101 010 011 00100 00110 010 1 1 1 1 1 0 0")];
-            H264SequenceParameterSet first = H264SequenceParser.Parse(nal, new H264DecoderOptions());
-            H264SequenceParameterSet second = H264SequenceParser.Parse(nal, new H264DecoderOptions());
+            H264SequenceParameterSet first = H264SequenceParser.Parse(nal, new H264DecoderOptions().MaxPicturePixels);
+            H264SequenceParameterSet second = H264SequenceParser.Parse(nal, new H264DecoderOptions().MaxPicturePixels);
             Assert.Equal(1, first.PictureOrderType);
             Assert.Equal(-2, first.NonReferencePictureOrderOffset);
             Assert.Equal(1, first.TopToBottomPictureOrderOffset);

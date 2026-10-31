@@ -24,7 +24,7 @@ namespace Mediana.Codecs.H264
             int type = H264Nal.Type(nal);
             if (type == 7)
             {
-                H264SequenceParameterSet sequence = H264SequenceParser.Parse(nal, options);
+                H264SequenceParameterSet sequence = H264SequenceParser.Parse(nal, options.MaxPicturePixels);
                 int bytes = UpdatedBytes(nal.Length, SequenceLengths, sequence.Id, options);
                 Dictionary<int, H264SequenceParameterSet> updated = new(Sequences) { [sequence.Id] = sequence };
                 Dictionary<int, int> lengths = new(SequenceLengths) { [sequence.Id] = nal.Length + 2 };
@@ -71,7 +71,7 @@ namespace Mediana.Codecs.H264
             for (int index = 0; index < record.SequenceCount; index++)
             {
                 ReadOnlySpan<byte> nal = record.ReadNal();
-                H264SequenceParameterSet sequence = H264SequenceParser.Parse(nal, options);
+                H264SequenceParameterSet sequence = H264SequenceParser.Parse(nal, options.MaxPicturePixels);
                 if (!sequences.TryAdd(sequence.Id, sequence))
                 {
                     throw new InvalidDataException("The AVC sequence parameter identifier is duplicated.");

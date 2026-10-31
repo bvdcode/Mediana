@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
-    internal static class H264SequenceParser
+    /// <summary>Reads checked SPS syntax and declared image properties without reconstructing pictures.</summary>
+    public static class H264SequenceParser
     {
-        public static H264SequenceParameterSet Parse(ReadOnlySpan<byte> nal, H264DecoderOptions options)
-            => Parse(nal, options.MaxPicturePixels);
-
-        public static H264SequenceParameterSet Parse(ReadOnlySpan<byte> nal, int? maxPicturePixels)
+        public static H264SequenceParameterSet Parse(ReadOnlySpan<byte> nal, int? maxPicturePixels = null)
         {
             H264BitReader bits = H264Nal.Payload(nal, 7);
             int profile = (int)bits.ReadBits(8);
@@ -137,7 +135,7 @@ namespace Mediana.Codecs.H264
             };
         }
 
-        internal static bool IsSupportedProfile(int profile) => profile is 66 or 77 or 88 || HasExtendedSyntax(profile);
+        public static bool IsSupportedProfile(int profile) => profile is 66 or 77 or 88 || HasExtendedSyntax(profile);
 
         private static bool HasExtendedSyntax(int profile) =>
             profile is 100 or 110 or 122 or 244 or 44 or 83 or 86 or 118 or 128 or 138 or 139 or 134 or 135;

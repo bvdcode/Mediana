@@ -5,9 +5,10 @@ using System.Buffers.Binary;
 using System.Numerics;
 using Mediana.Core.Memory;
 
-namespace Mediana.Codecs.H264
+namespace Mediana.Formats.Video
 {
-    internal class H264BitWriter : IDisposable
+    /// <summary>Writes a budgeted NAL with emulation prevention, RBSP trailing bits and optional AVC length prefix.</summary>
+    public class H264BitWriter : IDisposable
     {
         private readonly MediaBufferAllocator allocator;
         private readonly int maximumBytes;
@@ -21,6 +22,7 @@ namespace Mediana.Codecs.H264
 
         public H264BitWriter(MediaBufferAllocator allocator, int maximumBytes, byte header, bool lengthPrefixed = false)
         {
+            ArgumentNullException.ThrowIfNull(allocator);
             ArgumentOutOfRangeException.ThrowIfLessThan(maximumBytes, 8);
             this.allocator = allocator;
             this.maximumBytes = maximumBytes;
