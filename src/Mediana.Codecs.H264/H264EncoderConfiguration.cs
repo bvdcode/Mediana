@@ -15,10 +15,14 @@ namespace Mediana.Codecs.H264
         private const int MaximumDimensionMacroblocks = 256;
         internal const int MaximumMacroblocksPerSecond = 245760;
         internal const int MaximumBitsPerSecond = 50000000;
+        internal const int MaximumCpbBits = 62500000;
+        internal const int MaximumNalBitsPerSecond = MaximumBitsPerSecond / 5 * 6;
+        internal const int MaximumNalCpbBits = MaximumCpbBits / 5 * 6;
         internal const int MaximumFramesPerSecond = 172;
         internal const int MinimumCompressionRatio = 2;
 
-        public static byte[] Create(VideoFormat format, MediaBufferAllocator allocator, H264EncoderOptions options)
+        public static byte[] Create(VideoFormat format, MediaBufferAllocator allocator, H264EncoderOptions options,
+            out int parameterSetBytes)
         {
             if (format.PixelFormat != VideoPixelFormat.Yuv420P8 || (format.Width & 1) != 0 || (format.Height & 1) != 0)
             {
@@ -74,7 +78,8 @@ namespace Mediana.Codecs.H264
             picture.WriteFlag(false);
             picture.WriteFlag(false);
             using MediaBuffer pps = picture.Finish();
-            byte[] configuration = new byte[11 + sps.Memory.Length + pps.Memory.Length];
+            parameterSetBytes = sps.Memory.Length + pps.Memory.Length;
+            byte[] configuration = new byte[11 + parameterSetBytes];
             configuration[0] = 1;
             sps.Memory.Span.Slice(1, 3).CopyTo(configuration.AsSpan(1));
             configuration[4] = 0xFF;
@@ -86,12 +91,6 @@ namespace Mediana.Codecs.H264
             BinaryPrimitives.WriteUInt16BigEndian(configuration.AsSpan(offset), (ushort)pps.Memory.Length);
             pps.Memory.Span.CopyTo(configuration.AsSpan(offset + 2));
             return configuration;
-        }
-
-        public static bool ExceedsAccessUnitLimit(int bytes, int macroblocks)
-        {
-            long pictureLimit = Math.Max((long)macroblocks * MaximumFramesPerSecond, MaximumMacroblocksPerSecond);
-            return (long)bytes * MaximumFramesPerSecond * MinimumCompressionRatio > 384 * pictureLimit;
         }
 
         private static void WriteVui(H264BitWriter bits, VideoFormat format, uint references, int motionRange)

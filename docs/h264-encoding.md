@@ -83,10 +83,14 @@ only when all residual coefficients are zero and its derived motion vector
 matches the selected vector. Consecutive skips share `mb_skip_run` syntax.
 
 Without `RateControl`, `Quantizer` is a fixed H.264 QP from 0 through 51,
-defaulting to 26. Dimensions,
-frame intervals, access-unit size and per-frame coded bits are checked against
-level 4.1 bounds. These bounds do not implement a target bitrate, VBV model or
-quality guarantee. Adaptive intra/inter decisions, subpixel motion search,
+defaulting to 26. Level 4.1 admission checks cover dimensions, frame intervals,
+access-unit compression bounds and separate VCL/NAL buffer credits. The buffers
+start full and refill from exact decode-time differences, retaining fractional
+bits. NAL accounting reserves Annex B delimiters and repeated IDR parameter sets.
+A picture may exceed the bitrate multiplied by its own duration when the buffer
+has room. Fixed QP remains fixed; an exhausted level budget rejects the picture.
+These admission bounds do not supply a complete Annex C HRD timing schedule or
+a target bitrate. Adaptive intra/inter decisions, subpixel motion search,
 multiple references and CABAC encoding remain open.
 
 Syntax and reconstruction follow
@@ -94,6 +98,13 @@ Syntax and reconstruction follow
 clauses 7.3.2–5, 8.2.1.3, 8.2.4–5, 8.3–5 and 9.1–2, and Annexes A/E.
 Search and forward quantization are encoder decisions; the independent decoder
 checks their emitted normative representation.
+
+Level admission follows the access-unit and VCL/NAL limits in Annex A.3.1 of
+[ITU-T H.264 V16 (06/2026)](https://www.itu.int/rec/T-REC-H.264-202606-I/en).
+Initial pictures and independently restartable IDRs retain the initial
+compression bound; subsequent P pictures use the interval since the preceding
+decode timestamp. The separate user-selected packet-rate policy below remains
+independent of these level limits.
 
 ## Constrained variable packet rate
 

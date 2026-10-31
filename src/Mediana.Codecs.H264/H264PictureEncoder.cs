@@ -12,13 +12,9 @@ namespace Mediana.Codecs.H264
 
         public static H264EncodedPicture Encode(VideoFrame input, H264SequenceParameterSet sequence, H264Picture? reference,
             bool keyFrame, int frameNumber, int idrId, MediaBufferAllocator allocator, H264EncoderOptions options,
-            H264FrameRateBudget budget, int configurationBytes, CancellationToken token)
+            H264FrameRateBudget budget, CancellationToken token)
         {
             int maximumBytes = Math.Min(options.MaximumPacketBytes, budget.MaximumBytes);
-            if (options.RateControl is not null)
-            {
-                maximumBytes = Math.Min(maximumBytes, LevelByteBudget(input, sequence, configurationBytes));
-            }
             if (maximumBytes < 8)
             {
                 throw new NotSupportedException("The H.264 rate budget cannot fit an encoded picture.");
@@ -60,17 +56,6 @@ namespace Mediana.Codecs.H264
                 }
             }
             throw new InvalidOperationException("H.264 rate-control quantization did not terminate.");
-        }
-
-        private static int LevelByteBudget(VideoFrame input, H264SequenceParameterSet sequence, int configurationBytes)
-        {
-            Mediana.Core.Timing.MediaDuration duration = input.Duration!.Value;
-            Int128 bitrateBytes = (Int128)H264EncoderConfiguration.MaximumBitsPerSecond * duration.Value * duration.TimeBase.Numerator /
-                duration.TimeBase.Denominator / 8;
-            long macroblocks = sequence.WidthInMbs * sequence.HeightInMapUnits;
-            long pictureLimit = Math.Max(macroblocks * H264EncoderConfiguration.MaximumFramesPerSecond, H264EncoderConfiguration.MaximumMacroblocksPerSecond);
-            long accessBytes = 384 * pictureLimit / (H264EncoderConfiguration.MaximumFramesPerSecond * H264EncoderConfiguration.MinimumCompressionRatio);
-            return (int)Int128.Min(bitrateBytes, accessBytes - configurationBytes);
         }
     }
 }

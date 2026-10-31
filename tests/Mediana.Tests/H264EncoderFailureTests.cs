@@ -122,8 +122,6 @@ namespace Mediana.Tests
             using VideoFrame fast = new(format, buffer, input.Planes, input.Timestamp, new(1, new(1, 1000)));
             using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
             Assert.Throws<NotSupportedException>(() => encoder.TrySend(fast));
-            Assert.True(H264EncoderConfiguration.ExceedsAccessUnitLimit(1000000, 1));
-            Assert.False(H264EncoderConfiguration.ExceedsAccessUnitLimit(1024, 1));
         }
     }
 }

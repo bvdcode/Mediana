@@ -1,5 +1,26 @@
 # H.264 arithmetic references
 
+## Fixed-QP level burst
+
+`level-burst.sha256` records the independent decoded YUV420P8 checksum for a
+640x352 picture containing seeded .NET `Random(172)` bytes in tight Y, U and V
+order. Encoding uses QP26, time base 1/172, timestamp zero and duration one tick,
+BT.709 limited-range color, left chroma location and sample aspect ratio 4:3.
+Its initial VCL picture exceeds 50 Mbit/s multiplied by that one-frame interval;
+the initial access-unit and buffer bounds admit the burst.
+
+The shared managed/Native AOT check verifies all 337,920 decoded samples against
+FFmpeg 6.1.1, exact input timing and format, deterministic reset and complete
+media-buffer release. The MPEG-TS capture is 240,264 bytes with SHA-256
+`20aaa63432b574b212f1f0f94f29070fecc7bed07fe6eca1aacc06bc019f35f0`.
+The decoded checksum is
+`3654a8a454dc0ac5d5daa703821b69ff76c13a3cf59262a2f414392de9c2b36c`.
+
+```sh
+ffmpeg -hide_banner -v error -nostdin -i level-burst.ts -map 0:v:0 -threads 1 -pix_fmt yuv420p -fps_mode passthrough -f rawvideo level-burst.yuv
+sha256sum level-burst.yuv
+```
+
 `cabac-intra-contexts.bin` contains packed initial CABAC states for progressive
 I-slice contexts. It follows ITU-T H.264 V15 (08/2024), tables 9-12 and 9-16
 through 9-21 and equation 9-5.

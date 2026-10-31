@@ -239,6 +239,8 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
+            await H264LevelBurstTestInput.VerifyAsync(h264Root);
+            Console.WriteLine("PASS H.264 level burst: a fixed-QP initial picture exceeds the instantaneous rate and matches independent complete pixels, timing, format and reset state.");
             await HlsEncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 96, 80, 18, 6);
             await HlsEncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 48, 40, 18, 6);
             await HlsEncodingTestInput.VerifyAsync(root, "avc-weighted", 48, 30, 12, 3);
