@@ -241,3 +241,12 @@ every audio PTS/DTS follows the exact expected timeline. This uses repeated
 96x80 video and a continuous audio signal. It does not establish perceptual
 quality or HD throughput. In-progress SIGINT returns 130 and removes the
 unpublished directory, including all temporary segments.
+
+## Complete original HD source
+
+A complete 596.46-second 1280x720 MOV with six-channel AAC has been verified
+through Native AOT decoding, explicit stereo downmix and two rate-controlled
+320x180/160x90 HLS variants. All 14,315 pictures, both complete audio tracks,
+packet clocks, aligned segments and video rate windows were independently
+checked. [Full counts, resource measurements and output scope](audio-downmix.md#complete-audiovisual-hls-encoding)
+are recorded with the shared mixing workflow.

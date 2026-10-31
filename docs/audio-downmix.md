@@ -87,3 +87,36 @@ One isolated complete-file Linux x64 Native AOT run on logical CPU 2 used
 87.146 seconds of CPU, 88.161 seconds elapsed and 28.1 MiB peak RSS. This covers
 decoding, mixing, encoding and transport output, with zero live media buffers
 at EOF. It is a resource observation, without an equal-quality encoder comparison.
+
+## Complete audiovisual HLS encoding
+
+The same original 1280x720, 24-frame/s MOV was processed to completion with
+stereo AAC at 128000 bit/s and two AVC variants: 320x180 at 384000 bit/s and
+160x90 at 96000 bit/s, each with a two-second packet-rate buffer.
+All 14,315 source pictures produce 100 aligned six-second segments per variant,
+with a shorter final segment. The complete VOD duration is 596.48 seconds;
+the master, two media playlists and 200 transport segments total 203 files.
+
+Independent playlist decoding verifies every picture and its exact presentation
+time and duration. Native AOT decoding after lossless MP4 remux and parameter-set
+canonicalization matches all 1,546,020,000 visible YUV bytes and every remuxed
+picture timestamp. Every coded VCL NAL remains byte-identical through that
+verification remux. Continuous decoding reaches EOF without retained media storage.
+The largest consecutive-window packet-rate excess is 767576 of 768000 permitted
+bits for the larger variant and 191784 of 192000 bits for the smaller one.
+The resulting video packet averages are 384823.15 and 96214.64 bit/s; the initial
+buffer credit permits a finite-file average above the configured replenishment rate.
+
+Independent MOV edit-list inspection selects exactly 28,630,160 PCM samples per
+channel. Both variants contain identical AAC payloads and timestamps, with
+27,961 packets, 1024 priming samples and 880 padding samples. Every audio packet's
+PTS, DTS, duration and raw bit ceiling pass. Independent and Native AOT decoding
+of each complete audio track match all 57,264,128 Float32 values within
+`2.384185791015625e-7`. Their media storage is fully released at EOF.
+
+One isolated Linux x64 Native AOT run on logical CPU 2 used 761.113 seconds of CPU,
+809.414 seconds elapsed and 97.8 MiB peak RSS. It includes source video/audio
+decoding, both video resizes and encoders, one shared stereo AAC encode and all
+HLS output. This verifies complete processing of an HD source to these two output
+sizes. Full-HD output encoding, equal-quality performance comparisons and
+perceptual quality acceptance remain open.
