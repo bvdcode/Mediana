@@ -36,6 +36,10 @@ and the complete stream energy within 0.1%; separate spectral tests verify exact
 noise-band normalization and stereo correlation. This is an energy comparison,
 not a claim of sample equality for PNS.
 
+When only one channel of a band uses PNS, its M/S flag is ignored. Shared managed
+and Native AOT spectral checks cover both channel positions and all three valid
+mask modes, preserving exact noise-band energy and the independently coded channel.
+
 Managed and Native AOT checks use the same complete-sequence verifier. They
 check hashes, format, channel order, every presentation timestamp and duration,
 sample count, EOF, a 128 KiB media-buffer budget, unchanged borrowed-source
