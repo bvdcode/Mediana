@@ -23,10 +23,14 @@ namespace Mediana.Cli
             {
                 text.Append(" locale=0x").Append(locale.ToString("x8", CultureInfo.InvariantCulture));
             }
+            if (tag.SourcePath is string source)
+            {
+                text.Append(" source=").Append(Quote(source));
+            }
             return text.Append(": [").AppendJoin(", ", tag.Values.Select(Quote)).Append(']').ToString();
         }
 
-        private static string Quote(string value) =>
+        public static string Quote(string value) =>
             "\"" + JsonEncodedText.Encode(value, JavaScriptEncoder.UnsafeRelaxedJsonEscaping).ToString() + "\"";
     }
 }

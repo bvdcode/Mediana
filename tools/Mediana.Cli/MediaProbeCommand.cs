@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Globalization;
 using Mediana.Core;
 using Mediana.Containers;
 using Mediana.Core.Metadata;
@@ -26,8 +25,7 @@ namespace Mediana.Cli
             await output.WriteLineAsync($"Container: {container.FormatId}; {info.Streams.Count} streams.");
             if (container.DeclaredDuration is MediaDuration duration)
             {
-                double seconds = (double)duration.Value * duration.TimeBase.Numerator / duration.TimeBase.Denominator;
-                await output.WriteLineAsync($"Declared duration: {seconds.ToString("0.#########", CultureInfo.InvariantCulture)} seconds.");
+                await output.WriteLineAsync($"Declared duration: {MediaDurationFormatter.Seconds(duration)} seconds.");
             }
             else
             {
@@ -36,6 +34,10 @@ namespace Mediana.Cli
             foreach (EncodedStreamInfo stream in info.Streams)
             {
                 await output.WriteLineAsync($"Stream {stream.StreamIndex}: {stream.Kind}; {stream.CodecId}; time base {stream.TimeBase.Numerator}/{stream.TimeBase.Denominator}.");
+                if (container.StreamInfo is not null && container.StreamInfo.TryGetValue(stream.StreamIndex, out ContainerStreamInfo? track))
+                {
+                    await ContainerStreamInfoFormatter.WriteAsync(track, output, cancellationToken);
+                }
                 if (stream.ColorDescription is not null)
                 {
                     await VideoColorDescriptionFormatter.WriteAsync(stream.ColorDescription, output);
