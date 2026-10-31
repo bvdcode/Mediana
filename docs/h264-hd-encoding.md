@@ -45,8 +45,8 @@ to the independently decoded original, weighted by the number of samples.
 Directional prediction reduced aggregate mean squared error by 2.63% at nearly
 the same transport size. Its observed CPU cost increased by 2.80%, and peak
 RSS increased by 0.96 MiB. This change is a small error/cost tradeoff on this
-source; it did not accelerate the complete operation. The current Mediana
-operation used 10.45 times FFmpeg's CPU and produced lower PSNR at a slightly
+source; it did not accelerate the complete operation. The directional prediction
+run used 10.45 times FFmpeg's CPU and produced lower PSNR at a slightly
 larger transport size. These single-run observations do not establish general
 throughput, repeatability or perceptual quality.
 
@@ -81,10 +81,40 @@ taskset -c 2 mediana -i input.mov output.ts --video-codec H264 --video-only --qp
 taskset -c 2 ffmpeg -nostdin -v error -xerror -threads 1 -i input.mov -map 0:v:0 -an -c:v libx264 -threads 1 -preset veryfast -profile:v baseline -level:v 4.1 -pix_fmt yuv420p -b:v 10000000 -maxrate 10000000 -bufsize 20000000 -g 48 -keyint_min 48 -sc_threshold 0 -fps_mode passthrough -mpegts_copyts 1 -output_ts_offset 1 -muxdelay 0 -f mpegts ffmpeg.ts
 ```
 
-An attempt using fixed QP26 without rate control rejected a picture near 12 seconds
-under the current per-picture level guard. A separate 5,000,000 bit/s,
-two-second-buffer attempt rejected a picture at QP51 at 442.375 seconds.
-Neither attempt completed or contributes to the resource table. The complete
-10,000,000 bit/s experiment does not establish that either rejected setting
-can encode this source. Level-budget modelling, broader source acceptance,
-HLS A/V encoding at HD resolution and perceptual quality remain open.
+A separate 5,000,000 bit/s, two-second-buffer attempt rejected a picture at QP51
+at 442.375 seconds. It did not complete or contribute to the resource table.
+
+## Complete fixed-QP level-burst check
+
+The former instantaneous level guard rejected fixed QP26 near 12 seconds.
+Exact access-unit and separate VCL/NAL buffer accounting (`9b76808`) lets the
+entire original film complete at QP26 without rate control. Thirty-five pictures
+exceed 50 Mbit/s multiplied by their own duration. The first is picture 285 at
+11.875 seconds, containing a 347,000-byte VCL NAL. All access-unit size bounds
+and all consecutive VCL/NAL rate windows pass independent checks. Maximum window
+excess is 3,117,592 VCL bits and 3,117,672 Annex B bits, within the respective
+62,500,000-bit and 75,000,000-bit capacities. Annex B counts include every AUD,
+start code and repeated IDR parameter set.
+
+| Mode | CPU | Elapsed | Peak RSS | TS bytes | Aggregate PSNR |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Mediana fixed QP26 | 1390.37 s | 1446.59 s | 109.50 MiB | 424,707,980 | 41.183 dB |
+
+This was one complete Native AOT run on logical CPU 2. The actual mean AVC
+packet rate is 5491.703 kbit/s. The earlier fixed-QP command could not complete,
+so this is a correctness result with resource accounting. Its rate-control
+settings differ from the 10 Mbit/s comparison above.
+
+Independent checks cover every source hash, original/remuxed VCL byte, packet
+PTS/DTS/duration, all 299 IDRs and every slice's unchanged QP26. Native AOT
+reconstructs all 14,315 pictures and 19,789,056,000 visible samples exactly as
+FFmpeg, reaches EOF and releases all media buffers. The measured Y/U/V PSNR is
+40.230/43.601/44.696 dB relative to the decoded original.
+
+```sh
+taskset -c 2 mediana -i input.mov output.ts --video-codec H264 --video-only --qp 26 --no-color
+```
+
+These admission checks do not establish complete Annex C HRD timing conformance.
+Broader source acceptance, HLS A/V encoding at HD resolution and perceptual quality
+remain open.
