@@ -83,7 +83,16 @@ namespace Mediana.Processing
             return Create(inputFormat, width, height, allocator, cancellationToken);
         }
 
+        /// <summary>Resizes into independent tightly packed storage charged to the configured allocator.</summary>
         public VideoFrame Apply(VideoFrame input, CancellationToken cancellationToken = default)
+            => ApplyCore(input, false, cancellationToken);
+
+        /// <summary>Resizes or retains an independently disposable frame when dimensions are unchanged.
+        /// Retention preserves the input planes and their original allocation budget.</summary>
+        public VideoFrame ResizeOrRetain(VideoFrame input, CancellationToken cancellationToken = default)
+            => ApplyCore(input, true, cancellationToken);
+
+        private VideoFrame ApplyCore(VideoFrame input, bool retainIdentity, CancellationToken cancellationToken)
         {
             Enter();
             try
@@ -97,6 +106,10 @@ namespace Mediana.Processing
                     input.Format.SampleAspectRatio != inputFormat.SampleAspectRatio)
                 {
                     throw new NotSupportedException("The input frame differs from the video resizer configuration.");
+                }
+                if (retainIdentity && inputFormat.Width == OutputFormat.Width && inputFormat.Height == OutputFormat.Height)
+                {
+                    return input.Retain();
                 }
                 PlaneLayout[] planes = OutputFormat.CreateTightLayout();
                 using WritableMediaBuffer output = allocator.Allocate(checked((int)planes[^1].EndOffset));

@@ -131,6 +131,7 @@
     <Compile Include="../Shared/HlsEncodingTestInput.cs" Link="HlsEncodingTestInput.cs" />
     <Compile Include="../Shared/AvcAudioHlsTestInput.cs" Link="AvcAudioHlsTestInput.cs" />
     <Compile Include="../Shared/YuvScalingTestInput.cs" Link="YuvScalingTestInput.cs" />
+    <Compile Include="../Shared/YuvResizeOwnershipTestInput.cs" Link="YuvResizeOwnershipTestInput.cs" />
     <None Include="Data/Resize/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalDeblockingTestInput.cs" Link="H264BidirectionalDeblockingTestInput.cs" />

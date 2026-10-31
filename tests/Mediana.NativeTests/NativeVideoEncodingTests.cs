@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Tests;
+using Mediana.Core.Video;
 
 namespace Mediana.NativeTests
 {
@@ -25,6 +26,13 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS audiovisual HLS encoding: every AAC and MPEG-1/2 Layer III packet, timestamp and transport counter is preserved alongside encoded video.");
             Console.WriteLine("PASS HLS encoding: 48 independent reference pictures, 15 aligned IDR segments, exact transport timing and released output ownership match.");
             await YuvScalingTestInput.VerifySyntheticAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Resize"));
+            foreach (ChromaLocation location in new[] { ChromaLocation.Left, ChromaLocation.Center, ChromaLocation.TopLeft,
+                ChromaLocation.Top, ChromaLocation.BottomLeft, ChromaLocation.Bottom })
+            {
+                YuvResizeOwnershipTestInput.Verify(location, false);
+                YuvResizeOwnershipTestInput.Verify(location, true);
+            }
+            Console.WriteLine("PASS YUV resize ownership: unchanged tight and strided frames retain their original budget with independent leases across six chroma locations and known or unknown SAR.");
             await YuvScalingTestInput.VerifySequenceAsync(root, "avc-multislice-cabac", 48, 40, 18, new(1, 1));
             await YuvScalingTestInput.VerifySequenceAsync(root, "avc-weighted", 48, 30, 12, new(235, 186));
             Console.WriteLine("PASS YUV area scaling: six chroma locations and 30 complete video pictures match exact rational references, preserving timing and display aspect.");
