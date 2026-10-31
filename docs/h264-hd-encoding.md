@@ -142,6 +142,44 @@ This single pair on a shared host establishes neither a throughput change nor
 the cause or repeatability of the RSS increase. Zero retained media-buffer bytes
 at EOF does not explain process peak RSS. The memory difference remains open.
 
+## Memory diagnostic
+
+A separate Native AOT consumer compares demux, decode and fixed-QP26 encoding
+of the original film's first 1,440 pictures, covering 60 seconds at 1280x720.
+It hashes every encoded packet and records memory counters every 240 pictures.
+It does not run the transport writer or CLI logging, and disposes the source
+after the selected pictures rather than reaching the film's EOF.
+
+The four fresh processes run sequentially on logical CPU 2 in before/after/after/
+before order. Both builds finish before the series, with no concurrent media,
+build or test workload, forced collection or changed GC configuration.
+
+| Build/run | CPU | Peak RSS | Managed bytes allocated during operation |
+| --- | ---: | ---: | ---: |
+| Before 1 | 158.139 s | 107.57 MiB | 8,487,146,160 |
+| After 1 | 155.274 s | 100.50 MiB | 8,487,179,072 |
+| After 2 | 151.217 s | 91.11 MiB | 8,487,160,248 |
+| Before 2 | 150.552 s | 107.27 MiB | 8,486,979,792 |
+
+All four outputs contain identical 63,879,703-byte packet payloads, with SHA256
+`0fdaa5ee19cbceaf95c09e9eaf5a65b66bcae0cb89961a98202f0e493c5c1f62`.
+At each processing checkpoint, the encoder and decoder account for the same
+2,052,000 and 5,211,208 live media-buffer bytes in both versions. Both budgets
+return to zero after disposal. GC collection counts, heap size and fragmentation
+vary between runs. The
+[GC heap-size counter](https://learn.microsoft.com/en-us/dotnet/api/system.gcmemoryinfo.heapsizebytes?view=net-10.0)
+describes the last collection; it does not measure current process RSS.
+
+A focused Native AOT writer allocation check creates 8,192 writers per build.
+The current writer adds exactly eight allocated bytes per instance. Adding 64
+checkpoints to each current writer adds no heap allocation and preserves every
+output byte. This distinguishes writer state size from a per-macroblock allocation.
+
+The minute-long diagnostic does not reproduce the full-film RSS increase.
+Its results do not establish a general memory or speed improvement, nor explain
+the peak in the complete CLI run. That full-film observation remains recorded
+above; no allocator or GC-policy change follows from these measurements.
+
 ## External HRD timing verification
 
 The complete fixed-QP output also passes an exact external arrival/removal
