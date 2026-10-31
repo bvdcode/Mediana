@@ -22,7 +22,7 @@ namespace Mediana.Tests
                 meta = Mp4MetadataTestData.Box("meta", meta.AsSpan(12).ToArray());
             }
             byte[] file = await Mp4MetadataTestData.FileAsync(meta);
-            SetBrand(file, "qt  "u8);
+            Mp4TestData.SetBrand(file, "qt  "u8);
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using TrackingRandomAccessSource source = new(file, 3);
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
@@ -39,23 +39,12 @@ namespace Mediana.Tests
         {
             byte[] meta = Mp4MetadataTestData.Meta("mdir", []);
             byte[] file = await Mp4MetadataTestData.FileAsync(Mp4MetadataTestData.Box("meta", meta.AsSpan(12).ToArray()));
-            SetBrand(file, "isom"u8);
+            Mp4TestData.SetBrand(file, "isom"u8);
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using TrackingRandomAccessSource source = new(file, 3);
             await Assert.ThrowsAsync<NotSupportedException>(async () => await Mp4Reader.OpenAsync(source, allocator));
             Assert.Equal(0, allocator.AllocatedBytes);
             Assert.False(source.IsDisposed);
-        }
-
-        private static void SetBrand(byte[] file, ReadOnlySpan<byte> brand)
-        {
-            int payload = Mp4TestData.PayloadOffset(file, "ftyp");
-            int end = payload - 8 + (int)BinaryPrimitives.ReadUInt32BigEndian(file.AsSpan(payload - 8, 4));
-            brand.CopyTo(file.AsSpan(payload, 4));
-            for (int offset = payload + 8; offset < end; offset += 4)
-            {
-                brand.CopyTo(file.AsSpan(offset, 4));
-            }
         }
 
         [Fact]

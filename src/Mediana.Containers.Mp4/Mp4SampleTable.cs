@@ -11,7 +11,7 @@ namespace Mediana.Containers.Mp4
         private readonly bool wideOffsets;
 
         public Mp4SampleTable(Mp4BoxCollection boxes, Mp4ReadOptions options,
-            IReadOnlyList<Mp4DataRange> dataRanges, CancellationToken cancellationToken)
+            IReadOnlyList<Mp4DataRange> dataRanges, bool quickTime, CancellationToken cancellationToken)
         {
             ReadOnlyMemory<byte> sizePayload = boxes.Required("stsz").Payload;
             Mp4Binary.FullBox(sizePayload.Span);
@@ -46,7 +46,7 @@ namespace Mediana.Containers.Mp4
                 {
                     throw new NotSupportedException("The MP4 composition offset version is not supported.");
                 }
-                SignedComposition = version == 1;
+                SignedComposition = quickTime || version == 1;
                 Composition = new Mp4Table(composition.Value.Payload, 8, version);
             }
             Mp4Box? sync = boxes.Optional("stss");

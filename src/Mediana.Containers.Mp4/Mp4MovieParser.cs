@@ -71,7 +71,7 @@ namespace Mediana.Containers.Mp4
                 {
                     throw new NotSupportedException("The MP4 codec configuration exceeds the configured limit.");
                 }
-                Mp4SampleTable table = new(sampleBoxes, options, dataRanges, cancellationToken);
+                Mp4SampleTable table = new(sampleBoxes, options, dataRanges, quickTime, cancellationToken);
                 ContainerPacketIndexInfo packetIndex = new(table.SampleCount, table.PayloadBytes,
                     new MediaDuration(table.DecodeDurationTicks, trackTimeBase));
                 VideoDisplayMatrix? displayMatrix = kind switch

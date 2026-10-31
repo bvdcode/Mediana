@@ -189,6 +189,14 @@ second index pass or packet payload scan. Indexed decode duration also supplies
 remain separate. Both media and linear-movie timestamp modes retain the original
 duration clock, including after MP3 configuration is inferred from its frame header.
 
+QuickTime-compatible movies interpret composition offsets as signed values,
+including version-0 `ctts` atoms. ISO-only and unbranded version-0 tables retain
+unsigned offsets; version 1 is signed in both formats. Sequential reads, random
+sample access and seek-point lookup use the same table interpretation. Media
+decode time starts at zero and presentation time adds the declared offset, without
+shifting decode time to make offsets nonnegative. See Apple's
+[composition offset definition](https://developer.apple.com/documentation/quicktime-file-format/composition_offset_atom).
+
 `ContainerInfo.Dates` and `ContainerStreamInfo.Dates` expose immutable calendar
 metadata separately from text and packet timestamps. Each `MediaDateTimeTag`
 retains its native key, structural location and UTC or unspecified time-zone kind;
