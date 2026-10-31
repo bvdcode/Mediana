@@ -55,7 +55,7 @@ namespace Mediana.Codecs.H264
                 int py = y + blockY;
                 reconstructed.SetLumaMode(px, py, 2);
                 reconstructed.PredictLuma4x4(px, py, 2, prediction);
-                Transform(input, 0, px, py, prediction, transformed);
+                H264EncodingBlocks.Transform(input, 0, px, py, prediction, transformed);
                 H264ForwardTransform.Quantize4x4(transformed, qp, levels);
                 int count = H264CavlcWriter.Write(bits, levels, reconstructed.NeighbourCount(0, px, py));
                 reconstructed.Counts(0)[reconstructed.BlockIndex(0, px, py)] = (byte)count;
@@ -67,61 +67,14 @@ namespace Mediana.Codecs.H264
 
         private static void WriteChroma(H264BitWriter bits, VideoFrame input, H264Picture reconstructed, int x, int y, int qp)
         {
-            int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
             Span<byte> prediction = stackalloc byte[128];
-            Span<int> ac = stackalloc int[120];
-            Span<int> dc = stackalloc int[8];
-            Span<int> rawDc = stackalloc int[4];
-            Span<int> transformed = stackalloc int[16];
-            Span<byte> blockPrediction = stackalloc byte[16];
+            Span<int> coefficients = stackalloc int[H264ChromaEncoder.CoefficientCount];
             for (int plane = 1; plane <= 2; plane++)
             {
-                Span<byte> planePrediction = prediction.Slice((plane - 1) * 64, 64);
-                reconstructed.PredictMacroblock(plane, x, y, 0, planePrediction);
-                for (int index = 0; index < 4; index++)
-                {
-                    int blockX = index % 2 * 4;
-                    int blockY = index / 2 * 4;
-                    H264Residuals.CopyPrediction(planePrediction, 8, blockX, blockY, blockPrediction);
-                    Transform(input, plane, x + blockX, y + blockY, blockPrediction, transformed);
-                    rawDc[index] = transformed[0];
-                    H264ForwardTransform.Quantize4x4(transformed, chromaQp, ac.Slice(((plane - 1) * 4 + index) * 15, 15));
-                }
-                Span<int> planeDc = dc.Slice((plane - 1) * 4, 4);
-                H264ForwardTransform.ChromaDc(rawDc, chromaQp, planeDc);
-                H264CavlcWriter.Write(bits, planeDc, -1);
+                reconstructed.PredictMacroblock(plane, x, y, 0, prediction.Slice((plane - 1) * 64, 64));
             }
-            Span<int> scaledDc = stackalloc int[4];
-            Span<int> residual = stackalloc int[16];
-            for (int plane = 1; plane <= 2; plane++)
-            {
-                H264InverseTransform.ChromaDc(dc.Slice((plane - 1) * 4, 4), chromaQp, scaledDc);
-                for (int index = 0; index < 4; index++)
-                {
-                    int blockX = index % 2 * 4;
-                    int blockY = index / 2 * 4;
-                    Span<int> levels = ac.Slice(((plane - 1) * 4 + index) * 15, 15);
-                    int count = H264CavlcWriter.Write(bits, levels, reconstructed.NeighbourCount(plane, x + blockX, y + blockY));
-                    reconstructed.Counts(plane)[reconstructed.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
-                    H264Residuals.CopyPrediction(prediction.Slice((plane - 1) * 64, 64), 8, blockX, blockY, blockPrediction);
-                    H264InverseTransform.Residual4x4(levels, chromaQp, residual, scaledDc[index]);
-                    reconstructed.WriteBlock(plane, x + blockX, y + blockY, blockPrediction, residual);
-                }
-            }
-        }
-
-        private static void Transform(VideoFrame input, int plane, int x, int y, ReadOnlySpan<byte> prediction, Span<int> transformed)
-        {
-            Span<int> residual = stackalloc int[16];
-            for (int row = 0; row < 4; row++)
-            {
-                ReadOnlySpan<byte> source = input.GetRow(plane, Math.Min(y + row, input.Planes[plane].Height - 1));
-                for (int column = 0; column < 4; column++)
-                {
-                    residual[row * 4 + column] = source[Math.Min(x + column, source.Length - 1)] - prediction[row * 4 + column];
-                }
-            }
-            H264ForwardTransform.Transform4x4(residual, transformed);
+            H264ChromaEncoder.Analyze(input, x, y, qp, prediction, coefficients);
+            H264ChromaEncoder.Write(bits, reconstructed, x, y, qp, 2, prediction, coefficients);
         }
     }
 }
