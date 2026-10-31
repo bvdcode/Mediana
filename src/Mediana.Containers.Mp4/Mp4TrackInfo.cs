@@ -14,7 +14,8 @@ namespace Mediana.Containers.Mp4
         internal Mp4TrackInfo(uint trackId, EncodedStreamInfo stream, string sampleEntry,
             MediaDuration? mediaDuration, MediaDuration? presentationDuration, IReadOnlyList<Mp4Edit> edits,
             int? width, int? height, int? declaredAudioChannels, int? declaredAudioSampleRate, int sampleCount,
-            VideoDisplayMatrix displayMatrix, IReadOnlyList<VideoColorDescription>? colorDescriptions = null)
+            VideoDisplayMatrix displayMatrix, ContainerPacketIndexInfo packetIndex,
+            IReadOnlyList<VideoColorDescription>? colorDescriptions = null)
         {
             TrackId = trackId;
             Stream = stream;
@@ -29,6 +30,7 @@ namespace Mediana.Containers.Mp4
             SampleCount = sampleCount;
             DisplayMatrix = displayMatrix;
             ColorDescriptions = colorDescriptions ?? Array.Empty<VideoColorDescription>();
+            PacketIndex = packetIndex;
         }
 
         public uint TrackId { get; }
@@ -42,6 +44,8 @@ namespace Mediana.Containers.Mp4
         public int? DeclaredAudioChannels { get; }
         public int? DeclaredAudioSampleRate { get; }
         public int SampleCount { get; }
+        /// <summary>Complete sample-index totals, independent of mdhd/tkhd duration declarations and edit lists.</summary>
+        public ContainerPacketIndexInfo PacketIndex { get; }
         /// <summary>The track header matrix before the movie matrix. Video Stream.DisplayMatrix composes both.</summary>
         public VideoDisplayMatrix DisplayMatrix { get; }
         /// <summary>Recognized source color descriptions in sample-entry order. Stream.ColorDescription is the selected representation.</summary>
@@ -49,6 +53,6 @@ namespace Mediana.Containers.Mp4
 
         internal Mp4TrackInfo WithStream(EncodedStreamInfo stream) => new(TrackId, stream, SampleEntry,
             MediaDuration, PresentationDuration, Edits, Width, Height, DeclaredAudioChannels,
-            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, ColorDescriptions);
+            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, ColorDescriptions);
     }
 }

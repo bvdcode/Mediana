@@ -68,6 +68,8 @@ namespace Mediana.Containers.Mp4
                     throw new NotSupportedException("The MP4 codec configuration exceeds the configured limit.");
                 }
                 Mp4SampleTable table = new(sampleBoxes, options, dataRanges, cancellationToken);
+                ContainerPacketIndexInfo packetIndex = new(table.SampleCount, table.PayloadBytes,
+                    new MediaDuration(table.DecodeDurationTicks, trackTimeBase));
                 VideoDisplayMatrix? displayMatrix = kind switch
                 {
                     MediaKind.Video => trackMatrix.Then(movieMatrix),
@@ -75,12 +77,12 @@ namespace Mediana.Containers.Mp4
                     _ => throw new InvalidDataException("Unsupported MP4 track kind.")
                 };
                 EncodedStreamInfo stream = new(tracks.Count, kind, description.CodecId, description.Format,
-                    trackTimeBase, description.Configuration.Span, displayMatrix,
+                    trackTimeBase, description.Configuration.Span, displayMatrix, codedDuration: packetIndex.DecodeDuration,
                     colorDescription: Mp4ColorDescriptionParser.Select(description.ColorDescriptions));
                 IReadOnlyList<Mp4Edit> edits = ReadEdits(track, timeBase, options, budget);
                 tracks.Add(new Mp4TrackInfo(trackId, stream, description.SampleEntry, mediaDuration,
                     presentationDuration, edits, description.Width, description.Height,
-                    description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix, description.ColorDescriptions));
+                    description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix, packetIndex, description.ColorDescriptions));
                 tables.Add(table);
             }
             if (tracks.Count == 0)

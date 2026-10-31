@@ -43,7 +43,9 @@ namespace Mediana.Containers.Mp4
             IReadOnlyList<Mp4MetadataItem> metadataItems = Metadata;
             info = new Lazy<ContainerInfo>(() => new ContainerInfo("mp4", declaredDuration,
                 metadataItems.Where(item => item.Text is not null)
-                    .Select(item => new MediaTag(item.Namespace, item.Name, item.Text!, locale: item.Locale))));
+                    .Select(item => new MediaTag(item.Namespace, item.Name, item.Text!, locale: item.Locale)),
+                movie.Tracks.Select(track => new ContainerStreamInfo(track.Stream.StreamIndex,
+                    track.PresentationDuration, packetIndex: track.PacketIndex))));
             CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(movie.Metadata));
             InitializePictureInfo();
             TimestampMode = timestampMode;

@@ -42,7 +42,7 @@ namespace Mediana.Containers.Mp4
                     throw new NotSupportedException("MP4 MP3 samples must contain one complete Layer III frame.");
                 }
                 EncodedStreamInfo stream = new(track.Stream.StreamIndex, MediaKind.Audio, Mp3FrameHeader.CodecId, StreamFormats.Mp3,
-                    track.Stream.TimeBase, bytes.Memory.Span);
+                    track.Stream.TimeBase, bytes.Memory.Span, codedDuration: track.Stream.CodedDuration);
                 movie.Tracks[index] = track.WithStream(stream);
             }
         }

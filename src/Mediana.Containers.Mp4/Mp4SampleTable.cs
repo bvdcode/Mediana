@@ -51,7 +51,7 @@ namespace Mediana.Containers.Mp4
             }
             Mp4Box? sync = boxes.Optional("stss");
             SyncSamples = sync is null ? null : new Mp4Table(sync.Value.Payload, 4);
-            ValidateRuns(Timing, cancellationToken);
+            DecodeDurationTicks = ValidateRuns(Timing, cancellationToken, accumulateDuration: true);
             if (Composition is not null)
             {
                 ValidateRuns(Composition, cancellationToken);
@@ -61,6 +61,8 @@ namespace Mediana.Containers.Mp4
         }
 
         public int SampleCount { get; }
+        public long PayloadBytes { get; private set; }
+        public long DecodeDurationTicks { get; }
         public int ChunkCount => chunks.Count;
         public Mp4Table ChunkRuns { get; }
         public Mp4Table Timing { get; }
@@ -96,9 +98,10 @@ namespace Mediana.Containers.Mp4
             return bytes;
         }
 
-        private void ValidateRuns(Mp4Table table, CancellationToken cancellationToken)
+        private long ValidateRuns(Mp4Table table, CancellationToken cancellationToken, bool accumulateDuration = false)
         {
             long count = 0;
+            long duration = 0;
             for (int index = 0; index < table.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -112,11 +115,16 @@ namespace Mediana.Containers.Mp4
                 {
                     throw new InvalidDataException("MP4 timing runs exceed the sample count.");
                 }
+                if (accumulateDuration)
+                {
+                    duration = checked(duration + (long)run * table.UInt32(index, 4));
+                }
             }
             if (count != SampleCount)
             {
                 throw new InvalidDataException("MP4 timing runs do not cover every sample.");
             }
+            return duration;
         }
 
         private void ValidateSyncSamples(CancellationToken cancellationToken)
@@ -170,6 +178,7 @@ namespace Mediana.Containers.Mp4
                     throw new InvalidDataException("MP4 chunks exceed the sample count.");
                 }
                 long bytes = SampleByteCount(sample, (int)count, cancellationToken);
+                PayloadBytes = checked(PayloadBytes + bytes);
                 sample += (int)count;
                 long offset = ChunkOffset(chunk);
                 if (!ContainsMediaRange(ranges, offset, bytes))

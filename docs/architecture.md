@@ -138,6 +138,12 @@ count decoded pictures or PCM samples, apply presentation edits, or define a rat
 when their duration is zero. Null metadata means unavailable; an inspected empty
 collection remains distinct. All snapshots survive reader and source disposal.
 
+MP4 computes these totals during its existing sample-table validation, without a
+second index pass or packet payload scan. Indexed decode duration also supplies
+`EncodedStreamInfo.CodedDuration`; `mvhd`, `tkhd`, `mdhd` and edit declarations
+remain separate. Both media and linear-movie timestamp modes retain the original
+duration clock, including after MP3 configuration is inferred from its frame header.
+
 ## Container pictures
 
 `IContainerPictureReader` is an optional reader capability implemented by MP3,
