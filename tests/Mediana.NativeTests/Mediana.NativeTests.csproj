@@ -22,6 +22,7 @@
     <Compile Include="../Shared/CollectingPacketWriter.cs" Link="CollectingPacketWriter.cs" />
     <Compile Include="../Shared/FrameFixture.cs" Link="FrameFixture.cs" />
     <Compile Include="../Shared/EncodingOperationTestInput.cs" Link="EncodingOperationTestInput.cs" />
+    <Compile Include="../Shared/EncodingGroupTestInput.cs" Link="EncodingGroupTestInput.cs" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="../Shared/MultiStreamTestInput.cs" Link="MultiStreamTestInput.cs" />
