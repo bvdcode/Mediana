@@ -10,6 +10,12 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync(string root, string h264Root)
         {
+            foreach ((int width, int height) in new (int, int)[] { (1, 1), (2, 3), (17, 19), (32, 16), (35, 33) })
+            {
+                H264SourceBlockTestInput.Verify(width, height, false);
+                H264SourceBlockTestInput.Verify(width, height, true);
+            }
+            Console.WriteLine("PASS H.264 source blocks: every plane, visible edges and padded rows match independent transform coefficients without changing input storage.");
             foreach ((int mode, int qp) in new (int, int)[] { (0, 0), (1, 0), (0, 6), (1, 6) })
             {
                 await H264PcmEncodingTestInput.VerifyAsync(h264Root, mode, qp);
