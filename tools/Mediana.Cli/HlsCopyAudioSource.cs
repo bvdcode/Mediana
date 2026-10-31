@@ -4,6 +4,7 @@
 using Mediana.Containers.Mp4;
 using Mediana.Core;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 using Mediana.IO;
 
 namespace Mediana.Cli
@@ -11,6 +12,9 @@ namespace Mediana.Cli
     internal class HlsCopyAudioSource(Mp4Reader reader, EncodedStreamInfo stream) : HlsAudioSource
     {
         private int sample;
+        private MediaPacket? pending;
+        private bool disposed;
+        public override long PacketsWritten { get; protected set; }
         public override EncodedStreamInfo Stream { get; } = stream;
 
         public static async ValueTask<HlsCopyAudioSource> OpenAsync(IRandomAccessByteSource source, int streamIndex,
@@ -40,7 +44,7 @@ namespace Mediana.Cli
             }
         }
 
-        protected override async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken token)
+        private async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken token)
         {
             if (sample == reader.Tracks[Stream.StreamIndex].SampleCount)
             {
@@ -51,6 +55,38 @@ namespace Mediana.Cli
             return packet;
         }
 
-        protected override ValueTask DisposeCoreAsync() => reader.DisposeAsync();
+        public override async ValueTask WriteBeforeAsync(MediaTimestamp? boundary, IReadOnlyList<HlsVideoRendition> renditions, CancellationToken token)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                pending ??= await ReadPacketAsync(token);
+                if (pending is null || (boundary is MediaTimestamp limit && pending.DecodeTime!.Value.CompareTo(limit) >= 0))
+                {
+                    return;
+                }
+                foreach (HlsVideoRendition rendition in renditions)
+                {
+                    await rendition.Writer.WritePacketAsync(pending, token);
+                }
+                pending.Dispose();
+                pending = null;
+                PacketsWritten++;
+            }
+        }
+
+
+        public override async ValueTask DisposeAsync()
+        {
+            if (!disposed)
+            {
+                disposed = true;
+                pending?.Dispose();
+                pending = null;
+                await reader.DisposeAsync();
+            }
+            GC.SuppressFinalize(this);
+        }
     }
 }
