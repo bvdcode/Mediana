@@ -579,6 +579,16 @@ while (await waveform.ReadLevelAsync(cancellationToken) is AudioLevel level)
 }
 ```
 
+The reader also accepts an existing mono `AudioChannelMixer`, including
+`AudioDownmix.CreateMono(inputFormat)`. It applies that matrix directly before
+resampling; a stereo-output mixer is rejected. The
+[complete file example](docs/audio-waveform.md) registers WAV, MP3, FLAC and MP4/AAC
+and writes streaming JSON without retaining the complete PCM recording:
+
+```bash
+dotnet run --project samples/Mediana.Sample -c Release -- --waveform input.flac > waveform.json
+```
+
 The reader owns callback frames and filter storage, borrows the source and uses
 the caller's media-buffer allocator. It keeps bounded processing history and one
 pending level, independent of recording length. EOF, failure, cancellation and
