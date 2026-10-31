@@ -8,7 +8,7 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264IntraEncoder
     {
-        public static MediaBuffer Encode(VideoFrame input, H264Picture reconstructed, int qp, int idrId,
+        public static MediaBuffer Encode(VideoFrame input, H264Picture reconstructed, int qp, int initialQuantizer, int idrId,
             MediaBufferAllocator allocator, int maximumBytes, CancellationToken cancellationToken)
         {
             using H264BitWriter bits = new(allocator, maximumBytes, 0x65, lengthPrefixed: true);
@@ -19,7 +19,7 @@ namespace Mediana.Codecs.H264
             bits.WriteUnsigned((uint)idrId);
             bits.WriteFlag(false);
             bits.WriteFlag(false);
-            bits.WriteSigned(0);
+            bits.WriteSigned(qp - initialQuantizer);
             bits.WriteUnsigned(1);
             for (int y = 0; y < reconstructed.Height; y += 16)
             {

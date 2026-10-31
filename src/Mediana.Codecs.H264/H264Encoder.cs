@@ -82,8 +82,8 @@ namespace Mediana.Codecs.H264
                 int number = keyFrame ? 0 : (frameNumber + 1) & 15;
                 reconstructed = new(sequence, allocator, keyFrame ? H264SliceKind.I : H264SliceKind.P);
                 using MediaBuffer encoded = keyFrame
-                    ? H264IntraEncoder.Encode(input, reconstructed, options.Quantizer, idrId, allocator, options.MaximumPacketBytes, cancellationToken)
-                    : H264InterEncoder.Encode(input, reconstructed, reference!, number, allocator, options, cancellationToken);
+                    ? H264IntraEncoder.Encode(input, reconstructed, options.Quantizer, options.Quantizer, idrId, allocator, options.MaximumPacketBytes, cancellationToken)
+                    : H264InterEncoder.Encode(input, reconstructed, reference!, number, options.Quantizer, allocator, options, cancellationToken);
                 MediaDuration duration = input.Duration!.Value;
                 if ((Int128)encoded.Memory.Length * 8 * duration.TimeBase.Denominator >
                     (Int128)H264EncoderConfiguration.MaximumBitsPerSecond * duration.Value * duration.TimeBase.Numerator ||
