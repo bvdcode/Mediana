@@ -14,7 +14,7 @@ using Mediana.Formats;
 namespace Mediana.Codecs.Aac
 {
     /// <summary>Encodes contiguous mono/stereo interleaved Float32 PCM as AAC-LC raw access units.
-    /// Uses long sine windows, independent channels and a per-frame bit ceiling without a reservoir.
+    /// Uses long sine windows and independent channels allocated within a shared per-frame bit ceiling, without a reservoir.
     /// Retains at most one input lease; returned packets belong to the caller. Calls must not overlap.</summary>
     public partial class AacEncoder : IMediaEncoder<AudioFrame>
     {

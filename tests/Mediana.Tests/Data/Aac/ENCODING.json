@@ -17,25 +17,66 @@
       "name": "lc-stereo-44",
       "bitrate_ceiling": 128000,
       "source_sha256": "6b0fe76cb3d84b2387743bac01b21ac9737c30868f4116176daf06e05a33cc14",
-      "transport_sha256": "7de1c9d45872a6c0621e3675a77e0b5c62466e6f3aa7368874eaaa93b0e7692e",
-      "reference_sha256": "bff8963fbffabef220f39d8c4fb6b4a750c7ad48f99d52c91c02c5033e3a5cba",
+      "transport_sha256": "4a0cf61b1cc2644a840475ba036ca7c8007922dbd2d5929024d98808706cc636",
+      "reference_sha256": "b2015d559702e1e17ac1900d87459ddaa587d356d9d751293582bc96c1a5f34a",
       "encode_command": "mediana -i lc-stereo-44.wav lc-stereo-44.ts --audio-codec Aac --audio-bit-rate 128000",
       "decode_command": "ffmpeg -v error -xerror -threads 1 -i lc-stereo-44.ts -map 0:a:0 -c:a pcm_f32le -f f32le lc-stereo-44.encoded-128k.f32le",
-      "source_snr_db": 19.626748162918236,
-      "raw_bits_per_second": 124233.91544117648
+      "source_snr_db": 19.67485121444509,
+      "raw_bits_per_second": 124456.84742647059
     },
     {
       "name": "lc-pns-48",
       "bitrate_ceiling": 192000,
       "source_sha256": "7ebf6730f1eecf8471b7e7e3f45febe4c327b36591d005fca7043b5c2b59c9a3",
-      "transport_sha256": "10cabfa0b35f982a01ea57d873af3462627c6270f42473ee686950300808cafa",
-      "reference_sha256": "3c28d74e8d3e7b9ee73fba4d856e253e68bedf8a6f534e2cfd34ba9fb09dbf56",
+      "transport_sha256": "8faf16501467aac85ec60a3055976f0633d418b6e8e418a981505be0c36d1bdc",
+      "reference_sha256": "03dc7ce3cfe9f199c6d00774b8ec740f98a3a512fa9a9874403238905e03b581",
       "encode_command": "mediana -i lc-pns-48.wav lc-pns-48.ts --audio-codec Aac --audio-bit-rate 192000",
       "decode_command": "ffmpeg -v error -xerror -threads 1 -i lc-pns-48.ts -map 0:a:0 -c:a pcm_f32le -f f32le lc-pns-48.encoded-192k.f32le",
-      "source_snr_db": 23.267668802635466,
-      "raw_bits_per_second": 189217.1052631579
+      "source_snr_db": 23.24433585924455,
+      "raw_bits_per_second": 189414.47368421053
+    },
+    {
+      "name": "channel-budget",
+      "bitrate_ceiling": 96000,
+      "source_sha256": "1d0b0461912755afe3aac26f59da1977569209c62c8e89e23d033235427f5f18",
+      "transport_sha256": "b930c6ae5ef62946bf9c9f5c3de40c7660d12d993685bb1c1b0eff4c2db5a6ec",
+      "reference_sha256": "4c182297a12de0ab9cd43c495edf759f37c135ca26a54a85bf5c782fd2917e4a",
+      "encode_command": [
+        "dotnet",
+        "tools/Mediana.Cli/bin/Release/net10.0/Mediana.Cli.dll",
+        "-i",
+        "tests/Mediana.Tests/Data/Aac/channel-budget.wav",
+        "artifacts/aac-channel-budget/channel-budget.ts",
+        "--audio-codec",
+        "Aac",
+        "--audio-bit-rate",
+        "96000"
+      ],
+      "decode_command": [
+        "ffmpeg",
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "1",
+        "-i",
+        "artifacts/aac-channel-budget/channel-budget.ts",
+        "-map",
+        "0:a:0",
+        "-c:a",
+        "pcm_f32le",
+        "-f",
+        "f32le",
+        "tests/Mediana.Tests/Data/Aac/channel-budget.encoded-96k.f32le"
+      ],
+      "source_snr_db": 39.75946131564464,
+      "raw_bits_per_second": 94125.0,
+      "packets": 107,
+      "source_samples_per_channel": 108037,
+      "source_definition": "Original 48000 Hz PCM16 stereo; seven sinusoidal components at 157,311,617,1223,2441,4871,9743 Hz, phase index*0.19, each amplitude0.078, 96-sample endpoint ramps. Samples0..35999:left-only;36000..71999:right gain0.05; remaining: alternating sides in12000-sample blocks. Quantize round(value*32767)."
     }
   ],
-  "quantization": "Per-band reconstruction-error allocation with exact DPCM, section and spectral bit counts.",
+  "quantization": "Bounded per-band reconstruction-error allocation within one shared mono/stereo element budget, preserving each channel global gain, scale DPCM and section boundaries.",
   "quality_metric": "Unweighted source SNR after removing 1024 priming samples and final padding; generated test inputs only."
 }

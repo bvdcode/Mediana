@@ -9,6 +9,7 @@ namespace Mediana.Tests
         [InlineData("lc-mono-48", 64000, 19)]
         [InlineData("lc-stereo-44", 128000, 17)]
         [InlineData("lc-pns-48", 192000, 19)]
+        [InlineData("channel-budget", 96000, 107)]
         public Task EveryEncodedSampleMatchesIndependentDecoding(string name, int bitRate, int packets) =>
             AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name, bitRate, packets);
     }

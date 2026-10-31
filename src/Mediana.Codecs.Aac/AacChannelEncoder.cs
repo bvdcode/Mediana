@@ -5,46 +5,6 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacChannelEncoder
     {
-        public static int Quantize(ReadOnlySpan<double> spectrum, Span<double> powered, Span<int> quantized,
-            Span<byte> books, Span<byte> scales, int frequencyIndex, int budget, CancellationToken token)
-        {
-            double maximum = 0;
-            for (int bin = 0; bin < spectrum.Length; bin++)
-            {
-                powered[bin] = Math.Pow(Math.Abs(spectrum[bin]), 0.75);
-                maximum = Math.Max(maximum, powered[bin]);
-            }
-            double required = maximum == 0 ? 0 : Math.Ceiling(100 + 16.0 / 3 * Math.Log2(maximum / AacQuantizer.MaximumMagnitude));
-            if (!double.IsFinite(required) || required > AacQuantizer.MaximumScale)
-            {
-                throw new NotSupportedException("The PCM magnitude exceeds the AAC quantizer range.");
-            }
-            ReadOnlySpan<int> boundaries = AacBandTables.Get(frequencyIndex, false);
-            int count = boundaries.Length - 1;
-            Span<AacBandQuantization> bands = stackalloc AacBandQuantization[count];
-            Span<AacBandQuantization> candidates = stackalloc AacBandQuantization[count * 2];
-            AacBandAllocator allocation = new(spectrum, powered, boundaries, quantized, bands, candidates);
-            allocation.Allocate(Math.Max(0, (int)required), budget, token);
-            int gain = 0;
-            bool first = true;
-            for (int band = 0; band < count; band++)
-            {
-                token.ThrowIfCancellationRequested();
-                AacBandQuantization selected = bands[band];
-                int start = boundaries[band];
-                int length = boundaries[band + 1] - start;
-                _ = AacQuantizer.Quantize(spectrum.Slice(start, length), powered.Slice(start, length), quantized.Slice(start, length), selected.Scale);
-                books[band] = selected.Book;
-                scales[band] = (byte)selected.Scale;
-                if (first && selected.Book != 0)
-                {
-                    gain = selected.Scale;
-                    first = false;
-                }
-            }
-            return gain;
-        }
-
         public static int Count(ReadOnlySpan<AacBandQuantization> bands)
         {
             int total = 11;

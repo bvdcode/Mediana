@@ -16,7 +16,6 @@ namespace Mediana.Codecs.Aac
             long budget = budgetRemainder + (long)options.BitRate * FrameSamples;
             int frameBits = (int)(budget / format.SampleRate) & ~7;
             budgetRemainder = budget % format.SampleRate;
-            int channelBudget = (frameBits - 64) / channels;
             Span<byte> encoded = stackalloc byte[1536];
             AacBitWriter bits = new(encoded[..(frameBits / 8)]);
             bits.Write(channels == 1 ? 0u : 1, 3);
@@ -38,9 +37,16 @@ namespace Mediana.Codecs.Aac
                     analysis[FrameSamples + index] = samples[FrameSamples + index] * window[FrameSamples - 1 - index];
                 }
                 AacMdct.Transform(analysis, current.Spectrum(channel), current.Folded, analysis, current.Fourier, token);
-                int gain = AacChannelEncoder.Quantize(current.Spectrum(channel), current.Folded, current.Quantized(channel), current.Books(channel), current.Scales(channel),
-                    configuration.FrequencyIndex, channelBudget, token);
-                AacChannelEncoder.Write(ref bits, gain, current.Quantized(channel), current.Books(channel), current.Scales(channel), configuration.FrequencyIndex, channels == 2);
+            }
+            Span<int> gains = stackalloc int[channels];
+            AacSpectrumQuantizer.Quantize(current.Spectra, current.Window, current.Quantized, current.Books, current.Scales,
+                gains, configuration.FrequencyIndex, frameBits - 64, token);
+            for (int channel = 0; channel < channels; channel++)
+            {
+                AacChannelEncoder.Write(ref bits, gains[channel], current.Quantized.Slice(channel * FrameSamples, FrameSamples),
+                    current.Books.Slice(channel * AacSpectrumQuantizer.ChannelBands, AacSpectrumQuantizer.ChannelBands),
+                    current.Scales.Slice(channel * AacSpectrumQuantizer.ChannelBands, AacSpectrumQuantizer.ChannelBands),
+                    configuration.FrequencyIndex, channels == 2);
             }
             int length = bits.Finish();
             token.ThrowIfCancellationRequested();

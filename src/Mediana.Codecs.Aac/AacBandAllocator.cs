@@ -35,7 +35,7 @@ namespace Mediana.Codecs.Aac
                 token.ThrowIfCancellationRequested();
                 int middle = (low + high) / 2;
                 Fill(middle);
-                if (AacChannelEncoder.Count(bands) <= budget)
+                if (Count() <= budget)
                 {
                     high = middle;
                 }
@@ -45,7 +45,7 @@ namespace Mediana.Codecs.Aac
                 }
             }
             Fill(low);
-            if (AacChannelEncoder.Count(bands) > budget)
+            if (Count() > budget)
             {
                 throw new NotSupportedException("The PCM frame cannot fit the configured AAC bit budget.");
             }
@@ -58,14 +58,21 @@ namespace Mediana.Codecs.Aac
             Span<int> savings = stackalloc int[PairCandidates];
             Span<double> refineScores = stackalloc double[PairCandidates];
             Span<double> savingScores = stackalloc double[PairCandidates];
-            for (int move = 0; move < MaximumMoves; move++)
+            int channels = bands.Length / (boundaries.Length - 1);
+            Span<int> channelBits = stackalloc int[channels];
+            for (int move = 0; move < MaximumMoves * channels; move++)
             {
                 token.ThrowIfCancellationRequested();
                 refinements.Fill(-1);
                 savings.Fill(-1);
                 refineScores.Fill(double.NegativeInfinity);
                 savingScores.Fill(double.NegativeInfinity);
-                int currentBits = AacChannelEncoder.Count(bands);
+                int currentBits = 0;
+                for (int channel = 0; channel < channels; channel++)
+                {
+                    channelBits[channel] = AacChannelEncoder.Count(bands.Slice(channel * (boundaries.Length - 1), boundaries.Length - 1));
+                    currentBits += channelBits[channel];
+                }
                 int first = -1;
                 int second = -1;
                 double best = 0;
@@ -79,7 +86,7 @@ namespace Mediana.Codecs.Aac
                     int band = index / 2;
                     AacBandQuantization saved = bands[band];
                     bands[band] = candidate;
-                    int count = AacChannelEncoder.Count(bands);
+                    int count = Estimate(channelBits, currentBits, band);
                     bands[band] = saved;
                     if (count == int.MaxValue)
                     {
@@ -131,7 +138,7 @@ namespace Mediana.Codecs.Aac
                             }
                             bands[firstBand] = candidates[refinement];
                             bands[secondBand] = candidates[saving];
-                            int count = AacChannelEncoder.Count(bands);
+                            int count = Estimate(channelBits, currentBits, firstBand, secondBand);
                             bands[firstBand] = savedFirst;
                             bands[secondBand] = savedSecond;
                             if (count <= budget)
@@ -170,9 +177,53 @@ namespace Mediana.Codecs.Aac
 
         private AacBandQuantization Measure(int band, int scale)
         {
-            int start = boundaries[band];
-            int count = boundaries[band + 1] - start;
+            int channelBands = boundaries.Length - 1;
+            int localBand = band % channelBands;
+            int start = band / channelBands * boundaries[^1] + boundaries[localBand];
+            int count = boundaries[localBand + 1] - boundaries[localBand];
             return AacBandQuantization.Measure(spectrum.Slice(start, count), powered.Slice(start, count), scratch[..count], scale);
+        }
+
+        private int Count()
+        {
+            int channelBands = boundaries.Length - 1;
+            int total = 0;
+            for (int offset = 0; offset < bands.Length; offset += channelBands)
+            {
+                int count = AacChannelEncoder.Count(bands.Slice(offset, channelBands));
+                if (count == int.MaxValue)
+                {
+                    return int.MaxValue;
+                }
+                total += count;
+            }
+            return total;
+        }
+
+        private int Estimate(scoped ReadOnlySpan<int> channelBits, int total, int firstBand, int secondBand = -1)
+        {
+            int channelBands = boundaries.Length - 1;
+            int firstChannel = firstBand / channelBands;
+            int first = AacChannelEncoder.Count(bands.Slice(firstChannel * channelBands, channelBands));
+            if (first == int.MaxValue)
+            {
+                return int.MaxValue;
+            }
+            int result = total - channelBits[firstChannel] + first;
+            if (secondBand >= 0)
+            {
+                int secondChannel = secondBand / channelBands;
+                if (secondChannel != firstChannel)
+                {
+                    int second = AacChannelEncoder.Count(bands.Slice(secondChannel * channelBands, channelBands));
+                    if (second == int.MaxValue)
+                    {
+                        return int.MaxValue;
+                    }
+                    result += second - channelBits[secondChannel];
+                }
+            }
+            return result;
         }
 
         private void UpdateCandidates(int band)
