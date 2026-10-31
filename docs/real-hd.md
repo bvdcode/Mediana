@@ -58,20 +58,38 @@ times, frame durations and original AAC packets still match the source.
 Linux x64, Intel Core i5-12450H, .NET 10.0.13 Native AOT and FFmpeg
 6.1.1-3ubuntu5. Each process ran sequentially with affinity to the same logical
 CPU; FFmpeg decoding used one thread. One full-source run was recorded per
-implementation on a shared host. CPU time is user plus system time; memory is
-process peak RSS.
+implementation and revision on a shared host. CPU time is user plus system time;
+memory is process peak RSS.
+
+The complete decode comparison was repeated before and after reusing six-tap
+luma filter sums across prediction blocks. Each Native AOT consumer decoded the
+original file through EOF, hashed every picture, checked every reference hash and
+exact time, and released all media storage. The complete CSV outputs were
+identical. A fresh FFmpeg decode matched every original reference frame.
+
+| Decode and hash all 14,315 pictures | CPU | Elapsed | Peak RSS |
+| --- | ---: | ---: | ---: |
+| Mediana before (`e1f5fea`) | 711.74 s | 731.66 s | 106.8 MiB |
+| Mediana after (`58f9da8`) | 466.67 s | 481.56 s | 106.9 MiB |
+| FFmpeg | 90.27 s | 92.01 s | 74.5 MiB |
+
+The observed CPU reduction is 34.43%, a 1.53-fold speedup. The complete optimized
+operation still uses 5.17 times FFmpeg's CPU. This measurement includes SHA256 and
+per-picture text output; the Native consumer also checks reference hashes and
+exact times while decoding.
+
+Luma interpolation extends picture boundaries once per tile and reuses unrounded
+horizontal sums for diagonal samples. All quarter-sample phases retain their
+specified rounding and clipping. Managed and Native AOT tests check 4,752 block,
+phase, pattern and coordinate combinations against scalar convolution, including
+picture borders, extreme coordinates and blocks crossing tile boundaries.
+
+The complete copying results at revision `5d6e272` are:
 
 | Complete operation | Mediana CPU | FFmpeg CPU | Mediana peak RSS | FFmpeg peak RSS |
 | --- | ---: | ---: | ---: | ---: |
-| Decode video and hash every picture | 654.54 s | 84.68 s | 106.1 MiB | 74.7 MiB |
 | Copy video and audio to MPEG-TS | 0.863 s | 0.857 s | 30.2 MiB | 57.5 MiB |
 | Copy video and audio to VOD HLS | 2.352 s | 0.903 s | 28.8 MiB | 78.0 MiB |
 
-The decode measurement includes SHA256 and per-picture text output; the Native
-consumer also checked reference hashes and exact times while decoding. It measures
-that complete operation, rather than an isolated codec kernel. FFmpeg and Mediana
-use their respective transport muxing policies. Native decoding was measured at
-revision `70ff4fb`; corrected movie-timeline copying at `5d6e272`.
-
-Representative HD re-encoding quality and throughput remain open. The decode
-operation's observed CPU ratio, 7.73, is the current performance baseline.
+FFmpeg and Mediana use their respective transport muxing policies.
+Representative HD re-encoding quality and throughput remain open.
