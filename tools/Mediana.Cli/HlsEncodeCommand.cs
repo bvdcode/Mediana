@@ -17,7 +17,7 @@ namespace Mediana.Cli
         private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string input, string output, int videoIndex, int? audioIndex,
-            AudioCodecMode? audioCodec, int audioBitRate, int[] widths, H264RateControlOptions?[]? videoRates,
+            AudioCodecMode? audioCodec, int audioBitRate, int? audioChannels, int[] widths, H264RateControlOptions?[]? videoRates,
             int qp, long targetMilliseconds, ILogger logger, CancellationToken token)
         {
             MediaEngine engine = new MediaEngineBuilder()
@@ -35,7 +35,7 @@ namespace Mediana.Cli
             await using HlsAudioSource? audio = audioIndex is int index ? audioCodec switch
             {
                 null => await HlsCopyAudioSource.OpenAsync(source, index, allocator, token),
-                AudioCodecMode.Aac => await HlsAacAudioSource.OpenAsync(source, index, audioBitRate, allocator, token),
+                AudioCodecMode.Aac => await HlsAacAudioSource.OpenAsync(source, index, audioBitRate, audioChannels, allocator, token),
                 _ => throw new ArgumentOutOfRangeException(nameof(audioCodec))
             } : null;
             long frames = 0;

@@ -13,7 +13,7 @@ using Mediana.Processing.Audio;
 namespace Mediana.Cli
 {
     internal class HlsAacAudioSource(AudioSession session, AudioTrimmer trimmer, AacEncoder encoder,
-        MediaBufferAllocator allocator, AudioFrame first) : HlsAudioSource
+        MediaBufferAllocator allocator, AudioEncodingPcm converter, AudioFrame first) : HlsAudioSource
     {
         private AudioFrame? prepared = first;
         private bool completed;
@@ -23,7 +23,7 @@ namespace Mediana.Cli
         public int? PaddingSamples => encoder.PaddingSamples;
 
         public static async ValueTask<HlsAacAudioSource> OpenAsync(IRandomAccessByteSource source, int streamIndex,
-            int bitRate, MediaBufferAllocator allocator, CancellationToken token)
+            int bitRate, int? channels, MediaBufferAllocator allocator, CancellationToken token)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator, cancellationToken: token);
@@ -45,11 +45,12 @@ namespace Mediana.Cli
                 Mp4AudioSampleRange? range = track.Edits.Count == 0 ? null : Mp4AudioSampleRange.FromEditList(track, original.Format.SampleRate);
                 trimmer = new(ReadAsync, range?.StartSample ?? 0, range?.SampleCount, allocator, range?.PresentationTime ?? original.Timestamp);
                 using AudioFrame selected = await trimmer.ReadFrameAsync(token) ?? throw new InvalidDataException("The audio edit contains no samples.");
-                converted = AudioSampleConverter.Apply(selected, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, allocator, token);
+                AudioEncodingPcm converter = new(selected.Format, channels);
+                converted = converter.Apply(selected, allocator, token);
                 encoder = AacEncoder.Create(converted.Format,
                     converted.Timestamp?.TimeBase ?? throw new NotSupportedException("AAC encoding requires known PCM timestamps."),
                     allocator, new() { BitRate = bitRate }, streamIndex);
-                HlsAacAudioSource result = new(session, trimmer, encoder, allocator, converted);
+                HlsAacAudioSource result = new(session, trimmer, encoder, allocator, converter, converted);
                 success = true;
                 return result;
             }
@@ -118,7 +119,7 @@ namespace Mediana.Cli
         private async ValueTask<AudioFrame?> ReadConvertedAsync(CancellationToken token)
         {
             using AudioFrame? frame = await trimmer.ReadFrameAsync(token);
-            return frame is null ? null : AudioSampleConverter.Apply(frame, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, allocator, token);
+            return frame is null ? null : converter.Apply(frame, allocator, token);
         }
 
         protected override async ValueTask DisposeCoreAsync()

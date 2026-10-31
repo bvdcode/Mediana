@@ -142,11 +142,33 @@ namespace Mediana.Tests
         }
 
         [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public async Task SurroundAudioCreatesCompleteDownmixedVariants(int channels)
+        {
+            string output = Path.Combine(directory, "surround-hls");
+            (int code, _, _) = await CliTests.RunAsync(["hls", "encode", Data("avc-aac-51.mp4"), output,
+                "--audio-stream", "1", "--audio-codec", "Aac", "--audio-channels", channels.ToString(CultureInfo.InvariantCulture),
+                "--segment-ms", "500", "--widths", "64", "32"]);
+            Assert.Equal(0, code);
+            string master = await File.ReadAllTextAsync(Path.Combine(output, "index.m3u8"));
+            Assert.Equal(2, master.Split("mp4a.40.2").Length - 1);
+            string[] playlists = await Task.WhenAll(new[] { 64, 32 }.Select(width => File.ReadAllTextAsync(
+                Path.Combine(output, "variant-" + width.ToString(CultureInfo.InvariantCulture), "index.m3u8"))));
+            Assert.Equal(playlists[0], playlists[1]);
+            Assert.Contains("#EXT-X-ENDLIST", playlists[0]);
+            Assert.Single(Directory.GetFileSystemEntries(directory));
+        }
+
+        [Theory]
         [InlineData("--audio-stream 1 --audio-bit-rate 128000", 2)]
         [InlineData("--video-only --audio-codec Aac", 2)]
         [InlineData("--audio-stream 1 --audio-codec Aac --audio-bit-rate 0", 2)]
         [InlineData("--audio-stream 1 --audio-codec Aac --audio-bit-rate 5000000", 2)]
         [InlineData("--audio-stream 1 --audio-codec 7", 2)]
+        [InlineData("--audio-stream 1 --audio-channels 2", 2)]
+        [InlineData("--audio-stream 1 --audio-codec Aac --audio-channels 6", 2)]
+        [InlineData("--video-only --audio-channels 2", 2)]
         public async Task InvalidEncodingOptionsPublishNothing(string options, int expected)
         {
             List<string> arguments = ["hls", "encode", Data("avc-aac.mp4"), Path.Combine(directory, "hls")];

@@ -10,7 +10,6 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
-using Mediana.Processing.Audio;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
@@ -19,7 +18,7 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 16 * 1024 * 1024;
 
-        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, int bitRate, ILogger logger, CancellationToken token)
+        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, int bitRate, int? channels, ILogger logger, CancellationToken token)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
@@ -27,7 +26,8 @@ namespace Mediana.Cli
                 await engine.OpenAudioAsync(source, cancellationToken: token);
             using AudioFrame first = await session.ReadFrameAsync(token) ?? throw new InvalidDataException("The input contains no decoded audio samples.");
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
-            using AudioFrame prepared = AudioSampleConverter.Apply(first, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, allocator, token);
+            AudioEncodingPcm converter = new(first.Format, channels);
+            using AudioFrame prepared = converter.Apply(first, allocator, token);
             using AacEncoder encoder = AacEncoder.Create(prepared.Format, new(1, prepared.Format.SampleRate), allocator, new() { BitRate = bitRate });
             MediaProgress progress = new(logger, TimeProvider.System, session.Stream.CodedDuration);
             long samples = 0;
@@ -57,8 +57,7 @@ namespace Mediana.Cli
                         return result;
                     }
                     using AudioFrame? frame = await session.ReadFrameAsync(cancellationToken);
-                    return frame is null ? null : AudioSampleConverter.Apply(frame,
-                        AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, allocator, cancellationToken);
+                    return frame is null ? null : converter.Apply(frame, allocator, cancellationToken);
                 }
             }, token);
             int? padding = encoder.PaddingSamples;

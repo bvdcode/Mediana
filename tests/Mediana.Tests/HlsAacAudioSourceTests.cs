@@ -5,6 +5,7 @@ using Mediana.Cli;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
+using Mediana.Formats.Audio;
 
 namespace Mediana.Tests
 {
@@ -18,7 +19,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Data("Mp4", name)));
-            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 1, 128000, allocator, default);
+            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 1, 128000, null, allocator, default);
             await audio.WriteBeforeAsync(new(0, new(1, rate)), [], default);
             Assert.Equal(1, audio.PacketsWritten);
             await audio.WriteBeforeAsync(new(0, new(1, rate)), [], default);
@@ -43,7 +44,7 @@ namespace Mediana.Tests
                 (1, -1, 65536), (10, 1025, 65536));
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             await using TrackingRandomAccessSource source = new(data);
-            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 0, 128000, allocator, default);
+            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 0, 128000, null, allocator, default);
             Assert.Equal(new TimeBase(1, 441000), audio.Stream.TimeBase);
             MediaTimestamp primingStart = new(441 - 10240, new(1, 441000));
             await audio.WriteBeforeAsync(primingStart, [], default);
@@ -64,7 +65,7 @@ namespace Mediana.Tests
             byte[] data = Mp4EditTestData.Replace(await File.ReadAllBytesAsync(Data("Aac", "lc-mono-48.m4a")), false);
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             await using TrackingRandomAccessSource source = new(data);
-            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 0, 64000, allocator, default);
+            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 0, 64000, null, allocator, default);
             await audio.WriteBeforeAsync(null, [], default);
             Assert.Equal(19456, audio.InputSamplesPerChannel);
             Assert.Equal(20, audio.PacketsWritten);
@@ -80,7 +81,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Data("Mp4", "avc-aac.mp4")));
-            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 1, 128000, allocator, default);
+            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 1, 128000, null, allocator, default);
             if (read)
             {
                 await audio.WriteBeforeAsync(new(-1, new(1, 1)), [], default);
@@ -101,7 +102,37 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Data("Mp4", "avc-aac.mp4")));
-            await Assert.ThrowsAnyAsync<ArgumentException>(() => HlsAacAudioSource.OpenAsync(source, 1, rate, allocator, default).AsTask());
+            await Assert.ThrowsAnyAsync<ArgumentException>(() => HlsAacAudioSource.OpenAsync(source, 1, rate, null, allocator, default).AsTask());
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public async Task SurroundDownmixPreservesMovieEditAndDrainsAllChannels(int channels)
+        {
+            MediaBufferAllocator allocator = new(4 * 1024 * 1024);
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(Data("AacMultichannel", "layout-6.m4a")));
+            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 0, 128000, channels, allocator, default);
+            AacConfiguration configuration = AacConfiguration.ReadAudioSpecificConfig(audio.Stream.Configuration.Span, out _)
+                ?? throw new InvalidDataException("The encoder did not declare supported AAC.");
+            Assert.Equal(channels, configuration.ChannelCount);
+            await audio.WriteBeforeAsync(null, [], default);
+            Assert.Equal(13920, audio.InputSamplesPerChannel);
+            Assert.Equal(15, audio.PacketsWritten);
+            Assert.Equal(416, audio.PaddingSamples);
+            await audio.DisposeAsync();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public async Task SurroundRequiresExplicitDownmixAndReleasesFailedOpen()
+        {
+            MediaBufferAllocator allocator = new(4 * 1024 * 1024);
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(Data("AacMultichannel", "layout-6.m4a")));
+            NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(() =>
+                HlsAacAudioSource.OpenAsync(source, 0, 128000, null, allocator, default).AsTask());
+            Assert.Contains("--audio-channels", error.Message);
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
