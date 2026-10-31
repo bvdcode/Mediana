@@ -85,7 +85,7 @@ namespace Mediana.Containers.Mp4
                     trackTimeBase, description.Configuration.Span, displayMatrix, codedDuration: packetIndex.DecodeDuration,
                     colorDescription: Mp4ColorDescriptionParser.Select(description.ColorDescriptions));
                 IReadOnlyList<Mp4Edit> edits = ReadEdits(track, timeBase, options, budget);
-                Mp4MetadataScope trackMetadata = new Mp4MetadataParser(metadata, options, budget).Parse(track, "trak", media);
+                Mp4MetadataScope trackMetadata = new Mp4MetadataParser(metadata, options, budget, quickTime).Parse(track, "trak", media);
                 tracks.Add(new Mp4TrackInfo(trackId, stream, description.SampleEntry, mediaDuration,
                     presentationDuration, edits, description.Width, description.Height,
                     description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix, packetIndex,
@@ -96,7 +96,7 @@ namespace Mediana.Containers.Mp4
             {
                 throw new InvalidDataException("The MP4 movie has no tracks.");
             }
-            Mp4MetadataParser metadataParser = new(metadata, options, budget);
+            Mp4MetadataParser metadataParser = new(metadata, options, budget, quickTime);
             return new Mp4Movie(timeBase, duration, movieDates, movieMatrix, tracks.ToArray(), tables.ToArray(), metadataParser.Parse(movie, "moov"));
         }
 

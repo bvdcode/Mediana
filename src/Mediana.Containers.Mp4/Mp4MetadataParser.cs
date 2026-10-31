@@ -6,7 +6,7 @@ using Mediana.Core.Metadata;
 
 namespace Mediana.Containers.Mp4
 {
-    internal class Mp4MetadataParser(ReadOnlyMemory<byte> root, Mp4ReadOptions options, Mp4ParseBudget budget)
+    internal class Mp4MetadataParser(ReadOnlyMemory<byte> root, Mp4ReadOptions options, Mp4ParseBudget budget, bool quickTime)
     {
         private static readonly UTF8Encoding Utf8 = new(false, true);
         private static readonly UnicodeEncoding Utf16 = new(true, false, true);
@@ -69,8 +69,13 @@ namespace Mediana.Containers.Mp4
 
         private void ReadMeta(Mp4Box box, string sourcePath)
         {
-            Mp4Binary.FullBox(box.Payload.Span);
-            Mp4BoxCollection children = new(box.Payload[4..], budget);
+            ReadOnlyMemory<byte> content = box.Payload;
+            if (!quickTime || Mp4Binary.UInt32(content.Span, 0) == 0)
+            {
+                Mp4Binary.FullBox(content.Span);
+                content = content[4..];
+            }
+            Mp4BoxCollection children = new(content, budget);
             Mp4Box handler = children.Required("hdlr");
             Mp4Binary.FullBox(handler.Payload.Span);
             Mp4Binary.Range(handler.Payload.Span, 0, 24);

@@ -129,6 +129,12 @@ not scan encoded packets. Image readers may inspect the entire input, bounded by
 retains its own parsing-work limits. A successful probe describes declared metadata
 and does not guarantee support for every encoded feature.
 
+Movies explicitly declaring QuickTime compatibility accept both classic `meta`
+atoms and version-0 ISO-style metadata boxes. The initial zero version/flags word
+selects the full-box form; other QuickTime payloads start directly with child
+atoms. ISO-only and unbranded files still require the full-box header. This follows
+Apple's [metadata atom structure](https://developer.apple.com/documentation/quicktime-file-format/metadata_atom).
+
 `ContainerInfo.StreamInfo` exposes container facts keyed by encoded stream index.
 Track text tags retain their native keys and scope; they are independent of global
 tags and codec header metadata. A declared track duration retains the container's
