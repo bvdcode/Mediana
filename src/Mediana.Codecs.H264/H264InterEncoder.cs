@@ -8,10 +8,10 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264InterEncoder
     {
-        public static MediaBuffer Encode(VideoFrame input, H264Picture target, H264Picture reference, int frameNumber, int quantizer,
-            MediaBufferAllocator allocator, H264EncoderOptions options, CancellationToken token)
+        public static MediaBuffer? Encode(VideoFrame input, H264Picture target, H264Picture reference, int frameNumber, int quantizer,
+            MediaBufferAllocator allocator, H264EncoderOptions options, int maximumBytes, bool measureOverflow, out int encodedLength, CancellationToken token)
         {
-            using H264BitWriter bits = new(allocator, options.MaximumPacketBytes, 0x41, lengthPrefixed: true);
+            using H264BitWriter bits = new(allocator, maximumBytes, 0x41, lengthPrefixed: true, measureOverflow: measureOverflow);
             bits.WriteUnsigned(0);
             bits.WriteUnsigned(5);
             bits.WriteUnsigned(0);
@@ -71,7 +71,9 @@ namespace Mediana.Codecs.H264
             {
                 bits.WriteUnsigned((uint)skipped);
             }
-            return bits.Finish();
+            MediaBuffer? result = bits.TryFinish();
+            encodedLength = bits.EncodedLength;
+            return result;
         }
 
         private static int AnalyzeLuma(VideoFrame input, int x, int y, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)

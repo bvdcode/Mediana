@@ -11,6 +11,7 @@ namespace Mediana.Codecs.H264
         public TimeSpan KeyFrameInterval { get; init; } = TimeSpan.FromSeconds(2);
         /// <summary>Maximum full-pixel motion displacement in either direction, from zero to 64.</summary>
         public int MotionSearchRange { get; init; } = 16;
+        public H264RateControlOptions? RateControl { get; init; }
 
         internal void Validate()
         {
@@ -20,6 +21,7 @@ namespace Mediana.Codecs.H264
             ArgumentOutOfRangeException.ThrowIfLessThan(KeyFrameInterval, TimeSpan.Zero);
             ArgumentOutOfRangeException.ThrowIfNegative(MotionSearchRange);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(MotionSearchRange, 64);
+            RateControl?.Validate();
         }
     }
 }

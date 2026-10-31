@@ -13,6 +13,7 @@ namespace Mediana.Formats.Video
         private readonly MediaBufferAllocator allocator;
         private readonly int maximumBytes;
         private readonly int prefixBytes;
+        private readonly bool measureOverflow;
         private WritableMediaBuffer storage;
         private int length;
         private int zeroBytes;
@@ -20,12 +21,13 @@ namespace Mediana.Formats.Video
         private int partialBits;
         private bool finished;
 
-        public H264BitWriter(MediaBufferAllocator allocator, int maximumBytes, byte header, bool lengthPrefixed = false)
+        public H264BitWriter(MediaBufferAllocator allocator, int maximumBytes, byte header, bool lengthPrefixed = false, bool measureOverflow = false)
         {
             ArgumentNullException.ThrowIfNull(allocator);
             ArgumentOutOfRangeException.ThrowIfLessThan(maximumBytes, 8);
             this.allocator = allocator;
             this.maximumBytes = maximumBytes;
+            this.measureOverflow = measureOverflow;
             prefixBytes = lengthPrefixed ? 4 : 0;
             storage = allocator.Allocate(Math.Min(4096, maximumBytes));
             length = prefixBytes;
@@ -73,18 +75,28 @@ namespace Mediana.Formats.Video
             WriteUnsigned((uint)code);
         }
 
-        public MediaBuffer Finish()
+        public int EncodedLength => length;
+
+        public MediaBuffer Finish() => TryFinish()
+            ?? throw new NotSupportedException("The encoded H.264 packet exceeds the configured byte limit.");
+
+        /// <summary>Finishes the NAL; returns null when measured output exceeded storage capacity.</summary>
+        public MediaBuffer? TryFinish()
         {
             WriteFlag(true);
             if (partialBits != 0)
             {
                 WriteBits(0, 8 - partialBits);
             }
+            finished = true;
+            if (length > maximumBytes)
+            {
+                return null;
+            }
             if (prefixBytes != 0)
             {
                 BinaryPrimitives.WriteUInt32BigEndian(storage.Memory.Span, (uint)(length - prefixBytes));
             }
-            finished = true;
             using MediaBuffer complete = storage.Publish();
             return complete.Slice(0, length);
         }
@@ -102,9 +114,14 @@ namespace Mediana.Formats.Video
 
         private void Append(byte value)
         {
-            if (length == maximumBytes)
+            if (length >= maximumBytes)
             {
-                throw new NotSupportedException("The encoded H.264 packet exceeds the configured byte limit.");
+                if (!measureOverflow)
+                {
+                    throw new NotSupportedException("The encoded H.264 packet exceeds the configured byte limit.");
+                }
+                length = checked(length + 1);
+                return;
             }
             if (length == storage.Memory.Length)
             {
