@@ -16,7 +16,8 @@ namespace Mediana.Tests
 {
     internal static class MpegTsTestInput
     {
-        public static async Task<byte[]> VerifyAsync(string root, string file, Mp4TimestampMode timestampMode = Mp4TimestampMode.Media)
+        public static async Task<byte[]> VerifyAsync(string root, string file, Mp4TimestampMode timestampMode = Mp4TimestampMode.Media,
+            Action<EncodedStreamInfo, ReadOnlyMemory<byte>>? inspect = null)
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             using MemoryStream destination = new();
@@ -42,12 +43,13 @@ namespace Mediana.Tests
                 throw new InvalidOperationException("TS remux retained buffers or closed the borrowed destination.");
             }
             byte[] result = destination.ToArray();
-            Verify(result, streams, expected);
+            Verify(result, streams, expected, inspect);
             return result;
         }
 
         public static void Verify(ReadOnlySpan<byte> data, IReadOnlyList<EncodedStreamInfo> streams,
-            IReadOnlyList<(int Stream, byte[] Data, long Pts, long Dts)> expected)
+            IReadOnlyList<(int Stream, byte[] Data, long Pts, long Dts)> expected,
+            Action<EncodedStreamInfo, ReadOnlyMemory<byte>>? inspect = null)
         {
             if (data.Length == 0 || data.Length % 188 != 0)
             {
@@ -205,6 +207,7 @@ namespace Mediana.Tests
                         throw new InvalidDataException("The TS PTS/DTS differs from the exact shifted reference.");
                     }
                     VerifyElementary(stream, originals[index].Data, outputs[index].Data);
+                    inspect?.Invoke(stream, outputs[index].Data);
                 }
             }
         }

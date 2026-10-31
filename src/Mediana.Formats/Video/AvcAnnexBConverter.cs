@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using Mediana.Core.Memory;
+using Mediana.Core.Video;
 
 namespace Mediana.Formats.Video
 {
@@ -10,11 +11,26 @@ namespace Mediana.Formats.Video
     public class AvcAnnexBConverter
     {
         private readonly int lengthSize;
-        private readonly List<ReadOnlyMemory<byte>> parameters = [];
+        private readonly List<AvcParameterSet> parameters = [];
         private readonly int parameterBytes;
 
-        public AvcAnnexBConverter(ReadOnlyMemory<byte> configuration)
+        /// <summary>Optional CICP colors replace every configuration SPS and its known in-band occurrences.
+        /// Rewriting uses the supplied allocator and a per-SPS byte limit; retained parameter arrays are ordinary managed metadata.</summary>
+        public AvcAnnexBConverter(ReadOnlyMemory<byte> configuration, VideoColorDescription? colorDescription = null,
+            MediaBufferAllocator? allocator = null, int maximumParameterSetBytes = ushort.MaxValue)
         {
+            CicpColorDescription? color = colorDescription switch
+            {
+                null => null,
+                CicpColorDescription cicp => cicp,
+                _ => throw new NotSupportedException("The source color description cannot be represented in H.264 SPS parameters.")
+            };
+            if (color is not null)
+            {
+                ArgumentNullException.ThrowIfNull(allocator);
+                ArgumentOutOfRangeException.ThrowIfLessThan(maximumParameterSetBytes, 8);
+                color.Resolve(new VideoColorInfo());
+            }
             configuration = configuration.ToArray();
             ReadOnlySpan<byte> data = configuration.Span;
             if (data.Length < 7 || data[0] != 1 || (data[4] & 0xFC) != 0xFC || (data[5] & 0xE0) != 0xE0)
@@ -27,13 +43,13 @@ namespace Mediana.Formats.Video
                 throw new InvalidDataException("The AVC NAL length size is reserved.");
             }
             int offset = 6;
-            ReadParameters(configuration, ref offset, data[5] & 31, 7);
+            ReadParameters(configuration, ref offset, data[5] & 31, 7, color, allocator, maximumParameterSetBytes);
             if (offset >= data.Length)
             {
                 throw new InvalidDataException("The AVC picture parameter count is missing.");
             }
             int pictureCount = data[offset++];
-            ReadParameters(configuration, ref offset, pictureCount, 8);
+            ReadParameters(configuration, ref offset, pictureCount, 8, color, allocator, maximumParameterSetBytes);
             if (offset < data.Length)
             {
                 if (data[1] is not (100 or 110 or 122 or 144) || data.Length - offset < 4 ||
@@ -51,7 +67,7 @@ namespace Mediana.Formats.Video
             {
                 throw new InvalidDataException("The AVC configuration has unexpected trailing data.");
             }
-            parameterBytes = parameters.Sum(parameter => 4 + parameter.Length);
+            parameterBytes = parameters.Sum(parameter => 4 + parameter.Output.Length);
         }
 
         /// <summary>Returns an owned output buffer; input storage is borrowed only for this call.</summary>
@@ -67,6 +83,7 @@ namespace Mediana.Formats.Video
             {
                 ReadOnlySpan<byte> nal = ReadNal(data, ref offset);
                 int type = nal[0] & 31;
+                int nalBytes = nal.Length;
                 if ((nal[0] & 0x80) != 0)
                 {
                     throw new InvalidDataException("The AVC forbidden bit is set.");
@@ -80,15 +97,7 @@ namespace Mediana.Formats.Video
                         idr = true;
                         break;
                     case 7 or 8:
-                        bool known = false;
-                        foreach (ReadOnlyMemory<byte> parameter in parameters)
-                        {
-                            known |= nal.SequenceEqual(parameter.Span);
-                        }
-                        if (!known)
-                        {
-                            throw new NotSupportedException("Changing AVC parameter sets requires a new converter.");
-                        }
+                        nalBytes = ParameterOutput(nal).Length;
                         break;
                     case 6 or 9 or 10 or 11 or 12:
                         break;
@@ -97,7 +106,7 @@ namespace Mediana.Formats.Video
                 }
                 if (type != 9)
                 {
-                    size += 4L + nal.Length;
+                    size += 4L + nalBytes;
                 }
             }
             if (idr == nonIdr)
@@ -115,24 +124,26 @@ namespace Mediana.Formats.Video
             int written = 6;
             if (idr)
             {
-                foreach (ReadOnlyMemory<byte> parameter in parameters)
+                foreach (AvcParameterSet parameter in parameters)
                 {
-                    Append(output, ref written, parameter.Span);
+                    Append(output, ref written, parameter.Output.Span);
                 }
             }
             offset = 0;
             while (offset < data.Length)
             {
                 ReadOnlySpan<byte> nal = ReadNal(data, ref offset);
-                if ((nal[0] & 31) != 9)
+                int type = nal[0] & 31;
+                if (type != 9)
                 {
-                    Append(output, ref written, nal);
+                    Append(output, ref written, type is 7 or 8 ? ParameterOutput(nal) : nal);
                 }
             }
             return result.Publish();
         }
 
-        private void ReadParameters(ReadOnlyMemory<byte> data, ref int offset, int count, int type)
+        private void ReadParameters(ReadOnlyMemory<byte> data, ref int offset, int count, int type,
+            CicpColorDescription? color, MediaBufferAllocator? allocator, int maximumBytes)
         {
             if (count == 0)
             {
@@ -150,9 +161,28 @@ namespace Mediana.Formats.Video
                 {
                     throw new InvalidDataException("The AVC parameter NAL is invalid.");
                 }
-                parameters.Add(data.Slice(offset, length));
+                ReadOnlyMemory<byte> original = data.Slice(offset, length);
+                ReadOnlyMemory<byte> output = original;
+                if (type == 7 && color is not null)
+                {
+                    using MediaBuffer rewritten = H264ColorDescriptionWriter.Rewrite(original.Span, color, allocator!, maximumBytes);
+                    output = rewritten.Memory.ToArray();
+                }
+                parameters.Add(new(original, output));
                 offset += length;
             }
+        }
+
+        private ReadOnlySpan<byte> ParameterOutput(ReadOnlySpan<byte> nal)
+        {
+            foreach (AvcParameterSet parameter in parameters)
+            {
+                if (nal.SequenceEqual(parameter.Original.Span))
+                {
+                    return parameter.Output.Span;
+                }
+            }
+            throw new NotSupportedException("Changing AVC parameter sets requires a new converter.");
         }
 
         private ReadOnlySpan<byte> ReadNal(ReadOnlySpan<byte> data, ref int offset)

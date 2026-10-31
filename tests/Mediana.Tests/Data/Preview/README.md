@@ -76,3 +76,20 @@ The conflict reference uses `matrixin=6:primariesin=6:rangein=full`.
 | `container-709-full.frame0.srgb.rgba` | `0fe0069ff86375a3bfa247dc01b66e49d028681d295d2f7607f4c2f9a58cce62` |
 | `container-709.frame0.srgb.rgba` | `6110b2cf9a1447adf712a50e117fb52a021a00709f7d52af0ea86301171c5b71` |
 | `container-601-conflict.frame0.srgb.rgba` | `4e04dc71186bb4cc8e676bbb3ebbdedfe5440028ef06114baed583928e588e86` |
+
+`container-segments.mp4` retains all compressed AVC/AAC samples from
+`../Mp4/avc-segments.mp4`, adding original SPS/PPS NALs before its eight IDRs
+and an `nclx` description of 6/1/6, full range. It contains 36 pictures at 5 fps
+and 339 AAC packets. HLS selects three windows of 15, 15 and 6 pictures.
+Remux and out-of-order HLS tests require source colors in all 16 output SPS
+occurrences (eight configuration injections and eight in-band replacements),
+unchanged compressed picture/auxiliary data, exact shifted PTS/DTS and no
+retained media buffers.
+The fixture SHA-256 is
+`355e02b855be0648692973f31b6ea1917457e5c731df233a729091b5b86d21ba`;
+its complete native YUV SHA-256 is
+`e3980ab6f6fbbd680537e00d31a6960d2fe84d8f73efa8d508257d16883f59dc`.
+
+```sh
+ffmpeg -i ../Mp4/avc-segments.mp4 -map 0 -c copy -bsf:v h264_mp4toannexb -map_metadata -1 -movflags +write_colr -color_primaries smpte170m -color_trc bt709 -colorspace smpte170m -color_range pc container-segments.mp4
+```

@@ -17,7 +17,7 @@ namespace Mediana.Containers.MpegTs
         private readonly AacAdtsConverter? aac;
         private readonly Mp3TransportFraming? mp3;
 
-        public MpegTsTrack(EncodedStreamInfo stream, int ordinal)
+        public MpegTsTrack(EncodedStreamInfo stream, int ordinal, MediaBufferAllocator allocator, int maximumConfigurationBytes)
         {
             Stream = stream;
             StreamIndex = stream.StreamIndex;
@@ -28,7 +28,7 @@ namespace Mediana.Containers.MpegTs
                     StreamFormats.Avc.Require(stream.Format);
                     Type = 0x1B;
                     PesStreamId = 0xE0 + ordinal;
-                    avc = new(stream.Configuration);
+                    avc = new(stream.Configuration, stream.ColorDescription, allocator, maximumConfigurationBytes);
                     break;
                 case (MediaKind.Audio, "aac"):
                     StreamFormats.Aac.Require(stream.Format);

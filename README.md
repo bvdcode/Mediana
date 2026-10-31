@@ -1003,6 +1003,9 @@ QuickTime `nclc` preserves the codec range. Probe displays container CICP codes 
 ICC profile declarations alongside original codec metadata. ICC transforms and
 HDR tone mapping remain separate unsupported operations. See
 [source color contracts](docs/architecture.md#source-color-descriptions).
+AVC stream copy to MPEG-TS/HLS writes source CICP colors into configuration and
+known in-band SPS parameters, preserving compressed pictures and other header
+syntax. ICC-only or unrepresentable descriptions fail before transport output.
 
 Picture order types 0, 1 and 2, bounded delayed output, IDR/MMCO resets, input
 completion, cancellation and buffer ownership have executable checks. SEI message

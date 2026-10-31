@@ -93,8 +93,18 @@ the H.264 encoder writes the effective CICP labels into its own SPS.
 The CLI probes original container codes separately from codec metadata and only
 infers missing SDR labels after resolving the source description. Reserved codes,
 ICC profiles and declared HDR characteristics do not become missing SDR metadata.
-MPEG-TS stream copying retains original AVC parameter sets; it does not transfer
-MP4-only color descriptions or rewrite those parameter sets.
+MPEG-TS and HLS stream copying express a source CICP description in every AVC SPS.
+`H264ColorDescriptionWriter` replaces the video signal fields and preserves all
+other RBSP syntax, including SAR, timing, HRD, chroma location and buffering.
+The shared `AvcAnnexBConverter` prepares configuration SPS parameters once and
+substitutes the same bytes for known in-band SPS occurrences. Coded slices, PPS
+and auxiliary NAL payloads remain unchanged. Unknown parameter changes require
+a new converter. An absent source range preserves each SPS range independently;
+explicit code 2 stays unspecified. ICC-only and unrepresentable CICP descriptions
+fail writer creation before destination I/O. Declared HDR can be copied without
+pixel conversion. Rewriting uses the media allocator and a per-SPS output limit;
+retained original and rewritten parameter arrays are managed configuration data
+outside the pooled buffer budget.
 
 ## Media inspection
 
