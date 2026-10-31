@@ -86,6 +86,8 @@
     <Compile Include="../Shared/Mp4TrackMetadataTestInput.cs" Link="Mp4TrackMetadataTestInput.cs" />
     <Compile Include="../Shared/Mp4HeaderDateTestInput.cs" Link="Mp4HeaderDateTestInput.cs" />
     <Compile Include="../Shared/Mp4FrameRateTestInput.cs" Link="Mp4FrameRateTestInput.cs" />
+    <Compile Include="../Shared/ServerVideoPreviewTestInput.cs" Link="ServerVideoPreviewTestInput.cs" />
+    <Compile Include="../../samples/Mediana.Sample/VideoPreviewSample.cs" Link="VideoPreviewSample.cs" />
     <None Include="../Mediana.Tests/Data/FrameRate/*" Link="Data/FrameRate/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/QuickTimeAacTestInput.cs" Link="QuickTimeAacTestInput.cs" />
     <Compile Include="../Shared/AacStereoNoiseTestInput.cs" Link="AacStereoNoiseTestInput.cs" />

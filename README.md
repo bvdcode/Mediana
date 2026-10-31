@@ -1034,6 +1034,27 @@ code per channel. The numerical definitions follow [ITU H.264 Annex E](https://w
 
 ## Creating a PNG preview
 
+The sample can select the first video stream and produce a preview fitted within
+150×150 pixels directly from a seekable source:
+
+```sh
+dotnet run --project samples/Mediana.Sample -c Release -- --preview tests/Mediana.Tests/Data/FrameRate/preview-hd.mp4 preview.png
+```
+
+It selects the midpoint of a declared duration longer than one second, otherwise
+time zero. Target calculation uses integer clock ticks; `SeekAsync` restarts from a
+validated access point and `ReadFrameAtOrAfterAsync` discards earlier pictures.
+The selected frame remains owned by the caller after the decoding session closes.
+The example requires a declared duration, known SDR color, sample aspect ratio and
+an orthogonal display transform. A missing frame fails explicitly. Its application
+policy uses the declared duration without replacing it with indexed coded length.
+
+MP4 `LinearMovie` maps original media timestamps through the supported edit list;
+it does not clamp the first remaining PTS to zero or clip encoded samples to the
+edit interval. For an edit beginning between picture boundaries, a selected
+picture can therefore start after time zero. The [preview references](tests/Mediana.Tests/Data/FrameRate/README.md)
+check this distinction separately from the selected picture's pixels.
+
 With a supported decoded frame and an allocation budget:
 
 ```csharp

@@ -9,5 +9,6 @@
     <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.MpegTs/Mediana.Containers.MpegTs.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
   </ItemGroup>
 </Project>

@@ -20,6 +20,13 @@ namespace Mediana.NativeTests
             await Mp4HeaderDateTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
             Console.WriteLine("PASS header dates: unsigned v0/v1 fields, UTC/unspecified zones, distinct scopes and complete packet references.");
             await Mp4FrameRateTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
+            foreach (string name in new[] { "frame-rate-cfr.mp4", "frame-rate-vfr.mp4", "frame-rate-edited.mp4", "preview-hd.mp4" })
+            {
+                await ServerVideoPreviewTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), name);
+            }
+            Console.WriteLine("PASS server video previews: midpoint targets, VFR, movie edits, exact pixels, out-of-order requests and EOF restart.");
+            await ServerVideoPreviewTestInput.VerifyPngAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
+            Console.WriteLine("PASS server HD preview: complete sample PNG, dimensions, sRGB labels and every independent pixel.");
             Console.WriteLine("PASS indexed video rates: exact fractional CFR, VFR, reordered/edited samples, both timelines and complete packet references.");
             await QuickTimeAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
             Console.WriteLine("PASS QuickTime AAC: both complete sound-v1 tracks, original timing, independent PNS energy and retained ownership.");

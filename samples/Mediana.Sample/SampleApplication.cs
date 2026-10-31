@@ -17,9 +17,13 @@ namespace Mediana.Sample
             {
                 return await TranscodeSample.RunAsync(args[1], args[2]);
             }
+            if (args.Length == 3 && args[0] == "--preview")
+            {
+                return await VideoPreviewSample.RunAsync(args[1], args[2]);
+            }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --transcode input.mp4 output.ts]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --transcode input.mp4 output.ts | --preview input.mp4 output.png]");
                 return 2;
             }
 
