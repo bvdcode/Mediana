@@ -410,3 +410,16 @@ Scene and effect execution are internal to Drawing; the public format adapters
 expose document/frame APIs. An effect graph tracks named inputs and the last use
 of temporary buffers. Each render owns its context, cancellation token and memory
 budget. No XML or SVG parser is required by Drawing or TGS.
+
+`PixelBuffer` owns exclusive writable storage and can use a supplied
+`MediaBufferAllocator`. `PublishVideoFrame` transfers that same storage into a
+read-only frame without copying. Publication invalidates the drawing owner and
+its borrowed writable views; retained frames keep the allocation charged until
+their final lease is disposed. Disposing an unpublished surface releases its
+allocation. `ToVideoFrame` remains an explicit independent copy.
+
+SVG, TGS and PDF image decoders render final RGBA output directly into the
+operation's allocator and publish it. Supersampling writes its downsampled pixels
+directly into that output. The output budget is reserved before rasterization
+and released if rendering fails. Temporary supersampling and drawing effects
+remain governed by their rendering limits, separately from the final frame.

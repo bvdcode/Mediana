@@ -5,14 +5,16 @@ using Mediana.Drawing;
 using System;
 using System.Numerics;
 using System.Threading;
+using Mediana.Core.Memory;
 
 namespace Mediana.Documents.Pdf
 {
     /// <summary>Rasterizes interpreted PDF pages on the CPU.</summary>
     public static class PdfRenderer
     {
-        /// <summary>Renders the visible page, honoring its crop box and rotation.</summary>
-        public static PixelBuffer Render(PdfPage page, PdfRenderOptions? options = null, CancellationToken cancellationToken = default)
+        /// <summary>Renders the visible page, honoring its crop box and rotation. The allocator counts final output storage.</summary>
+        public static PixelBuffer Render(PdfPage page, PdfRenderOptions? options = null,
+            CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)
         {
             ArgumentNullException.ThrowIfNull(page);
             options ??= new PdfRenderOptions();
@@ -24,17 +26,32 @@ namespace Mediana.Documents.Pdf
 
             (int width, int height, double scale) = Dimensions(page, options);
             int samples = options.Supersampling;
-            PixelBuffer? image = new PixelBuffer(width * samples, height * samples);
-            image.Clear(options.Background);
-            RasterCanvas? canvas = new RasterCanvas(image);
-            Matrix3x2 transform = new Matrix3x2((float)(scale * samples), 0, 0, (float)(-scale * samples), 0, (float)(page.Height * scale * samples));
-            foreach (IPdfDrawCommand command in page.Commands)
+            PixelBuffer output = allocator is null ? new(width, height) : new(width, height, allocator);
+            bool completed = false;
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                command.Draw(canvas, transform, cancellationToken);
-            }
+                using PixelBuffer? supersampled = samples == 1 ? null : new(width * samples, height * samples);
+                PixelBuffer image = supersampled ?? output;
+                image.Clear(options.Background);
+                RasterCanvas canvas = new(image);
+                Matrix3x2 transform = new((float)(scale * samples), 0, 0, (float)(-scale * samples), 0, (float)(page.Height * scale * samples));
+                foreach (IPdfDrawCommand command in page.Commands)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    command.Draw(canvas, transform, cancellationToken);
+                }
 
-            return samples == 1 ? image : image.Downsample(samples, cancellationToken);
+                supersampled?.DownsampleTo(output, samples, cancellationToken);
+                completed = true;
+                return output;
+            }
+            finally
+            {
+                if (!completed)
+                {
+                    output.Dispose();
+                }
+            }
         }
 
         private static (int Width, int Height, double Scale) Dimensions(PdfPage page, PdfRenderOptions options)

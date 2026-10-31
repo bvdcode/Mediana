@@ -5,14 +5,17 @@ using Mediana.Drawing;
 using System;
 using System.Numerics;
 using System.Threading;
+using Mediana.Core.Memory;
 
 namespace Mediana.Images.Svg
 {
     /// <summary>Renders an interpreted SVG viewport with the managed CPU raster canvas.</summary>
     public static class SvgRenderer
     {
-        /// <summary>Renders an SVG to RGBA pixels. Unsupported features require explicit partial-render opt-in.</summary>
-        public static PixelBuffer Render(SvgDocument document, DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
+        /// <summary>Renders an SVG to RGBA pixels. The allocator counts final output storage.
+        /// Unsupported features require explicit partial-render opt-in.</summary>
+        public static PixelBuffer Render(SvgDocument document, DrawingRenderOptions? options = null,
+            CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)
         {
             ArgumentNullException.ThrowIfNull(document);
             options ??= new DrawingRenderOptions();
@@ -23,7 +26,7 @@ namespace Mediana.Images.Svg
             }
 
             return SceneRasterizer.Render(document.Root, document.Width, document.Height, options,
-                (width, height) => Viewport(document.ViewBox, width, height, document.AspectRatio), cancellationToken);
+                (width, height) => Viewport(document.ViewBox, width, height, document.AspectRatio), cancellationToken, allocator);
         }
 
         internal static Matrix3x2 Viewport((float X, float Y, float Width, float Height) box, float width, float height, string aspect)

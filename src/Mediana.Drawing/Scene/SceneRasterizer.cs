@@ -4,11 +4,13 @@
 using System;
 using System.Numerics;
 using System.Threading;
+using Mediana.Core.Memory;
 namespace Mediana.Drawing
 {
     internal static class SceneRasterizer
     {
-        internal static PixelBuffer Render(SceneNode root, float intrinsicWidth, float intrinsicHeight, DrawingRenderOptions options, Func<int, int, Matrix3x2> viewport, CancellationToken token)
+        internal static PixelBuffer Render(SceneNode root, float intrinsicWidth, float intrinsicHeight, DrawingRenderOptions options,
+            Func<int, int, Matrix3x2> viewport, CancellationToken token, MediaBufferAllocator? allocator = null)
         {
             if (options.Width <= 0 || options.Height <= 0 || options.Supersampling < 1 || options.Supersampling > 4 || options.MaximumSamples <= 0 || options.MaximumEffectBytes <= 0)
             {
@@ -22,12 +24,27 @@ namespace Mediana.Drawing
             }
             int w = (int)Math.Max(1, width), h = (int)Math.Max(1, height);
             int factor = options.Supersampling;
-            PixelBuffer image = new(w * factor, h * factor);
-            image.Clear(options.Background);
-            Matrix3x2 matrix = viewport(w, h) * Matrix3x2.CreateScale(factor);
-            using SceneRenderContext context = new(options, token);
-            root.Draw(new RasterCanvas(image), matrix, context);
-            return factor == 1 ? image : image.Downsample(factor, token);
+            PixelBuffer output = allocator is null ? new(w, h) : new(w, h, allocator);
+            bool completed = false;
+            try
+            {
+                using PixelBuffer? samples = factor == 1 ? null : new(w * factor, h * factor);
+                PixelBuffer image = samples ?? output;
+                image.Clear(options.Background);
+                Matrix3x2 matrix = viewport(w, h) * Matrix3x2.CreateScale(factor);
+                using SceneRenderContext context = new(options, token);
+                root.Draw(new RasterCanvas(image), matrix, context);
+                samples?.DownsampleTo(output, factor, token);
+                completed = true;
+                return output;
+            }
+            finally
+            {
+                if (!completed)
+                {
+                    output.Dispose();
+                }
+            }
         }
     }
 }

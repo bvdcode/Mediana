@@ -5,6 +5,7 @@ using Mediana.Drawing;
 using System;
 using System.Linq;
 using System.Threading;
+using Mediana.Core.Memory;
 
 namespace Mediana.Images.Tgs
 {
@@ -12,11 +13,13 @@ namespace Mediana.Images.Tgs
     public static partial class TgsRenderer
     {
         /// <summary>Renders an absolute frame number in [InPoint, OutPoint). Fractional frames are supported.</summary>
-        public static PixelBuffer RenderFrame(TgsDocument document, double frame, DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
-            => RenderFrameDetailed(document, frame, options, cancellationToken).Image;
+        public static PixelBuffer RenderFrame(TgsDocument document, double frame, DrawingRenderOptions? options = null,
+            CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)
+            => RenderFrameDetailed(document, frame, options, cancellationToken, allocator).Image;
 
-        /// <summary>Renders one frame with timing and detected feature diagnostics.</summary>
-        public static TgsFrame RenderFrameDetailed(TgsDocument document, double frame, DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
+        /// <summary>Renders one frame with timing and detected feature diagnostics. The allocator counts final output storage.</summary>
+        public static TgsFrame RenderFrameDetailed(TgsDocument document, double frame, DrawingRenderOptions? options = null,
+            CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)
         {
             ArgumentNullException.ThrowIfNull(document);
             options ??= new DrawingRenderOptions();
@@ -38,9 +41,9 @@ namespace Mediana.Images.Tgs
                 SourceFrame = frame,
                 Timestamp = TimeSpan.FromSeconds((frame - document.InPoint) / document.FrameRate),
                 Duration = TimeSpan.FromSeconds(Math.Min(1, document.OutPoint - frame) / document.FrameRate),
+                Warnings = Array.AsReadOnly(document.UnsupportedFeatures.Concat(builder.Warnings).Distinct().Order().ToArray()),
                 Image = SceneRasterizer.Render(scene, document.Width, document.Height, options,
-                    (width, height) => Viewport(document, width, height), cancellationToken),
-                Warnings = Array.AsReadOnly(document.UnsupportedFeatures.Concat(builder.Warnings).Distinct().Order().ToArray())
+                    (width, height) => Viewport(document, width, height), cancellationToken, allocator)
             };
         }
 
@@ -51,10 +54,11 @@ namespace Mediana.Images.Tgs
         }
 
         /// <summary>Renders the frame at an elapsed time from the composition's in-point.</summary>
-        public static PixelBuffer RenderAtTime(TgsDocument document, double seconds, DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
+        public static PixelBuffer RenderAtTime(TgsDocument document, double seconds, DrawingRenderOptions? options = null,
+            CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)
         {
             ArgumentNullException.ThrowIfNull(document);
-            return RenderFrame(document, document.InPoint + (seconds * document.FrameRate), options, cancellationToken);
+            return RenderFrame(document, document.InPoint + (seconds * document.FrameRate), options, cancellationToken, allocator);
         }
     }
 }

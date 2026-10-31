@@ -16,7 +16,7 @@ namespace Mediana.Images.Tgs
         public required TimeSpan Timestamp { get; init; }
         /// <summary>Gets the display duration of this output frame.</summary>
         public required TimeSpan Duration { get; init; }
-        /// <summary>Gets the rendered RGBA image.</summary>
+        /// <summary>Gets the rendered RGBA image owned and disposed by the caller.</summary>
         public required PixelBuffer Image { get; init; }
         /// <summary>Gets detected unsupported features when partial rendering is enabled.</summary>
         public required IReadOnlyList<string> Warnings { get; init; }
