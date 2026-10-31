@@ -9,20 +9,24 @@ namespace Mediana.Core.Metadata
     /// and optional qualifiers are preserved; application tag naming and normalization are separate.</summary>
     public class MediaTag
     {
-        public MediaTag(string keyNamespace, string name, string value, string? description = null, uint? locale = null, string? sourcePath = null)
-            : this(keyNamespace, name, new[] { value }, description, locale, sourcePath)
+        public MediaTag(string keyNamespace, string name, string value, string? description = null, uint? locale = null, string? sourcePath = null, string? language = null)
+            : this(keyNamespace, name, new[] { value }, description, locale, sourcePath, language)
         {
         }
 
-        public MediaTag(string keyNamespace, string name, IEnumerable<string> values, string? description = null, uint? locale = null, string? sourcePath = null)
-            : this(keyNamespace, name, CopyValues(values), description, locale, sourcePath)
+        public MediaTag(string keyNamespace, string name, IEnumerable<string> values, string? description = null, uint? locale = null, string? sourcePath = null, string? language = null)
+            : this(keyNamespace, name, CopyValues(values), description, locale, sourcePath, language)
         {
         }
 
-        private MediaTag(string keyNamespace, string name, string[] values, string? description, uint? locale, string? sourcePath)
+        private MediaTag(string keyNamespace, string name, string[] values, string? description, uint? locale, string? sourcePath, string? language)
         {
             ArgumentException.ThrowIfNullOrEmpty(keyNamespace);
             ArgumentException.ThrowIfNullOrEmpty(name);
+            if (language is not null)
+            {
+                ArgumentException.ThrowIfNullOrWhiteSpace(language);
+            }
             if (values.Any(value => value is null))
             {
                 throw new ArgumentException("Metadata text values cannot contain null.", nameof(values));
@@ -33,6 +37,7 @@ namespace Mediana.Core.Metadata
             Description = description;
             Locale = locale;
             SourcePath = sourcePath;
+            Language = language;
         }
 
         /// <summary>Native key namespace within its container format, such as id3v2, vorbis, mdir or mdta.</summary>
@@ -46,6 +51,9 @@ namespace Mediana.Core.Metadata
         /// <summary>Native structural location supplied by the reader, such as trak/mdia/meta.
         /// Not a filesystem path or a normalized application key. Null means unavailable.</summary>
         public string? SourcePath { get; }
+        /// <summary>Declared language of this text value, independently of the stream language.
+        /// Null means unavailable. Identifier spelling is retained.</summary>
+        public string? Language { get; }
 
         private static string[] CopyValues(IEnumerable<string> values)
         {

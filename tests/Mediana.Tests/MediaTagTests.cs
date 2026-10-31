@@ -23,13 +23,14 @@ namespace Mediana.Tests
         public void SnapshotsPreserveEmptyNativeTextAndDoNotExposeMutableCollections()
         {
             string[] values = ["First", "", "Русский 🎵"];
-            MediaTag tag = new("native", " Title ", values, "", uint.MaxValue, sourcePath: "track/raw");
+            MediaTag tag = new("native", " Title ", values, "", uint.MaxValue, sourcePath: "track/raw", language: "EN-us");
             values[0] = "changed";
             Assert.Equal(new[] { "First", "", "Русский 🎵" }, tag.Values);
             Assert.Equal(" Title ", tag.Name);
             Assert.Equal("", tag.Description);
             Assert.Equal(uint.MaxValue, tag.Locale);
             Assert.Equal("track/raw", tag.SourcePath);
+            Assert.Equal("EN-us", tag.Language);
             IList<string> exposedValues = Assert.IsAssignableFrom<IList<string>>(tag.Values);
             Assert.Throws<NotSupportedException>(() => exposedValues[0] = "changed");
             List<MediaTag> tags = [tag];
@@ -49,6 +50,8 @@ namespace Mediana.Tests
             Assert.Throws<ArgumentNullException>(() => new MediaTag("native", "name", (IEnumerable<string>)null!));
             Assert.Throws<ArgumentException>(() => new MediaTag("native", "name", new string[] { null! }));
             Assert.Throws<ArgumentException>(() => new MediaTag("native", "name", (string)null!));
+            Assert.Throws<ArgumentException>(() => new MediaTag("native", "name", "value", language: ""));
+            Assert.Throws<ArgumentException>(() => new MediaTag("native", "name", "value", language: " \t"));
             Assert.Throws<ArgumentException>(() => new ContainerInfo("fixture", tags: new MediaTag[] { null! }));
         }
 

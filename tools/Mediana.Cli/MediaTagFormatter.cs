@@ -27,6 +27,10 @@ namespace Mediana.Cli
             {
                 text.Append(" source=").Append(Quote(source));
             }
+            if (tag.Language is string language)
+            {
+                text.Append(" language=").Append(Quote(language));
+            }
             return text.Append(": [").AppendJoin(", ", tag.Values.Select(Quote)).Append(']').ToString();
         }
 

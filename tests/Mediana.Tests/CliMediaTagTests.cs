@@ -27,7 +27,7 @@ namespace Mediana.Tests
         [Fact]
         public void TagFormattingKeepsUnicodeButEscapesTerminalControlsInEveryNativeField()
         {
-            MediaTag tag = new("n\n\u001b", "k\r\t", new[] { "line\nnext", "\u001b[31m", "\u009b31m", "\"quote\"\\", "Русский 🎵" }, "d\b", uint.MaxValue, sourcePath: "p\n\u001b");
+            MediaTag tag = new("n\n\u001b", "k\r\t", new[] { "line\nnext", "\u001b[31m", "\u009b31m", "\"quote\"\\", "Русский 🎵" }, "d\b", uint.MaxValue, sourcePath: "p\n\u001b", language: "en\n\u001b");
             string text = MediaTagFormatter.Format(tag);
             Assert.DoesNotContain('\n', text);
             Assert.DoesNotContain('\r', text);
@@ -40,6 +40,7 @@ namespace Mediana.Tests
             using JsonDocument values = JsonDocument.Parse(text[(text.IndexOf(": [", StringComparison.Ordinal) + 2)..]);
             Assert.Equal(tag.Values, values.RootElement.EnumerateArray().Select(value => value.GetString()));
             Assert.Contains("locale=0xffffffff", text, StringComparison.Ordinal);
+            Assert.Contains("language=\"en\\n\\u001B\"", text, StringComparison.OrdinalIgnoreCase);
         }
     }
 }
