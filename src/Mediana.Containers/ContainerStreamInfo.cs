@@ -10,13 +10,15 @@ namespace Mediana.Containers
     public class ContainerStreamInfo
     {
         public ContainerStreamInfo(int streamIndex, MediaDuration? declaredDuration = null,
-            IEnumerable<MediaTag>? tags = null, ContainerPacketIndexInfo? packetIndex = null, string? language = null)
+            IEnumerable<MediaTag>? tags = null, ContainerPacketIndexInfo? packetIndex = null, string? language = null,
+            IEnumerable<MediaDateTimeTag>? dates = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
             declaredDuration?.TimeBase.Validate();
             StreamIndex = streamIndex;
             DeclaredDuration = declaredDuration;
             Tags = ContainerMetadataSnapshot.CopyTags(tags);
+            Dates = ContainerMetadataSnapshot.CopyDates(dates);
             PacketIndex = packetIndex;
             if (language is not null)
             {
@@ -30,6 +32,9 @@ namespace Mediana.Containers
         public MediaDuration? DeclaredDuration { get; }
         /// <summary>Native track text tags. Null means unavailable; an empty list means none were found in supported metadata.</summary>
         public IReadOnlyList<MediaTag>? Tags { get; }
+        /// <summary>Declared calendar dates scoped to this stream, with native keys and locations.
+        /// Null means unavailable; an empty list means no representable, specified dates were found.</summary>
+        public IReadOnlyList<MediaDateTimeTag>? Dates { get; }
         /// <summary>Complete packet-index totals, or null when not exposed. A zero duration does not define a rate.</summary>
         public ContainerPacketIndexInfo? PacketIndex { get; }
         /// <summary>Declared language identifier (ISO 639 or BCP 47), or null when unavailable.

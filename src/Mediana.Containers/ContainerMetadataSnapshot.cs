@@ -7,16 +7,20 @@ namespace Mediana.Containers
 {
     internal static class ContainerMetadataSnapshot
     {
-        public static IReadOnlyList<MediaTag>? CopyTags(IEnumerable<MediaTag>? tags)
+        public static IReadOnlyList<MediaTag>? CopyTags(IEnumerable<MediaTag>? tags) => Copy(tags, nameof(tags));
+
+        public static IReadOnlyList<MediaDateTimeTag>? CopyDates(IEnumerable<MediaDateTimeTag>? dates) => Copy(dates, nameof(dates));
+
+        private static IReadOnlyList<T>? Copy<T>(IEnumerable<T>? values, string parameterName) where T : class
         {
-            if (tags is null)
+            if (values is null)
             {
                 return null;
             }
-            MediaTag[] snapshot = tags.ToArray();
+            T[] snapshot = values.ToArray();
             if (snapshot.Any(tag => tag is null))
             {
-                throw new ArgumentException("Metadata tags cannot contain null.", nameof(tags));
+                throw new ArgumentException("Metadata items cannot contain null.", parameterName);
             }
             return Array.AsReadOnly(snapshot);
         }

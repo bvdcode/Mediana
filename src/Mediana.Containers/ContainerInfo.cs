@@ -12,11 +12,12 @@ namespace Mediana.Containers
     public class ContainerInfo
     {
         public ContainerInfo(string formatId, MediaDuration? declaredDuration = null, IEnumerable<MediaTag>? tags = null,
-            IEnumerable<ContainerStreamInfo>? streamInfo = null)
+            IEnumerable<ContainerStreamInfo>? streamInfo = null, IEnumerable<MediaDateTimeTag>? dates = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
             declaredDuration?.TimeBase.Validate();
             Tags = ContainerMetadataSnapshot.CopyTags(tags);
+            Dates = ContainerMetadataSnapshot.CopyDates(dates);
             if (streamInfo is not null)
             {
                 Dictionary<int, ContainerStreamInfo> snapshot = [];
@@ -42,6 +43,9 @@ namespace Mediana.Containers
         /// header text tags; an empty list means none were found in the supported inspected metadata.
         /// Later metadata, binary values and unimplemented tag structures are not included.</summary>
         public IReadOnlyList<MediaTag>? Tags { get; }
+        /// <summary>Declared calendar dates with native keys and scope. Null means unavailable;
+        /// an empty list means no representable, specified dates were found.</summary>
+        public IReadOnlyList<MediaDateTimeTag>? Dates { get; }
         /// <summary>Header/index facts keyed by encoded stream index. Null means the reader does not expose track metadata;
         /// a missing entry means facts are unavailable for that stream. Values survive source/reader disposal.</summary>
         public IReadOnlyDictionary<int, ContainerStreamInfo>? StreamInfo { get; }
