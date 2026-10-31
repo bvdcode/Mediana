@@ -19,16 +19,16 @@ namespace Mediana.Images.Heif
     /// Repeated and concurrent decode calls use independent workers and return independent
     /// pixel arrays. Loading never retains caller buffers or streams. No native codec is used.
     /// </remarks>
-    public class HeicDocument
+    public partial class HeicDocument
     {
         private readonly HeifContainer container;
         private readonly HeicDecodeOptions options;
         private readonly IReadOnlyDictionary<uint, ImageProperties> metadata;
 
-        private HeicDocument(byte[] ownedInput, HeicDecodeOptions options)
+        private HeicDocument(ReadOnlyMemory<byte> encodedInput, HeicDecodeOptions options)
         {
             this.options = options;
-            container = new HeifContainerReader(options).Read(ownedInput);
+            container = new HeifContainerReader(options).Read(encodedInput);
             Dictionary<uint, ImageProperties> images = new Dictionary<uint, ImageProperties>();
             foreach (HeifItem item in container.Items.Values)
             {

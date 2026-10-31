@@ -61,6 +61,7 @@
     <Compile Include="../Shared/IntraPictureFixture.cs" Link="IntraPictureFixture.cs" />
     <None Include="../Mediana.Tests/Data/Heif/*" Link="Data/Heif/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HeifReferenceTestInput.cs" Link="HeifReferenceTestInput.cs" />
+    <Compile Include="../Shared/HeifFrameOwnershipTestInput.cs" Link="HeifFrameOwnershipTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />
     <None Include="../Mediana.Tests/Data/Jbig2/*" Link="Data/Jbig2/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Jbig2ReferenceTestInput.cs" Link="Jbig2ReferenceTestInput.cs" />

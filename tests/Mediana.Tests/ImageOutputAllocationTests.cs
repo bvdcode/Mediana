@@ -7,6 +7,10 @@ namespace Mediana.Tests
     public class ImageOutputAllocationTests
     {
         [Fact]
+        public async Task RegisteredHeicDecodingDoesNotCloneTheEncodedFile() =>
+            await ImageOutputAllocationTestInput.VerifyHeicInputAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif", "basic-8bit.heic"));
+
+        [Fact]
         public async Task VectorAndPageDecodingAllocatesOneRgbaOutputWithinItsBudget() =>
             await ImageOutputAllocationTestInput.VerifyAsync();
     }

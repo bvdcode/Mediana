@@ -17,12 +17,12 @@ namespace Mediana.Images.Heif.Hevc
     /// </remarks>
     internal static class PictureRenderer
     {
-        public static RgbaImage Render(DecodedPicture picture, ImageCrop crop, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null)
+        public static RgbaImage Render(DecodedPicture picture, ImageCrop crop, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null, Memory<byte> destination = default)
         {
             ColorConversion? conversion = CreateConversion(picture, color, alpha, alphaInformation);
             int width = crop.Width;
             int height = crop.Height;
-            Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
+            Memory<byte> pixels = buffers.Allocate(checked(width * height * 4), destination);
 
             if (!alpha && picture.Cb is not null && picture.Cr is not null)
             {

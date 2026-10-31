@@ -11,7 +11,7 @@ namespace Mediana.Images.Heif.Container
     internal static class OverlayImageDecoder
     {
         public static async Task<RgbaImage> DecodeAsync(HeifContainer container, HeifItem item, ImageProperties properties,
-            Func<uint, PixelBufferScope, Task<RgbaImage>> decode, PixelBufferScope buffers, CancellationToken cancellationToken)
+            Func<uint, PixelBufferScope, Task<RgbaImage>> decode, PixelBufferScope buffers, CancellationToken cancellationToken, Memory<byte> destination = default)
         {
             ByteReader reader = new ByteReader(container.ReadData(item.Id));
             if (reader.U8() != 0)
@@ -40,7 +40,7 @@ namespace Mediana.Images.Heif.Container
             {
                 throw new InvalidDataException("Overlay offsets disagree with its input count.");
             }
-            Memory<byte> pixels = buffers.Allocate(checked(properties.Width * properties.Height * 4));
+            Memory<byte> pixels = buffers.Allocate(checked(properties.Width * properties.Height * 4), destination);
             for (int offset = 0; offset < pixels.Length; offset += 4)
             {
                 fill.AsSpan().CopyTo(pixels.Span.Slice(offset, 4));

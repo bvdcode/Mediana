@@ -51,6 +51,7 @@
     <ProjectReference Include="../../src/Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
     <Compile Include="../Shared/IntraPictureFixture.cs" Link="IntraPictureFixture.cs" />
     <Compile Include="../Shared/HeifReferenceTestInput.cs" Link="HeifReferenceTestInput.cs" />
+    <Compile Include="../Shared/HeifFrameOwnershipTestInput.cs" Link="HeifFrameOwnershipTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />
     <Compile Include="../Shared/Jbig2ReferenceTestInput.cs" Link="Jbig2ReferenceTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Jbig2/Mediana.Codecs.Jbig2.csproj" />

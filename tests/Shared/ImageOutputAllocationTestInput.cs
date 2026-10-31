@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers.Binary;
 using Mediana.Codecs;
+using Mediana.Images.Heif;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Documents.Pdf;
@@ -13,6 +15,37 @@ namespace Mediana.Tests
 {
     internal static class ImageOutputAllocationTestInput
     {
+        public static async Task VerifyHeicInputAsync(string path)
+        {
+            const int PaddingBytes = 2 * 1024 * 1024;
+            const int Repetitions = 3;
+            byte[] source = await File.ReadAllBytesAsync(path);
+            byte[] input = new byte[source.Length + PaddingBytes];
+            source.CopyTo(input, 0);
+            BinaryPrimitives.WriteUInt32BigEndian(input.AsSpan(source.Length), PaddingBytes);
+            "free"u8.CopyTo(input.AsSpan(source.Length + 4));
+            HeicImageDecoder decoder = new(SampleAspectRatio.Square);
+            MediaBufferAllocator allocator = new(64 * 48 * 4);
+            for (int warmup = 0; warmup < Repetitions; warmup++)
+            {
+                using VideoFrame frame = await decoder.DecodeAsync(input, new(), allocator);
+            }
+            long before = GC.GetTotalAllocatedBytes(precise: true);
+            for (int iteration = 0; iteration < Repetitions; iteration++)
+            {
+                using VideoFrame frame = await decoder.DecodeAsync(input, new(), allocator);
+                if (frame.Format.Width != 64 || frame.Format.Height != 48)
+                {
+                    throw new InvalidDataException("HEIC allocation verification requires the complete source image.");
+                }
+            }
+            long allocated = GC.GetTotalAllocatedBytes(precise: true) - before;
+            if (allocated >= (long)Repetitions * PaddingBytes / 2 || allocator.AllocatedBytes != 0)
+            {
+                throw new InvalidDataException("Registered HEIC decoding must borrow encoded input and release its output budget.");
+            }
+        }
+
         public static async Task VerifyAsync()
         {
             const int Width = 1000;

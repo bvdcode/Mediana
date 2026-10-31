@@ -10,9 +10,9 @@ namespace Mediana.Images.Heif
     /// </summary>
     public partial class RgbaImage
     {
-        private readonly ReadOnlyMemory<byte> pixels;
+        private readonly Memory<byte> pixels;
 
-        internal RgbaImage(int width, int height, ReadOnlyMemory<byte> pixels, ImageColorInformation colorInformation)
+        internal RgbaImage(int width, int height, Memory<byte> pixels, ImageColorInformation colorInformation)
         {
             if ((width <= 0) || (height <= 0) || (pixels.Length != checked(width * height * 4)))
             {
@@ -54,6 +54,8 @@ namespace Mediana.Images.Heif
         /// reuse this buffer for other images or subsequent calls.
         /// </remarks>
         public ReadOnlyMemory<byte> Pixels => pixels;
+
+        internal Memory<byte> WritablePixels => pixels;
 
         /// <summary>
         /// Copies all pixel bytes into caller storage without retaining the destination.

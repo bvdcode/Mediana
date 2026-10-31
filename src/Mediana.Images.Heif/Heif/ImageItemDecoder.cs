@@ -19,8 +19,23 @@ namespace Mediana.Images.Heif.Container
             return await DecodeAsync(id, false, null, ReadOnlyMemory<byte>.Empty, null, null, true, buffers);
         }
 
+        public async Task<RgbaImage> DecodeToAsync(uint id, Memory<byte> destination)
+        {
+            if (destination.IsEmpty)
+            {
+                throw new ArgumentException("A complete pixel destination is required.", nameof(destination));
+            }
+            using PixelBufferScope buffers = new PixelBufferScope(true);
+            RgbaImage image = await DecodeAsync(id, false, null, ReadOnlyMemory<byte>.Empty, null, null, true, buffers, destination);
+            if (!image.Pixels.Equals((ReadOnlyMemory<byte>)destination))
+            {
+                throw new InvalidOperationException("Image decoding did not use the supplied pixel destination.");
+            }
+            return image;
+        }
+
         private async Task<RgbaImage> DecodeAsync(uint id, bool alpha, ColorEncoding? inheritedColor, ReadOnlyMemory<byte> inheritedIcc,
-            AlphaChannelInformation? inheritedAlpha, ImageDecodePath? ancestors, bool parallel, PixelBufferScope buffers)
+            AlphaChannelInformation? inheritedAlpha, ImageDecodePath? ancestors, bool parallel, PixelBufferScope buffers, Memory<byte> destination = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ImageDecodePath path = new ImageDecodePath(id, ancestors, options.MaxDerivationDepth);
@@ -43,7 +58,8 @@ namespace Mediana.Images.Heif.Container
                 expectedWidth = crop.Width;
                 expectedHeight = crop.Height;
                 transformedProperties = crop.PropertyCount;
-                result = await DecodeCodedAsync(item, properties, crop, color, icc, alpha, parallel, buffers, alphaInformation);
+                result = await DecodeCodedAsync(item, properties, crop, color, icc, alpha, parallel, buffers, alphaInformation,
+                    transformedProperties == properties.Transforms.Count ? destination : default);
             }
             else if (item.Type == HeifBox.Code("grid"))
             {
@@ -52,27 +68,29 @@ namespace Mediana.Images.Heif.Container
                 expectedHeight = orientation.Height;
                 transformedProperties = orientation.PropertyCount;
                 result = await GridImageDecoder.DecodeAsync(container, item, properties,
-                    (target, tileBuffers) => DecodeAsync(target, alpha, color, icc, alphaInformation, path, false, tileBuffers), parallel, buffers, orientation, cancellationToken);
+                    (target, tileBuffers) => DecodeAsync(target, alpha, color, icc, alphaInformation, path, false, tileBuffers), parallel, buffers, orientation, cancellationToken,
+                    transformedProperties == properties.Transforms.Count ? destination : default);
             }
             else if (item.Type == HeifBox.Code("iovl"))
             {
                 result = await OverlayImageDecoder.DecodeAsync(container, item, properties,
-                    (target, inputBuffers) => DecodeAsync(target, alpha, color, icc, alphaInformation, path, parallel, inputBuffers), buffers, cancellationToken);
+                    (target, inputBuffers) => DecodeAsync(target, alpha, color, icc, alphaInformation, path, parallel, inputBuffers), buffers, cancellationToken,
+                    properties.Transforms.Count == 0 ? destination : default);
             }
             else if (item.Type == HeifBox.Code("iden"))
             {
-                result = await DecodeAsync(IdentityInput(item), alpha, color, icc, alphaInformation, path, parallel, buffers);
+                result = await DecodeAsync(IdentityInput(item), alpha, color, icc, alphaInformation, path, parallel, buffers, properties.Transforms.Count == 0 ? destination : default);
             }
             else
             {
                 throw new UnsupportedHeicFeatureException("image item type " + item.Type.ToString("X8"));
             }
 
-            result = ApplyTransforms(result, expectedWidth, expectedHeight, properties.Transforms, transformedProperties, buffers);
+            result = ApplyTransforms(result, expectedWidth, expectedHeight, properties.Transforms, transformedProperties, buffers, destination);
 
             if (!alpha)
             {
-                result = await ApplyAlphaAsync(item, result, path, parallel, buffers);
+                result = await ApplyAlphaAsync(item, result, path, parallel);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -80,7 +98,7 @@ namespace Mediana.Images.Heif.Container
         }
 
         private async Task<RgbaImage> DecodeCodedAsync(HeifItem item, ImageProperties properties, ImageCrop crop, ColorEncoding? color,
-            ReadOnlyMemory<byte> icc, bool alpha, bool parallel, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation)
+            ReadOnlyMemory<byte> icc, bool alpha, bool parallel, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation, Memory<byte> destination)
         {
             DecoderConfiguration configuration = properties.Configuration ?? throw new InvalidDataException("HEVC image configuration is missing.");
             using DecodedPicture picture = await HevcImageDecoder.DecodeAsync(configuration, container.ReadData(item.Id), options,
@@ -93,10 +111,10 @@ namespace Mediana.Images.Heif.Container
             {
                 throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
             }
-            return PictureRenderer.Render(picture, crop, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers, alphaInformation);
+            return PictureRenderer.Render(picture, crop, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers, alphaInformation, destination);
         }
 
-        private async Task<RgbaImage> ApplyAlphaAsync(HeifItem item, RgbaImage color, ImageDecodePath path, bool parallel, PixelBufferScope buffers)
+        private async Task<RgbaImage> ApplyAlphaAsync(HeifItem item, RgbaImage color, ImageDecodePath path, bool parallel)
         {
             if (item.References.ContainsKey(HeifBox.Code("prem")))
             {
@@ -140,14 +158,18 @@ namespace Mediana.Images.Heif.Container
                 throw new InvalidDataException("Alpha image dimensions disagree with the master image.");
             }
 
-            Memory<byte> pixels = buffers.Allocate(color.Pixels.Length);
-            color.Pixels.CopyTo(pixels);
-            for (int offset = 3; offset < pixels.Length; offset += 4)
+            Memory<byte> pixels = color.WritablePixels;
+            for (int y = 0; y < color.Height; y++)
             {
-                pixels.Span[offset] = alpha.Pixels.Span[offset - 3];
+                cancellationToken.ThrowIfCancellationRequested();
+                int end = (y + 1) * color.Stride;
+                for (int offset = y * color.Stride + 3; offset < end; offset += 4)
+                {
+                    pixels.Span[offset] = alpha.Pixels.Span[offset - 3];
+                }
             }
 
-            return new RgbaImage(color.Width, color.Height, pixels, color.ColorInformation);
+            return color;
         }
 
         private static void ValidateDepths(ReadOnlySpan<byte> depths, SequenceParameters sequence)
@@ -182,7 +204,7 @@ namespace Mediana.Images.Heif.Container
         }
 
         private static RgbaImage ApplyTransforms(RgbaImage result, int expectedWidth, int expectedHeight, IReadOnlyList<HeifBox> transforms,
-            int transformedProperties, PixelBufferScope buffers)
+            int transformedProperties, PixelBufferScope buffers, Memory<byte> destination)
         {
             if ((result.Width != expectedWidth) || (result.Height != expectedHeight))
             {
@@ -191,7 +213,10 @@ namespace Mediana.Images.Heif.Container
 
             for (int index = transformedProperties; index < transforms.Count; index++)
             {
-                result = ImageTransforms.Apply(result, transforms[index], buffers);
+                RgbaImage previous = result;
+                result = ImageTransforms.Apply(previous, transforms[index], buffers,
+                    index == transforms.Count - 1 ? destination : default);
+                buffers.Release(previous.Pixels);
             }
             return result;
         }

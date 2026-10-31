@@ -72,6 +72,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS PDF: detached pages, vector order, clipping and transparency.");
             await VectorImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             await ImageOutputAllocationTestInput.VerifyAsync();
+            await ImageOutputAllocationTestInput.VerifyHeicInputAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif", "basic-8bit.heic"));
             Console.WriteLine("PASS image output allocation: SVG, TGS and PDF complete RGBA frames stay below the duplicate-buffer threshold and release every lease.");
             Console.WriteLine("PASS registered vector decoding: 352 SVG cases, 33 timed TGS frames and PDF pages match independent pixels.");
             await ImageProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
@@ -86,6 +87,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS SVG: 352 filter pixel references and Latin/Cyrillic font rendering.");
             await HeifReferenceTestInput.VerifyWavefrontAsync();
             await HeifReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
+            await HeifFrameOwnershipTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
             Console.WriteLine("PASS HEIC: 42 independent full RGBA references, transforms, grids and alpha.");
             await Jbig2ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jbig2"));
             Console.WriteLine("PASS JBIG2: 98 authored pixel references match all packed page bytes.");

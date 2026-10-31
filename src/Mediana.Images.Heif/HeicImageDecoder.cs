@@ -76,24 +76,7 @@ namespace Mediana.Images.Heif
             cancellationToken.ThrowIfCancellationRequested();
             HeifContainer container = new HeifContainerReader(options).Read(encoded);
             ImageProperties properties = ImageProperties.Read(container, container.Items[container.PrimaryItemId], options);
-            int width = properties.Width;
-            int height = properties.Height;
-            foreach (HeifBox transform in properties.Transforms)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (transform.Type == HeifBox.Code("clap"))
-                {
-                    ImageCrop crop = ImageCrop.Read(width, height, transform);
-                    width = crop.Width;
-                    height = crop.Height;
-                }
-                else
-                {
-                    ImageOrientation orientation = ImageOrientation.Read(width, height, transform);
-                    width = orientation.Width;
-                    height = orientation.Height;
-                }
-            }
+            (int width, int height) = properties.GetDisplaySize(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult(new ImageInfo("heif", width, height, ImageDimensionUnit.Pixels));
         }
@@ -105,9 +88,7 @@ namespace Mediana.Images.Heif
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
             cancellationToken.ThrowIfCancellationRequested();
-            HeicDocument document = HeicDocument.Load(encoded, options);
-            RgbaImage image = await document.DecodePrimaryAsync(cancellationToken).ConfigureAwait(false);
-            return image.ToVideoFrame(allocator, sampleAspectRatio, cancellationToken);
+            return await HeicDocument.DecodePrimaryFrameAsync(encoded, options, sampleAspectRatio, allocator, cancellationToken).ConfigureAwait(false);
         }
     }
 }

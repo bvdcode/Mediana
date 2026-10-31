@@ -15,13 +15,18 @@ namespace Mediana.Images.Heif
         {
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
+            VideoColorInfo color = GetVideoColorInfo();
+            return RgbaFrame.CopyFrom(Pixels.Span, Width, Height, color, allocator, sampleAspectRatio, cancellationToken);
+        }
+
+        internal VideoColorInfo GetVideoColorInfo()
+        {
             if (!ColorInformation.IccProfile.IsEmpty)
             {
                 throw new NotSupportedException("ICC-profiled HEIC images require an explicit color transform.");
             }
-            VideoColorInfo color = new(CicpColorimetry.GetPrimaries(ColorInformation.ColorPrimaries),
+            return new VideoColorInfo(CicpColorimetry.GetPrimaries(ColorInformation.ColorPrimaries),
                 CicpColorimetry.GetTransfer(ColorInformation.TransferCharacteristics), MatrixCoefficients.Rgb, ColorRange.Full);
-            return RgbaFrame.CopyFrom(Pixels.Span, Width, Height, color, allocator, sampleAspectRatio, cancellationToken);
         }
     }
 }

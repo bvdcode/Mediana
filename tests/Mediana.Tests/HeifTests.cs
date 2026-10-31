@@ -2,6 +2,10 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Images.Heif;
+using Mediana.Images.Heif.Container;
+using Mediana.Core.Memory;
+using Mediana.Core.Video;
+using System.Runtime.InteropServices;
 using Mediana.Images.Heif.Hevc;
 
 namespace Mediana.Tests
@@ -23,6 +27,35 @@ namespace Mediana.Tests
         public async Task AllFortyTwoIndependentRgbaReferencesMatch()
         {
             await HeifReferenceTestInput.VerifyAllAsync(Root);
+        }
+
+        [Fact]
+        public async Task RegisteredFramesRemainIndependentAfterInputAndWorkspaceReuse() =>
+            await HeifFrameOwnershipTestInput.VerifyAsync(Root);
+
+        [Fact]
+        public async Task OutputBudgetIsReservedBeforePictureDecodingAndReleasedOnFailure()
+        {
+            byte[] data = await File.ReadAllBytesAsync(Path.Combine(Root, "basic-8bit.heic"));
+            HeifContainer container = new HeifContainerReader(HeicDecodeOptions.Default).Read(data);
+            ReadOnlyMemory<byte> coded = container.ReadData(container.PrimaryItemId);
+            Assert.True(MemoryMarshal.TryGetArray(coded, out ArraySegment<byte> segment));
+            Assert.Same(data, segment.Array);
+            data.AsSpan(segment.Offset, segment.Count).Clear();
+            HeicImageDecoder decoder = new(SampleAspectRatio.Square);
+            MediaBufferAllocator insufficient = new(4);
+            await Assert.ThrowsAsync<MediaMemoryLimitException>(async () => await decoder.DecodeAsync(data, new(), insufficient));
+            MediaBufferAllocator output = new(64 * 48 * 4);
+            await Assert.ThrowsAsync<InvalidDataException>(async () => await decoder.DecodeAsync(data, new(), output));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await decoder.DecodeAsync(data, new(), output, new(true)));
+            Assert.Equal(0, insufficient.AllocatedBytes);
+            Assert.Equal(0, output.AllocatedBytes);
+            byte[] profiled = await File.ReadAllBytesAsync(Path.Combine(Root, "basic-8bit.heic"));
+            int nclx = profiled.AsSpan().IndexOf("nclx"u8);
+            Assert.True(nclx >= 0);
+            "prof"u8.CopyTo(profiled.AsSpan(nclx, 4));
+            await Assert.ThrowsAsync<NotSupportedException>(async () => await decoder.DecodeAsync(profiled, new(), output));
+            Assert.Equal(0, output.AllocatedBytes);
         }
 
         [Fact]

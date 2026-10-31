@@ -429,3 +429,15 @@ retains their storage when geometry, color metadata and aspect ratio also remain
 unchanged. Each returned frame has an independent lease. The original allocator
 keeps counting shared bytes until the final lease is released. Pixel conversion,
 resizing, repacking and metadata changes retain the conversion path.
+
+The registered HEIC decoder borrows encoded input for the awaited call, reserves
+its final RGBA frame before picture decoding, and directs the last render,
+composition or transform into that storage. Auxiliary alpha modifies pixels
+before publication. Temporary transform images return to their decode scope
+immediately after consumption; tile and alpha scopes retain their own lifetimes.
+`HeicDocument.Load` still copies its input, and standalone document decoding
+returns independent images. Explicit `RgbaImage.ToVideoFrame` remains a copy.
+
+JPEG 2000 component conversion can write tightly packed RGBA8 into caller storage
+through `WriteRgbaTo`. PDF JPX decoding uses that destination directly, preserving
+subsequent mask application and cached-image reuse without an intermediate frame.
