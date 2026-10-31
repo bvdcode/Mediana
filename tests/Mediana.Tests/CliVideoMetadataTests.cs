@@ -18,7 +18,7 @@ namespace Mediana.Tests
         [InlineData("Metadata", "avc-8k.mp4", 7680, 4320, "4:2:0", 8, "progressive", "4:3")]
         [InlineData("Mp4", "avc-cropped.mp4", 78, 46, "4:2:0", 8, "progressive", "1:1")]
         [InlineData("Mp4", "avc-weighted-rotated.mp4", 94, 62, "4:2:0", 8, "progressive", "4:3")]
-        public async Task ProbePrintsDeclaredSamplesWithoutDecodingOrApplyingDisplayTransforms(string folder, string file,
+        public async Task ProbePrintsDeclaredSamplesAndIndexedRateWithoutDecodingOrApplyingDisplayTransforms(string folder, string file,
             int width, int height, string sampling, int depth, string scan, string aspect)
         {
             string input = Path.Combine(AppContext.BaseDirectory, "Data", folder, file);
@@ -29,7 +29,7 @@ namespace Mediana.Tests
             Assert.Contains($"Video precision: luma {depth} bits; chroma {depth} bits.", output, StringComparison.Ordinal);
             Assert.Contains($"Scan: {scan}.", output, StringComparison.Ordinal);
             Assert.Contains($"Sample aspect ratio: {aspect}.", output, StringComparison.Ordinal);
-            Assert.DoesNotContain("FPS", output, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Average frame rate:", output, StringComparison.Ordinal);
             MediaEngine engine = MetadataEngineFactory.Create();
             Assert.Empty(engine.AudioDecoderImplementations);
             Assert.Empty(engine.VideoDecoderImplementations);
@@ -51,6 +51,7 @@ namespace Mediana.Tests
             Assert.Contains("Scan: interlaced.", text, StringComparison.Ordinal);
             Assert.Contains("Scan: progressive.", text, StringComparison.Ordinal);
             Assert.Equal(1, text.Split("Sample aspect ratio:", StringSplitOptions.None).Length - 1);
+            Assert.DoesNotContain("fps", text, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

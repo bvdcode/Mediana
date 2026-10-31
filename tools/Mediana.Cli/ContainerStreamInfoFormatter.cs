@@ -5,6 +5,7 @@ using System.Globalization;
 using Mediana.Containers;
 using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
+using Mediana.Core.Video;
 
 namespace Mediana.Cli
 {
@@ -18,6 +19,10 @@ namespace Mediana.Cli
                 await output.WriteLineAsync($"  Language: {MediaTagFormatter.Quote(language)}.");
             }
             await MediaDateTimeFormatter.WriteAsync(track.Dates, output, "  ", cancellationToken);
+            if (track.AverageFrameRate is FrameRate frameRate)
+            {
+                await output.WriteLineAsync(FormattableString.Invariant($"  Average frame rate: {frameRate.Numerator}/{frameRate.Denominator} ({frameRate.ToDouble():0.###} fps)."));
+            }
             if (track.DeclaredDuration is MediaDuration declared)
             {
                 await output.WriteLineAsync($"  Declared track duration: {MediaDurationFormatter.Seconds(declared)} seconds.");
