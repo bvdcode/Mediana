@@ -415,6 +415,11 @@ WAVE output and AAC input preparation, including the shared HLS audio path.
 Audio trimming returns a tightly packed selection in its destination allocator.
 This independent allocation prevents a small selected range from keeping an
 entire source allocation alive; planar selections also require repacking.
+The `AudioTrimmer` constructor requires the entire requested sample range to
+exist. `CreateWindow` selects the intersection of a half-open sample window and
+the available decoded PCM. Natural EOF may end that selection early; decoder,
+source and timing errors still fail. Neither operation inserts samples.
+Container edit durations describe selection windows, not guaranteed PCM counts.
 
 `Yuv420AreaResizer.Apply` returns independent, tightly packed output storage.
 `ResizeOrRetain` explicitly permits retaining unchanged dimensions, preserving

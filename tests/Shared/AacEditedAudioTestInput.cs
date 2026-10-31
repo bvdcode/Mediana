@@ -50,7 +50,10 @@ namespace Mediana.Tests
             }
             MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory()).AddAudioDecoder(new AacDecoderFactory()).Build();
             await using AudioSession session = await engine.OpenAudioAsync(source, 0, new MediaOpenOptions { BufferBudgetBytes = 128 * 1024 });
-            await using AudioTrimmer trimmer = new(session.ReadFrameAsync, range.StartSample, exactEdit ? range.SampleCount : null, allocator, range.PresentationTime);
+            long availableSamples = reference.LongLength / (channels * sizeof(float));
+            await using AudioTrimmer trimmer = exactEdit
+                ? new(session.ReadFrameAsync, range.StartSample, range.SampleCount, allocator, range.PresentationTime)
+                : AudioTrimmer.CreateWindow(session.ReadFrameAsync, range.StartSample, availableSamples, allocator, range.PresentationTime);
             int bytes = 0;
             AudioFrame? retained = null;
             try

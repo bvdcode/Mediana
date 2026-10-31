@@ -10,6 +10,15 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            foreach (AudioStorageLayout layout in new[] { AudioStorageLayout.Interleaved, AudioStorageLayout.Planar })
+            {
+                await AudioWindowTestInput.VerifyAsync(layout, 6, 100, 34, false);
+                await AudioWindowTestInput.VerifyAsync(layout, 6, 17, 17, true);
+                await AudioWindowTestInput.VerifyAsync(layout, 41, null, 0, false);
+                await AudioWindowTestInput.VerifyAsync(layout, 100, 0, 0, true);
+            }
+            await AudioWindowTestInput.VerifySourceFailureAsync();
+            Console.WriteLine("PASS audio windows: available sample intersection, exact clocks, source failures and storage ownership.");
             foreach (AudioSampleFormat sampleFormat in new[] { AudioSampleFormat.Unsigned8, AudioSampleFormat.Signed16,
                 AudioSampleFormat.Signed32, AudioSampleFormat.Float32, AudioSampleFormat.Float64 })
             {
