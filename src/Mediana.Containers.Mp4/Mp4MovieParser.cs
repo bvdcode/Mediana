@@ -147,7 +147,7 @@ namespace Mediana.Containers.Mp4
                 throw new NotSupportedException("MP4 requires one self-contained data reference.");
             }
             Mp4BoxCollection entries = new(reference[8..], budget);
-            if (entries.Boxes.Count != 1 || entries.Boxes[0].Type != "url " ||
+            if (entries.Boxes.Count != 1 || entries.Boxes[0].Type is not ("url " or "alis") ||
                 Mp4Binary.UInt32(entries.Boxes[0].Payload.Span, 0) != 1)
             {
                 throw new NotSupportedException("External MP4 data references are not supported.");

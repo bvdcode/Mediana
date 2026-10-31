@@ -11,6 +11,21 @@ namespace Mediana.Tests
     public class Mp4ValidationTests
     {
         [Theory]
+        [InlineData("url ", 0)]
+        [InlineData("alis", 0)]
+        [InlineData("alis", 3)]
+        [InlineData("alis", 0x01000001)]
+        [InlineData("rsrc", 1)]
+        public async Task ExternalOrUnsupportedDataReferencesAreRejected(string type, uint versionAndFlags)
+        {
+            byte[] data = await Mp4TestData.ReadAsync();
+            int reference = Mp4TestData.PayloadOffset(data, "dref");
+            System.Text.Encoding.Latin1.GetBytes(type).CopyTo(data.AsSpan(reference + 12, 4));
+            BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(reference + 16, 4), versionAndFlags);
+            await AssertOpenFailureAsync<NotSupportedException>(data);
+        }
+
+        [Theory]
         [InlineData("stts", 8, 0)]
         [InlineData("stts", 4, 10000)]
         [InlineData("stco", 8, 0)]

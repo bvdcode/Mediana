@@ -18,13 +18,19 @@ namespace Mediana.Tests
         [InlineData("avc-tail.mov", 3, false, false)]
         [InlineData("avc-tail.mov", 11, true, false)]
         [InlineData("avc-tail.mov", 7, true, true)]
+        [InlineData("avc-aac.mp4", 13, false, false, true)]
+        [InlineData("avc-tail.mov", 5, true, true, true)]
         public async Task RealFilesMatchIndependentPacketBytesAndTiming(string name, int maxRead,
-            bool wideOffsets, bool wideHeaders)
+            bool wideOffsets, bool wideHeaders, bool aliasReference = false)
         {
             byte[] data = await Mp4TestData.ReadAsync(name);
             using JsonDocument reference = JsonDocument.Parse(await File.ReadAllBytesAsync(Mp4TestData.PathFor(name + ".json")));
             Assert.Equal(reference.RootElement.GetProperty("sha256").GetString(),
                 Convert.ToHexStringLower(SHA256.HashData(data)));
+            if (aliasReference)
+            {
+                "alis"u8.CopyTo(data.AsSpan(Mp4TestData.PayloadOffset(data, "dref") + 12, 4));
+            }
             if (wideHeaders)
             {
                 data = Mp4TestData.Use64BitTimeHeaders(data);

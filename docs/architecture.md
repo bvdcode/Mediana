@@ -212,6 +212,12 @@ the coded configuration. This follows ISO/IEC 14496-12:2015 §12.2.3.1:
 
 ## Container pictures
 
+MP4/MOV reads one self-contained `url ` or `alis` data reference per track.
+Both require version 0 and exactly the self-reference flag. Chunk locations must
+still lie inside this file's media-data ranges. External aliases, URLs and
+resource-fork references are rejected without opening another source. These rules
+follow Apple's [data reference declaration](https://developer.apple.com/documentation/quicktime-file-format/media_data_reference_atom/data_references).
+
 `IContainerPictureReader` is an optional reader capability implemented by MP3,
 FLAC and MP4/M4A. `ContainerSession.Pictures` returns immutable declarations in
 container order. Null means the reader does not expose this capability; an empty
