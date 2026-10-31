@@ -35,6 +35,7 @@ namespace Mediana.Containers.Mp4
             cursors = movie.Tables.Select(table => new Mp4TrackCursor(table)).ToArray();
             MovieTimeBase = movie.TimeBase;
             Duration = movie.Duration;
+            HeaderDates = movie.HeaderDates;
             DisplayMatrix = movie.DisplayMatrix;
             Tracks = Array.AsReadOnly(movie.Tracks);
             metadataScope = movie.Metadata;
@@ -45,7 +46,9 @@ namespace Mediana.Containers.Mp4
                 metadataScope.Tags,
                 movie.Tracks.Select(track => new ContainerStreamInfo(track.Stream.StreamIndex,
                     track.PresentationDuration, track.MetadataScope.Tags, track.PacketIndex,
-                    track.Language.Language))));
+                    track.Language.Language, dates: track.HeaderDates.GetTags("tkhd", "trak/tkhd")
+                        .Concat(track.MediaDates.GetTags("mdhd", "trak/mdia/mdhd")))),
+                dates: HeaderDates.GetTags("mvhd", "moov/mvhd")));
             CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(metadataScope.Values));
             InitializePictureInfo();
             TimestampMode = timestampMode;
@@ -75,6 +78,8 @@ namespace Mediana.Containers.Mp4
         public string? MajorBrand { get; }
         public TimeBase MovieTimeBase { get; }
         public MediaDuration? Duration { get; }
+        /// <summary>Original movie-header creation/modification dates, independent of track/media headers.</summary>
+        public Mp4HeaderDates HeaderDates { get; }
         /// <summary>The movie header display matrix, applied after each track header matrix.</summary>
         public VideoDisplayMatrix DisplayMatrix { get; }
         public IReadOnlyList<Mp4TrackInfo> Tracks { get; }
@@ -97,8 +102,13 @@ namespace Mediana.Containers.Mp4
             Mp4ParseBudget budget = new(options, cancellationToken);
             using Mp4FileLayout layout = await Mp4FileLayout.ReadAsync(source, allocator,
                 options, budget, cancellationToken).ConfigureAwait(false);
+            DateTimeKind calendarKind = DateTimeKind.Unspecified;
+            if (layout.MajorBrand is not null && !layout.QuickTimeCompatible)
+            {
+                calendarKind = DateTimeKind.Utc;
+            }
             Mp4Movie movie = Mp4MovieParser.Parse(layout.Metadata.Memory, layout.DataRanges,
-                options, budget, layout.QuickTimeCompatible, cancellationToken);
+                options, budget, layout.QuickTimeCompatible, calendarKind, cancellationToken);
             await Mp4AudioConfiguration.ReadAsync(movie, source, allocator, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             return new Mp4Reader(source, allocator, layout.Metadata, movie, options.TimestampMode, layout.MajorBrand);

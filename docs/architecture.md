@@ -174,6 +174,27 @@ second index pass or packet payload scan. Indexed decode duration also supplies
 remain separate. Both media and linear-movie timestamp modes retain the original
 duration clock, including after MP3 configuration is inferred from its frame header.
 
+`ContainerInfo.Dates` and `ContainerStreamInfo.Dates` expose immutable calendar
+metadata separately from text and packet timestamps. Each `MediaDateTimeTag`
+retains its native key, structural location and UTC or unspecified time-zone kind;
+machine-local dates are rejected. Null means unavailable; empty means no specified,
+representable date was found. MP4 keeps movie `mvhd`, track `tkhd` and media `mdhd`
+dates distinct. Original unsigned 32/64-bit seconds remain available through
+`Mp4HeaderDates`; zero is omitted from calendar projections as an interoperability
+convention, and values beyond `DateTime` remain numeric declarations. There is no
+pre-1970 Unix reinterpretation. ISO BMFF dates use UTC under ISO/IEC 14496-12
+§6.2.2. QuickTime-compatible and unbranded files retain an unspecified time zone:
+Apple's [header date definition](https://developer.apple.com/documentation/quicktime-file-format/movie_header_atom/creation_time)
+recommends UTC without requiring it.
+
+QuickTime version-1 `mp4a` sound descriptions use the same encoded AAC stream
+contract after explicit `wave/esds` extraction. Compression ID -2 is required for
+compressed-frame sample tables; legacy uncompressed-sample table semantics are
+rejected. Reserved variable-rate packet/frame byte counts must be zero and the
+`frma` declaration must match `mp4a`. Configuration, packet bytes and sample-table
+timing are preserved; the extension's nominal samples-per-packet field does not
+replace indexed durations.
+
 ## Container pictures
 
 `IContainerPictureReader` is an optional reader capability implemented by MP3,

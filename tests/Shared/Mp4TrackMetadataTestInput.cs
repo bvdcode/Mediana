@@ -170,7 +170,7 @@ namespace Mediana.Tests
             }
         }
 
-        private static async Task VerifyPacketsAsync(Mp4Reader reader, JsonElement tracks)
+        public static async Task VerifyPacketsAsync(Mp4Reader reader, JsonElement tracks)
         {
             IncrementalHash[] hashes = Enumerable.Range(0, tracks.GetArrayLength()).Select(_ => IncrementalHash.CreateHash(HashAlgorithmName.SHA256)).ToArray();
             try

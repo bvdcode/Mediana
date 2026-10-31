@@ -15,7 +15,7 @@ namespace Mediana.Containers.Mp4
             MediaDuration? mediaDuration, MediaDuration? presentationDuration, IReadOnlyList<Mp4Edit> edits,
             int? width, int? height, int? declaredAudioChannels, int? declaredAudioSampleRate, int sampleCount,
             VideoDisplayMatrix displayMatrix, ContainerPacketIndexInfo packetIndex,
-            Mp4LanguageInfo language, Mp4MetadataScope metadata,
+            Mp4LanguageInfo language, Mp4HeaderDates headerDates, Mp4HeaderDates mediaDates, Mp4MetadataScope metadata,
             IReadOnlyList<VideoColorDescription>? colorDescriptions = null)
         {
             TrackId = trackId;
@@ -33,6 +33,8 @@ namespace Mediana.Containers.Mp4
             ColorDescriptions = colorDescriptions ?? Array.Empty<VideoColorDescription>();
             PacketIndex = packetIndex;
             Language = language;
+            HeaderDates = headerDates;
+            MediaDates = mediaDates;
             MetadataScope = metadata;
             Metadata = Array.AsReadOnly(metadata.Values.Select(value => value.Item).ToArray());
             UserData = Array.AsReadOnly(metadata.UserData.Select(value => value.Item).ToArray());
@@ -52,6 +54,10 @@ namespace Mediana.Containers.Mp4
         /// <summary>Complete sample-index totals, independent of mdhd/tkhd duration declarations and edit lists.</summary>
         public ContainerPacketIndexInfo PacketIndex { get; }
         public Mp4LanguageInfo Language { get; }
+        /// <summary>Original tkhd creation/modification declarations, independent of media dates.</summary>
+        public Mp4HeaderDates HeaderDates { get; }
+        /// <summary>Original mdhd creation/modification declarations, independent of track dates.</summary>
+        public Mp4HeaderDates MediaDates { get; }
         /// <summary>Track and media metadata in structural file order, retaining native source paths.</summary>
         public IReadOnlyList<Mp4MetadataItem> Metadata { get; }
         /// <summary>Recognized user-data names in structural order, with original payload access through the reader.</summary>
@@ -64,6 +70,6 @@ namespace Mediana.Containers.Mp4
 
         internal Mp4TrackInfo WithStream(EncodedStreamInfo stream) => new(TrackId, stream, SampleEntry,
             MediaDuration, PresentationDuration, Edits, Width, Height, DeclaredAudioChannels,
-            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, Language, MetadataScope, ColorDescriptions);
+            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, Language, HeaderDates, MediaDates, MetadataScope, ColorDescriptions);
     }
 }

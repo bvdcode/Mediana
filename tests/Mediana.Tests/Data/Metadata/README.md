@@ -49,6 +49,20 @@ original media offsets. The file SHA-256 is
 See Apple's [sound description](https://developer.apple.com/documentation/quicktime-file-format/sound_sample_description_version_1)
 and [decompressor configuration](https://developer.apple.com/documentation/quicktime-file-format/sidecompressionparam_atom).
 
+`header-dates.mp4` is a version-0 ISO MP4 copy with header date
+2026-03-07T12:34:56 UTC. `header-dates-future.mov` expands every `mvhd`, `tkhd`
+and `mdhd` to version 1 and declares 2050-02-03T04:05:06; the reader preserves
+QuickTime's unspecified time-zone basis. `header-dates-scopes.mp4` uses version-1
+ISO headers with distinct movie, track and media dates, zero values, values beyond
+`DateTime`, and exact 1904/2040/9999 calendar boundaries. The expansion updates
+enclosing sizes inside trailing `moov`; media offsets, stream configurations,
+packet bytes and timing remain intact. `header-dates.reference.json` records exact
+unsigned fields, calendar projections, source scopes and independently inspected
+configurations and complete packet digests. Original ffprobe creation-time aliases
+are recorded separately; they do not replace the distinct `tkhd` and `mdhd` fields.
+Zero remains an original numeric declaration and is omitted from calendar tags
+as an unspecified-value convention. No pre-1970 Unix reinterpretation is applied.
+
 | File | SHA-256 |
 | --- | --- |
 | `covers.m4a` | `40b36b570c706b82040aa1e67c948ba9870cebee280323683ac62b20bc380edc` |

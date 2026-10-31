@@ -10,7 +10,7 @@ namespace Mediana.Containers.Mp4
     internal static class Mp4MovieParser
     {
         public static Mp4Movie Parse(ReadOnlyMemory<byte> metadata, IReadOnlyList<Mp4DataRange> dataRanges,
-            Mp4ReadOptions options, Mp4ParseBudget budget, bool quickTime, CancellationToken cancellationToken)
+            Mp4ReadOptions options, Mp4ParseBudget budget, bool quickTime, DateTimeKind calendarKind, CancellationToken cancellationToken)
         {
             Mp4BoxCollection movie = new(metadata, budget);
             if (movie.Optional("mvex") is not null)
@@ -22,7 +22,7 @@ namespace Mediana.Containers.Mp4
                 throw new NotSupportedException("Compressed QuickTime movie headers are not supported.");
             }
             Mp4Box movieHeader = movie.Required("mvhd");
-            (TimeBase timeBase, MediaDuration? duration) = ReadTimeHeader(movieHeader, 100, 112);
+            (TimeBase timeBase, MediaDuration? duration, Mp4HeaderDates movieDates) = ReadTimeHeader(movieHeader, 100, 112, calendarKind);
             VideoDisplayMatrix movieMatrix = Mp4DisplayMatrixParser.Read(movieHeader.Payload.Span,
                 movieHeader.Payload.Span[0] == 0 ? 36 : 48);
             List<Mp4TrackInfo> tracks = [];
@@ -39,6 +39,7 @@ namespace Mediana.Containers.Mp4
                 ReadOnlyMemory<byte> trackHeader = track.Required("tkhd").Payload;
                 byte version = Version(trackHeader.Span, allowFlags: true);
                 Mp4Binary.Range(trackHeader.Span, 0, version == 0 ? 84 : 96);
+                Mp4HeaderDates trackDates = Mp4HeaderDateParser.Read(trackHeader.Span, calendarKind);
                 uint trackId = Mp4Binary.UInt32(trackHeader.Span, version == 0 ? 12 : 20);
                 if (trackId == 0 || !trackIds.Add(trackId))
                 {
@@ -49,7 +50,7 @@ namespace Mediana.Containers.Mp4
                 VideoDisplayMatrix trackMatrix = Mp4DisplayMatrixParser.Read(trackHeader.Span, version == 0 ? 40 : 52);
                 Mp4BoxCollection media = new(track.Required("mdia").Payload, budget);
                 Mp4Box mediaHeader = media.Required("mdhd");
-                (TimeBase trackTimeBase, MediaDuration? mediaDuration) = ReadTimeHeader(mediaHeader, 24, 36);
+                (TimeBase trackTimeBase, MediaDuration? mediaDuration, Mp4HeaderDates mediaDates) = ReadTimeHeader(mediaHeader, 24, 36, calendarKind);
                 Mp4LanguageInfo language = Mp4LanguageParser.Parse(mediaHeader.Payload.Span, media.Optional("elng"), quickTime, budget);
                 ReadOnlyMemory<byte> handler = media.Required("hdlr").Payload;
                 Mp4Binary.FullBox(handler.Span);
@@ -86,7 +87,7 @@ namespace Mediana.Containers.Mp4
                 tracks.Add(new Mp4TrackInfo(trackId, stream, description.SampleEntry, mediaDuration,
                     presentationDuration, edits, description.Width, description.Height,
                     description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix, packetIndex,
-                    language, trackMetadata, description.ColorDescriptions));
+                    language, trackDates, mediaDates, trackMetadata, description.ColorDescriptions));
                 tables.Add(table);
             }
             if (tracks.Count == 0)
@@ -94,10 +95,10 @@ namespace Mediana.Containers.Mp4
                 throw new InvalidDataException("The MP4 movie has no tracks.");
             }
             Mp4MetadataParser metadataParser = new(metadata, options, budget);
-            return new Mp4Movie(timeBase, duration, movieMatrix, tracks.ToArray(), tables.ToArray(), metadataParser.Parse(movie, "moov"));
+            return new Mp4Movie(timeBase, duration, movieDates, movieMatrix, tracks.ToArray(), tables.ToArray(), metadataParser.Parse(movie, "moov"));
         }
 
-        private static (TimeBase, MediaDuration?) ReadTimeHeader(Mp4Box box, int minimumV0, int minimumV1)
+        private static (TimeBase, MediaDuration?, Mp4HeaderDates) ReadTimeHeader(Mp4Box box, int minimumV0, int minimumV1, DateTimeKind calendarKind)
         {
             byte version = Version(box.Payload.Span);
             Mp4Binary.Range(box.Payload.Span, 0, version == 0 ? minimumV0 : minimumV1);
@@ -111,7 +112,8 @@ namespace Mediana.Containers.Mp4
                 throw new NotSupportedException("MP4 time scales above the signed 32-bit range are not supported.");
             }
             TimeBase timeBase = new(1, (int)scale);
-            return (timeBase, ReadDuration(box.Payload.Span, version == 0 ? 16 : 24, version, timeBase));
+            return (timeBase, ReadDuration(box.Payload.Span, version == 0 ? 16 : 24, version, timeBase),
+                Mp4HeaderDateParser.Read(box.Payload.Span, calendarKind));
         }
 
         private static MediaDuration? ReadDuration(ReadOnlySpan<byte> data, int offset, byte version, TimeBase timeBase)
