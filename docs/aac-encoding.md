@@ -161,8 +161,10 @@ These measurements include the final onset immediately before EOF.
 
 Short windows trade frequency resolution for time resolution. In the stationary
 unequal-amplitude source, left/right SNR changes from 55.02/34.38 to 52.48/31.66 dB.
-That regression remains a quality issue. Automatic selection reduces measured
-impulse spreading; it does not replace perceptual allocation or listening tests.
+The subsequent [channel-relative allocation](aac-channel-distortion.md) changes
+this imbalance, including its loud/quiet-channel tradeoff. Automatic selection
+reduces measured impulse spreading; perceptual allocation and listening tests
+remain open.
 
 Five complete [EBU SQAM recordings](https://tech.ebu.ch/docs/tech/tech3253.pdf)
 also pass through the public Native AOT FLAC-to-AAC command at a 128 kbit/s
@@ -264,8 +266,8 @@ A 44117 Hz FLAC input is rejected without publishing output, preserving the
 explicit supported-rate contract.
 
 A Native AOT comparison encodes that complete ten-minute generated stereo input
-at a 128 kbit/s frame ceiling. The baseline uses long windows; the current encoder
-selects windows and grouping automatically. Both retain shared channel budgets and
+at a 128 kbit/s frame ceiling. This comparison isolates long versus automatic
+windows before channel-energy normalization. Both retain shared channel budgets and
 candidate-cost caching, use identical surrounding CLI sources, .NET 10.0.13 on
 Linux x64 and affinity to one CPU core. Four complete runs use
 before/after/after/before order. Verification covers every output timestamp,
