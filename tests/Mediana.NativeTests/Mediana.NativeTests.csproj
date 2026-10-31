@@ -85,6 +85,7 @@
     <Compile Include="../Shared/LanguageTagTestInput.cs" Link="LanguageTagTestInput.cs" />
     <Compile Include="../Shared/Mp4TrackMetadataTestInput.cs" Link="Mp4TrackMetadataTestInput.cs" />
     <Compile Include="../Shared/Mp4HeaderDateTestInput.cs" Link="Mp4HeaderDateTestInput.cs" />
+    <Compile Include="../Shared/QuickTimeAacTestInput.cs" Link="QuickTimeAacTestInput.cs" />
     <Compile Include="../Shared/MediaTagTestInput.cs" Link="MediaTagTestInput.cs" />
     <Compile Include="../Shared/AudioStreamMetadataTestInput.cs" Link="AudioStreamMetadataTestInput.cs" />
     <Compile Include="../Mediana.Tests/H264TestBits.cs" Link="H264TestBits.cs" />

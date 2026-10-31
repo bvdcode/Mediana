@@ -1,0 +1,832 @@
+{
+  "file": "header-dates-future.mov",
+  "sha256": "8a9cc75354e1d16411f48c8feb4e26a611b2b2825815743e5c061e6ecc3f50f4",
+  "pcm_file": "quicktime-aac.f32le",
+  "pcm_sha256": "2757f1ffb5eba552afe59e30dac9071570682e19ee5fa0a07efbbf87ff46411a",
+  "sample_rate": 48000,
+  "channels": 1,
+  "streams": [
+    {
+      "index": 1,
+      "packets": [
+        {
+          "pts": 0,
+          "dts": 0,
+          "duration": 1024
+        },
+        {
+          "pts": 1024,
+          "dts": 1024,
+          "duration": 1024
+        },
+        {
+          "pts": 2048,
+          "dts": 2048,
+          "duration": 1024
+        },
+        {
+          "pts": 3072,
+          "dts": 3072,
+          "duration": 1024
+        },
+        {
+          "pts": 4096,
+          "dts": 4096,
+          "duration": 1024
+        },
+        {
+          "pts": 5120,
+          "dts": 5120,
+          "duration": 1024
+        },
+        {
+          "pts": 6144,
+          "dts": 6144,
+          "duration": 1024
+        },
+        {
+          "pts": 7168,
+          "dts": 7168,
+          "duration": 1024
+        },
+        {
+          "pts": 8192,
+          "dts": 8192,
+          "duration": 1024
+        },
+        {
+          "pts": 9216,
+          "dts": 9216,
+          "duration": 1024
+        },
+        {
+          "pts": 10240,
+          "dts": 10240,
+          "duration": 1024
+        },
+        {
+          "pts": 11264,
+          "dts": 11264,
+          "duration": 1024
+        },
+        {
+          "pts": 12288,
+          "dts": 12288,
+          "duration": 1024
+        },
+        {
+          "pts": 13312,
+          "dts": 13312,
+          "duration": 1024
+        },
+        {
+          "pts": 14336,
+          "dts": 14336,
+          "duration": 1024
+        },
+        {
+          "pts": 15360,
+          "dts": 15360,
+          "duration": 1024
+        },
+        {
+          "pts": 16384,
+          "dts": 16384,
+          "duration": 1024
+        },
+        {
+          "pts": 17408,
+          "dts": 17408,
+          "duration": 1024
+        },
+        {
+          "pts": 18432,
+          "dts": 18432,
+          "duration": 1024
+        },
+        {
+          "pts": 19456,
+          "dts": 19456,
+          "duration": 1024
+        },
+        {
+          "pts": 20480,
+          "dts": 20480,
+          "duration": 1024
+        },
+        {
+          "pts": 21504,
+          "dts": 21504,
+          "duration": 1024
+        },
+        {
+          "pts": 22528,
+          "dts": 22528,
+          "duration": 1024
+        },
+        {
+          "pts": 23552,
+          "dts": 23552,
+          "duration": 1024
+        },
+        {
+          "pts": 24576,
+          "dts": 24576,
+          "duration": 1024
+        },
+        {
+          "pts": 25600,
+          "dts": 25600,
+          "duration": 1024
+        },
+        {
+          "pts": 26624,
+          "dts": 26624,
+          "duration": 1024
+        },
+        {
+          "pts": 27648,
+          "dts": 27648,
+          "duration": 1024
+        },
+        {
+          "pts": 28672,
+          "dts": 28672,
+          "duration": 1024
+        },
+        {
+          "pts": 29696,
+          "dts": 29696,
+          "duration": 1024
+        },
+        {
+          "pts": 30720,
+          "dts": 30720,
+          "duration": 1024
+        },
+        {
+          "pts": 31744,
+          "dts": 31744,
+          "duration": 1024
+        },
+        {
+          "pts": 32768,
+          "dts": 32768,
+          "duration": 1024
+        },
+        {
+          "pts": 33792,
+          "dts": 33792,
+          "duration": 1024
+        },
+        {
+          "pts": 34816,
+          "dts": 34816,
+          "duration": 1024
+        },
+        {
+          "pts": 35840,
+          "dts": 35840,
+          "duration": 1024
+        },
+        {
+          "pts": 36864,
+          "dts": 36864,
+          "duration": 1024
+        },
+        {
+          "pts": 37888,
+          "dts": 37888,
+          "duration": 1024
+        },
+        {
+          "pts": 38912,
+          "dts": 38912,
+          "duration": 1024
+        },
+        {
+          "pts": 39936,
+          "dts": 39936,
+          "duration": 1024
+        },
+        {
+          "pts": 40960,
+          "dts": 40960,
+          "duration": 1024
+        },
+        {
+          "pts": 41984,
+          "dts": 41984,
+          "duration": 1024
+        },
+        {
+          "pts": 43008,
+          "dts": 43008,
+          "duration": 1024
+        },
+        {
+          "pts": 44032,
+          "dts": 44032,
+          "duration": 1024
+        },
+        {
+          "pts": 45056,
+          "dts": 45056,
+          "duration": 1024
+        },
+        {
+          "pts": 46080,
+          "dts": 46080,
+          "duration": 1024
+        },
+        {
+          "pts": 47104,
+          "dts": 47104,
+          "duration": 1024
+        },
+        {
+          "pts": 48128,
+          "dts": 48128,
+          "duration": 1024
+        },
+        {
+          "pts": 49152,
+          "dts": 49152,
+          "duration": 1024
+        },
+        {
+          "pts": 50176,
+          "dts": 50176,
+          "duration": 1024
+        },
+        {
+          "pts": 51200,
+          "dts": 51200,
+          "duration": 1024
+        },
+        {
+          "pts": 52224,
+          "dts": 52224,
+          "duration": 1024
+        },
+        {
+          "pts": 53248,
+          "dts": 53248,
+          "duration": 1024
+        },
+        {
+          "pts": 54272,
+          "dts": 54272,
+          "duration": 1024
+        },
+        {
+          "pts": 55296,
+          "dts": 55296,
+          "duration": 1024
+        },
+        {
+          "pts": 56320,
+          "dts": 56320,
+          "duration": 1024
+        },
+        {
+          "pts": 57344,
+          "dts": 57344,
+          "duration": 1024
+        },
+        {
+          "pts": 58368,
+          "dts": 58368,
+          "duration": 1024
+        },
+        {
+          "pts": 59392,
+          "dts": 59392,
+          "duration": 1024
+        },
+        {
+          "pts": 60416,
+          "dts": 60416,
+          "duration": 1024
+        },
+        {
+          "pts": 61440,
+          "dts": 61440,
+          "duration": 1024
+        },
+        {
+          "pts": 62464,
+          "dts": 62464,
+          "duration": 1024
+        },
+        {
+          "pts": 63488,
+          "dts": 63488,
+          "duration": 1024
+        },
+        {
+          "pts": 64512,
+          "dts": 64512,
+          "duration": 1024
+        },
+        {
+          "pts": 65536,
+          "dts": 65536,
+          "duration": 1024
+        },
+        {
+          "pts": 66560,
+          "dts": 66560,
+          "duration": 1024
+        },
+        {
+          "pts": 67584,
+          "dts": 67584,
+          "duration": 1024
+        },
+        {
+          "pts": 68608,
+          "dts": 68608,
+          "duration": 1024
+        },
+        {
+          "pts": 69632,
+          "dts": 69632,
+          "duration": 1024
+        },
+        {
+          "pts": 70656,
+          "dts": 70656,
+          "duration": 1024
+        },
+        {
+          "pts": 71680,
+          "dts": 71680,
+          "duration": 1024
+        },
+        {
+          "pts": 72704,
+          "dts": 72704,
+          "duration": 1024
+        },
+        {
+          "pts": 73728,
+          "dts": 73728,
+          "duration": 1024
+        },
+        {
+          "pts": 74752,
+          "dts": 74752,
+          "duration": 1024
+        },
+        {
+          "pts": 75776,
+          "dts": 75776,
+          "duration": 1024
+        },
+        {
+          "pts": 76800,
+          "dts": 76800,
+          "duration": 1024
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "packets": [
+        {
+          "pts": 0,
+          "dts": 0,
+          "duration": 1024
+        },
+        {
+          "pts": 1024,
+          "dts": 1024,
+          "duration": 1024
+        },
+        {
+          "pts": 2048,
+          "dts": 2048,
+          "duration": 1024
+        },
+        {
+          "pts": 3072,
+          "dts": 3072,
+          "duration": 1024
+        },
+        {
+          "pts": 4096,
+          "dts": 4096,
+          "duration": 1024
+        },
+        {
+          "pts": 5120,
+          "dts": 5120,
+          "duration": 1024
+        },
+        {
+          "pts": 6144,
+          "dts": 6144,
+          "duration": 1024
+        },
+        {
+          "pts": 7168,
+          "dts": 7168,
+          "duration": 1024
+        },
+        {
+          "pts": 8192,
+          "dts": 8192,
+          "duration": 1024
+        },
+        {
+          "pts": 9216,
+          "dts": 9216,
+          "duration": 1024
+        },
+        {
+          "pts": 10240,
+          "dts": 10240,
+          "duration": 1024
+        },
+        {
+          "pts": 11264,
+          "dts": 11264,
+          "duration": 1024
+        },
+        {
+          "pts": 12288,
+          "dts": 12288,
+          "duration": 1024
+        },
+        {
+          "pts": 13312,
+          "dts": 13312,
+          "duration": 1024
+        },
+        {
+          "pts": 14336,
+          "dts": 14336,
+          "duration": 1024
+        },
+        {
+          "pts": 15360,
+          "dts": 15360,
+          "duration": 1024
+        },
+        {
+          "pts": 16384,
+          "dts": 16384,
+          "duration": 1024
+        },
+        {
+          "pts": 17408,
+          "dts": 17408,
+          "duration": 1024
+        },
+        {
+          "pts": 18432,
+          "dts": 18432,
+          "duration": 1024
+        },
+        {
+          "pts": 19456,
+          "dts": 19456,
+          "duration": 1024
+        },
+        {
+          "pts": 20480,
+          "dts": 20480,
+          "duration": 1024
+        },
+        {
+          "pts": 21504,
+          "dts": 21504,
+          "duration": 1024
+        },
+        {
+          "pts": 22528,
+          "dts": 22528,
+          "duration": 1024
+        },
+        {
+          "pts": 23552,
+          "dts": 23552,
+          "duration": 1024
+        },
+        {
+          "pts": 24576,
+          "dts": 24576,
+          "duration": 1024
+        },
+        {
+          "pts": 25600,
+          "dts": 25600,
+          "duration": 1024
+        },
+        {
+          "pts": 26624,
+          "dts": 26624,
+          "duration": 1024
+        },
+        {
+          "pts": 27648,
+          "dts": 27648,
+          "duration": 1024
+        },
+        {
+          "pts": 28672,
+          "dts": 28672,
+          "duration": 1024
+        },
+        {
+          "pts": 29696,
+          "dts": 29696,
+          "duration": 1024
+        },
+        {
+          "pts": 30720,
+          "dts": 30720,
+          "duration": 1024
+        },
+        {
+          "pts": 31744,
+          "dts": 31744,
+          "duration": 1024
+        },
+        {
+          "pts": 32768,
+          "dts": 32768,
+          "duration": 1024
+        },
+        {
+          "pts": 33792,
+          "dts": 33792,
+          "duration": 1024
+        },
+        {
+          "pts": 34816,
+          "dts": 34816,
+          "duration": 1024
+        },
+        {
+          "pts": 35840,
+          "dts": 35840,
+          "duration": 1024
+        },
+        {
+          "pts": 36864,
+          "dts": 36864,
+          "duration": 1024
+        },
+        {
+          "pts": 37888,
+          "dts": 37888,
+          "duration": 1024
+        },
+        {
+          "pts": 38912,
+          "dts": 38912,
+          "duration": 1024
+        },
+        {
+          "pts": 39936,
+          "dts": 39936,
+          "duration": 1024
+        },
+        {
+          "pts": 40960,
+          "dts": 40960,
+          "duration": 1024
+        },
+        {
+          "pts": 41984,
+          "dts": 41984,
+          "duration": 1024
+        },
+        {
+          "pts": 43008,
+          "dts": 43008,
+          "duration": 1024
+        },
+        {
+          "pts": 44032,
+          "dts": 44032,
+          "duration": 1024
+        },
+        {
+          "pts": 45056,
+          "dts": 45056,
+          "duration": 1024
+        },
+        {
+          "pts": 46080,
+          "dts": 46080,
+          "duration": 1024
+        },
+        {
+          "pts": 47104,
+          "dts": 47104,
+          "duration": 1024
+        },
+        {
+          "pts": 48128,
+          "dts": 48128,
+          "duration": 1024
+        },
+        {
+          "pts": 49152,
+          "dts": 49152,
+          "duration": 1024
+        },
+        {
+          "pts": 50176,
+          "dts": 50176,
+          "duration": 1024
+        },
+        {
+          "pts": 51200,
+          "dts": 51200,
+          "duration": 1024
+        },
+        {
+          "pts": 52224,
+          "dts": 52224,
+          "duration": 1024
+        },
+        {
+          "pts": 53248,
+          "dts": 53248,
+          "duration": 1024
+        },
+        {
+          "pts": 54272,
+          "dts": 54272,
+          "duration": 1024
+        },
+        {
+          "pts": 55296,
+          "dts": 55296,
+          "duration": 1024
+        },
+        {
+          "pts": 56320,
+          "dts": 56320,
+          "duration": 1024
+        },
+        {
+          "pts": 57344,
+          "dts": 57344,
+          "duration": 1024
+        },
+        {
+          "pts": 58368,
+          "dts": 58368,
+          "duration": 1024
+        },
+        {
+          "pts": 59392,
+          "dts": 59392,
+          "duration": 1024
+        },
+        {
+          "pts": 60416,
+          "dts": 60416,
+          "duration": 1024
+        },
+        {
+          "pts": 61440,
+          "dts": 61440,
+          "duration": 1024
+        },
+        {
+          "pts": 62464,
+          "dts": 62464,
+          "duration": 1024
+        },
+        {
+          "pts": 63488,
+          "dts": 63488,
+          "duration": 1024
+        },
+        {
+          "pts": 64512,
+          "dts": 64512,
+          "duration": 1024
+        },
+        {
+          "pts": 65536,
+          "dts": 65536,
+          "duration": 1024
+        },
+        {
+          "pts": 66560,
+          "dts": 66560,
+          "duration": 1024
+        },
+        {
+          "pts": 67584,
+          "dts": 67584,
+          "duration": 1024
+        },
+        {
+          "pts": 68608,
+          "dts": 68608,
+          "duration": 1024
+        },
+        {
+          "pts": 69632,
+          "dts": 69632,
+          "duration": 1024
+        },
+        {
+          "pts": 70656,
+          "dts": 70656,
+          "duration": 1024
+        },
+        {
+          "pts": 71680,
+          "dts": 71680,
+          "duration": 1024
+        },
+        {
+          "pts": 72704,
+          "dts": 72704,
+          "duration": 1024
+        },
+        {
+          "pts": 73728,
+          "dts": 73728,
+          "duration": 1024
+        },
+        {
+          "pts": 74752,
+          "dts": 74752,
+          "duration": 1024
+        },
+        {
+          "pts": 75776,
+          "dts": 75776,
+          "duration": 1024
+        },
+        {
+          "pts": 76800,
+          "dts": 76800,
+          "duration": 1024
+        }
+      ]
+    }
+  ],
+  "probe_command": [
+    "ffprobe",
+    "-v",
+    "error",
+    "-ignore_editlist",
+    "1",
+    "-show_streams",
+    "-show_packets",
+    "-of",
+    "json",
+    "tests/Mediana.Tests/Data/Metadata/header-dates-future.mov"
+  ],
+  "decode_commands": [
+    [
+      "ffmpeg",
+      "-nostdin",
+      "-v",
+      "error",
+      "-threads",
+      "1",
+      "-ignore_editlist",
+      "1",
+      "-i",
+      "tests/Mediana.Tests/Data/Metadata/header-dates-future.mov",
+      "-map",
+      "0:1",
+      "-c:a",
+      "pcm_f32le",
+      "-f",
+      "f32le",
+      "pipe:1"
+    ],
+    [
+      "ffmpeg",
+      "-nostdin",
+      "-v",
+      "error",
+      "-threads",
+      "1",
+      "-ignore_editlist",
+      "1",
+      "-i",
+      "tests/Mediana.Tests/Data/Metadata/header-dates-future.mov",
+      "-map",
+      "0:2",
+      "-c:a",
+      "pcm_f32le",
+      "-f",
+      "f32le",
+      "pipe:1"
+    ]
+  ]
+}

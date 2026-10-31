@@ -19,6 +19,8 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS track metadata: native scopes, localized user-data names, owned payloads and complete packet references.");
             await Mp4HeaderDateTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
             Console.WriteLine("PASS header dates: unsigned v0/v1 fields, UTC/unspecified zones, distinct scopes and complete packet references.");
+            await QuickTimeAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
+            Console.WriteLine("PASS QuickTime AAC: both complete sound-v1 tracks, original timing, independent PNS energy and retained ownership.");
             await ContainerColorTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Preview"));
             await AvcColorRemuxTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Preview"));
             Console.WriteLine("PASS container colors: nclx/nclc precedence, native-range YUV sequences, SDR previews, resizing and encoding.");

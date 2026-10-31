@@ -49,6 +49,15 @@ original media offsets. The file SHA-256 is
 See Apple's [sound description](https://developer.apple.com/documentation/quicktime-file-format/sound_sample_description_version_1)
 and [decompressor configuration](https://developer.apple.com/documentation/quicktime-file-format/sidecompressionparam_atom).
 
+`quicktime-aac.f32le` and `quicktime-aac.reference.json` hold independent full
+Float32 PCM, commands, hashes and packet timestamps for both sound-v1 tracks.
+Each track decodes to 77824 mono samples at 48000 Hz. The AAC payload uses PNS;
+different decoders may generate different noise sequences. Managed and Native AOT
+checks use the existing AAC criteria: each 1024-sample block's energy agrees
+within 6% and the entire stream's energy within 0.1%. They also verify the PNS
+codebook, every output timestamp, format, sample count, EOF and retained-frame
+ownership. These checks do not require sample equality between PNS decoders.
+
 `header-dates.mp4` is a version-0 ISO MP4 copy with header date
 2026-03-07T12:34:56 UTC. `header-dates-future.mov` expands every `mvhd`, `tkhd`
 and `mdhd` to version 1 and declares 2050-02-03T04:05:06; the reader preserves

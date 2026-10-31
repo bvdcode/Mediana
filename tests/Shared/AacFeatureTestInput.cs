@@ -16,16 +16,33 @@ namespace Mediana.Tests
     {
         public static async Task<(int Sequences, int Shapes, int Books, int Filters, int MidSideBands)> VerifyAsync(string root, string name)
         {
+            (int Sequences, int Shapes, int Books, int Filters, int MidSideBands) actual = await InspectAsync(Path.Combine(root, name + ".m4a"), 0);
+            (int, int, int, int, int) expected = name switch
+            {
+                "lc-mono-48" => (0xf, 3, 0xff6, 2, 0),
+                "lc-stereo-44" => (0xf, 3, 0xcffe, 2, 374),
+                "lc-pns-48" => (0xf, 3, 0xadfe, 5, 292),
+                _ => throw new ArgumentOutOfRangeException(nameof(name))
+            };
+            if (actual != expected)
+            {
+                throw new InvalidDataException("The AAC fixture no longer exercises its recorded window, spectral and stereo tools.");
+            }
+            return actual;
+        }
+
+        public static async Task<(int Sequences, int Shapes, int Books, int Filters, int MidSideBands)> InspectAsync(string path, int streamIndex)
+        {
             MediaBufferAllocator allocator = new(128 * 1024);
             int sequences = 0;
             int shapes = 0;
             int books = 0;
             int filters = 0;
             int midSideBands = 0;
-            await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, name + ".m4a")));
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
             {
-                AacConfiguration configuration = AacConfiguration.ReadAudioSpecificConfig(reader.Streams[0].Configuration.Span, out _)
+                AacConfiguration configuration = AacConfiguration.ReadAudioSpecificConfig(reader.Streams[streamIndex].Configuration.Span, out _)
                     ?? throw new InvalidDataException("The AAC fixture configuration is unsupported.");
                 using AacDecoderWorkspace workspace = new(allocator, configuration.ChannelCount);
                 uint noiseState = 0x13579bdf;
@@ -35,6 +52,10 @@ namespace Mediana.Tests
                     if (packet is null)
                     {
                         break;
+                    }
+                    if (packet.StreamIndex != streamIndex)
+                    {
+                        continue;
                     }
                     midSideBands += CountMidSideBands(packet.Data.Span, configuration.FrequencyIndex);
                     AacAccessUnitParser.Read(packet.Data.Span, configuration.FrequencyIndex, workspace, ref noiseState, default);
@@ -56,17 +77,6 @@ namespace Mediana.Tests
             if (allocator.AllocatedBytes != 0)
             {
                 throw new InvalidOperationException("AAC feature inspection retained media storage.");
-            }
-            (int, int, int, int, int) expected = name switch
-            {
-                "lc-mono-48" => (0xf, 3, 0xff6, 2, 0),
-                "lc-stereo-44" => (0xf, 3, 0xcffe, 2, 374),
-                "lc-pns-48" => (0xf, 3, 0xadfe, 5, 292),
-                _ => throw new ArgumentOutOfRangeException(nameof(name))
-            };
-            if ((sequences, shapes, books, filters, midSideBands) != expected)
-            {
-                throw new InvalidDataException("The AAC fixture no longer exercises its recorded window, spectral and stereo tools.");
             }
             return (sequences, shapes, books, filters, midSideBands);
         }

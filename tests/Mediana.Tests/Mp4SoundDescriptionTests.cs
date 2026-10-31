@@ -10,6 +10,10 @@ namespace Mediana.Tests
     public class Mp4SoundDescriptionTests
     {
         [Fact]
+        public async Task CompleteQuickTimeAacMatchesIndependentTimingAndNoiseEnergy() =>
+            await QuickTimeAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
+
+        [Fact]
         public async Task RealQuickTimeAacReadsWaveConfigurationAndRedefinedPackets()
         {
             byte[] file = await ReadAsync();
