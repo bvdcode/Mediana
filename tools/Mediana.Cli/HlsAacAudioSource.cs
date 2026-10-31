@@ -3,19 +3,15 @@
 
 using Mediana.Codecs;
 using Mediana.Codecs.Aac;
-using Mediana.Containers.Mp4;
 using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.IO;
-using Mediana.Processing.Audio;
 
 namespace Mediana.Cli
 {
-    internal class HlsAacAudioSource(AudioSession session, AudioTrimmer trimmer, AacEncoder encoder,
-        MediaBufferAllocator allocator, AudioEncodingPcm converter, AudioFrame first) : HlsAudioSource
+    internal class HlsAacAudioSource(HlsAacPcmSource pcm, AacEncoder encoder) : HlsAudioSource
     {
-        private AudioFrame? prepared = first;
         private bool completed;
         public override EncodedStreamInfo Stream => encoder.Stream;
         public long InputSamplesPerChannel => encoder.InputSamplesPerChannel;
@@ -25,60 +21,22 @@ namespace Mediana.Cli
         public static async ValueTask<HlsAacAudioSource> OpenAsync(IRandomAccessByteSource source, int streamIndex,
             int bitRate, int? channels, MediaBufferAllocator allocator, CancellationToken token)
         {
-            ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
-            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator, cancellationToken: token);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(streamIndex, reader.Streams.Count);
-            Mp4TrackInfo track = reader.Tracks[streamIndex];
-            if (track.Stream.Kind != MediaKind.Audio || track.SampleCount == 0)
-            {
-                throw new NotSupportedException("HLS AAC encoding requires a nonempty supported audio track.");
-            }
-            AudioSession session = await AudioEngineFactory.Create().OpenAudioAsync(source, streamIndex, cancellationToken: token);
-            AudioFrame? original = null;
-            AudioFrame? converted = null;
-            AudioTrimmer? trimmer = null;
-            AacEncoder? encoder = null;
+            HlsAacPcmSource pcm = await HlsAacPcmSource.OpenAsync(source, streamIndex, channels, allocator, token);
             bool success = false;
             try
             {
-                original = await session.ReadFrameAsync(token) ?? throw new InvalidDataException("The audio track contains no decoded samples.");
-                Mp4AudioSampleRange? range = track.Edits.Count == 0 ? null : Mp4AudioSampleRange.FromEditList(track, original.Format.SampleRate);
-                trimmer = new(ReadAsync, range?.StartSample ?? 0, range?.SampleCount, allocator, range?.PresentationTime ?? original.Timestamp);
-                using AudioFrame selected = await trimmer.ReadFrameAsync(token) ?? throw new InvalidDataException("The audio edit contains no samples.");
-                AudioEncodingPcm converter = new(selected.Format, channels);
-                converted = converter.Apply(selected, allocator, token);
-                encoder = AacEncoder.Create(converted.Format,
-                    converted.Timestamp?.TimeBase ?? throw new NotSupportedException("AAC encoding requires known PCM timestamps."),
-                    allocator, new() { BitRate = bitRate }, streamIndex);
-                HlsAacAudioSource result = new(session, trimmer, encoder, allocator, converter, converted);
+                AacEncoder encoder = AacEncoder.Create(pcm.Format, pcm.TimeBase, allocator,
+                    new() { BitRate = bitRate }, streamIndex);
+                HlsAacAudioSource result = new(pcm, encoder);
                 success = true;
                 return result;
             }
             finally
             {
-                original?.Dispose();
                 if (!success)
                 {
-                    converted?.Dispose();
-                    encoder?.Dispose();
-                    if (trimmer is not null)
-                    {
-                        await trimmer.DisposeAsync();
-                    }
-                    await session.DisposeAsync();
+                    await pcm.DisposeAsync();
                 }
-            }
-
-            ValueTask<AudioFrame?> ReadAsync(CancellationToken cancellationToken)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (original is not null)
-                {
-                    AudioFrame result = original;
-                    original = null;
-                    return ValueTask.FromResult<AudioFrame?>(result);
-                }
-                return session.ReadFrameAsync(cancellationToken);
             }
         }
 
@@ -102,8 +60,7 @@ namespace Mediana.Cli
                     default:
                         throw new InvalidOperationException("The AAC encoder returned an invalid output status.");
                 }
-                using AudioFrame? frame = prepared ?? await ReadConvertedAsync(token);
-                prepared = null;
+                using AudioFrame? frame = await pcm.ReadFrameAsync(token);
                 if (frame is null)
                 {
                     encoder.CompleteInput();
@@ -116,23 +73,10 @@ namespace Mediana.Cli
             }
         }
 
-        private async ValueTask<AudioFrame?> ReadConvertedAsync(CancellationToken token)
-        {
-            using AudioFrame? frame = await trimmer.ReadFrameAsync(token);
-            return frame is null ? null : converter.Apply(frame, allocator, token);
-        }
-
         protected override async ValueTask DisposeCoreAsync()
         {
-            prepared?.Dispose();
-            prepared = null;
             encoder.Dispose();
-            await trimmer.DisposeAsync();
-            await session.DisposeAsync();
-            if (session.AllocatedBufferBytes != 0)
-            {
-                throw new InvalidOperationException("HLS audio decoding buffers were not released.");
-            }
+            await pcm.DisposeAsync();
         }
     }
 }
