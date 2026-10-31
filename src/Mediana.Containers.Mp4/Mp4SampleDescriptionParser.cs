@@ -78,7 +78,7 @@ namespace Mediana.Containers.Mp4
             }
             int channels = Mp4Binary.UInt16(entry.Payload.Span, 16);
             uint rate = Mp4Binary.UInt32(entry.Payload.Span, 24);
-            if (channels == 0 || rate == 0 || (rate & 0xFFFF) != 0)
+            if (channels == 0 || (rate & 0xFFFF) != 0)
             {
                 throw new NotSupportedException("The MP4 audio sample declaration is not supported.");
             }

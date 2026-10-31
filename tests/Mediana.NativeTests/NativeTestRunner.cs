@@ -110,6 +110,7 @@ namespace Mediana.NativeTests
             }
             AacAnalysisTestInput.VerifyTransitions();
             AacWindowSelectionTestInput.VerifyDetector();
+            await HighRateAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
             foreach (int rate in new[] { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000 })
             {
                 foreach (int channels in new[] { 1, 2 })

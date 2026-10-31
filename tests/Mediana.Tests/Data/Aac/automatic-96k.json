@@ -1,0 +1,88 @@
+{
+  "file": "automatic-96k.m4a",
+  "pcm_file": "automatic-96k.f32le",
+  "sample_rate": 96000,
+  "channels": 1,
+  "samples_per_channel": 14336,
+  "source_samples_per_channel": 12293,
+  "source_definition": "Original PCM16 mono: 27000 at samples 0,2050,8191,12292; otherwise round(500*sin(sample*0.03)). Encode at 192000 raw AAC bits/second.",
+  "encode_command": "mediana -i automatic-96k.wav automatic-96k.ts --audio-codec Aac --audio-bit-rate 192000",
+  "remux_command": "ffmpeg -v error -xerror -i automatic-96k.ts -map 0:a:0 -c:a copy automatic-96k.m4a",
+  "decode_command": "ffmpeg -v error -xerror -threads 1 -i automatic-96k.ts -map 0:a:0 -c:a pcm_f32le -f f32le automatic-96k.f32le",
+  "container_samplerate": 0,
+  "packet_reference_command": "ffprobe -v error -select_streams a:0 -show_packets -show_entries packet=pts,dts,duration -of json automatic-96k.m4a",
+  "packets": [
+    {
+      "pts": 0,
+      "dts": 0,
+      "duration": 1024
+    },
+    {
+      "pts": 1024,
+      "dts": 1024,
+      "duration": 1024
+    },
+    {
+      "pts": 2048,
+      "dts": 2048,
+      "duration": 1024
+    },
+    {
+      "pts": 3072,
+      "dts": 3072,
+      "duration": 1024
+    },
+    {
+      "pts": 4096,
+      "dts": 4096,
+      "duration": 1024
+    },
+    {
+      "pts": 5120,
+      "dts": 5120,
+      "duration": 1024
+    },
+    {
+      "pts": 6144,
+      "dts": 6144,
+      "duration": 1024
+    },
+    {
+      "pts": 7168,
+      "dts": 7168,
+      "duration": 1024
+    },
+    {
+      "pts": 8192,
+      "dts": 8192,
+      "duration": 1024
+    },
+    {
+      "pts": 9216,
+      "dts": 9216,
+      "duration": 1024
+    },
+    {
+      "pts": 10240,
+      "dts": 10240,
+      "duration": 1024
+    },
+    {
+      "pts": 11264,
+      "dts": 11264,
+      "duration": 1024
+    },
+    {
+      "pts": 12288,
+      "dts": 12288,
+      "duration": 1024
+    },
+    {
+      "pts": 13312,
+      "dts": 13312,
+      "duration": 1024
+    }
+  ],
+  "input_sha256": "aa278c23e6598c2c27ff5b58eee0dfe28a54b792958bd3778759d5cf737bbee9",
+  "pcm_sha256": "028f6e58d31df604a99beb5912a2bc9aa1799681c412bcd08d0b3f6da0f8bce7"
+}

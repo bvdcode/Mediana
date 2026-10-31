@@ -4,11 +4,38 @@
 using System.Buffers.Binary;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Memory;
+using Mediana.Formats.Audio;
 
 namespace Mediana.Tests
 {
     public class Mp4SoundDescriptionTests
     {
+        [Fact]
+        public Task Complete96KhzAacWithZeroContainerRateMatchesIndependentPcm() =>
+            HighRateAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(44100)]
+        public async Task ContainerSampleRateDoesNotReplaceDefinitiveAacConfiguration(int declaredRate)
+        {
+            byte[] file = await Mp4TestData.ReadAsync("avc-aac.mp4");
+            int payload = Mp4TestData.PayloadOffset(file, "mp4a");
+            BinaryPrimitives.WriteUInt32BigEndian(file.AsSpan(payload + 24), (uint)declaredRate << 16);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(file, 7);
+            await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
+            {
+                Mp4TrackInfo audio = Assert.Single(reader.Tracks, track => track.Stream.CodecId == "aac");
+                Assert.Equal(declaredRate, audio.DeclaredAudioSampleRate);
+                AacConfiguration? configuration = AacConfiguration.ReadAudioSpecificConfig(audio.Stream.Configuration.Span, out string? reason);
+                Assert.Null(reason);
+                Assert.NotNull(configuration);
+                Assert.Equal(48000, configuration.SampleRate);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         [Fact]
         public async Task CompleteQuickTimeAacMatchesIndependentTimingAndNoiseEnergy() =>
             await QuickTimeAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));

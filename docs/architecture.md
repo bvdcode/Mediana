@@ -204,6 +204,12 @@ rejected. Reserved variable-rate packet/frame byte counts must be zero and the
 timing are preserved; the extension's nominal samples-per-packet field does not
 replace indexed durations.
 
+For compressed AAC, the AudioSpecificConfig remains definitive for sample rate
+and channel layout. The original integer sample-rate declaration remains visible
+on `Mp4TrackInfo`, including zero; a zero container declaration does not invalidate
+the coded configuration. This follows ISO/IEC 14496-12:2015 §12.2.3.1:
+[audio sample-entry semantics](https://b.goeswhere.com/ISO_IEC_14496-12_2015.pdf).
+
 ## Container pictures
 
 `IContainerPictureReader` is an optional reader capability implemented by MP3,
