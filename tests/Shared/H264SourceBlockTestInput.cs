@@ -21,6 +21,16 @@ namespace Mediana.Tests
                 for (int plane = 0; plane < 3; plane++)
                 {
                     PlaneLayout layout = frame.Planes[plane];
+                    foreach (int y in new[] { int.MinValue, -17, -1, 0, 1, layout.Height - 1, layout.Height, int.MaxValue })
+                    {
+                        foreach (int x in new[] { int.MinValue, -17, -1, 0, 1, layout.RowBytes - 1, layout.RowBytes, int.MaxValue })
+                        {
+                            foreach ((int blockWidth, int blockHeight) in new (int, int)[] { (1, 1), (4, 4), (8, 8), (16, 16), (3, 5) })
+                            {
+                                VerifyCopy(frame, plane, x, y, blockWidth, blockHeight, pattern);
+                            }
+                        }
+                    }
                     foreach (int y in new[] { 0, 1, layout.Height - 1, layout.Height, (layout.Height + 15) / 16 * 16 })
                     {
                         foreach (int x in new[] { 0, 1, layout.RowBytes - 1, layout.RowBytes, (layout.RowBytes + 15) / 16 * 16 })
@@ -32,6 +42,24 @@ namespace Mediana.Tests
                 Require(frame.Data.Span.SequenceEqual(unchanged));
             }
             Require(allocator.AllocatedBytes == 0);
+        }
+
+        private static void VerifyCopy(VideoFrame frame, int plane, int x, int y, int width, int height, int pattern)
+        {
+            PlaneLayout layout = frame.Planes[plane];
+            Span<byte> guarded = stackalloc byte[258];
+            guarded.Fill(0xcd);
+            H264BorderExtension.Copy(frame, plane, x, y, width, height, guarded.Slice(1, width * height));
+            Require(guarded[0] == 0xcd && guarded[1 + width * height] == 0xcd);
+            for (int row = 0; row < height; row++)
+            {
+                for (int column = 0; column < width; column++)
+                {
+                    int sourceX = (int)Math.Clamp((long)x + column, 0, layout.RowBytes - 1);
+                    int sourceY = (int)Math.Clamp((long)y + row, 0, layout.Height - 1);
+                    Require(guarded[1 + row * width + column] == Pixel(plane, sourceX, sourceY, pattern));
+                }
+            }
         }
 
         private static void VerifyTransform(VideoFrame frame, int plane, int x, int y, int pattern)

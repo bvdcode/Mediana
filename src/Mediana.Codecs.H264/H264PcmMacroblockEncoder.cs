@@ -46,15 +46,16 @@ namespace Mediana.Codecs.H264
             int size = plane == 0 ? 16 : 8;
             int stride = target.Stride(plane);
             Span<byte> pixels = target.Plane(plane);
+            Span<byte> samples = stackalloc byte[256];
+            H264BorderExtension.Copy(input, plane, x, y, size, size, samples);
             for (int row = 0; row < size; row++)
             {
-                ReadOnlySpan<byte> source = input.GetRow(plane, Math.Min(y + row, input.Planes[plane].Height - 1));
+                ReadOnlySpan<byte> source = samples.Slice(row * size, size);
                 for (int column = 0; column < size; column++)
                 {
-                    byte sample = source[Math.Min(x + column, source.Length - 1)];
-                    bits.WriteBits(sample, 8);
-                    pixels[(y + row) * stride + x + column] = sample;
+                    bits.WriteBits(source[column], 8);
                 }
+                source.CopyTo(pixels.Slice((y + row) * stride + x, size));
             }
             for (int row = 0; row < size; row += 4)
             {

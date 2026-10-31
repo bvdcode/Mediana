@@ -137,14 +137,7 @@ namespace Mediana.Codecs.H264
                 int scale = plane == 0 ? 1 : 2;
                 int width = 16 / scale;
                 int start = plane switch { 0 => 0, 1 => 256, 2 => 320, _ => throw new ArgumentOutOfRangeException(nameof(plane)) };
-                for (int row = 0; row < width; row++)
-                {
-                    ReadOnlySpan<byte> samples = input.GetRow(plane, Math.Min(y / scale + row, input.Planes[plane].Height - 1));
-                    for (int column = 0; column < width; column++)
-                    {
-                        source[start + row * width + column] = samples[Math.Min(x / scale + column, samples.Length - 1)];
-                    }
-                }
+                H264BorderExtension.Copy(input, plane, x / scale, y / scale, width, width, source.Slice(start, width * width));
             }
         }
     }

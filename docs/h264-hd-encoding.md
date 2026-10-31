@@ -282,3 +282,47 @@ Current Y/U/V PSNR is 39.967/46.779/47.668 dB. The operation still uses 8.08 tim
 the CPU of the earlier libx264 veryfast run, whose aggregate PSNR is 49.213 dB.
 The packet target and x264 VBV remain different controls; these figures do not
 establish equivalent coding searches, perceptual quality or rate-control behavior.
+## Source-block reading and residual preparation
+
+H.264 source blocks use a shared row reader for residual preparation, motion
+search and I_PCM emission. It handles plane offsets, visible row widths and
+positive strides separately, including storage without padding after the last
+row. Interior blocks copy complete rows; border blocks replicate visible edge
+samples. Residual subtraction uses the BCL's
+[Vector128 operations](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.intrinsics.vector128.widenlower?view=net-10.0).
+Temporary source blocks occupy 16–256 stack bytes. Transform coefficients,
+quantization and motion-search decisions retain their previous results.
+
+A complete 60.041667-second cut of the same film contains 1,441 pictures at
+1280x720 and 24 fps. Three fresh Native AOT processes per version ran in
+before/after, after/before, before/after order on logical CPU 2. The settings
+were initial QP26, a 10 Mbit/s packet target and a two-second packet capacity,
+with video-only MPEG-TS output. All builds finished before the timed series;
+independent verification ran afterward. The host was shared.
+
+| Median of three complete runs | Before (`d08d130`) | Shared source-block reading |
+| --- | ---: | ---: |
+| CPU, user plus system | 162.214 s | 136.242 s |
+| Elapsed | 172.009 s | 142.057 s |
+| Peak RSS | 97.617 MiB | 103.082 MiB |
+
+Observed median CPU decreased by 16.01%. Median peak RSS increased by 5.46 MiB
+(5.60%); these measurements establish no memory reduction or cause for the RSS
+difference. This is a complete cut of one source and measures demux, decode,
+encode and transport writing together. It does not isolate residual SIMD cost
+or replace the full-film comparison above.
+
+All six outputs contain the same 78,284,892 bytes, SHA256
+`c292e8efc4dd7adebc77b2f1c8e7d236b531c76e437930ac2443c529de2dc297`.
+Independent checks cover all packet timestamps and durations, 31 IDRs, configured
+packet windows and level access-unit/VCL/NAL bounds. The canonical MP4 used for
+decoding preserves every VCL byte. Independent and current Native AOT decoding
+agree on all 1,441 pictures and 1,992,038,400 visible YUV bytes; the native
+consumer reaches EOF and releases all media storage.
+
+The source-block oracle covers every plane, five block sizes, negative and
+extreme coordinates, visible borders, odd dimensions, padded rows, destination
+guards and unchanged input bytes. Its transform check independently computes
+the coefficient matrix. The complete 2,644-test managed suite and strict Linux
+x64 Native AOT suite pass; 24 focused tests also pass with hardware intrinsics
+disabled.
