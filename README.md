@@ -1019,6 +1019,9 @@ H264DecoderOptions bounds picture
 pixels, configuration bytes, parameter-set bytes, NAL count and reference operations.
 Returned frames remain valid after reset or disposal until their owners release them.
 
+[Complete HD verification and CPU/memory measurements](docs/real-hd.md) cover a
+full original 720p movie, every decoded picture, MPEG-TS copying and VOD HLS.
+
 SrgbConverter.Apply from Mediana.Processing converts supported YUV420P8 or straight
 RGBA32 to straight sRGB RGBA32. It supports full/limited YCbCr range, five conventional
 YCbCr matrices, all six progressive chroma locations and common D65 primaries.
