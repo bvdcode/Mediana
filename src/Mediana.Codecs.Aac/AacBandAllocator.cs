@@ -58,8 +58,11 @@ namespace Mediana.Codecs.Aac
             Span<int> savings = stackalloc int[PairCandidates];
             Span<double> refineScores = stackalloc double[PairCandidates];
             Span<double> savingScores = stackalloc double[PairCandidates];
-            int channels = bands.Length / (boundaries.Length - 1);
+            int channelBands = boundaries.Length - 1;
+            int channels = bands.Length / channelBands;
             Span<int> channelBits = stackalloc int[channels];
+            Span<int> candidateBits = stackalloc int[candidates.Length];
+            candidateBits.Fill(-1);
             for (int move = 0; move < MaximumMoves * channels; move++)
             {
                 token.ThrowIfCancellationRequested();
@@ -70,7 +73,7 @@ namespace Mediana.Codecs.Aac
                 int currentBits = 0;
                 for (int channel = 0; channel < channels; channel++)
                 {
-                    channelBits[channel] = AacChannelEncoder.Count(bands.Slice(channel * (boundaries.Length - 1), boundaries.Length - 1));
+                    channelBits[channel] = AacChannelEncoder.Count(bands.Slice(channel * channelBands, channelBands));
                     currentBits += channelBits[channel];
                 }
                 int first = -1;
@@ -85,13 +88,20 @@ namespace Mediana.Codecs.Aac
                     }
                     int band = index / 2;
                     AacBandQuantization saved = bands[band];
-                    bands[band] = candidate;
-                    int count = Estimate(channelBits, currentBits, band);
-                    bands[band] = saved;
+                    int channel = band / channelBands;
+                    int count = candidateBits[index];
+                    if (count < 0)
+                    {
+                        bands[band] = candidate;
+                        count = AacChannelEncoder.Count(bands.Slice(channel * channelBands, channelBands));
+                        bands[band] = saved;
+                        candidateBits[index] = count;
+                    }
                     if (count == int.MaxValue)
                     {
                         continue;
                     }
+                    count += currentBits - channelBits[channel];
                     int extra = count - currentBits;
                     double improvement = saved.Error - candidate.Error;
                     if (improvement > 0)
@@ -160,11 +170,20 @@ namespace Mediana.Codecs.Aac
                     bands[second / 2] = candidates[second];
                 }
                 UpdateCandidates(first / 2);
+                InvalidateChannelCosts(first / 2, candidateBits);
                 if (second >= 0)
                 {
                     UpdateCandidates(second / 2);
+                    InvalidateChannelCosts(second / 2, candidateBits);
                 }
             }
+        }
+
+        private void InvalidateChannelCosts(int band, scoped Span<int> candidateBits)
+        {
+            int channelBands = boundaries.Length - 1;
+            int channel = band / channelBands;
+            candidateBits.Slice(channel * channelBands * 2, channelBands * 2).Fill(-1);
         }
 
         private void Fill(int scale)
