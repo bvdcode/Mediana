@@ -296,3 +296,8 @@ packet rate includes the permitted initial burst. Parameter sets/AUDs raise the
 independently demuxed video rate to 48.45 kbit/s; transport overhead is additional.
 This sustained small-source check does not replace representative HD quality,
 real-source throughput or full audiovisual HLS acceptance.
+
+A separate [complete 1280x720 re-encoding comparison](h264-hd-encoding.md)
+measures the original 14,315-picture film against libx264, including CPU,
+peak RSS and every visible sample's source error. It records the current
+quality and CPU gap at the same nominal rate and resolution.

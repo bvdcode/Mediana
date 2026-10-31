@@ -79,5 +79,6 @@ Fixed QP does not promise equal error between encoding decisions.
 Two complete scaled all-IDR references also match independent pixels. At 48x40,
 QP26 PSNR changes from 37.76 to 37.58 dB; at 48x30, from 39.25 to 39.19 dB.
 These small sequences demonstrate compression/error tradeoffs and reconstruction
-correctness. Full-length HD output resource measurements and perceptual acceptance
-remain open.
+correctness. A separate [complete HD re-encoding comparison](h264-hd-encoding.md)
+records CPU, peak RSS, every-picture source error and the remaining gap to
+libx264. Perceptual acceptance and broader source coverage remain open.

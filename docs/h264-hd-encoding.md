@@ -1,0 +1,90 @@
+The complete 720p Big Buck Bunny source was re-encoded to video-only MPEG-TS
+at its original 1280x720 resolution and 24 fps. This measures the full demux,
+decode, H.264 encode and transport-writing operation.
+
+## Source and settings
+
+The source is the [original MOV described in the HD verification](real-hd.md):
+416,751,190 bytes, SHA256
+`45c8bafeb9a53df7f491198d2e71529701bcf1cd51805782089fac1d32869f9b`.
+Its 14,315 pictures cover 596.458333 seconds of video. Each complete decoded
+result contains 19,789,056,000 visible YUV420P8 samples.
+
+The comparison uses Linux x64 on an Intel Core i5-12450H, .NET 10.0.13 Native
+AOT and FFmpeg 6.1.1-3ubuntu5 with libx264. All three timed operations ran
+sequentially on logical CPU 2. FFmpeg used one decoder thread and one encoder
+thread. Independent decoding, hashing and error analysis ran after all timed
+operations finished. One run was measured per implementation on a shared host.
+
+Both encoders produced progressive Constrained Baseline level 4.1 without B
+pictures, with IDRs every 48 pictures. Mediana used initial QP26, a 10,000,000
+bit/s packet spending target and a 20,000,000-bit packet capacity. FFmpeg used
+libx264's `veryfast` preset, a 10,000,000 bit/s target and maximum rate, and a
+20,000,000-bit VBV. Mediana's packet envelope and x264's VBV have different
+semantics. These settings do not establish equal quality or equivalent searches.
+
+## Complete resource and error results
+
+CPU is user plus system time. Memory is process peak resident set size.
+Transport sizes include each muxer's own MPEG-TS overhead. Aggregate PSNR
+uses the summed squared error of every visible Y, U and V sample relative
+to the independently decoded original, weighted by the number of samples.
+
+| Implementation | CPU | Elapsed | Peak RSS | TS bytes | Aggregate PSNR |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Mediana DC prediction (`2fa8aaf`) | 1411.06 s | 1445.82 s | 117.60 MiB | 769,200,684 | 41.170 dB |
+| Mediana directional prediction (`b499276`) | 1450.57 s | 1499.30 s | 118.57 MiB | 769,197,112 | 41.286 dB |
+| FFmpeg / libx264 veryfast | 138.76 s | 141.22 s | 114.11 MiB | 750,701,108 | 49.213 dB |
+
+| Implementation | Y PSNR | U PSNR | V PSNR |
+| --- | ---: | ---: | ---: |
+| Mediana DC prediction | 39.829 dB | 46.329 dB | 47.235 dB |
+| Mediana directional prediction | 39.945 dB | 46.443 dB | 47.349 dB |
+| FFmpeg / libx264 veryfast | 48.205 dB | 51.977 dB | 52.933 dB |
+
+Directional prediction reduced aggregate mean squared error by 2.63% at nearly
+the same transport size. Its observed CPU cost increased by 2.80%, and peak
+RSS increased by 0.96 MiB. This change is a small error/cost tradeoff on this
+source; it did not accelerate the complete operation. The current Mediana
+operation used 10.45 times FFmpeg's CPU and produced lower PSNR at a slightly
+larger transport size. These single-run observations do not establish general
+throughput, repeatability or perceptual quality.
+
+## Independent verification
+
+All three complete transport outputs were independently decoded. Each decoded
+source picture matched its previously verified source hash before comparison
+with the encoded result. The comparison covered every visible sample and
+recorded exact integer squared errors for each Y/U/V plane of every picture.
+
+All three outputs, including the libx264 result, were also decoded through the
+public Native AOT consumer. Every reconstructed byte, presentation time and
+duration matched the independent transport decoding. All operations reached
+EOF and released all media storage. The comparison includes 19,789,056,000
+visible bytes per output.
+
+Every output packet has PTS equal to DTS, exactly one second after its source
+PTS, and preserves the source frame duration. Each output contains all 14,315
+pictures and 299 IDRs at the requested two-second boundaries. Canonical MP4
+copies used for the native checks preserve every original VCL NAL byte.
+Every consecutive packet window in each Mediana output satisfies the configured
+10,000,000 bit/s refill rate and 20,000,000-bit capacity. The actual mean AVC
+packet rates are 10,014.047 and 10,014.023 kbit/s before and after the change;
+the initially full buffer permits this small excess over the nominal target.
+This packet check does not establish Annex C HRD conformance or equivalence
+to x264's VBV.
+
+## Reproduction
+
+```sh
+taskset -c 2 mediana -i input.mov output.ts --video-codec H264 --video-only --qp 26 --video-bit-rate 10000000 --video-buffer-ms 2000 --no-color
+taskset -c 2 ffmpeg -nostdin -v error -xerror -threads 1 -i input.mov -map 0:v:0 -an -c:v libx264 -threads 1 -preset veryfast -profile:v baseline -level:v 4.1 -pix_fmt yuv420p -b:v 10000000 -maxrate 10000000 -bufsize 20000000 -g 48 -keyint_min 48 -sc_threshold 0 -fps_mode passthrough -mpegts_copyts 1 -output_ts_offset 1 -muxdelay 0 -f mpegts ffmpeg.ts
+```
+
+An attempt using fixed QP26 without rate control rejected a picture near 12 seconds
+under the current per-picture level guard. A separate 5,000,000 bit/s,
+two-second-buffer attempt rejected a picture at QP51 at 442.375 seconds.
+Neither attempt completed or contributes to the resource table. The complete
+10,000,000 bit/s experiment does not establish that either rejected setting
+can encode this source. Level-budget modelling, broader source acceptance,
+HLS A/V encoding at HD resolution and perceptual quality remain open.

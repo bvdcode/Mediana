@@ -117,7 +117,10 @@ The complete copying results at revision `5d6e272` are:
 | Copy video and audio to VOD HLS | 2.352 s | 0.903 s | 28.8 MiB | 78.0 MiB |
 
 FFmpeg and Mediana use their respective transport muxing policies.
-Representative HD re-encoding quality and throughput remain open.
+A separate [full-resolution re-encoding comparison](h264-hd-encoding.md)
+measures the complete film's CPU, peak RSS and source error against libx264.
+Broader HD source acceptance, perceptual quality and full-resolution audiovisual
+HLS encoding remain open.
 
 The complete original six-channel AAC track was also decoded to raw Float32 PCM
 in separate processes on logical CPU 2. FFmpeg used one decoder and output
