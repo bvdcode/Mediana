@@ -67,6 +67,12 @@ namespace Mediana.Codecs.Aac
             int channelBands = boundaries.Length - 1;
             int channels = bands.Length / channelBands;
             Span<int> channelBits = stackalloc int[channels];
+            int currentBits = 0;
+            for (int channel = 0; channel < channels; channel++)
+            {
+                channelBits[channel] = AacChannelEncoder.Count(bands.Slice(channel * channelBands, channelBands), bandsPerGroup, sectionBits);
+                currentBits += channelBits[channel];
+            }
             Span<int> candidateBits = stackalloc int[candidates.Length];
             candidateBits.Fill(-1);
             for (int move = 0; move < MaximumMoves * channels; move++)
@@ -76,12 +82,6 @@ namespace Mediana.Codecs.Aac
                 savings.Fill(-1);
                 refineScores.Fill(double.NegativeInfinity);
                 savingScores.Fill(double.NegativeInfinity);
-                int currentBits = 0;
-                for (int channel = 0; channel < channels; channel++)
-                {
-                    channelBits[channel] = AacChannelEncoder.Count(bands.Slice(channel * channelBands, channelBands), bandsPerGroup, sectionBits);
-                    currentBits += channelBits[channel];
-                }
                 int first = -1;
                 int second = -1;
                 double best = 0;
@@ -177,12 +177,26 @@ namespace Mediana.Codecs.Aac
                 }
                 UpdateCandidates(first / 2);
                 InvalidateChannelCosts(first / 2, candidateBits);
+                UpdateChannelBits(first / 2, channelBits, ref currentBits);
                 if (second >= 0)
                 {
                     UpdateCandidates(second / 2);
                     InvalidateChannelCosts(second / 2, candidateBits);
+                    if (second / 2 / channelBands != first / 2 / channelBands)
+                    {
+                        UpdateChannelBits(second / 2, channelBits, ref currentBits);
+                    }
                 }
             }
+        }
+
+        private void UpdateChannelBits(int band, scoped Span<int> channelBits, ref int total)
+        {
+            int channelBands = boundaries.Length - 1;
+            int channel = band / channelBands;
+            int count = AacChannelEncoder.Count(bands.Slice(channel * channelBands, channelBands), bandsPerGroup, sectionBits);
+            total += count - channelBits[channel];
+            channelBits[channel] = count;
         }
 
         private void InvalidateChannelCosts(int band, scoped Span<int> candidateBits)
