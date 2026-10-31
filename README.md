@@ -12,8 +12,8 @@ The sample can extract a supported video frame, convert SDR color to sRGB, corre
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC/MP3 access units without decoding.
 The WAVE and PCM source modules read integer/float audio through public audio sessions.
-The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float PCM
-and encodes contiguous PCM as experimental AAC-LC access units.
+The AAC source module decodes AAC-LC configurations 1–7 from MP4/M4A to float PCM
+and encodes contiguous mono/stereo PCM as experimental AAC-LC access units.
 Independent source modules also decode HEIC/HEIF still images, JPEG 2000 and JBIG2,
 and rasterize SVG and TGS/Lottie 2D animation. Their output connects to Mediana
 frames, SDR color conversion and PNG encoding. These modules compile inside
@@ -49,7 +49,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder/encoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
-| `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoding and experimental PCM encoding with automatic long/short windows |
+| `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
@@ -435,17 +435,22 @@ using AudioFrame? frame = await session.ReadFrameAsync();
 ```
 
 The decoder accepts AAC-LC with indexed sample rates from 8000 to 96000 Hz,
-standard mono/stereo channel configuration and one `raw_data_block` per packet.
+standard channel configurations 1–7 and one `raw_data_block` per packet.
 It returns 1024 native-endian interleaved float32 samples per channel per frame.
 Mono is `front-center`; stereo is `front-left`, `front-right`. Packet PTS is
 preserved, and frame duration is exactly 1024 samples. The decoder preserves
 encoder delay and final padding. The final PCM count can therefore exceed the
 original recording length. Explicit sample selection is available after decoding.
+Multichannel PCM uses speaker-bit order, with the coded elements mapped to their
+declared speakers. Configuration 7 is 7.1 wide: five front speakers, two back
+speakers and LFE. Each channel retains its own overlap/window state; stereo tools
+apply independently to each pair. Element types, counts and order must match the
+configuration, with unique instance tags per type that remain stable until reset.
 
 All eleven spectral codebooks, escape values, scalefactors, pulse data, long/short
 sine/KBD windows, TNS, perceptual noise substitution, M/S and intensity stereo
 are implemented. HE-AAC/SBR, spatial extensions, dynamic-range extensions,
-coupling/LFE/program-configuration elements, multichannel layouts, 960-sample
+coupling/program-configuration elements, 960-sample
 frames and 7350 Hz are unsupported. The module does not read ADTS or ADIF files.
 Unsupported tools and malformed input fail explicitly; failure or cancellation
 requires reset or disposal. Reset clears overlap and noise state, so continuous
@@ -461,6 +466,17 @@ window sequences, both shapes, TNS, joint stereo, every PTS, retained-frame
 ownership, cancellation, reset and partial allocation failure. Numeric tables and
 equations follow ISO/IEC 13818-7:2004 and ISO/IEC 14496-3:2009; see the
 [AAC references](tests/Mediana.Tests/Data/Aac/README.md) for provenance and limits.
+
+Five complete multichannel references cover configurations 3–7, including distinct
+speaker signals, LFE, back-center, 7.1 wide and independent pair masks/windows.
+Every Float32 sample matches independent decoding within `2e-6`; timestamps,
+channel labels, EOF and retained-frame ownership are checked. See the
+[multichannel references](tests/Mediana.Tests/Data/AacMultichannel/README.md).
+A separate stereo reference covers every window-sequence and sine/KBD shape
+transition, plus independent/common window histories, against FAAD2. The complete
+original 5.1 film track also matches FAAD2 on all 171,786,240 scalar samples;
+[full-source accuracy and CPU/memory results](docs/real-hd.md) include the observed
+FFmpeg differences.
 
 Two complete sequences also pass through explicit mono mixing, 400 Hz sinc
 resampling, PCM16 quantization and streaming RMS/peak in managed and Linux Native
@@ -1355,13 +1371,13 @@ valid sample precision separately from storage width and retains explicit channe
 order. FLAC reports STREAMINFO precision without interpreting channel-layout
 comment overrides. Lossy MP3/AAC precision and unestablished channel order remain
 unknown. AAC-LC indexed multichannel headers can be inspected independently of
-the mono/stereo decoder limits. Unsupported AAC profiles or PCM representations
+decoder support for the sample rate. Unsupported AAC profiles or PCM representations
 remain unavailable; opening configuration is not proof of whole-file consistency.
 The generic CLI probe registers these readers and prints known audio parameters.
 Average VBR bit rate and stream-level tags are not yet exposed through this
 metadata view. Audio header checks cover 30 real WAVE, AIFF, FLAC,
-MP3 and AAC inputs, including MP4 audio tracks and AAC 5.1 outside the decoder's
-channel support. These checks pass in managed .NET and Linux Native AOT.
+MP3 and AAC inputs, including MP4 audio tracks and AAC 5.1.
+These checks pass in managed .NET and Linux Native AOT.
 
 `H264StreamMetadataReader` reads all SPS descriptions in the opening AVC
 configuration, with bounded configuration/parameter-set bytes and no decoded

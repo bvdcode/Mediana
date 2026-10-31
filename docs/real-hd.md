@@ -34,6 +34,31 @@ required lead, preserve presentation times, and merge tracks by adjusted DTS.
 Default CLI copying selects audio and video; timecode remains available to probing
 and explicit stream selection. See [module contracts](architecture.md).
 
+## AAC 5.1 decoding
+
+The Native AOT audio session decoded all 27,960 original AAC-LC access units
+into 28,631,040 Float32 samples per channel, or 687,144,960 bytes across the six
+speakers. Coded encoder delay and final padding remain included. Output order is
+FL, FR, FC, LFE, BL, BR; the operation reached EOF with zero live media-buffer
+bytes. The PCM SHA256 is
+`3b84ad3f2b736de877fa993db10776332cbad47c153622c3786ceab6e8637802`.
+
+FAAD2 2.11.1 independently decoded the complete original ADTS audio extracted
+during stream-copy verification. Comparing all 171,786,240 scalar samples found
+a maximum absolute difference of `5.662441253662109e-7`; every value was finite.
+Per-channel RMS errors ranged from `1.43e-9` to `1.15e-8`. The comparison uses
+the unchanged deterministic `2e-6` tolerance.
+
+FFmpeg 6.1.1 produced the same sample extent but differed in 513 front-right
+blocks, with maximum error `0.3445736765861511`; the other five speakers matched
+within `6.86e-7`. Those blocks coincide with additional window transitions
+explicitly permitted by ISO/IEC 14496-3:2001, section 4.6.11.3.1. Mediana's
+windowed overlap-add result matches FAAD2 throughout the complete track.
+A separate authored stereo reference covers all 16 sequence transitions, all
+four previous/current sine/KBD shape combinations in both channels, and switching
+from independent to common windows. Every sample matches FAAD2 in managed and
+Native AOT execution. See the [AAC references](../tests/Mediana.Tests/Data/AacMultichannel/README.md).
+
 ## PNG preview
 
 Requesting a preview at 298.231 seconds selected the picture at 298.250 seconds
@@ -93,3 +118,18 @@ The complete copying results at revision `5d6e272` are:
 
 FFmpeg and Mediana use their respective transport muxing policies.
 Representative HD re-encoding quality and throughput remain open.
+
+The complete original six-channel AAC track was also decoded to raw Float32 PCM
+in separate processes on logical CPU 2. FFmpeg used one decoder and output
+thread, with container edit-list application disabled to preserve the complete
+coded sample extent. Hashing and sample comparison ran outside the measurements.
+
+| Decode all 27,960 AAC access units | CPU | Elapsed | Peak RSS |
+| --- | ---: | ---: | ---: |
+| Mediana | 5.353 s | 5.802 s | 27.7 MiB |
+| FFmpeg 6.1.1 | 1.375 s | 1.376 s | 55.2 MiB |
+
+Mediana used 3.89 times the CPU and about half the peak RSS on this input. These
+are single full-file observations; the front-right sample differences described
+above also apply to the measured outputs. The FAAD2 comparison establishes
+complete-sample correctness separately from this performance comparison.
