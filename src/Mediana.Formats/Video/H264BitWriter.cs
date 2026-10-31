@@ -19,6 +19,8 @@ namespace Mediana.Formats.Video
         private int zeroBytes;
         private int partial;
         private int partialBits;
+        private int preventionBytes;
+        private int revision;
         private bool finished;
 
         public H264BitWriter(MediaBufferAllocator allocator, int maximumBytes, byte header, bool lengthPrefixed = false, bool measureOverflow = false)
@@ -77,6 +79,32 @@ namespace Mediana.Formats.Video
 
         public int EncodedLength => length;
 
+        /// <summary>Gets the RBSP bit position, excluding the NAL header, length prefix and emulation-prevention bytes.</summary>
+        public long BitPosition => ((long)length - prefixBytes - 1 - preventionBytes) * 8 + partialBits;
+
+        /// <summary>Captures the current unfinished NAL without copying its storage.</summary>
+        public H264BitWriterCheckpoint CreateCheckpoint()
+        {
+            ObjectDisposedException.ThrowIf(finished, this);
+            return new(this, revision, length, zeroBytes, partial, partialBits, preventionBytes, BitPosition);
+        }
+
+        /// <summary>Discards writes after a checkpoint and invalidates all previously captured checkpoints.</summary>
+        public void Restore(in H264BitWriterCheckpoint checkpoint)
+        {
+            ObjectDisposedException.ThrowIf(finished, this);
+            if (!ReferenceEquals(checkpoint.Writer, this) || checkpoint.Revision != revision)
+            {
+                throw new ArgumentException("The checkpoint does not belong to this NAL revision.", nameof(checkpoint));
+            }
+            revision = checked(revision + 1);
+            length = checkpoint.Length;
+            zeroBytes = checkpoint.ZeroBytes;
+            partial = checkpoint.Partial;
+            partialBits = checkpoint.PartialBits;
+            preventionBytes = checkpoint.PreventionBytes;
+        }
+
         public MediaBuffer Finish() => TryFinish()
             ?? throw new NotSupportedException("The encoded H.264 packet exceeds the configured byte limit.");
 
@@ -106,6 +134,7 @@ namespace Mediana.Formats.Video
             if (zeroBytes == 2 && value <= 3)
             {
                 Append(3);
+                preventionBytes++;
                 zeroBytes = 0;
             }
             Append(value);
