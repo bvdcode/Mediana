@@ -8,6 +8,7 @@ namespace Mediana.Containers.Mp4
 {
     /// <summary>Decoded PCM sample selection for one unit-rate media edit, optionally preceded by an empty edit.
     /// Sample indices are relative to media time zero. Selection includes sample instants in the half-open edit interval.
+    /// SampleCount describes the selection window, not the number of PCM samples available from the decoder.
     /// This interprets explicit edits only; it does not infer codec delay, sample-group roll dependencies or silence.</summary>
     public readonly record struct Mp4AudioSampleRange(long StartSample, long SampleCount, MediaTimestamp PresentationTime)
     {

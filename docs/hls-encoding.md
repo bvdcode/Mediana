@@ -130,10 +130,13 @@ movie timeline for both readers. Unsupported, empty or missing audio tracks fail
 With `--audio-codec Aac`, a separate audio decoder reads the selected track in
 media time. Existing PCM sample selection applies the explicit MP4 edit list:
 one unit-rate media edit, optionally preceded by one empty edit. Samples before
-the edit are decoded for codec state and discarded; the exact selected end clips
-the source tail. The movie origin preserves a leading empty-edit delay, including
-origins between sample instants. With no edits, all decoded samples are retained.
-Nonlinear edits, gaps, unavailable sample ranges and unsupported formats fail.
+the edit are decoded for codec state and discarded; the selected window clips
+the source tail and natural decoder EOF ends the available selection. Edit
+durations can use a coarser movie clock than PCM and do not guarantee that every
+sample instant in the window exists. The movie origin preserves a leading
+empty-edit delay, including origins between sample instants. With no edits, all
+decoded samples are retained. Nonlinear edits, gaps, empty selections, source
+failures and unsupported formats fail.
 No resampling, downmix or silent PCM insertion is implicit.
 
 The AAC encoder uses the selected sample rate/channel order. With one shared audio

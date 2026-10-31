@@ -77,6 +77,24 @@ namespace Mediana.Tests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
+        public async Task RoundedMovieEditEndSelectsAvailablePcmWithoutAddingSamples(bool wide)
+        {
+            byte[] data = Mp4EditTestData.Replace(await File.ReadAllBytesAsync(Data("Aac", "lc-mono-48.m4a")), wide,
+                (406, 0, 65536));
+            MediaBufferAllocator allocator = new(4 * 1024 * 1024);
+            await using TrackingRandomAccessSource source = new(data);
+            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(source, 0, [64000], null, allocator, default);
+            await audio.WriteBeforeAsync(null, [], default);
+            Assert.Equal(19456, audio.InputSamplesPerChannel);
+            Assert.Equal(20, audio.PacketsWritten);
+            Assert.Equal(0, audio.PaddingSamples);
+            await audio.DisposeAsync();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
         public async Task DisposalReleasesPreparedPcmAndPendingPacketEvenAfterCancellation(bool read)
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);

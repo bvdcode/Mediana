@@ -39,7 +39,8 @@ namespace Mediana.Cli
             {
                 original = await session.ReadFrameAsync(token) ?? throw new InvalidDataException("The audio track contains no decoded samples.");
                 Mp4AudioSampleRange? range = track.Edits.Count == 0 ? null : Mp4AudioSampleRange.FromEditList(track, original.Format.SampleRate);
-                trimmer = new(ReadAsync, range?.StartSample ?? 0, range?.SampleCount, allocator, range?.PresentationTime ?? original.Timestamp);
+                trimmer = AudioTrimmer.CreateWindow(ReadAsync, range?.StartSample ?? 0, range?.SampleCount,
+                    allocator, range?.PresentationTime ?? original.Timestamp);
                 using AudioFrame selected = await trimmer.ReadFrameAsync(token) ?? throw new InvalidDataException("The audio edit contains no samples.");
                 AudioEncodingPcm converter = new(selected.Format, channels);
                 converted = converter.Apply(selected, allocator, token);
