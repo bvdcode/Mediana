@@ -1,6 +1,9 @@
 The HLS source module can segment encoded AVC video as packets arrive and format
 VOD media/master playlists, including optional AAC-LC or MPEG-1/2 Layer III
 audio. The CLI can copy the original audio or encode it with the AAC source module.
+Use `--audio-channels 1` or `2` with `--audio-codec Aac` for an explicit
+normalized [mono/stereo downmix](audio-downmix.md), including multichannel sources.
+Source movie edits precede mixing and new encoder priming/padding remain in TS.
 The HLS module depends on Mediana container/core/AVC modules;
 encoding and resizing remain separate components. The existing `Mp4HlsSession`
 continues to provide indexed AVC/AAC/MP3 stream copy.

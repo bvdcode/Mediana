@@ -184,7 +184,9 @@ mediana -i input.mp3 output.ts --audio-codec Aac
 This selects audio-only MPEG-TS containing newly encoded AAC-LC. The first audio
 stream is selected unless `--stream` is supplied. Supported PCM/AIFF/FLAC/MP3 and
 MP4 AAC inputs pass through the existing decoder and explicit Float32 storage
-conversion; the source rate and channel order are preserved. Unsupported rates
+conversion; the source rate and channel order are preserved by default.
+`--audio-channels 1` or `2` explicitly selects a normalized mono/stereo downmix
+before encoding, with LFE omitted; see [speaker policy](audio-downmix.md). Unsupported rates
 or layouts fail. Video encoding options cannot be combined with this mode. The
 destination must be new; failures and cancellation discard its temporary file.
 Progress reports source media time, speed and bytes through the standard logger.

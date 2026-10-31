@@ -164,6 +164,7 @@ From the download or extraction directory on Linux/macOS:
 ./mediana -i input.mp4 encoded.ts --video-codec H264 --video-only --qp 26
 ./mediana -i input.mp4 small.ts --video-codec H264 --video-only --width 640 --height 360
 ./mediana -i input.mp3 audio.ts --audio-codec Aac --audio-bit-rate 128000
+./mediana -i input.m4a stereo.ts --audio-codec Aac --audio-channels 2
 ./mediana probe mp4 input.mp4
 ./mediana hls create input.mp4 output-hls --audio-stream 1
 ```
@@ -532,12 +533,17 @@ decoded and cropped reference, including both edges. Edit-list time is distinct 
 see Apple's [explicit encoder-delay representation](https://developer.apple.com/documentation/quicktime-file-format/using_track_structures_to_represent_encode_delay_explictly).
 
 `AudioChannelMixer` takes an explicit output-by-input coefficient matrix and channel
-labels. It preserves finite headroom in interleaved float64 output, without implicit
+labels. It preserves finite headroom in interleaved Float64 or Float32 output, without implicit
 speaker mapping, gain normalization or clipping. `AudioSampleConverter` changes
 native-endian sample representation and planar/interleaved storage. Integer output
 saturates and rounds to nearest even without dithering; processing rejects NaN,
 infinity and values that exceed finite target float storage. Both operations borrow
 the input frame and return an independently owned frame with preserved timing.
+
+`AudioDownmix.CreateMono` and `CreateStereo` construct explicit normalized matrices
+for named front/center/surround speakers, with LFE omitted. A common attenuation
+preserves stereo balance and bounds unit input peaks. Float32 output feeds an
+encoder directly. See [channel policy, API and complete-source verification](docs/audio-downmix.md).
 
 `AudioLevelAccumulator` emits fixed-size mono RMS/peak windows with sample counts,
 PTS and duration. Windows span input frame boundaries; `Complete` emits the final
@@ -1560,6 +1566,7 @@ bytes; existing-output and failed-export checks preserve destination ownership.
 mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-av --audio-stream 1 --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-aac --audio-stream 1 --audio-codec Aac --audio-bit-rate 128000 --widths 1280 640
+mediana hls encode input.mp4 output-stereo --audio-stream 1 --audio-codec Aac --audio-channels 2 --widths 1280 640
 ```
 
 The command decodes supported MP4/MOV AVC video once and produces one smaller
