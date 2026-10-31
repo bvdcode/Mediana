@@ -264,3 +264,31 @@ through Native AOT decoding, explicit stereo downmix and two rate-controlled
 packet clocks, aligned segments and video rate windows were independently
 checked. [Full counts, resource measurements and output scope](audio-downmix.md#complete-audiovisual-hls-encoding)
 are recorded with the shared mixing workflow.
+
+The same complete source also passes two 1280x720/640x360 variants with QP 26,
+two-second video boundaries, respective AVC ceilings of 10/5 Mbit/s with
+two-second packet buffers, and separate stereo AAC ceilings of 96/128 kbit/s.
+Each variant contains all 14,315 pictures, 27,961 AAC packets and 299 aligned
+segments. The complete package contains 601 transport and playlist files.
+
+Every visible decoded YUV byte, picture timestamp and duration matches between
+Native AOT and an independent decoder: 24,736,320,000 visible bytes across the
+two variants. Video in all 598 segments also decodes independently with its original
+global video timestamps and exactly the same pictures. The 1280x720 pictures
+are identical to the [complete HD encoding verification](h264-hd-encoding.md).
+
+Both complete audio payloads match separate encodings of the independently
+selected 28,630,160 PCM samples per channel. All 114,528,256 decoded Float32
+values are finite and agree with the independent decoder within `2e-6`.
+Every audio packet clock and raw bit ceiling passes. Encoder priming is 1024
+samples and final padding is 880 samples per channel.
+
+All 6,243,115 transport packets pass continuity checks across segment boundaries;
+every PAT/PMT section CRC passes, PCR remains monotonic and its maximum gap is
+40 ms. Actual SPS bytes match the master codec declarations. Peak and average
+master bandwidth values match independent calculations over every segment.
+
+A Native AOT process restricted to one CPU core measured 1812.546 seconds
+of process CPU, 1908.223 seconds elapsed and 127.16 MiB peak RSS on Linux x64.
+This full-source measurement uses the allocating identity-resize path. It does
+not establish matched FFmpeg throughput or perceptual encoding quality.
