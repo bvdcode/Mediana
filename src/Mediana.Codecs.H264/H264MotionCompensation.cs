@@ -38,28 +38,9 @@ namespace Mediana.Codecs.H264
                 H264BorderExtension.Copy(samples, stride, rows, (long)x + (motionX >> 3), (long)y + (motionY >> 3), width, height, output);
                 return;
             }
-            for (int row = 0; row < height; row++)
-            {
-                for (int column = 0; column < width; column++)
-                {
-                    long eighthX = 8L * ((long)x + column) + motionX;
-                    long eighthY = 8L * ((long)y + row) + motionY;
-                    long ix = eighthX >> 3;
-                    long iy = eighthY >> 3;
-                    int dx = (int)(eighthX & 7);
-                    int dy = (int)(eighthY & 7);
-                    int a = Sample(samples, stride, rows, ix, iy);
-                    int b = Sample(samples, stride, rows, ix + 1, iy);
-                    int c = Sample(samples, stride, rows, ix, iy + 1);
-                    int d = Sample(samples, stride, rows, ix + 1, iy + 1);
-                    output[row * width + column] = (byte)(((8 - dx) * (8 - dy) * a + dx * (8 - dy) * b +
-                        (8 - dx) * dy * c + dx * dy * d + 32) >> 6);
-                }
-            }
+            H264ChromaInterpolation.Apply(samples, stride, rows, (long)x + (motionX >> 3), (long)y + (motionY >> 3),
+                motionX & 7, motionY & 7, width, height, output);
         }
-
-        private static int Sample(ReadOnlySpan<byte> samples, int stride, int height, long x, long y) =>
-            samples[(int)Math.Clamp(y, 0, height - 1) * stride + (int)Math.Clamp(x, 0, stride - 1)];
 
         private static void ValidateOutput(int width, int height, Span<byte> output)
         {

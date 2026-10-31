@@ -12,6 +12,9 @@ namespace Mediana.Tests
         public void CompleteBlocksMatchScalarConvolutionAtAllPhasesAndPictureBorders() => H264MotionInterpolationTestInput.Verify();
 
         [Fact]
+        public void CompleteChromaBlocksMatchScalarBilinearSamplingAtEveryPhaseAndBorder() => H264ChromaInterpolationTestInput.Verify();
+
+        [Fact]
         public void AllQuarterPositionsPreserveAnInteriorLinearRamp()
         {
             using H264Picture picture = CreatePicture();

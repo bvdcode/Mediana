@@ -214,3 +214,40 @@ the maximum CPB-removal delay is 96 ticks and every DPB-output delay is zero.
 These results cover this complete fixed-QP stream with the stated external
 parameters. They do not establish HRD timing for every accepted input or for the
 separate packet-rate controller.
+
+## Chroma interpolation profile
+
+A bounded diagnostic processes the first 1,440 pictures (60 seconds) of the same
+1280x720 source on logical CPU 2, using Native AOT, initial QP26, a 10 Mbit/s
+packet target and a two-second packet buffer. The ordinary and instrumented
+builds produce the same 75,946,593 packet bytes and SHA256. Both encode exactly
+1,440 attempts for 1,440 pictures, including 30 IDRs, with no rejected attempt.
+Retries therefore do not explain the cost observed in this interval.
+
+Instrumentation increases process CPU from 139.69 to 167.58 seconds. Its stage
+times are diagnostic wall-time observations, not native per-function CPU
+percentages. A separate managed JIT sampled-thread-time trace over 600 pictures,
+with tiering disabled, attributes 17.75% of active encoding stack time exclusively
+to chroma interpolation. Block transforms account for 10.84%, inverse residual
+transforms for 9.45%, and forward quantization for 6.52%.
+
+Fractional chroma interpolation now extends a small source patch once per block
+and evaluates eight output samples together using portable vector operations.
+It retains the single final rounding step specified in
+[H.264 clause 8.4.2.2.2, equation 8-270](https://www.itu.int/rec/dologin_pub.asp?id=T-REC-H.264-202108-S!!PDF-E&lang=e&type=items).
+Full-block scalar comparisons cover both chroma planes, all 64 phases, constant,
+textured and checkerboard samples, picture borders, extreme coordinates and
+partial tiles. They also pass with hardware intrinsics disabled.
+
+The first ordinary Native AOT before/after pair for the complete 60-second
+interval gives:
+
+| Build | CPU | Elapsed | Peak RSS | AVC packet bytes |
+| --- | ---: | ---: | ---: | ---: |
+| Before block interpolation | 139.69 s | 141.03 s | 99.52 MiB | 75,946,593 |
+| After block interpolation | 130.32 s | 131.29 s | 101.80 MiB | 75,946,593 |
+
+All packet bytes are identical. CPU decreased by 6.71%; peak RSS increased by
+2.28 MiB in this pair. This is a bounded single pair on a shared host. It does not
+establish repeatability, memory improvement, a complete-film speedup or parity
+with FFmpeg. Complete-film verification of this change remains open.

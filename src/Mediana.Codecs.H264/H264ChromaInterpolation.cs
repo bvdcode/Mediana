@@ -1,0 +1,72 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+
+namespace Mediana.Codecs.H264
+{
+    internal static class H264ChromaInterpolation
+    {
+        private const int BlockSize = 8;
+
+        public static void Apply(ReadOnlySpan<byte> samples, int stride, int rows, long x, long y,
+            int dx, int dy, int width, int height, Span<byte> output)
+        {
+            Span<byte> patch = stackalloc byte[(BlockSize + 1) * (BlockSize + 1)];
+            int a = (8 - dx) * (8 - dy);
+            int b = dx * (8 - dy);
+            int c = (8 - dx) * dy;
+            int d = dx * dy;
+            for (int top = 0; top < height;)
+            {
+                int tileHeight = Math.Min(BlockSize, height - top);
+                for (int left = 0; left < width;)
+                {
+                    int tileWidth = Math.Min(BlockSize, width - left);
+                    int patchStride = tileWidth + 1;
+                    H264BorderExtension.Copy(samples, stride, rows, x + left, y + top,
+                        patchStride, tileHeight + 1, patch);
+                    PredictTile(patch, patchStride, tileWidth, tileHeight, a, b, c, d, width,
+                        output[(top * width + left)..]);
+                    left += tileWidth;
+                }
+                top += tileHeight;
+            }
+        }
+
+        private static void PredictTile(ReadOnlySpan<byte> patch, int stride, int width, int height,
+            int a, int b, int c, int d, int outputStride, Span<byte> output)
+        {
+            Vector128<ushort> weightA = Vector128.Create((ushort)a);
+            Vector128<ushort> weightB = Vector128.Create((ushort)b);
+            Vector128<ushort> weightC = Vector128.Create((ushort)c);
+            Vector128<ushort> weightD = Vector128.Create((ushort)d);
+            for (int row = 0; row < height; row++)
+            {
+                int position = row * stride;
+                int destination = row * outputStride;
+                if (width == Vector64<byte>.Count)
+                {
+                    Vector128<ushort> value = Read(patch, position) * weightA + Read(patch, position + 1) * weightB
+                        + Read(patch, position + stride) * weightC + Read(patch, position + stride + 1) * weightD
+                        + Vector128.Create((ushort)32);
+                    value = Vector128.ShiftRightLogical(value, 6);
+                    Vector128.Narrow(value, Vector128<ushort>.Zero).GetLower().StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)destination);
+                }
+                else
+                {
+                    for (int column = 0; column < width; column++)
+                    {
+                        int index = position + column;
+                        output[destination + column] = (byte)((a * patch[index] + b * patch[index + 1]
+                            + c * patch[index + stride] + d * patch[index + stride + 1] + 32) >> 6);
+                    }
+                }
+            }
+        }
+
+        private static Vector128<ushort> Read(ReadOnlySpan<byte> samples, int position) =>
+            Vector128.WidenLower(Vector128.Create(Vector64.LoadUnsafe(ref MemoryMarshal.GetReference(samples), (nuint)position), Vector64<byte>.Zero));
+    }
+}
