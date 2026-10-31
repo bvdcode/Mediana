@@ -13,6 +13,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            H264MotionInterpolationTestInput.Verify();
+            Console.WriteLine("PASS H.264 motion interpolation: all luma phases, complete blocks, borders and extreme coordinates match scalar convolution.");
             LanguageTagTestInput.Verify();
             Console.WriteLine("PASS language tag syntax: RFC 5646 examples and malformed subtags match without a registry lookup.");
             await Mp4TrackMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));

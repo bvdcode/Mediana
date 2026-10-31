@@ -109,6 +109,7 @@
     <Compile Include="../Mediana.Tests/H264TestBits.cs" Link="H264TestBits.cs" />
     <Compile Include="../Shared/VideoStreamMetadataTestInput.cs" Link="VideoStreamMetadataTestInput.cs" />
     <Compile Include="../Shared/H264MetadataTestInput.cs" Link="H264MetadataTestInput.cs" />
+    <Compile Include="../Shared/H264MotionInterpolationTestInput.cs" Link="H264MotionInterpolationTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Wave/references.json" Link="Data/Wave/references.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-mp3-*.mp4.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/WavePcmTestInput.cs" Link="WavePcmTestInput.cs" />

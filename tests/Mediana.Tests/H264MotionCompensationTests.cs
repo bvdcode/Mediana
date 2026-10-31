@@ -9,6 +9,9 @@ namespace Mediana.Tests
     public class H264MotionCompensationTests
     {
         [Fact]
+        public void CompleteBlocksMatchScalarConvolutionAtAllPhasesAndPictureBorders() => H264MotionInterpolationTestInput.Verify();
+
+        [Fact]
         public void AllQuarterPositionsPreserveAnInteriorLinearRamp()
         {
             using H264Picture picture = CreatePicture();
