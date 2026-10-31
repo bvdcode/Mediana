@@ -5,6 +5,15 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacPacketEncoder
     {
+        public static int MinimumFrameBits(int frequencyIndex, int channels)
+        {
+            Span<int> offsets = stackalloc int[AacSpectrumQuantizer.ChannelBands + 1];
+            AacEncodingWindow window = new(frequencyIndex, 2, 0, [1, 1, 1, 1, 1, 1, 1, 1], offsets);
+            Span<AacBandQuantization> bands = stackalloc AacBandQuantization[window.BandCount];
+            bands.Clear();
+            return 64 + channels * AacChannelEncoder.Count(bands, window.BandsPerGroup, window.SectionLengthBits);
+        }
+
         public static int Encode(AacEncoderWorkspace workspace, scoped AacEncodingWindow window, int previousShape,
             int frameBits, scoped Span<byte> encoded, CancellationToken token)
         {

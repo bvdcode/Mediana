@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/AacAutomaticEncodingTestInput.cs" Link="AacAutomaticEncodingTestInput.cs" />
     <Using Include="Mediana.Formats.Video" />
     <Compile Include="../Shared/AvcColorRemuxTestInput.cs" Link="AvcColorRemuxTestInput.cs" />
     <Compile Include="../Shared/BufferedVideoEncoder.cs" Link="BufferedVideoEncoder.cs" />

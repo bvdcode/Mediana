@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Runtime.InteropServices;
 using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
@@ -14,7 +13,7 @@ using Mediana.Formats;
 namespace Mediana.Codecs.Aac
 {
     /// <summary>Encodes contiguous mono/stereo interleaved Float32 PCM as AAC-LC raw access units.
-    /// Uses long sine windows and independent channels allocated within a shared per-frame bit ceiling, without a reservoir.
+    /// Selects long/short sine windows with one PCM block of lookahead and a shared per-frame bit ceiling, without a reservoir.
     /// Retains at most one input lease; returned packets belong to the caller. Calls must not overlap.</summary>
     public partial class AacEncoder : IMediaEncoder<AudioFrame>
     {
@@ -28,6 +27,11 @@ namespace Mediana.Codecs.Aac
         private AudioFrame? input;
         private int inputOffset;
         private int buffered;
+        private AacTransientDetector leftDetector;
+        private AacTransientDetector rightDetector;
+        private AacWindowSelector windowSelector;
+        private bool currentAnalyzed;
+        private bool currentTransient;
         private long? firstTimestamp;
         private long packets;
         private long budgetRemainder;
@@ -73,7 +77,7 @@ namespace Mediana.Codecs.Aac
             AacConfiguration configuration = AacConfiguration.Create(format.SampleRate, format.Channels.Count);
             _ = AacBandTables.Get(configuration.FrequencyIndex, false);
             options ??= new();
-            options.Validate(format.SampleRate, format.Channels.Count);
+            options.Validate(format.SampleRate, format.Channels.Count, AacPacketEncoder.MinimumFrameBits(configuration.FrequencyIndex, format.Channels.Count));
             EncodedStreamInfo stream = new(streamIndex, MediaKind.Audio, AacConfiguration.CodecId, StreamFormats.Aac, clock, configuration.ToAudioSpecificConfig());
             return new(format, configuration, stream, allocator, options);
         }
@@ -91,7 +95,7 @@ namespace Mediana.Codecs.Aac
                 {
                     throw new InvalidOperationException("AAC encoding input is complete.");
                 }
-                if (input is not null || buffered == FrameSamples)
+                if (input is not null || buffered == 2 * FrameSamples)
                 {
                     success = true;
                     return CodecInputStatus.OutputRequired;
@@ -139,69 +143,6 @@ namespace Mediana.Codecs.Aac
             }
         }
 
-        private CodecOutput<MediaPacket> ReceiveCore(CancellationToken token)
-        {
-            if (drained)
-            {
-                return CodecOutput<MediaPacket>.EndOfStream;
-            }
-            if (input is not null)
-            {
-                workspace ??= new(allocator, format.Channels.Count);
-                int count = Math.Min(FrameSamples - buffered, input.SamplesPerChannel - inputOffset);
-                ReadOnlySpan<float> pcm = MemoryMarshal.Cast<byte, float>(input.GetPlane(0).Span);
-                for (int sample = 0; sample < count; sample++)
-                {
-                    if ((sample & 255) == 0)
-                    {
-                        token.ThrowIfCancellationRequested();
-                    }
-                    for (int channel = 0; channel < format.Channels.Count; channel++)
-                    {
-                        float value = pcm[(inputOffset + sample) * format.Channels.Count + channel];
-                        if (!float.IsFinite(value))
-                        {
-                            throw new InvalidDataException("AAC encoding requires finite PCM samples.");
-                        }
-                        workspace.Input(channel)[FrameSamples + buffered + sample] = value * 32768d;
-                    }
-                }
-                buffered += count;
-                inputOffset += count;
-                if (inputOffset == input.SamplesPerChannel)
-                {
-                    input.Dispose();
-                    input = null;
-                }
-            }
-            bool final = completed && input is null && buffered == 0;
-            if (buffered < FrameSamples && (!completed || input is not null))
-            {
-                return CodecOutput<MediaPacket>.InputRequired;
-            }
-            if (firstTimestamp is null)
-            {
-                drained = true;
-                return CodecOutput<MediaPacket>.EndOfStream;
-            }
-            MediaPacket packet = Encode(token);
-            packets++;
-            buffered = 0;
-            for (int channel = 0; channel < format.Channels.Count; channel++)
-            {
-                Span<double> samples = workspace!.Input(channel);
-                samples[FrameSamples..].CopyTo(samples);
-                samples[FrameSamples..].Clear();
-            }
-            if (final)
-            {
-                drained = true;
-                workspace!.Dispose();
-                workspace = null;
-            }
-            return CodecOutput<MediaPacket>.Available(packet);
-        }
-
         public void CompleteInput()
         {
             Enter();
@@ -227,6 +168,9 @@ namespace Mediana.Codecs.Aac
                 firstTimestamp = null;
                 InputSamplesPerChannel = packets = budgetRemainder = 0;
                 buffered = inputOffset = 0;
+                leftDetector = rightDetector = default;
+                windowSelector = default;
+                currentAnalyzed = currentTransient = false;
             }
             finally
             {

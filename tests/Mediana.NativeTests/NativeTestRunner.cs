@@ -110,6 +110,21 @@ namespace Mediana.NativeTests
             }
             AacAnalysisTestInput.VerifyTransitions();
             AacWindowSelectionTestInput.VerifyDetector();
+            foreach (int rate in new[] { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000 })
+            {
+                foreach (int channels in new[] { 1, 2 })
+                {
+                    foreach (int samples in new[] { 1, 1023, 1024, 1025, 2048, 2051, 4133 })
+                    {
+                        AacAutomaticEncodingTestInput.Verify(rate, channels, samples);
+                    }
+                }
+            }
+            foreach (int offset in new[] { 0, 127, 128, 447, 448, 511, 575, 576, 1023 })
+            {
+                AacAutomaticEncodingTestInput.Verify(48000, 2, 4133, offset, 0);
+                AacAutomaticEncodingTestInput.Verify(48000, 2, 4133, offset, 1);
+            }
             for (int shape = 0; shape < 2; shape++)
             {
                 for (int previousShape = 0; previousShape < 2; previousShape++)

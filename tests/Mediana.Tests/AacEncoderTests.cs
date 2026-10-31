@@ -138,7 +138,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             AudioFormat format = Format(48000, 2);
             AacEncoder encoder = AacEncoder.Create(format, new(1, 48000), allocator);
-            using AudioFrame frame = Frame(format, allocator, 0, 1024);
+            using AudioFrame frame = Frame(format, allocator, 0, 2048);
             encoder.TrySend(frame);
             using MediaPacket packet = encoder.Receive().Value;
             byte[] expected = packet.Data.ToArray();
@@ -147,6 +147,29 @@ namespace Mediana.Tests
             Assert.Equal(expected, packet.Data.ToArray());
             packet.Dispose();
             frame.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public void ResetDiscardsTransientHistoryLookaheadAndWindowDecisions()
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            AudioFormat format = Format(48000, 2);
+            using AacEncoder encoder = AacEncoder.Create(format, new(1, 48000), allocator);
+            using AudioFrame frame = Frame(format, allocator, 0, 3072);
+            Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(frame));
+            using MediaPacket first = encoder.Receive().Value;
+            using MediaPacket next = encoder.Receive().Value;
+            encoder.Reset();
+            Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(frame));
+            using MediaPacket replay = encoder.Receive().Value;
+            Assert.Equal(first.Data.ToArray(), replay.Data.ToArray());
+            Assert.Equal(first.PresentationTime, replay.PresentationTime);
+            encoder.Dispose();
+            frame.Dispose();
+            first.Dispose();
+            next.Dispose();
+            replay.Dispose();
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
@@ -161,10 +184,12 @@ namespace Mediana.Tests
             Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(first));
             Assert.Equal(CodecInputStatus.OutputRequired, encoder.TrySend(next));
             using MediaPacket packet = encoder.Receive().Value;
-            Assert.Equal(CodecInputStatus.OutputRequired, encoder.TrySend(next));
-            using MediaPacket second = encoder.Receive().Value;
             Assert.Equal(CodecOutputStatus.InputRequired, encoder.Receive().Status);
             Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(next));
+            Assert.Equal(CodecOutputStatus.InputRequired, encoder.Receive().Status);
+            encoder.CompleteInput();
+            using MediaPacket second = encoder.Receive().Value;
+            Assert.Equal(new MediaTimestamp(0, new(1, 48000)), second.PresentationTime);
         }
 
         [Theory]

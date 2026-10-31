@@ -9,14 +9,17 @@ namespace Mediana.Codecs.Aac
 {
     public partial class AacEncoder
     {
-        private MediaPacket Encode(CancellationToken token)
+        private MediaPacket Encode(int sequence, CancellationToken token)
         {
             AacEncoderWorkspace current = workspace ?? throw new InvalidOperationException("AAC analysis workspace is missing.");
             long budget = budgetRemainder + (long)options.BitRate * FrameSamples;
             int frameBits = (int)(budget / format.SampleRate) & ~7;
             budgetRemainder = budget % format.SampleRate;
             Span<int> offsets = stackalloc int[AacSpectrumQuantizer.ChannelBands + 1];
-            AacEncodingWindow window = new(configuration.FrequencyIndex, 0, 0, [1], offsets);
+            Span<int> groups = stackalloc int[8];
+            groups[0] = 1;
+            int count = sequence == 2 ? AacShortWindowGrouping.Create(current, 0, 0, groups) : 1;
+            AacEncodingWindow window = new(configuration.FrequencyIndex, sequence, 0, groups[..count], offsets);
             Span<byte> encoded = stackalloc byte[1536];
             int length = AacPacketEncoder.Encode(current, window, 0, frameBits, encoded, token);
             token.ThrowIfCancellationRequested();
