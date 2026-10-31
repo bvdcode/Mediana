@@ -59,7 +59,7 @@ namespace Mediana.Cli
 
         public async ValueTask WriteAsync(VideoFrame input, CancellationToken token)
         {
-            using VideoFrame prepared = resizer.Apply(input, token);
+            using VideoFrame prepared = resizer.ResizeOrRetain(input, token);
             await pipeline.WriteAsync(prepared, token);
         }
 

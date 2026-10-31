@@ -292,3 +292,35 @@ A Native AOT process restricted to one CPU core measured 1812.546 seconds
 of process CPU, 1908.223 seconds elapsed and 127.16 MiB peak RSS on Linux x64.
 This full-source measurement uses the allocating identity-resize path. It does
 not establish matched FFmpeg throughput or perceptual encoding quality.
+
+### Retaining unchanged video storage
+
+The CLI uses `Yuv420AreaResizer.ResizeOrRetain` for each variant. An unchanged
+resolution retains the source frame and its original allocation budget instead
+of allocating another image and filtering every pixel. Actual downscaling keeps
+the independent area-filter output. The separate `Apply` operation continues to
+return tightly packed, independent storage.
+
+A complete 60.04-second 1280x720 clip was processed before and after this change,
+with two video variants, two AAC ceilings and the same settings as the full-source
+run. Both Native AOT processes used the same file on one CPU core, sequentially,
+after builds and other media checks completed. All 65 transport and playlist
+files are byte-identical: 1441 pictures, 5628 total audio packets and 31 aligned
+segments per variant. Both runs finish with zero live media-buffer bytes.
+
+| Native AOT path | Process CPU (s) | Elapsed (s) | Peak RSS (MiB) |
+| --- | ---: | ---: | ---: |
+| Allocating unchanged-size output | 200.552 | 208.325 | 109.51 |
+| Retaining unchanged-size storage | 175.235 | 187.321 | 118.13 |
+
+CPU decreased by 12.62% in this single pair on a shared host. Peak process RSS
+increased by 8.62 MiB; the run does not demonstrate lower process memory.
+Ownership tests independently verify absence of a second frame allocation,
+retained tight and strided planes, independent disposal, metadata preservation
+and the original allocation charge even when the recipient budget is full.
+All 2616 managed tests, the complete strict Linux x64 Native AOT test runner,
+strict Native CLI build, formatting and license-header checks pass.
+
+A separately remuxed MOV with an edit ending 16 PCM samples beyond its decoded
+audio track currently fails with an exact-range error. Interpretation of that
+edit/media endpoint discrepancy remains open; no truncation or silence is added.

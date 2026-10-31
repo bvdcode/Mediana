@@ -416,6 +416,14 @@ Audio trimming returns a tightly packed selection in its destination allocator.
 This independent allocation prevents a small selected range from keeping an
 entire source allocation alive; planar selections also require repacking.
 
+`Yuv420AreaResizer.Apply` returns independent, tightly packed output storage.
+`ResizeOrRetain` explicitly permits retaining unchanged dimensions, preserving
+the source planes, timing, color and aspect ratio. Each returned frame has its own
+lease; the source allocator counts the complete backing storage until the last
+lease is disposed. Actual downscaling keeps the independent allocation and area
+filter. HLS encoding uses this operation for each video variant, including the
+source resolution.
+
 ## Shared drawing
 
 `Mediana.Drawing` owns vector paths, scene rendering, paints, masks, effect graphs,
