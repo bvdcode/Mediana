@@ -42,6 +42,18 @@ interpretation. Detached pages own their RGBA pixels independently. Rendering
 into an allocator-backed `PixelBuffer` and publishing it transfers its final
 pixel storage into a frame without a second RGBA allocation.
 
+Flate decoding borrows its encoded stream bytes for the duration of decoding.
+Decompression and prediction produce independent decoded storage; the existing
+decoded byte limits still apply. The encoded input is not copied into a second
+complete array for the decompressor.
+
+Encoded input reading and Flate output accumulation share a bounded stream
+reader. It accumulates fixed 64 KiB segments and assembles an exact-length owned
+array with at most one final copy. The segment storage is bounded by the byte
+limit; the final array and object overhead are additional memory. Caller streams
+remain open, including cancellation and read failures. Exact limits require an
+extra one-byte read to distinguish EOF from oversized data.
+
 `page.Images` exposes decoded image XObjects reached during interpretation,
 including mask images. Each has a resource name, dimensions, RGBA bytes and
 `ToVideoFrame`. These are decoded pixels with PDF sample conversion/masks, not
@@ -127,3 +139,30 @@ page previews also remained byte-identical.
 The CPU median increased 2.98%; this change establishes no speedup. RSS ranges
 overlap on the shared host. The allocation result establishes removal of the
 cache copy; these process measurements do not establish a general memory bound.
+
+## Bounded input and Flate accumulation
+
+For the same 1000×500 RGB samples encoded as valid compressed and stored zlib
+streams, page interpretation after input opening has these allocation medians:
+
+| Stream encoding | Before, bytes | After, bytes |
+| --- | ---: | ---: |
+| Compressed zlib | 7,718,306 | 5,028,920 |
+| Stored zlib | 9,210,517 | 5,025,568 |
+
+A complete 2560×2560 stored-zlib PDF image extraction to PNG used three
+alternating pairs of fresh Native AOT processes on CPU core 2. Every complete
+PNG was byte-identical, independent decoding matched all 26,214,400 RGBA
+components, and the three existing PDF page previews remained byte-identical.
+
+| Whole conversion metric | Before | After |
+| --- | ---: | ---: |
+| Median CPU seconds | 1.040697 | 1.013606 |
+| Median peak RSS, KiB | 215,808 | 159,144 |
+| Peak RSS range, KiB | 215,680–215,936 | 158,704–163,172 |
+
+The observed CPU reduction is 2.60% on the shared host. A separate Native AOT
+consumer performing the same library operations recorded cumulative allocation
+medians of 86,845,504 → 39,481,296 bytes after input reading and
+275,614,536 → 161,241,896 bytes after PNG encoding. These are scoped workload
+measurements; collection timing and other inputs can change process peaks.
