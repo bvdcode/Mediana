@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/MatroskaAttachmentTestData.cs" Link="MatroskaAttachmentTestData.cs" />
+    <Compile Include="../Shared/MatroskaAttachmentReferenceInput.cs" Link="MatroskaAttachmentReferenceInput.cs" />
     <Compile Include="../Shared/MatroskaAttachmentTestInput.cs" Link="MatroskaAttachmentTestInput.cs" />
     <Compile Include="../Shared/MatroskaReaderResourceInput.cs" Link="MatroskaReaderResourceInput.cs" />
     <Compile Include="../Shared/MatroskaReaderTestData.cs" Link="MatroskaReaderTestData.cs" />

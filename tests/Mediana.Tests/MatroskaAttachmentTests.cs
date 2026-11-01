@@ -6,6 +6,8 @@ namespace Mediana.Tests
     public class MatroskaAttachmentTests
     {
         [Fact]
+        public Task CompleteMuxedAttachmentMatchesOriginalAndPreservesEveryMediaPacket() => MatroskaAttachmentReferenceInput.VerifyAsync();
+        [Fact]
         public Task DeclarationsRemainSeparateFromTracksAndPayloadOwnershipIsExplicit() => MatroskaAttachmentTestInput.VerifyOrderingAndOwnershipAsync();
         [Fact]
         public Task MissingRepeatedAndInvalidDeclarationsAreRejected() => MatroskaAttachmentTestInput.VerifyInvalidDeclarationsAsync();
