@@ -114,6 +114,11 @@ It does not establish production listening quality or
 parity with established encoders. Broader real music and speech testing remains
 required.
 
+[Shared spectral Huffman cost selection](aac-entropy-costs.md) preserves exact
+codebook choices and output bytes while counting paired tables together. A
+complete ten-minute Native AOT comparison reduces median process CPU from
+86.55 to 56.51 seconds, with median peak RSS remaining at 28 MiB.
+
 Syntax, scale reconstruction and filterbank rules follow ISO/IEC 13818-7:2004,
 clauses 6–11, clause 15 and Annexes A/C, and ISO/IEC 14496-3:2009 AAC-LC rules.
 
