@@ -16,10 +16,10 @@ using PdfDocument document = await PdfReader.ReadFileAsync("report.pdf",
     cancellationToken: cancellationToken);
 PdfPageInfo info = document.GetPageInfo(1);
 PdfPage page = document.GetPage(1, cancellationToken);
-PixelBuffer pixels = PdfRenderer.Render(page,
-    new PdfRenderOptions { MaximumWidth = 1200 }, cancellationToken);
 MediaBufferAllocator allocator = new(32 * 1024 * 1024);
-using VideoFrame frame = pixels.ToVideoFrame(allocator, cancellationToken);
+using PixelBuffer pixels = PdfRenderer.Render(page,
+    new PdfRenderOptions { MaximumWidth = 1200 }, cancellationToken, allocator);
+using VideoFrame frame = pixels.PublishVideoFrame(cancellationToken);
 using MediaBuffer png = PngEncoder.Encode(frame, allocator, cancellationToken);
 ```
 
@@ -35,6 +35,12 @@ document's parser is serialized. Input streams remain open; files and bounded
 non-seekable streams are accepted. Decoding a document retains encoded data and
 caches resolved objects/streams, rather than streaming through an entire file
 with constant memory.
+
+The stream cache retains decoded filter output directly. Unfiltered streams are
+read-only views of the document input; cached samples are not modified by image
+interpretation. Detached pages own their RGBA pixels independently. Rendering
+into an allocator-backed `PixelBuffer` and publishing it transfers its final
+pixel storage into a frame without a second RGBA allocation.
 
 `page.Images` exposes decoded image XObjects reached during interpretation,
 including mask images. Each has a resource name, dimensions, RGBA bytes and
@@ -96,3 +102,28 @@ observed mean error is 2.19/255 with 95.67% within 8. Extracted JBIG2 pixels mat
 the original synthetic scan exactly. These are bounded regression comparisons,
 not arbitrary-document conformance evidence. Poppler is used for development
 verification only.
+
+## Stream cache allocation measurement
+
+For an unfiltered 1000×500 RGB image, page interpretation after the reader owns
+its input allocates a median 2,015,282 bytes instead of 3,519,240 bytes. This
+includes the independent RGBA pixels and interpretation objects. A regression
+check rejects another complete 1,500,000-byte RGB stream copy. Repeated filtered
+and unfiltered image reads also check cumulative decoded limits, stencil colors,
+caller stream ownership and detached pixel lifetimes.
+
+A separate complete `pdf image` conversion of a synthetic 2560×2560 RGB XObject
+to PNG used three alternating pairs of fresh Linux x64 Native AOT processes on
+one CPU core. Every output PNG was byte-identical. Independent decoding matched
+all 26,214,400 RGBA components, and the `graphics`, `report` and `scan-globals`
+page previews also remained byte-identical.
+
+| Whole conversion metric | Before | After |
+| --- | ---: | ---: |
+| Median CPU seconds | 1.058529 | 1.090124 |
+| Median peak RSS, KiB | 181,888 | 162,604 |
+| Peak RSS range, KiB | 138,128–181,888 | 141,568–162,944 |
+
+The CPU median increased 2.98%; this change establishes no speedup. RSS ranges
+overlap on the shared host. The allocation result establishes removal of the
+cache copy; these process measurements do not establish a general memory bound.
