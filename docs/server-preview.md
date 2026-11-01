@@ -12,9 +12,24 @@ dotnet run --project samples/Mediana.Sample -c Release -- --preview input.mkv pr
 
 The sample registers MP4/MOV, Matroska, MP3 and FLAC readers, PNG/JPEG image
 decoders and the H.264 video decoder. A video stream is unnecessary when an image
-is selected. Audio waveform generation is a separate sample operation. Image
+is selected. Image
 selection does not rank covers by dimensions or picture type, retrieve external
 references, or retry after a recognized image fails decoding.
+
+The audio preview sample searches picture tags before attachments. It writes a
+150-pixel PNG cover when a registered PNG/JPEG image is present; otherwise it
+transfers the same opened container to audio decoding and streams RMS/peak JSON:
+
+```sh
+dotnet run --project samples/Mediana.Sample -c Release -- --audio-preview input.mp3 cover.png waveform.json
+```
+
+Only the selected output is created, and existing output files are rejected.
+The sample registers WAV, MP3, FLAC, MP4/MOV and Matroska readers and PCM, MP3,
+FLAC and AAC decoders. Waveform output follows the
+[audio waveform sample's processing and timeline policy](audio-waveform.md).
+Recognized corrupt covers and cancellation propagate as failures. Display shaping
+and drawing waveform bars remain application responsibilities.
 
 ## Passing an opened container to a decoder
 
@@ -83,3 +98,10 @@ MKV without registering a video decoder, every JPEG Exif orientation, misleading
 attachment names/MIME types and recognized corrupt images. The HD video sample
 continues to match its complete independent sRGB PNG reference. These same real
 scenarios are linked into the package-only Native AOT consumer.
+
+The audio preview sample verifies one container open, source ownership and buffer
+release for MP3/FLAC/M4A/MKV covers and complete WAV/MP3/FLAC/MP4 waveforms.
+Cover pixels match independent references; waveform JSON matches the direct
+waveform operation byte for byte. Recognized-image failures and cancellation do
+not read another image or start audio decoding. These checks also run in the
+package-only Native AOT consumer.

@@ -9,6 +9,11 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            await ServerAudioPreviewTestInput.VerifyCoversAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            await ServerAudioPreviewTestInput.VerifyWaveformsAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            await ServerAudioPreviewTestInput.VerifyRecognizedFailureAsync(Path.Combine(AppContext.BaseDirectory, "Data"), false);
+            await ServerAudioPreviewTestInput.VerifyRecognizedFailureAsync(Path.Combine(AppContext.BaseDirectory, "Data"), true);
+            Console.WriteLine("PASS audio previews: one container open, cover before waveform, original pixels, complete levels and failure cleanup.");
             await ContainerDecodeTransferTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS container transfer: complete MP4/MKV video pixels, restarted seek, MP4/MKV/MP3 audio and original storage ownership.");
             await ServerContainerPreviewTestInput.VerifyRealCoversAsync(Path.Combine(AppContext.BaseDirectory, "Data"));

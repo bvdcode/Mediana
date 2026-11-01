@@ -13,6 +13,10 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string[] args)
         {
+            if (args.Length == 4 && args[0] == "--audio-preview")
+            {
+                return await AudioPreviewSample.RunAsync(args[1], args[2], args[3]);
+            }
             if (args.Length == 3 && args[0] == "--transcode")
             {
                 return await TranscodeSample.RunAsync(args[1], args[2]);
@@ -27,7 +31,7 @@ namespace Mediana.Sample
             }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --transcode input.mp4 output.ts | --preview input output.png | --waveform input]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --transcode input.mp4 output.ts | --preview input output.png | --waveform input | --audio-preview input cover.png waveform.json]");
                 return 2;
             }
 

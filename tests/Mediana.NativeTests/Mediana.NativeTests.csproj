@@ -188,6 +188,10 @@
     <Compile Include="../Shared/ServerVideoPreviewTestInput.cs" Link="ServerVideoPreviewTestInput.cs" />
     <Compile Include="../../samples/Mediana.Sample/VideoPreviewSample.cs" Link="VideoPreviewSample.cs" />
     <Compile Include="../../samples/Mediana.Sample/AudioWaveformSample.cs" Link="AudioWaveformSample.cs" />
+    <Compile Include="../../samples/Mediana.Sample/AudioPreviewSample.cs" Link="AudioPreviewSample.cs" />
+    <Compile Include="../../samples/Mediana.Sample/AudioPreviewKind.cs" Link="AudioPreviewKind.cs" />
+    <Compile Include="../Shared/ServerAudioPreviewTestInput.cs" Link="ServerAudioPreviewTestInput.cs" />
+    <Compile Include="../Shared/ObservedContainerFactory.cs" Link="ObservedContainerFactory.cs" />
     <Compile Include="../Shared/ServerAudioWaveformTestInput.cs" Link="ServerAudioWaveformTestInput.cs" />
     <None Include="../Mediana.Tests/Data/FrameRate/*" Link="Data/FrameRate/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/QuickTimeAacTestInput.cs" Link="QuickTimeAacTestInput.cs" />

@@ -86,7 +86,7 @@ namespace Mediana.Sample
                 ?? throw new InvalidDataException("There is no video frame at or after the preview target.");
         }
 
-        private static async ValueTask<VideoFrame> FitAsync(VideoFrame frame, VideoDisplayMatrix matrix,
+        internal static async ValueTask<VideoFrame> FitAsync(VideoFrame frame, VideoDisplayMatrix matrix,
             MediaBufferAllocator allocator, CancellationToken token)
         {
             VideoColorInfo color = SdrPreviewColorPolicy.Resolve(frame.Format);

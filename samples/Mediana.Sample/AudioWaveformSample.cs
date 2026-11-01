@@ -33,7 +33,9 @@ namespace Mediana.Sample
             return 0;
         }
 
-        internal static MediaEngine CreateEngine() => new MediaEngineBuilder()
+        internal static MediaEngine CreateEngine() => CreateBuilder().Build();
+
+        internal static MediaEngineBuilder CreateBuilder() => new MediaEngineBuilder()
             .AddContainer(new WaveReaderFactory())
             .AddContainer(new Mp3ReaderFactory())
             .AddContainer(new FlacReaderFactory())
@@ -41,13 +43,21 @@ namespace Mediana.Sample
             .AddAudioDecoder(new PcmDecoderFactory())
             .AddAudioDecoder(new Mp3DecoderFactory())
             .AddAudioDecoder(new FlacDecoderFactory())
-            .AddAudioDecoder(new AacDecoderFactory()).Build();
+            .AddAudioDecoder(new AacDecoderFactory());
 
         internal static async Task WriteAsync(MediaEngine engine, IByteSource source, Stream destination,
             CancellationToken cancellationToken = default)
         {
-            await using AudioSession session = await engine.OpenAudioAsync(source,
+            AudioSession session = await engine.OpenAudioAsync(source,
                 new MediaOpenOptions { BufferBudgetBytes = DecoderBudgetBytes }, cancellationToken);
+            await WriteAsync(session, destination, cancellationToken);
+        }
+
+        /// <summary>Consumes and disposes the supplied audio session; the destination remains borrowed.</summary>
+        internal static async Task WriteAsync(AudioSession session, Stream destination,
+            CancellationToken cancellationToken = default)
+        {
+            await using AudioSession owner = session;
             MediaBufferAllocator allocator = new(ProcessingBudgetBytes);
             AudioFrame? pending = await session.ReadFrameAsync(cancellationToken)
                 ?? throw new InvalidDataException("The waveform requires at least one decoded audio frame.");

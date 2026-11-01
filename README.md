@@ -601,6 +601,13 @@ and writes streaming JSON without retaining the complete PCM recording:
 dotnet run --project samples/Mediana.Sample -c Release -- --waveform input.flac > waveform.json
 ```
 
+The [audio preview example](docs/server-preview.md) opens a container once and
+writes either an embedded PNG/JPEG cover or streaming waveform JSON:
+
+```bash
+dotnet run --project samples/Mediana.Sample -c Release -- --audio-preview input.mp3 cover.png waveform.json
+```
+
 The reader owns callback frames and filter storage, borrows the source and uses
 the caller's media-buffer allocator. It keeps bounded processing history and one
 pending level, independent of recording length. EOF, failure, cancellation and
