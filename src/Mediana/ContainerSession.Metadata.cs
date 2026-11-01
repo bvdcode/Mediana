@@ -34,5 +34,37 @@ namespace Mediana
             Func<int, CancellationToken, ValueTask<MediaBuffer>>? read = attachments is null ? null : attachments.ReadAttachmentAsync;
             return ReadDataAsync(attachmentIndex, attachments?.Attachments.Count, read, "attachments", cancellationToken);
         }
+
+        /// <summary>Copies an original picture prefix into caller-owned memory without advancing packets.
+        /// Session lifetime, single-consumer and failure rules match ReadPictureAsync.</summary>
+        public ValueTask<int> ReadPicturePrefixAsync(int pictureIndex, Memory<byte> destination, CancellationToken cancellationToken = default)
+        {
+            IContainerPictureReader? pictures = Reader as IContainerPictureReader;
+            Func<int, CancellationToken, ValueTask<int>>? read = pictures is null ? null
+                : (index, token) => ReadPrefixAsync(pictures.ReadPicturePrefixAsync(index, destination, token),
+                    Math.Min(destination.Length, pictures.Pictures[index].ByteLength));
+            return ReadDataAsync(pictureIndex, pictures?.Pictures.Count, read, "pictures", cancellationToken);
+        }
+
+        /// <summary>Copies an original attachment prefix without reading its complete payload.
+        /// Session lifetime, single-consumer and failure rules match ReadAttachmentAsync.</summary>
+        public ValueTask<int> ReadAttachmentPrefixAsync(int attachmentIndex, Memory<byte> destination, CancellationToken cancellationToken = default)
+        {
+            IContainerAttachmentReader? attachments = Reader as IContainerAttachmentReader;
+            Func<int, CancellationToken, ValueTask<int>>? read = attachments is null ? null
+                : (index, token) => ReadPrefixAsync(attachments.ReadAttachmentPrefixAsync(index, destination, token),
+                    (int)Math.Min(destination.Length, attachments.Attachments[index].ByteLength));
+            return ReadDataAsync(attachmentIndex, attachments?.Attachments.Count, read, "attachments", cancellationToken);
+        }
+
+        private static async ValueTask<int> ReadPrefixAsync(ValueTask<int> pending, int expected)
+        {
+            int count = await pending.ConfigureAwait(false);
+            if (count != expected)
+            {
+                throw new InvalidDataException("The container reader returned an invalid prefix length.");
+            }
+            return count;
+        }
     }
 }

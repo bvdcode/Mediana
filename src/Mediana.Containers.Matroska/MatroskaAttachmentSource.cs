@@ -11,6 +11,22 @@ namespace Mediana.Containers.Matroska
     {
         public IReadOnlyList<MatroskaAttachmentInfo> Attachments => attachments;
 
+        public async ValueTask<int> ReadPrefixAsync(int index, Memory<byte> destination, CancellationToken token)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, attachments.Count);
+            token.ThrowIfCancellationRequested();
+            MatroskaAttachmentInfo attachment = attachments[index];
+            int length = (int)Math.Min(destination.Length, attachment.ByteLength);
+            if (length > maximumBytes)
+            {
+                throw new NotSupportedException("The Matroska attachment prefix exceeds the configured read byte limit.");
+            }
+            await source.ReadExactlyAtAsync(attachment.Data.DataOffset, destination[..length], token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            return length;
+        }
+
         public async ValueTask<MediaBuffer> ReadAsync(int index, CancellationToken token)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);

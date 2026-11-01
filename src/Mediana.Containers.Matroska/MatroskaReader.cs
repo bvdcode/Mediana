@@ -38,6 +38,20 @@ namespace Mediana.Containers.Matroska
         public IReadOnlyList<MatroskaAttachmentInfo> Attachments => attachmentSource.Attachments;
         IReadOnlyList<ContainerAttachmentInfo> IContainerAttachmentReader.Attachments => Attachments;
 
+        public async ValueTask<int> ReadAttachmentPrefixAsync(int attachmentIndex, Memory<byte> destination, CancellationToken cancellationToken = default)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                return await attachmentSource.ReadPrefixAsync(attachmentIndex, destination, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
+        }
+
         public async ValueTask<MediaBuffer> ReadAttachmentAsync(int attachmentIndex, CancellationToken cancellationToken = default)
         {
             Enter();

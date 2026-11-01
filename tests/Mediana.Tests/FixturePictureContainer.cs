@@ -17,12 +17,28 @@ namespace Mediana.Tests
         public IReadOnlyList<ContainerAttachmentInfo> Attachments { get; } =
             Array.AsReadOnly(new[] { new ContainerAttachmentInfo(3, "cover.png", "image/png", "Front") });
         public Func<CancellationToken, ValueTask>? BeforeAttachmentRead { get; set; }
+        public int? PrefixCountOverride { get; set; }
 
         public ValueTask<MediaBuffer> ReadPictureAsync(int pictureIndex, CancellationToken cancellationToken = default)
             => ReadDataAsync(pictureIndex, Pictures.Count, BeforePictureRead, cancellationToken);
 
         public ValueTask<MediaBuffer> ReadAttachmentAsync(int attachmentIndex, CancellationToken cancellationToken = default)
             => ReadDataAsync(attachmentIndex, Attachments.Count, BeforeAttachmentRead, cancellationToken);
+
+        public ValueTask<int> ReadPicturePrefixAsync(int pictureIndex, Memory<byte> destination, CancellationToken cancellationToken = default)
+            => ReadPrefixAsync(pictureIndex, Pictures.Count, destination, BeforePictureRead, cancellationToken);
+
+        public ValueTask<int> ReadAttachmentPrefixAsync(int attachmentIndex, Memory<byte> destination, CancellationToken cancellationToken = default)
+            => ReadPrefixAsync(attachmentIndex, Attachments.Count, destination, BeforeAttachmentRead, cancellationToken);
+
+        private async ValueTask<int> ReadPrefixAsync(int index, int count, Memory<byte> destination,
+            Func<CancellationToken, ValueTask>? beforeRead, CancellationToken cancellationToken)
+        {
+            using MediaBuffer data = await ReadDataAsync(index, count, beforeRead, cancellationToken);
+            int length = Math.Min(data.Memory.Length, destination.Length);
+            data.Memory[..length].CopyTo(destination);
+            return PrefixCountOverride ?? length;
+        }
 
         private async ValueTask<MediaBuffer> ReadDataAsync(int index, int count,
             Func<CancellationToken, ValueTask>? beforeRead, CancellationToken cancellationToken)

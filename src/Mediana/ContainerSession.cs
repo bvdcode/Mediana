@@ -32,8 +32,8 @@ namespace Mediana
         public ContainerInfo Info => Reader.Info;
         public IReadOnlyList<EncodedStreamInfo> Streams => Reader.Streams;
         public long AllocatedBufferBytes => Allocator.AllocatedBytes;
-        private async ValueTask<MediaBuffer> ReadDataAsync(int dataIndex, int? count,
-            Func<int, CancellationToken, ValueTask<MediaBuffer>>? read, string capability, CancellationToken token)
+        private async ValueTask<T> ReadDataAsync<T>(int dataIndex, int? count,
+            Func<int, CancellationToken, ValueTask<T>>? read, string capability, CancellationToken token)
         {
             Enter();
             bool started = false;
@@ -49,7 +49,7 @@ namespace Mediana
                 ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(dataIndex, count.Value);
                 started = true;
                 token.ThrowIfCancellationRequested();
-                MediaBuffer data = await read(dataIndex, token).ConfigureAwait(false);
+                T data = await read(dataIndex, token).ConfigureAwait(false);
                 succeeded = true;
                 return data;
             }
@@ -124,6 +124,19 @@ namespace Mediana
             if (faulted)
             {
                 throw new InvalidOperationException("The container session has failed and must be disposed.");
+            }
+        }
+
+        internal void ValidateActive()
+        {
+            Enter();
+            try
+            {
+                RequireActive();
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
             }
         }
 

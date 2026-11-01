@@ -34,9 +34,22 @@ namespace Mediana.Tests
                 using MemoryStream input = new(encoded, writable: false);
                 await using RandomAccessStreamByteSource source = new(input, leaveOpen: true);
                 await using ContainerSession session = await engine.OpenContainerAsync(source, new() { BufferBudgetBytes = 131072 });
+                byte[] prefix = new byte[13];
+                long liveBeforePrefix = session.AllocatedBufferBytes;
+                int prefixLength = attachment
+                    ? await session.ReadAttachmentPrefixAsync(0, prefix)
+                    : await session.ReadPicturePrefixAsync(0, prefix);
+                if (prefixLength != prefix.Length || session.AllocatedBufferBytes != liveBeforePrefix)
+                {
+                    throw new InvalidDataException("An image prefix must not allocate another complete encoded payload.");
+                }
                 using MediaBuffer cover = attachment
                     ? await session.ReadAttachmentAsync(0)
                     : await session.ReadPictureAsync(0);
+                if (!cover.Memory.Span[..prefix.Length].SequenceEqual(prefix))
+                {
+                    throw new InvalidDataException("The picture or attachment prefix differs from the original bytes.");
+                }
                 await session.DisposeAsync();
                 if (session.AllocatedBufferBytes < cover.Memory.Length)
                 {

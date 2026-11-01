@@ -33,6 +33,10 @@ namespace Mediana.Tests
             await RejectAsync<ArgumentOutOfRangeException>(async () => await reader.ReadAttachmentAsync(-1));
             await RejectAsync<ArgumentOutOfRangeException>(async () => await reader.ReadAttachmentAsync(2));
             long live = allocator.AllocatedBytes;
+            byte[] prefix = new byte[] { 99, 99, 99, 99, 99 };
+            Require(await reader.ReadAttachmentPrefixAsync(0, prefix) == 3 &&
+                prefix.AsSpan().SequenceEqual(new byte[] { 1, 2, 3, 99, 99 }) && allocator.AllocatedBytes == live);
+            Require(await reader.ReadAttachmentPrefixAsync(1, prefix) == 0 && allocator.AllocatedBytes == live);
             using (MediaBuffer empty = await reader.ReadAttachmentAsync(1))
             {
                 Require(empty.Memory.IsEmpty && allocator.AllocatedBytes == live + 1);
@@ -105,13 +109,22 @@ namespace Mediana.Tests
                 Length = prefix.Length + largeLength,
                 ExcludedReadRange = (prefix.Length + 12, prefix.Length + largeLength)
             };
-            await using (MatroskaReader reader = await MatroskaReader.OpenAsync(sparse, allocator))
+            await using (MatroskaReader reader = await MatroskaReader.OpenAsync(sparse, allocator, new() { MaxAttachmentBytes = 12 }))
             {
                 Require(reader.Attachments.Count == 1 && reader.Attachments[0].ByteLength == largeLength);
                 Require(sparse.BytesRead < 4096 && allocator.AllocatedBytes < 8192);
                 int calls = sparse.ReadCalls;
                 await RejectAsync<NotSupportedException>(async () => await reader.ReadAttachmentAsync(0));
                 Require(sparse.ReadCalls == calls);
+                long bytes = sparse.BytesRead;
+                long live = allocator.AllocatedBytes;
+                byte[] head = new byte[12];
+                head.AsSpan().Fill(255);
+                Require(await reader.ReadAttachmentPrefixAsync(0, head) == 12 && head.All(value => value == 0));
+                Require(sparse.BytesRead == bytes + 12 && allocator.AllocatedBytes == live);
+                calls = sparse.ReadCalls;
+                await RejectAsync<NotSupportedException>(async () => await reader.ReadAttachmentPrefixAsync(0, new byte[13]));
+                Require(sparse.ReadCalls == calls && allocator.AllocatedBytes == live);
             }
             Require(allocator.AllocatedBytes == 0 && !sparse.IsDisposed);
             byte[] payload = new byte[32000];
