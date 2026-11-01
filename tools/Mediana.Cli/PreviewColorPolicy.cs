@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Video;
+using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
@@ -15,6 +16,30 @@ namespace Mediana.Cli
         private static readonly VideoColorInfo Ntsc = new(ColorPrimaries.Smpte170M, TransferFunction.Bt709, MatrixCoefficients.Bt601);
         private static readonly VideoColorInfo Wide = new(ColorPrimaries.Bt2020, TransferFunction.Bt709, MatrixCoefficients.Bt2020NonConstant);
         private static readonly VideoColorInfo Smpte = new(ColorPrimaries.Smpte170M, TransferFunction.Smpte240M, MatrixCoefficients.Smpte240M);
+
+        internal static VideoColorInfo Resolve(VideoFormat format, ILogger logger)
+        {
+            VideoColorInfo color = Resolve(format);
+            VideoColorInfo declared = format.GetColorInterpretation();
+            if (color != declared)
+            {
+                List<string> missing = [];
+                if (declared.Primaries == ColorPrimaries.Unspecified)
+                {
+                    missing.Add("primaries");
+                }
+                if (declared.Transfer == TransferFunction.Unspecified)
+                {
+                    missing.Add("transfer");
+                }
+                if (declared.Matrix == MatrixCoefficients.Unspecified)
+                {
+                    missing.Add("matrix");
+                }
+                CliLog.PreviewColorAssumed(logger, string.Join(", ", missing), color.Primaries, color.Transfer, color.Matrix);
+            }
+            return color;
+        }
 
         internal static VideoColorInfo Resolve(VideoFormat format)
         {

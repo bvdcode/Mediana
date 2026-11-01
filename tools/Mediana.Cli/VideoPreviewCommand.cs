@@ -32,25 +32,7 @@ namespace Mediana.Cli
                 ?? throw new InvalidDataException("There is no frame at or after the requested timestamp.");
             VideoDisplayMatrix displayMatrix = session.Stream.DisplayMatrix
                 ?? throw new NotSupportedException("The video stream has no display transform interpretation.");
-            VideoColorInfo color = PreviewColorPolicy.Resolve(decoded.Format);
-            VideoColorInfo declared = decoded.Format.GetColorInterpretation();
-            if (color != declared)
-            {
-                List<string> missing = [];
-                if (declared.Primaries == ColorPrimaries.Unspecified)
-                {
-                    missing.Add("primaries");
-                }
-                if (declared.Transfer == TransferFunction.Unspecified)
-                {
-                    missing.Add("transfer");
-                }
-                if (declared.Matrix == MatrixCoefficients.Unspecified)
-                {
-                    missing.Add("matrix");
-                }
-                CliLog.PreviewColorAssumed(logger, string.Join(", ", missing), color.Primaries, color.Transfer, color.Matrix);
-            }
+            VideoColorInfo color = PreviewColorPolicy.Resolve(decoded.Format, logger);
             MediaBufferAllocator allocator = new(ProcessingBufferBudgetBytes);
             int width;
             int height;

@@ -3,6 +3,7 @@
 
 using Mediana.Codecs.Jbig2;
 using Mediana.Codecs.Jpeg2000;
+using Mediana.Codecs.Png;
 using Mediana.Core.Video;
 using Mediana.Documents.Pdf;
 using Mediana.Images.Heif;
@@ -19,6 +20,7 @@ namespace Mediana.Cli
         public static MediaEngine Create() => AddDecoders(new MediaEngineBuilder()).Build();
 
         internal static MediaEngineBuilder AddDecoders(MediaEngineBuilder builder) => builder
+            .AddImageDecoder(new PngImageDecoder())
             .AddImageDecoder(CreateHeic(SampleAspectRatio.Square))
             .AddImageDecoder(CreateJpeg2000(SampleAspectRatio.Square))
             .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
