@@ -39,6 +39,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
+| `Mediana.Containers.Matroska` | [EBML values and bounded element-header foundation](docs/matroska-ebml.md) |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC/MP3 packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
