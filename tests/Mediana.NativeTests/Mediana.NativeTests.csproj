@@ -8,6 +8,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MatroskaSegmentTestInput.cs" Link="MatroskaSegmentTestInput.cs" />
     <Compile Include="../Shared/MatroskaHeaderTestInput.cs" Link="MatroskaHeaderTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Matroska/*" Link="Data/Matroska/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/EbmlElementTestSource.cs" Link="EbmlElementTestSource.cs" />

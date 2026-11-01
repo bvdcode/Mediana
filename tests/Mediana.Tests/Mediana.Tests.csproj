@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MatroskaSegmentTestInput.cs" Link="MatroskaSegmentTestInput.cs" />
     <Compile Include="../Shared/MatroskaHeaderTestInput.cs" Link="MatroskaHeaderTestInput.cs" />
     <None Include="Data/Matroska/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/EbmlElementTestSource.cs" Link="EbmlElementTestSource.cs" />

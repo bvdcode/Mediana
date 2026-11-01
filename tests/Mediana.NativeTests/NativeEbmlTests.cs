@@ -23,7 +23,12 @@ namespace Mediana.NativeTests
             await MatroskaHeaderTestInput.VerifyBoundsAndTruncationAsync();
             await MatroskaHeaderTestInput.VerifyCancellationAndQuotaAsync();
             await MatroskaHeaderTestInput.VerifyMuxedFileAsync();
-            Console.WriteLine("PASS EBML: variable integers, defaults, text, bounded headers, cancellation and borrowed sources.");
+            await MatroskaSegmentTestInput.VerifyUnknownClustersAsync();
+            await MatroskaSegmentTestInput.VerifyEofGlobalsAndLimitsAsync();
+            await MatroskaSegmentTestInput.VerifyInvalidHierarchyAsync();
+            await MatroskaSegmentTestInput.VerifyCancellationAsync();
+            await MatroskaSegmentTestInput.VerifyMuxedFileAsync();
+            Console.WriteLine("PASS Matroska structure: EBML values, document versions/CRC, Segment bounds, unknown Clusters and borrowed sources.");
         }
     }
 }
