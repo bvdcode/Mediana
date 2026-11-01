@@ -84,6 +84,46 @@ outside the media byte-array budget. This budget is not whole-process memory.
 boundaries and during progressive reconstruction. Failure releases all
 component/output leases; the returned frame remains valid after the encoded input and container are released.
 
+## Container component decoding
+
+`JpegDecoder.DecodeComponents` returns a disposable `JpegImage` owning the native
+component samples. It uses the same entropy decoding, IDCT and subsample
+reconstruction as standalone image decoding. Encoded input is borrowed only for
+the call and can be released after it returns. The component image exposes
+dimensions, component count and the original nullable Adobe APP14 transform.
+
+`JpegImage.WriteRgbaTo(destination, colorSpace, cancellationToken)` writes into
+caller-owned storage with an explicit RGB or YCbCr interpretation. It allocates
+no output array, writes exactly width × height × 4 bytes and preserves any tail.
+Grayscale ignores the three-component interpretation. Cancellation may leave
+the destination partially written; disposing the image releases the component
+leases. Writing after disposal fails.
+
+This entry point does not infer presentation from JFIF, Exif, ICC or other
+application metadata. The enclosing format supplies those semantics. PDF uses
+it for its own APP14/ColorTransform, Decode and mask rules, described in
+[PDF image interpretation](pdf.md#jpeg-image-interpretation). Standalone
+`JpegImageDecoder` retains its existing metadata validation and explicit color
+requirements.
+
+The 47-image corpus also checks this path after clearing the encoded source.
+Checks require complete output pixels, exact tail preservation, bounded sample
+ownership, allocation-free repeated writes, cancellation and disposal behavior.
+
+Three alternating pairs of fresh Linux Native AOT processes checked the shared
+writer change with complete 2560×2560 sequential JPEG → PNG conversion on one CPU
+core and `DOTNET_PROCESSOR_COUNT=1`:
+
+| Metric | Before component API | With component API |
+| --- | ---: | ---: |
+| Median CPU seconds | 1.616669 | 1.633823 |
+| Median wall seconds | 1.617009 | 1.634093 |
+| Median peak RSS, KiB | 82,988 | 83,200 |
+
+All six PNGs are byte-identical. The CPU difference is +1.06% on the shared host;
+this functional extension establishes no speedup. These measurements include
+startup, decoding, PNG encoding, logging and file I/O.
+
 ## Verification and current scope
 
 The 47-image independent corpus checks complete grayscale/RGB pixels, odd edges,
@@ -133,8 +173,8 @@ it is separate from the exact live media-buffer budget.
 
 Arithmetic/lossless/hierarchical JPEG, 12-bit samples, DNL,
 CMYK/YCCK, Exif presentation/color metadata, SPIFF and ICC conversion are not
-implemented. These encodings are rejected explicitly. PDF `DCTDecode` integration
-is separate from standalone image registration.
+implemented. These encodings are rejected explicitly by standalone decoding.
+PDF `DCTDecode` integration uses the container component API described above.
 
 Format references: [ITU T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf),
 Annexes A/B/C/E/F/G, and [JFIF 1.02](https://www.w3.org/Graphics/JPEG/jfif3.pdf).
