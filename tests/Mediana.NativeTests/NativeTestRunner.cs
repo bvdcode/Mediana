@@ -79,6 +79,7 @@ namespace Mediana.NativeTests
             await NativePdfTests.RunAsync();
             await NativePngTests.RunAsync();
             await NativeJpegTests.RunAsync();
+            await NativeContainerImageTests.RunAsync();
             BoundedStreamReadTestInput.VerifySynchronous();
             BoundedStreamReadTestInput.VerifyAllocationSynchronous();
             await BoundedStreamReadTestInput.VerifyAsync();

@@ -5,6 +5,10 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
+    <Compile Include="../Shared/ContainerImageTestEntry.cs" Link="ContainerImageTestEntry.cs" />
+    <Compile Include="../Shared/ContainerImageTestReader.cs" Link="ContainerImageTestReader.cs" />
+    <Compile Include="../Shared/ContainerImageTestFactory.cs" Link="ContainerImageTestFactory.cs" />
+    <Compile Include="../Shared/ContainerImageTestInput.cs" Link="ContainerImageTestInput.cs" />
     <Compile Include="../Shared/JpegCoverTestInput.cs" Link="JpegCoverTestInput.cs" />
     <Compile Include="../Shared/JpegTestData.cs" Link="JpegTestData.cs" />
     <Compile Include="../Shared/JpegDecodeTestInput.cs" Link="JpegDecodeTestInput.cs" />
