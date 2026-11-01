@@ -2,8 +2,9 @@
 
 A complete trial of adaptive intra coding in P pictures produced valid streams,
 but required 2.08 times the CPU for a 0.54 dB aggregate PSNR improvement on the
-measured HD input. It was not adopted. The encoder continues to use P16x16 and
-P_Skip between IDR pictures.
+measured HD input. A second trial with early screening reduced the search cost,
+but retained a rate-controlled quality regression and was also not adopted.
+The encoder continues to use P16x16 and P_Skip between IDR pictures.
 
 ## Coding model
 
@@ -72,3 +73,54 @@ improvement. A lower local rate/distortion cost does not guarantee lower error
 over a complete rate-controlled sequence. Adaptive intra coding in P pictures
 remains open; an efficient decision mechanism needs to avoid exhaustive
 transform and entropy trials while preserving independent output verification.
+
+## Selective intra screening
+
+A second trial screened macroblocks before the complete I4x4 transform and
+entropy trial. It compared the lambda-weighted actual coefficient bit count
+per 384 samples with the source-to-reconstruction discontinuity across the
+64 top and left boundary samples. Zero-residual candidates were excluded;
+candidates without the required boundaries retained the full trial. Final
+selection still compared reconstructed YUV squared error and actual RBSP bits.
+
+This decision follows the selective-intra approach in the
+[JM reference encoder](https://vcgit.hhi.fraunhofer.de/jvet/JM/-/blob/master/source/app/lencod/md_highfast.c),
+using the weighted coefficient-rate interpretation from its
+[rate/distortion implementation](https://vcgit.hhi.fraunhofer.de/jvet/JM/-/blob/master/source/app/lencod/rdopt.c).
+The syntax was checked against [ITU-T H.264 V16, June 2026](https://www.itu.int/rec/T-REC-H.264-202606-I/en).
+The trial used the existing prediction, residual, checkpoint and PCM coding,
+with no additional picture buffer or external runtime dependency.
+
+A fresh sequential pair used the same complete 1441-picture HD source and
+settings described above. Both Linux x64 Native AOT processes ran on logical
+CPU 2. The baseline includes the constant-residual optimization. These are
+separate observations from the earlier exhaustive trial.
+
+| Complete conversion | Current encoder | Screened P/I trial |
+|---|---:|---:|
+| CPU seconds | 147.59 | 179.08 |
+| Wall seconds | 155.25 | 194.11 |
+| Peak RSS, MiB | 101.81 | 93.66 |
+| MPEG-TS bytes | 78,295,608 | 78,156,676 |
+| Aggregate YUV PSNR, dB | 44.9564 | 45.3572 |
+
+CPU increased by 21.33%, size decreased by 0.18% and aggregate PSNR improved
+by 0.40 dB. A single pair on a shared host does not establish a general
+performance or memory result. PSNR does not establish perceptual acceptance.
+
+For both complete outputs, independent and Native decoding agreed on all
+1,992,038,400 visible sample bytes, every timestamp and duration, EOF and zero
+retained media storage. All 31 IDR boundaries, level-window checks, packet-rate
+windows and coded-picture identities after remuxing passed. Full Annex C HRD
+conformance remains open.
+
+All 21 short sequences also matched independent decoding, including 32 pictures
+with mixed PCM/cropped edges. The 18-picture managed and Native CLI outputs
+were identical. The complete 80-picture, 46x34 horizontal-motion sequence at
+initial QP0 and a 32 kbit/s packet ceiling nevertheless regressed from
+38.2887 to 37.3057 dB. The vertical-motion/scene-change case at initial QP26
+and 40 kbit/s improved from 30.0723 to 31.6779 dB. All rate budgets passed.
+
+The screened trial was rejected as a default because it retained sequence-level
+quality regressions while increasing CPU. Efficient adaptive P-picture intra
+coding and its interaction with quantizer control remain open.
