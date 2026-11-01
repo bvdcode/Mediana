@@ -9,6 +9,8 @@ namespace Mediana.Drawing
 {
     internal class SceneBufferReservation(SceneRenderContext owner, long bytes) : IDisposable
     {
-        public void Dispose() => owner.ReleaseReservation(bytes);
+        private long _remainingBytes = bytes;
+
+        public void Dispose() => owner.ReleaseReservation(Interlocked.Exchange(ref _remainingBytes, 0));
     }
 }

@@ -2,6 +2,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Mediana.Images.Svg" />
     <InternalsVisibleTo Include="Mediana.Images.Tgs" />
+    <InternalsVisibleTo Include="Mediana.Tests" />
+    <InternalsVisibleTo Include="Mediana.NativeTests" />
     <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />
   </ItemGroup>
 </Project>

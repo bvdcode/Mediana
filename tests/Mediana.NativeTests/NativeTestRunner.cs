@@ -96,6 +96,12 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS image conversion: HEIC, JPEG 2000 and JBIG2 produce owned frames and complete sRGB PNG files.");
             await TgsReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Tgs"));
             Console.WriteLine("PASS TGS/Lottie: 33 supported frames match every reference channel within one RGB code and exact alpha.");
+            SceneBufferOwnershipTestInput.VerifyReuse();
+            SceneBufferOwnershipTestInput.VerifyTrim();
+            SceneBufferOwnershipTestInput.VerifyDisposal();
+            SceneBufferOwnershipTestInput.VerifyFailedConstruction();
+            SceneBufferOwnershipTestInput.VerifyReservationDisposal();
+            Console.WriteLine("PASS drawing surfaces: reuse, trimming, disposal, construction failure and exact effect budgets.");
             await SvgReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Svg"));
             Console.WriteLine("PASS SVG: 352 filter pixel references and Latin/Cyrillic font rendering.");
             await HeifReferenceTestInput.VerifyWavefrontAsync();

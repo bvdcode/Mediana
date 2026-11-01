@@ -24,9 +24,22 @@ namespace Mediana.Drawing
             }
 
             IDisposable reservation = context.Reserve(width, height, 1);
-            image = new PixelBuffer(width, height);
-            _buffers.Add(image, reservation);
-            return image;
+            bool retained = false;
+            try
+            {
+                image = new PixelBuffer(width, height);
+                _buffers.Add(image, reservation);
+                retained = true;
+                return image;
+            }
+            finally
+            {
+                if (!retained)
+                {
+                    image?.Dispose();
+                    reservation.Dispose();
+                }
+            }
         }
 
         internal void Return(PixelBuffer image) => _available.Add(image);
@@ -35,6 +48,7 @@ namespace Mediana.Drawing
         {
             foreach (PixelBuffer image in _available)
             {
+                image.Dispose();
                 _buffers[image].Dispose();
                 _buffers.Remove(image);
             }
@@ -44,8 +58,9 @@ namespace Mediana.Drawing
 
         public void Dispose()
         {
-            foreach (IDisposable reservation in _buffers.Values)
+            foreach ((PixelBuffer image, IDisposable reservation) in _buffers)
             {
+                image.Dispose();
                 reservation.Dispose();
             }
 
