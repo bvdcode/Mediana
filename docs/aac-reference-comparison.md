@@ -91,6 +91,11 @@ improvement, or acceptance of 44100/48000 Hz server HLS output. Perceptual quali
 transient handling, channel balance and coding efficiency remain open for
 Mediana's complete encoder.
 
+The [window, budget and stereo comparison](aac-stereo-and-window-comparison.md)
+isolates input phase, signaled windows, reference access-unit budgets and forced
+M/S coding on the same complete inputs. None of those isolated substitutions
+establishes a general quality improvement.
+
 ## Short-window temporal noise shaping
 
 An isolated short-window TNS experiment was checked against the reference
