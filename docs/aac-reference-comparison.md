@@ -90,3 +90,26 @@ supported range. They establish no listening-quality ranking, isolated masking
 improvement, or acceptance of 44100/48000 Hz server HLS output. Perceptual quality,
 transient handling, channel balance and coding efficiency remain open for
 Mediana's complete encoder.
+
+## Short-window temporal noise shaping
+
+An isolated short-window TNS experiment was checked against the reference
+arithmetic on 480 combinations of sample rate, spectrum length, coefficient
+resolution, signal and amplitude. All transmitted coefficient indices matched.
+Across 38,400 filtered samples, the maximum normalized difference was
+1.1921e-7. This checks the filter arithmetic on identical weighted spectra;
+activation, weighting and perceptual decisions require separate validation.
+
+The complete original-rate ten-input corpus produced 20 independently decoded
+outputs and 19,556 access units. Every packet budget and timestamp passed, and
+Mediana's complete decoded PCM differed from the independent decoder by at most
+1.9372e-7. Error energy in the four measured 512-sample silent pre-onset windows
+fell by factors of 2.04–5.16. One of those windows still had a higher peak error.
+On castanets, whole-channel SNR fell by 0.41 and 0.46 dB, and maximum absolute
+error rose from 0.07173 to 0.15840.
+
+This variant was rejected. The production encoder keeps its existing behavior;
+filter arithmetic and improved impulse measurements do not establish acceptable
+quality across real recordings. Coupled quantization and perceptual decisions
+remain necessary work. The single resource-measurement pair per input does not
+establish a CPU or memory improvement.
