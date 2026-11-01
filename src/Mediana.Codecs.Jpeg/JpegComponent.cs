@@ -17,5 +17,6 @@ namespace Mediana.Codecs.Jpeg
         internal int PaddedHeight { get; set; }
         internal bool Decoded { get; set; }
         internal WritableMediaBuffer? Samples { get; set; }
+        internal JpegProgression? Progression { get; set; }
     }
 }

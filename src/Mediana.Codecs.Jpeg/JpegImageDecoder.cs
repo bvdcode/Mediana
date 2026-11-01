@@ -7,10 +7,10 @@ using Mediana.Core.Video;
 
 namespace Mediana.Codecs.Jpeg
 {
-    /// <summary>Decodes 8-bit sequential Huffman JPEG to independent RGBA32. Encoded input is borrowed;
-    /// component samples and output are charged to the allocator. Chroma uses centered bilinear reconstruction.
+    /// <summary>Decodes 8-bit sequential and progressive Huffman JPEG to independent RGBA32. Encoded input is borrowed;
+    /// progressive coefficients, component samples and output are charged to the allocator. Chroma uses centered bilinear reconstruction.
     /// JFIF/Adobe declare three-component interpretation; source transfer/primaries remain unspecified.
-    /// Progressive, lossless/arithmetic, Exif presentation and CMYK/YCCK are currently unsupported.</summary>
+    /// Lossless/arithmetic, Exif presentation and CMYK/YCCK are currently unsupported.</summary>
     public class JpegImageDecoder : IImageDecoder, IImageInfoReader
     {
         private readonly JpegDecodeOptions options;

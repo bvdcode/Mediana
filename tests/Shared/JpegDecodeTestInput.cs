@@ -97,7 +97,9 @@ namespace Mediana.Tests
             {
                 await RejectAsync<InvalidDataException>(bytes);
             }
-            await RejectAsync<NotSupportedException>(await File.ReadAllBytesAsync(Path.Combine(root, "unsupported-progressive.jpg")));
+            byte[] arithmetic = valid.ToArray();
+            arithmetic[JpegTestData.Find(arithmetic, 192) + 1] = 201;
+            await RejectAsync<NotSupportedException>(arithmetic);
             await RejectAsync<NotSupportedException>(JpegTestData.Insert(valid, 225, "Exif\0\0"u8));
         }
 
@@ -194,7 +196,7 @@ namespace Mediana.Tests
             await RejectAsync<NotSupportedException>(precision);
         }
 
-        private static async Task RejectAsync<T>(byte[] encoded, JpegDecodeOptions? options = null) where T : Exception
+        internal static async Task RejectAsync<T>(byte[] encoded, JpegDecodeOptions? options = null) where T : Exception
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             try

@@ -13,6 +13,7 @@ namespace Mediana.Codecs.Jpeg
         private readonly JpegMarkerReader reader = new(encoded, options.MaximumMarkers, token);
         private readonly int[][] quantization = new int[4][];
         private readonly bool[] wideQuantization = new bool[4];
+        private readonly bool[] lockedQuantization = new bool[4];
         private readonly JpegHuffmanTable?[] huffman = new JpegHuffmanTable[8];
         private JpegComponent[] components = [];
         private readonly JpegMetadata metadata = new();
@@ -24,6 +25,7 @@ namespace Mediana.Codecs.Jpeg
         internal int MaximumVertical { get; private set; }
         internal IReadOnlyList<JpegComponent> Components => components;
         internal JpegMetadata Metadata => metadata;
+        internal bool Progressive => frameMarker == 194;
 
         internal void Read(MediaBufferAllocator? allocator)
         {
@@ -50,6 +52,13 @@ namespace Mediana.Codecs.Jpeg
                         throw new InvalidDataException("JPEG contains bytes after EOI.");
                     }
                     metadata.Validate(components, sourceColorSpace, sampleAspectRatio, allocator is not null);
+                    if (Progressive && allocator is not null)
+                    {
+                        foreach (JpegComponent component in components)
+                        {
+                            component.Progression!.Reconstruct(component, GetQuantization(component), allocator, token);
+                        }
+                    }
                     return;
                 }
                 if (marker is 216 or 1 or >= 208 and <= 215)
@@ -61,6 +70,7 @@ namespace Mediana.Codecs.Jpeg
                 {
                     case 192:
                     case 193:
+                    case 194:
                         ReadFrame(marker, segment, allocator);
                         break;
                     case 196:
@@ -77,15 +87,13 @@ namespace Mediana.Codecs.Jpeg
                         restartInterval = BinaryPrimitives.ReadUInt16BigEndian(segment);
                         break;
                     case 218:
-                        JpegSequentialScan.Read(segment, reader, this, allocator is not null, restartInterval, token);
+                        JpegScanReader.Read(segment, reader, this, allocator is not null, restartInterval, token);
                         break;
                     case >= 224 and <= 239:
                         metadata.Read(marker, segment);
                         break;
                     case 254:
                         break;
-                    case 194:
-                        throw new NotSupportedException("Progressive JPEG decoding is not implemented yet.");
                     case 220:
                         throw new NotSupportedException("JPEG deferred image height (DNL) is not supported.");
                     default:
@@ -117,11 +125,14 @@ namespace Mediana.Codecs.Jpeg
             return huffman[index] ?? throw new InvalidDataException("JPEG scan refers to an undefined Huffman table.");
         }
 
+        internal void LockQuantization(JpegComponent component) => lockedQuantization[component.Quantization] = true;
+
         public void Dispose()
         {
             foreach (JpegComponent? component in components)
             {
                 component?.Samples?.Dispose();
+                component?.Progression?.Dispose();
             }
         }
 
@@ -186,7 +197,11 @@ namespace Mediana.Codecs.Jpeg
                 component.Height = (Height * component.Vertical + MaximumVertical - 1) / MaximumVertical;
                 component.Stride = checked(mcuColumns * component.Horizontal * 8);
                 component.PaddedHeight = checked(mcuRows * component.Vertical * 8);
-                if (allocator is not null)
+                if (Progressive)
+                {
+                    component.Progression = new(allocator, checked(component.Stride * component.PaddedHeight));
+                }
+                else if (allocator is not null)
                 {
                     component.Samples = allocator.Allocate(checked(component.Stride * component.PaddedHeight));
                 }
@@ -217,6 +232,10 @@ namespace Mediana.Codecs.Jpeg
                         throw new InvalidDataException("JPEG quantization values must be nonzero.");
                     }
                     table[JpegInverseTransform.Zigzag[i]] = value;
+                }
+                if (lockedQuantization[index] && !table.AsSpan().SequenceEqual(quantization[index]))
+                {
+                    throw new InvalidDataException("JPEG quantization tables cannot change between progressive scans of a component.");
                 }
                 quantization[index] = table;
                 wideQuantization[index] = precision == 1;

@@ -57,14 +57,15 @@ namespace Mediana.Tests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public async Task InvalidEntropyAndUnsupportedProgressivePreserveAnApprovedOutput(bool progressive)
+        public async Task InvalidEntropyAndUnsupportedArithmeticPreserveAnApprovedOutput(bool arithmetic)
         {
             string input = Path.Combine(directory, "input.bin");
             string output = Path.Combine(directory, "output.png");
             byte[] encoded;
-            if (progressive)
+            if (arithmetic)
             {
-                encoded = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg", "unsupported-progressive.jpg"));
+                encoded = JpegTestData.Image();
+                encoded[JpegTestData.Find(encoded, 192) + 1] = 201;
             }
             else
             {
@@ -75,7 +76,7 @@ namespace Mediana.Tests
             byte[] original = [9, 8, 7];
             await File.WriteAllBytesAsync(output, original);
             (int code, _, _) = await CliTests.RunAsync(["-i", input, output, "--overwrite"]);
-            Assert.Equal(progressive ? 3 : 4, code);
+            Assert.Equal(arithmetic ? 3 : 4, code);
             Assert.Equal(original, await File.ReadAllBytesAsync(output));
             Assert.Equal(2, Directory.GetFiles(directory).Length);
         }

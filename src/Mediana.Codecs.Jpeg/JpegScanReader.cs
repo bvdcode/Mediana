@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.Jpeg
 {
-    internal static class JpegSequentialScan
+    internal static class JpegScanReader
     {
         internal static void Read(ReadOnlySpan<byte> header, JpegMarkerReader reader, JpegDocument image,
             bool decode, int restartInterval, CancellationToken token)
@@ -13,10 +13,8 @@ namespace Mediana.Codecs.Jpeg
                 throw new InvalidDataException("JPEG scan header is invalid or precedes its frame.");
             }
             int count = header[0];
-            if (header[^3] != 0 || header[^2] != 63 || header[^1] != 0)
-            {
-                throw new InvalidDataException("Sequential JPEG scans require the complete coefficient band without approximation.");
-            }
+            JpegScanParameters scan = new(header[^3], header[^2], header[^1] >> 4, header[^1] & 15);
+            scan.Validate(image.Progressive, count);
             Span<int> indices = stackalloc int[3];
             Span<int> dcTables = stackalloc int[3];
             Span<int> acTables = stackalloc int[3];
@@ -31,7 +29,8 @@ namespace Mediana.Codecs.Jpeg
                         componentIndex = j;
                     }
                 }
-                if (componentIndex < 0 || image.Components[componentIndex].Decoded || indices[..i].Contains(componentIndex))
+                if (componentIndex < 0 || (i != 0 && componentIndex <= indices[i - 1]) ||
+                    (!image.Progressive && image.Components[componentIndex].Decoded))
                 {
                     throw new InvalidDataException("JPEG scan selects an unknown, repeated or already decoded component.");
                 }
@@ -45,9 +44,20 @@ namespace Mediana.Codecs.Jpeg
                 }
                 dcTables[i] = dc;
                 acTables[i] = ac + 4;
-                image.GetHuffman(dc);
-                image.GetHuffman(ac + 4);
+                if (!image.Progressive || (scan.First == 0 && scan.High == 0))
+                {
+                    image.GetHuffman(dc);
+                }
+                if (!image.Progressive || scan.First != 0)
+                {
+                    image.GetHuffman(ac + 4);
+                }
                 image.GetQuantization(component);
+                if (image.Progressive)
+                {
+                    component.Progression!.Validate(scan);
+                    image.LockQuantization(component);
+                }
                 blocks += component.Horizontal * component.Vertical;
             }
             if (count > 1 && blocks > 10)
@@ -56,7 +66,7 @@ namespace Mediana.Codecs.Jpeg
             }
             if (decode)
             {
-                Decode(reader, image, indices[..count], dcTables, acTables, restartInterval, token);
+                Decode(reader, image, indices[..count], dcTables, acTables, scan, restartInterval, token);
             }
             else
             {
@@ -64,12 +74,17 @@ namespace Mediana.Codecs.Jpeg
             }
             foreach (int index in indices[..count])
             {
-                image.Components[index].Decoded = true;
+                JpegComponent component = image.Components[index];
+                component.Progression?.Complete(scan);
+                if (!image.Progressive || scan.First == 0)
+                {
+                    component.Decoded = true;
+                }
             }
         }
 
         private static void Decode(JpegMarkerReader reader, JpegDocument image, ReadOnlySpan<int> indices,
-            ReadOnlySpan<int> dcTables, ReadOnlySpan<int> acTables, int interval, CancellationToken token)
+            ReadOnlySpan<int> dcTables, ReadOnlySpan<int> acTables, JpegScanParameters scan, int interval, CancellationToken token)
         {
             bool interleaved = indices.Length > 1;
             JpegComponent first = image.Components[indices[0]];
@@ -90,6 +105,7 @@ namespace Mediana.Codecs.Jpeg
             predictors.Clear();
             Span<int> coefficients = stackalloc int[64];
             int restart = 0;
+            int endOfBands = 0;
             int total = checked(columns * rows);
             for (int mcu = 0; mcu < total; mcu++)
             {
@@ -117,18 +133,39 @@ namespace Mediana.Codecs.Jpeg
                         vertical = component.Vertical;
                     }
                     int[] quantization = image.GetQuantization(component);
-                    JpegHuffmanTable dc = image.GetHuffman(dcTables[i]);
-                    JpegHuffmanTable ac = image.GetHuffman(acTables[i]);
+                    JpegHuffmanTable? dc = null;
+                    JpegHuffmanTable? ac = null;
+                    if (!image.Progressive || (scan.First == 0 && scan.High == 0))
+                    {
+                        dc = image.GetHuffman(dcTables[i]);
+                    }
+                    if (!image.Progressive || scan.First != 0)
+                    {
+                        ac = image.GetHuffman(acTables[i]);
+                    }
                     for (int y = 0; y < vertical; y++)
                     {
                         for (int x = 0; x < horizontal; x++)
                         {
-                            coefficients.Clear();
-                            DecodeBlock(ref bits, dc, ac, ref predictors[i], coefficients);
                             int blockX = (mcu % columns) * horizontal + x;
                             int blockY = (mcu / columns) * vertical + y;
-                            Span<byte> output = component.Samples!.Memory.Span[(blockY * 8 * component.Stride + blockX * 8)..];
-                            JpegInverseTransform.Write(coefficients, quantization, output, component.Stride);
+                            if (image.Progressive)
+                            {
+                                int remaining = total - mcu;
+                                if (interval != 0)
+                                {
+                                    remaining = Math.Min(remaining, interval - mcu % interval);
+                                }
+                                JpegProgressiveBlock.Decode(ref bits, dc, ac, scan, ref predictors[i], ref endOfBands,
+                                    remaining, component.Progression!.Block(blockX, blockY, component.Stride));
+                            }
+                            else
+                            {
+                                coefficients.Clear();
+                                JpegSequentialBlock.Decode(ref bits, dc!, ac!, ref predictors[i], coefficients);
+                                Span<byte> output = component.Samples!.Memory.Span[(blockY * 8 * component.Stride + blockX * 8)..];
+                                JpegInverseTransform.Write(coefficients, quantization, output, component.Stride);
+                            }
                         }
                     }
                 }
@@ -137,48 +174,5 @@ namespace Mediana.Codecs.Jpeg
             reader.Position = bits.Position;
         }
 
-        private static void DecodeBlock(ref JpegEntropyReader bits, JpegHuffmanTable dc, JpegHuffmanTable ac,
-            ref int predictor, scoped Span<int> coefficients)
-        {
-            int category = dc.Decode(ref bits);
-            if (category > 11)
-            {
-                throw new InvalidDataException("JPEG 8-bit DC difference category exceeds eleven bits.");
-            }
-            predictor += bits.Receive(category);
-            if (predictor is < -2048 or > 2047)
-            {
-                throw new InvalidDataException("JPEG DC predictor exceeds the supported coefficient range.");
-            }
-            coefficients[0] = predictor;
-            int position = 1;
-            while (position < 64)
-            {
-                int symbol = ac.Decode(ref bits);
-                int run = symbol >> 4;
-                int size = symbol & 15;
-                if (size == 0)
-                {
-                    if (run == 0)
-                    {
-                        return;
-                    }
-                    if (run != 15 || position + 16 > 64)
-                    {
-                        throw new InvalidDataException("JPEG AC zero run is invalid or exceeds the coefficient block.");
-                    }
-                    position += 16;
-                }
-                else
-                {
-                    position += run;
-                    if (size > 10 || position >= 64)
-                    {
-                        throw new InvalidDataException("JPEG AC coefficient size or zero run is invalid.");
-                    }
-                    coefficients[JpegInverseTransform.Zigzag[position++]] = bits.Receive(size);
-                }
-            }
-        }
     }
 }

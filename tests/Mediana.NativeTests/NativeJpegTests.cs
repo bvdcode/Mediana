@@ -15,7 +15,10 @@ namespace Mediana.NativeTests
             await JpegDecodeTestInput.VerifyResourcesAsync();
             await JpegDecodeTestInput.VerifyInterpretationsAsync(Path.Combine(root, "Jpeg"));
             await JpegCoverTestInput.VerifyAsync(root);
-            Console.WriteLine("PASS sequential JPEG: complete independent pixels, restart scans, exact budgets and real borrowed covers.");
+            await JpegProgressiveTestInput.VerifyOrderingAsync();
+            await JpegProgressiveTestInput.VerifyEntropyAsync(Path.Combine(root, "Jpeg"));
+            await JpegProgressiveTestInput.VerifyResourcesAsync();
+            Console.WriteLine("PASS sequential and progressive JPEG: complete independent pixels, refinement, restart scans, exact budgets and real borrowed covers.");
         }
     }
 }

@@ -8,7 +8,7 @@ namespace Mediana.Tests
     public class JpegImageDecoderTests
     {
         [Fact]
-        public Task CompleteSequentialCorpusMatchesIndependentPixels() =>
+        public Task CompleteSequentialAndProgressiveCorpusMatchesIndependentPixels() =>
             JpegDecodeTestInput.VerifyCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg"));
 
         [Fact]
@@ -17,6 +17,16 @@ namespace Mediana.Tests
 
         [Fact]
         public Task ExactWorkingBudgetsMetadataAndCancellationArePreserved() => JpegDecodeTestInput.VerifyResourcesAsync();
+
+        [Fact]
+        public Task ProgressiveCoefficientBandsRefineInOrderAndQuantizationRemainsStable() => JpegProgressiveTestInput.VerifyOrderingAsync();
+
+        [Fact]
+        public Task ProgressiveEntropyRunsRestartsPaddingAndTruncationAreValidated() =>
+            JpegProgressiveTestInput.VerifyEntropyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg"));
+
+        [Fact]
+        public Task ProgressiveCoefficientAndSampleStorageObeyExactBudgets() => JpegProgressiveTestInput.VerifyResourcesAsync();
 
         [Fact]
         public Task RealJpegCoversDecodeAfterContainerDisposalWithoutAnotherEncodedInputCopy() =>

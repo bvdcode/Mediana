@@ -8,6 +8,7 @@
     <Compile Include="../Shared/JpegCoverTestInput.cs" Link="JpegCoverTestInput.cs" />
     <Compile Include="../Shared/JpegTestData.cs" Link="JpegTestData.cs" />
     <Compile Include="../Shared/JpegDecodeTestInput.cs" Link="JpegDecodeTestInput.cs" />
+    <Compile Include="../Shared/JpegProgressiveTestInput.cs" Link="JpegProgressiveTestInput.cs" />
     <None Include="Data/Jpeg/*" CopyToOutputDirectory="PreserveNewest" />
 
     <Compile Include="../Shared/MatroskaAttachmentTestData.cs" Link="MatroskaAttachmentTestData.cs" />
