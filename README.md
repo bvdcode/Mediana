@@ -32,6 +32,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
 | `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha |
 | `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion |
+| `Mediana.Codecs.Jpeg` | Sequential Huffman JPEG, grayscale/RGB pixels, restart intervals and explicit source interpretation ([API](docs/jpeg.md)) |
 | `Mediana.Codecs.Jbig2` | Packed monochrome pages, globals and optional RGBA expansion |
 | `Mediana.Images.Svg` | SVG paths, styles, text, masks, filters and embedded PNG |
 | `Mediana.Images.Tgs` | TGS/Lottie 2D keyframes and lazy timed raster frames |
@@ -116,7 +117,7 @@ memory limit.
 
 Supported subsets and limits: [HEIC](docs/heif.md),
 [JPEG 2000](docs/jpeg2000.md), [JBIG2](docs/jbig2.md),
-[SVG](docs/svg.md), [TGS/Lottie](docs/tgs.md), [PNG](docs/png.md).
+[SVG](docs/svg.md), [TGS/Lottie](docs/tgs.md), [PNG](docs/png.md), [JPEG](docs/jpeg.md).
 TGS/Lottie expressions are explicitly unsupported.
 PDF page rendering supports the subset described below. 3D file formats are outside
 the library's scope.
@@ -172,7 +173,7 @@ From the download or extraction directory on Linux/macOS:
 
 `mediana -i input` inspects media when no output path is supplied, using the same
 operation as `mediana probe input`. Detection uses file contents. Containers report
-streams and declared metadata; SVG, HEIF, JPEG 2000, JBIG2, PDF and TGS/Lottie report
+streams and declared metadata; PNG, JPEG, SVG, HEIF, JPEG 2000, JBIG2, PDF and TGS/Lottie report
 image, first-page or animation-canvas dimensions without rendering. PDF dimensions
 are points (1/72 inch); animation metadata includes duration and frame rate. Image
 inspection reads bounded input and does not decode pixel data. Conversion options
