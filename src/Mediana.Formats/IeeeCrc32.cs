@@ -8,9 +8,12 @@ namespace Mediana.Formats
         private static readonly uint[] Table = CreateTable();
 
         public static uint Compute(ReadOnlySpan<byte> data, CancellationToken cancellationToken = default)
+            => Append(0, data, cancellationToken);
+
+        public static uint Append(uint checksum, ReadOnlySpan<byte> data, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            uint crc = uint.MaxValue;
+            uint crc = ~checksum;
             for (int index = 0; index < data.Length; index++)
             {
                 if ((index & 4095) == 0)
