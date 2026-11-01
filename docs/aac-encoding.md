@@ -346,3 +346,12 @@ measurement covers that complete input and is not a general encoder speed claim.
 Separate complete 92-second PCM16 WAVE and FLAC conversions produced identical
 WAVE files; every sample also matched independent decoding. No WAVE speedup
 was established.
+
+## Complete official-core comparison
+
+[The AAC-LC reference comparison](aac-reference-comparison.md) covers ten complete
+music, speech, transient and channel-balance inputs on identical PCM within the
+reference core's supported sample rates. It includes independently calibrated
+delay, complete decoding, actual bit consumption and pre-onset error. Numeric
+results vary by source and do not establish a listening-quality ranking or
+44100/48000 Hz HLS acceptance.

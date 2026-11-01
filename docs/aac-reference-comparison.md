@@ -1,0 +1,92 @@
+The complete AAC-LC comparison uses the floating reference source distributed
+with [3GPP TS 26.410](https://www.3gpp.org/ftp/Specs/archive/26_series/26.410/26410-j00.zip).
+Its AAC core is part of an enhanced AAC+ encoder. The comparison calls that core
+without SBR or parametric stereo. The 120 C source/header files in the reference
+encoder tree match the source archive byte for byte.
+
+## Input and decoding checks
+
+The reference psychoacoustic tables cover 11025, 12000, 16000, 22050 and 24000 Hz.
+Its TNS parameter table also restricts the available bit rates per channel. These
+limits belong to this reference implementation, rather than the AAC-LC format.
+The diagnostic caller validates their intersection before opening the core.
+
+A complete noise-signal correlation check at all five rates, in mono and stereo,
+measures 1600 samples of reference delay. The dominant correlation peak exceeds
+all sidelobes outside its two-sample neighborhood by at least a factor of five.
+Mediana's declared delay is 1024 samples. Each decoded result is aligned using its
+own delay, with complete tails retained before alignment.
+
+Both encoders receive the same complete Float32 PCM. Five SQAM recordings and
+the impulse input are explicitly resampled from 44100 to 22050 Hz; three channel
+balance inputs are resampled from 48000 to 24000 Hz. Recorded speech remains at
+16000 Hz. Raw bit targets are halved together with the sample rate; speech keeps
+its original target. The reference bandwidth is explicitly the comparison
+sample rate divided by two. The WAVE input supplied to Mediana decodes back to
+the reference caller's PCM exactly.
+
+All 20 encoded outputs from ten complete inputs, totaling 228.232375 source
+seconds, decode independently. Every ADTS frame length, channel configuration,
+sample rate, raw element bound and decoded sample count is checked. Mediana's
+outputs also retain their exact frame ceilings and transport timestamps.
+Across all 9864 access units, the largest difference between independent and
+Mediana decoding is 5.07e-7 in Float32 PCM units. The checked outputs include
+reference M/S syntax.
+
+The Mediana executable is Linux x64 Native AOT. Independent decoding uses
+FFmpeg 6.1.1 for development verification. The reference C caller and the complete
+Mediana CLI perform different surrounding operations; this comparison supplies
+no encoding-speed ranking.
+
+## Numeric results
+
+SNR compares every aligned source sample. It measures waveform error and is not
+a listening score. Actual raw rates exclude ADTS and container overhead; the
+reference uses a reservoir and constant-rate fill, while Mediana uses a frame
+ceiling and can emit much smaller silent packets.
+
+| Complete source | Rate, Hz | Raw target, kbit/s | Mediana actual, kbit/s | Reference actual, kbit/s | Mediana SNR L/R, dB | Reference SNR L/R, dB |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| Castanets | 22050 | 64 | 50.09 | 64.00 | 17.84 / 17.78 | 15.13 / 14.97 |
+| Harpsichord | 22050 | 64 | 51.78 | 64.00 | 20.12 / 20.37 | 20.82 / 20.79 |
+| Piano | 22050 | 64 | 60.28 | 64.00 | 30.57 / 31.14 | 25.25 / 26.13 |
+| Wind ensemble | 22050 | 64 | 49.47 | 64.00 | 17.48 / 17.63 | 14.24 / 15.02 |
+| Pop | 22050 | 64 | 54.14 | 64.00 | 19.37 / 19.62 | 17.95 / 18.24 |
+| Recorded speech, mono | 16000 | 32 | 31.25 | 32.00 | 24.19 | 20.86 |
+| Impulses | 22050 | 48 | 5.68 | 48.00 | 28.51 / 26.82 | 30.52 / 29.84 |
+| Silent right channel | 24000 | 48 | 47.07 | 48.85 | 50.13 / silence | 24.68 / silence |
+| Quiet right channel | 24000 | 48 | 47.07 | 48.00 | 40.07 / 28.13 | 23.89 / -1.84 |
+| Alternating active channels | 24000 | 48 | 47.11 | 49.16 | 32.00 / 30.54 | 21.75 / 21.12 |
+
+For the five music recordings, analysis intervals whose mean square exceeds
+1e-5 use a median 98.51% of the nominal frame budget. The complete-file averages
+also include lower-energy intervals. Increasing local refinement counts from
+those averages alone has no established benefit.
+
+The 512 source-silent samples preceding the final resampled impulse onset have
+these error measurements. Source magnitude throughout each interval is at most
+1e-8; energy is the sum of squared sample errors.
+
+| Channel | Mediana error energy | Reference error energy | Mediana peak error | Reference peak error |
+| --- | ---: | ---: | ---: | ---: |
+| Left | 1.85348e-4 | 1.52067e-6 | 0.00279231 | 0.00049360 |
+| Right | 1.71451e-4 | 3.16285e-6 | 0.00331103 | 0.00088515 |
+
+The reference has lower pre-onset error in these windows. Its final transient
+access unit uses 2896 raw bits, against Mediana's 2192-bit packet under the frame
+ceiling. Its different delay, window positioning, grouping, masking and tools
+also prevent attributing this result to a single algorithm.
+
+## Remaining quality work
+
+The reference couples quiet and temporal thresholds to perceptual entropy,
+minimum-SNR relaxation, scale-factor estimation and assimilation, actual
+quantization, stereo decisions and reservoir state. It also uses different
+windows and TNS. Its low-rate stereo preprocessing is active for the 48 kbit/s
+channel-balance inputs and can alter channel separation before quantization.
+
+These results establish a reproducible numeric reference within the core's
+supported range. They establish no listening-quality ranking, isolated masking
+improvement, or acceptance of 44100/48000 Hz server HLS output. Perceptual quality,
+transient handling, channel balance and coding efficiency remain open for
+Mediana's complete encoder.
