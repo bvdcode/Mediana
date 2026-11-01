@@ -461,6 +461,13 @@ expose document/frame APIs. An effect graph tracks named inputs and the last use
 of temporary buffers. Each render owns its context, cancellation token and memory
 budget. No XML or SVG parser is required by Drawing or TGS.
 
+The effect pool counts both active and idle surfaces against `MaximumEffectBytes`.
+Idle surfaces are cleared before reuse. Budget pressure evicts idle surfaces,
+disposing their pixel storage and releasing their reservations together; active
+surfaces stay valid. Render completion disposes both active and idle surfaces.
+Failed surface construction rolls back its reservation, and repeated reservation
+disposal cannot increase the available budget.
+
 `PixelBuffer` owns exclusive writable storage and can use a supplied
 `MediaBufferAllocator`. `PublishVideoFrame` transfers that same storage into a
 read-only frame without copying. Publication invalidates the drawing owner and

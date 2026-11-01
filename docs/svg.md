@@ -15,10 +15,10 @@ using Mediana.Core.Video;
 using Mediana.Codecs.Png;
 
 SvgDocument document = await SvgReader.ReadFileAsync("image.svg", cancellationToken: cancellationToken);
-PixelBuffer pixels = SvgRenderer.Render(document,
-    new DrawingRenderOptions { Width = 512, MaximumSamples = 4_000_000 }, cancellationToken);
 MediaBufferAllocator allocator = new(16 * 1024 * 1024);
-using VideoFrame frame = pixels.ToVideoFrame(allocator, cancellationToken);
+using PixelBuffer pixels = SvgRenderer.Render(document,
+    new DrawingRenderOptions { Width = 512, MaximumSamples = 4_000_000 }, cancellationToken, allocator);
+using VideoFrame frame = pixels.PublishVideoFrame(cancellationToken);
 using MediaBuffer png = PngEncoder.Encode(frame, allocator, cancellationToken);
 ```
 
@@ -38,9 +38,11 @@ the implemented subset.
 
 Input size, elements, nesting, path commands, embedded-image pixels,
 supersampled output and effect workspace have separate bounds. The
-`MediaBufferAllocator` above counts the copied frame and encoded PNG, not the
-retained drawing surface or rendering workspace. These limits are not a whole
-process memory cap.
+`MediaBufferAllocator` above counts the final drawing surface and encoded PNG.
+Publishing transfers that surface to the frame without copying its RGBA bytes.
+Rendering workspace has separate limits; these are not a whole process memory
+cap. Idle effect surfaces are cleared before reuse and disposed when evicted
+or when rendering finishes. Failed surface creation releases its budget.
 
 Tests match 352 stored filter pixel references and exercise bundled fonts,
 owned frame conversion, strict unsupported-feature handling, limits,
