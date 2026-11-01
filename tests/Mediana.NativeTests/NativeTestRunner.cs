@@ -13,11 +13,7 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
-            EbmlValueTestInput.VerifyVariableIntegers();
-            EbmlValueTestInput.VerifyIdentifiers();
-            EbmlValueTestInput.VerifyElementValues();
-            EbmlValueTestInput.VerifyStrings();
-            EbmlValueTestInput.VerifyInvalidEncodings();
+            await NativeEbmlTests.RunAsync();
             foreach (bool stereo in new[] { false, true })
             {
                 foreach (AudioStorageLayout layout in new[] { AudioStorageLayout.Interleaved, AudioStorageLayout.Planar })
