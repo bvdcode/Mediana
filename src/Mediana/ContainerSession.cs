@@ -13,18 +13,19 @@ namespace Mediana
     public partial class ContainerSession : IContainerReader
     {
         private readonly IByteSource replay;
-        private readonly long? maxPacketReads;
+        internal MediaOpenOptions Options { get; }
         private long packetReads;
+        private bool packetsStarted;
         private bool disposed;
         private bool faulted;
         private int busy;
 
-        internal ContainerSession(IContainerReader reader, IByteSource replay, MediaBufferAllocator allocator, long? maxPacketReads)
+        internal ContainerSession(IContainerReader reader, IByteSource replay, MediaBufferAllocator allocator, MediaOpenOptions options)
         {
             Reader = reader;
             this.replay = replay;
             Allocator = allocator;
-            this.maxPacketReads = maxPacketReads;
+            Options = options;
         }
 
         internal IContainerReader Reader { get; }
@@ -32,6 +33,24 @@ namespace Mediana
         public ContainerInfo Info => Reader.Info;
         public IReadOnlyList<EncodedStreamInfo> Streams => Reader.Streams;
         public long AllocatedBufferBytes => Allocator.AllocatedBytes;
+        internal T Transfer<T>(Func<ContainerSession, T> create)
+        {
+            Enter();
+            try
+            {
+                RequireActive();
+                if (packetsStarted)
+                {
+                    throw new InvalidOperationException("Decode-session transfer requires a container whose packets have not been read.");
+                }
+                ContainerSession owner = new(Reader, replay, Allocator, Options);
+                T result = create(owner);
+                disposed = true;
+                return result;
+            }
+            finally { Volatile.Write(ref busy, 0); }
+        }
+
         private async ValueTask<T> ReadDataAsync<T>(int dataIndex, int? count,
             Func<int, CancellationToken, ValueTask<T>>? read, string capability, CancellationToken token)
         {
@@ -71,7 +90,7 @@ namespace Mediana
             {
                 RequireActive();
                 cancellationToken.ThrowIfCancellationRequested();
-                if (maxPacketReads is long limit)
+                if (Options.MaxPacketReads is long limit)
                 {
                     if (packetReads == limit)
                     {
@@ -79,6 +98,7 @@ namespace Mediana
                     }
                     packetReads++;
                 }
+                packetsStarted = true;
                 MediaPacket? packet = await Reader.ReadPacketAsync(cancellationToken).ConfigureAwait(false);
                 succeeded = true;
                 return packet;

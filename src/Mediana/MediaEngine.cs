@@ -76,14 +76,29 @@ namespace Mediana
             MediaKind kind, IReadOnlyList<IDecoderFactory<TFrame>> factories, MediaOpenOptions? options, CancellationToken cancellationToken)
             where TFrame : class, IDisposable
         {
-            if (streamIndex is < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(streamIndex));
-            }
-            options ??= new MediaOpenOptions();
+            if (streamIndex is < 0) { throw new ArgumentOutOfRangeException(nameof(streamIndex)); }
             ContainerSession container = await OpenContainerAsync(source, options, cancellationToken).ConfigureAwait(false);
+            bool transferred = false;
+            try
+            {
+                MediaDecodeSession<TFrame> session = CreateDecodeSession(container, streamIndex, kind, factories, cancellationToken);
+                transferred = true;
+                return session;
+            }
+            finally
+            {
+                if (!transferred) { await container.DisposeAsync().ConfigureAwait(false); }
+            }
+        }
+
+        private static MediaDecodeSession<TFrame> CreateDecodeSession<TFrame>(ContainerSession container, int? streamIndex,
+            MediaKind kind, IReadOnlyList<IDecoderFactory<TFrame>> factories, CancellationToken cancellationToken)
+            where TFrame : class, IDisposable
+        {
+            if (streamIndex is < 0) { throw new ArgumentOutOfRangeException(nameof(streamIndex)); }
             IContainerReader reader = container.Reader;
             MediaBufferAllocator allocator = container.Allocator;
+            MediaOpenOptions options = container.Options;
             IMediaCodec<MediaPacket, TFrame>? decoder = null;
             MediaDecodePipeline<TFrame>? pipeline = null;
             bool transferred = false;
@@ -119,21 +134,8 @@ namespace Mediana
             {
                 if (!transferred)
                 {
-                    try
-                    {
-                        if (pipeline is not null)
-                        {
-                            pipeline.Dispose();
-                        }
-                        else
-                        {
-                            decoder?.Dispose();
-                        }
-                    }
-                    finally
-                    {
-                        await container.DisposeAsync().ConfigureAwait(false);
-                    }
+                    if (pipeline is not null) { pipeline.Dispose(); }
+                    else { decoder?.Dispose(); }
                 }
             }
         }

@@ -42,7 +42,7 @@ namespace Mediana
             {
                 reader = await factory.OpenAsync(replay, allocator, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
-                ContainerSession session = new(reader, replay, allocator, options.MaxPacketReads);
+                ContainerSession session = new(reader, replay, allocator, options);
                 transferred = true;
                 return session;
             }
