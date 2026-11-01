@@ -118,3 +118,57 @@ filter arithmetic and improved impulse measurements do not establish acceptable
 quality across real recordings. Coupled quantization and perceptual decisions
 remain necessary work. The single resource-measurement pair per input does not
 establish a CPU or memory improvement.
+
+## Linked threshold and stereo model
+
+A separate model couples per-band L/R versus M/S selection to temporal masking,
+minimum-SNR adaptation, protection against spectral holes, perceptual entropy,
+scale-factor seeds and exact spectral coding costs. The equations were checked
+against [TS 26.403, sections 5.5.2 and 5.6.1](https://www.etsi.org/deliver/etsi_ts/126400_126499/126403/19.00.00_60/ts_126403v190000p.pdf)
+and the accompanying reference source. M/S merit uses threshold-capped energy
+ratios. Protection retains the original threshold when it already exceeds the
+minimum-SNR ceiling and relaxes the weaker M/S component independently.
+
+Independent vector calculations verify all twelve sample rates, mono/stereo,
+three per-channel bit rates and eight spectrum patterns: 576 cases, 3456 frames
+and 252576 band states. These checks cover grouped and temporal energy,
+stereo selection, local peaks and valleys, effective spectral lines, protection
+limits and the entropy target. They establish arithmetic correctness within
+the tested model, rather than equivalence to the complete reference encoder.
+
+The complete original-rate corpus contains 228.2323125 seconds of source PCM.
+Both variants receive identical PCM, window plans and packet ceilings, with
+1024-sample alignment. All ten controls reproduce the current encoder bytes.
+All 20 outputs and 19556 access units pass full independent decoding and packet
+checks; Mediana's Native AOT decoder differs by at most 2.385e-7 Float32 units.
+
+| Complete source | Current SNR L/R, dB | Model SNR L/R, dB |
+| --- | --- | --- |
+| Castanets | 20.82 / 20.83 | 17.73 / 17.85 |
+| Harpsichord | 19.84 / 20.02 | 18.38 / 18.36 |
+| Piano | 41.48 / 42.02 | 30.59 / 31.53 |
+| Wind ensemble | 23.70 / 23.83 | 19.95 / 20.62 |
+| Pop | 24.99 / 24.74 | 22.81 / 22.96 |
+| Recorded speech, mono | 24.19 | 22.11 |
+| Impulses | 29.24 / 28.05 | 32.47 / 29.55 |
+| Silent right channel | 60.07 / silence | 46.61 / silence |
+| Quiet right channel | 46.76 / 37.38 | 42.37 / 31.12 |
+| Alternating active channels | 40.12 / 37.99 | 31.24 / 37.65 |
+
+The quiet-channel recording falls below its existing 45/36 dB signal guards.
+For the right-channel impulse at source sample 45864, error energy in the
+preceding 512 silent samples rises from 2.35549e-5 to 5.68902e-5, a factor of
+2.415. The other three measured pre-onset intervals improve. Exact right-channel
+silence is preserved in the silent-channel recording.
+
+The same fixed-plan Native AOT harness runs sequentially on one logical CPU.
+Summed CPU time over ten inputs is 25.119 seconds for the control and 20.177
+seconds for the model; the largest process peak RSS is 41600/41856 KiB.
+There is one measured run per variant and input, and encoded quality differs;
+these values do not establish an equal-quality speed improvement.
+
+The model was rejected. No thresholds, stereo policy or quantization seeds from
+it are enabled in the library. SNR is not a listening score; matching equations
+and lower errors on selected transients do not establish perceptual acceptance.
+Channel balance, transient consistency and the interaction between perceptual
+targets and actual quantization remain open.
