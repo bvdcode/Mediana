@@ -186,6 +186,12 @@ output path does not select an image encoder. External picture references are
 reported without fetching or writing them as images. `cover mp3`, `cover flac`
 and `cover mp4` use the same operation and require their named container.
 
+`mediana cover select input output` searches attachments and picture tags by
+registered image signatures, preserving the selected image's original encoding.
+`--first Picture` gives picture tags priority. Names and MIME declarations do not
+select the image. The [container image API](docs/container-images.md) exposes the
+same explicit ordering, bounded prefix reads and owned payloads to applications.
+
 On Windows, use `./mediana.exe` in PowerShell with the same arguments.
 The MP4 probe lists stream indices; use the appropriate video/audio indices in
 the HLS, preview and audio commands. Omit `--audio-stream` for `hls create` without
