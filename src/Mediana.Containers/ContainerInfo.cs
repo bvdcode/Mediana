@@ -37,7 +37,8 @@ namespace Mediana.Containers
 
         /// <summary>Stable container-family identifier, independent of the filename and implementation ID.</summary>
         public string FormatId { get; }
-        /// <summary>Duration declared by container metadata, including its original time base. Null means unknown.</summary>
+        /// <summary>Duration declared by container metadata in the reader's time representation. Null means unknown.
+        /// Format-specific declarations retain native precision when the common representation requires rounding.</summary>
         public MediaDuration? DeclaredDuration { get; }
         /// <summary>Text tags from inspected headers in file order. Null means this reader does not expose
         /// header text tags; an empty list means none were found in the supported inspected metadata.
