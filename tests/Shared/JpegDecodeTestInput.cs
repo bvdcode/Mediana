@@ -100,7 +100,7 @@ namespace Mediana.Tests
             byte[] arithmetic = valid.ToArray();
             arithmetic[JpegTestData.Find(arithmetic, 192) + 1] = 201;
             await RejectAsync<NotSupportedException>(arithmetic);
-            await RejectAsync<NotSupportedException>(JpegTestData.Insert(valid, 225, "Exif\0\0"u8));
+            await RejectAsync<InvalidDataException>(JpegTestData.Insert(valid, 225, "Exif\0\0"u8));
         }
 
         internal static async Task VerifyResourcesAsync()

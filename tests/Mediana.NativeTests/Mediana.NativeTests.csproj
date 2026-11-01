@@ -14,6 +14,8 @@
     <Compile Include="../Shared/ContainerImageTestFactory.cs" Link="ContainerImageTestFactory.cs" />
     <Compile Include="../Shared/ContainerImageTestInput.cs" Link="ContainerImageTestInput.cs" />
     <Compile Include="../Shared/JpegCoverTestInput.cs" Link="JpegCoverTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/JpegExif/*" Link="Data/JpegExif/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/JpegExifTestInput.cs" Link="JpegExifTestInput.cs" />
     <Compile Include="../Shared/JpegComponentTestInput.cs" Link="JpegComponentTestInput.cs" />
     <Compile Include="../Shared/JpegTestData.cs" Link="JpegTestData.cs" />
     <Compile Include="../Shared/JpegDecodeTestInput.cs" Link="JpegDecodeTestInput.cs" />

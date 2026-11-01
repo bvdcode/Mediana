@@ -95,7 +95,7 @@ namespace Mediana.Codecs.Jpeg
                     case >= 224 and <= 239:
                         if (!componentSamples || marker == 238)
                         {
-                            metadata.Read(marker, segment);
+                            metadata.Read(marker, segment, token);
                         }
                         break;
                     case 254:

@@ -22,6 +22,12 @@ namespace Mediana.NativeTests
             JpegComponentTestInput.VerifyOwnership();
             JpegComponentTestInput.VerifyMetadata();
             JpegComponentTestInput.VerifyFailures();
+            string exif = Path.Combine(root, "JpegExif");
+            await JpegExifTestInput.VerifyCorpusAsync(exif);
+            await JpegExifTestInput.VerifyFailuresAsync(exif);
+            await JpegExifTestInput.VerifyColorAsync(exif);
+            await JpegExifTestInput.VerifyOwnershipAsync(exif);
+            Console.WriteLine("PASS JPEG Exif: all orientations, byte orders, explicit colors, chroma position and direct owned pixels.");
             Console.WriteLine("PASS sequential and progressive JPEG: complete independent pixels, refinement, restart scans, exact budgets and real borrowed covers.");
         }
     }

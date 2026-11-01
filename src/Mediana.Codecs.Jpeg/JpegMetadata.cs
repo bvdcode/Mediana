@@ -12,13 +12,20 @@ namespace Mediana.Codecs.Jpeg
         private int? adobeTransform;
         private int iccCount;
         private int iccParts;
+        private bool exif;
+        private bool exifCustomColor;
+        private ushort? exifColorSpace;
         private readonly bool[] iccSeen = new bool[256];
         internal bool IsRgb { get; private set; }
         internal bool HasIcc => iccCount != 0;
         internal int? AdobeColorTransform => adobeTransform;
         internal SampleAspectRatio? Aspect { get; private set; }
+        internal OrthogonalTransform Orientation { get; private set; } = OrthogonalTransform.Identity;
+        internal bool Centered { get; private set; } = true;
+        internal bool IsSrgb => exifColorSpace == 1;
+        internal bool Uncalibrated => exifColorSpace == 65535;
 
-        internal void Read(byte marker, ReadOnlySpan<byte> segment)
+        internal void Read(byte marker, ReadOnlySpan<byte> segment, CancellationToken token)
         {
             if (marker == 224 && segment.StartsWith("JFIF\0"u8))
             {
@@ -57,7 +64,14 @@ namespace Mediana.Codecs.Jpeg
             }
             else if (marker == 225 && segment.StartsWith("Exif\0\0"u8))
             {
-                throw new NotSupportedException("JPEG Exif presentation and color metadata are not implemented yet.");
+                if (exif) { throw new InvalidDataException("JPEG Exif metadata is duplicated."); }
+                JpegExif metadata = new(segment[6..], token);
+                metadata.Read();
+                exif = true;
+                Orientation = metadata.Orientation;
+                Centered = metadata.Centered;
+                exifColorSpace = metadata.ColorSpace;
+                exifCustomColor = metadata.CustomColor;
             }
             else if (marker == 232 && segment.StartsWith("SPIFF\0"u8))
             {
@@ -71,6 +85,16 @@ namespace Mediana.Codecs.Jpeg
             if (iccParts != iccCount)
             {
                 throw new InvalidDataException("JPEG ICC profile is missing one or more parts.");
+            }
+            if (exif)
+            {
+                if (Aspect is SampleAspectRatio ratio && ratio.Numerator != ratio.Denominator)
+                {
+                    throw new InvalidDataException("JPEG JFIF density conflicts with Exif square pixels.");
+                }
+                Aspect = SampleAspectRatio.Square;
+                if (jfif && !Centered) { throw new InvalidDataException("JPEG JFIF and Exif chroma positions conflict."); }
+                if (exifCustomColor && requireColor) { throw new NotSupportedException("JPEG custom Exif colorimetry is not supported."); }
             }
             if (sampleAspectRatio is SampleAspectRatio suppliedAspect)
             {
@@ -111,7 +135,7 @@ namespace Mediana.Codecs.Jpeg
             {
                 throw new NotSupportedException("JPEG YCCK color conversion is not supported.");
             }
-            if (!jfif && adobeTransform is null && sourceColorSpace is null)
+            if (!jfif && !exif && adobeTransform is null && sourceColorSpace is null)
             {
                 if (requireColor)
                 {
@@ -120,8 +144,9 @@ namespace Mediana.Codecs.Jpeg
                 return;
             }
             JpegColorSpace? declared = null;
-            if (jfif || adobeTransform == 1)
+            if (jfif || exif || adobeTransform == 1)
             {
+                if (exif && adobeTransform is not null and not 1) { throw new InvalidDataException("JPEG Exif and Adobe color declarations conflict."); }
                 declared = JpegColorSpace.YCbCr;
             }
             else if (adobeTransform == 0)

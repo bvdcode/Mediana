@@ -9,8 +9,8 @@ namespace Mediana.Codecs.Jpeg
 {
     /// <summary>Decodes 8-bit sequential and progressive Huffman JPEG to independent RGBA32. Encoded input is borrowed;
     /// progressive coefficients, component samples and output are charged to the allocator. Chroma uses centered bilinear reconstruction.
-    /// JFIF/Adobe declare three-component interpretation; source transfer/primaries remain unspecified.
-    /// Lossless/arithmetic, Exif presentation and CMYK/YCCK are currently unsupported.</summary>
+    /// JFIF/Adobe/Exif declare component interpretation; Exif sRGB labels are retained and orientation applied.
+    /// Lossless/arithmetic, custom Exif colorimetry and CMYK/YCCK are currently unsupported.</summary>
     public class JpegImageDecoder : IImageDecoder, IImageInfoReader
     {
         private readonly JpegDecodeOptions options;
@@ -40,7 +40,8 @@ namespace Mediana.Codecs.Jpeg
         {
             using JpegDocument image = new(encoded, options, sourceColorSpace, sampleAspectRatio, cancellationToken);
             image.Read(null);
-            return ValueTask.FromResult(new ImageInfo("jpeg", image.Width, image.Height, ImageDimensionUnit.Pixels));
+            bool swap = image.Metadata.Orientation.SwapsAxes;
+            return ValueTask.FromResult(new ImageInfo("jpeg", swap ? image.Height : image.Width, swap ? image.Width : image.Height, ImageDimensionUnit.Pixels));
         }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
