@@ -172,3 +172,39 @@ it are enabled in the library. SNR is not a listening score; matching equations
 and lower errors on selected transients do not establish perceptual acceptance.
 Channel balance, transient consistency and the interaction between perceptual
 targets and actual quantization remain open.
+
+## Quantization-target diagnosis
+
+A complete trace of the rejected model reproduces all ten AAC streams byte for
+byte. Independent reconstruction checks every selected quantization error in
+9778 frames and 946332 band states; the largest normalized difference is
+1.849e-15. Initial seeds remain within their targets on every active band.
+After exact packet-budget allocation, 259203 active band states exceed their
+targets. These are model targets, rather than guaranteed encoder error bounds.
+
+The seed search assumed monotonic squared error as the scale increases.
+Nearest reconstruction on AAC's nonlinear quantization grid does not have that
+property. For one four-bin band, scale 116 has error 2174.87, while the coarser
+scale 118 has error 1648.48; both satisfy the 4783.16 target. The binary search
+selects 116 and misses 118. Checking the following eight scales finds missed
+acceptable coarser scales in 132730 band states of the complete corpus.
+
+An exact bounded search replaces only that assumption. It searches downward
+from the coarsest nonzero scale and retains the existing representability limit.
+All 780 independently enumerated cases pass, including real counterexamples,
+silence and every four-bin width from 4 through 1024. The original search fails
+the first real counterexample with scale 116 instead of 118.
+
+The complete ten-source comparison still produces valid streams, with all
+19556 access units independently decoded and Native AOT agreement within
+2.385e-7. Nevertheless, exact seed selection does not recover the channel guards:
+the quiet-channel recording changes from 42.37/31.12 to 42.17/30.87 dB, and
+piano from 30.59/31.53 to 29.79/30.70 dB. Error energy in two measured pre-onset
+intervals improves and two regress. This search change was also rejected.
+
+One sequential fixed-plan run per source gives summed CPU time of
+18.984/19.477 seconds and largest peak RSS of 42112 KiB for both variants.
+These measurements compare different encoded quality and do not establish an
+equal-quality speed ranking. The search defect is confirmed, but correcting it
+alone does not explain or resolve the complete model's quality regression.
+Perceptual targets and actual bit allocation still require joint validation.
