@@ -75,6 +75,7 @@ namespace Mediana.Codecs.Aac
             }
             Span<int> candidateBits = stackalloc int[candidates.Length];
             candidateBits.Fill(-1);
+            bool includePlateaus = false;
             for (int move = 0; move < MaximumMoves * channels; move++)
             {
                 token.ThrowIfCancellationRequested();
@@ -168,6 +169,20 @@ namespace Mediana.Codecs.Aac
                 }
                 if (first < 0)
                 {
+                    if (!includePlateaus)
+                    {
+                        includePlateaus = true;
+                        for (int band = 0; band < bands.Length; band++)
+                        {
+                            if (bands[band].Book == 0)
+                            {
+                                UpdateCandidates(band, includePlateaus);
+                                candidateBits[band * 2] = -1;
+                                candidateBits[band * 2 + 1] = -1;
+                            }
+                        }
+                        continue;
+                    }
                     return;
                 }
                 bands[first / 2] = candidates[first];
@@ -175,12 +190,12 @@ namespace Mediana.Codecs.Aac
                 {
                     bands[second / 2] = candidates[second];
                 }
-                UpdateCandidates(first / 2);
+                UpdateCandidates(first / 2, includePlateaus);
                 InvalidateChannelCosts(first / 2, candidateBits);
                 UpdateChannelBits(first / 2, channelBits, ref currentBits);
                 if (second >= 0)
                 {
-                    UpdateCandidates(second / 2);
+                    UpdateCandidates(second / 2, includePlateaus);
                     InvalidateChannelCosts(second / 2, candidateBits);
                     if (second / 2 / channelBands != first / 2 / channelBands)
                     {
@@ -271,16 +286,27 @@ namespace Mediana.Codecs.Aac
             return result;
         }
 
-        private void UpdateCandidates(int band)
+        private void UpdateCandidates(int band, bool includePlateaus = false)
         {
             AacBandQuantization current = bands[band];
-            for (int direction = 0; direction < 2; direction++)
+            int refinement = current.Scale - 1;
+            int directions = 2;
+            if (current.Book == 0 && includePlateaus)
+            {
+                int channelBands = boundaries.Length - 1;
+                int local = band % channelBands;
+                int start = band / channelBands * boundaries[^1] + boundaries[local];
+                refinement = AacQuantizer.CoarsestNonzeroScale(spectrum.Slice(start, boundaries[local + 1] - boundaries[local]), refinement);
+                directions = 1;
+                candidates[band * 2 + 1] = new(current.Scale, 0, 0, double.PositiveInfinity);
+            }
+            for (int direction = 0; direction < directions; direction++)
             {
                 AacBandQuantization best = new(current.Scale, 0, 0, double.PositiveInfinity);
                 double score = double.NegativeInfinity;
                 for (int step = 1; step <= CandidateSteps; step++)
                 {
-                    int scale = current.Scale + (direction == 0 ? -step : step);
+                    int scale = direction == 0 ? refinement - step + 1 : current.Scale + step;
                     if (scale is < 0 or > AacQuantizer.MaximumScale)
                     {
                         break;

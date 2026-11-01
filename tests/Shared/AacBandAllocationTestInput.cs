@@ -8,6 +8,50 @@ namespace Mediana.Tests
 {
     internal static class AacBandAllocationTestInput
     {
+        public static void VerifyZeroBandRecovery(int frequency, bool shortWindow, int channels)
+        {
+            const int Budget = 1024;
+            const double QuietMagnitude = 4;
+            int[] groups = shortWindow ? [1, 1, 1, 1, 1, 1, 1, 1] : [1];
+            AacEncodingWindow window = new(frequency, shortWindow ? 2 : 0, 0, groups,
+                new int[AacSpectrumQuantizer.ChannelBands + 1]);
+            double[] spectrum = new double[channels * 1024];
+            int quietBin = window.Boundaries[2];
+            spectrum[0] = 1 << 24;
+            spectrum[quietBin] = QuietMagnitude;
+            int[] quantized = new int[spectrum.Length];
+            byte[] books = new byte[channels * AacSpectrumQuantizer.ChannelBands];
+            byte[] scales = new byte[books.Length];
+            int[] gains = new int[channels];
+            AacSpectrumQuantizer.Quantize(spectrum, new double[spectrum.Length], quantized, books, scales,
+                gains, window, Budget, default);
+            double reconstructed = Math.Sign(quantized[quietBin]) *
+                Math.Pow(Math.Abs(quantized[quietBin]), 4.0 / 3) * Math.Pow(2, (scales[2] - 100) / 4.0);
+            double error = Math.Pow(QuietMagnitude - reconstructed, 2);
+            if (quantized[quietBin] == 0 || error >= QuietMagnitude * QuietMagnitude / 2)
+            {
+                throw new InvalidDataException("AAC allocation erased a representable quiet band despite available packet capacity.");
+            }
+            int bits = 0;
+            for (int channel = 0; channel < channels; channel++)
+            {
+                bits += VerifySyntax(frequency, window, gains[channel], quantized.AsSpan(channel * 1024, 1024).ToArray(),
+                    books.AsSpan(channel * AacSpectrumQuantizer.ChannelBands, AacSpectrumQuantizer.ChannelBands).ToArray(),
+                    scales.AsSpan(channel * AacSpectrumQuantizer.ChannelBands, AacSpectrumQuantizer.ChannelBands).ToArray(), Budget, true);
+                for (int bin = 0; bin < 1024; bin++)
+                {
+                    if ((channel != 0 || (bin != 0 && bin != quietBin)) && quantized[channel * 1024 + bin] != 0)
+                    {
+                        throw new InvalidDataException("AAC quiet-band refinement introduced a nonzero silent coefficient.");
+                    }
+                }
+            }
+            if (bits > Budget)
+            {
+                throw new InvalidDataException("AAC quiet-band refinement exceeded its complete channel budget.");
+            }
+        }
+
         public static void VerifySharedBudget(int frequency, int budget, int activeChannel, double quietGain)
         {
             AacEncodingWindow window = new(frequency, 0, 0, [1], new int[AacSpectrumQuantizer.ChannelBands + 1]);

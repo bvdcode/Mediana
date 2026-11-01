@@ -8,6 +8,27 @@ namespace Mediana.Tests
     public class AacBandAllocationTests
     {
         [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        [InlineData(6)]
+        [InlineData(7)]
+        [InlineData(8)]
+        [InlineData(9)]
+        [InlineData(10)]
+        [InlineData(11)]
+        public void RefinesAQuietBandAcrossAZeroQuantizationPlateau(int frequency)
+        {
+            AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, false, 1);
+            AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, false, 2);
+            AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, true, 1);
+            AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, true, 2);
+        }
+
+        [Theory]
         [InlineData(3, 2400, 0, 0)]
         [InlineData(4, 3200, 1, 0)]
         [InlineData(3, 2400, 0, 0.05)]

@@ -183,6 +183,10 @@ namespace Mediana.NativeTests
             for (int frequency = 0; frequency < 12; frequency++)
             {
                 AacWindowGroupingTestInput.VerifyFrequency(frequency);
+                AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, false, 1);
+                AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, false, 2);
+                AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, true, 1);
+                AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, true, 2);
             }
             AacWindowGroupingTestInput.VerifyAllocation(0, 0, 1, 1400);
             AacWindowGroupingTestInput.VerifyAllocation(3, 1, 2, 4000);

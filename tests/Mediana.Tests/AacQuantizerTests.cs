@@ -7,6 +7,33 @@ namespace Mediana.Tests
 {
     public class AacQuantizerTests
     {
+        [Fact]
+        public void NonzeroBoundaryPreservesEveryTieAndItsAdjacentFloatingPointValues()
+        {
+            for (int scale = 0; scale <= 255; scale++)
+            {
+                double boundary = Math.Pow(2, (scale - 100) / 4.0) * 0.5;
+                foreach (double value in new[] { boundary, -boundary, Math.BitIncrement(boundary), Math.BitDecrement(boundary) })
+                {
+                    foreach (int maximumScale in new[] { 0, scale, 255 })
+                    {
+                        int expected = -1;
+                        for (int candidate = 0; candidate <= maximumScale; candidate++)
+                        {
+                            if (Math.Abs(value) > Math.Pow(2, (candidate - 100) / 4.0) * 0.5)
+                            {
+                                expected = candidate;
+                            }
+                        }
+                        Assert.Equal(expected, AacQuantizer.CoarsestNonzeroScale([0, value, 0], maximumScale));
+                    }
+                }
+            }
+            Assert.Equal(-1, AacQuantizer.CoarsestNonzeroScale([0, -0d], 255));
+            Assert.Equal(-1, AacQuantizer.CoarsestNonzeroScale([double.Epsilon], 255));
+            Assert.Equal(-1, AacQuantizer.CoarsestNonzeroScale([1], -1));
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(100)]

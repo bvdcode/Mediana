@@ -45,11 +45,11 @@
       "name": "channel-budget",
       "bitrate_ceiling": 96000,
       "source_sha256": "1d0b0461912755afe3aac26f59da1977569209c62c8e89e23d033235427f5f18",
-      "transport_sha256": "78c6e5e6efe31323797dbfb4ba311c74aa935038a486ee49640cbbd1e0d03c5b",
-      "reference_sha256": "4d335cb7bcf5316427959c0f56aaca401d8b2714022fc28293cb62a5c2ab0773",
+      "transport_sha256": "4eb82f697aac2f97fb34a5b4a7fa5cb5613538fd4b62d9d19d7a97b5d2f2b36c",
+      "reference_sha256": "3432382a2de872b25efa77c1bd5b7fc60dd20b5ce7a6f23717e62ff3c0e59ae2",
       "encode_command": "mediana -i channel-budget.wav channel-budget.ts --audio-codec Aac --audio-bit-rate 96000",
       "decode_command": "ffmpeg -v error -xerror -threads 1 -i channel-budget.ts -map 0:a:0 -c:a pcm_f32le -f f32le channel-budget.encoded-96k.f32le",
-      "source_snr_db": 43.70308972549735,
+      "source_snr_db": 43.69860909400059,
       "raw_bits_per_second": 94139.01869158879,
       "packets": 107,
       "source_samples_per_channel": 108037,
@@ -58,5 +58,6 @@
   ],
   "quantization": "Bounded per-band error allocation within one shared element budget; stereo band errors are divided by the corresponding complete channel spectral energy. Mono and zero-energy channels retain their absolute error; packet syntax and budgets are unchanged.",
   "quality_metric": "Unweighted source SNR after removing 1024 priming samples and final padding; generated test inputs only.",
-  "window_selection": "Sine long/start/short/stop with one 1024-sample block of lookahead; per-channel sub-block peak detection and common short-window energy grouping."
+  "window_selection": "Sine long/start/short/stop with one 1024-sample block of lookahead; per-channel sub-block peak detection and common short-window energy grouping.",
+  "zero_band_refinement": "After ordinary bounded refinement stalls, search up to four candidates beginning at the exact nearest-magnitude nonzero boundary; retain the existing total move limit and exact channel syntax costs."
 }
