@@ -2,9 +2,43 @@
 
 `Mediana.Containers.Matroska` contains internal EBML value decoding, document
 header validation, bounded Segment traversal, Block framing, native Info/Tracks
-metadata, packet indexing and native clock conversion. Codec integration, seeking and container attachment
-extraction are the next integration work.
+metadata, packet indexing, native clock conversion, codec configuration and owned
+packet reads. Public container integration, seeking and attachment extraction are
+the next integration work.
 MKV probing and decoding are not exposed through the public engine yet.
+
+## Codec configuration and packet ownership
+
+Internal codec mapping follows the official
+[Matroska codec mappings](https://www.matroska.org/technical/codec_specs.html).
+AVC retains its AVCDecoderConfigurationRecord and length-prefixed pictures; AAC
+retains AudioSpecificConfig and raw data blocks. MP3 has no native initialization;
+the common MPEG audio frame-header configuration is derived from the first frame,
+and native CodecPrivate is ignored for that mapping. Required Audio/Video masters,
+configuration extents and independent per-track and cumulative configuration byte
+limits are checked. Configuration snapshots survive source and workspace lifetimes.
+Container code depends on Formats and Core contracts, without decoder references.
+
+The packet source borrows its completed index and random-access input. Its own
+3,328-byte workspace is reused across lace frames. Each returned packet owns one
+payload allocation; an empty payload retains a one-byte backing allocation.
+Retained packets survive reader and index disposal. Independent per-track reads
+leave the physical-order cursor unchanged, and a failed or canceled read can be
+retried without advancing it. Overlapping operations are rejected.
+
+Known codec sample periods establish contiguous lace offsets before a single
+nanosecond rounding; otherwise an explicit DefaultDuration can establish them.
+Without either fact, later lace PTS values remain unknown. A nonlaced BlockDuration
+is converted from Track Ticks. A total laced BlockDuration is not divided into
+guessed equal frame durations. DTS remains unknown. MP3 packets must retain their
+opening sampling format and contain one complete Layer III frame.
+
+Invisible frames, codec state changes, BlockAdditions and nonzero DiscardPadding
+are explicitly rejected by this packet adapter until their required common packet
+semantics are implemented. Native index metadata still preserves these declarations.
+ContentEncodings, TrackOperation and unsupported codec mappings reject explicitly.
+Color, crop, display and projection integration remain pending at the public reader
+boundary; codec configuration alone does not apply those native declarations.
 
 ## Format rules
 
