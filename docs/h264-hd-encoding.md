@@ -343,7 +343,7 @@ operations. This is one pair on a shared host.
 
 | Search | CPU | Elapsed | Peak RSS | TS bytes | Aggregate PSNR |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Integer, current behavior | 122.604 s | 127.210 s | 107.70 MiB | 78,284,892 | 39.612 dB |
+| Integer search | 122.604 s | 127.210 s | 107.70 MiB | 78,284,892 | 39.612 dB |
 | Direct half/quarter refinement | 288.231 s | 294.078 s | 90.08 MiB | 78,295,608 | 44.956 dB |
 
 Aggregate PSNR increases by 5.345 dB, while CPU increases by 135.09% and transport
@@ -363,8 +363,6 @@ fractions, four border macroblocks, zero and positive search ranges, and tight
 and padded source rows. These cases use zero vector predictors; broader
 neighbor-predictor selection is outside this calibration.
 
-The direct implementation is not enabled in the encoder. Its substantial
-error reduction supports further fractional-search work, but separately
-recomputing interpolation for each candidate has an excessive measured CPU cost.
-Sharing bounded interpolation work and broader selection tests remain open
-before production integration. The existing encoder behavior is unchanged.
+The direct implementation was not adopted. Its substantial error reduction
+led to [shared fractional interpolation](h264-fractional-motion.md), which retains
+the same complete encoded bytes while reducing repeated interpolation work.

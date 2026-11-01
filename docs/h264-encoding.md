@@ -80,7 +80,11 @@ then bounded four-direction full-pixel diamond steps. `MotionSearchRange` is the
 maximum displacement in each direction, defaulting to 16 luma pixels and accepting
 0 through 64. At most twice that many diamond iterations are examined. Search
 minimizes summed absolute sample error across Y, U and V; ties prefer shorter
-motion-difference codes. SIMD processes 16 differences together. A candidate is
+motion-difference codes. Eight half-pixel and eight quarter-pixel neighbors refine
+the integer winner, followed by the original fractional neighboring-vector
+predictor. Candidate displacements stay within the same configured range.
+One bounded luma neighborhood shares half-sample interpolation between candidates;
+quarter positions average the required clipped samples. SIMD processes 16 differences together. A candidate is
 discarded when its partial luma error already exceeds the best complete error.
 This search does not promise a global optimum or a rate/distortion optimum.
 
@@ -100,8 +104,11 @@ bits. NAL accounting reserves Annex B delimiters and repeated IDR parameter sets
 A picture may exceed the bitrate multiplied by its own duration when the buffer
 has room. Fixed QP remains fixed; an exhausted level budget rejects the picture.
 These admission bounds do not supply a complete Annex C HRD timing schedule or
-a target bitrate. Adaptive intra/inter decisions, subpixel motion search,
+a target bitrate. Adaptive intra/inter decisions,
 multiple references and CABAC encoding remain open.
+
+[Fractional motion search](h264-fractional-motion.md) describes scratch storage,
+independent selection checks and complete CPU/quality measurements.
 
 Syntax and reconstruction follow
 [ITU-T H.264 V15 (08/2024)](https://www.itu.int/rec/T-REC-H.264-202408-S/en),
