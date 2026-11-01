@@ -2,9 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Security.Cryptography;
+using System.Globalization;
 using System.Text.Json;
 using Mediana.Containers.Matroska;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 using static Mediana.Tests.MatroskaMetadataTestData;
 using static Mediana.Tests.MatroskaIndexTestData;
 
@@ -30,11 +32,14 @@ namespace Mediana.Tests
             using JsonDocument metadataReference = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.ChangeExtension(path, ".metadata.json")));
             Require(Convert.ToHexStringLower(SHA256.HashData(bytes)) == metadataReference.RootElement.GetProperty("input_sha256").GetString());
             JsonElement packets = packetReference.RootElement.GetProperty("packets");
+            TimeBase[] referenceTimeBases = metadataReference.RootElement.GetProperty("external_streams").EnumerateArray()
+                .Select(stream => ReadTimeBase(stream.GetProperty("time_base").GetString()!)).ToArray();
             MediaBufferAllocator allocator = new(131072);
             await using EbmlElementTestSource source = new(bytes) { MaximumRead = 3 };
             MatroskaHeader header = await MatroskaHeaderReader.ReadAsync(source, allocator, 256);
             EbmlElement segment;
             IReadOnlyList<MatroskaTrack>? tracks = null;
+            MatroskaSegmentInfo? info = null;
             using (MatroskaSegmentReader segments = new(source, allocator, header.MaximumSizeWidth))
             using (MatroskaMetadataReader metadata = new(source, allocator, Limits, header.MaximumSizeWidth))
             {
@@ -42,18 +47,20 @@ namespace Mediana.Tests
                 long offset = segment.DataOffset;
                 while (await segments.ReadChildAsync(segment, offset) is EbmlElement child)
                 {
-                    if (child.Id == 0x1654AE6B)
+                    switch (child.Id)
                     {
-                        tracks = await MatroskaTracksReader.ReadAsync(metadata, child);
+                        case 0x1654AE6B: tracks = await MatroskaTracksReader.ReadAsync(metadata, child); break;
+                        case 0x1549A966: info = await MatroskaInfoReader.ReadAsync(metadata, child); break;
                     }
                     offset = child.EndOffset!.Value;
                 }
             }
             Require(allocator.AllocatedBytes == 0);
-            if (tracks is null)
+            if (tracks is null || info is null)
             {
-                throw new InvalidDataException("The independently muxed input has no tracks.");
+                throw new InvalidDataException("The independently muxed input has no Info or Tracks.");
             }
+            MatroskaTrackClock[] clocks = tracks.Select(track => new MatroskaTrackClock(info.TimestampScale, track.Timing)).ToArray();
             using (MatroskaPacketIndex index = await MatroskaPacketIndexBuilder.ReadAsync(source, allocator, segment, tracks, Options, Limits, header.MaximumSizeWidth))
             using (MatroskaBlockReader blockReader = new(source, allocator, Options.MaximumBlockHeaderBytes, Options.MaximumFrameBytes))
             {
@@ -71,6 +78,8 @@ namespace Mediana.Tests
                         if (frameIndex == 0)
                         {
                             Require((long)index.GetClusterTimestamp(block.ClusterIndex) + block.RelativeTimestamp == expected.GetProperty("pts").GetInt64());
+                            MediaTimestamp actual = clocks[block.StreamIndex].GetPresentationTime(index.GetClusterTimestamp(block.ClusterIndex), block.RelativeTimestamp);
+                            Require(actual == new MediaTimestamp(expected.GetProperty("pts").GetInt64(), referenceTimeBases[block.StreamIndex]));
                         }
                         if (expected.TryGetProperty("block_data_offset", out JsonElement position))
                         {
@@ -96,6 +105,7 @@ namespace Mediana.Tests
                 if (name == "aac-lace-group-ebml.mka")
                 {
                     Require(index.BlockCount == 1 && index.GetExtensions(0) is { DurationTicks: 64 });
+                    Require(clocks[0].GetTrackDuration(64) == new MediaDuration(64000000, MatroskaTrackClock.TimeBase));
                 }
             }
             Require(allocator.AllocatedBytes == 0 && !source.IsDisposed);
@@ -106,6 +116,12 @@ namespace Mediana.Tests
         {
             Require(frame.Length == expected.GetProperty("size").GetInt32());
             Require(Convert.ToHexStringLower(SHA256.HashData(source.AsSpan((int)frame.Offset, frame.Length))) == expected.GetProperty("sha256").GetString());
+        }
+
+        private static TimeBase ReadTimeBase(string value)
+        {
+            string[] terms = value.Split('/');
+            return new(int.Parse(terms[0], CultureInfo.InvariantCulture), int.Parse(terms[1], CultureInfo.InvariantCulture));
         }
     }
 }

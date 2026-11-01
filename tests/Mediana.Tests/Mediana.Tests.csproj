@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MatroskaClockTestInput.cs" Link="MatroskaClockTestInput.cs" />
     <Compile Include="../Shared/MatroskaIndexTestData.cs" Link="MatroskaIndexTestData.cs" />
     <Compile Include="../Shared/MatroskaIndexTableTestInput.cs" Link="MatroskaIndexTableTestInput.cs" />
     <Compile Include="../Shared/MatroskaBlockGroupTestInput.cs" Link="MatroskaBlockGroupTestInput.cs" />

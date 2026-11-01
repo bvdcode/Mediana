@@ -55,9 +55,13 @@ namespace Mediana.NativeTests
             await MatroskaPacketIndexTestInput.VerifyUnknownClustersAndExactQuotaAsync();
             await MatroskaPacketIndexTestInput.VerifyCancellationAsync();
             await MatroskaPacketIndexReferenceInput.VerifyAsync();
+            await MatroskaClockTestInput.VerifyReferencesAsync();
+            await MatroskaClockTestInput.VerifyInvalidAsync();
+            MatroskaClockTestInput.VerifyAllocation();
             Console.WriteLine("PASS Matroska structure: EBML/CRC, Segment bounds, unknown Clusters, all Block lacing modes and 96 independent encoded packets.");
             Console.WriteLine("PASS Matroska metadata: Info/Tracks, dependent defaults, streamed CRC, deferred payloads, cancellation and all five independent files.");
             Console.WriteLine("PASS Matroska packet index: bounded pages, BlockGroup fields, late timestamps, track lookup, cancellation and all 96 independent packets.");
+            Console.WriteLine("PASS Matroska clock: 1645 independent exact rational vectors, nearest-even rounding, codec delay, sample offsets and allocation-free unit scale.");
         }
     }
 }
