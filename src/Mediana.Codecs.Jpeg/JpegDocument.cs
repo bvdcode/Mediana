@@ -27,7 +27,7 @@ namespace Mediana.Codecs.Jpeg
         internal JpegMetadata Metadata => metadata;
         internal bool Progressive => frameMarker == 194;
 
-        internal void Read(MediaBufferAllocator? allocator)
+        internal void Read(MediaBufferAllocator? allocator, bool componentSamples = false)
         {
             token.ThrowIfCancellationRequested();
             if (encoded.Length > options.MaximumEncodedBytes)
@@ -51,7 +51,10 @@ namespace Mediana.Codecs.Jpeg
                     {
                         throw new InvalidDataException("JPEG contains bytes after EOI.");
                     }
-                    metadata.Validate(components, sourceColorSpace, sampleAspectRatio, allocator is not null);
+                    if (!componentSamples)
+                    {
+                        metadata.Validate(components, sourceColorSpace, sampleAspectRatio, allocator is not null);
+                    }
                     if (Progressive && allocator is not null)
                     {
                         foreach (JpegComponent component in components)
@@ -90,7 +93,10 @@ namespace Mediana.Codecs.Jpeg
                         JpegScanReader.Read(segment, reader, this, allocator is not null, restartInterval, token);
                         break;
                     case >= 224 and <= 239:
-                        metadata.Read(marker, segment);
+                        if (!componentSamples || marker == 238)
+                        {
+                            metadata.Read(marker, segment);
+                        }
                         break;
                     case 254:
                         break;
@@ -126,6 +132,13 @@ namespace Mediana.Codecs.Jpeg
         }
 
         internal void LockQuantization(JpegComponent component) => lockedQuantization[component.Quantization] = true;
+
+        internal JpegSampleLayout TakeSamples()
+        {
+            JpegSampleLayout result = new(Width, Height, MaximumHorizontal, MaximumVertical, components);
+            components = [];
+            return result;
+        }
 
         public void Dispose()
         {

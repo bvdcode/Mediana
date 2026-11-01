@@ -18,6 +18,10 @@ namespace Mediana.NativeTests
             await JpegProgressiveTestInput.VerifyOrderingAsync();
             await JpegProgressiveTestInput.VerifyEntropyAsync(Path.Combine(root, "Jpeg"));
             await JpegProgressiveTestInput.VerifyResourcesAsync();
+            await JpegComponentTestInput.VerifyCorpusAsync(Path.Combine(root, "Jpeg"));
+            JpegComponentTestInput.VerifyOwnership();
+            JpegComponentTestInput.VerifyMetadata();
+            JpegComponentTestInput.VerifyFailures();
             Console.WriteLine("PASS sequential and progressive JPEG: complete independent pixels, refinement, restart scans, exact budgets and real borrowed covers.");
         }
     }

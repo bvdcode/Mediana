@@ -19,7 +19,19 @@ namespace Mediana.Codecs.Jpeg
             VideoFormat format = new(image.Width, image.Height, VideoPixelFormat.Rgba32, color, image.Metadata.Aspect, description);
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer output = allocator.Allocate(checked((int)layout[0].EndOffset));
-            Span<byte> pixels = output.Memory.Span;
+            Write(new(image.Width, image.Height, image.MaximumHorizontal, image.MaximumVertical, image.Components),
+                output.Memory.Span, image.Metadata.IsRgb, token);
+            using MediaBuffer buffer = output.Publish();
+            return new VideoFrame(format, buffer, layout);
+        }
+
+        internal static void Write(in JpegSampleLayout image, Span<byte> pixels, bool rgb, CancellationToken token)
+        {
+            if (pixels.Length < (long)image.Width * image.Height * 4)
+            {
+                throw new ArgumentException("The JPEG RGBA destination is too short.", nameof(pixels));
+            }
+            token.ThrowIfCancellationRequested();
             for (int y = 0; y < image.Height; y++)
             {
                 token.ThrowIfCancellationRequested();
@@ -37,7 +49,7 @@ namespace Mediana.Codecs.Jpeg
                     {
                         int second = Sample(image, image.Components[1], x, y);
                         int third = Sample(image, image.Components[2], x, y);
-                        if (image.Metadata.IsRgb)
+                        if (rgb)
                         {
                             pixel[0] = (byte)first;
                             pixel[1] = (byte)second;
@@ -56,11 +68,9 @@ namespace Mediana.Codecs.Jpeg
                 }
             }
             token.ThrowIfCancellationRequested();
-            using MediaBuffer buffer = output.Publish();
-            return new VideoFrame(format, buffer, layout);
         }
 
-        private static int Sample(JpegDocument image, JpegComponent component, int x, int y)
+        private static int Sample(in JpegSampleLayout image, JpegComponent component, int x, int y)
         {
             ReadOnlySpan<byte> samples = component.Samples!.Memory.Span;
             if (component.Horizontal == image.MaximumHorizontal && component.Vertical == image.MaximumVertical)

@@ -15,6 +15,7 @@ namespace Mediana.Codecs.Jpeg
         private readonly bool[] iccSeen = new bool[256];
         internal bool IsRgb { get; private set; }
         internal bool HasIcc => iccCount != 0;
+        internal int? AdobeColorTransform => adobeTransform;
         internal SampleAspectRatio? Aspect { get; private set; }
 
         internal void Read(byte marker, ReadOnlySpan<byte> segment)
