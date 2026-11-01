@@ -1,8 +1,8 @@
 # Matroska EBML foundation
 
 `Mediana.Containers.Matroska` contains internal EBML value decoding, document
-header validation, bounded Segment traversal, Block framing and native Info/Tracks
-metadata. Packet indexing, codec integration, seeking and container attachment
+header validation, bounded Segment traversal, Block framing, native Info/Tracks
+metadata and packet indexing. Codec integration, seeking and container attachment
 extraction are the next integration work.
 MKV probing and decoding are not exposed through the public engine yet.
 
@@ -108,6 +108,40 @@ Track count, recognized text bytes and traversed metadata elements have supplied
 limits accumulated across that reader's lifetime. Returned strings and metadata
 objects are separate from the media-byte quota.
 
+## Native packet index
+
+The index retains physical block order and provides independent per-track packet
+lookup. Native track numbers map to metadata declaration order; they need not be
+contiguous or begin at one. Laced packets retain their block and frame ordinal,
+so random lookup does not require storing a separate payload range per frame.
+Per-track packet counts and encoded payload byte totals exclude lace headers.
+
+Each Cluster retains its native unsigned timestamp once. Blocks retain signed
+relative timestamps, raw flags and dependency presence. The Timestamp may follow
+the blocks; a missing or repeated Timestamp rejects the Cluster. These native
+values do not invent DTS, later laced-frame PTS or whole-stream decode duration.
+Conversion to common packet clocks remains part of codec integration.
+
+BlockGroup parsing preserves explicit BlockDuration, signed DiscardPadding,
+ReferencePriority and deferred CodecState/BlockAdditions extents. ReferenceBlock
+values determine dependency presence; a zero reference must be the only reference.
+BlockGroup requires exactly one Block and rejects duplicate singleton fields.
+A track with DefaultDuration requires BlockDuration in its BlockGroups, as
+specified in RFC 9559, section 5.1.3.5.3. Undeclared track numbers and lacing
+forbidden by the track reject explicitly.
+
+Allocator-backed pages share an index byte limit. Pages grow to a bounded size
+without copying earlier entries, and BlockGroup extensions use a separate sparse
+table. Index construction additionally uses 7,448 reusable media bytes. Block
+count, per-track packet count, header size, frame size and traversed element count
+have supplied limits. Failed or canceled construction releases all index pages;
+a completed index retains its pages until disposal and borrows the input source.
+
+Cluster checksum verification is an explicit internal construction option. CRC
+placement and size remain validated in either mode. BlockGroup metadata CRCs are
+verified by the metadata reader. Verifying a present Cluster checksum streams all
+covered encoded bytes; indexing without that verification avoids the full scan.
+
 ## Bounds and ownership
 
 The element reader borrows a random-access source and leaves its sequential
@@ -165,5 +199,12 @@ text and CRC reads. A virtual one-terabyte CodecPrivate extent without a parent
 CRC is indexed with 4,108 media bytes and fewer than sixteen source reads.
 Every truncated prefix of the minimum Info payload rejects and releases storage.
 
-All 2,761 managed tests and the complete strict Linux x64 Native AOT runner pass.
+Packet-index checks verify every independent packet in physical order and reverse
+per-track order, including all payload sizes/hashes and stored first-frame clocks.
+Synthetic checks cover 1,500 interleaved blocks, all 256 frames in a block, late
+Cluster timestamps, unknown Cluster lengths, shared and global byte limits,
+incomplete-index access, malformed BlockGroups and cancellation during a pending
+source read. Successful, failed and canceled reads preserve source ownership.
+
+All 2,772 managed tests and the complete strict Linux x64 Native AOT runner pass.
 The Release build, formatting and license-header checks also pass.
