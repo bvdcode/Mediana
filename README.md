@@ -51,7 +51,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
-| `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder |
+| `Mediana.Codecs.Png` | sRGB RGBA32 PNG encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
 | `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists |
 | `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |

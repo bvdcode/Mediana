@@ -20,7 +20,8 @@ MediaBufferAllocator allocator = new(32 * 1024 * 1024);
 using PixelBuffer pixels = PdfRenderer.Render(page,
     new PdfRenderOptions { MaximumWidth = 1200 }, cancellationToken, allocator);
 using VideoFrame frame = pixels.PublishVideoFrame(cancellationToken);
-using MediaBuffer png = PngEncoder.Encode(frame, allocator, cancellationToken);
+await using FileStream output = new("preview.png", FileMode.CreateNew, FileAccess.Write, FileShare.None);
+await PngEncoder.EncodeAsync(frame, output, allocator, cancellationToken);
 ```
 
 Page numbers start at one. Width and height are visible dimensions in points

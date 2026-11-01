@@ -19,7 +19,8 @@ MediaBufferAllocator allocator = new(16 * 1024 * 1024);
 using PixelBuffer pixels = SvgRenderer.Render(document,
     new DrawingRenderOptions { Width = 512, MaximumSamples = 4_000_000 }, cancellationToken, allocator);
 using VideoFrame frame = pixels.PublishVideoFrame(cancellationToken);
-using MediaBuffer png = PngEncoder.Encode(frame, allocator, cancellationToken);
+await using FileStream output = new("preview.png", FileMode.CreateNew, FileAccess.Write, FileShare.None);
+await PngEncoder.EncodeAsync(frame, output, allocator, cancellationToken);
 ```
 
 Output is straight sRGB RGBA8. Features include paths and shapes, gradients,
@@ -38,7 +39,8 @@ the implemented subset.
 
 Input size, elements, nesting, path commands, embedded-image pixels,
 supersampled output and effect workspace have separate bounds. The
-`MediaBufferAllocator` above counts the final drawing surface and encoded PNG.
+`MediaBufferAllocator` above counts the final drawing surface and the PNG stream's
+64 KiB plus 12 bytes of working storage.
 Publishing transfers that surface to the frame without copying its RGBA bytes.
 Rendering workspace has separate limits; these are not a whole process memory
 cap. Idle effect surfaces are cleared before reuse and disposed when evicted
