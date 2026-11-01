@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Globalization;
+using Mediana.Cli;
 
 namespace Mediana.Tests
 {
@@ -34,6 +35,21 @@ namespace Mediana.Tests
             }
             Assert.Equal(timelines[0], timelines[1]);
             Assert.Single(Directory.GetFileSystemEntries(directory));
+        }
+
+        [Fact]
+        public async Task EncodingReportsInputTimeOnceAcrossAllVariantsAndAlwaysReportsCompletion()
+        {
+            ProgressTestContext logger = new();
+            int code = await HlsEncodeCommand.RunAsync(Data("avc-multislice-cabac.mp4"), Path.Combine(directory, "hls"),
+                0, null, null, [], null, [96, 48], null, 26, 500, logger, CancellationToken.None);
+            Assert.Equal(0, code);
+            Assert.True(logger.Messages.Count >= 2);
+            string completed = logger.Messages[^1];
+            Assert.Contains("time=00:00:03.000", completed, StringComparison.Ordinal);
+            Assert.Contains("speed=", completed, StringComparison.Ordinal);
+            Assert.Contains("size=", completed, StringComparison.Ordinal);
+            Assert.DoesNotContain("eta=", completed, StringComparison.Ordinal);
         }
 
         [Theory]

@@ -237,14 +237,18 @@ Add `--log-level Debug` after the command to include diagnostic details, or
 `--log-level None` to disable diagnostics. Logs go to stderr; command results go
 to stdout. Colors are automatic in an interactive terminal; `--no-color` or the
 `NO_COLOR` environment variable disables them.
-WAVE and AAC conversion report processed media time, speed relative to playback
-and output size immediately, at one-second intervals, and on completion. When
+WAVE, AAC and H.264 conversion and `hls encode` report processed media time,
+speed relative to playback and output size immediately, at one-second intervals,
+and on completion. HLS counts input video duration once across all variants and
+reports their combined transport size. When
 `EncodedStreamInfo.CodedDuration` is known, a shared media-time estimator adds
 `eta=hh:mm:ss` after a short warmup using smoothed recent processing speed.
 The total comes from container metadata, including codec delay and padding; it
 does not apply presentation edits. MP3 Xing/Info, WAVE, AIFF and FLAC with a known
 sample count provide this metadata. Unknown totals, insufficient progress, stalls
 and completion omit the ETA field. No extra file scan or bitrate estimate is used.
+If an input frame has no known duration or its time base changes, subsequent
+reports show output size without inventing processed time, speed or ETA.
 
 Ctrl+C cancels processing and removes incomplete output. Existing destinations
 are never replaced. Exit codes are 0 for success, 1 for an unexpected failure,

@@ -4,7 +4,6 @@
 using Mediana.Codecs;
 using Mediana.Containers;
 using Mediana.Execution;
-using Mediana.Core.Timing;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
@@ -50,10 +49,7 @@ namespace Mediana.Cli
                 bool opening = true;
                 MediaOperationProgress result = await MediaOperations.EncodeVideoAsync(ReadAsync, encoder, writer, update =>
                 {
-                    if (update.ProcessedDuration is MediaDuration duration)
-                    {
-                        progress.Report(duration, destination.Position, update.IsComplete);
-                    }
+                    progress.Report(update.ProcessedDuration, destination.Position, update.IsComplete);
                 }, cancellationToken);
                 frames = result.Frames;
 
