@@ -68,8 +68,7 @@ namespace Mediana.Execution
             ArgumentNullException.ThrowIfNull(encoder);
             ArgumentNullException.ThrowIfNull(writer);
             MediaEncodePipeline<TFrame> pipeline = new(encoder, writer);
-            MediaDuration? processed = null;
-            bool unknown = false;
+            MediaDurationAccumulator processed = new();
             while (true)
             {
                 token.ThrowIfCancellationRequested();
@@ -79,29 +78,7 @@ namespace Mediana.Execution
                     break;
                 }
                 await pipeline.WriteAsync(frame, token).ConfigureAwait(false);
-                MediaDuration? span = duration(frame);
-                if (span is null)
-                {
-                    unknown = true;
-                }
-                else if (!unknown)
-                {
-                    if (processed is MediaDuration previous)
-                    {
-                        if (previous.TimeBase != span.Value.TimeBase)
-                        {
-                            unknown = true;
-                        }
-                        else
-                        {
-                            processed = new(checked(previous.Value + span.Value.Value), previous.TimeBase);
-                        }
-                    }
-                    else
-                    {
-                        processed = span;
-                    }
-                }
+                processed.Add(duration(frame));
                 progress?.Invoke(Snapshot(false));
             }
             await pipeline.CompleteInputAsync(token).ConfigureAwait(false);
@@ -111,7 +88,7 @@ namespace Mediana.Execution
             return result;
 
             MediaOperationProgress Snapshot(bool complete) => new(pipeline.FramesSubmitted, pipeline.PacketsWritten,
-                pipeline.PayloadBytes, unknown ? null : processed, complete);
+                pipeline.PayloadBytes, processed.Duration, complete);
         }
     }
 }

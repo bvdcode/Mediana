@@ -9,14 +9,14 @@ namespace Mediana.Tests
 {
     internal static class FrameFixture
     {
-        public static VideoFrame Create(MediaBufferAllocator allocator, byte value, long timestamp = 0)
+        public static VideoFrame Create(MediaBufferAllocator allocator, byte value, long timestamp = 0, MediaDuration? duration = null)
         {
             VideoFormat format = new(1, 1, VideoPixelFormat.Rgba32);
             using WritableMediaBuffer writable = allocator.Allocate(4);
             writable.Memory.Span.Fill(value);
             using MediaBuffer buffer = writable.Publish();
             return new VideoFrame(format, buffer, format.CreateTightLayout(),
-                new MediaTimestamp(timestamp, new TimeBase(1, 1)));
+                new MediaTimestamp(timestamp, new TimeBase(1, 1)), duration);
         }
     }
 }
