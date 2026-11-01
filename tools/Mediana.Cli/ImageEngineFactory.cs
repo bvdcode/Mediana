@@ -20,15 +20,17 @@ namespace Mediana.Cli
 
         public static MediaEngine Create() => AddDecoders(new MediaEngineBuilder()).Build();
 
-        internal static MediaEngineBuilder AddDecoders(MediaEngineBuilder builder) => builder
+        internal static MediaEngineBuilder AddDecoders(MediaEngineBuilder builder) => AddStillImageDecoders(builder)
+            .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
+            .AddImageDecoder(new TgsImageDecoder())
+            .AddImageDecoder(new PdfImageDecoder());
+
+        internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
             .AddImageDecoder(new PngImageDecoder())
             .AddImageDecoder(new JpegImageDecoder())
             .AddImageDecoder(CreateHeic(SampleAspectRatio.Square))
             .AddImageDecoder(CreateJpeg2000(SampleAspectRatio.Square))
-            .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
-            .AddImageDecoder(new SvgImageDecoder())
-            .AddImageDecoder(new TgsImageDecoder())
-            .AddImageDecoder(new PdfImageDecoder());
+            .AddImageDecoder(new SvgImageDecoder());
 
         public static HeicImageDecoder CreateHeic(SampleAspectRatio aspect) => new(aspect,
             new HeicDecodeOptions(maxInputBytes: MaximumInputBytes, maxPixels: MaximumPixels));

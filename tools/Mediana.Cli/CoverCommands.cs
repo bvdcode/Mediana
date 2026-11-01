@@ -5,7 +5,7 @@ using ConsoleAppFramework;
 
 namespace Mediana.Cli
 {
-    internal class CoverCommands(TextWriter output, CommandOutputPolicy outputs) : MediaCommands(outputs)
+    internal class CoverCommands(TextWriter writer, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
         /// <summary>Extract original embedded picture bytes; the input content determines its container.</summary>
         /// <param name="input">Existing input media file.</param>
@@ -14,6 +14,14 @@ namespace Mediana.Cli
         [Command("")]
         public Task<int> Extract([Argument] string input, [Argument] string output, int index = 0,
             CancellationToken cancellationToken = default) => ExtractAsync(input, output, index, null, cancellationToken);
+
+        /// <summary>Select the first recognized still image from picture tags and attachments; preserve its original encoding.</summary>
+        /// <param name="input">Existing input media file; content determines the container.</param>
+        /// <param name="output">Output file for original encoded image bytes.</param>
+        /// <param name="first">First source to inspect: Attachment or Picture; the other source follows.</param>
+        public Task<int> Select([Argument] string input, [Argument] string output, ContainerImageSource first = ContainerImageSource.Attachment,
+            CancellationToken cancellationToken = default) => ExecuteFileAsync(input, output,
+                file => ContainerImageCommand.RunAsync(input, file, first, writer, cancellationToken), cancellationToken);
 
         /// <summary>Extract an embedded cover without re-encoding. Format: Mp4.</summary>
         /// <param name="input">Existing input media file.</param>
@@ -46,7 +54,7 @@ namespace Mediana.Cli
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             return ExecuteFileAsync(input, destination,
-                file => ContainerPictureCommand.RunAsync(input, file, index, output, requiredFormat, token), token);
+                file => ContainerPictureCommand.RunAsync(input, file, index, writer, requiredFormat, token), token);
         }
     }
 }
