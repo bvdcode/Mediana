@@ -58,6 +58,16 @@ namespace Mediana.NativeTests
             await MatroskaClockTestInput.VerifyReferencesAsync();
             await MatroskaClockTestInput.VerifyInvalidAsync();
             MatroskaClockTestInput.VerifyAllocation();
+            await MatroskaCodecTestInput.VerifyMappingsAsync();
+            await MatroskaCodecTestInput.VerifyInvalidAsync();
+            await MatroskaCodecTestInput.VerifyResourcesAsync();
+            await MatroskaPacketTestInput.VerifyTimingAndOrderAsync();
+            await MatroskaPacketTestInput.VerifyUnknownTimesAsync();
+            await MatroskaPacketTestInput.VerifyUnsupportedSemanticsAsync();
+            await MatroskaPacketTestInput.VerifyCancellationAndRetryAsync();
+            await MatroskaPacketTestInput.VerifyQuotaAndEmptyAsync();
+            await MatroskaPacketReferenceInput.VerifyAsync();
+            Console.WriteLine("PASS Matroska packet reads: bounded AVC/AAC/MP3 configuration, owned payloads, lace clocks, retry/quotas and 178 real encoded packets.");
             Console.WriteLine("PASS Matroska structure: EBML/CRC, Segment bounds, unknown Clusters, all Block lacing modes and 96 independent encoded packets.");
             Console.WriteLine("PASS Matroska metadata: Info/Tracks, dependent defaults, streamed CRC, deferred payloads, cancellation and all five independent files.");
             Console.WriteLine("PASS Matroska packet index: bounded pages, BlockGroup fields, late timestamps, track lookup, cancellation and all 96 independent packets.");
