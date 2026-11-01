@@ -8,6 +8,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/H264DcResidualTestInput.cs" Link="H264DcResidualTestInput.cs" />
     <Compile Include="../Shared/CodecProfileTestInput.cs" Link="CodecProfileTestInput.cs" />
     <Compile Include="../Shared/FontGlyphTestInput.cs" Link="FontGlyphTestInput.cs" />
     <Compile Include="../Shared/PngStreamingTestInput.cs" Link="PngStreamingTestInput.cs" />
