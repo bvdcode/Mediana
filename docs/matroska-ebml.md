@@ -8,8 +8,8 @@ probing, complete audio decoding and timestamped video previews.
 
 ## Public API and resource bounds
 
-The reader exposes common `ContainerInfo` and immutable native `SegmentInfo` and
-`Tracks` snapshots. Native positive track numbers remain distinct from zero-based
+The reader exposes common `ContainerInfo` and immutable native `SegmentInfo`,
+`Tracks` and `Attachments` snapshots. Native positive track numbers remain distinct from zero-based
 stream indices. Packet counts and payload totals describe the complete index;
 nonempty tracks have no inferred decode duration, average bitrate or frame rate.
 Declared floating-point duration is converted to nearest-even nanoseconds with
@@ -21,16 +21,19 @@ stored decode order, without reading payloads; video sessions validate candidate
 access points with their codec before restarting. PTS ordering is not assumed to
 match packet order. DTS remains unknown.
 
-`MatroskaReadOptions` bounds the document header, cumulative Info/Tracks payloads,
-index storage, visited elements, tracks, text, configurations, blocks and frames.
+`MatroskaReadOptions` bounds the document header, cumulative Info/Tracks payloads
+and attachment declarations, index storage, visited elements, tracks, attached
+files, text, configurations, blocks and frames. Attachment payload bytes are
+excluded from the metadata byte limit and have a separate read size limit.
 Each metadata/indexing pass shares its element budget with Segment traversal,
 including lookahead needed to find the end of unknown-sized Clusters.
 The borrowed source remains open on failure and disposal. Retained packets and
 metadata remain valid after reader disposal; canceled packet reads do not advance
 the cursor. Overlapping reader operations and disposal are rejected.
 
-EBML and inspected metadata CRCs are checked. `VerifyMediaChecksums` also checks
-Segment and Cluster CRCs, which reads their complete covered payloads. Identically
+EBML and inspected Info/Tracks metadata CRCs are checked. `VerifyMediaChecksums`
+also checks Segment, Cluster and attachment CRCs, which reads their complete
+covered payloads. Identically
 encoded recurring Info/Tracks elements are accepted within the cumulative byte
 limit. Differently encoded recurrences are explicitly unsupported.
 
@@ -43,12 +46,40 @@ to the progressive AVC representation. Native scalar Colour declarations retain
 CICP codes, range, chroma siting, precision, subsampling and light-level values;
 specified color labels and chroma axes resolve over codec labels. Unsupported
 registered codes fail interpretation. Mastering and projection payloads are not
-fully interpreted, and attachments, chapters and Tags are not exposed yet.
+fully interpreted, and chapters and Tags are not exposed yet.
 
 CLI preview positions use MP4 movie time, including a supported linear edit list;
 Matroska positions use the normalized Segment clock. Stream-copy to MPEG-TS still
 requires representable video metadata and explicit PTS/DTS. The reader does not
 fabricate decode timestamps to satisfy a writer.
+
+## Attached files
+
+`IContainerAttachmentReader` exposes attached files in storage order, independently
+of timed streams and picture tags. `ContainerSession.Attachments` returns the same
+declarations; null indicates an unavailable capability, while an empty list means
+no attachments. Matroska preserves FileUID, filename, media type and description
+under [RFC 9559 section 5.1.6](https://www.rfc-editor.org/rfc/rfc9559.html#section-5.1.6).
+The filename remains metadata and is never used to choose an output path.
+
+Opening indexes FileData ranges with bounded header lookahead. Payloads are read
+on request into one allocator-owned buffer, with no second payload copy.
+`ReadAttachmentAsync` preserves packet cursors; the returned lease survives reader
+and session disposal. Sizes use `long`, allowing declarations beyond the maximum
+single-buffer read. `MaxAttachments`, `MaxAttachmentBytes`, aggregate metadata/text
+limits and the common allocator budget apply independently.
+
+```sh
+mediana attachment input.mkv cover.png --index 0
+```
+
+This command writes original bytes to the explicit destination and uses the shared
+overwrite policy. It does not select cover art, decode an image or execute attached
+files. Such selection belongs to the caller. FFmpeg 6.1.1 represents recognized
+image attachments as `attached_pic` video streams; Mediana retains native
+attachments separately. This distinction follows the
+[FFmpeg Matroska demuxer](https://github.com/FFmpeg/FFmpeg/blob/n6.1.1/libavformat/matroskadec.c#L3116-L3154)
+and explains differing stream counts for the attached PNG reference.
 
 ## Codec configuration and packet ownership
 

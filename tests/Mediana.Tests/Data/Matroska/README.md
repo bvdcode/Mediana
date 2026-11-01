@@ -26,6 +26,28 @@ SHA-256 payload hashes, stored positions, key flags and presentation timestamps
 for all 84 video/audio packets. The separately reported attached PNG is excluded
 from that media packet list.
 
+## Attachment reference
+
+The PNG attachment has FileUID `13717314701664214952`, FileData offset 600 and
+1,236 bytes. Its SHA-256 is
+`3d20a35d9ff0be4e351b4545cb78c74647b095c04f2192db029d24092609ce9e`, matching
+the original `../Metadata/cover.png`. FFprobe 6.1.1 reports it as stream 2 with
+`codec_type=video` and `attached_pic=1`; it is not a timed Matroska TrackEntry.
+Original bytes can be independently recovered without re-encoding:
+
+```sh
+ffmpeg -v error -nostdin -i avc-aac-attachment.mkv \
+  -map 0:v:1 -c copy -frames:v 1 -f image2 cover.png
+```
+
+The attachment tests retain every byte and native declaration, read all 84 timed
+packets after extraction, and check cursor preservation and buffer lifetime.
+Synthetic cases include an empty file, arbitrary filenames and media types,
+missing/duplicate fields, all read/count/text/metadata limits, pending cancellation
+and a deferred 3 GiB FileData range. Independently calculated zlib CRC-32 values
+are `0xB2CB61AF` for the four-field AttachedFile payload and `0x11C16983` for its
+complete master inside Attachments.
+
 ## AAC lacing
 
 `aac-lace-xiph.mka`, `aac-lace-ebml.mka` and `aac-lace-fixed.mka` contain three
