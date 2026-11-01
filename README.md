@@ -1077,8 +1077,8 @@ code per channel. The numerical definitions follow [ITU H.264 Annex E](https://w
 
 ## Creating a PNG preview
 
-The sample can select the first video stream and produce a preview fitted within
-150×150 pixels directly from a seekable source:
+The sample produces a preview fitted within 150×150 pixels from a container image
+or the first video stream, opening the container and building its index once:
 
 ```sh
 dotnet run --project samples/Mediana.Sample -c Release -- --preview tests/Mediana.Tests/Data/FrameRate/preview-hd.mp4 preview.png
@@ -1088,9 +1088,17 @@ It selects the midpoint of a declared duration longer than one second, otherwise
 time zero. Target calculation uses integer clock ticks; `SeekAsync` restarts from a
 validated access point and `ReadFrameAtOrAfterAsync` discards earlier pictures.
 The selected frame remains owned by the caller after the decoding session closes.
-The example requires a declared duration, known SDR color, sample aspect ratio and
-an orthogonal display transform. A missing frame fails explicitly. Its application
-policy uses the declared duration without replacing it with indexed coded length.
+Unknown duration selects time zero. The sample searches registered PNG/JPEG attachments
+before picture tags, using signatures rather than names or MIME types. When no image
+is recognized, it transfers the opened container to video decoding. Recognized image
+decoding errors are returned without trying another image or a video frame.
+
+`SdrPreviewColorPolicy` explicitly supplies missing SDR color labels and the sample
+reports assumptions; declared color interpretation retains precedence. A known sample
+aspect ratio and an orthogonal display transform remain required. A missing frame
+fails explicitly. Target selection uses the declared duration without replacing it
+with indexed coded length. [Ownership and complete preview checks](docs/server-preview.md)
+cover both paths.
 
 MP4 `LinearMovie` maps original media timestamps through the supported edit list;
 it does not clamp the first remaining PTS to zero or clip encoded samples to the
