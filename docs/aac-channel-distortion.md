@@ -134,3 +134,50 @@ output bytes after cost reuse, so their quality results above are unchanged.
 
 Frequency masking, rate allocation beyond the bounded local search and perceptual
 listening acceptance remain open.
+
+## Refining zero-quantized bands
+
+A quiet spectral band can quantize to zero across more than four consecutive
+scales. After ordinary refinement stalls, the allocator computes the coarsest
+scale at which a coefficient becomes nonzero, then measures up to four candidates
+from that boundary. For the nearest-magnitude quantizer, the zero-to-one boundary
+is `abs(coefficient) > 2^((scale - 100) / 4) / 2`; equality remains zero.
+
+Candidate selection still measures complete channel syntax and shares the existing
+total iteration bound. The operation uses stack state and the existing spectral
+workspace. It can recover a representable quiet component with spare packet
+capacity without stepping through an arbitrarily long sequence of identical
+zero reconstructions.
+
+Managed and Native AOT checks cover all twelve sample rates, long and maximally
+separated short groups, mono/stereo syntax, silent coefficients and exact bit
+ceilings. The preceding allocator fails the quiet-component check at every
+sample rate. Independent exhaustive boundary checks cover all 256 scales,
+positive/negative ties and adjacent floating-point values.
+
+A complete original-rate corpus contains five SQAM recordings, recorded speech,
+impulses and three channel-balance inputs: 228.2323 seconds, with 19,556 access
+units across both versions. Every packet ceiling and every decoded sample passes;
+independent and Native decoding differ by at most `1.7881393432617188e-7`.
+Seven complete AAC payloads are byte-identical. The other three have per-channel
+SNR changes from -0.003782 to +0.006090 dB; the exactly silent channel remains zero.
+These results establish the scoped quantization behavior, with listening
+acceptance still open.
+
+All ten complete public CLI transports are byte-identical between managed and
+Native AOT builds. Their AAC payloads match the independently verified fixed-plan
+outputs exactly. The public 5.1-to-stereo HLS check also produces nine identical
+files in both builds. All 2711 managed tests, the complete strict Linux x64
+Native AOT runner and CLI build, formatting and license-header checks pass.
+
+The same ten complete raw-PCM/fixed-window-plan encode operations were measured
+as sequential Linux x64 Native AOT process pairs on one CPU core:
+
+| Measurement across ten recordings | Before | After |
+| --- | ---: | ---: |
+| Sum of process CPU seconds | 23.422441 | 24.222729 |
+| Largest process peak RSS, KiB | 41728 | 41600 |
+
+The observed CPU cost increases by 3.42%. Each recording has one process per
+version on the shared host; this establishes no repeatable throughput or memory
+improvement and does not measure the complete CLI conversion pipeline.
