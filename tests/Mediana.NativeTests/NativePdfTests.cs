@@ -15,6 +15,11 @@ namespace Mediana.NativeTests
             FontGlyphTestInput.VerifyEmptyOutlines();
             FontGlyphTestInput.VerifyCompositeInstructions();
             await PdfReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Pdf"));
+            await PdfJpegTestInput.VerifyCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "PdfJpeg"));
+            await PdfJpegTestInput.VerifyInvalidAsync();
+            await PdfJpegTestInput.VerifyLimitsAndReuseAsync();
+            await PdfJpegTestInput.VerifyAllocationAsync(Path.Combine(AppContext.BaseDirectory, "Data", "PdfJpeg"));
+            await PdfJpegTestInput.VerifyMaskReferencesAsync();
             await PdfContentOwnershipTestInput.VerifyAsync();
             await PdfContentOwnershipTestInput.VerifyAllocationAsync();
             await PdfStreamOwnershipTestInput.VerifyAsync();

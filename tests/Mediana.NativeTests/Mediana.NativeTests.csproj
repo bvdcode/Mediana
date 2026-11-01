@@ -105,6 +105,8 @@
     <Compile Include="../Shared/BoundedStreamReadTestInput.cs" Link="BoundedStreamReadTestInput.cs" />
     <Compile Include="../Shared/FragmentedReadStream.cs" Link="FragmentedReadStream.cs" />
     <Compile Include="../Shared/PdfReferenceTestInput.cs" Link="PdfReferenceTestInput.cs" />
+    <Compile Include="../Shared/PdfJpegTestInput.cs" Link="PdfJpegTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/PdfJpeg/*" Link="Data/PdfJpeg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Pdf/*" Link="Data/Pdf/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageFrameTestInput.cs" Link="ImageFrameTestInput.cs" />
     <Compile Include="../Shared/ImageProbeTestInput.cs" Link="ImageProbeTestInput.cs" />

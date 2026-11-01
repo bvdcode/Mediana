@@ -13,6 +13,7 @@ namespace Mediana.Documents.Pdf
         {
             if (Get(obj.Value, "ImageMask").Number == 0 && _decodedImages.TryGetValue(obj, out PdfImage? existing)) { return existing; }
             if (depth >= storage.Budget.Options.MaximumDepth || !_activeImages.Add(obj)) { throw new InvalidDataException("Cyclic or excessive PDF image mask."); }
+            PixelBuffer? pending = null;
             try
             {
                 int width = Get(obj.Value, "Width").Integer(), height = Get(obj.Value, "Height").Integer();
@@ -27,7 +28,11 @@ namespace Mediana.Documents.Pdf
                 bool stencil = Get(obj.Value, "ImageMask").Number != 0;
                 int bits = stencil ? 1 : Get(obj.Value, "BitsPerComponent").Kind == PdfValueKind.Null && codec == "JPXDecode" ? 8 : Get(obj.Value, "BitsPerComponent").Integer();
                 PixelBuffer pixels;
-                if (codec == "JPXDecode" && colorSpace.Kind == PdfValueKind.Null)
+                if (codec == "DCTDecode")
+                {
+                    pixels = DecodeJpeg(obj, data, width, height, bits, colorSpace, stencil);
+                }
+                else if (codec == "JPXDecode" && colorSpace.Kind == PdfValueKind.Null)
                 {
                     if (obj.Value.Get("Decode").Kind != PdfValueKind.Null || Get(obj.Value, "SMaskInData").Number != 0) { throw new NotSupportedException("JPX Decode and SMaskInData overrides are not supported yet."); }
                     Jpeg2000Image jpeg = Jpeg2000Decoder.Decode(data, new() { MaximumEncodedBytes = storage.Budget.Options.MaximumInputBytes, MaximumPixels = storage.Budget.Options.MaximumImagePixels, MaximumWorkingBytes = storage.Budget.Options.MaximumImageBytes, ExpectedWidth = width, ExpectedHeight = height }, token);
@@ -46,7 +51,6 @@ namespace Mediana.Documents.Pdf
                 }
                 else
                 {
-                    if (codec == "DCTDecode") { throw new NotSupportedException("PDF JPEG decoding is not implemented yet."); }
                     if (codec == "JPXDecode") { throw new NotSupportedException("JPX images with an explicit PDF color space are not implemented yet."); }
                     if (codec == "JBIG2Decode")
                     {
@@ -62,11 +66,14 @@ namespace Mediana.Documents.Pdf
                         bits = 1;
                     }
                     if (bits is not (1 or 2 or 4 or 8 or 16)) { throw new NotSupportedException("Unsupported PDF image component depth."); }
-                    pixels = Samples(data.Span, width, height, bits, colorSpace, Get(obj.Value, "Decode"), Get(obj.Value, "Mask"), stencil);
+                    pixels = Samples(data.Span, width, height, bits, colorSpace, Get(obj.Value, "Decode"), ColorKey(obj), stencil);
                 }
+                pending = pixels;
                 PdfValue soft = obj.Value.Get("SMask");
                 PdfValue mask = obj.Value.Get("Mask");
-                PdfValue maskReference = soft.Kind != PdfValueKind.Null ? soft : mask.Kind == PdfValueKind.Reference ? mask : PdfValue.Null;
+                PdfValue maskReference = PdfValue.Null;
+                if (soft.Kind != PdfValueKind.Null) { maskReference = soft; }
+                else if (mask.Kind == PdfValueKind.Reference && Resolve(mask).Kind != PdfValueKind.Array) { maskReference = mask; }
                 if (maskReference.Kind != PdfValueKind.Null)
                 {
                     PdfObject maskObject = storage.Object(maskReference, token);
@@ -86,10 +93,24 @@ namespace Mediana.Documents.Pdf
                 }
                 PdfImage result = new(name, pixels);
                 if (!stencil) { _decodedImages.Add(obj, result); }
-                _images.Add(result); return result;
+                _images.Add(result); pending = null; return result;
             }
-            finally { _activeImages.Remove(obj); }
+            finally { pending?.Dispose(); _activeImages.Remove(obj); }
         }
+
+        private PdfValue ColorKey(PdfObject obj)
+        {
+            if (obj.Value.Get("SMask").Kind != PdfValueKind.Null) { return PdfValue.Null; }
+            PdfValue declaration = obj.Value.Get("Mask");
+            PdfValue mask = Resolve(declaration);
+            return mask.Kind switch
+            {
+                PdfValueKind.Null or PdfValueKind.Array => mask,
+                PdfValueKind.Dictionary when declaration.Kind == PdfValueKind.Reference => PdfValue.Null,
+                _ => throw new InvalidDataException("A PDF image Mask requires a sample range array or an image stream reference.")
+            };
+        }
+
         private PixelBuffer Samples(ReadOnlySpan<byte> samples, int width, int height, int bits, PdfValue space, PdfValue decode, PdfValue mask, bool stencil)
         {
             bool indexed = space.Kind == PdfValueKind.Array && Resolve(space.Items[0]).Text == "Indexed";
