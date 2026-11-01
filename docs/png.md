@@ -1,9 +1,84 @@
-# PNG output
+# PNG images
 
 `Mediana.Codecs.Png` encodes straight RGBA32 sRGB frames as non-interlaced,
 8-bit PNG files. It writes sRGB and sample aspect ratio metadata and uses BCL
 zlib compression. Input must declare the color interpretation and sample aspect
 ratio. Padded input rows are supported; padding bytes are excluded from output.
+
+## Image decoding
+
+`PngImageDecoder` implements `IImageDecoder` and `IImageInfoReader`. Register it
+with `MediaEngineBuilder.AddImageDecoder`. The CLI recognizes PNG input by its
+signature for `probe`, `-i input` and `-i input output.png`, including renamed files.
+
+Static grayscale, RGB, indexed color, grayscale/alpha and RGBA images support
+all standard bit depths: 1/2/4/8/16 as permitted by each color type. Both sequential
+rows and the seven Adam7 passes support all five filters. Palette transparency
+and grayscale/RGB transparency keys preserve straight alpha, including RGB
+components under fully transparent pixels. Transparency keys are compared at
+the original sample depth. The output is straight RGBA32; samples are scaled to
+8 bits with nearest rounding according to [PNG section 13.12](https://www.w3.org/TR/png-3/#13Sample-depth-rescaling).
+This operation changes sample precision for 16-bit inputs; it does not perform
+a color conversion or alpha compositing.
+
+The decoder validates every chunk CRC, mandatory chunks, supported singleton
+ordering and consecutive IDAT data. Chunk boundaries can split any part of the
+zlib stream, including its header and checksum. A truncated zlib stream or an
+incorrect scanline length is rejected. Unknown critical chunks are unsupported;
+unknown ancillary chunks are skipped. Unused trailing bytes in the final IDAT
+are ignored as prescribed by PNG section 11.2.3. APNG and Exif presentation
+transforms are explicitly unsupported.
+
+`PngDecodeOptions` bounds encoded bytes, pixel count and chunk count before
+decoding. Defaults are 64 MiB, 16,777,216 pixels and 100,000 chunks. Encoded bytes
+are borrowed during the decoder call. The supplied allocator accounts for one
+output array and two scanlines; there is no concatenated IDAT buffer or complete
+filtered-image buffer. BCL zlib workspace and bounded metadata objects are outside
+that budget. At 2560×2560 RGBA8, output storage is 26,214,400 bytes and the two
+scanlines require another 20,480 bytes. After completion, only the independent
+output frame remains allocated. Cancellation and failures release working storage.
+
+The pHYs ratio is retained. Without pHYs, PNG specifies square pixels; a present
+zero density leaves the aspect ratio unknown. Color declarations follow the
+PNG precedence: cICP, embedded ICC, sRGB, then gAMA/cHRM. Original CICP codes are
+retained through `CicpColorDescription`. Standalone gamma/chromaticities and ICC
+presence use `PngColorDescription`; ICC profiles are not decompressed or retained.
+Color conversion requiring these descriptions is unsupported. Untagged images
+retain unspecified primaries and transfer. The CLI applies its explicit RGB
+preview policy to missing labels and reports the assumption once; it does not
+replace an unsupported declared profile with that interpretation.
+
+## Borrowed encoded image input
+
+The common image API accepts an existing `ReadOnlyMemory<byte>` without copying
+it into another complete encoded-input buffer. For example, an extracted PNG
+cover can be decoded after its container has closed:
+
+```csharp
+using MediaBuffer picture = await container.ReadPictureAsync(0, cancellationToken);
+await container.DisposeAsync();
+using VideoFrame image = await engine.DecodeImageAsync(picture.Memory, allocator,
+    cancellationToken: cancellationToken);
+```
+
+Register the appropriate container reader and `PngImageDecoder` on `engine`.
+Matroska attached files use `ReadAttachmentAsync` instead of `ReadPictureAsync`.
+The caller selects the picture or attachment; the decoder does not select a
+preferred cover, retrieve external references or choose a destination path.
+Keep the supplied memory alive and unmodified until decoding completes. Its
+existing lease retains its original complete backing allocation, which can
+include surrounding container metadata. Disposing that lease after decoding
+does not invalidate the returned frame. Input byte/probe limits, registration
+ambiguity, image request validation and late cancellation match the byte-source
+operation. Byte-source input still accounts for encoded input and probe storage
+through its allocator.
+
+The complete independent PNG corpus contains 36 images, covering all standard
+color/depth pairs, both interlace methods, every filter, odd packed widths, empty
+passes, split IDAT headers/checksums and transparency. Real PNG pictures from
+MP3, FLAC and M4A, and a Matroska attachment, also match all independent RGBA
+pixels after container disposal. Shared checks exercise these paths in managed
+code and Native AOT, including exact working budgets and release on failure.
 
 ## Stream output
 

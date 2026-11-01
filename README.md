@@ -52,7 +52,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
-| `Mediana.Codecs.Png` | sRGB RGBA32 PNG encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
+| `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
 | `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists |
 | `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |
@@ -110,14 +110,14 @@ Raster examples select the primary HEIC item or first JBIG2 page. The final two
 arguments explicitly declare pixel aspect ratio; `1 1` means square pixels.
 The APIs also expose item selection, all JBIG2 pages and native JPEG 2000 samples.
 SVG/TGS width preserves the viewport proportions; TGS time is seconds from its
-in-point. Existing output files are never overwritten. Input, output and
-workspace have separate budgets; the output allocator is not a whole-process
+in-point. Existing output files use the shared confirmation and `--overwrite`
+policy. Input, output and workspace have separate budgets; the output allocator is not a whole-process
 memory limit.
 
 Supported subsets and limits: [HEIC](docs/heif.md),
 [JPEG 2000](docs/jpeg2000.md), [JBIG2](docs/jbig2.md),
-[SVG](docs/svg.md), [TGS/Lottie](docs/tgs.md).
-TGS/Lottie expressions are explicitly unsupported. Standalone PNG decoding,
+[SVG](docs/svg.md), [TGS/Lottie](docs/tgs.md), [PNG](docs/png.md).
+TGS/Lottie expressions are explicitly unsupported.
 PDF page rendering supports the subset described below. 3D file formats are outside
 the library's scope.
 
@@ -1163,8 +1163,10 @@ compression and unfiltered scanlines. Alpha is preserved. PNG framing and CRCs f
 the [PNG specification](https://www.w3.org/TR/png-3/). Encoding reserves a bounded
 output array; the returned buffer exposes its actual encoded length while the
 allocator counts the complete backing capacity. BCL compression workspace is outside
-that budget. Adaptive filters, other pixel layouts, other color encodings and PNG decoding
-are not implemented.
+that budget. Adaptive encoding filters, other input pixel layouts and other encoding
+color spaces are not implemented. Static PNG decoding supports standard color/depth
+combinations, transparency and Adam7, with explicit color metadata and bounded
+scanline storage; see the [PNG API](docs/png.md).
 
 The generated previews from the first and fourth weighted reference pictures were
 read by an independent PNG decoder and compared with independent SDR-to-sRGB output.

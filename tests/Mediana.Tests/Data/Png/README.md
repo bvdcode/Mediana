@@ -22,3 +22,8 @@ reference for those images.
 Each image declares sRGB and pHYs pixels-per-unit (2,3), giving sample aspect
 ratio 3:2. Colors are not composited against a background. The files and source
 patterns are distributed under this repository's MIT license.
+
+`cover.rgba` is the complete 24×16 RGBA reference for the existing
+`../Metadata/cover.png`, independently decoded by both Pillow and FFmpeg with
+identical results. The same PNG appears in the MP3, FLAC, M4A and Matroska cover
+fixtures; these tests decode its original extracted bytes after container disposal.
