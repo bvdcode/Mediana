@@ -174,3 +174,36 @@ consumer performing the same library operations recorded cumulative allocation
 medians of 86,845,504 → 39,481,296 bytes after input reading and
 275,614,536 → 161,241,896 bytes after PNG encoding. These are scoped workload
 measurements; collection timing and other inputs can change process peaks.
+
+## Page-content allocation
+
+A complete 1 MiB page-content sequence, consisting of whitespace followed by a
+blue rectangle, was interpreted after the reader owned its input. Three
+alternating pairs of Native AOT consumers measured these allocation medians:
+
+| Content streams | Before, bytes | After, bytes |
+| --- | ---: | ---: |
+| 1 | 4,200,256 | 5,832 |
+| 2 | 4,726,341 | 1,055,984 |
+| 17 | 4,967,344 | 1,081,448 |
+
+Public allocation tests reject the earlier implementation. Functional checks
+cover decoded-byte limits, shared operands and graphics state, indirect arrays,
+Flate streams, cancellation, invalid references and detached page lifetimes.
+
+Two complete synthetic PDFs with 8 MiB of page content, divided into one or 17
+streams, were rendered to 200×100 PNGs. Three alternating pairs of fresh Linux
+x64 Native AOT CLI processes were pinned to CPU core 2:
+
+| Content streams | CPU before, seconds | CPU after, seconds | Peak RSS before, KiB | Peak RSS after, KiB |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 0.057122 | 0.048307 | 62,012 | 37,800 |
+| 17 | 0.063280 | 0.051192 | 66,688 | 45,792 |
+
+These medians include process startup on a shared host. All 12 resulting PNGs
+were byte-identical and every RGBA component matched the expected painting;
+independent Poppler rendering also matched both complete inputs. Three existing
+PDF previews produced six more outputs with identical bytes within each
+before/after pair. These inputs exercise page-content storage rather than image
+or font decoding; the measurements do not establish sustained rendering speed
+or a whole-process memory bound.
