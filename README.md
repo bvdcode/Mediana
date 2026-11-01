@@ -32,7 +32,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
 | `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha |
 | `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion |
-| `Mediana.Codecs.Jpeg` | Sequential Huffman JPEG, grayscale/RGB pixels, restart intervals and explicit source interpretation ([API](docs/jpeg.md)) |
+| `Mediana.Codecs.Jpeg` | Sequential/progressive Huffman JPEG, grayscale/RGB pixels, restart intervals and explicit source interpretation ([API](docs/jpeg.md)) |
 | `Mediana.Codecs.Jbig2` | Packed monochrome pages, globals and optional RGBA expansion |
 | `Mediana.Images.Svg` | SVG paths, styles, text, masks, filters and embedded PNG |
 | `Mediana.Images.Tgs` | TGS/Lottie 2D keyframes and lazy timed raster frames |
