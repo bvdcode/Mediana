@@ -62,3 +62,22 @@ payloads. Synthetic metadata tests additionally exercise field ordering, empty
 defaults, UUID byte order, date precision, cropping, limits and cancellation.
 The streamed CRC vector has 9,033 payload bytes and checksum `0x468261E0`,
 independently calculated with zlib; every chunk partition must retain that value.
+
+## Clock references
+
+`clock-vectors.json` contains 1,645 independently calculated clock expressions.
+Python's `fractions.Fraction.from_float` interprets the exact IEEE 754 value of
+each track scale. The reference evaluates
+`cluster * segment_scale + relative * track_scale * segment_scale - codec_delay`
+plus any rational contiguous-frame offset, then rounds once to the nearest
+nanosecond, choosing the even integer at a tie. Track-duration references apply
+the same exact scale and rounding. A null result marks an expected rejection
+outside the signed 64-bit nanosecond range.
+
+The binary64 track scale is stored as sixteen hexadecimal digits, avoiding decimal
+serialization differences. The vectors cover signed and unsigned boundaries,
+subnormal and maximum finite scales, adjacent values around one, positive and
+negative half-nanosecond ties, cancellation of large codec delays, and 256 AAC
+frame offsets at 44.1, 48, 7.35 and 96 kHz. Four hundred additional cases use
+Python's deterministic random seed 9559. Clock tests and real-file packet-clock
+comparisons run in both managed and Native AOT builds.
