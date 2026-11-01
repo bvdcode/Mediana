@@ -32,14 +32,32 @@ namespace Mediana.Codecs.H264
             Span<int> intermediate = stackalloc int[Patch * Window];
             for (int row = 0; row < Patch; row++)
             {
-                for (int column = 0; column < Window; column++)
+                int column = 0;
+                for (; column <= Window - Vector128<short>.Count; column += Vector128<short>.Count)
+                {
+                    Vector128<short> sum = H264LumaFilter.Sum8(samples, row * Patch + column, 1);
+                    Vector128.WidenLower(sum).StoreUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)(row * Window + column));
+                    Vector128.WidenUpper(sum).StoreUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)(row * Window + column + Vector128<int>.Count));
+                }
+                for (; column < Window; column++)
                 {
                     intermediate[row * Window + column] = H264LumaInterpolation.HorizontalSum(samples, row * Patch + column);
                 }
             }
             for (int row = 0; row < Window; row++)
             {
-                for (int column = 0; column < Window; column++)
+                int column = 0;
+                for (; column <= Window - Vector128<short>.Count; column += Vector128<short>.Count)
+                {
+                    int index = row * Window + column;
+                    Vector128<int> lower = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)((row + 2) * Window + column));
+                    Vector128<int> upper = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)((row + 2) * Window + column + Vector128<int>.Count));
+                    H264LumaFilter.Half8(Vector128.Narrow(lower, upper)).StoreUnsafe(ref MemoryMarshal.GetReference(filtered), (nuint)index);
+                    Vector128<short> verticalSum = H264LumaFilter.Sum8(samples, row * Patch + column + 2, Patch);
+                    H264LumaFilter.Half8(verticalSum).StoreUnsafe(ref MemoryMarshal.GetReference(filtered), (nuint)(Plane + index));
+                    H264LumaFilter.Diagonal8(intermediate, Window, index).StoreUnsafe(ref MemoryMarshal.GetReference(filtered), (nuint)(2 * Plane + index));
+                }
+                for (; column < Window; column++)
                 {
                     int index = row * Window + column;
                     filtered[index] = (byte)H264LumaInterpolation.Half(intermediate[(row + 2) * Window + column]);

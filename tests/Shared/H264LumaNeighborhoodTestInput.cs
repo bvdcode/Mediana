@@ -17,7 +17,7 @@ namespace Mediana.Tests
                 byte[] samples = new byte[H264LumaNeighborhood.SampleBytes + 6];
                 byte[] filtered = new byte[H264LumaNeighborhood.FilteredBytes + 6];
                 byte[] guarded = new byte[262];
-                for (int pattern = 0; pattern < 3; pattern++)
+                for (int pattern = 0; pattern < 6; pattern++)
                 {
                     for (int index = 0; index < picture.Plane(0).Length; index++)
                     {
@@ -26,6 +26,9 @@ namespace Mediana.Tests
                             0 => (byte)((index * 53 + index / 32 * 97 + index * index % 131) & 255),
                             1 => (byte)((index + index / 32) % 2 * 255),
                             2 => (byte)((index / 32 < 16 && index % 32 < 16) ? 0 : 255),
+                            3 => (byte)((index % 32 % 6 is 0 or 2 or 3 or 5) ? 255 : 0),
+                            4 => (byte)((index / 32 % 6 is 0 or 2 or 3 or 5) ? 255 : 0),
+                            5 => (byte)(((index % 32 % 6 is 0 or 2 or 3 or 5) == (index / 32 % 6 is 0 or 2 or 3 or 5)) ? 255 : 0),
                             _ => throw new InvalidOperationException("Unknown neighborhood test pattern.")
                         };
                     }
