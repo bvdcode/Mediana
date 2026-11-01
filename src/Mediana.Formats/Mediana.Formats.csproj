@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <InternalsVisibleTo Include="Mediana.Codecs.Png" />
+    <InternalsVisibleTo Include="Mediana.Containers.Matroska" />
+    <InternalsVisibleTo Include="Mediana.Tests" />
+    <InternalsVisibleTo Include="Mediana.NativeTests" />
     <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />
   </ItemGroup>
 </Project>

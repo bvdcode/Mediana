@@ -118,6 +118,12 @@ namespace Mediana.Tests
                 throw new InvalidDataException($"Audio header parameters differ from the independent reference for {Path.GetFileName(path)}.");
             }
             AudioStreamMetadata metadata = (AudioStreamMetadata)value;
+            bool aac = info.Streams.Single(stream => stream.StreamIndex == expectedIndex).CodecId == "aac";
+            if (aac && (metadata.CodecProfile?.Name != "LC" || metadata.CodecProfile.Level is not null)
+                || !aac && metadata.CodecProfile is not null)
+            {
+                throw new InvalidDataException("An audio profile was lost or inferred without a codec declaration.");
+            }
             if (expectChannelOrder && metadata.ChannelOrder?.Count != channels)
             {
                 throw new InvalidDataException("PCM metadata lost its explicit channel order.");

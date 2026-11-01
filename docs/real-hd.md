@@ -109,6 +109,11 @@ specified rounding and clipping. Managed and Native AOT tests check 4,752 block,
 phase, pattern and coordinate combinations against scalar convolution, including
 picture borders, extreme coordinates and blocks crossing tile boundaries.
 
+A subsequent [constant-residual optimization](h264-dc-residuals.md) repeated
+the complete decode before and after skipping inverse passes for zero-AC blocks.
+All picture hashes and exact times still matched; CPU fell a further 7.76% in
+that measured pair, with practically unchanged peak RSS.
+
 The complete copying results at revision `5d6e272` are:
 
 | Complete operation | Mediana CPU | FFmpeg CPU | Mediana peak RSS | FFmpeg peak RSS |

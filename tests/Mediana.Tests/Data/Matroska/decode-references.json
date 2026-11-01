@@ -1,0 +1,77 @@
+{
+  "reference_version": "ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers",
+  "fixtures": [
+    {
+      "input": "avc-aac-attachment.mkv",
+      "input_sha256": "63f999ab20fc744304bbcb45b5287eb50a94420df5f6b816f2ef19896e5de87c",
+      "reference": "avc-aac-attachment.f32le.gz",
+      "reference_sha256": "081e8e75467e32e2309c4a1a047d1ca4730a405bf23849762966fda00298f727",
+      "pcm_sha256": "2757f1ffb5eba552afe59e30dac9071570682e19ee5fa0a07efbbf87ff46411a",
+      "pcm_bytes": 311296,
+      "sample_rate": 48000,
+      "channels": 1,
+      "audio_packets": 76,
+      "samples_per_channel": 77824
+    },
+    {
+      "input": "aac-lace-xiph.mka",
+      "input_sha256": "71dc46435005a27719e9f9514efd7f36ce436303d4899ec9105023af15e2b586",
+      "reference": "aac-lace-original.f32le.gz",
+      "reference_sha256": "616c3d6808aa5c4ca02c2b16ee07fc1b221d583890b400052c589030db38227f",
+      "pcm_sha256": "063b50a1f3747151dfc281e945016f10e13b492913040b8d8620de7318290279",
+      "pcm_bytes": 12288,
+      "sample_rate": 48000,
+      "channels": 1,
+      "audio_packets": 3,
+      "samples_per_channel": 3072
+    },
+    {
+      "input": "aac-lace-ebml.mka",
+      "input_sha256": "ee7ea47de4d7dabc635ce72a24e97a7c2baa1d83d188ccb57000e7c36339e5f2",
+      "reference": "aac-lace-original.f32le.gz",
+      "reference_sha256": "616c3d6808aa5c4ca02c2b16ee07fc1b221d583890b400052c589030db38227f",
+      "pcm_sha256": "063b50a1f3747151dfc281e945016f10e13b492913040b8d8620de7318290279",
+      "pcm_bytes": 12288,
+      "sample_rate": 48000,
+      "channels": 1,
+      "audio_packets": 3,
+      "samples_per_channel": 3072
+    },
+    {
+      "input": "aac-lace-group-ebml.mka",
+      "input_sha256": "1a0ed8ff320d89ff3f03b866c55f1b8c44447a9f5461c3e4d339a04c95ff0cd8",
+      "reference": "aac-lace-original.f32le.gz",
+      "reference_sha256": "616c3d6808aa5c4ca02c2b16ee07fc1b221d583890b400052c589030db38227f",
+      "pcm_sha256": "063b50a1f3747151dfc281e945016f10e13b492913040b8d8620de7318290279",
+      "pcm_bytes": 12288,
+      "sample_rate": 48000,
+      "channels": 1,
+      "audio_packets": 3,
+      "samples_per_channel": 3072
+    },
+    {
+      "input": "aac-lace-fixed.mka",
+      "input_sha256": "2226d687756bea69355303a7b6d68d8f00692c4337f5fad64235b4f8d7ccfb40",
+      "reference": "aac-lace-fixed.f32le.gz",
+      "reference_sha256": "52954dcbd04e80403b76af41182e7d5944c8a4a1943c44b51c2100519b8c9f0e",
+      "pcm_sha256": "24822de03bb393c6077f441e8ed169b6207807f85c1533f30da50e9ca5cf1485",
+      "pcm_bytes": 12288,
+      "sample_rate": 48000,
+      "channels": 1,
+      "audio_packets": 3,
+      "samples_per_channel": 3072
+    },
+    {
+      "input": "mp3-low-rate.mka",
+      "input_sha256": "631a4bbbfa4a3c73dce1e65fe9bc4b6f1c666a40fd5020ecf1fa53fd4fb00052",
+      "reference": "mp3-low-rate.f32le.gz",
+      "reference_sha256": "d8dd3232f69ef0c4bd6119fa705f0cb1e4858e384abf5472863b73259ed5d81c",
+      "pcm_sha256": "c0b6d3403dc3760b37bba9e7ee18dff5390f6823354859ac9f18ade1a40e8b70",
+      "pcm_bytes": 188928,
+      "sample_rate": 8000,
+      "channels": 1,
+      "audio_packets": 82,
+      "samples_per_channel": 47232
+    }
+  ]
+}

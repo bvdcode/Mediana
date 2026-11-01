@@ -36,16 +36,10 @@ namespace Mediana.Drawing.Fonts
                     return new GlyphShape(new List<FontPoint>(), new List<int>());
                 }
 
-                int position = data.Start + start, limit = data.Start + end;
-                int contours = S16(position);
-                position += 10;
-                GlyphShape result = contours >= 0 ? Simple(contours, ref position) : Composite(ref position, active, depth);
-                if (position > limit)
-                {
-                    throw new InvalidDataException("TrueType outline exceeds its glyph data.");
-                }
-
-                return result;
+                FontGlyphReader reader = new(_data.AsSpan(data.Start + start, end - start));
+                int contours = reader.ReadInt16();
+                reader.Skip(8);
+                return contours >= 0 ? Simple(contours, ref reader) : Composite(ref reader, active, depth);
             }
             finally
             {
@@ -53,13 +47,19 @@ namespace Mediana.Drawing.Fonts
             }
         }
 
-        private GlyphShape Simple(int contours, ref int position)
+        private GlyphShape Simple(int contours, ref FontGlyphReader reader)
         {
+            if (contours == 0 && reader.IsEmpty)
+            {
+                return new([], []);
+            }
+            FontGlyphReader endpoints = new(reader.Read(checked(contours * sizeof(ushort))));
+            int instructions = reader.ReadUInt16();
+            reader.Skip(instructions);
             var ends = new List<int>(contours);
             for (int i = 0; i < contours; i++)
             {
-                int end = U16(position);
-                position += 2;
+                int end = endpoints.ReadUInt16();
                 if (i > 0 && end <= ends[i - 1])
                 {
                     throw new InvalidDataException("Invalid TrueType contour endpoints.");
@@ -68,17 +68,19 @@ namespace Mediana.Drawing.Fonts
                 ends.Add(end);
             }
 
-            int instructions = U16(position);
-            position = checked(position + 2 + instructions);
             int count = contours == 0 ? 0 : ends[^1] + 1;
-            byte[]? flags = new byte[count];
+            if (count > 0)
+            {
+                reader.Require(1);
+            }
+            byte[] flags = new byte[count];
             for (int i = 0; i < count; i++)
             {
-                byte flag = Byte(position++);
+                byte flag = reader.ReadByte();
                 flags[i] = flag;
                 if ((flag & 8) != 0)
                 {
-                    int repeat = Byte(position++);
+                    int repeat = reader.ReadByte();
                     if (repeat > count - i - 1)
                     {
                         throw new InvalidDataException("Invalid repeated TrueType flags.");
@@ -95,14 +97,14 @@ namespace Mediana.Drawing.Fonts
             int x = 0;
             for (int i = 0; i < count; i++)
             {
-                x = checked(x + Coordinate(flags[i], 2, 16, ref position));
+                x = checked(x + Coordinate(flags[i], 2, 16, ref reader));
                 points.Add(new FontPoint(new Vector2(x, 0), (flags[i] & 1) != 0));
             }
 
             int y = 0;
             for (int i = 0; i < count; i++)
             {
-                y = checked(y + Coordinate(flags[i], 4, 32, ref position));
+                y = checked(y + Coordinate(flags[i], 4, 32, ref reader));
                 points[i] = points[i] with
                 {
                     Position = new Vector2(points[i].Position.X, y)
@@ -112,11 +114,11 @@ namespace Mediana.Drawing.Fonts
             return new GlyphShape(points, ends);
         }
 
-        private int Coordinate(byte flags, int shortMask, int positiveMask, ref int position)
+        private static int Coordinate(byte flags, int shortMask, int positiveMask, ref FontGlyphReader reader)
         {
             if ((flags & shortMask) != 0)
             {
-                int value = Byte(position++);
+                int value = reader.ReadByte();
                 return (flags & positiveMask) != 0 ? value : -value;
             }
 
@@ -125,23 +127,22 @@ namespace Mediana.Drawing.Fonts
                 return 0;
             }
 
-            int result = S16(position);
-            position += 2;
-            return result;
+            return reader.ReadInt16();
         }
 
-        private GlyphShape Composite(ref int position, HashSet<int> active, int depth)
+        private GlyphShape Composite(ref FontGlyphReader reader, HashSet<int> active, int depth)
         {
             GlyphShape? result = new GlyphShape(new List<FontPoint>(), new List<int>());
             int flags;
+            bool instructions = false;
             do
             {
-                flags = U16(position);
-                int glyph = U16(position + 2);
-                position += 4;
+                flags = reader.ReadUInt16();
+                instructions |= (flags & 256) != 0;
+                int glyph = reader.ReadUInt16();
                 bool xy = (flags & 2) != 0;
-                int a = CompositeArgument(flags, ref position), b = CompositeArgument(flags, ref position);
-                Matrix3x2 transform = CompositeTransform(flags, ref position);
+                int a = CompositeArgument(flags, ref reader), b = CompositeArgument(flags, ref reader);
+                Matrix3x2 transform = CompositeTransform(flags, ref reader);
                 GlyphShape component = ReadGlyph(glyph, active, depth + 1);
                 Vector2 offset;
                 if (xy)
@@ -184,39 +185,34 @@ namespace Mediana.Drawing.Fonts
                 }
             }
             while ((flags & 32) != 0);
-            if ((flags & 256) != 0)
+            if (instructions)
             {
-                position += 2 + U16(position);
+                reader.Skip(reader.ReadUInt16());
             }
 
             return result;
         }
 
-        private int CompositeArgument(int flags, ref int position)
+        private static int CompositeArgument(int flags, ref FontGlyphReader reader)
         {
             bool xy = (flags & 2) != 0, words = (flags & 1) != 0;
-            int value = words ? xy ? S16(position) : U16(position) : xy ? (sbyte)Byte(position) : Byte(position);
-            position += words ? 2 : 1;
-            return value;
+            return words ? xy ? reader.ReadInt16() : reader.ReadUInt16() : xy ? (sbyte)reader.ReadByte() : reader.ReadByte();
         }
 
-        private Matrix3x2 CompositeTransform(int flags, ref int position)
+        private static Matrix3x2 CompositeTransform(int flags, ref FontGlyphReader reader)
         {
             Matrix3x2 transform = Matrix3x2.Identity;
             if ((flags & 8) != 0)
             {
-                transform = Matrix3x2.CreateScale(S16(position) / 16384f);
-                position += 2;
+                transform = Matrix3x2.CreateScale(reader.ReadInt16() / 16384f);
             }
             else if ((flags & 64) != 0)
             {
-                transform = Matrix3x2.CreateScale(S16(position) / 16384f, S16(position + 2) / 16384f);
-                position += 4;
+                transform = Matrix3x2.CreateScale(reader.ReadInt16() / 16384f, reader.ReadInt16() / 16384f);
             }
             else if ((flags & 128) != 0)
             {
-                transform = new Matrix3x2(S16(position) / 16384f, S16(position + 2) / 16384f, S16(position + 4) / 16384f, S16(position + 6) / 16384f, 0, 0);
-                position += 8;
+                transform = new Matrix3x2(reader.ReadInt16() / 16384f, reader.ReadInt16() / 16384f, reader.ReadInt16() / 16384f, reader.ReadInt16() / 16384f, 0, 0);
             }
 
             return transform;

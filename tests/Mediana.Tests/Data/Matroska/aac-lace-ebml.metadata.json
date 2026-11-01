@@ -1,0 +1,101 @@
+{
+  "input_sha256": "ee7ea47de4d7dabc635ce72a24e97a7c2baa1d83d188ccb57000e7c36339e5f2",
+  "external_version": "ffprobe version 6.1.1-3ubuntu5 Copyright (c) 2007-2023 the FFmpeg developers",
+  "info": {
+    "timestamp_scale": 1000000,
+    "duration_ticks": 64.0,
+    "uid": null,
+    "title": null,
+    "muxing_app": "Matroska format fixture",
+    "writing_app": "Matroska format fixture"
+  },
+  "tracks": [
+    {
+      "number": 2,
+      "uid": 9806457643801275327,
+      "type": 2,
+      "codec_id": "A_AAC",
+      "name": null,
+      "language": "und",
+      "language_bcp47": null,
+      "enabled": true,
+      "default": true,
+      "forced": false,
+      "lacing": true,
+      "timestamp_scale": 1,
+      "default_duration_ns": null,
+      "codec_delay_ns": 0,
+      "seek_preroll_ns": 0,
+      "codec_private": {
+        "offset": 188,
+        "bytes": 5,
+        "sha256": "643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409"
+      },
+      "video": null,
+      "audio": {
+        "sampling_frequency": 48000.0,
+        "output_sampling_frequency": 48000.0,
+        "channels": 1,
+        "bit_depth": 32
+      }
+    }
+  ],
+  "external_streams": [
+    {
+      "index": 0,
+      "codec_name": "aac",
+      "codec_long_name": "AAC (Advanced Audio Coding)",
+      "profile": "LC",
+      "codec_type": "audio",
+      "codec_tag_string": "[0][0][0][0]",
+      "codec_tag": "0x0000",
+      "sample_fmt": "fltp",
+      "sample_rate": "48000",
+      "channels": 1,
+      "channel_layout": "mono",
+      "bits_per_sample": 0,
+      "initial_padding": 0,
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/1000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "extradata_size": 5,
+      "extradata_hash": "SHA256:643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409",
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "non_diegetic": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      }
+    }
+  ],
+  "external_format": {
+    "nb_streams": 1,
+    "nb_programs": 0,
+    "format_name": "matroska,webm",
+    "format_long_name": "Matroska / WebM",
+    "start_time": "0.000000",
+    "duration": "0.064000",
+    "size": "798",
+    "bit_rate": "99750",
+    "probe_score": 100,
+    "tags": {
+      "encoder": "Matroska format fixture"
+    }
+  }
+}

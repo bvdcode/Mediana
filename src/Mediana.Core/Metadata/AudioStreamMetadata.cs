@@ -36,5 +36,7 @@ namespace Mediana.Core.Metadata
         public int? BitsPerSample { get; }
         /// <summary>Explicit codec-configuration channel order. Null means it has not been established.</summary>
         public IReadOnlyList<string>? ChannelOrder { get; }
+        /// <summary>Profile established by the opening codec configuration, or null when not established.</summary>
+        public CodecProfileInfo? CodecProfile { get; init; }
     }
 }

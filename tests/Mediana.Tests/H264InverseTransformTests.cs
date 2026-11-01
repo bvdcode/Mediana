@@ -7,6 +7,25 @@ namespace Mediana.Tests
 {
     public class H264InverseTransformTests
     {
+        [Fact]
+        public void DcOnlyBlocksPreserveSignedRoundingAndCheckedOverflowAtEveryQp() => H264DcResidualTestInput.VerifyDcOnly();
+
+        [Fact]
+        public void EveryNonzeroAcPositionPreservesNonconstantResiduals() => H264DcResidualTestInput.VerifyAcBlocks();
+
+        [Fact]
+        public void ConstantResidualsCanUseOverlappingInputAndOutputStorage() => H264DcResidualTestInput.VerifyOverlappingStorage();
+
+        [Fact]
+        public void EmptyCoefficientsStillRequireValidQuantizersAndCompleteBlocks()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => H264InverseTransform.Residual4x4(new int[16], -1, new int[16]));
+            Assert.Throws<ArgumentOutOfRangeException>(() => H264InverseTransform.Residual4x4(new int[16], 52, new int[16]));
+            Assert.Throws<ArgumentException>(() => H264InverseTransform.Residual4x4(new int[15], 0, new int[16]));
+            Assert.Throws<ArgumentException>(() => H264InverseTransform.Residual4x4(new int[16], 0, new int[16], 0));
+            Assert.Throws<ArgumentException>(() => H264InverseTransform.Residual4x4(new int[16], 0, new int[15]));
+        }
+
         [Theory]
         [InlineData(0, 10)]
         [InlineData(6, 20)]

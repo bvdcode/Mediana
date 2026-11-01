@@ -27,6 +27,13 @@ namespace Mediana.Codecs.H264
             {
                 throw new ArgumentException("The H.264 residual transform requires a complete 4x4 block.");
             }
+            ReadOnlySpan<int> ac = scaledDc is null ? scanned[1..] : scanned;
+            if (!ac.ContainsAnyExcept(0))
+            {
+                long dc = scaledDc is int value ? value : ((long)scanned[0] * ScaleEven[qp % 6]) << (qp / 6);
+                residual.Fill(checked((int)((dc + 32) >> 6)));
+                return;
+            }
             Span<long> values = stackalloc long[16];
             if (scaledDc is not null)
             {

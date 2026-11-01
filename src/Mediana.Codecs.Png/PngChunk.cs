@@ -2,13 +2,12 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Buffers.Binary;
+using Mediana.Formats;
 
 namespace Mediana.Codecs.Png
 {
     internal static class PngChunk
     {
-        private static readonly uint[] CrcTable = CreateCrcTable();
-
         public static int Write(Span<byte> destination, ReadOnlySpan<byte> type, ReadOnlySpan<byte> payload,
             CancellationToken cancellationToken)
         {
@@ -23,31 +22,8 @@ namespace Mediana.Codecs.Png
         {
             BinaryPrimitives.WriteInt32BigEndian(chunk, payloadLength);
             ReadOnlySpan<byte> data = chunk.Slice(4, checked(payloadLength + 4));
-            uint crc = uint.MaxValue;
-            for (int index = 0; index < data.Length; index++)
-            {
-                if ((index & 4095) == 0)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                }
-                crc = CrcTable[(crc ^ data[index]) & 255] ^ (crc >> 8);
-            }
-            BinaryPrimitives.WriteUInt32BigEndian(chunk.Slice(8 + payloadLength, 4), ~crc);
-        }
-
-        private static uint[] CreateCrcTable()
-        {
-            uint[] result = new uint[256];
-            for (uint index = 0; index < result.Length; index++)
-            {
-                uint value = index;
-                for (int bit = 0; bit < 8; bit++)
-                {
-                    value = (value & 1) == 0 ? value >> 1 : (value >> 1) ^ 0xedb88320u;
-                }
-                result[index] = value;
-            }
-            return result;
+            uint crc = IeeeCrc32.Compute(data, cancellationToken);
+            BinaryPrimitives.WriteUInt32BigEndian(chunk.Slice(8 + payloadLength, 4), crc);
         }
     }
 }

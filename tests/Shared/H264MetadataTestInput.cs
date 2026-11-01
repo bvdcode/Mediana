@@ -13,10 +13,11 @@ namespace Mediana.Tests
     internal static class H264MetadataTestInput
     {
         public static byte[] Sequence(int id = 0, int widthMbs = 4, int heightMapUnits = 3, bool frameOnly = true,
-            int profile = 66, int chroma = 1, int depth = 8, string? vui = null)
+            int profile = 66, int chroma = 1, int depth = 8, string? vui = null, int constraints = 0, int level = 10)
         {
-            string bits = Convert.ToString(profile, 2).PadLeft(8, '0') + " 00000000 00001010 " + H264TestBits.Ue(id);
-            if (profile is 100 or 110 or 122 or 244)
+            string bits = Convert.ToString(profile, 2).PadLeft(8, '0') + " " + Convert.ToString(constraints, 2).PadLeft(8, '0')
+                + " " + Convert.ToString(level, 2).PadLeft(8, '0') + " " + H264TestBits.Ue(id);
+            if (profile is 100 or 110 or 122 or 244 or 44 or 83 or 86 or 118 or 128 or 138 or 139 or 134 or 135)
             {
                 bits += H264TestBits.Ue(chroma);
                 if (chroma == 3)

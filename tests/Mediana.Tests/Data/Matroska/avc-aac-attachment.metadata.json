@@ -1,0 +1,188 @@
+{
+  "input_sha256": "63f999ab20fc744304bbcb45b5287eb50a94420df5f6b816f2ef19896e5de87c",
+  "external_version": "ffprobe version 6.1.1-3ubuntu5 Copyright (c) 2007-2023 the FFmpeg developers",
+  "info": {
+    "timestamp_scale": 1000000,
+    "duration_ticks": 1621.0,
+    "uid": "f1917ad4fc356c69f8e5fd64986c54aa",
+    "title": "Matroska stream-copy fixture",
+    "muxing_app": "Lavf60.16.100",
+    "writing_app": "Lavf60.16.100"
+  },
+  "tracks": [
+    {
+      "number": 1,
+      "uid": 2602550366685939738,
+      "type": 1,
+      "codec_id": "V_MPEG4/ISO/AVC",
+      "name": null,
+      "language": "und",
+      "language_bcp47": null,
+      "enabled": true,
+      "default": true,
+      "forced": false,
+      "lacing": false,
+      "timestamp_scale": 1,
+      "default_duration_ns": 200000000,
+      "codec_delay_ns": 0,
+      "seek_preroll_ns": 0,
+      "codec_private": {
+        "offset": 437,
+        "bytes": 45,
+        "sha256": "c79bb9116b4982edd928235fddb63535ceded297674e4f7e5b0872e148c799af"
+      },
+      "video": {
+        "pixel_width": 64,
+        "pixel_height": 48
+      },
+      "audio": null
+    },
+    {
+      "number": 2,
+      "uid": 9806457643801275327,
+      "type": 2,
+      "codec_id": "A_AAC",
+      "name": null,
+      "language": "und",
+      "language_bcp47": null,
+      "enabled": true,
+      "default": true,
+      "forced": false,
+      "lacing": false,
+      "timestamp_scale": 1,
+      "default_duration_ns": null,
+      "codec_delay_ns": 0,
+      "seek_preroll_ns": 0,
+      "codec_private": {
+        "offset": 551,
+        "bytes": 5,
+        "sha256": "643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409"
+      },
+      "video": null,
+      "audio": {
+        "sampling_frequency": 48000.0,
+        "output_sampling_frequency": 48000.0,
+        "channels": 1,
+        "bit_depth": 32
+      }
+    }
+  ],
+  "external_streams": [
+    {
+      "index": 0,
+      "codec_name": "h264",
+      "codec_long_name": "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10",
+      "profile": "High",
+      "codec_type": "video",
+      "codec_tag_string": "[0][0][0][0]",
+      "codec_tag": "0x0000",
+      "width": 64,
+      "height": 48,
+      "coded_width": 64,
+      "coded_height": 48,
+      "closed_captions": 0,
+      "film_grain": 0,
+      "has_b_frames": 2,
+      "sample_aspect_ratio": "1:1",
+      "display_aspect_ratio": "4:3",
+      "pix_fmt": "yuv420p",
+      "level": 10,
+      "chroma_location": "left",
+      "field_order": "progressive",
+      "refs": 1,
+      "is_avc": "true",
+      "nal_length_size": "4",
+      "r_frame_rate": "5/1",
+      "avg_frame_rate": "5/1",
+      "time_base": "1/1000",
+      "start_pts": 21,
+      "start_time": "0.021000",
+      "bits_per_raw_sample": "8",
+      "extradata_size": 45,
+      "extradata_hash": "SHA256:c79bb9116b4982edd928235fddb63535ceded297674e4f7e5b0872e148c799af",
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "non_diegetic": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "DURATION": "00:00:01.621000000"
+      }
+    },
+    {
+      "index": 1,
+      "codec_name": "aac",
+      "codec_long_name": "AAC (Advanced Audio Coding)",
+      "profile": "LC",
+      "codec_type": "audio",
+      "codec_tag_string": "[0][0][0][0]",
+      "codec_tag": "0x0000",
+      "sample_fmt": "fltp",
+      "sample_rate": "48000",
+      "channels": 1,
+      "channel_layout": "mono",
+      "bits_per_sample": 0,
+      "initial_padding": 0,
+      "r_frame_rate": "0/0",
+      "avg_frame_rate": "0/0",
+      "time_base": "1/1000",
+      "start_pts": 0,
+      "start_time": "0.000000",
+      "extradata_size": 5,
+      "extradata_hash": "SHA256:643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409",
+      "disposition": {
+        "default": 1,
+        "dub": 0,
+        "original": 0,
+        "comment": 0,
+        "lyrics": 0,
+        "karaoke": 0,
+        "forced": 0,
+        "hearing_impaired": 0,
+        "visual_impaired": 0,
+        "clean_effects": 0,
+        "attached_pic": 0,
+        "timed_thumbnails": 0,
+        "non_diegetic": 0,
+        "captions": 0,
+        "descriptions": 0,
+        "metadata": 0,
+        "dependent": 0,
+        "still_image": 0
+      },
+      "tags": {
+        "DURATION": "00:00:01.621000000"
+      }
+    }
+  ],
+  "external_format": {
+    "nb_streams": 3,
+    "nb_programs": 0,
+    "format_name": "matroska,webm",
+    "format_long_name": "Matroska / WebM",
+    "start_time": "0.000000",
+    "duration": "1.621000",
+    "size": "19043",
+    "bit_rate": "93981",
+    "probe_score": 100,
+    "tags": {
+      "title": "Matroska stream-copy fixture",
+      "ENCODER": "Lavf60.16.100"
+    }
+  }
+}

@@ -39,6 +39,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
+| `Mediana.Containers.Matroska` | [EBML values and bounded element-header foundation](docs/matroska-ebml.md) |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC/MP3 packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
@@ -1417,6 +1418,10 @@ without parsing complete PPS reconstruction syntax. Unsupported SPS profiles
 return no metadata; malformed supported syntax throws.
 
 The generic CLI probe prints all opening video descriptions through this reader.
+Common `CodecProfileInfo` descriptions expose H.264 profile/level names per SPS
+and AAC-LC profiles without decoder creation. Numeric H.264 declarations remain
+available. See [codec profile metadata](docs/codec-profiles.md) for constraint
+variants, level 1b and unknown-level behavior.
 Metadata availability is independent of decoding support: independent header
 checks cover eleven real AVC inputs, including 10-bit, 4:2:2, 4:4:4, interlaced,
 8K, cropped and rotated files. They pass with a 32 KiB media-buffer budget in

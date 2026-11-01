@@ -141,6 +141,15 @@ namespace Mediana.Tests
 
         private static void VerifyNoiseEnergy(ReadOnlySpan<byte> actual, ReadOnlySpan<byte> expected, int channels)
         {
+            (double totalActual, double totalExpected) = GetVerifiedNoiseEnergy(actual, expected, channels);
+            if (Math.Abs(totalActual - totalExpected) > 0.001 * totalExpected)
+            {
+                throw new InvalidDataException("AAC noise substitution changed total reference energy by more than 0.1 percent.");
+            }
+        }
+
+        public static (double Actual, double Expected) GetVerifiedNoiseEnergy(ReadOnlySpan<byte> actual, ReadOnlySpan<byte> expected, int channels)
+        {
             ReadOnlySpan<float> samples = MemoryMarshal.Cast<byte, float>(actual);
             double totalActual = 0;
             double totalExpected = 0;
@@ -165,10 +174,7 @@ namespace Mediana.Tests
                     totalExpected += expectedEnergy;
                 }
             }
-            if (Math.Abs(totalActual - totalExpected) > 0.001 * totalExpected)
-            {
-                throw new InvalidDataException("AAC noise substitution changed total reference energy by more than 0.1 percent.");
-            }
+            return (totalActual, totalExpected);
         }
     }
 }

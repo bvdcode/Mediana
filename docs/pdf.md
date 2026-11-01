@@ -5,6 +5,9 @@ with managed C# code. It uses Mediana's drawing, TrueType, JPEG 2000 and JBIG2
 implementations. There are no PDF parser packages, native libraries or external
 processes in the runtime path. The module is packaged as `Mediana.Documents.Pdf`.
 
+[TrueType glyph reading](fonts.md) describes the outline bounds and ownership
+used for embedded TrueType fonts.
+
 ```csharp
 using Mediana.Documents.Pdf;
 using Mediana.Drawing;

@@ -14,6 +14,8 @@ namespace Mediana.Codecs.Aac
     /// Reading parameters does not require decoder support for the channel configuration.</summary>
     public class AacStreamMetadataReader : IStreamMetadataReader
     {
+        private static readonly CodecProfileInfo LowComplexity = new("LC");
+
         public string ImplementationId => "mediana.aac.metadata";
         public string CodecId => AacConfiguration.CodecId;
 
@@ -30,7 +32,7 @@ namespace Mediana.Codecs.Aac
             {
                 return null;
             }
-            return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount);
+            return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount) { CodecProfile = LowComplexity };
         }
     }
 }

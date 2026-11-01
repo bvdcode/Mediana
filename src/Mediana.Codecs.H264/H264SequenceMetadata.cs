@@ -18,6 +18,7 @@ namespace Mediana.Codecs.H264
             ProfileIdc = sequence.Profile;
             ConstraintFlags = sequence.Constraints;
             LevelIdc = sequence.Level;
+            CodecProfile = H264ProfileMetadata.Read(sequence.Profile, sequence.Constraints, sequence.Level);
             CodedWidth = sequence.CodedWidth;
             CodedHeight = sequence.CodedHeight;
             CropLeft = sequence.CropLeft;
