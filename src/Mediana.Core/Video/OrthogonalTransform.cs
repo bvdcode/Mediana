@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Core.Video;
-
-namespace Mediana.Processing
+namespace Mediana.Core.Video
 {
-    internal readonly record struct OrthogonalTransform(int A, int B, int C, int D)
+    /// <summary>Exact orthogonal display orientation. Maps displayed pixel coordinates back to source storage.</summary>
+    public readonly record struct OrthogonalTransform
     {
+        private OrthogonalTransform(int a, int b, int c, int d)
+        {
+            A = a; B = b; C = c; D = d;
+        }
+
+        public int A { get; }
+        public int B { get; }
+        public int C { get; }
+        public int D { get; }
         public static OrthogonalTransform Identity { get; } = new(1, 0, 0, 1);
         public bool SwapsAxes => A == 0;
 
