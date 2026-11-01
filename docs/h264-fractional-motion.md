@@ -171,3 +171,49 @@ managed tests, 17 focused tests with hardware intrinsics disabled, all 30 local
 packages and the strict Linux x64 package-only Native AOT runner and CLI pass.
 This minute-long pair does not replace the complete-film FFmpeg comparison or
 establish throughput on other hardware and inputs.
+
+## General interpolation trial
+
+A separate trial applied eight-sample vector filtering to the general luma
+interpolation path shared by decoding and reference prediction. It retained
+all sixteen fractional phases, scalar tails, existing bounded tile storage,
+unrounded diagonal intermediates and clipping before quarter averages.
+The extended independent convolution corpus covered 12,672 blocks, including
+extreme filter patterns, border extension, unusual widths and tiling.
+
+Two complete 60.041667-second audiovisual HLS pairs used the same settings,
+Native AOT binaries, source and logical CPU described above. Execution order
+was reversed for the second pair. Each process reached all 1,441 input pictures
+and released its media buffers. All 25 output files matched each other and the
+previously independently decoded output byte for byte. The trial also passed
+2,923 managed tests, 17 hardware-disabled tests and strict package-only Native
+AOT execution before measurement.
+
+| Pair and execution order | Current CPU, s | Trial CPU, s | CPU change | Current peak RSS, MiB | Trial peak RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Current, then trial | 177.798 | 174.116 | -2.07% | 102.01 | 118.17 |
+| Trial, then current | 187.642 | 190.429 | +1.49% | 98.34 | 106.29 |
+
+The direction of the CPU difference reversed, and peak RSS was higher in both
+trial runs. These shared-host measurements do not establish a repeatable
+full-operation improvement. The general interpolation change was not adopted.
+
+## Native AOT stage observations
+
+An instrumented build of the retained implementation processed the same complete
+minute and reproduced all 25 output files. It counted 2,882 picture encoding
+attempts for 2,882 output pictures across both variants, with no rejected
+attempts. Rate-control re-encoding did not contribute to this case.
+
+Measured elapsed stage time was 49.419 seconds for video decoding, 13.854 for
+resizing, 13.202 for audio processing/writing and 121.732 for video rendition
+processing/writing. Within picture encoding, motion search took 56.983 seconds,
+block analysis 29.297 and reconstruction/entropy/writing 28.350. These are
+instrumented elapsed observations with measurement overhead, not CPU percentages
+or an isolated codec benchmark.
+
+The stage observations locate substantial work in both decoding and encoding;
+they do not establish each stage's performance relative to FFmpeg. The last
+complete-film comparison remains 9.02 times FFmpeg's CPU use, with higher video
+error at slightly greater output size. No updated full-film ratio follows from
+the minute-long filter measurements.
