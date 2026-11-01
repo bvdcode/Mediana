@@ -1417,6 +1417,10 @@ without parsing complete PPS reconstruction syntax. Unsupported SPS profiles
 return no metadata; malformed supported syntax throws.
 
 The generic CLI probe prints all opening video descriptions through this reader.
+Common `CodecProfileInfo` descriptions expose H.264 profile/level names per SPS
+and AAC-LC profiles without decoder creation. Numeric H.264 declarations remain
+available. See [codec profile metadata](docs/codec-profiles.md) for constraint
+variants, level 1b and unknown-level behavior.
 Metadata availability is independent of decoding support: independent header
 checks cover eleven real AVC inputs, including 10-bit, 4:2:2, 4:4:4, interlaced,
 8K, cropped and rotated files. They pass with a 32 KiB media-buffer budget in
