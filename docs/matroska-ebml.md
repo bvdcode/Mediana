@@ -1,7 +1,7 @@
 # Matroska EBML foundation
 
 `Mediana.Containers.Matroska` contains internal EBML value decoding, document
-header validation and bounded Segment traversal. Track descriptions, packet reading,
+header validation, bounded Segment traversal and Block framing. Track descriptions, packet reading,
 seeking and container attachment extraction are the next integration work.
 MKV probing and decoding are not exposed through the public engine yet.
 
@@ -48,6 +48,32 @@ Unsupported concatenated Matroska documents are rejected rather than silently
 dropping later documents. Structural traversal establishes extents; it does not
 validate packet contents, all body CRCs or track-level requirements.
 
+## Block framing
+
+Block and SimpleBlock framing preserves the native track number, signed 16-bit
+relative timestamp and raw flags. Track-number VINTs and lace-size VINTs use
+their complete numeric range; an all-one value is not an unknown-size sentinel
+in those fields. Reserved flag bits must be zero. SimpleBlock key flags are
+retained; a BlockGroup's random-access status requires its ReferenceBlock data.
+
+The reader supports no lacing, Xiph lacing, EBML lacing and fixed-size lacing.
+It splits each block into exact source ranges, including all 256 possible laced
+frames. Xiph lengths retain their terminating zero when a size is divisible by
+255. EBML differences use their width-dependent signed bias. Negative sizes,
+inconsistent fixed lengths, truncated headers and frames extending outside the
+block are rejected. Frame bytes and header bytes have independent supplied limits.
+
+One reusable 3,328-byte allocation holds a 256-byte input cache and frame ranges.
+No complete encoded frame is allocated during framing. The current ranges remain
+available until the next read; failure or cancellation makes an incomplete layout
+unavailable. Operations, range access and disposal are sequential, and the source
+remains borrowed.
+
+The stored block timestamp applies to the first laced frame. Subsequent frames
+need track or codec timing as specified by RFC 9559, section 10.3.5. Framing alone
+does not assign those timestamps, infer DTS, validate codec payloads or construct
+the complete media packet index.
+
 ## Bounds and ownership
 
 The element reader borrows a random-access source and leaves its sequential
@@ -89,5 +115,13 @@ full decoding of those two fixture variants preserves all 84 video/audio frame
 records, timestamps and decoded hashes. This validates the fixtures; public MKV
 media decoding is still pending.
 
-All 2,745 managed tests and the complete strict Linux x64 Native AOT runner pass.
+Block tests check the signed timestamp limits, every track-number VINT width,
+all-one numeric VINTs, empty frame ranges, maximum lace counts, eight-byte
+differences across cache refills, offsets at the address limit, malformed layouts,
+quotas, header/frame limits, cancellation during refill and reader reuse.
+All 96 encoded packets across the original MKV and four authored laced AAC
+documents have independent size and SHA-256 references. Tests verify every
+frame range and stored block timestamp in managed and Native AOT builds.
+
+All 2,750 managed tests and the complete strict Linux x64 Native AOT runner pass.
 The Release build, formatting and license-header checks also pass.
