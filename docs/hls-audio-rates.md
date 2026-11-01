@@ -94,8 +94,10 @@ playlist bandwidth field agrees with independently measured transport output.
 An isolated Linux x64 Native AOT run, restricted to one CPU core, measured
 342.229 seconds of process CPU, 367.396 seconds elapsed and 27.13 MiB peak RSS.
 This is a single full-source resource measurement on small, repeated video.
-Representative HD output throughput, encoding quality and a matched FFmpeg
-comparison remain open.
+These repeated small-video results do not establish representative HD throughput
+or quality. A separate [complete 720p/360p HLS comparison](hls-hd-encoding.md)
+records both full-film audiovisual outputs against FFmpeg, including resources,
+picture error, complete audio decoding and independent segment checks.
 
 Cancellation was also exercised after real processing progress. The process
 returned exit code 130, and neither the final output directory nor its temporary

@@ -1624,6 +1624,8 @@ AAC encoding applies the exact input MP4 sample edit, preserves its movie origin
 and writes each selected AAC sequence with its own priming and final tail.
 [Per-variant audio verification](docs/hls-audio-rates.md) covers the shared input,
 exact packet budgets, complete decoding and master playlist measurements.
+[Complete 720p/360p HLS verification](docs/hls-hd-encoding.md) records the full
+original film, CPU/RSS comparison with FFmpeg and every output picture and segment.
 Segment timelines must match across variants. Output
 is prepared in one temporary directory and published together after completion;
 errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
@@ -1631,7 +1633,7 @@ streaming encoded packets without a source-container dependency.
 
 The current mode uses I/P video with IDRs aligned to segment targets. Optional
 per-variant video packet rates use adaptive QP; otherwise QP is fixed. Full HRD
-conformance, perceptual AAC quality and per-variant audio rates remain open.
+conformance and perceptual AAC quality remain open.
 See [HLS encoding contracts and checks](docs/hls-encoding.md).
 
 ## Connecting modules
