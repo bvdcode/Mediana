@@ -10,7 +10,7 @@ namespace Mediana
 {
     /// <summary>Forward-only encoded packets. Owns container state but borrows the source.
     /// Returned packets retain their storage until disposed, including after session disposal.</summary>
-    public class ContainerSession : IContainerReader
+    public partial class ContainerSession : IContainerReader
     {
         private readonly IByteSource replay;
         private readonly long? maxPacketReads;
@@ -32,14 +32,8 @@ namespace Mediana
         public ContainerInfo Info => Reader.Info;
         public IReadOnlyList<EncodedStreamInfo> Streams => Reader.Streams;
         public long AllocatedBufferBytes => Allocator.AllocatedBytes;
-        /// <summary>Picture declarations in container order. Null means the reader does not expose pictures;
-        /// an empty list means no pictures were found in its supported inspected metadata.</summary>
-        public IReadOnlyList<ContainerPictureInfo>? Pictures => (Reader as IContainerPictureReader)?.Pictures;
-
-        /// <summary>Reads original picture/reference bytes without advancing packets or selecting a cover.
-        /// Returned storage belongs to the caller and survives session disposal. Cancellation or a reader
-        /// failure faults the session; an unsupported capability or invalid index leaves it usable.</summary>
-        public async ValueTask<MediaBuffer> ReadPictureAsync(int pictureIndex, CancellationToken cancellationToken = default)
+        private async ValueTask<MediaBuffer> ReadDataAsync(int dataIndex, int? count,
+            Func<int, CancellationToken, ValueTask<MediaBuffer>>? read, string capability, CancellationToken token)
         {
             Enter();
             bool started = false;
@@ -47,17 +41,17 @@ namespace Mediana
             try
             {
                 RequireActive();
-                if (Reader is not IContainerPictureReader pictures)
+                if (read is null || count is null)
                 {
-                    throw new NotSupportedException("The container reader does not expose pictures.");
+                    throw new NotSupportedException($"The container reader does not expose {capability}.");
                 }
-                ArgumentOutOfRangeException.ThrowIfNegative(pictureIndex);
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pictureIndex, pictures.Pictures.Count);
+                ArgumentOutOfRangeException.ThrowIfNegative(dataIndex);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(dataIndex, count.Value);
                 started = true;
-                cancellationToken.ThrowIfCancellationRequested();
-                MediaBuffer picture = await pictures.ReadPictureAsync(pictureIndex, cancellationToken).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                MediaBuffer data = await read(dataIndex, token).ConfigureAwait(false);
                 succeeded = true;
-                return picture;
+                return data;
             }
             finally
             {
