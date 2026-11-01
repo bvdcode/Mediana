@@ -1,0 +1,401 @@
+[
+  {
+    "name": "l-s0-1x1",
+    "width": 1,
+    "height": 1,
+    "components": 1,
+    "pdf_sha256": "bccdacba8c73c30892950082ca365b7d491a1e26245ea2ea558526e3878176ac"
+  },
+  {
+    "name": "rgb-s0-1x1",
+    "width": 1,
+    "height": 1,
+    "components": 3,
+    "pdf_sha256": "3edd2c945b5e66613ccaf4dff3d0fff3383cdd0a5c5ccd8abae1397d3fe38d97"
+  },
+  {
+    "name": "rgb-s1-1x1",
+    "width": 1,
+    "height": 1,
+    "components": 3,
+    "pdf_sha256": "ac6881a016c23513892f4e003fe7967fbd29b7953ecbe91a4b690984922d9ad4"
+  },
+  {
+    "name": "rgb-s2-1x1",
+    "width": 1,
+    "height": 1,
+    "components": 3,
+    "pdf_sha256": "61b399cda6e914c6cf445621a7fbe370dd8cea69349d4a53f317ac7239081dec"
+  },
+  {
+    "name": "l-s0-7x9",
+    "width": 7,
+    "height": 9,
+    "components": 1,
+    "pdf_sha256": "baf6de1428c5ff01ad384528d1ba706e304c9a5fe7e11e030379585f260f7204"
+  },
+  {
+    "name": "rgb-s0-7x9",
+    "width": 7,
+    "height": 9,
+    "components": 3,
+    "pdf_sha256": "b77561fe8fc1c67b7aa1ce563fe8906b6f6ac6e6b17ab26403f656b3df4148ce"
+  },
+  {
+    "name": "rgb-s1-7x9",
+    "width": 7,
+    "height": 9,
+    "components": 3,
+    "pdf_sha256": "20b1719ae57da8b1ad7d63e8fb6d4a5673a515d2004b909e7bf7333fa722b92e"
+  },
+  {
+    "name": "rgb-s2-7x9",
+    "width": 7,
+    "height": 9,
+    "components": 3,
+    "pdf_sha256": "3d3d0402d864fc22de94edfeb89c7d4e3b7e3ae00fac26e2fc954843aed01c68"
+  },
+  {
+    "name": "l-s0-16x16",
+    "width": 16,
+    "height": 16,
+    "components": 1,
+    "pdf_sha256": "f740e4f1ef81bb4352c58c33009ded49dc23ba639d5417f9ee479bf26a2f3c41"
+  },
+  {
+    "name": "rgb-s0-16x16",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "0d6263f3a04d53c1ffd74015b8d645cbbfa0bdeb32a1cdaa7dcebfeffc5d5911"
+  },
+  {
+    "name": "rgb-s1-16x16",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "2a5680ffff085b746ed2371db6683eb17ffee7aab9fa08240c8de2b642c9b922"
+  },
+  {
+    "name": "rgb-s2-16x16",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "2ec540dea92393a8de2d1157434add504445f684e15d53cfd932b02ad91d5cc7"
+  },
+  {
+    "name": "l-s0-35x19",
+    "width": 35,
+    "height": 19,
+    "components": 1,
+    "pdf_sha256": "1b87dfd5ccf8e4781620a4e5717b8bbf4e381d4f1e6aeeecfc9ef6828f88c90e"
+  },
+  {
+    "name": "rgb-s0-35x19",
+    "width": 35,
+    "height": 19,
+    "components": 3,
+    "pdf_sha256": "a383ce65ca8e3de399fbed78e538000c9607d2064e5f195cadaddfdd21e227d6"
+  },
+  {
+    "name": "rgb-s1-35x19",
+    "width": 35,
+    "height": 19,
+    "components": 3,
+    "pdf_sha256": "5c5dbd52572a19457aef5ca6961f57c3521139ebc366c330d3b278d934d0162a"
+  },
+  {
+    "name": "rgb-s2-35x19",
+    "width": 35,
+    "height": 19,
+    "components": 3,
+    "pdf_sha256": "4ba76ab8667b2c9823d2f8f4d6464af8c3e890b39fb6242480ddbea0eef0db45"
+  },
+  {
+    "name": "l-restarts",
+    "width": 73,
+    "height": 35,
+    "components": 1,
+    "pdf_sha256": "0e662fd57d7b615c87f04dfa5bbaf790fb82a0f004168b80c375d3f2f081bb0a"
+  },
+  {
+    "name": "rgb-restarts",
+    "width": 73,
+    "height": 35,
+    "components": 3,
+    "pdf_sha256": "81e35c6e4afda8319e3ff901907c81422784d924fed57ba7f54b1b842b0f2759"
+  },
+  {
+    "name": "multiscan-420",
+    "width": 35,
+    "height": 19,
+    "components": 3,
+    "pdf_sha256": "2fba555a823415a3b1426b3122055f92f195794760317f1f5a4f5760183837a2"
+  },
+  {
+    "name": "multiscan-444",
+    "width": 19,
+    "height": 17,
+    "components": 3,
+    "pdf_sha256": "1dbf08a2abb45940504baea8460d3f6fcc42b7c88b252984b9bd505859f7bce7"
+  },
+  {
+    "name": "extended-wide-quantization",
+    "width": 9,
+    "height": 9,
+    "components": 1,
+    "pdf_sha256": "04d3a73929bd23a583bd92f7cdb2a923dc8a30076838735179ff94765eca460d"
+  },
+  {
+    "name": "embedded-cover",
+    "width": 24,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "da9e79a6d2e210a10c039fd00a1d44a0b742890d5132e7ae9ff815c6d0ee16fc"
+  },
+  {
+    "name": "adobe-rgb",
+    "width": 19,
+    "height": 17,
+    "components": 3,
+    "pdf_sha256": "be07318da2c2be57081e309e66f76331b8e13f73329ed527834d456948a6c86a"
+  },
+  {
+    "name": "progressive-l-s0-1x1",
+    "width": 1,
+    "height": 1,
+    "components": 1,
+    "pdf_sha256": "def0c03b0df7daf9c6cd2628eef36412398d96db5bbd729b1630aa3a822a944b"
+  },
+  {
+    "name": "progressive-rgb-s0-1x1",
+    "width": 1,
+    "height": 1,
+    "components": 3,
+    "pdf_sha256": "74100c6c19395b2492b1c3a761522614eaadc56237e319bf08e1a2493e3fb6e8"
+  },
+  {
+    "name": "progressive-rgb-s1-1x1",
+    "width": 1,
+    "height": 1,
+    "components": 3,
+    "pdf_sha256": "6d9bebe2e0f35d0d0605b9c55c9d8086266d2a299a9a2d9ab1b2370c4d637f94"
+  },
+  {
+    "name": "progressive-rgb-s2-1x1",
+    "width": 1,
+    "height": 1,
+    "components": 3,
+    "pdf_sha256": "80422337114b2f43b33161e7422e537c04c8cfaa1ba51d61aaffaacc7750e5eb"
+  },
+  {
+    "name": "progressive-l-s0-7x9",
+    "width": 7,
+    "height": 9,
+    "components": 1,
+    "pdf_sha256": "5b660565e77032c0508dc988166c176f82c03c318c0c49cc0c8ede45cafc4a2a"
+  },
+  {
+    "name": "progressive-rgb-s0-7x9",
+    "width": 7,
+    "height": 9,
+    "components": 3,
+    "pdf_sha256": "f2287fc0362f87bb0cfc800c4c9941c3e51b1dd424bff4dd250a43df9332e44c"
+  },
+  {
+    "name": "progressive-rgb-s1-7x9",
+    "width": 7,
+    "height": 9,
+    "components": 3,
+    "pdf_sha256": "32b1adc62df377edecb07430a9481a38468d93254859834abe3afdf399db9771"
+  },
+  {
+    "name": "progressive-rgb-s2-7x9",
+    "width": 7,
+    "height": 9,
+    "components": 3,
+    "pdf_sha256": "256b55aad619073e08b81228391823b14ed4b9c489bd6710f458d2142a9ee05e"
+  },
+  {
+    "name": "progressive-l-s0-16x16",
+    "width": 16,
+    "height": 16,
+    "components": 1,
+    "pdf_sha256": "21873f3d50adbf08563e6876b8b56ea58d8e535343e86c1805db640d212dd385"
+  },
+  {
+    "name": "progressive-rgb-s0-16x16",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "1168de7ff56bef8ee10dc20440ff52b71cd81cb75209b32780d20147b8e3c30b"
+  },
+  {
+    "name": "progressive-rgb-s1-16x16",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "57176e4805899ff90528479d4013ec8bdc8a6c1e83c04563c948ba127ba23024"
+  },
+  {
+    "name": "progressive-rgb-s2-16x16",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "7be4820b5da81e1befef14abe42e87df1227d3c0ed2492eb8a0639ae12b49cf1"
+  },
+  {
+    "name": "progressive-l-s0-35x19",
+    "width": 35,
+    "height": 19,
+    "components": 1,
+    "pdf_sha256": "16b19381abb9485497646db2a34a26dda1dba74dc7d8fc625e9527bbfa992917"
+  },
+  {
+    "name": "progressive-rgb-s0-35x19",
+    "width": 35,
+    "height": 19,
+    "components": 3,
+    "pdf_sha256": "bc0d325227cff4afb87b790723220418f54e0707617fb72e928ff355ce97baf1"
+  },
+  {
+    "name": "progressive-rgb-s1-35x19",
+    "width": 35,
+    "height": 19,
+    "components": 3,
+    "pdf_sha256": "d61a1eaae2ad575d3d7a17cf546522c857d250ecd55236b246b071d125cf19e5"
+  },
+  {
+    "name": "progressive-rgb-s2-35x19",
+    "width": 35,
+    "height": 19,
+    "components": 3,
+    "pdf_sha256": "55b2dc91d20892fa49afc828a74bc550994530d1582daee1c8e0f6d5508828ac"
+  },
+  {
+    "name": "progressive-l-s0-73x35",
+    "width": 73,
+    "height": 35,
+    "components": 1,
+    "pdf_sha256": "5476b4e78306fb487b43327283a5f1168fe95f70e756c5a4e4a21175d1ca36e9"
+  },
+  {
+    "name": "progressive-rgb-s0-73x35",
+    "width": 73,
+    "height": 35,
+    "components": 3,
+    "pdf_sha256": "79c8a617778bf29742bddbe51f421579c877d768e3a8651dc85974a131faa14e"
+  },
+  {
+    "name": "progressive-rgb-s1-73x35",
+    "width": 73,
+    "height": 35,
+    "components": 3,
+    "pdf_sha256": "9fe76335d08feb744486473ffad8e5642b5af19e6f7be05fb18b5294dfb5ce17"
+  },
+  {
+    "name": "progressive-rgb-s2-73x35",
+    "width": 73,
+    "height": 35,
+    "components": 3,
+    "pdf_sha256": "917d986676a3812a687cb9f0bee1955b9fbcc83f31a0eae30b542033ddb61342"
+  },
+  {
+    "name": "progressive-spectral-refinement",
+    "width": 73,
+    "height": 17,
+    "components": 1,
+    "pdf_sha256": "a86c8bff54541441be1b76e1df1aa201ed1cbce8abdfeaf736ce837647cf9990"
+  },
+  {
+    "name": "progressive-eob-corrections",
+    "width": 73,
+    "height": 17,
+    "components": 1,
+    "pdf_sha256": "7defb556a7f12dd9a77e1ee15e8f4d13704578060e3b87d87ec4c2cc59330cd7"
+  },
+  {
+    "name": "progressive-dc-only",
+    "width": 9,
+    "height": 7,
+    "components": 1,
+    "pdf_sha256": "46d3c9cabcecbaf8bbca8613fd372f6d751788aba628d808e5ba59199800b6dd"
+  },
+  {
+    "name": "progressive-flat",
+    "width": 9,
+    "height": 7,
+    "components": 3,
+    "pdf_sha256": "d7c5219c4a7949578555f16e319b9e540ba5ee0487963cc7d4aeb99e49bf5321"
+  },
+  {
+    "name": "adobe-priority",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "4cb7138a7e969ee1bc6f821dbbd20a22ec4c7b9adddf6e796f73b175a7bccfa0"
+  },
+  {
+    "name": "filter-chain",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "1d4f57532da2b75c8e79f17c415fd1aee5c1ca4d0c4d88f17bb6544e87fd7167"
+  },
+  {
+    "name": "presentation-ignored",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "bf79067590e7f8adeb19b77f2b3e0ea792153b9a2fcccbdd1c72679333973552"
+  },
+  {
+    "name": "color-transform-zero",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "66d741629771619c5e903b43d183257ca58ba0aaf2adfb44ff85b0ba7e2ebaca"
+  },
+  {
+    "name": "decode-inverted",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "f25de166cf146d1a0bb07d5ab4851d7d94f98d86d427774d7c5ee05d9b6aa775"
+  },
+  {
+    "name": "color-key",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "431a82904ddb2660b0ff37f593f9605b69e53b1ef107e11a3935ecd0f6584aae"
+  },
+  {
+    "name": "soft-mask",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "c3b1a60771dcc050ac498fbf0406f413e3c8e7ef53136e139bfb0bbb94341ab2"
+  },
+  {
+    "name": "soft-mask-overrides-color-key",
+    "width": 16,
+    "height": 16,
+    "components": 3,
+    "pdf_sha256": "84a623d262c5d19867c08ef063461e6597f14a5274e0561f0ed6884bcb319426"
+  },
+  {
+    "name": "gray-transform-ignored",
+    "width": 7,
+    "height": 9,
+    "components": 1,
+    "pdf_sha256": "a8cfa7d4a97cbac02b9e194aa41bdc0523cd750fac429197cad84aca67ef45e6"
+  },
+  {
+    "name": "server-512",
+    "width": 512,
+    "height": 512,
+    "components": 3,
+    "pdf_sha256": "0e04e4997552ff93fcdfc7f2ad65a00fb15641c2c2b34f7fa3e4a62aad41c265"
+  }
+]
