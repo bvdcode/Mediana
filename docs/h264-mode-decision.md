@@ -124,3 +124,55 @@ and 40 kbit/s improved from 30.0723 to 31.6779 dB. All rate budgets passed.
 The screened trial was rejected as a default because it retained sequence-level
 quality regressions while increasing CPU. Efficient adaptive P-picture intra
 coding and its interaction with quantizer control remain open.
+
+## Rate-budget diagnosis
+
+The complete 80-picture horizontal-motion case at initial QP0 and 32 kbit/s
+was traced through every packet and reconstructed picture. The first changed
+macroblock occurs in picture 12. Its reconstructed reference affects later P
+pictures and their sizes. At the next scheduled IDR, picture 50, the two paths
+have different available packet budgets.
+
+| Picture 50 | Current encoder | Screened P/I trial |
+|---|---:|---:|
+| Available bits | 2,192 | 1,944 |
+| Maximum packet bytes | 274 | 243 |
+| Selected QP | 38 | 42 |
+| Actual packet bytes | 272 | 229 |
+| Visible YUV squared error | 150,519 | 300,438 |
+
+All 52 quantizers were then measured for that same IDR source picture. QP38
+is the lowest fitting the 274-byte budget, and QP42 is the lowest fitting
+243 bytes. QP41 needs 244 bytes. The affected decision therefore does not
+result from skipping a lower fitting QP during retry. The existing hard
+packet budget must remain enforced.
+
+Each of the 52 reconstructions matched independent decoding exactly. Both
+complete traces also matched independent pixels, every original coded-picture
+identity survived diagnostic remuxing, and strict Linux x64 Native AOT produced
+identical traces and all 52 curve outputs.
+
+A separate allocation trial used the known time to the next scheduled IDR
+to spread buffer-credit recovery across the remaining interval. It retained
+exact clock arithmetic and the existing hard packet limits, without lookahead
+or additional picture storage. This was an independent buffer-trajectory
+experiment informed by the GOP/frame budgeting in
+[JVT-G012](https://www.itu.int/wftp3/av-arch/jvt-site/2003_03_Pattaya/JVT-G012.zip),
+not an implementation of its complete quadratic/MAD controller.
+
+All 17 complete short sequences decoded independently. The rate-controlled
+cases passed their packet-budget and ownership checks. Quality nevertheless
+changed unevenly:
+
+| Complete rate-controlled sequence | Current PSNR | Allocation trial PSNR |
+|---|---:|---:|
+| Horizontal motion, initial QP0, 32 kbit/s | 38.2887 dB | 40.5487 dB |
+| Horizontal motion, initial QP26, 32 kbit/s | 37.0773 dB | 39.9515 dB |
+| Chroma motion, initial QP26, 48 kbit/s | 58.6450 dB | 58.2826 dB |
+| Scene change with variable cadence, initial QP26, 40 kbit/s | 30.0723 dB | 26.3995 dB |
+| Scene change with variable cadence, initial QP51, 40 kbit/s | 26.0490 dB | 22.8846 dB |
+
+The timing-only allocation trial was rejected before long performance testing.
+Fixed-QP references were unchanged. Current-frame complexity, reference-error
+propagation and quantizer allocation remain relevant to further mode-decision
+work; reserving capacity by time alone did not satisfy the quality checks.
