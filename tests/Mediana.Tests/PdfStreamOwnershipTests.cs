@@ -13,5 +13,9 @@ namespace Mediana.Tests
         [Fact]
         public async Task CachedStreamsDoNotDuplicateCompleteRgbPayloads() =>
             await PdfStreamOwnershipTestInput.VerifyAllocationAsync();
+
+        [Fact]
+        public async Task FlateInterpretationDoesNotCloneTheEncodedStream() =>
+            await PdfStreamOwnershipTestInput.VerifyFlateAllocationAsync();
     }
 }

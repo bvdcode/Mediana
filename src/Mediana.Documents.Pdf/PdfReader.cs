@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.IO;
+
 namespace Mediana.Documents.Pdf
 {
     /// <summary>Reads owned, bounded PDF data. Caller streams remain open.</summary>
@@ -15,15 +17,8 @@ namespace Mediana.Documents.Pdf
         {
             ArgumentNullException.ThrowIfNull(input);
             options ??= new(); Validate(options);
-            using MemoryStream output = new();
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = await input.ReadAsync(buffer, cancellationToken)) != 0)
-            {
-                if (output.Length + count > options.MaximumInputBytes) { throw new InvalidDataException("PDF encoded input exceeds its byte limit."); }
-                await output.WriteAsync(buffer.AsMemory(0, count), cancellationToken);
-            }
-            return new(new PdfStorage(output.ToArray(), options, cancellationToken), cancellationToken);
+            byte[] data = await BoundedStreamReader.ReadAsync(input, options.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
+            return new(new PdfStorage(data, options, cancellationToken), cancellationToken);
         }
         /// <summary>The caller keeps input valid until the document and its parsing operations are disposed.</summary>
         internal static PdfDocument ReadBorrowed(ReadOnlyMemory<byte> input, PdfReaderOptions? options, CancellationToken cancellationToken)

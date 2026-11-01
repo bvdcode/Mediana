@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.IO.Compression;
+using Mediana.IO;
 
 namespace Mediana.Documents.Pdf
 {
@@ -14,19 +15,10 @@ namespace Mediana.Documents.Pdf
             {
                 case "FlateDecode":
                 case "Fl":
-                    using (MemoryStream input = new(source.ToArray(), false))
+                    using (ReadOnlyMemoryStream input = new(source))
                     using (ZLibStream inflater = new(input, CompressionMode.Decompress))
-                    using (MemoryStream output = new())
                     {
-                        byte[] buffer = new byte[8192];
-                        int count;
-                        while ((count = inflater.Read(buffer)) != 0)
-                        {
-                            token.ThrowIfCancellationRequested();
-                            Check(output.Length + count, limit);
-                            output.Write(buffer, 0, count);
-                        }
-                        result = output.ToArray();
+                        result = BoundedStreamReader.Read(inflater, limit, token);
                     }
                     return Predict(result, parameters, limit, token);
                 case "ASCIIHexDecode":

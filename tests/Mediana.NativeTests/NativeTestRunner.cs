@@ -72,6 +72,7 @@ namespace Mediana.NativeTests
             await PdfReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Pdf"));
             await PdfStreamOwnershipTestInput.VerifyAsync();
             await PdfStreamOwnershipTestInput.VerifyAllocationAsync();
+            await PdfStreamOwnershipTestInput.VerifyFlateAllocationAsync();
             BoundedStreamReadTestInput.VerifySynchronous();
             BoundedStreamReadTestInput.VerifyAllocationSynchronous();
             await BoundedStreamReadTestInput.VerifyAsync();

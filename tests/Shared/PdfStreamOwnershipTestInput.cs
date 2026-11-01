@@ -61,7 +61,11 @@ namespace Mediana.Tests
             }
         }
 
-        internal static async Task<long> MeasureUnfilteredAsync()
+        internal static Task<long> MeasureUnfilteredAsync() => MeasureAsync(null);
+
+        internal static Task<long> MeasureFlateAsync(CompressionLevel compression) => MeasureAsync(compression);
+
+        private static async Task<long> MeasureAsync(CompressionLevel? compression)
         {
             const int Width = 1000;
             const int Height = 500;
@@ -71,8 +75,15 @@ namespace Mediana.Tests
             {
                 samples[i] = (byte)(i * 13 + i / 23);
             }
-            byte[] image = PdfTestDocument.Stream(samples,
-                $"/Type /XObject /Subtype /Image /Width {Width} /Height {Height} /BitsPerComponent 8 /ColorSpace /DeviceRGB");
+            byte[] encoded = samples;
+            string filter = string.Empty;
+            if (compression is CompressionLevel level)
+            {
+                encoded = Deflate(samples, level);
+                filter = "/Filter /FlateDecode";
+            }
+            byte[] image = PdfTestDocument.Stream(encoded,
+                $"/Type /XObject /Subtype /Image /Width {Width} /Height {Height} /BitsPerComponent 8 /ColorSpace /DeviceRGB {filter}");
             byte[] input = PdfTestDocument.Create("/I Do /I Do", resources: "/XObject << /I 5 0 R >>", extraObjects: image);
             for (int warmup = 0; warmup < Repetitions; warmup++)
             {
@@ -103,10 +114,22 @@ namespace Mediana.Tests
             }
         }
 
-        private static byte[] Deflate(ReadOnlySpan<byte> samples)
+        internal static async Task VerifyFlateAllocationAsync()
+        {
+            long compressed = await MeasureFlateAsync(CompressionLevel.SmallestSize);
+            long stored = await MeasureFlateAsync(CompressionLevel.NoCompression);
+            const long MaximumDifference = 750_000;
+            if (stored - compressed >= MaximumDifference)
+            {
+                throw new InvalidDataException($"Equivalent PDF Flate streams allocated {compressed} and {stored} bytes; "
+                    + $"the {MaximumDifference}-byte difference limit excludes a complete stored-stream input copy.");
+            }
+        }
+
+        private static byte[] Deflate(ReadOnlySpan<byte> samples, CompressionLevel compression = CompressionLevel.SmallestSize)
         {
             using MemoryStream output = new();
-            using (ZLibStream zip = new(output, CompressionLevel.SmallestSize, leaveOpen: true))
+            using (ZLibStream zip = new(output, compression, leaveOpen: true))
             {
                 zip.Write(samples);
             }
