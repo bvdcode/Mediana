@@ -4,8 +4,12 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MatroskaReaderResourceInput.cs" Link="MatroskaReaderResourceInput.cs" />
+    <Compile Include="../Shared/MatroskaReaderTestData.cs" Link="MatroskaReaderTestData.cs" />
+    <Compile Include="../Shared/MatroskaReaderTestInput.cs" Link="MatroskaReaderTestInput.cs" />
     <Compile Include="../Shared/MatroskaColourTestInput.cs" Link="MatroskaColourTestInput.cs" />
     <Compile Include="../Shared/MatroskaPacketReferenceInput.cs" Link="MatroskaPacketReferenceInput.cs" />
+    <Compile Include="../Shared/MatroskaPublicReferenceInput.cs" Link="MatroskaPublicReferenceInput.cs" />
     <Compile Include="../Shared/MatroskaPacketTestData.cs" Link="MatroskaPacketTestData.cs" />
     <Compile Include="../Shared/MatroskaCodecTestInput.cs" Link="MatroskaCodecTestInput.cs" />
     <Compile Include="../Shared/MatroskaPacketTestInput.cs" Link="MatroskaPacketTestInput.cs" />
