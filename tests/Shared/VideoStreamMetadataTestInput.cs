@@ -20,6 +20,8 @@ namespace Mediana.Tests
         public static async Task VerifyAsync(string root)
         {
             H264MetadataTestInput.VerifyMultipleConfigurations();
+            CodecProfileTestInput.VerifyDeclarations();
+            CodecProfileTestInput.VerifyAlternatives();
             MediaEngine engine = CreateEngine();
             if (engine.AudioDecoderImplementations.Count != 0 || engine.VideoDecoderImplementations.Count != 0)
             {
@@ -67,6 +69,8 @@ namespace Mediana.Tests
                 if (sequence.Width != stream.GetProperty("width").GetInt32() || sequence.Height != stream.GetProperty("height").GetInt32()
                     || sequence.ChromaSampling != sampling || sequence.LumaBitDepth != depth || sequence.ChromaBitDepth != depth
                     || sequence.ProfileIdc != profile[0] || sequence.ConstraintFlags != profile[1] || sequence.LevelIdc != profile[2]
+                    || sequence.CodecProfile is not CodecProfileInfo codecProfile || codecProfile.Name != Text(stream, "profile")
+                    || codecProfile.Level != (stream.GetProperty("level").GetInt32() / 10m).ToString(CultureInfo.InvariantCulture)
                     || sequence.LevelIdc != stream.GetProperty("level").GetInt32() || sequence.FrameMbsOnly != progressive
                     || (progressive && sequence.IsProgressive != true) || (!progressive && sequence.IsProgressive is not null))
                 {

@@ -51,5 +51,7 @@ namespace Mediana.Core.Metadata
         public bool? IsProgressive { get; }
         public SampleAspectRatio? SampleAspectRatio { get; }
         public VideoColorInfo Color { get; }
+        /// <summary>Profile of this opening configuration, or null when not established.</summary>
+        public CodecProfileInfo? CodecProfile { get; init; }
     }
 }
