@@ -13,6 +13,7 @@ namespace Mediana.Tests
         public long ReadBoundary { get; set; } = long.MaxValue;
         public int? ReadCountOverride { get; init; }
         public Task? ReadGate { get; init; }
+        public long ReadGateOffset { get; init; }
         public int ReadCalls { get; private set; }
         public bool IsDisposed { get; private set; }
 
@@ -22,7 +23,7 @@ namespace Mediana.Tests
             ObjectDisposedException.ThrowIf(IsDisposed, this);
             cancellationToken.ThrowIfCancellationRequested();
             ReadCalls++;
-            if (ReadGate is not null)
+            if (ReadGate is not null && offset >= ReadGateOffset)
             {
                 await ReadGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             }
