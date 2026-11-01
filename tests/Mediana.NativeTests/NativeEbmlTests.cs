@@ -28,7 +28,12 @@ namespace Mediana.NativeTests
             await MatroskaSegmentTestInput.VerifyInvalidHierarchyAsync();
             await MatroskaSegmentTestInput.VerifyCancellationAsync();
             await MatroskaSegmentTestInput.VerifyMuxedFileAsync();
-            Console.WriteLine("PASS Matroska structure: EBML values, document versions/CRC, Segment bounds, unknown Clusters and borrowed sources.");
+            await MatroskaBlockTestInput.VerifyLacingAsync();
+            await MatroskaBlockTestInput.VerifyIntegersAndFlagsAsync();
+            await MatroskaBlockTestInput.VerifyInvalidLayoutsAsync();
+            await MatroskaBlockTestInput.VerifyCancellationAndLimitsAsync();
+            await MatroskaBlockReferenceInput.VerifyAsync();
+            Console.WriteLine("PASS Matroska structure: EBML/CRC, Segment bounds, unknown Clusters, all Block lacing modes and 96 independent encoded packets.");
         }
     }
 }

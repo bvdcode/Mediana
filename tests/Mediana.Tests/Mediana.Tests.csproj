@@ -4,6 +4,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MatroskaBlockReferenceInput.cs" Link="MatroskaBlockReferenceInput.cs" />
+    <Compile Include="../Shared/MatroskaBlockTestInput.cs" Link="MatroskaBlockTestInput.cs" />
     <Compile Include="../Shared/MatroskaSegmentTestInput.cs" Link="MatroskaSegmentTestInput.cs" />
     <Compile Include="../Shared/MatroskaHeaderTestInput.cs" Link="MatroskaHeaderTestInput.cs" />
     <None Include="Data/Matroska/*" CopyToOutputDirectory="PreserveNewest" />
