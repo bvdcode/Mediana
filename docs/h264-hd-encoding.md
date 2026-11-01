@@ -326,3 +326,45 @@ guards and unchanged input bytes. Its transform check independently computes
 the coefficient matrix. The complete 2,644-test managed suite and strict Linux
 x64 Native AOT suite pass; 24 focused tests also pass with hardware intrinsics
 disabled.
+
+## Fractional motion-search evaluation
+
+A separate evaluation adds eight half-pixel neighbors and eight quarter-pixel
+neighbors after the existing integer search, followed by the original motion
+predictor. It uses the existing normative interpolation and all-plane SAD
+selection, including motion-code length for ties. It adds no frame-sized
+buffer or heap allocation to the search.
+
+The same complete 60.041667-second, 1,441-picture source was encoded by two fresh
+Native AOT processes in sequence on logical CPU 2. Both used initial QP26,
+a 10 Mbit/s packet target, a two-second capacity and video-only MPEG-TS output.
+Builds completed before timing; independent verification followed the measured
+operations. This is one pair on a shared host.
+
+| Search | CPU | Elapsed | Peak RSS | TS bytes | Aggregate PSNR |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Integer, current behavior | 122.604 s | 127.210 s | 107.70 MiB | 78,284,892 | 39.612 dB |
+| Direct half/quarter refinement | 288.231 s | 294.078 s | 90.08 MiB | 78,295,608 | 44.956 dB |
+
+Aggregate PSNR increases by 5.345 dB, while CPU increases by 135.09% and transport
+size by 0.014%. The lower observed RSS does not establish an algorithmic memory
+reduction. Exact integer squared errors include every visible Y/U/V sample
+relative to the independently decoded source. This is objective sample-error
+measurement, without perceptual quality or equivalent FFmpeg settings established.
+
+Both outputs pass exact packet timing, all 31 IDR boundaries, packet-rate
+capacity and level access-unit/VCL/NAL window checks. Canonical remuxing preserves
+every VCL byte. Independent decoding and the strict Native AOT consumer agree
+on all 1,992,038,400 visible bytes per output, reach EOF and release media storage.
+
+The focused calibration independently evaluates the six-tap luma and bilinear
+chroma equations for 3,888 cases and 1,492,992 prediction bytes. It covers signed
+fractions, four border macroblocks, zero and positive search ranges, and tight
+and padded source rows. These cases use zero vector predictors; broader
+neighbor-predictor selection is outside this calibration.
+
+The direct implementation is not enabled in the encoder. Its substantial
+error reduction supports further fractional-search work, but separately
+recomputing interpolation for each candidate has an excessive measured CPU cost.
+Sharing bounded interpolation work and broader selection tests remain open
+before production integration. The existing encoder behavior is unchanged.
