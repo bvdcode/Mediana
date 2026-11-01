@@ -96,6 +96,10 @@ their coded-block pattern from actual quantized coefficients. P_Skip is emitted
 only when all residual coefficients are zero and its derived motion vector
 matches the selected vector. Consecutive skips share `mb_skip_run` syntax.
 
+An [exhaustive P/I macroblock trial](h264-mode-decision.md) measured complete
+HD quality, CPU, memory and independent reconstruction. It was not adopted;
+adaptive intra coding in P pictures remains open.
+
 Without `RateControl`, `Quantizer` is a fixed H.264 QP from 0 through 51,
 defaulting to 26. Level 4.1 admission checks cover dimensions, frame intervals,
 access-unit compression bounds and separate VCL/NAL buffer credits. The buffers
