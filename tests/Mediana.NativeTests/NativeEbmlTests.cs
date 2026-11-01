@@ -33,7 +33,19 @@ namespace Mediana.NativeTests
             await MatroskaBlockTestInput.VerifyInvalidLayoutsAsync();
             await MatroskaBlockTestInput.VerifyCancellationAndLimitsAsync();
             await MatroskaBlockReferenceInput.VerifyAsync();
+            await MatroskaMetadataTestInput.VerifyInfoAsync();
+            await MatroskaMetadataTestInput.VerifyTracksAsync();
+            await MatroskaMetadataTestInput.VerifyVideoAsync();
+            await MatroskaMetadataTestInput.VerifyInvalidInfoAsync();
+            await MatroskaMetadataTestInput.VerifyInvalidTracksAsync();
+            await MatroskaMetadataTestInput.VerifyInvalidSettingsAsync();
+            await MatroskaMetadataResourceInput.VerifyCrcAsync();
+            await MatroskaMetadataResourceInput.VerifyLimitsAsync();
+            await MatroskaMetadataResourceInput.VerifyCancellationAsync();
+            await MatroskaMetadataResourceInput.VerifyDeferredAndTruncatedAsync();
+            await MatroskaMetadataReferenceInput.VerifyAsync();
             Console.WriteLine("PASS Matroska structure: EBML/CRC, Segment bounds, unknown Clusters, all Block lacing modes and 96 independent encoded packets.");
+            Console.WriteLine("PASS Matroska metadata: Info/Tracks, dependent defaults, streamed CRC, deferred payloads, cancellation and all five independent files.");
         }
     }
 }

@@ -4,6 +4,10 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MatroskaMetadataTestData.cs" Link="MatroskaMetadataTestData.cs" />
+    <Compile Include="../Shared/MatroskaMetadataReferenceInput.cs" Link="MatroskaMetadataReferenceInput.cs" />
+    <Compile Include="../Shared/MatroskaMetadataResourceInput.cs" Link="MatroskaMetadataResourceInput.cs" />
+    <Compile Include="../Shared/MatroskaMetadataTestInput.cs" Link="MatroskaMetadataTestInput.cs" />
     <Compile Include="../Shared/MatroskaBlockReferenceInput.cs" Link="MatroskaBlockReferenceInput.cs" />
     <Compile Include="../Shared/MatroskaBlockTestInput.cs" Link="MatroskaBlockTestInput.cs" />
     <Compile Include="../Shared/MatroskaSegmentTestInput.cs" Link="MatroskaSegmentTestInput.cs" />
