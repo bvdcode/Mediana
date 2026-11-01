@@ -30,6 +30,9 @@ Cyrillic fonts are CC0; provenance and input hashes are recorded in the Fonts
 folder. A caller can resolve fonts or images explicitly. The reader does not
 fetch network resources or resolve external XML entities.
 
+[TrueType glyph reading](fonts.md) describes outline bounds, ownership and
+regression coverage shared with PDF previews.
+
 Embedded PNG decoding covers standard color/depth combinations and Adam7.
 It is currently an internal SVG operation; it does not provide standalone PNG
 color-profile handling. Unsupported SVG features are reported by
