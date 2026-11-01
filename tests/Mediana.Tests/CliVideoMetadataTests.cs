@@ -36,6 +36,48 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public async Task ProbePrintsDeclaredAvcAndAacProfiles()
+        {
+            string input = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-aac.mp4");
+            (int code, string output, string error) = await CliTests.RunAsync(["probe", input]);
+            Assert.True(code == 0, error);
+            Assert.Contains("Codec profile: \"High\".", output, StringComparison.Ordinal);
+            Assert.Contains("Codec level: \"1\".", output, StringComparison.Ordinal);
+            Assert.Contains("Codec profile: \"LC\".", output, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task CommonFormatterKeepsProfilesWithTheirConfigurationAndOmitsUnknownLevels()
+        {
+            VideoStreamMetadata metadata = new([
+                new VideoStreamConfiguration(16, 16, VideoChromaSampling.Monochrome, 8, null)
+                    { CodecProfile = new("Baseline", "1b") },
+                new VideoStreamConfiguration(32, 32, VideoChromaSampling.Monochrome, 8, null)
+                    { CodecProfile = new("High") }]);
+            using StringWriter output = new();
+            await StreamMetadataFormatter.WriteAsync(metadata, output, default);
+            string[] configurations = output.ToString().Split("  Configuration ", StringSplitOptions.None);
+            Assert.Contains("Codec profile: \"Baseline\".", configurations[1], StringComparison.Ordinal);
+            Assert.Contains("Codec level: \"1b\".", configurations[1], StringComparison.Ordinal);
+            Assert.Contains("Codec profile: \"High\".", configurations[2], StringComparison.Ordinal);
+            Assert.DoesNotContain("Codec level:", configurations[2], StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public async Task ProfileTextCannotInsertConsoleLinesOrControlSequences()
+        {
+            AudioStreamMetadata metadata = new(48000, 2) { CodecProfile = new("profile\nforged\u001b[31m", "1\rforged") };
+            using StringWriter output = new();
+            await StreamMetadataFormatter.WriteAsync(metadata, output, default);
+            string text = output.ToString();
+            Assert.DoesNotContain("\nforged", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("\rforged", text, StringComparison.Ordinal);
+            Assert.DoesNotContain('\u001b', text);
+            Assert.Contains("\\nforged", text, StringComparison.Ordinal);
+            Assert.Contains("\\rforged", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public async Task CommonFormatterPrintsEveryAlternativeAndMonochromeHasNoChromaPrecision()
         {
             VideoStreamMetadata metadata = new([

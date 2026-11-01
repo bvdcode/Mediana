@@ -23,6 +23,7 @@ namespace Mediana.Cli
         private static async Task WriteAudioAsync(AudioStreamMetadata audio, TextWriter output)
         {
             await output.WriteLineAsync($"  Audio: {audio.SampleRate} Hz; channels: {audio.ChannelCount}.");
+            await WriteProfileAsync(audio.CodecProfile, output, "  ");
             if (audio.BitsPerSample is int bits)
             {
                 await output.WriteLineAsync($"  Sample precision: {bits} bits.");
@@ -50,6 +51,7 @@ namespace Mediana.Cli
                     _ => throw new ArgumentOutOfRangeException(nameof(video), "The video chroma sampling is invalid.")
                 };
                 await output.WriteLineAsync($"  Configuration {index + 1}: {configuration.Width}x{configuration.Height} visible samples; chroma: {sampling}.");
+                await WriteProfileAsync(configuration.CodecProfile, output, "    ");
                 if (configuration.ChromaBitDepth is int chromaDepth)
                 {
                     await output.WriteLineAsync($"    Video precision: luma {configuration.LumaBitDepth} bits; chroma {chromaDepth} bits.");
@@ -71,6 +73,19 @@ namespace Mediana.Cli
                 }
                 VideoColorInfo color = configuration.Color;
                 await output.WriteLineAsync($"    Color: primaries {color.Primaries}; transfer {color.Transfer}; matrix {color.Matrix}; range {color.Range}; chroma location {color.ChromaLocation}.");
+            }
+        }
+
+        private static async Task WriteProfileAsync(CodecProfileInfo? profile, TextWriter output, string indent)
+        {
+            if (profile is null)
+            {
+                return;
+            }
+            await output.WriteLineAsync($"{indent}Codec profile: \"{JsonEncodedText.Encode(profile.Name)}\".");
+            if (profile.Level is string level)
+            {
+                await output.WriteLineAsync($"{indent}Codec level: \"{JsonEncodedText.Encode(level)}\".");
             }
         }
     }
