@@ -8,6 +8,12 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
+    <Compile Include="../Shared/JpegCoverTestInput.cs" Link="JpegCoverTestInput.cs" />
+    <Compile Include="../Shared/JpegTestData.cs" Link="JpegTestData.cs" />
+    <Compile Include="../Shared/JpegDecodeTestInput.cs" Link="JpegDecodeTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Jpeg/*" Link="Data/Jpeg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
     <None Include="../Mediana.Tests/Data/Png/*" Link="Data/Png/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/MatroskaAttachmentTestData.cs" Link="MatroskaAttachmentTestData.cs" />
     <Compile Include="../Shared/MatroskaAttachmentReferenceInput.cs" Link="MatroskaAttachmentReferenceInput.cs" />

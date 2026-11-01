@@ -4,6 +4,12 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
+    <Compile Include="../Shared/JpegCoverTestInput.cs" Link="JpegCoverTestInput.cs" />
+    <Compile Include="../Shared/JpegTestData.cs" Link="JpegTestData.cs" />
+    <Compile Include="../Shared/JpegDecodeTestInput.cs" Link="JpegDecodeTestInput.cs" />
+    <None Include="Data/Jpeg/*" CopyToOutputDirectory="PreserveNewest" />
+
     <Compile Include="../Shared/MatroskaAttachmentTestData.cs" Link="MatroskaAttachmentTestData.cs" />
     <Compile Include="../Shared/MatroskaAttachmentReferenceInput.cs" Link="MatroskaAttachmentReferenceInput.cs" />
     <Compile Include="../Shared/MatroskaAttachmentTestInput.cs" Link="MatroskaAttachmentTestInput.cs" />

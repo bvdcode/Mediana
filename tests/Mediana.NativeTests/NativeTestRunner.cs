@@ -78,6 +78,7 @@ namespace Mediana.NativeTests
             await MultiStreamTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-aac.mp4"));
             await NativePdfTests.RunAsync();
             await NativePngTests.RunAsync();
+            await NativeJpegTests.RunAsync();
             BoundedStreamReadTestInput.VerifySynchronous();
             BoundedStreamReadTestInput.VerifyAllocationSynchronous();
             await BoundedStreamReadTestInput.VerifyAsync();
