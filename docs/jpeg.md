@@ -31,16 +31,17 @@ without inventing missing coefficients or pixels. Bytes after EOI are rejected.
 Unknown application segments and comments are skipped; recognized unsupported
 presentation formats are reported explicitly.
 
-## Pixels, interpretation and ownership
+## Pixels and source interpretation
 
 Output is independent opaque RGBA32. The inverse DCT uses the mathematical
 separable transform, with a DC-only fast path. Subsampled components use centered
 bilinear reconstruction with edge extension according to JFIF sample positions.
-YCbCr uses the full-range JFIF matrix. No gamma conversion is performed; source
-primaries and transfer remain unspecified. The CLI uses its explicit RGB preview
-interpretation for missing labels and warns once.
+YCbCr uses the full-range JFIF matrix. No gamma conversion is performed.
+Source primaries and transfer remain unspecified unless Exif identifies sRGB.
+The CLI uses its explicit RGB preview interpretation for missing labels and
+warns once.
 
-JFIF identifies grayscale or YCbCr; Adobe APP14 identifies RGB or YCbCr for
+JFIF and Exif identify YCbCr; Adobe APP14 identifies RGB or YCbCr for
 three components. Missing declarations require a known interpretation supplied
 by the caller, rather than deriving color from numeric component identifiers.
 For example, the original JPEG covers in the FLAC/M4A references are known
@@ -61,6 +62,73 @@ Numbered ICC parts are checked for consistency and completeness. The decoder
 retains ICC presence in `JpegColorDescription`, without assembling or retaining
 the profile. Converting that description is explicitly unsupported; the CLI
 does not replace a declared ICC profile with its missing-label policy.
+
+## Exif presentation
+
+Standalone decoding reads the primary Exif TIFF directory and its Exif color
+directory in either byte order. Offsets, directory extents, ordered unique tags,
+recognized scalar types/counts and rational values are checked within the APP1
+segment. GPS, maker notes, text and thumbnail pixels are not retained or decoded.
+The thumbnail's orientation does not change the primary image.
+
+All eight primary orientations are applied while writing the final RGBA pixels,
+including both reflections and axis transpositions. Header probing reports the
+same presented dimensions. The shared core `OrthogonalTransform` supplies the
+coordinate mapping used by both codecs and display fitting. Component planes
+are sampled directly into the oriented output; no unrotated RGBA intermediate
+is created. A sequential 35×19 4:2:0 image rotated to 19×35 needs exactly
+4,964 media bytes: 2,304 padded component bytes and 2,660 final RGBA bytes.
+
+Exif declares square pixels. JFIF density or a caller's supplied aspect must
+agree. Exif `YCbCrPositioning` selects centered or co-sited reconstruction; absent
+positioning defaults to centered. Conflicting JFIF/Exif declarations fail.
+Chroma reconstruction preserves the sampling interval at odd image edges.
+
+Exif `ColorSpace=1` labels the reconstructed pixels as sRGB. Explicitly
+uncalibrated color produces `JpegExifColorDescription`, whose conversion fails
+until calibrated interpretation is supported. Custom Exif transfer functions,
+chromaticities, gamma, YCbCr coefficients and reference levels are unsupported.
+An ICC profile retains its existing precedence and unsupported conversion.
+Neither uncalibrated nor ICC declarations use the CLI missing-label policy.
+
+These semantics follow CIPA DC-008-2026 (Exif 3.1), clauses 4.4.2–4.4.3,
+4.6.2, 4.6.5.1.6, 4.6.5.1.8–9, 4.6.5.1.13 and 4.6.6.2, available from
+[CIPA's standards catalogue](https://www.cipa.jp/e/std/std-sec.html).
+
+The 38 authored references cover both byte orders, all eight orientations with
+sequential/progressive JPEG, default orientation, a different thumbnail
+orientation, JFIF coexistence, grayscale and co-sited 4:2:2/4:2:0. Complete
+independent pixels use libjpeg/Pillow; co-sited references use independent native
+component decoding and floating-point interpolation. Tests require color error
+at most four codes and exact alpha. Truncated TIFF data, invalid pointers,
+duplicate/conflicting declarations, unknown colors, cancellation, detached input
+and exact one-byte allocation boundaries are checked separately.
+
+Actual managed and Linux Native AOT commands produce 76 complete PNGs from
+renamed Exif inputs and run 76 probes. Every PNG pair is byte-identical, complete
+independent RGB error is at most three codes and alpha is exact. An independently
+muxed MP3 preserves the original Exif picture through extraction and common
+selection; its managed/native decoded PNGs equal direct JPEG conversion.
+Malformed Exif and uncalibrated-color failures preserve an existing destination.
+All 2,889 managed tests, the 30-package strict Native AOT consumer, complete native
+runner, CLI, formatting and source license-header checks pass.
+
+Two batches of three alternating fresh native process pairs measured complete
+2560×2560 ordinary JPEG → PNG conversion on one core with
+`DOTNET_PROCESSOR_COUNT=1`:
+
+| Batch | CPU before Exif support | CPU with Exif support | Peak RSS before, KiB | Peak RSS with Exif, KiB |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 1.656964 s | 1.737736 s | 82,992 | 83,456 |
+| 2 | 1.636282 s | 1.616270 s | 83,456 | 83,328 |
+
+Complete PNG bytes are identical. The CPU difference changes from +4.87% to
+−1.22% across the shared-host batches; these measurements establish neither a
+consistent slowdown nor a speedup. A separate phase-precomputation variant used
+1.651678 s in the second batch versus 1.616270 s for the selected implementation
+and is not used. Timings include startup, decoding, PNG encoding, logging and I/O.
+
+## Memory and ownership
 
 Encoded memory is borrowed for the call, including when supplied to the common
 `MediaEngine.DecodeImageAsync(ReadOnlyMemory<byte>, ...)` overload. Component
@@ -104,7 +172,8 @@ application metadata. The enclosing format supplies those semantics. PDF uses
 it for its own APP14/ColorTransform, Decode and mask rules, described in
 [PDF image interpretation](pdf.md#jpeg-image-interpretation). Standalone
 `JpegImageDecoder` retains its existing metadata validation and explicit color
-requirements.
+requirements. Its native dimensions and centered reconstruction are independent
+of standalone Exif orientation and chroma positioning.
 
 The 47-image corpus also checks this path after clearing the encoded source.
 Checks require complete output pixels, exact tail preservation, bounded sample
@@ -172,7 +241,7 @@ PNG encoding, logging and I/O. Peak RSS includes runtime and collection behavior
 it is separate from the exact live media-buffer budget.
 
 Arithmetic/lossless/hierarchical JPEG, 12-bit samples, DNL,
-CMYK/YCCK, Exif presentation/color metadata, SPIFF and ICC conversion are not
+CMYK/YCCK, custom Exif colorimetry, SPIFF and ICC conversion are not
 implemented. These encodings are rejected explicitly by standalone decoding.
 PDF `DCTDecode` integration uses the container component API described above.
 
