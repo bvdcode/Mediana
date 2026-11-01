@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 
 namespace Mediana.Containers.Matroska
@@ -9,18 +10,21 @@ namespace Mediana.Containers.Matroska
     /// <summary>Indexes one known-length Matroska Segment. Borrows its random-access source.
     /// Packets follow stored Block order, with exact rounded PTS and no inferred DTS.
     /// Returned packets and metadata survive reader disposal. Operations and disposal cannot overlap.</summary>
-    public partial class MatroskaReader : IIndexedContainerReader
+    public partial class MatroskaReader : IIndexedContainerReader, IContainerAttachmentReader
     {
         private readonly MatroskaPacketIndex index;
         private readonly MatroskaPacketSource packets;
+        private readonly MatroskaAttachmentSource attachmentSource;
         private int busy;
         private bool disposed;
 
         private MatroskaReader(MatroskaPacketIndex index, MatroskaPacketSource packets,
-            MatroskaSegmentInfo segmentInfo, IReadOnlyList<MatroskaTrackInfo> tracks, ContainerInfo info)
+            MatroskaSegmentInfo segmentInfo, IReadOnlyList<MatroskaTrackInfo> tracks, ContainerInfo info,
+            MatroskaAttachmentSource attachmentSource)
         {
             this.index = index;
             this.packets = packets;
+            this.attachmentSource = attachmentSource;
             SegmentInfo = segmentInfo;
             Tracks = tracks;
             Streams = Array.AsReadOnly(tracks.Select(track => track.Stream).ToArray());
@@ -31,6 +35,22 @@ namespace Mediana.Containers.Matroska
         public MatroskaSegmentInfo SegmentInfo { get; }
         public IReadOnlyList<MatroskaTrackInfo> Tracks { get; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
+        public IReadOnlyList<MatroskaAttachmentInfo> Attachments => attachmentSource.Attachments;
+        IReadOnlyList<ContainerAttachmentInfo> IContainerAttachmentReader.Attachments => Attachments;
+
+        public async ValueTask<MediaBuffer> ReadAttachmentAsync(int attachmentIndex, CancellationToken cancellationToken = default)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                return await attachmentSource.ReadAsync(attachmentIndex, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
+        }
 
         public long GetPacketCount(int streamIndex)
         {

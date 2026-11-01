@@ -18,7 +18,8 @@ namespace Mediana.Containers.Matroska
             options ??= new();
             options.Validate();
             cancellationToken.ThrowIfCancellationRequested();
-            (MatroskaHeader header, EbmlElement segment, MatroskaSegmentMetadata metadata, IReadOnlyList<MatroskaTrack> tracks) =
+            (MatroskaHeader header, EbmlElement segment, MatroskaSegmentMetadata metadata,
+                IReadOnlyList<MatroskaTrack> tracks, IReadOnlyList<MatroskaAttachmentInfo> attachments) =
                 await ReadHeadersAsync(source, allocator, options, cancellationToken).ConfigureAwait(false);
             MatroskaSegmentInfo info = metadata.Info;
             MatroskaPacketIndex? index = null;
@@ -36,7 +37,8 @@ namespace Mediana.Containers.Matroska
                 ContainerInfo commonInfo = CreateInfo(metadata, descriptions, index);
                 packets = new(source, allocator, index, tracks, configurations, info.TimestampScale, options.IndexOptions);
                 cancellationToken.ThrowIfCancellationRequested();
-                MatroskaReader reader = new(index, packets, info, descriptions, commonInfo);
+                MatroskaAttachmentSource attachmentSource = new(source, allocator, attachments, options.MaxAttachmentBytes);
+                MatroskaReader reader = new(index, packets, info, descriptions, commonInfo, attachmentSource);
                 success = true;
                 return reader;
             }
@@ -51,7 +53,7 @@ namespace Mediana.Containers.Matroska
         }
 
         private static async ValueTask<(MatroskaHeader Header, EbmlElement Segment, MatroskaSegmentMetadata Metadata,
-            IReadOnlyList<MatroskaTrack> Tracks)> ReadHeadersAsync(IRandomAccessByteSource source,
+            IReadOnlyList<MatroskaTrack> Tracks, IReadOnlyList<MatroskaAttachmentInfo> Attachments)> ReadHeadersAsync(IRandomAccessByteSource source,
             MediaBufferAllocator allocator, MatroskaReadOptions options, CancellationToken token)
         {
             MatroskaHeader header = await MatroskaHeaderReader.ReadAsync(source, allocator, options.MaxHeaderBytes, token).ConfigureAwait(false);
@@ -63,18 +65,14 @@ namespace Mediana.Containers.Matroska
             EbmlElement? tracksElement = null;
             MatroskaSegmentMetadata? info = null;
             IReadOnlyList<MatroskaTrack>? tracks = null;
-            long metadataBytes = 0;
+            IReadOnlyList<MatroskaAttachmentInfo>? attachments = null;
+            MatroskaMetadataByteBudget byteBudget = new(options.MaxMetadataBytes);
             long offset = segment.DataOffset;
             while (await segments.ReadChildAsync(segment, offset, token).ConfigureAwait(false) is EbmlElement child)
             {
                 if (child.Id is 0x1549A966 or 0x1654AE6B)
                 {
-                    long size = child.DataSize!.Value;
-                    if (size > options.MaxMetadataBytes - metadataBytes)
-                    {
-                        throw new NotSupportedException("Matroska Info and Tracks exceed the configured metadata byte limit.");
-                    }
-                    metadataBytes += size;
+                    byteBudget.Reserve(child.DataSize!.Value);
                 }
                 switch (child.Id)
                 {
@@ -110,12 +108,20 @@ namespace Mediana.Containers.Matroska
                             await metadata.ReadChildAsync(segment with { EndOffset = segment.EndOffset ?? source.Length }, offset, token).ConfigureAwait(false);
                         }
                         break;
+                    case 0x1941A469:
+                        if (attachments is not null)
+                        {
+                            throw new InvalidDataException("Matroska Attachments must not be repeated.");
+                        }
+                        attachments = await MatroskaAttachmentsReader.ReadAsync(metadata, child, options.MaxAttachments,
+                            byteBudget, options.VerifyMediaChecksums, token).ConfigureAwait(false);
+                        break;
                 }
                 offset = child.EndOffset!.Value;
             }
             await segments.VerifyDocumentEndAsync(segment, token).ConfigureAwait(false);
             return (header, segment, info ?? throw new InvalidDataException("Matroska Info is missing."),
-                tracks ?? throw new InvalidDataException("Matroska Tracks is missing."));
+                tracks ?? throw new InvalidDataException("Matroska Tracks is missing."), attachments ?? Array.Empty<MatroskaAttachmentInfo>());
         }
 
         private static async ValueTask RequireIdenticalAsync(IRandomAccessByteSource source, MediaBufferAllocator allocator,

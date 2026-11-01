@@ -77,6 +77,11 @@ namespace Mediana.NativeTests
             await MatroskaReaderTestInput.VerifyCancellationAndConcurrentReadAsync();
             await MatroskaReaderResourceInput.VerifyChecksumsAndAggregateMetadataAsync();
             await MatroskaReaderResourceInput.VerifyFactoryAndSourceRequirementsAsync();
+            await MatroskaAttachmentTestInput.VerifyOrderingAndOwnershipAsync();
+            await MatroskaAttachmentTestInput.VerifyInvalidDeclarationsAsync();
+            await MatroskaAttachmentTestInput.VerifyLimitsAndDeferredDataAsync();
+            await MatroskaAttachmentTestInput.VerifyCancellationAndConcurrencyAsync();
+            await MatroskaAttachmentTestInput.VerifyChecksumScopeAsync();
             Console.WriteLine("PASS Matroska public reader: signature probe, native metadata, bounded traversal, cancellation, complete audio/video sessions and indexed seeks.");
             Console.WriteLine("PASS Matroska packet reads: bounded AVC/AAC/MP3 configuration, owned payloads, lace clocks, retry/quotas and 178 real encoded packets.");
             Console.WriteLine("PASS Matroska structure: EBML/CRC, Segment bounds, unknown Clusters, all Block lacing modes and 96 independent encoded packets.");
