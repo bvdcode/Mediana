@@ -57,7 +57,8 @@ namespace Mediana.Containers.Matroska
             }
         }
 
-        public async ValueTask<EbmlElement?> ReadChildAsync(EbmlElement parent, long offset, CancellationToken token)
+        public async ValueTask<EbmlElement?> ReadChildAsync(EbmlElement parent, long offset, CancellationToken token,
+            bool verifyChecksum = true)
         {
             ValidateExtent(parent);
             ArgumentOutOfRangeException.ThrowIfLessThan(offset, parent.DataOffset);
@@ -78,7 +79,10 @@ namespace Mediana.Containers.Matroska
                 {
                     throw new InvalidDataException("A metadata CRC-32 must be first and contain four bytes.");
                 }
-                await VerifyCrcAsync(child, parent.EndOffset!.Value, token).ConfigureAwait(false);
+                if (verifyChecksum)
+                {
+                    await VerifyCrcAsync(child, parent.EndOffset!.Value, token).ConfigureAwait(false);
+                }
             }
             return child;
         }
@@ -97,6 +101,12 @@ namespace Mediana.Containers.Matroska
         {
             int count = await ReadScalarAsync(element, token).ConfigureAwait(false);
             return EbmlInteger.ReadUnsigned(storage.Memory.Span[..count], defaultValue);
+        }
+
+        public async ValueTask<long> ReadSignedAsync(EbmlElement element, long defaultValue, CancellationToken token)
+        {
+            int count = await ReadScalarAsync(element, token).ConfigureAwait(false);
+            return EbmlInteger.ReadSigned(storage.Memory.Span[..count], defaultValue);
         }
 
         public async ValueTask<double> ReadPositiveFloatAsync(EbmlElement element, double defaultValue, CancellationToken token)
