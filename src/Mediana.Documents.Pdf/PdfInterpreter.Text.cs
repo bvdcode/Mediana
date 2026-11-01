@@ -43,9 +43,9 @@ namespace Mediana.Documents.Pdf
                 defaultWidth = dictionary.Get("DW").Kind == PdfValueKind.Null ? 1000 : Get(dictionary, "DW").Numeric();
                 PdfValue map = Get(dictionary, "CIDToGIDMap");
                 if (map.Kind == PdfValueKind.Name && map.Text != "Identity") { throw new NotSupportedException("Unknown PDF CIDToGIDMap."); }
-                byte[] mapping = dictionary.Get("CIDToGIDMap").Kind == PdfValueKind.Reference ? storage.Decode(storage.Object(dictionary.Get("CIDToGIDMap"), token), token) : [];
+                ReadOnlyMemory<byte> mapping = dictionary.Get("CIDToGIDMap").Kind == PdfValueKind.Reference ? storage.Decode(storage.Object(dictionary.Get("CIDToGIDMap"), token), token) : ReadOnlyMemory<byte>.Empty;
                 if (mapping.Length % 2 != 0 || mapping.Length > 131072) { throw new InvalidDataException("Invalid PDF glyph map."); }
-                for (int code = 0; code < 65536; code++) { glyphs[code] = mapping.Length == 0 ? code : code < mapping.Length / 2 ? BinaryPrimitives.ReadUInt16BigEndian(mapping.AsSpan(code * 2)) : 0; }
+                for (int code = 0; code < 65536; code++) { glyphs[code] = mapping.Length == 0 ? code : code < mapping.Length / 2 ? BinaryPrimitives.ReadUInt16BigEndian(mapping.Span.Slice(code * 2)) : 0; }
                 PdfValue[] w = Get(dictionary, "W").Items;
                 for (int i = 0; i < w.Length;)
                 {

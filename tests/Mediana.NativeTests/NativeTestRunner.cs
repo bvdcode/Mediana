@@ -70,6 +70,8 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS encode operation: multiple packets, delayed output, finalization and frame ownership.");
             await MultiStreamTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-aac.mp4"));
             await PdfReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Pdf"));
+            await PdfStreamOwnershipTestInput.VerifyAsync();
+            await PdfStreamOwnershipTestInput.VerifyAllocationAsync();
             Console.WriteLine("PASS PDF: detached pages, vector order, clipping and transparency.");
             await VectorImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             await ImageOutputAllocationTestInput.VerifyAsync();

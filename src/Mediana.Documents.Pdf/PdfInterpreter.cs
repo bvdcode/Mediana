@@ -38,9 +38,9 @@ namespace Mediana.Documents.Pdf
                 using MemoryStream combined = new();
                 foreach (PdfValue reference in streams)
                 {
-                    byte[] bytes = storage.Decode(storage.Object(reference, token), token);
+                    ReadOnlyMemory<byte> bytes = storage.Decode(storage.Object(reference, token), token);
                     if (combined.Length + bytes.Length + 1 > storage.Budget.Options.MaximumDecodedBytes) { throw new InvalidDataException("PDF page contents exceed their limit."); }
-                    combined.Write(bytes); combined.WriteByte(10);
+                    combined.Write(bytes.Span); combined.WriteByte(10);
                 }
                 Execute(combined.ToArray(), page.Resources, 0);
             }
