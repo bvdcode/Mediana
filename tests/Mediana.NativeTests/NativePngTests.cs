@@ -21,6 +21,7 @@ namespace Mediana.NativeTests
             await PngStreamingTestInput.VerifyFailuresAsync(false);
             await PngStreamingTestInput.VerifyFailuresAsync(true);
             await PngStreamingTestInput.VerifyEarlyRejectionAsync();
+            await PngStreamingTestInput.VerifyAllocationAsync();
             Console.WriteLine("PASS streaming PNG: bounded IDAT, exact pixels, pending owners, cancellation and original write errors.");
         }
     }

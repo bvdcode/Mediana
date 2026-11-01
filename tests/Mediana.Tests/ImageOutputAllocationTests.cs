@@ -7,6 +7,9 @@ namespace Mediana.Tests
     public class ImageOutputAllocationTests
     {
         [Fact]
+        public Task PngStreamOutputDoesNotAllocateACompleteIntermediateImage() => PngStreamingTestInput.VerifyAllocationAsync();
+
+        [Fact]
         public async Task RegisteredHeicDecodingDoesNotCloneTheEncodedFile() =>
             await ImageOutputAllocationTestInput.VerifyHeicInputAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif", "basic-8bit.heic"));
 

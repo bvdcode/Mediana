@@ -169,6 +169,31 @@ namespace Mediana.Tests
             }
         }
 
+        public static async Task VerifyAllocationAsync()
+        {
+            const int Width = 1000;
+            const int Height = 500;
+            const int PixelBytes = Width * Height * 4;
+            const int Repetitions = 3;
+            MediaBufferAllocator inputBudget = new((Width * 4 + 7) * Height + 3);
+            using VideoFrame frame = Frame(inputBudget, Width, Height, false);
+            MediaBufferAllocator scratch = new(ScratchBytes);
+            for (int index = 0; index < Repetitions; index++)
+            {
+                await PngEncoder.EncodeAsync(frame, Stream.Null, scratch);
+            }
+            long start = GC.GetTotalAllocatedBytes(precise: true);
+            for (int index = 0; index < Repetitions; index++)
+            {
+                await PngEncoder.EncodeAsync(frame, Stream.Null, scratch);
+            }
+            long allocated = GC.GetTotalAllocatedBytes(precise: true) - start;
+            if (allocated >= (long)Repetitions * PixelBytes / 4 || scratch.AllocatedBytes != 0)
+            {
+                throw new InvalidOperationException("Streaming PNG must not allocate a complete intermediate image or encoded array.");
+            }
+        }
+
         private static async Task RequireFailureAsync<TException>(Func<Task> operation) where TException : Exception
         {
             bool rejected = false;
