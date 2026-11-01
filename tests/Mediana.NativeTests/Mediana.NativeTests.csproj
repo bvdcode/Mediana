@@ -8,6 +8,11 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MatroskaIndexTestData.cs" Link="MatroskaIndexTestData.cs" />
+    <Compile Include="../Shared/MatroskaIndexTableTestInput.cs" Link="MatroskaIndexTableTestInput.cs" />
+    <Compile Include="../Shared/MatroskaBlockGroupTestInput.cs" Link="MatroskaBlockGroupTestInput.cs" />
+    <Compile Include="../Shared/MatroskaPacketIndexTestInput.cs" Link="MatroskaPacketIndexTestInput.cs" />
+    <Compile Include="../Shared/MatroskaPacketIndexReferenceInput.cs" Link="MatroskaPacketIndexReferenceInput.cs" />
     <Compile Include="../Shared/MatroskaMetadataTestData.cs" Link="MatroskaMetadataTestData.cs" />
     <Compile Include="../Shared/MatroskaMetadataReferenceInput.cs" Link="MatroskaMetadataReferenceInput.cs" />
     <Compile Include="../Shared/MatroskaMetadataResourceInput.cs" Link="MatroskaMetadataResourceInput.cs" />
