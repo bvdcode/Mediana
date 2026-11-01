@@ -208,3 +208,52 @@ These measurements compare different encoded quality and do not establish an
 equal-quality speed ranking. The search defect is confirmed, but correcting it
 alone does not explain or resolve the complete model's quality regression.
 Perceptual targets and actual bit allocation still require joint validation.
+
+
+## Exact joint syntax-cost allocation
+
+An exact finite candidate-path solver counts spectral Huffman payload,
+differential scale factors, section headers and section-length escape words
+together. Its state retains the previous nonzero scale, current book and section
+run; scale history crosses window groups and resets at each channel. Independent
+enumeration of 427021 complete paths covers 269 controlled candidate matrices.
+Forty complete real spectral snapshots supply another 280 solves. The bounded
+Native AOT implementation reproduces all 549 selected paths and costs exactly.
+
+Two media-owned frontiers, an epoch hash and reusable 64 KiB backpointer blocks
+replace per-layer collections. A warmed 80-band test performs 100 solves with zero
+new heap bytes and retains 104640 media bytes; every owner releases its charge.
+Cancellation before allocation, scratch-budget failure followed by reuse, and
+backpointer-budget failure preserve the caller's result. These measurements cover
+that test geometry, rather than the maximum encoder or whole-process footprint.
+
+The complete encoder comparison adds eight local candidates per band to the
+current allocator, retaining its relative channel-error objective. A bounded
+Lagrangian search selects only paths with lower summed objective and exact cost
+within the original frame ceiling. All ten complete original-rate sources,
+228.2323125 seconds, produce 20 streams and 19556 access units. Every control
+matches the current encoder byte for byte; all window declarations, packet bounds,
+complete tails and independently decoded samples pass. The largest difference
+between independent and Native decoding is 1.79e-7 in Float32 units.
+
+| Complete source | Current SNR L/R, dB | Joint refinement SNR L/R, dB |
+| --- | --- | --- |
+| Castanets | 20.82 / 20.83 | 21.09 / 21.11 |
+| Harpsichord | 19.84 / 20.02 | 19.97 / 20.25 |
+| Piano | 41.48 / 42.02 | 41.71 / 42.18 |
+| Wind ensemble | 23.70 / 23.83 | 24.02 / 24.07 |
+| Pop | 24.99 / 24.74 | 25.25 / 24.99 |
+| Recorded speech, mono | 24.19 | 24.45 |
+| Quiet right channel | 46.76 / 37.38 | 45.73 / 37.96 |
+| Alternating active channels | 40.12 / 37.99 | 39.15 / 38.19 |
+
+One sequential pair per source on the same pinned core uses 25.641133 versus
+347.376494 CPU seconds in total: the joint search costs 13.55 times as much CPU.
+Largest peak RSS is 41728 versus 43264 KiB. This is a changed-quality comparison
+on a shared host, rather than a repeated performance estimate or FFmpeg ranking.
+
+The encoder keeps its current allocator. Exact finite syntax optimization does
+not make the existing spectral objective a perceptual quality criterion and does
+not prevent individual channel regressions. The full repeated search also costs
+too much CPU for these small numeric gains. Quality work still requires suitable
+perceptual and temporal objectives together with an affordable allocation method.
