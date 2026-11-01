@@ -131,6 +131,67 @@ namespace Mediana.Containers.Matroska
                 cachedBlock = address.BlockIndex;
             }
             MatroskaFrameRange frame = blocks.GetFrame(address.FrameIndex);
+            MatroskaPacketTiming timing = GetTiming(address);
+            using WritableMediaBuffer writable = allocator.Allocate(Math.Max(1, frame.Length));
+            await source.ReadExactlyAtAsync(frame.Offset, writable.Memory[..frame.Length], token).ConfigureAwait(false);
+            token.ThrowIfCancellationRequested();
+            configurations[block.StreamIndex].ValidatePacket(writable.Memory.Span[..frame.Length]);
+            using MediaBuffer buffer = writable.Publish();
+            using MediaBuffer payload = buffer.Slice(0, frame.Length);
+            return new(block.StreamIndex, payload, timing.PresentationTime, duration: timing.Duration, isKeyFrame: timing.IsKeyFrame);
+        }
+
+        public ContainerSeekPoint? FindSeekPoint(int streamIndex, MediaTimestamp target, long beforePacketIndex,
+            CancellationToken token = default)
+        {
+            target.TimeBase.Validate();
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                token.ThrowIfCancellationRequested();
+                long count = index.GetPacketCount(streamIndex);
+                ArgumentOutOfRangeException.ThrowIfNegative(beforePacketIndex);
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(beforePacketIndex, count);
+                long position = beforePacketIndex - 1;
+                while (position >= 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                    MatroskaPacketAddress address = index.Locate(streamIndex, position);
+                    MatroskaIndexedBlock block = index.GetBlock(address.BlockIndex);
+                    bool sync = block.IsSimpleBlock ? (block.Flags & 0x80) != 0 : !block.HasReferences;
+                    long firstPacket = position - address.FrameIndex;
+                    if (!sync && firstPacket != 0)
+                    {
+                        position = firstPacket - 1;
+                        continue;
+                    }
+                    for (int frame = address.FrameIndex; frame >= 0; frame--, position--)
+                    {
+                        token.ThrowIfCancellationRequested();
+                        if (!sync && position != 0)
+                        {
+                            continue;
+                        }
+                        MatroskaPacketTiming timing = GetTiming(new(address.BlockIndex, frame));
+                        if (timing.PresentationTime is MediaTimestamp pts && (position == 0 || pts.CompareTo(target) <= 0))
+                        {
+                            return new(streamIndex, position, pts);
+                        }
+                    }
+                }
+                return null;
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
+        }
+
+        private MatroskaPacketTiming GetTiming(MatroskaPacketAddress address)
+        {
+            MatroskaIndexedBlock block = index.GetBlock(address.BlockIndex);
+            MatroskaBlockExtensions? extra = index.GetExtensions(address.BlockIndex);
             MatroskaTrackClock clock = clocks[block.StreamIndex];
             MediaDuration? period = framePeriods[block.StreamIndex];
             MediaTimestamp? pts = null;
@@ -149,13 +210,7 @@ namespace Mediana.Containers.Matroska
             }
             MediaDuration? duration = block.FrameCount == 1 && extra?.DurationTicks is ulong ticks ? clock.GetTrackDuration(ticks) : period;
             bool keyFrame = block.IsSimpleBlock ? (block.Flags & 0x80) != 0 : !block.HasReferences;
-            using WritableMediaBuffer writable = allocator.Allocate(Math.Max(1, frame.Length));
-            await source.ReadExactlyAtAsync(frame.Offset, writable.Memory[..frame.Length], token).ConfigureAwait(false);
-            token.ThrowIfCancellationRequested();
-            configurations[block.StreamIndex].ValidatePacket(writable.Memory.Span[..frame.Length]);
-            using MediaBuffer buffer = writable.Publish();
-            using MediaBuffer payload = buffer.Slice(0, frame.Length);
-            return new(block.StreamIndex, payload, pts, duration: duration, isKeyFrame: keyFrame);
+            return new(pts, duration, keyFrame);
         }
 
         private void Enter()

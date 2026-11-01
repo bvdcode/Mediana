@@ -26,6 +26,13 @@ namespace Mediana.Tests
                 using (MatroskaPacketSource packets = new(source, allocator, index, [track], [AacStream(rate: 44100)], 1000000, Options))
                 {
                     long baseline = allocator.AllocatedBytes;
+                    int reads = source.ReadCalls;
+                    MediaTimestamp target = new(-2500000 + (19 * 1024L * 1000000000 + 22050) / 44100, MatroskaTrackClock.TimeBase);
+                    Require(packets.FindSeekPoint(0, target, 256)?.PacketIndex == 19);
+                    Require(packets.FindSeekPoint(0, new(-100, new(1, 1)), 257)?.PacketIndex == 0);
+                    Require(packets.FindSeekPoint(0, new(0, new(1, 1)), 257)?.PacketIndex == 256);
+                    Require(packets.FindSeekPoint(0, target, 0) is null);
+                    Require(source.ReadCalls == reads && allocator.AllocatedBytes == baseline);
                     using MediaPacket first = (await packets.ReadPacketAsync())!;
                     using MediaPacket lease = first.Retain();
                     Require(first.Data.Span[0] == 0 && first.PresentationTime == new MediaTimestamp(-2500000, MatroskaTrackClock.TimeBase));
