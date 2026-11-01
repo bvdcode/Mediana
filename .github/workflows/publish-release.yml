@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version=$(dotnet gitversion /showvariable SemVer)
+          version=$(dotnet gitversion /showvariable MajorMinorPatch)
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
   build:
