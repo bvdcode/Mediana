@@ -2,7 +2,7 @@
 
 `Mediana.Containers.Matroska` contains internal EBML value decoding, document
 header validation, bounded Segment traversal, Block framing, native Info/Tracks
-metadata and packet indexing. Codec integration, seeking and container attachment
+metadata, packet indexing and native clock conversion. Codec integration, seeking and container attachment
 extraction are the next integration work.
 MKV probing and decoding are not exposed through the public engine yet.
 
@@ -120,7 +120,8 @@ Each Cluster retains its native unsigned timestamp once. Blocks retain signed
 relative timestamps, raw flags and dependency presence. The Timestamp may follow
 the blocks; a missing or repeated Timestamp rejects the Cluster. These native
 values do not invent DTS, later laced-frame PTS or whole-stream decode duration.
-Conversion to common packet clocks remains part of codec integration.
+The clock converter below resolves supplied native clocks; packet-reader and
+codec integration remain pending.
 
 BlockGroup parsing preserves explicit BlockDuration, signed DiscardPadding,
 ReferencePriority and deferred CodecState/BlockAdditions extents. ReferenceBlock
@@ -141,6 +142,32 @@ Cluster checksum verification is an explicit internal construction option. CRC
 placement and size remain validated in either mode. BlockGroup metadata CRCs are
 verified by the metadata reader. Verifying a present Cluster checksum streams all
 covered encoded bytes; indexing without that verification avoids the full scan.
+
+## Packet clocks
+
+The internal clock converter evaluates the RFC 9559 block timestamp expression:
+`(cluster + relative * track_scale) * timestamp_scale - codec_delay`.
+The Cluster timestamp is not multiplied by the track scale. CodecDelay is
+subtracted in nanoseconds and negative presentation times remain representable.
+DefaultDuration and SeekPreRoll do not change this first-frame timestamp.
+
+Common clock results use nanoseconds. Following RFC 9559, section 11.3, fractional
+results round to the nearest nanosecond; Mediana chooses the even integer at a
+tie. IEEE 754 track scales are interpreted exactly, without floating-point
+arithmetic on timestamps. A supplied contiguous-frame offset retains its exact
+media time until the complete expression is rounded once. Repeatedly adding
+rounded frame durations would accumulate error and is not used.
+
+The usual unit track scale uses Int128 arithmetic. Other positive finite scales
+use an exact BigInteger ratio, including subnormal values. A result outside the
+signed 64-bit nanosecond range rejects explicitly. Large native values can cancel
+against CodecDelay before that range check; they are not first converted to
+double or narrowed to signed 64-bit ticks.
+
+The converter does not infer later laced-frame offsets or synthesize DTS. Known
+offsets must come from track or codec facts. Raw BlockDuration values have a
+separate conversion using Track Ticks, preserving their distinction from the
+nanosecond DefaultDuration and DiscardPadding fields.
 
 ## Bounds and ownership
 
@@ -206,5 +233,12 @@ Cluster timestamps, unknown Cluster lengths, shared and global byte limits,
 incomplete-index access, malformed BlockGroups and cancellation during a pending
 source read. Successful, failed and canceled reads preserve source ownership.
 
-All 2,772 managed tests and the complete strict Linux x64 Native AOT runner pass.
+Clock tests compare 1,645 independently computed exact rational expressions,
+including delay cancellation, half-nanosecond ties, binary64 scale boundaries and
+256 AAC frame offsets at four sample rates. The five real files also verify
+common first-frame PTS against independent per-stream FFprobe time bases.
+After warmup, 4,096 unit-scale timestamp/duration pairs allocate zero managed
+heap bytes on the measured thread in both managed and Native execution.
+
+All 2,775 managed tests and the complete strict Linux x64 Native AOT runner pass.
 The Release build, formatting and license-header checks also pass.
