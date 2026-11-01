@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
@@ -9,8 +10,46 @@ namespace Mediana.Processing.Audio
 {
     public static class AudioSampleConverter
     {
+        /// <summary>Returns independently disposable PCM in the requested sample format and layout.
+        /// Matching storage is retained without copying and remains charged to its original allocator.
+        /// A representation change allocates output from the supplied allocator. Floating-point input
+        /// must be finite; matching floating-point storage preserves every sample bit, including headroom.</summary>
+        public static AudioFrame ConvertOrRetain(AudioFrame input, AudioSampleFormat sampleFormat, AudioStorageLayout layout,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            ArgumentNullException.ThrowIfNull(allocator);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (input.Format.SampleFormat != sampleFormat || input.Format.Layout != layout)
+            {
+                return Apply(input, sampleFormat, layout, allocator, cancellationToken);
+            }
+            for (int plane = 0; plane < input.Format.PlaneCount; plane++)
+            {
+                ReadOnlySpan<byte> samples = input.GetPlane(plane).Span;
+                switch (sampleFormat)
+                {
+                    case AudioSampleFormat.Unsigned8:
+                    case AudioSampleFormat.Signed16:
+                    case AudioSampleFormat.Signed32:
+                        break;
+                    case AudioSampleFormat.Float32:
+                        ValidateFinite(MemoryMarshal.Cast<byte, float>(samples), cancellationToken);
+                        break;
+                    case AudioSampleFormat.Float64:
+                        ValidateFinite(MemoryMarshal.Cast<byte, double>(samples), cancellationToken);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(sampleFormat));
+                }
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            return input.Retain();
+        }
+
         /// <summary>Converts native-endian PCM storage without changing rate, channels or timing.
-        /// Borrows input and returns an owned frame. Integer output saturates and rounds to nearest even
+        /// Borrows input and always copies or converts into the supplied allocator, including matching formats.
+        /// Integer output saturates and rounds to nearest even
         /// without dithering. Float output preserves finite headroom; non-finite samples are rejected.</summary>
         public static AudioFrame Apply(AudioFrame input, AudioSampleFormat sampleFormat, AudioStorageLayout layout,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
@@ -82,6 +121,22 @@ namespace Mediana.Processing.Audio
                     source.Slice(offset, count).CopyTo(output.Slice(destination, count));
                     offset += count;
                     destination += count;
+                }
+            }
+        }
+
+        private static void ValidateFinite<T>(ReadOnlySpan<T> samples, CancellationToken token)
+            where T : IFloatingPointIeee754<T>
+        {
+            for (int index = 0; index < samples.Length; index++)
+            {
+                if ((index & 255) == 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                }
+                if (!T.IsFinite(samples[index]))
+                {
+                    throw new InvalidDataException("Audio processing requires finite PCM samples.");
                 }
             }
         }

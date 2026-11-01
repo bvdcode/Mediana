@@ -2,8 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
+
+using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Mp3
 {
@@ -30,6 +33,11 @@ namespace Mediana.Codecs.Mp3
             if (stream.Kind != MediaKind.Audio || stream.CodecId != CodecId)
             {
                 return "The stream is not MPEG Layer III audio.";
+            }
+            string? formatReason = StreamFormats.Mp3.GetUnsupportedReason(stream.Format);
+            if (formatReason is not null)
+            {
+                return formatReason;
             }
             Mp3FrameHeader header = Mp3FrameHeader.Read(stream.Configuration.Span);
             if (header.Emphasis != 0)

@@ -8,12 +8,16 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
+using Mediana.Formats;
+
 namespace Mediana.Containers.Flac
 {
     /// <summary>Forward-only native FLAC metadata and compressed byte chunks; borrows its source at the file signature.
     /// Packet boundaries are arbitrary and carry no frame timestamps. Audio framing, CRCs, PCM and MD5 verification
     /// belong to a decoder. Pictures retain their original metadata backing storage within the caller's budget.</summary>
-    public class FlacReader : IContainerReader
+    public partial class FlacReader : IContainerReader
     {
         private const int ScratchBytes = 4096;
         private readonly IByteSource source;
@@ -59,6 +63,7 @@ namespace Mediana.Containers.Flac
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
+                reader.InitializePictureInfo();
                 MediaDuration? declaredDuration = reader.Duration;
                 IReadOnlyList<FlacComment> comments = reader.Comments;
                 reader.info = new Lazy<ContainerInfo>(() => new ContainerInfo("flac", declaredDuration,
@@ -118,7 +123,7 @@ namespace Mediana.Containers.Flac
                         }
                         await ReadExactlyAsync(scratch.Memory[..length], cancellationToken).ConfigureAwait(false);
                         Configuration = FlacConfiguration.ReadStreamInfo(scratch.Memory.Span[..length]);
-                        Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, FlacConfiguration.CodecId,
+                        Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, FlacConfiguration.CodecId, StreamFormats.Flac,
                             new TimeBase(1, Configuration.SampleRate), scratch.Memory.Span[..length],
                             codedDuration: Configuration.TotalSamples == 0 ? null : new MediaDuration(Configuration.TotalSamples,
                                 new TimeBase(1, Configuration.SampleRate))) });

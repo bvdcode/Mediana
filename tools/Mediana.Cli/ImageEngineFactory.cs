@@ -16,13 +16,15 @@ namespace Mediana.Cli
         private const int MaximumInputBytes = 64 * 1024 * 1024;
         private const int MaximumPixels = 16 * 1024 * 1024;
 
-        public static MediaEngine Create() => new MediaEngineBuilder()
+        public static MediaEngine Create() => AddDecoders(new MediaEngineBuilder()).Build();
+
+        internal static MediaEngineBuilder AddDecoders(MediaEngineBuilder builder) => builder
             .AddImageDecoder(CreateHeic(SampleAspectRatio.Square))
             .AddImageDecoder(CreateJpeg2000(SampleAspectRatio.Square))
             .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
             .AddImageDecoder(new SvgImageDecoder())
             .AddImageDecoder(new TgsImageDecoder())
-            .AddImageDecoder(new PdfImageDecoder()).Build();
+            .AddImageDecoder(new PdfImageDecoder());
 
         public static HeicImageDecoder CreateHeic(SampleAspectRatio aspect) => new(aspect,
             new HeicDecodeOptions(maxInputBytes: MaximumInputBytes, maxPixels: MaximumPixels));

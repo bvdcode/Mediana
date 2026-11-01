@@ -32,8 +32,8 @@ namespace Mediana.Codecs.Jbig2
 
         internal Jbig2Document Decode(ReadOnlyMemory<byte> encoded, ReadOnlyMemory<byte> globals)
         {
-            Read(globals, true);
-            Read(encoded, false);
+            Read(globals, true, DecodeSegment);
+            Read(encoded, false, DecodeSegment);
             if (_pages.Count == 0)
             {
                 throw new InvalidDataException("JBIG2 contains no pages.");
@@ -42,7 +42,7 @@ namespace Mediana.Codecs.Jbig2
             return new Jbig2Document(_pages.Select(p => new Jbig2Page(p.Key, p.Value.Bitmap)).ToArray());
         }
 
-        private void Read(ReadOnlyMemory<byte> data, bool globals)
+        private void Read(ReadOnlyMemory<byte> data, bool globals, Action<Segment> accept)
         {
             BitReader? input = new BitReader(data);
             bool sequential = true;
@@ -80,7 +80,7 @@ namespace Mediana.Codecs.Jbig2
                 if (sequential)
                 {
                     segment.Data = input.Take(segment.Length);
-                    DecodeSegment(segment);
+                    accept(segment);
                 }
                 else
                 {
@@ -96,7 +96,7 @@ namespace Mediana.Codecs.Jbig2
             foreach (Segment segment in pending)
             {
                 segment.Data = input.Take(segment.Length);
-                DecodeSegment(segment);
+                accept(segment);
             }
 
             if (input.Remaining != 0)
@@ -219,21 +219,12 @@ namespace Mediana.Codecs.Jbig2
         private int Dimension(BitReader input) => _budget.Count(input.U32(), _budget.Options.MaximumPixels);
         private void Page(Segment segment, BitReader input)
         {
-            int width = Dimension(input), height = Dimension(input);
-            input.Take(8);
-            int flags = input.Byte();
-            input.U16();
-            if (segment.Page == 0 || _pages.ContainsKey(segment.Page) || _pages.Count >= _budget.Options.MaximumPages || width == 0 || height == 0)
+            PageHeader header = PageHeader.Read(segment, input, _budget);
+            if (_pages.ContainsKey(segment.Page) || _pages.Count >= _budget.Options.MaximumPages)
             {
-                throw new InvalidDataException("Invalid JBIG2 page information.");
+                throw new InvalidDataException("Duplicate JBIG2 page or MaximumPages exceeded.");
             }
-
-            if ((_budget.Options.ExpectedWidth is int w && w != width) || (_budget.Options.ExpectedHeight is int h && h != height))
-            {
-                throw new InvalidDataException("JBIG2 page dimensions differ from the required dimensions.");
-            }
-
-            _pages.Add(segment.Page, new PageState(new Bitmap(width, height, _budget, (flags >> 2) & 1), flags));
+            _pages.Add(segment.Page, new PageState(new Bitmap(header.Width, header.Height, _budget, (header.Flags >> 2) & 1), header.Flags));
         }
 
         private Region Region(BitReader input)

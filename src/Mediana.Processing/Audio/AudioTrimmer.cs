@@ -9,7 +9,8 @@ namespace Mediana.Processing.Audio
 {
     /// <summary>Selects a sample range from continuous PCM without retaining the full recording.
     /// The callback transfers ownership of input frames; its source remains borrowed.
-    /// A null sample count reads through EOF. A finite range must exist completely in the input.
+    /// The constructor requires the complete requested range; CreateWindow selects its intersection with available samples.
+    /// A null sample count reads through EOF.
     /// Original sample timestamps are preserved unless an explicit output origin is supplied.
     /// Stops reading at the selected end; the caller remains responsible for source disposal.</summary>
     public class AudioTrimmer : IAsyncDisposable
@@ -17,6 +18,7 @@ namespace Mediana.Processing.Audio
         private readonly Func<CancellationToken, ValueTask<AudioFrame?>> readFrame;
         private readonly MediaBufferAllocator allocator;
         private readonly MediaTimestamp? outputOrigin;
+        private readonly bool requireCompleteRange;
         private long skipRemaining;
         private long? remaining;
         private long inputSamples;
@@ -31,6 +33,22 @@ namespace Mediana.Processing.Audio
 
         public AudioTrimmer(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame, long skipSamples,
             long? sampleCount, MediaBufferAllocator allocator, MediaTimestamp? outputOrigin = null)
+            : this(readFrame, skipSamples, sampleCount, allocator, outputOrigin, true)
+        {
+        }
+
+        /// <summary>Selects available samples in a half-open window starting at skipSamples.
+        /// A finite maximumSampleCount bounds the window; null leaves its end open.
+        /// Natural EOF ends the selection even when the window extends beyond the input.
+        /// No samples are synthesized. Source failures remain terminal errors.</summary>
+        public static AudioTrimmer CreateWindow(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame,
+            long skipSamples, long? maximumSampleCount, MediaBufferAllocator allocator, MediaTimestamp? outputOrigin = null)
+        {
+            return new AudioTrimmer(readFrame, skipSamples, maximumSampleCount, allocator, outputOrigin, false);
+        }
+
+        private AudioTrimmer(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame, long skipSamples,
+            long? sampleCount, MediaBufferAllocator allocator, MediaTimestamp? outputOrigin, bool requireCompleteRange)
         {
             ArgumentNullException.ThrowIfNull(readFrame);
             ArgumentOutOfRangeException.ThrowIfNegative(skipSamples);
@@ -44,6 +62,7 @@ namespace Mediana.Processing.Audio
             this.readFrame = readFrame;
             this.allocator = allocator;
             this.outputOrigin = outputOrigin;
+            this.requireCompleteRange = requireCompleteRange;
             skipRemaining = skipSamples;
             remaining = sampleCount;
         }
@@ -87,7 +106,7 @@ namespace Mediana.Processing.Audio
                 cancellationToken.ThrowIfCancellationRequested();
                 if (input is null)
                 {
-                    if (skipRemaining != 0 || remaining is > 0)
+                    if (requireCompleteRange && (skipRemaining != 0 || remaining is > 0))
                     {
                         throw new InvalidDataException("The requested audio sample range extends past the input.");
                     }

@@ -5,15 +5,15 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Containers.Mp4
 {
-    internal readonly record struct Mp4LinearTimeline(TimeBase TimeBase, int Scale, Int128 Offset)
+    internal readonly record struct Mp4LinearTimeline(TimeBase TimeBase, int Scale, Int128 Offset, long DecodeTimeLead)
     {
-        public static Mp4LinearTimeline Identity(TimeBase timeBase) => new(timeBase, 1, 0);
+        public static Mp4LinearTimeline Identity(TimeBase timeBase) => new(timeBase, 1, 0, 0);
 
-        public static Mp4LinearTimeline Create(TimeBase mediaTimeBase, IReadOnlyList<Mp4Edit> edits)
+        public static Mp4LinearTimeline Create(TimeBase mediaTimeBase, IReadOnlyList<Mp4Edit> edits, long decodeTimeLead)
         {
             if (edits.Count == 0)
             {
-                return Identity(mediaTimeBase);
+                return new(mediaTimeBase, 1, 0, decodeTimeLead);
             }
             int mediaIndex = edits.Count == 2 && edits[0].MediaTime == -1 ? 1 : 0;
             if (edits.Count != mediaIndex + 1 || edits[mediaIndex].MediaTime < 0 ||
@@ -42,10 +42,12 @@ namespace Mediana.Containers.Mp4
             int scale = (int)denominator / mediaDenominator;
             Int128 offset = delayNumerator * (denominator / delayDenominator)
                 - (Int128)edits[mediaIndex].MediaTime * scale;
-            return new(new TimeBase(1, (int)denominator), scale, offset);
+            return new(new TimeBase(1, (int)denominator), scale, offset, decodeTimeLead);
         }
 
         public MediaTimestamp Map(long value) => new(checked((long)((Int128)value * Scale + Offset)), TimeBase);
+
+        public MediaTimestamp MapDecode(long value) => Map(checked(value - DecodeTimeLead));
 
         public MediaDuration MapDuration(uint value) => new((long)value * Scale, TimeBase);
 

@@ -6,7 +6,7 @@ namespace Mediana.Codecs.H264
     internal static class H264InterMacroblock
     {
         // Rec. ITU-T H.264, Table 9-4 (4:2:0 inter coded_block_pattern).
-        private static ReadOnlySpan<byte> CodedPatterns =>
+        internal static ReadOnlySpan<byte> CodedPatterns =>
             [0, 16, 1, 2, 4, 8, 32, 3, 5, 10, 12, 15, 47, 7, 11, 13, 14, 6, 9, 31, 35, 37, 42, 44,
                 33, 34, 36, 40, 39, 43, 45, 46, 17, 18, 20, 24, 19, 21, 26, 28, 23, 27, 29, 30, 22, 25, 38, 41];
 

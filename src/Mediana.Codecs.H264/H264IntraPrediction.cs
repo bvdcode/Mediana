@@ -43,9 +43,10 @@ namespace Mediana.Codecs.H264
         private static void Luma(int mode, ReadOnlySpan<byte> top, ReadOnlySpan<byte> left,
             byte? corner, Span<byte> output, int size)
         {
-            bool needsTop = mode is 0 or 3 or 4 or 5 or 6 or 7;
-            bool needsLeft = mode is 1 or 4 or 5 or 6 or 8;
-            ValidateNeighbours(needsTop, needsLeft, mode is 4 or 5 or 6, top, left, corner);
+            if (!IsLumaModeAvailable(mode, !top.IsEmpty, !left.IsEmpty, corner is not null))
+            {
+                throw new InvalidDataException("An H.264 intra prediction references unavailable neighbours.");
+            }
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
@@ -67,6 +68,15 @@ namespace Mediana.Codecs.H264
                 }
             }
         }
+
+        public static bool IsLumaModeAvailable(int mode, bool hasTop, bool hasLeft, bool hasCorner) => mode switch
+        {
+            0 or 3 or 7 => hasTop,
+            1 or 8 => hasLeft,
+            2 => true,
+            4 or 5 or 6 => hasTop && hasLeft && hasCorner,
+            _ => throw new InvalidDataException("Invalid H.264 directional intra prediction mode.")
+        };
 
         public static void Luma16x16(int mode, ReadOnlySpan<byte> top, ReadOnlySpan<byte> left,
             byte? corner, Span<byte> output)

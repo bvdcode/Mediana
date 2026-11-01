@@ -7,6 +7,8 @@ using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     public class MpegTsWriterTests
@@ -82,7 +84,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024);
             using MemoryStream destination = new();
             Assert.Throws<NotSupportedException>(() => MpegTsWriter.Create(destination,
-                [new EncodedStreamInfo(0, MediaKind.Audio, "opus", new TimeBase(1, 48000))], allocator));
+                [new EncodedStreamInfo(0, MediaKind.Audio, "opus", new EncodedStreamFormat("none", "opus", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 48000))], allocator));
             Assert.Throws<MediaMemoryLimitException>(() => MpegTsWriter.Create(destination, [Audio()], new(206)));
             Assert.Equal(0, allocator.AllocatedBytes);
             await using MpegTsWriter writer = MpegTsWriter.Create(destination, [Audio()], allocator);
@@ -91,7 +93,7 @@ namespace Mediana.Tests
             Assert.Empty(destination.ToArray());
         }
 
-        private static EncodedStreamInfo Audio() => new(7, MediaKind.Audio, "aac", new TimeBase(1, 1000), [0x11, 0x88]);
+        private static EncodedStreamInfo Audio() => new(7, MediaKind.Audio, "aac", StreamFormats.Aac, new TimeBase(1, 1000), [0x11, 0x88]);
 
         [Theory]
         [InlineData(1)]

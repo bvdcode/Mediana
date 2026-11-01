@@ -10,6 +10,61 @@ namespace Mediana.Tests
 {
     public class Mp4ValidationTests
     {
+        [Fact]
+        public async Task UserDataAllowsItsSpecifiedZeroTerminatorWithoutLosingTags()
+        {
+            byte[] data = await Mp4MetadataTestData.FileAsync(Mp4MetadataTestData.Box("udta",
+                Mp4MetadataTestData.Box("name", "example"u8.ToArray()), new byte[4]));
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(data, 5);
+            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            Assert.Contains(reader.Info.Tags!, tag => tag.Name == "name" && tag.Values.SequenceEqual(new[] { "example" }));
+            int packets = 0;
+            while (await reader.ReadPacketAsync() is MediaPacket packet)
+            {
+                packet.Dispose();
+                packets++;
+            }
+            Assert.Equal(6, packets);
+            await reader.DisposeAsync();
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.False(source.IsDisposed);
+        }
+
+        [Theory]
+        [InlineData(3, 0)]
+        [InlineData(4, 1)]
+        [InlineData(5, 0)]
+        public async Task MalformedVisualDescriptionTerminatorsAreRejected(int length, byte last)
+        {
+            byte[] suffix = new byte[length];
+            suffix[^1] = last;
+            byte[] data = Mp4TestData.AppendToVisualDescription(await Mp4TestData.ReadAsync("avc-tail.mov"), suffix);
+            await AssertOpenFailureAsync<InvalidDataException>(data);
+        }
+
+        [Fact]
+        public async Task SampleDescriptionTerminatorDoesNotPermitTrailingBytesInMovieBoxes()
+        {
+            byte[] data = Mp4MetadataTestData.AppendTo(await Mp4TestData.ReadAsync("avc-tail.mov"), new byte[4], "moov");
+            await AssertOpenFailureAsync<InvalidDataException>(data);
+        }
+
+        [Theory]
+        [InlineData("url ", 0)]
+        [InlineData("alis", 0)]
+        [InlineData("alis", 3)]
+        [InlineData("alis", 0x01000001)]
+        [InlineData("rsrc", 1)]
+        public async Task ExternalOrUnsupportedDataReferencesAreRejected(string type, uint versionAndFlags)
+        {
+            byte[] data = await Mp4TestData.ReadAsync();
+            int reference = Mp4TestData.PayloadOffset(data, "dref");
+            System.Text.Encoding.Latin1.GetBytes(type).CopyTo(data.AsSpan(reference + 12, 4));
+            BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(reference + 16, 4), versionAndFlags);
+            await AssertOpenFailureAsync<NotSupportedException>(data);
+        }
+
         [Theory]
         [InlineData("stts", 8, 0)]
         [InlineData("stts", 4, 10000)]
@@ -100,25 +155,22 @@ namespace Mediana.Tests
             await AssertOpenFailureAsync<InvalidDataException>([.. data, .. data.AsSpan(movie, length)]);
         }
 
-        [Fact]
-        public async Task SignedCompositionOffsetsPreserveNegativePresentationTimes()
+        [Theory]
+        [InlineData(false, 0, 4294963200L)]
+        [InlineData(false, 1, -4096L)]
+        [InlineData(true, 0, -4096L)]
+        [InlineData(true, 1, -4096L)]
+        public async Task CompositionOffsetSignFollowsTheDeclaredFormat(bool quickTime, byte version, long expected)
         {
             byte[] data = await Mp4TestData.ReadAsync();
-            int composition = Mp4TestData.PayloadOffset(data, "ctts");
-            data[composition] = 1;
-            int count = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(composition + 4, 4));
-            for (int index = 0; index < count; index++)
-            {
-                int offset = composition + 12 + index * 8;
-                int original = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(offset, 4));
-                BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(offset, 4), original - 8192);
-            }
+            Mp4TestData.SetBrand(data, quickTime ? "qt  "u8 : "isom"u8);
+            Mp4TestData.ShiftCompositionOffsets(data, version, -8192);
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using TrackingRandomAccessSource source = new(data);
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
             using MediaPacket? packet = await reader.ReadPacketAsync();
             Assert.NotNull(packet);
-            Assert.Equal(-4096, packet.PresentationTime!.Value.Value);
+            Assert.Equal(expected, packet.PresentationTime!.Value.Value);
             Assert.Equal(0, packet.DecodeTime!.Value.Value);
         }
 

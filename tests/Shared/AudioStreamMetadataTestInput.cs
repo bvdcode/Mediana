@@ -92,12 +92,6 @@ namespace Mediana.Tests
                 }
                 JsonElement stream = reference.RootElement.GetProperty("reference").GetProperty("streams")[0];
                 await VerifyFileAsync(engine, path, Rate(stream), stream.GetProperty("channels").GetInt32(), null);
-                await using RandomAccessStreamByteSource source = new(File.OpenRead(path));
-                MediaInfo info = await engine.ProbeAsync(source);
-                if (new AacDecoderFactory().GetUnsupportedReason(info.Streams[0]) is null)
-                {
-                    throw new InvalidOperationException("The surround metadata test must exercise a configuration outside decoder support.");
-                }
             }
         }
 

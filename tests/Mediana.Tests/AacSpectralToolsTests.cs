@@ -131,8 +131,7 @@ namespace Mediana.Tests
 
         [Theory]
         [InlineData(1, 15, 2)]
-        [InlineData(13, 1, 2)]
-        [InlineData(1, 13, 1)]
+        [InlineData(1, 14, 2)]
         public void ForbiddenJointStereoCombinationsAreRejected(int leftBook, int rightBook, int mode)
         {
             MediaBufferAllocator allocator = new(65536);
@@ -144,6 +143,16 @@ namespace Mediana.Tests
             Assert.Throws<InvalidDataException>(() =>
                 AacSpectralTools.Reconstruct(left, right, true, mode, mask, ref noise, CancellationToken.None));
         }
+
+        [Theory]
+        [InlineData(false, 0)]
+        [InlineData(false, 1)]
+        [InlineData(false, 2)]
+        [InlineData(true, 0)]
+        [InlineData(true, 1)]
+        [InlineData(true, 2)]
+        public void OneChannelNoiseIgnoresMidSideWithoutChangingEitherBand(bool noiseLeft, int mode) =>
+            AacStereoNoiseTestInput.Verify(noiseLeft, mode);
 
         private static AacChannelState Channel(MediaBufferAllocator allocator, int book, int scale)
         {

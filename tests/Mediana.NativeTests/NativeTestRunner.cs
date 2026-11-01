@@ -13,20 +13,95 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
-            await PdfReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Pdf"));
-            Console.WriteLine("PASS PDF: detached pages, vector order, clipping and transparency.");
+            foreach (bool stereo in new[] { false, true })
+            {
+                foreach (AudioStorageLayout layout in new[] { AudioStorageLayout.Interleaved, AudioStorageLayout.Planar })
+                {
+                    AudioDownmixTestInput.Verify(stereo, layout);
+                    AudioDownmixTestInput.Verify(stereo, layout, AudioSampleFormat.Float32);
+                    AudioDownmixTestInput.Verify(stereo, layout, AudioSampleFormat.Float32, sideSurround: true);
+                }
+            }
+            AudioDownmixTestInput.VerifyBalance();
+            Console.WriteLine("PASS explicit audio downmix: shuffled speakers, mono/stereo coefficients, correlated peaks, timing and released storage.");
+            H264MotionInterpolationTestInput.Verify();
+            H264LumaNeighborhoodTestInput.Verify();
+            H264LumaNeighborhoodTestInput.VerifyAllocation();
+            await H264MotionSearchTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
+            H264ChromaInterpolationTestInput.Verify();
+            H264IntraModeTestInput.Verify();
+            Console.WriteLine("PASS H.264 motion interpolation: all luma phases, complete blocks, borders and extreme coordinates match scalar convolution.");
+            foreach (int configuration in new[] { 3, 4, 5, 6, 7 })
+            {
+                await AacMultichannelTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "AacMultichannel"), configuration);
+            }
+            Console.WriteLine("PASS multichannel AAC-LC: configurations 3–7, every speaker sample, timing, EOF and retained frame ownership match independent decoding.");
+            await AacMultichannelTestInput.VerifyTransitionsAsync(Path.Combine(AppContext.BaseDirectory, "Data", "AacMultichannel"));
+            Console.WriteLine("PASS stereo AAC-LC: every window sequence/shape transition and independent/common window histories match FAAD2 PCM.");
+            LanguageTagTestInput.Verify();
+            Console.WriteLine("PASS language tag syntax: RFC 5646 examples and malformed subtags match without a registry lookup.");
+            await Mp4TrackMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
+            Console.WriteLine("PASS track metadata: native scopes, localized user-data names, owned payloads and complete packet references.");
+            await Mp4HeaderDateTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
+            Console.WriteLine("PASS header dates: unsigned v0/v1 fields, UTC/unspecified zones, distinct scopes and complete packet references.");
+            await Mp4FrameRateTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
+            foreach (string name in new[] { "frame-rate-cfr.mp4", "frame-rate-vfr.mp4", "frame-rate-edited.mp4", "preview-hd.mp4" })
+            {
+                await ServerVideoPreviewTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), name);
+            }
+            Console.WriteLine("PASS server video previews: midpoint targets, VFR, movie edits, exact pixels, out-of-order requests and EOF restart.");
+            await ServerVideoPreviewTestInput.VerifyPngAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
+            Console.WriteLine("PASS server HD preview: complete sample PNG, dimensions, sRGB labels and every independent pixel.");
+            Console.WriteLine("PASS indexed video rates: exact fractional CFR, VFR, reordered/edited samples, both timelines and complete packet references.");
+            await QuickTimeAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
+            Console.WriteLine("PASS QuickTime AAC: both complete sound-v1 tracks, original timing, independent PNS energy and retained ownership.");
+            foreach (bool noiseLeft in new[] { false, true })
+            {
+                foreach (int mode in new[] { 0, 1, 2 })
+                {
+                    AacStereoNoiseTestInput.Verify(noiseLeft, mode);
+                }
+            }
+            Console.WriteLine("PASS one-channel AAC noise: all M/S mask modes retain exact band energy and the independent spectral channel.");
+            await ContainerColorTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Preview"));
+            await AvcColorRemuxTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Preview"));
+            Console.WriteLine("PASS container colors: nclx/nclc precedence, native-range YUV sequences, SDR previews, resizing and encoding.");
+            await ContainerPictureTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS container pictures: MP3, FLAC and MP4 original bytes, empty lists, packet cursors and owned backing storage.");
+            await EncodingOperationTestInput.VerifyAsync();
+            await EncodingGroupTestInput.VerifyAsync();
+            Console.WriteLine("PASS encode operation: multiple packets, delayed output, finalization and frame ownership.");
+            await MultiStreamTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-aac.mp4"));
+            await NativePdfTests.RunAsync();
+            await NativePngTests.RunAsync();
+            BoundedStreamReadTestInput.VerifySynchronous();
+            BoundedStreamReadTestInput.VerifyAllocationSynchronous();
+            await BoundedStreamReadTestInput.VerifyAsync();
+            await BoundedStreamReadTestInput.VerifyAllocationAsync();
             await VectorImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            await ImageOutputAllocationTestInput.VerifyAsync();
+            await ImageOutputAllocationTestInput.VerifyHeicInputAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif", "basic-8bit.heic"));
+            Console.WriteLine("PASS image output allocation: SVG, TGS and PDF complete RGBA frames stay below the duplicate-buffer threshold and release every lease.");
             Console.WriteLine("PASS registered vector decoding: 352 SVG cases, 33 timed TGS frames and PDF pages match independent pixels.");
+            await ImageProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS image metadata: SVG, TGS, PDF, HEIF, JPEG 2000 and JBIG2 dimensions and source ownership.");
             await ImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS registered image decoding: HEIC, JPEG 2000 and JBIG2 match independent pixels with owned frames and unchanged source cursors.");
             await ImageFrameTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS image conversion: HEIC, JPEG 2000 and JBIG2 produce owned frames and complete sRGB PNG files.");
             await TgsReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Tgs"));
             Console.WriteLine("PASS TGS/Lottie: 33 supported frames match every reference channel within one RGB code and exact alpha.");
+            SceneBufferOwnershipTestInput.VerifyReuse();
+            SceneBufferOwnershipTestInput.VerifyTrim();
+            SceneBufferOwnershipTestInput.VerifyDisposal();
+            SceneBufferOwnershipTestInput.VerifyFailedConstruction();
+            SceneBufferOwnershipTestInput.VerifyReservationDisposal();
+            Console.WriteLine("PASS drawing surfaces: reuse, trimming, disposal, construction failure and exact effect budgets.");
             await SvgReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Svg"));
             Console.WriteLine("PASS SVG: 352 filter pixel references and Latin/Cyrillic font rendering.");
             await HeifReferenceTestInput.VerifyWavefrontAsync();
             await HeifReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
+            await HeifFrameOwnershipTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
             Console.WriteLine("PASS HEIC: 42 independent full RGBA references, transforms, grids and alpha.");
             await Jbig2ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jbig2"));
             Console.WriteLine("PASS JBIG2: 98 authored pixel references match all packed page bytes.");
@@ -63,10 +138,76 @@ namespace Mediana.NativeTests
                 await AacFeatureTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
                 Console.WriteLine($"PASS AAC-LC {name}: complete PCM/timing/ownership and reference sample or noise energy checks; maximum PCM difference {difference:G9}.");
             }
+            for (int sequence = 0; sequence < 4; sequence++)
+            {
+                for (int shape = 0; shape < 2; shape++)
+                {
+                    for (int previousShape = 0; previousShape < 2; previousShape++)
+                    {
+                        AacAnalysisTestInput.VerifyTransform(sequence, shape, previousShape);
+                    }
+                }
+            }
+            AacAnalysisTestInput.VerifyTransitions();
+            AacWindowSelectionTestInput.VerifyDetector();
+            await HighRateAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
+            foreach (int rate in new[] { 96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000 })
+            {
+                foreach (int channels in new[] { 1, 2 })
+                {
+                    foreach (int samples in new[] { 1, 1023, 1024, 1025, 2048, 2051, 4133 })
+                    {
+                        AacAutomaticEncodingTestInput.Verify(rate, channels, samples);
+                    }
+                }
+            }
+            foreach (int offset in new[] { 0, 127, 128, 447, 448, 511, 575, 576, 1023 })
+            {
+                AacAutomaticEncodingTestInput.Verify(48000, 2, 4133, offset, 0);
+                AacAutomaticEncodingTestInput.Verify(48000, 2, 4133, offset, 1);
+            }
+            for (int shape = 0; shape < 2; shape++)
+            {
+                for (int previousShape = 0; previousShape < 2; previousShape++)
+                {
+                    AacWindowSelectionTestInput.VerifyGrouping(1, shape, previousShape);
+                    AacWindowSelectionTestInput.VerifyGrouping(2, shape, previousShape);
+                }
+            }
+            for (int pattern = 0; pattern < 64; pattern++)
+            {
+                AacWindowSelectionTestInput.VerifyDecisions(pattern);
+            }
+            Console.WriteLine("PASS AAC lookahead: every six-block attack pattern preserves legal transitions and all unquantized samples, including initial short windows.");
+            Console.WriteLine("PASS AAC analysis: long/start/short/stop direct coefficients, sine/KBD transitions, complete reconstruction and workspace bounds.");
+            for (int frequency = 0; frequency < 12; frequency++)
+            {
+                AacWindowGroupingTestInput.VerifyFrequency(frequency);
+                AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, false, 1);
+                AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, false, 2);
+                AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, true, 1);
+                AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, true, 2);
+            }
+            AacWindowGroupingTestInput.VerifyAllocation(0, 0, 1, 1400);
+            AacWindowGroupingTestInput.VerifyAllocation(3, 1, 2, 4000);
+            AacWindowGroupingTestInput.VerifyAllocation(6, 2, 2, 3200);
+            AacWindowGroupingTestInput.VerifyAllocation(11, 3, 1, 2500);
+            Console.WriteLine("PASS AAC short groups: every sample rate, grouped order, scale history, exact sections and mono/stereo element budgets.");
             await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48", 64000, 19);
+            AacEncodingQualityTestInput.Verify(0);
+            AacEncodingQualityTestInput.Verify(1);
+            AacBandAllocationTestInput.VerifySharedBudget(3, 2400, 0, 0);
+            AacBandAllocationTestInput.VerifySharedBudget(4, 3200, 1, 0);
+            AacBandAllocationTestInput.VerifySharedBudget(3, 2400, 0, 0.05);
+            AacBandAllocationTestInput.VerifySharedBudget(11, 12000, 1, 0);
+            Console.WriteLine("PASS AAC shared channel budget: asymmetric spectra, exact channel syntax, silent output and CPE capacity.");
             await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-stereo-44", 128000, 17);
             await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-pns-48", 192000, 19);
-            Console.WriteLine("PASS AAC encoding: every decoded sample in 55 owned AAC-LC packets matches independent mono/stereo references, preserving priming, padding and timing.");
+            await AacEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "channel-budget", 96000, 107);
+            await AacSwitchedEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), 1);
+            await AacSwitchedEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), 2);
+            Console.WriteLine("PASS AAC switched-window encoding: mono/stereo, every sine/KBD transition, grouped spectrum, PCM sample, budget and timestamp match independent decoding.");
+            Console.WriteLine("PASS AAC encoding: every decoded sample in complete mono/stereo references matches, preserving priming, padding, timing and packet ownership.");
             await AacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48");
             await AacWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-stereo-44");
             foreach (string name in new[] { "lc-mono-48", "lc-stereo-44" })
@@ -85,18 +226,17 @@ namespace Mediana.NativeTests
             }
             Console.WriteLine("PASS MP3 in MP4/TS/HLS: MPEG-1/2 frames, timestamps, transport tables and repeatable segments match.");
             Console.WriteLine("PASS MP4 metadata: Unicode tags, indexed keys, exact PNG/JPEG covers, unchanged packets and independent cover ownership match.");
-            await AudioWaveformTestInput.VerifyAsync();
-            await AudioWaveformTestInput.VerifyWaveAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Wave"));
-            Console.WriteLine("PASS audio waveform: streaming mono mix, resampling, PCM16 quantization and RMS match analytic tone energy and exact window timing.");
-            await AudioResamplingTestInput.VerifyAsync(48000, 400, AudioStorageLayout.Interleaved);
-            await AudioResamplingTestInput.VerifyAsync(44100, 400, AudioStorageLayout.Planar);
-            await AudioResamplingTestInput.VerifyAsync(8000, 11025, AudioStorageLayout.Interleaved);
-            Console.WriteLine("PASS audio resampling: passband tones, exact timing, channel separation and finite output ownership match.");
+            await NativeAudioProcessingTests.RunAsync();
             for (int index = 0; index < MediaProbeTestInput.Cases.Length; index++)
             {
                 await MediaProbeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), index);
             }
             Console.WriteLine("PASS media probe: declared durations, codec IDs and owned snapshots match header references without decoders.");
+            foreach (string file in Mp4IndexInfoTestInput.Names)
+            {
+                await Mp4IndexInfoTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), file);
+            }
+            Console.WriteLine("PASS MP4 index metadata: packet counts, payload bytes and coded durations match independent packets in both timeline modes.");
             await VideoStreamMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS video header metadata: all opening SPS descriptions, 8K, HDR, sampling and field declarations match independent references without picture allocation.");
             await AudioStreamMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
@@ -121,22 +261,7 @@ namespace Mediana.NativeTests
             MediaBufferAllocator allocator = new(1024 * 1024);
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
-            await HlsEncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 96, 80, 18, 6);
-            await HlsEncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 48, 40, 18, 6);
-            await HlsEncodingTestInput.VerifyAsync(root, "avc-weighted", 48, 30, 12, 3);
-            await AvcAudioHlsTestInput.VerifyAsync(root, "avc-aac.mp4", "mp4a.40.2");
-            await AvcAudioHlsTestInput.VerifyAsync(root, "avc-mp3-44.mp4", "mp4a.6B");
-            await AvcAudioHlsTestInput.VerifyAsync(root, "avc-mp3-22.mp4", "mp4a.69");
-            Console.WriteLine("PASS audiovisual HLS encoding: every AAC and MPEG-1/2 Layer III packet, timestamp and transport counter is preserved alongside encoded video.");
-            Console.WriteLine("PASS HLS encoding: 48 independent reference pictures, 15 aligned IDR segments, exact transport timing and released output ownership match.");
-            await YuvScalingTestInput.VerifySyntheticAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Resize"));
-            await YuvScalingTestInput.VerifySequenceAsync(root, "avc-multislice-cabac", 48, 40, 18, new(1, 1));
-            await YuvScalingTestInput.VerifySequenceAsync(root, "avc-weighted", 48, 30, 12, new(235, 186));
-            Console.WriteLine("PASS YUV area scaling: six chroma locations and 30 complete video pictures match exact rational references, preserving timing and display aspect.");
-            await H264EncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 26, 18);
-            await H264EncodingTestInput.VerifyAsync(root, "avc-multislice-cavlc", 38, 18);
-            await H264EncodingTestInput.VerifyAsync(root, "avc-weighted", 18, 12);
-            Console.WriteLine("PASS H.264 encoding: 48 fixed-QP IDR pictures match every independently decoded YUV sample and preserve timing, color and SAR.");
+            await NativeVideoEncodingTests.RunAsync(root, h264Root);
             await H264CabacBidirectionalTestInput.VerifyAsync(h264Root, root);
             await VideoSeekTestInput.VerifyAsync(root, "avc-multislice-cavlc", 18, 96, 80, 6);
             await VideoSeekTestInput.VerifyAsync(root, "avc-multislice-cabac", 18, 96, 80, 6);
@@ -178,7 +303,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS MPEG-TS segments: all 36 AVC and 339 AAC packets, clocks and counters match; restored segments in order 2, 0, 1, 2 equal continuous output byte for byte.");
             await Mp4SampleAccessTestInput.VerifyAsync(root, "avc-segments.mp4", Mp4TimestampMode.LinearMovie);
             Console.WriteLine("PASS AVC video segment plan: inspected IDR boundaries at 0, 3 and 6 seconds, exact durations and reverse access preserve decoder order and reader cursors.");
-            foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov" })
+            foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov", "avc-timecode.mov", "avc-sound-v2.mov" })
             {
                 await Mp4SampleAccessTestInput.VerifyAsync(root, file, Mp4TimestampMode.Media);
                 await Mp4SampleAccessTestInput.VerifyAsync(root, file, Mp4TimestampMode.LinearMovie);

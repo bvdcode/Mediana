@@ -13,7 +13,7 @@ namespace Mediana.Images.Svg
     internal partial class SvgSceneBuilder
     {
         private SvgRegion Region(XElement e, string units, string x = "-10%", string y = "-10%", string width = "120%", string height = "120%") => new((string?)e.Attribute("x") ?? x, (string?)e.Attribute("y") ?? y, (string?)e.Attribute("width") ?? width, (string?)e.Attribute("height") ?? height, (string?)e.Attribute(units) != "userSpaceOnUse", _width, _height);
-        private SvgMask? Mask(string value, int depth)
+        private SceneMask? Mask(string value, int depth)
         {
             if (value == "none")
             {
@@ -23,7 +23,7 @@ namespace Mediana.Images.Svg
             XElement? target = Reference(Url(value));
             if (target is null)
             {
-                return new SvgMask(Empty, new SvgRegion("0", "0", "0", "0", true, _width, _height), false, false, false);
+                return new SceneMask(Empty, new SvgRegion("0", "0", "0", "0", true, _width, _height), false, false, false);
             }
 
             if (target.Name.LocalName != "mask")
@@ -33,10 +33,10 @@ namespace Mediana.Images.Svg
             }
 
             Dictionary<string, string> style = Style(target, new Dictionary<string, string>());
-            return new SvgMask(Node(target, new Dictionary<string, string>(), depth + 1, true), Region(target, "maskUnits"), (string?)target.Attribute("maskContentUnits") == "objectBoundingBox", Value(style, "mask-type", "luminance") != "alpha", Value(style, "color-interpolation", "sRGB") == "linearRGB");
+            return new SceneMask(Node(target, new Dictionary<string, string>(), depth + 1, true), Region(target, "maskUnits"), (string?)target.Attribute("maskContentUnits") == "objectBoundingBox", Value(style, "mask-type", "luminance") != "alpha", Value(style, "color-interpolation", "sRGB") == "linearRGB");
         }
 
-        private SvgFilter? Filter(string value, Dictionary<string, string> inherited, int depth)
+        private SceneFilter? Filter(string value, Dictionary<string, string> inherited, int depth)
         {
             if (value == "none")
             {
@@ -67,10 +67,10 @@ namespace Mediana.Images.Svg
             }
 
             Dictionary<string, string> style = Style(target, inherited);
-            var images = new Dictionary<XElement, SvgNode>();
+            var images = new Dictionary<XElement, SceneNode>();
             foreach (XElement operation in operations)
             {
-                if (!SvgFilter.Operations.Contains(operation.Name.LocalName))
+                if (!SvgFilterCompiler.Operations.Contains(operation.Name.LocalName))
                 {
                     Warn("SVG filter primitive: " + operation.Name.LocalName);
                 }
@@ -87,10 +87,7 @@ namespace Mediana.Images.Svg
                 ApplyFilterProperties(operation, properties);
             }
 
-            return new SvgFilter(Region(target, "filterUnits"), (string?)target.Attribute("primitiveUnits") == "objectBoundingBox", operations, Value(style, "color-interpolation-filters", "linearRGB") != "sRGB")
-            {
-                Images = images
-            };
+            return SvgFilterCompiler.Compile(Region(target, "filterUnits"), (string?)target.Attribute("primitiveUnits") == "objectBoundingBox", operations, Value(style, "color-interpolation-filters", "linearRGB") != "sRGB", images);
         }
 
         private static void ApplyFilterProperties(XElement operation, Dictionary<string, string> properties)
@@ -110,7 +107,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private SvgNode? FilterImage(XElement operation, int depth)
+        private SceneNode? FilterImage(XElement operation, int depth)
         {
             string? href = Href(operation);
             if (href?.StartsWith('#') == true)
@@ -138,7 +135,7 @@ namespace Mediana.Images.Svg
             return ColorBlendMode.Normal;
         }
 
-        private SvgFilter? CssFilter(string value)
+        private SceneFilter? CssFilter(string value)
         {
             var operations = new List<XElement>();
             int position = 0;
@@ -157,7 +154,7 @@ namespace Mediana.Images.Svg
                 }
 
                 string name = value[position..start].Trim(), argument = value[(start + 1)..end].Trim();
-                XElement? operation = SvgFilter.CssOperation(name, argument);
+                XElement? operation = SvgFilterCompiler.CssOperation(name, argument);
                 if (operation is null)
                 {
                     Warn("SVG CSS filter: " + name);
@@ -170,10 +167,7 @@ namespace Mediana.Images.Svg
                 position = end + 1;
             }
 
-            return new SvgFilter(new SvgRegion("-100%", "-100%", "300%", "300%", true, _width, _height), false, operations.ToArray(), false)
-            {
-                Unbounded = true
-            };
+            return SvgFilterCompiler.Compile(new SvgRegion("-100%", "-100%", "300%", "300%", true, _width, _height), false, operations.ToArray(), false, unbounded: true);
         }
     }
 }

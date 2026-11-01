@@ -12,6 +12,10 @@ using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     public class AudioStreamMetadataTests
@@ -30,9 +34,9 @@ namespace Mediana.Tests
         {
             IStreamMetadataReader reader = CreateReader(index);
             Assert.Throws<ArgumentNullException>(() => reader.Read(null!));
-            Assert.Throws<ArgumentException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Video, reader.CodecId, new TimeBase(1, 1))));
-            Assert.Throws<ArgumentException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Audio, "other", new TimeBase(1, 1))));
-            Assert.Throws<InvalidDataException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Audio, reader.CodecId, new TimeBase(1, 1))));
+            Assert.Throws<ArgumentException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Video, reader.CodecId, index switch { 0 => StreamFormats.WavePcm, 1 => StreamFormats.AiffPcm, 2 => StreamFormats.Flac, 3 => StreamFormats.Mp3, 4 => StreamFormats.Aac, _ => throw new ArgumentOutOfRangeException(nameof(index)) }, new TimeBase(1, 1))));
+            Assert.Throws<ArgumentException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Audio, "other", new EncodedStreamFormat("none", "other", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 1))));
+            Assert.Throws<InvalidDataException>(() => reader.Read(new EncodedStreamInfo(0, MediaKind.Audio, reader.CodecId, index switch { 0 => StreamFormats.WavePcm, 1 => StreamFormats.AiffPcm, 2 => StreamFormats.Flac, 3 => StreamFormats.Mp3, 4 => StreamFormats.Aac, _ => throw new ArgumentOutOfRangeException(nameof(index)) }, new TimeBase(1, 1))));
         }
 
         [Theory]
@@ -43,9 +47,9 @@ namespace Mediana.Tests
         [InlineData(5, 5)]
         [InlineData(6, 6)]
         [InlineData(7, 8)]
-        public void AacHeadersDoNotInheritDecoderChannelAndBandTableLimits(int configuration, int count)
+        public void AacHeadersDoNotInheritDecoderBandTableLimits(int configuration, int count)
         {
-            EncodedStreamInfo stream = new(19, MediaKind.Audio, "aac", new TimeBase(1, 17),
+            EncodedStreamInfo stream = new(19, MediaKind.Audio, "aac", StreamFormats.Aac, new TimeBase(1, 17),
                 AacConfiguration.Create(7350, configuration).ToAudioSpecificConfig());
             AudioStreamMetadata metadata = Assert.IsType<AudioStreamMetadata>(new AacStreamMetadataReader().Read(stream));
             Assert.Equal(7350, metadata.SampleRate);
@@ -58,10 +62,10 @@ namespace Mediana.Tests
         [Fact]
         public void UnsupportedConfigurationIsNotPresentedAsKnownAudio()
         {
-            Assert.Null(new AacStreamMetadataReader().Read(new EncodedStreamInfo(0, MediaKind.Audio, "aac", new TimeBase(1, 1), [0x12, 0x14])));
-            Assert.Null(new PcmStreamMetadataReader().Read(new EncodedStreamInfo(0, MediaKind.Audio, "pcm", new TimeBase(1, 1),
+            Assert.Null(new AacStreamMetadataReader().Read(new EncodedStreamInfo(0, MediaKind.Audio, "aac", StreamFormats.Aac, new TimeBase(1, 1), [0x12, 0x14])));
+            Assert.Null(new PcmStreamMetadataReader().Read(new EncodedStreamInfo(0, MediaKind.Audio, "pcm", StreamFormats.WavePcm, new TimeBase(1, 1),
                 WaveTestInput.Format(tag: 6))));
-            Assert.Null(new AiffPcmStreamMetadataReader().Read(new EncodedStreamInfo(0, MediaKind.Audio, "pcm.aiff", new TimeBase(1, 1),
+            Assert.Null(new AiffPcmStreamMetadataReader().Read(new EncodedStreamInfo(0, MediaKind.Audio, "pcm.aiff", StreamFormats.AiffPcm, new TimeBase(1, 1),
                 AiffTestInput.Configuration(compression: "ulaw"))));
         }
 
@@ -87,7 +91,7 @@ namespace Mediana.Tests
             MediaInfo rich = await AudioStreamMetadataTestInput.CreateEngine().ProbeAsync(after);
             Assert.Equal(before.Reads, after.Reads);
             Assert.Equal(basic.Streams[0].Configuration.ToArray(), rich.Streams[0].Configuration.ToArray());
-            Assert.Null(rich.Container.DeclaredDuration);
+            Assert.Null(rich.Container!.DeclaredDuration);
             Assert.Null(rich.Streams[0].CodedDuration);
             Assert.IsType<AudioStreamMetadata>(rich.StreamMetadata[0]);
         }

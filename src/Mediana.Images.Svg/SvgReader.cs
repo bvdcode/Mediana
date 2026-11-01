@@ -13,7 +13,7 @@ using System.Xml.Linq;
 namespace Mediana.Images.Svg
 {
     /// <summary>Reads SVG without executing scripts or loading external resources.</summary>
-    public static class SvgReader
+    public static partial class SvgReader
     {
         /// <summary>Parses SVG XML and interprets vector geometry.</summary>
         public static SvgDocument Read(string xml, SvgReaderOptions? options = null, CancellationToken cancellationToken = default)

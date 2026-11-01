@@ -125,6 +125,20 @@ namespace Mediana.Codecs.H264
         {
             Span<byte> top = stackalloc byte[16];
             Span<byte> left = stackalloc byte[8];
+            (bool hasTop, bool hasLeft, byte? corner) = ReadLumaNeighbours(x, y, size, top, left, constrained);
+            if (size == 8)
+            {
+                H264IntraPrediction.Luma8x8(mode, hasTop ? top : [], hasLeft ? left : [], corner, output);
+            }
+            else
+            {
+                H264IntraPrediction.Luma4x4(mode, hasTop ? top[..8] : [], hasLeft ? left[..4] : [], corner, output);
+            }
+        }
+
+        public (bool HasTop, bool HasLeft, byte? Corner) ReadLumaNeighbours(int x, int y, int size,
+            Span<byte> top, Span<byte> left, bool constrained = false)
+        {
             Span<byte> pixels = Plane(0);
             bool hasTop = IsAvailable(x, y - 1, constrained);
             bool hasLeft = IsAvailable(x - 1, y, constrained);
@@ -143,14 +157,7 @@ namespace Mediana.Codecs.H264
                 }
             }
             byte? corner = IsAvailable(x - 1, y - 1, constrained) ? pixels[(y - 1) * Width + x - 1] : null;
-            if (size == 8)
-            {
-                H264IntraPrediction.Luma8x8(mode, hasTop ? top : [], hasLeft ? left : [], corner, output);
-            }
-            else
-            {
-                H264IntraPrediction.Luma4x4(mode, hasTop ? top[..8] : [], hasLeft ? left[..4] : [], corner, output);
-            }
+            return (hasTop, hasLeft, corner);
         }
 
         public void PredictMacroblock(int plane, int x, int y, int mode, Span<byte> output, bool constrained = false)

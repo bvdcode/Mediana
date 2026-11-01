@@ -15,7 +15,7 @@ namespace Mediana.Cli
     {
         private const long BufferBudgetBytes = 1024 * 1024;
 
-        public static async Task<int> RunAsync(string input, string output, int? stream, ILogger logger, CancellationToken cancellationToken)
+        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? stream, ILogger logger, CancellationToken cancellationToken)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
@@ -30,7 +30,7 @@ namespace Mediana.Cli
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             long samples = 0;
             long outputBytes = 0;
-            await CommandOutputFile.WriteAsync(output, async destination =>
+            await outputFile.WriteAsync(async destination =>
             {
                 await using WavePcmWriter writer = await WavePcmWriter.OpenAsync(destination, format, allocator, cancellationToken);
                 await WriteAsync(writer, first, allocator, cancellationToken);
@@ -62,7 +62,7 @@ namespace Mediana.Cli
 
         private static async ValueTask WriteAsync(WavePcmWriter writer, AudioFrame input, MediaBufferAllocator allocator, CancellationToken token)
         {
-            using AudioFrame pcm = AudioSampleConverter.Apply(input, AudioSampleFormat.Signed16, AudioStorageLayout.Interleaved, allocator, token);
+            using AudioFrame pcm = AudioSampleConverter.ConvertOrRetain(input, AudioSampleFormat.Signed16, AudioStorageLayout.Interleaved, allocator, token);
             await writer.WriteFrameAsync(pcm, token);
         }
     }

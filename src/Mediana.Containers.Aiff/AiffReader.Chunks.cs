@@ -8,6 +8,10 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
+using Mediana.Formats;
+
 namespace Mediana.Containers.Aiff
 {
     public partial class AiffReader
@@ -29,7 +33,7 @@ namespace Mediana.Containers.Aiff
             Configuration = PcmConfiguration.ReadAiffFormat(common.Memory.Span, out string? reason)
                 ?? throw new NotSupportedException(reason);
             SamplesPerChannel = BinaryPrimitives.ReadUInt32BigEndian(common.Memory.Span[6..]);
-            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, PcmConfiguration.AiffCodecId,
+            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, PcmConfiguration.AiffCodecId, StreamFormats.AiffPcm,
                 new TimeBase(1, Configuration.Format.SampleRate), common.Memory.Span, codedDuration: Duration) });
             await ReadPaddingAsync(size, cancellationToken).ConfigureAwait(false);
         }

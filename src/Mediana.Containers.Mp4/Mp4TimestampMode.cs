@@ -8,7 +8,8 @@ namespace Mediana.Containers.Mp4
         /// <summary>Original media timestamps without edit-list translation.</summary>
         Media,
         /// <summary>Translate one unit-rate media edit, optionally preceded by an empty edit,
-        /// into movie time. Retains every encoded sample, including priming and samples outside the edit.</summary>
+        /// into movie time. Advance decode time by the full table's required composition lead.
+        /// Retains every encoded sample, including priming and samples outside the edit.</summary>
         LinearMovie
     }
 }

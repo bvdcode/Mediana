@@ -61,7 +61,7 @@ namespace Mediana.Tests
                 {
                     Check(info, "mdta", "custom.example", "Value 🧪", 0);
                 }
-                if (info.Container.Tags!.Any(tag => tag.Name is "covr" or "trkn" or "disk"))
+                if (info.Container!.Tags!.Any(tag => tag.Name is "covr" or "trkn" or "disk"))
                 {
                     throw new InvalidDataException("Binary metadata was misrepresented as text.");
                 }
@@ -97,7 +97,7 @@ namespace Mediana.Tests
 
         private static void Check(MediaInfo info, string keyNamespace, string name, string value, uint? locale = null)
         {
-            MediaTag tag = (info.Container.Tags ?? throw new InvalidDataException("Header text tags are unavailable."))
+            MediaTag tag = (info.Container!.Tags ?? throw new InvalidDataException("Header text tags are unavailable."))
                 .Single(tag => tag.Namespace == keyNamespace && tag.Name == name);
             if (!tag.Values.SequenceEqual(new[] { value }) || tag.Description is not null || tag.Locale != locale)
             {

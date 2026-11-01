@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Buffers.Binary;
 using Mediana.Containers;
 using Mediana.Containers.Mp4;
 using Mediana.Core;
@@ -27,22 +26,16 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task SignedCompositionTimesAndFractionalMovieDelaysUseExactTargetComparisons(bool signedComposition)
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public async Task SignedCompositionTimesAndFractionalMovieDelaysUseExactTargetComparisons(bool signedComposition, bool quickTime)
         {
             byte[] data = await Mp4TestData.ReadAsync("avc-multislice-cabac.mp4");
+            Mp4TestData.SetBrand(data, quickTime ? "qt  "u8 : "isom"u8);
             if (signedComposition)
             {
-                int offset = Mp4TestData.PayloadOffset(data, "ctts");
-                data[offset] = 1;
-                int count = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(offset + 4));
-                for (int index = 0; index < count; index++)
-                {
-                    int position = offset + 12 + index * 8;
-                    int value = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(position));
-                    BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(position), value - 8192);
-                }
+                Mp4TestData.ShiftCompositionOffsets(data, quickTime ? (byte)0 : (byte)1, -8192);
             }
             data = Mp4EditTestData.Replace(data, false, (1, -1, 65536), (1600, 7, 65536));
             MediaBufferAllocator allocator = new(1024 * 1024);

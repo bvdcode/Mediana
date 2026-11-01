@@ -25,12 +25,7 @@ namespace Mediana.Codecs.Jpeg2000
 
         internal Jpeg2000Image Decode()
         {
-            if (_input.Marker() != 0xff4f || _input.Marker() != 0xff51)
-            {
-                throw new InvalidDataException("JPEG 2000 must start with SOC and SIZ.");
-            }
-
-            Size(_input.Segment());
+            Initialize(CodestreamSize.Read(_input, _info, _budget));
             bool end = false;
             while (_input.Remaining > 0)
             {
@@ -86,98 +81,23 @@ namespace Mediana.Codecs.Jpeg2000
             }
         }
 
-        private static int Dimension(ByteReader input)
+        private void Initialize(CodestreamSize size)
         {
-            uint value = input.U32();
-            if (value > int.MaxValue)
+            _x0 = size.X0;
+            _y0 = size.Y0;
+            _x1 = size.X1;
+            _y1 = size.Y1;
+            _tileX = size.TileX;
+            _tileY = size.TileY;
+            _tileWidth = size.TileWidth;
+            _tileHeight = size.TileHeight;
+            _across = size.Across;
+            _budget.Reserve(size.TileCount * 8L);
+            _tiles = new Tile?[size.TileCount];
+            _components = new Jpeg2000Component[size.Components.Length];
+            for (int c = 0; c < _components.Length; c++)
             {
-                throw new InvalidDataException("JPEG 2000 coordinate exceeds supported range.");
-            }
-
-            return (int)value;
-        }
-
-        private void Size(ByteReader data)
-        {
-            if (data.U16() > 2)
-            {
-                throw new NotSupportedException("JPEG 2000 extended profile.");
-            }
-
-            _x1 = Dimension(data);
-            _y1 = Dimension(data);
-            _x0 = Dimension(data);
-            _y0 = Dimension(data);
-            _tileWidth = Dimension(data);
-            _tileHeight = Dimension(data);
-            _tileX = Dimension(data);
-            _tileY = Dimension(data);
-            _budget.Pixels((long)_x1 - _x0, (long)_y1 - _y0, true);
-            if (_tileWidth == 0 || _tileHeight == 0 || _tileX > _x0 || _tileY > _y0 || (long)_tileX + _tileWidth <= _x0 || (long)_tileY + _tileHeight <= _y0)
-            {
-                throw new InvalidDataException("Invalid JPEG 2000 tile grid.");
-            }
-
-            _across = ByteReader.Ceil(_x1 - _tileX, _tileWidth);
-            long tiles = (long)_across * ByteReader.Ceil(_y1 - _tileY, _tileHeight);
-            if (tiles > 65535)
-            {
-                throw new NotSupportedException("JPEG 2000 tile count exceeds 65535.");
-            }
-
-            _budget.Reserve(tiles * 8);
-            _tiles = new Tile?[(int)tiles];
-            int count = data.U16();
-            if (count < 1 || count > 16)
-            {
-                throw new NotSupportedException("JPEG 2000 supports 1 to 16 components.");
-            }
-
-            _components = new Jpeg2000Component[count];
-            for (int c = 0; c < count; c++)
-            {
-                _components[c] = Component(data);
-            }
-
-            data.End();
-            ValidateContainer();
-        }
-
-        private Jpeg2000Component Component(ByteReader data)
-        {
-            int precision = data.U8();
-            int bits = (precision & 127) + 1;
-            int dx = data.U8();
-            int dy = data.U8();
-            if (bits > 16)
-            {
-                throw new NotSupportedException("JPEG 2000 sample precision above 16 bits.");
-            }
-
-            if (dx == 0 || dy == 0)
-            {
-                throw new InvalidDataException("Invalid JPEG 2000 component sampling.");
-            }
-
-            int x0 = ByteReader.Ceil(_x0, dx);
-            int y0 = ByteReader.Ceil(_y0, dy);
-            int width = ByteReader.Ceil(_x1, dx) - x0;
-            int height = ByteReader.Ceil(_y1, dy) - y0;
-            _budget.Pixels(width, height);
-            _budget.Reserve((long)width * height * 4);
-            return new Jpeg2000Component(x0, y0, width, height, bits, (precision & 128) != 0, dx, dy, new int[width * height]);
-        }
-
-        private void ValidateContainer()
-        {
-            if (_info.Components != 0 && (_info.Components != _components.Length || _info.Width != _x1 - _x0 || _info.Height != _y1 - _y0))
-            {
-                throw new InvalidDataException("JP2 header dimensions disagree with the codestream.");
-            }
-
-            if (_info.Alpha >= _components.Length)
-            {
-                throw new InvalidDataException("Invalid JP2 alpha component.");
+                _components[c] = size.Components[c].Allocate(_budget);
             }
         }
 

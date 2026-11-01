@@ -10,8 +10,6 @@ using System.Linq;
 using System.Numerics;
 using System.Text.Json;
 using System.Threading;
-using System.Xml.Linq;
-using Mediana.Images.Svg;
 
 namespace Mediana.Images.Tgs
 {
@@ -22,7 +20,7 @@ namespace Mediana.Images.Tgs
         private readonly Dictionary<string, JsonElement> _assets = new(StringComparer.Ordinal);
         private readonly HashSet<string> _activeAssets = new();
         private readonly HashSet<string> _warnings = new();
-        private readonly XElement _defs = new("defs");
+        private readonly TgsSceneBudget _sceneBudget;
         private int _items;
         private int _commands;
         private int _id;
@@ -30,6 +28,7 @@ namespace Mediana.Images.Tgs
         internal TgsSceneBuilder(TgsDocument document, CancellationToken token)
         {
             _document = document;
+            _sceneBudget = new TgsSceneBudget(document.Limits, token);
             _token = token;
             foreach (JsonElement asset in TgsJson.Array(TgsJson.Get(document.Root, "assets")))
             {
@@ -40,25 +39,24 @@ namespace Mediana.Images.Tgs
             }
         }
 
-        internal SvgDocument Build(double frame, bool allowPartial)
+        internal SceneNode Build(double frame, bool allowPartial)
         {
-            XElement? root = new XElement("svg", new XAttribute("width", _document.Width), new XAttribute("height", _document.Height), _defs);
-            root.Add(Layers(TgsJson.Get(_document.Root, "layers"), frame, 0));
+            TgsLayer root = Layers(TgsJson.Get(_document.Root, "layers"), frame, 0);
             if (!allowPartial && _warnings.Count > 0)
             {
                 throw new NotSupportedException(string.Join("; ", _warnings.Order()));
             }
 
-            return SvgReader.Read(root.ToString(SaveOptions.DisableFormatting), new SvgReaderOptions { MaximumInputBytes = _document.Limits.MaximumJsonBytes, MaximumElements = _document.Limits.MaximumItems, MaximumDepth = _document.Limits.MaximumDepth, MaximumPathCommands = _document.Limits.MaximumPathCommands }, _token);
+            return root.Build(_sceneBudget);
         }
 
-        private XElement Layers(JsonElement array, double frame, int depth, double width = 0, double height = 0)
+        private TgsLayer Layers(JsonElement array, double frame, int depth, double width = 0, double height = 0)
         {
             Count(depth);
             JsonElement[] layers = TgsJson.Array(array);
             Dictionary<double, JsonElement> byIndex = IndexLayers(layers);
 
-            XElement? group = new XElement("g");
+            TgsLayer? group = new TgsLayer();
             var matteLayers = new HashSet<int>();
             for (int i = 0; i < layers.Length; i++)
             {
@@ -77,7 +75,7 @@ namespace Mediana.Images.Tgs
                     continue;
                 }
 
-                group.Add(PaintLayer(layers, i, byIndex, frame, depth, new HashSet<int>()));
+                group.Children.Add(PaintLayer(layers, i, byIndex, frame, depth, new HashSet<int>()));
             }
 
             return group;
@@ -98,7 +96,7 @@ namespace Mediana.Images.Tgs
             return byIndex;
         }
 
-        private XElement PaintLayer(JsonElement[] layers, int index, Dictionary<double, JsonElement> byIndex, double frame, int depth, HashSet<int> active, bool includeHidden = false)
+        private TgsLayer PaintLayer(JsonElement[] layers, int index, Dictionary<double, JsonElement> byIndex, double frame, int depth, HashSet<int> active, bool includeHidden = false)
         {
             Count(depth);
             if (!active.Add(index))
@@ -111,30 +109,32 @@ namespace Mediana.Images.Tgs
                 JsonElement layer = layers[index];
                 if ((!includeHidden && TgsJson.Flag(layer, "hd")) || frame < TgsJson.Number(layer, "ip", _document.InPoint) || frame >= TgsJson.Number(layer, "op", _document.OutPoint))
                 {
-                    return new XElement("g");
+                    return new TgsLayer();
                 }
 
                 Matrix3x2 matrix = LayerTransform(layer, frame, byIndex, new HashSet<double>());
-                XElement content = new XElement("g", LayerContent(layer, frame, depth + 1));
+                TgsLayer content = new TgsLayer(LayerContent(layer, frame, depth + 1));
                 Mask(layer, content, frame);
-                content = new XElement("g", content);
+                content = new TgsLayer(content);
                 Effects(layer, content, frame);
-                content.SetAttributeValue("transform", Matrix(matrix));
-                content.SetAttributeValue("opacity", F(Math.Clamp(TgsValues.Scalar(TgsJson.Get(TgsJson.Get(layer, "ks"), "o"), frame, 100) / 100, 0, 1)));
-                XElement result = new("g", content);
+                content.Transform = matrix;
+                content.Opacity = Number(Math.Clamp(TgsValues.Scalar(TgsJson.Get(TgsJson.Get(layer, "ks"), "o"), frame, 100) / 100, 0, 1));
+                TgsLayer result = new(content);
                 SetMatte(layer, result, layers, byIndex, frame, depth, active);
                 int matte = (int)TgsJson.Number(layer, "tt");
                 if (matte is >= 1 and <= 4)
                 {
-                    XElement drawing = PaintLayer(layers, MatteIndex(layers, index), byIndex, frame, depth + 1, active);
-                    string mask = Matte(drawing, matte);
-                    result.SetAttributeValue("mask", "url(#" + mask + ")");
+                    TgsLayer drawing = PaintLayer(layers, MatteIndex(layers, index), byIndex, frame, depth + 1, active);
+                    result.Mask = Matte(drawing, matte);
                 }
 
-                string? blend = BlendMode((int)TgsJson.Number(layer, "bm"));
-                if (blend is not null)
+                if (BlendMode((int)TgsJson.Number(layer, "bm")) is ColorBlendMode blend)
                 {
-                    result.SetAttributeValue("mix-blend-mode", blend);
+                    result.Blend = blend;
+                }
+                else
+                {
+                    _warnings.Add("Lottie blend modes");
                 }
 
                 return result;
@@ -187,17 +187,17 @@ namespace Mediana.Images.Tgs
             return matrix;
         }
 
-        private XElement LayerContent(JsonElement layer, double frame, int depth)
+        private TgsLayer LayerContent(JsonElement layer, double frame, int depth)
         {
             int type = (int)TgsJson.Number(layer, "ty", -1);
             if (type == 4)
             {
-                return Shapes(TgsJson.Get(layer, "shapes"), frame, depth);
+                return Shapes(TgsJson.Array(TgsJson.Get(layer, "shapes")), frame, depth);
             }
 
             if (type == 1)
             {
-                return new XElement("g", new XElement("rect", new XAttribute("width", F(TgsJson.Number(layer, "sw"))), new XAttribute("height", F(TgsJson.Number(layer, "sh"))), new XAttribute("fill", TgsJson.Text(layer, "sc", "black"))));
+                return new TgsLayer { Path = new VectorPath().Rectangle(0, 0, Number(TgsJson.Number(layer, "sw")), Number(TgsJson.Number(layer, "sh"))), Fill = new SceneSolid(SolidColor(TgsJson.Text(layer, "sc", "#000000"))) };
             }
 
             if (type == 0)
@@ -205,10 +205,10 @@ namespace Mediana.Images.Tgs
                 return Precomposition(layer, frame, depth);
             }
 
-            return new XElement("g");
+            return new TgsLayer();
         }
 
-        private XElement Precomposition(JsonElement layer, double frame, int depth)
+        private TgsLayer Precomposition(JsonElement layer, double frame, int depth)
         {
             string id = TgsJson.Text(layer, "refId");
             if (!_assets.TryGetValue(id, out JsonElement asset))
@@ -233,10 +233,8 @@ namespace Mediana.Images.Tgs
                 double time = remap.ValueKind == JsonValueKind.Object ? TgsValues.Scalar(remap, frame) * _document.FrameRate : (frame - TgsJson.Number(layer, "st")) / stretch;
                 double width = TgsJson.Number(layer, "w", TgsJson.Number(asset, "w", _document.Width));
                 double height = TgsJson.Number(layer, "h", TgsJson.Number(asset, "h", _document.Height));
-                XElement group = Layers(TgsJson.Get(asset, "layers"), time, depth, width, height);
-                string clip = Id();
-                _defs.Add(new XElement("clipPath", new XAttribute("id", clip), new XElement("rect", new XAttribute("width", F(width)), new XAttribute("height", F(height)))));
-                return new XElement("g", new XAttribute("clip-path", "url(#" + clip + ")"), group);
+                TgsLayer group = Layers(TgsJson.Get(asset, "layers"), time, depth, width, height);
+                return new TgsLayer(group) { Clip = new SceneClip([new SceneClipShape(new VectorPath().Rectangle(0, 0, Number(width), Number(height)), FillRule.NonZero)], false) };
             }
             finally
             {
@@ -278,17 +276,25 @@ namespace Mediana.Images.Tgs
         }
 
         private string Id() => "tgs" + (++_id).ToString(CultureInfo.InvariantCulture);
-        private static string F(double value)
+        private static float Number(double value)
         {
             if (!double.IsFinite(value) || Math.Abs(value) > float.MaxValue)
             {
                 throw new InvalidDataException("Invalid Lottie coordinate.");
             }
 
-            return value.ToString("G9", CultureInfo.InvariantCulture);
+            return (float)value;
         }
 
-        private static string Matrix(Matrix3x2 m) => $"matrix({F(m.M11)} {F(m.M12)} {F(m.M21)} {F(m.M22)} {F(m.M31)} {F(m.M32)})";
-        private static XElement PathElement(VectorPath path) => new XElement("path", new XAttribute("d", SvgPathWriter.Write(path)));
+        private static TgsLayer PathElement(VectorPath path) => new() { Path = path };
+
+        private static Rgba32 SolidColor(string text)
+        {
+            if (text.Length == 7 && text[0] == '#' && uint.TryParse(text.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint rgb))
+            {
+                return new Rgba32((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb, 255);
+            }
+            throw new InvalidDataException("Lottie solid color must be #RRGGBB.");
+        }
     }
 }

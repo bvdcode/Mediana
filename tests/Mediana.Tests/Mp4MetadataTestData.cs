@@ -62,5 +62,32 @@ namespace Mediana.Tests
             byte[] movie = Box("moov", children.ToArray());
             return [.. original.AsSpan(0, start), .. movie, .. original.AsSpan(start + size)];
         }
+
+        public static byte[] AppendTo(byte[] file, byte[] addition, params string[] path)
+        {
+            Assert.True(Mp4TestData.PayloadOffset(file, "moov") > Mp4TestData.PayloadOffset(file, "mdat"));
+            return Append(file, addition, path);
+        }
+
+        private static byte[] Append(ReadOnlySpan<byte> boxes, byte[] addition, ReadOnlySpan<string> path)
+        {
+            if (path.IsEmpty)
+            {
+                return [.. boxes, .. addition];
+            }
+            int offset = 0;
+            while (offset < boxes.Length)
+            {
+                int size = (int)BinaryPrimitives.ReadUInt32BigEndian(boxes[offset..]);
+                string type = Encoding.Latin1.GetString(boxes.Slice(offset + 4, 4));
+                if (type == path[0])
+                {
+                    byte[] replacement = Box(type, Append(boxes.Slice(offset + 8, size - 8), addition, path[1..]));
+                    return [.. boxes[..offset], .. replacement, .. boxes[(offset + size)..]];
+                }
+                offset += size;
+            }
+            throw new InvalidDataException("The test metadata scope was not found.");
+        }
     }
 }

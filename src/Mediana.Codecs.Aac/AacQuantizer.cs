@@ -15,6 +15,34 @@ namespace Mediana.Codecs.Aac
         public static double Gain(int scale) => InverseGains[scale];
         public static double Reconstruct(int magnitude, int scale) => Magnitude(magnitude) * Gain(scale);
 
+        public static int CoarsestNonzeroScale(ReadOnlySpan<double> spectrum, int maximumScale)
+        {
+            double maximum = 0;
+            foreach (double value in spectrum)
+            {
+                maximum = Math.Max(maximum, Math.Abs(value));
+            }
+            if (maximum == 0)
+            {
+                return -1;
+            }
+            int lower = 0;
+            int upper = maximumScale;
+            while (lower <= upper)
+            {
+                int middle = (lower + upper) / 2;
+                if (maximum > InverseGains[middle] * 0.5)
+                {
+                    lower = middle + 1;
+                }
+                else
+                {
+                    upper = middle - 1;
+                }
+            }
+            return upper;
+        }
+
         public static double Quantize(ReadOnlySpan<double> spectrum, ReadOnlySpan<double> powered, Span<int> output, int scale)
         {
             double forward = ForwardGains[scale];

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Buffers.Binary;
 using Mediana.Containers.Mp4;
 using Mediana.Core;
 using Mediana.Core.Memory;
@@ -120,19 +119,16 @@ namespace Mediana.Tests
             Assert.False(source.IsDisposed);
         }
 
-        [Fact]
-        public async Task SignedCompositionOffsetsMatchSequentialValuesAtEveryIndex()
+        [Theory]
+        [InlineData(false, 0, 4294963200L)]
+        [InlineData(false, 1, -4096L)]
+        [InlineData(true, 0, -4096L)]
+        [InlineData(true, 1, -4096L)]
+        public async Task CompositionOffsetsMatchSequentialAndRandomReadsAtEveryIndex(bool quickTime, byte version, long expected)
         {
             byte[] data = await Mp4TestData.ReadAsync();
-            int composition = Mp4TestData.PayloadOffset(data, "ctts");
-            data[composition] = 1;
-            int count = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(composition + 4));
-            for (int index = 0; index < count; index++)
-            {
-                int position = composition + 12 + index * 8;
-                int original = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(position));
-                BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(position), original - 8192);
-            }
+            Mp4TestData.SetBrand(data, quickTime ? "qt  "u8 : "isom"u8);
+            Mp4TestData.ShiftCompositionOffsets(data, version, -8192);
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using TrackingRandomAccessSource source = new(data);
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
@@ -145,9 +141,13 @@ namespace Mediana.Tests
                     Assert.Equal(packet.PresentationTime, info.PresentationTime);
                     Assert.Equal(packet.DecodeTime, info.DecodeTime);
                     Assert.Equal(packet.Duration, info.Duration);
+                    using MediaPacket random = await reader.ReadPacketAtAsync(info.StreamIndex, info.SampleIndex);
+                    Assert.Equal(info.PresentationTime, random.PresentationTime);
+                    Assert.Equal(info.DecodeTime, random.DecodeTime);
+                    Assert.Equal(packet.Data.ToArray(), random.Data.ToArray());
                 }
             }
-            Assert.Equal(-4096, reader.GetSampleInfo(0, 0).PresentationTime.Value);
+            Assert.Equal(expected, reader.GetSampleInfo(0, 0).PresentationTime.Value);
         }
 
         [Fact]

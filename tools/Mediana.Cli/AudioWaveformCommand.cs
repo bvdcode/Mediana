@@ -16,7 +16,7 @@ namespace Mediana.Cli
         private const int WindowsPerFlush = 64;
         private const double CutoffRatio = 0.97;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex,
+        public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int streamIndex,
             int sampleRate, int samplesPerWindow, double[] gains, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = AudioEngineFactory.Create();
@@ -32,7 +32,7 @@ namespace Mediana.Cli
                 }, allocator);
             long samples = 0;
             long windows = 0;
-            await CommandOutputFile.WriteAsync(outputPath, async output =>
+            await outputFile.WriteAsync(async output =>
             {
                 using Utf8JsonWriter json = new(output, new JsonWriterOptions { Indented = true });
                 json.WriteStartObject();

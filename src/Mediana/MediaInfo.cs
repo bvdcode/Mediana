@@ -13,12 +13,30 @@ namespace Mediana
     {
         internal MediaInfo(ContainerInfo container, IReadOnlyList<EncodedStreamInfo> streams, Dictionary<int, StreamMetadata> streamMetadata)
         {
+            if (container.StreamInfo is not null)
+            {
+                HashSet<int> indices = streams.Select(stream => stream.StreamIndex).ToHashSet();
+                if (container.StreamInfo.Keys.Any(index => !indices.Contains(index)))
+                {
+                    throw new InvalidOperationException("Container metadata refers to an undeclared stream index.");
+                }
+            }
             Container = container;
             Streams = Array.AsReadOnly(streams.ToArray());
             StreamMetadata = new ReadOnlyDictionary<int, StreamMetadata>(streamMetadata);
         }
 
-        public ContainerInfo Container { get; }
+        internal MediaInfo(ImageInfo image)
+        {
+            Image = image;
+            Streams = Array.Empty<EncodedStreamInfo>();
+            StreamMetadata = ReadOnlyDictionary<int, StreamMetadata>.Empty;
+        }
+
+        /// <summary>Container metadata, or null for an image/document input.</summary>
+        public ContainerInfo? Container { get; }
+        /// <summary>Image/document metadata, or null for a packet container. Exactly one representation is present.</summary>
+        public ImageInfo? Image { get; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
         /// <summary>Codec header facts keyed by stream index. Missing entries mean no reader is registered
         /// or the registered reader does not support that configuration.</summary>

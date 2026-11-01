@@ -1,0 +1,38 @@
+{
+  "source": "avc-multislice-cabac.mp4",
+  "transport": "avc-multislice-cabac.scaled-48x40.ts",
+  "width": 48,
+  "height": 40,
+  "frames": 18,
+  "quantizer": 26,
+  "key_frame_interval_seconds": 2,
+  "transport_sha256": "b36581f104af9d181e3bffca61af309118cf9f9eb3b0d254b52df276fd6883a8",
+  "independent_pixels_sha256": "7fda751dc095880168a7fcac9e522640312857a3e7d6a4bf5d84ea342929ed4f",
+  "conversion_arguments": [
+    "-i",
+    "avc-multislice-cabac.mp4",
+    "output.ts",
+    "--video-codec",
+    "H264",
+    "--video-only",
+    "--width",
+    "49"
+  ],
+  "verification_arguments": [
+    "ffmpeg",
+    "-v",
+    "error",
+    "-xerror",
+    "-i",
+    "output.ts",
+    "-map",
+    "0:v:0",
+    "-fps_mode",
+    "passthrough",
+    "-pix_fmt",
+    "yuv420p",
+    "-f",
+    "rawvideo",
+    "output.yuv"
+  ]
+}

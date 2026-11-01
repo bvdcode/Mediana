@@ -42,6 +42,34 @@ namespace Mediana.Tests
             Assert.Empty(Directory.GetFileSystemEntries(directory));
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public async Task ExplicitSurroundDownmixEncodesCompleteAudio(int channels)
+        {
+            string source = Path.Combine(AppContext.BaseDirectory, "Data", "AacMultichannel", "layout-6.m4a");
+            string output = Path.Combine(directory, "encoded.ts");
+            (int code, _, _) = await CliTests.RunAsync(["-i", source, output, "--audio-codec", "Aac",
+                "--audio-channels", channels.ToString(System.Globalization.CultureInfo.InvariantCulture)]);
+            Assert.Equal(0, code);
+            Assert.True(new FileInfo(output).Length > 188);
+            Assert.Single(Directory.GetFiles(directory));
+        }
+
+        [Theory]
+        [InlineData("--audio-channels 2", 3)]
+        [InlineData("--audio-codec Aac --audio-channels 0", 2)]
+        [InlineData("--audio-codec Aac --audio-channels 6", 2)]
+        public async Task InvalidDownmixOptionsPublishNoFile(string options, int expected)
+        {
+            string source = Path.Combine(AppContext.BaseDirectory, "Data", "AacMultichannel", "layout-6.m4a");
+            List<string> arguments = ["-i", source, Path.Combine(directory, "encoded.ts")];
+            arguments.AddRange(options.Split(' '));
+            (int code, _, _) = await CliTests.RunAsync(arguments.ToArray());
+            Assert.Equal(expected, code);
+            Assert.Empty(Directory.GetFileSystemEntries(directory));
+        }
+
         public void Dispose()
         {
             Directory.Delete(directory, recursive: true);

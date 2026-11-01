@@ -7,6 +7,8 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Flac
 {
     internal class FlacDecoder : IMediaCodec<MediaPacket, AudioFrame>

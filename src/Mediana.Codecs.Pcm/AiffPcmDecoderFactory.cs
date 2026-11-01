@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core;
 using Mediana.Core.Audio;
+using Mediana.Formats;
+
+using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Pcm
 {
@@ -10,6 +14,7 @@ namespace Mediana.Codecs.Pcm
     {
         public override string ImplementationId => "mediana.pcm.aiff";
         public override string CodecId => PcmConfiguration.AiffCodecId;
+        protected override EncodedStreamFormat ExpectedFormat => StreamFormats.AiffPcm;
 
         protected override PcmConfiguration? ReadConfiguration(ReadOnlySpan<byte> bytes, out string? unsupportedReason) =>
             PcmConfiguration.ReadAiffFormat(bytes, out unsupportedReason);

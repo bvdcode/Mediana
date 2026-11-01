@@ -4,6 +4,8 @@
 using System.Buffers.Binary;
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Containers.Mp3
 {
     /// <summary>Declared Xing/Info statistics. Frame count excludes the metadata frame.

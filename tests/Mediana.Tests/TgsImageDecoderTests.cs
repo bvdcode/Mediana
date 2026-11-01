@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Drawing;
 using Mediana.Codecs;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
-using Mediana.Images.Svg;
 using Mediana.Images.Tgs;
 using Mediana.IO;
 
@@ -47,7 +47,7 @@ namespace Mediana.Tests
         public async Task CommonPipelineMatchesElapsedRenderingWithShortSequentialReads(string name)
         {
             byte[] input = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Tgs", name));
-            SvgRenderOptions options = new() { Width = 32, Height = 32, Supersampling = 1 };
+            DrawingRenderOptions options = new() { Width = 32, Height = 32, Supersampling = 1 };
             byte[] expected = TgsRenderer.RenderAtTime(TgsReader.Read(input), .25, options).Pixels.ToArray();
             MediaEngine engine = new MediaEngineBuilder().AddImageDecoder(new TgsImageDecoder(renderOptions: options)).Build();
             MediaBufferAllocator allocator = new(64 * 1024);

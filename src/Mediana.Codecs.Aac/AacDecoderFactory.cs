@@ -2,12 +2,15 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Aac
 {
-    /// <summary>Decodes mono/stereo AAC-LC, one raw_data_block per packet, with 1024 samples per frame.
+    /// <summary>Decodes AAC-LC channel configurations 1–7, one raw_data_block per packet, with 1024 samples per frame.
     /// Outputs native-endian interleaved float32 PCM. Priming, padding and container edit trimming are not applied.</summary>
     public class AacDecoderFactory : IAudioDecoderFactory
     {
@@ -30,14 +33,15 @@ namespace Mediana.Codecs.Aac
             {
                 return "The stream is not AAC audio.";
             }
+            string? formatReason = StreamFormats.Aac.GetUnsupportedReason(stream.Format);
+            if (formatReason is not null)
+            {
+                return formatReason;
+            }
             AacConfiguration? configuration = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out string? reason);
             if (configuration is null)
             {
                 return reason;
-            }
-            if (configuration.ChannelConfiguration is not (1 or 2))
-            {
-                return "Only the standard mono and stereo AAC channel configurations are supported.";
             }
             return configuration.FrequencyIndex == 12 ? "The 7350 Hz AAC band tables are not supported." : null;
         }

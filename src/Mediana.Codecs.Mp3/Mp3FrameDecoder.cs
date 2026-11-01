@@ -3,6 +3,8 @@
 
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Mp3
 {
     internal static class Mp3FrameDecoder

@@ -47,11 +47,11 @@ namespace Mediana.Tests
             {
                 info = await engine.ProbeAsync(source);
             }
-            if (info.Container.FormatId != format || !info.Streams.Select(stream => stream.CodecId).SequenceEqual(codecs))
+            if (info.Container!.FormatId != format || !info.Streams.Select(stream => stream.CodecId).SequenceEqual(codecs))
             {
                 throw new InvalidDataException($"Container or stream metadata differs for {file}.");
             }
-            MediaDuration duration = info.Container.DeclaredDuration
+            MediaDuration duration = info.Container!.DeclaredDuration
                 ?? throw new InvalidDataException($"The declared duration is missing for {file}.");
             if ((Int128)duration.Value * duration.TimeBase.Numerator * denominator != (Int128)value * duration.TimeBase.Denominator)
             {

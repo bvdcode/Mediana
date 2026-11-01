@@ -3,8 +3,6 @@
 
 using Mediana.Codecs.Jbig2;
 using Mediana.Codecs.Jpeg2000;
-using Mediana.Core.Memory;
-using Mediana.Core.Video;
 using Mediana.Drawing;
 namespace Mediana.Documents.Pdf
 {
@@ -24,7 +22,7 @@ namespace Mediana.Documents.Pdf
                 PdfValue filters = Get(obj.Value, "Filter");
                 PdfValue terminal = filters.Kind == PdfValueKind.Array ? Resolve(filters.Items[^1]) : filters;
                 string codec = terminal.Kind == PdfValueKind.Null ? string.Empty : terminal.Name();
-                byte[] data = storage.Decode(obj, token, image: true);
+                ReadOnlyMemory<byte> data = storage.Decode(obj, token, image: true);
                 PdfValue colorSpace = Get(obj.Value, "ColorSpace");
                 bool stencil = Get(obj.Value, "ImageMask").Number != 0;
                 int bits = stencil ? 1 : Get(obj.Value, "BitsPerComponent").Kind == PdfValueKind.Null && codec == "JPXDecode" ? 8 : Get(obj.Value, "BitsPerComponent").Integer();
@@ -34,9 +32,17 @@ namespace Mediana.Documents.Pdf
                     if (obj.Value.Get("Decode").Kind != PdfValueKind.Null || Get(obj.Value, "SMaskInData").Number != 0) { throw new NotSupportedException("JPX Decode and SMaskInData overrides are not supported yet."); }
                     Jpeg2000Image jpeg = Jpeg2000Decoder.Decode(data, new() { MaximumEncodedBytes = storage.Budget.Options.MaximumInputBytes, MaximumPixels = storage.Budget.Options.MaximumImagePixels, MaximumWorkingBytes = storage.Budget.Options.MaximumImageBytes, ExpectedWidth = width, ExpectedHeight = height }, token);
                     if (jpeg.Width != width || jpeg.Height != height) { throw new InvalidDataException("PDF JPEG 2000 dimensions differ."); }
-                    MediaBufferAllocator allocator = new(checked((long)width * height * 4));
-                    using VideoFrame frame = jpeg.ToVideoFrame(allocator, SampleAspectRatio.Square, cancellationToken: token);
-                    pixels = new(width, height); frame.Data.Span.CopyTo(pixels.Pixels.Span);
+                    pixels = new(width, height);
+                    bool converted = false;
+                    try
+                    {
+                        jpeg.WriteRgbaTo(pixels.Pixels.Span, cancellationToken: token);
+                        converted = true;
+                    }
+                    finally
+                    {
+                        if (!converted) { pixels.Dispose(); }
+                    }
                 }
                 else
                 {
@@ -47,15 +53,16 @@ namespace Mediana.Documents.Pdf
                         PdfValue parameters = Get(obj.Value, "DecodeParms");
                         if (parameters.Kind == PdfValueKind.Array) { parameters = Resolve(parameters.Items[^1]); }
                         PdfValue global = parameters.Get("JBIG2Globals");
-                        byte[] globals = global.Kind == PdfValueKind.Null ? [] : storage.Decode(storage.Object(global, token), token);
+                        ReadOnlyMemory<byte> globals = global.Kind == PdfValueKind.Null ? ReadOnlyMemory<byte>.Empty : storage.Decode(storage.Object(global, token), token);
                         Jbig2Document jbig = Jbig2Decoder.Decode(data, globals, new() { MaximumEncodedBytes = storage.Budget.Options.MaximumInputBytes, MaximumPixels = storage.Budget.Options.MaximumImagePixels, MaximumPages = 1, MaximumWorkingBytes = storage.Budget.Options.MaximumImageBytes, ExpectedWidth = width, ExpectedHeight = height }, token);
                         if (jbig.Pages.Count != 1) { throw new InvalidDataException("PDF JBIG2 image requires one page."); }
-                        data = jbig.Pages[0].Data.ToArray();
-                        for (int i = 0; i < data.Length; i++) { data[i] ^= 255; }
+                        byte[] bitmap = jbig.Pages[0].Data.ToArray();
+                        for (int i = 0; i < bitmap.Length; i++) { bitmap[i] ^= 255; }
+                        data = bitmap;
                         bits = 1;
                     }
                     if (bits is not (1 or 2 or 4 or 8 or 16)) { throw new NotSupportedException("Unsupported PDF image component depth."); }
-                    pixels = Samples(data, width, height, bits, colorSpace, Get(obj.Value, "Decode"), Get(obj.Value, "Mask"), stencil);
+                    pixels = Samples(data.Span, width, height, bits, colorSpace, Get(obj.Value, "Decode"), Get(obj.Value, "Mask"), stencil);
                 }
                 PdfValue soft = obj.Value.Get("SMask");
                 PdfValue mask = obj.Value.Get("Mask");
@@ -83,11 +90,11 @@ namespace Mediana.Documents.Pdf
             }
             finally { _activeImages.Remove(obj); }
         }
-        private PixelBuffer Samples(byte[] samples, int width, int height, int bits, PdfValue space, PdfValue decode, PdfValue mask, bool stencil)
+        private PixelBuffer Samples(ReadOnlySpan<byte> samples, int width, int height, int bits, PdfValue space, PdfValue decode, PdfValue mask, bool stencil)
         {
             bool indexed = space.Kind == PdfValueKind.Array && Resolve(space.Items[0]).Text == "Indexed";
             PdfValue paletteSpace = space;
-            byte[] palette = [];
+            ReadOnlyMemory<byte> palette = ReadOnlyMemory<byte>.Empty;
             int highest = 0;
             if (indexed)
             {
@@ -130,7 +137,7 @@ namespace Mediana.Documents.Pdf
                         if (indexed)
                         {
                             int index = Math.Clamp((int)Math.Round(values[0]), 0, highest);
-                            for (int c = 0; c < components; c++) { values[c] = palette[index * components + c] / 255.0; }
+                            for (int c = 0; c < components; c++) { values[c] = palette.Span[index * components + c] / 255.0; }
                         }
                         result = components switch
                         {

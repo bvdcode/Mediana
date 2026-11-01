@@ -438,3 +438,8 @@ The original 64x48 references use the same raw-video command with `avc-aac` or
 | `avc-cabac-b-2.frame2.srgb.rgba` | `e030e3de28d4c2aa934e385c6abb0885eff8847bef106df6c0456d9ecef637bc` |
 | `avc-cabac-b-2.mp4` | `d89c204a8ad679e4bfb4c37de0042b14a0ee945b59abd3501465439153f288d8` |
 | `avc-cabac-b-2.sequence.yuv` | `cfe3662e41ab74a4692bc0d675fa66d99c685206524d4bb97a8ab24ddb030d63` |
+
+`avc-aac-51.mp4` stream-copies the complete video from `avc-aac.mp4` and
+configuration-6 audio from `../AacMultichannel/layout-6.m4a`, using FFmpeg 6.1.1
+with `-map 0:v:0 -map 1:a:0 -c copy -map_metadata -1`. It exercises explicit
+mono/stereo downmix in audiovisual HLS, preserving the original coded payloads.

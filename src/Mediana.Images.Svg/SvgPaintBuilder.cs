@@ -13,7 +13,7 @@ namespace Mediana.Images.Svg
 {
     internal partial class SvgSceneBuilder
     {
-        private SvgPaint? Paint(string value, Dictionary<string, string> style)
+        private ScenePaint? Paint(string value, Dictionary<string, string> style)
         {
             if (value == "none")
             {
@@ -35,7 +35,7 @@ namespace Mediana.Images.Svg
                         return null;
                     }
 
-                    if (!_gradients.TryGetValue(e, out SvgGradient? gradient))
+                    if (!_gradients.TryGetValue(e, out SceneGradient? gradient))
                     {
                         gradient = Gradient(e);
                         _gradients.Add(e, gradient);
@@ -44,7 +44,7 @@ namespace Mediana.Images.Svg
                     return gradient;
                 }
 
-                return new SvgSolid(SvgColor.Parse(value));
+                return new SceneSolid(SvgColor.Parse(value));
             }
             catch (NotSupportedException ex)
             {
@@ -53,7 +53,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private SvgGradient? Gradient(XElement element)
+        private SceneGradient? Gradient(XElement element)
         {
             bool radial = element.Name.LocalName == "radialGradient";
             if (!radial && element.Name.LocalName != "linearGradient")
@@ -97,7 +97,7 @@ namespace Mediana.Images.Svg
                 }
             }
 
-            return new SvgGradient(radial, box, SvgNumbers.Transform(Value(attrs, "gradientTransform", "")), Value(attrs, "spreadMethod", "pad"), start, end, radius, focalRadius, stops)
+            return new SceneGradient(radial, box, SvgNumbers.Transform(Value(attrs, "gradientTransform", "")), Value(attrs, "spreadMethod", "pad"), start, end, radius, focalRadius, stops)
             {
                 Linear = Value(attrs, "color-interpolation", "sRGB") == "linearRGB"
             };

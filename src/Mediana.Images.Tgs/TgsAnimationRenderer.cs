@@ -5,14 +5,13 @@ using Mediana.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using Mediana.Images.Svg;
 
 namespace Mediana.Images.Tgs
 {
     public static partial class TgsRenderer
     {
         /// <summary>Renders frames lazily in timestamp order, suitable for streaming into an encoder.</summary>
-        public static IEnumerable<TgsFrame> RenderFrames(TgsDocument document, TgsAnimationOptions? animation = null, SvgRenderOptions? options = null, CancellationToken cancellationToken = default)
+        public static IEnumerable<TgsFrame> RenderFrames(TgsDocument document, TgsAnimationOptions? animation = null, DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(document);
             animation ??= new TgsAnimationOptions();
@@ -29,7 +28,7 @@ namespace Mediana.Images.Tgs
             return Frames(document, options, start, duration, rate, (int)Math.Max(1, count), cancellationToken);
         }
 
-        private static IEnumerable<TgsFrame> Frames(TgsDocument document, SvgRenderOptions? options, double start, double duration, double rate, int count, CancellationToken token)
+        private static IEnumerable<TgsFrame> Frames(TgsDocument document, DrawingRenderOptions? options, double start, double duration, double rate, int count, CancellationToken token)
         {
             for (int i = 0; i < count; i++)
             {

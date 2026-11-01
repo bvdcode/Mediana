@@ -38,7 +38,32 @@ namespace Mediana.Tests
             RgbaImage rgba = await HeicDocument.Load(heic).DecodePrimaryAsync();
             Assert.False(rgba.ColorInformation.IccProfile.IsEmpty);
             Assert.Throws<NotSupportedException>(() => rgba.ToVideoFrame(allocator, SampleAspectRatio.Square));
+            byte[] destination = new byte[raw.Width * raw.Height * 4];
+            Array.Fill(destination, (byte)0xa5);
+            Assert.Throws<NotSupportedException>(() => raw.WriteRgbaTo(destination));
+            byte[] profiledDestination = new byte[profile.Width * profile.Height * 4];
+            Array.Fill(profiledDestination, (byte)0xa5);
+            Assert.Throws<NotSupportedException>(() => profile.WriteRgbaTo(profiledDestination));
+            Assert.All(profiledDestination, value => Assert.Equal(0xa5, value));
+            Assert.All(destination, value => Assert.Equal(0xa5, value));
             Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public async Task CallerStorageRejectsInvalidLengthAndCancellationBeforeWriting()
+        {
+            Jpeg2000Image image = Jpeg2000Decoder.Decode(await File.ReadAllBytesAsync(Path.Combine(Root, "Jpeg2000", "RGBA-3x5.jp2")));
+            foreach (int length in new[] { 0, 59, 60, 61 })
+            {
+                byte[] destination = new byte[length];
+                Array.Fill(destination, (byte)0xa5);
+                Assert.Throws<OperationCanceledException>(() => image.WriteRgbaTo(destination, cancellationToken: new(true)));
+                if (length != 60)
+                {
+                    Assert.Throws<ArgumentException>(() => image.WriteRgbaTo(destination));
+                }
+                Assert.All(destination, value => Assert.Equal(0xa5, value));
+            }
         }
 
         [Fact]
@@ -61,6 +86,31 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public async Task PremultipliedRgbaIsStraightenedInCallerStorage()
+        {
+            byte[] input = await File.ReadAllBytesAsync(Path.Combine(Root, "Jpeg2000", "RGBA-3x5.jp2"));
+            int definition = input.AsSpan().IndexOf("cdef"u8);
+            Assert.True(definition >= 0);
+            BinaryPrimitives.WriteUInt16BigEndian(input.AsSpan(definition + 26, 2), 2);
+            Jpeg2000Image image = Jpeg2000Decoder.Decode(input);
+            Assert.True(image.PremultipliedAlpha);
+            MediaBufferAllocator allocator = new(60);
+            using VideoFrame frame = image.ToVideoFrame(allocator, SampleAspectRatio.Square);
+            ImageFrameTestInput.VerifyRgbaDestination(image, frame);
+            byte[] expected = await File.ReadAllBytesAsync(Path.Combine(Root, "Jpeg2000", "RGBA-3x5.raw"));
+            for (int offset = 0; offset < expected.Length; offset += 4)
+            {
+                for (int channel = 0; channel < 3; channel++)
+                {
+                    byte value = expected[offset + 3] == 0 ? (byte)0
+                        : (byte)Math.Clamp(Math.Round(expected[offset + channel] * 255.0 / expected[offset + 3]), 0, 255);
+                    Assert.Equal(value, frame.Data.Span[offset + channel]);
+                }
+                Assert.Equal(expected[offset + 3], frame.Data.Span[offset + 3]);
+            }
+        }
+
+        [Fact]
         public async Task SyccConversionUsesCenteredChroma()
         {
             byte[] input = await File.ReadAllBytesAsync(Path.Combine(Root, "Jpeg2000", "RGB-3x5.jp2"));
@@ -69,6 +119,7 @@ namespace Mediana.Tests
             Jpeg2000Image image = Jpeg2000Decoder.Decode(input);
             MediaBufferAllocator allocator = new(60);
             using VideoFrame frame = image.ToVideoFrame(allocator, SampleAspectRatio.Square);
+            ImageFrameTestInput.VerifyRgbaDestination(image, frame);
             for (int y = 0; y < image.Height; y++)
             {
                 for (int x = 0; x < image.Width; x++)

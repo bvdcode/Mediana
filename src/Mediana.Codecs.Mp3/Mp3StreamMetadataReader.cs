@@ -2,8 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Audio;
 using Mediana.Core.Metadata;
+
+using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Mp3
 {
@@ -20,6 +23,7 @@ namespace Mediana.Codecs.Mp3
             {
                 throw new ArgumentException("The stream is not MPEG Layer III audio.", nameof(stream));
             }
+            StreamFormats.Mp3.Require(stream.Format);
             Mp3FrameHeader header = Mp3FrameHeader.Read(stream.Configuration.Span);
             return new AudioStreamMetadata(header.SampleRate, header.ChannelCount);
         }

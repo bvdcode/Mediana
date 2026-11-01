@@ -2,8 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
+
+using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Flac
 {
@@ -30,6 +33,11 @@ namespace Mediana.Codecs.Flac
             if (stream.Kind != MediaKind.Audio || stream.CodecId != CodecId)
             {
                 return "The stream is not FLAC audio.";
+            }
+            string? formatReason = StreamFormats.Flac.GetUnsupportedReason(stream.Format);
+            if (formatReason is not null)
+            {
+                return formatReason;
             }
             FlacConfiguration configuration = FlacConfiguration.ReadStreamInfo(stream.Configuration.Span);
             return configuration.MinimumFrameBytes > maxFrameBytes ? "The FLAC frames exceed the configured byte limit." : null;

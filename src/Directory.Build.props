@@ -1,6 +1,7 @@
 <Project>
   <Import Project="../Directory.Build.props" />
   <PropertyGroup>
+    <IsPackable>true</IsPackable>
     <IsAotCompatible>true</IsAotCompatible>
     <VerifyReferenceAotCompatibility>true</VerifyReferenceAotCompatibility>
     <PackageReadmeFile>README.md</PackageReadmeFile>

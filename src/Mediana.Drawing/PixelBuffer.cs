@@ -2,13 +2,15 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using Mediana.Core.Memory;
 
 namespace Mediana.Drawing
 {
-    /// <summary>A row-major RGBA8 pixel buffer using sRGB color and straight alpha.</summary>
-    public partial class PixelBuffer
+    /// <summary>Owns writable row-major RGBA8 pixels using sRGB color and straight alpha.
+    /// Borrowed pixel memory must not be used after disposal or publication. This owner is not thread-safe.</summary>
+    public partial class PixelBuffer : IDisposable
     {
-        private readonly byte[] _pixels;
+        private readonly WritableMediaBuffer _pixels;
 
         /// <summary>Gets the image width in pixels.</summary>
         public int Width { get; }
@@ -17,11 +19,17 @@ namespace Mediana.Drawing
         public int Height { get; }
 
         /// <summary>Gets writable pixel memory in R, G, B, A channel order.</summary>
-        public Memory<byte> Pixels => _pixels;
+        public Memory<byte> Pixels => _pixels.Memory;
 
         /// <summary>Creates a transparent black image.</summary>
-        public PixelBuffer(int width, int height)
+        public PixelBuffer(int width, int height) : this(width, height, new MediaBufferAllocator(long.MaxValue))
         {
+        }
+
+        /// <summary>Creates a transparent black image charged to the supplied live-buffer budget.</summary>
+        public PixelBuffer(int width, int height, MediaBufferAllocator allocator)
+        {
+            ArgumentNullException.ThrowIfNull(allocator);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
             long pixelCount = (long)width * height;
@@ -32,7 +40,7 @@ namespace Mediana.Drawing
 
             Width = width;
             Height = height;
-            _pixels = new byte[(int)pixelCount * 4];
+            _pixels = allocator.Allocate((int)pixelCount * 4);
         }
 
         /// <summary>Gets or sets a pixel using zero-based coordinates.</summary>
@@ -41,29 +49,35 @@ namespace Mediana.Drawing
             get
             {
                 int offset = GetOffset(x, y);
-                return new Rgba32(_pixels[offset], _pixels[offset + 1], _pixels[offset + 2], _pixels[offset + 3]);
+                Span<byte> pixels = Pixels.Span;
+                return new Rgba32(pixels[offset], pixels[offset + 1], pixels[offset + 2], pixels[offset + 3]);
             }
             set
             {
                 int offset = GetOffset(x, y);
-                _pixels[offset] = value.R;
-                _pixels[offset + 1] = value.G;
-                _pixels[offset + 2] = value.B;
-                _pixels[offset + 3] = value.A;
+                Span<byte> pixels = Pixels.Span;
+                pixels[offset] = value.R;
+                pixels[offset + 1] = value.G;
+                pixels[offset + 2] = value.B;
+                pixels[offset + 3] = value.A;
             }
         }
 
         /// <summary>Fills the image with a color.</summary>
         public void Clear(Rgba32 color)
         {
-            for (int offset = 0; offset < _pixels.Length; offset += 4)
+            Span<byte> pixels = Pixels.Span;
+            for (int offset = 0; offset < pixels.Length; offset += 4)
             {
-                _pixels[offset] = color.R;
-                _pixels[offset + 1] = color.G;
-                _pixels[offset + 2] = color.B;
-                _pixels[offset + 3] = color.A;
+                pixels[offset] = color.R;
+                pixels[offset + 1] = color.G;
+                pixels[offset + 2] = color.B;
+                pixels[offset + 3] = color.A;
             }
         }
+
+        /// <summary>Releases unpublished storage. Published frames keep their own leases.</summary>
+        public void Dispose() => _pixels.Dispose();
 
         private int GetOffset(int x, int y)
         {

@@ -19,7 +19,7 @@ namespace Mediana.Images.Svg
         private readonly CancellationToken _token;
         private readonly Dictionary<string, XElement> _ids = new(StringComparer.Ordinal);
         private readonly HashSet<XElement> _active = new();
-        private readonly Dictionary<XElement, SvgGradient?> _gradients = new();
+        private readonly Dictionary<XElement, SceneGradient?> _gradients = new();
         private readonly HashSet<string> _warnings = new(StringComparer.Ordinal);
         private readonly List<(string Selector, int Specificity, Dictionary<string, string> Values)> _rules = new();
         private float _width;
@@ -51,25 +51,11 @@ namespace Mediana.Images.Svg
 
         private SvgDocument BuildViewport()
         {
-            float[]? v = _root.Attribute("viewBox") is { } box ? SvgNumbers.List(box.Value) : null;
-            if (v is not null && (v.Length != 4 || v[2] <= 0 || v[3] <= 0))
-            {
-                throw new InvalidDataException("Invalid SVG viewBox.");
-            }
-
-            _width = Length(_root, "width", v?[2] ?? 300, 300);
-            _height = Length(_root, "height", v?[3] ?? 150, 150);
-            if (_width <= 0 || _height <= 0)
-            {
-                throw new InvalidDataException("SVG viewport must be positive.");
-            }
-
-            (float, float, float, float) viewBox = v is null ? (0, 0, _width, _height) : (v[0], v[1], v[2], v[3]);
-            float intrinsicWidth = _width, intrinsicHeight = _height;
-            _width = viewBox.Item3;
-            _height = viewBox.Item4;
-            SvgNode node = Node(_root, new Dictionary<string, string>(), 0, true);
-            return new SvgDocument(node, intrinsicWidth, intrinsicHeight, viewBox, (string?)_root.Attribute("preserveAspectRatio") ?? "xMidYMid meet", _warnings.Order().ToArray());
+            SvgViewport viewport = SvgViewport.Read(_root);
+            _width = viewport.ViewBox.Width;
+            _height = viewport.ViewBox.Height;
+            SceneNode node = Node(_root, new Dictionary<string, string>(), 0, true);
+            return new SvgDocument(node, viewport.Width, viewport.Height, viewport.ViewBox, (string?)_root.Attribute("preserveAspectRatio") ?? "xMidYMid meet", _warnings.Order().ToArray());
         }
 
         private static bool IsSvgElement(XElement element) => element.Name.NamespaceName.Length == 0 || element.Name.NamespaceName == "http://www.w3.org/2000/svg";
@@ -111,7 +97,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private SvgNode Node(XElement e, Dictionary<string, string> inherited, int depth, bool definition = false)
+        private SceneNode Node(XElement e, Dictionary<string, string> inherited, int depth, bool definition = false)
         {
             Count(depth);
             if (!_active.Add(e))
@@ -129,7 +115,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private SvgNode BuildNode(XElement e, Dictionary<string, string> inherited, int depth, bool definition)
+        private SceneNode BuildNode(XElement e, Dictionary<string, string> inherited, int depth, bool definition)
         {
             if (!IsSvgElement(e))
             {
@@ -154,7 +140,7 @@ namespace Mediana.Images.Svg
             }
 
             Matrix3x2 transform = SvgNumbers.Transform((string?)e.Attribute("transform"));
-            var children = new List<SvgNode>();
+            var children = new List<SceneNode>();
             VectorPath? path = Shape(e);
             PixelBuffer? image = name == "image" ? Image(Href(e)) : null;
             Populate(e, name, style, path, children, depth);
@@ -163,8 +149,8 @@ namespace Mediana.Images.Svg
                 path = ValidatePath(path, style);
             }
 
-            SvgClip? clip = Clip(Value(style, "clip-path", "none"), depth);
-            SvgNode node = new SvgNode(path, Paint(Value(style, "fill", "black"), style), Paint(Value(style, "stroke", "none"), style), Pen(style), Rule(Value(style, "fill-rule", "nonzero")), Rule(Value(style, "clip-rule", "nonzero")), transform, Opacity(style, "opacity"), Opacity(style, "fill-opacity"), Opacity(style, "stroke-opacity"), clip, children.ToArray())
+            SceneClip? clip = Clip(Value(style, "clip-path", "none"), depth);
+            SceneNode node = new SceneNode(path, Paint(Value(style, "fill", "black"), style), Paint(Value(style, "stroke", "none"), style), Pen(style), Rule(Value(style, "fill-rule", "nonzero")), Rule(Value(style, "clip-rule", "nonzero")), transform, Opacity(style, "opacity"), Opacity(style, "fill-opacity"), Opacity(style, "stroke-opacity"), clip, children.ToArray())
             {
                 Mask = Mask(Value(style, "mask", "none"), depth),
                 Filter = Filter(Value(style, "filter", "none"), style, depth),
@@ -173,7 +159,7 @@ namespace Mediana.Images.Svg
             return PlaceImage(node, e, image);
         }
 
-        private SvgNode PlaceImage(SvgNode node, XElement element, PixelBuffer? image)
+        private SceneNode PlaceImage(SceneNode node, XElement element, PixelBuffer? image)
         {
             if (image is null)
             {
@@ -188,7 +174,7 @@ namespace Mediana.Images.Svg
             };
         }
 
-        private void Populate(XElement e, string name, Dictionary<string, string> style, VectorPath? path, List<SvgNode> children, int depth)
+        private void Populate(XElement e, string name, Dictionary<string, string> style, VectorPath? path, List<SceneNode> children, int depth)
         {
             if (name == "use")
             {
@@ -222,9 +208,9 @@ namespace Mediana.Images.Svg
             return Value(style, "visibility", "visible") is "hidden" or "collapse" ? null : path;
         }
 
-        private static SvgNode Empty => new(null, null, null, new StrokeStyle(), FillRule.NonZero, FillRule.NonZero, Matrix3x2.Identity, 1, 1, 1, null, Array.Empty<SvgNode>());
+        private static SceneNode Empty => new(null, null, null, new StrokeStyle(), FillRule.NonZero, FillRule.NonZero, Matrix3x2.Identity, 1, 1, 1, null, Array.Empty<SceneNode>());
 
-        private void Use(XElement e, Dictionary<string, string> style, List<SvgNode> children, int depth)
+        private void Use(XElement e, Dictionary<string, string> style, List<SceneNode> children, int depth)
         {
             XElement? target = Reference(Href(e));
             if (target is null)
@@ -232,7 +218,7 @@ namespace Mediana.Images.Svg
                 return;
             }
 
-            SvgNode node = Node(target, style, depth + 1, true);
+            SceneNode node = Node(target, style, depth + 1, true);
             Matrix3x2 placement = Matrix3x2.CreateTranslation(Length(e, "x", 0, _width), Length(e, "y", 0, _height));
             if (target.Name.LocalName == "symbol" && target.Attribute("viewBox") is { } box)
             {
@@ -248,7 +234,7 @@ namespace Mediana.Images.Svg
             children.Add(node with { Transform = node.Transform * placement });
         }
 
-        private SvgClip? Clip(string value, int depth)
+        private SceneClip? Clip(string value, int depth)
         {
             if (value == "none")
             {
@@ -267,8 +253,8 @@ namespace Mediana.Images.Svg
                 return null;
             }
 
-            SvgNode node = Node(target, new Dictionary<string, string>(), depth + 1, true);
-            var shapes = new List<SvgClipShape>();
+            SceneNode node = Node(target, new Dictionary<string, string>(), depth + 1, true);
+            var shapes = new List<SceneClipShape>();
             try
             {
                 node.ClipShapes(node.Transform, shapes);
@@ -278,7 +264,7 @@ namespace Mediana.Images.Svg
                 Warn(ex.Message);
             }
 
-            return new SvgClip(shapes.ToArray(), (string?)target.Attribute("clipPathUnits") == "objectBoundingBox");
+            return new SceneClip(shapes.ToArray(), (string?)target.Attribute("clipPathUnits") == "objectBoundingBox");
         }
 
         private XElement? Reference(string? href)

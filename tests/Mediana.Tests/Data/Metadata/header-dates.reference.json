@@ -1,0 +1,333 @@
+{
+  "commands": [
+    [
+      "ffmpeg",
+      "-nostdin",
+      "-v",
+      "error",
+      "-y",
+      "-i",
+      "tests/Mediana.Tests/Data/Metadata/track-metadata.mp4",
+      "-map",
+      "0",
+      "-c",
+      "copy",
+      "-metadata",
+      "creation_time=2026-03-07T12:34:56Z",
+      "tests/Mediana.Tests/Data/Metadata/header-dates.mp4"
+    ],
+    [
+      "ffmpeg",
+      "-nostdin",
+      "-v",
+      "error",
+      "-y",
+      "-i",
+      "tests/Mediana.Tests/Data/Metadata/track-metadata.mp4",
+      "-map",
+      "0",
+      "-c",
+      "copy",
+      "-metadata",
+      "creation_time=2026-03-07T12:34:56Z",
+      "tests/Mediana.Tests/Data/Metadata/header-dates-future.mov"
+    ],
+    [
+      "ffmpeg",
+      "-nostdin",
+      "-v",
+      "error",
+      "-y",
+      "-i",
+      "tests/Mediana.Tests/Data/Metadata/track-metadata.mp4",
+      "-map",
+      "0",
+      "-c",
+      "copy",
+      "-metadata",
+      "creation_time=2026-03-07T12:34:56Z",
+      "tests/Mediana.Tests/Data/Metadata/header-dates-scopes.mp4"
+    ]
+  ],
+  "files": [
+    {
+      "file": "header-dates.mp4",
+      "sha256": "004af44acd47212d36157206a111eba8c4faf295118839708a3cf887626cd83c",
+      "kind": "Utc",
+      "major_brand": "isom",
+      "header": {
+        "namespace": "mvhd",
+        "source_path": "moov/mvhd",
+        "version": 0,
+        "creation_seconds": 3855731696,
+        "modification_seconds": 3855731696,
+        "creation": "2026-03-07T12:34:56.0000000Z",
+        "modification": "2026-03-07T12:34:56.0000000Z"
+      },
+      "tracks": [
+        {
+          "index": 0,
+          "header": {
+            "namespace": "tkhd",
+            "source_path": "trak/tkhd",
+            "version": 0,
+            "creation_seconds": 3855731696,
+            "modification_seconds": 3855731696,
+            "creation": "2026-03-07T12:34:56.0000000Z",
+            "modification": "2026-03-07T12:34:56.0000000Z"
+          },
+          "media": {
+            "namespace": "mdhd",
+            "source_path": "trak/mdia/mdhd",
+            "version": 0,
+            "creation_seconds": 3855731696,
+            "modification_seconds": 3855731696,
+            "creation": "2026-03-07T12:34:56.0000000Z",
+            "modification": "2026-03-07T12:34:56.0000000Z"
+          },
+          "packet_count": 8,
+          "packet_sha256": "d57b09edb94c1d751e634db2e9a97197ec9b71610062270803f2dd7be352fe07",
+          "configuration_sha256": "c79bb9116b4982edd928235fddb63535ceded297674e4f7e5b0872e148c799af",
+          "ffprobe_creation_time": "2026-03-07T12:34:56.000000Z"
+        },
+        {
+          "index": 1,
+          "header": {
+            "namespace": "tkhd",
+            "source_path": "trak/tkhd",
+            "version": 0,
+            "creation_seconds": 3855731696,
+            "modification_seconds": 3855731696,
+            "creation": "2026-03-07T12:34:56.0000000Z",
+            "modification": "2026-03-07T12:34:56.0000000Z"
+          },
+          "media": {
+            "namespace": "mdhd",
+            "source_path": "trak/mdia/mdhd",
+            "version": 0,
+            "creation_seconds": 3855731696,
+            "modification_seconds": 3855731696,
+            "creation": "2026-03-07T12:34:56.0000000Z",
+            "modification": "2026-03-07T12:34:56.0000000Z"
+          },
+          "packet_count": 76,
+          "packet_sha256": "35f5b590f056669dfe5d85674f4aa7a0e194554eabdcb03929881038d334d876",
+          "configuration_sha256": "643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409",
+          "ffprobe_creation_time": "2026-03-07T12:34:56.000000Z"
+        },
+        {
+          "index": 2,
+          "header": {
+            "namespace": "tkhd",
+            "source_path": "trak/tkhd",
+            "version": 0,
+            "creation_seconds": 3855731696,
+            "modification_seconds": 3855731696,
+            "creation": "2026-03-07T12:34:56.0000000Z",
+            "modification": "2026-03-07T12:34:56.0000000Z"
+          },
+          "media": {
+            "namespace": "mdhd",
+            "source_path": "trak/mdia/mdhd",
+            "version": 0,
+            "creation_seconds": 3855731696,
+            "modification_seconds": 3855731696,
+            "creation": "2026-03-07T12:34:56.0000000Z",
+            "modification": "2026-03-07T12:34:56.0000000Z"
+          },
+          "packet_count": 76,
+          "packet_sha256": "35f5b590f056669dfe5d85674f4aa7a0e194554eabdcb03929881038d334d876",
+          "configuration_sha256": "643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409",
+          "ffprobe_creation_time": "2026-03-07T12:34:56.000000Z"
+        }
+      ],
+      "ffprobe_creation_time": "2026-03-07T12:34:56.000000Z"
+    },
+    {
+      "file": "header-dates-future.mov",
+      "sha256": "8a9cc75354e1d16411f48c8feb4e26a611b2b2825815743e5c061e6ecc3f50f4",
+      "kind": "Unspecified",
+      "major_brand": "qt  ",
+      "header": {
+        "namespace": "mvhd",
+        "source_path": "moov/mvhd",
+        "version": 1,
+        "creation_seconds": 4610318706,
+        "modification_seconds": 4610318706,
+        "creation": "2050-02-03T04:05:06.0000000",
+        "modification": "2050-02-03T04:05:06.0000000"
+      },
+      "tracks": [
+        {
+          "index": 0,
+          "header": {
+            "namespace": "tkhd",
+            "source_path": "trak/tkhd",
+            "version": 1,
+            "creation_seconds": 4610318706,
+            "modification_seconds": 4610318706,
+            "creation": "2050-02-03T04:05:06.0000000",
+            "modification": "2050-02-03T04:05:06.0000000"
+          },
+          "media": {
+            "namespace": "mdhd",
+            "source_path": "trak/mdia/mdhd",
+            "version": 1,
+            "creation_seconds": 4610318706,
+            "modification_seconds": 4610318706,
+            "creation": "2050-02-03T04:05:06.0000000",
+            "modification": "2050-02-03T04:05:06.0000000"
+          },
+          "packet_count": 8,
+          "packet_sha256": "d57b09edb94c1d751e634db2e9a97197ec9b71610062270803f2dd7be352fe07",
+          "configuration_sha256": "c79bb9116b4982edd928235fddb63535ceded297674e4f7e5b0872e148c799af",
+          "ffprobe_creation_time": "2050-02-03T04:05:06.000000Z"
+        },
+        {
+          "index": 1,
+          "header": {
+            "namespace": "tkhd",
+            "source_path": "trak/tkhd",
+            "version": 1,
+            "creation_seconds": 4610318706,
+            "modification_seconds": 4610318706,
+            "creation": "2050-02-03T04:05:06.0000000",
+            "modification": "2050-02-03T04:05:06.0000000"
+          },
+          "media": {
+            "namespace": "mdhd",
+            "source_path": "trak/mdia/mdhd",
+            "version": 1,
+            "creation_seconds": 4610318706,
+            "modification_seconds": 4610318706,
+            "creation": "2050-02-03T04:05:06.0000000",
+            "modification": "2050-02-03T04:05:06.0000000"
+          },
+          "packet_count": 76,
+          "packet_sha256": "35f5b590f056669dfe5d85674f4aa7a0e194554eabdcb03929881038d334d876",
+          "configuration_sha256": "643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409",
+          "ffprobe_creation_time": "2050-02-03T04:05:06.000000Z"
+        },
+        {
+          "index": 2,
+          "header": {
+            "namespace": "tkhd",
+            "source_path": "trak/tkhd",
+            "version": 1,
+            "creation_seconds": 4610318706,
+            "modification_seconds": 4610318706,
+            "creation": "2050-02-03T04:05:06.0000000",
+            "modification": "2050-02-03T04:05:06.0000000"
+          },
+          "media": {
+            "namespace": "mdhd",
+            "source_path": "trak/mdia/mdhd",
+            "version": 1,
+            "creation_seconds": 4610318706,
+            "modification_seconds": 4610318706,
+            "creation": "2050-02-03T04:05:06.0000000",
+            "modification": "2050-02-03T04:05:06.0000000"
+          },
+          "packet_count": 76,
+          "packet_sha256": "35f5b590f056669dfe5d85674f4aa7a0e194554eabdcb03929881038d334d876",
+          "configuration_sha256": "643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409",
+          "ffprobe_creation_time": "2050-02-03T04:05:06.000000Z"
+        }
+      ],
+      "ffprobe_creation_time": "2050-02-03T04:05:06.000000Z"
+    },
+    {
+      "file": "header-dates-scopes.mp4",
+      "sha256": "6e4be3fa6593f38401b87525cd3af7f56014b1f39bd2f032e8bab9b4aaf01e16",
+      "kind": "Utc",
+      "major_brand": "isom",
+      "header": {
+        "namespace": "mvhd",
+        "source_path": "moov/mvhd",
+        "version": 1,
+        "creation_seconds": 3708580211,
+        "modification_seconds": 4531803072,
+        "creation": "2021-07-08T09:10:11.0000000Z",
+        "modification": "2047-08-09T10:11:12.0000000Z"
+      },
+      "tracks": [
+        {
+          "index": 0,
+          "header": {
+            "namespace": "tkhd",
+            "source_path": "trak/tkhd",
+            "version": 1,
+            "creation_seconds": 0,
+            "modification_seconds": 18446744073709551615,
+            "creation": null,
+            "modification": null
+          },
+          "media": {
+            "namespace": "mdhd",
+            "source_path": "trak/mdia/mdhd",
+            "version": 1,
+            "creation_seconds": 1,
+            "modification_seconds": 4294967295,
+            "creation": "1904-01-01T00:00:01.0000000Z",
+            "modification": "2040-02-06T06:28:15.0000000Z"
+          },
+          "packet_count": 8,
+          "packet_sha256": "d57b09edb94c1d751e634db2e9a97197ec9b71610062270803f2dd7be352fe07",
+          "configuration_sha256": "c79bb9116b4982edd928235fddb63535ceded297674e4f7e5b0872e148c799af",
+          "ffprobe_creation_time": "1904-01-01T00:00:01.000000Z"
+        },
+        {
+          "index": 1,
+          "header": {
+            "namespace": "tkhd",
+            "source_path": "trak/tkhd",
+            "version": 1,
+            "creation_seconds": 3755473445,
+            "modification_seconds": 0,
+            "creation": "2023-01-02T03:04:05.0000000Z",
+            "modification": null
+          },
+          "media": {
+            "namespace": "mdhd",
+            "source_path": "trak/mdia/mdhd",
+            "version": 1,
+            "creation_seconds": 255485145600,
+            "modification_seconds": 255485145599,
+            "creation": null,
+            "modification": "9999-12-31T23:59:59.0000000Z"
+          },
+          "packet_count": 76,
+          "packet_sha256": "35f5b590f056669dfe5d85674f4aa7a0e194554eabdcb03929881038d334d876",
+          "configuration_sha256": "643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409",
+          "ffprobe_creation_time": "10000-01-01T00:00:00.000000Z"
+        },
+        {
+          "index": 2,
+          "header": {
+            "namespace": "tkhd",
+            "source_path": "trak/tkhd",
+            "version": 1,
+            "creation_seconds": 4607452800,
+            "modification_seconds": 4641854706,
+            "creation": "2050-01-01T00:00:00.0000000Z",
+            "modification": "2051-02-03T04:05:06.0000000Z"
+          },
+          "media": {
+            "namespace": "mdhd",
+            "source_path": "trak/mdia/mdhd",
+            "version": 1,
+            "creation_seconds": 9223372036854775808,
+            "modification_seconds": 4294967297,
+            "creation": null,
+            "modification": "2040-02-06T06:28:17.0000000Z"
+          },
+          "packet_count": 76,
+          "packet_sha256": "35f5b590f056669dfe5d85674f4aa7a0e194554eabdcb03929881038d334d876",
+          "configuration_sha256": "643b0e23faf2831be78dddd3de11c0f1b4aac4d4f762554c9bdaab7cc1e9e409",
+          "ffprobe_creation_time": null
+        }
+      ],
+      "ffprobe_creation_time": "2021-07-08T09:10:11.000000Z"
+    }
+  ]
+}

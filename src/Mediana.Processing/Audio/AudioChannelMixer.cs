@@ -7,16 +7,26 @@ using Mediana.Core.Memory;
 namespace Mediana.Processing.Audio
 {
     /// <summary>Applies an explicit output-by-input channel matrix. No implicit speaker mapping,
-    /// gain normalization or clipping is applied. Output is interleaved float64 with preserved timing.</summary>
+    /// gain normalization or clipping is applied. Output is interleaved floating-point PCM with preserved timing.</summary>
     public class AudioChannelMixer
     {
         private readonly double[] coefficients;
 
         public AudioChannelMixer(AudioFormat inputFormat, string[] outputChannels, ReadOnlySpan<double> coefficients)
+            : this(inputFormat, outputChannels, coefficients, AudioSampleFormat.Float64)
+        {
+        }
+
+        public AudioChannelMixer(AudioFormat inputFormat, string[] outputChannels, ReadOnlySpan<double> coefficients,
+            AudioSampleFormat outputSampleFormat)
         {
             ArgumentNullException.ThrowIfNull(inputFormat);
             ArgumentNullException.ThrowIfNull(outputChannels);
-            OutputFormat = new AudioFormat(inputFormat.SampleRate, AudioSampleFormat.Float64,
+            if (outputSampleFormat is not (AudioSampleFormat.Float32 or AudioSampleFormat.Float64))
+            {
+                throw new ArgumentOutOfRangeException(nameof(outputSampleFormat), "Channel mixing requires floating-point output.");
+            }
+            OutputFormat = new AudioFormat(inputFormat.SampleRate, outputSampleFormat,
                 AudioStorageLayout.Interleaved, outputChannels);
             if (coefficients.Length != checked(inputFormat.Channels.Count * outputChannels.Length))
             {
@@ -57,8 +67,8 @@ namespace Mediana.Processing.Audio
                         value += PcmSampleAccess.Read(input, sample, channel)
                             * coefficients[output * InputFormat.Channels.Count + channel];
                     }
-                    int offset = (sample * OutputFormat.Channels.Count + output) * sizeof(double);
-                    PcmSampleAccess.Write(writable.Memory.Span[offset..], AudioSampleFormat.Float64, value);
+                    int offset = (sample * OutputFormat.Channels.Count + output) * OutputFormat.BytesPerSample;
+                    PcmSampleAccess.Write(writable.Memory.Span[offset..], OutputFormat.SampleFormat, value);
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();

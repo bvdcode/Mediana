@@ -38,7 +38,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version=$(dotnet gitversion /showvariable SemVer)
+          version=$(dotnet gitversion /showvariable MajorMinorPatch)
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
   build:
@@ -81,6 +81,7 @@ jobs:
       - run: dotnet format Mediana.slnx --verify-no-changes --no-restore
       - run: dotnet test Mediana.slnx -c Release --no-build --no-restore --logger trx --results-directory artifacts/test-results
       - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --self-test
+      - run: dotnet run --project samples/Mediana.Sample -c Release --no-build --no-restore -- --transcode tests/Mediana.Tests/Data/Mp4/avc-aac.mp4 artifacts/sample-transcode.ts
       - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- -i tests/Mediana.Tests/Data/Mp3/stereo-cbr-id3v23.mp3 artifacts/audio-managed.wav
       - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- -i tests/Mediana.Tests/Data/Pdf/report.pdf artifacts/page-managed.png
       - run: dotnet run --project tools/Mediana.Cli -c Release --no-build --no-restore -- probe mp4 tests/Mediana.Tests/Data/Mp4/avc-aac.mp4
@@ -102,6 +103,12 @@ jobs:
             native_tests_executable=./artifacts/native-tests/Mediana.NativeTests
           fi
           "$cli_executable" --help
+          "$cli_executable" cover tests/Mediana.Tests/Data/Mp3/stereo-vbr-cover.mp3 artifacts/cover-mp3-native.png
+          "$cli_executable" cover tests/Mediana.Tests/Data/Flac/stereo-covers.flac artifacts/cover-flac-native.jpg --index 1
+          "$cli_executable" cover tests/Mediana.Tests/Data/Metadata/covers.m4a artifacts/cover-mp4-native.png
+          cmp tests/Mediana.Tests/Data/Metadata/cover.png artifacts/cover-mp3-native.png
+          cmp tests/Mediana.Tests/Data/Metadata/cover.jpg artifacts/cover-flac-native.jpg
+          cmp tests/Mediana.Tests/Data/Metadata/cover.png artifacts/cover-mp4-native.png
           "$cli_executable" -i tests/Mediana.Tests/Data/Mp3/stereo-cbr-id3v23.mp3 artifacts/audio-native.wav
           "$cli_executable" -i tests/Mediana.Tests/Data/Heif/basic-8bit.heic artifacts/heic-native.png
           "$cli_executable" -i tests/Mediana.Tests/Data/Pdf/report.pdf artifacts/page-native.png
@@ -149,6 +156,20 @@ jobs:
       - name: Pack
         if: matrix.rid == 'linux-x64'
         run: dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true -o artifacts/packages
+      - name: Build package consumer with Native AOT
+        if: matrix.rid == 'linux-x64'
+        run: >-
+          dotnet publish tests/Mediana.NativeTests -c Release -r linux-x64 -m:1
+          -p:IlcSingleThreaded=true -p:MedianaPackageVersion="$PACKAGE_VERSION"
+          --source "$PWD/artifacts/packages" --source https://api.nuget.org/v3/index.json
+          --artifacts-path artifacts/package-consumer -o artifacts/package-native-tests
+      - name: Verify package contents and resolved dependencies
+        if: matrix.rid == 'linux-x64'
+        shell: pwsh
+        run: ./tests/VerifyPackages.ps1 -PackageDirectory artifacts/packages -AssetsFile artifacts/package-consumer/obj/Mediana.NativeTests/project.assets.json -Version "$env:PACKAGE_VERSION"
+      - name: Run package consumer
+        if: matrix.rid == 'linux-x64'
+        run: ./artifacts/package-native-tests/Mediana.NativeTests
       - name: Upload packages
         if: matrix.rid == 'linux-x64'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

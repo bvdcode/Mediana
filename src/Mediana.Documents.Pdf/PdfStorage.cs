@@ -10,7 +10,7 @@ namespace Mediana.Documents.Pdf
         private readonly ReadOnlyMemory<byte> _data;
         private readonly Dictionary<int, PdfXrefEntry> _xref = [];
         private readonly Dictionary<int, PdfObject> _objects = [];
-        private readonly Dictionary<PdfObject, byte[]> _streams = [];
+        private readonly Dictionary<PdfObject, ReadOnlyMemory<byte>> _streams = [];
         private readonly HashSet<int> _active = [];
         private readonly HashSet<int> _sections = [];
         internal PdfBudget Budget { get; }
@@ -67,7 +67,7 @@ namespace Mediana.Documents.Pdf
                 PdfObject stream = ReadIndirect(syntax, null, token);
                 trailer = stream.Value;
                 if (trailer.Get("Type").Name() != "XRef") { throw new InvalidDataException("Expected a PDF cross-reference stream."); }
-                byte[] entries = Decode(stream, token);
+                ReadOnlyMemory<byte> entries = Decode(stream, token);
                 PdfValue[] widths = trailer.Get("W").Items;
                 if (widths.Length != 3) { throw new InvalidDataException("Invalid PDF cross-reference widths."); }
                 int[] sizes = widths.Select(x => x.Integer()).ToArray();
@@ -82,8 +82,8 @@ namespace Mediana.Documents.Pdf
                     for (int i = 0; i < count; i++)
                     {
                         token.ThrowIfCancellationRequested();
-                        int kind = sizes[0] == 0 ? 1 : Field(entries, ref cursor, sizes[0]);
-                        int field = Field(entries, ref cursor, sizes[1]), last = Field(entries, ref cursor, sizes[2]);
+                        int kind = sizes[0] == 0 ? 1 : Field(entries.Span, ref cursor, sizes[0]);
+                        int field = Field(entries.Span, ref cursor, sizes[1]), last = Field(entries.Span, ref cursor, sizes[2]);
                         if (kind is < 0 or > 2) { throw new NotSupportedException("Unknown PDF cross-reference entry type."); }
                         if (!local.Add(first + i)) { throw new InvalidDataException("Overlapping PDF cross-reference stream ranges."); }
                         PdfXrefEntry entry = new(kind, field, last);
@@ -100,7 +100,7 @@ namespace Mediana.Documents.Pdf
         { if (first < 0 || count < 0 || (long)first + count > Budget.Options.MaximumObjects) { throw new InvalidDataException("PDF object range exceeds its limit."); } }
         private static int ParseInteger(string text)
         { if (!int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int value)) { throw new InvalidDataException("Invalid PDF offset or count."); } return value; }
-        private static int Field(byte[] data, ref int position, int width)
+        private static int Field(ReadOnlySpan<byte> data, ref int position, int width)
         {
             if (position > data.Length - width) { throw new InvalidDataException("Truncated cross-reference stream."); }
             ulong value = 0;
@@ -140,9 +140,9 @@ namespace Mediana.Documents.Pdf
                     if (container.Value.Get("Type").Name() != "ObjStm") { throw new InvalidDataException("Invalid PDF object stream."); }
                     int count = container.Value.Get("N").Integer(), first = container.Value.Get("First").Integer();
                     CheckRange(0, count);
-                    byte[] data = Decode(container, token);
+                    ReadOnlyMemory<byte> data = Decode(container, token);
                     if (first < 0 || first > data.Length || entry.GenerationOrIndex >= count) { throw new InvalidDataException("Invalid object stream index."); }
-                    PdfSyntax header = new(data.AsMemory(0, first), Budget, token);
+                    PdfSyntax header = new(data.Slice(0, first), Budget, token);
                     int target = -1;
                     for (int i = 0; i < count; i++)
                     {
@@ -180,10 +180,11 @@ namespace Mediana.Documents.Pdf
             syntax.Expect("endstream"); syntax.Expect("endobj");
             return new(value, stream, true);
         }
-        internal byte[] Decode(PdfObject obj, CancellationToken token, bool image = false)
+        /// <summary>Returns read-only stream data retained by this storage. Consumers must not modify its backing memory.</summary>
+        internal ReadOnlyMemory<byte> Decode(PdfObject obj, CancellationToken token, bool image = false)
         {
             if (!obj.HasStream) { throw new InvalidDataException("Expected a PDF stream."); }
-            if (_streams.TryGetValue(obj, out byte[]? prior)) { return prior; }
+            if (_streams.TryGetValue(obj, out ReadOnlyMemory<byte> prior)) { return prior; }
             PdfValue filters = Resolve(obj.Value.Get("Filter"), token), parameters = Resolve(obj.Value.Get("DecodeParms"), token);
             PdfValue[] list = filters.Kind == PdfValueKind.Null ? [] : filters.Kind == PdfValueKind.Array ? filters.Items : [filters];
             if (parameters.Kind == PdfValueKind.Array && parameters.Items.Length != list.Length) { throw new InvalidDataException("PDF filter parameters do not match the filter chain."); }
@@ -197,7 +198,7 @@ namespace Mediana.Documents.Pdf
                 data = PdfFilters.Decode(data, filter, Resolve(parameter, token), Budget.Options.MaximumDecodedBytes, token);
             }
             Budget.Decoded(data.Length);
-            byte[] result = data.ToArray(); _streams.Add(obj, result); return result;
+            _streams.Add(obj, data); return data;
         }
     }
 }

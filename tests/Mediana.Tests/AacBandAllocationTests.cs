@@ -2,12 +2,41 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs.Aac;
-using Mediana.Core.Memory;
 
 namespace Mediana.Tests
 {
     public class AacBandAllocationTests
     {
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(5)]
+        [InlineData(6)]
+        [InlineData(7)]
+        [InlineData(8)]
+        [InlineData(9)]
+        [InlineData(10)]
+        [InlineData(11)]
+        public void RefinesAQuietBandAcrossAZeroQuantizationPlateau(int frequency)
+        {
+            AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, false, 1);
+            AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, false, 2);
+            AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, true, 1);
+            AacBandAllocationTestInput.VerifyZeroBandRecovery(frequency, true, 2);
+        }
+
+        [Theory]
+        [InlineData(3, 2400, 0, 0)]
+        [InlineData(4, 3200, 1, 0)]
+        [InlineData(3, 2400, 0, 0.05)]
+        [InlineData(11, 12000, 1, 0)]
+        public void ChannelPairSharesItsExactBudgetAndPreservesIndependentScaleSyntax(int frequency, int budget,
+            int activeChannel, double quietGain) =>
+            AacBandAllocationTestInput.VerifySharedBudget(frequency, budget, activeChannel, quietGain);
+
         [Theory]
         [InlineData(0, 300)]
         [InlineData(3, 1000)]
@@ -16,12 +45,15 @@ namespace Mediana.Tests
         [InlineData(11, 6000)]
         public void AllocatedBandScalesFitTheExactSyntaxAndRoundTripEveryCoefficient(int frequency, int budget)
         {
+            AacEncodingWindow window = new(frequency, 0, 0, [1], new int[AacSpectrumQuantizer.ChannelBands + 1]);
             double[] spectrum = Spectrum();
             int[] quantized = new int[1024];
-            byte[] books = new byte[64];
-            byte[] scales = new byte[64];
-            int gain = AacChannelEncoder.Quantize(spectrum, new double[1024], quantized, books, scales, frequency, budget, default);
-            VerifySyntax(frequency, gain, quantized, books, scales, budget);
+            byte[] books = new byte[AacSpectrumQuantizer.ChannelBands];
+            byte[] scales = new byte[AacSpectrumQuantizer.ChannelBands];
+            int[] gains = new int[1];
+            AacSpectrumQuantizer.Quantize(spectrum, new double[1024], quantized, books, scales, gains, window, budget, default);
+            int gain = gains[0];
+            AacBandAllocationTestInput.VerifySyntax(frequency, window, gain, quantized, books, scales, budget, true);
             Assert.True(scales.Take(AacBandTables.Get(frequency, false).Length - 1).Distinct().Count() > 1);
         }
 
@@ -30,11 +62,14 @@ namespace Mediana.Tests
         [InlineData(1000)]
         public void SilenceUsesNoScaleSymbolsAndCountsTheSectionEscapeExactly(int budget)
         {
+            AacEncodingWindow window = new(3, 0, 0, [1], new int[AacSpectrumQuantizer.ChannelBands + 1]);
             int[] quantized = new int[1024];
-            byte[] books = new byte[64];
-            byte[] scales = new byte[64];
-            int gain = AacChannelEncoder.Quantize(new double[1024], new double[1024], quantized, books, scales, 3, budget, default);
-            VerifySyntax(3, gain, quantized, books, scales, budget);
+            byte[] books = new byte[AacSpectrumQuantizer.ChannelBands];
+            byte[] scales = new byte[AacSpectrumQuantizer.ChannelBands];
+            int[] gains = new int[1];
+            AacSpectrumQuantizer.Quantize(new double[1024], new double[1024], quantized, books, scales, gains, window, budget, default);
+            int gain = gains[0];
+            AacBandAllocationTestInput.VerifySyntax(3, window, gain, quantized, books, scales, budget, true);
             Assert.All(books, book => Assert.Equal(0, book));
         }
 
@@ -43,9 +78,9 @@ namespace Mediana.Tests
         {
             AacBandQuantization[] bands = [new(10, 1, 1, 0), new(255, 0, 0, 0), new(70, 1, 1, 0)];
             Assert.Equal(11 + 2 + AacHuffmanEncoder.CountSymbol(0, 60) + AacHuffmanEncoder.CountSymbol(0, 120) + 27,
-                AacChannelEncoder.Count(bands));
+                AacChannelEncoder.Count(bands, bands.Length, 5));
             bands[2] = new(71, 1, 1, 0);
-            Assert.Equal(int.MaxValue, AacChannelEncoder.Count(bands));
+            Assert.Equal(int.MaxValue, AacChannelEncoder.Count(bands, bands.Length, 5));
         }
 
         [Fact]
@@ -67,15 +102,16 @@ namespace Mediana.Tests
                     int count = boundaries[band + 1] - start;
                     state[band] = AacBandQuantization.Measure(spectrum.AsSpan(start, count), powered.AsSpan(start, count), scratch.AsSpan(0, count), gain);
                 }
-                if (AacChannelEncoder.Count(state) <= Budget)
+                if (AacChannelEncoder.Count(state, state.Length, 5) <= Budget)
                 {
                     initial = state.Sum(band => band.Error);
                     break;
                 }
             }
-            byte[] books = new byte[64];
-            byte[] scales = new byte[64];
-            _ = AacChannelEncoder.Quantize(spectrum, powered, scratch, books, scales, Frequency, Budget, default);
+            byte[] books = new byte[AacSpectrumQuantizer.ChannelBands];
+            byte[] scales = new byte[AacSpectrumQuantizer.ChannelBands];
+            AacEncodingWindow window = new(Frequency, 0, 0, [1], new int[AacSpectrumQuantizer.ChannelBands + 1]);
+            AacSpectrumQuantizer.Quantize(spectrum, powered, scratch, books, scales, new int[1], window, Budget, default);
             double error = 0;
             for (int band = 0; band < state.Length; band++)
             {
@@ -91,36 +127,5 @@ namespace Mediana.Tests
         private static double[] Spectrum() => Enumerable.Range(0, 1024).Select(bin =>
             Math.Sin(bin * 0.941) * (bin < 64 ? 10000000 : bin < 384 ? 300000 : 1000)).ToArray();
 
-        private static void VerifySyntax(int frequency, int gain, int[] quantized, byte[] books, byte[] scales, int budget)
-        {
-            ReadOnlySpan<int> boundaries = AacBandTables.Get(frequency, false);
-            AacBandQuantization[] state = new AacBandQuantization[boundaries.Length - 1];
-            for (int band = 0; band < state.Length; band++)
-            {
-                int bits = books[band] == 0 ? 0 : AacHuffmanEncoder.Count(books[band], quantized.AsSpan(boundaries[band], boundaries[band + 1] - boundaries[band]));
-                state[band] = new(scales[band], books[band], bits, 0);
-            }
-            byte[] encoded = new byte[2048];
-            AacBitWriter writer = new(encoded);
-            AacChannelEncoder.Write(ref writer, gain, quantized, books, scales, frequency, true);
-            Assert.Equal(AacChannelEncoder.Count(state), writer.Position);
-            Assert.InRange(writer.Position, 1, budget);
-            writer.Write(21, 5);
-            MediaBufferAllocator allocator = new(32768);
-            using AacChannelState channel = new(allocator);
-            AacBitReader reader = new(encoded);
-            AacChannelParser.Read(ref reader, channel, frequency, new(frequency, 0, 0, state.Length, [1]), false, default);
-            Assert.Equal(quantized, channel.Quantized.ToArray());
-            for (int band = 0; band < state.Length; band++)
-            {
-                if (books[band] != 0)
-                {
-                    Assert.Equal(scales[band], channel.Scales[band]);
-                }
-            }
-            Assert.Equal(21, reader.Read(5));
-            channel.Dispose();
-            Assert.Equal(0, allocator.AllocatedBytes);
-        }
     }
 }

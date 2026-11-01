@@ -21,6 +21,44 @@ namespace Mediana.Tests
         public static void SetUInt32(byte[] data, string boxType, int fieldOffset, uint value) =>
             BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(PayloadOffset(data, boxType) + fieldOffset, 4), value);
 
+        public static void SetBrand(byte[] data, ReadOnlySpan<byte> brand)
+        {
+            int payload = PayloadOffset(data, "ftyp");
+            int end = payload - 8 + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(payload - 8, 4));
+            brand.CopyTo(data.AsSpan(payload, 4));
+            for (int offset = payload + 8; offset < end; offset += 4)
+            {
+                brand.CopyTo(data.AsSpan(offset, 4));
+            }
+        }
+
+        public static void ShiftCompositionOffsets(byte[] data, byte version, int delta)
+        {
+            int payload = PayloadOffset(data, "ctts");
+            data[payload] = version;
+            int count = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(payload + 4, 4));
+            for (int index = 0; index < count; index++)
+            {
+                int position = payload + 12 + index * 8;
+                int original = checked((int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(position, 4)));
+                BinaryPrimitives.WriteInt32BigEndian(data.AsSpan(position, 4), checked(original + delta));
+            }
+        }
+
+        public static byte[] AppendToVisualDescription(byte[] data, byte[] suffix)
+        {
+            Assert.True(PayloadOffset(data, "moov") > PayloadOffset(data, "mdat"));
+            int entry = PayloadOffset(data, "avc1") - 8;
+            int end = checked(entry + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(entry, 4)));
+            foreach (string type in new[] { "moov", "trak", "mdia", "minf", "stbl", "stsd", "avc1" })
+            {
+                int start = PayloadOffset(data, type) - 8;
+                uint size = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(start, 4));
+                BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(start, 4), checked(size + (uint)suffix.Length));
+            }
+            return [.. data.AsSpan(0, end), .. suffix, .. data.AsSpan(end)];
+        }
+
         public static byte[] Use64BitChunkOffsets(byte[] data)
         {
             int payload = PayloadOffset(data, "stco");

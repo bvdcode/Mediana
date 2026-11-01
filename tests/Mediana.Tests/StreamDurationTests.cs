@@ -13,12 +13,12 @@ namespace Mediana.Tests
         [InlineData(MediaKind.Video)]
         public void DurationIsOptionalAndIndependentOfThePacketClock(MediaKind kind)
         {
-            EncodedStreamInfo unknown = new(0, kind, "test", new TimeBase(1, 90000));
+            EncodedStreamInfo unknown = new(0, kind, "test", new EncodedStreamFormat("none", "test", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 90000));
             Assert.Null(unknown.CodedDuration);
             MediaDuration duration = new(48000, new TimeBase(1, 48000));
-            EncodedStreamInfo known = new(0, kind, "test", new TimeBase(1, 90000), codedDuration: duration);
+            EncodedStreamInfo known = new(0, kind, "test", new EncodedStreamFormat("none", "test", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 90000), codedDuration: duration);
             Assert.Equal(duration, known.CodedDuration);
-            Assert.Throws<ArgumentException>(() => new EncodedStreamInfo(0, kind, "test", new TimeBase(1, 1), codedDuration: default(MediaDuration)));
+            Assert.Throws<ArgumentException>(() => new EncodedStreamInfo(0, kind, "test", new EncodedStreamFormat("none", "test", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 1), codedDuration: default(MediaDuration)));
         }
     }
 }

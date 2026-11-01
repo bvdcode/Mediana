@@ -2,39 +2,80 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Text;
+using Mediana.Core.Metadata;
 
 namespace Mediana.Containers.Mp4
 {
-    internal class Mp4MetadataParser(ReadOnlyMemory<byte> root, Mp4ReadOptions options, Mp4ParseBudget budget)
+    internal class Mp4MetadataParser(ReadOnlyMemory<byte> root, Mp4ReadOptions options, Mp4ParseBudget budget, bool quickTime)
     {
         private static readonly UTF8Encoding Utf8 = new(false, true);
         private static readonly UnicodeEncoding Utf16 = new(true, false, true);
         private readonly List<Mp4MetadataValue> values = [];
-        private int textBytes;
+        private readonly List<Mp4UserDataValue> userData = [];
+        private readonly List<MediaTag> tags = [];
 
-        public Mp4MetadataValue[] Parse(Mp4BoxCollection movie)
+        public Mp4MetadataScope Parse(Mp4BoxCollection scope, string sourcePath, Mp4BoxCollection? media = null)
         {
-            Mp4Box? direct = movie.Optional("meta");
-            if (direct is Mp4Box directBox)
-            {
-                ReadMeta(directBox);
-            }
-            Mp4Box? userData = movie.Optional("udta");
-            if (userData is Mp4Box userBox)
-            {
-                Mp4BoxCollection children = new(userBox.Payload, budget);
-                if (children.Optional("meta") is Mp4Box metadata)
-                {
-                    ReadMeta(metadata);
-                }
-            }
-            return values.ToArray();
+            ReadScope(scope, sourcePath, media);
+            return new(values.ToArray(), userData.ToArray(), tags.ToArray());
         }
 
-        private void ReadMeta(Mp4Box box)
+        private void ReadScope(Mp4BoxCollection scope, string sourcePath, Mp4BoxCollection? media = null)
         {
-            Mp4Binary.FullBox(box.Payload.Span);
-            Mp4BoxCollection children = new(box.Payload[4..], budget);
+            scope.Optional("meta");
+            scope.Optional("udta");
+            foreach (Mp4Box box in scope.Boxes)
+            {
+                switch (box.Type)
+                {
+                    case "meta":
+                        ReadMeta(box, sourcePath + "/meta");
+                        break;
+                    case "udta":
+                        ReadUserData(box, sourcePath + "/udta");
+                        break;
+                    case "mdia" when media is not null:
+                        ReadScope(media, sourcePath + "/mdia");
+                        break;
+                }
+            }
+        }
+
+        private void ReadUserData(Mp4Box box, string sourcePath)
+        {
+            Mp4BoxCollection children = new(box.Payload, budget, allowTerminator: true);
+            children.Optional("meta");
+            foreach (Mp4Box child in children.Boxes)
+            {
+                switch (child.Type)
+                {
+                    case "meta":
+                        ReadMeta(child, sourcePath + "/meta");
+                        break;
+                    case "name":
+                    case "tnam":
+                        Mp4UserDataItem item = Mp4UserDataParser.Read(child, sourcePath, budget);
+                        int offset = 0;
+                        if (!child.Payload.IsEmpty && (!root.Span.Overlaps(child.Payload.Span, out offset) || offset < 0))
+                        {
+                            throw new InvalidDataException("The MP4 user-data value lies outside its movie storage.");
+                        }
+                        userData.Add(new(item, offset));
+                        tags.Add(new MediaTag("udta", item.Name, item.Text, sourcePath: item.SourcePath, language: item.Language));
+                        break;
+                }
+            }
+        }
+
+        private void ReadMeta(Mp4Box box, string sourcePath)
+        {
+            ReadOnlyMemory<byte> content = box.Payload;
+            if (!quickTime || Mp4Binary.UInt32(content.Span, 0) == 0)
+            {
+                Mp4Binary.FullBox(content.Span);
+                content = content[4..];
+            }
+            Mp4BoxCollection children = new(content, budget);
             Mp4Box handler = children.Required("hdlr");
             Mp4Binary.FullBox(handler.Payload.Span);
             Mp4Binary.Range(handler.Payload.Span, 0, 24);
@@ -56,7 +97,7 @@ namespace Mediana.Containers.Mp4
                 (string keyNamespace, string name) = ReadKey(item, fields, keys);
                 foreach (Mp4Box data in fields.Boxes.Where(field => field.Type == "data"))
                 {
-                    ReadValue(keyNamespace, name, data.Payload);
+                    ReadValue(keyNamespace, name, data.Payload, sourcePath);
                 }
             }
         }
@@ -123,12 +164,9 @@ namespace Mediana.Containers.Mp4
             return value;
         }
 
-        private void ReadValue(string keyNamespace, string name, ReadOnlyMemory<byte> payload)
+        private void ReadValue(string keyNamespace, string name, ReadOnlyMemory<byte> payload, string sourcePath)
         {
-            if (values.Count == options.MaxMetadataValues)
-            {
-                throw new NotSupportedException("The MP4 metadata value count exceeds the configured limit.");
-            }
+            budget.TakeMetadataValue();
             uint type = Mp4Binary.UInt32(payload.Span, 0);
             uint locale = Mp4Binary.UInt32(payload.Span, 4);
             ReadOnlyMemory<byte> data = payload[8..];
@@ -143,16 +181,16 @@ namespace Mediana.Containers.Mp4
             {
                 throw new InvalidDataException("The MP4 metadata value lies outside its movie storage.");
             }
-            values.Add(new Mp4MetadataValue(new Mp4MetadataItem(keyNamespace, name, type, locale, data.Length, text), offset));
+            values.Add(new Mp4MetadataValue(new Mp4MetadataItem(keyNamespace, name, type, locale, data.Length, text, sourcePath), offset));
+            if (text is not null)
+            {
+                tags.Add(new MediaTag(keyNamespace, name, text, locale: locale, sourcePath: sourcePath));
+            }
         }
 
         private string ReadText(ReadOnlySpan<byte> data, Encoding encoding)
         {
-            if (data.Length > options.MaxMetadataTextBytes - textBytes)
-            {
-                throw new NotSupportedException("Decoded MP4 metadata text exceeds the configured byte limit.");
-            }
-            textBytes += data.Length;
+            budget.TakeMetadataText(data.Length);
             return encoding.GetString(data);
         }
 

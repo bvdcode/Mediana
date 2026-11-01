@@ -20,7 +20,7 @@ namespace Mediana.Tests
         public void RenderedFrameHasIndependentPixelsAndSrgbMetadata()
         {
             SvgDocument document = SvgReader.Read("<svg width='2' height='1'><rect width='1' height='1' fill='#ff0000'/></svg>");
-            PixelBuffer pixels = SvgRenderer.Render(document, new SvgRenderOptions { Supersampling = 1 });
+            PixelBuffer pixels = SvgRenderer.Render(document, new DrawingRenderOptions { Supersampling = 1 });
             MediaBufferAllocator allocator = new(8);
             using VideoFrame frame = pixels.ToVideoFrame(allocator);
             Assert.Equal(new byte[] { 255, 0, 0, 255, 0, 0, 0, 0 }, frame.Data.ToArray());

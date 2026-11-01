@@ -9,24 +9,27 @@ using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Processing;
 using Mediana.Streaming.Hls;
+using Mediana.Execution;
 
 namespace Mediana.Cli
 {
     internal class HlsVideoRendition(Yuv420AreaResizer resizer, H264Encoder encoder, AvcHlsWriter writer,
         string directory, string name) : IAsyncDisposable
     {
+        private readonly MediaEncodePipeline<VideoFrame> pipeline = new(encoder, writer);
         public AvcHlsWriter Writer { get; } = writer;
         public VideoFormat Format => resizer.OutputFormat;
 
         public static HlsVideoRendition Create(VideoFormat source, EncodedStreamInfo video, EncodedStreamInfo? audio, MediaBufferAllocator allocator,
-            int width, int qp, long targetMilliseconds, string root)
+            int width, int qp, H264RateControlOptions? rate, long targetMilliseconds, string root)
         {
             Yuv420AreaResizer resizer = Yuv420AreaResizer.CreateFit(source, width, source.Height, allocator);
             H264Encoder? encoder = null;
             bool success = false;
             try
             {
-                encoder = H264Encoder.Create(resizer.OutputFormat, video.TimeBase, allocator, new() { Quantizer = qp }, video.StreamIndex);
+                encoder = H264Encoder.Create(resizer.OutputFormat, video.TimeBase, allocator,
+                    new() { Quantizer = qp, RateControl = rate, KeyFrameInterval = TimeSpan.FromTicks(checked(targetMilliseconds * TimeSpan.TicksPerMillisecond)) }, video.StreamIndex);
                 string name = "variant-" + width.ToString(CultureInfo.InvariantCulture);
                 string directory = Path.Combine(root, name);
                 Directory.CreateDirectory(directory);
@@ -54,12 +57,16 @@ namespace Mediana.Cli
             }
         }
 
-        public ValueTask WriteAsync(VideoFrame input, CancellationToken token) =>
-            VideoEncoding.WriteAsync(encoder, Writer, input, resizer, token);
+        public async ValueTask WriteAsync(VideoFrame input, CancellationToken token)
+        {
+            using VideoFrame prepared = resizer.ResizeOrRetain(input, token);
+            await pipeline.WriteAsync(prepared, token);
+        }
 
         public async ValueTask<HlsVariant> CompleteAsync(CancellationToken token)
         {
-            await VideoEncoding.CompleteAsync(encoder, Writer, token);
+            await pipeline.CompleteInputAsync(token);
+            await Writer.CompleteAsync(token);
             string playlist = Writer.CreateVodPlaylist(SegmentName);
             await File.WriteAllTextAsync(Path.Combine(directory, "index.m3u8"), playlist, new UTF8Encoding(false), token);
             int? displayWidth = null;

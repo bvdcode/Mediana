@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 
 namespace Mediana.Codecs.H264
 {
@@ -24,6 +25,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException("AVC random access inspection requires an H.264 video stream.");
             }
+            StreamFormats.Avc.Require(stream.Format);
             this.options = options ?? new();
             configuration = H264Configuration.Parse(stream.Configuration.Span, this.options);
             streamIndex = stream.StreamIndex;

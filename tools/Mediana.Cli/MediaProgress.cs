@@ -5,6 +5,8 @@ using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Mediana.Core.Timing;
 
+using Mediana.Execution;
+
 namespace Mediana.Cli
 {
     internal class MediaProgress(ILogger logger, TimeProvider clock, MediaDuration? totalDuration = null)

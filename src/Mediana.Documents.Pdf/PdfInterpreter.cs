@@ -30,19 +30,10 @@ namespace Mediana.Documents.Pdf
             _state = _state with { Transform = page.Transform };
             if (page.Dictionary.Get("Annots").Kind != PdfValueKind.Null) { _unsupported.Add("Annotation appearance streams"); }
             if (page.Dictionary.Get("Group").Kind != PdfValueKind.Null) { _unsupported.Add("Page transparency groups"); }
-            PdfValue contents = Resolve(page.Dictionary.Get("Contents"));
-            if (contents.Kind != PdfValueKind.Null)
+            ReadOnlyMemory<byte> contents = PdfPageContents.Read(storage, page.Dictionary.Get("Contents"), token);
+            if (!contents.IsEmpty)
             {
-                PdfValue source = page.Dictionary.Get("Contents");
-                PdfValue[] streams = contents.Kind == PdfValueKind.Array ? contents.Items : [source];
-                using MemoryStream combined = new();
-                foreach (PdfValue reference in streams)
-                {
-                    byte[] bytes = storage.Decode(storage.Object(reference, token), token);
-                    if (combined.Length + bytes.Length + 1 > storage.Budget.Options.MaximumDecodedBytes) { throw new InvalidDataException("PDF page contents exceed their limit."); }
-                    combined.Write(bytes); combined.WriteByte(10);
-                }
-                Execute(combined.ToArray(), page.Resources, 0);
+                Execute(contents, page.Resources, 0);
             }
             return new(page.Info, _commands, _unsupported, _images);
         }

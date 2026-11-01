@@ -3,6 +3,8 @@
 
 using System.Buffers.Binary;
 using Mediana.Codecs;
+using Mediana.Core.Metadata;
+using Mediana.Images.Heif.Container;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 
@@ -10,7 +12,7 @@ namespace Mediana.Images.Heif
 {
     /// <summary>Registered HEIC primary-image decoding. HEIF transforms are applied by the document decoder;
     /// pixel aspect is an explicit caller interpretation, and ICC conversion remains unsupported.</summary>
-    public class HeicImageDecoder : IImageDecoder
+    public class HeicImageDecoder : IImageDecoder, IImageInfoReader
     {
         private readonly SampleAspectRatio sampleAspectRatio;
         private readonly HeicDecodeOptions options;
@@ -69,6 +71,16 @@ namespace Mediana.Images.Heif
             return false;
         }
 
+        public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            HeifContainer container = new HeifContainerReader(options).Read(encoded);
+            ImageProperties properties = ImageProperties.Read(container, container.Items[container.PrimaryItemId], options);
+            (int width, int height) = properties.GetDisplaySize(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValueTask.FromResult(new ImageInfo("heif", width, height, ImageDimensionUnit.Pixels));
+        }
+
         public async ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
@@ -76,9 +88,7 @@ namespace Mediana.Images.Heif
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
             cancellationToken.ThrowIfCancellationRequested();
-            HeicDocument document = HeicDocument.Load(encoded, options);
-            RgbaImage image = await document.DecodePrimaryAsync(cancellationToken).ConfigureAwait(false);
-            return image.ToVideoFrame(allocator, sampleAspectRatio, cancellationToken);
+            return await HeicDocument.DecodePrimaryFrameAsync(encoded, options, sampleAspectRatio, allocator, cancellationToken).ConfigureAwait(false);
         }
     }
 }

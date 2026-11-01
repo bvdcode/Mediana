@@ -3,14 +3,15 @@
 
 namespace Mediana.Cli
 {
-    internal static class CommandOutputFile
+    internal class CommandOutputFile(string outputPath, bool overwrite = false)
     {
         private const int BufferBytes = 64 * 1024;
 
-        public static async Task WriteAsync(string outputPath, Func<Stream, Task> write, CancellationToken cancellationToken = default)
+        private readonly string destination = Path.GetFullPath(outputPath);
+
+        public async Task WriteAsync(Func<Stream, Task> write, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            string destination = Path.GetFullPath(outputPath);
             string temporary = destination + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
@@ -20,7 +21,7 @@ namespace Mediana.Cli
                     await write(stream);
                 }
                 cancellationToken.ThrowIfCancellationRequested();
-                File.Move(temporary, destination);
+                File.Move(temporary, destination, overwrite);
             }
             finally
             {

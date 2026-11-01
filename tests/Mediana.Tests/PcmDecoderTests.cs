@@ -10,6 +10,10 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 
+using Mediana.Formats.Audio;
+
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     public class PcmDecoderTests
@@ -147,7 +151,7 @@ namespace Mediana.Tests
             Assert.Throws<InvalidDataException>(() => PcmConfiguration.ReadWaveFormat(WaveTestInput.Format(32, tag: 3)[..16], out _));
         }
 
-        private static EncodedStreamInfo Stream(byte[] configuration) => new(0, MediaKind.Audio, PcmConfiguration.CodecId, new TimeBase(1, 48000), configuration);
+        private static EncodedStreamInfo Stream(byte[] configuration) => new(0, MediaKind.Audio, PcmConfiguration.CodecId, StreamFormats.WavePcm, new TimeBase(1, 48000), configuration);
 
         private static MediaPacket Packet(MediaBufferAllocator allocator, byte[] bytes)
         {

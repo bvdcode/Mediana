@@ -6,18 +6,26 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
 
+using Mediana.Formats;
+
 namespace Mediana.Codecs.H264
 {
-    /// <summary>Progressive Baseline CAVLC intra encoding with fixed QP and one independently decodable IDR per input.
+    /// <summary>Progressive Baseline CAVLC I/P encoding with fixed QP or constrained variable rate and bounded reference storage.
     /// Borrows input frames; returns owned length-prefixed AVC packets. Calls and disposal must not overlap.</summary>
-    public class H264Encoder : IMediaCodec<VideoFrame, MediaPacket>
+    public class H264Encoder : IMediaEncoder<VideoFrame>
     {
         private readonly MediaBufferAllocator allocator;
         private readonly H264EncoderOptions options;
         private readonly VideoFormat format;
+        private readonly VideoColorInfo color;
         private readonly H264SequenceParameterSet sequence;
+        private readonly H264LevelBudget levelBudget;
+        private readonly H264RateController? rateController;
         private MediaPacket? pending;
         private MediaTimestamp? previousEnd;
+        private MediaTimestamp? lastKeyFrame;
+        private H264Picture? reference;
+        private int frameNumber;
         private bool completed;
         private bool disposed;
         private bool faulted;
@@ -25,13 +33,16 @@ namespace Mediana.Codecs.H264
         private int busy;
 
         private H264Encoder(VideoFormat format, EncodedStreamInfo stream, H264SequenceParameterSet sequence,
-            MediaBufferAllocator allocator, H264EncoderOptions options)
+            MediaBufferAllocator allocator, H264EncoderOptions options, int parameterSetBytes)
         {
             this.format = format;
+            color = format.GetColorInterpretation();
             Stream = stream;
             this.sequence = sequence;
             this.allocator = allocator;
             this.options = options;
+            levelBudget = new(stream.TimeBase, sequence.WidthInMbs * sequence.HeightInMapUnits, parameterSetBytes);
+            rateController = options.RateControl is H264RateControlOptions rate ? new(rate, stream.TimeBase, options.Quantizer) : null;
         }
 
         public EncodedStreamInfo Stream { get; }
@@ -45,10 +56,10 @@ namespace Mediana.Codecs.H264
             timeBase.Validate();
             options ??= new();
             options.Validate();
-            byte[] configuration = H264EncoderConfiguration.Create(format, allocator, options.Quantizer);
+            byte[] configuration = H264EncoderConfiguration.Create(format, allocator, options, out int parameterSetBytes);
             H264Configuration parsed = H264Configuration.Parse(configuration, new H264DecoderOptions());
-            EncodedStreamInfo stream = new(streamIndex, MediaKind.Video, "h264", timeBase, configuration, VideoDisplayMatrix.Identity);
-            return new(format, stream, parsed.Sequences[0], allocator, options);
+            EncodedStreamInfo stream = new(streamIndex, MediaKind.Video, "h264", StreamFormats.Avc, timeBase, configuration, VideoDisplayMatrix.Identity);
+            return new(format, stream, parsed.Sequences[0], allocator, options, parameterSetBytes);
         }
 
         public CodecInputStatus TrySend(VideoFrame input, CancellationToken cancellationToken = default)
@@ -70,20 +81,35 @@ namespace Mediana.Codecs.H264
                     return CodecInputStatus.OutputRequired;
                 }
                 MediaTimestamp timestamp = ValidateFrame(input);
-                using MediaBuffer encoded = H264IntraEncoder.Encode(input, sequence, options.Quantizer,
-                    idrId, allocator, options.MaximumPacketBytes, cancellationToken);
+                bool keyFrame = RequiresKeyFrame(timestamp);
+                int number = keyFrame ? 0 : (frameNumber + 1) & 15;
                 MediaDuration duration = input.Duration!.Value;
-                if ((Int128)encoded.Memory.Length * 8 * duration.TimeBase.Denominator >
-                    (Int128)H264EncoderConfiguration.MaximumBitsPerSecond * duration.Value * duration.TimeBase.Numerator ||
-                    H264EncoderConfiguration.ExceedsAccessUnitLimit(checked(encoded.Memory.Length + Stream.Configuration.Length),
-                        sequence.WidthInMbs * sequence.HeightInMapUnits))
-                {
-                    throw new NotSupportedException("The encoded H.264 picture exceeds the level 4.1 bitrate budget for its duration.");
-                }
-                pending = new MediaPacket(Stream.StreamIndex, encoded, timestamp, timestamp, input.Duration, isKeyFrame: true);
                 long durationTicks = new MediaTimestamp(duration.Value, duration.TimeBase).Rescale(Stream.TimeBase, TimestampRounding.TowardZero).Value;
-                previousEnd = new(checked(timestamp.Value + durationTicks), Stream.TimeBase);
-                idrId ^= 1;
+                MediaTimestamp endTime = new(checked(timestamp.Value + durationTicks), Stream.TimeBase);
+                int levelBytes = levelBudget.MaximumPacketBytes(timestamp.Value, keyFrame);
+                if (levelBytes < 8)
+                {
+                    throw new NotSupportedException("The H.264 level 4.1 access-unit or coded-picture buffer budget cannot fit the picture.");
+                }
+                H264FrameRateBudget requested = rateController?.Prepare(timestamp, durationTicks, keyFrame) ?? new(options.MaximumPacketBytes, options.Quantizer);
+                H264FrameRateBudget budget = new(Math.Min(requested.MaximumBytes, levelBytes), requested.Quantizer);
+                using H264EncodedPicture encoded = H264PictureEncoder.Encode(input, sequence, reference, keyFrame, number, idrId,
+                    allocator, options, budget, cancellationToken);
+                levelBudget.Commit(timestamp.Value, keyFrame, encoded.Data.Memory.Length);
+                pending = new MediaPacket(Stream.StreamIndex, encoded.Data, timestamp, timestamp, input.Duration, isKeyFrame: keyFrame);
+                rateController?.Commit(timestamp, encoded.Quantizer, encoded.Data.Memory.Length, keyFrame);
+                previousEnd = endTime;
+                frameNumber = number;
+                if (keyFrame)
+                {
+                    lastKeyFrame = timestamp;
+                    idrId ^= 1;
+                }
+                if (options.KeyFrameInterval > TimeSpan.Zero)
+                {
+                    ReleaseReference();
+                    reference = encoded.TakeReference();
+                }
                 succeeded = true;
                 return CodecInputStatus.Accepted;
             }
@@ -121,6 +147,7 @@ namespace Mediana.Codecs.H264
             {
                 EnsureAvailable();
                 completed = true;
+                ReleaseReference();
             }
             finally
             {
@@ -135,8 +162,13 @@ namespace Mediana.Codecs.H264
             {
                 ObjectDisposedException.ThrowIf(disposed, this);
                 ReleasePending();
+                ReleaseReference();
                 previousEnd = null;
+                lastKeyFrame = null;
+                frameNumber = 0;
                 idrId = 0;
+                levelBudget.Reset();
+                rateController?.Reset();
                 completed = false;
                 faulted = false;
             }
@@ -146,10 +178,21 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        private bool RequiresKeyFrame(MediaTimestamp timestamp)
+        {
+            if (reference is null || lastKeyFrame is not MediaTimestamp keyFrame || options.KeyFrameInterval == TimeSpan.Zero)
+            {
+                return true;
+            }
+            Int128 elapsed = (Int128)timestamp.Value - keyFrame.Value;
+            return elapsed * Stream.TimeBase.Numerator * TimeSpan.TicksPerSecond >=
+                (Int128)options.KeyFrameInterval.Ticks * Stream.TimeBase.Denominator;
+        }
+
         private MediaTimestamp ValidateFrame(VideoFrame input)
         {
             if (input.Format.Width != format.Width || input.Format.Height != format.Height ||
-                input.Format.PixelFormat != format.PixelFormat || input.Format.Color != format.Color ||
+                input.Format.PixelFormat != format.PixelFormat || input.Format.GetColorInterpretation() != color ||
                 input.Format.SampleAspectRatio != format.SampleAspectRatio)
             {
                 throw new NotSupportedException("The input frame differs from the H.264 encoder configuration.");
@@ -195,6 +238,7 @@ namespace Mediana.Codecs.H264
             {
                 faulted = true;
                 ReleasePending();
+                ReleaseReference();
             }
             Volatile.Write(ref busy, 0);
         }
@@ -203,6 +247,12 @@ namespace Mediana.Codecs.H264
         {
             pending?.Dispose();
             pending = null;
+        }
+
+        private void ReleaseReference()
+        {
+            reference?.Dispose();
+            reference = null;
         }
 
         private void Enter()
@@ -220,6 +270,7 @@ namespace Mediana.Codecs.H264
             {
                 disposed = true;
                 ReleasePending();
+                ReleaseReference();
             }
             finally
             {

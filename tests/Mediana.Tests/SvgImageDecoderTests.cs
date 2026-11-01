@@ -34,7 +34,7 @@ namespace Mediana.Tests
             };
             string xml = $"<?xml version='1.0' encoding='{name}'?><svg width='20' height='20'><text x='0' y='15'>é</text></svg>";
             byte[] input = [.. encoding.GetPreamble(), .. encoding.GetBytes(xml)];
-            SvgRenderOptions options = new() { Supersampling = 1 };
+            DrawingRenderOptions options = new() { Supersampling = 1 };
             PixelBuffer expected = SvgRenderer.Render(SvgReader.Read(xml), options);
             Assert.True(expected.Pixels.Span.ContainsAnyExcept((byte)0));
             SvgImageDecoder decoder = new(renderOptions: options);
@@ -53,6 +53,19 @@ namespace Mediana.Tests
             SvgDocument fromStream = await SvgReader.ReadAsync(stream);
             Assert.Equal(expected.Pixels.ToArray(), SvgRenderer.Render(fromStream, options).Pixels.ToArray());
             Assert.True(stream.CanRead);
+        }
+
+        [Fact]
+        public async Task RenderingFailureReleasesTheReservedOutputAndInsufficientBudgetStopsBeforeEffects()
+        {
+            byte[] input = "<svg width='4' height='4'><g opacity='.5'><rect width='4' height='4'/></g></svg>"u8.ToArray();
+            SvgImageDecoder decoder = new(renderOptions: new() { Supersampling = 1, MaximumEffectBytes = 1 });
+            MediaBufferAllocator allocator = new(64);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await decoder.DecodeAsync(input, new(), allocator));
+            Assert.Equal(0, allocator.AllocatedBytes);
+            MediaBufferAllocator insufficient = new(63);
+            await Assert.ThrowsAsync<MediaMemoryLimitException>(async () => await decoder.DecodeAsync(input, new(), insufficient));
+            Assert.Equal(0, insufficient.AllocatedBytes);
         }
 
         [Fact]

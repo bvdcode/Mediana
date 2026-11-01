@@ -6,6 +6,8 @@ namespace Mediana
     public record MediaOpenOptions
     {
         public long BufferBudgetBytes { get; init; } = 64 * 1024 * 1024;
+        /// <summary>Maximum complete encoded input retained when inspecting an image or document.</summary>
+        public int MaxImageInputBytes { get; init; } = 64 * 1024 * 1024;
         public int MaxProbeBytes { get; init; } = 64 * 1024;
         /// <summary>Optional total container read budget, including skipped packets and EOF checks.</summary>
         public long? MaxPacketReads { get; init; }
@@ -16,6 +18,7 @@ namespace Mediana
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(BufferBudgetBytes);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxProbeBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxImageInputBytes);
             if (MaxPacketReads is long packets)
             {
                 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(packets);

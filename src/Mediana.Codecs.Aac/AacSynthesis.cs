@@ -21,7 +21,7 @@ namespace Mediana.Codecs.Aac
                 case 1:
                 case 3:
                     AacImdct.Transform(spectrum, time, work, cancellationToken);
-                    ApplyLongWindow(time, sequence, shape, previousShape);
+                    AacWindowing.ApplyLong(time, sequence, shape, previousShape);
                     break;
                 case 2:
                     time.Clear();
@@ -51,43 +51,5 @@ namespace Mediana.Codecs.Aac
             }
         }
 
-        private static void ApplyLongWindow(Span<double> time, int sequence, int shape, int previousShape)
-        {
-            switch (sequence)
-            {
-                case 0:
-                    ApplyWindow(time[..1024], AacWindows.Get(1024, previousShape));
-                    ApplyReversedWindow(time[1024..], AacWindows.Get(1024, shape));
-                    break;
-                case 1:
-                    ApplyWindow(time[..1024], AacWindows.Get(1024, previousShape));
-                    ApplyReversedWindow(time.Slice(1472, 128), AacWindows.Get(128, shape));
-                    time[1600..].Clear();
-                    break;
-                case 3:
-                    time[..448].Clear();
-                    ApplyWindow(time.Slice(448, 128), AacWindows.Get(128, previousShape));
-                    ApplyReversedWindow(time[1024..], AacWindows.Get(1024, shape));
-                    break;
-                default:
-                    throw new InvalidOperationException("The long AAC window sequence is invalid.");
-            }
-        }
-
-        private static void ApplyWindow(Span<double> time, ReadOnlySpan<double> window)
-        {
-            for (int index = 0; index < time.Length; index++)
-            {
-                time[index] *= window[index];
-            }
-        }
-
-        private static void ApplyReversedWindow(Span<double> time, ReadOnlySpan<double> window)
-        {
-            for (int index = 0; index < time.Length; index++)
-            {
-                time[index] *= window[window.Length - 1 - index];
-            }
-        }
     }
 }

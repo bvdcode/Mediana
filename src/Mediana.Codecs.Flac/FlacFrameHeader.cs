@@ -3,6 +3,8 @@
 
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Flac
 {
     internal readonly record struct FlacFrameHeader(int BlockSize, int ChannelAssignment, bool VariableBlockSize,

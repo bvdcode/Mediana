@@ -17,7 +17,7 @@ namespace Mediana.Cli
         private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string input, string output, int videoIndex, int? audioIndex,
-            AudioCodecMode? audioCodec, int audioBitRate, int[] widths,
+            AudioCodecMode? audioCodec, int[] audioBitRates, int? audioChannels, int[] widths, H264RateControlOptions?[]? videoRates,
             int qp, long targetMilliseconds, ILogger logger, CancellationToken token)
         {
             MediaEngine engine = new MediaEngineBuilder()
@@ -35,7 +35,7 @@ namespace Mediana.Cli
             await using HlsAudioSource? audio = audioIndex is int index ? audioCodec switch
             {
                 null => await HlsCopyAudioSource.OpenAsync(source, index, allocator, token),
-                AudioCodecMode.Aac => await HlsAacAudioSource.OpenAsync(source, index, audioBitRate, allocator, token),
+                AudioCodecMode.Aac => await HlsAacAudioSource.OpenAsync(source, index, audioBitRates, audioChannels, allocator, token),
                 _ => throw new ArgumentOutOfRangeException(nameof(audioCodec))
             } : null;
             long frames = 0;
@@ -46,10 +46,11 @@ namespace Mediana.Cli
                 try
                 {
                     HashSet<(int Width, int Height)> dimensions = [];
-                    foreach (int width in widths)
+                    for (int variantIndex = 0; variantIndex < widths.Length; variantIndex++)
                     {
-                        HlsVideoRendition rendition = HlsVideoRendition.Create(first.Format, session.Stream, audio?.Stream,
-                            allocator, width, qp, targetMilliseconds, directory);
+                        int width = widths[variantIndex];
+                        HlsVideoRendition rendition = HlsVideoRendition.Create(first.Format, session.Stream, audio?.GetStream(variantIndex),
+                            allocator, width, qp, videoRates?[variantIndex], targetMilliseconds, directory);
                         renditions.Add(rendition);
                         if (!dimensions.Add((rendition.Format.Width, rendition.Format.Height)))
                         {
@@ -117,7 +118,7 @@ namespace Mediana.Cli
             }, token);
             if (audio is HlsAacAudioSource encoded)
             {
-                await Console.Out.WriteLineAsync($"AAC-LC: {encoded.InputSamplesPerChannel} input samples per channel; priming {encoded.PrimingSamples}; padding {encoded.PaddingSamples}.");
+                await Console.Out.WriteLineAsync($"AAC-LC: {encoded.InputSamplesPerChannel} input samples per channel; priming {encoded.PrimingSamples}; padding {encoded.PaddingSamples}; {encoded.EncoderCount} encoders.");
             }
             await Console.Out.WriteLineAsync($"HLS encoding: {frames} input frames; {audio?.PacketsWritten ?? 0} audio packets; {widths.Length} variants; {segments} aligned segments per variant. Live buffer bytes: 0.");
             return 0;

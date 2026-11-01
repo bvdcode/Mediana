@@ -44,7 +44,7 @@ namespace Mediana.Images.Heif.Container
         }
 
         public static async Task<RgbaImage> DecodeAsync(HeifContainer container, HeifItem item, ImageProperties properties,
-            Func<uint, PixelBufferScope, Task<RgbaImage>> decode, bool parallel, PixelBufferScope buffers, ImageOrientation orientation, CancellationToken cancellationToken)
+            Func<uint, PixelBufferScope, Task<RgbaImage>> decode, bool parallel, PixelBufferScope buffers, ImageOrientation orientation, CancellationToken cancellationToken, Memory<byte> destination = default)
         {
             IReadOnlyList<uint> inputs = ReadInputs(container, item, properties, out int rows, out int columns);
 
@@ -64,7 +64,7 @@ namespace Mediana.Images.Heif.Container
                     throw new InvalidDataException("Grid tiles do not cover the output rectangle.");
                 }
 
-                pixels = buffers.Allocate(checked(properties.Width * properties.Height * 4));
+                pixels = buffers.Allocate(checked(properties.Width * properties.Height * 4), destination);
                 CopyTile(0, first);
             }
 

@@ -37,12 +37,19 @@ namespace Mediana.Cli
                     LogLevel level = builder.AddGlobalOption<LogLevel>("--log-level",
                         "Minimum diagnostic level: Trace, Debug, Information, Warning, Error, Critical or None.", LogLevel.Information);
                     bool noColor = builder.AddGlobalOption<bool>("--no-color", "Disable colored diagnostic output.");
-                    return new CliSettings(level, noColor);
+                    bool overwrite = builder.AddGlobalOption<bool>("--overwrite", "Overwrite existing output files without asking.");
+                    bool assumeYes = builder.AddGlobalOption<bool>("-y|--yes", "Answer yes to all confirmation prompts.");
+                    return new CliSettings(level, noColor, overwrite, assumeYes);
                 });
                 app.UseFilter<CliLoggingFilter>();
                 app.ConfigureServices((context, configuration, services) =>
                 {
                     CliSettings settings = (CliSettings)context.GlobalOptions!;
+                    CommandConfirmation confirmation = new(settings.AssumeYes, !Console.IsInputRedirected,
+                        Console.In, error ?? Console.Error);
+                    services.AddSingleton(confirmation);
+                    services.AddSingleton<CliOperation>();
+                    services.AddSingleton(new CommandOutputPolicy(settings.Overwrite, confirmation));
                     services.AddSingleton<TextWriter>(output ?? Console.Out);
                     services.AddLogging(builder => CliLogging.Configure(builder, settings.LogLevel, settings.NoColor));
                     services.AddSingleton(provider => provider.GetRequiredService<ILoggerFactory>().CreateLogger("mediana"));

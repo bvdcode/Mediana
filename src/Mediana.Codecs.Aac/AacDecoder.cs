@@ -6,6 +6,8 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Aac
 {
     internal class AacDecoder : IMediaCodec<MediaPacket, AudioFrame>
@@ -16,6 +18,7 @@ namespace Mediana.Codecs.Aac
         private readonly MediaBufferAllocator allocator;
         private readonly int maxAccessUnitBytes;
         private readonly AudioFormat format;
+        private readonly AacChannelLayout layout;
         private AacDecoderWorkspace? workspace;
         private AudioFrame? pending;
         private uint noiseState = InitialNoiseState;
@@ -29,13 +32,8 @@ namespace Mediana.Codecs.Aac
             this.configuration = configuration;
             this.allocator = allocator;
             this.maxAccessUnitBytes = maxAccessUnitBytes;
-            string[] channels = configuration.ChannelConfiguration switch
-            {
-                1 => ["front-center"],
-                2 => ["front-left", "front-right"],
-                _ => throw new NotSupportedException("The AAC channel layout is not supported.")
-            };
-            format = new AudioFormat(configuration.SampleRate, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, channels);
+            layout = new AacChannelLayout(configuration.ChannelConfiguration);
+            format = layout.CreateFormat(configuration.SampleRate);
         }
 
         public CodecInputStatus TrySend(MediaPacket input, CancellationToken cancellationToken = default)
@@ -63,14 +61,13 @@ namespace Mediana.Codecs.Aac
                 {
                     throw new NotSupportedException("The AAC packet exceeds the configured access unit limit.");
                 }
-                workspace ??= new AacDecoderWorkspace(allocator, configuration.ChannelCount);
+                workspace ??= new AacDecoderWorkspace(allocator, layout);
                 AacAccessUnitParser.Read(input.Data.Span, configuration.FrequencyIndex, workspace, ref noiseState, cancellationToken);
                 using WritableMediaBuffer writable = allocator.Allocate(format.GetBufferSize(1024));
                 Span<float> output = MemoryMarshal.Cast<byte, float>(writable.Memory.Span);
-                Synthesize(workspace.Left, output, 0, cancellationToken);
-                if (workspace.Right is not null)
+                for (int channel = 0; channel < workspace.Channels.Length; channel++)
                 {
-                    Synthesize(workspace.Right, output, 1, cancellationToken);
+                    Synthesize(workspace.Channels[channel], output, layout.OutputChannel(channel), cancellationToken);
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 using MediaBuffer buffer = writable.Publish();

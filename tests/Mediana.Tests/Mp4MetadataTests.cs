@@ -10,6 +10,43 @@ namespace Mediana.Tests
 {
     public class Mp4MetadataTests
     {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task QuickTimeClassicAndFullMetadataKeepTheSameValues(bool classic)
+        {
+            byte[] item = Mp4MetadataTestData.Box("©nam", Mp4MetadataTestData.Data(1, 0, "example"u8.ToArray()));
+            byte[] meta = Mp4MetadataTestData.Meta("mdir", item);
+            if (classic)
+            {
+                meta = Mp4MetadataTestData.Box("meta", meta.AsSpan(12).ToArray());
+            }
+            byte[] file = await Mp4MetadataTestData.FileAsync(meta);
+            Mp4TestData.SetBrand(file, "qt  "u8);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(file, 3);
+            await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
+            {
+                Assert.Equal("example", Assert.Single(reader.Metadata).Text);
+                Assert.Equal("moov/meta", Assert.Single(reader.Info.Tags!).SourcePath);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.False(source.IsDisposed);
+        }
+
+        [Fact]
+        public async Task ClassicMetadataDoesNotBypassIsoFullBoxValidation()
+        {
+            byte[] meta = Mp4MetadataTestData.Meta("mdir", []);
+            byte[] file = await Mp4MetadataTestData.FileAsync(Mp4MetadataTestData.Box("meta", meta.AsSpan(12).ToArray()));
+            Mp4TestData.SetBrand(file, "isom"u8);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(file, 3);
+            await Assert.ThrowsAsync<NotSupportedException>(async () => await Mp4Reader.OpenAsync(source, allocator));
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.False(source.IsDisposed);
+        }
+
         [Fact]
         public Task RealItunesAndIndexedMetadataAndOriginalCoversMatchIndependentReferences() =>
             Mp4MetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));

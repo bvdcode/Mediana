@@ -5,6 +5,8 @@ using System.Text;
 using Mediana.Core;
 using Mediana.Core.Timing;
 
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     internal static class H264PcmStream
@@ -17,7 +19,7 @@ namespace Mediana.Tests
             byte[] picture = [0x68, .. H264TestBits.Rbsp("1 1 0 0 1 1 1 0 00 1 1 1 1 0 0")];
             byte[] configuration = [1, 77, 0, 10, 255, 225, (byte)(sequence.Length >> 8), (byte)sequence.Length, .. sequence,
                 1, (byte)(picture.Length >> 8), (byte)picture.Length, .. picture];
-            return new EncodedStreamInfo(0, MediaKind.Video, "h264", new TimeBase(1, 1), configuration);
+            return new EncodedStreamInfo(0, MediaKind.Video, "h264", StreamFormats.Avc, new TimeBase(1, 1), configuration);
         }
 
         public static byte[] Picture(int frameNumber, int order, byte sample, bool reset = false)

@@ -8,6 +8,10 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 
+using Mediana.Formats.Audio;
+
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     public class Mp3DecoderTests
@@ -138,7 +142,7 @@ namespace Mediana.Tests
             return file[..Mp3FrameHeader.Read(file.AsSpan(0, 4)).FrameBytes];
         }
 
-        private static EncodedStreamInfo Stream(byte[] data) => new(0, MediaKind.Audio, "mp3", new TimeBase(1, 48000), data.AsSpan(0, 4));
+        private static EncodedStreamInfo Stream(byte[] data) => new(0, MediaKind.Audio, "mp3", StreamFormats.Mp3, new TimeBase(1, 48000), data.AsSpan(0, 4));
 
         private static MediaPacket Packet(MediaBufferAllocator allocator, byte[] data)
         {

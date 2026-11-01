@@ -7,12 +7,21 @@ namespace Mediana.Codecs.H264
     {
         public int Quantizer { get; init; } = 26;
         public int MaximumPacketBytes { get; init; } = 16 * 1024 * 1024;
+        /// <summary>Media-time IDR interval; the first eligible frame starts the next group. Zero makes every frame an IDR.</summary>
+        public TimeSpan KeyFrameInterval { get; init; } = TimeSpan.FromSeconds(2);
+        /// <summary>Maximum absolute motion displacement in luma pixels, from zero to 64. Zero disables motion refinement.</summary>
+        public int MotionSearchRange { get; init; } = 16;
+        public H264RateControlOptions? RateControl { get; init; }
 
         internal void Validate()
         {
             ArgumentOutOfRangeException.ThrowIfNegative(Quantizer);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(Quantizer, 51);
             ArgumentOutOfRangeException.ThrowIfLessThan(MaximumPacketBytes, 8);
+            ArgumentOutOfRangeException.ThrowIfLessThan(KeyFrameInterval, TimeSpan.Zero);
+            ArgumentOutOfRangeException.ThrowIfNegative(MotionSearchRange);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(MotionSearchRange, 64);
+            RateControl?.Validate();
         }
     }
 }

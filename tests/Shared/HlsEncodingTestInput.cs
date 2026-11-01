@@ -27,7 +27,8 @@ namespace Mediana.Tests
             byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, name + suffix));
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             using Yuv420AreaResizer resizer = Yuv420AreaResizer.CreateFit(first.Format, width, first.Format.Height, allocator);
-            using H264Encoder encoder = H264Encoder.Create(resizer.OutputFormat, session.Stream.TimeBase, allocator);
+            using H264Encoder encoder = H264Encoder.Create(resizer.OutputFormat, session.Stream.TimeBase, allocator,
+                new() { KeyFrameInterval = TimeSpan.Zero });
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new H264DecoderFactory().Create(encoder.Stream, allocator);
             List<MemoryStream> destinations = [];
             await using AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, (number, token) =>

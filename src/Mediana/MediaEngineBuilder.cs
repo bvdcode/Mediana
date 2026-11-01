@@ -16,6 +16,43 @@ namespace Mediana
         private readonly List<IAudioDecoderFactory> audioDecoders = [];
         private readonly List<IStreamMetadataReader> metadataReaders = [];
         private readonly List<IImageDecoder> imageDecoders = [];
+        private readonly List<IAudioEncoderFactory> audioEncoders = [];
+        private readonly List<IVideoEncoderFactory> videoEncoders = [];
+        private readonly List<IContainerWriterFactory> writers = [];
+
+        public MediaEngineBuilder AddAudioEncoder(IAudioEncoderFactory factory)
+        {
+            ArgumentNullException.ThrowIfNull(factory);
+            ValidateOutputRegistration(factory.ImplementationId, factory.CodecId, audioEncoders.Select(item => (item.ImplementationId, item.CodecId)));
+            audioEncoders.Add(factory);
+            return this;
+        }
+
+        public MediaEngineBuilder AddVideoEncoder(IVideoEncoderFactory factory)
+        {
+            ArgumentNullException.ThrowIfNull(factory);
+            ValidateOutputRegistration(factory.ImplementationId, factory.CodecId, videoEncoders.Select(item => (item.ImplementationId, item.CodecId)));
+            videoEncoders.Add(factory);
+            return this;
+        }
+
+        public MediaEngineBuilder AddContainerWriter(IContainerWriterFactory factory)
+        {
+            ArgumentNullException.ThrowIfNull(factory);
+            ValidateOutputRegistration(factory.ImplementationId, factory.FormatId, writers.Select(item => (item.ImplementationId, item.FormatId)));
+            writers.Add(factory);
+            return this;
+        }
+
+        private static void ValidateOutputRegistration(string implementation, string format, IEnumerable<(string Implementation, string Format)> existing)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(implementation);
+            ArgumentException.ThrowIfNullOrWhiteSpace(format);
+            if (existing.Any(item => item.Implementation == implementation || item.Format == format))
+            {
+                throw new ArgumentException("An output implementation for this identifier is already registered.");
+            }
+        }
 
         public MediaEngineBuilder AddContainer(IContainerReaderFactory factory)
         {
@@ -83,6 +120,6 @@ namespace Mediana
             }
         }
 
-        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray(), imageDecoders.ToArray());
+        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray(), imageDecoders.ToArray(), audioEncoders.ToArray(), videoEncoders.ToArray(), writers.ToArray());
     }
 }

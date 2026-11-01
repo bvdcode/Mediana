@@ -11,6 +11,8 @@ using Mediana.Streaming.Hls;
 using System.Security.Cryptography;
 using System.Text.Json;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     public class Mp3TransportTests

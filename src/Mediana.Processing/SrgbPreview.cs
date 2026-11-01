@@ -16,13 +16,22 @@ namespace Mediana.Processing
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(input);
+            return Fit(input, input.Format.GetColorInterpretation(), displayMatrix, maximumWidth, maximumHeight, allocator, cancellationToken);
+        }
+
+        /// <summary>Fits a preview using an explicit source color interpretation without changing frame metadata.</summary>
+        public static VideoFrame Fit(VideoFrame input, VideoColorInfo sourceColor, VideoDisplayMatrix displayMatrix,
+            int maximumWidth, int maximumHeight, MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            ArgumentNullException.ThrowIfNull(sourceColor);
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
             SampleAspectRatio aspectRatio = input.Format.SampleAspectRatio
                 ?? throw new NotSupportedException("A preview requires a known sample aspect ratio.");
             OrthogonalTransform orientation = OrthogonalTransform.FromMatrix(displayMatrix);
             NearestNeighborMap map = NearestNeighborMap.Fit(input.Format, aspectRatio, orientation, maximumWidth, maximumHeight);
-            return SrgbConverter.Apply(input, input.Format.Color, map, SampleAspectRatio.Square, allocator, cancellationToken);
+            return SrgbConverter.Apply(input, sourceColor, map, SampleAspectRatio.Square, allocator, cancellationToken);
         }
     }
 }

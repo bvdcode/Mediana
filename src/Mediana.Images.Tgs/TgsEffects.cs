@@ -5,17 +5,17 @@ using Mediana.Drawing;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace Mediana.Images.Tgs
 {
     internal partial class TgsSceneBuilder
     {
-        private void Effects(JsonElement layer, XElement content, double frame)
+        private void Effects(JsonElement layer, TgsLayer content, double frame)
         {
-            XElement? maskedSource = content.Elements().FirstOrDefault();
-            XElement filter = FullFilter(Id());
+            TgsLayer? maskedSource = content.Children.FirstOrDefault();
+            List<SceneFilterStep> filter = new List<SceneFilterStep>();
             foreach (JsonElement effect in ExpandEffects(TgsJson.Get(layer, "ef")))
             {
                 int type = TgsEffectInfo.Type(effect);
@@ -27,7 +27,7 @@ namespace Mediana.Images.Tgs
                 if (type is 22 or 35)
                 {
                     FlushEffect(content, filter);
-                    filter = FullFilter(Id());
+                    filter = new List<SceneFilterStep>();
                     if (type == 22)
                     {
                         StrokeEffect(layer, content, maskedSource, effect, frame);
@@ -46,7 +46,7 @@ namespace Mediana.Images.Tgs
             FlushEffect(content, filter);
         }
 
-        private void Effect(JsonElement effect, XElement filter, double frame)
+        private void Effect(JsonElement effect, List<SceneFilterStep> filter, double frame)
         {
             if (TgsJson.Number(effect, "en", 1) == 0)
             {
@@ -84,7 +84,7 @@ namespace Mediana.Images.Tgs
             {
                 double[] color = Color(0);
                 double angle = ((Scalar(2) - 90) * Math.PI) / 180, distance = Scalar(3);
-                filter.Add(new XElement("feDropShadow", new XAttribute("dx", F(Math.Cos(angle) * distance)), new XAttribute("dy", F(Math.Sin(angle) * distance)), new XAttribute("stdDeviation", F(Math.Max(0, Scalar(4)) / 4)), new XAttribute("flood-color", TgsSceneBuilder.Color(color)), new XAttribute("flood-opacity", F(Math.Clamp(Scalar(1, 255) / 255, 0, 1)))));
+                filter.Add(SceneEffects.Shadow(new Vector2(Number(Math.Max(0, Scalar(4)) / 4)), new Vector2(Number(Math.Cos(angle) * distance), Number(Math.Sin(angle) * distance)), TgsSceneBuilder.Color(color), Number(Math.Clamp(Scalar(1, 255) / 255, 0, 1))));
                 return;
             }
 
@@ -92,55 +92,39 @@ namespace Mediana.Images.Tgs
             {
                 double blur = Math.Max(0, Scalar(0)) * .3;
                 int dimensions = (int)Scalar(1, 1);
-                filter.Add(new XElement("feGaussianBlur", new XAttribute("stdDeviation", F(dimensions == 3 ? 0 : blur) + " " + F(dimensions == 2 ? 0 : blur)), new XAttribute("edgeMode", Scalar(2) == 1 ? "duplicate" : "none")));
+                filter.Add(SceneEffects.Blur(new Vector2(Number(dimensions == 3 ? 0 : blur), Number(dimensions == 2 ? 0 : blur)), Scalar(2) == 1 ? "duplicate" : "none"));
                 return;
             }
 
             _warnings.Add("Lottie effect type " + type);
         }
 
-        private static void ColorEffect(XElement filter, int type, Func<int, double, double[]> color, Func<int, double, double> scalar)
+        private static void ColorEffect(List<SceneFilterStep> filter, int type, Func<int, double, double[]> color, Func<int, double, double> scalar)
         {
             if (type == 21)
             {
                 double[] ink = color(2, 0);
-                double opacity = Math.Clamp(scalar(6, 1), 0, 1);
-                filter.Add(new XElement("feColorMatrix", new XAttribute("values", "0 0 0 0 " + F(ink[0]) + " 0 0 0 0 " + F(ink[1]) + " 0 0 0 0 " + F(ink[2]) + " 0 0 0 " + F(opacity) + " 0")));
+                float opacity = Number(Math.Clamp(scalar(6, 1), 0, 1));
+                filter.Add(SceneEffects.Matrix([0, 0, 0, 0, Number(ink[0]), 0, 0, 0, 0, Number(ink[1]), 0, 0, 0, 0, Number(ink[2]), 0, 0, 0, opacity, 0]));
                 return;
             }
-
             double[] low = color(type == 20 ? 0 : 2, 0), high = color(type == 20 ? 1 : 0, 1);
-            double[] middle = type == 23 ? color(1, .5) : new[]
+            double[] middle = type == 23 ? color(1, .5) : [(low[0] + high[0]) / 2, (low[1] + high[1]) / 2, (low[2] + high[2]) / 2];
+            string original = "original" + filter.Count;
+            filter.Add(SceneEffects.Identity() with { Result = original });
+            float[] gray = new float[20];
+            foreach (int row in new[] { 0, 5, 10 })
             {
-                (low[0] + high[0]) / 2,
-                (low[1] + high[1]) / 2,
-                (low[2] + high[2]) / 2
-            };
-            string original = "original" + filter.Elements().Count();
-            filter.Add(new XElement("feColorMatrix", new XAttribute("result", original)));
-            float[]? gray = new float[20];
-            foreach (int row in new[]
-            {
-                0,
-                5,
-                10
+                for (int column = 0; column < 3; column++) { gray[row + column] = 1f / 3; }
             }
-
-            )
-            {
-                for (int column = 0; column < 3; column++)
-                {
-                    gray[row + column] = 1f / 3;
-                }
-            }
-
             gray[18] = 1;
-            filter.Add(new XElement("feColorMatrix", new XAttribute("color-interpolation-filters", "linearRGB"), new XAttribute("values", string.Join(" ", gray.Select(v => F(v))))));
-            filter.Add(new XElement("feComponentTransfer", Enumerable.Range(0, 3).Select(i => new XElement("feFunc" + "RGB"[i], new XAttribute("type", "table"), new XAttribute("tableValues", F(low[i]) + " " + F(middle[i]) + " " + F(high[i]))))));
+            filter.Add(SceneEffects.Matrix(gray) with { Linear = true });
+            Func<float, float> Channel(int i) => SceneEffects.Table([Number(low[i]), Number(middle[i]), Number(high[i])]);
+            filter.Add(SceneEffects.Transfer(Channel(0), Channel(1), Channel(2), x => x));
             if (type == 20)
             {
                 double amount = Math.Clamp(scalar(2, 100) / 100, 0, 1);
-                filter.Add(new XElement("feComposite", new XAttribute("in2", original), new XAttribute("operator", "arithmetic"), new XAttribute("k2", F(amount)), new XAttribute("k3", F(1 - amount))));
+                filter.Add(SceneEffects.Composite("arithmetic", new Vector4(0, Number(amount), Number(1 - amount), 0)) with { SecondInput = original });
             }
         }
     }

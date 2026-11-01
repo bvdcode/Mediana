@@ -8,21 +8,20 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace Mediana.Images.Tgs
 {
     internal partial class TgsSceneBuilder
     {
-        private XElement RepeatShapes(JsonElement[] items, int index, double frame, int depth)
+        private TgsLayer RepeatShapes(JsonElement[] items, int index, double frame, int depth)
         {
             JsonElement repeater = items[index];
             int count = RepeaterCount(repeater, frame);
             JsonElement transform = items.LastOrDefault(x => TgsJson.Text(x, "ty") == "tr" && !TgsJson.Flag(x, "hd"));
-            XElement? group = new XElement("g", new XAttribute("transform", Matrix(Transform(transform, frame))), new XAttribute("opacity", F(Math.Clamp(TgsValues.Scalar(TgsJson.Get(transform, "o"), frame, 100) / 100, 0, 1))));
+            TgsLayer group = new() { Transform = Transform(transform, frame), Opacity = Number(Math.Clamp(TgsValues.Scalar(TgsJson.Get(transform, "o"), frame, 100) / 100, 0, 1)) };
             JsonElement[] prefix = items.Take(index).Where(p => TgsJson.Text(p, "ty") != "tr").Concat(items.Skip(index + 1).Where(p => IsStyle(TgsJson.Text(p, "ty")))).ToArray();
-            XElement original = ShapesArray(prefix, frame, depth + 1);
-            int elements = original.DescendantsAndSelf().Count();
+            TgsLayer original = ShapesArray(prefix, frame, depth + 1);
+            int elements = original.NodeCount;
             JsonElement repeatTransform = TgsJson.Get(repeater, "tr");
             double startOpacity = TgsValues.Scalar(TgsJson.Get(repeatTransform, "so"), frame, 100) / 100;
             double endOpacity = TgsValues.Scalar(TgsJson.Get(repeatTransform, "eo"), frame, 100) / 100;
@@ -36,23 +35,19 @@ namespace Mediana.Images.Tgs
                 }
 
                 double opacity = count <= 1 ? startOpacity : startOpacity + (((endOpacity - startOpacity) * i) / (count - 1));
-                group.Add(new XElement("g", new XAttribute("transform", Matrix(RepeaterTransform(repeatTransform, i + offset, frame))), new XAttribute("opacity", F(Math.Clamp(opacity, 0, 1))), new XElement(original)));
+                group.Children.Add(new TgsLayer(original) { Transform = RepeaterTransform(repeatTransform, i + offset, frame), Opacity = Number(Math.Clamp(opacity, 0, 1)) });
             }
 
             JsonElement[] suffix = items.Skip(index + 1).Where(p => TgsJson.Text(p, "ty") != "tr").ToArray();
             if (suffix.Any(p => TgsJson.Text(p, "ty") is "gr" or "sh" or "el" or "rc" or "sr"))
             {
-                group.Add(ShapesArray(suffix, frame, depth + 1));
+                group.Children.Add(ShapesArray(suffix, frame, depth + 1));
             }
 
             return group;
         }
 
-        private XElement ShapesArray(JsonElement[] items, double frame, int depth)
-        {
-            using JsonDocument array = JsonDocument.Parse("[" + string.Join(",", items.Select(item => item.GetRawText())) + "]");
-            return Shapes(array.RootElement, frame, depth);
-        }
+        private TgsLayer ShapesArray(JsonElement[] items, double frame, int depth) => Shapes(items, frame, depth);
 
         private static bool IsStyle(string type) => type is "fl" or "st" or "gf" or "gs";
         private static int RepeaterCount(JsonElement modifier, double frame)

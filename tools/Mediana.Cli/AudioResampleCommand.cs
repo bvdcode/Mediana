@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Buffers.Binary;
-using System.Runtime.InteropServices;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.IO;
@@ -14,7 +12,7 @@ namespace Mediana.Cli
     {
         private const int BufferBudgetBytes = 1024 * 1024;
 
-        public static async Task<int> RunAsync(string inputPath, string outputPath, int streamIndex, int sampleRate, double[] gains, CancellationToken cancellationToken = default)
+        public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int streamIndex, int sampleRate, double[] gains, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
@@ -34,7 +32,7 @@ namespace Mediana.Cli
             }
             await using AudioResampler resampler = new(ReadMixedAsync, sampleRate, allocator);
             long samples = 0;
-            await CommandOutputFile.WriteAsync(outputPath, async output =>
+            await outputFile.WriteAsync(async output =>
             {
                 while (true)
                 {
@@ -44,13 +42,7 @@ namespace Mediana.Cli
                         break;
                     }
                     using AudioFrame pcm = AudioSampleConverter.Apply(frame, AudioSampleFormat.Signed16, AudioStorageLayout.Interleaved, allocator, cancellationToken: cancellationToken);
-                    using WritableMediaBuffer littleEndian = allocator.Allocate(pcm.GetPlane(0).Length);
-                    ReadOnlySpan<short> values = MemoryMarshal.Cast<byte, short>(pcm.GetPlane(0).Span);
-                    for (int index = 0; index < values.Length; index++)
-                    {
-                        BinaryPrimitives.WriteInt16LittleEndian(littleEndian.Memory.Span[(index * sizeof(short))..], values[index]);
-                    }
-                    await output.WriteAsync(littleEndian.Memory, cancellationToken);
+                    await PcmStreamWriter.WriteLittleEndianAsync(output, pcm, allocator, cancellationToken);
                     samples = checked(samples + frame.SamplesPerChannel);
                 }
             }, cancellationToken: cancellationToken);

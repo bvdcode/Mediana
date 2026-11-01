@@ -8,7 +8,8 @@ using System.Collections.ObjectModel;
 namespace Mediana.Images.Heif.Container
 {
     /// <summary>
-    /// Holds document-owned bytes and a frozen metadata graph safe for concurrent reads.
+    /// Holds encoded byte views and a frozen metadata graph safe for concurrent reads.
+    /// The input owner must preserve those bytes for the lifetime of the container.
     /// </summary>
     internal class HeifContainer(ReadOnlyMemory<byte> file, ReadOnlyMemory<byte> itemData,
         uint primaryItemId, Dictionary<uint, HeifItem> items, HeifBox[] properties, int maxItemBytes)

@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
-using Mediana.Core.Metadata;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
@@ -18,7 +17,7 @@ namespace Mediana.Containers.Mp4
         private readonly IRandomAccessByteSource source;
         private readonly MediaBufferAllocator allocator;
         private readonly MediaBuffer metadata;
-        private readonly Mp4MetadataValue[] metadataValues;
+        private readonly Mp4MetadataScope metadataScope;
         private readonly Lazy<ContainerInfo> info;
         private readonly Mp4TrackCursor[] cursors;
         private readonly Mp4LinearTimeline[] timelines;
@@ -27,24 +26,31 @@ namespace Mediana.Containers.Mp4
         private int busy;
 
         private Mp4Reader(IRandomAccessByteSource source, MediaBufferAllocator allocator,
-            MediaBuffer metadata, Mp4Movie movie, Mp4TimestampMode timestampMode)
+            MediaBuffer metadata, Mp4Movie movie, Mp4TimestampMode timestampMode, string? majorBrand)
         {
             this.source = source;
             this.allocator = allocator;
+            MajorBrand = majorBrand;
             lookups = movie.Tables.Select(table => new Mp4SampleLookup(table)).ToArray();
             cursors = movie.Tables.Select(table => new Mp4TrackCursor(table)).ToArray();
             MovieTimeBase = movie.TimeBase;
             Duration = movie.Duration;
+            HeaderDates = movie.HeaderDates;
             DisplayMatrix = movie.DisplayMatrix;
             Tracks = Array.AsReadOnly(movie.Tracks);
-            metadataValues = movie.Metadata;
-            Metadata = Array.AsReadOnly(movie.Metadata.Select(value => value.Item).ToArray());
+            metadataScope = movie.Metadata;
+            Metadata = Array.AsReadOnly(metadataScope.Values.Select(value => value.Item).ToArray());
+            UserData = Array.AsReadOnly(metadataScope.UserData.Select(value => value.Item).ToArray());
             MediaDuration? declaredDuration = movie.Duration;
-            IReadOnlyList<Mp4MetadataItem> metadataItems = Metadata;
             info = new Lazy<ContainerInfo>(() => new ContainerInfo("mp4", declaredDuration,
-                metadataItems.Where(item => item.Text is not null)
-                    .Select(item => new MediaTag(item.Namespace, item.Name, item.Text!, locale: item.Locale))));
-            CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(movie.Metadata));
+                metadataScope.Tags,
+                movie.Tracks.Select(track => new ContainerStreamInfo(track.Stream.StreamIndex,
+                    track.PresentationDuration, track.MetadataScope.Tags, track.PacketIndex,
+                    track.Language.Language, dates: track.HeaderDates.GetTags("tkhd", "trak/tkhd")
+                        .Concat(track.MediaDates.GetTags("mdhd", "trak/mdia/mdhd")), averageFrameRate: track.AverageFrameRate)),
+                dates: HeaderDates.GetTags("mvhd", "moov/mvhd")));
+            CoverArt = Array.AsReadOnly(Mp4MetadataParser.GetCoverArt(metadataScope.Values));
+            InitializePictureInfo();
             TimestampMode = timestampMode;
             timelines = new Mp4LinearTimeline[movie.Tracks.Length];
             EncodedStreamInfo[] streams = new EncodedStreamInfo[movie.Tracks.Length];
@@ -55,25 +61,32 @@ namespace Mediana.Containers.Mp4
                 Mp4LinearTimeline timeline = timestampMode switch
                 {
                     Mp4TimestampMode.Media => Mp4LinearTimeline.Identity(original.TimeBase),
-                    Mp4TimestampMode.LinearMovie => Mp4LinearTimeline.Create(original.TimeBase, track.Edits),
+                    Mp4TimestampMode.LinearMovie => Mp4LinearTimeline.Create(original.TimeBase, track.Edits,
+                        movie.Tables[index].DecodeTimeLeadTicks),
                     _ => throw new ArgumentOutOfRangeException(nameof(timestampMode))
                 };
                 timelines[index] = timeline;
                 streams[index] = timeline.TimeBase == original.TimeBase ? original :
-                    new EncodedStreamInfo(original.StreamIndex, original.Kind, original.CodecId,
-                        timeline.TimeBase, original.Configuration.Span, original.DisplayMatrix, original.CodedDuration);
+                    new EncodedStreamInfo(original.StreamIndex, original.Kind, original.CodecId, original.Format,
+                        timeline.TimeBase, original.Configuration.Span, original.DisplayMatrix, original.CodedDuration, original.ColorDescription,
+                        original.AspectRatioDescription);
             }
             Streams = Array.AsReadOnly(streams);
             this.metadata = metadata.Retain();
         }
 
         public ContainerInfo Info => info.Value;
+        /// <summary>The original ftyp major brand; null means a legacy file without ftyp.</summary>
+        public string? MajorBrand { get; }
         public TimeBase MovieTimeBase { get; }
         public MediaDuration? Duration { get; }
+        /// <summary>Original movie-header creation/modification dates, independent of track/media headers.</summary>
+        public Mp4HeaderDates HeaderDates { get; }
         /// <summary>The movie header display matrix, applied after each track header matrix.</summary>
         public VideoDisplayMatrix DisplayMatrix { get; }
         public IReadOnlyList<Mp4TrackInfo> Tracks { get; }
         public IReadOnlyList<Mp4MetadataItem> Metadata { get; }
+        public IReadOnlyList<Mp4UserDataItem> UserData { get; }
         public IReadOnlyList<Mp4CoverArtInfo> CoverArt { get; }
         public Mp4TimestampMode TimestampMode { get; }
         /// <summary>Packet stream configurations in the selected time base. Tracks preserve original declarations.</summary>
@@ -91,11 +104,16 @@ namespace Mediana.Containers.Mp4
             Mp4ParseBudget budget = new(options, cancellationToken);
             using Mp4FileLayout layout = await Mp4FileLayout.ReadAsync(source, allocator,
                 options, budget, cancellationToken).ConfigureAwait(false);
+            DateTimeKind calendarKind = DateTimeKind.Unspecified;
+            if (layout.MajorBrand is not null && !layout.QuickTimeCompatible)
+            {
+                calendarKind = DateTimeKind.Utc;
+            }
             Mp4Movie movie = Mp4MovieParser.Parse(layout.Metadata.Memory, layout.DataRanges,
-                options, budget, cancellationToken);
+                options, budget, layout.QuickTimeCompatible, calendarKind, cancellationToken);
             await Mp4AudioConfiguration.ReadAsync(movie, source, allocator, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
-            return new Mp4Reader(source, allocator, layout.Metadata, movie, options.TimestampMode);
+            return new Mp4Reader(source, allocator, layout.Metadata, movie, options.TimestampMode, layout.MajorBrand);
         }
 
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
@@ -134,7 +152,7 @@ namespace Mediana.Containers.Mp4
                 Mp4SampleLocation location = Locate(streamIndex, sampleIndex, cancellationToken);
                 Mp4LinearTimeline timeline = timelines[streamIndex];
                 return new(streamIndex, sampleIndex, location.Offset, location.Size,
-                    timeline.Map(location.PresentationTime), timeline.Map(location.DecodeTime),
+                    timeline.Map(location.PresentationTime), timeline.MapDecode(location.DecodeTime),
                     timeline.MapDuration(location.Duration), location.IsSync);
             }
             finally
@@ -163,16 +181,45 @@ namespace Mediana.Containers.Mp4
 
         /// <summary>Returns an owned view of the original data atom value without moving any packet cursor.
         /// The view survives reader disposal and retains the complete movie metadata allocation.</summary>
-        public MediaBuffer ReadMetadataValue(int itemIndex)
+        public MediaBuffer ReadMetadataValue(int itemIndex) => ReadMetadataBytes(null, itemIndex, userData: false);
+
+        /// <summary>Returns original track/media metadata bytes without moving packet cursors.
+        /// The owned view survives reader disposal and retains movie metadata storage.</summary>
+        public MediaBuffer ReadTrackMetadataValue(int streamIndex, int itemIndex) => ReadMetadataBytes(streamIndex, itemIndex, userData: false);
+
+        /// <summary>Returns the complete original user-data atom payload, including string framing.
+        /// The owned view retains movie storage and does not move packet cursors.</summary>
+        public MediaBuffer ReadUserDataValue(int itemIndex) => ReadMetadataBytes(null, itemIndex, userData: true);
+
+        /// <summary>Returns an owned view of one track/media user-data atom payload, retaining movie storage.</summary>
+        public MediaBuffer ReadTrackUserDataValue(int streamIndex, int itemIndex) => ReadMetadataBytes(streamIndex, itemIndex, userData: true);
+
+        private MediaBuffer ReadMetadataBytes(int? streamIndex, int itemIndex, bool userData)
         {
             Enter();
             try
             {
                 ObjectDisposedException.ThrowIf(disposed, this);
+                Mp4MetadataScope scope = metadataScope;
+                if (streamIndex is int index)
+                {
+                    ArgumentOutOfRangeException.ThrowIfNegative(index);
+                    ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Tracks.Count);
+                    scope = Tracks[index].MetadataScope;
+                }
                 ArgumentOutOfRangeException.ThrowIfNegative(itemIndex);
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(itemIndex, metadataValues.Length);
-                Mp4MetadataValue value = metadataValues[itemIndex];
-                return metadata.Slice(value.Offset, value.Item.ByteLength);
+                if (userData)
+                {
+                    ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(itemIndex, scope.UserData.Length);
+                    Mp4UserDataValue value = scope.UserData[itemIndex];
+                    return metadata.Slice(value.Offset, value.Item.ByteLength);
+                }
+                else
+                {
+                    ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(itemIndex, scope.Values.Length);
+                    Mp4MetadataValue value = scope.Values[itemIndex];
+                    return metadata.Slice(value.Offset, value.Item.ByteLength);
+                }
             }
             finally
             {
@@ -199,7 +246,7 @@ namespace Mediana.Containers.Mp4
         {
             Mp4LinearTimeline timeline = timelines[streamIndex];
             MediaTimestamp presentationTime = timeline.Map(location.PresentationTime);
-            MediaTimestamp decodeTime = timeline.Map(location.DecodeTime);
+            MediaTimestamp decodeTime = timeline.MapDecode(location.DecodeTime);
             MediaDuration duration = timeline.MapDuration(location.Duration);
             using WritableMediaBuffer writable = allocator.Allocate(location.Size);
             await source.ReadExactlyAtAsync(location.Offset, writable.Memory, cancellationToken).ConfigureAwait(false);
@@ -216,7 +263,7 @@ namespace Mediana.Containers.Mp4
             {
                 if (cursors[index].HasSample)
                 {
-                    MediaTimestamp timestamp = timelines[index].Map(cursors[index].Current.DecodeTime);
+                    MediaTimestamp timestamp = timelines[index].MapDecode(cursors[index].Current.DecodeTime);
                     if (earliest is null || timestamp.CompareTo(earliest.Value) < 0)
                     {
                         selected = index;

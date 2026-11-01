@@ -16,7 +16,35 @@ namespace Mediana.Drawing
                 throw new ArgumentOutOfRangeException(nameof(factor));
             }
 
-            PixelBuffer? output = new PixelBuffer(Width / factor, Height / factor);
+            PixelBuffer output = new(Width / factor, Height / factor);
+            bool completed = false;
+            try
+            {
+                DownsampleTo(output, factor, cancellationToken);
+                completed = true;
+                return output;
+            }
+            finally
+            {
+                if (!completed)
+                {
+                    output.Dispose();
+                }
+            }
+        }
+
+        /// <summary>Downsamples into an existing surface using premultiplied-alpha averaging.</summary>
+        public void DownsampleTo(PixelBuffer output, int factor, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(output);
+            if (factor < 1 || factor > 16 || Width % factor != 0 || Height % factor != 0
+                || output.Width != Width / factor || output.Height != Height / factor)
+            {
+                throw new ArgumentOutOfRangeException(nameof(factor));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = Pixels;
+            _ = output.Pixels;
             for (int y = 0; y < output.Height; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -25,8 +53,6 @@ namespace Mediana.Drawing
                     output[x, y] = Average(this, x * factor, y * factor, factor);
                 }
             }
-
-            return output;
         }
 
         private static Rgba32 Average(PixelBuffer input, int x, int y, int factor)

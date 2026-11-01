@@ -31,12 +31,19 @@ namespace Mediana.Tests
             VerifyHash(input, entry.GetProperty("inputSha256").GetString());
             VerifyHash(await File.ReadAllBytesAsync(Path.Combine(root, name + ".wav")), entry.GetProperty("sourceSha256").GetString());
             JsonElement packets = entry.GetProperty("reference").GetProperty("packets");
+            return await VerifyAsync(input, expected, packets, rate, channels, 0, noise);
+        }
+
+        public static async Task<double> VerifyAsync(byte[] input, byte[] expected, JsonElement packets,
+            int rate, int channels, int streamIndex, bool noise)
+        {
             MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory())
                 .AddAudioDecoder(new AacDecoderFactory()).Build();
             await using MemoryStream file = new(input, writable: false);
             await using RandomAccessStreamByteSource source = new(file, leaveOpen: true);
             await source.ReadAsync(new byte[3]);
-            await using AudioSession session = await engine.OpenAudioAsync(source, 0, new MediaOpenOptions { BufferBudgetBytes = 128 * 1024 });
+            await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
+                new MediaOpenOptions { BufferBudgetBytes = Math.Max(128 * 1024, channels * 64 * 1024) });
             AudioFrame? retained = null;
             byte[]? lastBytes = null;
             List<byte> actual = [];
@@ -57,7 +64,7 @@ namespace Mediana.Tests
                         || frame.Timestamp != new MediaTimestamp(packets[frames].GetProperty("pts").GetInt64(), new TimeBase(1, rate))
                         || frame.Duration != new MediaDuration(1024, new TimeBase(1, rate)))
                     {
-                        throw new InvalidDataException($"AAC format or timing mismatch in {name}, frame {frames}.");
+                        throw new InvalidDataException($"AAC format or timing mismatch in stream {streamIndex}, frame {frames}.");
                     }
                     ReadOnlySpan<float> samples = MemoryMarshal.Cast<byte, float>(frame.GetPlane(0).Span);
                     int offset = checked(frames * 1024 * channels * sizeof(float));
@@ -97,7 +104,7 @@ namespace Mediana.Tests
                 }
                 else if (maximum > 2e-6)
                 {
-                    throw new InvalidDataException($"AAC PCM differs from the independent reference by {maximum:G9} in {name}.");
+                    throw new InvalidDataException($"AAC PCM differs from the independent reference by {maximum:G9} in stream {streamIndex}.");
                 }
             }
             finally
@@ -115,6 +122,12 @@ namespace Mediana.Tests
         {
             1 => ["front-center"],
             2 => ["front-left", "front-right"],
+            3 => ["front-left", "front-right", "front-center"],
+            4 => ["front-left", "front-right", "front-center", "back-center"],
+            5 => ["front-left", "front-right", "front-center", "back-left", "back-right"],
+            6 => ["front-left", "front-right", "front-center", "low-frequency", "back-left", "back-right"],
+            8 => ["front-left", "front-right", "front-center", "low-frequency", "back-left", "back-right",
+                "front-left-of-center", "front-right-of-center"],
             _ => throw new InvalidDataException("The AAC fixture channel count is unsupported.")
         };
 

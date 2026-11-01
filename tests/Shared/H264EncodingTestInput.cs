@@ -22,7 +22,8 @@ namespace Mediana.Tests
             await using VideoSession session = await engine.OpenVideoAsync(source, 0);
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             using VideoFrame first = await session.ReadFrameAsync() ?? throw new InvalidDataException("The encoder reference has no pictures.");
-            using H264Encoder encoder = H264Encoder.Create(first.Format, session.Stream.TimeBase, allocator, new() { Quantizer = qp });
+            using H264Encoder encoder = H264Encoder.Create(first.Format, session.Stream.TimeBase, allocator,
+                new() { Quantizer = qp, KeyFrameInterval = TimeSpan.Zero });
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new H264DecoderFactory().Create(encoder.Stream, allocator);
             int offset = VerifyFrame(first, encoder, decoder, expected, 0);
             int count = 1;

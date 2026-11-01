@@ -33,11 +33,44 @@ movie metadata allocation. Image codec validation and tag normalization are sepa
 Parser checks also cover localized repeated values, UTF-16BE, iTunes freeform keys,
 unknown typed bytes, empty values, invalid Unicode, key indices, duplicated boxes
 and configured text/value limits. ISO-style `meta` full boxes are supported; legacy
-QuickTime user-data text and headerless QuickTime metadata remain unsupported.
+international QuickTime user-data lists and headerless QuickTime metadata remain unsupported.
 
 Format references: [metadata keys](https://developer.apple.com/documentation/quicktime-file-format/metadata_item_keys_atom),
 [data values](https://developer.apple.com/documentation/quicktime-file-format/data_atom),
 [declared types](https://developer.apple.com/documentation/quicktime-file-format/well-known_types).
+
+`header-dates-future.mov` contains three copied AVC/AAC tracks with version-1
+QuickTime AAC sound descriptions. Compression ID -2 declares sample tables for
+compressed frames; the reserved packet/frame byte counts are zero. Decoder
+configuration is inside `wave/esds`, with a matching `frma` value of `mp4a`.
+The container headers use 64-bit creation/modification fields and retain the
+original media offsets. The file SHA-256 is
+`8a9cc75354e1d16411f48c8feb4e26a611b2b2825815743e5c061e6ecc3f50f4`.
+See Apple's [sound description](https://developer.apple.com/documentation/quicktime-file-format/sound_sample_description_version_1)
+and [decompressor configuration](https://developer.apple.com/documentation/quicktime-file-format/sidecompressionparam_atom).
+
+`quicktime-aac.f32le` and `quicktime-aac.reference.json` hold independent full
+Float32 PCM, commands, hashes and packet timestamps for both sound-v1 tracks.
+Each track decodes to 77824 mono samples at 48000 Hz. The AAC payload uses PNS;
+different decoders may generate different noise sequences. Managed and Native AOT
+checks use the existing AAC criteria: each 1024-sample block's energy agrees
+within 6% and the entire stream's energy within 0.1%. They also verify the PNS
+codebook, every output timestamp, format, sample count, EOF and retained-frame
+ownership. These checks do not require sample equality between PNS decoders.
+
+`header-dates.mp4` is a version-0 ISO MP4 copy with header date
+2026-03-07T12:34:56 UTC. `header-dates-future.mov` expands every `mvhd`, `tkhd`
+and `mdhd` to version 1 and declares 2050-02-03T04:05:06; the reader preserves
+QuickTime's unspecified time-zone basis. `header-dates-scopes.mp4` uses version-1
+ISO headers with distinct movie, track and media dates, zero values, values beyond
+`DateTime`, and exact 1904/2040/9999 calendar boundaries. The expansion updates
+enclosing sizes inside trailing `moov`; media offsets, stream configurations,
+packet bytes and timing remain intact. `header-dates.reference.json` records exact
+unsigned fields, calendar projections, source scopes and independently inspected
+configurations and complete packet digests. Original ffprobe creation-time aliases
+are recorded separately; they do not replace the distinct `tkhd` and `mdhd` fields.
+Zero remains an original numeric declaration and is omitted from calendar tags
+as an unspecified-value convention. No pre-1970 Unix reinterpretation is applied.
 
 | File | SHA-256 |
 | --- | --- |
@@ -45,3 +78,55 @@ Format references: [metadata keys](https://developer.apple.com/documentation/qui
 | `mdta.mp4` | `6316852e87269e6fbd2cbeaf9b838757e1147b962601cab4c5e47b157264a186` |
 | `cover.png` | `3d20a35d9ff0be4e351b4545cb78c74647b095c04f2192db029d24092609ce9e` |
 | `cover.jpg` | `4d255416a44419f313849fcedbabcd722feb71b81f90eaf5ee78cbc9f133dbfd` |
+
+`track-metadata.mp4` copies AVC and AAC packets from `../Mp4/avc-aac.mp4`,
+duplicating the audio track. Its three tracks declare `und`, `rus` and `eng` in
+`mdhd`; audio tracks additionally declare `ru-RU` and `en-GB` in `elng`.
+Movie, track and media `meta` boxes exercise indexed keys, UTF-8, UTF-16BE,
+locales, repeated names, empty text and unknown binary data types. Every metadata
+value and each track's complete packet bytes/timing have independent hashes in
+`track-metadata.reference.json`. Typed text and key bytes total 326; typed values
+total 17. The two original `trak/udta/name` UTF-8 names add 48 text bytes and two
+values, giving whole-file limits of 374 bytes and 19 recognized metadata values.
+
+`track-user-data.mp4` retains all three tracks and every packet from that file,
+adding movie/track/media user-data names, localized UTF-8 and UTF-16BE `tnam`
+payloads, repeated and empty names, an unspecified language code and an unknown
+user-data atom. The localized atom payloads follow Apple's
+[track name fields](https://developer.apple.com/documentation/quicktime-file-format/track_name_atom).
+Its independent reference records all original payload hashes, native language
+codes, ordered common tags and every packet's timing/bytes. Whole-file limits are
+29 recognized values and 509 decoded text/key bytes. The file SHA-256 is
+`0f6c67355bb94fcf88b5e853d5c2645fddf864ba22788abc8105fb92c2c7961d`.
+The original FFmpeg titles remain separately verifiable through ffprobe; the
+localized `tnam` records use their declared syntax rather than ffprobe tag aliases.
+
+The base copy was produced with FFmpeg 6.1.1:
+
+```sh
+ffmpeg -nostdin -v error -i ../Mp4/avc-aac.mp4 -map 0:v -map 0:a -map 0:a -c copy \
+  -metadata title='Track metadata' -metadata:s:a:0 language=rus \
+  -metadata:s:a:0 title='Основная дорожка' -metadata:s:a:1 language=eng \
+  -metadata:s:a:1 title='Alternative audio' -movflags +use_metadata_tags multilingual.mp4
+```
+
+Additional `meta` and `elng` boxes were appended inside the trailing `moov`;
+media offsets and encoded packet bytes were unchanged. Each media scope has
+`mdir/©nam` UTF-8 `Media N` and UTF-16BE `Медиа N` values, with locales 0 and
+`0x474215c7`. Track 1 stores that metadata inside media `udta`; tracks 0 and 2
+store it directly. Each track has direct `mdta` keys `example.track.title` and
+`example.track.blob`. Titles are `Video 🎞`, `Русская дорожка`, and empty text;
+their locales are 1, 2, and 3. Blob values have type `0x01000001`, locale N,
+and three original bytes `[0, N, 255]`. The blob is excluded from common text tags.
+
+Independent packet references use `ffprobe -ignore_editlist 1 -show_packets
+-show_streams -show_data_hash sha256`. A per-track SHA-256 covers each packet's
+little-endian signed 64-bit PTS, DTS and duration, unsigned 32-bit payload length,
+then its complete encoded payload. FFprobe 6.1.1 reports the older `mdhd` language;
+the selected extended language in the reference follows Apple's documented
+`elng` priority. The original ffprobe value is retained separately in the reference.
+
+Format references: [metadata locations](https://developer.apple.com/documentation/quicktime-file-format/metadata_atoms_and_types),
+[language codes](https://developer.apple.com/documentation/quicktime-file-format/language_code_values),
+[extended language tags](https://developer.apple.com/documentation/quicktime-file-format/extended_language_tag_atom),
+[BCP 47 syntax](https://www.rfc-editor.org/rfc/rfc5646).

@@ -12,14 +12,15 @@ namespace Mediana.Processing
             MatrixCoefficients.Rgb, ColorRange.Full, ChromaLocation.Unspecified);
 
         /// <summary>Converts supported SDR YUV420P8 or straight RGBA32 to full-range straight sRGB RGBA32.
-        /// Requires known source color parameters. Borrows input; returns an independent owned frame.
+        /// Requires known source color parameters. Borrows input; returns an independently disposable frame.
+        /// Unchanged tightly packed sRGB storage retains its original allocation budget without copying.
         /// Clips nominal source RGB before display transfer and target RGB to the sRGB gamut.
         /// BT.709 and SMPTE 240M use an ideal BT.1886 reference display. Does not perform HDR tone mapping.</summary>
         public static VideoFrame Apply(VideoFrame input, MediaBufferAllocator allocator,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(input);
-            return Apply(input, input.Format.Color, allocator, cancellationToken);
+            return Apply(input, input.Format.GetColorInterpretation(), allocator, cancellationToken);
         }
 
         /// <summary>Uses the explicitly supplied source color interpretation in place of the frame metadata.</summary>
@@ -50,6 +51,10 @@ namespace Mediana.Processing
             {
                 throw new NotSupportedException("RGB conversion requires full-range straight RGBA32 with an RGB matrix and no chroma subsampling.");
             }
+            if (!yuv && CanRetain(input, sourceColor, map, aspectRatio))
+            {
+                return input.Retain();
+            }
             VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio);
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
@@ -64,6 +69,16 @@ namespace Mediana.Processing
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration);
+        }
+
+        private static bool CanRetain(VideoFrame input, VideoColorInfo sourceColor, NearestNeighborMap map,
+            SampleAspectRatio? aspectRatio)
+        {
+            PlaneLayout plane = input.Planes[0];
+            int rowBytes = checked(input.Format.Width * 4);
+            return sourceColor == SrgbColor && input.Format.Color == SrgbColor && input.Format.ColorDescription is null
+                && map.IsIdentity && input.Format.SampleAspectRatio == aspectRatio
+                && plane.Offset == 0 && plane.Stride == rowBytes && input.Data.Length == (long)rowBytes * input.Format.Height;
         }
 
         private static void RenderYuv(VideoFrame input, Span<byte> output, NearestNeighborMap map, YuvRgbMatrix matrix,

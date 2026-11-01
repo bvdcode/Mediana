@@ -5,48 +5,28 @@ using Mediana.Drawing;
 using System;
 using System.Numerics;
 using System.Threading;
+using Mediana.Core.Memory;
 
 namespace Mediana.Images.Svg
 {
     /// <summary>Renders an interpreted SVG viewport with the managed CPU raster canvas.</summary>
     public static class SvgRenderer
     {
-        /// <summary>Renders an SVG to RGBA pixels. Unsupported features require explicit partial-render opt-in.</summary>
-        public static PixelBuffer Render(SvgDocument document, SvgRenderOptions? options = null, CancellationToken cancellationToken = default)
+        /// <summary>Renders an SVG to RGBA pixels. The allocator counts final output storage.
+        /// Unsupported features require explicit partial-render opt-in.</summary>
+        public static PixelBuffer Render(SvgDocument document, DrawingRenderOptions? options = null,
+            CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)
         {
             ArgumentNullException.ThrowIfNull(document);
-            options ??= new SvgRenderOptions();
+            options ??= new DrawingRenderOptions();
             cancellationToken.ThrowIfCancellationRequested();
             if (!options.AllowPartialRendering && document.UnsupportedFeatures.Count != 0)
             {
                 throw new NotSupportedException("Unsupported SVG features: " + string.Join("; ", document.UnsupportedFeatures));
             }
 
-            (int width, int height) = Dimensions(document, options);
-            int factor = options.Supersampling;
-            PixelBuffer? image = new PixelBuffer(width * factor, height * factor);
-            image.Clear(options.Background);
-            Matrix3x2 matrix = Viewport(document.ViewBox, width, height, document.AspectRatio) * Matrix3x2.CreateScale(factor);
-            using SvgRenderContext context = new(options, cancellationToken);
-            document.Root.Draw(new RasterCanvas(image), matrix, context);
-            return factor == 1 ? image : image.Downsample(factor, cancellationToken);
-        }
-
-        private static (int Width, int Height) Dimensions(SvgDocument doc, SvgRenderOptions options)
-        {
-            if (options.Width <= 0 || options.Height <= 0 || options.Supersampling < 1 || options.Supersampling > 4 || options.MaximumSamples <= 0 || options.MaximumEffectBytes <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(options));
-            }
-
-            double width = options.Width ?? Math.Ceiling(options.Height.HasValue ? (options.Height.Value * (double)doc.Width) / doc.Height : doc.Width);
-            double height = options.Height ?? Math.Ceiling(options.Width.HasValue ? (options.Width.Value * (double)doc.Height) / doc.Width : doc.Height);
-            if (!double.IsFinite(width * height) || width * height * options.Supersampling * options.Supersampling > options.MaximumSamples)
-            {
-                throw new ArgumentOutOfRangeException(nameof(options), "SVG output exceeds MaximumSamples.");
-            }
-
-            return ((int)Math.Max(1, width), (int)Math.Max(1, height));
+            return SceneRasterizer.Render(document.Root, document.Width, document.Height, options,
+                (width, height) => Viewport(document.ViewBox, width, height, document.AspectRatio), cancellationToken, allocator);
         }
 
         internal static Matrix3x2 Viewport((float X, float Y, float Width, float Height) box, float width, float height, string aspect)

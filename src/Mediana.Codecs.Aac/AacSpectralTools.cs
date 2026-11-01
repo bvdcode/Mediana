@@ -114,10 +114,6 @@ namespace Mediana.Codecs.Aac
                     {
                         throw new InvalidDataException("AAC intensity stereo cannot use the all-ones M/S mask.");
                     }
-                    if (midSide && (leftBook == 13) != (rightBook == 13))
-                    {
-                        throw new InvalidDataException("An AAC M/S noise band must use noise substitution in both channels.");
-                    }
                     int width = info.Bands[band + 1] - info.Bands[band];
                     for (int window = 0; window < info.Groups[group]; window++)
                     {

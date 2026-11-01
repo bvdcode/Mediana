@@ -2,26 +2,17 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
-using System;
-using System.Numerics;
-
 namespace Mediana.Images.Svg
 {
-    internal record SvgRegion(string X, string Y, string Width, string Height, bool ObjectBox, float ViewWidth, float ViewHeight)
+    internal record SvgRegion : SceneRegion
     {
-        internal VectorPath Path((float X, float Y, float Width, float Height) box)
+        internal float ViewWidth { get; }
+        internal float ViewHeight { get; }
+        internal SvgRegion(string x, string y, string width, string height, bool objectBox, float viewWidth, float viewHeight)
+            : base(SvgLength.Parse(x, objectBox ? 1 : viewWidth), SvgLength.Parse(y, objectBox ? 1 : viewHeight), SvgLength.Parse(width, objectBox ? 1 : viewWidth), SvgLength.Parse(height, objectBox ? 1 : viewHeight), objectBox)
         {
-            float x = SvgLength.Parse(X, ObjectBox ? 1 : ViewWidth), y = SvgLength.Parse(Y, ObjectBox ? 1 : ViewHeight);
-            float width = SvgLength.Parse(Width, ObjectBox ? 1 : ViewWidth), height = SvgLength.Parse(Height, ObjectBox ? 1 : ViewHeight);
-            if (ObjectBox)
-            {
-                x = box.X + (x * box.Width);
-                y = box.Y + (y * box.Height);
-                width *= box.Width;
-                height *= box.Height;
-            }
-
-            return width <= 0 || height <= 0 ? new VectorPath() : new VectorPath().Rectangle(x, y, width, height);
+            ViewWidth = viewWidth;
+            ViewHeight = viewHeight;
         }
     }
 }

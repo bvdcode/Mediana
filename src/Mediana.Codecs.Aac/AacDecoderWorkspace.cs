@@ -12,16 +12,21 @@ namespace Mediana.Codecs.Aac
         private const int OutputOffset = 2048 * sizeof(double);
         private const int FourierOffset = OutputOffset + 1024 * sizeof(double);
         private readonly WritableMediaBuffer storage;
+        private readonly int[] elementTags;
 
-        public AacDecoderWorkspace(MediaBufferAllocator allocator, int channels)
+        public AacDecoderWorkspace(MediaBufferAllocator allocator, AacChannelLayout layout)
         {
+            Layout = layout;
+            Channels = new AacChannelState[layout.ChannelCount];
+            elementTags = new int[layout.Elements.Length];
+            Array.Fill(elementTags, -1);
+            int allocated = 0;
             bool succeeded = false;
             try
             {
-                Left = new AacChannelState(allocator);
-                if (channels == 2)
+                for (; allocated < Channels.Length; allocated++)
                 {
-                    Right = new AacChannelState(allocator);
+                    Channels[allocated] = new AacChannelState(allocator);
                 }
                 storage = allocator.Allocate(FourierOffset + 512 * 2 * sizeof(double));
                 succeeded = true;
@@ -30,22 +35,46 @@ namespace Mediana.Codecs.Aac
             {
                 if (!succeeded)
                 {
-                    Left?.Dispose();
-                    Right?.Dispose();
+                    for (int index = 0; index < allocated; index++)
+                    {
+                        Channels[index].Dispose();
+                    }
                 }
             }
         }
 
-        public AacChannelState Left { get; }
-        public AacChannelState? Right { get; }
+        public AacChannelLayout Layout { get; }
+        public AacChannelState[] Channels { get; }
         public Span<double> Time => MemoryMarshal.Cast<byte, double>(storage.Memory.Span[..OutputOffset]);
         public Span<double> Output => MemoryMarshal.Cast<byte, double>(storage.Memory.Span.Slice(OutputOffset, 1024 * sizeof(double)));
         public Span<Complex> Fourier => MemoryMarshal.Cast<byte, Complex>(storage.Memory.Span[FourierOffset..]);
 
+        public void BindElement(int index, int type, int tag)
+        {
+            if (index >= Layout.Elements.Length || type != Layout.Elements[index])
+            {
+                throw new InvalidDataException("The AAC channel elements do not match the configured speaker layout.");
+            }
+            if (elementTags[index] >= 0 && elementTags[index] != tag)
+            {
+                throw new InvalidDataException("The AAC element tag changed within the configured stream.");
+            }
+            for (int previous = 0; previous < index; previous++)
+            {
+                if (Layout.Elements[previous] == type && elementTags[previous] == tag)
+                {
+                    throw new InvalidDataException("AAC elements of the same type must have unique instance tags.");
+                }
+            }
+            elementTags[index] = tag;
+        }
+
         public void Dispose()
         {
-            Left.Dispose();
-            Right?.Dispose();
+            foreach (AacChannelState channel in Channels)
+            {
+                channel.Dispose();
+            }
             storage.Dispose();
         }
     }

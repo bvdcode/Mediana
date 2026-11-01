@@ -5,6 +5,8 @@ using System.Buffers.Binary;
 using System.Text;
 using Mediana.Core.Audio;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     internal static class Mp3TestInput

@@ -7,6 +7,8 @@ using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Streaming.Hls;
 
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     public class AvcAudioHlsTests
@@ -24,7 +26,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             VideoFormat format = H264EncoderTests.Format(16, 16);
             using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
-            EncodedStreamInfo audio = new(1, MediaKind.Audio, "aac", new(1, 44100), [0x12, 0x08]);
+            EncodedStreamInfo audio = new(1, MediaKind.Audio, "aac", StreamFormats.Aac, new(1, 44100), [0x12, 0x08]);
             int opened = 0;
             await using AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, audio, (_, _) =>
             {
@@ -52,7 +54,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             using VideoFrame frame = H264EncoderTests.Frame(H264EncoderTests.Format(16, 16), allocator, 0);
             using H264Encoder encoder = H264Encoder.Create(frame.Format, new(1, 1000), allocator);
-            EncodedStreamInfo audio = new(1, MediaKind.Audio, "aac", new(1, 44100), [0x12, 0x08]);
+            EncodedStreamInfo audio = new(1, MediaKind.Audio, "aac", StreamFormats.Aac, new(1, 44100), [0x12, 0x08]);
             await using AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, audio, (_, _) => ValueTask.FromResult<Stream>(new MemoryStream()), allocator);
             encoder.TrySend(frame);
             using MediaPacket packet = encoder.Receive().Value!;
@@ -68,7 +70,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             using H264Encoder encoder = H264Encoder.Create(H264EncoderTests.Format(16, 16), new(1, 1000), allocator);
-            EncodedStreamInfo audio = new(1, MediaKind.Audio, codec, new(1, denominator), [0x12, 0x08]);
+            EncodedStreamInfo audio = new(1, MediaKind.Audio, codec, StreamFormats.Aac, new(1, denominator), [0x12, 0x08]);
             Assert.Throws<NotSupportedException>(() => AvcHlsWriter.Create(encoder.Stream, audio,
                 (_, _) => throw new InvalidOperationException("No destination should be opened."), allocator));
         }

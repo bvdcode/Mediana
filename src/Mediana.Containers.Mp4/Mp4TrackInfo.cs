@@ -14,7 +14,9 @@ namespace Mediana.Containers.Mp4
         internal Mp4TrackInfo(uint trackId, EncodedStreamInfo stream, string sampleEntry,
             MediaDuration? mediaDuration, MediaDuration? presentationDuration, IReadOnlyList<Mp4Edit> edits,
             int? width, int? height, int? declaredAudioChannels, int? declaredAudioSampleRate, int sampleCount,
-            VideoDisplayMatrix displayMatrix)
+            VideoDisplayMatrix displayMatrix, ContainerPacketIndexInfo packetIndex,
+            Mp4LanguageInfo language, Mp4HeaderDates headerDates, Mp4HeaderDates mediaDates, Mp4MetadataScope metadata,
+            IReadOnlyList<VideoColorDescription>? colorDescriptions = null)
         {
             TrackId = trackId;
             Stream = stream;
@@ -28,6 +30,21 @@ namespace Mediana.Containers.Mp4
             DeclaredAudioSampleRate = declaredAudioSampleRate;
             SampleCount = sampleCount;
             DisplayMatrix = displayMatrix;
+            ColorDescriptions = colorDescriptions ?? Array.Empty<VideoColorDescription>();
+            PacketIndex = packetIndex;
+            AverageFrameRate = stream.Kind switch
+            {
+                MediaKind.Video => FrameRate.FromFrameCount(packetIndex.PacketCount, packetIndex.DecodeDuration),
+                MediaKind.Audio => null,
+                MediaKind.Data => null,
+                _ => throw new ArgumentException("The MP4 track kind is unsupported.", nameof(stream))
+            };
+            Language = language;
+            HeaderDates = headerDates;
+            MediaDates = mediaDates;
+            MetadataScope = metadata;
+            Metadata = Array.AsReadOnly(metadata.Values.Select(value => value.Item).ToArray());
+            UserData = Array.AsReadOnly(metadata.UserData.Select(value => value.Item).ToArray());
         }
 
         public uint TrackId { get; }
@@ -41,11 +58,27 @@ namespace Mediana.Containers.Mp4
         public int? DeclaredAudioChannels { get; }
         public int? DeclaredAudioSampleRate { get; }
         public int SampleCount { get; }
+        /// <summary>Complete sample-index totals, independent of mdhd/tkhd duration declarations and edit lists.</summary>
+        public ContainerPacketIndexInfo PacketIndex { get; }
+        /// <summary>Mean indexed AVC picture rate before edit-list translation, not a constant-cadence declaration.</summary>
+        public FrameRate? AverageFrameRate { get; }
+        public Mp4LanguageInfo Language { get; }
+        /// <summary>Original tkhd creation/modification declarations, independent of media dates.</summary>
+        public Mp4HeaderDates HeaderDates { get; }
+        /// <summary>Original mdhd creation/modification declarations, independent of track dates.</summary>
+        public Mp4HeaderDates MediaDates { get; }
+        /// <summary>Track and media metadata in structural file order, retaining native source paths.</summary>
+        public IReadOnlyList<Mp4MetadataItem> Metadata { get; }
+        /// <summary>Recognized user-data names in structural order, with original payload access through the reader.</summary>
+        public IReadOnlyList<Mp4UserDataItem> UserData { get; }
+        internal Mp4MetadataScope MetadataScope { get; }
         /// <summary>The track header matrix before the movie matrix. Video Stream.DisplayMatrix composes both.</summary>
         public VideoDisplayMatrix DisplayMatrix { get; }
+        /// <summary>Recognized source color descriptions in sample-entry order. Stream.ColorDescription is the selected representation.</summary>
+        public IReadOnlyList<VideoColorDescription> ColorDescriptions { get; }
 
         internal Mp4TrackInfo WithStream(EncodedStreamInfo stream) => new(TrackId, stream, SampleEntry,
             MediaDuration, PresentationDuration, Edits, Width, Height, DeclaredAudioChannels,
-            DeclaredAudioSampleRate, SampleCount, DisplayMatrix);
+            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, Language, HeaderDates, MediaDates, MetadataScope, ColorDescriptions);
     }
 }

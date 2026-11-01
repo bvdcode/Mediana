@@ -65,7 +65,7 @@ namespace Mediana.Images.Svg
             path.LineTo(x, y + ry);
             Arc(new Vector2(x, y + ry), new Vector2(x + rx, y));
             return path.Close();
-            void Arc(Vector2 a, Vector2 b) => SvgArc.Append(path, a, b, rx, ry, 0, false, true);
+            void Arc(Vector2 a, Vector2 b) => EllipticalArc.Append(path, a, b, rx, ry, 0, false, true);
         }
 
         private static VectorPath Ellipse(float cx, float cy, float rx, float ry)
@@ -82,8 +82,8 @@ namespace Mediana.Images.Svg
             }
 
             path.MoveTo(cx + rx, cy);
-            SvgArc.Append(path, new Vector2(cx + rx, cy), new Vector2(cx - rx, cy), rx, ry, 0, false, true);
-            SvgArc.Append(path, new Vector2(cx - rx, cy), new Vector2(cx + rx, cy), rx, ry, 0, false, true);
+            EllipticalArc.Append(path, new Vector2(cx + rx, cy), new Vector2(cx - rx, cy), rx, ry, 0, false, true);
+            EllipticalArc.Append(path, new Vector2(cx - rx, cy), new Vector2(cx + rx, cy), rx, ry, 0, false, true);
             return path.Close();
         }
 

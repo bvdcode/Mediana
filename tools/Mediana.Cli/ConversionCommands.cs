@@ -2,31 +2,47 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using ConsoleAppFramework;
+using Mediana.Codecs.H264;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class ConversionCommands(ILogger logger) : MediaCommands
+    internal class ConversionCommands(ILogger logger, TextWriter writer, CliOperation operation, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
-        /// <summary>Convert media: mediana -i input output.wav|output.png|output.ts.</summary>
-        /// <param name="output">New output file. Its extension selects the output format.</param>
+        /// <summary>Inspect media: mediana -i input. Convert media: mediana -i input output.wav|output.png|output.ts.</summary>
+        /// <param name="output">Optional output file. Omit to inspect the input; its extension selects the conversion format.</param>
         /// <param name="input">-i, Existing input file; its content determines the input format.</param>
         /// <param name="stream">Audio or video stream index; defaults to the first stream of the required kind.</param>
         /// <param name="timeMs">Video/animation frame timestamp in milliseconds for PNG output.</param>
         /// <param name="page">One-based document page number for PNG output.</param>
-        /// <param name="videoCodec">TS video mode: Copy preserves encoded streams; H264 encodes fixed-QP intra video.</param>
+        /// <param name="videoCodec">TS video mode: Copy preserves encoded streams; H264 encodes I/P video.</param>
         /// <param name="videoOnly">Explicitly omit audio when encoding H264 to TS.</param>
-        /// <param name="qp">Fixed H264 quantizer from 0 to 51; defaults to 26 when encoding.</param>
+        /// <param name="qp">H264 quantizer from 0 to 51; fixed without video-bit-rate, otherwise the initial value. Defaults to 26.</param>
         /// <param name="width">Maximum encoded video storage width; rounded down to an even size without enlargement.</param>
         /// <param name="height">Maximum encoded video storage height; rounded down to an even size without enlargement.</param>
+        /// <param name="videoBitRate">Constrained variable AVC packet rate in bits/second; omit for fixed QP.</param>
+        /// <param name="videoBufferMs">Video packet buffer duration in milliseconds; requires video-bit-rate, defaults to 2000.</param>
         /// <param name="audioCodec">Encode an audio-only TS file with AAC-LC.</param>
         /// <param name="audioBitRate">Raw AAC bitrate ceiling in bits/second; defaults to 128000.</param>
+        /// <param name="audioChannels">Explicitly downmix encoded AAC to 1 or 2 channels with normalized ITU coefficients; LFE is omitted. Requires audio-codec Aac.</param>
         [Command("")]
-        public Task<int> Convert([Argument] string output, string input, int? stream = null, long timeMs = 0, int page = 1,
+        public Task<int> Convert(string input, [Argument] string? output = null, int? stream = null, long timeMs = 0, int page = 1,
             VideoCodecMode videoCodec = VideoCodecMode.Copy, bool videoOnly = false, int? qp = null,
-            int? width = null, int? height = null, AudioCodecMode? audioCodec = null, int? audioBitRate = null,
+            int? width = null, int? height = null, int? videoBitRate = null, long? videoBufferMs = null,
+            AudioCodecMode? audioCodec = null, int? audioBitRate = null, int? audioChannels = null,
             CancellationToken cancellationToken = default)
         {
+            operation.Start(output is null ? "probe" : "conversion");
+            if (output is null)
+            {
+                if (stream is not null || timeMs != 0 || page != 1 || videoCodec != VideoCodecMode.Copy || videoOnly ||
+                    qp is not null || width is not null || height is not null || videoBitRate is not null || videoBufferMs is not null ||
+                    audioCodec is not null || audioBitRate is not null || audioChannels is not null)
+                {
+                    throw new ArgumentException("Conversion options require an output file. Use mediana -i input to inspect media.");
+                }
+                return ExecuteAsync(input, null, () => MediaProbeCommand.RunAsync(input, writer, cancellationToken));
+            }
             if (stream is < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(stream));
@@ -43,16 +59,20 @@ namespace Mediana.Cli
                 VideoCodecMode.H264 => true,
                 _ => throw new ArgumentOutOfRangeException(nameof(videoCodec))
             };
-            if (audioCodec is not null || audioBitRate is not null)
+            if (audioCodec is not null || audioBitRate is not null || audioChannels is not null)
             {
                 if (audioCodec is not AudioCodecMode.Aac || !Path.GetExtension(output).Equals(".ts", StringComparison.OrdinalIgnoreCase) ||
-                    encode || videoOnly || qp is not null || width is not null || height is not null)
+                    encode || videoOnly || qp is not null || width is not null || height is not null || videoBitRate is not null || videoBufferMs is not null)
                 {
                     throw new NotSupportedException("AAC encoding requires .ts output and --audio-codec Aac; video encoding options cannot be combined with audio-only output.");
                 }
-                return ExecuteAsync(input, output, () => AudioEncodeCommand.RunAsync(input, output, stream, audioBitRate ?? 128000, logger, cancellationToken));
+                if (audioChannels is not null && audioChannels is not (1 or 2))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(audioChannels), "Select one or two output audio channels.");
+                }
+                return ExecuteFileAsync(input, output, outputFile => AudioEncodeCommand.RunAsync(input, outputFile, stream, audioBitRate ?? 128000, audioChannels, logger, cancellationToken), cancellationToken);
             }
-            if (encode || videoOnly || qp is not null || width is not null || height is not null)
+            if (encode || videoOnly || qp is not null || width is not null || height is not null || videoBitRate is not null || videoBufferMs is not null)
             {
                 if (!encode || !videoOnly || !Path.GetExtension(output).Equals(".ts", StringComparison.OrdinalIgnoreCase))
                 {
@@ -70,17 +90,18 @@ namespace Mediana.Cli
                 {
                     throw new ArgumentOutOfRangeException(nameof(height), "Encoded video dimensions must be at least two.");
                 }
-                return ExecuteAsync(input, output, () => VideoTranscodeCommand.RunAsync(input, output, stream, qp ?? 26,
-                    width, height, logger, cancellationToken));
+                H264EncoderOptions options = new() { Quantizer = qp ?? 26, RateControl = VideoRateOptions.Create(videoBitRate, videoBufferMs) };
+                return ExecuteFileAsync(input, output, outputFile => VideoTranscodeCommand.RunAsync(input, outputFile, stream, options,
+                    width, height, logger, cancellationToken), cancellationToken);
             }
-            return ExecuteAsync(input, output, () => Path.GetExtension(output).ToLowerInvariant() switch
+            return ExecuteFileAsync(input, output, outputFile => Path.GetExtension(output).ToLowerInvariant() switch
             {
-                ".wav" or ".wave" => WaveAudioCommand.RunAsync(input, output, stream, logger, cancellationToken),
-                ".png" => FilePreviewCommand.RunAsync(input, output, stream, timeMs, page, cancellationToken),
-                ".ts" => MpegTsRemuxCommand.RunAsync(input, output, stream, cancellationToken),
+                ".wav" or ".wave" => WaveAudioCommand.RunAsync(input, outputFile, stream, logger, cancellationToken),
+                ".png" => FilePreviewCommand.RunAsync(input, outputFile, stream, timeMs, page, logger, cancellationToken),
+                ".ts" => MpegTsRemuxCommand.RunAsync(input, outputFile, stream, cancellationToken),
                 _ => throw new NotSupportedException("Cannot select an output format from the extension '" + Path.GetExtension(output)
                     + "'. Use .wav or .wave (PCM16), .png (one image/frame/page), or .ts (AVC/AAC/MP3 stream copy).")
-            });
+            }, cancellationToken);
         }
     }
 }

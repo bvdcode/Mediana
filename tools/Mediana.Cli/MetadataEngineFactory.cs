@@ -11,7 +11,7 @@ namespace Mediana.Cli
 {
     internal static class MetadataEngineFactory
     {
-        public static MediaEngine Create() => ContainerEngineFactory.CreateBuilder()
+        public static MediaEngine Create() => ImageEngineFactory.AddDecoders(ContainerEngineFactory.CreateBuilder())
             .AddStreamMetadataReader(new PcmStreamMetadataReader())
             .AddStreamMetadataReader(new AiffPcmStreamMetadataReader())
             .AddStreamMetadataReader(new FlacStreamMetadataReader())

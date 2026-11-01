@@ -1,0 +1,68 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
+using Mediana.Core.Video;
+
+namespace Mediana.Codecs.H264
+{
+    internal static class H264ChromaEncoder
+    {
+        public const int CoefficientCount = 128;
+
+        public static int Analyze(VideoFrame input, int x, int y, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+        {
+            int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
+            Span<int> rawDc = stackalloc int[4];
+            Span<int> transformed = stackalloc int[16];
+            Span<byte> blockPrediction = stackalloc byte[16];
+            for (int plane = 1; plane <= 2; plane++)
+            {
+                ReadOnlySpan<byte> planePrediction = prediction.Slice((plane - 1) * 64, 64);
+                for (int index = 0; index < 4; index++)
+                {
+                    int blockX = index % 2 * 4;
+                    int blockY = index / 2 * 4;
+                    H264Residuals.CopyPrediction(planePrediction, 8, blockX, blockY, blockPrediction);
+                    H264EncodingBlocks.Transform(input, plane, x + blockX, y + blockY, blockPrediction, transformed);
+                    rawDc[index] = transformed[0];
+                    H264ForwardTransform.Quantize4x4(transformed, chromaQp, coefficients.Slice(((plane - 1) * 4 + index) * 15, 15));
+                }
+                H264ForwardTransform.ChromaDc(rawDc, chromaQp, coefficients.Slice(120 + (plane - 1) * 4, 4));
+            }
+            if (coefficients[..120].ContainsAnyExcept(0))
+            {
+                return 2;
+            }
+            return coefficients.Slice(120, 8).ContainsAnyExcept(0) ? 1 : 0;
+        }
+
+        public static void Write(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
+            ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients)
+        {
+            if (pattern != 0)
+            {
+                H264CavlcWriter.Write(bits, coefficients.Slice(120, 4), -1);
+                H264CavlcWriter.Write(bits, coefficients.Slice(124, 4), -1);
+            }
+            int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
+            Span<int> scaledDc = stackalloc int[4];
+            Span<int> residual = stackalloc int[16];
+            Span<byte> blockPrediction = stackalloc byte[16];
+            for (int plane = 1; plane <= 2; plane++)
+            {
+                H264InverseTransform.ChromaDc(coefficients.Slice(120 + (plane - 1) * 4, 4), chromaQp, scaledDc);
+                for (int index = 0; index < 4; index++)
+                {
+                    int blockX = index % 2 * 4;
+                    int blockY = index / 2 * 4;
+                    ReadOnlySpan<int> levels = coefficients.Slice(((plane - 1) * 4 + index) * 15, 15);
+                    int count = pattern == 2 ? H264CavlcWriter.Write(bits, levels, target.NeighbourCount(plane, x + blockX, y + blockY)) : 0;
+                    target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
+                    H264Residuals.CopyPrediction(prediction.Slice((plane - 1) * 64, 64), 8, blockX, blockY, blockPrediction);
+                    H264InverseTransform.Residual4x4(levels, chromaQp, residual, scaledDc[index]);
+                    target.WriteBlock(plane, x + blockX, y + blockY, blockPrediction, residual);
+                }
+            }
+        }
+    }
+}

@@ -9,14 +9,14 @@ using Mediana.IO;
 
 namespace Mediana.Tests
 {
-    internal class FixtureContainer(IByteSource source, MediaBufferAllocator allocator) : IContainerReader
+    internal class FixtureContainer(IByteSource source, MediaBufferAllocator allocator, ContainerInfo? info = null) : IContainerReader
     {
         private int index;
-        public ContainerInfo Info { get; } = new("fixture");
+        public ContainerInfo Info { get; } = info ?? new("fixture");
         public int PacketReads { get; private set; }
         public bool IsDisposed { get; private set; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; } =
-            [new EncodedStreamInfo(0, MediaKind.Video, "fixture.rgba", new TimeBase(1, 1))];
+            [new EncodedStreamInfo(0, MediaKind.Video, "fixture.rgba", new EncodedStreamFormat("none", "fixture.rgba", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 1))];
 
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
         {

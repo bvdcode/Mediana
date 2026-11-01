@@ -6,6 +6,8 @@ using Mediana.Core;
 using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
 
+using Mediana.Formats;
+
 namespace Mediana.Tests
 {
     internal static class H264MetadataTestInput
@@ -58,7 +60,7 @@ namespace Mediana.Tests
             return bytes.ToArray();
         }
 
-        public static EncodedStreamInfo Stream(byte[] configuration) => new(7, MediaKind.Video, "h264", new TimeBase(1, 90000), configuration);
+        public static EncodedStreamInfo Stream(byte[] configuration) => new(7, MediaKind.Video, "h264", StreamFormats.Avc, new TimeBase(1, 90000), configuration);
 
         public static void VerifyMultipleConfigurations()
         {

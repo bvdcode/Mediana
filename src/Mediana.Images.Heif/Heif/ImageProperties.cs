@@ -26,6 +26,29 @@ namespace Mediana.Images.Heif.Container
         public AlphaChannelInformation? AlphaInformation { get; private set; }
         public IReadOnlyList<HeifBox> Transforms => transforms;
 
+        public (int Width, int Height) GetDisplaySize(CancellationToken cancellationToken)
+        {
+            int width = Width;
+            int height = Height;
+            foreach (HeifBox transform in Transforms)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (transform.Type == HeifBox.Code("clap"))
+                {
+                    ImageCrop crop = ImageCrop.Read(width, height, transform);
+                    width = crop.Width;
+                    height = crop.Height;
+                }
+                else
+                {
+                    ImageOrientation orientation = ImageOrientation.Read(width, height, transform);
+                    width = orientation.Width;
+                    height = orientation.Height;
+                }
+            }
+            return (width, height);
+        }
+
         public static ImageProperties Read(HeifContainer container, HeifItem item, HeicDecodeOptions options)
         {
             ImageProperties result = new ImageProperties();

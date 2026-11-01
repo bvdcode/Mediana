@@ -8,6 +8,7 @@ namespace Mediana.Containers.Mp4
 {
     /// <summary>Decoded PCM sample selection for one unit-rate media edit, optionally preceded by an empty edit.
     /// Sample indices are relative to media time zero. Selection includes sample instants in the half-open edit interval.
+    /// SampleCount describes the selection window, not the number of PCM samples available from the decoder.
     /// This interprets explicit edits only; it does not infer codec delay, sample-group roll dependencies or silence.</summary>
     public readonly record struct Mp4AudioSampleRange(long StartSample, long SampleCount, MediaTimestamp PresentationTime)
     {
@@ -21,7 +22,7 @@ namespace Mediana.Containers.Mp4
             {
                 throw new NotSupportedException("Audio sample selection requires an audio track with an explicit edit list.");
             }
-            Mp4LinearTimeline timeline = Mp4LinearTimeline.Create(track.Stream.TimeBase, track.Edits);
+            Mp4LinearTimeline timeline = Mp4LinearTimeline.Create(track.Stream.TimeBase, track.Edits, decodeTimeLead: 0);
             Mp4Edit edit = track.Edits[^1];
             int denominator = LeastCommonMultiple(LeastCommonMultiple(sampleRate, timeline.TimeBase.Denominator), edit.Duration.TimeBase.Denominator);
             TimeBase timeBase = new(1, denominator);

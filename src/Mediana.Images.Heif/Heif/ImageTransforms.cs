@@ -17,17 +17,17 @@ namespace Mediana.Images.Heif.Container
     /// </remarks>
     internal static class ImageTransforms
     {
-        public static RgbaImage Apply(RgbaImage image, HeifBox property, PixelBufferScope buffers)
+        public static RgbaImage Apply(RgbaImage image, HeifBox property, PixelBufferScope buffers, Memory<byte> destination = default)
         {
             if ((property.Type == HeifBox.Code("irot")) || (property.Type == HeifBox.Code("imir")))
             {
-                return Orient(image, ImageOrientation.Read(image.Width, image.Height, property), buffers);
+                return Orient(image, ImageOrientation.Read(image.Width, image.Height, property), buffers, destination);
             }
 
             if (property.Type == HeifBox.Code("clap"))
             {
                 ImageCrop crop = ImageCrop.Read(image.Width, image.Height, property);
-                return Crop(image, crop.Left, crop.Top, crop.Width, crop.Height, buffers);
+                return Crop(image, crop.Left, crop.Top, crop.Width, crop.Height, buffers, destination);
             }
             throw new InvalidDataException("Expected an image transformation.");
         }
@@ -37,16 +37,16 @@ namespace Mediana.Images.Heif.Container
             return Orient(source, ImageOrientation.Create(source.Width, source.Height, turns, mirrorAxis), buffers);
         }
 
-        private static RgbaImage Orient(RgbaImage source, ImageOrientation orientation, PixelBufferScope buffers)
+        private static RgbaImage Orient(RgbaImage source, ImageOrientation orientation, PixelBufferScope buffers, Memory<byte> destination = default)
         {
-            Memory<byte> pixels = buffers.Allocate(checked(orientation.Width * orientation.Height * 4));
+            Memory<byte> pixels = buffers.Allocate(checked(orientation.Width * orientation.Height * 4), destination);
             orientation.CopyTile(source, pixels.Span, 0, 0, source.Width, source.Height);
             return new RgbaImage(orientation.Width, orientation.Height, pixels, source.ColorInformation);
         }
 
-        private static RgbaImage Crop(RgbaImage source, int left, int top, int width, int height, PixelBufferScope buffers)
+        private static RgbaImage Crop(RgbaImage source, int left, int top, int width, int height, PixelBufferScope buffers, Memory<byte> destination)
         {
-            Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
+            Memory<byte> pixels = buffers.Allocate(checked(width * height * 4), destination);
             for (int y = 0; y < height; y++)
             {
                 source.Pixels.Span.Slice(((top + y) * source.Stride) + (left * 4), width * 4)

@@ -9,6 +9,12 @@ namespace Mediana.Tests
     public class H264MotionCompensationTests
     {
         [Fact]
+        public void CompleteBlocksMatchScalarConvolutionAtAllPhasesAndPictureBorders() => H264MotionInterpolationTestInput.Verify();
+
+        [Fact]
+        public void CompleteChromaBlocksMatchScalarBilinearSamplingAtEveryPhaseAndBorder() => H264ChromaInterpolationTestInput.Verify();
+
+        [Fact]
         public void AllQuarterPositionsPreserveAnInteriorLinearRamp()
         {
             using H264Picture picture = CreatePicture();
@@ -120,6 +126,45 @@ namespace Mediana.Tests
             byte[] output = new byte[1];
             H264MotionCompensation.Luma(picture, x, 8, 2, 0, 1, 1, output);
             Assert.Equal(expected, output[0]);
+        }
+
+        [Theory]
+        [InlineData(0, 4)]
+        [InlineData(1, 8)]
+        [InlineData(2, 8)]
+        public void IntegerBlocksMatchClampedSamplesAtEveryBorder(int plane, int units)
+        {
+            using H264Picture picture = CreatePicture();
+            int stride = picture.Stride(plane);
+            for (int index = 0; index < picture.Plane(plane).Length; index++)
+            {
+                picture.Plane(plane)[index] = (byte)((index * 53 + plane * 29) % 251);
+            }
+            int[] coordinates = [int.MinValue, -40, -16, -8, 0, 8, 16, 40, int.MaxValue - 7];
+            byte[] output = new byte[17 * 19];
+            foreach (int dx in coordinates)
+            {
+                foreach (int dy in coordinates)
+                {
+                    if (plane == 0)
+                    {
+                        H264MotionCompensation.Luma(picture, 3, 2, dx, dy, 17, 19, output);
+                    }
+                    else
+                    {
+                        H264MotionCompensation.Chroma(picture, plane, 3, 2, dx, dy, 17, 19, output);
+                    }
+                    for (int row = 0; row < 19; row++)
+                    {
+                        for (int column = 0; column < 17; column++)
+                        {
+                            int x = (int)Math.Clamp(3L + column + dx / units, 0, stride - 1);
+                            int y = (int)Math.Clamp(2L + row + dy / units, 0, stride - 1);
+                            Assert.Equal(picture.Plane(plane)[y * stride + x], output[row * 17 + column]);
+                        }
+                    }
+                }
+            }
         }
 
         private static H264Picture CreatePicture() => new(new H264SequenceParameterSet

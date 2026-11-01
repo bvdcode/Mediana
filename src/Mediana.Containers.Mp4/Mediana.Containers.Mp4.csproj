@@ -2,4 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../Mediana.Containers/Mediana.Containers.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Mediana.Formats/Mediana.Formats.csproj" />
+  </ItemGroup>
 </Project>

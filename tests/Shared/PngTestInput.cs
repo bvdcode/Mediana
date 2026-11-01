@@ -17,6 +17,8 @@ namespace Mediana.Tests
                 throw new InvalidDataException("Invalid PNG signature.");
             }
             Dictionary<string, byte[]> chunks = [];
+            using MemoryStream imageData = new();
+            string? previous = null;
             int offset = 8;
             while (offset < png.Length)
             {
@@ -36,7 +38,19 @@ namespace Mediana.Tests
                 {
                     throw new InvalidDataException($"PNG chunk {type} has an invalid CRC.");
                 }
-                chunks.Add(type, png.Slice(offset + 8, length).ToArray());
+                if (type == "IDAT")
+                {
+                    if (previous != "IDAT")
+                    {
+                        chunks.Add(type, []);
+                    }
+                    imageData.Write(png.Slice(offset + 8, length));
+                }
+                else
+                {
+                    chunks.Add(type, png.Slice(offset + 8, length).ToArray());
+                }
+                previous = type;
                 offset = checked(offset + length + 12);
             }
             string[] order = ["IHDR", "sRGB", "pHYs", "IDAT", "IEND"];
@@ -44,6 +58,7 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException("Unexpected PNG chunk order or trailing data.");
             }
+            chunks["IDAT"] = imageData.ToArray();
             return chunks;
         }
 

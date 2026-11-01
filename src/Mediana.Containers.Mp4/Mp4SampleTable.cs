@@ -11,7 +11,7 @@ namespace Mediana.Containers.Mp4
         private readonly bool wideOffsets;
 
         public Mp4SampleTable(Mp4BoxCollection boxes, Mp4ReadOptions options,
-            IReadOnlyList<Mp4DataRange> dataRanges, CancellationToken cancellationToken)
+            IReadOnlyList<Mp4DataRange> dataRanges, bool quickTime, CancellationToken cancellationToken)
         {
             ReadOnlyMemory<byte> sizePayload = boxes.Required("stsz").Payload;
             Mp4Binary.FullBox(sizePayload.Span);
@@ -46,21 +46,24 @@ namespace Mediana.Containers.Mp4
                 {
                     throw new NotSupportedException("The MP4 composition offset version is not supported.");
                 }
-                SignedComposition = version == 1;
+                SignedComposition = quickTime || version == 1;
                 Composition = new Mp4Table(composition.Value.Payload, 8, version);
             }
             Mp4Box? sync = boxes.Optional("stss");
             SyncSamples = sync is null ? null : new Mp4Table(sync.Value.Payload, 4);
-            ValidateRuns(Timing, cancellationToken);
+            DecodeDurationTicks = ValidateRuns(Timing, cancellationToken, compositionOffsets: false).Duration;
             if (Composition is not null)
             {
-                ValidateRuns(Composition, cancellationToken);
+                DecodeTimeLeadTicks = ValidateRuns(Composition, cancellationToken, compositionOffsets: true).DecodeTimeLead;
             }
             ValidateSyncSamples(cancellationToken);
             ValidateChunks(dataRanges, cancellationToken);
         }
 
         public int SampleCount { get; }
+        public long PayloadBytes { get; private set; }
+        public long DecodeDurationTicks { get; }
+        public long DecodeTimeLeadTicks { get; }
         public int ChunkCount => chunks.Count;
         public Mp4Table ChunkRuns { get; }
         public Mp4Table Timing { get; }
@@ -96,9 +99,12 @@ namespace Mediana.Containers.Mp4
             return bytes;
         }
 
-        private void ValidateRuns(Mp4Table table, CancellationToken cancellationToken)
+        private (long Duration, long DecodeTimeLead) ValidateRuns(Mp4Table table, CancellationToken cancellationToken,
+            bool compositionOffsets)
         {
             long count = 0;
+            long duration = 0;
+            long decodeTimeLead = 0;
             for (int index = 0; index < table.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -112,11 +118,21 @@ namespace Mediana.Containers.Mp4
                 {
                     throw new InvalidDataException("MP4 timing runs exceed the sample count.");
                 }
+                if (compositionOffsets)
+                {
+                    long offset = SignedComposition ? table.Int32(index, 4) : table.UInt32(index, 4);
+                    decodeTimeLead = Math.Max(decodeTimeLead, -offset);
+                }
+                else
+                {
+                    duration = checked(duration + (long)run * table.UInt32(index, 4));
+                }
             }
             if (count != SampleCount)
             {
                 throw new InvalidDataException("MP4 timing runs do not cover every sample.");
             }
+            return (duration, decodeTimeLead);
         }
 
         private void ValidateSyncSamples(CancellationToken cancellationToken)
@@ -170,6 +186,7 @@ namespace Mediana.Containers.Mp4
                     throw new InvalidDataException("MP4 chunks exceed the sample count.");
                 }
                 long bytes = SampleByteCount(sample, (int)count, cancellationToken);
+                PayloadBytes = checked(PayloadBytes + bytes);
                 sample += (int)count;
                 long offset = ChunkOffset(chunk);
                 if (!ContainsMediaRange(ranges, offset, bytes))

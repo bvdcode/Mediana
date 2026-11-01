@@ -1,6 +1,9 @@
 The HLS source module can segment encoded AVC video as packets arrive and format
 VOD media/master playlists, including optional AAC-LC or MPEG-1/2 Layer III
 audio. The CLI can copy the original audio or encode it with the AAC source module.
+Use `--audio-channels 1` or `2` with `--audio-codec Aac` for an explicit
+normalized [mono/stereo downmix](audio-downmix.md), including multichannel sources.
+Source movie edits precede mixing and new encoder priming/padding remain in TS.
 The HLS module depends on Mediana container/core/AVC modules;
 encoding and resizing remain separate components. The existing `Mp4HlsSession`
 continues to provide indexed AVC/AAC/MP3 stream copy.
@@ -127,15 +130,27 @@ movie timeline for both readers. Unsupported, empty or missing audio tracks fail
 With `--audio-codec Aac`, a separate audio decoder reads the selected track in
 media time. Existing PCM sample selection applies the explicit MP4 edit list:
 one unit-rate media edit, optionally preceded by one empty edit. Samples before
-the edit are decoded for codec state and discarded; the exact selected end clips
-the source tail. The movie origin preserves a leading empty-edit delay, including
-origins between sample instants. With no edits, all decoded samples are retained.
-Nonlinear edits, gaps, unavailable sample ranges and unsupported formats fail.
+the edit are decoded for codec state and discarded; the selected window clips
+the source tail and natural decoder EOF ends the available selection. Edit
+durations can use a coarser movie clock than PCM and do not guarantee that every
+sample instant in the window exists. The movie origin preserves a leading
+empty-edit delay, including origins between sample instants. With no edits, all
+decoded samples are retained. Nonlinear edits, gaps, empty selections, source
+failures and unsupported formats fail.
 No resampling, downmix or silent PCM insertion is implicit.
 
-The AAC encoder uses the selected rate/channel order, one shared audio bit ceiling
-for all variants and exactly the same encoded audio packets in each variant.
+The AAC encoder uses the selected sample rate/channel order. With one shared audio
+bit ceiling, all variants receive exactly the same encoded audio packets.
 `--audio-bit-rate` requires `--audio-codec Aac`; its default is 128000 raw bits/second.
+Alternatively, `--audio-bit-rates` supplies one positive raw AAC ceiling per width,
+in the same order, and cannot be combined with `--audio-bit-rate`. Identical
+settings share one encoder; each distinct bit ceiling has an independent encoder.
+All consume the same decoded, edited and converted PCM frames. For example:
+
+```bash
+mediana hls encode input.mp4 output-audio-rates --audio-stream 1 --audio-codec Aac --audio-bit-rates 96000,128000,192000 --widths 1920 1280 854
+```
+
 It is a variable bitrate ceiling excluding transport overhead, rather than a target
 file size. The source's explicit edit removes its declared codec delay; newly
 encoded AAC introduces its own 1024-sample priming. That packet starts before the
@@ -143,27 +158,56 @@ selected PCM origin. Final drain emits the overlap tail and at most 1023 padding
 samples; TS retains them without gapless trimming metadata. No priming is repeated
 at segment boundaries. The playlist's final duration includes the encoded tail.
 
-Audio decoding/encoding happens once for all widths. Packet delivery keeps one
-lookahead packet and writes video before audio at equal DTS. PCM conversion,
+Audio decoding, edit selection and PCM conversion happen once for all widths.
+The generic `MediaEncodeGroup<AudioFrame>` submits each borrowed frame to the
+distinct encoder pipelines sequentially and drains their available output.
+Each encoder has a bounded pending packet buffer; delivery writes only packets
+before the next video DTS to its assigned variants. Video precedes audio at equal DTS. PCM conversion,
 trimming and encoder working storage use bounded frame buffers; the recording is
 not collected in memory. Decoders still read their own sequential container data.
 The command reports input PCM count and final AAC priming/padding at completion.
+[Complete per-variant checks](hls-audio-rates.md) include unchanged uniform-rate
+output, independent AAC bytes, full PCM and measured master playlist bandwidth.
 [AAC quality and rate limits](aac-encoding.md) apply to this path too.
 
-The mode uses one fixed QP for all variants, with independently coded IDR pictures.
-It has no target video bitrate or inter-frame compression. Per-variant audio rates,
-arbitrary display transforms, live/event playlists, fragmented MP4, encryption
+By default the mode uses one fixed QP for all variants, with IDR groups and P16x16/skip
+inter-frame compression. Each encoder uses the requested segment duration as
+its media-time IDR interval; the first eligible frame starts the next aligned
+segment. One reconstructed reference is retained per variant.
+Optional `--video-bit-rates 1500000,400000 --widths 640 320` selects independent
+adaptive packet-rate controllers, one rate per width in the same order.
+`--video-buffer-ms` sets their common buffer duration, defaulting to 2000.
+The limit counts AVC packet bytes and excludes inserted parameter sets, audio
+and transport overhead; master bandwidth still measures complete TS segments.
+There is no filler or complete HRD timing/conformance claim.
+See [H.264 encoding](h264-encoding.md#constrained-variable-packet-rate).
+Per-variant audio rates, arbitrary display transforms, live/event playlists,
+fragmented MP4, encryption
 and playback scheduling remain outside this path.
 
 ## Checks
 
-Complete managed pipelines compare all visible samples in 48 output pictures
+The explicit all-IDR corpus compares all visible samples in 48 output pictures
 against independent decoder references, including resized and non-square-pixel
 video. Their 15 segments preserve every AVC packet, presentation time, TS table,
 clock and continuity counter. The same verifier is included in the Native AOT
 runner. Tests also cover non-seekable outputs, ownership, cancellation, I/O failure,
 overlapping calls, false key-frame flags, repeated PTS, segment limits, undefined
 short-video peak rates, injected metadata and atomic CLI directory output.
+
+Current I/P HLS commands independently verify six variants, 160 video pictures,
+1090 AAC packets and 54 segments per mode, including every individual segment.
+All video pictures match separate video-only encoding, and full audio bytes/PCM
+and PTS/DTS match separate audio encoding. All 129 managed/Native AOT TS and
+playlist files are byte-identical.
+
+The [complete temporal-encoding measurement](h264-encoding.md#complete-beforeafter-measurement)
+checks all 10,802 pictures of a 30-minute video-only conversion. Long audiovisual
+HLS with the current I/P encoder remains to be checked.
+
+### Earlier all-IDR command checks
+
+The following complete command checks used the original all-IDR encoder.
 
 Linux x64 Native AOT runs the complete picture/transport verifier. Standalone
 managed and native commands produce identical bytes for all 25 playlist/segment
@@ -214,3 +258,72 @@ every audio PTS/DTS follows the exact expected timeline. This uses repeated
 96x80 video and a continuous audio signal. It does not establish perceptual
 quality or HD throughput. In-progress SIGINT returns 130 and removes the
 unpublished directory, including all temporary segments.
+
+## Complete original HD source
+
+A complete 596.46-second 1280x720 MOV with six-channel AAC has been verified
+through Native AOT decoding, explicit stereo downmix and two rate-controlled
+320x180/160x90 HLS variants. All 14,315 pictures, both complete audio tracks,
+packet clocks, aligned segments and video rate windows were independently
+checked. [Full counts, resource measurements and output scope](audio-downmix.md#complete-audiovisual-hls-encoding)
+are recorded with the shared mixing workflow.
+
+The same complete source also passes two 1280x720/640x360 variants with QP 26,
+two-second video boundaries, respective AVC ceilings of 10/5 Mbit/s with
+two-second packet buffers, and separate stereo AAC ceilings of 96/128 kbit/s.
+Each variant contains all 14,315 pictures, 27,961 AAC packets and 299 aligned
+segments. The complete package contains 601 transport and playlist files.
+
+Every visible decoded YUV byte, picture timestamp and duration matches between
+Native AOT and an independent decoder: 24,736,320,000 visible bytes across the
+two variants. Video in all 598 segments also decodes independently with its original
+global video timestamps and exactly the same pictures. The 1280x720 pictures
+are identical to the [complete HD encoding verification](h264-hd-encoding.md).
+
+Both complete audio payloads match separate encodings of the independently
+selected 28,630,160 PCM samples per channel. All 114,528,256 decoded Float32
+values are finite and agree with the independent decoder within `2e-6`.
+Every audio packet clock and raw bit ceiling passes. Encoder priming is 1024
+samples and final padding is 880 samples per channel.
+
+All 6,243,115 transport packets pass continuity checks across segment boundaries;
+every PAT/PMT section CRC passes, PCR remains monotonic and its maximum gap is
+40 ms. Actual SPS bytes match the master codec declarations. Peak and average
+master bandwidth values match independent calculations over every segment.
+
+A Native AOT process restricted to one CPU core measured 1812.546 seconds
+of process CPU, 1908.223 seconds elapsed and 127.16 MiB peak RSS on Linux x64.
+This full-source measurement uses the allocating identity-resize path. It does
+not establish matched FFmpeg throughput or perceptual encoding quality.
+
+### Retaining unchanged video storage
+
+The CLI uses `Yuv420AreaResizer.ResizeOrRetain` for each variant. An unchanged
+resolution retains the source frame and its original allocation budget instead
+of allocating another image and filtering every pixel. Actual downscaling keeps
+the independent area-filter output. The separate `Apply` operation continues to
+return tightly packed, independent storage.
+
+A complete 60.04-second 1280x720 clip was processed before and after this change,
+with two video variants, two AAC ceilings and the same settings as the full-source
+run. Both Native AOT processes used the same file on one CPU core, sequentially,
+after builds and other media checks completed. All 65 transport and playlist
+files are byte-identical: 1441 pictures, 5628 total audio packets and 31 aligned
+segments per variant. Both runs finish with zero live media-buffer bytes.
+
+| Native AOT path | Process CPU (s) | Elapsed (s) | Peak RSS (MiB) |
+| --- | ---: | ---: | ---: |
+| Allocating unchanged-size output | 200.552 | 208.325 | 109.51 |
+| Retaining unchanged-size storage | 175.235 | 187.321 | 118.13 |
+
+CPU decreased by 12.62% in this single pair on a shared host. Peak process RSS
+increased by 8.62 MiB; the run does not demonstrate lower process memory.
+Ownership tests independently verify absence of a second frame allocation,
+retained tight and strided planes, independent disposal, metadata preservation
+and the original allocation charge even when the recipient budget is full.
+All 2616 managed tests, the complete strict Linux x64 Native AOT test runner,
+strict Native CLI build, formatting and license-header checks pass.
+
+A separately remuxed MOV with an edit ending 16 PCM samples beyond its decoded
+audio track currently fails with an exact-range error. Interpretation of that
+edit/media endpoint discrepancy remains open; no truncation or silence is added.

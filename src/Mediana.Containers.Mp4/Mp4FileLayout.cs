@@ -6,10 +6,12 @@ using Mediana.IO;
 
 namespace Mediana.Containers.Mp4
 {
-    internal class Mp4FileLayout(MediaBuffer metadata, IReadOnlyList<Mp4DataRange> dataRanges) : IDisposable
+    internal class Mp4FileLayout(MediaBuffer metadata, IReadOnlyList<Mp4DataRange> dataRanges, string? majorBrand, bool quickTimeCompatible) : IDisposable
     {
         public MediaBuffer Metadata { get; } = metadata;
         public IReadOnlyList<Mp4DataRange> DataRanges { get; } = dataRanges;
+        public string? MajorBrand { get; } = majorBrand;
+        public bool QuickTimeCompatible { get; } = quickTimeCompatible;
 
         public static async ValueTask<Mp4FileLayout> ReadAsync(IRandomAccessByteSource source,
             MediaBufferAllocator allocator, Mp4ReadOptions options, Mp4ParseBudget budget,
@@ -22,6 +24,8 @@ namespace Mediana.Containers.Mp4
             }
             using WritableMediaBuffer header = allocator.Allocate(16);
             MediaBuffer? movie = null;
+            string? majorBrand = null;
+            bool quickTimeCompatible = false;
             List<Mp4DataRange> ranges = [];
             long offset = 0;
             bool transferred = false;
@@ -63,6 +67,31 @@ namespace Mediana.Containers.Mp4
                     }
                     switch (type)
                     {
+                        case "ftyp":
+                            long brandBytes = size - headerSize;
+                            if (majorBrand is not null || brandBytes < 8 || (brandBytes - 8) % 4 != 0)
+                            {
+                                throw new InvalidDataException("The MP4 file type box is duplicated or malformed.");
+                            }
+                            if (brandBytes > options.MaxMetadataBytes)
+                            {
+                                throw new NotSupportedException("The MP4 file type box exceeds the configured metadata byte limit.");
+                            }
+                            using (WritableMediaBuffer brands = allocator.Allocate((int)brandBytes))
+                            {
+                                await source.ReadExactlyAtAsync(offset + headerSize, brands.Memory, cancellationToken).ConfigureAwait(false);
+                                majorBrand = Mp4Binary.FourCc(brands.Memory.Span, 0);
+                                quickTimeCompatible = majorBrand == "qt  ";
+                                for (int index = 8; index < brands.Memory.Length; index += 4)
+                                {
+                                    cancellationToken.ThrowIfCancellationRequested();
+                                    if (brands.Memory.Span.Slice(index, 4).SequenceEqual("qt  "u8))
+                                    {
+                                        quickTimeCompatible = true;
+                                    }
+                                }
+                            }
+                            break;
                         case "moov":
                             if (movie is not null)
                             {
@@ -91,7 +120,7 @@ namespace Mediana.Containers.Mp4
                 {
                     throw new InvalidDataException("The MP4 file requires movie and media data boxes.");
                 }
-                Mp4FileLayout layout = new(movie, ranges.AsReadOnly());
+                Mp4FileLayout layout = new(movie, ranges.AsReadOnly(), majorBrand, quickTimeCompatible);
                 transferred = true;
                 return layout;
             }

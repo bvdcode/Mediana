@@ -36,18 +36,19 @@ This is a stored-sample area filter, with no linear-light conversion, rotation,
 upsampling, color conversion or HDR tone mapping.
 
 `TRANSCODING.json` additionally records every independently decoded picture from
-area downscaling followed by QP26 AVC encoding. Generate a TS reference using:
+area downscaling followed by QP26 all-IDR AVC encoding. Recreate that explicit
+mode with `H264EncoderOptions { Quantizer = 26, KeyFrameInterval = TimeSpan.Zero }`
+after the area resizer and write packets through `MpegTsWriter`. Independently
+decode the resulting complete TS:
 
 ```sh
-dotnet run --project tools/Mediana.Cli -c Release -- \
-  -i "tests/Mediana.Tests/Data/Mp4/$NAME.mp4" "artifacts/$NAME-scaled.ts" \
-  --video-codec H264 --video-only --width 48 --qp 26
 ffmpeg -v error -xerror -threads 1 -i "artifacts/$NAME-scaled.ts" \
   -map 0:v:0 -fps_mode passthrough -pix_fmt yuv420p -f rawvideo \
   "tests/Mediana.Tests/Data/Mp4/$NAME.scaled-48x$HEIGHT.encoded-qp26.yuv"
 ```
 
 Use `avc-multislice-cabac`/40 and `avc-weighted`/30 for `NAME`/`HEIGHT`.
-The first TS is also retained for CLI integration checks: `--width 49` and
-`--height 41` must both select 48x40 and emit the same complete stream. The other
+The CLI transport snapshot uses the current two-second I/P default, separately
+recorded in `../Mp4/CLI-TEMPORAL.json`: `--width 49` and `--height 41` must both
+select 48x40 and emit the same complete stream. The other
 sequence verifies non-square pixels and SAR 235:186 through the encoded SPS.

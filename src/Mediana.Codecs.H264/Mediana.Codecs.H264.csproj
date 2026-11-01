@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
   <ItemGroup>
+    <Using Include="Mediana.Formats.Video" />
     <InternalsVisibleTo Include="Mediana.Tests" />
     <InternalsVisibleTo Include="Mediana.NativeTests" />
     <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Mediana.Formats/Mediana.Formats.csproj" />
   </ItemGroup>
 </Project>

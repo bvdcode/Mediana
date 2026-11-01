@@ -108,7 +108,7 @@ namespace Mediana.Tests
         {
             using CancellationTokenSource source = new();
             string output = Path.Combine(directory, "cancelled.bin");
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => CommandOutputFile.WriteAsync(output, async stream =>
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new CommandOutputFile(output).WriteAsync(async stream =>
             {
                 await stream.WriteAsync(new byte[] { 1, 2, 3 });
                 await source.CancelAsync();

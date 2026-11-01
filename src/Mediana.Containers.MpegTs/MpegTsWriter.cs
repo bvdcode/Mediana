@@ -88,7 +88,7 @@ namespace Mediana.Containers.MpegTs
                 {
                     throw new NotSupportedException("The stream configuration exceeds the TS byte limit.");
                 }
-                tracks[index] = new(stream, index);
+                tracks[index] = new(stream, index, allocator, options.MaximumConfigurationBytes);
             }
             return new(destination, allocator, options, tracks);
         }

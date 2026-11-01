@@ -2,8 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Formats;
 using Mediana.Core.Audio;
 using Mediana.Core.Metadata;
+
+using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Flac
 {
@@ -20,6 +23,7 @@ namespace Mediana.Codecs.Flac
             {
                 throw new ArgumentException("The stream is not FLAC audio.", nameof(stream));
             }
+            StreamFormats.Flac.Require(stream.Format);
             FlacConfiguration configuration = FlacConfiguration.ReadStreamInfo(stream.Configuration.Span);
             return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount, configuration.BitsPerSample);
         }

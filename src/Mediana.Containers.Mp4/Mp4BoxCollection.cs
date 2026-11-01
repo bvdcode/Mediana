@@ -7,13 +7,17 @@ namespace Mediana.Containers.Mp4
     {
         private readonly List<Mp4Box> boxes = [];
 
-        public Mp4BoxCollection(ReadOnlyMemory<byte> data, Mp4ParseBudget budget)
+        public Mp4BoxCollection(ReadOnlyMemory<byte> data, Mp4ParseBudget budget, bool allowTerminator = false)
         {
             int offset = 0;
             while (offset < data.Length)
             {
-                budget.TakeBox();
                 ReadOnlySpan<byte> remaining = data.Span[offset..];
+                if (allowTerminator && remaining.Length == 4 && Mp4Binary.UInt32(remaining, 0) == 0)
+                {
+                    break;
+                }
+                budget.TakeBox();
                 uint shortSize = Mp4Binary.UInt32(remaining, 0);
                 string type = Mp4Binary.FourCc(remaining, 4);
                 int headerSize = shortSize == 1 ? 16 : 8;

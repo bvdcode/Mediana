@@ -14,7 +14,7 @@ namespace Mediana.Sample
         private bool disposed;
         public ContainerInfo Info { get; } = new("sample.generated");
         public IReadOnlyList<EncodedStreamInfo> Streams { get; } =
-            [new EncodedStreamInfo(0, MediaKind.Video, "sample.rgba", new TimeBase(1, 1))];
+            [new EncodedStreamInfo(0, MediaKind.Video, "sample.rgba", new EncodedStreamFormat("none", "sample.rgba", EncodedPacketBoundary.AccessUnit), new TimeBase(1, 1))];
 
         public ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
         {

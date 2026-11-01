@@ -25,7 +25,8 @@ namespace Mediana.Tests
                 .AddVideoDecoder(new H264DecoderFactory()).Build();
             await using VideoSession session = await engine.OpenVideoAsync(source, 0);
             using VideoFrame first = await session.ReadFrameAsync() ?? throw new InvalidDataException("The A/V HLS source contains no video.");
-            using H264Encoder encoder = H264Encoder.Create(first.Format, session.Stream.TimeBase, allocator);
+            using H264Encoder encoder = H264Encoder.Create(first.Format, session.Stream.TimeBase, allocator,
+                new() { KeyFrameInterval = TimeSpan.FromMilliseconds(500) });
             List<MemoryStream> outputs = [];
             await using AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, reader.Streams[1], (number, _) =>
             {

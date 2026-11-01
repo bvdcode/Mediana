@@ -8,6 +8,37 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/PngStreamingTestInput.cs" Link="PngStreamingTestInput.cs" />
+    <Compile Include="../Shared/PngOutputTestStream.cs" Link="PngOutputTestStream.cs" />
+    <Compile Include="../Shared/SceneBufferOwnershipTestInput.cs" Link="SceneBufferOwnershipTestInput.cs" />
+    <Compile Include="../Shared/ImageOutputAllocationTestInput.cs" Link="ImageOutputAllocationTestInput.cs" />
+    <Compile Include="../Shared/H264PcmEncodingTestInput.cs" Link="H264PcmEncodingTestInput.cs" />
+    <Compile Include="../Shared/H264SourceBlockTestInput.cs" Link="H264SourceBlockTestInput.cs" />
+    <Compile Include="../Shared/H264LumaNeighborhoodTestInput.cs" Link="H264LumaNeighborhoodTestInput.cs" />
+    <Compile Include="../Shared/H264MotionSearchTestInput.cs" Link="H264MotionSearchTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/H264/motion-*.yuv;../Mediana.Tests/Data/H264/MOTION-SEARCH.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/H264/pcm-*.yuv" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/H264LevelBurstTestInput.cs" Link="H264LevelBurstTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/H264/level-burst.sha256" Link="Data/H264/level-burst.sha256" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/H264IntraModeTestInput.cs" Link="H264IntraModeTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-sound-v2.mov;../Mediana.Tests/Data/Mp4/avc-sound-v2.mov.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-timecode.mov;../Mediana.Tests/Data/Mp4/avc-timecode.mov.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/H264RateEncodingTestInput.cs" Link="H264RateEncodingTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/H264/rate-*.yuv;../Mediana.Tests/Data/H264/RATE-ENCODING.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/H264TemporalEncodingTestInput.cs" Link="H264TemporalEncodingTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/H264/temporal-*.yuv;../Mediana.Tests/Data/H264/TEMPORAL-ENCODING.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/HighRateAacTestInput.cs" Link="HighRateAacTestInput.cs" />
+    <Compile Include="../Shared/AacAutomaticEncodingTestInput.cs" Link="AacAutomaticEncodingTestInput.cs" />
+    <Using Include="Mediana.Formats.Video" />
+    <Compile Include="../Shared/AvcColorRemuxTestInput.cs" Link="AvcColorRemuxTestInput.cs" />
+    <Compile Include="../Shared/BufferedVideoEncoder.cs" Link="BufferedVideoEncoder.cs" />
+    <Compile Include="../Shared/CollectingPacketWriter.cs" Link="CollectingPacketWriter.cs" />
+    <Compile Include="../Shared/FrameFixture.cs" Link="FrameFixture.cs" />
+    <Compile Include="../Shared/EncodingOperationTestInput.cs" Link="EncodingOperationTestInput.cs" />
+    <Compile Include="../Shared/EncodingGroupTestInput.cs" Link="EncodingGroupTestInput.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/MultiStreamTestInput.cs" Link="MultiStreamTestInput.cs" />
     <Compile Include="../Shared/Mp3HlsTestInput.cs" Link="Mp3HlsTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-mp3-*.mp4" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Containers.Aiff/Mediana.Containers.Aiff.csproj" />
@@ -18,9 +49,18 @@
     <Compile Include="../Shared/PdfStructureTestInput.cs" Link="PdfStructureTestInput.cs" />
     <Compile Include="../Shared/PdfPixelReference.cs" Link="PdfPixelReference.cs" />
     <Compile Include="../Shared/PdfTestDocument.cs" Link="PdfTestDocument.cs" />
+    <Compile Include="../Shared/PdfContentOwnershipTestInput.cs" Link="PdfContentOwnershipTestInput.cs" />
+    <Compile Include="../Shared/PdfStreamOwnershipTestInput.cs" Link="PdfStreamOwnershipTestInput.cs" />
+    <Compile Include="../Shared/PdfByteFilterTestInput.cs" Link="PdfByteFilterTestInput.cs" />
+    <Compile Include="../Shared/BoundedStreamReadTestInput.cs" Link="BoundedStreamReadTestInput.cs" />
+    <Compile Include="../Shared/FragmentedReadStream.cs" Link="FragmentedReadStream.cs" />
     <Compile Include="../Shared/PdfReferenceTestInput.cs" Link="PdfReferenceTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Pdf/*" Link="Data/Pdf/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageFrameTestInput.cs" Link="ImageFrameTestInput.cs" />
+    <Compile Include="../Shared/ImageProbeTestInput.cs" Link="ImageProbeTestInput.cs" />
+    <Compile Include="../Shared/ContainerPictureTestInput.cs" Link="ContainerPictureTestInput.cs" />
+    <Compile Include="../Shared/ContainerColorTestInput.cs" Link="ContainerColorTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Preview/*" Link="Data/Preview/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageEngineTestInput.cs" Link="ImageEngineTestInput.cs" />
     <Compile Include="../Shared/VectorImageEngineTestInput.cs" Link="VectorImageEngineTestInput.cs" />
     <Compile Include="../Shared/Jbig2TestInput.cs" Link="Jbig2TestInput.cs" />
@@ -33,6 +73,7 @@
     <Compile Include="../Shared/IntraPictureFixture.cs" Link="IntraPictureFixture.cs" />
     <None Include="../Mediana.Tests/Data/Heif/*" Link="Data/Heif/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HeifReferenceTestInput.cs" Link="HeifReferenceTestInput.cs" />
+    <Compile Include="../Shared/HeifFrameOwnershipTestInput.cs" Link="HeifFrameOwnershipTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />
     <None Include="../Mediana.Tests/Data/Jbig2/*" Link="Data/Jbig2/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Jbig2ReferenceTestInput.cs" Link="Jbig2ReferenceTestInput.cs" />
@@ -56,7 +97,16 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
     <Compile Include="../Shared/AacDecodeTestInput.cs" Link="AacDecodeTestInput.cs" />
     <Compile Include="../Shared/AacEncodingTestInput.cs" Link="AacEncodingTestInput.cs" />
+    <Compile Include="../Shared/AacEncodingQualityTestInput.cs" Link="AacEncodingQualityTestInput.cs" />
+    <Compile Include="../Shared/AacSwitchedEncodingTestInput.cs" Link="AacSwitchedEncodingTestInput.cs" />
+    <Compile Include="../Shared/AacWindowSelectionTestInput.cs" Link="AacWindowSelectionTestInput.cs" />
+    <Compile Include="../Shared/AacBandAllocationTestInput.cs" Link="AacBandAllocationTestInput.cs" />
+    <Compile Include="../Shared/AacAnalysisTestInput.cs" Link="AacAnalysisTestInput.cs" />
+    <Compile Include="../Shared/AacWindowGroupingTestInput.cs" Link="AacWindowGroupingTestInput.cs" />
     <Compile Include="../Shared/AacFeatureTestInput.cs" Link="AacFeatureTestInput.cs" />
+    <Compile Include="../Shared/AudioDownmixTestInput.cs" Link="AudioDownmixTestInput.cs" />
+    <Compile Include="../Shared/AacMultichannelTestInput.cs" Link="AacMultichannelTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/AacMultichannel/*" Link="Data/AacMultichannel/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/AacWaveformTestInput.cs" Link="AacWaveformTestInput.cs" />
     <Compile Include="../Shared/AacEditedAudioTestInput.cs" Link="AacEditedAudioTestInput.cs" />
     <Compile Include="../Shared/WaveformReferenceTestInput.cs" Link="WaveformReferenceTestInput.cs" />
@@ -65,14 +115,33 @@
     <Compile Include="../Shared/Mp4MetadataTestInput.cs" Link="Mp4MetadataTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Metadata/*" Link="Data/Metadata/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/AudioSignalSource.cs" Link="AudioSignalSource.cs" />
+    <Compile Include="../Shared/AudioWindowTestInput.cs" Link="AudioWindowTestInput.cs" />
+    <Compile Include="../Shared/ObservedWriteStream.cs" Link="ObservedWriteStream.cs" />
+    <Compile Include="../Shared/PcmStreamOutputTestInput.cs" Link="PcmStreamOutputTestInput.cs" />
     <Compile Include="../Shared/AudioWaveformTestInput.cs" Link="AudioWaveformTestInput.cs" />
+    <Compile Include="../Shared/WaveformMixerTestInput.cs" Link="WaveformMixerTestInput.cs" />
     <Compile Include="../Shared/AudioResamplingTestInput.cs" Link="AudioResamplingTestInput.cs" />
+    <Compile Include="../Shared/AudioSamplePreparationTestInput.cs" Link="AudioSamplePreparationTestInput.cs" />
     <Compile Include="../Shared/MediaProbeTestInput.cs" Link="MediaProbeTestInput.cs" />
+    <Compile Include="../Shared/Mp4IndexInfoTestInput.cs" Link="Mp4IndexInfoTestInput.cs" />
+    <Compile Include="../Shared/LanguageTagTestInput.cs" Link="LanguageTagTestInput.cs" />
+    <Compile Include="../Shared/Mp4TrackMetadataTestInput.cs" Link="Mp4TrackMetadataTestInput.cs" />
+    <Compile Include="../Shared/Mp4HeaderDateTestInput.cs" Link="Mp4HeaderDateTestInput.cs" />
+    <Compile Include="../Shared/Mp4FrameRateTestInput.cs" Link="Mp4FrameRateTestInput.cs" />
+    <Compile Include="../Shared/ServerVideoPreviewTestInput.cs" Link="ServerVideoPreviewTestInput.cs" />
+    <Compile Include="../../samples/Mediana.Sample/VideoPreviewSample.cs" Link="VideoPreviewSample.cs" />
+    <Compile Include="../../samples/Mediana.Sample/AudioWaveformSample.cs" Link="AudioWaveformSample.cs" />
+    <Compile Include="../Shared/ServerAudioWaveformTestInput.cs" Link="ServerAudioWaveformTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/FrameRate/*" Link="Data/FrameRate/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/QuickTimeAacTestInput.cs" Link="QuickTimeAacTestInput.cs" />
+    <Compile Include="../Shared/AacStereoNoiseTestInput.cs" Link="AacStereoNoiseTestInput.cs" />
     <Compile Include="../Shared/MediaTagTestInput.cs" Link="MediaTagTestInput.cs" />
     <Compile Include="../Shared/AudioStreamMetadataTestInput.cs" Link="AudioStreamMetadataTestInput.cs" />
     <Compile Include="../Mediana.Tests/H264TestBits.cs" Link="H264TestBits.cs" />
     <Compile Include="../Shared/VideoStreamMetadataTestInput.cs" Link="VideoStreamMetadataTestInput.cs" />
     <Compile Include="../Shared/H264MetadataTestInput.cs" Link="H264MetadataTestInput.cs" />
+    <Compile Include="../Shared/H264MotionInterpolationTestInput.cs" Link="H264MotionInterpolationTestInput.cs" />
+    <Compile Include="../Shared/H264ChromaInterpolationTestInput.cs" Link="H264ChromaInterpolationTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Wave/references.json" Link="Data/Wave/references.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-mp3-*.mp4.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/WavePcmTestInput.cs" Link="WavePcmTestInput.cs" />
@@ -98,6 +167,7 @@
     <Compile Include="../Shared/HlsEncodingTestInput.cs" Link="HlsEncodingTestInput.cs" />
     <Compile Include="../Shared/AvcAudioHlsTestInput.cs" Link="AvcAudioHlsTestInput.cs" />
     <Compile Include="../Shared/YuvScalingTestInput.cs" Link="YuvScalingTestInput.cs" />
+    <Compile Include="../Shared/YuvResizeOwnershipTestInput.cs" Link="YuvResizeOwnershipTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Resize/*" Link="Data/Resize/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-weighted.scaled-*.yuv" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-multislice-*" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -163,5 +233,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="../Mediana.Tests/Data/Wave/*.wav;../Mediana.Tests/Data/Wave/*.pcm" Link="Data/Wave/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(MedianaPackageVersion)' != ''">
+    <PackageReference Include="@(ProjectReference->'%(Filename)')" Version="[$(MedianaPackageVersion)]" />
+    <ProjectReference Remove="@(ProjectReference)" />
   </ItemGroup>
 </Project>

@@ -9,6 +9,8 @@ namespace Mediana.Processing
     internal readonly record struct NearestNeighborMap(int SourceWidth, int SourceHeight, int Width, int Height,
         OrthogonalTransform Orientation)
     {
+        public bool IsIdentity => SourceWidth == Width && SourceHeight == Height && Orientation == OrthogonalTransform.Identity;
+
         public int OutputWidth => Orientation.SwapsAxes ? Height : Width;
         public int OutputHeight => Orientation.SwapsAxes ? Width : Height;
 

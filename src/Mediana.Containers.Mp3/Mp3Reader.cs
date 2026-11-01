@@ -8,12 +8,16 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
+using Mediana.Formats.Audio;
+
+using Mediana.Formats;
+
 namespace Mediana.Containers.Mp3
 {
     /// <summary>Forward-only Layer III frames and ID3 metadata; borrows its source at the file start.
     /// Packets include complete frame headers and share bit-reservoir dependencies. Coded timestamps
     /// preserve delay/padding. No PCM decoding, CRC checking, gapless trimming or resynchronization.</summary>
-    public class Mp3Reader : IContainerReader
+    public partial class Mp3Reader : IContainerReader
     {
         private readonly IByteSource source;
         private readonly MediaBufferAllocator allocator;
@@ -63,6 +67,7 @@ namespace Mediana.Containers.Mp3
             try
             {
                 await reader.InitializeAsync(cancellationToken).ConfigureAwait(false);
+                reader.InitializePictureInfo();
                 MediaDuration? declaredDuration = reader.CodedDuration;
                 IReadOnlyList<Id3TextFrame> textFrames = reader.TextFrames;
                 reader.info = new Lazy<ContainerInfo>(() => new ContainerInfo("mp3", declaredDuration,
@@ -108,7 +113,7 @@ namespace Mediana.Containers.Mp3
             }
             FirstFrame = header;
             AudioOffset = position - header.FrameBytes;
-            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, Mp3FrameHeader.CodecId,
+            Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, Mp3FrameHeader.CodecId, StreamFormats.Mp3,
                 new TimeBase(1, header.SampleRate), pending.Memory.Span[..4], codedDuration: VbrInfo?.FrameCount is uint count
                     ? new MediaDuration((long)count * header.SamplesPerFrame, new TimeBase(1, header.SampleRate)) : null) });
         }

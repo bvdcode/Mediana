@@ -8,9 +8,10 @@ using Mediana.Core.Video;
 
 namespace Mediana.Codecs.Png
 {
-    public static class PngEncoder
+    public static partial class PngEncoder
     {
-        private const int ContainerBytes = 8 + 25 + 13 + 21 + 12 + 12;
+        private const int HeaderBytes = 8 + 25 + 13 + 21;
+        private const int ContainerBytes = HeaderBytes + 12 + 12;
         private static readonly VideoColorInfo Srgb = new(ColorPrimaries.Bt709, TransferFunction.Srgb,
             MatrixCoefficients.Rgb, ColorRange.Full, ChromaLocation.Unspecified);
 
@@ -20,15 +21,8 @@ namespace Mediana.Codecs.Png
         /// Compression workspace and object overhead are outside that budget.</summary>
         public static MediaBuffer Encode(VideoFrame input, MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(input);
             ArgumentNullException.ThrowIfNull(allocator);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32) || input.Format.Color != Srgb)
-            {
-                throw new NotSupportedException("PNG encoding requires straight RGBA32 pixels in full-range sRGB.");
-            }
-            SampleAspectRatio aspectRatio = input.Format.SampleAspectRatio
-                ?? throw new NotSupportedException("PNG encoding requires a known sample aspect ratio.");
+            SampleAspectRatio aspectRatio = ValidateInput(input, cancellationToken);
             long filteredBytes = checked(((long)input.Format.Width * 4 + 1) * input.Format.Height);
             int compressedCapacity = checked((int)(filteredBytes + (filteredBytes + 7) / 8 + (filteredBytes + 63) / 64 + 11));
             using WritableMediaBuffer writable = allocator.Allocate(checked(compressedCapacity + ContainerBytes));
@@ -62,6 +56,18 @@ namespace Mediana.Codecs.Png
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer complete = writable.Publish();
             return complete.Slice(0, offset);
+        }
+
+        private static SampleAspectRatio ValidateInput(VideoFrame input, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32) || input.Format.GetColorInterpretation() != Srgb)
+            {
+                throw new NotSupportedException("PNG encoding requires straight RGBA32 pixels in full-range sRGB.");
+            }
+            return input.Format.SampleAspectRatio
+                ?? throw new NotSupportedException("PNG encoding requires a known sample aspect ratio.");
         }
 
         private static int WriteHeaders(Span<byte> output, VideoFormat format, SampleAspectRatio aspectRatio,

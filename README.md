@@ -12,54 +12,56 @@ The sample can extract a supported video frame, convert SDR color to sRGB, corre
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC/MP3 access units without decoding.
 The WAVE and PCM source modules read integer/float audio through public audio sessions.
-The AAC source module decodes limited mono/stereo AAC-LC from MP4/M4A to float PCM
-and encodes contiguous PCM as experimental AAC-LC access units.
+The AAC source module decodes AAC-LC configurations 1–7 from MP4/M4A to float PCM
+and encodes contiguous mono/stereo PCM as experimental AAC-LC access units.
 Independent source modules also decode HEIC/HEIF still images, JPEG 2000 and JBIG2,
 and rasterize SVG and TGS/Lottie 2D animation. Their output connects to Mediana
 frames, SDR color conversion and PNG encoding. These modules compile inside
 Mediana and do not depend on Heic.NET or Render.NET packages.
 An experimental PDF module reads page geometry, renders supported vector/text/image
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
-Experimental fixed-QP H.264 intra encoding and YUV downscaling are available.
-Experimental AAC-LC audio encoding to MPEG-TS is also available; perceptual
-allocation and transient handling remain open. HLS variants can copy or encode audio.
+Experimental fixed-QP H.264 I/P encoding and YUV downscaling are available.
+Experimental AAC-LC audio encoding to MPEG-TS selects long/short windows for
+transients; perceptual allocation remains open. HLS variants can copy or encode audio.
 
 ## Components
 
 | Project | Current responsibility |
 | --- | --- |
-| `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction; source project only |
-| `Mediana.Drawing` | Managed 2D paths, fills/strokes, clipping, compositing and RGBA surfaces; source project only |
-| `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha; source project only |
-| `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion; source project only |
-| `Mediana.Codecs.Jbig2` | Packed monochrome pages, globals and optional RGBA expansion; source project only |
-| `Mediana.Images.Svg` | SVG paths, styles, text, masks, filters and embedded PNG; source project only |
-| `Mediana.Images.Tgs` | TGS/Lottie 2D keyframes and lazy timed raster frames; source project only |
+| `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction |
+| `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
+| `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha |
+| `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion |
+| `Mediana.Codecs.Jbig2` | Packed monochrome pages, globals and optional RGBA expansion |
+| `Mediana.Images.Svg` | SVG paths, styles, text, masks, filters and embedded PNG |
+| `Mediana.Images.Tgs` | TGS/Lottie 2D keyframes and lazy timed raster frames |
+| `Mediana.Formats` | Shared codec configuration syntax, elementary framing and access-unit conversion |
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
-| `Mediana.Containers` | Reader/factory contracts and a writer finalization contract |
+| `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC/MP3 packet reading |
-| `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading; source project only |
-| `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading; source project only |
-| `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks; source project only |
-| `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing; source project only |
-| `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo; source project only |
-| `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC/MP3 transport-stream writer; source project only |
-| `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder factories |
-| `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames; source project only |
-| `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC; source project only |
-| `Mediana.Codecs.Aac` | Mono/stereo AAC-LC decoding and experimental long-window PCM encoding; source project only |
-| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline intra encoding; source project only |
-| `Mediana.Codecs.Png` | Experimental sRGB RGBA32 PNG encoder; source project only |
+| `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
+| `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
+| `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
+| `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
+| `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo |
+| `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC/MP3 transport-stream writer |
+| `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder/encoder factories |
+| `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
+| `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
+| `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
+| `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
+| `Mediana.Codecs.Png` | sRGB RGBA32 PNG encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
-| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists; source project only |
-| `Mediana.Execution` | Pull-driven video/audio decoding, delayed output, bounded container reads and cancellation |
-| `Mediana` | Explicit registration, container detection and forward-only video/audio sessions |
+| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists |
+| `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |
+| `Mediana` | Explicit input/output registration, container detection and individual or combined A/V sessions |
 | `Mediana.Cli` | Command-line media inspection, conversions, previews and exports |
 | `Mediana.Sample` | Minimal generated-frame example using the public API |
 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
+See [module boundaries, stream contracts and reusable operations](docs/architecture.md).
 
 The H.264 work currently reconstructs progressive 8-bit 4:2:0 CAVLC I/P/B
 and CABAC I/P/B pictures with default scaling, including motion compensation, reference
@@ -150,6 +152,9 @@ From the download or extraction directory on Linux/macOS:
 
 ```sh
 ./mediana --help
+./mediana -i audio.mp3
+./mediana probe artwork.svg
+./mediana cover audio.mp3 cover.png
 ./mediana -i audio.mp3 out.wav
 ./mediana -i photo.heic out.png
 ./mediana -i artwork.svg out.png
@@ -159,15 +164,41 @@ From the download or extraction directory on Linux/macOS:
 ./mediana -i input.mp4 encoded.ts --video-codec H264 --video-only --qp 26
 ./mediana -i input.mp4 small.ts --video-codec H264 --video-only --width 640 --height 360
 ./mediana -i input.mp3 audio.ts --audio-codec Aac --audio-bit-rate 128000
+./mediana -i input.m4a stereo.ts --audio-codec Aac --audio-channels 2
 ./mediana probe mp4 input.mp4
 ./mediana hls create input.mp4 output-hls --audio-stream 1
 ```
 
+`mediana -i input` inspects media when no output path is supplied, using the same
+operation as `mediana probe input`. Detection uses file contents. Containers report
+streams and declared metadata; SVG, HEIF, JPEG 2000, JBIG2, PDF and TGS/Lottie report
+image, first-page or animation-canvas dimensions without rendering. PDF dimensions
+are points (1/72 inch); animation metadata includes duration and frame rate. Image
+inspection reads bounded input and does not decode pixel data. Conversion options
+require an output path.
+
+`mediana cover input output --index N` extracts original picture bytes from MP3,
+FLAC or MP4/M4A metadata. Detection uses input contents, and indices follow
+container order; no preference for the front or largest cover is applied. The
+output path does not select an image encoder. External picture references are
+reported without fetching or writing them as images. `cover mp3`, `cover flac`
+and `cover mp4` use the same operation and require their named container.
+
 On Windows, use `./mediana.exe` in PowerShell with the same arguments.
 The MP4 probe lists stream indices; use the appropriate video/audio indices in
 the HLS, preview and audio commands. Omit `--audio-stream` for `hls create` without
-audio; use explicit `--video-only` for `hls encode` without audio. Output paths
-must be new, and their parent directories must already exist.
+audio; use explicit `--video-only` for `hls encode` without audio. Output parent
+directories must already exist. Interactive file commands ask before replacing an
+existing output, with No as the default. `--overwrite` permits file replacement;
+`-y` / `--yes` answers Yes to all confirmation prompts. Redirected input requires
+one of these options to replace a file. File output is staged beside the destination
+and published only after successful processing; cancellation or failure preserves
+the previous file. HLS output directories must be new.
+
+```sh
+mediana -i audio.mp3 out.wav --overwrite
+mediana -y -i audio.mp3 out.wav
+```
 
 TS stream copy accepts supported MP4/MOV AVC/AAC/MP3 tracks and native MPEG-1/2
 Layer III files. MP4-to-HLS copies the supported AVC/AAC/MP3 tracks without re-encoding. PCM export
@@ -175,7 +206,7 @@ supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
 H.264 subset described above. An explicit `--video-codec H264 --video-only` selects
-fixed-QP intra video encoding to TS. `--audio-codec Aac` selects audio-only AAC-LC
+fixed-QP I/P video encoding to TS. `--audio-codec Aac` selects audio-only AAC-LC
 encoding to TS; see [audio encoding contracts and limits](docs/aac-encoding.md).
 The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
@@ -241,10 +272,10 @@ The self-test decodes a generated 2×2 RGBA packet through the codec protocol, r
 it to 1×1, checks the red output pixel and exact time conversion, then verifies
 that all leased buffer bytes have been released. It does not open a video file.
 
-The preview command takes input, a new output path, video stream index, target
+The preview command takes input, an output path, video stream index, target
 `--time-ms` in the media timeline, `--width` and `--height`. In this example,
 it selects the first frame at or after 250 ms (300 ms) and writes a 100×49 sRGB PNG
-with square pixels. The output directory must exist. Existing files are not replaced;
+with square pixels. The output directory must exist. Existing outputs follow the CLI overwrite policy;
 a request beyond the last frame fails without creating an image.
 The rotated fixture writes 49×100 after applying its display matrix and SAR.
 The CABAC intra fixture selects 600 ms for a request at 450 ms and writes 100×49.
@@ -343,7 +374,7 @@ and duration use exact sample counts. Random-access opening preserves the source
 
 The reader supports one little-endian RIFF/WAVE `data` chunk, preceded by its
 `fmt ` configuration. Integer PCM accepts 8/16/24/32-bit storage; IEEE float accepts
-32/64-bit storage. The shared `PcmConfiguration` describes standard WAVEFORMATEX
+32/64-bit storage. The shared `Mediana.Formats.Audio.PcmConfiguration` describes standard WAVEFORMATEX
 or WAVEFORMATEXTENSIBLE bytes, including valid precision and explicit channel order.
 The decoder returns interleaved native-endian samples. Signed 24-bit input expands
 to left-aligned signed 32-bit output; float bit patterns retain their precision.
@@ -352,10 +383,10 @@ Channel masks preserve the declared speaker order; unassigned channels remain di
 Metadata chunks are skipped within byte/chunk limits. Trailing chunks and padding
 are checked when the stream is drained. RF64, RIFX, compressed WAVE, nested audio
 lists and tag/artwork extraction are unsupported.
-The `audio decode` command takes input, a new raw PCM output path and `--stream`;
+The `audio decode` command takes input, a raw PCM output path and `--stream`;
 it reports the sample format, rate and channels needed to interpret its output.
-It does not write a WAVE header. The output directory must exist, and existing
-files are not replaced. See the [WAVE fixtures](tests/Mediana.Tests/Data/Wave/README.md)
+It does not write a WAVE header. The output directory must exist; replacement of
+an existing file requires confirmation or explicit `--overwrite` / `-y`. See the [WAVE fixtures](tests/Mediana.Tests/Data/Wave/README.md)
 for independent references and format definitions.
 
 ## Reading AIFF audio
@@ -405,17 +436,22 @@ using AudioFrame? frame = await session.ReadFrameAsync();
 ```
 
 The decoder accepts AAC-LC with indexed sample rates from 8000 to 96000 Hz,
-standard mono/stereo channel configuration and one `raw_data_block` per packet.
+standard channel configurations 1–7 and one `raw_data_block` per packet.
 It returns 1024 native-endian interleaved float32 samples per channel per frame.
 Mono is `front-center`; stereo is `front-left`, `front-right`. Packet PTS is
 preserved, and frame duration is exactly 1024 samples. The decoder preserves
 encoder delay and final padding. The final PCM count can therefore exceed the
 original recording length. Explicit sample selection is available after decoding.
+Multichannel PCM uses speaker-bit order, with the coded elements mapped to their
+declared speakers. Configuration 7 is 7.1 wide: five front speakers, two back
+speakers and LFE. Each channel retains its own overlap/window state; stereo tools
+apply independently to each pair. Element types, counts and order must match the
+configuration, with unique instance tags per type that remain stable until reset.
 
 All eleven spectral codebooks, escape values, scalefactors, pulse data, long/short
 sine/KBD windows, TNS, perceptual noise substitution, M/S and intensity stereo
 are implemented. HE-AAC/SBR, spatial extensions, dynamic-range extensions,
-coupling/LFE/program-configuration elements, multichannel layouts, 960-sample
+coupling/program-configuration elements, 960-sample
 frames and 7350 Hz are unsupported. The module does not read ADTS or ADIF files.
 Unsupported tools and malformed input fail explicitly; failure or cancellation
 requires reset or disposal. Reset clears overlap and noise state, so continuous
@@ -431,6 +467,17 @@ window sequences, both shapes, TNS, joint stereo, every PTS, retained-frame
 ownership, cancellation, reset and partial allocation failure. Numeric tables and
 equations follow ISO/IEC 13818-7:2004 and ISO/IEC 14496-3:2009; see the
 [AAC references](tests/Mediana.Tests/Data/Aac/README.md) for provenance and limits.
+
+Five complete multichannel references cover configurations 3–7, including distinct
+speaker signals, LFE, back-center, 7.1 wide and independent pair masks/windows.
+Every Float32 sample matches independent decoding within `2e-6`; timestamps,
+channel labels, EOF and retained-frame ownership are checked. See the
+[multichannel references](tests/Mediana.Tests/Data/AacMultichannel/README.md).
+A separate stereo reference covers every window-sequence and sine/KBD shape
+transition, plus independent/common window histories, against FAAD2. The complete
+original 5.1 film track also matches FAAD2 on all 171,786,240 scalar samples;
+[full-source accuracy and CPU/memory results](docs/real-hd.md) include the observed
+FFmpeg differences.
 
 Two complete sequences also pass through explicit mono mixing, 400 Hz sinc
 resampling, PCM16 quantization and streaming RMS/peak in managed and Linux Native
@@ -486,12 +533,17 @@ decoded and cropped reference, including both edges. Edit-list time is distinct 
 see Apple's [explicit encoder-delay representation](https://developer.apple.com/documentation/quicktime-file-format/using_track_structures_to_represent_encode_delay_explictly).
 
 `AudioChannelMixer` takes an explicit output-by-input coefficient matrix and channel
-labels. It preserves finite headroom in interleaved float64 output, without implicit
+labels. It preserves finite headroom in interleaved Float64 or Float32 output, without implicit
 speaker mapping, gain normalization or clipping. `AudioSampleConverter` changes
 native-endian sample representation and planar/interleaved storage. Integer output
 saturates and rounds to nearest even without dithering; processing rejects NaN,
 infinity and values that exceed finite target float storage. Both operations borrow
 the input frame and return an independently owned frame with preserved timing.
+
+`AudioDownmix.CreateMono` and `CreateStereo` construct explicit normalized matrices
+for named front/center/surround speakers, with LFE omitted. A common attenuation
+preserves stereo balance and bounds unit input peaks. Float32 output feeds an
+encoder directly. See [channel policy, API and complete-source verification](docs/audio-downmix.md).
 
 `AudioLevelAccumulator` emits fixed-size mono RMS/peak windows with sample counts,
 PTS and duration. Windows span input frame boundaries; `Complete` emits the final
@@ -527,6 +579,16 @@ while (await waveform.ReadLevelAsync(cancellationToken) is AudioLevel level)
 }
 ```
 
+The reader also accepts an existing mono `AudioChannelMixer`, including
+`AudioDownmix.CreateMono(inputFormat)`. It applies that matrix directly before
+resampling; a stereo-output mixer is rejected. The
+[complete file example](docs/audio-waveform.md) registers WAV, MP3, FLAC and MP4/AAC
+and writes streaming JSON without retaining the complete PCM recording:
+
+```bash
+dotnet run --project samples/Mediana.Sample -c Release -- --waveform input.flac > waveform.json
+```
+
 The reader owns callback frames and filter storage, borrows the source and uses
 the caller's media-buffer allocator. It keeps bounded processing history and one
 pending level, independent of recording length. EOF, failure, cancellation and
@@ -559,7 +621,7 @@ tone amplitude, independent channels, exact counts/timestamps and output ownersh
 managed checks also cover stop-band rejection, packet boundary invariance, early
 disposal, cancellation, resource limits and invalid input.
 
-The `audio resample` command takes input, a new output path, `--stream`,
+The `audio resample` command takes input, an output path, `--stream`,
 `--sample-rate` and space-separated `--gains` in source-channel order. It mixes to mono,
 resamples and streams signed 16-bit little-endian PCM with no header. For stereo,
 `--gains 0.5 0.5` selects an average; multichannel gains must be supplied explicitly. This
@@ -695,7 +757,7 @@ reference treatment of 8 kHz mixed windows and illegal low-rate intensity positi
 The source `Mediana.Containers.Flac` module reads native files beginning with
 `fLaC`. STREAMINFO supplies rate, channels, precision, block/frame bounds, total
 samples and the stored decoded-audio MD5. A zero total sample count has unknown
-duration. `FlacConfiguration` preserves these declarations without decoding PCM
+duration. `Mediana.Formats.Audio.FlacConfiguration` preserves these declarations without decoding PCM
 or verifying the MD5.
 
 ```csharp
@@ -740,9 +802,10 @@ dotnet run --project tools/Mediana.Cli -c Release --no-build -- probe flac tests
 dotnet run --project tools/Mediana.Cli -c Release --no-build -- cover flac tests/Mediana.Tests/Data/Flac/stereo-covers.flac artifacts/flac-cover.png --index 0
 ```
 
-The probe reads metadata only. Cover extraction preserves an existing output and
-publishes original embedded bytes after successful processing; URI pictures are
-rejected by that sample. The source module is not packaged. Decoded-audio MD5
+The probe reads metadata only. Cover extraction publishes original embedded bytes
+after successful processing; replacement requires confirmation or explicit
+`--overwrite` / `-y`. URI pictures are
+rejected by that sample. Decoded-audio MD5
 verification, seeking, encoding, custom channel masks,
 reserved metadata block types and Ogg/MP4 FLAC mapping remain unsupported.
 The managed and Linux Native AOT samples extract the original reference PNG/JPEG
@@ -833,8 +896,9 @@ null content type and accessible original bytes. The reader does not decode or
 validate the image codec. Cover bytes are separate from timed audio/video tracks.
 An extracted lease survives reader disposal and retains the full backing movie
 metadata allocation. Reading metadata/cover values does not move packet or source
-cursors. The `cover mp4` command takes input, a new image output path and `--index`;
-it preserves the original encoding and bytes. Existing files are not replaced.
+cursors. The `cover` and `cover mp4` commands take input, an image output path and
+`--index`; they preserve the original encoding and bytes. Existing files follow
+the shared confirmation and `--overwrite` policy.
 The caller chooses an output suffix matching the declared image type.
 
 Movie metadata names are not normalized to application fields. Track/media-level
@@ -923,8 +987,7 @@ limits. Disposing the reader releases its movie storage; retained packets remain
 
 ## Decoding H.264
 
-Reference the Mediana.Codecs.H264 source project to use its experimental factory;
-this module is not included in the NuGet packages yet. Register both modules explicitly:
+Reference `Mediana.Codecs.H264` and `Mediana.Containers.Mp4`. Register both modules explicitly:
 
 ```csharp
 MediaEngine engine = new MediaEngineBuilder()
@@ -965,6 +1028,17 @@ duration. Cropping is applied to YUV storage; rotation, edit lists and display a
 transforms are not applied. Missing packet timestamps remain absent; unspecified
 sample aspect ratio and CICP color codes remain unspecified.
 
+MP4/MOV `colr` descriptions are retained separately from codec labels.
+`VideoFormat.GetColorInterpretation()` resolves source precedence; default sRGB
+conversion, previews and H.264 encoding use it. `nclx` declares range, while
+QuickTime `nclc` preserves the codec range. Probe displays container CICP codes or
+ICC profile declarations alongside original codec metadata. ICC transforms and
+HDR tone mapping remain separate unsupported operations. See
+[source color contracts](docs/architecture.md#source-color-descriptions).
+AVC stream copy to MPEG-TS/HLS writes source CICP colors into configuration and
+known in-band SPS parameters, preserving compressed pictures and other header
+syntax. ICC-only or unrepresentable descriptions fail before transport output.
+
 Picture order types 0, 1 and 2, bounded delayed output, IDR/MMCO resets, input
 completion, cancellation and buffer ownership have executable checks. SEI message
 boundaries are validated; payload semantics are not interpreted. Slices have independent
@@ -976,6 +1050,9 @@ higher bit depths and inferred references for frame-number gaps are unsupported.
 H264DecoderOptions bounds picture
 pixels, configuration bytes, parameter-set bytes, NAL count and reference operations.
 Returned frames remain valid after reset or disposal until their owners release them.
+
+[Complete HD verification and CPU/memory measurements](docs/real-hd.md) cover a
+full original 720p movie, every decoded picture, MPEG-TS copying and VOD HLS.
 
 SrgbConverter.Apply from Mediana.Processing converts supported YUV420P8 or straight
 RGBA32 to straight sRGB RGBA32. It supports full/limited YCbCr range, five conventional
@@ -992,6 +1069,27 @@ code per channel. The numerical definitions follow [ITU H.264 Annex E](https://w
 
 ## Creating a PNG preview
 
+The sample can select the first video stream and produce a preview fitted within
+150×150 pixels directly from a seekable source:
+
+```sh
+dotnet run --project samples/Mediana.Sample -c Release -- --preview tests/Mediana.Tests/Data/FrameRate/preview-hd.mp4 preview.png
+```
+
+It selects the midpoint of a declared duration longer than one second, otherwise
+time zero. Target calculation uses integer clock ticks; `SeekAsync` restarts from a
+validated access point and `ReadFrameAtOrAfterAsync` discards earlier pictures.
+The selected frame remains owned by the caller after the decoding session closes.
+The example requires a declared duration, known SDR color, sample aspect ratio and
+an orthogonal display transform. A missing frame fails explicitly. Its application
+policy uses the declared duration without replacing it with indexed coded length.
+
+MP4 `LinearMovie` maps original media timestamps through the supported edit list;
+it does not clamp the first remaining PTS to zero or clip encoded samples to the
+edit interval. For an edit beginning between picture boundaries, a selected
+picture can therefore start after time zero. The [preview references](tests/Mediana.Tests/Data/FrameRate/README.md)
+check this distinction separately from the selected picture's pixels.
+
 With a supported decoded frame and an allocation budget:
 
 ```csharp
@@ -1003,8 +1101,7 @@ await output.WriteAsync(png.Memory, cancellationToken);
 ```
 
 The additional namespaces are Mediana.Processing, Mediana.Codecs.Png and
-Mediana.Core.Memory. Reference the Mediana.Codecs.Png source project; it is not
-packaged yet. The encoder returns owned PNG bytes and does not open files or streams.
+Mediana.Core.Memory. Reference `Mediana.Codecs.Png`. The encoder returns owned PNG bytes and does not open files or streams.
 
 SrgbPreview.Fit combines SDR conversion, aspect correction, orthogonal orientation
 and nearest-neighbor fitting. Its output matches SrgbConverter.Apply followed by
@@ -1012,7 +1109,18 @@ DisplayResize.Fit; it converts only selected source pixels and allocates one
 preview frame instead of an intermediate full-resolution RGB frame. It requires
 known color and SAR, preserves time and straight alpha, and produces square-pixel
 sRGB RGBA32. The sample uses this combined path. Separate color conversion and
-geometry operations remain available.
+geometry operations remain available. The explicit-source-color overload accepts
+an application interpretation while preserving the original frame metadata.
+
+The CLI video preview commands infer missing SDR color labels and log the chosen
+values once. Explicit decoder labels take precedence. Missing primaries or matrix
+first use the declared matrix or primaries when available; otherwise SD storage
+up to 1024x576 uses BT.601 (SMPTE 170M at up to 480 lines, BT.470BG above 480),
+and larger storage uses BT.709. Missing SDR transfer uses BT.709; straight RGB
+uses sRGB defaults. This is a preview policy, not a measurement of the source
+color space. Range, chroma location and sample aspect ratio still come from the
+decoder. The library conversion APIs require explicit color interpretation.
+PQ/HLG input still requires tone mapping.
 
 DisplayResize.Fit uses storage width times SAR and the storage height as the
 unscaled display size, fits within the requested box without enlargement, rounds to
@@ -1075,60 +1183,24 @@ Unit tests and Native AOT execute the same preview checks.
 
 ## Encoding H.264
 
-`H264Encoder` accepts progressive, even-sized 8-bit planar YUV 4:2:0 frames.
-It writes Constrained Baseline level 4.1 AVC, using intra4x4 DC prediction,
-integer transforms, scalar quantization, chroma DC transforms and CAVLC residuals.
-Each input becomes one independently decodable IDR packet; deblocking is disabled.
-The fixed quantizer is an H.264 QP from 0 to 51, with 26 as the default.
-
-```csharp
-using H264Encoder encoder = H264Encoder.Create(frame.Format, timeBase, allocator,
-    new H264EncoderOptions { Quantizer = 26 });
-if (encoder.TrySend(frame, cancellationToken) != CodecInputStatus.Accepted)
-{
-    throw new InvalidOperationException("Receive pending encoder output first.");
-}
-using MediaPacket packet = encoder.Receive(cancellationToken).Value
-    ?? throw new InvalidOperationException("The encoder produced no packet.");
-```
-
-Reference Mediana.Codecs.H264 and use the Mediana.Codecs, Mediana.Core,
-Mediana.Core.Memory and Mediana.Core.Timing namespaces. `encoder.Stream` supplies
-the AVC configuration and stream clock for `MpegTsWriter`; packets use four-byte
-NAL lengths, preserve exact input PTS/durations and have DTS equal to PTS.
-Inputs need positive, exact durations and nonoverlapping timestamps in that clock.
-Dimensions, pixel format, SAR and color metadata must remain constant. Range and
-chroma location require explicit values. Padding repeats edge samples and crop
-fields retain visible dimensions. Frame dimensions/rate, access-unit size and
-per-frame bitrate are bounded against level 4.1 limits; this is not rate control.
-
-The encoder borrows input storage, retains at most one owned output packet and
-uses the caller's allocator for picture reconstruction and bounded encoded storage.
-Receive pending output before sending another frame. `CompleteInput` drains that
-packet; `Reset` discards pending state and permits a new sequence. Cancellation or
-failure requires reset or disposal. Returned packets survive both operations.
-
-The CLI can decode supported MP4/MOV video and encode it to a video-only TS file:
+`H264Encoder` accepts progressive, even-sized 8-bit planar YUV 4:2:0 and
+writes Constrained Baseline level 4.1 AVC. IDR groups use a media-time interval,
+with P16x16/skip pictures referencing the preceding reconstruction. Defaults are
+QP26, a two-second IDR interval and a 16-pixel motion-search range. An explicit
+zero interval selects all-IDR encoding. Input timing, SAR and source color are
+preserved; output packet ownership and reconstructed storage are bounded.
+Optional rate control adapts slice QP within a media-time packet budget.
 
 ```sh
 mediana -i input.mp4 output.ts --video-codec H264 --video-only --qp 26
+mediana -i input.mp4 output.ts --video-codec H264 --video-only --video-bit-rate 1500000
 ```
 
-Audio omission must be explicit. Without sizing options the command preserves
-original dimensions and SAR. Optional `--width` and `--height` bound encoded storage
-dimensions; either may be given alone. Bounds are rounded down to even values and
-never enlarge the source. YUV area filtering precedes encoding, and SAR compensates
-even rounding to preserve display aspect. Both bounds must be at least two.
-The command requires an identity display transform and reports progress during longer
-operations. Output is published only after successful completion. Temporal
-prediction, motion search, CABAC encoding and bitrate/quality control remain open.
-Experimental [AAC encoding](docs/aac-encoding.md) supports audio-only TS and
-combined encoding in HLS. HLS video variants use the same encoder and area
-filter through the [HLS encoding path](docs/hls-encoding.md). This initial
-all-IDR mode does not promise bitrate efficiency comparable to inter-frame encoding.
-
-All visible samples in 48 encoded pictures match independent decoder references
-in managed and Native AOT tests. See the [reference manifest and commands](tests/Mediana.Tests/Data/Mp4/ENCODING.md).
+Optional `--width`/`--height` bounds apply YUV area filtering before encoding;
+[HLS variants](docs/hls-encoding.md) share video decoding and align IDRs with the
+requested segment duration. See [H.264 contracts, algorithms and verification](docs/h264-encoding.md)
+for the public API, complete independent I/P and adaptive-rate corpora, original
+all-IDR corpus and performance measurements. Full HRD conformance remains open.
 
 ## Writing an MPEG-TS program
 
@@ -1315,13 +1387,13 @@ valid sample precision separately from storage width and retains explicit channe
 order. FLAC reports STREAMINFO precision without interpreting channel-layout
 comment overrides. Lossy MP3/AAC precision and unestablished channel order remain
 unknown. AAC-LC indexed multichannel headers can be inspected independently of
-the mono/stereo decoder limits. Unsupported AAC profiles or PCM representations
+decoder support for the sample rate. Unsupported AAC profiles or PCM representations
 remain unavailable; opening configuration is not proof of whole-file consistency.
 The generic CLI probe registers these readers and prints known audio parameters.
 Average VBR bit rate and stream-level tags are not yet exposed through this
 metadata view. Audio header checks cover 30 real WAVE, AIFF, FLAC,
-MP3 and AAC inputs, including MP4 audio tracks and AAC 5.1 outside the decoder's
-channel support. These checks pass in managed .NET and Linux Native AOT.
+MP3 and AAC inputs, including MP4 audio tracks and AAC 5.1.
+These checks pass in managed .NET and Linux Native AOT.
 
 `H264StreamMetadataReader` reads all SPS descriptions in the opening AVC
 configuration, with bounded configuration/parameter-set bytes and no decoded
@@ -1373,8 +1445,9 @@ mediana -i input.mp4 audio.ts --stream 1
 The sample requires an initial IDR on each video track and timestamps that leave
 the required program-clock lead after the offset. It preserves priming, padding
 and samples outside the edit interval, so it does not perform sample-accurate
-trimming. The output path must be new. A failed conversion removes its temporary
-file and leaves an existing destination unchanged. The same command works with
+trimming. Replacing an existing output requires confirmation or explicit
+`--overwrite` / `-y`. A failed conversion removes its temporary file and preserves
+the previous destination. The same command works with
 the published Native AOT sample executable.
 
 Tests remux three real MP4/MOV inputs, including AVC with reordered timestamps,
@@ -1503,6 +1576,7 @@ bytes; existing-output and failed-export checks preserve destination ownership.
 mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-av --audio-stream 1 --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-aac --audio-stream 1 --audio-codec Aac --audio-bit-rate 128000 --widths 1280 640
+mediana hls encode input.mp4 output-stereo --audio-stream 1 --audio-codec Aac --audio-channels 2 --widths 1280 640
 ```
 
 The command decodes supported MP4/MOV AVC video once and produces one smaller
@@ -1513,7 +1587,11 @@ explicit through `--video-only`; alternatively, `--audio-stream` copies one sele
 AAC-LC or MPEG-1/2 Layer III track to every variant. Adding `--audio-codec Aac`
 decodes that track and uses the experimental AAC encoder instead. Its optional
 `--audio-bit-rate` ceiling defaults to 128000 raw bits/second for every variant;
-rate and channel order are preserved. The command requires an identity display
+alternatively, `--audio-bit-rates 96000,128000,192000` assigns one raw ceiling per
+width in the same order. The two bitrate options are mutually exclusive. Equal
+settings share an encoder; distinct settings encode the same decoded PCM through
+independent AAC states. Rate and channel order are preserved unless an explicit
+downmix is selected. The command requires an identity display
 transform.
 
 Each variant contains IDR-aligned TS segments and a VOD
@@ -1521,14 +1599,17 @@ media playlist. The master playlist records actual peak/average transport bitrat
 and the video/audio codec identifiers. Only video-only output declares independent
 segments. Copy mode preserves original audio bytes and linear-movie timing.
 AAC encoding applies the exact input MP4 sample edit, preserves its movie origin
-and writes one shared encoded audio sequence with its own priming and final tail.
+and writes each selected AAC sequence with its own priming and final tail.
+[Per-variant audio verification](docs/hls-audio-rates.md) covers the shared input,
+exact packet budgets, complete decoding and master playlist measurements.
 Segment timelines must match across variants. Output
 is prepared in one temporary directory and published together after completion;
 errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
 streaming encoded packets without a source-container dependency.
 
-The current mode uses fixed-QP all-IDR video. Inter-frame compression, target
-bitrate control, perceptual AAC quality and per-variant audio rates remain open.
+The current mode uses I/P video with IDRs aligned to segment targets. Optional
+per-variant video packet rates use adaptive QP; otherwise QP is fixed. Full HRD
+conformance, perceptual AAC quality and per-variant audio rates remain open.
 See [HLS encoding contracts and checks](docs/hls-encoding.md).
 
 ## Connecting modules
@@ -1713,23 +1794,17 @@ dotnet pack Mediana.slnx -c Release --no-build --no-restore -p:Version="$PACKAGE
 
 The library projects depend at runtime only on .NET and other Mediana projects.
 Build analyzers and test tools are development dependencies.
-Packages contain an experimental foundation and the limited MP4/MOV reader described
-above. The experimental H.264, PNG, WAVE, PCM and AAC source modules are not packaged. APIs may change before 1.0.
+Release packaging includes all 28 library projects in the [component table](#components).
+Every module has its own package; application and test projects are excluded.
+Installing `Mediana` brings in the facade's contract and execution dependencies.
+Concrete containers, codecs, image/document adapters, drawing, processing and HLS
+remain optional packages. All packages use the same computed release version.
 
-| Package | Responsibility |
-| --- | --- |
-| Mediana | Public facade and module registration |
-| Mediana.Core | Time, packets, frames and buffer ownership |
-| Mediana.IO | Byte sources and probe replay |
-| Mediana.Containers | Container contracts |
-| Mediana.Containers.Mp4 | Optional MP4/MOV metadata and packet reader |
-| Mediana.Codecs | Codec contracts |
-| Mediana.Processing | SDR-to-sRGB conversion, RGBA32 resizing and YUV420 area downscaling |
-| Mediana.Execution | Sequential video decoding pipeline |
-
-Installing Mediana includes its required modules through NuGet dependencies.
-Mediana.Processing and Mediana.Containers.Mp4 are optional separate packages.
-All packages share one version.
+The release checks restore the complete media test application from the newly
+built packages, reject unresolved or project-based dependencies, publish it with
+Native AOT and execute its reference tests. This checks package resources and
+transitive dependencies as well as compilation. Packages are published only by
+the release workflow described below.
 
 ### Publishing
 

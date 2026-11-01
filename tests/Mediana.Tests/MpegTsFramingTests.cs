@@ -4,17 +4,33 @@
 using Mediana.Containers.MpegTs;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Video;
+
+using Mediana.Formats.Audio;
+
 namespace Mediana.Tests
 {
     public class MpegTsFramingTests
     {
+        [Fact]
+        public void AvcConfigurationIsIndependentOfCallerStorage()
+        {
+            byte[] configuration = Configuration(1);
+            AvcAnnexBConverter framing = new(configuration);
+            configuration.AsSpan().Clear();
+            MediaBufferAllocator allocator = new(1024);
+            using MediaBuffer output = framing.Convert([2, 0x65, 0x88], allocator, 1024, out bool idr);
+            Assert.True(idr);
+            Assert.Equal(Convert.FromHexString("0000000109F00000000167420000000168CE000000016588"), output.Memory.ToArray());
+        }
+
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
         [InlineData(4)]
         public void AvcConvertsAllLengthSizesAndAddsAudAndIdrParameters(int lengthSize)
         {
-            AvcTransportFraming framing = new(Configuration(lengthSize));
+            AvcAnnexBConverter framing = new(Configuration(lengthSize));
             byte[] input = [.. Length(2, lengthSize), 0x65, 0x88];
             MediaBufferAllocator allocator = new(1024);
             using (MediaBuffer output = framing.Convert(input, allocator, 1024, out bool idr))
@@ -28,7 +44,7 @@ namespace Mediana.Tests
         [Fact]
         public void AvcReplacesAudAndPreservesNonIdrDataWithoutParameterInjection()
         {
-            AvcTransportFraming framing = new(Configuration(1));
+            AvcAnnexBConverter framing = new(Configuration(1));
             MediaBufferAllocator allocator = new(1024);
             using (MediaBuffer output = framing.Convert([2, 9, 0x10, 2, 0x41, 0x9A], allocator, 1024, out bool idr))
             {
@@ -47,7 +63,7 @@ namespace Mediana.Tests
         [InlineData(new byte[] { 1, 6 })]
         public void InvalidAvcAccessUnitsDoNotAllocateOutput(byte[] input)
         {
-            AvcTransportFraming framing = new(Configuration(1));
+            AvcAnnexBConverter framing = new(Configuration(1));
             MediaBufferAllocator allocator = new(1024);
             Assert.Throws<InvalidDataException>(() => framing.Convert(input, allocator, 1024, out _));
             Assert.Equal(0, allocator.AllocatedBytes);
@@ -56,7 +72,7 @@ namespace Mediana.Tests
         [Fact]
         public void AvcRejectsParameterChangesAndEnforcesOutputAndAllocationBudgets()
         {
-            AvcTransportFraming framing = new(Configuration(1));
+            AvcAnnexBConverter framing = new(Configuration(1));
             MediaBufferAllocator allocator = new(1024);
             Assert.Throws<NotSupportedException>(() => framing.Convert([2, 0x67, 0x43, 1, 0x65], allocator, 1024, out _));
             Assert.Throws<NotSupportedException>(() => framing.Convert([2, 0x65, 0x88], allocator, 23, out _));
@@ -72,7 +88,7 @@ namespace Mediana.Tests
         [InlineData("1210", "FFF15080015FFC010203")]
         public void AacLcFramingMatchesLiteralAdtsHeader(string configuration, string expected)
         {
-            AacTransportFraming framing = new(Convert.FromHexString(configuration));
+            AacAdtsConverter framing = new(Convert.FromHexString(configuration));
             MediaBufferAllocator allocator = new(1024);
             using (MediaBuffer output = framing.Convert([1, 2, 3], allocator))
             {
@@ -88,12 +104,12 @@ namespace Mediana.Tests
         [InlineData("118856E580")]
         [InlineData("118800")]
         public void AacRejectsUnsupportedObjectTypesFrameSizesAndExtensions(string configuration) =>
-            Assert.Throws<NotSupportedException>(() => new AacTransportFraming(Convert.FromHexString(configuration)));
+            Assert.Throws<NotSupportedException>(() => new AacAdtsConverter(Convert.FromHexString(configuration)));
 
         [Fact]
         public void AdtsLengthLimitIsExactAndFailuresReleaseStorage()
         {
-            AacTransportFraming framing = new([0x11, 0x88]);
+            AacAdtsConverter framing = new([0x11, 0x88]);
             MediaBufferAllocator allocator = new(8191);
             using (MediaBuffer output = framing.Convert(new byte[8184], allocator))
             {

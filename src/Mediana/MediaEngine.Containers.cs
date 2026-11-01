@@ -65,15 +65,11 @@ namespace Mediana
             }
         }
 
-        /// <summary>Reads container/stream header metadata without decoding or scanning packets.
-        /// Borrows the source and preserves a random access source's cursor. Returned metadata is independent of source lifetime.</summary>
-        public async ValueTask<MediaInfo> ProbeAsync(IByteSource source, MediaOpenOptions? options = null,
-            CancellationToken cancellationToken = default)
+        private MediaInfo ReadContainerInfo(IContainerReader container, CancellationToken cancellationToken)
         {
-            await using ContainerSession session = await OpenContainerAsync(source, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             Dictionary<int, StreamMetadata> metadata = [];
-            foreach (EncodedStreamInfo stream in session.Streams)
+            foreach (EncodedStreamInfo stream in container.Streams)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (metadataReaders.TryGetValue(stream.CodecId, out IStreamMetadataReader? reader))
@@ -90,7 +86,7 @@ namespace Mediana
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();
-            return new MediaInfo(session.Info, session.Streams, metadata);
+            return new MediaInfo(container.Info, container.Streams, metadata);
         }
 
         private IContainerReaderFactory SelectContainer(ReadOnlySpan<byte> prefix)

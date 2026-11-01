@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 
+using Mediana.Formats.Audio;
+
 namespace Mediana.Codecs.Mp3
 {
     internal class Mp3DecoderWorkspace : IDisposable

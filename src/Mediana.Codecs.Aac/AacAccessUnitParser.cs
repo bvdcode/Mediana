@@ -9,11 +9,8 @@ namespace Mediana.Codecs.Aac
             ref uint noiseState, CancellationToken cancellationToken)
         {
             AacBitReader bits = new(data);
-            bool foundAudio = false;
-            bool commonWindow = false;
-            int maskMode = 0;
-            Span<byte> mask = stackalloc byte[512];
-            mask.Clear();
+            int element = 0;
+            int channel = 0;
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -25,38 +22,17 @@ namespace Mediana.Codecs.Aac
                 switch (type)
                 {
                     case 0:
-                        RequireSingleElement(foundAudio, workspace.Right is null);
-                        bits.Read(4);
-                        AacChannelParser.Read(ref bits, workspace.Left, frequencyIndex, null, false, cancellationToken);
-                        foundAudio = true;
+                    case 3:
+                        workspace.BindElement(element++, type, bits.Read(4));
+                        AacChannelState single = workspace.Channels[channel++];
+                        AacChannelParser.Read(ref bits, single, frequencyIndex, null, false, cancellationToken);
+                        AacSpectralTools.Reconstruct(single, null, false, 0, [], ref noiseState, cancellationToken);
                         break;
                     case 1:
-                        RequireSingleElement(foundAudio, workspace.Right is not null);
-                        bits.Read(4);
-                        commonWindow = bits.Read(1) != 0;
-                        AacWindowInfo? info = null;
-                        if (commonWindow)
-                        {
-                            info = AacWindowInfo.Read(ref bits, frequencyIndex);
-                            maskMode = bits.Read(2);
-                            if (maskMode == 3)
-                            {
-                                throw new InvalidDataException("The AAC stereo mask mode is reserved.");
-                            }
-                            if (maskMode == 1)
-                            {
-                                for (int group = 0; group < info.Groups.Length; group++)
-                                {
-                                    for (int band = 0; band < info.MaxBands; band++)
-                                    {
-                                        mask[group * 64 + band] = (byte)bits.Read(1);
-                                    }
-                                }
-                            }
-                        }
-                        AacChannelParser.Read(ref bits, workspace.Left, frequencyIndex, info, false, cancellationToken);
-                        AacChannelParser.Read(ref bits, workspace.Right!, frequencyIndex, info, commonWindow, cancellationToken);
-                        foundAudio = true;
+                        workspace.BindElement(element++, type, bits.Read(4));
+                        ReadPair(ref bits, workspace.Channels[channel], workspace.Channels[channel + 1], frequencyIndex,
+                            ref noiseState, cancellationToken);
+                        channel += 2;
                         break;
                     case 4:
                         bits.Read(4);
@@ -76,27 +52,49 @@ namespace Mediana.Codecs.Aac
                         ReadFill(ref bits);
                         break;
                     case 2:
-                    case 3:
                     case 5:
-                        throw new NotSupportedException("AAC coupling, LFE and in-band program configurations are not supported.");
+                        throw new NotSupportedException("AAC coupling and in-band program configurations are not supported.");
                     default:
                         throw new InvalidDataException("The AAC element identifier is invalid.");
                 }
             }
             bits.Align();
-            if (!foundAudio || bits.Remaining != 0)
+            if (element != workspace.Layout.Elements.Length || bits.Remaining != 0)
             {
                 throw new InvalidDataException("An AAC packet must contain one complete raw data block for the configured channels.");
             }
-            AacSpectralTools.Reconstruct(workspace.Left, workspace.Right, commonWindow, maskMode, mask, ref noiseState, cancellationToken);
         }
 
-        private static void RequireSingleElement(bool foundAudio, bool matchingLayout)
+        private static void ReadPair(ref AacBitReader bits, AacChannelState left, AacChannelState right, int frequencyIndex,
+            ref uint noiseState, CancellationToken cancellationToken)
         {
-            if (foundAudio || !matchingLayout)
+            bool commonWindow = bits.Read(1) != 0;
+            int maskMode = 0;
+            Span<byte> mask = stackalloc byte[512];
+            mask.Clear();
+            AacWindowInfo? info = null;
+            if (commonWindow)
             {
-                throw new InvalidDataException("The AAC channel elements do not match the configured mono or stereo layout.");
+                info = AacWindowInfo.Read(ref bits, frequencyIndex);
+                maskMode = bits.Read(2);
+                if (maskMode == 3)
+                {
+                    throw new InvalidDataException("The AAC stereo mask mode is reserved.");
+                }
+                if (maskMode == 1)
+                {
+                    for (int group = 0; group < info.Groups.Length; group++)
+                    {
+                        for (int band = 0; band < info.MaxBands; band++)
+                        {
+                            mask[group * 64 + band] = (byte)bits.Read(1);
+                        }
+                    }
+                }
             }
+            AacChannelParser.Read(ref bits, left, frequencyIndex, info, false, cancellationToken);
+            AacChannelParser.Read(ref bits, right, frequencyIndex, info, commonWindow, cancellationToken);
+            AacSpectralTools.Reconstruct(left, right, commonWindow, maskMode, mask, ref noiseState, cancellationToken);
         }
 
         private static void ReadFill(ref AacBitReader bits)

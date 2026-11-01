@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Drawing;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -20,7 +21,9 @@ namespace Mediana.Tests
     {
         public static async Task VerifyAsync(string root)
         {
-            MediaEngine svgEngine = CreateEngine(new SvgRenderOptions { Supersampling = 1 });
+            VerifyPublishedSurface();
+            await VerifySupersampledOutputAsync(root);
+            MediaEngine svgEngine = CreateEngine(new DrawingRenderOptions { Supersampling = 1 });
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             using (JsonDocument manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "Svg", "filter-reference.json"))))
             {
@@ -59,7 +62,7 @@ namespace Mediana.Tests
                     int size = entry.GetProperty("size").GetInt32();
                     MediaTimestamp time = new(TimeSpan.FromSeconds((entry.GetProperty("frame").GetDouble() - document.InPoint) / document.FrameRate).Ticks,
                         TimeBase.TimeSpanTicks);
-                    MediaEngine engine = CreateEngine(new SvgRenderOptions { Width = size, Height = size, Supersampling = 1 });
+                    MediaEngine engine = CreateEngine(new DrawingRenderOptions { Width = size, Height = size, Supersampling = 1 });
                     using (VideoFrame frame = await DecodeAsync(engine, encoded, allocator, new ImageDecodeRequest { Time = time }))
                     {
                         byte[] reference = new byte[checked(size * size * 4)];
@@ -107,7 +110,59 @@ namespace Mediana.Tests
             VerifyReleased(allocator);
         }
 
-        private static MediaEngine CreateEngine(SvgRenderOptions? vectorOptions = null, PdfRenderOptions? pdfOptions = null) =>
+        private static void VerifyPublishedSurface()
+        {
+            MediaBufferAllocator allocator = new(4);
+            using PixelBuffer pixels = new(1, 1, allocator);
+            pixels[0, 0] = new Rgba32(12, 34, 56, 78);
+            ReadOnlyMemory<byte> storage = pixels.Pixels;
+            using VideoFrame frame = pixels.PublishVideoFrame();
+            pixels.Dispose();
+            using VideoFrame retained = frame.Retain();
+            frame.Dispose();
+            if (!storage.Equals(retained.Data) || !retained.Data.Span.SequenceEqual(new byte[] { 12, 34, 56, 78 })
+                || allocator.AllocatedBytes != 4)
+            {
+                throw new InvalidDataException("Published drawing pixels must retain the same budgeted storage without copying.");
+            }
+            retained.Dispose();
+            VerifyReleased(allocator);
+        }
+
+        private static async Task VerifySupersampledOutputAsync(string root)
+        {
+            byte[] svg = await File.ReadAllBytesAsync(Path.Combine(root, "Svg", "vector-preview.svg"));
+            byte[] tgs = await File.ReadAllBytesAsync(Path.Combine(root, "Tgs", "geometry.tgs"));
+            byte[] pdf = await File.ReadAllBytesAsync(Path.Combine(root, "Pdf", "graphics.pdf"));
+            using MemoryStream pdfInput = new(pdf);
+            using PdfDocument document = await PdfReader.ReadAsync(pdfInput);
+            PdfPage page = document.GetPage(1);
+            MediaBufferAllocator allocator = new(64 * 1024);
+            foreach (int factor in new[] { 1, 2, 4 })
+            {
+                DrawingRenderOptions vectors = new() { Width = 32, Height = 32, Supersampling = factor };
+                PdfRenderOptions pages = new() { MaximumWidth = 32, MaximumHeight = 32, Supersampling = factor };
+                MediaEngine engine = CreateEngine(vectors, pages);
+                using PixelBuffer svgPixels = SvgRenderer.Render(SvgReader.Read(svg), vectors);
+                using PixelBuffer tgsPixels = TgsRenderer.RenderAtTime(TgsReader.Read(tgs), 0, vectors);
+                using PixelBuffer pdfPixels = PdfRenderer.Render(page, pages);
+                byte[][] inputs = [svg, tgs, pdf];
+                PixelBuffer[] references = [svgPixels, tgsPixels, pdfPixels];
+                for (int index = 0; index < inputs.Length; index++)
+                {
+                    using (VideoFrame frame = await DecodeAsync(engine, inputs[index], allocator))
+                    {
+                        if (!frame.Data.Span.SequenceEqual(references[index].Pixels.Span))
+                        {
+                            throw new InvalidDataException("Published vector/document pixels differ at the selected supersampling factor.");
+                        }
+                    }
+                    VerifyReleased(allocator);
+                }
+            }
+        }
+
+        private static MediaEngine CreateEngine(DrawingRenderOptions? vectorOptions = null, PdfRenderOptions? pdfOptions = null) =>
             new MediaEngineBuilder().AddImageDecoder(new SvgImageDecoder(renderOptions: vectorOptions))
                 .AddImageDecoder(new TgsImageDecoder(renderOptions: vectorOptions))
                 .AddImageDecoder(new PdfImageDecoder(renderOptions: pdfOptions)).Build();
