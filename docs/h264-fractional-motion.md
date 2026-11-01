@@ -81,3 +81,42 @@ another full run: CPU 159.789 s, elapsed 163.278 s, peak RSS 96.40 MiB.
 A freshly built Native AOT consumer and fresh independent decoding agree on
 every visible byte and timestamp of its 1,441 pictures and release media storage
 at EOF. These additional checks preserve the scope of the measurements above.
+
+## QP-dependent motion-vector cost trial
+
+A separate trial added a signed Exp-Golomb motion-vector difference penalty to
+the combined YUV SAD. It used the current slice QP, including rate-control
+retries, and a Q8-rounded weight of `sqrt(0.85 * 2^((QP - 12) / 3))`.
+The core lambda relation and square-root scaling for SAD appear in the
+[JM reference encoder](https://vcgit.hhi.fraunhofer.de/jvet/JM/-/blob/master/source/app/lencod/lambda.c).
+This trial did not reproduce JM's configuration-dependent modifiers or its
+complete search and mode decisions. Candidate order, interpolation and storage
+were unchanged. Partial SAD stopped only when the candidate could no longer win.
+
+The same complete HD operation was measured in a fresh sequential pair:
+
+| Complete conversion | Current SAD selection | QP-dependent vector cost |
+| --- | ---: | ---: |
+| CPU seconds | 161.960 | 164.254 |
+| Wall seconds | 175.291 | 170.090 |
+| Peak RSS, MiB | 101.36 | 101.69 |
+| MPEG-TS bytes | 78,295,608 | 78,277,184 |
+| Aggregate YUV PSNR, dB | 44.9564 | 44.9351 |
+
+CPU increased by 1.42%, transport size decreased by 0.024%, and aggregate PSNR
+decreased by 0.0213 dB. One pair on a shared host does not establish a repeatable
+small performance difference. The lower wall time alone is not a CPU improvement.
+
+Independent full decoding and the Native AOT consumer agreed on all
+1,992,038,400 visible bytes per output. Every timestamp, duration, IDR boundary,
+packet-rate window and level window passed. Complete Annex C HRD conformance
+remains open. An independent scalar reference also matched 980 search cases
+across five QPs, including extreme predictors, padded rows and image edges;
+the same cases passed with hardware intrinsics disabled.
+
+All 21 short sequences matched independent decoding for 2,873,448 sample bytes.
+However, one QP51 temporal sequence lost 1.97 dB at the same transport size, and
+one sequence with initial QP0 and rate control lost 1.61 dB. This objective was
+not adopted: the measured outputs do not support replacing the current SAD
+selection and motion-code-length tie handling. Correct local cost calculations
+alone do not establish better complete-sequence coding efficiency.
