@@ -47,3 +47,18 @@ require track/codec timing; the framing tests check the stored timestamp and all
 payload boundaries rather than assigning per-frame timestamps from the framing
 alone. Eight-byte signed lace differences and the normative all-one VINT values
 are also covered by synthetic framing tests.
+
+## Metadata references
+
+Each `.metadata.json` records the input SHA-256, native Info and TrackEntry
+declarations, codec-private ranges and hashes, and FFprobe 6.1.1 stream facts.
+The five documents contain six timed tracks. The PNG attachment is excluded
+from that count and remains distinct from a video TrackEntry. Native track
+numbers and UIDs retain their original values and declaration order.
+
+The independently inspected values cover timestamp units, declared duration,
+track defaults, codec identifiers, dimensions, audio parameters and configuration
+payloads. Synthetic metadata tests additionally exercise field ordering, empty
+defaults, UUID byte order, date precision, cropping, limits and cancellation.
+The streamed CRC vector has 9,033 payload bytes and checksum `0x468261E0`,
+independently calculated with zlib; every chunk partition must retain that value.
