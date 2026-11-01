@@ -36,6 +36,9 @@ namespace Mediana.NativeTests
             await MatroskaMetadataTestInput.VerifyInfoAsync();
             await MatroskaMetadataTestInput.VerifyTracksAsync();
             await MatroskaMetadataTestInput.VerifyVideoAsync();
+            await MatroskaColourTestInput.VerifyNativeFieldsAsync();
+            await MatroskaColourTestInput.VerifyColorResolutionAsync();
+            MatroskaColourTestInput.VerifyPresentationMapping();
             await MatroskaMetadataTestInput.VerifyInvalidInfoAsync();
             await MatroskaMetadataTestInput.VerifyInvalidTracksAsync();
             await MatroskaMetadataTestInput.VerifyInvalidSettingsAsync();

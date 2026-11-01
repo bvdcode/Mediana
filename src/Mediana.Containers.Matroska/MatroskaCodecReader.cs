@@ -4,6 +4,7 @@
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.Core.Video;
 using Mediana.Formats;
 using Mediana.Formats.Audio;
 using Mediana.IO;
@@ -38,7 +39,7 @@ namespace Mediana.Containers.Matroska
                 {
                     throw new InvalidDataException("A Matroska video or audio track requires its corresponding settings.");
                 }
-                (MediaKind kind, string codecId, EncodedStreamFormat format) = Map(track);
+                (MediaKind kind, string codecId, EncodedStreamFormat format, VideoAspectRatioDescription? aspectRatio) = Map(track);
                 bool native = format == MatroskaStreamFormats.StoredFrames;
                 bool mpegHeader = !native && codecId == Mp3FrameHeader.CodecId;
                 int configurationBytes = mpegHeader ? Mp3FrameHeader.HeaderBytes :
@@ -88,14 +89,18 @@ namespace Mediana.Containers.Matroska
                             throw new InvalidOperationException("The Matroska codec mapping is inconsistent.");
                     }
                 }
-                configurations[streamIndex] = new(new(streamIndex, kind, codecId, format, MatroskaTrackClock.TimeBase, bytes.Memory.Span), duration, mp3);
+                VideoDisplayMatrix? display = kind == MediaKind.Video && !native ? VideoDisplayMatrix.Identity : null;
+                configurations[streamIndex] = new(new(streamIndex, kind, codecId, format, MatroskaTrackClock.TimeBase,
+                    bytes.Memory.Span, displayMatrix: display,
+                    colorDescription: !native && track.Video?.Colour is MatroskaColourSettings colour ? new MatroskaColorDescription(colour) : null,
+                    aspectRatioDescription: aspectRatio), duration, mp3);
                 totalBytes += configurationBytes;
             }
             token.ThrowIfCancellationRequested();
             return Array.AsReadOnly(configurations);
         }
 
-        private static (MediaKind Kind, string CodecId, EncodedStreamFormat Format) Map(MatroskaTrack track)
+        private static (MediaKind Kind, string CodecId, EncodedStreamFormat Format, VideoAspectRatioDescription? AspectRatio) Map(MatroskaTrack track)
         {
             MediaKind kind = track.Type switch
             {
@@ -104,18 +109,25 @@ namespace Mediana.Containers.Matroska
                 17 => MediaKind.Subtitle,
                 _ => MediaKind.Data
             };
+            if ((track.CodecId == "V_MPEG4/ISO/AVC" && track.Type != 1) ||
+                ((track.CodecId is "A_AAC" or "A_MPEG/L3") && track.Type != 2))
+            {
+                throw new InvalidDataException("The Matroska codec and track type disagree.");
+            }
             if (track.ContentEncodings is not null || track.TrackOperation is not null)
             {
-                return (kind, track.CodecId, MatroskaStreamFormats.StoredFrames);
+                return (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null);
             }
             return (track.Type, track.CodecId) switch
             {
-                (1, "V_MPEG4/ISO/AVC") => (kind, "h264", StreamFormats.Avc),
-                (2, "A_AAC") => (kind, AacConfiguration.CodecId, StreamFormats.Aac),
-                (2, "A_MPEG/L3") => (kind, Mp3FrameHeader.CodecId, StreamFormats.Mp3),
+                (1, "V_MPEG4/ISO/AVC") when MatroskaVideoMapping.TryGetAspectRatio(track.Video!, out VideoAspectRatioDescription? aspect) =>
+                    (kind, "h264", StreamFormats.Avc, aspect),
+                (1, "V_MPEG4/ISO/AVC") => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null),
+                (2, "A_AAC") => (kind, AacConfiguration.CodecId, StreamFormats.Aac, null),
+                (2, "A_MPEG/L3") => (kind, Mp3FrameHeader.CodecId, StreamFormats.Mp3, null),
                 (_, "V_MPEG4/ISO/AVC" or "A_AAC" or "A_MPEG/L3") =>
                     throw new InvalidDataException("The Matroska codec and track type disagree."),
-                _ => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames)
+                _ => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null)
             };
         }
 

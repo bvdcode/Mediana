@@ -6,7 +6,7 @@ namespace Mediana.Containers.Matroska
     internal static class MatroskaVideoReader
     {
         private static ReadOnlySpan<uint> Fields => [0xB0, 0xBA, 0x54AA, 0x54BB, 0x54CC, 0x54DD,
-            0x54B0, 0x54BA, 0x54B2, 0x9A, 0x9D, 0x55B0, 0x7670];
+            0x54B0, 0x54BA, 0x54B2, 0x9A, 0x9D, 0x53B8, 0x53C0, 0x55B0, 0x7670];
 
         public static async ValueTask<MatroskaVideoSettings> ReadAsync(MatroskaMetadataReader reader,
             EbmlElement master, CancellationToken token)
@@ -21,6 +21,8 @@ namespace Mediana.Containers.Matroska
             ulong unit = 0;
             ulong interlaced = 0;
             ulong fieldOrder = 2;
+            ulong stereoMode = 0;
+            ulong alphaMode = 0;
             EbmlElement? displayWidth = null;
             EbmlElement? displayHeight = null;
             EbmlElement? colour = null;
@@ -47,6 +49,8 @@ namespace Mediana.Containers.Matroska
                     case 0x54B2: unit = await reader.ReadUnsignedAsync(child, 0, token).ConfigureAwait(false); break;
                     case 0x9A: interlaced = await reader.ReadUnsignedAsync(child, 0, token).ConfigureAwait(false); break;
                     case 0x9D: fieldOrder = await reader.ReadUnsignedAsync(child, 2, token).ConfigureAwait(false); break;
+                    case 0x53B8: stereoMode = await reader.ReadUnsignedAsync(child, 0, token).ConfigureAwait(false); break;
+                    case 0x53C0: alphaMode = await reader.ReadUnsignedAsync(child, 0, token).ConfigureAwait(false); break;
                     case 0x55B0: colour = child; break;
                     case 0x7670: projection = child; break;
                 }
@@ -75,7 +79,10 @@ namespace Mediana.Containers.Matroska
                 DisplayUnit = unit,
                 Interlaced = interlaced,
                 FieldOrder = fieldOrder,
-                Colour = colour,
+                StereoMode = stereoMode,
+                AlphaMode = alphaMode,
+                Colour = colour is EbmlElement colourElement ?
+                    await MatroskaColourReader.ReadAsync(reader, colourElement, token).ConfigureAwait(false) : null,
                 Projection = projection
             };
         }
