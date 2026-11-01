@@ -207,3 +207,57 @@ PDF previews produced six more outputs with identical bytes within each
 before/after pair. These inputs exercise page-content storage rather than image
 or font decoding; the measurements do not establish sustained rendering speed
 or a whole-process memory bound.
+
+## Exact byte-filter output
+
+ASCIIHex, ASCII85 and RunLength decoding validate and measure the complete
+encoded stream before allocating one exact decoded array. The second pass writes
+directly into that array. Malformed endings, impossible tuples and exceeded
+decoded limits fail before the decoded payload allocation. Cancellation is
+checked in both passes. The decoded-stream cache retains the resulting storage.
+
+ASCIIHex validates bounded runs with `SearchValues<byte>` and converts complete
+pairs directly into the final span with `Convert.FromHexString`. Whitespace and
+an unmatched nibble are handled across run boundaries; the final unmatched
+nibble is padded with zero. ASCII85 zero tuples and RunLength repetitions fill
+the destination directly, without allocating a temporary array per run.
+These rules follow clauses 7.4.2, 7.4.3 and 7.4.5 of
+[PDF 32000-1:2008](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf).
+
+Public checks cover both long and abbreviated filter names, whitespace, partial
+tuples, literal and repetition boundaries, exact limits, cancellation, malformed
+streams and detached pixels. Allocation checks reject another full decoded
+payload and require invalid or excessive data to fail before that allocation.
+
+Three alternating pairs of Native AOT consumers measured page interpretation
+after input opening for a 1024×1024 grayscale image:
+
+| Filter | Before, bytes | After, bytes |
+| --- | ---: | ---: |
+| ASCIIHex | 7,356,120 | 5,253,744 |
+| ASCII85 zero tuples | 15,740,050 | 5,256,664 |
+| RunLength repetitions | 7,354,098 | 5,259,533 |
+
+Five complete synthetic 2560×2560 RGB image extractions to PNG used three
+alternating pairs of fresh Linux x64 Native AOT CLI processes on CPU core 2.
+Ordinary samples were encoded as hexadecimal, base-85 and literal runs; zero
+samples exercised base-85 zero tuples and repeated runs.
+
+| Input | CPU before, seconds | CPU after, seconds | Peak RSS before, KiB | Peak RSS after, KiB |
+| --- | ---: | ---: | ---: | ---: |
+| ASCIIHex | 1.267381 | 1.038535 | 229,476 | 178,180 |
+| ASCII85 | 1.116364 | 1.110444 | 182,496 | 157,828 |
+| ASCII85 zero tuples | 0.506075 | 0.472305 | 124,608 | 102,144 |
+| RunLength literals | 0.984262 | 0.988026 | 168,504 | 142,840 |
+| RunLength repetitions | 0.528297 | 0.433921 | 141,696 | 89,732 |
+
+All 30 complete PNGs were identical within their input case. Independent image
+extraction with Poppler 24.02.0 and independent PNG decoding matched every
+26,214,400-component RGBA image against its original samples. The three existing
+PDF page previews also remained byte-identical. All 2,687 managed tests, the
+complete strict Native AOT runner and CLI build, formatting and license-header
+checks pass.
+
+These medians include process startup and input reading on a shared host. They
+describe complete image extraction for these inputs; they do not establish a
+process memory ceiling or general page-rendering throughput.
