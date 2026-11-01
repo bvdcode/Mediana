@@ -19,12 +19,12 @@ namespace Mediana.Containers.Matroska
         private readonly EbmlElementReader elements;
         private readonly MatroskaMetadataLimits limits;
         private int textBytes;
-        private int elementCount;
+        private readonly MatroskaElementBudget elementBudget;
         private int trackCount;
         private bool disposed;
 
         public MatroskaMetadataReader(IRandomAccessByteSource source, MediaBufferAllocator allocator,
-            MatroskaMetadataLimits limits, int maximumSizeWidth = 8)
+            MatroskaMetadataLimits limits, int maximumSizeWidth = 8, MatroskaElementBudget? elementBudget = null)
         {
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(allocator);
@@ -32,6 +32,7 @@ namespace Mediana.Containers.Matroska
             this.source = source;
             this.allocator = allocator;
             this.limits = limits;
+            this.elementBudget = elementBudget ?? new(limits.MaximumElements);
             storage = allocator.Allocate(ScratchBytes);
             bool created = false;
             try
@@ -67,11 +68,7 @@ namespace Mediana.Containers.Matroska
             {
                 return null;
             }
-            if (elementCount == limits.MaximumElements)
-            {
-                throw new NotSupportedException("Matroska metadata exceeds the configured element count.");
-            }
-            elementCount++;
+            ReserveElement();
             ValidateExtent(child);
             if (child.Id == 0xBF)
             {
@@ -95,6 +92,12 @@ namespace Mediana.Containers.Matroska
                 throw new NotSupportedException("Matroska metadata exceeds the configured track count.");
             }
             trackCount++;
+        }
+
+        public void ReserveElement()
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            elementBudget.Reserve();
         }
 
         public async ValueTask<ulong> ReadUnsignedAsync(EbmlElement element, ulong defaultValue, CancellationToken token)
