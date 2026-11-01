@@ -4,6 +4,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/ServerContainerPreviewTestInput.cs" Link="ServerContainerPreviewTestInput.cs" />
+    <Compile Include="../Shared/ContainerDecodeTransferTestInput.cs" Link="ContainerDecodeTransferTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
     <Compile Include="../Shared/ContainerImageTestEntry.cs" Link="ContainerImageTestEntry.cs" />
     <Compile Include="../Shared/ContainerImageTestReader.cs" Link="ContainerImageTestReader.cs" />

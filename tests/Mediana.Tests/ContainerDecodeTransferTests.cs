@@ -12,6 +12,10 @@ namespace Mediana.Tests
     public class ContainerDecodeTransferTests
     {
         [Fact]
+        public Task ActualIndexedAudioVideoAndCoversKeepTheirDataAndSourceOwnership() =>
+            ContainerDecodeTransferTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+
+        [Fact]
         public async Task SuccessfulVideoTransferKeepsReaderMetadataAndReturnedStorage()
         {
             FixturePictureContainerFactory factory = new();
