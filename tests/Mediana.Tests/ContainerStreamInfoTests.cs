@@ -16,6 +16,11 @@ namespace Mediana.Tests
             ContainerPacketIndexInfo index = new(2, 100, new(10, new(1, 3)));
             ContainerStreamInfo stream = new(0, new(1, new(1, 1)), packetIndex: index);
             Assert.Equal(240.0, stream.PacketIndex!.AveragePayloadBitRate);
+            ContainerPacketIndexInfo unknown = new(2, 100);
+            Assert.Equal(2, unknown.PacketCount);
+            Assert.Equal(100, unknown.PayloadBytes);
+            Assert.Null(unknown.DecodeDuration);
+            Assert.Null(unknown.AveragePayloadBitRate);
             Assert.Null(new ContainerPacketIndexInfo(2, 100, new(0, new(1, 3))).AveragePayloadBitRate);
             Assert.Equal(0.0, new ContainerPacketIndexInfo(2, 0, new(10, new(1, 3))).AveragePayloadBitRate);
             Assert.Equal(8.0, new ContainerPacketIndexInfo(long.MaxValue, long.MaxValue,
@@ -59,7 +64,7 @@ namespace Mediana.Tests
             Assert.Null(unknown.Language);
             Assert.Null(unknown.AverageFrameRate);
             ContainerStreamInfo zero = new(0, new(0, new(1, 1)), [], new(0, 0, new(0, new(1, 2))));
-            Assert.Equal(0, zero.PacketIndex!.DecodeDuration.Value);
+            Assert.Equal(new MediaDuration(0, new(1, 2)), zero.PacketIndex!.DecodeDuration);
             Assert.Empty(zero.Tags!);
         }
 
@@ -74,7 +79,7 @@ namespace Mediana.Tests
             Assert.Throws<ArgumentNullException>(() => new ContainerInfo("fixture", streamInfo: [null!]));
             Assert.Throws<ArgumentOutOfRangeException>(() => new ContainerPacketIndexInfo(-1, 0, new(0, new(1, 1))));
             Assert.Throws<ArgumentOutOfRangeException>(() => new ContainerPacketIndexInfo(0, -1, new(0, new(1, 1))));
-            Assert.Throws<ArgumentException>(() => new ContainerPacketIndexInfo(0, 0, default));
+            Assert.Throws<ArgumentException>(() => new ContainerPacketIndexInfo(0, 0, default(MediaDuration)));
         }
 
         [Fact]

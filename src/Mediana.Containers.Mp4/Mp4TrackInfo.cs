@@ -34,7 +34,9 @@ namespace Mediana.Containers.Mp4
             PacketIndex = packetIndex;
             AverageFrameRate = stream.Kind switch
             {
-                MediaKind.Video => FrameRate.FromFrameCount(packetIndex.PacketCount, packetIndex.DecodeDuration),
+                MediaKind.Video when packetIndex.DecodeDuration is MediaDuration duration =>
+                    FrameRate.FromFrameCount(packetIndex.PacketCount, duration),
+                MediaKind.Video => null,
                 MediaKind.Audio => null,
                 MediaKind.Data => null,
                 _ => throw new ArgumentException("The MP4 track kind is unsupported.", nameof(stream))
