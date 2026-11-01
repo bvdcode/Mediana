@@ -57,6 +57,7 @@ namespace Mediana.NativeTests
             await MatroskaPacketIndexReferenceInput.VerifyAsync();
             await MatroskaClockTestInput.VerifyReferencesAsync();
             await MatroskaClockTestInput.VerifyInvalidAsync();
+            await MatroskaClockTestInput.VerifySegmentDurationsAsync();
             MatroskaClockTestInput.VerifyAllocation();
             await MatroskaCodecTestInput.VerifyMappingsAsync();
             await MatroskaCodecTestInput.VerifyInvalidAsync();

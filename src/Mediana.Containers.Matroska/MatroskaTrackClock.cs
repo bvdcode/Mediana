@@ -27,7 +27,23 @@ namespace Mediana.Containers.Matroska
             segmentScale = timestampScale;
             codecDelay = timing.CodecDelayNanoseconds;
             unitTrackScale = timing.TimestampScale == 1;
-            ulong bits = BitConverter.DoubleToUInt64Bits(timing.TimestampScale);
+            (trackTickNumerator, trackTickDenominator) = ScaleFloat(timing.TimestampScale, timestampScale);
+        }
+
+        public static MediaDuration GetSegmentDuration(double ticks, ulong timestampScale)
+        {
+            ArgumentOutOfRangeException.ThrowIfZero(timestampScale);
+            if (!double.IsFinite(ticks) || ticks <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(ticks));
+            }
+            (BigInteger numerator, BigInteger denominator) = ScaleFloat(ticks, timestampScale);
+            return new(Round(numerator, denominator), TimeBase);
+        }
+
+        private static (BigInteger Numerator, BigInteger Denominator) ScaleFloat(double value, ulong timestampScale)
+        {
+            ulong bits = BitConverter.DoubleToUInt64Bits(value);
             int exponent = (int)(bits >> 52);
             ulong significand = bits & ((1UL << 52) - 1);
             int shift;
@@ -51,8 +67,7 @@ namespace Mediana.Containers.Matroska
                 denominator <<= -shift;
             }
             BigInteger divisor = BigInteger.GreatestCommonDivisor(numerator, denominator);
-            trackTickNumerator = numerator / divisor;
-            trackTickDenominator = denominator / divisor;
+            return (numerator / divisor, denominator / divisor);
         }
 
         public static TimeBase TimeBase { get; } = new(1, (int)NanosecondsPerSecond);

@@ -11,6 +11,33 @@ namespace Mediana.Tests
 {
     internal static class MatroskaClockTestInput
     {
+        public static async Task VerifySegmentDurationsAsync()
+        {
+            (double Ticks, ulong Scale, long Nanoseconds)[] cases =
+            [
+                (0.5, 1, 0), (1.5, 1, 2), (2.5, 1, 2), (double.BitIncrement(0.5), 1, 1),
+                (double.Epsilon, ulong.MaxValue, 0), (0.25, ulong.MaxValue, 4611686018427387904),
+                (1621, 1000000, 1621000000)
+            ];
+            foreach ((double ticks, ulong scale, long nanoseconds) in cases)
+            {
+                Require(MatroskaTrackClock.GetSegmentDuration(ticks, scale) == new MediaDuration(nanoseconds, MatroskaTrackClock.TimeBase));
+            }
+            foreach (double invalid in new[] { 0, -1, double.NaN, double.PositiveInfinity })
+            {
+                await RejectAsync<ArgumentOutOfRangeException>(() =>
+                {
+                    MatroskaTrackClock.GetSegmentDuration(invalid, 1);
+                    return Task.CompletedTask;
+                });
+            }
+            await RejectAsync<NotSupportedException>(() =>
+            {
+                MatroskaTrackClock.GetSegmentDuration(0.5, ulong.MaxValue);
+                return Task.CompletedTask;
+            });
+        }
+
         public static async Task VerifyReferencesAsync()
         {
             string path = Path.Combine(AppContext.BaseDirectory, "Data", "Matroska", "clock-vectors.json");
