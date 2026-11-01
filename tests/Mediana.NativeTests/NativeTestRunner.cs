@@ -72,6 +72,10 @@ namespace Mediana.NativeTests
             await PdfReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Pdf"));
             await PdfStreamOwnershipTestInput.VerifyAsync();
             await PdfStreamOwnershipTestInput.VerifyAllocationAsync();
+            BoundedStreamReadTestInput.VerifySynchronous();
+            BoundedStreamReadTestInput.VerifyAllocationSynchronous();
+            await BoundedStreamReadTestInput.VerifyAsync();
+            await BoundedStreamReadTestInput.VerifyAllocationAsync();
             Console.WriteLine("PASS PDF: detached pages, vector order, clipping and transparency.");
             await VectorImageEngineTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             await ImageOutputAllocationTestInput.VerifyAsync();
