@@ -119,3 +119,7 @@ The original MOV has video stream 0 and audio stream 2:
 ```sh
 DOTNET_PROCESSOR_COUNT=1 taskset -c 2 mediana hls encode input.mov output-hls --audio-stream 2 --audio-codec Aac --audio-channels 2 --audio-bit-rates 96000,128000 --segment-ms 6000 --qp 26 --video-bit-rates 10000000,5000000 --video-buffer-ms 2000 --no-color --widths 1280 640
 ```
+
+The separate [video stage measurements](h264-stage-performance.md) compare
+complete decoding and encoding on the same minute-long cut and include
+diagnostic CPU dispatch controls. They do not update the full-film ratio above.
