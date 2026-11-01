@@ -77,14 +77,14 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private static int HorizontalSum(ReadOnlySpan<byte> samples, int start) =>
+        internal static int HorizontalSum(ReadOnlySpan<byte> samples, int start) =>
             samples[start] + samples[start + 5] - 5 * (samples[start + 1] + samples[start + 4]) +
             20 * (samples[start + 2] + samples[start + 3]);
 
         private static int Horizontal(ReadOnlySpan<byte> samples, int position) =>
             Half(HorizontalSum(samples, position - FirstTap));
 
-        private static int Vertical(ReadOnlySpan<byte> samples, int stride, int position)
+        internal static int Vertical(ReadOnlySpan<byte> samples, int stride, int position)
         {
             int start = position - FirstTap * stride;
             int sum = samples[start] + samples[start + 5 * stride] -
@@ -93,7 +93,7 @@ namespace Mediana.Codecs.H264
             return Half(sum);
         }
 
-        private static int Diagonal(ReadOnlySpan<int> horizontal, int stride, int start)
+        internal static int Diagonal(ReadOnlySpan<int> horizontal, int stride, int start)
         {
             int sum = horizontal[start] + horizontal[start + 5 * stride] -
                 5 * (horizontal[start + stride] + horizontal[start + 4 * stride]) +
@@ -101,7 +101,7 @@ namespace Mediana.Codecs.H264
             return Math.Clamp((sum + 512) >> 10, 0, 255);
         }
 
-        private static int Half(int value) => Math.Clamp((value + 16) >> 5, 0, 255);
+        internal static int Half(int value) => Math.Clamp((value + 16) >> 5, 0, 255);
         private static int Average(int a, int b) => (a + b + 1) >> 1;
     }
 }

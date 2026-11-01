@@ -96,7 +96,7 @@ namespace Mediana.Tests
             }
         }
 
-        private static int Pixel(ReadOnlySpan<byte> source, long quarterX, long quarterY)
+        internal static int Pixel(ReadOnlySpan<byte> source, long quarterX, long quarterY)
         {
             long x = quarterX >> 2;
             long y = quarterY >> 2;

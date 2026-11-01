@@ -9,7 +9,7 @@ namespace Mediana.Codecs.H264
         public int MaximumPacketBytes { get; init; } = 16 * 1024 * 1024;
         /// <summary>Media-time IDR interval; the first eligible frame starts the next group. Zero makes every frame an IDR.</summary>
         public TimeSpan KeyFrameInterval { get; init; } = TimeSpan.FromSeconds(2);
-        /// <summary>Maximum full-pixel motion displacement in either direction, from zero to 64.</summary>
+        /// <summary>Maximum absolute motion displacement in luma pixels, from zero to 64. Zero disables motion refinement.</summary>
         public int MotionSearchRange { get; init; } = 16;
         public H264RateControlOptions? RateControl { get; init; }
 

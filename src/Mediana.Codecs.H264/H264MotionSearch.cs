@@ -45,6 +45,7 @@ namespace Mediana.Codecs.H264
             H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), source, candidate, prediction);
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
             search.Scan(range, token);
+            search.Refine(range, token);
             return (search.motionX, search.motionY, search.best == 0);
         }
 
@@ -78,6 +79,44 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        private void Refine(int range, CancellationToken token)
+        {
+            if (range == 0 || (best == 0 && motionX == predicted.X && motionY == predicted.Y))
+            {
+                return;
+            }
+            int limit = range * 4;
+            int originX = motionX;
+            int originY = motionY;
+            Span<byte> samples = stackalloc byte[H264LumaNeighborhood.SampleBytes];
+            Span<byte> filtered = stackalloc byte[H264LumaNeighborhood.FilteredBytes];
+            H264LumaNeighborhood neighborhood = new(reference, (long)position.X + (originX >> 2),
+                (long)position.Y + (originY >> 2), samples, filtered);
+            ReadOnlySpan<int> offsetsX = [-1, 0, 1, -1, 1, -1, 0, 1];
+            ReadOnlySpan<int> offsetsY = [-1, -1, -1, 0, 0, 1, 1, 1];
+            for (int step = 2; step >= 1 && range > 0; step /= 2)
+            {
+                token.ThrowIfCancellationRequested();
+                if (best == 0 && motionX == predicted.X && motionY == predicted.Y)
+                {
+                    break;
+                }
+                int centerX = motionX;
+                int centerY = motionY;
+                for (int direction = 0; direction < offsetsX.Length; direction++)
+                {
+                    int nextX = centerX + offsetsX[direction] * step;
+                    int nextY = centerY + offsetsY[direction] * step;
+                    if (Math.Abs(nextX) <= limit && Math.Abs(nextY) <= limit && (nextX != motionX || nextY != motionY))
+                    {
+                        neighborhood.Read(nextX - originX, nextY - originY, candidate[..256]);
+                        Compare(nextX, nextY);
+                    }
+                }
+            }
+            Evaluate(Math.Clamp(predicted.X, -limit, limit), Math.Clamp(predicted.Y, -limit, limit));
+        }
+
         private void Evaluate(int nextX, int nextY)
         {
             if (nextX == motionX && nextY == motionY)
@@ -85,6 +124,11 @@ namespace Mediana.Codecs.H264
                 return;
             }
             H264PredictionBlock.Read(reference, 0, position.X, position.Y, 16, 16, nextX, nextY, candidate[..256]);
+            Compare(nextX, nextY);
+        }
+
+        private void Compare(int nextX, int nextY)
+        {
             int difference = Difference(source[..256], candidate[..256], best);
             if (difference > best)
             {
