@@ -32,6 +32,32 @@ namespace Mediana.Tests
             }
             Require(allocator.AllocatedBytes == 0 && !source.IsDisposed);
 
+            foreach (MatroskaTrack native in new[]
+            {
+                AudioTrack(asc) with { CodecId = "A_OPUS" },
+                AudioTrack(asc) with { CodecId = "mp3" },
+                AudioTrack(asc) with { CodecId = "A_AAC/MPEG4/LC" },
+                AudioTrack(asc) with { ContentEncodings = new(0x6D80, 0, 0) },
+                AudioTrack(asc) with { TrackOperation = new(0xE2, 0, 0) }
+            })
+            {
+                await using EbmlElementTestSource nativeSource = new(Data(asc));
+                using MatroskaPacketIndex nativeIndex = await BuildAsync(nativeSource, allocator, [native]);
+                IReadOnlyList<MatroskaCodecConfiguration> result = await ReadCodecsAsync(nativeSource, allocator, [native], nativeIndex);
+                Require(result[0].Stream.CodecId == native.CodecId);
+                Require(result[0].Stream.Format == MatroskaStreamFormats.StoredFrames);
+                Require(result[0].Stream.Configuration.Span.SequenceEqual(asc) && result[0].FrameDuration is null);
+            }
+            Require(allocator.AllocatedBytes == 0);
+            await using (EbmlElementTestSource emptySource = new(Data([])))
+            {
+                MatroskaTrack empty = AudioTrack([]) with { CodecId = "A_OPUS", CodecPrivate = null };
+                using MatroskaPacketIndex emptyIndex = await BuildAsync(emptySource, allocator, [empty]);
+                IReadOnlyList<MatroskaCodecConfiguration> result = await ReadCodecsAsync(emptySource, allocator, [empty], emptyIndex);
+                Require(result[0].Stream.Configuration.IsEmpty && result[0].Stream.Format == MatroskaStreamFormats.StoredFrames);
+            }
+            Require(allocator.AllocatedBytes == 0);
+
             byte[] frame = new byte[384];
             new byte[] { 0xFF, 0xFB, 0x94, 0xC0 }.CopyTo(frame, 0);
             data = Data([], Cluster(Unsigned(0xE7, 0), Block(payload: frame)));
@@ -55,10 +81,8 @@ namespace Mediana.Tests
             MatroskaTrack valid = AudioTrack(asc);
             foreach (MatroskaTrack invalid in new[]
             {
-                valid with { Audio = null }, valid with { Type = 1 }, valid with { CodecId = "A_OPUS" },
-                valid with { CodecId = "A_AAC/MPEG4/LC" }, valid with { CodecPrivate = null },
-                valid with { CodecPrivate = new(0x63A2, 1, 1) }, valid with { CodecPrivate = new(0x63A2, 1, long.MaxValue) },
-                valid with { ContentEncodings = new(0x6D80, 0, 0) }, valid with { TrackOperation = new(0xE2, 0, 0) }
+                valid with { Audio = null }, valid with { Type = 1 }, valid with { CodecPrivate = null },
+                valid with { CodecPrivate = new(0x63A2, 1, 1) }, valid with { CodecPrivate = new(0x63A2, 1, long.MaxValue) }
             })
             {
                 await RejectMappingAsync(Data(asc), [invalid]);
@@ -66,6 +90,7 @@ namespace Mediana.Tests
             await RejectMappingAsync(Data([0x11]), [AudioTrack([0x11])]);
             await RejectMappingAsync(Data([0x17, 0x08]), [AudioTrack([0x17, 0x08])]);
             await RejectMappingAsync(Data(asc), [valid], maximumBytes: 1);
+            await RejectMappingAsync(Data(asc), [valid with { CodecId = "A_OPUS" }], maximumBytes: 1);
             await RejectMappingAsync(Data(asc), [valid, valid with { Number = 2 }], maximumTotalBytes: 3);
             await RejectMappingAsync(Data([]), [AudioTrack([]) with { CodecId = "A_MPEG/L3" }]);
             await RejectMappingAsync(Data([], Cluster(Unsigned(0xE7, 0), Block(payload: [0xFF]))),
