@@ -81,3 +81,45 @@ negative half-nanosecond ties, cancellation of large codec delays, and 256 AAC
 frame offsets at 44.1, 48, 7.35 and 96 kHz. Four hundred additional cases use
 Python's deterministic random seed 9559. Clock tests and real-file packet-clock
 comparisons run in both managed and Native AOT builds.
+
+## Complete packet decoding
+
+`mp3-low-rate.mka` stream-copies the authored MPEG-2.5 mono track from
+`../Mp3/mono-low-rate.mp3`, preserving all 82 Layer III frames:
+
+```sh
+ffmpeg -v error -nostdin -i tests/Mediana.Tests/Data/Mp3/mono-low-rate.mp3 \
+  -map 0:a:0 -c copy -map_metadata -1 mp3-low-rate.mka
+ffprobe -v error -show_packets -show_streams -show_data_hash sha256 \
+  -of json mp3-low-rate.mka > mp3-low-rate.external.json
+```
+
+`decode-references.json` records complete input, compressed reference and PCM
+SHA-256 values for all six files. Each independent float32 little-endian audio
+reference is produced by FFmpeg 6.1.1 with the following command, then stored
+with gzip timestamp zero. The Xiph, EBML and BlockGroup inputs share identical PCM.
+
+```sh
+ffmpeg -v error -nostdin -i input.mka -map 0:a:0 \
+  -c:a pcm_f32le -f f32le output.f32le
+```
+
+Managed and Native AOT checks read all 178 packets in physical order and through
+independent reverse per-track access. Their payload hashes match the independent
+references. First-in-block PTS values match the declared external time base;
+later AAC lace timestamps use exact 1024-sample intervals before nanosecond
+rounding. FFprobe's coarse inferred lace timestamps are not used as sample clocks.
+
+All eight AVC pictures match `../Mp4/avc-aac.sequence.yuv` exactly, including
+presentation order and time. MP3 PCM matches the independent reference within
+`2e-6`. AAC packets are inspected for PNS; deterministic PCM uses the same
+pointwise tolerance, while PNS uses the existing six-percent per-channel block
+energy bound and finite-sample checks. Every AAC output byte also matches
+decoding the corresponding original MP4 access units, including repeating the
+first unit for the fixed-size lace.
+
+The three repeated PNS units differ from the independent decoder by about
+0.2622 percent in total energy. This result does not meet the separate
+0.1-percent whole-sequence bound used by the existing longer AAC quality fixtures;
+those existing checks retain their original bounds. This container integration
+check establishes packet and decode-path identity, not complete AAC quality.
