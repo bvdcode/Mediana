@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../Mediana.Formats/Mediana.Formats.csproj" />
     <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />
   </ItemGroup>
 </Project>
