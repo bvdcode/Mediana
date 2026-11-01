@@ -9,6 +9,11 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            FontGlyphTestInput.VerifyRejectedAllocation();
+            FontGlyphTestInput.VerifyTruncatedGlyphs();
+            FontGlyphTestInput.VerifyValidOutlines();
+            FontGlyphTestInput.VerifyEmptyOutlines();
+            FontGlyphTestInput.VerifyCompositeInstructions();
             await PdfReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Pdf"));
             await PdfContentOwnershipTestInput.VerifyAsync();
             await PdfContentOwnershipTestInput.VerifyAllocationAsync();
