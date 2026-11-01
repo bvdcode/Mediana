@@ -31,9 +31,8 @@ namespace Mediana.Sample
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             using VideoFrame preview = SrgbPreview.Fit(frame, displayMatrix, MaximumSize, MaximumSize, allocator,
                 cancellationToken);
-            using MediaBuffer png = PngEncoder.Encode(preview, allocator, cancellationToken: cancellationToken);
             await using FileStream destination = new(output, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-            await destination.WriteAsync(png.Memory, cancellationToken);
+            await PngEncoder.EncodeAsync(preview, destination, allocator, cancellationToken);
             await Console.Out.WriteLineAsync($"Preview: {preview.Format.Width}x{preview.Format.Height}, sRGB; selected PTS {frame.Timestamp?.Value} at {frame.Timestamp?.TimeBase.Numerator}/{frame.Timestamp?.TimeBase.Denominator}.");
             return 0;
         }

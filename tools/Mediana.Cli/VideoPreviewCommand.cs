@@ -54,14 +54,15 @@ namespace Mediana.Cli
             MediaBufferAllocator allocator = new(ProcessingBufferBudgetBytes);
             int width;
             int height;
-            int encodedLength;
+            long encodedLength = 0;
             using (VideoFrame preview = SrgbPreview.Fit(decoded, color, displayMatrix, maximumWidth, maximumHeight, allocator, cancellationToken: cancellationToken))
-            using (MediaBuffer png = PngEncoder.Encode(preview, allocator, cancellationToken: cancellationToken))
             {
                 width = preview.Format.Width;
                 height = preview.Format.Height;
-                encodedLength = png.Memory.Length;
-                await outputFile.WriteAsync(async output => await output.WriteAsync(png.Memory, cancellationToken), cancellationToken: cancellationToken);
+                await outputFile.WriteAsync(async output =>
+                {
+                    encodedLength = await PngEncoder.EncodeAsync(preview, output, allocator, cancellationToken);
+                }, cancellationToken: cancellationToken);
             }
             decoded.Dispose();
             await session.DisposeAsync();

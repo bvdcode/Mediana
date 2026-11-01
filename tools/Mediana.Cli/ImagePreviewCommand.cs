@@ -32,10 +32,13 @@ namespace Mediana.Cli
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
             using (VideoFrame frame = await engine.DecodeImageAsync(source, allocator, request, cancellationToken: cancellationToken))
             using (VideoFrame srgb = SrgbConverter.Apply(frame, allocator, cancellationToken: cancellationToken))
-            using (MediaBuffer png = PngEncoder.Encode(srgb, allocator, cancellationToken: cancellationToken))
             {
-                await outputFile.WriteAsync(async output => await output.WriteAsync(png.Memory, cancellationToken), cancellationToken: cancellationToken);
-                await Console.Out.WriteLineAsync($"PNG image: {frame.Format.Width}x{frame.Format.Height}; {png.Memory.Length} bytes; sRGB.");
+                long encodedLength = 0;
+                await outputFile.WriteAsync(async output =>
+                {
+                    encodedLength = await PngEncoder.EncodeAsync(srgb, output, allocator, cancellationToken);
+                }, cancellationToken: cancellationToken);
+                await Console.Out.WriteLineAsync($"PNG image: {frame.Format.Width}x{frame.Format.Height}; {encodedLength} bytes; sRGB.");
             }
             if (allocator.AllocatedBytes != 0)
             {

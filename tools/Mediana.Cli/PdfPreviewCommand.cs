@@ -34,8 +34,10 @@ namespace Mediana.Cli
         }
         private static async Task WriteAsync(VideoFrame frame, CommandOutputFile output, MediaBufferAllocator allocator, CancellationToken cancellationToken)
         {
-            using MediaBuffer png = PngEncoder.Encode(frame, allocator, cancellationToken: cancellationToken);
-            await output.WriteAsync(async stream => await stream.WriteAsync(png.Memory, cancellationToken), cancellationToken: cancellationToken);
+            await output.WriteAsync(async stream =>
+            {
+                await PngEncoder.EncodeAsync(frame, stream, allocator, cancellationToken);
+            }, cancellationToken: cancellationToken);
         }
     }
 }
