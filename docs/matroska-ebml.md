@@ -1,8 +1,9 @@
 # Matroska EBML foundation
 
 `Mediana.Containers.Matroska` contains internal EBML value decoding, document
-header validation, bounded Segment traversal and Block framing. Track descriptions, packet reading,
-seeking and container attachment extraction are the next integration work.
+header validation, bounded Segment traversal, Block framing and native Info/Tracks
+metadata. Packet indexing, codec integration, seeking and container attachment
+extraction are the next integration work.
 MKV probing and decoding are not exposed through the public engine yet.
 
 ## Format rules
@@ -74,6 +75,39 @@ need track or codec timing as specified by RFC 9559, section 10.3.5. Framing alo
 does not assign those timestamps, infer DTS, validate codec payloads or construct
 the complete media packet index.
 
+## Segment and track metadata
+
+Info reading preserves the native TimestampScale and floating-point Duration in
+Segment Ticks. Dates retain signed nanoseconds relative to 2001-01-01. UUIDs keep
+their network byte order, and linked Segment identities remain explicit. These
+declarations do not establish a complete packet timeline or coded duration.
+
+Tracks retain declaration order, native number and UID, codec identifier, flags,
+language declarations and name. Track timing retains TimestampScale,
+DefaultDuration, CodecDelay and SeekPreRoll in their declared units. Native track
+numbers do not become public zero-based stream indices at this layer. Unknown
+track types and codec identifiers remain explicit values.
+
+Audio and video settings resolve schema defaults after reading the relevant
+fields. An empty OutputSamplingFrequency uses SamplingFrequency regardless of
+field order. Pixel-unit display dimensions default to dimensions after cropping;
+other display units have no implicit dimensions. Invalid crops are rejected
+without overflowing unsigned coordinate arithmetic.
+
+CodecPrivate, ContentEncodings, TrackOperation, Colour and Projection retain
+source extents. Reading their layout does not allocate or interpret their complete
+payloads. Applying codec transformations, color and projection declarations belongs
+to the subsequent integration work.
+
+CRCs on metadata masters being read are verified in 4 KiB chunks using IEEE
+CRC-32 and little-endian stored values. A present parent CRC reads all covered
+bytes, including deferred payloads. CRC must be the first child and contain four
+bytes. One metadata reader owns 4,108 media bytes: a 4 KiB scratch buffer and a
+12-byte element-header buffer. Longer text uses a temporary quota-backed buffer.
+Track count, recognized text bytes and traversed metadata elements have supplied
+limits accumulated across that reader's lifetime. Returned strings and metadata
+objects are separate from the media-byte quota.
+
 ## Bounds and ownership
 
 The element reader borrows a random-access source and leaves its sequential
@@ -123,5 +157,13 @@ All 96 encoded packets across the original MKV and four authored laced AAC
 documents have independent size and SHA-256 references. Tests verify every
 frame range and stored block timestamp in managed and Native AOT builds.
 
-All 2,750 managed tests and the complete strict Linux x64 Native AOT runner pass.
+Metadata checks cover independent declarations and codec facts for all six timed
+tracks in those five files, including exact codec-private offsets and hashes.
+Shared tests cover defaults, ordering, duplicates, native timestamp units, UUIDs,
+cropping, text/count quotas, constructor failures and cancellation during long
+text and CRC reads. A virtual one-terabyte CodecPrivate extent without a parent
+CRC is indexed with 4,108 media bytes and fewer than sixteen source reads.
+Every truncated prefix of the minimum Info payload rejects and releases storage.
+
+All 2,761 managed tests and the complete strict Linux x64 Native AOT runner pass.
 The Release build, formatting and license-header checks also pass.
