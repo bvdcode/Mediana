@@ -42,6 +42,14 @@ interpretation. Detached pages own their RGBA pixels independently. Rendering
 into an allocator-backed `PixelBuffer` and publishing it transfers its final
 pixel storage into a frame without a second RGBA allocation.
 
+Page interpretation borrows a single decoded content stream directly, including
+an array containing one stream. Multiple content streams are combined in their
+original order into one exact-length array. Operands and graphics state span
+stream boundaries, as required by [ISO 32000-1, Table 30](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf).
+The page-content limit counts actual decoded bytes, including repeated stream
+references; no separator bytes are added. Detached pages retain interpreted
+commands and pixels independently of these temporary syntax buffers.
+
 Flate decoding borrows its encoded stream bytes for the duration of decoding.
 Decompression and prediction produce independent decoded storage; the existing
 decoded byte limits still apply. The encoded input is not copied into a second

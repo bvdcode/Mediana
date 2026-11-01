@@ -43,6 +43,7 @@
     <Compile Include="../Shared/PdfStructureTestInput.cs" Link="PdfStructureTestInput.cs" />
     <Compile Include="../Shared/PdfPixelReference.cs" Link="PdfPixelReference.cs" />
     <Compile Include="../Shared/PdfTestDocument.cs" Link="PdfTestDocument.cs" />
+    <Compile Include="../Shared/PdfContentOwnershipTestInput.cs" Link="PdfContentOwnershipTestInput.cs" />
     <Compile Include="../Shared/PdfStreamOwnershipTestInput.cs" Link="PdfStreamOwnershipTestInput.cs" />
     <Compile Include="../Shared/BoundedStreamReadTestInput.cs" Link="BoundedStreamReadTestInput.cs" />
     <Compile Include="../Shared/FragmentedReadStream.cs" Link="FragmentedReadStream.cs" />
