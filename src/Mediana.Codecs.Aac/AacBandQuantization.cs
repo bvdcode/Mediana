@@ -12,27 +12,8 @@ namespace Mediana.Codecs.Aac
             {
                 return new(scale, 0, 0, double.PositiveInfinity);
             }
-            int maximum = 0;
-            foreach (int value in quantized)
-            {
-                maximum = Math.Max(maximum, Math.Abs(value));
-            }
-            if (maximum == 0)
-            {
-                return new(scale, 0, 0, error);
-            }
-            byte book = 0;
-            int best = int.MaxValue;
-            for (int codebook = 1; codebook <= 11; codebook++)
-            {
-                int bits = AacHuffmanEncoder.Count(codebook, quantized);
-                if (bits < best)
-                {
-                    best = bits;
-                    book = (byte)codebook;
-                }
-            }
-            return new(scale, book, best, error);
+            (byte book, int bits) = AacHuffmanEncoder.SelectCodebook(quantized);
+            return new(scale, book, bits, error);
         }
     }
 }

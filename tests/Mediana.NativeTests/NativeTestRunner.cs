@@ -49,6 +49,7 @@ namespace Mediana.NativeTests
             await Mp4HeaderDateTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
             Console.WriteLine("PASS header dates: unsigned v0/v1 fields, UTC/unspecified zones, distinct scopes and complete packet references.");
             await Mp4FrameRateTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
+            Console.WriteLine($"PASS AAC spectral codebook selection: {AacCodebookSelectionTestInput.VerifyTuples()} complete tuple/sign cases and {AacCodebookSelectionTestInput.VerifyBands()} long/short/escaped bands preserve exact costs, bytes and decoded values.");
             await NativeServerPreviewTests.RunAsync();
             Console.WriteLine("PASS indexed video rates: exact fractional CFR, VFR, reordered/edited samples, both timelines and complete packet references.");
             await QuickTimeAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
