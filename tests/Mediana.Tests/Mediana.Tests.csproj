@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/H264ForwardTransformTestInput.cs" Link="H264ForwardTransformTestInput.cs" />
     <Compile Include="../Shared/AacCodebookSelectionTestInput.cs" Link="AacCodebookSelectionTestInput.cs" />
     <Compile Include="../Shared/ServerContainerPreviewTestInput.cs" Link="ServerContainerPreviewTestInput.cs" />
     <Compile Include="../Shared/ContainerDecodeTransferTestInput.cs" Link="ContainerDecodeTransferTestInput.cs" />
