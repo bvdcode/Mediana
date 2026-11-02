@@ -71,10 +71,40 @@ also independently decodes with the expected original clock plus the TS offset.
 These are interval correctness and bounded-access checks, not an encoder speed
 comparison or complete independently requested A/V HLS acceptance.
 
-Complete transcoding of the reordered VFR and edited VFR fixtures exposes an
-existing timing issue: decoded frame durations still inherit decode-order sample
-durations, which can overlap the next presentation time at cadence changes.
-Both the preceding and current sample reject those full inputs. The interval
-selector preserves that information rather than changing durations. Separating
-these intervals is required by [the composition offset model](https://developer.apple.com/documentation/quicktime-file-format/composition_offset_atom).
-Presentation duration handling and independent AAC segment boundaries remain open.
+## Decode and presentation intervals
+
+MP4 sample durations describe decode-order intervals. With reordered pictures,
+these intervals can differ from the time a decoded picture is displayed. Passing
+a sample's decode duration directly to the encoder caused full VFR transcodes to
+fail at cadence changes: a 50 ms decode interval could overlap the next picture,
+whose presentation time was only 20 ms later.
+
+`IIndexedPresentationTimingReader` provides optional presentation intervals for
+indexed packets containing complete presentation units. The selected decode
+cursor uses this duration with the original encoded payload, PTS and DTS. Raw
+sequential and indexed packets retain their original sample durations, preserving
+copy and remux behavior. `MediaPacket.RetainWithDuration` creates an independent
+lease on the same immutable buffer; it does not copy encoded bytes. A null
+presentation interval remains unknown when passed to the decoder.
+
+For reordered MP4 tracks, the reader lazily sorts sample timestamps from metadata.
+Consecutive distinct presentation times define each interval. The final displayed
+sample keeps its own decode duration, following [the composition offset model](https://developer.apple.com/documentation/quicktime-file-format/composition_offset_atom).
+Tied composition times in this index have unknown intervals. Signed composition
+offsets and linear movie time mapping preserve the result.
+
+The index performs no encoded-media I/O and preserves packet cursors. Construction
+uses O(n log n) time and 20 bytes per sample at peak, charged to the media buffer
+budget. It retains eight bytes per sample only when intervals need correction;
+unchanged tracks release the expanded storage. Tracks without composition offsets
+or with a constant offset use their original durations directly. Cancellation or
+a budget failure releases temporary storage and leaves construction retryable.
+
+`MediaEngine` sessions apply this capability automatically. Applications connecting
+an indexed reader directly to a codec can query it and retain the packet with that
+duration explicitly; codecs do not infer container timing from compressed pictures.
+The interval selector continues to preserve the duration supplied by its callback.
+
+Complete CFR, VFR, edited VFR and HD transcodes now finish and independently decode
+with every original presentation time. The CFR transport remains byte-for-byte
+identical to the preceding output. Independent AAC segment boundaries remain open.
