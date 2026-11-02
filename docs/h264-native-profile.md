@@ -136,3 +136,7 @@ work. Changes to search effort or its rate-distortion objective require complete
 CPU, output-size and independently decoded quality comparisons. Disabling a
 search component alone does not establish equivalent quality or explain the
 complete performance gap.
+
+Subsequent [transform-domain search trials](h264-transform-search.md) failed
+quality checks; the complete YUV trial also cost more CPU. A separate complete
+work census found no picture or macroblock retries on this HD input.
