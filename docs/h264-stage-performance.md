@@ -29,9 +29,15 @@ Its CPU difference varies between execution orders, so a stable CPU improvement
 is not established. Fresh one-thread FFmpeg/libx264 uses 12.265 CPU seconds
 versus 39.190 for Mediana, a 3.20x gap with different compression efficiency.
 The [encoder work distribution](h264-encoder-work.md) separates CAVLC writing,
-inverse transforms and reconstructed-block writes. Direct CAVLC, complete
-reference-plane preparation and fractional-filter instruction variants were
-measured without establishing a useful encoding CPU improvement.
+inverse transforms and reconstructed-block writes. Earlier direct-codeword,
+complete reference-plane and fractional-filter instruction variants did not
+establish a useful encoding CPU improvement. Subsequent
+[native interpolation](h264-native-interpolation.md) and
+[direct CAVLC coding](h264-cavlc-encoding.md) reduce encoding CPU by 5.04% and
+8.08% in separate comparisons. The current
+[same-source instruction-set control](h264-instruction-set.md) does not
+establish an acceleration from targeting the build processor's instructions.
+These separate measurements do not update complete-film throughput.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
 uses 962.836 CPU seconds versus 274.925 for FFmpeg, a 3.50x gap,
 with all 406 published files identical to their independently verified references.

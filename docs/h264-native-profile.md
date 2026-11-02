@@ -149,3 +149,9 @@ performance gap remains open.
 Subsequent [direct CAVLC level coding](h264-cavlc-encoding.md) removes prefix
 enumeration and combines each level into one bit-field write. Complete encoding
 CPU decreases by 8.08% in its serial comparison, with identical output.
+
+The [current same-source instruction-set control](h264-instruction-set.md)
+does not establish an acceleration from targeting the build processor's
+instructions. Its fresh native stack diagnostic retains motion search as the
+largest named group; neither the stack counts nor the compilation control
+explain the complete competitive CPU difference.
