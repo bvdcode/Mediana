@@ -1254,6 +1254,10 @@ QP26, a two-second IDR interval and a 16-pixel motion-search range. An explicit
 zero interval selects all-IDR encoding. Input timing, SAR and source color are
 preserved; output packet ownership and reconstructed storage are bounded.
 Optional rate control adapts slice QP within a media-time packet budget.
+Private reconstruction storage is reused between pictures and rate-control
+attempts, and released on input completion, reset, failure or disposal. Retained
+output packets remain independent. See the measured
+[reconstruction storage comparison](docs/h264-reconstruction-storage.md).
 
 ```sh
 mediana -i input.mp4 output.ts --video-codec H264 --video-only --qp 26

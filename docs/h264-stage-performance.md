@@ -5,12 +5,18 @@ reduction is 16.18% over four complete 60.041667-second observations per version
 RSS is essentially unchanged. The
 [edge-filtering](h264-edge-filtering.md) and
 [bit-reading](h264-bit-reading.md) comparisons measure separate preceding changes.
-The latest [integer motion search comparison](h264-integer-search.md) reduces
+The [integer motion search comparison](h264-integer-search.md) reduces
 raw encoding CPU from 52.424 to 50.729 seconds (3.23%) with identical output.
 Fresh FFmpeg/libx264 uses 15.144 CPU seconds, a 3.35x gap; its reference remains
 smaller with higher PSNR. The preceding
 [block interpolation comparison](h264-block-interpolation.md) measures a
 separate earlier change. The stages are measured separately.
+The latest [reconstruction storage comparison](h264-reconstruction-storage.md)
+reduces cumulative encoding allocation by 56.41%, peak RSS by 26.69% and Gen2
+collections by half across eight complete minute encodes with identical output.
+Its CPU difference varies between execution orders, so a stable CPU improvement
+is not established. Fresh one-thread FFmpeg/libx264 uses 12.265 CPU seconds
+versus 39.190 for Mediana, a 3.20x gap with different compression efficiency.
 The [encoder work distribution](h264-encoder-work.md) separates CAVLC writing,
 inverse transforms and reconstructed-block writes. Direct CAVLC, complete
 reference-plane preparation and fractional-filter instruction variants were
