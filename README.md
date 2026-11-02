@@ -213,9 +213,11 @@ Layer III files. MP4-to-HLS copies the supported AVC/AAC/MP3 tracks without re-e
 supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It writes raw,
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
-H.264 subset described above. An explicit `--video-codec H264 --video-only` selects
-fixed-QP I/P video encoding to TS. `--audio-codec Aac` selects audio-only AAC-LC
-encoding to TS; see [audio encoding contracts and limits](docs/aac-encoding.md).
+H.264 subset described above. `--video-codec H264` selects fixed-QP I/P video
+encoding to TS. Inputs without audio need no audio-selection option. If audio is
+present, this command requires `--video-only` to explicitly omit it; combined video
+encoding and audio output is available through `hls encode`. `--audio-codec Aac`
+selects audio-only AAC-LC encoding to TS; see [audio encoding contracts and limits](docs/aac-encoding.md).
 The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
 
