@@ -75,6 +75,16 @@ without copying the preceding packet or retaining another picture. The final
 escaped packet still obeys its byte and rate budgets. A fixed-QP packet that
 cannot fit fails without changing QP.
 
+Two Baseline profile-boundary cases remain open. A three-picture 16x16 QP0
+sequence with luma 128 and chroma changing from 0 to 255 produces a chroma DC
+level of 3264 and `level_prefix` 16 in its second picture. Baseline permits at
+most 15; the emitted packet is rejected by the Mediana decoder. Separately,
+I_PCM currently preserves zero-valued samples, which Baseline also prohibits.
+Both constraints appear in clause A.2.1 of
+[ITU-T H.264 (06/2026)](https://www.itu.int/rec/T-REC-H.264-202606-I/en).
+The complete fixed-QP and HD comparisons do not establish conformance for these
+boundaries. Mode selection satisfying both constraints remains to be implemented.
+
 Motion search examines zero displacement and the neighboring-vector predictor,
 then bounded four-direction full-pixel diamond steps. `MotionSearchRange` is the
 maximum displacement in each direction, defaulting to 16 luma pixels and accepting

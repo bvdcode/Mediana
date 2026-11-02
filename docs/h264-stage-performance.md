@@ -1,7 +1,7 @@
-The latest [shared-source encoder comparison](#shared-source-macroblocks) uses
-60.50-60.80 CPU seconds for the complete 60.041667-second HD input, versus
-13.25-13.32 seconds for optimized FFmpeg/libx264. These are isolated encoding
-measurements. The updated [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
+The latest [byte-chunk writer comparison](#byte-chunk-bit-writing) uses
+59.43-60.44 CPU seconds for the complete 60.041667-second HD input, versus
+12.63-13.57 seconds for optimized FFmpeg/libx264. These are isolated encoding
+measurements. The preceding [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
 uses 1205.322 CPU seconds versus 194.151 for FFmpeg, a 6.21x gap,
 with all 406 published files identical to their independently verified references.
 
@@ -577,3 +577,36 @@ measurement batches, so changes in this ratio must not be attributed entirely
 to Mediana. The paired 6.48-6.85% CPU reductions above measure this change
 against its frozen baseline. The reference quality and size differences remain;
 this is not equal-quality throughput and the encoding CPU gap remains open.
+
+## Byte-chunk bit writing
+
+`fb44a66` changes NAL bit-field writing from one iteration per bit to one
+iteration per available byte portion. Partial-byte state, emulation prevention,
+checkpoint restoration, overflow measurement and packet budgets are unchanged.
+The existing storage and public API are retained.
+
+The same complete 1,441-picture raw encoding ran in before/after and after/before
+order with frozen Native AOT binaries and unchanged settings. The baseline
+production code is `241476e`. Every output is byte-identical to the independently
+decoded MPEG-TS reference; every operation reaches EOF and releases media storage.
+
+| Execution order | Before CPU, s | After CPU, s | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Before, after | 61.956 | 60.437 | 63.108 | 60.947 | 50.71 | 51.16 |
+| After, before | 60.766 | 59.427 | 60.846 | 61.381 | 50.68 | 48.73 |
+
+CPU use decreased by 2.45% and 2.20%. Elapsed time improved in the first pair
+and worsened slightly in the reverse pair; peak RSS changed in both directions.
+The observations support a small CPU improvement, not a general memory reduction.
+Two fresh optimized FFmpeg encodes used 12.626 and 13.568 CPU seconds, 12.638 and
+14.070 elapsed seconds, and 110.63 and 112.40 MiB peak RSS. Their complete outputs
+also match the independent reference. The ratio of median CPU observations is
+4.58x; the external run variation and different encoding quality still apply.
+The complete-film HLS comparison has not been repeated for this writer change.
+
+All 2947 managed checks, 686 H.264 checks with hardware intrinsics disabled,
+30 package checks, strict package-only Native AOT verification and the full native
+consumer passed. Shared bit-writing checks cover all eight initial alignments,
+all widths from zero through 64, mixed fields, independent NAL packing and
+escaping, exact bit positions, budget overflow and restoration after storage
+growth. Release build, CLI Native AOT, formatting and license-header checks passed.
