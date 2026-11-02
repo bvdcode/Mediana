@@ -8,14 +8,8 @@ using System.Runtime.Intrinsics.X86;
 
 namespace Mediana.Codecs.H264
 {
-    internal static class H264ForwardTransform
+    internal static partial class H264ForwardTransform
     {
-        private static ReadOnlySpan<int> Scan => [0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15];
-        private static ReadOnlySpan<byte> ScanScales => [0, 1, 1, 0, 2, 0, 1, 1, 1, 1, 2, 0, 2, 1, 1, 2];
-        private static ReadOnlySpan<int> Even => [13107, 11916, 10082, 9362, 8192, 7282];
-        private static ReadOnlySpan<int> Mixed => [8066, 7490, 6554, 5825, 5243, 4559];
-        private static ReadOnlySpan<int> Odd => [5243, 4660, 4194, 3647, 3355, 2893];
-
         public static void Transform4x4(ReadOnlySpan<int> residual, Span<int> transformed)
         {
             if (residual.Length != 16 || transformed.Length != 16)
@@ -36,50 +30,6 @@ namespace Mediana.Codecs.H264
             {
                 TransformLine(transformed, column, 4);
             }
-        }
-
-        public static void Quantize4x4(ReadOnlySpan<int> transformed, int qp, Span<int> scanned)
-        {
-            if (transformed.Length != 16 || scanned.Length is not (15 or 16) || qp is < 0 or > 51)
-            {
-                throw new ArgumentException("The forward H.264 quantizer configuration is invalid.");
-            }
-            int skip = 16 - scanned.Length;
-            int remainder = qp % 6;
-            Span<int> scales = stackalloc int[3] { Even[remainder], Mixed[remainder], Odd[remainder] };
-            int shift = 15 + qp / 6;
-            long rounding = (1L << shift) / 3;
-            for (int index = skip; index < 16; index++)
-            {
-                int position = Scan[index];
-                scanned[index - skip] = Quantize(transformed[position], scales[ScanScales[index]], shift, rounding);
-            }
-        }
-
-        public static void ChromaDc(ReadOnlySpan<int> dc, int qp, Span<int> levels)
-        {
-            if (dc.Length != 4 || levels.Length != 4 || qp is < 0 or > 51)
-            {
-                throw new ArgumentException("The forward H.264 chroma DC transform requires four coefficients.");
-            }
-            int a = dc[0] + dc[1];
-            int b = dc[0] - dc[1];
-            int c = dc[2] + dc[3];
-            int d = dc[2] - dc[3];
-            int shift = 16 + qp / 6;
-            int scale = Even[qp % 6];
-            long rounding = (1L << shift) / 3;
-            levels[0] = Quantize(a + c, scale, shift, rounding);
-            levels[1] = Quantize(b + d, scale, shift, rounding);
-            levels[2] = Quantize(a - c, scale, shift, rounding);
-            levels[3] = Quantize(b - d, scale, shift, rounding);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int Quantize(int value, int scale, int shift, long rounding)
-        {
-            long magnitude = ((long)Math.Abs(value) * scale + rounding) >> shift;
-            return checked((int)(value < 0 ? -magnitude : magnitude));
         }
 
         private static void TransformSse2(ReadOnlySpan<int> residual, Span<int> transformed)

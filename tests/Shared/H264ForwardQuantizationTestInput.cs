@@ -14,6 +14,7 @@ namespace Mediana.Tests
         public static void Verify()
         {
             int[] coefficients = new int[16];
+            Random random = new(8132);
             for (int qp = 0; qp <= 51; qp++)
             {
                 foreach (int value in new[] { -int.MaxValue, -16384, -255, -1, 0, 1, 255, 16384, int.MaxValue })
@@ -34,7 +35,63 @@ namespace Mediana.Tests
                         VerifyBlock(coefficients, qp);
                     }
                 }
+                for (int sample = 0; sample < 64; sample++)
+                {
+                    for (int position = 0; position < coefficients.Length; position++)
+                    {
+                        coefficients[position] = (int)random.NextInt64((long)int.MinValue + 1, (long)int.MaxValue + 1);
+                    }
+                    VerifyBlock(coefficients, qp);
+                }
+                VerifyMinimum(qp);
                 VerifyChroma(qp);
+            }
+            VerifyAllocation();
+        }
+
+        private static void VerifyMinimum(int qp)
+        {
+            int[] coefficients = new int[16];
+            foreach (int count in new[] { 15, 16 })
+            {
+                int[] guarded = new int[count + 2];
+                for (int position = 0; position < coefficients.Length; position++)
+                {
+                    Array.Clear(coefficients);
+                    coefficients[position] = int.MinValue;
+                    Array.Fill(guarded, 197);
+                    bool rejected = false;
+                    try
+                    {
+                        H264ForwardTransform.Quantize4x4(coefficients, qp, guarded.AsSpan(1, count));
+                    }
+                    catch (OverflowException)
+                    {
+                        rejected = true;
+                    }
+                    bool skippedDc = count == 15 && position == 0;
+                    if (rejected == skippedDc || (skippedDc && guarded.AsSpan(1, count).ContainsAnyExcept(0)) ||
+                        guarded[0] != 197 || guarded[^1] != 197 || coefficients[position] != int.MinValue)
+                    {
+                        throw new InvalidDataException("Forward quantization changed minimum-magnitude rejection, skipped DC or storage guards.");
+                    }
+                }
+            }
+        }
+
+        private static void VerifyAllocation()
+        {
+            int[] coefficients = Enumerable.Range(-8, 16).ToArray();
+            int[] levels = new int[16];
+            H264ForwardTransform.Quantize4x4(coefficients, 26, levels);
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int iteration = 0; iteration < 1024; iteration++)
+            {
+                H264ForwardTransform.Quantize4x4(coefficients, 26, levels);
+            }
+            if (GC.GetAllocatedBytesForCurrentThread() != before)
+            {
+                throw new InvalidDataException("The forward block quantizer allocated heap storage.");
             }
         }
 
