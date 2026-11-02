@@ -11,6 +11,9 @@ Fresh FFmpeg/libx264 uses 15.144 CPU seconds, a 3.35x gap; its reference remains
 smaller with higher PSNR. The preceding
 [block interpolation comparison](h264-block-interpolation.md) measures a
 separate earlier change. The stages are measured separately.
+The [encoder work distribution](h264-encoder-work.md) separates CAVLC writing,
+inverse transforms and reconstructed-block writes; direct CAVLC level variants
+were measured without adopting their small or inconsistent timing gains.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
 uses 962.836 CPU seconds versus 274.925 for FFmpeg, a 3.50x gap,
 with all 406 published files identical to their independently verified references.
