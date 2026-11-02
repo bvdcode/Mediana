@@ -13,13 +13,15 @@ Movie edits select exactly 28,630,160 audio samples per channel, starting at zer
 Both operations apply the [normalized ITU stereo matrix](audio-downmix.md),
 omitting LFE, before encoding the selected audio.
 
-Mediana uses the Native AOT build at `67fc7b7`. The comparison uses FFmpeg
-6.1.1-3ubuntu5 with libx264 on Linux x64, an Intel Core i5-12450H and .NET
-10.0.13. The two measured processes ran sequentially, restricted to logical
+The latest measurement uses the Native AOT build at `241476e`. The earlier
+baseline used `67fc7b7`. Both comparisons use FFmpeg 6.1.1-3ubuntu5 with libx264
+on Linux x64, an Intel Core i5-12450H and .NET 10.0.13. The two measured processes ran sequentially, restricted to logical
 CPU 2. Mediana used `DOTNET_PROCESSOR_COUNT=1`; FFmpeg used one input decoder
 thread, one filter-complex thread and one thread per output codec. Independent
-decoding and verification started after both measured processes terminated.
-These are single complete-process observations on a shared host.
+decoding of the original reference outputs ran after the baseline measurements.
+The latest outputs were compared with those complete references after both new
+measured processes terminated. These are single complete-process observations
+on a shared host.
 
 Both video outputs use progressive YUV420P8, Constrained Baseline level 4.1,
 BT.709 labels, no B pictures and an IDR every 144 pictures. The first 99 segments
@@ -41,13 +43,22 @@ bytes include all 203 files of each complete ladder.
 
 | Implementation | CPU | Elapsed | Peak RSS | Published bytes | Processing speed |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Mediana Native AOT | 1683.365 s | 1798.004 s | 139.34 MiB | 1,172,197,543 | 0.332x |
-| FFmpeg / libx264 veryfast | 186.728 s | 192.325 s | 189.48 MiB | 1,136,231,473 | 3.101x |
+| Mediana Native AOT | 1205.322 s | 1259.159 s | 140.03 MiB | 1,172,197,543 | 0.474x |
+| FFmpeg / libx264 veryfast | 194.151 s | 196.330 s | 196.39 MiB | 1,136,231,473 | 3.038x |
 
-Mediana used 9.02 times the CPU, 26.46% less peak RSS and 3.17% more output
+Mediana used 6.21 times the CPU, 28.70% less peak RSS and 3.17% more output
 bytes on this operation. Processing speed divides the original video duration
 by elapsed time and includes both variants and audio. This does not establish
 equal-quality throughput or general performance across other inputs.
+
+The earlier complete run at `67fc7b7` used 1683.365 CPU seconds, 1798.004 elapsed
+seconds and 139.34 MiB peak RSS. The current Mediana observation uses
+28.40% less CPU and 29.97% less elapsed time with identical output.
+These full-operation observations include the accumulated decoder and encoder
+changes; they do not isolate the contribution of any one change. The earlier
+FFmpeg observation was 186.728 CPU seconds, compared with 194.151 now.
+Variation in the external baseline is not a Mediana optimization. The previous
+CPU ratio was 9.02x; the current ratio remains a substantial performance gap.
 
 PSNR uses every visible decoded Y, U and V sample, weighted by sample count.
 The 720p reference is the independently decoded original; 360p uses an
@@ -67,9 +78,16 @@ errors do not establish perceptual or listening acceptance.
 
 ## Complete output verification
 
-All four continuous video streams were independently decoded and then decoded
-through the current Native AOT Mediana consumer. Every picture, visible byte,
-PTS and duration matched: 57,260 pictures and 49,472,640,000 visible YUV bytes
+The latest run produced exactly the same 203 files per implementation as the
+original independently verified outputs: all 400 segments and all six playlists
+have matching SHA256 hashes. Both new processes reached EOF, and Mediana
+reported zero live media-buffer bytes. The complete video, audio, timestamp,
+transport and quality results below therefore also describe the latest output.
+
+All four original continuous video streams were independently decoded and then
+decoded through the Native AOT Mediana consumer used for that verification.
+Every picture, visible byte, PTS and duration matched: 57,260 pictures and
+49,472,640,000 visible YUV bytes
 in total. Each of the 400 segments was also decoded by a fresh independent
 decoder; its pictures and global timestamps matched the continuous stream.
 All coded VCL bytes remained unchanged through the verification MP4 remux.
@@ -122,4 +140,5 @@ DOTNET_PROCESSOR_COUNT=1 taskset -c 2 mediana hls encode input.mov output-hls --
 
 The separate [video stage measurements](h264-stage-performance.md) compare
 complete decoding and encoding on the same minute-long cut and include
-diagnostic CPU dispatch controls. They do not update the full-film ratio above.
+diagnostic CPU dispatch controls. Those isolated stage results and the latest
+full-film observations above measure different workloads.

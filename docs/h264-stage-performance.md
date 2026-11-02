@@ -1,7 +1,9 @@
 The latest [shared-source encoder comparison](#shared-source-macroblocks) uses
 60.50-60.80 CPU seconds for the complete 60.041667-second HD input, versus
 13.25-13.32 seconds for optimized FFmpeg/libx264. These are isolated encoding
-measurements; the full-film audiovisual HLS comparison has not been repeated.
+measurements. The updated [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
+uses 1205.322 CPU seconds versus 194.151 for FFmpeg, a 6.21x gap,
+with all 406 published files identical to their independently verified references.
 
 The complete 60.041667-second HD input was measured separately through video
 decoding and video encoding. Separating the stages identifies where the current

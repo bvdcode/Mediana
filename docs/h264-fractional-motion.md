@@ -213,7 +213,8 @@ instrumented elapsed observations with measurement overhead, not CPU percentages
 or an isolated codec benchmark.
 
 The stage observations locate substantial work in both decoding and encoding;
-they do not establish each stage's performance relative to FFmpeg. The last
-complete-film comparison remains 9.02 times FFmpeg's CPU use, with higher video
-error at slightly greater output size. No updated full-film ratio follows from
-the minute-long filter measurements.
+they do not establish each stage's performance relative to FFmpeg. The complete
+film comparison available at that point used 9.02 times FFmpeg's CPU, with higher
+video error at slightly greater output size. The subsequent
+[full-film measurements](hls-hd-encoding.md) include later decoder and encoder
+changes; their ratio does not follow from these minute-long filter measurements.
