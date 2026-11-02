@@ -111,6 +111,11 @@ namespace Mediana.Codecs.H264
         private static void WriteLuma(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
             ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients)
         {
+            if ((pattern & 15) == 0)
+            {
+                target.WriteZeroResidualBlock(0, x, y, 16, prediction, 16);
+                return;
+            }
             Span<byte> block = stackalloc byte[16];
             Span<int> residual = stackalloc int[16];
             for (int index = 0; index < 16; index++)
@@ -119,6 +124,11 @@ namespace Mediana.Codecs.H264
                 ReadOnlySpan<int> levels = coefficients.Slice(index * 16, 16);
                 int count = (pattern & (1 << (index / 4))) != 0
                     ? H264CavlcWriter.Write(bits, levels, target.NeighbourCount(0, x + blockX, y + blockY)) : 0;
+                if (count == 0)
+                {
+                    target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, prediction[(blockY * 16 + blockX)..], 16);
+                    continue;
+                }
                 target.Counts(0)[target.BlockIndex(0, x + blockX, y + blockY)] = (byte)count;
                 H264InverseTransform.Residual4x4(levels, qp, residual);
                 H264Residuals.CopyPrediction(prediction, 16, blockX, blockY, block);

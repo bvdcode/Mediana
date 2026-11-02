@@ -108,7 +108,7 @@ allocates about 5.37 GB cumulatively despite bounded live media storage.
 
 Of 76,052,960 inter luma 4x4 blocks, 64,033,197 have zero coefficients (84.20%).
 Of 41,500,800 chroma 4x4 blocks, 34,752,408 have zero AC and scaled DC (83.74%).
-The current reconstruction still fills residual storage, copies prediction
+At the measured baseline, reconstruction fills residual storage, copies prediction
 blocks and performs per-pixel addition/clipping for those zero cases. Deblocking
 also derives the same luma boundary classification again for chroma planes.
 These are concrete candidates for eliminating work while retaining exact pixels.
@@ -118,6 +118,42 @@ in [FFmpeg's H.264 reconstruction](https://ffmpeg.org/doxygen/6.1/h264idct__temp
 and shares boundary classifications in its
 [deblocking implementation](https://ffmpeg.org/doxygen/6.1/h264__loopfilter_8c_source.html).
 H.264 clauses 8.5 and 8.7 define the reconstruction and filtering results that
-any corresponding change must preserve. The present measurements identify
-work to remove; they do not claim that these changes have already been made
-or that the complete-film CPU gap has been reduced.
+any corresponding change must preserve. The profile identifies work to remove. The implementation measurements below
+do not establish a new complete-film HLS CPU ratio.
+
+
+## Known-zero reconstruction
+
+Known-zero blocks now copy prediction directly into picture storage while updating
+coefficient counts and reconstruction availability. Whole zero-residual macroblocks
+avoid all per-4x4 inverse transforms, temporary prediction copies and per-sample
+addition/clipping. Partial 4x4 and 8x8 reconstruction uses the same operation;
+nonzero DC/AC arithmetic and entropy decisions remain unchanged. No additional
+heap storage or retained picture cache is introduced.
+
+The baseline is the production code at `cc87c3c`. Frozen Native AOT consumers
+processed the complete input sequentially with the same one-core settings.
+Decode was repeated in reverse implementation order. Encoding used identical
+raw input with the changed implementation first.
+
+| Stage and execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Decode, before then after | 51.192 | 45.034 | 12.03% | 56.098 | 47.866 | 83.64 | 86.65 |
+| Decode, after then before | 49.641 | 44.294 | 10.77% | 56.808 | 49.159 | 85.50 | 85.92 |
+| Encode, after then before | 91.733 | 89.080 | 2.89% | 94.979 | 95.265 | 51.07 | 50.59 |
+
+All decoded bytes match the independent FFmpeg raw output. Both encoded transport
+files match the previously independently decoded Mediana output byte for byte:
+78,332,832 bytes, SHA256
+`d3090ee699cfdcc4330ec9815adaa1e7b08de1d95530e2e7af2e1596a399e543`.
+Every native run reaches 1,441 pictures and releases its media storage at EOF.
+The repeated decode observations support a CPU improvement of about 11-12% on
+this input. Encoding has one paired observation; its elapsed time did not improve.
+There is no demonstrated RSS reduction or new ten-minute HLS measurement.
+
+Validation: all 2,924 managed tests, 18 focused tests with hardware intrinsics
+disabled, all 30 package checks, strict package-only Native AOT build and
+execution, strict CLI Native AOT publication, license headers and whitespace
+checks passed. The zero-macroblock regression covers all 52 QPs and four picture
+corners, including surrounding pixels, counts, modes and borrowed input.
+Existing reference fixtures were unchanged.

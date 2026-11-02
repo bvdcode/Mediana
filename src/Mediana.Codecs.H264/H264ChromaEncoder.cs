@@ -39,11 +39,16 @@ namespace Mediana.Codecs.H264
         public static void Write(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
             ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients)
         {
-            if (pattern != 0)
+            if (pattern == 0)
             {
-                H264CavlcWriter.Write(bits, coefficients.Slice(120, 4), -1);
-                H264CavlcWriter.Write(bits, coefficients.Slice(124, 4), -1);
+                for (int plane = 1; plane <= 2; plane++)
+                {
+                    target.WriteZeroResidualBlock(plane, x, y, 8, prediction.Slice((plane - 1) * 64, 64), 8);
+                }
+                return;
             }
+            H264CavlcWriter.Write(bits, coefficients.Slice(120, 4), -1);
+            H264CavlcWriter.Write(bits, coefficients.Slice(124, 4), -1);
             int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
             Span<int> scaledDc = stackalloc int[4];
             Span<int> residual = stackalloc int[16];
@@ -57,6 +62,12 @@ namespace Mediana.Codecs.H264
                     int blockY = index / 2 * 4;
                     ReadOnlySpan<int> levels = coefficients.Slice(((plane - 1) * 4 + index) * 15, 15);
                     int count = pattern == 2 ? H264CavlcWriter.Write(bits, levels, target.NeighbourCount(plane, x + blockX, y + blockY)) : 0;
+                    if (count == 0 && scaledDc[index] == 0)
+                    {
+                        target.WriteZeroResidualBlock(plane, x + blockX, y + blockY, 4,
+                            prediction[((plane - 1) * 64 + blockY * 8 + blockX)..], 8);
+                        continue;
+                    }
                     target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
                     H264Residuals.CopyPrediction(prediction.Slice((plane - 1) * 64, 64), 8, blockX, blockY, blockPrediction);
                     H264InverseTransform.Residual4x4(levels, chromaQp, residual, scaledDc[index]);
