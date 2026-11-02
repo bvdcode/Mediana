@@ -123,11 +123,11 @@ namespace Mediana.Tests
             }
             else { limit = 1024; }
             using PdfDocument document = await OpenImageAsync(encoded, filter, 1024, 1024, limit);
-            long before = GC.GetTotalAllocatedBytes(precise: true);
+            long before = GC.GetAllocatedBytesForCurrentThread();
             bool rejected = false;
             try { document.GetPage(1); }
             catch (InvalidDataException) { rejected = true; }
-            long allocated = GC.GetTotalAllocatedBytes(precise: true) - before;
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
             if (!rejected || allocated >= 128 * 1024)
             {
                 throw new InvalidDataException($"Rejected PDF {filter} data allocated {allocated} bytes instead of failing before decoded payload allocation.");
@@ -145,9 +145,9 @@ namespace Mediana.Tests
             for (int iteration = 0; iteration < 5; iteration++)
             {
                 using PdfDocument document = await PdfReader.ReadAsync(new MemoryStream(source));
-                long before = GC.GetTotalAllocatedBytes(precise: true);
+                long before = GC.GetAllocatedBytesForCurrentThread();
                 PdfPage page = document.GetPage(1);
-                long current = GC.GetTotalAllocatedBytes(precise: true) - before;
+                long current = GC.GetAllocatedBytesForCurrentThread() - before;
                 document.Dispose();
                 VerifyPixels(page, samples);
                 if (iteration >= 2) { allocated += current; }
