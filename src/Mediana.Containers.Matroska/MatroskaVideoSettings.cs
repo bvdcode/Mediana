@@ -3,7 +3,7 @@
 
 namespace Mediana.Containers.Matroska
 {
-    internal record MatroskaVideoSettings
+    public record MatroskaVideoSettings
     {
         public required ulong PixelWidth { get; init; }
         public required ulong PixelHeight { get; init; }
@@ -16,7 +16,11 @@ namespace Mediana.Containers.Matroska
         public ulong DisplayUnit { get; init; }
         public ulong Interlaced { get; init; }
         public ulong FieldOrder { get; init; }
-        public EbmlElement? Colour { get; init; }
-        public EbmlElement? Projection { get; init; }
+        public ulong StereoMode { get; init; }
+        public ulong AlphaMode { get; init; }
+        public bool HasColourDescription => Colour is not null;
+        public bool HasProjection => Projection is not null;
+        public MatroskaColourSettings? Colour { get; init; }
+        internal EbmlElement? Projection { get; init; }
     }
 }

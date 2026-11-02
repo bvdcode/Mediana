@@ -49,7 +49,7 @@ namespace Mediana.Containers.Mp4
 
         public MediaTimestamp MapDecode(long value) => Map(checked(value - DecodeTimeLead));
 
-        public MediaDuration MapDuration(uint value) => new((long)value * Scale, TimeBase);
+        public MediaDuration MapDuration(long value) => new(checked(value * Scale), TimeBase);
 
         public Int128 UnmapFloor(MediaTimestamp target)
         {

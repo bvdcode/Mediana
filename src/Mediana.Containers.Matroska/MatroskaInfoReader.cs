@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core.Metadata;
+
 namespace Mediana.Containers.Matroska
 {
     internal static class MatroskaInfoReader
@@ -8,6 +10,10 @@ namespace Mediana.Containers.Matroska
         private static ReadOnlySpan<uint> Fields => [0x2AD7B1, 0x4489, 0x4461, 0x7BA9, 0x4D80, 0x5741, 0x73A4, 0x3CB923, 0x3EB923];
 
         public static async ValueTask<MatroskaSegmentInfo> ReadAsync(MatroskaMetadataReader reader,
+            EbmlElement master, CancellationToken token = default)
+            => (await ReadMetadataAsync(reader, master, token).ConfigureAwait(false)).Info;
+
+        public static async ValueTask<MatroskaSegmentMetadata> ReadMetadataAsync(MatroskaMetadataReader reader,
             EbmlElement master, CancellationToken token = default)
         {
             reader.ValidateMaster(master, 0x1549A966);
@@ -20,6 +26,7 @@ namespace Mediana.Containers.Matroska
             Guid? uid = null;
             Guid? previous = null;
             Guid? next = null;
+            List<MediaTag> tags = [];
             MatroskaFieldSet seen = new();
             long offset = master.DataOffset;
             while (await reader.ReadChildAsync(master, offset, token).ConfigureAwait(false) is EbmlElement child)
@@ -34,9 +41,18 @@ namespace Mediana.Containers.Matroska
                     case 0x2AD7B1: scale = await reader.ReadUnsignedAsync(child, scale, token).ConfigureAwait(false); break;
                     case 0x4489: duration = await reader.ReadPositiveFloatAsync(child, 0, token).ConfigureAwait(false); break;
                     case 0x4461: date = await reader.ReadDateAsync(child, token).ConfigureAwait(false); break;
-                    case 0x7BA9: title = await reader.ReadTextAsync(child, true, token).ConfigureAwait(false); break;
-                    case 0x4D80: muxingApp = await reader.ReadTextAsync(child, true, token).ConfigureAwait(false); break;
-                    case 0x5741: writingApp = await reader.ReadTextAsync(child, true, token).ConfigureAwait(false); break;
+                    case 0x7BA9:
+                        title = await reader.ReadTextAsync(child, true, token).ConfigureAwait(false);
+                        tags.Add(new("matroska", "Title", title, sourcePath: "Segment/Info"));
+                        break;
+                    case 0x4D80:
+                        muxingApp = await reader.ReadTextAsync(child, true, token).ConfigureAwait(false);
+                        tags.Add(new("matroska", "MuxingApp", muxingApp, sourcePath: "Segment/Info"));
+                        break;
+                    case 0x5741:
+                        writingApp = await reader.ReadTextAsync(child, true, token).ConfigureAwait(false);
+                        tags.Add(new("matroska", "WritingApp", writingApp, sourcePath: "Segment/Info"));
+                        break;
                     case 0x73A4: uid = await reader.ReadUuidAsync(child, token).ConfigureAwait(false); break;
                     case 0x3CB923: previous = await reader.ReadUuidAsync(child, token).ConfigureAwait(false); break;
                     case 0x3EB923: next = await reader.ReadUuidAsync(child, token).ConfigureAwait(false); break;
@@ -50,7 +66,8 @@ namespace Mediana.Containers.Matroska
             {
                 throw new InvalidDataException("A linked Matroska Segment requires distinct local and neighbor UUIDs.");
             }
-            return new(scale, duration, date, title, muxingApp, writingApp, uid, previous, next);
+            return new(new(scale, duration, date, title, muxingApp, writingApp, uid, previous, next),
+                Array.AsReadOnly(tags.ToArray()));
         }
     }
 }

@@ -9,6 +9,10 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            await PngDecodeTestInput.VerifyCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
+            await PngDecodeTestInput.VerifyIntegrityAsync();
+            await PngDecodeTestInput.VerifyBudgetsAndColorAsync();
+            await PngCoverTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             foreach ((int width, int height, bool noisy) in new[]
             {
                 (1, 1, false), (1, 20000, true), (17000, 2, true), (1024, 64, true),

@@ -41,8 +41,8 @@ namespace Mediana.Cli
                     if (update.ProcessedDuration is MediaDuration duration)
                     {
                         samples = duration.Value;
-                        progress.Report(duration, writer.BytesWritten, update.IsComplete);
                     }
+                    progress.Report(update.ProcessedDuration, writer.BytesWritten, update.IsComplete);
                 }, token);
                 packets = result.Packets;
 

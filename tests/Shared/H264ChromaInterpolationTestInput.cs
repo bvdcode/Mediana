@@ -40,7 +40,8 @@ namespace Mediana.Tests
                         {
                             foreach ((int x, int y, int motionX, int motionY) in new[]
                             {
-                                (3, 4, 0, 0), (0, 0, -8, -8), (14, 14, 8, 8), (-3, 6, 0, 0), (16, 16, 0, 0),
+                                (3, 4, 0, 0), (0, 0, 0, 0), (7, 0, 0, 0), (0, 7, 0, 0), (7, 7, 0, 0), (8, 8, 0, 0),
+                                (0, 0, -8, -8), (14, 14, 8, 8), (-3, 6, 0, 0), (16, 16, 0, 0),
                                 (int.MinValue, int.MaxValue, int.MaxValue - 7, int.MinValue),
                                 (int.MaxValue, int.MinValue, int.MinValue, int.MaxValue - 7)
                             })

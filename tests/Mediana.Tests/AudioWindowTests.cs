@@ -30,5 +30,15 @@ namespace Mediana.Tests
         {
             await AudioWindowTestInput.VerifySourceFailureAsync();
         }
+
+        [Theory]
+        [InlineData(AudioStorageLayout.Interleaved, false)]
+        [InlineData(AudioStorageLayout.Interleaved, true)]
+        [InlineData(AudioStorageLayout.Planar, false)]
+        [InlineData(AudioStorageLayout.Planar, true)]
+        public async Task WholeBlocksRetainTheirOriginalStorageWithIndependentTiming(AudioStorageLayout layout, bool rebase)
+        {
+            await AudioWindowTestInput.VerifyWholeBlocksAsync(layout, rebase);
+        }
     }
 }

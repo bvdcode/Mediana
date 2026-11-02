@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Codecs;
 using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Timing;
@@ -9,11 +10,12 @@ namespace Mediana.Execution
 {
     public partial class MediaDecodePipeline<TFrame>
     {
-        public bool CanSeek => reader is IndexedPacketReader && randomAccessInspector is not null;
+        public bool CanSeek => reader is IndexedPacketReader indexed &&
+            (randomAccessInspector is not null || (indexed.SupportsPreroll && decoder is IPacketPrerollDecoder));
 
-        /// <summary>Restarts at the latest codec-validated container candidate at or before target,
-        /// or at the first packet when target precedes its PTS. Subsequent reads start at that point;
-        /// they do not discard frames before target. Read budgets remain cumulative across seeks.</summary>
+        /// <summary>Restarts at a container candidate at or before target using codec inspection or required preroll,
+        /// or at the first packet when target precedes its PTS. Preroll output is suppressed by the decoder;
+        /// other frames before target remain available. Read budgets remain cumulative across seeks.</summary>
         public async ValueTask SeekAsync(MediaTimestamp target, CancellationToken cancellationToken = default)
         {
             target.TimeBase.Validate();
@@ -26,9 +28,19 @@ namespace Mediana.Execution
                 {
                     throw new InvalidOperationException("The decoding pipeline has failed and must be disposed.");
                 }
-                if (reader is not IndexedPacketReader indexed || randomAccessInspector is null)
+                if (reader is not IndexedPacketReader indexed)
                 {
-                    throw new NotSupportedException("Seeking requires indexed container packets and codec restart inspection.");
+                    throw new NotSupportedException("Seeking requires indexed container packets.");
+                }
+                if (randomAccessInspector is null)
+                {
+                    if (decoder is not IPacketPrerollDecoder preroll || !indexed.SupportsPreroll)
+                    {
+                        throw new NotSupportedException("Seeking requires codec restart inspection or codec and container preroll support.");
+                    }
+                    await SeekWithPrerollAsync(indexed, preroll, target, cancellationToken).ConfigureAwait(false);
+                    succeeded = true;
+                    return;
                 }
                 long before = indexed.Count;
                 while (true)

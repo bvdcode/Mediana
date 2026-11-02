@@ -118,6 +118,67 @@ namespace Mediana.Tests
             Assert.Equal(transform8x8, picture.Plane(0)[4] == 100);
         }
 
+        [Theory]
+        [InlineData(false, false, 84, 96)]
+        [InlineData(false, true, 85, 95)]
+        [InlineData(true, false, 84, 96)]
+        [InlineData(true, true, 85, 95)]
+        public void ChromaEdgesUseLumaStrengthAndIndependentPlaneQuantizers(bool vertical, bool residual, byte p0, byte q0)
+        {
+            H264SequenceParameterSet sequence = new()
+            {
+                WidthInMbs = vertical ? 2 : 1,
+                HeightInMapUnits = vertical ? 1 : 2,
+                FrameMbsOnly = true,
+                Width = vertical ? 32 : 16,
+                Height = vertical ? 16 : 32
+            };
+            H264PictureParameterSet parameters = Header().Picture with { ChromaQpOffset = -12, SecondChromaQpOffset = 12 };
+            H264SliceHeader header = new(sequence, parameters);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using H264Picture picture = new(sequence, allocator, header.Kind);
+            using H264Picture reference = new(sequence, allocator, header.Kind);
+            picture.Modes.Fill(H264Picture.InterMode);
+            picture.ReferenceIndices(H264ReferenceList.L0).Clear();
+            picture.Quantizers.Fill(36);
+            for (int plane = 0; plane < 3; plane++)
+            {
+                int stride = picture.Stride(plane);
+                int height = picture.Plane(plane).Length / stride;
+                int boundary = plane == 0 ? 16 : 8;
+                for (int row = 0; row < height; row++)
+                {
+                    for (int column = 0; column < stride; column++)
+                    {
+                        picture.Plane(plane)[row * stride + column] = (vertical ? column : row) < boundary ? (byte)80 : (byte)100;
+                    }
+                }
+            }
+            for (int y = 0; y < picture.Height; y += 4)
+            {
+                for (int x = 0; x < picture.Width; x += 4)
+                {
+                    if ((vertical ? x : y) >= 16)
+                    {
+                        int index = picture.BlockIndex(0, x, y);
+                        picture.MotionX(H264ReferenceList.L0)[index] = 4;
+                        picture.Counts(0)[index] = residual ? (byte)1 : (byte)0;
+                    }
+                }
+            }
+            H264Deblocking.Apply(picture, header, default, [new(reference, 0, new H264PictureOrder(0, 0))]);
+            for (int sample = 0; sample < 8; sample++)
+            {
+                int stride = picture.Stride(1);
+                int previous = vertical ? sample * stride + 7 : 7 * stride + sample;
+                int current = previous + (vertical ? 1 : stride);
+                Assert.Equal(80, picture.Plane(1)[previous]);
+                Assert.Equal(100, picture.Plane(1)[current]);
+                Assert.Equal(p0, picture.Plane(2)[previous]);
+                Assert.Equal(q0, picture.Plane(2)[current]);
+            }
+        }
+
         private static H264SliceHeader Header() => new(new H264SequenceParameterSet
         {
             WidthInMbs = 2,

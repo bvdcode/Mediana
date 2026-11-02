@@ -4,10 +4,11 @@
 using ConsoleAppFramework;
 using Mediana.Codecs;
 using Mediana.Core.Video;
+using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class ImageCommands(CommandOutputPolicy outputs) : MediaCommands(outputs)
+    internal class ImageCommands(ILogger logger, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
         /// <summary>Decode a supported HEIC/HEIF still image to PNG.</summary>
         /// <param name="input">Existing HEIC/HEIF file.</param>
@@ -41,7 +42,7 @@ namespace Mediana.Cli
             CancellationToken cancellationToken = default)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
-            return ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.SvgAsync(input, outputFile, width, cancellationToken), cancellationToken);
+            return ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.SvgAsync(input, outputFile, width, logger, cancellationToken), cancellationToken);
         }
 
         /// <summary>Render one supported TGS/Lottie frame to PNG.</summary>
@@ -57,10 +58,10 @@ namespace Mediana.Cli
             {
                 throw new ArgumentOutOfRangeException(nameof(time), "Animation time must be finite and nonnegative.");
             }
-            return ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.TgsAsync(input, outputFile, time, width, cancellationToken), cancellationToken);
+            return ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.TgsAsync(input, outputFile, time, width, logger, cancellationToken), cancellationToken);
         }
 
         private Task<int> RasterAsync(IImageDecoder decoder, string input, string output, CancellationToken token) =>
-            ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.RunAsync(decoder, input, outputFile, cancellationToken: token), token);
+            ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.RunAsync(decoder, input, outputFile, logger, cancellationToken: token), token);
     }
 }

@@ -6,6 +6,14 @@ namespace Mediana.Tests
     public class AacRealDecodeTests(Xunit.Abstractions.ITestOutputHelper output)
     {
         [Theory]
+        [InlineData("lc-mono-48")]
+        [InlineData("lc-stereo-44")]
+        public async Task PresentationWindowsAfterEditSelectionMatchIndependentPcm(string name)
+        {
+            await AacEditedAudioTestInput.VerifyTimeWindowAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
+        }
+
+        [Theory]
         [InlineData("lc-mono-48", false)]
         [InlineData("lc-stereo-44", false)]
         [InlineData("lc-mono-48", true)]

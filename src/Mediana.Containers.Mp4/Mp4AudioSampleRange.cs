@@ -12,6 +12,20 @@ namespace Mediana.Containers.Mp4
     /// This interprets explicit edits only; it does not infer codec delay, sample-group roll dependencies or silence.</summary>
     public readonly record struct Mp4AudioSampleRange(long StartSample, long SampleCount, MediaTimestamp PresentationTime)
     {
+        /// <summary>Returns the first excluded sample instant on the movie PCM grid at the supplied decoded rate.
+        /// This is an exact sample-window boundary; it may follow a fractional declared edit endpoint.</summary>
+        public MediaTimestamp GetPresentationEnd(int sampleRate)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleRate);
+            ArgumentOutOfRangeException.ThrowIfNegative(SampleCount);
+            PresentationTime.TimeBase.Validate();
+            int denominator = LeastCommonMultiple(sampleRate, PresentationTime.TimeBase.Denominator);
+            Int128 origin = (Int128)PresentationTime.Value * PresentationTime.TimeBase.Numerator
+                * (denominator / PresentationTime.TimeBase.Denominator);
+            Int128 duration = (Int128)SampleCount * (denominator / sampleRate);
+            return new MediaTimestamp(checked((long)(origin + duration)), new TimeBase(1, denominator));
+        }
+
         /// <summary>The caller supplies the decoded PCM rate and decodes preceding packets for codec state.
         /// PresentationTime preserves any leading empty-edit delay without generating silent PCM.</summary>
         public static Mp4AudioSampleRange FromEditList(Mp4TrackInfo track, int sampleRate)

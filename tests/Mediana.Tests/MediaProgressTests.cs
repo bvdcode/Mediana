@@ -82,5 +82,21 @@ namespace Mediana.Tests
             progress.Report(new MediaDuration(48000, new TimeBase(1, 48000)), 1024, completed: true);
             Assert.Empty(context.Messages);
         }
+
+        [Fact]
+        public void UnknownProcessedTimeShowsBytesWithoutInventingTimeSpeedOrEstimate()
+        {
+            ProgressTestContext context = new();
+            MediaProgress progress = new(context, context, new MediaDuration(600, new(1, 1)));
+            progress.Report(new MediaDuration(0, new(1, 1)), 0);
+            context.Advance(TimeSpan.FromSeconds(2));
+            progress.Report(new MediaDuration(100, new(1, 1)), 1024 * 1024);
+            Assert.Contains("eta=", context.Messages[^1], StringComparison.Ordinal);
+            context.Advance(TimeSpan.FromSeconds(1));
+            progress.Report(null, 2 * 1024 * 1024);
+            Assert.Equal("size=2.00 MiB", context.Messages[^1]);
+            progress.Report(null, 3 * 1024 * 1024, completed: true);
+            Assert.Equal("size=3.00 MiB", context.Messages[^1]);
+        }
     }
 }

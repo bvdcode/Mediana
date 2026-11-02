@@ -140,7 +140,7 @@ namespace Mediana.Codecs.H264
             values[offset + stride * 3] = d - c;
         }
 
-        private static void ValidateQp(int qp)
+        internal static void ValidateQp(int qp)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(qp);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(qp, 51);

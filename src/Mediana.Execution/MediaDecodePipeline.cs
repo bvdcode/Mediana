@@ -36,7 +36,7 @@ namespace Mediana.Execution
             {
                 ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
             }
-            this.reader = reader is IIndexedContainerReader indexed && randomAccessInspector is not null
+            this.reader = reader is IIndexedContainerReader indexed
                 ? new IndexedPacketReader(indexed, streamIndex) : reader;
             this.decoder = decoder;
             this.streamIndex = streamIndex;

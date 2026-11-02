@@ -25,16 +25,7 @@ namespace Mediana.NativeTests
             }
             AudioDownmixTestInput.VerifyBalance();
             Console.WriteLine("PASS explicit audio downmix: shuffled speakers, mono/stereo coefficients, correlated peaks, timing and released storage.");
-            H264DcResidualTestInput.VerifyDcOnly();
-            H264DcResidualTestInput.VerifyAcBlocks();
-            H264DcResidualTestInput.VerifyOverlappingStorage();
-            H264MotionInterpolationTestInput.Verify();
-            H264LumaNeighborhoodTestInput.Verify();
-            H264LumaNeighborhoodTestInput.VerifyAllocation();
-            await H264MotionSearchTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
-            H264ChromaInterpolationTestInput.Verify();
-            H264IntraModeTestInput.Verify();
-            Console.WriteLine("PASS H.264 motion interpolation: all luma phases, complete blocks, borders and extreme coordinates match scalar convolution.");
+            await NativeH264KernelTests.RunAsync();
             foreach (int configuration in new[] { 3, 4, 5, 6, 7 })
             {
                 await AacMultichannelTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "AacMultichannel"), configuration);
@@ -49,13 +40,8 @@ namespace Mediana.NativeTests
             await Mp4HeaderDateTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
             Console.WriteLine("PASS header dates: unsigned v0/v1 fields, UTC/unspecified zones, distinct scopes and complete packet references.");
             await Mp4FrameRateTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
-            foreach (string name in new[] { "frame-rate-cfr.mp4", "frame-rate-vfr.mp4", "frame-rate-edited.mp4", "preview-hd.mp4" })
-            {
-                await ServerVideoPreviewTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), name);
-            }
-            Console.WriteLine("PASS server video previews: midpoint targets, VFR, movie edits, exact pixels, out-of-order requests and EOF restart.");
-            await ServerVideoPreviewTestInput.VerifyPngAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
-            Console.WriteLine("PASS server HD preview: complete sample PNG, dimensions, sRGB labels and every independent pixel.");
+            Console.WriteLine($"PASS AAC spectral codebook selection: {AacCodebookSelectionTestInput.VerifyTuples()} complete tuple/sign cases and {AacCodebookSelectionTestInput.VerifyBands()} long/short/escaped bands preserve exact costs, bytes and decoded values.");
+            await NativeServerPreviewTests.RunAsync();
             Console.WriteLine("PASS indexed video rates: exact fractional CFR, VFR, reordered/edited samples, both timelines and complete packet references.");
             await QuickTimeAacTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata"));
             Console.WriteLine("PASS QuickTime AAC: both complete sound-v1 tracks, original timing, independent PNS energy and retained ownership.");
@@ -78,6 +64,8 @@ namespace Mediana.NativeTests
             await MultiStreamTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-aac.mp4"));
             await NativePdfTests.RunAsync();
             await NativePngTests.RunAsync();
+            await NativeJpegTests.RunAsync();
+            await NativeContainerImageTests.RunAsync();
             BoundedStreamReadTestInput.VerifySynchronous();
             BoundedStreamReadTestInput.VerifyAllocationSynchronous();
             await BoundedStreamReadTestInput.VerifyAsync();
@@ -281,6 +269,7 @@ namespace Mediana.NativeTests
             await H264BidirectionalTestInput.VerifyReferenceListsAsync(root);
             H264BidirectionalTestInput.VerifyMotion();
             H264BidirectionalDeblockingTestInput.Verify();
+            H264SliceDeblockingTestInput.Verify();
             foreach (string name in new[] { "avc-cavlc-b-spatial", "avc-cavlc-b-temporal", "avc-aac", "avc-segments",
                 "avc-cabac-b-0", "avc-cabac-b-1", "avc-cabac-b-2" })
             {

@@ -19,8 +19,9 @@ namespace Mediana.Containers.Matroska
                 throw new ArgumentException("A Matroska Segment is required.", nameof(segment));
             }
             token.ThrowIfCancellationRequested();
-            using MatroskaSegmentReader segments = new(source, allocator, maximumSizeWidth);
-            using MatroskaMetadataReader metadata = new(source, allocator, metadataLimits, maximumSizeWidth);
+            MatroskaElementBudget elementBudget = new(metadataLimits.MaximumElements);
+            using MatroskaSegmentReader segments = new(source, allocator, maximumSizeWidth, elementBudget);
+            using MatroskaMetadataReader metadata = new(source, allocator, metadataLimits, maximumSizeWidth, elementBudget);
             using MatroskaBlockReader blocks = new(source, allocator, options.MaximumBlockHeaderBytes, options.MaximumFrameBytes);
             MatroskaPacketIndex index = new(allocator, tracks, options);
             bool success = false;

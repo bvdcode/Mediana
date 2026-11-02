@@ -9,6 +9,7 @@ namespace Mediana.Codecs.H264
             H264SliceHeader header, int x, int y, int type, int chromaMode, int pattern, int qp)
             where TReader : IH264ResidualReader
         {
+            H264InverseTransform.ValidateQp(qp);
             ReadLuma(ref bits, reader, target, x, y, type, pattern, qp, header.Picture.ConstrainedIntraPrediction);
             ReadChroma(ref bits, reader, target, header.Picture, x / 2, y / 2, chromaMode, pattern >> 4, qp);
         }
@@ -48,12 +49,22 @@ namespace Mediana.Codecs.H264
                 target.Counts(0)[position] = (byte)count;
                 if (intra16)
                 {
+                    if (count == 0 && dc[(blockY / 4) * 4 + blockX / 4] == 0)
+                    {
+                        target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, macroPrediction[(blockY * 16 + blockX)..], 16);
+                        continue;
+                    }
                     H264Residuals.CopyPrediction(macroPrediction, 16, blockX, blockY, prediction);
                     H264InverseTransform.Residual4x4(block, qp, residual, dc[(blockY / 4) * 4 + blockX / 4]);
                 }
                 else
                 {
                     target.PredictLuma4x4(x + blockX, y + blockY, target.Modes[position] & 127, prediction, constrained);
+                    if (count == 0)
+                    {
+                        target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, prediction, 4);
+                        continue;
+                    }
                     H264InverseTransform.Residual4x4(block, qp, residual);
                 }
                 target.WriteBlock(0, x + blockX, y + blockY, prediction, residual);

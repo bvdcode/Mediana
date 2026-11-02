@@ -12,10 +12,12 @@ namespace Mediana.Processing.Audio
         private readonly long originTicks;
         private readonly int inputStep;
         private readonly int outputStep;
+        private readonly int inputRate;
 
         public AudioSampleClock(MediaTimestamp? origin, int inputRate, int outputRate)
         {
             this.origin = origin;
+            this.inputRate = inputRate;
             if (origin is MediaTimestamp timestamp)
             {
                 int denominator = LeastCommonMultiple(LeastCommonMultiple(inputRate, outputRate), timestamp.TimeBase.Denominator);
@@ -33,6 +35,24 @@ namespace Mediana.Processing.Audio
                 return null;
             }
             return new MediaTimestamp(checked(originTicks + position * outputStep), timeBase);
+        }
+
+        public long PositionAtOrAfter(MediaTimestamp timestamp)
+        {
+            timestamp.TimeBase.Validate();
+            MediaTimestamp first = origin
+                ?? throw new NotSupportedException("Time-based audio selection requires known PCM timestamps.");
+            Int128 difference = (Int128)timestamp.Value * timestamp.TimeBase.Numerator * first.TimeBase.Denominator
+                - (Int128)first.Value * first.TimeBase.Numerator * timestamp.TimeBase.Denominator;
+            if (difference <= 0)
+            {
+                return 0;
+            }
+            Int128 denominator = (Int128)timestamp.TimeBase.Denominator * first.TimeBase.Denominator;
+            long whole = checked((long)(difference / denominator) * inputRate);
+            Int128 fraction = difference % denominator * inputRate;
+            long samples = checked(whole + (long)(fraction / denominator));
+            return fraction % denominator == 0 ? samples : checked(samples + 1);
         }
 
         public void Validate(MediaTimestamp? timestamp, long position)

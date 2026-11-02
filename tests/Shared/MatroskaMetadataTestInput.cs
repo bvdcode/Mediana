@@ -71,7 +71,7 @@ namespace Mediana.Tests
             physical = await VideoAsync([.. Unsigned(0x54B0, 4), .. Unsigned(0x54BA, 3), .. dimensions, .. Unsigned(0x54B2, 3),
                 .. Unsigned(0x9A, 1), .. Unsigned(0x9D, 14), .. Field(0x55B0, []), .. Field(0x7670, [])]);
             Require(physical.DisplayWidth == 4 && physical.DisplayHeight == 3 && physical.Interlaced == 1 && physical.FieldOrder == 14 &&
-                physical.Colour?.Id == 0x55B0 && physical.Projection?.Id == 0x7670);
+                physical.Colour == new MatroskaColourSettings() && physical.Projection?.Id == 0x7670);
             MatroskaVideoSettings huge = await VideoAsync([.. Unsigned(0xB0, ulong.MaxValue), .. Unsigned(0xBA, 2), .. Unsigned(0x54CC, ulong.MaxValue - 1)]);
             Require(huge.DisplayWidth == 1 && huge.DisplayHeight == 2);
             Require((await AudioAsync([.. Field(0x78B5, []), .. Float(0xB5, 44100.5)])).OutputSamplingFrequency == 44100.5);

@@ -11,8 +11,9 @@ namespace Mediana
 {
     public partial class MediaEngine
     {
-        /// <summary>Inspects recognized media without decoding pixels, rendering pages or scanning encoded packets.
-        /// Image readers may inspect the complete bounded input. Borrows the source; random access preserves its cursor.
+        /// <summary>Inspects recognized media without decoding pictures, audio samples or document pages.
+        /// Readers may index the complete input and inspect codec headers or configured payload checksums.
+        /// Borrows the source; random access preserves its cursor.
         /// Metadata is independent of source lifetime. Sequential input is consumed on failure.</summary>
         public async ValueTask<MediaInfo> ProbeAsync(IByteSource source, MediaOpenOptions? options = null,
             CancellationToken cancellationToken = default)

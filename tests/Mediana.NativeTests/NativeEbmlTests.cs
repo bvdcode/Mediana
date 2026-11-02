@@ -36,6 +36,9 @@ namespace Mediana.NativeTests
             await MatroskaMetadataTestInput.VerifyInfoAsync();
             await MatroskaMetadataTestInput.VerifyTracksAsync();
             await MatroskaMetadataTestInput.VerifyVideoAsync();
+            await MatroskaColourTestInput.VerifyNativeFieldsAsync();
+            await MatroskaColourTestInput.VerifyColorResolutionAsync();
+            MatroskaColourTestInput.VerifyPresentationMapping();
             await MatroskaMetadataTestInput.VerifyInvalidInfoAsync();
             await MatroskaMetadataTestInput.VerifyInvalidTracksAsync();
             await MatroskaMetadataTestInput.VerifyInvalidSettingsAsync();
@@ -57,6 +60,7 @@ namespace Mediana.NativeTests
             await MatroskaPacketIndexReferenceInput.VerifyAsync();
             await MatroskaClockTestInput.VerifyReferencesAsync();
             await MatroskaClockTestInput.VerifyInvalidAsync();
+            await MatroskaClockTestInput.VerifySegmentDurationsAsync();
             MatroskaClockTestInput.VerifyAllocation();
             await MatroskaCodecTestInput.VerifyMappingsAsync();
             await MatroskaCodecTestInput.VerifyInvalidAsync();
@@ -67,6 +71,19 @@ namespace Mediana.NativeTests
             await MatroskaPacketTestInput.VerifyCancellationAndRetryAsync();
             await MatroskaPacketTestInput.VerifyQuotaAndEmptyAsync();
             await MatroskaPacketReferenceInput.VerifyAsync();
+            await MatroskaReaderTestInput.VerifyMetadataAndOwnershipAsync();
+            await MatroskaReaderTestInput.VerifyRecurringAndMissingMetadataAsync();
+            await MatroskaReaderTestInput.VerifyLimitsAndTraversalAsync();
+            await MatroskaReaderTestInput.VerifyCancellationAndConcurrentReadAsync();
+            await MatroskaReaderResourceInput.VerifyChecksumsAndAggregateMetadataAsync();
+            await MatroskaReaderResourceInput.VerifyFactoryAndSourceRequirementsAsync();
+            await MatroskaAttachmentTestInput.VerifyOrderingAndOwnershipAsync();
+            await MatroskaAttachmentTestInput.VerifyInvalidDeclarationsAsync();
+            await MatroskaAttachmentTestInput.VerifyLimitsAndDeferredDataAsync();
+            await MatroskaAttachmentTestInput.VerifyCancellationAndConcurrencyAsync();
+            await MatroskaAttachmentTestInput.VerifyChecksumScopeAsync();
+            await MatroskaAttachmentReferenceInput.VerifyAsync();
+            Console.WriteLine("PASS Matroska public reader: signature probe, native metadata, bounded traversal, cancellation, complete audio/video sessions and indexed seeks.");
             Console.WriteLine("PASS Matroska packet reads: bounded AVC/AAC/MP3 configuration, owned payloads, lace clocks, retry/quotas and 178 real encoded packets.");
             Console.WriteLine("PASS Matroska structure: EBML/CRC, Segment bounds, unknown Clusters, all Block lacing modes and 96 independent encoded packets.");
             Console.WriteLine("PASS Matroska metadata: Info/Tracks, dependent defaults, streamed CRC, deferred payloads, cancellation and all five independent files.");

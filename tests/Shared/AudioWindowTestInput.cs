@@ -43,8 +43,11 @@ namespace Mediana.Tests
                             Require(ReadSample(frame, sample, channel) == skip + position + sample + channel * 100);
                         }
                     }
-                    Require(inputAllocator.AllocatedBytes == 0);
                     retained?.Dispose();
+                    int bytes = frame.Format.GetBufferSize(frame.SamplesPerChannel);
+                    bool whole = frame.SamplesPerChannel == source.LastFrame!.SamplesPerChannel;
+                    Require(inputAllocator.AllocatedBytes == (whole ? bytes : 0));
+                    Require(outputAllocator.AllocatedBytes == (whole ? 0 : bytes));
                     retained = frame.Retain();
                     position += frame.SamplesPerChannel;
                 }
@@ -56,7 +59,8 @@ namespace Mediana.Tests
                     Require(blocksRead == 0);
                 }
                 await window.DisposeAsync();
-                Require(outputAllocator.AllocatedBytes == (retained?.Format.GetBufferSize(retained.SamplesPerChannel) ?? 0));
+                Require(inputAllocator.AllocatedBytes + outputAllocator.AllocatedBytes ==
+                    (retained?.Format.GetBufferSize(retained.SamplesPerChannel) ?? 0));
                 if (retained is not null)
                 {
                     Require(ReadSample(retained, retained.SamplesPerChannel - 1, 1) == skip + expectedCount - 1 + 100);
@@ -72,6 +76,48 @@ namespace Mediana.Tests
                 retained?.Dispose();
             }
             Require(inputAllocator.AllocatedBytes == 0 && outputAllocator.AllocatedBytes == 0);
+        }
+
+        public static async Task VerifyWholeBlocksAsync(AudioStorageLayout layout, bool rebase)
+        {
+            const int BlockSamples = 8;
+            AudioFormat format = new(48000, AudioSampleFormat.Float64, layout, "left", "right");
+            MediaBufferAllocator inputAllocator = new(format.GetBufferSize(BlockSamples));
+            MediaBufferAllocator outputAllocator = new(1);
+            AudioSignalSource source = new(inputAllocator, format.SampleRate, 2 * BlockSamples,
+                (sample, channel) => sample + channel * 100, [BlockSamples], layout, ["left", "right"]);
+            ReadOnlyMemory<byte>[] storage = new ReadOnlyMemory<byte>[format.PlaneCount];
+            MediaTimestamp? origin = rebase ? new MediaTimestamp(1, new TimeBase(1, 7)) : null;
+            await using AudioTrimmer window = AudioTrimmer.CreateWindow(ReadAsync, 0, 2 * BlockSamples, outputAllocator, origin);
+            for (int block = 0; block < 2; block++)
+            {
+                using AudioFrame frame = await window.ReadFrameAsync() ?? throw new InvalidDataException("Missing whole PCM block.");
+                Require(!ReferenceEquals(frame, source.LastFrame));
+                Require(frame.SamplesPerChannel == BlockSamples && frame.Duration == source.LastFrame!.Duration);
+                Require(frame.Timestamp == (rebase
+                    ? new MediaTimestamp(48000 + block * BlockSamples * 7, new TimeBase(1, 336000))
+                    : new MediaTimestamp(block * BlockSamples - 7, new TimeBase(1, 48000))));
+                for (int plane = 0; plane < format.PlaneCount; plane++)
+                {
+                    Require(frame.GetPlane(plane).Equals(storage[plane]));
+                }
+                Require(inputAllocator.AllocatedBytes == format.GetBufferSize(BlockSamples) && outputAllocator.AllocatedBytes == 0);
+            }
+            Require(await window.ReadFrameAsync() is null);
+            Require(inputAllocator.AllocatedBytes == 0 && outputAllocator.AllocatedBytes == 0);
+
+            async ValueTask<AudioFrame?> ReadAsync(CancellationToken token)
+            {
+                AudioFrame? frame = await source.ReadAsync(token);
+                if (frame is not null)
+                {
+                    for (int plane = 0; plane < frame.Format.PlaneCount; plane++)
+                    {
+                        storage[plane] = frame.GetPlane(plane);
+                    }
+                }
+                return frame;
+            }
         }
 
         public static async Task VerifySourceFailureAsync()

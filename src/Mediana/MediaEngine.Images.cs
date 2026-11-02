@@ -20,17 +20,7 @@ namespace Mediana
             ArgumentNullException.ThrowIfNull(allocator);
             options ??= new ImageOpenOptions();
             request ??= new ImageDecodeRequest();
-            options.Validate();
-            cancellationToken.ThrowIfCancellationRequested();
-            if (imageDecoders.Length == 0)
-            {
-                throw new NotSupportedException("No image decoders are registered.");
-            }
-            int probeLength = ImageProbeLength;
-            if (probeLength > options.MaxProbeBytes)
-            {
-                throw new NotSupportedException("Registered image recognition exceeds the configured probe byte limit.");
-            }
+            int probeLength = GetImageProbeLength(options, cancellationToken);
             using WritableMediaBuffer writable = allocator.Allocate(Math.Min(probeLength, options.MaxInputBytes));
             int read = await MediaInputProbe.ReadAsync(source, writable.Memory, cancellationToken).ConfigureAwait(false);
             IImageDecoder decoder = FindImageDecoder(writable.Memory.Span[..read])
@@ -39,7 +29,34 @@ namespace Mediana
             using MediaBuffer prefix = writable.Publish();
             await using IByteSource replay = MediaInputProbe.Replay(source, prefix, read);
             using MediaBuffer input = await EncodedImageInput.ReadAsync(replay, options.MaxInputBytes, allocator, cancellationToken).ConfigureAwait(false);
-            VideoFrame frame = await decoder.DecodeAsync(input.Memory, request, allocator, cancellationToken).ConfigureAwait(false);
+            return await DecodeRecognizedImageAsync(decoder, input.Memory, request, allocator, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>Decodes complete encoded bytes without copying them into another input/probe buffer.
+        /// Borrows the exact supplied memory until completion; the caller keeps it alive and unmodified.
+        /// The returned frame owns independent storage. Existing encoded storage belongs to its original allocation budget.
+        /// Recognition, feature selection and byte limits are the same as for byte-source input.</summary>
+        public ValueTask<VideoFrame> DecodeImageAsync(ReadOnlyMemory<byte> encoded, MediaBufferAllocator allocator,
+            ImageDecodeRequest? request = null, ImageOpenOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(allocator);
+            options ??= new ImageOpenOptions();
+            request ??= new ImageDecodeRequest();
+            int probeLength = GetImageProbeLength(options, cancellationToken);
+            if (encoded.Length > options.MaxInputBytes)
+            {
+                throw new NotSupportedException("The encoded image exceeds the configured input byte limit.");
+            }
+            IImageDecoder decoder = FindImageDecoder(encoded.Span[..Math.Min(probeLength, encoded.Length)])
+                ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
+            request.Validate(decoder.Features);
+            return DecodeRecognizedImageAsync(decoder, encoded, request, allocator, cancellationToken);
+        }
+
+        private static async ValueTask<VideoFrame> DecodeRecognizedImageAsync(IImageDecoder decoder, ReadOnlyMemory<byte> encoded,
+            ImageDecodeRequest request, MediaBufferAllocator allocator, CancellationToken cancellationToken)
+        {
+            VideoFrame frame = await decoder.DecodeAsync(encoded, request, allocator, cancellationToken).ConfigureAwait(false);
             bool transferred = false;
             try
             {
@@ -54,6 +71,21 @@ namespace Mediana
                     frame.Dispose();
                 }
             }
+        }
+
+        private int GetImageProbeLength(ImageOpenOptions options, CancellationToken token)
+        {
+            options.Validate();
+            token.ThrowIfCancellationRequested();
+            if (imageDecoders.Length == 0)
+            {
+                throw new NotSupportedException("No image decoders are registered.");
+            }
+            if (ImageProbeLength > options.MaxProbeBytes)
+            {
+                throw new NotSupportedException("Registered image recognition exceeds the configured probe byte limit.");
+            }
+            return ImageProbeLength;
         }
 
         /// <summary>Returns the uniquely recognized image implementation, or null. The prefix may be shorter than

@@ -118,8 +118,10 @@ namespace Mediana.Tests
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await trimmer.ReadFrameAsync());
         }
 
-        [Fact]
-        public async Task EmptySelectionDoesNotReadAndCancellationAfterReadReleasesTheBorrowedFrame()
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        public async Task EmptySelectionDoesNotReadAndCancellationAfterReadReleasesTheBorrowedFrame(int skip)
         {
             MediaBufferAllocator allocator = new(4096);
             AudioSignalSource source = new(allocator, 8000, 10, (index, _) => index, [4]);
@@ -135,7 +137,7 @@ namespace Mediana.Tests
                 await cancellation.CancelAsync();
                 return frame;
             }
-            await using AudioTrimmer canceled = new(ReadAsync, 1, 2, allocator);
+            await using AudioTrimmer canceled = new(ReadAsync, skip, 4 - skip, allocator);
             await Assert.ThrowsAsync<OperationCanceledException>(async () => await canceled.ReadFrameAsync(cancellation.Token));
             Assert.Equal(0, allocator.AllocatedBytes);
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await canceled.ReadFrameAsync());

@@ -65,6 +65,18 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public async Task KnownPacketTotalsDoNotInventAnUnknownDecodeDuration()
+        {
+            using StringWriter output = new(CultureInfo.InvariantCulture);
+            await ContainerStreamInfoFormatter.WriteAsync(new(0, packetIndex: new(17, 12345)), output, default);
+            string text = output.ToString();
+            Assert.Contains("Indexed packets: 17; encoded payload: 12345 bytes.", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("duration", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("bitrate", text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("fps", text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public async Task ZeroDurationAndUnavailableMetadataDoNotProduceGuessedRatesOrTags()
         {
             using StringWriter output = new(CultureInfo.InvariantCulture);

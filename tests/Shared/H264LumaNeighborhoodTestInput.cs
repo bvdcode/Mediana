@@ -17,7 +17,8 @@ namespace Mediana.Tests
                 byte[] samples = new byte[H264LumaNeighborhood.SampleBytes + 6];
                 byte[] filtered = new byte[H264LumaNeighborhood.FilteredBytes + 6];
                 byte[] guarded = new byte[262];
-                for (int pattern = 0; pattern < 3; pattern++)
+                byte[] comparison = new byte[256];
+                for (int pattern = 0; pattern < 6; pattern++)
                 {
                     for (int index = 0; index < picture.Plane(0).Length; index++)
                     {
@@ -26,6 +27,9 @@ namespace Mediana.Tests
                             0 => (byte)((index * 53 + index / 32 * 97 + index * index % 131) & 255),
                             1 => (byte)((index + index / 32) % 2 * 255),
                             2 => (byte)((index / 32 < 16 && index % 32 < 16) ? 0 : 255),
+                            3 => (byte)((index % 32 % 6 is 0 or 2 or 3 or 5) ? 255 : 0),
+                            4 => (byte)((index / 32 % 6 is 0 or 2 or 3 or 5) ? 255 : 0),
+                            5 => (byte)(((index % 32 % 6 is 0 or 2 or 3 or 5) == (index / 32 % 6 is 0 or 2 or 3 or 5)) ? 255 : 0),
                             _ => throw new InvalidOperationException("Unknown neighborhood test pattern.")
                         };
                     }
@@ -40,17 +44,23 @@ namespace Mediana.Tests
                             for (int dx = -3; dx <= 3; dx++)
                             {
                                 guarded.AsSpan().Fill(183);
-                                neighborhood.Read(dx, dy, guarded.AsSpan(3, 256));
+                                int error = neighborhood.Evaluate(dx, dy, comparison, guarded.AsSpan(3, 256), int.MaxValue);
+                                int expectedError = 0;
                                 for (int row = 0; row < 16; row++)
                                 {
                                     for (int column = 0; column < 16; column++)
                                     {
                                         int expected = H264MotionInterpolationTestInput.Pixel(source, 4L * ((long)x + column) + dx, 4L * ((long)y + row) + dy);
+                                        expectedError += Math.Abs(comparison[row * 16 + column] - expected);
                                         if (guarded[3 + row * 16 + column] != expected)
                                         {
                                             throw new InvalidDataException("A prepared neighborhood differs from independent scalar convolution.");
                                         }
                                     }
+                                }
+                                if (error != expectedError)
+                                {
+                                    throw new InvalidDataException("The complete candidate cost differs from scalar sample differences.");
                                 }
                                 Guard(guarded);
                             }
@@ -79,9 +89,10 @@ namespace Mediana.Tests
                 byte[] samples = new byte[H264LumaNeighborhood.SampleBytes];
                 byte[] filtered = new byte[H264LumaNeighborhood.FilteredBytes];
                 byte[] output = new byte[256];
-                Repeat(picture, samples, filtered, output);
+                byte[] comparison = new byte[256];
+                Repeat(picture, samples, filtered, comparison, output);
                 long before = GC.GetAllocatedBytesForCurrentThread();
-                int checksum = Repeat(picture, samples, filtered, output);
+                int checksum = Repeat(picture, samples, filtered, comparison, output);
                 long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
                 if (allocated != 0 || checksum != 73 * 256)
                 {
@@ -94,13 +105,13 @@ namespace Mediana.Tests
             }
         }
 
-        private static int Repeat(H264Picture picture, byte[] samples, byte[] filtered, byte[] output)
+        private static int Repeat(H264Picture picture, byte[] samples, byte[] filtered, byte[] comparison, byte[] output)
         {
             int sum = 0;
             for (int index = 0; index < 256; index++)
             {
                 H264LumaNeighborhood neighborhood = new(picture, 8, 8, samples, filtered);
-                neighborhood.Read(index % 7 - 3, index / 7 % 7 - 3, output);
+                neighborhood.Evaluate(index % 7 - 3, index / 7 % 7 - 3, comparison, output, int.MaxValue);
                 sum += output[0];
             }
             return sum;

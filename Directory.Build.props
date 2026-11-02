@@ -6,6 +6,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest</AnalysisLevel>
     <Deterministic>true</Deterministic>
+    <OptimizationPreference Condition="'$(OptimizationPreference)' == ''">Speed</OptimizationPreference>
     <Authors>Vadim Belov</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/bvdcode/Mediana</RepositoryUrl>

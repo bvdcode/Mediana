@@ -4,6 +4,7 @@
 using Mediana.Codecs.H264;
 using Mediana.Containers.MpegTs;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Execution;
 
@@ -15,6 +16,41 @@ namespace Mediana.Tests
         public async Task OperationDrainsMultiplePacketsAndDelayedTailAndBorrowsComponents()
         {
             await EncodingOperationTestInput.VerifyAsync();
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(2)]
+        public async Task MissingInputDurationRemainsUnknownThroughFinalization(int missing)
+        {
+            MediaBufferAllocator allocator = new(4096);
+            using BufferedVideoEncoder encoder = new(allocator);
+            await using CollectingPacketWriter writer = new();
+            List<MediaOperationProgress> updates = [];
+            int index = 0;
+            ValueTask<VideoFrame?> Read(CancellationToken token)
+            {
+                if (index == 3)
+                {
+                    return ValueTask.FromResult<VideoFrame?>(null);
+                }
+                MediaDuration? duration = index == missing ? null : new MediaDuration(1001, new(1, 30000));
+                return ValueTask.FromResult<VideoFrame?>(FrameFixture.Create(allocator, (byte)++index, index, duration));
+            }
+            MediaOperationProgress result = await MediaOperations.EncodeVideoAsync(Read, encoder, writer, updates.Add);
+            Assert.Null(result.ProcessedDuration);
+            Assert.Equal(3, result.Frames);
+            Assert.Equal(6, result.Packets);
+            Assert.True(result.IsComplete);
+            Assert.True(writer.IsComplete);
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.Equal(4, updates.Count);
+            for (int frame = 0; frame < updates.Count; frame++)
+            {
+                Assert.Equal(frame < missing ? new MediaDuration((frame + 1) * 1001, new(1, 30000)) : null,
+                    updates[frame].ProcessedDuration);
+            }
         }
 
         [Fact]

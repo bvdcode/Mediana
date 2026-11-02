@@ -6,6 +6,9 @@ namespace Mediana.Tests
     public class MatroskaClockTests
     {
         [Fact]
+        public Task SegmentDurationUsesExactFloatScaleAndNearestEvenNanoseconds() => MatroskaClockTestInput.VerifySegmentDurationsAsync();
+
+        [Fact]
         public Task CompleteClockExpressionsMatchIndependentExactRationalVectors() => MatroskaClockTestInput.VerifyReferencesAsync();
 
         [Fact]

@@ -38,7 +38,9 @@ namespace Mediana.Tests
                 target.Plane(0)[7 * 32 + 7] = 117;
                 byte[] original = target.Plane(0).ToArray();
                 Span<byte> prediction = stackalloc byte[16];
-                int selected = H264IntraModeSelection.Select(input, target, 8, 8, prediction);
+                Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
+                H264SourceMacroblock source = new(input, 8, 8, samples);
+                int selected = H264IntraModeSelection.Select(source.Luma, target, 8, 8, prediction);
                 if (selected != mode || !prediction.SequenceEqual(Expected(mode)) || !target.Plane(0).SequenceEqual(original))
                 {
                     throw new InvalidDataException($"Intra4x4 mode {mode} did not select its exact independent directional samples without changing references.");

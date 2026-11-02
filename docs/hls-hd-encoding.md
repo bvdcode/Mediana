@@ -1,0 +1,159 @@
+The complete original Big Buck Bunny MOV was transcoded into an audiovisual
+HLS ladder with 1280x720 and 640x360 variants. Both the Mediana and FFmpeg
+operations reached the original film's EOF. The measurements below cover the
+whole operation, including source decoding, resizing, stereo mixing, two video
+encoders, two AAC encoders and all transport/playlist output.
+
+## Source and settings
+
+The [original HD source](real-hd.md) contains 14,315 pictures at 24 fps,
+596.458333 seconds of video and six-channel AAC at 48 kHz. Its 416,751,190 bytes
+have SHA256 `45c8bafeb9a53df7f491198d2e71529701bcf1cd51805782089fac1d32869f9b`.
+Movie edits select exactly 28,630,160 audio samples per channel, starting at zero.
+Both operations apply the [normalized ITU stereo matrix](audio-downmix.md),
+omitting LFE, before encoding the selected audio.
+
+The latest measurement uses a Native AOT consumer whose product sources
+match `2391693`. Earlier measurements used `5d2882e`, `241476e` and `67fc7b7`.
+All comparisons use FFmpeg 6.1.1-3ubuntu5 with libx264 on Linux x64,
+an Intel Core i5-12450H and .NET 10.0.13. The two measured processes ran
+sequentially, restricted to logical CPU 2. Mediana used `DOTNET_PROCESSOR_COUNT=1`; FFmpeg used one input decoder
+thread, one filter-complex thread and one thread per output codec. Independent
+decoding of the original reference outputs ran after the baseline measurements.
+The latest outputs were compared with those complete references after both new
+measured processes terminated. These are single complete-process observations
+on a shared host.
+
+Both video outputs use progressive YUV420P8, Constrained Baseline level 4.1,
+BT.709 labels, no B pictures and an IDR every 144 pictures. The first 99 segments
+contain 144 pictures each; the final segment contains 59. Mediana uses initial
+QP26, per-variant packet rates of 10/5 Mbit/s and respective capacities of
+20/10 Mbit. FFmpeg uses `veryfast`, targets and maximum rates of 10/5 Mbit/s,
+VBV sizes of 20/10 Mbit and disabled scene-cut keyframes. Its VBV and Mediana's
+packet envelope have different semantics and encoder searches.
+
+The 720p variant uses stereo AAC at 96 kbit/s; 360p uses 128 kbit/s. The distinct
+settings verify separate AAC states fed by the same decoded and mixed input.
+Mediana bounds raw AAC access units; FFmpeg's settings are bitrate targets.
+Both use 48 kHz, MPEG-TS segments and six-second VOD playlists.
+
+## Complete resources and video error
+
+CPU is user plus system time; RSS is process peak resident set size. Published
+bytes include all 203 files of each complete ladder.
+
+| Implementation | CPU | Elapsed | Peak RSS | Published bytes | Processing speed |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Mediana Native AOT | 962.836 s | 1005.875 s | 119.66 MiB | 1,172,197,543 | 0.593x |
+| FFmpeg / libx264 veryfast | 274.925 s | 285.032 s | 200.47 MiB | 1,136,231,473 | 2.093x |
+
+Mediana used 3.50 times the CPU, 40.31% less peak RSS and 3.17% more output
+bytes on this operation. Processing speed divides the original video duration
+by elapsed time and includes both variants and audio. This does not establish
+equal-quality throughput or general performance across other inputs.
+
+The complete Mediana observations retain identical output:
+
+| Product source | CPU seconds | Elapsed seconds | Peak RSS |
+| --- | ---: | ---: | ---: |
+| `67fc7b7` | 1683.365 | 1798.004 | 139.34 MiB |
+| `241476e` | 1205.322 | 1259.159 | 140.03 MiB |
+| `5d2882e` | 992.938 | 1022.200 | 120.59 MiB |
+| `2391693` | 962.836 | 1005.875 | 119.66 MiB |
+
+The latest observation uses 3.03% less CPU and 1.60% less elapsed time than
+`5d2882e`. These single full-operation observations include accumulated changes
+and variation on a shared host; they do not isolate the contribution of any
+one change. In particular, the paired complete-minute direct-region decoder
+improvement does not establish the same improvement for the complete HLS
+operation, which includes two video and two audio encoders.
+
+Earlier FFmpeg observations used 186.728, 194.151 and 197.567 CPU seconds,
+compared with 274.925 in this batch. The latest external observation is 39.16%
+higher than the preceding one. Its cause was not established by these
+measurements. The change from the preceding 5.03x CPU ratio to 3.50x therefore
+does not establish a corresponding Mediana speedup. A substantial CPU gap and
+the video quality/efficiency difference below remain open.
+
+PSNR uses every visible decoded Y, U and V sample, weighted by sample count.
+The 720p reference is the independently decoded original; 360p uses an
+independent area resize of that original.
+AVC packet rates count each VCL NAL plus its four-byte packet prefix, excluding
+parameter sets, access-unit delimiters and transport overhead.
+
+| Implementation | Dimensions | Actual AVC packet rate | Y PSNR | U PSNR | V PSNR | Aggregate PSNR |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| Mediana | 1280x720 | 10017.148 kbit/s | 44.360 dB | 48.654 dB | 49.324 dB | 45.429 dB |
+| FFmpeg / libx264 | 1280x720 | 9825.902 kbit/s | 48.224 dB | 51.764 dB | 52.630 dB | 49.188 dB |
+| Mediana | 640x360 | 4921.828 kbit/s | 45.866 dB | 46.849 dB | 48.076 dB | 46.325 dB |
+| FFmpeg / libx264 | 640x360 | 4801.256 kbit/s | 47.305 dB | 50.586 dB | 51.194 dB | 48.204 dB |
+
+The observed video error is higher in both Mediana variants. These numeric
+errors do not establish perceptual or listening acceptance.
+
+## Complete output verification
+
+The latest run produced exactly the same 203 files per implementation as the
+original independently verified outputs: all 400 segments and all six playlists
+have matching SHA256 hashes. Both new processes reached EOF, and Mediana
+reported zero live media-buffer bytes. The complete video, audio, timestamp,
+transport and quality results below therefore also describe the latest output.
+
+All four original continuous video streams were independently decoded and then
+decoded through the Native AOT Mediana consumer used for that verification.
+Every picture, visible byte, PTS and duration matched: 57,260 pictures and
+49,472,640,000 visible YUV bytes
+in total. Each of the 400 segments was also decoded by a fresh independent
+decoder; its pictures and global timestamps matched the continuous stream.
+All coded VCL bytes remained unchanged through the verification MP4 remux.
+Every operation reached EOF and released media storage.
+
+All transport video PTS/DTS values have the exact 1/24-second cadence. All
+canonical MP4 packet durations equal 1/24 second. FFprobe omits the duration
+field for the first 21 packets of each Mediana transport stream; the remaining
+duration fields agree with that cadence. An unknown packet duration is allowed
+by the [AVPacket contract](https://ffmpeg.org/doxygen/6.1/packet_8h_source.html).
+
+Both Mediana playlists contain 100 aligned segments, ending at 596.48 seconds
+including the audio tail. Every AAC stream contains 27,961 access units,
+1024 priming samples and 880 padding samples. Audio starts exactly 1024/48000
+seconds before video; every audio PTS, DTS and duration was checked. Each
+Mediana AAC stream matches a separate complete encoding of the independently
+selected PCM byte for byte, and every access unit satisfies its fractional
+bit budget. Independent decoding of the two Mediana AAC streams matches all
+114,528,256 Float32 values within `2.384185791015625e-7`.
+
+FFmpeg's AAC output uses perceptual noise substitution (PNS). PNS reconstructs
+signalled noise energy with random vectors, so independent decoders need not
+produce identical noise samples; see ISO/IEC 14496-3:2001, Subpart 4, section
+4.6.13, and the [reference PNS implementation](https://github.com/knik0/faad2/blob/master/libfaad/pns.c).
+Both complete FFmpeg audio streams were decoded by Mediana, FFmpeg and FAAD2
+2.11.1. All samples are finite and counts agree. All 22,396 access units free
+of current/previous PNS agree across all three decoders within
+`2.086162567138672e-7`. Differences beyond the unchanged `2e-6` tolerance occur
+only where PNS can affect the samples. Whole-channel energy differs by at most
+0.00588% across the decoders. No pointwise identity is claimed for PNS samples.
+The existing source AAC decoder differences described in the
+[HD audio verification](real-hd.md) also prevent ranking AAC encoders from
+this full-pipeline comparison alone.
+
+Every one of the 6,235,064 Mediana transport packets passed continuity-counter
+checks across segment boundaries. All PAT/PMT CRCs passed; all 57,262 PCR samples
+are monotonic, with at most 40 ms between them in each variant. Master playlist
+peak/average bandwidth fields match independently measured segment sizes and
+durations, and actual SPS/AAC configurations match the advertised CODECS.
+Every consecutive AVC packet window satisfies the configured Mediana envelope.
+This packet-envelope check does not establish Annex C HRD conformance.
+
+## Mediana command
+
+The original MOV has video stream 0 and audio stream 2:
+
+```sh
+DOTNET_PROCESSOR_COUNT=1 taskset -c 2 mediana hls encode input.mov output-hls --audio-stream 2 --audio-codec Aac --audio-channels 2 --audio-bit-rates 96000,128000 --segment-ms 6000 --qp 26 --video-bit-rates 10000000,5000000 --video-buffer-ms 2000 --no-color --widths 1280 640
+```
+
+The separate [video stage measurements](h264-stage-performance.md) compare
+complete decoding and encoding on the same minute-long cut and include
+diagnostic CPU dispatch controls. Those isolated stage results and the latest
+full-film observations above measure different workloads.

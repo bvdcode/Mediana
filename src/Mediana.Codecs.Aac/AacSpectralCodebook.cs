@@ -42,6 +42,7 @@ namespace Mediana.Codecs.Aac
 
         public int Dimensions { get; }
         public bool Signed { get; }
+        public int MaximumSymbolMagnitude => radix - offset - 1;
 
         public int Symbol(ReadOnlySpan<int> values)
         {

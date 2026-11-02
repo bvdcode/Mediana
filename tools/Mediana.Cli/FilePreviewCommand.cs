@@ -29,7 +29,7 @@ namespace Mediana.Cli
                     PageIndex = page - 1,
                     Time = new MediaTimestamp(milliseconds, new TimeBase(1, 1000))
                 };
-                return await ImagePreviewCommand.RunAsync(images, source, outputFile, request, token);
+                return await ImagePreviewCommand.RunAsync(images, source, outputFile, logger, request, token);
             }
             if (page != 1)
             {

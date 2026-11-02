@@ -9,7 +9,7 @@ namespace Mediana.Codecs.H264
             int width, int height, Span<byte> output)
         {
             ValidateOutput(width, height, output);
-            ReadOnlySpan<byte> samples = reference.Plane(0);
+            ReadOnlySpan<byte> samples = reference.ReadPlane(0);
             long sourceX = (long)x + (motionX >> 2);
             long sourceY = (long)y + (motionY >> 2);
             int dx = motionX & 3;
@@ -30,7 +30,7 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentOutOfRangeException(nameof(plane));
             }
             ValidateOutput(width, height, output);
-            ReadOnlySpan<byte> samples = reference.Plane(plane);
+            ReadOnlySpan<byte> samples = reference.ReadPlane(plane);
             int stride = reference.Width / 2;
             int rows = reference.Height / 2;
             if (((motionX | motionY) & 7) == 0)

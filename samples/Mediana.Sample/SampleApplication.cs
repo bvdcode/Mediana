@@ -6,6 +6,7 @@ using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Execution;
 using Mediana.Processing;
+using System.Globalization;
 
 namespace Mediana.Sample
 {
@@ -13,6 +14,20 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string[] args)
         {
+            if (args.Length == 5 && args[0] == "--transcode-av-window")
+            {
+                return await AudiovisualWindowSample.RunAsync(args[1], args[2],
+                    long.Parse(args[3], CultureInfo.InvariantCulture), long.Parse(args[4], CultureInfo.InvariantCulture));
+            }
+            if (args.Length == 5 && args[0] == "--transcode-window")
+            {
+                return await TranscodeSample.RunWindowAsync(args[1], args[2],
+                    long.Parse(args[3], CultureInfo.InvariantCulture), long.Parse(args[4], CultureInfo.InvariantCulture));
+            }
+            if (args.Length == 4 && args[0] == "--audio-preview")
+            {
+                return await AudioPreviewSample.RunAsync(args[1], args[2], args[3]);
+            }
             if (args.Length == 3 && args[0] == "--transcode")
             {
                 return await TranscodeSample.RunAsync(args[1], args[2]);
@@ -27,7 +42,7 @@ namespace Mediana.Sample
             }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --transcode input.mp4 output.ts | --preview input.mp4 output.png | --waveform input]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --transcode input.mp4 output.ts | --transcode-window input.mp4 output.ts start-ms end-ms | --transcode-av-window input.mp4 output.ts start-ms end-ms | --preview input output.png | --waveform input | --audio-preview input cover.png waveform.json]");
                 return 2;
             }
 

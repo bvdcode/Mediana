@@ -17,7 +17,7 @@ namespace Mediana.Cli
         private TimeSpan lastReport;
         private bool reported;
 
-        public void Report(MediaDuration processed, long outputBytes, bool completed = false)
+        public void Report(MediaDuration? processed, long outputBytes, bool completed = false)
         {
             if (!logger.IsEnabled(LogLevel.Information))
             {
@@ -28,22 +28,29 @@ namespace Mediana.Cli
             {
                 return;
             }
-            double seconds = (double)processed.Value * processed.TimeBase.Numerator / processed.TimeBase.Denominator;
-            double speed = 0;
-            if (elapsed > TimeSpan.Zero)
+            if (processed is MediaDuration duration)
             {
-                speed = seconds / elapsed.TotalSeconds;
-            }
-            TimeSpan mediaTime = TimeSpan.FromTicks(checked((long)((Int128)processed.Value * processed.TimeBase.Numerator
-                * TimeSpan.TicksPerSecond / processed.TimeBase.Denominator)));
-            TimeSpan? remaining = estimator.Observe(processed, elapsed);
-            if (!completed && remaining is TimeSpan estimate)
-            {
-                CliLog.ProgressWithEstimate(logger, Format(mediaTime), speed, outputBytes / (1024d * 1024), Format(estimate, fractional: false));
+                double seconds = (double)duration.Value * duration.TimeBase.Numerator / duration.TimeBase.Denominator;
+                double speed = 0;
+                if (elapsed > TimeSpan.Zero)
+                {
+                    speed = seconds / elapsed.TotalSeconds;
+                }
+                TimeSpan mediaTime = TimeSpan.FromTicks(checked((long)((Int128)duration.Value * duration.TimeBase.Numerator
+                    * TimeSpan.TicksPerSecond / duration.TimeBase.Denominator)));
+                TimeSpan? remaining = estimator.Observe(duration, elapsed);
+                if (!completed && remaining is TimeSpan estimate)
+                {
+                    CliLog.ProgressWithEstimate(logger, Format(mediaTime), speed, outputBytes / (1024d * 1024), Format(estimate, fractional: false));
+                }
+                else
+                {
+                    CliLog.Progress(logger, Format(mediaTime), speed, outputBytes / (1024d * 1024));
+                }
             }
             else
             {
-                CliLog.Progress(logger, Format(mediaTime), speed, outputBytes / (1024d * 1024));
+                CliLog.OutputProgress(logger, outputBytes / (1024d * 1024));
             }
             lastReport = elapsed;
             reported = true;

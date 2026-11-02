@@ -3,5 +3,5 @@
 
 namespace Mediana.Containers.Matroska
 {
-    internal record MatroskaTrackLabels(string? Name, string Language, string? LanguageBcp47);
+    public record MatroskaTrackLabels(string? Name, string Language, string? LanguageBcp47);
 }

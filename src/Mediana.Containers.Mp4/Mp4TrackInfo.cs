@@ -16,7 +16,8 @@ namespace Mediana.Containers.Mp4
             int? width, int? height, int? declaredAudioChannels, int? declaredAudioSampleRate, int sampleCount,
             VideoDisplayMatrix displayMatrix, ContainerPacketIndexInfo packetIndex,
             Mp4LanguageInfo language, Mp4HeaderDates headerDates, Mp4HeaderDates mediaDates, Mp4MetadataScope metadata,
-            IReadOnlyList<VideoColorDescription>? colorDescriptions = null)
+            IReadOnlyList<VideoColorDescription>? colorDescriptions = null,
+            IReadOnlyList<Mp4SampleRecoveryGroup>? recoveryGroups = null)
         {
             TrackId = trackId;
             Stream = stream;
@@ -31,10 +32,13 @@ namespace Mediana.Containers.Mp4
             SampleCount = sampleCount;
             DisplayMatrix = displayMatrix;
             ColorDescriptions = colorDescriptions ?? Array.Empty<VideoColorDescription>();
+            RecoveryGroups = recoveryGroups ?? Array.Empty<Mp4SampleRecoveryGroup>();
             PacketIndex = packetIndex;
             AverageFrameRate = stream.Kind switch
             {
-                MediaKind.Video => FrameRate.FromFrameCount(packetIndex.PacketCount, packetIndex.DecodeDuration),
+                MediaKind.Video when packetIndex.DecodeDuration is MediaDuration duration =>
+                    FrameRate.FromFrameCount(packetIndex.PacketCount, duration),
+                MediaKind.Video => null,
                 MediaKind.Audio => null,
                 MediaKind.Data => null,
                 _ => throw new ArgumentException("The MP4 track kind is unsupported.", nameof(stream))
@@ -77,8 +81,11 @@ namespace Mediana.Containers.Mp4
         /// <summary>Recognized source color descriptions in sample-entry order. Stream.ColorDescription is the selected representation.</summary>
         public IReadOnlyList<VideoColorDescription> ColorDescriptions { get; }
 
+        /// <summary>Declared encoded-sample recovery requirements, independent of PCM edits and codec startup delay.</summary>
+        public IReadOnlyList<Mp4SampleRecoveryGroup> RecoveryGroups { get; }
+
         internal Mp4TrackInfo WithStream(EncodedStreamInfo stream) => new(TrackId, stream, SampleEntry,
             MediaDuration, PresentationDuration, Edits, Width, Height, DeclaredAudioChannels,
-            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, Language, HeaderDates, MediaDates, MetadataScope, ColorDescriptions);
+            DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, Language, HeaderDates, MediaDates, MetadataScope, ColorDescriptions, RecoveryGroups);
     }
 }

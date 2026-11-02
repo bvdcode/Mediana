@@ -16,6 +16,22 @@ namespace Mediana.Codecs.H264
 
         public H264PictureIdentity ReferenceIdentity(H264ReferenceList list, int index, int macroblock = 0)
         {
+            H264PictureReferences slice = ReferenceLists(macroblock);
+            H264PictureIdentity?[] identities = list switch
+            {
+                H264ReferenceList.L0 => slice.L0,
+                H264ReferenceList.L1 => slice.L1,
+                _ => throw new ArgumentOutOfRangeException(nameof(list))
+            };
+            if ((uint)index >= (uint)identities.Length || identities[index] is not H264PictureIdentity identity)
+            {
+                throw new InvalidDataException("The H.264 co-located motion has no reference identity.");
+            }
+            return identity;
+        }
+
+        public H264PictureReferences ReferenceLists(int macroblock)
+        {
             int low = 0;
             int high = referenceSlices.Count;
             while (low < high)
@@ -34,18 +50,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("The H.264 co-located macroblock has no reference list.");
             }
-            H264PictureReferences slice = referenceSlices[low - 1];
-            H264PictureIdentity?[] identities = list switch
-            {
-                H264ReferenceList.L0 => slice.L0,
-                H264ReferenceList.L1 => slice.L1,
-                _ => throw new ArgumentOutOfRangeException(nameof(list))
-            };
-            if ((uint)index >= (uint)identities.Length || identities[index] is not H264PictureIdentity identity)
-            {
-                throw new InvalidDataException("The H.264 co-located motion has no reference identity.");
-            }
-            return identity;
+            return referenceSlices[low - 1];
         }
 
         private static H264PictureIdentity?[] Capture(IReadOnlyList<H264ReferencePicture?> references)

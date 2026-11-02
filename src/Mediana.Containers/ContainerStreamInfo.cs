@@ -38,7 +38,7 @@ namespace Mediana.Containers
         /// <summary>Declared calendar dates scoped to this stream, with native keys and locations.
         /// Null means unavailable; an empty list means no representable, specified dates were found.</summary>
         public IReadOnlyList<MediaDateTimeTag>? Dates { get; }
-        /// <summary>Complete packet-index totals, or null when not exposed. A zero duration does not define a rate.</summary>
+        /// <summary>Complete packet-index totals, or null when not exposed. Unknown or zero duration does not define a rate.</summary>
         public ContainerPacketIndexInfo? PacketIndex { get; }
         /// <summary>Mean coded-video sample rate on the container's decode timeline, or null when unavailable.
         /// Does not declare constant cadence, edit-list presentation rate or decoded output frame count.</summary>

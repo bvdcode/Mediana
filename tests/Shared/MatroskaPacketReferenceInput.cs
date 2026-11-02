@@ -98,6 +98,7 @@ namespace Mediana.Tests
                 int audioBytes = 0;
                 int audioFrames = 0;
                 int videoFrames = 0;
+                List<MediaTimestamp?> audioTimes = [];
                 while (await packets.ReadPacketAsync() is MediaPacket packet)
                 {
                     using (packet)
@@ -126,6 +127,7 @@ namespace Mediana.Tests
                             Require(output.Status == CodecOutputStatus.Available);
                             using AudioFrame frame = output.Value;
                             Require(frame.Timestamp == packet.PresentationTime);
+                            audioTimes.Add(frame.Timestamp);
                             Require(frame.Format.SampleRate == fixture.GetProperty("sample_rate").GetInt32());
                             Require(frame.Format.Channels.Count == fixture.GetProperty("channels").GetInt32());
                             frame.GetPlane(0).Span.CopyTo(actualAudio.AsSpan(audioBytes));
@@ -155,6 +157,7 @@ namespace Mediana.Tests
                     Require(videoFrames == 8 && videoDecoder.Receive().Status == CodecOutputStatus.EndOfStream);
                 }
                 Require(packetCount == expectedPackets.GetArrayLength() && packetCount == positions.Sum());
+                await MatroskaPublicReferenceInput.VerifyAsync(bytes, audioStream, actualAudio, audioTimes, videoReference, videoTimes);
             }
             Require(allocator.AllocatedBytes == 0 && !source.IsDisposed);
             return expectedPackets.GetArrayLength();

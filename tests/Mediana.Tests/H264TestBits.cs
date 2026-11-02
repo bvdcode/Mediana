@@ -15,11 +15,20 @@ namespace Mediana.Tests
         {
             string bits = content.Replace(" ", string.Empty, StringComparison.Ordinal) + (trailing ? "1" : string.Empty);
             bits = bits.PadRight((bits.Length + 7) / 8 * 8, '0');
+            byte[] raw = new byte[bits.Length / 8];
+            for (int index = 0; index < raw.Length; index++)
+            {
+                raw[index] = Convert.ToByte(bits.Substring(index * 8, 8), 2);
+            }
+            return Escape(raw);
+        }
+
+        public static byte[] Escape(ReadOnlySpan<byte> data)
+        {
             List<byte> bytes = [];
             int zeros = 0;
-            for (int index = 0; index < bits.Length; index += 8)
+            foreach (byte value in data)
             {
-                byte value = Convert.ToByte(bits.Substring(index, 8), 2);
                 if (zeros == 2 && value <= 3)
                 {
                     bytes.Add(3);

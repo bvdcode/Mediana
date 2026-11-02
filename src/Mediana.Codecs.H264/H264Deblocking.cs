@@ -42,39 +42,62 @@ namespace Mediana.Codecs.H264
                 return;
             }
             int columns = header.Sequence.WidthInMbs;
+            H264DeblockingContext context = new(picture, references, referencesL1);
+            Span<byte> strengths = stackalloc byte[32];
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                int lumaX = address % columns * 16;
+                int lumaY = address / columns * 16;
+                context.BeginMacroblock(address);
+                FillStrengths(picture, header, address, lumaX, lumaY, true, ref context, strengths[..16]);
+                FillStrengths(picture, header, address, lumaX, lumaY, false, ref context, strengths[16..]);
                 for (int plane = 0; plane < 3; plane++)
                 {
-                    int size = plane == 0 ? 16 : 8;
-                    int x = (address % columns) * size;
-                    int y = (address / columns) * size;
-                    ApplyEdges(picture, header, plane, address, x, y, size, true, references, referencesL1);
-                    ApplyEdges(picture, header, plane, address, x, y, size, false, references, referencesL1);
+                    int scale = plane == 0 ? 1 : 2;
+                    int size = 16 / scale;
+                    ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / scale, size, true, strengths[..16]);
+                    ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / scale, size, false, strengths[16..]);
+                }
+            }
+        }
+
+        private static void FillStrengths(H264Picture picture, H264SliceHeader header, int address, int x, int y,
+            bool vertical, ref H264DeblockingContext context,
+            scoped Span<byte> strengths)
+        {
+            strengths.Clear();
+            int edgeStep = picture.Transforms8x8[address] == 0 ? 4 : 8;
+            int firstEdge = (vertical ? x == 0 : y == 0) ||
+                (header.DeblockingIdc == 2 && address - (vertical ? 1 : header.Sequence.WidthInMbs) < header.FirstMacroblock)
+                ? edgeStep : 0;
+            for (int edge = firstEdge; edge < 16; edge += edgeStep)
+            {
+                for (int segment = 0; segment < 4; segment++)
+                {
+                    int lumaX = x + (vertical ? edge : segment * 4);
+                    int lumaY = y + (vertical ? segment * 4 : edge);
+                    strengths[edge + segment] = (byte)context.Strength(lumaX, lumaY, vertical, edge == 0);
                 }
             }
         }
 
         private static void ApplyEdges(H264Picture picture, H264SliceHeader header, int plane,
-            int address, int x, int y, int size, bool vertical, IReadOnlyList<H264ReferencePicture?>? references,
-            IReadOnlyList<H264ReferencePicture?>? referencesL1)
+            int address, int x, int y, int size, bool vertical, ReadOnlySpan<byte> strengths)
         {
+            if (!strengths.ContainsAnyExcept((byte)0))
+            {
+                return;
+            }
             int stride = picture.Stride(plane);
             int step = vertical ? 1 : stride;
-            int along = vertical ? stride : 1;
             Span<byte> pixels = picture.Plane(plane);
             int scale = plane == 0 ? 1 : 2;
-            int segmentLength = 4 / scale;
             int currentQp = Qp(picture, header.Picture, plane, address);
             for (int edge = 0; edge < size; edge += 4)
             {
-                if (plane == 0 && edge % 8 != 0 && picture.Transforms8x8[address] != 0)
-                {
-                    continue;
-                }
-                if (edge == 0 && ((vertical ? x == 0 : y == 0) ||
-                    (header.DeblockingIdc == 2 && address - (vertical ? 1 : header.Sequence.WidthInMbs) < header.FirstMacroblock)))
+                ReadOnlySpan<byte> edgeStrengths = strengths.Slice(edge * scale, 4);
+                if (!edgeStrengths.ContainsAnyExcept((byte)0))
                 {
                     continue;
                 }
@@ -83,59 +106,24 @@ namespace Mediana.Codecs.H264
                 int averageQp = (previousQp + currentQp + 1) >> 1;
                 int indexA = Math.Clamp(averageQp + header.AlphaOffset, 0, 51);
                 int indexB = Math.Clamp(averageQp + header.BetaOffset, 0, 51);
-                int start = y * stride + x + edge * step;
-                for (int sample = 0; sample < size; sample += segmentLength)
+                int alpha = Alpha[indexA];
+                int beta = Beta[indexB];
+                if (alpha == 0 || beta == 0)
                 {
-                    int lumaX = (x + (vertical ? edge : sample)) * scale;
-                    int lumaY = (y + (vertical ? sample : edge)) * scale;
-                    int strength = BoundaryStrength(picture, lumaX, lumaY, vertical, edge == 0, references, referencesL1);
-                    int tc = strength switch
-                    {
-                        0 or 4 => 0,
-                        1 => Tc1[indexA],
-                        2 => Tc2[indexA],
-                        3 => Tc3[indexA],
-                        _ => throw new InvalidOperationException("Invalid H.264 boundary strength.")
-                    };
-                    if (strength != 0)
-                    {
-                        for (int offset = 0; offset < segmentLength; offset++)
-                        {
-                            Filter(pixels, start + (sample + offset) * along, step, Alpha[indexA], Beta[indexB],
-                                tc, strength == 4, plane != 0);
-                        }
-                    }
+                    continue;
                 }
+                int start = y * stride + x + edge * step;
+                H264DeblockingThresholds thresholds = new(alpha, beta, Tc1[indexA], Tc2[indexA], Tc3[indexA]);
+                H264DeblockingFilter.Apply(pixels, start, stride, vertical, plane != 0, edgeStrengths, thresholds);
             }
         }
 
         internal static int BoundaryStrength(H264Picture picture, int x, int y, bool vertical,
             bool macroblockEdge, IReadOnlyList<H264ReferencePicture?>? references, IReadOnlyList<H264ReferencePicture?>? referencesL1 = null)
         {
-            int previous = picture.BlockIndex(0, x - (vertical ? 1 : 0), y - (vertical ? 0 : 1));
-            int current = picture.BlockIndex(0, x, y);
-            if (picture.Modes[previous] != H264Picture.InterMode || picture.Modes[current] != H264Picture.InterMode)
-            {
-                return macroblockEdge ? 4 : 3;
-            }
-            if (HasResidual(picture, x - (vertical ? 1 : 0), y - (vertical ? 0 : 1)) || HasResidual(picture, x, y))
-            {
-                return 2;
-            }
-            return H264DeblockingMotion.Strength(picture, previous, current, references, referencesL1);
-        }
-
-        private static bool HasResidual(H264Picture picture, int x, int y)
-        {
-            int address = y / 16 * picture.Sequence.WidthInMbs + x / 16;
-            if (picture.Transforms8x8[address] == 0)
-            {
-                return picture.Counts(0)[picture.BlockIndex(0, x, y)] != 0;
-            }
-            int position = picture.BlockIndex(0, x / 8 * 8, y / 8 * 8);
-            int stride = picture.Width / 4;
-            Span<byte> counts = picture.Counts(0);
-            return counts[position] != 0 || counts[position + 1] != 0 || counts[position + stride] != 0 || counts[position + stride + 1] != 0;
+            H264DeblockingContext context = new(picture, references, referencesL1);
+            context.BeginMacroblock(y / 16 * picture.Sequence.WidthInMbs + x / 16);
+            return context.Strength(x, y, vertical, macroblockEdge);
         }
 
         private static int Qp(H264Picture picture, H264PictureParameterSet parameters, int plane, int address) => plane switch
@@ -146,61 +134,5 @@ namespace Mediana.Codecs.H264
             _ => throw new ArgumentOutOfRangeException(nameof(plane))
         };
 
-        private static void Filter(Span<byte> pixels, int position, int step, int alpha, int beta,
-            int tc0, bool strong, bool chroma)
-        {
-            int p0 = pixels[position - step];
-            int p1 = pixels[position - 2 * step];
-            int p2 = pixels[position - 3 * step];
-            int q0 = pixels[position];
-            int q1 = pixels[position + step];
-            int q2 = pixels[position + 2 * step];
-            int difference = Math.Abs(p0 - q0);
-            if (difference >= alpha || Math.Abs(p1 - p0) >= beta || Math.Abs(q1 - q0) >= beta)
-            {
-                return;
-            }
-            bool ap = Math.Abs(p2 - p0) < beta;
-            bool aq = Math.Abs(q2 - q0) < beta;
-            if (strong)
-            {
-                bool wide = !chroma && difference < ((alpha >> 2) + 2);
-                if (wide && ap)
-                {
-                    int p3 = pixels[position - 4 * step];
-                    pixels[position - step] = (byte)((p2 + 2 * p1 + 2 * p0 + 2 * q0 + q1 + 4) >> 3);
-                    pixels[position - 2 * step] = (byte)((p2 + p1 + p0 + q0 + 2) >> 2);
-                    pixels[position - 3 * step] = (byte)((2 * p3 + 3 * p2 + p1 + p0 + q0 + 4) >> 3);
-                }
-                else
-                {
-                    pixels[position - step] = (byte)((2 * p1 + p0 + q1 + 2) >> 2);
-                }
-                if (wide && aq)
-                {
-                    int q3 = pixels[position + 3 * step];
-                    pixels[position] = (byte)((p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3);
-                    pixels[position + step] = (byte)((p0 + q0 + q1 + q2 + 2) >> 2);
-                    pixels[position + 2 * step] = (byte)((2 * q3 + 3 * q2 + q1 + q0 + p0 + 4) >> 3);
-                }
-                else
-                {
-                    pixels[position] = (byte)((2 * q1 + q0 + p1 + 2) >> 2);
-                }
-                return;
-            }
-            int tc = chroma ? tc0 + 1 : tc0 + (ap ? 1 : 0) + (aq ? 1 : 0);
-            int delta = Math.Clamp((((q0 - p0) << 2) + p1 - q1 + 4) >> 3, -tc, tc);
-            pixels[position - step] = (byte)Math.Clamp(p0 + delta, 0, 255);
-            pixels[position] = (byte)Math.Clamp(q0 - delta, 0, 255);
-            if (!chroma && ap)
-            {
-                pixels[position - 2 * step] = (byte)(p1 + Math.Clamp((p2 + ((p0 + q0 + 1) >> 1) - 2 * p1) >> 1, -tc0, tc0));
-            }
-            if (!chroma && aq)
-            {
-                pixels[position + step] = (byte)(q1 + Math.Clamp((q2 + ((p0 + q0 + 1) >> 1) - 2 * q1) >> 1, -tc0, tc0));
-            }
-        }
     }
 }

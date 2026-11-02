@@ -10,21 +10,22 @@ namespace Mediana
 {
     /// <summary>Forward-only encoded packets. Owns container state but borrows the source.
     /// Returned packets retain their storage until disposed, including after session disposal.</summary>
-    public class ContainerSession : IContainerReader
+    public partial class ContainerSession : IContainerReader
     {
         private readonly IByteSource replay;
-        private readonly long? maxPacketReads;
+        internal MediaOpenOptions Options { get; }
         private long packetReads;
+        private bool packetsStarted;
         private bool disposed;
         private bool faulted;
         private int busy;
 
-        internal ContainerSession(IContainerReader reader, IByteSource replay, MediaBufferAllocator allocator, long? maxPacketReads)
+        internal ContainerSession(IContainerReader reader, IByteSource replay, MediaBufferAllocator allocator, MediaOpenOptions options)
         {
             Reader = reader;
             this.replay = replay;
             Allocator = allocator;
-            this.maxPacketReads = maxPacketReads;
+            Options = options;
         }
 
         internal IContainerReader Reader { get; }
@@ -32,14 +33,26 @@ namespace Mediana
         public ContainerInfo Info => Reader.Info;
         public IReadOnlyList<EncodedStreamInfo> Streams => Reader.Streams;
         public long AllocatedBufferBytes => Allocator.AllocatedBytes;
-        /// <summary>Picture declarations in container order. Null means the reader does not expose pictures;
-        /// an empty list means no pictures were found in its supported inspected metadata.</summary>
-        public IReadOnlyList<ContainerPictureInfo>? Pictures => (Reader as IContainerPictureReader)?.Pictures;
+        internal T Transfer<T>(Func<ContainerSession, T> create)
+        {
+            Enter();
+            try
+            {
+                RequireActive();
+                if (packetsStarted)
+                {
+                    throw new InvalidOperationException("Decode-session transfer requires a container whose packets have not been read.");
+                }
+                ContainerSession owner = new(Reader, replay, Allocator, Options);
+                T result = create(owner);
+                disposed = true;
+                return result;
+            }
+            finally { Volatile.Write(ref busy, 0); }
+        }
 
-        /// <summary>Reads original picture/reference bytes without advancing packets or selecting a cover.
-        /// Returned storage belongs to the caller and survives session disposal. Cancellation or a reader
-        /// failure faults the session; an unsupported capability or invalid index leaves it usable.</summary>
-        public async ValueTask<MediaBuffer> ReadPictureAsync(int pictureIndex, CancellationToken cancellationToken = default)
+        private async ValueTask<T> ReadDataAsync<T>(int dataIndex, int? count,
+            Func<int, CancellationToken, ValueTask<T>>? read, string capability, CancellationToken token)
         {
             Enter();
             bool started = false;
@@ -47,17 +60,17 @@ namespace Mediana
             try
             {
                 RequireActive();
-                if (Reader is not IContainerPictureReader pictures)
+                if (read is null || count is null)
                 {
-                    throw new NotSupportedException("The container reader does not expose pictures.");
+                    throw new NotSupportedException($"The container reader does not expose {capability}.");
                 }
-                ArgumentOutOfRangeException.ThrowIfNegative(pictureIndex);
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pictureIndex, pictures.Pictures.Count);
+                ArgumentOutOfRangeException.ThrowIfNegative(dataIndex);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(dataIndex, count.Value);
                 started = true;
-                cancellationToken.ThrowIfCancellationRequested();
-                MediaBuffer picture = await pictures.ReadPictureAsync(pictureIndex, cancellationToken).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                T data = await read(dataIndex, token).ConfigureAwait(false);
                 succeeded = true;
-                return picture;
+                return data;
             }
             finally
             {
@@ -77,7 +90,7 @@ namespace Mediana
             {
                 RequireActive();
                 cancellationToken.ThrowIfCancellationRequested();
-                if (maxPacketReads is long limit)
+                if (Options.MaxPacketReads is long limit)
                 {
                     if (packetReads == limit)
                     {
@@ -85,6 +98,7 @@ namespace Mediana
                     }
                     packetReads++;
                 }
+                packetsStarted = true;
                 MediaPacket? packet = await Reader.ReadPacketAsync(cancellationToken).ConfigureAwait(false);
                 succeeded = true;
                 return packet;
@@ -130,6 +144,19 @@ namespace Mediana
             if (faulted)
             {
                 throw new InvalidOperationException("The container session has failed and must be disposed.");
+            }
+        }
+
+        internal void ValidateActive()
+        {
+            Enter();
+            try
+            {
+                RequireActive();
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
             }
         }
 

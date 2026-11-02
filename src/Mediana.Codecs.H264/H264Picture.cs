@@ -34,8 +34,22 @@ namespace Mediana.Codecs.H264
             lumaBlocks = lumaBytes / 16;
             chromaBlocks = chromaBytes / 16;
             macroblocks = lumaBytes / 256;
-            storage = allocator.Allocate(checked(lumaBytes + chromaBytes * 2 + lumaBlocks * (2 + MotionBytesPerBlock * referenceLists)
+            storage = allocator.Allocate(checked(lumaBlocks * (2 + MotionBytesPerBlock * referenceLists)
                 + chromaBlocks * 2 + macroblocks * 2));
+            bool complete = false;
+            try
+            {
+                writablePixels = allocator.Allocate(checked(lumaBytes + chromaBytes * 2));
+                pixelMemory = writablePixels.Memory;
+                complete = true;
+            }
+            finally
+            {
+                if (!complete)
+                {
+                    storage.Dispose();
+                }
+            }
             Modes.Fill(byte.MaxValue);
             ReferenceIndices(H264ReferenceList.L0).Fill(byte.MaxValue);
             if (referenceLists == 2)
@@ -49,25 +63,17 @@ namespace Mediana.Codecs.H264
         public int Height { get; }
         public bool HasBidirectionalMotion => referenceLists == 2;
         public int FirstMacroblock { get; set; }
-        private int ModesOffset => lumaBytes + chromaBytes * 2 + lumaBlocks + chromaBlocks * 2;
+        private int ModesOffset => lumaBlocks + chromaBlocks * 2;
         public Span<byte> Modes => storage.Memory.Span.Slice(ModesOffset, lumaBlocks);
         private int QuantizersOffset => ModesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
         public Span<byte> Quantizers => storage.Memory.Span.Slice(QuantizersOffset, macroblocks);
         public Span<byte> Transforms8x8 => storage.Memory.Span.Slice(QuantizersOffset + macroblocks, macroblocks);
 
-        public Span<byte> Plane(int index) => index switch
-        {
-            0 => storage.Memory.Span[..lumaBytes],
-            1 => storage.Memory.Span.Slice(lumaBytes, chromaBytes),
-            2 => storage.Memory.Span.Slice(lumaBytes + chromaBytes, chromaBytes),
-            _ => throw new ArgumentOutOfRangeException(nameof(index))
-        };
-
         public Span<byte> Counts(int index) => index switch
         {
-            0 => storage.Memory.Span.Slice(lumaBytes + chromaBytes * 2, lumaBlocks),
-            1 => storage.Memory.Span.Slice(lumaBytes + chromaBytes * 2 + lumaBlocks, chromaBlocks),
-            2 => storage.Memory.Span.Slice(lumaBytes + chromaBytes * 2 + lumaBlocks + chromaBlocks, chromaBlocks),
+            0 => storage.Memory.Span[..lumaBlocks],
+            1 => storage.Memory.Span.Slice(lumaBlocks, chromaBlocks),
+            2 => storage.Memory.Span.Slice(lumaBlocks + chromaBlocks, chromaBlocks),
             _ => throw new ArgumentOutOfRangeException(nameof(index))
         };
 
@@ -225,7 +231,13 @@ namespace Mediana.Codecs.H264
         public static (int X, int Y) LumaBlockPosition(int index) =>
             (((index / 4) % 2) * 8 + (index % 2) * 4, (index / 8) * 8 + ((index % 4) / 2) * 4);
 
-        public void Dispose() => storage.Dispose();
+        public void Dispose()
+        {
+            pixelMemory = default;
+            writablePixels?.Dispose();
+            publishedPixels?.Dispose();
+            storage.Dispose();
+        }
 
         public bool IsInCurrentSlice(int x, int y) => x >= 0 && x < Width && y >= 0 && y < Height &&
             y / 16 * Sequence.WidthInMbs + x / 16 >= FirstMacroblock;

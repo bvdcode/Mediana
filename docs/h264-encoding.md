@@ -66,14 +66,26 @@ errors do not create an encoder/decoder prediction mismatch. Deblocking is
 disabled in the coded slice.
 
 Each transformed macroblock is checked against the 3200-bit CAVLC
-`macroblock_layer` limit in Annex A.3.1(n). A block exceeding that limit uses
-I_PCM in either an I or P slice. Its samples are copied exactly, with byte
-alignment and edge padding; subsequent blocks retain the slice's quantizer.
-The bit count excludes NAL framing and emulation-prevention bytes. Selecting
-I_PCM restores the current macroblock's bit position and reconstruction state
-without copying the preceding packet or retaining another picture. The final
-escaped packet still obeys its byte and rate budgets. A fixed-QP packet that
-cannot fit fails without changing QP.
+`macroblock_layer` limit in Annex A.3.1(n), and coefficient prefixes are bounded
+by Baseline's maximum of 15. An oversized block can use I_PCM only when every
+sample is nonzero, as required by Baseline. Its samples are then copied exactly,
+with byte alignment and edge padding.
+
+When coefficients exceed the prefix limit, or an oversized block contains zero
+samples and cannot use I_PCM, the encoder increases that macroblock's QP until
+both constraints are met. `mb_qp_delta` signals the change. The next transformed
+block starts from the requested QP; blocks without residuals inherit the last
+signalled QP, and PCM does not change that running value. Retrying restores only
+bit-writer position and current intra-block availability. It repeats neither
+motion search nor source preparation and retains no extra picture. Reconstructed
+samples always use the signalled coefficients and QP.
+
+These profile constraints appear in clause A.2.1 of
+[ITU-T H.264 (06/2026)](https://www.itu.int/rec/T-REC-H.264-202606-I/en).
+The bit count excludes NAL framing and emulation-prevention bytes. Final escaped
+packets must still fit byte and rate budgets. Without rate control, the encoder
+does not increase the whole picture's QP to satisfy a packet budget; it fails if
+the final packet does not fit.
 
 Motion search examines zero displacement and the neighboring-vector predictor,
 then bounded four-direction full-pixel diamond steps. `MotionSearchRange` is the
@@ -100,8 +112,9 @@ An [exhaustive P/I macroblock trial](h264-mode-decision.md) measured complete
 HD quality, CPU, memory and independent reconstruction. It was not adopted;
 adaptive intra coding in P pictures remains open.
 
-Without `RateControl`, `Quantizer` is a fixed H.264 QP from 0 through 51,
-defaulting to 26. Level 4.1 admission checks cover dimensions, frame intervals,
+Without `RateControl`, `Quantizer` is the base H.264 QP from 0 through 51,
+defaulting to 26. Only macroblocks requiring profile or macroblock-bit-limit
+correction increase it. Level 4.1 admission checks cover dimensions, frame intervals,
 access-unit compression bounds and separate VCL/NAL buffer credits. The buffers
 start full and refill from exact decode-time differences, retaining fractional
 bits. NAL accounting reserves Annex B delimiters and repeated IDR parameter sets.
@@ -229,7 +242,12 @@ The strict Linux x64 Native AOT runner also checks these references.
 Four complete PCM sequences add 32 pictures and 111,264 visible YUV samples,
 all exactly matching independent decoding. QP0 and QP6 exercise I/P PCM beside
 transformed blocks, deferred P skips, cropped edges and padded input strides.
-Every macroblock's RBSP length and the unchanged slice quantizer are checked.
+Every macroblock's RBSP length, nonzero PCM samples, slice quantizer and
+macroblock QP adjustment/restoration are checked. The internal encoder reference
+also matches decoded pixels, including padding, after repeated block selection.
+Two further five-picture QP0 sequences switch chroma between 0 and 255 in both
+directions; each sample matches independent decoding. Their transitions exercise
+the coefficient overflow that previously produced an invalid Baseline packet.
 The [PCM reference manifest](../tests/Mediana.Tests/Data/H264/PCM-ENCODING.json)
 records decoded hashes and independent commands. A single noisy 16x16 picture
 also checks exact PCM samples, successful encoding at the final packet's exact
@@ -341,5 +359,41 @@ real-source throughput or full audiovisual HLS acceptance.
 
 A separate [complete 1280x720 re-encoding comparison](h264-hd-encoding.md)
 measures the original 14,315-picture film against libx264, including CPU,
-peak RSS and every visible sample's source error. It records the current
-quality and CPU gap at the same nominal rate and resolution.
+peak RSS and every visible sample's source error for those earlier builds.
+The [complete 720p/360p audiovisual HLS comparison](hls-hd-encoding.md) measures
+the current temporal encoder together with resizing, stereo mixing, per-variant
+AAC encoding and segment output on the same original film.
+
+## Cost of Baseline macroblock constraint checks
+
+The coefficient-prefix and PCM-sample corrections were measured on the same
+complete 1441-picture, 60.041667-second, 1280x720 raw input and
+[encoding-stage settings](h264-stage-performance.md). Frozen Linux x64 Native AOT
+binaries ran serially on one assigned CPU in before/after/after/before order.
+
+| Order | Version | CPU seconds | Wall seconds | Peak RSS, KiB |
+| --- | --- | ---: | ---: | ---: |
+| 1 | Before | 60.598095 | 60.792558 | 52132 |
+| 2 | After | 60.562368 | 61.699752 | 52432 |
+| 3 | After | 61.172037 | 62.084152 | 51312 |
+| 4 | Before | 62.991306 | 63.945114 | 51364 |
+
+Every complete output retained the reference transport hash, all 1441 packets
+and pictures, EOF and zero live owned media bytes. The CPU differences were
+0.06% and 2.89%; these shared-host observations do not establish a stable speed
+improvement. One elapsed observation increased and peak RSS varied in both
+directions. This correction addresses invalid boundary output.
+
+Fresh one-thread FFmpeg/libx264 runs of the same raw input took 13.588352
+and 13.467968 CPU seconds, with peak RSS 115,104 and
+114,232 KiB. The ratio of median CPU times is 4.50x. Both
+FFmpeg outputs retained their independently decoded reference hash. Their better
+PSNR and smaller output remain unchanged, so the ratio does not represent
+equal-quality throughput. The full audiovisual HLS operation was not rerun for
+this correction.
+
+Release verification passed 2,956 managed tests, 695 H.264 tests with hardware
+intrinsics disabled, all 30 packages, the strict package-only Native AOT consumer
+and CLI, formatting and license-header checks. Six complete boundary sequences
+match independent decoding; these checks do not establish full Annex C HRD
+conformance.

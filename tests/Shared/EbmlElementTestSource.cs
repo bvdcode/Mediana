@@ -14,6 +14,8 @@ namespace Mediana.Tests
         public int? ReadCountOverride { get; init; }
         public Task? ReadGate { get; init; }
         public long ReadGateOffset { get; init; }
+        public (long Start, long End)? ExcludedReadRange { get; set; }
+        public long BytesRead { get; private set; }
         public int ReadCalls { get; private set; }
         public bool IsDisposed { get; private set; }
 
@@ -31,6 +33,11 @@ namespace Mediana.Tests
             {
                 throw new InvalidOperationException("An EBML range read crossed its permitted boundary.");
             }
+            if (ExcludedReadRange is (long startExcluded, long endExcluded) && offset < endExcluded &&
+                destination.Length > startExcluded - offset)
+            {
+                throw new InvalidOperationException("An EBML range read entered an excluded payload.");
+            }
             if (ReadCountOverride is int invalid)
             {
                 return invalid;
@@ -42,6 +49,7 @@ namespace Mediana.Tests
             }
             int count = Math.Min(Math.Min(destination.Length, MaximumRead), data.Length - (int)start);
             data.Slice((int)start, count).CopyTo(destination);
+            BytesRead += count;
             return count;
         }
 

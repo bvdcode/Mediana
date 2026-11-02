@@ -4,7 +4,6 @@
 using Mediana.Codecs;
 using Mediana.Containers;
 using Mediana.Execution;
-using Mediana.Core.Timing;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
@@ -23,8 +22,7 @@ namespace Mediana.Cli
         public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, H264EncoderOptions options,
             int? maximumWidth, int? maximumHeight, ILogger logger, CancellationToken cancellationToken)
         {
-            MediaEngine engine = new MediaEngineBuilder()
-                .AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
+            MediaEngine engine = ContainerEngineFactory.CreateBuilder(Mp4TimestampMode.LinearMovie)
                 .AddVideoDecoder(new H264DecoderFactory())
                 .AddVideoEncoder(new H264EncoderFactory(options))
                 .AddContainerWriter(new MpegTsWriterFactory()).Build();
@@ -51,10 +49,7 @@ namespace Mediana.Cli
                 bool opening = true;
                 MediaOperationProgress result = await MediaOperations.EncodeVideoAsync(ReadAsync, encoder, writer, update =>
                 {
-                    if (update.ProcessedDuration is MediaDuration duration)
-                    {
-                        progress.Report(duration, destination.Position, update.IsComplete);
-                    }
+                    progress.Report(update.ProcessedDuration, destination.Position, update.IsComplete);
                 }, cancellationToken);
                 frames = result.Frames;
 

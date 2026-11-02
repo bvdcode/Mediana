@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Cli;
+using Mediana.Processing;
 using Mediana.Core.Video;
 
 namespace Mediana.Tests
@@ -19,7 +19,7 @@ namespace Mediana.Tests
         {
             VideoColorInfo declared = new(Range: ColorRange.Full, ChromaLocation: ChromaLocation.Center);
             VideoFormat format = new(width, height, VideoPixelFormat.Yuv420P8, declared, SampleAspectRatio.Square);
-            VideoColorInfo resolved = PreviewColorPolicy.Resolve(format);
+            VideoColorInfo resolved = SdrPreviewColorPolicy.Resolve(format);
             Assert.Equal(primaries, resolved.Primaries);
             Assert.Equal(TransferFunction.Bt709, resolved.Transfer);
             Assert.Equal(matrix, resolved.Matrix);
@@ -35,7 +35,7 @@ namespace Mediana.Tests
         public void DeclaredMatrixDeterminesMissingPrimariesBeforeResolution(MatrixCoefficients matrix, ColorPrimaries primaries)
         {
             VideoColorInfo declared = new(Matrix: matrix, Transfer: TransferFunction.Gamma22);
-            VideoColorInfo resolved = PreviewColorPolicy.Resolve(new VideoFormat(96, 64, VideoPixelFormat.Yuv420P8, declared));
+            VideoColorInfo resolved = SdrPreviewColorPolicy.Resolve(new VideoFormat(96, 64, VideoPixelFormat.Yuv420P8, declared));
             Assert.Equal(primaries, resolved.Primaries);
             Assert.Equal(matrix, resolved.Matrix);
             Assert.Equal(TransferFunction.Gamma22, resolved.Transfer);
@@ -49,7 +49,7 @@ namespace Mediana.Tests
         public void DeclaredPrimariesDetermineMissingMatrixBeforeResolution(ColorPrimaries primaries, MatrixCoefficients matrix)
         {
             VideoColorInfo declared = new(Primaries: primaries, Transfer: TransferFunction.Gamma22);
-            VideoColorInfo resolved = PreviewColorPolicy.Resolve(new VideoFormat(1920, 1080, VideoPixelFormat.Yuv420P8, declared));
+            VideoColorInfo resolved = SdrPreviewColorPolicy.Resolve(new VideoFormat(1920, 1080, VideoPixelFormat.Yuv420P8, declared));
             Assert.Equal(primaries, resolved.Primaries);
             Assert.Equal(matrix, resolved.Matrix);
             Assert.Equal(TransferFunction.Gamma22, resolved.Transfer);
@@ -59,9 +59,9 @@ namespace Mediana.Tests
         public void CompleteAndUnsupportedDeclarationsAreNeverReplaced()
         {
             VideoColorInfo declared = new(ColorPrimaries.DciP3, TransferFunction.Gamma22, MatrixCoefficients.YCgCo, ColorRange.Full);
-            Assert.Same(declared, PreviewColorPolicy.Resolve(new VideoFormat(96, 64, VideoPixelFormat.Yuv420P8, declared)));
+            Assert.Same(declared, SdrPreviewColorPolicy.Resolve(new VideoFormat(96, 64, VideoPixelFormat.Yuv420P8, declared)));
             VideoColorInfo partial = declared with { Transfer = TransferFunction.Unspecified };
-            VideoColorInfo resolved = PreviewColorPolicy.Resolve(new VideoFormat(96, 64, VideoPixelFormat.Yuv420P8, partial));
+            VideoColorInfo resolved = SdrPreviewColorPolicy.Resolve(new VideoFormat(96, 64, VideoPixelFormat.Yuv420P8, partial));
             Assert.Equal(declared.Primaries, resolved.Primaries);
             Assert.Equal(declared.Matrix, resolved.Matrix);
             Assert.Equal(declared.Range, resolved.Range);
@@ -73,7 +73,7 @@ namespace Mediana.Tests
         public void HdrIsNeverInterpretedAsSdr(TransferFunction transfer)
         {
             VideoFormat format = new(96, 64, VideoPixelFormat.Yuv420P8, new(Transfer: transfer));
-            NotSupportedException error = Assert.Throws<NotSupportedException>(() => PreviewColorPolicy.Resolve(format));
+            NotSupportedException error = Assert.Throws<NotSupportedException>(() => SdrPreviewColorPolicy.Resolve(format));
             Assert.Contains("tone mapping", error.Message, StringComparison.Ordinal);
         }
     }

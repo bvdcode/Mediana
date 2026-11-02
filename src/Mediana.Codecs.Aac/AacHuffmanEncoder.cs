@@ -11,6 +11,45 @@ namespace Mediana.Codecs.Aac
 
         public static int CountSymbol(int codebook, int symbol) => (int)(Codes[codebook][symbol] & 31);
 
+        public static (byte Book, int Bits) SelectCodebook(ReadOnlySpan<int> values)
+        {
+            if ((values.Length & 3) != 0)
+            {
+                throw new ArgumentException("AAC spectral bands require a multiple of four coefficients.", nameof(values));
+            }
+            int maximum = 0;
+            int signs = 0;
+            foreach (int value in values)
+            {
+                maximum = Math.Max(maximum, Math.Abs(value));
+                if (value != 0) { signs++; }
+            }
+            if (maximum == 0) { return (0, 0); }
+            byte selected = 0;
+            int best = int.MaxValue;
+            for (int codebook = 1; codebook <= 9; codebook += 2)
+            {
+                AacSpectralCodebook book = AacSpectralCodebook.Get(codebook);
+                if (maximum > book.MaximumSymbolMagnitude) { continue; }
+                int first = book.Signed ? 0 : signs;
+                int second = first;
+                uint[] firstCodes = Codes[codebook];
+                uint[] secondCodes = Codes[codebook + 1];
+                for (int start = 0; start < values.Length; start += book.Dimensions)
+                {
+                    int symbol = book.Symbol(values.Slice(start, book.Dimensions));
+                    first += (int)(firstCodes[symbol] & 31);
+                    second += (int)(secondCodes[symbol] & 31);
+                    if (first >= best && second >= best) { break; }
+                }
+                if (first < best) { best = first; selected = (byte)codebook; }
+                if (second < best) { best = second; selected = (byte)(codebook + 1); }
+            }
+            int escape = Count(11, values);
+            if (escape < best) { return (11, escape); }
+            return (selected, best);
+        }
+
         public static void WriteSymbol(ref AacBitWriter bits, int codebook, int symbol)
         {
             uint packed = Codes[codebook][symbol];

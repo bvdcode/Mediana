@@ -10,6 +10,14 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync(string root, string h264Root)
         {
+            H264PictureReuseTestInput.Verify(false);
+            H264PictureReuseTestInput.Verify(true);
+            await H264BaselineEncodingTestInput.VerifyAsync(h264Root, false);
+            await H264BaselineEncodingTestInput.VerifyAsync(h264Root, true);
+            Console.WriteLine("PASS H.264 Baseline chroma transitions: positive and negative levels stay within profile syntax and match independent complete samples.");
+            H264BitWritingTestInput.Verify();
+            Console.WriteLine("PASS H.264 bit writing: all alignments and widths, independent NAL bytes, escaping, overflow and checkpoint restoration match.");
+            H264SourceBlockTestInput.VerifyAllocation();
             foreach ((int width, int height) in new (int, int)[] { (1, 1), (2, 3), (17, 19), (32, 16), (35, 33) })
             {
                 H264SourceBlockTestInput.Verify(width, height, false);
@@ -20,7 +28,7 @@ namespace Mediana.NativeTests
             {
                 await H264PcmEncodingTestInput.VerifyAsync(h264Root, mode, qp);
             }
-            Console.WriteLine("PASS H.264 PCM encoding: I/P PCM, transformed neighbours, skip runs, cropped strided input, fixed QP, macroblock bit limits and complete independent pixels match.");
+            Console.WriteLine("PASS H.264 PCM encoding: I/P PCM, transformed neighbours, skip runs, cropped strided input, legal PCM samples, bounded macroblock quantization, bit limits and complete independent pixels match.");
             await H264LevelBurstTestInput.VerifyAsync(h264Root);
             Console.WriteLine("PASS H.264 level burst: a fixed-QP initial picture exceeds the instantaneous rate and matches independent complete pixels, timing, format and reset state.");
             await HlsEncodingTestInput.VerifyAsync(root, "avc-multislice-cabac", 96, 80, 18, 6);

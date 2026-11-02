@@ -6,6 +6,7 @@ using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
+using Mediana.Execution;
 using Mediana.IO;
 using Mediana.Streaming.Hls;
 using Microsoft.Extensions.Logging;
@@ -40,6 +41,8 @@ namespace Mediana.Cli
             } : null;
             long frames = 0;
             int segments = 0;
+            MediaDurationAccumulator processed = new();
+            MediaProgress progress = new(logger, TimeProvider.System, session.Stream.CodedDuration);
             await CommandOutputDirectory.WriteAsync(output, async directory =>
             {
                 List<HlsVideoRendition> renditions = [];
@@ -57,18 +60,8 @@ namespace Mediana.Cli
                             throw new ArgumentException("The selected width bounds produce duplicate encoded dimensions.", nameof(widths));
                         }
                     }
-                    if (audio is not null)
-                    {
-                        await audio.WriteBeforeAsync(first.Timestamp, renditions, token);
-                    }
-                    foreach (HlsVideoRendition rendition in renditions)
-                    {
-                        await rendition.WriteAsync(first, token);
-                    }
-                    first.Dispose();
-                    frames++;
-                    long reportedAt = TimeProvider.System.GetTimestamp();
-                    while (await session.ReadFrameAsync(token) is VideoFrame frame)
+                    VideoFrame? frame = first;
+                    while (frame is not null)
                     {
                         using (frame)
                         {
@@ -80,14 +73,11 @@ namespace Mediana.Cli
                             {
                                 await rendition.WriteAsync(frame, token);
                             }
-                            frames++;
+                            frames = checked(frames + 1);
+                            processed.Add(frame.Duration);
+                            progress.Report(processed.Duration, renditions.Sum(rendition => rendition.Writer.BytesWritten));
                         }
-                        if (TimeProvider.System.GetElapsedTime(reportedAt) >= TimeSpan.FromSeconds(1))
-                        {
-                            logger.LogInformation("HLS encoding: {Frames} input frames; {Variants} variants; {Bytes} output bytes.",
-                                frames, renditions.Count, renditions.Sum(rendition => rendition.Writer.BytesWritten));
-                            reportedAt = TimeProvider.System.GetTimestamp();
-                        }
+                        frame = await session.ReadFrameAsync(token);
                     }
                     if (audio is not null)
                     {
@@ -101,6 +91,7 @@ namespace Mediana.Cli
                     ValidateAlignment(renditions);
                     await File.WriteAllTextAsync(Path.Combine(directory, "index.m3u8"), HlsMasterPlaylist.Create(variants), new UTF8Encoding(false), token);
                     segments = renditions[0].Writer.Segments.Count;
+                    progress.Report(processed.Duration, renditions.Sum(rendition => rendition.Writer.BytesWritten), completed: true);
                 }
                 finally
                 {

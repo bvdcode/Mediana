@@ -32,14 +32,32 @@ namespace Mediana.Codecs.H264
             Span<int> intermediate = stackalloc int[Patch * Window];
             for (int row = 0; row < Patch; row++)
             {
-                for (int column = 0; column < Window; column++)
+                int column = 0;
+                for (; column <= Window - Vector128<short>.Count; column += Vector128<short>.Count)
+                {
+                    Vector128<short> sum = H264LumaFilter.Sum8(samples, row * Patch + column, 1);
+                    Vector128.WidenLower(sum).StoreUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)(row * Window + column));
+                    Vector128.WidenUpper(sum).StoreUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)(row * Window + column + Vector128<int>.Count));
+                }
+                for (; column < Window; column++)
                 {
                     intermediate[row * Window + column] = H264LumaInterpolation.HorizontalSum(samples, row * Patch + column);
                 }
             }
             for (int row = 0; row < Window; row++)
             {
-                for (int column = 0; column < Window; column++)
+                int column = 0;
+                for (; column <= Window - Vector128<short>.Count; column += Vector128<short>.Count)
+                {
+                    int index = row * Window + column;
+                    Vector128<int> lower = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)((row + 2) * Window + column));
+                    Vector128<int> upper = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)((row + 2) * Window + column + Vector128<int>.Count));
+                    H264VectorSamples.Write8(filtered, index, H264LumaFilter.Half8(Vector128.Narrow(lower, upper)));
+                    Vector128<short> verticalSum = H264LumaFilter.Sum8(samples, row * Patch + column + 2, Patch);
+                    H264VectorSamples.Write8(filtered, Plane + index, H264LumaFilter.Half8(verticalSum));
+                    H264VectorSamples.Write8(filtered, 2 * Plane + index, H264LumaFilter.Diagonal8(intermediate, Window, index));
+                }
+                for (; column < Window; column++)
                 {
                     int index = row * Window + column;
                     filtered[index] = (byte)H264LumaInterpolation.Half(intermediate[(row + 2) * Window + column]);
@@ -53,11 +71,16 @@ namespace Mediana.Codecs.H264
             diagonal = filtered.Slice(2 * Plane, Plane);
         }
 
-        public void Read(int x, int y, Span<byte> output)
+        /// <summary>Stops after the first row exceeding the error limit. An error within the limit guarantees a complete output block.</summary>
+        public int Evaluate(int x, int y, ReadOnlySpan<byte> comparison, Span<byte> output, int maximumError)
         {
-            if (x is < -3 or > 3 || y is < -3 or > 3 || output.Length != Block * Block)
+            if (x is < -3 or > 3 || y is < -3 or > 3)
             {
                 throw new ArgumentOutOfRangeException(nameof(x), "The luma candidate must fit its prepared neighborhood.");
+            }
+            if (comparison.Length != Block * Block || output.Length != Block * Block)
+            {
+                throw new ArgumentException("The luma comparison and prediction must be complete 16x16 blocks.");
             }
             int left = (x >> 2) + 1;
             int top = (y >> 2) + 1;
@@ -65,46 +88,61 @@ namespace Mediana.Codecs.H264
             int half = top * Window + left;
             switch (x & 3, y & 3)
             {
-                case (0, 0): Copy(samples, Patch, integer, output); break;
-                case (1, 0): Average(samples, Patch, integer, horizontal, Window, half, output); break;
-                case (2, 0): Copy(horizontal, Window, half, output); break;
-                case (3, 0): Average(horizontal, Window, half, samples, Patch, integer + 1, output); break;
-                case (0, 1): Average(samples, Patch, integer, vertical, Window, half, output); break;
-                case (1, 1): Average(horizontal, Window, half, vertical, Window, half, output); break;
-                case (2, 1): Average(horizontal, Window, half, diagonal, Window, half, output); break;
-                case (3, 1): Average(horizontal, Window, half, vertical, Window, half + 1, output); break;
-                case (0, 2): Copy(vertical, Window, half, output); break;
-                case (1, 2): Average(vertical, Window, half, diagonal, Window, half, output); break;
-                case (2, 2): Copy(diagonal, Window, half, output); break;
-                case (3, 2): Average(diagonal, Window, half, vertical, Window, half + 1, output); break;
-                case (0, 3): Average(vertical, Window, half, samples, Patch, integer + Patch, output); break;
-                case (1, 3): Average(vertical, Window, half, horizontal, Window, half + Window, output); break;
-                case (2, 3): Average(diagonal, Window, half, horizontal, Window, half + Window, output); break;
-                case (3, 3): Average(vertical, Window, half + 1, horizontal, Window, half + Window, output); break;
+                case (0, 0): return Copy(samples, Patch, integer, comparison, output, maximumError);
+                case (1, 0): return Average(samples, Patch, integer, horizontal, Window, half, comparison, output, maximumError);
+                case (2, 0): return Copy(horizontal, Window, half, comparison, output, maximumError);
+                case (3, 0): return Average(horizontal, Window, half, samples, Patch, integer + 1, comparison, output, maximumError);
+                case (0, 1): return Average(samples, Patch, integer, vertical, Window, half, comparison, output, maximumError);
+                case (1, 1): return Average(horizontal, Window, half, vertical, Window, half, comparison, output, maximumError);
+                case (2, 1): return Average(horizontal, Window, half, diagonal, Window, half, comparison, output, maximumError);
+                case (3, 1): return Average(horizontal, Window, half, vertical, Window, half + 1, comparison, output, maximumError);
+                case (0, 2): return Copy(vertical, Window, half, comparison, output, maximumError);
+                case (1, 2): return Average(vertical, Window, half, diagonal, Window, half, comparison, output, maximumError);
+                case (2, 2): return Copy(diagonal, Window, half, comparison, output, maximumError);
+                case (3, 2): return Average(diagonal, Window, half, vertical, Window, half + 1, comparison, output, maximumError);
+                case (0, 3): return Average(vertical, Window, half, samples, Patch, integer + Patch, comparison, output, maximumError);
+                case (1, 3): return Average(vertical, Window, half, horizontal, Window, half + Window, comparison, output, maximumError);
+                case (2, 3): return Average(diagonal, Window, half, horizontal, Window, half + Window, comparison, output, maximumError);
+                case (3, 3): return Average(vertical, Window, half + 1, horizontal, Window, half + Window, comparison, output, maximumError);
                 default: throw new InvalidOperationException("An H.264 luma fraction is outside its two-bit range.");
             }
         }
 
-        private static void Copy(ReadOnlySpan<byte> source, int stride, int start, Span<byte> output)
+        private static int Copy(ReadOnlySpan<byte> source, int stride, int start, ReadOnlySpan<byte> comparison, Span<byte> output, int maximumError)
         {
+            int error = 0;
             for (int row = 0; row < Block; row++)
             {
-                source.Slice(start + row * stride, Block).CopyTo(output.Slice(row * Block, Block));
+                Vector128<byte> prediction = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(source), (nuint)(start + row * stride));
+                Vector128<byte> original = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(comparison), (nuint)(row * Block));
+                error += H264SampleDifference.Sum16(original, prediction);
+                prediction.StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)(row * Block));
+                if (error > maximumError)
+                {
+                    break;
+                }
             }
+            return error;
         }
 
-        private static void Average(ReadOnlySpan<byte> first, int firstStride, int firstStart,
-            ReadOnlySpan<byte> second, int secondStride, int secondStart, Span<byte> output)
+        private static int Average(ReadOnlySpan<byte> first, int firstStride, int firstStart,
+            ReadOnlySpan<byte> second, int secondStride, int secondStart, ReadOnlySpan<byte> comparison, Span<byte> output, int maximumError)
         {
-            Vector128<byte> even = Vector128.Create((byte)254);
+            int error = 0;
             for (int row = 0; row < Block; row++)
             {
                 Vector128<byte> a = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(first), (nuint)(firstStart + row * firstStride));
                 Vector128<byte> b = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(second), (nuint)(secondStart + row * secondStride));
-                Vector128<byte> difference = Vector128.BitwiseAnd(Vector128.Xor(a, b), even);
-                Vector128<byte> rounded = Vector128.Subtract(Vector128.BitwiseOr(a, b), Vector128.ShiftRightLogical(difference.AsUInt16(), 1).AsByte());
+                Vector128<byte> rounded = H264SampleAverage.Rounded(a, b);
+                Vector128<byte> original = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(comparison), (nuint)(row * Block));
+                error += H264SampleDifference.Sum16(original, rounded);
                 rounded.StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)(row * Block));
+                if (error > maximumError)
+                {
+                    break;
+                }
             }
+            return error;
         }
     }
 }

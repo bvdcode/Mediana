@@ -3,6 +3,6 @@
 
 namespace Mediana.Containers.Matroska
 {
-    internal readonly record struct MatroskaAudioSettings(double SamplingFrequency, double OutputSamplingFrequency,
+    public readonly record struct MatroskaAudioSettings(double SamplingFrequency, double OutputSamplingFrequency,
         ulong Channels, ulong? BitDepth);
 }

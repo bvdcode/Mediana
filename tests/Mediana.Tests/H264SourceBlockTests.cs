@@ -5,6 +5,9 @@ namespace Mediana.Tests
 {
     public class H264SourceBlockTests
     {
+        [Fact]
+        public void PreparedSourceAndTransformsAllocateNoHeapStorage() => H264SourceBlockTestInput.VerifyAllocation();
+
         [Theory]
         [InlineData(1, 1)]
         [InlineData(2, 3)]

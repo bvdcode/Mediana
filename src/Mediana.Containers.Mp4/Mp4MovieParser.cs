@@ -90,7 +90,8 @@ namespace Mediana.Containers.Mp4
                 tracks.Add(new Mp4TrackInfo(trackId, stream, description.SampleEntry, mediaDuration,
                     presentationDuration, edits, description.Width, description.Height,
                     description.AudioChannels, description.AudioSampleRate, table.SampleCount, trackMatrix, packetIndex,
-                    language, trackDates, mediaDates, trackMetadata, description.ColorDescriptions));
+                    language, trackDates, mediaDates, trackMetadata, description.ColorDescriptions,
+                    Mp4RecoveryGroupParser.Parse(sampleBoxes, table.SampleCount, options, cancellationToken)));
                 tables.Add(table);
             }
             if (tracks.Count == 0)

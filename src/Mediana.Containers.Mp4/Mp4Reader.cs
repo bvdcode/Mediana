@@ -12,7 +12,7 @@ namespace Mediana.Containers.Mp4
     /// <summary>Reads non-fragmented, self-contained MP4/MOV tracks in decode order.
     /// Packet timestamps use the selected timeline; every encoded sample is retained.
     /// Borrows the source. Each packet belongs to its caller.</summary>
-    public partial class Mp4Reader : IIndexedContainerReader
+    public partial class Mp4Reader : IIndexedPresentationTimingReader, IIndexedPrerollReader
     {
         private readonly IRandomAccessByteSource source;
         private readonly MediaBufferAllocator allocator;
@@ -22,6 +22,8 @@ namespace Mediana.Containers.Mp4
         private readonly Mp4TrackCursor[] cursors;
         private readonly Mp4LinearTimeline[] timelines;
         private readonly Mp4SampleLookup[] lookups;
+        private readonly Mp4SampleTable[] sampleTables;
+        private readonly Mp4PresentationTiming?[] presentationTimings;
         private bool disposed;
         private int busy;
 
@@ -31,6 +33,8 @@ namespace Mediana.Containers.Mp4
             this.source = source;
             this.allocator = allocator;
             MajorBrand = majorBrand;
+            sampleTables = movie.Tables;
+            presentationTimings = new Mp4PresentationTiming?[movie.Tables.Length];
             lookups = movie.Tables.Select(table => new Mp4SampleLookup(table)).ToArray();
             cursors = movie.Tables.Select(table => new Mp4TrackCursor(table)).ToArray();
             MovieTimeBase = movie.TimeBase;
@@ -282,6 +286,10 @@ namespace Mediana.Containers.Mp4
                 if (!disposed)
                 {
                     disposed = true;
+                    foreach (Mp4PresentationTiming? timing in presentationTimings)
+                    {
+                        timing?.Dispose();
+                    }
                     metadata.Dispose();
                 }
             }

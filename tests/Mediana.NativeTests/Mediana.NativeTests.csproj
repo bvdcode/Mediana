@@ -8,7 +8,42 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/AacSeekTestInput.cs" Link="AacSeekTestInput.cs" />
+    <Compile Include="../Shared/H264PictureReuseTestInput.cs" Link="H264PictureReuseTestInput.cs" />
+    <Compile Include="../Shared/Mp4RecoveryTestInput.cs" Link="Mp4RecoveryTestInput.cs" />
+
+    <Compile Include="../Shared/H264SampleDifferenceTestInput.cs" Link="H264SampleDifferenceTestInput.cs" />
+    <Compile Include="../Shared/H264LumaCandidateTestInput.cs" Link="H264LumaCandidateTestInput.cs" />
+    <Compile Include="../Shared/H264DeblockingFilterTestInput.cs" Link="H264DeblockingFilterTestInput.cs" />
+    <Compile Include="../Shared/H264ForwardTransformTestInput.cs" Link="H264ForwardTransformTestInput.cs" />
+    <Compile Include="../Shared/H264ForwardQuantizationTestInput.cs" Link="H264ForwardQuantizationTestInput.cs" />
+    <Compile Include="../Shared/AacCodebookSelectionTestInput.cs" Link="AacCodebookSelectionTestInput.cs" />
+    <Compile Include="../Shared/ServerContainerPreviewTestInput.cs" Link="ServerContainerPreviewTestInput.cs" />
+    <Compile Include="../Shared/ContainerDecodeTransferTestInput.cs" Link="ContainerDecodeTransferTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
+    <Compile Include="../Shared/ContainerImageTestEntry.cs" Link="ContainerImageTestEntry.cs" />
+    <Compile Include="../Shared/ContainerImageTestReader.cs" Link="ContainerImageTestReader.cs" />
+    <Compile Include="../Shared/ContainerImageTestFactory.cs" Link="ContainerImageTestFactory.cs" />
+    <Compile Include="../Shared/ContainerImageTestInput.cs" Link="ContainerImageTestInput.cs" />
+    <Compile Include="../Shared/JpegCoverTestInput.cs" Link="JpegCoverTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/JpegExif/*" Link="Data/JpegExif/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/JpegExifTestInput.cs" Link="JpegExifTestInput.cs" />
+    <Compile Include="../Shared/JpegComponentTestInput.cs" Link="JpegComponentTestInput.cs" />
+    <Compile Include="../Shared/JpegTestData.cs" Link="JpegTestData.cs" />
+    <Compile Include="../Shared/JpegDecodeTestInput.cs" Link="JpegDecodeTestInput.cs" />
+    <Compile Include="../Shared/JpegProgressiveTestInput.cs" Link="JpegProgressiveTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Jpeg/*" Link="Data/Jpeg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+
+    <None Include="../Mediana.Tests/Data/Png/*" Link="Data/Png/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/MatroskaAttachmentTestData.cs" Link="MatroskaAttachmentTestData.cs" />
+    <Compile Include="../Shared/MatroskaAttachmentReferenceInput.cs" Link="MatroskaAttachmentReferenceInput.cs" />
+    <Compile Include="../Shared/MatroskaAttachmentTestInput.cs" Link="MatroskaAttachmentTestInput.cs" />
+    <Compile Include="../Shared/MatroskaReaderResourceInput.cs" Link="MatroskaReaderResourceInput.cs" />
+    <Compile Include="../Shared/MatroskaReaderTestData.cs" Link="MatroskaReaderTestData.cs" />
+    <Compile Include="../Shared/MatroskaReaderTestInput.cs" Link="MatroskaReaderTestInput.cs" />
+    <Compile Include="../Shared/MatroskaColourTestInput.cs" Link="MatroskaColourTestInput.cs" />
     <Compile Include="../Shared/MatroskaPacketReferenceInput.cs" Link="MatroskaPacketReferenceInput.cs" />
+    <Compile Include="../Shared/MatroskaPublicReferenceInput.cs" Link="MatroskaPublicReferenceInput.cs" />
     <Compile Include="../Shared/MatroskaPacketTestData.cs" Link="MatroskaPacketTestData.cs" />
     <Compile Include="../Shared/MatroskaCodecTestInput.cs" Link="MatroskaCodecTestInput.cs" />
     <Compile Include="../Shared/MatroskaPacketTestInput.cs" Link="MatroskaPacketTestInput.cs" />
@@ -32,17 +67,28 @@
     <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
     <Compile Include="../Shared/EbmlValueTestInput.cs" Link="EbmlValueTestInput.cs" />
     <Compile Include="../Shared/H264DcResidualTestInput.cs" Link="H264DcResidualTestInput.cs" />
+    <Compile Include="../Shared/H264ZeroResidualTestInput.cs" Link="H264ZeroResidualTestInput.cs" />
     <Compile Include="../Shared/CodecProfileTestInput.cs" Link="CodecProfileTestInput.cs" />
     <Compile Include="../Shared/FontGlyphTestInput.cs" Link="FontGlyphTestInput.cs" />
+    <Compile Include="../Shared/PngCoverTestInput.cs" Link="PngCoverTestInput.cs" />
+    <Compile Include="../Shared/PngDecodeTestData.cs" Link="PngDecodeTestData.cs" />
+    <Compile Include="../Shared/PngDecodeTestInput.cs" Link="PngDecodeTestInput.cs" />
     <Compile Include="../Shared/PngStreamingTestInput.cs" Link="PngStreamingTestInput.cs" />
     <Compile Include="../Shared/PngOutputTestStream.cs" Link="PngOutputTestStream.cs" />
     <Compile Include="../Shared/SceneBufferOwnershipTestInput.cs" Link="SceneBufferOwnershipTestInput.cs" />
     <Compile Include="../Shared/ImageOutputAllocationTestInput.cs" Link="ImageOutputAllocationTestInput.cs" />
+    <Compile Include="../Shared/H264BaselineEncodingTestInput.cs" Link="H264BaselineEncodingTestInput.cs" />
     <Compile Include="../Shared/H264PcmEncodingTestInput.cs" Link="H264PcmEncodingTestInput.cs" />
+    <Compile Include="../Shared/H264BitWritingTestInput.cs" Link="H264BitWritingTestInput.cs" />
+    <Compile Include="../Shared/H264BitReadingTestInput.cs" Link="H264BitReadingTestInput.cs" />
+    <Compile Include="../Shared/H264VlcTestInput.cs" Link="H264VlcTestInput.cs" />
+    <Compile Include="../Shared/H264CavlcLevelTestInput.cs" Link="H264CavlcLevelTestInput.cs" />
     <Compile Include="../Shared/H264SourceBlockTestInput.cs" Link="H264SourceBlockTestInput.cs" />
     <Compile Include="../Shared/H264LumaNeighborhoodTestInput.cs" Link="H264LumaNeighborhoodTestInput.cs" />
+    <Compile Include="../Shared/H264VectorKernelTestInput.cs" Link="H264VectorKernelTestInput.cs" />
     <Compile Include="../Shared/H264MotionSearchTestInput.cs" Link="H264MotionSearchTestInput.cs" />
     <None Include="../Mediana.Tests/Data/H264/motion-*.yuv;../Mediana.Tests/Data/H264/MOTION-SEARCH.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/H264/baseline-chroma-*.yuv" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/H264/pcm-*.yuv" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264LevelBurstTestInput.cs" Link="H264LevelBurstTestInput.cs" />
     <None Include="../Mediana.Tests/Data/H264/level-burst.sha256" Link="Data/H264/level-burst.sha256" CopyToOutputDirectory="PreserveNewest" />
@@ -81,6 +127,8 @@
     <Compile Include="../Shared/BoundedStreamReadTestInput.cs" Link="BoundedStreamReadTestInput.cs" />
     <Compile Include="../Shared/FragmentedReadStream.cs" Link="FragmentedReadStream.cs" />
     <Compile Include="../Shared/PdfReferenceTestInput.cs" Link="PdfReferenceTestInput.cs" />
+    <Compile Include="../Shared/PdfJpegTestInput.cs" Link="PdfJpegTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/PdfJpeg/*" Link="Data/PdfJpeg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Pdf/*" Link="Data/Pdf/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageFrameTestInput.cs" Link="ImageFrameTestInput.cs" />
     <Compile Include="../Shared/ImageProbeTestInput.cs" Link="ImageProbeTestInput.cs" />
@@ -142,6 +190,16 @@
     <None Include="../Mediana.Tests/Data/Metadata/*" Link="Data/Metadata/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/AudioSignalSource.cs" Link="AudioSignalSource.cs" />
     <Compile Include="../Shared/AudioWindowTestInput.cs" Link="AudioWindowTestInput.cs" />
+    <Compile Include="../Shared/AudioFrameTimingTestInput.cs" Link="AudioFrameTimingTestInput.cs" />
+    <Compile Include="../Shared/AudioTimeWindowTestInput.cs" Link="AudioTimeWindowTestInput.cs" />
+    <Compile Include="../Shared/TimedPacketSource.cs" Link="TimedPacketSource.cs" />
+    <Compile Include="../Shared/PacketMergeTestInput.cs" Link="PacketMergeTestInput.cs" />
+    <Compile Include="../Shared/VideoWindowTestInput.cs" Link="VideoWindowTestInput.cs" />
+    <Compile Include="../Shared/PresentationTimingTestInput.cs" Link="PresentationTimingTestInput.cs" />
+    <Compile Include="../Shared/H264FramePublicationTestInput.cs" Link="H264FramePublicationTestInput.cs" />
+    <Compile Include="../Shared/H264DirectRegionTestInput.cs" Link="H264DirectRegionTestInput.cs" />
+    <Compile Include="../Mediana.Tests/TrackingRandomAccessSource.cs" Link="TrackingRandomAccessSource.cs" />
+    <Compile Include="../Shared/RealVideoWindowTestInput.cs" Link="RealVideoWindowTestInput.cs" />
     <Compile Include="../Shared/ObservedWriteStream.cs" Link="ObservedWriteStream.cs" />
     <Compile Include="../Shared/PcmStreamOutputTestInput.cs" Link="PcmStreamOutputTestInput.cs" />
     <Compile Include="../Shared/AudioWaveformTestInput.cs" Link="AudioWaveformTestInput.cs" />
@@ -157,6 +215,10 @@
     <Compile Include="../Shared/ServerVideoPreviewTestInput.cs" Link="ServerVideoPreviewTestInput.cs" />
     <Compile Include="../../samples/Mediana.Sample/VideoPreviewSample.cs" Link="VideoPreviewSample.cs" />
     <Compile Include="../../samples/Mediana.Sample/AudioWaveformSample.cs" Link="AudioWaveformSample.cs" />
+    <Compile Include="../../samples/Mediana.Sample/AudioPreviewSample.cs" Link="AudioPreviewSample.cs" />
+    <Compile Include="../../samples/Mediana.Sample/AudioPreviewKind.cs" Link="AudioPreviewKind.cs" />
+    <Compile Include="../Shared/ServerAudioPreviewTestInput.cs" Link="ServerAudioPreviewTestInput.cs" />
+    <Compile Include="../Shared/ObservedContainerFactory.cs" Link="ObservedContainerFactory.cs" />
     <Compile Include="../Shared/ServerAudioWaveformTestInput.cs" Link="ServerAudioWaveformTestInput.cs" />
     <None Include="../Mediana.Tests/Data/FrameRate/*" Link="Data/FrameRate/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/QuickTimeAacTestInput.cs" Link="QuickTimeAacTestInput.cs" />
@@ -199,6 +261,7 @@
     <None Include="../Mediana.Tests/Data/Mp4/avc-multislice-*" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalDeblockingTestInput.cs" Link="H264BidirectionalDeblockingTestInput.cs" />
+    <Compile Include="../Shared/H264SliceDeblockingTestInput.cs" Link="H264SliceDeblockingTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalPictureTestInput.cs" Link="H264BidirectionalPictureTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalFixture.cs" Link="H264BidirectionalFixture.cs" />
     <Compile Include="../Shared/H264BiPredictionTestInput.cs" Link="H264BiPredictionTestInput.cs" />

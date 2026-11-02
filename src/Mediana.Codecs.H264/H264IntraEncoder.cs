@@ -21,14 +21,36 @@ namespace Mediana.Codecs.H264
             bits.WriteFlag(false);
             bits.WriteSigned(qp - initialQuantizer);
             bits.WriteUnsigned(1);
+            int previousQuantizer = qp;
+            Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
             for (int y = 0; y < reconstructed.Height; y += 16)
             {
                 for (int x = 0; x < reconstructed.Width; x += 16)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    H264BitWriterCheckpoint checkpoint = bits.CreateCheckpoint();
-                    WriteMacroblock(bits, input, reconstructed, x, y, qp);
-                    H264PcmMacroblockEncoder.ReplaceOversized(bits, checkpoint, input, reconstructed, x, y, H264SliceKind.I);
+                    H264SourceMacroblock source = new(input, x, y, samples);
+                    int quantizer = qp;
+                    while (true)
+                    {
+                        H264BitWriterCheckpoint checkpoint = bits.CreateCheckpoint();
+                        bool written = TryWriteMacroblock(bits, source, reconstructed, x, y, quantizer, previousQuantizer, out int effectiveQuantizer);
+                        if (written && H264MacroblockEncoding.Fits(bits, checkpoint))
+                        {
+                            previousQuantizer = effectiveQuantizer;
+                            break;
+                        }
+                        if (written && H264PcmMacroblockEncoder.TryWrite(bits, checkpoint, source, reconstructed, x, y, H264SliceKind.I))
+                        {
+                            break;
+                        }
+                        bits.Restore(checkpoint);
+                        for (int row = 0; row < 16; row += 4)
+                        {
+                            reconstructed.Modes.Slice(reconstructed.BlockIndex(0, x, y + row), 4).Fill(byte.MaxValue);
+                        }
+                        quantizer = H264MacroblockEncoding.IncreaseQuantizer(quantizer);
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
                     if (!measureOverflow && bits.EncodedLength > maximumBytes)
                     {
                         encodedLength = bits.EncodedLength;
@@ -42,27 +64,30 @@ namespace Mediana.Codecs.H264
             return result;
         }
 
-        private static void WriteMacroblock(H264BitWriter bits, VideoFrame input, H264Picture reconstructed, int x, int y, int qp)
+        private static bool TryWriteMacroblock(H264BitWriter bits, H264SourceMacroblock source, H264Picture reconstructed, int x, int y,
+            int qp, int previousQuantizer, out int effectiveQuantizer)
         {
             bits.WriteUnsigned(0);
             Span<int> luma = stackalloc int[256];
-            int pattern = H264IntraLumaEncoder.Analyze(bits, input, reconstructed, x, y, qp, luma);
+            int pattern = H264IntraLumaEncoder.Analyze(bits, source.Luma, reconstructed, x, y, qp, luma);
             Span<byte> prediction = stackalloc byte[128];
             Span<int> coefficients = stackalloc int[H264ChromaEncoder.CoefficientCount];
             for (int plane = 1; plane <= 2; plane++)
             {
                 reconstructed.PredictMacroblock(plane, x / 2, y / 2, 0, prediction.Slice((plane - 1) * 64, 64));
             }
-            int chromaPattern = H264ChromaEncoder.Analyze(input, x / 2, y / 2, qp, prediction, coefficients);
+            int chromaPattern = H264ChromaEncoder.Analyze(source.Chroma, qp, prediction, coefficients);
             bits.WriteUnsigned(0);
             bits.WriteUnsigned((uint)H264IntraMacroblock.CodedPatterns.IndexOf((byte)(pattern | (chromaPattern << 4))));
+            effectiveQuantizer = previousQuantizer;
             if (pattern != 0 || chromaPattern != 0)
             {
-                bits.WriteSigned(0);
+                H264MacroblockEncoding.WriteQuantizerDelta(bits, previousQuantizer, qp);
+                effectiveQuantizer = qp;
             }
-            reconstructed.Quantizers[y / 16 * reconstructed.Sequence.WidthInMbs + x / 16] = (byte)qp;
-            H264IntraLumaEncoder.Write(bits, reconstructed, x, y, pattern, luma);
-            H264ChromaEncoder.Write(bits, reconstructed, x / 2, y / 2, qp, chromaPattern, prediction, coefficients);
+            reconstructed.Quantizers[y / 16 * reconstructed.Sequence.WidthInMbs + x / 16] = (byte)effectiveQuantizer;
+            return H264IntraLumaEncoder.TryWrite(bits, reconstructed, x, y, pattern, luma) &&
+                H264ChromaEncoder.TryWrite(bits, reconstructed, x / 2, y / 2, qp, chromaPattern, prediction, coefficients);
         }
     }
 }

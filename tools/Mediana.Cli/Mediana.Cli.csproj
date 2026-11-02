@@ -15,6 +15,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.14" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Pdf/Mediana.Documents.Pdf.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Aiff/Mediana.Containers.Aiff.csproj" />
     <ProjectReference Include="../../src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />

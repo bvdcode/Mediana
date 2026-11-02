@@ -1,15 +1,89 @@
-# Matroska EBML foundation
+# Matroska reader
 
-`Mediana.Containers.Matroska` contains internal EBML value decoding, document
-header validation, bounded Segment traversal, Block framing, native Info/Tracks
-metadata, packet indexing, native clock conversion, codec configuration and owned
-packet reads. Public container integration, seeking and attachment extraction are
-the next integration work.
-MKV probing and decoding are not exposed through the public engine yet.
+`Mediana.Containers.Matroska` provides `MatroskaReader` and
+`MatroskaReaderFactory` for one known-length, random-access Matroska Segment.
+Register the factory with `MediaEngineBuilder`; supported AVC, AAC and MP3 tracks
+use the existing decoder modules. The CLI registers the reader for content-based
+probing, complete audio decoding and timestamped video previews.
+
+## Public API and resource bounds
+
+The reader exposes common `ContainerInfo` and immutable native `SegmentInfo`,
+`Tracks` and `Attachments` snapshots. Native positive track numbers remain distinct from zero-based
+stream indices. Packet counts and payload totals describe the complete index;
+nonempty tracks have no inferred decode duration, average bitrate or frame rate.
+Declared floating-point duration is converted to nearest-even nanoseconds with
+exact binary arithmetic. Native duration and date nanoseconds remain available.
+Common calendar dates round to the nearest-even 100-nanosecond tick.
+
+Indexed reads preserve the physical-order cursor. Seeking scans index metadata in
+stored decode order, without reading payloads; video sessions validate candidate
+access points with their codec before restarting. PTS ordering is not assumed to
+match packet order. DTS remains unknown.
+
+`MatroskaReadOptions` bounds the document header, cumulative Info/Tracks payloads
+and attachment declarations, index storage, visited elements, tracks, attached
+files, text, configurations, blocks and frames. Attachment payload bytes are
+excluded from the metadata byte limit and have a separate read size limit.
+Each metadata/indexing pass shares its element budget with Segment traversal,
+including lookahead needed to find the end of unknown-sized Clusters.
+The borrowed source remains open on failure and disposal. Retained packets and
+metadata remain valid after reader disposal; canceled packet reads do not advance
+the cursor. Overlapping reader operations and disposal are rejected.
+
+EBML and inspected Info/Tracks metadata CRCs are checked. `VerifyMediaChecksums`
+also checks Segment, Cluster and attachment CRCs, which reads their complete
+covered payloads. Identically
+encoded recurring Info/Tracks elements are accepted within the cumulative byte
+limit. Differently encoded recurrences are explicitly unsupported.
+
+Unknown codecs, transformed tracks and video presentation settings that cannot
+be represented retain their native CodecID, CodecPrivate and
+`MatroskaStreamFormats.StoredFrames` representation. This representation does not
+claim decoder-ready access units. Cropping, projection, interlaced/stereo/alpha
+presentation and incompatible precision/subsampling declarations are not normalized
+to the progressive AVC representation. Native scalar Colour declarations retain
+CICP codes, range, chroma siting, precision, subsampling and light-level values;
+specified color labels and chroma axes resolve over codec labels. Unsupported
+registered codes fail interpretation. Mastering and projection payloads are not
+fully interpreted, and chapters and Tags are not exposed yet.
+
+CLI preview positions use MP4 movie time, including a supported linear edit list;
+Matroska positions use the normalized Segment clock. Stream-copy to MPEG-TS still
+requires representable video metadata and explicit PTS/DTS. The reader does not
+fabricate decode timestamps to satisfy a writer.
+
+## Attached files
+
+`IContainerAttachmentReader` exposes attached files in storage order, independently
+of timed streams and picture tags. `ContainerSession.Attachments` returns the same
+declarations; null indicates an unavailable capability, while an empty list means
+no attachments. Matroska preserves FileUID, filename, media type and description
+under [RFC 9559 section 5.1.6](https://www.rfc-editor.org/rfc/rfc9559.html#section-5.1.6).
+The filename remains metadata and is never used to choose an output path.
+
+Opening indexes FileData ranges with bounded header lookahead. Payloads are read
+on request into one allocator-owned buffer, with no second payload copy.
+`ReadAttachmentAsync` preserves packet cursors; the returned lease survives reader
+and session disposal. Sizes use `long`, allowing declarations beyond the maximum
+single-buffer read. `MaxAttachments`, `MaxAttachmentBytes`, aggregate metadata/text
+limits and the common allocator budget apply independently.
+
+```sh
+mediana attachment input.mkv cover.png --index 0
+```
+
+This command writes original bytes to the explicit destination and uses the shared
+overwrite policy. It does not select cover art, decode an image or execute attached
+files. Such selection belongs to the caller. FFmpeg 6.1.1 represents recognized
+image attachments as `attached_pic` video streams; Mediana retains native
+attachments separately. This distinction follows the
+[FFmpeg Matroska demuxer](https://github.com/FFmpeg/FFmpeg/blob/n6.1.1/libavformat/matroskadec.c#L3116-L3154)
+and explains differing stream counts for the attached PNG reference.
 
 ## Codec configuration and packet ownership
 
-Internal codec mapping follows the official
+Codec mapping follows the official
 [Matroska codec mappings](https://www.matroska.org/technical/codec_specs.html).
 AVC retains its AVCDecoderConfigurationRecord and length-prefixed pictures; AAC
 retains AudioSpecificConfig and raw data blocks. MP3 has no native initialization;
@@ -36,9 +110,10 @@ opening sampling format and contain one complete Layer III frame.
 Invisible frames, codec state changes, BlockAdditions and nonzero DiscardPadding
 are explicitly rejected by this packet adapter until their required common packet
 semantics are implemented. Native index metadata still preserves these declarations.
-ContentEncodings, TrackOperation and unsupported codec mappings reject explicitly.
-Color, crop, display and projection integration remain pending at the public reader
-boundary; codec configuration alone does not apply those native declarations.
+ContentEncodings, TrackOperation and unmapped codecs retain native stored frames.
+They require a compatible decoder/adapter before decoding or normalized stream copy.
+Color labels and representable aspect ratios are passed to the common video
+contracts; unsupported presentation settings remain native declarations.
 
 ## Format rules
 
@@ -128,10 +203,11 @@ field order. Pixel-unit display dimensions default to dimensions after cropping;
 other display units have no implicit dimensions. Invalid crops are rejected
 without overflowing unsigned coordinate arithmetic.
 
-CodecPrivate, ContentEncodings, TrackOperation, Colour and Projection retain
-source extents. Reading their layout does not allocate or interpret their complete
-payloads. Applying codec transformations, color and projection declarations belongs
-to the subsequent integration work.
+CodecPrivate, ContentEncodings, TrackOperation and Projection retain source
+extents during structural parsing. Colour scalar fields are parsed within the
+same element budget. MasteringMetadata retains a presence flag; its floating-point
+payload is not interpreted. CodecPrivate is copied into bounded immutable stream
+configuration snapshots when constructing the public reader.
 
 CRCs on metadata masters being read are verified in 4 KiB chunks using IEEE
 CRC-32 and little-endian stored values. A present parent CRC reads all covered
@@ -154,8 +230,8 @@ Each Cluster retains its native unsigned timestamp once. Blocks retain signed
 relative timestamps, raw flags and dependency presence. The Timestamp may follow
 the blocks; a missing or repeated Timestamp rejects the Cluster. These native
 values do not invent DTS, later laced-frame PTS or whole-stream decode duration.
-The clock converter below resolves supplied native clocks; packet-reader and
-codec integration remain pending.
+The clock converter below resolves supplied native clocks; the packet reader adds
+only offsets and durations established by supported codec or track declarations.
 
 BlockGroup parsing preserves explicit BlockDuration, signed DiscardPadding,
 ReferencePriority and deferred CodecState/BlockAdditions extents. ReferenceBlock
@@ -172,7 +248,7 @@ count, per-track packet count, header size, frame size and traversed element cou
 have supplied limits. Failed or canceled construction releases all index pages;
 a completed index retains its pages until disposal and borrows the input source.
 
-Cluster checksum verification is an explicit internal construction option. CRC
+Cluster checksum verification is an explicit public read option. CRC
 placement and size remain validated in either mode. BlockGroup metadata CRCs are
 verified by the metadata reader. Verifying a present Cluster checksum streams all
 covered encoded bytes; indexing without that verification avoids the full scan.
@@ -241,8 +317,8 @@ An independently muxed AVC/AAC file with a PNG attachment provides exact header
 facts and all nine Segment child extents. The same descriptors are checked after
 changing its Segment and both Clusters to unknown-size encodings. Independent
 full decoding of those two fixture variants preserves all 84 video/audio frame
-records, timestamps and decoded hashes. This validates the fixtures; public MKV
-media decoding is still pending.
+records, timestamps and decoded hashes. The public engine also decodes the original
+MKV through the registered reader and existing AVC/AAC modules.
 
 Block tests check the signed timestamp limits, every track-number VINT width,
 all-one numeric VINTs, empty frame ranges, maximum lace counts, eight-byte
@@ -274,5 +350,18 @@ common first-frame PTS against independent per-stream FFprobe time bases.
 After warmup, 4,096 unit-scale timestamp/duration pairs allocate zero managed
 heap bytes on the measured thread in both managed and Native execution.
 
-All 2,775 managed tests and the complete strict Linux x64 Native AOT runner pass.
-The Release build, formatting and license-header checks also pass.
+Public-reader checks cover native/common metadata, unknown codecs, recurring
+headers, checksum policy, aggregate limits, unknown-Cluster traversal, cancellation
+and concurrent-operation rejection. All 178 packets across six files pass through
+the public decode path, covering 137,344 mono audio samples and eight YUV pictures.
+Every video picture is selected again through indexed seeking in reverse order.
+Movie-time MP4 and Segment-time MKV conversions select the corresponding picture;
+complete WAV and PNG outputs match byte for byte on the common fixture.
+
+All 2,800 managed tests and the complete strict Linux x64 Native AOT runner pass.
+The Native runner consumes 29 locally built packages without project references.
+The standalone Native CLI probes the MKV, exports complete 48 kHz AAC and 8 kHz MP3
+audio to PCM16 WAVE, and renders the requested video preview. Independent readback
+verifies 77,824 and 47,232 mono output samples, all PNG CRCs and sRGB/pixel-aspect
+tags, and every decoded PNG component. The Release build has no warnings or errors;
+formatting and license-header checks pass.

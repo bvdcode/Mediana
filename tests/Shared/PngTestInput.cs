@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
+using Mediana.Core.Video;
 
 namespace Mediana.Tests
 {
@@ -72,7 +73,7 @@ namespace Mediana.Tests
         }
 
         public static void VerifyPreview(ReadOnlySpan<byte> png, int width, int height, ReadOnlySpan<byte> sourcePixels,
-            int sourceWidth, Func<int, int, (int X, int Y)> sourcePosition, int tolerance)
+            int sourceWidth, Func<int, int, (int X, int Y)> sourcePosition, int tolerance, SampleAspectRatio? sampleAspectRatio = null)
         {
             Dictionary<string, byte[]> chunks = ReadChunks(png);
             byte[] header = new byte[13];
@@ -80,7 +81,10 @@ namespace Mediana.Tests
             BinaryPrimitives.WriteInt32BigEndian(header.AsSpan(4, 4), height);
             header[8] = 8;
             header[9] = 6;
-            byte[] physical = [0, 0, 0, 1, 0, 0, 0, 1, 0];
+            SampleAspectRatio aspect = sampleAspectRatio ?? SampleAspectRatio.Square;
+            byte[] physical = new byte[9];
+            BinaryPrimitives.WriteInt32BigEndian(physical, aspect.Denominator);
+            BinaryPrimitives.WriteInt32BigEndian(physical.AsSpan(4), aspect.Numerator);
             if (!chunks["IHDR"].AsSpan().SequenceEqual(header) || !chunks["pHYs"].AsSpan().SequenceEqual(physical) ||
                 !chunks["sRGB"].AsSpan().SequenceEqual(new byte[] { 0 }) || chunks["IEND"].Length != 0)
             {

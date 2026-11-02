@@ -3,5 +3,5 @@
 
 namespace Mediana.Containers.Matroska
 {
-    internal readonly record struct MatroskaTrackFlags(bool Enabled, bool Default, bool Forced, bool Lacing);
+    public readonly record struct MatroskaTrackFlags(bool Enabled, bool Default, bool Forced, bool Lacing);
 }

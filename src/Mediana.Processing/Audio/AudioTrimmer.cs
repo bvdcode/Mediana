@@ -12,6 +12,7 @@ namespace Mediana.Processing.Audio
     /// The constructor requires the complete requested range; CreateWindow selects its intersection with available samples.
     /// A null sample count reads through EOF.
     /// Original sample timestamps are preserved unless an explicit output origin is supplied.
+    /// Whole input blocks retain their immutable storage; partial boundary blocks are copied into the supplied allocator.
     /// Stops reading at the selected end; the caller remains responsible for source disposal.</summary>
     public class AudioTrimmer : IAsyncDisposable
     {
@@ -19,6 +20,8 @@ namespace Mediana.Processing.Audio
         private readonly MediaBufferAllocator allocator;
         private readonly MediaTimestamp? outputOrigin;
         private readonly bool requireCompleteRange;
+        private readonly MediaTimestamp? timeStart;
+        private readonly MediaTimestamp? timeEnd;
         private long skipRemaining;
         private long? remaining;
         private long inputSamples;
@@ -45,6 +48,31 @@ namespace Mediana.Processing.Audio
             long skipSamples, long? maximumSampleCount, MediaBufferAllocator allocator, MediaTimestamp? outputOrigin = null)
         {
             return new AudioTrimmer(readFrame, skipSamples, maximumSampleCount, allocator, outputOrigin, false);
+        }
+
+        /// <summary>Selects available PCM sample instants in [start, end), preserving their original timestamps.
+        /// A null end reads through EOF. Both boundaries round toward the next sample on the input's exact clock.
+        /// Requires continuous known timestamps; seeking and container edits remain the caller's responsibility.
+        /// An empty interval performs no source reads. Other intervals may read one initial block to establish the clock.</summary>
+        public static AudioTrimmer CreateTimeWindow(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame,
+            MediaTimestamp start, MediaTimestamp? end, MediaBufferAllocator allocator)
+        {
+            return new AudioTrimmer(readFrame, start, end, allocator);
+        }
+
+        private AudioTrimmer(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame,
+            MediaTimestamp start, MediaTimestamp? end, MediaBufferAllocator allocator)
+            : this(readFrame, 0, null, allocator, null, false)
+        {
+            start.TimeBase.Validate();
+            end?.TimeBase.Validate();
+            if (end is MediaTimestamp limit && limit.CompareTo(start) < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(end), "The audio window end must not precede its start.");
+            }
+            timeStart = start;
+            timeEnd = end;
+            ended = end == start;
         }
 
         private AudioTrimmer(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame, long skipSamples,
@@ -118,6 +146,17 @@ namespace Mediana.Processing.Audio
                     format = input.Format;
                     inputClock = new AudioSampleClock(input.Timestamp, format.SampleRate, format.SampleRate);
                     outputClock = new AudioSampleClock(outputOrigin, format.SampleRate, format.SampleRate);
+                    if (timeStart is MediaTimestamp startTime)
+                    {
+                        skipRemaining = inputClock.PositionAtOrAfter(startTime);
+                        remaining = timeEnd is MediaTimestamp endTime
+                            ? checked(inputClock.PositionAtOrAfter(endTime) - skipRemaining) : null;
+                        if (remaining == 0)
+                        {
+                            ended = true;
+                            return null;
+                        }
+                    }
                 }
                 PcmSampleAccess.RequireFormat(input.Format, format);
                 inputClock!.Validate(input.Timestamp, inputSamples);
@@ -130,30 +169,43 @@ namespace Mediana.Processing.Audio
                 {
                     continue;
                 }
-                using WritableMediaBuffer writable = allocator.Allocate(format.GetBufferSize(count));
-                int bytesPerPlaneSample = format.Layout switch
-                {
-                    AudioStorageLayout.Interleaved => checked(format.BytesPerSample * format.Channels.Count),
-                    AudioStorageLayout.Planar => format.BytesPerSample,
-                    _ => throw new ArgumentOutOfRangeException(nameof(format.Layout))
-                };
-                int planeBytes = checked(count * bytesPerPlaneSample);
-                for (int plane = 0; plane < format.PlaneCount; plane++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    input.GetPlane(plane).Span.Slice(checked(offset * bytesPerPlaneSample), planeBytes)
-                        .CopyTo(writable.Memory.Span.Slice(checked(plane * planeBytes), planeBytes));
-                }
-                cancellationToken.ThrowIfCancellationRequested();
                 MediaTimestamp? timestamp = outputOrigin is null ? inputClock.AtOutput(start) : outputClock!.AtOutput(outputSamples);
-                outputSamples = checked(outputSamples + count);
+                long nextOutputSamples = checked(outputSamples + count);
+                AudioFrame result = Select(input, offset, count, timestamp, cancellationToken);
+                outputSamples = nextOutputSamples;
                 if (remaining is long value)
                 {
                     remaining = value - count;
                 }
-                using MediaBuffer buffer = writable.Publish();
-                return new AudioFrame(format, count, buffer, timestamp);
+                return result;
             }
+        }
+
+        private AudioFrame Select(AudioFrame input, int offset, int count, MediaTimestamp? timestamp, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            if (offset == 0 && count == input.SamplesPerChannel)
+            {
+                return input.RetainWithTimestamp(timestamp);
+            }
+            AudioFormat selectedFormat = input.Format;
+            using WritableMediaBuffer writable = allocator.Allocate(selectedFormat.GetBufferSize(count));
+            int bytesPerPlaneSample = selectedFormat.Layout switch
+            {
+                AudioStorageLayout.Interleaved => checked(selectedFormat.BytesPerSample * selectedFormat.Channels.Count),
+                AudioStorageLayout.Planar => selectedFormat.BytesPerSample,
+                _ => throw new ArgumentOutOfRangeException(nameof(input))
+            };
+            int planeBytes = checked(count * bytesPerPlaneSample);
+            for (int plane = 0; plane < selectedFormat.PlaneCount; plane++)
+            {
+                token.ThrowIfCancellationRequested();
+                input.GetPlane(plane).Span.Slice(checked(offset * bytesPerPlaneSample), planeBytes)
+                    .CopyTo(writable.Memory.Span.Slice(checked(plane * planeBytes), planeBytes));
+            }
+            token.ThrowIfCancellationRequested();
+            using MediaBuffer buffer = writable.Publish();
+            return new AudioFrame(selectedFormat, count, buffer, timestamp);
         }
 
         public ValueTask DisposeAsync()

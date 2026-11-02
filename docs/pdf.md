@@ -1,7 +1,7 @@
 # PDF page previews
 
 `Mediana.Documents.Pdf` reads PDF structure and interprets page painting commands
-with managed C# code. It uses Mediana's drawing, TrueType, JPEG 2000 and JBIG2
+with managed C# code. It uses Mediana's drawing, TrueType, JPEG, JPEG 2000 and JBIG2
 implementations. There are no PDF parser packages, native libraries or external
 processes in the runtime path. The module is packaged as `Mediana.Documents.Pdf`.
 
@@ -91,8 +91,11 @@ The implemented subset includes:
   conversion is an arithmetic RGB preview, without ICC-managed printing.
 - JP2 images declaring their own supported color space, and JBIG2 including
   chained filters and indirect compressed JBIG2Globals.
+- Eight-bit sequential and progressive Huffman JPEG image XObjects with
+  DeviceGray or DeviceRGB, chained byte filters, Decode arrays and color-key,
+  explicit image and soft masks.
 
-Known gaps include JPEG, inline images, LZW/CCITT filters, encrypted documents,
+Known gaps include inline images, LZW/CCITT filters, encrypted documents,
 Type 1/CFF/Type 3 or unembedded font outlines, general CMaps and glyph-name
 coverage, gradients/patterns, ICC color transforms, transparency groups,
 graphics-state soft masks, annotations and optional content. JPX color-space
@@ -126,6 +129,50 @@ observed mean error is 2.19/255 with 95.67% within 8. Extracted JBIG2 pixels mat
 the original synthetic scan exactly. These are bounded regression comparisons,
 not arbitrary-document conformance evidence. Poppler is used for development
 verification only.
+
+## JPEG image interpretation
+
+PDF `DCTDecode` uses the shared [JPEG component decoder](jpeg.md), with the
+container's color and presentation rules. Image dictionary dimensions, component
+count and eight-bit depth must agree with the encoded image. DeviceGray ignores
+`ColorTransform`. For DeviceRGB, Adobe APP14 takes precedence over the PDF
+`ColorTransform` parameter; otherwise zero selects RGB and one selects YCbCr,
+with one as the default. JPEG application presentation metadata does not change
+PDF image placement or color interpretation. These rules follow clause 7.4.8
+and Table 13 of [ISO 32000-1](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf).
+
+Color-key ranges apply to reconstructed eight-bit color samples before `Decode`.
+An `SMask` overrides `Mask`, including a color-key array. Indirect color-key
+arrays and explicit mask image references are distinguished. CMYK/YCCK JPEG,
+ICC color conversion and JPEG images using other PDF color spaces remain open.
+
+JPEG component samples write into the image's one final RGBA allocation.
+There is no intermediate RGBA image. The remaining `MaximumImageBytes` budget
+also bounds the live component samples and progressive coefficient workspace;
+cached page images count toward that budget. The exact sequential grayscale
+1×1 case needs 68 bytes: 64 padded component bytes and four RGBA bytes. Parser
+objects, compressed streams and later page rendering have separate limits.
+Extracting an independent `VideoFrame` from a retained `PdfImage` still copies
+its pixels; direct DCT interpretation does not remove that ownership boundary.
+
+The 57 authored PDF references compare complete extracted image pixels with
+independent libjpeg output and complete page pixels with Poppler/Cairo at
+72 DPI. They cover grayscale/RGB, sequential/progressive scans, APP14 priority,
+explicit transforms, chained filters, Decode and masks. Each RGB component may
+differ by at most four eight-bit codes; alpha matches exactly. Shared managed
+and Native AOT checks also cover every-byte truncation of a small JPEG, invalid
+parameters, exact workspace limits, cancellation, repeated image reuse and
+detached page lifetimes. A 512×512 allocation check rejects a second full RGBA
+buffer during image interpretation.
+
+Actual managed and Linux Native AOT commands extract an image and render a page
+from every reference: 228 complete PNG conversions. The PDF inputs use unrelated
+filename extensions. Managed/native PNG pairs are byte-identical; independent
+pixel readback has a maximum color difference of three codes and exact alpha.
+General `-i input output.png` matches explicit default page rendering. A failed
+extraction with overwrite enabled preserves the existing destination. The full
+2,885-test suite, all 30 package-only Native AOT dependencies and the native CLI
+pass alongside formatting and source license-header checks.
 
 ## Stream cache allocation measurement
 

@@ -16,10 +16,13 @@ namespace Mediana.Containers.Matroska
         private const uint VoidId = 0xEC;
         private readonly EbmlElementReader reader;
         private readonly long inputEnd;
+        private readonly MatroskaElementBudget? elementBudget;
 
-        public MatroskaSegmentReader(IRandomAccessByteSource source, MediaBufferAllocator allocator, int maximumSizeWidth)
+        public MatroskaSegmentReader(IRandomAccessByteSource source, MediaBufferAllocator allocator, int maximumSizeWidth,
+            MatroskaElementBudget? elementBudget = null)
         {
             ArgumentNullException.ThrowIfNull(source);
+            this.elementBudget = elementBudget;
             inputEnd = source.Length ?? throw new NotSupportedException("Matroska indexing requires a known source length.");
             reader = new(source, allocator, maximumSizeWidth: maximumSizeWidth);
         }
@@ -28,7 +31,7 @@ namespace Mediana.Containers.Matroska
         {
             while (true)
             {
-                EbmlElement root = await reader.ReadAsync(offset, inputEnd, cancellationToken).ConfigureAwait(false)
+                EbmlElement root = await ReadElementAsync(offset, inputEnd, cancellationToken).ConfigureAwait(false)
                     ?? throw new InvalidDataException("The Matroska Segment is missing.");
                 if (root.Id == SegmentId)
                 {
@@ -47,7 +50,7 @@ namespace Mediana.Containers.Matroska
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(offset, segment.DataOffset);
             long limit = segment.EndOffset ?? inputEnd;
-            EbmlElement? next = await reader.ReadAsync(offset, limit, cancellationToken).ConfigureAwait(false);
+            EbmlElement? next = await ReadElementAsync(offset, limit, cancellationToken).ConfigureAwait(false);
             if (next is not EbmlElement child)
             {
                 return null;
@@ -77,7 +80,7 @@ namespace Mediana.Containers.Matroska
             long offset = segment.EndOffset ?? inputEnd;
             while (true)
             {
-                EbmlElement? next = await reader.ReadAsync(offset, inputEnd, cancellationToken).ConfigureAwait(false);
+                EbmlElement? next = await ReadElementAsync(offset, inputEnd, cancellationToken).ConfigureAwait(false);
                 if (next is not EbmlElement root)
                 {
                     return;
@@ -98,7 +101,7 @@ namespace Mediana.Containers.Matroska
         {
             while (true)
             {
-                EbmlElement? next = await reader.ReadAsync(offset, parentEnd, cancellationToken).ConfigureAwait(false);
+                EbmlElement? next = await ReadElementAsync(offset, parentEnd, cancellationToken).ConfigureAwait(false);
                 if (next is not EbmlElement child || IsBoundary(child.Id))
                 {
                     return offset;
@@ -109,6 +112,16 @@ namespace Mediana.Containers.Matroska
                 }
                 offset = end;
             }
+        }
+
+        private async ValueTask<EbmlElement?> ReadElementAsync(long offset, long end, CancellationToken token)
+        {
+            EbmlElement? element = await reader.ReadAsync(offset, end, token).ConfigureAwait(false);
+            if (element is not null)
+            {
+                elementBudget?.Reserve();
+            }
+            return element;
         }
 
         private static bool IsBoundary(uint id) => id switch

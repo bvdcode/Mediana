@@ -59,6 +59,13 @@ PTS, presentation order, dimensions and the complete YUV420 byte hash match
 independent decoding, including B-picture reordering and VFR timing. These
 references use the original media timeline with edit-list processing disabled.
 
+`video-window.reference.json` records every independently decoded picture's hash
+and original PTS for all four files, together with the explicit linear movie
+edit mapping. Thirty-two out-of-order window requests check every selected
+picture and exact movie PTS, fractional boundaries, VFR, B-picture preroll,
+repeated ranges and restarting after EOF. Selection preserves complete frames;
+it does not clip a last frame's duration to the requested end.
+
 Format references: [sample timing](https://developer.apple.com/documentation/quicktime-file-format/time-to-sample_atom),
 [constant video timing](https://developer.apple.com/documentation/quicktime-file-format/creating_video_tracks_at_30_frames_per_second),
 [variable video timing](https://developer.apple.com/documentation/quicktime-file-format/video_variable_frame_rate_indication).

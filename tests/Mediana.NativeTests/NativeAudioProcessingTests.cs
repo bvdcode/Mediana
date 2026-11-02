@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Containers.Mp4;
 using Mediana.Core.Audio;
 using Mediana.Tests;
 
@@ -16,14 +17,25 @@ namespace Mediana.NativeTests
                 await AudioWindowTestInput.VerifyAsync(layout, 6, 17, 17, true);
                 await AudioWindowTestInput.VerifyAsync(layout, 41, null, 0, false);
                 await AudioWindowTestInput.VerifyAsync(layout, 100, 0, 0, true);
+                await AudioWindowTestInput.VerifyWholeBlocksAsync(layout, false);
+                await AudioWindowTestInput.VerifyWholeBlocksAsync(layout, true);
+                await AudioTimeWindowTestInput.VerifyAsync(layout, 44100, new(1, new(1, 7)));
+                await AudioTimeWindowTestInput.VerifyAsync(layout, 48000, new(-7, new(1, 48000)));
             }
             await AudioWindowTestInput.VerifySourceFailureAsync();
+            await PacketMergeTestInput.VerifyAsync();
+            await AacEditedAudioTestInput.VerifyTimeWindowAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48");
+            await AacEditedAudioTestInput.VerifyTimeWindowAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-stereo-44");
+            await AacEditedAudioTestInput.VerifyTimeWindowAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48", indexed: true);
+            await AacEditedAudioTestInput.VerifyTimeWindowAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-stereo-44", indexed: true);
             Console.WriteLine("PASS audio windows: available sample intersection, exact clocks, source failures and storage ownership.");
             foreach (AudioSampleFormat sampleFormat in new[] { AudioSampleFormat.Unsigned8, AudioSampleFormat.Signed16,
                 AudioSampleFormat.Signed32, AudioSampleFormat.Float32, AudioSampleFormat.Float64 })
             {
                 AudioSamplePreparationTestInput.Verify(sampleFormat, AudioStorageLayout.Interleaved);
                 AudioSamplePreparationTestInput.Verify(sampleFormat, AudioStorageLayout.Planar);
+                AudioFrameTimingTestInput.Verify(sampleFormat, AudioStorageLayout.Interleaved);
+                AudioFrameTimingTestInput.Verify(sampleFormat, AudioStorageLayout.Planar);
                 await PcmStreamOutputTestInput.VerifyAsync(sampleFormat, true);
                 await PcmStreamOutputTestInput.VerifyAsync(sampleFormat, false);
             }
@@ -33,6 +45,13 @@ namespace Mediana.NativeTests
             await PcmStreamOutputTestInput.VerifyPendingFailureAsync(true, true);
             Console.WriteLine("PASS PCM stream output: both byte orders, direct storage, bounded scratch and asynchronous failure ownership.");
             Console.WriteLine("PASS PCM preparation: matching sample storage, timing, original allocation budget and retained frame ownership.");
+            await Mp4RecoveryTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
+            foreach ((string directory, string name) in new[] { ("Aac", "lc-mono-48"), ("Aac", "lc-stereo-44"),
+                ("AacMultichannel", "layout-6"), ("AacMultichannel", "window-transitions") })
+            {
+                await AacSeekTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", directory), name, Mp4TimestampMode.Media);
+                await AacSeekTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", directory), name, Mp4TimestampMode.LinearMovie);
+            }
             await AudioWaveformTestInput.VerifyAsync();
             await WaveformMixerTestInput.VerifyAsync(AudioStorageLayout.Interleaved, 1);
             await WaveformMixerTestInput.VerifyAsync(AudioStorageLayout.Planar, 83);

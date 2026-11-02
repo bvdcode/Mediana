@@ -48,6 +48,8 @@ namespace Mediana.Tests
             int interPcm = 0;
             int transformed = 0;
             int skipped = 0;
+            int adjusted = 0;
+            int restored = 0;
             try
             {
                 for (int index = 0; index < FrameCount; index++)
@@ -58,9 +60,28 @@ namespace Mediana.Tests
                         throw new InvalidOperationException("The PCM sequence encoder did not accept its input.");
                     }
                     using MediaPacket packet = encoder.Receive().Value ?? throw new InvalidDataException("Missing PCM sequence packet.");
-                    H264Picture picture = Parse(packet, configuration, reference, allocator, quantizer, out int pcm, out int coded, out int skip);
-                    reference?.Picture.Dispose();
+                    H264Picture picture = Parse(packet, configuration, reference, allocator, quantizer, out int pcm, out int coded, out int skip, out int changed, out int reset);
+                    using H264Picture? previous = reference?.Picture;
                     reference = new(picture, index, default);
+                    using (H264Picture reconstructed = new(picture.Sequence, allocator,
+                        index == 0 ? H264SliceKind.I : H264SliceKind.P))
+                    {
+                        using MediaBuffer? encoded = index == 0
+                            ? H264IntraEncoder.Encode(input, reconstructed, quantizer, quantizer, 0, allocator, 65536, false, out _, default)
+                            : H264InterEncoder.Encode(input, reconstructed, previous!, index, quantizer, allocator,
+                                new() { Quantizer = quantizer }, 65536, false, out _, default);
+                        if (encoded is null || !encoded.Memory.Span.SequenceEqual(packet.Data.Span))
+                        {
+                            throw new InvalidDataException("Direct reconstruction changed encoded packet bytes.");
+                        }
+                        for (int plane = 0; plane < 3; plane++)
+                        {
+                            if (!reconstructed.Plane(plane).SequenceEqual(picture.Plane(plane)))
+                            {
+                                throw new InvalidDataException("The encoder reference differs from the decoded picture after macroblock selection.");
+                            }
+                        }
+                    }
                     if (index == 0)
                     {
                         intraPcm += pcm;
@@ -69,6 +90,8 @@ namespace Mediana.Tests
                     {
                         interPcm += pcm;
                     }
+                    adjusted += changed;
+                    restored += reset;
                     transformed += coded;
                     skipped += skip;
                     await writer.WritePacketAsync(packet);
@@ -96,10 +119,10 @@ namespace Mediana.Tests
                 encoder.CompleteInput();
                 decoder.CompleteInput();
                 await writer.CompleteAsync();
-                if (intraPcm == 0 || interPcm == 0 || transformed == 0 || skipped == 0 ||
+                if (intraPcm == 0 || interPcm == 0 || transformed == 0 || skipped == 0 || adjusted == 0 || restored == 0 ||
                     encoder.Receive().Status != CodecOutputStatus.EndOfStream || decoder.Receive().Status != CodecOutputStatus.EndOfStream)
                 {
-                    throw new InvalidDataException("The complete PCM sequence did not exercise I/P PCM, transformed neighbours and skipped macroblocks.");
+                    throw new InvalidDataException("The complete PCM sequence did not exercise I/P PCM, transformed neighbours, skipped macroblocks and restored quantization.");
                 }
             }
             finally
@@ -117,7 +140,7 @@ namespace Mediana.Tests
         }
 
         private static H264Picture Parse(MediaPacket packet, H264Configuration configuration, H264ReferencePicture? reference,
-            MediaBufferAllocator allocator, int quantizer, out int pcm, out int coded, out int skipped)
+            MediaBufferAllocator allocator, int quantizer, out int pcm, out int coded, out int skipped, out int adjusted, out int restored)
         {
             H264BitReader bits = H264Nal.Payload(packet.Data.Span[4..], packet.IsKeyFrame == true ? 5 : 1);
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, packet.Data.Span[4]);
@@ -137,6 +160,8 @@ namespace Mediana.Tests
             pcm = 0;
             coded = 0;
             skipped = 0;
+            adjusted = 0;
+            restored = 0;
             try
             {
                 H264ReferencePicture?[] references = reference is null ? [] : [reference];
@@ -161,6 +186,18 @@ namespace Mediana.Tests
                     H264BitReader syntax = bits;
                     int type = syntax.ReadUe(30);
                     int start = bits.BitPosition;
+                    int previousQuantizer = qp;
+                    if (type == pcmType)
+                    {
+                        syntax.AlignZero();
+                        for (int sample = 0; sample < 384; sample++)
+                        {
+                            if (syntax.ReadBits(8) == 0)
+                            {
+                                throw new InvalidDataException("A Baseline PCM macroblock contains a forbidden zero sample.");
+                            }
+                        }
+                    }
                     switch (header.Kind)
                     {
                         case H264SliceKind.I:
@@ -172,10 +209,12 @@ namespace Mediana.Tests
                         default:
                             throw new InvalidDataException("Unexpected PCM sequence slice kind.");
                     }
-                    if (bits.BitPosition - start > 3200 || qp != header.Qp)
+                    if (bits.BitPosition - start > 3200 || qp < header.Qp)
                     {
-                        throw new InvalidDataException("A macroblock exceeds 3200 RBSP bits or changes fixed quantization.");
+                        throw new InvalidDataException("A macroblock exceeds 3200 RBSP bits or lowers the requested quantization.");
                     }
+                    adjusted += qp > header.Qp ? 1 : 0;
+                    restored += qp == header.Qp && previousQuantizer > header.Qp ? 1 : 0;
                     if (type == pcmType)
                     {
                         pcm++;
@@ -220,12 +259,13 @@ namespace Mediana.Tests
                     random.NextBytes(row);
                     for (int x = 0; x < row.Length; x++)
                     {
-                        int pattern = (x / size + y / size + index / 2) % 3;
+                        int pattern = (x / size + y / size + index / 2) % 4;
                         row[x] = pattern switch
                         {
                             0 => 128,
                             1 => x % size < 4 && y % size == 0 ? (byte)0 : row[x],
                             2 => (byte)(32 + (x * 3 + y * 2 + plane * 37) % 180),
+                            3 => (byte)(1 + row[x] % 255),
                             _ => throw new InvalidOperationException("Unexpected macroblock pattern.")
                         };
                     }

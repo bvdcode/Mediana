@@ -45,10 +45,13 @@ namespace Mediana.Formats.Video
             {
                 throw new ArgumentOutOfRangeException(nameof(value));
             }
-            for (int bit = count - 1; bit >= 0; bit--)
+            while (count > 0)
             {
-                partial = (partial << 1) | (int)((value >> bit) & 1);
-                if (++partialBits == 8)
+                int take = Math.Min(8 - partialBits, count);
+                count -= take;
+                partial = (partial << take) | (int)((value >> count) & ((1UL << take) - 1));
+                partialBits += take;
+                if (partialBits == 8)
                 {
                     WriteByte((byte)partial);
                     partial = 0;

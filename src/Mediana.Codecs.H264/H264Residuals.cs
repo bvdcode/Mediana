@@ -13,6 +13,12 @@ namespace Mediana.Codecs.H264
             int pattern, int qp, scoped ReadOnlySpan<byte> macroPrediction)
             where TReader : IH264ResidualReader
         {
+            H264InverseTransform.ValidateQp(qp);
+            if ((pattern & 15) == 0)
+            {
+                target.WriteZeroResidualBlock(0, x, y, 16, macroPrediction, 16);
+                return;
+            }
             if (target.Transforms8x8[y / 16 * target.Sequence.WidthInMbs + x / 16] != 0)
             {
                 H264Luma8x8Reconstruction.Read(ref bits, reader, target, x, y, pattern, qp, false, false, macroPrediction);
@@ -27,6 +33,11 @@ namespace Mediana.Codecs.H264
                 coefficients.Clear();
                 int count = (pattern & (1 << (index / 4))) != 0
                     ? reader.Read(ref bits, H264ResidualCategory.Luma4x4, 0, x + blockX, y + blockY, coefficients) : 0;
+                if (count == 0)
+                {
+                    target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, macroPrediction[(blockY * 16 + blockX)..], 16);
+                    continue;
+                }
                 target.Counts(0)[target.BlockIndex(0, x + blockX, y + blockY)] = (byte)count;
                 H264InverseTransform.Residual4x4(coefficients, qp, residual);
                 CopyPrediction(macroPrediction, 16, blockX, blockY, prediction);
@@ -42,17 +53,23 @@ namespace Mediana.Codecs.H264
             int x, int y, int pattern, int qp, scoped ReadOnlySpan<byte> macroPrediction)
             where TReader : IH264ResidualReader
         {
+            H264InverseTransform.ValidateQp(qp);
+            if (pattern == 0)
+            {
+                for (int plane = 1; plane <= 2; plane++)
+                {
+                    target.WriteZeroResidualBlock(plane, x, y, 8, macroPrediction.Slice((plane - 1) * 64, 64), 8);
+                }
+                return;
+            }
             Span<int> coefficients = stackalloc int[15];
             Span<int> dcCoefficients = stackalloc int[8];
             Span<int> dc = stackalloc int[4];
             Span<int> residual = stackalloc int[16];
             Span<byte> prediction = stackalloc byte[16];
             dcCoefficients.Clear();
-            if (pattern != 0)
-            {
-                reader.Read(ref bits, H264ResidualCategory.ChromaDc, 1, x, y, dcCoefficients[..4]);
-                reader.Read(ref bits, H264ResidualCategory.ChromaDc, 2, x, y, dcCoefficients[4..]);
-            }
+            reader.Read(ref bits, H264ResidualCategory.ChromaDc, 1, x, y, dcCoefficients[..4]);
+            reader.Read(ref bits, H264ResidualCategory.ChromaDc, 2, x, y, dcCoefficients[4..]);
             for (int plane = 1; plane <= 2; plane++)
             {
                 int offset = plane == 1 ? picture.ChromaQpOffset : picture.SecondChromaQpOffset;
@@ -65,6 +82,12 @@ namespace Mediana.Codecs.H264
                     coefficients.Clear();
                     int count = pattern == 2
                         ? reader.Read(ref bits, H264ResidualCategory.ChromaAc, plane, x + blockX, y + blockY, coefficients) : 0;
+                    if (count == 0 && dc[index] == 0)
+                    {
+                        target.WriteZeroResidualBlock(plane, x + blockX, y + blockY, 4,
+                            macroPrediction[((plane - 1) * 64 + blockY * 8 + blockX)..], 8);
+                        continue;
+                    }
                     target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
                     H264InverseTransform.Residual4x4(coefficients, chromaQp, residual, dc[index]);
                     CopyPrediction(macroPrediction.Slice((plane - 1) * 64, 64), 8, blockX, blockY, prediction);
