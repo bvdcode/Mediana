@@ -1828,6 +1828,10 @@ their media storage to participate in its accounting.
 
 No source or module is selected through reflection or runtime assembly discovery.
 Libraries enable AOT/trimming analysis, and compiler/analyzer warnings fail the build.
+Repository builds default to `OptimizationPreference=Speed` for Native AOT.
+Applications consuming NuGet packages select this property in their own publish
+project. It changes compiler optimization preferences and preserves the default
+processor instruction-set requirement. See the [complete native stage comparison](docs/native-aot-performance.md).
 
 ## Validation and current boundaries
 
@@ -1852,8 +1856,9 @@ format also requires an executable AOT integration test.
 
 Current limitations include broader compressed codec support, other container formats, seeking for additional audio codecs,
 more general movie timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
-broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, inter-frame video encoding, perceptual AAC encoding, per-variant audio rates, other muxers, scheduling,
-pooling, SIMD optimization and playback. The contracts are experimental and may
+broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration,
+representative HD encoding efficiency and HRD conformance, perceptual AAC quality,
+other muxers, scheduling, further CPU optimization and playback. The contracts are experimental and may
 change before 1.0.
 
 Production format scope and performance targets remain open. Measurements and

@@ -1,3 +1,9 @@
+Repository Native AOT builds now prefer execution speed. The
+[unchanged-source compiler comparison](native-aot-performance.md) reduces
+complete raw-encoding CPU by 6.64% with identical output. Decoder timing varies
+substantially, and fresh external controls also change markedly; this does not
+establish a new competitive ratio or complete-film HLS improvement.
+
 The latest [direct-region comparison](h264-direct-prediction.md) uses
 23.105 CPU seconds for complete HD decoding versus 4.243 for optimized
 FFmpeg, with identical raw samples (5.45x). The paired median decoder CPU
