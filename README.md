@@ -1051,6 +1051,9 @@ transforms are not applied. Missing packet timestamps remain absent; unspecified
 sample aspect ratio and CICP color codes remain unspecified.
 
 See [decoded H.264 storage](docs/h264-frame-memory.md) for ownership and resource checks.
+Identical direct-prediction motion is processed in larger regions; see
+[H.264 direct prediction](docs/h264-direct-prediction.md) for exact-output checks
+and complete HD measurements.
 
 MP4/MOV `colr` descriptions are retained separately from codec labels.
 `VideoFormat.GetColorInterpretation()` resolves source precedence; default sRGB
