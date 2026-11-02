@@ -451,3 +451,60 @@ one-thread settings and produced the complete independently verified reference:
 The final Mediana and fresh FFmpeg CPU medians differ by 5.47x. The reference
 quality and size differences still apply; these changes have not closed the
 multi-fold encoder CPU gap.
+
+## Combined fractional prediction and candidate cost
+
+Implementation `e9b1e48`, measured against `1f1795c`, computes each fractional
+luma prediction row and its sample error in one pass. Once the nonnegative
+partial error exceeds the best complete candidate cost, remaining rows are
+not generated. Such partial predictions are rejected before chroma evaluation
+or winner storage. Equal-cost candidates retain their complete prediction and
+the existing motion-vector tie rules. No search positions are removed.
+
+The shared 16-byte difference operation uses guarded
+[`Sse2.SumAbsoluteDifferences`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.intrinsics.x86.sse2.sumabsolutedifferences)
+on supported processors and retains the existing portable vector arithmetic
+elsewhere. Native x64 disassembly confirms `PSADBW` in both the fused fractional
+loop and the separate complete-block comparison. The change adds no heap
+storage or external dependency.
+
+Two paired complete 1,441-picture encodes used the same frozen inputs, CPU
+affinity and single-thread settings. The second pair reversed execution order.
+
+| Execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Before then after | 64.666 | 64.444 | 0.34% | 65.665 | 65.789 | 51.21 | 49.80 |
+| After then before | 67.453 | 63.741 | 5.50% | 68.636 | 64.149 | 49.80 | 51.80 |
+
+Every complete output is byte-identical to the encoded reference, reaches EOF
+and releases all media storage. The CPU reductions vary substantially; the
+first elapsed observation slightly worsens, and RSS changes in both directions.
+These observations do not establish a stable percentage improvement or a
+memory reduction. The previous quality and size differences remain unchanged.
+
+Validation passed all 2,944 managed tests, 683 H.264 tests with hardware
+intrinsics disabled, all 30 package checks, the strict package-only Native AOT
+suite and CLI, Release build, formatting and license headers. Shared managed
+and native checks cover all 65,536 byte pairs, mixed vector lanes, all fractional
+positions, scalar sample errors, rejection boundaries after every row, exact
+ties, untouched output suffixes and the 188 independent motion-search cases.
+
+The complete diagnostic encode takes 64.237 instrumented elapsed seconds:
+27.177 in motion search, 12.451 in luma analysis, 5.807 in chroma analysis,
+11.083 in luma writing and 3.350 in chroma writing. The diagnostic output remains
+identical. These elapsed measurements include instrumentation and scheduling;
+enclosing stages overlap, and the values are not CPU percentages. Substantial
+work remains outside motion search as well as within it.
+
+Two fresh optimized FFmpeg encodes used the same full raw input and one-thread
+settings; both outputs match its independently decoded reference.
+
+| FFmpeg observation | CPU, s | Elapsed, s | RSS, MiB |
+| --- | ---: | ---: | ---: |
+| 1 | 12.794 | 13.151 | 107.89 |
+| 2 | 12.470 | 12.624 | 110.44 |
+
+The current Mediana and FFmpeg CPU medians differ by 5.07x. This remains a
+substantial encoding gap with different rate-control models and output quality;
+the local change does not resolve it. There is no new decoder or complete-film
+HLS measurement in this comparison.
