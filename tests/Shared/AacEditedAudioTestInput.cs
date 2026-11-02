@@ -87,8 +87,8 @@ namespace Mediana.Tests
                 }
                 await trimmer.DisposeAsync();
                 await session.DisposeAsync();
-                if (bytes != expectedBytes || retained is null || allocator.AllocatedBytes != retained.GetPlane(0).Length
-                    || session.AllocatedBufferBytes != 0)
+                if (bytes != expectedBytes || retained is null ||
+                    allocator.AllocatedBytes + session.AllocatedBufferBytes != retained.GetPlane(0).Length)
                 {
                     throw new InvalidOperationException("Edited AAC lost output or retained decoder storage after disposal.");
                 }
@@ -98,7 +98,7 @@ namespace Mediana.Tests
             {
                 retained?.Dispose();
             }
-            if (allocator.AllocatedBytes != 0)
+            if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)
             {
                 throw new InvalidOperationException("Edited AAC retained PCM storage after its last output was released.");
             }

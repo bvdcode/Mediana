@@ -16,6 +16,8 @@ namespace Mediana.NativeTests
                 await AudioWindowTestInput.VerifyAsync(layout, 6, 17, 17, true);
                 await AudioWindowTestInput.VerifyAsync(layout, 41, null, 0, false);
                 await AudioWindowTestInput.VerifyAsync(layout, 100, 0, 0, true);
+                await AudioWindowTestInput.VerifyWholeBlocksAsync(layout, false);
+                await AudioWindowTestInput.VerifyWholeBlocksAsync(layout, true);
             }
             await AudioWindowTestInput.VerifySourceFailureAsync();
             Console.WriteLine("PASS audio windows: available sample intersection, exact clocks, source failures and storage ownership.");
@@ -24,6 +26,8 @@ namespace Mediana.NativeTests
             {
                 AudioSamplePreparationTestInput.Verify(sampleFormat, AudioStorageLayout.Interleaved);
                 AudioSamplePreparationTestInput.Verify(sampleFormat, AudioStorageLayout.Planar);
+                AudioFrameTimingTestInput.Verify(sampleFormat, AudioStorageLayout.Interleaved);
+                AudioFrameTimingTestInput.Verify(sampleFormat, AudioStorageLayout.Planar);
                 await PcmStreamOutputTestInput.VerifyAsync(sampleFormat, true);
                 await PcmStreamOutputTestInput.VerifyAsync(sampleFormat, false);
             }

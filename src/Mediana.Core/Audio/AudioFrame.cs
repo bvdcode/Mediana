@@ -44,6 +44,11 @@ namespace Mediana.Core.Audio
         }
 
         public AudioFrame Retain() => new(Format, SamplesPerChannel, buffer, Timestamp);
+
+        /// <summary>Returns an independent lease over the same immutable PCM with an explicit timestamp, including unknown.
+        /// Sample count, duration and the original frame remain unchanged.</summary>
+        public AudioFrame RetainWithTimestamp(MediaTimestamp? timestamp) => new(Format, SamplesPerChannel, buffer, timestamp);
+
         public void Dispose() => buffer.Dispose();
     }
 }

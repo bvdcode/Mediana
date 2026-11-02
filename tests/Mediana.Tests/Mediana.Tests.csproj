@@ -163,6 +163,7 @@
     <Compile Include="../Shared/Mp4MetadataTestInput.cs" Link="Mp4MetadataTestInput.cs" />
     <Compile Include="../Shared/AudioSignalSource.cs" Link="AudioSignalSource.cs" />
     <Compile Include="../Shared/AudioWindowTestInput.cs" Link="AudioWindowTestInput.cs" />
+    <Compile Include="../Shared/AudioFrameTimingTestInput.cs" Link="AudioFrameTimingTestInput.cs" />
     <Compile Include="../Shared/VideoWindowTestInput.cs" Link="VideoWindowTestInput.cs" />
     <Compile Include="../Shared/PresentationTimingTestInput.cs" Link="PresentationTimingTestInput.cs" />
     <Compile Include="../Shared/H264FramePublicationTestInput.cs" Link="H264FramePublicationTestInput.cs" />
