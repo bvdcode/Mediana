@@ -25,6 +25,7 @@ namespace Mediana.Codecs.H264
         private MediaTimestamp? previousEnd;
         private MediaTimestamp? lastKeyFrame;
         private H264Picture? reference;
+        private H264Picture? workspace;
         private int frameNumber;
         private bool completed;
         private bool disposed;
@@ -94,7 +95,7 @@ namespace Mediana.Codecs.H264
                 H264FrameRateBudget requested = rateController?.Prepare(timestamp, durationTicks, keyFrame) ?? new(options.MaximumPacketBytes, options.Quantizer);
                 H264FrameRateBudget budget = new(Math.Min(requested.MaximumBytes, levelBytes), requested.Quantizer);
                 using H264EncodedPicture encoded = H264PictureEncoder.Encode(input, sequence, reference, keyFrame, number, idrId,
-                    allocator, options, budget, cancellationToken);
+                    allocator, options, budget, ref workspace, cancellationToken);
                 levelBudget.Commit(timestamp.Value, keyFrame, encoded.Data.Memory.Length);
                 pending = new MediaPacket(Stream.StreamIndex, encoded.Data, timestamp, timestamp, input.Duration, isKeyFrame: keyFrame);
                 rateController?.Commit(timestamp, encoded.Quantizer, encoded.Data.Memory.Length, keyFrame);
@@ -107,8 +108,13 @@ namespace Mediana.Codecs.H264
                 }
                 if (options.KeyFrameInterval > TimeSpan.Zero)
                 {
-                    ReleaseReference();
+                    H264Picture? previousReference = reference;
                     reference = encoded.TakeReference();
+                    workspace = previousReference;
+                }
+                else
+                {
+                    workspace = encoded.TakeReference();
                 }
                 succeeded = true;
                 return CodecInputStatus.Accepted;
@@ -147,7 +153,7 @@ namespace Mediana.Codecs.H264
             {
                 EnsureAvailable();
                 completed = true;
-                ReleaseReference();
+                ReleasePictures();
             }
             finally
             {
@@ -162,7 +168,7 @@ namespace Mediana.Codecs.H264
             {
                 ObjectDisposedException.ThrowIf(disposed, this);
                 ReleasePending();
-                ReleaseReference();
+                ReleasePictures();
                 previousEnd = null;
                 lastKeyFrame = null;
                 frameNumber = 0;
@@ -238,7 +244,7 @@ namespace Mediana.Codecs.H264
             {
                 faulted = true;
                 ReleasePending();
-                ReleaseReference();
+                ReleasePictures();
             }
             Volatile.Write(ref busy, 0);
         }
@@ -249,10 +255,12 @@ namespace Mediana.Codecs.H264
             pending = null;
         }
 
-        private void ReleaseReference()
+        private void ReleasePictures()
         {
             reference?.Dispose();
             reference = null;
+            workspace?.Dispose();
+            workspace = null;
         }
 
         private void Enter()
@@ -270,7 +278,7 @@ namespace Mediana.Codecs.H264
             {
                 disposed = true;
                 ReleasePending();
-                ReleaseReference();
+                ReleasePictures();
             }
             finally
             {
