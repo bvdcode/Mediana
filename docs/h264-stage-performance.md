@@ -157,3 +157,51 @@ execution, strict CLI Native AOT publication, license headers and whitespace
 checks passed. The zero-macroblock regression covers all 52 QPs and four picture
 corners, including surrounding pixels, counts, modes and borrowed input.
 Existing reference fixtures were unchanged.
+
+
+## Shared deblocking classifications
+
+Deblocking now computes each active luma boundary classification once per
+macroblock and shares it with the corresponding chroma edges, as specified by
+H.264 clause 8.7.2. A 32-byte stack workspace covers both directions. Pixel
+filtering order, slice boundary controls, 8x8 transform edge selection, and
+independent Cb/Cr quantizers are preserved. Zero-strength edges and zero
+alpha/beta thresholds skip pixel filtering.
+
+The baseline is `f6c5ba0`, including known-zero reconstruction. Both complete
+paired measurements use frozen Native AOT binaries and the same one-core
+methodology. The second pair reverses implementation order.
+
+| Execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Before then after | 45.511 | 37.515 | 17.57% | 47.476 | 43.797 | 86.53 | 102.09 |
+| After then before | 43.403 | 38.098 | 12.22% | 46.615 | 43.505 | 81.07 | 90.61 |
+
+All four outputs contain the same 1,441 pictures and exactly match the independent
+FFmpeg raw output. Every process reaches EOF with zero retained media storage.
+CPU improves in both execution orders, but peak RSS increases in both pairs.
+Cumulative managed allocations remain about 5.37 GB per process; the first pair
+reports 344 versus 319 generation-2 collections. These observations do not
+establish the cause of the higher RSS. There is no claim of a memory reduction.
+
+Three fresh optimized FFmpeg decode processes used the same input and CPU
+affinity after the native pairs. Each produced identical raw samples.
+
+| FFmpeg observation | CPU, s | Elapsed, s | RSS, MiB |
+| --- | ---: | ---: | ---: |
+| 1 | 4.241 | 4.761 | 73.66 |
+| 2 | 3.138 | 3.139 | 64.65 |
+| 3 | 3.433 | 5.212 | 74.66 |
+
+The ratio of the two Mediana and three FFmpeg CPU medians is 11.01x.
+These small samples on a shared host show that the CPU gap remains large;
+they do not establish a broad performance ranking or a new complete-film HLS
+result. The changed filter is a decoder path, so no new encoder throughput
+claim is made for this change.
+
+Validation: Release build, all 2,928 managed tests, 38 focused checks with
+hardware intrinsics disabled, all 30 package checks, strict package-only
+Native AOT execution, CLI and measurement-consumer Native AOT builds, license
+headers and formatting passed. New chroma tests cover both edge directions
+and independent quantizer offsets; they also pass on the preceding filter.
+All existing independent reference fixtures remain unchanged.

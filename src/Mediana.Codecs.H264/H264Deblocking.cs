@@ -42,24 +42,51 @@ namespace Mediana.Codecs.H264
                 return;
             }
             int columns = header.Sequence.WidthInMbs;
+            Span<byte> strengths = stackalloc byte[32];
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                int lumaX = address % columns * 16;
+                int lumaY = address / columns * 16;
+                FillStrengths(picture, header, address, lumaX, lumaY, true, references, referencesL1, strengths[..16]);
+                FillStrengths(picture, header, address, lumaX, lumaY, false, references, referencesL1, strengths[16..]);
                 for (int plane = 0; plane < 3; plane++)
                 {
-                    int size = plane == 0 ? 16 : 8;
-                    int x = (address % columns) * size;
-                    int y = (address / columns) * size;
-                    ApplyEdges(picture, header, plane, address, x, y, size, true, references, referencesL1);
-                    ApplyEdges(picture, header, plane, address, x, y, size, false, references, referencesL1);
+                    int scale = plane == 0 ? 1 : 2;
+                    int size = 16 / scale;
+                    ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / scale, size, true, strengths[..16]);
+                    ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / scale, size, false, strengths[16..]);
+                }
+            }
+        }
+
+        private static void FillStrengths(H264Picture picture, H264SliceHeader header, int address, int x, int y,
+            bool vertical, IReadOnlyList<H264ReferencePicture?>? references, IReadOnlyList<H264ReferencePicture?>? referencesL1,
+            Span<byte> strengths)
+        {
+            strengths.Clear();
+            int edgeStep = picture.Transforms8x8[address] == 0 ? 4 : 8;
+            int firstEdge = (vertical ? x == 0 : y == 0) ||
+                (header.DeblockingIdc == 2 && address - (vertical ? 1 : header.Sequence.WidthInMbs) < header.FirstMacroblock)
+                ? edgeStep : 0;
+            for (int edge = firstEdge; edge < 16; edge += edgeStep)
+            {
+                for (int segment = 0; segment < 4; segment++)
+                {
+                    int lumaX = x + (vertical ? edge : segment * 4);
+                    int lumaY = y + (vertical ? segment * 4 : edge);
+                    strengths[edge + segment] = (byte)BoundaryStrength(picture, lumaX, lumaY, vertical, edge == 0, references, referencesL1);
                 }
             }
         }
 
         private static void ApplyEdges(H264Picture picture, H264SliceHeader header, int plane,
-            int address, int x, int y, int size, bool vertical, IReadOnlyList<H264ReferencePicture?>? references,
-            IReadOnlyList<H264ReferencePicture?>? referencesL1)
+            int address, int x, int y, int size, bool vertical, ReadOnlySpan<byte> strengths)
         {
+            if (!strengths.ContainsAnyExcept((byte)0))
+            {
+                return;
+            }
             int stride = picture.Stride(plane);
             int step = vertical ? 1 : stride;
             int along = vertical ? stride : 1;
@@ -69,12 +96,8 @@ namespace Mediana.Codecs.H264
             int currentQp = Qp(picture, header.Picture, plane, address);
             for (int edge = 0; edge < size; edge += 4)
             {
-                if (plane == 0 && edge % 8 != 0 && picture.Transforms8x8[address] != 0)
-                {
-                    continue;
-                }
-                if (edge == 0 && ((vertical ? x == 0 : y == 0) ||
-                    (header.DeblockingIdc == 2 && address - (vertical ? 1 : header.Sequence.WidthInMbs) < header.FirstMacroblock)))
+                ReadOnlySpan<byte> edgeStrengths = strengths.Slice(edge * scale, 4);
+                if (!edgeStrengths.ContainsAnyExcept((byte)0))
                 {
                     continue;
                 }
@@ -83,12 +106,16 @@ namespace Mediana.Codecs.H264
                 int averageQp = (previousQp + currentQp + 1) >> 1;
                 int indexA = Math.Clamp(averageQp + header.AlphaOffset, 0, 51);
                 int indexB = Math.Clamp(averageQp + header.BetaOffset, 0, 51);
-                int start = y * stride + x + edge * step;
-                for (int sample = 0; sample < size; sample += segmentLength)
+                int alpha = Alpha[indexA];
+                int beta = Beta[indexB];
+                if (alpha == 0 || beta == 0)
                 {
-                    int lumaX = (x + (vertical ? edge : sample)) * scale;
-                    int lumaY = (y + (vertical ? sample : edge)) * scale;
-                    int strength = BoundaryStrength(picture, lumaX, lumaY, vertical, edge == 0, references, referencesL1);
+                    continue;
+                }
+                int start = y * stride + x + edge * step;
+                for (int segment = 0; segment < 4; segment++)
+                {
+                    int strength = edgeStrengths[segment];
                     int tc = strength switch
                     {
                         0 or 4 => 0,
@@ -101,7 +128,7 @@ namespace Mediana.Codecs.H264
                     {
                         for (int offset = 0; offset < segmentLength; offset++)
                         {
-                            Filter(pixels, start + (sample + offset) * along, step, Alpha[indexA], Beta[indexB],
+                            Filter(pixels, start + (segment * segmentLength + offset) * along, step, alpha, beta,
                                 tc, strength == 4, plane != 0);
                         }
                     }
