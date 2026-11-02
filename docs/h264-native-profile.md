@@ -140,3 +140,8 @@ complete performance gap.
 Subsequent [transform-domain search trials](h264-transform-search.md) failed
 quality checks; the complete YUV trial also cost more CPU. A separate complete
 work census found no picture or macroblock retries on this HD input.
+
+The subsequent [native interpolation change](h264-native-interpolation.md)
+reduces complete encoding CPU by 5.04% with identical encoded bytes. It removes
+expanded constant multiplications and short-vector stack transfers; the wider
+performance gap remains open.
