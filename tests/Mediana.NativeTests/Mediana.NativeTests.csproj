@@ -185,6 +185,8 @@
     <Compile Include="../Shared/AudioSignalSource.cs" Link="AudioSignalSource.cs" />
     <Compile Include="../Shared/AudioWindowTestInput.cs" Link="AudioWindowTestInput.cs" />
     <Compile Include="../Shared/VideoWindowTestInput.cs" Link="VideoWindowTestInput.cs" />
+    <Compile Include="../Shared/PresentationTimingTestInput.cs" Link="PresentationTimingTestInput.cs" />
+    <Compile Include="../Mediana.Tests/TrackingRandomAccessSource.cs" Link="TrackingRandomAccessSource.cs" />
     <Compile Include="../Shared/RealVideoWindowTestInput.cs" Link="RealVideoWindowTestInput.cs" />
     <Compile Include="../Shared/ObservedWriteStream.cs" Link="ObservedWriteStream.cs" />
     <Compile Include="../Shared/PcmStreamOutputTestInput.cs" Link="PcmStreamOutputTestInput.cs" />

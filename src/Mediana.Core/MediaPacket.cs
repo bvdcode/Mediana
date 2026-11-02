@@ -35,6 +35,10 @@ namespace Mediana.Core
         public bool? IsKeyFrame { get; }
         public ReadOnlyMemory<byte> Data => buffer.Memory;
         public MediaPacket Retain() => new(StreamIndex, buffer, PresentationTime, DecodeTime, Duration, IsKeyFrame);
+        /// <summary>Retains the same immutable payload and timestamps with an explicit duration, including unknown.
+        /// The original packet remains independently owned and unchanged.</summary>
+        public MediaPacket RetainWithDuration(MediaDuration? duration) =>
+            new(StreamIndex, buffer, PresentationTime, DecodeTime, duration, IsKeyFrame);
         public void Dispose() => buffer.Dispose();
     }
 }

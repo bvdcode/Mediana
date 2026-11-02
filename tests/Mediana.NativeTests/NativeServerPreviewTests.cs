@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Tests;
+using Mediana.Containers.Mp4;
 
 namespace Mediana.NativeTests
 {
@@ -9,6 +10,17 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            PresentationTimingTestInput.VerifyRetainedPacket();
+            await PresentationTimingTestInput.VerifyLimitsAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
+            await PresentationTimingTestInput.VerifySignedAndUnknownAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
+            foreach (string name in new[] { "frame-rate-cfr.mp4", "frame-rate-vfr.mp4", "frame-rate-edited.mp4", "preview-hd.mp4" })
+            {
+                foreach (Mp4TimestampMode mode in new[] { Mp4TimestampMode.Media, Mp4TimestampMode.LinearMovie })
+                {
+                    await PresentationTimingTestInput.VerifyReferenceAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), name, mode);
+                }
+            }
+            Console.WriteLine("PASS presentation timing: every independent interval, original packet durations, bounded lazy storage, signed offsets and unknown duplicates.");
             await VideoWindowTestInput.VerifySelectionAsync();
             await VideoWindowTestInput.VerifyFailureAsync();
             await VideoWindowTestInput.VerifyCancellationAsync();

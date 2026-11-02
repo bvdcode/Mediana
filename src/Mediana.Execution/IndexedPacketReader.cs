@@ -11,12 +11,14 @@ namespace Mediana.Execution
     internal class IndexedPacketReader : IContainerReader
     {
         private readonly IIndexedContainerReader source;
+        private readonly IIndexedPresentationTimingReader? presentationTiming;
         private readonly int streamIndex;
         private long position;
 
         public IndexedPacketReader(IIndexedContainerReader source, int streamIndex)
         {
             this.source = source;
+            presentationTiming = source as IIndexedPresentationTimingReader;
             this.streamIndex = streamIndex;
             Count = source.GetPacketCount(streamIndex);
             if (Count < 0)
@@ -32,8 +34,19 @@ namespace Mediana.Execution
         public ContainerSeekPoint? FindSeekPoint(MediaTimestamp target, long beforePacketIndex, CancellationToken cancellationToken) =>
             source.FindSeekPoint(streamIndex, target, beforePacketIndex, cancellationToken);
 
-        public ValueTask<MediaPacket> ReadPacketAtAsync(long packetIndex, CancellationToken cancellationToken) =>
-            source.ReadPacketAtAsync(streamIndex, packetIndex, cancellationToken);
+        public async ValueTask<MediaPacket> ReadPacketAtAsync(long packetIndex, CancellationToken cancellationToken)
+        {
+            MediaDuration? duration = presentationTiming?.GetPresentationDuration(streamIndex, packetIndex, cancellationToken);
+            MediaPacket packet = await source.ReadPacketAtAsync(streamIndex, packetIndex, cancellationToken).ConfigureAwait(false);
+            if (presentationTiming is null || packet.Duration == duration)
+            {
+                return packet;
+            }
+            using (packet)
+            {
+                return packet.RetainWithDuration(duration);
+            }
+        }
 
         public void Reposition(long nextPacketIndex)
         {

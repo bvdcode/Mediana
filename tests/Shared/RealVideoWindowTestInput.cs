@@ -49,6 +49,7 @@ namespace Mediana.Tests
                     {
                         using VideoFrame? frame = await window.ReadFrameAsync();
                         Require(frame is not null && frame.Timestamp == new MediaTimestamp(picture.GetProperty("movie_pts").GetInt64(), timeBase));
+                        Require(frame!.Duration == new MediaDuration(picture.GetProperty("presentation_duration").GetInt64(), timeBase));
                         Require(frame!.Format.Width == file.GetProperty("width").GetInt32() && frame.Format.Height == file.GetProperty("height").GetInt32());
                         VerifyPixels(frame, picture.GetProperty("sha256").GetString()!);
                         retained?.Dispose();
