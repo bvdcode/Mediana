@@ -520,6 +520,14 @@ returns EOF without reading. Original timestamps remain continuous unless the
 caller supplies an explicit output origin. It stops reading at the selected end;
 the source remains borrowed and must still be disposed by its owner.
 
+`AudioTrimmer.CreateTimeWindow(readFrame, start, end, allocator)` selects sample
+instants in a half-open presentation-time interval. It uses exact rational clocks,
+keeps the original sample grid and timestamps, and selects the available PCM
+without adding silence. Apply container edits before selecting movie time. Known,
+continuous input timestamps are required; seeking and codec restart state belong
+to the input session. See [audio/video intervals](docs/audiovisual-windows.md) for
+a complete H.264/AAC-to-MPEG-TS example.
+
 `AudioFrame.RetainWithTimestamp(timestamp)` retains immutable PCM with an explicit
 known or unknown timestamp. Sample count, duration and the original frame remain
 unchanged. Audio trimming uses this operation when a complete block needs a new

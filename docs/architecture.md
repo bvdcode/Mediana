@@ -333,6 +333,20 @@ and drains the encoder after `CompleteInput`. Completing that incremental pipeli
 does not complete the writer; the caller finalizes it after all streams finish.
 The complete `MediaOperations` methods finalize the writer on success.
 
+`MediaEncodeSource<TFrame>` exposes encoded packets through
+`IEncodedPacketSource`, borrowing its encoder and owning each callback result.
+It drains delayed output after input completion without retaining a packet queue.
+Disposal leaves the borrowed encoder alive; failure or cancellation ends use of
+the source. Operations on one source must not overlap.
+
+`MediaPacketMerge.WriteAsync` combines these sources by exact decode time,
+holding at most one owned packet per stream. Stream indices must be unique and
+each source must provide known, strictly increasing DTS. Equal times use source
+order. Successful EOF finalizes the writer; failure releases pending packets
+without finalizing it. Sources and writer remain borrowed. This separates codec
+draining from container ordering without a format-specific audio/video scheduler.
+See the [presentation-interval example and checks](audiovisual-windows.md).
+
 Operations borrow readers, encoders and writers. A frame-read callback transfers
 ownership of each returned frame to the operation. Output packets are disposed
 after their asynchronous write completes. On failure the caller disposes borrowed
@@ -432,6 +446,14 @@ exist. `CreateWindow` selects the intersection of a half-open sample window and
 the available decoded PCM. Natural EOF may end that selection early; decoder,
 source and timing errors still fail. Neither operation inserts samples.
 Container edit durations describe selection windows, not guaranteed PCM counts.
+
+`CreateTimeWindow` selects the same half-open window in presentation time.
+Each boundary maps to the first sample instant at or after it, using exact rational
+arithmetic against the original input origin. It preserves that sample grid and
+the selected timestamps instead of rebasing audio to the requested boundary.
+Natural EOF truncates the available selection. Unknown or discontinuous input
+timestamps fail, and empty intervals do not read the source. Container edits must
+already have established the intended presentation timeline.
 
 `PcmStreamWriter` writes interleaved frames in an explicit little- or big-endian
 byte order. Matching byte order writes the frame memory directly; swapping uses
