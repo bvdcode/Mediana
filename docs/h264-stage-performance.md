@@ -1,16 +1,20 @@
-The latest [edge-filtering comparison](h264-edge-filtering.md) uses
-24.706 CPU seconds for complete HD decoding versus 4.031 for optimized
-FFmpeg, with identical raw samples (6.13x). These are medians of two complete
-60.041667-second observations per implementation. Paired CPU reductions for this
-change are 8.64–10.38%; elapsed and RSS observations are mixed. The preceding
-[bit-reading comparison](h264-bit-reading.md) measures a separate change.
+The latest [direct-region comparison](h264-direct-prediction.md) uses
+23.105 CPU seconds for complete HD decoding versus 4.243 for optimized
+FFmpeg, with identical raw samples (5.45x). The paired median decoder CPU
+reduction is 16.18% over four complete 60.041667-second observations per version;
+RSS is essentially unchanged. The
+[edge-filtering](h264-edge-filtering.md) and
+[bit-reading](h264-bit-reading.md) comparisons measure separate preceding changes.
 The [block interpolation comparison](h264-block-interpolation.md) measures raw
 encoding at 45.955 versus 14.218 CPU seconds (3.23x); the external reference
 remains smaller with higher PSNR. The stages are measured separately.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
-uses 992.938 CPU seconds versus 197.567 for FFmpeg, a 5.03x gap,
+uses 962.836 CPU seconds versus 274.925 for FFmpeg, a 3.50x gap,
 with all 406 published files identical to their independently verified references.
-Those full-film measurements precede the edge-filtering change.
+The latest full-film measurements include edge filtering, shared decoded pixels
+and direct regions. Mediana CPU is 3.03% lower than its preceding full-film
+observation; FFmpeg CPU is 39.16% higher. These single observations do not
+isolate an optimization or establish equal-quality throughput.
 
 The complete 60.041667-second HD input was measured separately through video
 decoding and video encoding. Separating the stages identifies where the current

@@ -14,7 +14,7 @@ Both operations apply the [normalized ITU stereo matrix](audio-downmix.md),
 omitting LFE, before encoding the selected audio.
 
 The latest measurement uses a Native AOT consumer whose product sources
-match `5d2882e`. Earlier measurements used `241476e` and `67fc7b7`.
+match `2391693`. Earlier measurements used `5d2882e`, `241476e` and `67fc7b7`.
 All comparisons use FFmpeg 6.1.1-3ubuntu5 with libx264 on Linux x64,
 an Intel Core i5-12450H and .NET 10.0.13. The two measured processes ran
 sequentially, restricted to logical CPU 2. Mediana used `DOTNET_PROCESSOR_COUNT=1`; FFmpeg used one input decoder
@@ -44,10 +44,10 @@ bytes include all 203 files of each complete ladder.
 
 | Implementation | CPU | Elapsed | Peak RSS | Published bytes | Processing speed |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Mediana Native AOT | 992.938 s | 1022.200 s | 120.59 MiB | 1,172,197,543 | 0.584x |
-| FFmpeg / libx264 veryfast | 197.567 s | 199.290 s | 186.23 MiB | 1,136,231,473 | 2.993x |
+| Mediana Native AOT | 962.836 s | 1005.875 s | 119.66 MiB | 1,172,197,543 | 0.593x |
+| FFmpeg / libx264 veryfast | 274.925 s | 285.032 s | 200.47 MiB | 1,136,231,473 | 2.093x |
 
-Mediana used 5.03 times the CPU, 35.25% less peak RSS and 3.17% more output
+Mediana used 3.50 times the CPU, 40.31% less peak RSS and 3.17% more output
 bytes on this operation. Processing speed divides the original video duration
 by elapsed time and includes both variants and audio. This does not establish
 equal-quality throughput or general performance across other inputs.
@@ -59,15 +59,21 @@ The complete Mediana observations retain identical output:
 | `67fc7b7` | 1683.365 | 1798.004 | 139.34 MiB |
 | `241476e` | 1205.322 | 1259.159 | 140.03 MiB |
 | `5d2882e` | 992.938 | 1022.200 | 120.59 MiB |
+| `2391693` | 962.836 | 1005.875 | 119.66 MiB |
 
-The latest observation uses 17.62% less CPU and
-18.82% less elapsed time than `241476e`, and
-41.01% less CPU than `67fc7b7`. These full-operation
-observations include accumulated decoder and encoder changes; they do not
-isolate the contribution of any one change. The earlier FFmpeg observations
-were 186.728 and 194.151 CPU seconds, compared with 197.567 now.
-Variation in the external baseline is not a Mediana optimization. The earlier
-CPU ratios were 9.02x and 6.21x; a substantial performance gap remains.
+The latest observation uses 3.03% less CPU and 1.60% less elapsed time than
+`5d2882e`. These single full-operation observations include accumulated changes
+and variation on a shared host; they do not isolate the contribution of any
+one change. In particular, the paired complete-minute direct-region decoder
+improvement does not establish the same improvement for the complete HLS
+operation, which includes two video and two audio encoders.
+
+Earlier FFmpeg observations used 186.728, 194.151 and 197.567 CPU seconds,
+compared with 274.925 in this batch. The latest external observation is 39.16%
+higher than the preceding one. Its cause was not established by these
+measurements. The change from the preceding 5.03x CPU ratio to 3.50x therefore
+does not establish a corresponding Mediana speedup. A substantial CPU gap and
+the video quality/efficiency difference below remain open.
 
 PSNR uses every visible decoded Y, U and V sample, weighted by sample count.
 The 720p reference is the independently decoded original; 360p uses an

@@ -62,8 +62,15 @@ output and filter thread and the same CPU affinity. Every output byte matches.
 Their median CPU time is 4.243 seconds versus 23.105 for the public Mediana
 consumer, a 5.45x difference in this batch. The paired before/after observations
 above establish the improvement; the different FFmpeg time in earlier batches
-is not part of that improvement. Complete-film encoding and HLS throughput have
-not been remeasured after this change.
+is not part of that improvement.
+
+The subsequent [complete-film HLS measurement](hls-hd-encoding.md) includes this
+implementation: 962.836 seconds CPU versus 274.925 for FFmpeg on the complete
+596.458333-second audiovisual ladder. All 406 output files remain identical to
+the independently verified references. Mediana CPU is 3.03% lower than the
+preceding full-film observation; the external baseline is 39.16% higher. This
+single full-operation comparison does not isolate the direct-region change or
+establish the same percentage improvement as the paired decoder measurement.
 
 ## Verified contracts
 
