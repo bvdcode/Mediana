@@ -121,14 +121,15 @@ does not separate their contributions or establish which algorithm change
 would close the gap. The previous rejected search and reconstruction trials
 remain applicable; no search, rate, quality or buffer policy changes here.
 
-The last [complete-film HLS observation](hls-hd-encoding.md) remains 962.836
-versus 274.925 CPU seconds, a 3.50x gap. It precedes the latest interpolation
-and CAVLC changes. Minute-stage observations do not update that complete-film
-result.
+The subsequent [complete-film HLS observation](hls-hd-encoding.md) uses 794.189
+versus 195.026 CPU seconds, a 4.07x gap. It includes the later interpolation,
+CAVLC and paired-residual changes with the default instruction set. Its 406
+output files remain identical to the complete independently verified references;
+it does not isolate the effect of an instruction-set choice.
 
-Product and fixture sources are unchanged from the passing 3,075 managed,
-709 software H.264 and 30-package checks and the complete strict Native AOT
+For the instruction-set experiment, product and fixture sources were unchanged
+from the passing 3,075 managed, 709 software H.264 and 30-package checks and the complete strict Native AOT
 package-consumer validation recorded with
 [direct CAVLC encoding](h264-cavlc-encoding.md). Both diagnostic configurations
-publish successfully with strict Native AOT warnings. The final Release build
-has zero warnings and errors; the root license-header check requires no updates.
+published successfully with strict Native AOT warnings. Its final Release build
+had zero warnings and errors; the root license-header check required no updates.

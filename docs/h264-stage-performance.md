@@ -41,12 +41,13 @@ Subsequent [paired residual processing](h264-paired-residuals.md) reduces
 complete encoding CPU by 6.33% with identical output in its separate comparison.
 These separate measurements do not update complete-film throughput.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
-uses 962.836 CPU seconds versus 274.925 for FFmpeg, a 3.50x gap,
+uses 794.189 CPU seconds versus 195.026 for FFmpeg, a 4.07x gap,
 with all 406 published files identical to their independently verified references.
-The latest full-film measurements include edge filtering, shared decoded pixels
-and direct regions. Mediana CPU is 3.03% lower than its preceding full-film
-observation; FFmpeg CPU is 39.16% higher. These single observations do not
-isolate an optimization or establish equal-quality throughput.
+The latest full-film measurements include the subsequent Native AOT, interpolation,
+CAVLC and paired-residual changes. Mediana CPU is 17.52% lower than its preceding
+full-film observation, while its peak RSS is 26.88% higher; FFmpeg CPU is 29.06%
+lower. These single observations do not isolate an optimization or establish
+equal-quality throughput.
 
 The complete 60.041667-second HD input was measured separately through video
 decoding and video encoding. Separating the stages identifies where the current
