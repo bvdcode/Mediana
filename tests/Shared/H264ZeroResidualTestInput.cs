@@ -15,7 +15,7 @@ namespace Mediana.Tests
             {
                 foreach ((int x, int y) in new[] { (0, 0), (16, 0), (0, 16), (16, 16) })
                 {
-                    using H264Picture picture = new(new() { WidthInMbs = 2, HeightInMapUnits = 2, Width = 32, Height = 32 }, allocator, H264SliceKind.P);
+                    using H264Picture picture = new(new() { WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true, Width = 32, Height = 32 }, allocator, H264SliceKind.P);
                     byte[][] expected = new byte[3][];
                     byte[][] counts = new byte[3][];
                     for (int plane = 0; plane < 3; plane++)
