@@ -81,14 +81,57 @@ arithmetic and check real edited AAC against independent PCM references. Indexed
 and sequential selection both cover missing edits, leading delays, fractional
 boundaries, empty edits and ranges that extend beyond actual decoder EOF.
 
+## Independently encoded interval boundaries
+
+A further Linux x64 Native AOT check uses a real 1280×720, 24 fps movie with
+48 kHz, 5.1 AAC input. It encodes 0–6 seconds and 6–12 seconds independently,
+then encodes 0–12 seconds as one interval. Every output is decoded completely
+by FFmpeg, and every output packet timestamp is inspected.
+
+| Interval | Pictures | Selected PCM samples per channel | Encoded AAC packets | Priming samples | Padding samples |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0–6 s | 144 | 288,000 | 283 | 1,024 | 768 |
+| 6–12 s | 144 | 288,000 | 283 | 1,024 | 768 |
+| 0–12 s | 288 | 576,000 | 564 | 1,024 | 512 |
+
+The independently encoded files decode to 579,584 samples per channel in total;
+the continuous interval decodes to 577,536. Raw decoding retains each encoder's
+priming and padding. The independent files therefore contain 2,048 more samples
+per channel than the continuous file, despite selecting the same 576,000 input
+samples. The sample reports zero retained media buffer bytes after each run.
+
+Every AAC packet within each file advances by 1,920 ticks at 90 kHz. Across the
+independent boundary, however, the next file's first AAC DTS precedes the
+previous file's last DTS by 1,440 ticks. The coded audio extents overlap by
+3,360 ticks, or 37.333 milliseconds. These files cannot be treated as consecutive
+parts of one continuous AAC packet sequence merely by concatenating them.
+
+A separate control runs FFmpeg with the server-style independent seek, duration,
+timestamp offset, H.264 veryfast/CRF 25, and stereo 128 kbit/s AAC options. It
+also produces 283, 283 and 564 AAC packets for the same intervals. Its timestamp
+handling differs, and its independently encoded boundary also overlaps. This
+control does not establish seamless playback for either implementation, nor does
+it compare perceptual AAC quality or encoding throughput.
+
+For continuous HLS audio, the existing full-file HLS path retains one AAC encoder
+per audio bitrate across segment boundaries and partitions complete coded access
+units. Independent video requests need an audio preparation strategy that
+preserves that continuous encoded timeline. Repeated AAC encoder initialization
+is not equivalent to partitioning a continuous stream.
+
+[RFC 8216, section 6.2.1](https://www.rfc-editor.org/rfc/rfc8216.html#section-6.2.1)
+describes division of continuous encoded media at packet and key-frame boundaries.
+The [discontinuity tag](https://www.rfc-editor.org/rfc/rfc8216.html#section-4.3.2.3)
+declares changes in timestamp sequence or encoding sequence; it does not specify
+sample-level AAC priming or padding removal. Apple describes those distinct
+sample counts in its
+[AAC gapless playback guidance](https://developer.apple.com/library/archive/qa/qa1636/_index.html).
+
 ## Remaining work
 
-Separately encoded AAC intervals each carry their own priming and padding.
-Concatenating the resulting transport files is not proven to produce gapless
-audio. A streaming composition must explicitly account for those samples and
-validate the joins; exact input selection alone does not establish that result.
-Apple describes the priming/remainder distinction in
-[AAC gapless playback guidance](https://developer.apple.com/library/archive/qa/qa1636/_index.html).
+Gapless joins of independently requested encoded intervals require a continuous
+audio strategy and playback validation. Exact input selection and independently
+decodable transport files alone do not establish that result.
 
 This interval check does not measure throughput or resolve the outstanding
 H.264 encoding CPU and compression-efficiency gaps.
