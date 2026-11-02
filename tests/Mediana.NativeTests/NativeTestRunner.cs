@@ -25,6 +25,7 @@ namespace Mediana.NativeTests
             }
             AudioDownmixTestInput.VerifyBalance();
             Console.WriteLine("PASS explicit audio downmix: shuffled speakers, mono/stereo coefficients, correlated peaks, timing and released storage.");
+            H264ZeroResidualTestInput.VerifyMacroblocks();
             H264DcResidualTestInput.VerifyDcOnly();
             H264DcResidualTestInput.VerifyAcBlocks();
             H264DcResidualTestInput.VerifyOverlappingStorage();

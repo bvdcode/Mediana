@@ -58,6 +58,7 @@
     <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
     <Compile Include="../Shared/EbmlValueTestInput.cs" Link="EbmlValueTestInput.cs" />
     <Compile Include="../Shared/H264DcResidualTestInput.cs" Link="H264DcResidualTestInput.cs" />
+    <Compile Include="../Shared/H264ZeroResidualTestInput.cs" Link="H264ZeroResidualTestInput.cs" />
     <Compile Include="../Shared/CodecProfileTestInput.cs" Link="CodecProfileTestInput.cs" />
     <Compile Include="../Shared/FontGlyphTestInput.cs" Link="FontGlyphTestInput.cs" />
     <Compile Include="../Shared/PngCoverTestInput.cs" Link="PngCoverTestInput.cs" />
