@@ -205,3 +205,69 @@ Native AOT execution, CLI and measurement-consumer Native AOT builds, license
 headers and formatting passed. New chroma tests cover both edge directions
 and independent quantizer offsets; they also pass on the preceding filter.
 All existing independent reference fixtures remain unchanged.
+
+## Direct prediction candidate
+
+A candidate changed prediction kernels to bounded strided output views and wrote
+inter prediction directly into picture storage. It removed the partition-to-
+macroblock and macroblock-to-residual prediction copies. It also changed shared
+kernel calls used by encoding. The candidate was rejected: complete decoding did
+not improve, and encoding used about 8% more CPU in both execution orders.
+Production retains the preceding implementation at `a236473`.
+
+The same frozen Native AOT consumers, complete 1,441-picture input, raw encoding
+input and one-core settings were used. The second pair reverses the order of each
+stage. No owned build, validation or media workload overlapped the timed processes.
+
+| Stage and execution order | Before CPU, s | Candidate CPU, s | CPU increase | Before elapsed, s | Candidate elapsed, s | Before RSS, MiB | Candidate RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Decode, before then candidate | 36.115 | 36.218 | 0.28% | 37.605 | 39.067 | 85.24 | 87.64 |
+| Decode, candidate then before | 35.937 | 37.052 | 3.10% | 40.950 | 39.946 | 104.20 | 86.14 |
+| Encode, candidate then before | 86.190 | 93.081 | 7.99% | 90.981 | 101.041 | 50.21 | 50.86 |
+| Encode, before then candidate | 80.778 | 87.184 | 7.93% | 87.726 | 90.520 | 51.57 | 49.35 |
+
+All eight native outputs are byte-identical to their preceding independent
+references, reach EOF and release media storage. The candidate passed 2,949
+managed tests, 688 H.264 tests with hardware intrinsics disabled, all 30 package
+checks, strict Native AOT consumers and license checks. Correctness did not
+establish a performance benefit. The measurements compare the whole candidate;
+they do not isolate the cost of its view representation from its data flow changes.
+
+A fresh optimized FFmpeg decode after these native processes used 3.249 CPU
+seconds, 3.252 elapsed seconds and 64.55 MiB peak RSS, producing identical raw
+samples. The two retained-implementation decode observations use 11.06-11.12
+times as much CPU as this external observation. This remains a full-minute
+decode comparison, not a new complete-film transcode result.
+
+## Decoder kernel profile after work elimination
+
+A separate instrumented Native AOT build of `a236473` decoded the same complete
+input and produced identical raw samples. It used 39.590 CPU seconds and 40.961
+elapsed seconds. Selected method timings include instrumentation and scheduling;
+nested rows overlap and must not be summed or treated as CPU percentages.
+
+| Instrumented operation | Calls | Elapsed seconds |
+| --- | ---: | ---: |
+| Luma prediction | 18,907,909 | 6.820 |
+| Fractional luma interpolation, within luma prediction | 7,726,869 | 5.681 |
+| Chroma prediction | 37,815,818 | 4.070 |
+| Fractional chroma interpolation, within chroma prediction | 16,813,084 | 2.116 |
+| Border copying, within integer and fractional prediction | 56,723,727 | 1.923 |
+| Deblocking | 11,528 | 9.282 |
+| Boundary classification, within deblocking | 3,888,000 | 5.903 |
+| Pixel filtering, within deblocking | 11,664,000 | 3.093 |
+| Inter luma residual reading and reconstruction | 4,753,310 | 4.353 |
+| Chroma residual reading and reconstruction | 5,187,600 | 2.294 |
+| Inverse 4x4 transform, within reconstruction | 23,468,260 | 1.619 |
+
+Boundary classification includes repeated motion/reference metadata resolution.
+For multislice pictures, reference identity resolution searches the slice list
+for individual block comparisons. The profile supports investigating preparation
+of those references and metadata at macroblock or slice granularity. It does not
+establish a measured gain from that change.
+
+General luma interpolation still selects its phase inside the sample loop.
+FFmpeg uses [specialized fractional-pixel kernels](https://ffmpeg.org/doxygen/6.1/h264qpel__template_8c_source.html)
+and separates [boundary classification and pixel filtering](https://ffmpeg.org/doxygen/6.1/h264__loopfilter_8c_source.html).
+The remaining work concerns both data preparation and the complete compute path;
+adding vector arithmetic to isolated helpers has not closed the measured gap.
