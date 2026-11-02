@@ -22,6 +22,7 @@ namespace Mediana.NativeTests
                 await AudioTimeWindowTestInput.VerifyAsync(layout, 48000, new(-7, new(1, 48000)));
             }
             await AudioWindowTestInput.VerifySourceFailureAsync();
+            await PacketMergeTestInput.VerifyAsync();
             await AacEditedAudioTestInput.VerifyTimeWindowAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-mono-48");
             await AacEditedAudioTestInput.VerifyTimeWindowAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), "lc-stereo-44");
             Console.WriteLine("PASS audio windows: available sample intersection, exact clocks, source failures and storage ownership.");

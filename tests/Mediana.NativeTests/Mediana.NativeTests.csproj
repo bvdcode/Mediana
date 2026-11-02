@@ -186,6 +186,8 @@
     <Compile Include="../Shared/AudioWindowTestInput.cs" Link="AudioWindowTestInput.cs" />
     <Compile Include="../Shared/AudioFrameTimingTestInput.cs" Link="AudioFrameTimingTestInput.cs" />
     <Compile Include="../Shared/AudioTimeWindowTestInput.cs" Link="AudioTimeWindowTestInput.cs" />
+    <Compile Include="../Shared/TimedPacketSource.cs" Link="TimedPacketSource.cs" />
+    <Compile Include="../Shared/PacketMergeTestInput.cs" Link="PacketMergeTestInput.cs" />
     <Compile Include="../Shared/VideoWindowTestInput.cs" Link="VideoWindowTestInput.cs" />
     <Compile Include="../Shared/PresentationTimingTestInput.cs" Link="PresentationTimingTestInput.cs" />
     <Compile Include="../Shared/H264FramePublicationTestInput.cs" Link="H264FramePublicationTestInput.cs" />
