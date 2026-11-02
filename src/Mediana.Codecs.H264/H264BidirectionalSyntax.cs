@@ -9,6 +9,11 @@ namespace Mediana.Codecs.H264
             H264BidirectionalReferences references, H264PictureOrder order, int x, int y, int type, scoped Span<byte> prediction)
             where TReader : IH264PredictionReader
         {
+            if (type == 0)
+            {
+                H264DirectPrediction.PredictMacroblock(target, header, references, order, x, y, prediction);
+                return header.Sequence.Direct8x8Inference;
+            }
             int count = H264BPartitionLayout.Count(type);
             Span<H264BPartition> partitions = stackalloc H264BPartition[count];
             bool noSmallPartitions = true;

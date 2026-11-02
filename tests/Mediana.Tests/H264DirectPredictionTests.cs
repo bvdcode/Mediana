@@ -8,6 +8,9 @@ namespace Mediana.Tests
 {
     public class H264DirectPredictionTests
     {
+        [Fact]
+        public void DirectRegionsPreserveEveryPixelAndBothMotionLists() => H264DirectRegionTestInput.Verify();
+
         [Theory]
         [InlineData(false, false)]
         [InlineData(false, true)]

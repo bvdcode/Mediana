@@ -166,6 +166,7 @@
     <Compile Include="../Shared/VideoWindowTestInput.cs" Link="VideoWindowTestInput.cs" />
     <Compile Include="../Shared/PresentationTimingTestInput.cs" Link="PresentationTimingTestInput.cs" />
     <Compile Include="../Shared/H264FramePublicationTestInput.cs" Link="H264FramePublicationTestInput.cs" />
+    <Compile Include="../Shared/H264DirectRegionTestInput.cs" Link="H264DirectRegionTestInput.cs" />
     <Compile Include="../Shared/RealVideoWindowTestInput.cs" Link="RealVideoWindowTestInput.cs" />
     <Compile Include="../Shared/ObservedWriteStream.cs" Link="ObservedWriteStream.cs" />
     <Compile Include="../Shared/PcmStreamOutputTestInput.cs" Link="PcmStreamOutputTestInput.cs" />

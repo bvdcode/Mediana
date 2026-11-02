@@ -10,6 +10,8 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            H264DirectRegionTestInput.Verify();
+            Console.WriteLine("PASS H.264 direct regions: spatial/temporal motion, both inference sizes, every pixel and both reference lists.");
             H264FramePublicationTestInput.VerifyPublication();
             H264FramePublicationTestInput.VerifyCancellation();
             H264FramePublicationTestInput.VerifyConstructionFailure();
