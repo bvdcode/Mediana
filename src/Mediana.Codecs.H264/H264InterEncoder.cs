@@ -21,6 +21,7 @@ namespace Mediana.Codecs.H264
             bits.WriteFlag(false);
             bits.WriteSigned(quantizer - options.Quantizer);
             bits.WriteUnsigned(1);
+            Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
             Span<byte> prediction = stackalloc byte[384];
             Span<int> coefficients = stackalloc int[256 + H264ChromaEncoder.CoefficientCount];
             int skipped = 0;
@@ -29,7 +30,8 @@ namespace Mediana.Codecs.H264
                 for (int x = 0; x < target.Width; x += 16)
                 {
                     token.ThrowIfCancellationRequested();
-                    (int motionX, int motionY, bool exact) = H264MotionSearch.Select(input, reference, target, x, y,
+                    H264SourceMacroblock source = new(input, x, y, samples);
+                    (int motionX, int motionY, bool exact) = H264MotionSearch.Select(source, reference, target, x, y,
                         options.MotionSearchRange, prediction, token);
                     int pattern = 0;
                     if (exact)
@@ -38,8 +40,8 @@ namespace Mediana.Codecs.H264
                     }
                     else
                     {
-                        pattern = AnalyzeLuma(input, x, y, quantizer, prediction[..256], coefficients[..256]);
-                        pattern |= H264ChromaEncoder.Analyze(input, x / 2, y / 2, quantizer, prediction[256..], coefficients[256..]) << 4;
+                        pattern = AnalyzeLuma(source.Luma, quantizer, prediction[..256], coefficients[..256]);
+                        pattern |= H264ChromaEncoder.Analyze(source.Chroma, quantizer, prediction[256..], coefficients[256..]) << 4;
                     }
                     (int skipX, int skipY) = H264MotionPrediction.Skip(target, x, y);
                     bool skip = pattern == 0 && motionX == skipX && motionY == skipY;
@@ -69,7 +71,7 @@ namespace Mediana.Codecs.H264
                     H264ChromaEncoder.Write(bits, target, x / 2, y / 2, quantizer, pattern >> 4, prediction[256..], coefficients[256..]);
                     if (!skip)
                     {
-                        H264PcmMacroblockEncoder.ReplaceOversized(bits, checkpoint, input, target, x, y, H264SliceKind.P);
+                        H264PcmMacroblockEncoder.ReplaceOversized(bits, checkpoint, source, target, x, y, H264SliceKind.P);
                     }
                     if (!measureOverflow && bits.EncodedLength > maximumBytes)
                     {
@@ -88,16 +90,15 @@ namespace Mediana.Codecs.H264
             return result;
         }
 
-        private static int AnalyzeLuma(VideoFrame input, int x, int y, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+        private static int AnalyzeLuma(ReadOnlySpan<byte> source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
         {
-            Span<byte> block = stackalloc byte[16];
             Span<int> transformed = stackalloc int[16];
             int pattern = 0;
             for (int index = 0; index < 16; index++)
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
-                H264Residuals.CopyPrediction(prediction, 16, blockX, blockY, block);
-                H264EncodingBlocks.Transform(input, 0, x + blockX, y + blockY, block, transformed);
+                int offset = blockY * 16 + blockX;
+                H264EncodingBlocks.Transform(source[offset..], 16, prediction[offset..], 16, transformed);
                 Span<int> levels = coefficients.Slice(index * 16, 16);
                 H264ForwardTransform.Quantize4x4(transformed, qp, levels);
                 if (levels.ContainsAnyExcept(0))

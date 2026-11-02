@@ -1,29 +1,27 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Core.Video;
-
 namespace Mediana.Codecs.H264
 {
     internal static class H264ChromaEncoder
     {
         public const int CoefficientCount = 128;
 
-        public static int Analyze(VideoFrame input, int x, int y, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+        public static int Analyze(ReadOnlySpan<byte> source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
         {
             int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
             Span<int> rawDc = stackalloc int[4];
             Span<int> transformed = stackalloc int[16];
-            Span<byte> blockPrediction = stackalloc byte[16];
             for (int plane = 1; plane <= 2; plane++)
             {
+                ReadOnlySpan<byte> planeSource = source.Slice((plane - 1) * 64, 64);
                 ReadOnlySpan<byte> planePrediction = prediction.Slice((plane - 1) * 64, 64);
                 for (int index = 0; index < 4; index++)
                 {
                     int blockX = index % 2 * 4;
                     int blockY = index / 2 * 4;
-                    H264Residuals.CopyPrediction(planePrediction, 8, blockX, blockY, blockPrediction);
-                    H264EncodingBlocks.Transform(input, plane, x + blockX, y + blockY, blockPrediction, transformed);
+                    int offset = blockY * 8 + blockX;
+                    H264EncodingBlocks.Transform(planeSource[offset..], 8, planePrediction[offset..], 8, transformed);
                     rawDc[index] = transformed[0];
                     H264ForwardTransform.Quantize4x4(transformed, chromaQp, coefficients.Slice(((plane - 1) * 4 + index) * 15, 15));
                 }

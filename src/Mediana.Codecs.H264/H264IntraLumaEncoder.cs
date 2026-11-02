@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Core.Video;
-
 namespace Mediana.Codecs.H264
 {
     internal static class H264IntraLumaEncoder
     {
-        public static int Analyze(H264BitWriter bits, VideoFrame input, H264Picture target, int x, int y,
+        public static int Analyze(H264BitWriter bits, ReadOnlySpan<byte> source, H264Picture target, int x, int y,
             int qp, Span<int> coefficients)
         {
             Span<byte> prediction = stackalloc byte[16];
@@ -20,14 +18,15 @@ namespace Mediana.Codecs.H264
                 int px = x + blockX;
                 int py = y + blockY;
                 int predicted = target.PredictedMode(px, py);
-                int mode = H264IntraModeSelection.Select(input, target, px, py, prediction);
+                ReadOnlySpan<byte> blockSource = source[(blockY * 16 + blockX)..];
+                int mode = H264IntraModeSelection.Select(blockSource, target, px, py, prediction);
                 bits.WriteFlag(mode == predicted);
                 if (mode != predicted)
                 {
                     bits.WriteBits((uint)(mode < predicted ? mode : mode - 1), 3);
                 }
                 target.SetLumaMode(px, py, mode);
-                H264EncodingBlocks.Transform(input, 0, px, py, prediction, transformed);
+                H264EncodingBlocks.Transform(blockSource, 16, prediction, 4, transformed);
                 Span<int> levels = coefficients.Slice(index * 16, 16);
                 H264ForwardTransform.Quantize4x4(transformed, qp, levels);
                 if (levels.ContainsAnyExcept(0))

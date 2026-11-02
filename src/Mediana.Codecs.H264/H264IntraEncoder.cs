@@ -21,14 +21,16 @@ namespace Mediana.Codecs.H264
             bits.WriteFlag(false);
             bits.WriteSigned(qp - initialQuantizer);
             bits.WriteUnsigned(1);
+            Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
             for (int y = 0; y < reconstructed.Height; y += 16)
             {
                 for (int x = 0; x < reconstructed.Width; x += 16)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    H264SourceMacroblock source = new(input, x, y, samples);
                     H264BitWriterCheckpoint checkpoint = bits.CreateCheckpoint();
-                    WriteMacroblock(bits, input, reconstructed, x, y, qp);
-                    H264PcmMacroblockEncoder.ReplaceOversized(bits, checkpoint, input, reconstructed, x, y, H264SliceKind.I);
+                    WriteMacroblock(bits, source, reconstructed, x, y, qp);
+                    H264PcmMacroblockEncoder.ReplaceOversized(bits, checkpoint, source, reconstructed, x, y, H264SliceKind.I);
                     if (!measureOverflow && bits.EncodedLength > maximumBytes)
                     {
                         encodedLength = bits.EncodedLength;
@@ -42,18 +44,18 @@ namespace Mediana.Codecs.H264
             return result;
         }
 
-        private static void WriteMacroblock(H264BitWriter bits, VideoFrame input, H264Picture reconstructed, int x, int y, int qp)
+        private static void WriteMacroblock(H264BitWriter bits, H264SourceMacroblock source, H264Picture reconstructed, int x, int y, int qp)
         {
             bits.WriteUnsigned(0);
             Span<int> luma = stackalloc int[256];
-            int pattern = H264IntraLumaEncoder.Analyze(bits, input, reconstructed, x, y, qp, luma);
+            int pattern = H264IntraLumaEncoder.Analyze(bits, source.Luma, reconstructed, x, y, qp, luma);
             Span<byte> prediction = stackalloc byte[128];
             Span<int> coefficients = stackalloc int[H264ChromaEncoder.CoefficientCount];
             for (int plane = 1; plane <= 2; plane++)
             {
                 reconstructed.PredictMacroblock(plane, x / 2, y / 2, 0, prediction.Slice((plane - 1) * 64, 64));
             }
-            int chromaPattern = H264ChromaEncoder.Analyze(input, x / 2, y / 2, qp, prediction, coefficients);
+            int chromaPattern = H264ChromaEncoder.Analyze(source.Chroma, qp, prediction, coefficients);
             bits.WriteUnsigned(0);
             bits.WriteUnsigned((uint)H264IntraMacroblock.CodedPatterns.IndexOf((byte)(pattern | (chromaPattern << 4))));
             if (pattern != 0 || chromaPattern != 0)

@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using Mediana.Core.Video;
 
 namespace Mediana.Codecs.H264
 {
@@ -35,14 +34,12 @@ namespace Mediana.Codecs.H264
             best = Difference(source, prediction, int.MaxValue);
         }
 
-        public static (int X, int Y, bool Exact) Select(VideoFrame input, H264Picture reference, H264Picture target,
+        public static (int X, int Y, bool Exact) Select(H264SourceMacroblock input, H264Picture reference, H264Picture target,
             int x, int y, int range, Span<byte> prediction, CancellationToken token)
         {
-            Span<byte> source = stackalloc byte[384];
-            ReadSource(input, x, y, source);
             Span<byte> candidate = stackalloc byte[384];
             (int predictedX, int predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
-            H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), source, candidate, prediction);
+            H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), input.Samples, candidate, prediction);
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
             search.Scan(range, token);
             search.Refine(range, token);
@@ -170,17 +167,6 @@ namespace Mediana.Codecs.H264
             H264PredictionBlock.Read(reference, 0, x, y, 16, 16, motionX, motionY, prediction[..256]);
             H264PredictionBlock.Read(reference, 1, x, y, 16, 16, motionX, motionY, prediction.Slice(256, 64));
             H264PredictionBlock.Read(reference, 2, x, y, 16, 16, motionX, motionY, prediction.Slice(320, 64));
-        }
-
-        private static void ReadSource(VideoFrame input, int x, int y, Span<byte> source)
-        {
-            for (int plane = 0; plane < 3; plane++)
-            {
-                int scale = plane == 0 ? 1 : 2;
-                int width = 16 / scale;
-                int start = plane switch { 0 => 0, 1 => 256, 2 => 320, _ => throw new ArgumentOutOfRangeException(nameof(plane)) };
-                H264BorderExtension.Copy(input, plane, x / scale, y / scale, width, width, source.Slice(start, width * width));
-            }
         }
     }
 }

@@ -39,6 +39,7 @@ namespace Mediana.Tests
                         }
                     }
                 }
+                VerifyMacroblocks(frame, pattern);
                 Require(frame.Data.Span.SequenceEqual(unchanged));
             }
             Require(allocator.AllocatedBytes == 0);
@@ -79,7 +80,9 @@ namespace Mediana.Tests
             }
             Span<int> guarded = stackalloc int[18];
             guarded.Fill(int.MinValue);
-            H264EncodingBlocks.Transform(frame, plane, x, y, prediction, guarded.Slice(1, 16));
+            Span<byte> source = stackalloc byte[16];
+            H264BorderExtension.Copy(frame, plane, x, y, 4, 4, source);
+            H264EncodingBlocks.Transform(source, 4, prediction, 4, guarded.Slice(1, 16));
             Require(guarded[0] == int.MinValue && guarded[^1] == int.MinValue);
             for (int vertical = 0; vertical < 4; vertical++)
             {
@@ -95,6 +98,116 @@ namespace Mediana.Tests
                     }
                     Require(guarded[1 + vertical * 4 + horizontal] == expected);
                 }
+            }
+        }
+
+        private static void VerifyMacroblocks(VideoFrame frame, int pattern)
+        {
+            byte[] guarded = new byte[H264SourceMacroblock.ByteCount + 6];
+            foreach (int y in new[] { 0, 16, frame.Format.Height - 1, frame.Format.Height, int.MaxValue })
+            {
+                foreach (int x in new[] { 0, 16, frame.Format.Width - 1, frame.Format.Width, int.MaxValue })
+                {
+                    guarded.AsSpan().Fill(183);
+                    H264SourceMacroblock source = new(frame, x, y, guarded.AsSpan(3, H264SourceMacroblock.ByteCount));
+                    byte[] prepared = source.Samples.ToArray();
+                    for (int plane = 0; plane < 3; plane++)
+                    {
+                        ReadOnlySpan<byte> samples = plane switch
+                        {
+                            0 => source.Luma,
+                            1 => source.Chroma[..64],
+                            2 => source.Chroma[64..],
+                            _ => throw new ArgumentOutOfRangeException(nameof(plane))
+                        };
+                        int size = plane == 0 ? 16 : 8;
+                        int scale = plane == 0 ? 1 : 2;
+                        PlaneLayout layout = frame.Planes[plane];
+                        byte[] expected = new byte[size * size];
+                        for (int row = 0; row < size; row++)
+                        {
+                            for (int column = 0; column < size; column++)
+                            {
+                                int sourceX = (int)Math.Clamp((long)(x / scale) + column, 0, layout.RowBytes - 1);
+                                int sourceY = (int)Math.Clamp((long)(y / scale) + row, 0, layout.Height - 1);
+                                expected[row * size + column] = Pixel(plane, sourceX, sourceY, pattern);
+                            }
+                        }
+                        Require(samples.SequenceEqual(expected));
+                        for (int top = 0; top < size; top += 4)
+                        {
+                            for (int left = 0; left < size; left += 4)
+                            {
+                                VerifyPreparedTransform(samples, expected, size, top, left);
+                            }
+                        }
+                    }
+                    Require(source.Samples.SequenceEqual(prepared));
+                    Require(guarded.AsSpan(0, 3).ContainsAnyExcept((byte)183) == false);
+                    Require(guarded.AsSpan(3 + H264SourceMacroblock.ByteCount).ContainsAnyExcept((byte)183) == false);
+                }
+            }
+        }
+
+        private static void VerifyPreparedTransform(ReadOnlySpan<byte> samples, ReadOnlySpan<byte> expected, int stride, int top, int left)
+        {
+            foreach (int predictionStride in new[] { 4, 8, 16, 23 })
+            {
+                byte[] prediction = new byte[3 * predictionStride + 4];
+                for (int index = 0; index < prediction.Length; index++)
+                {
+                    prediction[index] = (byte)((index * 197 + left * 59 + top * 131) & 255);
+                }
+                byte[] unchanged = (byte[])prediction.Clone();
+                int[] actual = new int[18];
+                actual.AsSpan().Fill(int.MinValue);
+                H264EncodingBlocks.Transform(samples[(top * stride + left)..], stride, prediction, predictionStride, actual.AsSpan(1, 16));
+                for (int vertical = 0; vertical < 4; vertical++)
+                {
+                    for (int horizontal = 0; horizontal < 4; horizontal++)
+                    {
+                        int coefficient = 0;
+                        for (int row = 0; row < 4; row++)
+                        {
+                            for (int column = 0; column < 4; column++)
+                            {
+                                int residual = expected[(top + row) * stride + left + column] - prediction[row * predictionStride + column];
+                                coefficient += Matrix[vertical * 4 + row] * residual * Matrix[horizontal * 4 + column];
+                            }
+                        }
+                        Require(actual[1 + vertical * 4 + horizontal] == coefficient);
+                    }
+                }
+                Require(actual[0] == int.MinValue && actual[^1] == int.MinValue);
+                Require(prediction.AsSpan().SequenceEqual(unchanged));
+            }
+        }
+
+        public static void VerifyAllocation()
+        {
+            MediaBufferAllocator allocator = new(64 * 1024);
+            using (VideoFrame frame = Create(35, 33, true, 1, allocator))
+            {
+                Repeat(frame);
+                long before = GC.GetAllocatedBytesForCurrentThread();
+                Repeat(frame);
+                Require(GC.GetAllocatedBytesForCurrentThread() == before);
+            }
+            Require(allocator.AllocatedBytes == 0);
+        }
+
+        private static void Repeat(VideoFrame frame)
+        {
+            Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
+            Span<byte> prediction = stackalloc byte[16];
+            prediction.Fill(128);
+            Span<int> transformed = stackalloc int[16];
+            for (int repeat = 0; repeat < 256; repeat++)
+            {
+                H264SourceMacroblock source = new(frame, 32, 32, samples);
+                H264EncodingBlocks.Transform(source.Luma[(12 * 16 + 12)..], 16, prediction, 4, transformed);
+                H264EncodingBlocks.Transform(source.Chroma[(4 * 8 + 4)..], 8, prediction, 4, transformed);
+                H264EncodingBlocks.Transform(source.Chroma[(64 + 4 * 8 + 4)..], 8, prediction, 4, transformed);
             }
         }
 

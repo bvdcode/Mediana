@@ -1,27 +1,18 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Core.Video;
-
 namespace Mediana.Codecs.H264
 {
     internal static class H264IntraModeSelection
     {
-        public static int Select(VideoFrame input, H264Picture target, int x, int y, Span<byte> prediction)
+        public static int Select(ReadOnlySpan<byte> input, H264Picture target, int x, int y, Span<byte> prediction)
         {
             Span<byte> top = stackalloc byte[8];
             Span<byte> left = stackalloc byte[4];
             Span<byte> source = stackalloc byte[16];
             Span<byte> candidate = stackalloc byte[16];
             (bool hasTop, bool hasLeft, byte? corner) = target.ReadLumaNeighbours(x, y, 4, top, left);
-            for (int row = 0; row < 4; row++)
-            {
-                ReadOnlySpan<byte> samples = input.GetRow(0, Math.Min(y + row, input.Planes[0].Height - 1));
-                for (int column = 0; column < 4; column++)
-                {
-                    source[row * 4 + column] = samples[Math.Min(x + column, samples.Length - 1)];
-                }
-            }
+            H264Residuals.CopyPrediction(input, 16, 0, 0, source);
             int predicted = target.PredictedMode(x, y);
             int best = int.MaxValue;
             int selected = 2;

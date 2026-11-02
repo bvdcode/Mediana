@@ -10,6 +10,7 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync(string root, string h264Root)
         {
+            H264SourceBlockTestInput.VerifyAllocation();
             foreach ((int width, int height) in new (int, int)[] { (1, 1), (2, 3), (17, 19), (32, 16), (35, 33) })
             {
                 H264SourceBlockTestInput.Verify(width, height, false);

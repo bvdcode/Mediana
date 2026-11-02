@@ -84,7 +84,9 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException("The motion-search fixture has an unexpected predictor.");
             }
-            (int vx, int vy, bool exact) = H264MotionSearch.Select(input, reference, target, x, y, item.GetProperty("radius").GetInt32(), prediction.AsSpan(3, 384), default);
+            Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
+            H264SourceMacroblock source = new(input, x, y, samples);
+            (int vx, int vy, bool exact) = H264MotionSearch.Select(source, reference, target, x, y, item.GetProperty("radius").GetInt32(), prediction.AsSpan(3, 384), default);
             if (vx != item.GetProperty("expected_x").GetInt32() || vy != item.GetProperty("expected_y").GetInt32() || exact != item.GetProperty("exact").GetBoolean()
                 || !string.Equals(Convert.ToHexString(SHA256.HashData(prediction.AsSpan(3, 384))), item.GetProperty("prediction_sha256").GetString(), StringComparison.OrdinalIgnoreCase))
             {
