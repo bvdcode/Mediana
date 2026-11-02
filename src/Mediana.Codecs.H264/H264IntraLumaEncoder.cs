@@ -39,15 +39,20 @@ namespace Mediana.Codecs.H264
             return pattern;
         }
 
-        public static void Write(H264BitWriter bits, H264Picture target, int x, int y, int pattern, ReadOnlySpan<int> coefficients)
+        public static bool TryWrite(H264BitWriter bits, H264Picture target, int x, int y, int pattern, ReadOnlySpan<int> coefficients)
         {
             for (int index = 0; index < 16; index++)
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
-                int count = (pattern & (1 << (index / 4))) != 0
-                    ? H264CavlcWriter.Write(bits, coefficients.Slice(index * 16, 16), target.NeighbourCount(0, x + blockX, y + blockY)) : 0;
+                int count = 0;
+                if ((pattern & (1 << (index / 4))) != 0 && !H264CavlcWriter.TryWrite(bits,
+                    coefficients.Slice(index * 16, 16), target.NeighbourCount(0, x + blockX, y + blockY), out count))
+                {
+                    return false;
+                }
                 target.Counts(0)[target.BlockIndex(0, x + blockX, y + blockY)] = (byte)count;
             }
+            return true;
         }
     }
 }

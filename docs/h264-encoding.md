@@ -66,24 +66,26 @@ errors do not create an encoder/decoder prediction mismatch. Deblocking is
 disabled in the coded slice.
 
 Each transformed macroblock is checked against the 3200-bit CAVLC
-`macroblock_layer` limit in Annex A.3.1(n). A block exceeding that limit uses
-I_PCM in either an I or P slice. Its samples are copied exactly, with byte
-alignment and edge padding; subsequent blocks retain the slice's quantizer.
-The bit count excludes NAL framing and emulation-prevention bytes. Selecting
-I_PCM restores the current macroblock's bit position and reconstruction state
-without copying the preceding packet or retaining another picture. The final
-escaped packet still obeys its byte and rate budgets. A fixed-QP packet that
-cannot fit fails without changing QP.
+`macroblock_layer` limit in Annex A.3.1(n), and coefficient prefixes are bounded
+by Baseline's maximum of 15. An oversized block can use I_PCM only when every
+sample is nonzero, as required by Baseline. Its samples are then copied exactly,
+with byte alignment and edge padding.
 
-Two Baseline profile-boundary cases remain open. A three-picture 16x16 QP0
-sequence with luma 128 and chroma changing from 0 to 255 produces a chroma DC
-level of 3264 and `level_prefix` 16 in its second picture. Baseline permits at
-most 15; the emitted packet is rejected by the Mediana decoder. Separately,
-I_PCM currently preserves zero-valued samples, which Baseline also prohibits.
-Both constraints appear in clause A.2.1 of
+When coefficients exceed the prefix limit, or an oversized block contains zero
+samples and cannot use I_PCM, the encoder increases that macroblock's QP until
+both constraints are met. `mb_qp_delta` signals the change. The next transformed
+block starts from the requested QP; blocks without residuals inherit the last
+signalled QP, and PCM does not change that running value. Retrying restores only
+bit-writer position and current intra-block availability. It repeats neither
+motion search nor source preparation and retains no extra picture. Reconstructed
+samples always use the signalled coefficients and QP.
+
+These profile constraints appear in clause A.2.1 of
 [ITU-T H.264 (06/2026)](https://www.itu.int/rec/T-REC-H.264-202606-I/en).
-The complete fixed-QP and HD comparisons do not establish conformance for these
-boundaries. Mode selection satisfying both constraints remains to be implemented.
+The bit count excludes NAL framing and emulation-prevention bytes. Final escaped
+packets must still fit byte and rate budgets. Without rate control, the encoder
+does not increase the whole picture's QP to satisfy a packet budget; it fails if
+the final packet does not fit.
 
 Motion search examines zero displacement and the neighboring-vector predictor,
 then bounded four-direction full-pixel diamond steps. `MotionSearchRange` is the
@@ -110,8 +112,9 @@ An [exhaustive P/I macroblock trial](h264-mode-decision.md) measured complete
 HD quality, CPU, memory and independent reconstruction. It was not adopted;
 adaptive intra coding in P pictures remains open.
 
-Without `RateControl`, `Quantizer` is a fixed H.264 QP from 0 through 51,
-defaulting to 26. Level 4.1 admission checks cover dimensions, frame intervals,
+Without `RateControl`, `Quantizer` is the base H.264 QP from 0 through 51,
+defaulting to 26. Only macroblocks requiring profile or macroblock-bit-limit
+correction increase it. Level 4.1 admission checks cover dimensions, frame intervals,
 access-unit compression bounds and separate VCL/NAL buffer credits. The buffers
 start full and refill from exact decode-time differences, retaining fractional
 bits. NAL accounting reserves Annex B delimiters and repeated IDR parameter sets.
@@ -239,7 +242,12 @@ The strict Linux x64 Native AOT runner also checks these references.
 Four complete PCM sequences add 32 pictures and 111,264 visible YUV samples,
 all exactly matching independent decoding. QP0 and QP6 exercise I/P PCM beside
 transformed blocks, deferred P skips, cropped edges and padded input strides.
-Every macroblock's RBSP length and the unchanged slice quantizer are checked.
+Every macroblock's RBSP length, nonzero PCM samples, slice quantizer and
+macroblock QP adjustment/restoration are checked. The internal encoder reference
+also matches decoded pixels, including padding, after repeated block selection.
+Two further five-picture QP0 sequences switch chroma between 0 and 255 in both
+directions; each sample matches independent decoding. Their transitions exercise
+the coefficient overflow that previously produced an invalid Baseline packet.
 The [PCM reference manifest](../tests/Mediana.Tests/Data/H264/PCM-ENCODING.json)
 records decoded hashes and independent commands. A single noisy 16x16 picture
 also checks exact PCM samples, successful encoding at the final packet's exact

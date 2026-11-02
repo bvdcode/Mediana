@@ -28,14 +28,67 @@ namespace Mediana.Tests
                     levels[index] = random.Next(3) == 0 ? 0 : random.Next(-magnitude, magnitude + 1);
                 }
                 using H264BitWriter bits = new(allocator, 4096, 0x65);
-                int count = H264CavlcWriter.Write(bits, levels, neighborCount);
+                Assert.True(H264CavlcWriter.TryWrite(bits, levels, neighborCount, out int count));
                 Assert.Equal(levels.Count(level => level != 0), count);
                 using MediaBuffer nal = bits.Finish();
                 H264BitReader reader = H264Nal.Payload(nal.Memory.Span, 5);
                 int[] actual = new int[size];
-                Assert.Equal(count, H264Cavlc.Read(ref reader, actual, neighborCount));
+                Assert.Equal(count, H264Cavlc.Read(ref reader, actual, neighborCount, maximumPrefix: 15));
                 Assert.Equal(levels, actual);
                 reader.ReadTrailingBits();
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ChromaTransitionsStayWithinBaselineSyntax(bool reverse) =>
+            await H264BaselineEncodingTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"), reverse);
+
+        [Theory]
+        [InlineData(2064, true)]
+        [InlineData(-2064, true)]
+        [InlineData(2065, false)]
+        [InlineData(-2065, false)]
+        [InlineData(3264, false)]
+        [InlineData(-3264, false)]
+        public void CavlcRejectsLevelsBeyondBaselinePrefix(int level, bool expected)
+        {
+            MediaBufferAllocator allocator = new(4096);
+            using H264BitWriter bits = new(allocator, 4096, 0x65);
+            Assert.Equal(expected, H264CavlcWriter.TryWrite(bits, [level, 0, 0, 0], -1, out int count));
+            Assert.Equal(1, count);
+            if (expected)
+            {
+                using MediaBuffer nal = bits.Finish();
+                H264BitReader reader = H264Nal.Payload(nal.Memory.Span, 5);
+                Span<int> actual = stackalloc int[4];
+                Assert.Equal(1, H264Cavlc.Read(ref reader, actual, -1, maximumPrefix: 15));
+                Assert.Equal(level, actual[0]);
+                reader.ReadTrailingBits();
+            }
+            bits.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public void EveryQuantizerTransitionHasLegalDeltaAndExactResult()
+        {
+            MediaBufferAllocator allocator = new(4096);
+            for (int previous = 0; previous < 52; previous++)
+            {
+                for (int current = 0; current < 52; current++)
+                {
+                    using H264BitWriter bits = new(allocator, 4096, 0x65);
+                    H264MacroblockEncoding.WriteQuantizerDelta(bits, previous, current);
+                    using MediaBuffer nal = bits.Finish();
+                    H264BitReader reader = H264Nal.Payload(nal.Memory.Span, 5);
+                    int delta = reader.ReadSe();
+                    Assert.InRange(delta, -26, 25);
+                    Assert.Equal(current, (previous + delta + 52) % 52);
+                    reader.ReadTrailingBits();
+                }
             }
             Assert.Equal(0, allocator.AllocatedBytes);
         }

@@ -21,6 +21,7 @@ namespace Mediana.Codecs.H264
             bits.WriteFlag(false);
             bits.WriteSigned(qp - initialQuantizer);
             bits.WriteUnsigned(1);
+            int previousQuantizer = qp;
             Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
             for (int y = 0; y < reconstructed.Height; y += 16)
             {
@@ -28,9 +29,28 @@ namespace Mediana.Codecs.H264
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     H264SourceMacroblock source = new(input, x, y, samples);
-                    H264BitWriterCheckpoint checkpoint = bits.CreateCheckpoint();
-                    WriteMacroblock(bits, source, reconstructed, x, y, qp);
-                    H264PcmMacroblockEncoder.ReplaceOversized(bits, checkpoint, source, reconstructed, x, y, H264SliceKind.I);
+                    int quantizer = qp;
+                    while (true)
+                    {
+                        H264BitWriterCheckpoint checkpoint = bits.CreateCheckpoint();
+                        bool written = TryWriteMacroblock(bits, source, reconstructed, x, y, quantizer, previousQuantizer, out int effectiveQuantizer);
+                        if (written && H264MacroblockEncoding.Fits(bits, checkpoint))
+                        {
+                            previousQuantizer = effectiveQuantizer;
+                            break;
+                        }
+                        if (written && H264PcmMacroblockEncoder.TryWrite(bits, checkpoint, source, reconstructed, x, y, H264SliceKind.I))
+                        {
+                            break;
+                        }
+                        bits.Restore(checkpoint);
+                        for (int row = 0; row < 16; row += 4)
+                        {
+                            reconstructed.Modes.Slice(reconstructed.BlockIndex(0, x, y + row), 4).Fill(byte.MaxValue);
+                        }
+                        quantizer = H264MacroblockEncoding.IncreaseQuantizer(quantizer);
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
                     if (!measureOverflow && bits.EncodedLength > maximumBytes)
                     {
                         encodedLength = bits.EncodedLength;
@@ -44,7 +64,8 @@ namespace Mediana.Codecs.H264
             return result;
         }
 
-        private static void WriteMacroblock(H264BitWriter bits, H264SourceMacroblock source, H264Picture reconstructed, int x, int y, int qp)
+        private static bool TryWriteMacroblock(H264BitWriter bits, H264SourceMacroblock source, H264Picture reconstructed, int x, int y,
+            int qp, int previousQuantizer, out int effectiveQuantizer)
         {
             bits.WriteUnsigned(0);
             Span<int> luma = stackalloc int[256];
@@ -58,13 +79,15 @@ namespace Mediana.Codecs.H264
             int chromaPattern = H264ChromaEncoder.Analyze(source.Chroma, qp, prediction, coefficients);
             bits.WriteUnsigned(0);
             bits.WriteUnsigned((uint)H264IntraMacroblock.CodedPatterns.IndexOf((byte)(pattern | (chromaPattern << 4))));
+            effectiveQuantizer = previousQuantizer;
             if (pattern != 0 || chromaPattern != 0)
             {
-                bits.WriteSigned(0);
+                H264MacroblockEncoding.WriteQuantizerDelta(bits, previousQuantizer, qp);
+                effectiveQuantizer = qp;
             }
-            reconstructed.Quantizers[y / 16 * reconstructed.Sequence.WidthInMbs + x / 16] = (byte)qp;
-            H264IntraLumaEncoder.Write(bits, reconstructed, x, y, pattern, luma);
-            H264ChromaEncoder.Write(bits, reconstructed, x / 2, y / 2, qp, chromaPattern, prediction, coefficients);
+            reconstructed.Quantizers[y / 16 * reconstructed.Sequence.WidthInMbs + x / 16] = (byte)effectiveQuantizer;
+            return H264IntraLumaEncoder.TryWrite(bits, reconstructed, x, y, pattern, luma) &&
+                H264ChromaEncoder.TryWrite(bits, reconstructed, x / 2, y / 2, qp, chromaPattern, prediction, coefficients);
         }
     }
 }

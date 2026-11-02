@@ -5,7 +5,7 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264CavlcWriter
     {
-        public static int Write(H264BitWriter bits, ReadOnlySpan<int> coefficients, int neighborCount)
+        public static bool TryWrite(H264BitWriter bits, ReadOnlySpan<int> coefficients, int neighborCount, out int total)
         {
             int maximum = coefficients.Length;
             if (maximum is not (4 or 15 or 16) || neighborCount < -1 || (neighborCount == -1 && maximum != 4))
@@ -14,7 +14,7 @@ namespace Mediana.Codecs.H264
             }
             Span<int> levels = stackalloc int[16];
             Span<int> positions = stackalloc int[16];
-            int total = 0;
+            total = 0;
             for (int index = maximum - 1; index >= 0; index--)
             {
                 int level = coefficients[index];
@@ -36,7 +36,7 @@ namespace Mediana.Codecs.H264
             WriteToken(bits, neighborCount, total, trailing);
             if (total == 0)
             {
-                return 0;
+                return true;
             }
             for (int index = 0; index < trailing; index++)
             {
@@ -51,7 +51,10 @@ namespace Mediana.Codecs.H264
                 {
                     code -= 2;
                 }
-                WriteLevel(bits, code, suffixLength);
+                if (!TryWriteLevel(bits, code, suffixLength))
+                {
+                    return false;
+                }
                 if (suffixLength == 0)
                 {
                     suffixLength = 1;
@@ -73,7 +76,7 @@ namespace Mediana.Codecs.H264
                 H264CavlcTables.RunBefore[Math.Min(zeros, 7) - 1].Write(bits, run);
                 zeros -= run;
             }
-            return total;
+            return true;
         }
 
         private static void WriteToken(H264BitWriter bits, int neighborCount, int total, int trailing)
@@ -87,9 +90,9 @@ namespace Mediana.Codecs.H264
             H264CavlcTables.CoefficientToken[table].Write(bits, (total << 2) | trailing);
         }
 
-        private static void WriteLevel(H264BitWriter bits, int code, int suffixLength)
+        private static bool TryWriteLevel(H264BitWriter bits, int code, int suffixLength)
         {
-            for (int prefix = 0; prefix <= 19; prefix++)
+            for (int prefix = 0; prefix <= 15; prefix++)
             {
                 int suffixBits = prefix switch { 14 when suffixLength == 0 => 4, >= 15 => prefix - 3, _ => suffixLength };
                 int basis = Math.Min(15, prefix) << suffixLength;
@@ -97,20 +100,16 @@ namespace Mediana.Codecs.H264
                 {
                     basis += 15;
                 }
-                if (prefix >= 16)
-                {
-                    basis += (1 << (prefix - 3)) - 4096;
-                }
                 int suffix = code - basis;
                 if (suffix >= 0 && suffix < (1 << suffixBits))
                 {
                     bits.WriteBits(0, prefix);
                     bits.WriteFlag(true);
                     bits.WriteBits((uint)suffix, suffixBits);
-                    return;
+                    return true;
                 }
             }
-            throw new ArgumentOutOfRangeException(nameof(code));
+            return false;
         }
     }
 }

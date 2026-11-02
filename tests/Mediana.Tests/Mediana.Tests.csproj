@@ -67,6 +67,7 @@
     <Compile Include="../Shared/PngOutputTestStream.cs" Link="PngOutputTestStream.cs" />
     <Compile Include="../Shared/SceneBufferOwnershipTestInput.cs" Link="SceneBufferOwnershipTestInput.cs" />
     <Compile Include="../Shared/ImageOutputAllocationTestInput.cs" Link="ImageOutputAllocationTestInput.cs" />
+    <Compile Include="../Shared/H264BaselineEncodingTestInput.cs" Link="H264BaselineEncodingTestInput.cs" />
     <Compile Include="../Shared/H264PcmEncodingTestInput.cs" Link="H264PcmEncodingTestInput.cs" />
     <Compile Include="../Shared/H264BitWritingTestInput.cs" Link="H264BitWritingTestInput.cs" />
     <Compile Include="../Shared/H264SourceBlockTestInput.cs" Link="H264SourceBlockTestInput.cs" />

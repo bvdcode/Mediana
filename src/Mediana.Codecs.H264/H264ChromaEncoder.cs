@@ -34,7 +34,7 @@ namespace Mediana.Codecs.H264
             return coefficients.Slice(120, 8).ContainsAnyExcept(0) ? 1 : 0;
         }
 
-        public static void Write(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
+        public static bool TryWrite(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
             ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients)
         {
             if (pattern == 0)
@@ -43,10 +43,13 @@ namespace Mediana.Codecs.H264
                 {
                     target.WriteZeroResidualBlock(plane, x, y, 8, prediction.Slice((plane - 1) * 64, 64), 8);
                 }
-                return;
+                return true;
             }
-            H264CavlcWriter.Write(bits, coefficients.Slice(120, 4), -1);
-            H264CavlcWriter.Write(bits, coefficients.Slice(124, 4), -1);
+            if (!H264CavlcWriter.TryWrite(bits, coefficients.Slice(120, 4), -1, out _) ||
+                !H264CavlcWriter.TryWrite(bits, coefficients.Slice(124, 4), -1, out _))
+            {
+                return false;
+            }
             int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
             Span<int> scaledDc = stackalloc int[4];
             Span<int> residual = stackalloc int[16];
@@ -59,7 +62,11 @@ namespace Mediana.Codecs.H264
                     int blockX = index % 2 * 4;
                     int blockY = index / 2 * 4;
                     ReadOnlySpan<int> levels = coefficients.Slice(((plane - 1) * 4 + index) * 15, 15);
-                    int count = pattern == 2 ? H264CavlcWriter.Write(bits, levels, target.NeighbourCount(plane, x + blockX, y + blockY)) : 0;
+                    int count = 0;
+                    if (pattern == 2 && !H264CavlcWriter.TryWrite(bits, levels, target.NeighbourCount(plane, x + blockX, y + blockY), out count))
+                    {
+                        return false;
+                    }
                     if (count == 0 && scaledDc[index] == 0)
                     {
                         target.WriteZeroResidualBlock(plane, x + blockX, y + blockY, 4,
@@ -72,6 +79,7 @@ namespace Mediana.Codecs.H264
                     target.WriteBlock(plane, x + blockX, y + blockY, blockPrediction, residual);
                 }
             }
+            return true;
         }
     }
 }

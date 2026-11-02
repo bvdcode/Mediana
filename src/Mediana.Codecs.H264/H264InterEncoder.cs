@@ -25,6 +25,7 @@ namespace Mediana.Codecs.H264
             Span<byte> prediction = stackalloc byte[384];
             Span<int> coefficients = stackalloc int[256 + H264ChromaEncoder.CoefficientCount];
             int skipped = 0;
+            int previousQuantizer = quantizer;
             for (int y = 0; y < target.Height; y += 16)
             {
                 for (int x = 0; x < target.Width; x += 16)
@@ -33,45 +34,64 @@ namespace Mediana.Codecs.H264
                     H264SourceMacroblock source = new(input, x, y, samples);
                     (int motionX, int motionY, bool exact) = H264MotionSearch.Select(source, reference, target, x, y,
                         options.MotionSearchRange, prediction, token);
-                    int pattern = 0;
-                    if (exact)
-                    {
-                        coefficients.Clear();
-                    }
-                    else
-                    {
-                        pattern = AnalyzeLuma(source.Luma, quantizer, prediction[..256], coefficients[..256]);
-                        pattern |= H264ChromaEncoder.Analyze(source.Chroma, quantizer, prediction[256..], coefficients[256..]) << 4;
-                    }
                     (int skipX, int skipY) = H264MotionPrediction.Skip(target, x, y);
-                    bool skip = pattern == 0 && motionX == skipX && motionY == skipY;
-                    H264BitWriterCheckpoint checkpoint = default;
-                    if (skip)
+                    int predictedX = 0;
+                    int predictedY = 0;
+                    bool predicted = false;
+                    int macroblockQuantizer = quantizer;
+                    while (true)
                     {
-                        skipped++;
-                    }
-                    else
-                    {
-                        (int predictedX, int predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
-                        bits.WriteUnsigned((uint)skipped);
-                        skipped = 0;
-                        checkpoint = bits.CreateCheckpoint();
-                        bits.WriteUnsigned(0);
-                        bits.WriteSigned(motionX - predictedX);
-                        bits.WriteSigned(motionY - predictedY);
-                        bits.WriteUnsigned((uint)H264InterMacroblock.CodedPatterns.IndexOf((byte)pattern));
-                        if (pattern != 0)
+                        int pattern = 0;
+                        if (exact)
                         {
-                            bits.WriteSigned(0);
+                            coefficients.Clear();
                         }
-                    }
-                    target.SetMotion(H264ReferenceList.L0, x, y, 16, 16, 0, motionX, motionY);
-                    target.Quantizers[y / 16 * target.Sequence.WidthInMbs + x / 16] = (byte)quantizer;
-                    WriteLuma(bits, target, x, y, quantizer, pattern, prediction[..256], coefficients[..256]);
-                    H264ChromaEncoder.Write(bits, target, x / 2, y / 2, quantizer, pattern >> 4, prediction[256..], coefficients[256..]);
-                    if (!skip)
-                    {
-                        H264PcmMacroblockEncoder.ReplaceOversized(bits, checkpoint, source, target, x, y, H264SliceKind.P);
+                        else
+                        {
+                            pattern = AnalyzeLuma(source.Luma, macroblockQuantizer, prediction[..256], coefficients[..256]);
+                            pattern |= H264ChromaEncoder.Analyze(source.Chroma, macroblockQuantizer, prediction[256..], coefficients[256..]) << 4;
+                        }
+                        bool skip = pattern == 0 && motionX == skipX && motionY == skipY;
+                        H264BitWriterCheckpoint start = bits.CreateCheckpoint();
+                        H264BitWriterCheckpoint macroblock = default;
+                        int effectiveQuantizer = previousQuantizer;
+                        if (!skip)
+                        {
+                            if (!predicted)
+                            {
+                                (predictedX, predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
+                                predicted = true;
+                            }
+                            bits.WriteUnsigned((uint)skipped);
+                            macroblock = bits.CreateCheckpoint();
+                            bits.WriteUnsigned(0);
+                            bits.WriteSigned(motionX - predictedX);
+                            bits.WriteSigned(motionY - predictedY);
+                            bits.WriteUnsigned((uint)H264InterMacroblock.CodedPatterns.IndexOf((byte)pattern));
+                            if (pattern != 0)
+                            {
+                                H264MacroblockEncoding.WriteQuantizerDelta(bits, previousQuantizer, macroblockQuantizer);
+                                effectiveQuantizer = macroblockQuantizer;
+                            }
+                        }
+                        target.SetMotion(H264ReferenceList.L0, x, y, 16, 16, 0, motionX, motionY);
+                        target.Quantizers[y / 16 * target.Sequence.WidthInMbs + x / 16] = (byte)effectiveQuantizer;
+                        bool written = TryWriteLuma(bits, target, x, y, macroblockQuantizer, pattern, prediction[..256], coefficients[..256]) &&
+                            H264ChromaEncoder.TryWrite(bits, target, x / 2, y / 2, macroblockQuantizer, pattern >> 4, prediction[256..], coefficients[256..]);
+                        if (written && (skip || H264MacroblockEncoding.Fits(bits, macroblock)))
+                        {
+                            skipped = skip ? skipped + 1 : 0;
+                            previousQuantizer = effectiveQuantizer;
+                            break;
+                        }
+                        if (written && H264PcmMacroblockEncoder.TryWrite(bits, macroblock, source, target, x, y, H264SliceKind.P))
+                        {
+                            skipped = 0;
+                            break;
+                        }
+                        bits.Restore(start);
+                        macroblockQuantizer = H264MacroblockEncoding.IncreaseQuantizer(macroblockQuantizer);
+                        token.ThrowIfCancellationRequested();
                     }
                     if (!measureOverflow && bits.EncodedLength > maximumBytes)
                     {
@@ -109,13 +129,13 @@ namespace Mediana.Codecs.H264
             return pattern;
         }
 
-        private static void WriteLuma(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
+        private static bool TryWriteLuma(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
             ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients)
         {
             if ((pattern & 15) == 0)
             {
                 target.WriteZeroResidualBlock(0, x, y, 16, prediction, 16);
-                return;
+                return true;
             }
             Span<byte> block = stackalloc byte[16];
             Span<int> residual = stackalloc int[16];
@@ -123,8 +143,12 @@ namespace Mediana.Codecs.H264
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
                 ReadOnlySpan<int> levels = coefficients.Slice(index * 16, 16);
-                int count = (pattern & (1 << (index / 4))) != 0
-                    ? H264CavlcWriter.Write(bits, levels, target.NeighbourCount(0, x + blockX, y + blockY)) : 0;
+                int count = 0;
+                if ((pattern & (1 << (index / 4))) != 0 &&
+                    !H264CavlcWriter.TryWrite(bits, levels, target.NeighbourCount(0, x + blockX, y + blockY), out count))
+                {
+                    return false;
+                }
                 if (count == 0)
                 {
                     target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, prediction[(blockY * 16 + blockX)..], 16);
@@ -135,6 +159,7 @@ namespace Mediana.Codecs.H264
                 H264Residuals.CopyPrediction(prediction, 16, blockX, blockY, block);
                 target.WriteBlock(0, x + blockX, y + blockY, block, residual);
             }
+            return true;
         }
     }
 }

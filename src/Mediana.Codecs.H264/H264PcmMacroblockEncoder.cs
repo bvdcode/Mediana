@@ -5,15 +5,12 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264PcmMacroblockEncoder
     {
-        // Rec. ITU-T H.264, A.3.1(n), CAVLC macroblock_layer bit limit.
-        private const int MaximumMacroblockBits = 3200;
-
-        public static void ReplaceOversized(H264BitWriter bits, in H264BitWriterCheckpoint checkpoint,
+        public static bool TryWrite(H264BitWriter bits, in H264BitWriterCheckpoint checkpoint,
             H264SourceMacroblock input, H264Picture target, int x, int y, H264SliceKind kind)
         {
-            if (bits.BitPosition - checkpoint.BitPosition <= MaximumMacroblockBits)
+            if (input.Luma.Contains((byte)0) || input.Chroma.Contains((byte)0))
             {
-                return;
+                return false;
             }
             uint type = kind switch
             {
@@ -44,6 +41,7 @@ namespace Mediana.Codecs.H264
             int address = y / 16 * target.Sequence.WidthInMbs + x / 16;
             target.Quantizers[address] = 0;
             target.Transforms8x8[address] = 0;
+            return true;
         }
 
         private static void WritePlane(H264BitWriter bits, ReadOnlySpan<byte> samples, H264Picture target, int plane, int x, int y)
