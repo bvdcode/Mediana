@@ -29,10 +29,16 @@ namespace Mediana.Execution
 
         public ContainerInfo Info => source.Info;
         public long Count { get; }
+        public bool SupportsPreroll => source is IIndexedPrerollReader;
         public IReadOnlyList<EncodedStreamInfo> Streams => source.Streams;
 
         public ContainerSeekPoint? FindSeekPoint(MediaTimestamp target, long beforePacketIndex, CancellationToken cancellationToken) =>
             source.FindSeekPoint(streamIndex, target, beforePacketIndex, cancellationToken);
+
+        public ContainerSeekPoint GetPrerollStart(long outputPacketIndex, int minimumPrecedingPackets,
+            CancellationToken cancellationToken) => source is IIndexedPrerollReader preroll
+                ? preroll.GetPrerollStart(streamIndex, outputPacketIndex, minimumPrecedingPackets, cancellationToken)
+                : throw new NotSupportedException("The indexed reader does not provide codec preroll positioning.");
 
         public async ValueTask<MediaPacket> ReadPacketAtAsync(long packetIndex, CancellationToken cancellationToken)
         {

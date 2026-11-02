@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Containers.Mp4;
 using Mediana.Core.Audio;
 using Mediana.Tests;
 
@@ -43,6 +44,12 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS PCM stream output: both byte orders, direct storage, bounded scratch and asynchronous failure ownership.");
             Console.WriteLine("PASS PCM preparation: matching sample storage, timing, original allocation budget and retained frame ownership.");
             await Mp4RecoveryTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
+            foreach ((string directory, string name) in new[] { ("Aac", "lc-mono-48"), ("Aac", "lc-stereo-44"),
+                ("AacMultichannel", "layout-6"), ("AacMultichannel", "window-transitions") })
+            {
+                await AacSeekTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", directory), name, Mp4TimestampMode.Media);
+                await AacSeekTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", directory), name, Mp4TimestampMode.LinearMovie);
+            }
             await AudioWaveformTestInput.VerifyAsync();
             await WaveformMixerTestInput.VerifyAsync(AudioStorageLayout.Interleaved, 1);
             await WaveformMixerTestInput.VerifyAsync(AudioStorageLayout.Planar, 83);
