@@ -10,6 +10,10 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            H264FramePublicationTestInput.VerifyPublication();
+            H264FramePublicationTestInput.VerifyCancellation();
+            H264FramePublicationTestInput.VerifyConstructionFailure();
+            Console.WriteLine("PASS H.264 publication: shared immutable pixels, crop/stride, independent frame/reference ownership and failed allocation cleanup.");
             PresentationTimingTestInput.VerifyRetainedPacket();
             await PresentationTimingTestInput.VerifyLimitsAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
             await PresentationTimingTestInput.VerifySignedAndUnknownAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));

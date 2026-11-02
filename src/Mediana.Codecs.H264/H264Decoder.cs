@@ -170,7 +170,7 @@ namespace Mediana.Codecs.H264
             bool queued = false;
             try
             {
-                frame = H264FrameExporter.Export(picture, allocator, packet.PresentationTime, packet.Duration, cancellationToken,
+                frame = H264FramePublisher.Publish(picture, packet.PresentationTime, packet.Duration, cancellationToken,
                     colorDescription, aspectRatioDescription);
                 cancellationToken.ThrowIfCancellationRequested();
                 references.Store(picture, header, nextOrder.Current);
