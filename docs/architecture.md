@@ -420,9 +420,13 @@ retained; finite headroom and signed zero remain bit-exact. Conversion retains
 the existing saturation and rounding rules. The CLI uses `ConvertOrRetain` for
 WAVE output and AAC input preparation, including the shared HLS audio path.
 
-Audio trimming returns a tightly packed selection in its destination allocator.
-This independent allocation prevents a small selected range from keeping an
-entire source allocation alive; planar selections also require repacking.
+Audio trimming returns tightly packed PCM with independent frame ownership.
+Complete blocks retain immutable source storage with the selected timestamp;
+the original allocator continues counting that storage until the last lease is
+released. Partial boundary blocks are copied into the destination allocator,
+preventing a small selected range from retaining an entire source allocation and
+repacking planar channel selections. `AudioFrame.RetainWithTimestamp` changes
+only the retained frame's timestamp, including an explicitly unknown timestamp.
 The `AudioTrimmer` constructor requires the entire requested sample range to
 exist. `CreateWindow` selects the intersection of a half-open sample window and
 the available decoded PCM. Natural EOF may end that selection early; decoder,

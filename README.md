@@ -510,13 +510,20 @@ dotnet run --project tools/Mediana.Cli -c Release --no-build -- audio resample t
 
 The `Mediana.Processing.Audio` namespace provides independent processing steps.
 `AudioTrimmer` skips a caller-specified number of decoded samples and optionally
-selects an exact sample count. It pulls owned frames, copies only the selected
-parts into owned output and keeps no recording-sized history. Interleaved and
+selects an exact sample count. It pulls owned frames, retains complete blocks
+without copying their PCM and copies partial boundary blocks into its allocator.
+Every returned frame has an independent lease; complete blocks remain charged
+to their original allocator. It keeps no recording-sized history. Interleaved and
 planar PCM retain their format, channel order and exact sample bytes. A null count
 reads through EOF; a finite requested range must exist completely. A zero count
 returns EOF without reading. Original timestamps remain continuous unless the
 caller supplies an explicit output origin. It stops reading at the selected end;
 the source remains borrowed and must still be disposed by its owner.
+
+`AudioFrame.RetainWithTimestamp(timestamp)` retains immutable PCM with an explicit
+known or unknown timestamp. Sample count, duration and the original frame remain
+unchanged. Audio trimming uses this operation when a complete block needs a new
+output origin. See the [complete audio-window comparison](docs/audio-window-storage.md).
 
 `Mp4AudioSampleRange.FromEditList(track, decodedSampleRate)` translates one
 explicit unit-rate media edit, optionally preceded by an empty edit, into a PCM
