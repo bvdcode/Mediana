@@ -9,6 +9,15 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            await VideoWindowTestInput.VerifySelectionAsync();
+            await VideoWindowTestInput.VerifyFailureAsync();
+            await VideoWindowTestInput.VerifyCancellationAsync();
+            await VideoWindowTestInput.VerifyConcurrencyAsync();
+            foreach (string name in new[] { "frame-rate-cfr.mp4", "frame-rate-vfr.mp4", "frame-rate-edited.mp4", "preview-hd.mp4" })
+            {
+                await RealVideoWindowTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), name);
+            }
+            Console.WriteLine("PASS video windows: exact half-open movie times, independent complete pixels, no pixel copies, cancellation and retained ownership.");
             await ServerAudioPreviewTestInput.VerifyCoversAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             await ServerAudioPreviewTestInput.VerifyWaveformsAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             await ServerAudioPreviewTestInput.VerifyRecognizedFailureAsync(Path.Combine(AppContext.BaseDirectory, "Data"), false);
