@@ -10,6 +10,7 @@ namespace Mediana.Tests
     {
         public static void Verify()
         {
+            VerifyStridedBlocks();
             for (int left = 0; left <= 255; left++)
             {
                 for (int right = 0; right <= 255; right++)
@@ -35,6 +36,61 @@ namespace Mediana.Tests
                 if (H264SampleDifference.Sum16(Vector128.LoadUnsafe(ref first[0]), Vector128.LoadUnsafe(ref second[0])) != expected)
                 {
                     throw new InvalidDataException("The vector difference omitted or changed a mixed lane contribution.");
+                }
+            }
+        }
+
+        private static void VerifyStridedBlocks()
+        {
+            foreach (int stride in new[] { 16, 17, 32, 67 })
+            {
+                byte[] input = new byte[256 + 6];
+                byte[] prediction = new byte[stride * 15 + 16 + 6];
+                for (int pattern = 0; pattern < 32; pattern++)
+                {
+                    input.AsSpan().Fill(183);
+                    prediction.AsSpan().Fill(183);
+                    int[] prefixes = new int[16];
+                    int sum = 0;
+                    for (int row = 0; row < 16; row++)
+                    {
+                        for (int column = 0; column < 16; column++)
+                        {
+                            byte first = (byte)((pattern * 19 + row * 53 + column * 7) & 255);
+                            byte second = (byte)((pattern * 37 + row * row * 29 + column * 11) & 255);
+                            input[3 + row * 16 + column] = first;
+                            prediction[3 + row * stride + column] = second;
+                            sum += Math.Abs(first - second);
+                        }
+                        prefixes[row] = sum;
+                    }
+                    byte[] originalInput = input.ToArray();
+                    byte[] originalPrediction = prediction.ToArray();
+                    ReadOnlySpan<byte> source = input.AsSpan(3, 256);
+                    ReadOnlySpan<byte> reference = prediction.AsSpan(3, stride * 15 + 16);
+                    foreach (int prefix in prefixes)
+                    {
+                        foreach (int stop in new[] { 0, prefix - 1, prefix, prefix + 1, int.MaxValue })
+                        {
+                            int expected = prefixes[^1];
+                            foreach (int partial in prefixes)
+                            {
+                                if (partial > stop)
+                                {
+                                    expected = partial;
+                                    break;
+                                }
+                            }
+                            if (H264SampleDifference.Sum16x16(source, reference, stride, stop) != expected)
+                            {
+                                throw new InvalidDataException("Strided motion differences changed a row rejection boundary or included padding.");
+                            }
+                        }
+                    }
+                    if (!input.AsSpan().SequenceEqual(originalInput) || !prediction.AsSpan().SequenceEqual(originalPrediction))
+                    {
+                        throw new InvalidDataException("Strided motion differences changed source samples or guards.");
+                    }
                 }
             }
         }

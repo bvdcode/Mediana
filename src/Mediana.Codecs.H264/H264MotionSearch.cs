@@ -120,11 +120,19 @@ namespace Mediana.Codecs.H264
             {
                 return;
             }
+            long x = (long)position.X + (nextX >> 2);
+            long y = (long)position.Y + (nextY >> 2);
+            if (((nextX | nextY) & 3) == 0 && x >= 0 && x <= reference.Width - 16 && y >= 0 && y <= reference.Height - 16)
+            {
+                ReadOnlySpan<byte> luma = reference.ReadPlane(0).Slice((int)y * reference.Width + (int)x, 15 * reference.Width + 16);
+                Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], luma, reference.Width, best), materializeLuma: true);
+                return;
+            }
             H264PredictionBlock.Read(reference, 0, position.X, position.Y, 16, 16, nextX, nextY, candidate[..256]);
             Compare(nextX, nextY, Difference(source[..256], candidate[..256], best));
         }
 
-        private void Compare(int nextX, int nextY, int difference)
+        private void Compare(int nextX, int nextY, int difference, bool materializeLuma = false)
         {
             if (difference > best)
             {
@@ -136,6 +144,10 @@ namespace Mediana.Codecs.H264
             if (difference < best || (difference == best &&
                 VectorBits(nextX - predicted.X, nextY - predicted.Y) < VectorBits(motionX - predicted.X, motionY - predicted.Y)))
             {
+                if (materializeLuma)
+                {
+                    H264PredictionBlock.Read(reference, 0, position.X, position.Y, 16, 16, nextX, nextY, candidate[..256]);
+                }
                 best = difference;
                 motionX = nextX;
                 motionY = nextY;
