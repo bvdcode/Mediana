@@ -82,7 +82,7 @@ namespace Mediana.Codecs.H264
                 Vector128<short> bottom = Horizontal8(patch, (row + 1) * stride, horizontalWeight);
                 Vector128<short> value = Vector128.ShiftLeft(top, 3) + (bottom - top) * verticalWeight + Vector128.Create((short)32);
                 Vector128<ushort> rounded = Vector128.ShiftRightLogical(value.AsUInt16(), 6);
-                Vector128.Narrow(rounded, Vector128<ushort>.Zero).GetLower().StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)(row * outputStride));
+                H264VectorSamples.Write8(output, row * outputStride, Vector128.Narrow(rounded, Vector128<ushort>.Zero));
                 top = bottom;
             }
         }
@@ -95,6 +95,6 @@ namespace Mediana.Codecs.H264
         }
 
         private static Vector128<short> Read8(ReadOnlySpan<byte> samples, int position) =>
-            Vector128.WidenLower(Vector64.LoadUnsafe(ref MemoryMarshal.GetReference(samples), (nuint)position).ToVector128Unsafe()).AsInt16();
+            Vector128.WidenLower(H264VectorSamples.Read8(samples, position)).AsInt16();
     }
 }

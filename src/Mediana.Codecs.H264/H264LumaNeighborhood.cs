@@ -52,10 +52,10 @@ namespace Mediana.Codecs.H264
                     int index = row * Window + column;
                     Vector128<int> lower = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)((row + 2) * Window + column));
                     Vector128<int> upper = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(intermediate), (nuint)((row + 2) * Window + column + Vector128<int>.Count));
-                    H264LumaFilter.Half8(Vector128.Narrow(lower, upper)).StoreUnsafe(ref MemoryMarshal.GetReference(filtered), (nuint)index);
+                    H264VectorSamples.Write8(filtered, index, H264LumaFilter.Half8(Vector128.Narrow(lower, upper)));
                     Vector128<short> verticalSum = H264LumaFilter.Sum8(samples, row * Patch + column + 2, Patch);
-                    H264LumaFilter.Half8(verticalSum).StoreUnsafe(ref MemoryMarshal.GetReference(filtered), (nuint)(Plane + index));
-                    H264LumaFilter.Diagonal8(intermediate, Window, index).StoreUnsafe(ref MemoryMarshal.GetReference(filtered), (nuint)(2 * Plane + index));
+                    H264VectorSamples.Write8(filtered, Plane + index, H264LumaFilter.Half8(verticalSum));
+                    H264VectorSamples.Write8(filtered, 2 * Plane + index, H264LumaFilter.Diagonal8(intermediate, Window, index));
                 }
                 for (; column < Window; column++)
                 {

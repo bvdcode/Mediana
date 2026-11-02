@@ -84,6 +84,7 @@
     <Compile Include="../Shared/H264VlcTestInput.cs" Link="H264VlcTestInput.cs" />
     <Compile Include="../Shared/H264SourceBlockTestInput.cs" Link="H264SourceBlockTestInput.cs" />
     <Compile Include="../Shared/H264LumaNeighborhoodTestInput.cs" Link="H264LumaNeighborhoodTestInput.cs" />
+    <Compile Include="../Shared/H264VectorKernelTestInput.cs" Link="H264VectorKernelTestInput.cs" />
     <Compile Include="../Shared/H264MotionSearchTestInput.cs" Link="H264MotionSearchTestInput.cs" />
     <None Include="../Mediana.Tests/Data/H264/motion-*.yuv;../Mediana.Tests/Data/H264/MOTION-SEARCH.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/H264/baseline-chroma-*.yuv" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

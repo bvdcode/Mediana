@@ -19,13 +19,13 @@ namespace Mediana.Codecs.H264
                 int column = 0;
                 for (; column <= width - Vector64<byte>.Count; column += Vector64<byte>.Count)
                 {
-                    Vector64<byte> value = H264LumaFilter.Half8(H264LumaFilter.Sum8(samples, start + column, tapStride));
+                    Vector128<byte> value = H264LumaFilter.Half8(H264LumaFilter.Sum8(samples, start + column, tapStride));
                     Write8(output, destination + column, value, average);
                 }
                 if (column <= width - Vector128<int>.Count)
                 {
-                    Vector64<byte> value = H264LumaFilter.Half8(H264LumaFilter.Sum4(samples, start + column, tapStride));
-                    Write4(output, destination + column, value.ToVector128Unsafe(), average);
+                    Vector128<byte> value = H264LumaFilter.Half8(H264LumaFilter.Sum4(samples, start + column, tapStride));
+                    Write4(output, destination + column, value, average);
                     column += Vector128<int>.Count;
                 }
                 for (; column < width; column++)
@@ -67,8 +67,7 @@ namespace Mediana.Codecs.H264
                 int column = 0;
                 for (; column <= width - Vector64<byte>.Count; column += Vector64<byte>.Count)
                 {
-                    H264LumaFilter.Diagonal8(horizontal, width, row * width + column)
-                        .StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)(row * outputStride + column));
+                    H264VectorSamples.Write8(output, row * outputStride + column, H264LumaFilter.Diagonal8(horizontal, width, row * width + column));
                 }
                 if (column <= width - Vector128<int>.Count)
                 {
@@ -98,8 +97,8 @@ namespace Mediana.Codecs.H264
                 if (column <= width - Vector128<int>.Count)
                 {
                     Vector128<int> values = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(start + column));
-                    Vector64<byte> value = H264LumaFilter.Half8(Vector128.Narrow(values, Vector128<int>.Zero));
-                    Write4(output, row * outputStride + column, value.ToVector128Unsafe(), true);
+                    Vector128<byte> value = H264LumaFilter.Half8(Vector128.Narrow(values, Vector128<int>.Zero));
+                    Write4(output, row * outputStride + column, value, true);
                     column += Vector128<int>.Count;
                 }
                 for (; column < width; column++)
@@ -117,7 +116,7 @@ namespace Mediana.Codecs.H264
                 int column = 0;
                 for (; column <= width - Vector64<byte>.Count; column += Vector64<byte>.Count)
                 {
-                    Vector64<byte> value = Vector64.LoadUnsafe(ref MemoryMarshal.GetReference(samples), (nuint)(origin + row * stride + column));
+                    Vector128<byte> value = H264VectorSamples.Read8(samples, origin + row * stride + column);
                     Write8(output, row * outputStride + column, value, true);
                 }
                 if (column <= width - Vector128<int>.Count)
@@ -134,14 +133,13 @@ namespace Mediana.Codecs.H264
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Write8(Span<byte> output, int position, Vector64<byte> value, bool average)
+        private static void Write8(Span<byte> output, int position, Vector128<byte> value, bool average)
         {
             if (average)
             {
-                Vector64<byte> previous = Vector64.LoadUnsafe(ref MemoryMarshal.GetReference(output), (nuint)position);
-                value = H264SampleAverage.Rounded(value.ToVector128Unsafe(), previous.ToVector128Unsafe()).GetLower();
+                value = H264SampleAverage.Rounded(value, H264VectorSamples.Read8(output, position));
             }
-            value.StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)position);
+            H264VectorSamples.Write8(output, position, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
