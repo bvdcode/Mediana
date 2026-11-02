@@ -57,12 +57,54 @@ justify an added codeword abstraction and inlining requirement for the current
 performance work. Neither variant was adopted. The existing CAVLC implementation
 and its validated encoding output remain unchanged.
 
-## Next structural investigation
+## Complete reference-plane experiment
 
-Mediana currently prepares horizontal, vertical and diagonal half-sample data
-for each motion-search neighborhood. The
+A diagnostic variant prepares padded integer samples and the horizontal,
+vertical and diagonal half-sample planes once per reference picture. One
+budgeted workspace is reused between pictures and rate-control retries. Sample
+views are read-only; completion, reset, failure and disposal release storage.
+The interpolation arithmetic follows clause 8.4.2.2.1 of H.264. The
 [x264 frame filter](https://github.com/mirror/x264/blob/master/common/mc.c)
-prepares reusable filtered reference planes. Reusing prepared reference data in
-Mediana remains open and requires independent boundary/rounding checks, explicit
-memory ownership and a complete CPU/RSS comparison. No speed or memory benefit
-is established by this investigation.
+provides a reference for organizing reusable planes.
+
+Independent scalar convolution checks cover all 49 refinement offsets, ringing
+patterns, borders and extreme coordinates. Additional tests check unchanged
+published pixels, allocation-free reuse, memory-budget rejection and
+cancellation. All 25 focused managed tests and the strict Native AOT build pass.
+
+The same complete raw input, encoder settings, CPU assignment and serial
+measurement procedure are used as above:
+
+| Execution order | CPU seconds | Elapsed seconds | Peak RSS, KiB |
+| --- | ---: | ---: | ---: |
+| before-1 | 41.406728 | 43.529593 | 51,748 |
+| variant-1 | 50.727368 | 53.659924 | 70,656 |
+| variant-2 | 78.630861 | 81.186218 | 69,108 |
+| before-2 | 53.591345 | 55.226649 | 50,904 |
+
+The CPU medians are **47.499037 and 64.679115 seconds**; the variant is 36.17%
+slower in this batch. RSS medians are 50.12 and 68.24 MiB. The substantial
+variation within each version prevents a portable throughput claim or a causal
+explanation from this series alone. No benefit is established, and the variant
+was not adopted.
+
+All four complete 78,332,832-byte transports match the independently decoded
+reference exactly. Every observation produces 1,441 packets, reaches EOF and
+releases media storage. Source, input and binary hashes remain unchanged during
+the comparison.
+
+A separate full-input census records **5,057,417 prepared neighborhoods** over
+5,148,000 inter-picture macroblocks, about 98.24%. Thus rare fractional
+refinement does not explain the result on this input. The neighborhood filters
+calculate 5,370,976,854 scalar-equivalent six-tap output positions. Preparing
+complete planes for all 1,430 inter pictures calculates at most 4,001,855,000
+such positions. These counts are not instruction counts or CPU costs; fewer
+positions alone did not establish a useful implementation. The census also
+preserves the complete reference transport and releases all owned media.
+
+The existing neighborhood implementation remains in use. Fractional candidate
+evaluation, memory access and generated Native AOT instructions require further
+measurement before another preparation strategy is selected. The established
+[integer-search result](h264-integer-search.md) and
+[complete-film HLS result](hls-hd-encoding.md) remain the applicable product
+measurements; this experiment establishes no improvement over either.
