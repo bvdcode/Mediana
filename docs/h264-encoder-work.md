@@ -108,3 +108,41 @@ measurement before another preparation strategy is selected. The established
 [integer-search result](h264-integer-search.md) and
 [complete-film HLS result](hls-hd-encoding.md) remain the applicable product
 measurements; this experiment establishes no improvement over either.
+
+## Fractional-filter instruction experiments
+
+Three further variants retain the same search order, thresholds, interpolation
+arithmetic and output bytes. Each comparison uses frozen strict Native AOT
+binaries and eight complete serial observations in before/after/after/before,
+then after/before/before/after order. CPU assignment, input and processing-thread
+settings match the preceding experiments.
+
+| Variant | Before CPU median, s | Variant CPU median, s | CPU change |
+| --- | ---: | ---: | ---: |
+| Advance candidate row addresses directly | 39.666729 | 39.548312 | -0.30% |
+| SSSE3 paired six-tap products | 41.387066 | 42.005126 | +1.49% |
+| SSE2 saturating pixel packing | 39.786442 | 40.060450 | +0.69% |
+
+Native disassembly confirms that direct row addressing removes two integer
+multiplications from the averaging loop. The SSSE3 variant uses three paired
+multiply-add operations for the six filter coefficients. Saturating packing
+removes a separate half-sample helper call and reduces the diagonal helper from
+240 to 192 bytes. These instruction changes do not establish an encoding CPU
+benefit. The first packing observation appeared faster, but the complete
+reversed series did not confirm that result.
+
+All 24 complete encoded transports match the same 78,332,832-byte reference.
+Each contains 1,441 pictures, reaches EOF and releases owned media storage.
+Focused managed checks and strict Native AOT builds pass for every variant.
+Independent scalar checks cover packing rounding, clipping, overflow boundaries
+and unchanged input storage; software-only fractional checks also pass for the
+SSSE3 and packing variants.
+
+The packing variant also completes eight independent full decoding observations.
+Every result matches all 1,992,038,400 reference pixel bytes. Median CPU changes
+from 18.735485 to 18.149898 seconds (-3.13%); median elapsed time changes from
+19.208179 to 19.339005 seconds. This small shared-host observation, without an
+encoding benefit, does not justify adopting the additional processor-specific
+path for the current performance work. None of the three variants was adopted.
+Product sources and reference fixtures remain identical to the accepted
+implementation.
