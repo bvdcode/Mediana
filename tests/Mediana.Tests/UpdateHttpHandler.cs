@@ -5,7 +5,7 @@ using System.Net;
 
 namespace Mediana.Tests
 {
-    internal class UpdateHttpHandler(string metadata, byte[] payload, Action? downloading = null,
+    internal class UpdateHttpHandler(UpdateTestRelease release, Action? downloading = null,
         HttpStatusCode status = HttpStatusCode.OK) : HttpMessageHandler
     {
         public int RequestCount { get; private set; }
@@ -14,16 +14,12 @@ namespace Mediana.Tests
         {
             cancellationToken.ThrowIfCancellationRequested();
             RequestCount++;
-            HttpResponseMessage response = new(status);
-            if (request.RequestUri?.AbsolutePath.EndsWith("/latest", StringComparison.Ordinal) == true)
-            {
-                response.Content = new StringContent(metadata);
-            }
-            else
+            if (request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath.EndsWith(".sha256", StringComparison.Ordinal) == false)
             {
                 downloading?.Invoke();
-                response.Content = new ByteArrayContent(payload);
             }
+            HttpResponseMessage response = release.Respond(request);
+            response.StatusCode = status;
             return Task.FromResult(response);
         }
     }

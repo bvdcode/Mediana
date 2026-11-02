@@ -19,9 +19,14 @@ the published Windows x64, Linux x64 and macOS ARM64 executables. It preserves
 the executable's location and custom filename. Linux and macOS retain the existing
 file permissions. The installation directory must be writable.
 
+Release checks use GitHub's `releases/latest` redirect and the release's `.sha256`
+asset, without calling the GitHub REST API or requiring an API token. The release
+tag must be a stable three-part version in the Mediana repository. Checksum reads
+are bounded and must name exactly the executable for the selected platform.
+
 The updater selects the executable for the current operating system and process
-architecture. Before replacement, it verifies the download size, GitHub's SHA-256
-digest, product identity and version. A check does not download the executable;
+architecture. Before replacement, it verifies the download size, the published
+SHA-256 checksum, product identity and version. A check does not download the executable;
 an installed newer version is never downgraded. Updating requires a published
 Native AOT executable.
 

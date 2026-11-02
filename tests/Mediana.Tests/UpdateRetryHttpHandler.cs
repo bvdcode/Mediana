@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Net;
-
 namespace Mediana.Tests
 {
     internal class UpdateRetryHttpHandler(Func<HttpRequestMessage, int, HttpResponseMessage> respond) : HttpMessageHandler
@@ -15,12 +13,9 @@ namespace Mediana.Tests
             return Task.FromResult(respond(request, ++RequestCount));
         }
 
-        public static HttpResponseMessage Metadata(byte[] payload)
+        public static HttpResponseMessage Release(HttpRequestMessage request, byte[] payload)
         {
-            return new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent(UpdateTestRelease.Metadata("1.2.3", payload).ToJsonString())
-            };
+            return new UpdateTestRelease(payload).Respond(request);
         }
     }
 }

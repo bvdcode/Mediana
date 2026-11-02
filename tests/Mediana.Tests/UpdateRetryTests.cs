@@ -20,16 +20,16 @@ namespace Mediana.Tests
         {
             ProgressTestContext log = new();
             UpdateRetryPolicy retry = new(log, RecordDelayAsync);
-            using UpdateRetryHttpHandler handler = new((_, attempt) => attempt < 3
+            using UpdateRetryHttpHandler handler = new((request, attempt) => attempt < 3
                 ? throw new HttpRequestException("Socket access denied.", new SocketException((int)SocketError.AccessDenied))
-                : UpdateRetryHttpHandler.Metadata(Payload));
+                : UpdateRetryHttpHandler.Release(request, Payload));
             using HttpClient http = new(handler);
             GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, retry);
 
             GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
 
             Assert.Equal(new Version(1, 2, 3), release.Version);
-            Assert.Equal(3, handler.RequestCount);
+            Assert.Equal(5, handler.RequestCount);
             Assert.Equal([TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2)], delays);
             Assert.Equal(2, log.Messages.Count);
             Assert.Contains("attempt 2/6", log.Messages[0], StringComparison.Ordinal);
@@ -48,16 +48,16 @@ namespace Mediana.Tests
         [InlineData(404, false)]
         public async Task OnlyTransientHttpFailuresAreRetried(int status, bool transient)
         {
-            using UpdateRetryHttpHandler handler = new((_, attempt) => attempt == 1
+            using UpdateRetryHttpHandler handler = new((request, attempt) => attempt == 1
                 ? new HttpResponseMessage((HttpStatusCode)status)
-                : UpdateRetryHttpHandler.Metadata(Payload));
+                : UpdateRetryHttpHandler.Release(request, Payload));
             using HttpClient http = new(handler);
             GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, new UpdateRetryPolicy(NullLogger.Instance, RecordDelayAsync));
 
             if (transient)
             {
                 await client.GetLatestAsync(CancellationToken.None);
-                Assert.Equal(2, handler.RequestCount);
+                Assert.Equal(4, handler.RequestCount);
                 Assert.Single(delays);
             }
             else
@@ -67,6 +67,46 @@ namespace Mediana.Tests
                 Assert.Equal(1, handler.RequestCount);
                 Assert.Empty(delays);
             }
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public async Task EachMetadataRequestCanRecoverFromTransientFailure(int failedRequest)
+        {
+            using UpdateRetryHttpHandler handler = new((request, attempt) => attempt == failedRequest
+                ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                : UpdateRetryHttpHandler.Release(request, Payload));
+            using HttpClient http = new(handler);
+            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, new UpdateRetryPolicy(NullLogger.Instance, RecordDelayAsync));
+            GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
+            Assert.Equal(new Version(1, 2, 3), release.Version);
+            Assert.Equal(failedRequest + 3, handler.RequestCount);
+            Assert.Single(delays);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public async Task CancellationAtEachMetadataRequestStopsWithoutRetry(int cancelledRequest)
+        {
+            using CancellationTokenSource source = new();
+            using UpdateRetryHttpHandler handler = new((request, attempt) =>
+            {
+                if (attempt == cancelledRequest)
+                {
+                    source.Cancel();
+                    throw new OperationCanceledException(source.Token);
+                }
+                return UpdateRetryHttpHandler.Release(request, Payload);
+            });
+            using HttpClient http = new(handler);
+            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, new UpdateRetryPolicy(NullLogger.Instance, RecordDelayAsync));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.GetLatestAsync(source.Token));
+            Assert.Equal(cancelledRequest, handler.RequestCount);
+            Assert.Empty(delays);
         }
 
         [Fact]
@@ -106,11 +146,11 @@ namespace Mediana.Tests
         public async Task RequestTimeoutRetriesButCallerCancellationStops(bool cancel)
         {
             using CancellationTokenSource source = new();
-            using UpdateRetryHttpHandler handler = new((_, attempt) =>
+            using UpdateRetryHttpHandler handler = new((request, attempt) =>
             {
                 if (attempt > 1)
                 {
-                    return UpdateRetryHttpHandler.Metadata(Payload);
+                    return UpdateRetryHttpHandler.Release(request, Payload);
                 }
                 if (cancel)
                 {
@@ -130,25 +170,25 @@ namespace Mediana.Tests
             else
             {
                 await client.GetLatestAsync(source.Token);
-                Assert.Equal(2, handler.RequestCount);
+                Assert.Equal(4, handler.RequestCount);
                 Assert.Single(delays);
             }
         }
 
         [Fact]
-        public async Task InterruptedMetadataBodyIsDisposedAndRequestedAgain()
+        public async Task InterruptedChecksumBodyIsDisposedAndRequestedAgain()
         {
-            using InterruptedUpdateStream interrupted = new(Encoding.UTF8.GetBytes(UpdateTestRelease.Metadata("1.2.3", Payload).ToJsonString()));
-            using UpdateRetryHttpHandler handler = new((_, attempt) => attempt == 1
+            using InterruptedUpdateStream interrupted = new(Encoding.ASCII.GetBytes(new string('0', 64) + "  Mediana-1.2.3-win-x64.exe\n"));
+            using UpdateRetryHttpHandler handler = new((request, attempt) => attempt == 2
                 ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(interrupted) }
-                : UpdateRetryHttpHandler.Metadata(Payload));
+                : UpdateRetryHttpHandler.Release(request, Payload));
             using HttpClient http = new(handler);
             GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, new UpdateRetryPolicy(NullLogger.Instance, RecordDelayAsync));
 
             await client.GetLatestAsync(CancellationToken.None);
 
             Assert.True(interrupted.IsDisposed);
-            Assert.Equal(2, handler.RequestCount);
+            Assert.Equal(5, handler.RequestCount);
             Assert.Single(delays);
         }
 
@@ -156,12 +196,12 @@ namespace Mediana.Tests
         public async Task InterruptedDownloadIsTruncatedBeforeTheNextAttempt()
         {
             using InterruptedUpdateStream interrupted = new([9, 9, 9, 9, 9, 9, 9, 9]);
-            using UpdateRetryHttpHandler handler = new((request, attempt) => request.RequestUri!.AbsolutePath.EndsWith("/latest", StringComparison.Ordinal)
-                ? UpdateRetryHttpHandler.Metadata(Payload)
-                : new HttpResponseMessage(HttpStatusCode.OK)
+            using UpdateRetryHttpHandler handler = new((request, attempt) => request.Method == HttpMethod.Get && !request.RequestUri!.AbsolutePath.EndsWith(".sha256", StringComparison.Ordinal)
+                ? new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = attempt == 2 ? new StreamContent(interrupted) : new ByteArrayContent(Payload)
-                });
+                    Content = attempt == 4 ? new StreamContent(interrupted) : new ByteArrayContent(Payload)
+                }
+                : UpdateRetryHttpHandler.Release(request, Payload));
             using HttpClient http = new(handler);
             GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, new UpdateRetryPolicy(NullLogger.Instance, RecordDelayAsync));
             GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
@@ -171,23 +211,23 @@ namespace Mediana.Tests
 
             Assert.Equal(Payload, await File.ReadAllBytesAsync(destination));
             Assert.True(interrupted.IsDisposed);
-            Assert.Equal(3, handler.RequestCount);
+            Assert.Equal(5, handler.RequestCount);
             Assert.Single(delays);
         }
 
         [Fact]
         public async Task ChecksumFailureDoesNotRetryTheDownload()
         {
-            using UpdateRetryHttpHandler handler = new((request, _) => request.RequestUri!.AbsolutePath.EndsWith("/latest", StringComparison.Ordinal)
-                ? UpdateRetryHttpHandler.Metadata(Payload)
-                : new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([4, 3, 2, 1]) });
+            using UpdateRetryHttpHandler handler = new((request, _) => request.Method == HttpMethod.Get && !request.RequestUri!.AbsolutePath.EndsWith(".sha256", StringComparison.Ordinal)
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent([4, 3, 2, 1]) }
+                : UpdateRetryHttpHandler.Release(request, Payload));
             using HttpClient http = new(handler);
             GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, new UpdateRetryPolicy(NullLogger.Instance, RecordDelayAsync));
             GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
 
             await Assert.ThrowsAsync<InvalidDataException>(() => client.DownloadAsync(release, Path.Combine(directory, "download"), CancellationToken.None));
 
-            Assert.Equal(2, handler.RequestCount);
+            Assert.Equal(4, handler.RequestCount);
             Assert.Empty(delays);
         }
 
