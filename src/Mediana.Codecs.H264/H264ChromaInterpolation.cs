@@ -24,17 +24,30 @@ namespace Mediana.Codecs.H264
                 for (int left = 0; left < width;)
                 {
                     int tileWidth = Math.Min(BlockSize, width - left);
-                    int patchStride = tileWidth + 1;
-                    H264BorderExtension.Copy(samples, stride, rows, x + left, y + top,
-                        patchStride, tileHeight + 1, patch);
-                    Span<byte> destination = output[(top * width + left)..];
-                    if (tileWidth == Vector64<byte>.Count)
+                    int regionStride;
+                    scoped ReadOnlySpan<byte> region;
+                    long sourceX = x + left;
+                    long sourceY = y + top;
+                    if (sourceX >= 0 && sourceX < stride - tileWidth && sourceY >= 0 && sourceY < rows - tileHeight)
                     {
-                        Predict8(patch, patchStride, tileHeight, dx, dy, width, destination);
+                        regionStride = stride;
+                        region = samples[((int)sourceY * stride + (int)sourceX)..];
                     }
                     else
                     {
-                        PredictTile(patch, patchStride, tileWidth, tileHeight, a, b, c, d, width, destination);
+                        regionStride = tileWidth + 1;
+                        H264BorderExtension.Copy(samples, stride, rows, sourceX, sourceY,
+                            regionStride, tileHeight + 1, patch);
+                        region = patch;
+                    }
+                    Span<byte> destination = output[(top * width + left)..];
+                    if (tileWidth == Vector64<byte>.Count)
+                    {
+                        Predict8(region, regionStride, tileHeight, dx, dy, width, destination);
+                    }
+                    else
+                    {
+                        PredictTile(region, regionStride, tileWidth, tileHeight, a, b, c, d, width, destination);
                     }
                     left += tileWidth;
                 }
