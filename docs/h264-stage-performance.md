@@ -115,6 +115,15 @@ compute kernels; an isolated filter change does not represent their combined
 cost. It does not establish equivalent coding decisions or justify comparing
 Mediana only with the disabled-optimization configuration.
 
+The later [joint candidate comparison](h264-candidate-comparison.md) tests
+grouped scoring and delayed pixel materialization over eight complete encodes.
+CPU improves by 1.79% and peak RSS does not improve; the variant is not adopted.
+The work census identifies over 80 million prepared fractional candidates on
+the minute input, but removing their temporary writes alone does not establish
+a substantial whole-encoding improvement in this combined variant. Grouping
+also replaces early row rejection with complete candidate costs, so the
+comparison does not isolate temporary-store cost.
+
 ## Native decoder work distribution
 
 A separate instrumented Native AOT consumer measures coarse decoder stages.
