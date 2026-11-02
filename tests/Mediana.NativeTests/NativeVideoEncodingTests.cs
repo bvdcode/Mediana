@@ -10,6 +10,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync(string root, string h264Root)
         {
+            H264PictureReuseTestInput.Verify(false);
+            H264PictureReuseTestInput.Verify(true);
             await H264BaselineEncodingTestInput.VerifyAsync(h264Root, false);
             await H264BaselineEncodingTestInput.VerifyAsync(h264Root, true);
             Console.WriteLine("PASS H.264 Baseline chroma transitions: positive and negative levels stay within profile syntax and match independent complete samples.");
