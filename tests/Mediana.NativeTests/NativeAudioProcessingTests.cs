@@ -42,6 +42,7 @@ namespace Mediana.NativeTests
             await PcmStreamOutputTestInput.VerifyPendingFailureAsync(true, true);
             Console.WriteLine("PASS PCM stream output: both byte orders, direct storage, bounded scratch and asynchronous failure ownership.");
             Console.WriteLine("PASS PCM preparation: matching sample storage, timing, original allocation budget and retained frame ownership.");
+            await Mp4RecoveryTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
             await AudioWaveformTestInput.VerifyAsync();
             await WaveformMixerTestInput.VerifyAsync(AudioStorageLayout.Interleaved, 1);
             await WaveformMixerTestInput.VerifyAsync(AudioStorageLayout.Planar, 83);
