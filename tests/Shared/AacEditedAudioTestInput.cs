@@ -17,7 +17,7 @@ namespace Mediana.Tests
 {
     internal static class AacEditedAudioTestInput
     {
-        public static async Task VerifyTimeWindowAsync(string root, string name)
+        public static async Task VerifyTimeWindowAsync(string root, string name, bool indexed = false, byte[]? encoded = null)
         {
             using JsonDocument references = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "references.json")));
             JsonElement entry = references.RootElement.GetProperty("fixtures").EnumerateArray()
@@ -31,22 +31,34 @@ namespace Mediana.Tests
             byte[] reference = await File.ReadAllBytesAsync(Path.Combine(root, name + ".f32le"));
             foreach ((MediaTimestamp start, MediaTimestamp? end) in new (MediaTimestamp, MediaTimestamp?)[]
                 { (new(-1, new(1, 97)), new(1, new(1, 997))), (new(1, new(1, 997)), new(21, new(1, 97))),
-                  (new(7, new(1, 31)), null), (new(1, new(1, 1)), new(2, new(1, 1))) })
+                  (new(7, new(1, 31)), null), (new(1, new(1, 1)), new(2, new(1, 1))),
+                  (new(113, new(1, 997)), new(114, new(1, 997))), (new(0, new(1, 1)), new(0, new(1, 1))) })
             {
                 MediaBufferAllocator allocator = new(128 * 1024);
-                await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, name + ".m4a")));
+                await using Stream stream = encoded is null ? File.OpenRead(Path.Combine(root, name + ".m4a"))
+                    : new MemoryStream(encoded, writable: false);
+                await using RandomAccessStreamByteSource source = new(stream, leaveOpen: true);
                 Mp4AudioSampleRange edit;
                 await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
                 {
-                    edit = Mp4AudioSampleRange.FromEditList(reader.Tracks[0], rate);
+                    edit = reader.Tracks[0].Edits.Count == 0
+                        ? new(0, reference.Length / (channels * sizeof(float)), new(0, new(1, rate)))
+                        : Mp4AudioSampleRange.FromEditList(reader.Tracks[0], rate);
                 }
-                MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory())
+                Mp4TimestampMode mode = indexed ? Mp4TimestampMode.LinearMovie : Mp4TimestampMode.Media;
+                MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory(new() { TimestampMode = mode }))
                     .AddAudioDecoder(new AacDecoderFactory()).Build();
                 await using AudioSession session = await engine.OpenAudioAsync(source);
-                await using AudioTrimmer edited = AudioTrimmer.CreateWindow(session.ReadFrameAsync,
-                    edit.StartSample, edit.SampleCount, allocator, edit.PresentationTime);
+                if (indexed)
+                {
+                    await session.SeekAsync(start);
+                }
+                await using AudioTrimmer edited = indexed
+                    ? AudioTrimmer.CreateTimeWindow(session.ReadFrameAsync, edit.PresentationTime, edit.GetPresentationEnd(rate), allocator)
+                    : AudioTrimmer.CreateWindow(session.ReadFrameAsync, edit.StartSample, edit.SampleCount, allocator, edit.PresentationTime);
                 await using AudioTrimmer window = AudioTrimmer.CreateTimeWindow(edited.ReadFrameAsync, start, end, allocator);
-                int[] selected = Enumerable.Range(0, checked((int)edit.SampleCount)).Where(index =>
+                long available = reference.Length / (channels * sizeof(float));
+                int[] selected = Enumerable.Range(0, checked((int)Math.Max(0, Math.Min(edit.SampleCount, available - edit.StartSample)))).Where(index =>
                 {
                     MediaTimestamp timestamp = AudioTimeWindowTestInput.At(edit.PresentationTime, index, rate);
                     return timestamp.CompareTo(start) >= 0 && (end is null || timestamp.CompareTo(end.Value) < 0);
@@ -82,7 +94,8 @@ namespace Mediana.Tests
                 await window.DisposeAsync();
                 await edited.DisposeAsync();
                 await session.DisposeAsync();
-                if (position != selected.Length || allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)
+                if (position != selected.Length || allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0
+                    || !stream.CanRead || stream.Position != 0)
                 {
                     throw new InvalidDataException("The AAC presentation window lost samples or retained media buffers.");
                 }

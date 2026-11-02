@@ -32,13 +32,12 @@ namespace Mediana.Sample
             {
                 audioTrack = reader.Tracks.First(track => track.Stream.Kind == MediaKind.Audio);
             }
-            MediaEngine videoEngine = new MediaEngineBuilder()
+            MediaEngine engine = new MediaEngineBuilder()
                 .AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
-                .AddVideoDecoder(new H264DecoderFactory()).Build();
-            MediaEngine audioEngine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory())
+                .AddVideoDecoder(new H264DecoderFactory())
                 .AddAudioDecoder(new AacDecoderFactory()).Build();
-            await using VideoSession video = await videoEngine.OpenVideoAsync(source);
-            await using AudioSession audio = await audioEngine.OpenAudioAsync(source, audioTrack.Stream.StreamIndex);
+            await using VideoSession video = await engine.OpenVideoAsync(source);
+            await using AudioSession audio = await engine.OpenAudioAsync(source, audioTrack.Stream.StreamIndex);
             if (video.Stream.DisplayMatrix != VideoDisplayMatrix.Identity)
             {
                 throw new NotSupportedException("This sample requires an identity video display transform.");
@@ -47,14 +46,17 @@ namespace Mediana.Sample
             await using VideoTrimmer pictures = new(video.ReadFrameAsync, start, end);
             using VideoFrame firstPicture = await pictures.ReadFrameAsync()
                 ?? throw new InvalidDataException("The requested interval contains no video pictures.");
+            await audio.SeekAsync(start);
             AudioFrame? original = await audio.ReadFrameAsync()
                 ?? throw new InvalidDataException("The audio track contains no PCM samples.");
             try
             {
                 Mp4AudioSampleRange? edit = audioTrack.Edits.Count == 0 ? null
                     : Mp4AudioSampleRange.FromEditList(audioTrack, original.Format.SampleRate);
-                await using AudioTrimmer edited = AudioTrimmer.CreateWindow(ReadOriginalAsync, edit?.StartSample ?? 0,
-                    edit?.SampleCount, allocator, edit?.PresentationTime ?? original.Timestamp);
+                MediaTimestamp origin = original.Timestamp
+                    ?? throw new InvalidDataException("The audio track contains PCM without presentation timestamps.");
+                await using AudioTrimmer edited = AudioTrimmer.CreateTimeWindow(ReadOriginalAsync,
+                    edit?.PresentationTime ?? origin, edit?.GetPresentationEnd(original.Format.SampleRate), allocator);
                 await using AudioTrimmer samples = AudioTrimmer.CreateTimeWindow(edited.ReadFrameAsync, start, end, allocator);
                 using AudioFrame firstSamples = await samples.ReadFrameAsync()
                     ?? throw new InvalidDataException("The requested interval contains no audio samples.");
