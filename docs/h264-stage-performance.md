@@ -5,9 +5,12 @@ reduction is 16.18% over four complete 60.041667-second observations per version
 RSS is essentially unchanged. The
 [edge-filtering](h264-edge-filtering.md) and
 [bit-reading](h264-bit-reading.md) comparisons measure separate preceding changes.
-The [block interpolation comparison](h264-block-interpolation.md) measures raw
-encoding at 45.955 versus 14.218 CPU seconds (3.23x); the external reference
-remains smaller with higher PSNR. The stages are measured separately.
+The latest [integer motion search comparison](h264-integer-search.md) reduces
+raw encoding CPU from 52.424 to 50.729 seconds (3.23%) with identical output.
+Fresh FFmpeg/libx264 uses 15.144 CPU seconds, a 3.35x gap; its reference remains
+smaller with higher PSNR. The preceding
+[block interpolation comparison](h264-block-interpolation.md) measures a
+separate earlier change. The stages are measured separately.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
 uses 962.836 CPU seconds versus 274.925 for FFmpeg, a 3.50x gap,
 with all 406 published files identical to their independently verified references.
