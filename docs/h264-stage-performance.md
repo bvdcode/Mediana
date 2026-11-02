@@ -1,14 +1,16 @@
-The latest [bit-reading comparison](h264-bit-reading.md) uses 28.453 CPU seconds
-for complete HD decoding versus 4.312 for optimized FFmpeg, with identical
-raw samples (6.60x). These are medians of two complete 60.041667-second
-observations per implementation. Paired CPU reductions for this change are
-2.15–7.13%; the external CPU timings differ from the preceding batch. The preceding
-[block interpolation comparison](h264-block-interpolation.md) measures raw
+The latest [edge-filtering comparison](h264-edge-filtering.md) uses
+24.706 CPU seconds for complete HD decoding versus 4.031 for optimized
+FFmpeg, with identical raw samples (6.13x). These are medians of two complete
+60.041667-second observations per implementation. Paired CPU reductions for this
+change are 8.64–10.38%; elapsed and RSS observations are mixed. The preceding
+[bit-reading comparison](h264-bit-reading.md) measures a separate change.
+The [block interpolation comparison](h264-block-interpolation.md) measures raw
 encoding at 45.955 versus 14.218 CPU seconds (3.23x); the external reference
 remains smaller with higher PSNR. The stages are measured separately.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
 uses 992.938 CPU seconds versus 197.567 for FFmpeg, a 5.03x gap,
 with all 406 published files identical to their independently verified references.
+Those full-film measurements precede the edge-filtering change.
 
 The complete 60.041667-second HD input was measured separately through video
 decoding and video encoding. Separating the stages identifies where the current
