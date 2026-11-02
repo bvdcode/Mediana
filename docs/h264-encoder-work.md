@@ -146,3 +146,67 @@ encoding benefit, does not justify adopting the additional processor-specific
 path for the current performance work. None of the three variants was adopted.
 Product sources and reference fixtures remain identical to the accepted
 implementation.
+
+
+## Current coefficient and bit-writing controls
+
+A complete diagnostic at `5f9e7d3` includes the accepted
+[reconstruction storage reuse](h264-reconstruction-storage.md). It separates
+motion refinement, coefficient analysis and coefficient writing without an
+additional skip-candidate probe. The input and settings remain those of the
+complete stage comparison, with all 1,441 pictures and 60.041667 seconds.
+
+| Timed region | Calls | Instrumented elapsed seconds |
+| --- | ---: | ---: |
+| Picture encoding | 1,441 | 45.892629 |
+| Motion search | 5,148,000 | 19.011727 |
+| Fractional refinement | 5,148,000 | 13.701640 |
+| Neighborhood preparation | 5,057,417 | 5.043650 |
+| Inter luma analysis | 5,021,657 | 3.091849 |
+| Chroma analysis | 5,061,257 | 1.513612 |
+| CAVLC residual writing | 67,204,034 | 7.419697 |
+| Inverse 4x4 residual transform | 43,076,450 | 3.149033 |
+
+The complete diagnostic uses 46.592770 CPU seconds. Timers include overhead,
+regions overlap, and instrumentation can affect inlining. These are not CPU
+percentages. All output bytes match the independent transport reference, and
+media storage is released at EOF.
+
+Two variants target coefficient writing. Word packing assembles a complete
+short codeword with the pending bits before emitting its complete bytes; wider
+writes are split into two words. Nonzero collection uses four-lane integer
+comparisons to collect occupied coefficient positions, then visits only those
+positions in the original descending order. The unchanged encoder is the
+baseline for each variant; the variants are measured separately.
+
+Each comparison uses frozen Native AOT binaries, sequential execution on logical
+CPU 2, one processing thread and `DOTNET_PROCESSOR_COUNT=1`. Each run encodes the
+complete input, and no owned build, test or other media process overlaps timing.
+
+| Execution order | Word-packing CPU, s | Nonzero-collection CPU, s |
+| --- | ---: | ---: |
+| before-1 | 44.205802 | 42.956439 |
+| after-1 | 44.653400 | 40.649346 |
+| after-2 | 41.554626 | 43.347350 |
+| before-2 | 42.058169 | 40.768169 |
+| after-3 | 41.219578 | 40.498269 |
+| before-3 | 46.166762 | 43.534210 |
+| before-4 | 43.023413 | 40.938410 |
+| after-4 | 41.476831 | 41.088882 |
+
+| Variant | Before CPU median, s | Variant CPU median, s | First-series CPU change | Reversed-series CPU change | Before / variant RSS median, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Word packing | 43.614608 | 41.515729 | -0.06% | -7.28% | 37.55 / 40.34 |
+| Nonzero collection | 41.947425 | 40.869114 | +0.32% | -3.42% | 35.90 / 37.81 |
+
+The apparent aggregate reductions do not repeat across execution orders. Neither
+variant establishes a stable CPU improvement, and neither is adopted. Neither
+establishes lower RSS or cumulative allocation. The existing bit writer,
+coefficient traversal, public contracts and encoded output remain unchanged.
+
+All 16 complete transports are exactly the independently decoded
+78,332,832-byte reference, SHA256
+`d3090ee699cfdcc4330ec9815adaa1e7b08de1d95530e2e7af2e1596a399e543`.
+Every run produces 1,441 packets, reaches EOF and releases owned media storage.
+Source, raw input and frozen executable hashes remain unchanged throughout the
+measurements. These controls establish no new FFmpeg or complete-film HLS ratio.
