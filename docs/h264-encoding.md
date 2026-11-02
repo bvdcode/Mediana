@@ -363,3 +363,37 @@ peak RSS and every visible sample's source error for those earlier builds.
 The [complete 720p/360p audiovisual HLS comparison](hls-hd-encoding.md) measures
 the current temporal encoder together with resizing, stereo mixing, per-variant
 AAC encoding and segment output on the same original film.
+
+## Cost of Baseline macroblock constraint checks
+
+The coefficient-prefix and PCM-sample corrections were measured on the same
+complete 1441-picture, 60.041667-second, 1280x720 raw input and
+[encoding-stage settings](h264-stage-performance.md). Frozen Linux x64 Native AOT
+binaries ran serially on one assigned CPU in before/after/after/before order.
+
+| Order | Version | CPU seconds | Wall seconds | Peak RSS, KiB |
+| --- | --- | ---: | ---: | ---: |
+| 1 | Before | 60.598095 | 60.792558 | 52132 |
+| 2 | After | 60.562368 | 61.699752 | 52432 |
+| 3 | After | 61.172037 | 62.084152 | 51312 |
+| 4 | Before | 62.991306 | 63.945114 | 51364 |
+
+Every complete output retained the reference transport hash, all 1441 packets
+and pictures, EOF and zero live owned media bytes. The CPU differences were
+0.06% and 2.89%; these shared-host observations do not establish a stable speed
+improvement. One elapsed observation increased and peak RSS varied in both
+directions. This correction addresses invalid boundary output.
+
+Fresh one-thread FFmpeg/libx264 runs of the same raw input took 13.588352
+and 13.467968 CPU seconds, with peak RSS 115,104 and
+114,232 KiB. The ratio of median CPU times is 4.50x. Both
+FFmpeg outputs retained their independently decoded reference hash. Their better
+PSNR and smaller output remain unchanged, so the ratio does not represent
+equal-quality throughput. The full audiovisual HLS operation was not rerun for
+this correction.
+
+Release verification passed 2,956 managed tests, 695 H.264 tests with hardware
+intrinsics disabled, all 30 packages, the strict package-only Native AOT consumer
+and CLI, formatting and license-header checks. Six complete boundary sequences
+match independent decoding; these checks do not establish full Annex C HRD
+conformance.
