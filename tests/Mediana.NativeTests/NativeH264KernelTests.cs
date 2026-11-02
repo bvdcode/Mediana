@@ -17,6 +17,7 @@ namespace Mediana.NativeTests
             H264ForwardQuantizationTestInput.Verify();
             H264BitReadingTestInput.Verify();
             H264VlcTestInput.Verify();
+            H264CavlcLevelTestInput.Verify();
             H264DcResidualTestInput.VerifyDcOnly();
             H264DcResidualTestInput.VerifyAcBlocks();
             H264DcResidualTestInput.VerifyOverlappingStorage();

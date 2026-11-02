@@ -90,26 +90,36 @@ namespace Mediana.Codecs.H264
             H264CavlcTables.CoefficientToken[table].Write(bits, (total << 2) | trailing);
         }
 
-        private static bool TryWriteLevel(H264BitWriter bits, int code, int suffixLength)
+        internal static bool TryWriteLevel(H264BitWriter bits, int code, int suffixLength)
         {
-            for (int prefix = 0; prefix <= 15; prefix++)
+            int prefix = code >> suffixLength;
+            int suffixBits = suffixLength;
+            int suffix = code & ((1 << suffixLength) - 1);
+            if (prefix >= 14)
             {
-                int suffixBits = prefix switch { 14 when suffixLength == 0 => 4, >= 15 => prefix - 3, _ => suffixLength };
-                int basis = Math.Min(15, prefix) << suffixLength;
-                if (prefix >= 15 && suffixLength == 0)
+                if (suffixLength == 0 && code < 30)
                 {
-                    basis += 15;
+                    prefix = 14;
+                    suffixBits = 4;
+                    suffix = code - 14;
                 }
-                int suffix = code - basis;
-                if (suffix >= 0 && suffix < (1 << suffixBits))
+                else if (prefix >= 15)
                 {
-                    bits.WriteBits(0, prefix);
-                    bits.WriteFlag(true);
-                    bits.WriteBits((uint)suffix, suffixBits);
-                    return true;
+                    prefix = 15;
+                    suffixBits = 12;
+                    suffix = code - (15 << suffixLength);
+                    if (suffixLength == 0)
+                    {
+                        suffix -= 15;
+                    }
+                    if ((uint)suffix >= 4096)
+                    {
+                        return false;
+                    }
                 }
             }
-            return false;
+            bits.WriteBits((1UL << suffixBits) | (uint)suffix, prefix + 1 + suffixBits);
+            return true;
         }
     }
 }

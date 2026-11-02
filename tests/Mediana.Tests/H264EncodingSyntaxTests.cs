@@ -8,6 +8,9 @@ namespace Mediana.Tests
 {
     public class H264EncodingSyntaxTests
     {
+        [Fact]
+        public void CavlcLevelCodesPreserveAllBaselineBitsAlignmentsAndRejection() => H264CavlcLevelTestInput.Verify();
+
         [Theory]
         [InlineData(-1, 4)]
         [InlineData(0, 16)]
