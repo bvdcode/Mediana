@@ -544,6 +544,10 @@ packets from that point before applying the range; arbitrary seeking needs
 separate decoder preroll handling. MP4/MOV AAC-LC sessions now provide
 [`AudioSession.SeekAsync`](docs/audio-seeking.md); after seeking, select time
 windows on the mapped clock instead of reapplying a media-zero sample index.
+`GetPresentationEnd(decodedSampleRate)` returns the first excluded sample instant
+on that movie grid after the exactly selected sample count, including when the
+declared edit ends between samples. The audiovisual interval sample composes indexed audio
+restart, exact edit selection and the requested time window.
 
 ```csharp
 Mp4AudioSampleRange range = Mp4AudioSampleRange.FromEditList(track, decodedSampleRate);

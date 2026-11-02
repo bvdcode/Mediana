@@ -54,6 +54,9 @@ translates timestamps through supported edits; it retains encoded packets before
 and after the visible edit. Clamp sample selection to the explicit edit interval
 when that interval is required. `Mp4AudioSampleRange.StartSample` counts from media
 time zero and must not be applied again as a relative skip after seeking.
+`GetPresentationEnd(decodedSampleRate)` provides the first excluded sample
+instant on the movie grid. The audiovisual interval sample composes time windows
+for this edit and the requested interval after indexed restart.
 
 Exhaustive packet restarts in mono, stereo, 5.1 and window-transition inputs match
 sequential PCM byte for byte in both timestamp modes. Sequential PCM is also
@@ -67,7 +70,7 @@ Checks cover finite PCM, independently decoded channel-block energy, and declare
 spectral energy and stereo correlation across different generator states. They
 do not require pointwise identity for independently generated noise.
 
-The complete validation passes 3,048 managed tests, 617 audio/recovery tests with
+The complete validation passes 3,067 managed tests, 636 audio/recovery tests with
 hardware intrinsics disabled, and the package-only Native AOT runner using all
 30 packages. Strict Native AOT compilation also succeeds for the sample and CLI.
 Independent output AAC encoder priming, padding and gapless joins remain separate
