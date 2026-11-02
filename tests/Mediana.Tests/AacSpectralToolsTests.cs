@@ -96,17 +96,23 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(1)]
-        [InlineData(2)]
-        public void NoiseEnergyAndStereoCorrelationFollowTheSignalledBands(int mode)
+        [InlineData(0, 1u)]
+        [InlineData(1, 1u)]
+        [InlineData(2, 1u)]
+        [InlineData(0, 0x13579bdfu)]
+        [InlineData(1, 0x13579bdfu)]
+        [InlineData(2, 0x13579bdfu)]
+        [InlineData(0, uint.MaxValue)]
+        [InlineData(1, uint.MaxValue)]
+        [InlineData(2, uint.MaxValue)]
+        public void NoiseEnergyAndStereoCorrelationFollowTheSignalledBands(int mode, uint initialState)
         {
             MediaBufferAllocator allocator = new(65536);
             using AacChannelState left = Channel(allocator, 13, 8);
             using AacChannelState right = Channel(allocator, 13, 12);
             byte[] mask = new byte[512];
             mask[0] = 1;
-            uint noise = 1;
+            uint noise = initialState;
             AacSpectralTools.Reconstruct(left, right, true, mode, mask, ref noise, CancellationToken.None);
             double leftEnergy = 0;
             double rightEnergy = 0;

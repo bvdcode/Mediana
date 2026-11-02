@@ -10,7 +10,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    internal class AacDecoder : IMediaCodec<MediaPacket, AudioFrame>
+    internal class AacDecoder : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
     {
         private const uint InitialNoiseState = 0x13579bdf;
         private readonly int streamIndex;
@@ -21,10 +21,20 @@ namespace Mediana.Codecs.Aac
         private readonly AacChannelLayout layout;
         private AacDecoderWorkspace? workspace;
         private AudioFrame? pending;
+        private long prerollPackets;
         private uint noiseState = InitialNoiseState;
         private bool completed;
         private bool disposed;
         private bool faulted;
+
+        public int RequiredPrerollPackets => 1;
+
+        public void ResetForPreroll(long packetCount)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(packetCount);
+            Reset();
+            prerollPackets = packetCount;
+        }
 
         public AacDecoder(int streamIndex, AacConfiguration configuration, MediaBufferAllocator allocator, int maxAccessUnitBytes)
         {
@@ -63,6 +73,17 @@ namespace Mediana.Codecs.Aac
                 }
                 workspace ??= new AacDecoderWorkspace(allocator, layout);
                 AacAccessUnitParser.Read(input.Data.Span, configuration.FrequencyIndex, workspace, ref noiseState, cancellationToken);
+                if (prerollPackets != 0)
+                {
+                    for (int channel = 0; channel < workspace.Channels.Length; channel++)
+                    {
+                        Synthesize(workspace.Channels[channel], [], layout.OutputChannel(channel), cancellationToken);
+                    }
+                    cancellationToken.ThrowIfCancellationRequested();
+                    prerollPackets--;
+                    succeeded = true;
+                    return CodecInputStatus.Accepted;
+                }
                 using WritableMediaBuffer writable = allocator.Allocate(format.GetBufferSize(1024));
                 Span<float> output = MemoryMarshal.Cast<byte, float>(writable.Memory.Span);
                 for (int channel = 0; channel < workspace.Channels.Length; channel++)
@@ -91,6 +112,17 @@ namespace Mediana.Codecs.Aac
             AacSynthesis.Process(channel.Spectrum, channel.Info.Sequence, channel.Info.Shape, channel.PreviousShape,
                 channel.Overlap, synthesized, current.Time, current.Fourier, cancellationToken);
             channel.PreviousShape = channel.Info.Shape;
+            if (output.IsEmpty)
+            {
+                foreach (double sample in synthesized)
+                {
+                    if (!float.IsFinite((float)sample))
+                    {
+                        throw new InvalidDataException("AAC synthesis produced a nonfinite PCM sample.");
+                    }
+                }
+                return;
+            }
             int channels = format.Channels.Count;
             for (int index = 0; index < 1024; index++)
             {
@@ -123,6 +155,11 @@ namespace Mediana.Codecs.Aac
         public void CompleteInput()
         {
             EnsureUsable();
+            if (prerollPackets != 0)
+            {
+                Fault();
+                throw new InvalidDataException("AAC input ended before its requested preroll was complete.");
+            }
             completed = true;
             workspace?.Dispose();
             workspace = null;
@@ -136,6 +173,7 @@ namespace Mediana.Codecs.Aac
             workspace?.Dispose();
             workspace = null;
             noiseState = InitialNoiseState;
+            prerollPackets = 0;
             completed = false;
             faulted = false;
         }
