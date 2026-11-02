@@ -3,6 +3,11 @@ Repository Native AOT builds now prefer execution speed. The
 complete raw-encoding CPU by 6.64% with identical output. Decoder timing varies
 substantially, and fresh external controls also change markedly; this does not
 establish a new competitive ratio or complete-film HLS improvement.
+The subsequent [native stack diagnostic](h264-native-profile.md) identifies
+motion search as the largest named encoder region among its selected stacks.
+A complete chroma prediction-and-comparison fusion preserves every output byte
+but reduces CPU by only 0.86%, so it is not adopted. Stack counts are not CPU
+percentages and establish no new competitive ratio.
 
 The latest [direct-region comparison](h264-direct-prediction.md) uses
 23.105 CPU seconds for complete HD decoding versus 4.243 for optimized
