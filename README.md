@@ -559,6 +559,12 @@ PCM16 and RMS pipeline; its samples and levels match processing of the independe
 decoded and cropped reference, including both edges. Edit-list time is distinct from AAC frame duration;
 see Apple's [explicit encoder-delay representation](https://developer.apple.com/documentation/quicktime-file-format/using_track_structures_to_represent_encode_delay_explictly).
 
+`Mp4TrackInfo.RecoveryGroups` exposes declared `roll`/`prol` recovery requirements.
+`GetDistance(sampleIndex)` returns the signed distance for a zero-based encoded
+sample index, including mapping runs and defaults. These counts are encoded
+packets, distinct from PCM trimming and encoder delay. See
+[MP4 recovery groups](docs/mp4-recovery.md).
+
 `AudioChannelMixer` takes an explicit output-by-input coefficient matrix and channel
 labels. It preserves finite headroom in interleaved Float64 or Float32 output, without implicit
 speaker mapping, gain normalization or clipping. `AudioSampleConverter` changes
