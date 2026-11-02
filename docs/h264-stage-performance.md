@@ -390,3 +390,64 @@ CLI build passed. Release build, license headers and formatting also passed.
 Existing shared managed/native vectors verify every chroma fraction, scalar
 bilinear sampling, partial tiles, picture borders, extreme coordinates, output
 guards and the complete motion-search decisions.
+
+## Complete forward blocks and prepared quantization
+
+The x64 forward transform now processes the complete 4x4 coefficient matrix in
+SSE2 registers. Two transposes and two vector transforms replace eight scalar
+line calls and repeated intermediate storage accesses. The input is fully read
+before output writes, including for overlapping spans. Dispatch uses
+[`Sse2.IsSupported`](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.intrinsics.x86.sse2.issupported)
+and retains the existing scalar transform on other CPUs.
+
+Forward quantization prepares its three scale factors, shift and rounding
+constant once per block. A fixed scan-to-scale mapping replaces per-coefficient
+coordinate classification. Chroma DC also shares its rounding constant within
+the block. Signed rounding, coefficient order and error behavior remain exact.
+
+The transform baseline is `fa73094`, with implementation `2093a6c`.
+The quantization baseline includes that transform, with implementation `3e9e092`.
+Each change was measured independently on all 1,441 frames with frozen native
+consumers, the same raw input and the preceding one-core configuration.
+
+| Change and execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Transform: before then after | 68.843 | 66.239 | 3.78% | 69.896 | 69.626 | 50.43 | 51.61 |
+| Transform: after then before | 70.986 | 69.535 | 2.04% | 72.149 | 71.610 | 48.57 | 50.57 |
+| Quantization: before then after | 73.648 | 68.595 | 6.86% | 76.557 | 70.272 | 50.88 | 48.63 |
+| Quantization: after then before | 73.238 | 67.086 | 8.40% | 76.419 | 68.629 | 52.62 | 51.50 |
+
+These are separate paired comparisons on a shared host; their percentages must
+not be added to estimate a combined speedup. All eight transport outputs match
+the existing reference byte for byte, with EOF and zero retained media storage.
+The changes add no heap buffers and do not alter the encoded quality or size.
+No new complete-film HLS result is established by these stage measurements.
+
+Validation passed all 2,942 managed tests, 681 H.264 tests with hardware
+intrinsics disabled, 30 package checks, the strict package-only Native AOT
+suite, native CLI, Release build, formatting and license headers. Shared native
+and managed tests compare the transform with independent matrix multiplication
+over valid residuals, full integer endpoints, random coefficients, overlapping
+spans and output guards. Quantization checks every QP from 0 through 51, signed
+rounding boundaries, 15/16-coefficient scans and chroma DC equations.
+
+The updated diagnostic profile omits the per-SAD, per-neighborhood and nested
+integer/fractional-search timers. Across the complete input, picture encoding
+takes 67.005 instrumented elapsed seconds, including 30.295 in motion search,
+12.309 in luma analysis, 5.738 in chroma analysis, 10.978 in luma writing and
+3.329 in chroma writing. The complete output remains identical. These elapsed
+timers overlap with their enclosing picture and inter-picture stages; they are
+not CPU percentages and are not directly comparable with the more heavily
+instrumented baseline. Motion search remains the largest measured operation.
+
+Fresh optimized FFmpeg encoding observations after these changes used the same
+one-thread settings and produced the complete independently verified reference:
+
+| FFmpeg observation | CPU, s | Elapsed, s | RSS, MiB |
+| --- | ---: | ---: | ---: |
+| 1 | 12.513 | 12.681 | 113.27 |
+| 2 | 12.303 | 12.304 | 111.97 |
+
+The final Mediana and fresh FFmpeg CPU medians differ by 5.47x. The reference
+quality and size differences still apply; these changes have not closed the
+multi-fold encoder CPU gap.
