@@ -398,6 +398,14 @@ player or other synchronizing consumer owns the presentation clock. The source i
 borrowed and must support the selected container reader's access requirements.
 Media allocation budgets bound owned media buffers, not the entire process heap.
 
+The H.264 decoder allocates picture pixels separately from reconstruction metadata.
+After all slices and deblocking finish, it publishes the pixel buffer as read-only.
+Reference pictures and returned frames hold independent leases on those same pixels;
+later pixel writes are rejected. Dropping a reference picture releases its metadata
+without invalidating an exported frame. Crop offsets and coded strides are represented
+by `PlaneLayout`, so consumers read visible samples through `VideoFrame.GetRow`.
+See [decoded H.264 storage](h264-frame-memory.md).
+
 ## PCM preparation and ownership
 
 `AudioSampleConverter.Apply` always returns separate storage charged to the

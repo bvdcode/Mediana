@@ -1043,9 +1043,14 @@ prediction and transforms.
 Decoding begins with an IDR; sequence changes through in-band SPS/PPS also
 require an IDR. Each output carries
 its own format, color information, sample aspect ratio, presentation timestamp and
-duration. Cropping is applied to YUV storage; rotation, edit lists and display aspect
+duration. Cropping is represented by visible plane offsets and row widths over
+immutable coded YUV storage; callers use `GetRow` or the declared plane layouts.
+Finished picture pixels are shared with independently owned output frames without
+a second pixel allocation. Rotation, edit lists and display aspect
 transforms are not applied. Missing packet timestamps remain absent; unspecified
 sample aspect ratio and CICP color codes remain unspecified.
+
+See [decoded H.264 storage](docs/h264-frame-memory.md) for ownership and resource checks.
 
 MP4/MOV `colr` descriptions are retained separately from codec labels.
 `VideoFormat.GetColorInterpretation()` resolves source precedence; default sRGB
