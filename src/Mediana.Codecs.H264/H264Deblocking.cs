@@ -42,14 +42,16 @@ namespace Mediana.Codecs.H264
                 return;
             }
             int columns = header.Sequence.WidthInMbs;
+            H264DeblockingContext context = new(picture, references, referencesL1);
             Span<byte> strengths = stackalloc byte[32];
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 int lumaX = address % columns * 16;
                 int lumaY = address / columns * 16;
-                FillStrengths(picture, header, address, lumaX, lumaY, true, references, referencesL1, strengths[..16]);
-                FillStrengths(picture, header, address, lumaX, lumaY, false, references, referencesL1, strengths[16..]);
+                context.BeginMacroblock(address);
+                FillStrengths(picture, header, address, lumaX, lumaY, true, ref context, strengths[..16]);
+                FillStrengths(picture, header, address, lumaX, lumaY, false, ref context, strengths[16..]);
                 for (int plane = 0; plane < 3; plane++)
                 {
                     int scale = plane == 0 ? 1 : 2;
@@ -61,8 +63,8 @@ namespace Mediana.Codecs.H264
         }
 
         private static void FillStrengths(H264Picture picture, H264SliceHeader header, int address, int x, int y,
-            bool vertical, IReadOnlyList<H264ReferencePicture?>? references, IReadOnlyList<H264ReferencePicture?>? referencesL1,
-            Span<byte> strengths)
+            bool vertical, ref H264DeblockingContext context,
+            scoped Span<byte> strengths)
         {
             strengths.Clear();
             int edgeStep = picture.Transforms8x8[address] == 0 ? 4 : 8;
@@ -75,7 +77,7 @@ namespace Mediana.Codecs.H264
                 {
                     int lumaX = x + (vertical ? edge : segment * 4);
                     int lumaY = y + (vertical ? segment * 4 : edge);
-                    strengths[edge + segment] = (byte)BoundaryStrength(picture, lumaX, lumaY, vertical, edge == 0, references, referencesL1);
+                    strengths[edge + segment] = (byte)context.Strength(lumaX, lumaY, vertical, edge == 0);
                 }
             }
         }
@@ -139,30 +141,9 @@ namespace Mediana.Codecs.H264
         internal static int BoundaryStrength(H264Picture picture, int x, int y, bool vertical,
             bool macroblockEdge, IReadOnlyList<H264ReferencePicture?>? references, IReadOnlyList<H264ReferencePicture?>? referencesL1 = null)
         {
-            int previous = picture.BlockIndex(0, x - (vertical ? 1 : 0), y - (vertical ? 0 : 1));
-            int current = picture.BlockIndex(0, x, y);
-            if (picture.Modes[previous] != H264Picture.InterMode || picture.Modes[current] != H264Picture.InterMode)
-            {
-                return macroblockEdge ? 4 : 3;
-            }
-            if (HasResidual(picture, x - (vertical ? 1 : 0), y - (vertical ? 0 : 1)) || HasResidual(picture, x, y))
-            {
-                return 2;
-            }
-            return H264DeblockingMotion.Strength(picture, previous, current, references, referencesL1);
-        }
-
-        private static bool HasResidual(H264Picture picture, int x, int y)
-        {
-            int address = y / 16 * picture.Sequence.WidthInMbs + x / 16;
-            if (picture.Transforms8x8[address] == 0)
-            {
-                return picture.Counts(0)[picture.BlockIndex(0, x, y)] != 0;
-            }
-            int position = picture.BlockIndex(0, x / 8 * 8, y / 8 * 8);
-            int stride = picture.Width / 4;
-            Span<byte> counts = picture.Counts(0);
-            return counts[position] != 0 || counts[position + 1] != 0 || counts[position + stride] != 0 || counts[position + stride + 1] != 0;
+            H264DeblockingContext context = new(picture, references, referencesL1);
+            context.BeginMacroblock(y / 16 * picture.Sequence.WidthInMbs + x / 16);
+            return context.Strength(x, y, vertical, macroblockEdge);
         }
 
         private static int Qp(H264Picture picture, H264PictureParameterSet parameters, int plane, int address) => plane switch
