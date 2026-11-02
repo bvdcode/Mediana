@@ -129,13 +129,11 @@ namespace Mediana.Codecs.H264
             ReadOnlySpan<byte> second, int secondStride, int secondStart, ReadOnlySpan<byte> comparison, Span<byte> output, int maximumError)
         {
             int error = 0;
-            Vector128<byte> even = Vector128.Create((byte)254);
             for (int row = 0; row < Block; row++)
             {
                 Vector128<byte> a = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(first), (nuint)(firstStart + row * firstStride));
                 Vector128<byte> b = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(second), (nuint)(secondStart + row * secondStride));
-                Vector128<byte> difference = Vector128.BitwiseAnd(Vector128.Xor(a, b), even);
-                Vector128<byte> rounded = Vector128.Subtract(Vector128.BitwiseOr(a, b), Vector128.ShiftRightLogical(difference.AsUInt16(), 1).AsByte());
+                Vector128<byte> rounded = H264SampleAverage.Rounded(a, b);
                 Vector128<byte> original = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(comparison), (nuint)(row * Block));
                 error += H264SampleDifference.Sum16(original, rounded);
                 rounded.StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)(row * Block));

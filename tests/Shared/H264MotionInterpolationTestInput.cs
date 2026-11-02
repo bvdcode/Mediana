@@ -4,6 +4,8 @@
 using Mediana.Codecs.H264;
 using Mediana.Core.Memory;
 using Mediana.Formats.Video;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace Mediana.Tests
 {
@@ -13,6 +15,7 @@ namespace Mediana.Tests
 
         public static void Verify()
         {
+            VerifyAverages();
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264Picture picture = new(new H264SequenceParameterSet
             {
@@ -36,7 +39,11 @@ namespace Mediana.Tests
                         };
                     }
                     byte[] source = picture.Plane(0).ToArray();
-                    foreach ((int width, int height) in new[] { (1, 1), (4, 4), (4, 8), (8, 4), (8, 8), (8, 16), (16, 8), (16, 16), (17, 19) })
+                    foreach ((int width, int height) in new[]
+                    {
+                        (1, 1), (3, 5), (4, 4), (4, 8), (7, 5), (8, 4), (8, 8), (8, 16),
+                        (9, 7), (12, 11), (15, 9), (16, 8), (16, 16), (17, 19)
+                    })
                     {
                         foreach ((int x, int y, int motionX, int motionY) in new[]
                         {
@@ -63,6 +70,33 @@ namespace Mediana.Tests
             if (allocator.AllocatedBytes != 0)
             {
                 throw new InvalidOperationException("Motion interpolation retained its reference storage.");
+            }
+        }
+
+        private static void VerifyAverages()
+        {
+            byte[] left = new byte[Vector128<byte>.Count];
+            byte[] right = new byte[Vector128<byte>.Count];
+            for (int first = 0; first < 256; first++)
+            {
+                for (int second = 0; second < 256; second += Vector128<byte>.Count)
+                {
+                    for (int index = 0; index < left.Length; index++)
+                    {
+                        left[index] = (byte)((first + 31 * index) & 255);
+                        right[index] = (byte)(second + index);
+                    }
+                    Vector128<byte> actual = H264SampleAverage.Rounded(
+                        Vector128.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(left)),
+                        Vector128.LoadUnsafe(ref MemoryMarshal.GetArrayDataReference(right)));
+                    for (int index = 0; index < left.Length; index++)
+                    {
+                        if (actual.GetElement(index) != (left[index] + right[index] + 1) / 2)
+                        {
+                            throw new InvalidDataException("Sample averaging differs from rounded integer averaging.");
+                        }
+                    }
+                }
             }
         }
 
