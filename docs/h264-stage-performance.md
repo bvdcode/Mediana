@@ -334,3 +334,59 @@ managed/native vectors cover P/B reference changes at slice boundaries inside
 rows, duplicate indices, list exchanges and exact filtered edge samples. Missing
 reference checks preserve intra/residual precedence for explicit and captured
 lists. Existing independent reference fixtures remain unchanged.
+
+## Reused chroma interpolation rows
+
+Complete eight-column chroma tiles now retain the unrounded horizontal result
+from the preceding row. Each subsequent row calculates only its new horizontal
+samples. The vertical stage combines the two rows and rounds once, preserving
+the bilinear interpolation result. Partial tiles keep the scalar equation.
+There is no additional heap storage or wider source read.
+
+The comparison baseline is `6d1a01f`; the changed implementation is `715a575`.
+The same frozen Native AOT consumers,
+raw input, encoder settings and one-core configuration were measured in both
+execution orders. CPU includes all 1,441 frames, input and transport output.
+
+| Execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Before then after | 85.918 | 72.974 | 15.07% | 87.421 | 75.528 | 49.06 | 49.47 |
+| After then before | 83.797 | 71.796 | 14.32% | 97.500 | 76.993 | 51.47 | 51.54 |
+
+Every MPEG-TS output is byte-identical to the encoded reference above. Motion
+candidates, their selection, rate decisions and quality are unchanged. Each
+process reaches EOF and releases its media buffers. Memory remains approximately
+unchanged; the measurements do not demonstrate a reduction in peak RSS.
+
+The same kernel is used by decoding. Paired full-input decode CPU observations
+were 32.185 to 31.534 seconds and, in reverse order, 31.286 to 31.717 seconds.
+All raw samples match the independent reference. These small differences have
+opposite signs and do not establish a decoder throughput improvement.
+
+A separate diagnostic encoder profile of the baseline measured 92.079 seconds
+inside picture encoding, including 51.441 seconds in motion search and 36.454
+seconds in its fractional refinement. These are nested elapsed observations
+with instrumentation overhead, not CPU percentages. The full-process results
+above establish the performance change. Search policy and the remaining
+transform, quantization and reconstruction work still require improvement;
+the complete-film HLS measurement has not been repeated for this change.
+
+Two fresh optimized FFmpeg/libx264 processes used the original `veryfast`
+configuration and one-thread restriction. Both complete transport outputs match
+the independently decoded FFmpeg reference, including its quality and size.
+
+| FFmpeg observation | CPU, s | Elapsed, s | RSS, MiB |
+| --- | ---: | ---: | ---: |
+| 1 | 12.610 | 12.616 | 110.99 |
+| 2 | 12.729 | 12.733 | 109.59 |
+
+The ratio of the changed-Mediana and fresh FFmpeg CPU medians is 5.71x. The
+existing quality and bitrate differences still apply: the FFmpeg reference is
+smaller and has higher PSNR. The encoder CPU gap remains substantial.
+
+Validation: all 2,930 managed tests, 669 H.264 tests with hardware intrinsics
+disabled, 30 package checks, the strict package-only Native AOT suite and native
+CLI build passed. Release build, license headers and formatting also passed.
+Existing shared managed/native vectors verify every chroma fraction, scalar
+bilinear sampling, partial tiles, picture borders, extreme coordinates, output
+guards and the complete motion-search decisions.
