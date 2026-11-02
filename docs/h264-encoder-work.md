@@ -250,3 +250,48 @@ fractional neighborhood also passes 5,400 independent direct-convolution cases,
 including border and extreme-coordinate cases, source/output guards and
 allocation checks. These checks establish prediction correctness, not improved
 compression decisions. The production search policy and output remain unchanged.
+
+## Bounded byte-residual pipeline control
+
+A diagnostic combines byte subtraction, the forward 4x4 transform and
+quantization without storing and reloading an intermediate coefficient block.
+Quantization parameters are prepared once for a macroblock's luma or chroma
+analysis. The generic integer quantizer remains unchanged.
+
+Byte residuals are bounded by 255 in magnitude. The largest absolute row sum
+of the transform matrix is six, so the transformed coefficient magnitude is at
+most `255 * 6 * 6 = 9180`. The largest quantization factor and rounding bias
+keep the multiplication below the signed 32-bit limit. The diagnostic uses
+four-lane [SSE4.1 multiplication](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.intrinsics.x86.sse41.multiplylow?view=net-10.0)
+on supported processors and the existing transform and quantizer otherwise.
+Native disassembly confirms four `pmulld` operations in the combined path;
+the existing standalone SSE2 quantizer uses eight `pmuludq` operations.
+These methods perform different amounts of work, so their code sizes are not a
+throughput comparison.
+
+An independent direct-matrix and scalar 64-bit quantization oracle checks
+276,480 input blocks, all 52 quantizers, both coefficient scans, chroma's
+unquantized DC, padded strides, output guards and unchanged input samples.
+The checks include every binary residual corner pattern at three quantizers.
+They pass in strict Native AOT and with hardware intrinsics disabled. Repeated
+prepared-block processing allocates no heap storage.
+
+Eight complete Native AOT encodes use the same input, settings and serial
+single-CPU measurement procedure as the preceding controls. Every observation
+produces the exact 78,332,832-byte reference transport, all 1,441 pictures,
+EOF and zero retained media storage. Sources, fixtures, raw input and frozen
+executables remain unchanged during measurement.
+
+| Execution order | Before CPU median, s | Variant CPU median, s | CPU change |
+| --- | ---: | ---: | ---: |
+| before/after/after/before | 43.237429 | 40.537058 | -6.25% |
+| after/before/before/after | 41.340740 | 40.699855 | -1.55% |
+| All eight observations | 42.179677 | 40.537058 | -3.89% |
+
+The observed reduction is small and varies substantially between orders.
+Median peak RSS is 36.73 versus 37.95 MiB; cumulative managed allocation is
+2,283,391,280 versus 2,283,383,620 bytes. This control establishes neither a
+large CPU improvement nor a memory improvement. The added processor-specific
+path is not adopted. The production coefficient pipeline and output remain
+unchanged, and these observations establish no new FFmpeg or full-film HLS
+performance ratio.
