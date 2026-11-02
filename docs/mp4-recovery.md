@@ -51,7 +51,8 @@ runs and trailing defaults. All 190 Native AOT distance queries match independen
 constructed expectations. Independent packet inspection confirms unchanged
 payload SHA-256, PTS and DTS for all 19 audio packets in every variant.
 
-These declarations do not change `AudioSession` into a seekable session.
-Codec preroll, exact media/movie-time selection and handling of synthesized noise
-remain separate from reading the container metadata. AAC encoder priming and
-padding are also separate; see [audio/video intervals](audiovisual-windows.md).
+`AudioSession` combines these declarations with AAC-LC decoder history for
+[indexed audio seeking](audio-seeking.md). Metadata alone does not establish
+codec restart support. Exact sample selection and handling of synthesized noise
+remain explicit. Output AAC encoder priming and padding are also separate;
+see [audio/video intervals](audiovisual-windows.md).

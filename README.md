@@ -541,7 +541,9 @@ edits shift the returned PTS without generating silent PCM. Missing or nonlinear
 edits and unsupported exact clocks fail explicitly; codec delay and roll groups
 are not inferred. Range indices count from media time zero, so decode preceding
 packets from that point before applying the range; arbitrary seeking needs
-separate decoder preroll handling.
+separate decoder preroll handling. MP4/MOV AAC-LC sessions now provide
+[`AudioSession.SeekAsync`](docs/audio-seeking.md); after seeking, select time
+windows on the mapped clock instead of reapplying a media-zero sample index.
 
 ```csharp
 Mp4AudioSampleRange range = Mp4AudioSampleRange.FromEditList(track, decodedSampleRate);
@@ -1840,7 +1842,7 @@ six CABAC intra pictures, 96 additional CABAC I/P pictures and 98 CABAC I/P/B pi
 SDR conversion, decoded PNG pixels, complete WAVE/AAC/FLAC references, FLAC waveform data and audio resampling. Each future
 format also requires an executable AOT integration test.
 
-Current limitations include broader compressed codec support, other container formats, audio seeking,
+Current limitations include broader compressed codec support, other container formats, seeking for additional audio codecs,
 more general movie timeline mapping, arbitrary changes within a coded sequence, broader display transforms,
 broader color conversion, broader compressed audio, artwork in other containers, Cotton provider integration, inter-frame video encoding, perceptual AAC encoding, per-variant audio rates, other muxers, scheduling,
 pooling, SIMD optimization and playback. The contracts are experimental and may

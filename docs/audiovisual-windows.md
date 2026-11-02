@@ -76,8 +76,9 @@ arithmetic and check real edited AAC against independent PCM references.
 ## Remaining work
 
 The sample decodes the AAC prefix to preserve overlap and other decoder state.
-Efficient indexed audio restart needs a codec-aware preroll contract and its own
-independent correctness checks.
+The library provides [indexed AAC restart](audio-seeking.md), including codec
+history and container recovery declarations. This sample still needs integration
+with exact edited endpoints before it can use that path.
 
 Separately encoded AAC intervals each carry their own priming and padding.
 Concatenating the resulting transport files is not proven to produce gapless
