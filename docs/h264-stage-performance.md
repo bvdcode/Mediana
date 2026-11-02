@@ -1,3 +1,8 @@
+The latest [shared-source encoder comparison](#shared-source-macroblocks) uses
+60.50-60.80 CPU seconds for the complete 60.041667-second HD input, versus
+13.25-13.32 seconds for optimized FFmpeg/libx264. These are isolated encoding
+measurements; the full-film audiovisual HLS comparison has not been repeated.
+
 The complete 60.041667-second HD input was measured separately through video
 decoding and video encoding. Separating the stages identifies where the current
 implementation spends more CPU than FFmpeg without mixing in resizing, audio
@@ -11,7 +16,7 @@ The input is the 1,441-picture 1280x720, 24 fps cut used by the
 The source uses eight CAVLC slices per picture and includes inter prediction.
 Its Main profile does not imply CABAC entropy coding.
 
-The Mediana source is `098b902`; production code matches `8b583aa`. A dedicated
+The initial Mediana baseline is `098b902`; its production code matches `8b583aa`. A dedicated
 Native AOT consumer uses the public container, video session, buffer ownership,
 encoder and MPEG-TS APIs. It was published with .NET SDK 10.0.402 and strict AOT
 warnings. The external implementation is FFmpeg 6.1.1-3ubuntu5 with libx264.
@@ -508,3 +513,65 @@ The current Mediana and FFmpeg CPU medians differ by 5.07x. This remains a
 substantial encoding gap with different rate-control models and output quality;
 the local change does not resolve it. There is no new decoder or complete-film
 HLS measurement in this comparison.
+
+## Shared source macroblocks
+
+Implementation `241476e`, measured against `fc60e7c`, prepares each source
+macroblock once in a 384-byte stack workspace. Motion search, inter and intra
+residual analysis, intra-mode selection and PCM replacement share its samples.
+The workspace belongs to the encoding call and does not retain the input frame.
+Visible-edge replication, cropped dimensions and padded input row layouts are
+resolved during preparation rather than for every subsequent 4x4 transform.
+
+The residual transform gathers four bounded 32-bit rows from the prepared
+source and its prediction into vector registers. It no longer copies each
+4x4 source and prediction into separate temporary byte blocks. The row gather
+is inlined; native x64 disassembly confirms that the two vector-return stack
+round-trips are absent. Residual coefficient storage and transform arithmetic
+remain unchanged. The measurements below cover the complete change, not an
+isolated effect of inlining.
+
+Both paired measurements process all 1,441 pictures using the same frozen
+Native AOT consumers, independent raw input and one-core settings.
+
+| Execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Before then after | 65.013 | 60.802 | 6.48% | 68.071 | 61.995 | 51.22 | 50.62 |
+| After then before | 64.950 | 60.501 | 6.85% | 66.103 | 62.908 | 51.80 | 51.04 |
+
+All four outputs remain byte-identical to the independently verified encoded
+reference, with 1,441 packets, EOF and zero retained media storage. CPU and
+elapsed time decrease in both execution orders. Peak RSS remains approximately
+51 MiB; the small differences do not establish a general memory reduction.
+
+Validation passed all 2,945 managed tests, 684 H.264 tests with hardware
+intrinsics disabled, all 30 package checks, the strict package-only Native AOT
+suite and CLI, Release build, formatting and root license-header checks.
+Independent matrix checks cover every source plane, dimensions from 1x1 through
+35x33, visible borders, cropped macroblocks, padded rows, nonzero plane offsets
+and distinct prediction strides. Input and output guards remain intact, and
+repeated source preparation and transforms allocate no heap storage. Existing
+motion-selection, intra-mode, PCM and HLS reference checks also pass.
+
+The complete diagnostic encode takes 60.969 instrumented elapsed seconds:
+0.932 in source preparation, 26.238 in motion search, 10.281 in luma analysis,
+4.639 in chroma analysis, 11.122 in luma writing and 3.342 in chroma writing.
+Source preparation was previously included in the motion-search timer and is
+now measured separately; their costs must be considered together when comparing
+the profiles. The diagnostic output remains identical. These elapsed timers
+include instrumentation and scheduling, overlap their enclosing stages and
+are not CPU percentages.
+
+Fresh optimized FFmpeg processes used the same raw input and single-thread
+settings; both complete outputs match its independently decoded reference.
+
+| FFmpeg observation | CPU, s | Elapsed, s | RSS, MiB |
+| --- | ---: | ---: | ---: |
+| 1 | 13.251 | 13.265 | 108.96 |
+| 2 | 13.324 | 13.963 | 107.37 |
+
+The current CPU medians differ by 4.56x. FFmpeg timings also vary between
+measurement batches, so changes in this ratio must not be attributed entirely
+to Mediana. The paired 6.48-6.85% CPU reductions above measure this change
+against its frozen baseline. The reference quality and size differences remain;
+this is not equal-quality throughput and the encoding CPU gap remains open.
