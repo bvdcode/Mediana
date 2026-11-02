@@ -10,6 +10,8 @@ namespace Mediana.NativeTests
         public static async Task RunAsync()
         {
             H264ZeroResidualTestInput.VerifyMacroblocks();
+            H264DeblockingFilterTestInput.Verify();
+            H264DeblockingFilterTestInput.VerifyAllocation();
             H264ForwardTransformTestInput.Verify();
             H264ForwardTransformTestInput.VerifyAllocation();
             H264ForwardQuantizationTestInput.Verify();
