@@ -1,8 +1,9 @@
-The latest [direct chroma reference comparison](h264-search-work.md) uses
-58.97-59.56 CPU seconds for the complete 60.041667-second HD encode, versus
-13.14-13.74 seconds for optimized FFmpeg/libx264. The separate full decode uses
-32.26 versus 3.82 CPU seconds with identical raw pixels. These are isolated
-stage measurements. The preceding [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
+The latest [block quantization comparison](h264-block-quantization.md) uses
+48.61-48.73 CPU seconds for the complete 60.041667-second HD encode, versus
+13.53-14.19 seconds for optimized FFmpeg/libx264. The preceding separate
+[full decode](h264-search-work.md#shared-decoder-check) uses 32.26 versus 3.82
+CPU seconds with identical raw pixels. These are isolated stage measurements.
+The preceding [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
 uses 1205.322 CPU seconds versus 194.151 for FFmpeg, a 6.21x gap,
 with all 406 published files identical to their independently verified references.
 
