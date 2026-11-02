@@ -37,6 +37,8 @@ establish a useful encoding CPU improvement. Subsequent
 8.08% in separate comparisons. The current
 [same-source instruction-set control](h264-instruction-set.md) does not
 establish an acceleration from targeting the build processor's instructions.
+Subsequent [paired residual processing](h264-paired-residuals.md) reduces
+complete encoding CPU by 6.33% with identical output in its separate comparison.
 These separate measurements do not update complete-film throughput.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
 uses 962.836 CPU seconds versus 274.925 for FFmpeg, a 3.50x gap,

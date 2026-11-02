@@ -155,3 +155,8 @@ does not establish an acceleration from targeting the build processor's
 instructions. Its fresh native stack diagnostic retains motion search as the
 largest named group; neither the stack counts nor the compilation control
 explain the complete competitive CPU difference.
+
+Subsequent [paired residual processing](h264-paired-residuals.md) combines two
+adjacent 4x4 transforms and quantization in bounded 16-bit SSE2 lanes. Complete
+encoding CPU decreases by 6.33% across eight observations with identical
+encoded output. This does not update the complete-film HLS comparison.
