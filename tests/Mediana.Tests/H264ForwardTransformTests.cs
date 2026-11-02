@@ -14,6 +14,9 @@ namespace Mediana.Tests
         public void RepeatedTransformsAllocateNoHeapStorage() => H264ForwardTransformTestInput.VerifyAllocation();
 
         [Fact]
+        public void PairedByteResidualsMatchIndependentMatrixAndQuantization() => H264BlockPairTestInput.Verify();
+
+        [Fact]
         public void QuantizationMatchesScalarEquationsAtAllQuantizersAndRoundingBoundaries() => H264ForwardQuantizationTestInput.Verify();
 
         [Theory]
