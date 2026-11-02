@@ -112,15 +112,14 @@ namespace Mediana.Codecs.H264
 
         private static int AnalyzeLuma(ReadOnlySpan<byte> source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
         {
-            Span<int> transformed = stackalloc int[16];
             int pattern = 0;
-            for (int index = 0; index < 16; index++)
+            for (int index = 0; index < 16; index += 2)
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
                 int offset = blockY * 16 + blockX;
-                H264EncodingBlocks.Transform(source[offset..], 16, prediction[offset..], 16, transformed);
-                Span<int> levels = coefficients.Slice(index * 16, 16);
-                H264ForwardTransform.Quantize4x4(transformed, qp, levels);
+                Span<int> levels = coefficients.Slice(index * 16, 32);
+                H264ForwardTransform.QuantizePair(source[offset..], 16, prediction[offset..], 16, qp,
+                    levels[..16], levels[16..]);
                 if (levels.ContainsAnyExcept(0))
                 {
                     pattern |= 1 << (index / 4);

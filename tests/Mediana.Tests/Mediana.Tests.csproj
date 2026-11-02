@@ -12,6 +12,7 @@
     <Compile Include="../Shared/H264LumaCandidateTestInput.cs" Link="H264LumaCandidateTestInput.cs" />
     <Compile Include="../Shared/H264DeblockingFilterTestInput.cs" Link="H264DeblockingFilterTestInput.cs" />
     <Compile Include="../Shared/H264ForwardTransformTestInput.cs" Link="H264ForwardTransformTestInput.cs" />
+    <Compile Include="../Shared/H264BlockPairTestInput.cs" Link="H264BlockPairTestInput.cs" />
     <Compile Include="../Shared/H264ForwardQuantizationTestInput.cs" Link="H264ForwardQuantizationTestInput.cs" />
     <Compile Include="../Shared/AacCodebookSelectionTestInput.cs" Link="AacCodebookSelectionTestInput.cs" />
     <Compile Include="../Shared/ServerContainerPreviewTestInput.cs" Link="ServerContainerPreviewTestInput.cs" />

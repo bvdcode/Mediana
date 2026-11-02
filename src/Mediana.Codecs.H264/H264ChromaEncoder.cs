@@ -11,19 +11,18 @@ namespace Mediana.Codecs.H264
         {
             int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
             Span<int> rawDc = stackalloc int[4];
-            Span<int> transformed = stackalloc int[16];
             for (int plane = 1; plane <= 2; plane++)
             {
                 ReadOnlySpan<byte> planeSource = source.Slice((plane - 1) * 64, 64);
                 ReadOnlySpan<byte> planePrediction = prediction.Slice((plane - 1) * 64, 64);
-                for (int index = 0; index < 4; index++)
+                for (int index = 0; index < 4; index += 2)
                 {
                     int blockX = index % 2 * 4;
                     int blockY = index / 2 * 4;
                     int offset = blockY * 8 + blockX;
-                    H264EncodingBlocks.Transform(planeSource[offset..], 8, planePrediction[offset..], 8, transformed);
-                    rawDc[index] = transformed[0];
-                    H264ForwardTransform.Quantize4x4(transformed, chromaQp, coefficients.Slice(((plane - 1) * 4 + index) * 15, 15));
+                    int output = ((plane - 1) * 4 + index) * 15;
+                    (rawDc[index], rawDc[index + 1]) = H264ForwardTransform.QuantizePair(planeSource[offset..], 8,
+                        planePrediction[offset..], 8, chromaQp, coefficients.Slice(output, 15), coefficients.Slice(output + 15, 15));
                 }
                 H264ForwardTransform.ChromaDc(rawDc, chromaQp, coefficients.Slice(120 + (plane - 1) * 4, 4));
             }

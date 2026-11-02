@@ -15,6 +15,7 @@ namespace Mediana.NativeTests
             H264ForwardTransformTestInput.Verify();
             H264ForwardTransformTestInput.VerifyAllocation();
             H264ForwardQuantizationTestInput.Verify();
+            H264BlockPairTestInput.Verify();
             H264BitReadingTestInput.Verify();
             H264VlcTestInput.Verify();
             H264CavlcLevelTestInput.Verify();
