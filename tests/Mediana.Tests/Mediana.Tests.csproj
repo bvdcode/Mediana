@@ -70,6 +70,8 @@
     <Compile Include="../Shared/H264BaselineEncodingTestInput.cs" Link="H264BaselineEncodingTestInput.cs" />
     <Compile Include="../Shared/H264PcmEncodingTestInput.cs" Link="H264PcmEncodingTestInput.cs" />
     <Compile Include="../Shared/H264BitWritingTestInput.cs" Link="H264BitWritingTestInput.cs" />
+    <Compile Include="../Shared/H264BitReadingTestInput.cs" Link="H264BitReadingTestInput.cs" />
+    <Compile Include="../Shared/H264VlcTestInput.cs" Link="H264VlcTestInput.cs" />
     <Compile Include="../Shared/H264SourceBlockTestInput.cs" Link="H264SourceBlockTestInput.cs" />
     <Compile Include="../Shared/H264LumaNeighborhoodTestInput.cs" Link="H264LumaNeighborhoodTestInput.cs" />
     <Compile Include="../Shared/H264MotionSearchTestInput.cs" Link="H264MotionSearchTestInput.cs" />

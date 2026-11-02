@@ -25,22 +25,7 @@ namespace Mediana.NativeTests
             }
             AudioDownmixTestInput.VerifyBalance();
             Console.WriteLine("PASS explicit audio downmix: shuffled speakers, mono/stereo coefficients, correlated peaks, timing and released storage.");
-            H264ZeroResidualTestInput.VerifyMacroblocks();
-            H264ForwardTransformTestInput.Verify();
-            H264ForwardTransformTestInput.VerifyAllocation();
-            H264ForwardQuantizationTestInput.Verify();
-            H264DcResidualTestInput.VerifyDcOnly();
-            H264DcResidualTestInput.VerifyAcBlocks();
-            H264DcResidualTestInput.VerifyOverlappingStorage();
-            H264MotionInterpolationTestInput.Verify();
-            H264LumaNeighborhoodTestInput.Verify();
-            H264SampleDifferenceTestInput.Verify();
-            H264LumaCandidateTestInput.Verify();
-            H264LumaNeighborhoodTestInput.VerifyAllocation();
-            await H264MotionSearchTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
-            H264ChromaInterpolationTestInput.Verify();
-            H264IntraModeTestInput.Verify();
-            Console.WriteLine("PASS H.264 motion interpolation: all luma phases, complete blocks, borders and extreme coordinates match scalar convolution.");
+            await NativeH264KernelTests.RunAsync();
             foreach (int configuration in new[] { 3, 4, 5, 6, 7 })
             {
                 await AacMultichannelTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "AacMultichannel"), configuration);

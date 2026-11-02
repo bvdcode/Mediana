@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.CompilerServices;
+
 namespace Mediana.Formats.Video
 {
     /// <summary>Reads an H.264 EBSP payload with checked emulation prevention, alignment and RBSP endings.</summary>
@@ -16,10 +18,21 @@ namespace Mediana.Formats.Video
         public bool ByteAligned => available == 0;
         public int BitPosition => checked((offset - preventionBytes) * 8 - available);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public uint ReadBits(int count)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(count);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 32);
+            if (count <= available)
+            {
+                available -= count;
+                return (uint)(current >> available) & ((1u << count) - 1);
+            }
+            return ReadAcrossBytes(count);
+        }
+
+        private uint ReadAcrossBytes(int count)
+        {
             uint value = 0;
             while (count > 0)
             {
@@ -36,7 +49,17 @@ namespace Mediana.Formats.Video
             return value;
         }
 
-        public int ReadBit() => (int)ReadBits(1);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ReadBit()
+        {
+            if (available == 0)
+            {
+                current = ReadByte();
+                available = 8;
+            }
+            return (current >> --available) & 1;
+        }
+
         public bool ReadFlag() => ReadBit() != 0;
 
         public int ReadUe(int maximum = int.MaxValue)
