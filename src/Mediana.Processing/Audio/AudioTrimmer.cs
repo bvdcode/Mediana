@@ -20,6 +20,8 @@ namespace Mediana.Processing.Audio
         private readonly MediaBufferAllocator allocator;
         private readonly MediaTimestamp? outputOrigin;
         private readonly bool requireCompleteRange;
+        private readonly MediaTimestamp? timeStart;
+        private readonly MediaTimestamp? timeEnd;
         private long skipRemaining;
         private long? remaining;
         private long inputSamples;
@@ -46,6 +48,31 @@ namespace Mediana.Processing.Audio
             long skipSamples, long? maximumSampleCount, MediaBufferAllocator allocator, MediaTimestamp? outputOrigin = null)
         {
             return new AudioTrimmer(readFrame, skipSamples, maximumSampleCount, allocator, outputOrigin, false);
+        }
+
+        /// <summary>Selects available PCM sample instants in [start, end), preserving their original timestamps.
+        /// A null end reads through EOF. Both boundaries round toward the next sample on the input's exact clock.
+        /// Requires continuous known timestamps; seeking and container edits remain the caller's responsibility.
+        /// An empty interval performs no source reads. Other intervals may read one initial block to establish the clock.</summary>
+        public static AudioTrimmer CreateTimeWindow(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame,
+            MediaTimestamp start, MediaTimestamp? end, MediaBufferAllocator allocator)
+        {
+            return new AudioTrimmer(readFrame, start, end, allocator);
+        }
+
+        private AudioTrimmer(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame,
+            MediaTimestamp start, MediaTimestamp? end, MediaBufferAllocator allocator)
+            : this(readFrame, 0, null, allocator, null, false)
+        {
+            start.TimeBase.Validate();
+            end?.TimeBase.Validate();
+            if (end is MediaTimestamp limit && limit.CompareTo(start) < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(end), "The audio window end must not precede its start.");
+            }
+            timeStart = start;
+            timeEnd = end;
+            ended = end == start;
         }
 
         private AudioTrimmer(Func<CancellationToken, ValueTask<AudioFrame?>> readFrame, long skipSamples,
@@ -119,6 +146,17 @@ namespace Mediana.Processing.Audio
                     format = input.Format;
                     inputClock = new AudioSampleClock(input.Timestamp, format.SampleRate, format.SampleRate);
                     outputClock = new AudioSampleClock(outputOrigin, format.SampleRate, format.SampleRate);
+                    if (timeStart is MediaTimestamp startTime)
+                    {
+                        skipRemaining = inputClock.PositionAtOrAfter(startTime);
+                        remaining = timeEnd is MediaTimestamp endTime
+                            ? checked(inputClock.PositionAtOrAfter(endTime) - skipRemaining) : null;
+                        if (remaining == 0)
+                        {
+                            ended = true;
+                            return null;
+                        }
+                    }
                 }
                 PcmSampleAccess.RequireFormat(input.Format, format);
                 inputClock!.Validate(input.Timestamp, inputSamples);

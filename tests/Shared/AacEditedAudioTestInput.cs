@@ -17,6 +17,78 @@ namespace Mediana.Tests
 {
     internal static class AacEditedAudioTestInput
     {
+        public static async Task VerifyTimeWindowAsync(string root, string name)
+        {
+            using JsonDocument references = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "references.json")));
+            JsonElement entry = references.RootElement.GetProperty("fixtures").EnumerateArray()
+                .Single(value => value.GetProperty("name").GetString() == name);
+            int rate = entry.GetProperty("sampleRate").GetInt32();
+            int channels = entry.GetProperty("channels").GetInt32();
+            if (entry.GetProperty("pns").GetBoolean())
+            {
+                throw new ArgumentException("Exact sample windows require a reference without noise substitution.", nameof(name));
+            }
+            byte[] reference = await File.ReadAllBytesAsync(Path.Combine(root, name + ".f32le"));
+            foreach ((MediaTimestamp start, MediaTimestamp? end) in new (MediaTimestamp, MediaTimestamp?)[]
+                { (new(-1, new(1, 97)), new(1, new(1, 997))), (new(1, new(1, 997)), new(21, new(1, 97))),
+                  (new(7, new(1, 31)), null), (new(1, new(1, 1)), new(2, new(1, 1))) })
+            {
+                MediaBufferAllocator allocator = new(128 * 1024);
+                await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, name + ".m4a")));
+                Mp4AudioSampleRange edit;
+                await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
+                {
+                    edit = Mp4AudioSampleRange.FromEditList(reader.Tracks[0], rate);
+                }
+                MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory())
+                    .AddAudioDecoder(new AacDecoderFactory()).Build();
+                await using AudioSession session = await engine.OpenAudioAsync(source);
+                await using AudioTrimmer edited = AudioTrimmer.CreateWindow(session.ReadFrameAsync,
+                    edit.StartSample, edit.SampleCount, allocator, edit.PresentationTime);
+                await using AudioTrimmer window = AudioTrimmer.CreateTimeWindow(edited.ReadFrameAsync, start, end, allocator);
+                int[] selected = Enumerable.Range(0, checked((int)edit.SampleCount)).Where(index =>
+                {
+                    MediaTimestamp timestamp = AudioTimeWindowTestInput.At(edit.PresentationTime, index, rate);
+                    return timestamp.CompareTo(start) >= 0 && (end is null || timestamp.CompareTo(end.Value) < 0);
+                }).ToArray();
+                int position = 0;
+                while (true)
+                {
+                    using AudioFrame? frame = await window.ReadFrameAsync();
+                    if (frame is null)
+                    {
+                        break;
+                    }
+                    if (position >= selected.Length || frame.Timestamp != AudioTimeWindowTestInput.At(edit.PresentationTime, selected[position], rate))
+                    {
+                        throw new InvalidDataException("The edited AAC time window changed its exact presentation grid.");
+                    }
+                    ReadOnlySpan<float> actual = MemoryMarshal.Cast<byte, float>(frame.GetPlane(0).Span);
+                    for (int sample = 0; sample < frame.SamplesPerChannel; sample++)
+                    {
+                        for (int channel = 0; channel < channels; channel++)
+                        {
+                            int offset = checked((int)(edit.StartSample + selected[position]) * channels * sizeof(float) + channel * sizeof(float));
+                            float expected = BinaryPrimitives.ReadSingleLittleEndian(reference.AsSpan(offset, sizeof(float)));
+                            float value = actual[sample * channels + channel];
+                            if (!float.IsFinite(value) || Math.Abs(value - expected) > 2e-6)
+                            {
+                                throw new InvalidDataException("The AAC presentation window differs from independently decoded samples.");
+                            }
+                        }
+                        position++;
+                    }
+                }
+                await window.DisposeAsync();
+                await edited.DisposeAsync();
+                await session.DisposeAsync();
+                if (position != selected.Length || allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)
+                {
+                    throw new InvalidDataException("The AAC presentation window lost samples or retained media buffers.");
+                }
+            }
+        }
+
         public static async Task VerifyAsync(string root, string name, bool exactEdit)
         {
             using JsonDocument references = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "references.json")));
