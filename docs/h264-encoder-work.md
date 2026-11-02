@@ -210,3 +210,43 @@ All 16 complete transports are exactly the independently decoded
 Every run produces 1,441 packets, reaches EOF and releases owned media storage.
 Source, raw input and frozen executable hashes remain unchanged throughout the
 measurements. These controls establish no new FFmpeg or complete-film HLS ratio.
+
+## Motion-search policy controls
+
+Two further policies change coding decisions. Both use the same complete
+1,441-picture raw input, quantizer, rate settings, GOP, frozen Native AOT
+consumers and single-CPU execution as the preceding controls. Each policy has
+one complete baseline/variant pair, followed by independent decoding of every
+picture and PSNR measurement against the raw source. These pilot pairs do not
+establish repeatable throughput improvements.
+
+The first policy ranks candidates by luma SAD plus a quantizer-dependent cost
+for signed motion-vector differences. Chroma prediction is formed only for the
+selected vector. Half- and quarter-sample refinement each check four cardinal
+neighbors. This differs from adding vector cost to the existing combined YUV
+objective alone.
+
+The second policy retains the combined YUV SAD objective and its original tie
+rule. It adds rounded and exact motion from the corresponding block in the
+previous reference picture, tests exact spatial and temporal predictors before
+refinement, and uses four cardinal neighbors at each fractional step. Motion
+from an intra block or a different reference index is not used as a temporal
+candidate.
+
+| Policy | Baseline / variant CPU, s | Baseline / variant transport bytes | Baseline / variant aggregate PSNR, dB |
+| --- | ---: | ---: | ---: |
+| Luma and vector cost, cardinal refinement | 46.500992 / 37.271854 | 78,332,832 / 78,337,344 | 45.093622 / 44.624592 |
+| Temporal candidates, combined YUV error, cardinal refinement | 47.170759 / 44.898634 | 78,332,832 / 78,319,108 | 45.093622 / 44.944711 |
+
+The first policy loses 0.469030 dB while producing a slightly larger transport.
+The second loses 0.148911 dB for a 0.01752% transport reduction. Neither policy
+establishes a useful rate/quality/resource improvement, and neither is adopted.
+Their one-pair CPU differences cannot be presented as equal-quality speedups.
+
+All four transports contain 1,441 pictures with exact PTS/DTS and the expected
+144-picture IDR spacing. Each encoding reaches EOF and releases owned media
+storage. Strict Native AOT compilation passes. The second policy's extended
+fractional neighborhood also passes 5,400 independent direct-convolution cases,
+including border and extreme-coordinate cases, source/output guards and
+allocation checks. These checks establish prediction correctness, not improved
+compression decisions. The production search policy and output remain unchanged.
