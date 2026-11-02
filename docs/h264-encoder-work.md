@@ -54,8 +54,12 @@ overlapping build, test or media workload. Each observation encodes the complete
 The first individual pair appeared 11.15% faster, but the reversed series did
 not confirm that gain. The final variant's small observed reduction does not
 justify an added codeword abstraction and inlining requirement for the current
-performance work. Neither variant was adopted. The existing CAVLC implementation
-and its validated encoding output remain unchanged.
+performance work. Neither variant was adopted at that baseline.
+
+A subsequent [direct writer implementation](h264-cavlc-encoding.md) uses no
+separate codeword type or explicit inlining attribute. Its current Speed
+comparison establishes a local CPU reduction with identical encoded output;
+the preceding observations remain specific to their original variants.
 
 ## Complete reference-plane experiment
 

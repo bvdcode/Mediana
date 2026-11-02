@@ -145,3 +145,7 @@ The subsequent [native interpolation change](h264-native-interpolation.md)
 reduces complete encoding CPU by 5.04% with identical encoded bytes. It removes
 expanded constant multiplications and short-vector stack transfers; the wider
 performance gap remains open.
+
+Subsequent [direct CAVLC level coding](h264-cavlc-encoding.md) removes prefix
+enumeration and combines each level into one bit-field write. Complete encoding
+CPU decreases by 8.08% in its serial comparison, with identical output.
