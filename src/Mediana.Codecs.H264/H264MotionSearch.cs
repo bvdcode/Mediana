@@ -109,8 +109,8 @@ namespace Mediana.Codecs.H264
                     int nextY = centerY + offsetsY[direction] * step;
                     if (Math.Abs(nextX) <= limit && Math.Abs(nextY) <= limit && (nextX != motionX || nextY != motionY))
                     {
-                        neighborhood.Read(nextX - originX, nextY - originY, candidate[..256]);
-                        Compare(nextX, nextY);
+                        int difference = neighborhood.Evaluate(nextX - originX, nextY - originY, source[..256], candidate[..256], best);
+                        Compare(nextX, nextY, difference);
                     }
                 }
             }
@@ -124,12 +124,11 @@ namespace Mediana.Codecs.H264
                 return;
             }
             H264PredictionBlock.Read(reference, 0, position.X, position.Y, 16, 16, nextX, nextY, candidate[..256]);
-            Compare(nextX, nextY);
+            Compare(nextX, nextY, Difference(source[..256], candidate[..256], best));
         }
 
-        private void Compare(int nextX, int nextY)
+        private void Compare(int nextX, int nextY, int difference)
         {
-            int difference = Difference(source[..256], candidate[..256], best);
             if (difference > best)
             {
                 return;
@@ -157,8 +156,7 @@ namespace Mediana.Codecs.H264
             {
                 Vector128<byte> left = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(source), (nuint)index);
                 Vector128<byte> right = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(prediction), (nuint)index);
-                Vector128<byte> difference = Vector128.Subtract(Vector128.Max(left, right), Vector128.Min(left, right));
-                sum += Vector128.Sum(Vector128.WidenLower(difference)) + Vector128.Sum(Vector128.WidenUpper(difference));
+                sum += H264SampleDifference.Sum16(left, right);
                 if (sum > stop)
                 {
                     break;

@@ -6,6 +6,12 @@ namespace Mediana.Tests
     public class H264FractionalSearchTests
     {
         [Fact]
+        public void VectorDifferencesMatchEveryBytePairAndMixedLaneSums() => H264SampleDifferenceTestInput.Verify();
+
+        [Fact]
+        public void CandidateEvaluationPreservesEveryRowRejectionBoundaryAndExactTies() => H264LumaCandidateTestInput.Verify();
+
+        [Fact]
         public void PreparedNeighborhoodsMatchIndependentConvolutionAtAllOffsetsAndBorders() => H264LumaNeighborhoodTestInput.Verify();
 
         [Fact]

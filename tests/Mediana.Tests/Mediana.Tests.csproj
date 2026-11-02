@@ -4,6 +4,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/H264SampleDifferenceTestInput.cs" Link="H264SampleDifferenceTestInput.cs" />
+    <Compile Include="../Shared/H264LumaCandidateTestInput.cs" Link="H264LumaCandidateTestInput.cs" />
     <Compile Include="../Shared/H264ForwardTransformTestInput.cs" Link="H264ForwardTransformTestInput.cs" />
     <Compile Include="../Shared/H264ForwardQuantizationTestInput.cs" Link="H264ForwardQuantizationTestInput.cs" />
     <Compile Include="../Shared/AacCodebookSelectionTestInput.cs" Link="AacCodebookSelectionTestInput.cs" />
