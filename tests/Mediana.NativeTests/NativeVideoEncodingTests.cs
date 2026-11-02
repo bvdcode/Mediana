@@ -10,6 +10,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync(string root, string h264Root)
         {
+            H264BitWritingTestInput.Verify();
+            Console.WriteLine("PASS H.264 bit writing: all alignments and widths, independent NAL bytes, escaping, overflow and checkpoint restoration match.");
             H264SourceBlockTestInput.VerifyAllocation();
             foreach ((int width, int height) in new (int, int)[] { (1, 1), (2, 3), (17, 19), (32, 16), (35, 33) })
             {
