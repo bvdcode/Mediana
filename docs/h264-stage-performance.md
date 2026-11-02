@@ -271,3 +271,66 @@ FFmpeg uses [specialized fractional-pixel kernels](https://ffmpeg.org/doxygen/6.
 and separates [boundary classification and pixel filtering](https://ffmpeg.org/doxygen/6.1/h264__loopfilter_8c_source.html).
 The remaining work concerns both data preparation and the complete compute path;
 adding vector arithmetic to isolated helpers has not closed the measured gap.
+
+## Prepared deblocking metadata
+
+The boundary classifier now borrows its coefficient, mode, reference-index and
+motion-vector spans once per filtering range. It resolves captured reference
+lists at most once for each of the current, left and top macroblocks while
+processing a macroblock. Both edge directions share that context. Reference
+lookup remains lazy, after intra and residual classification, so those edges
+do not require motion references. No per-picture mapping or heap buffer is added.
+
+Reference identity, list swaps, quarter-pixel thresholds, 8x8 residual groups,
+slice controls and pixel filtering order retain their existing semantics.
+The comparison baseline is `a236473` and the changed implementation is `346f8cf`;
+the preceding direct-prediction candidate
+is absent from both implementations. Frozen Native AOT consumers ran on the
+same full-minute input and one-core configuration in both execution orders.
+
+| Execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Before then after | 36.938 | 31.874 | 13.71% | 42.906 | 37.733 | 93.57 | 79.55 |
+| After then before | 36.947 | 31.201 | 15.55% | 42.124 | 33.061 | 84.77 | 87.92 |
+
+All four outputs match the independent raw reference byte for byte, contain
+1,441 pictures and release media storage at EOF. CPU improves in both pairs;
+RSS changes in opposite directions, so no consistent memory reduction is shown.
+There is no new complete-film HLS or encoder throughput claim for this change.
+
+The same diagnostic instrumentation also verifies the intended reduction in
+boundary-classification work. Both instrumented results produce identical raw
+pixels, with unchanged method call counts.
+
+| Instrumented operation | Before elapsed, s | After elapsed, s |
+| --- | ---: | ---: |
+| Deblocking | 9.282 | 4.932 |
+| Boundary classification, within deblocking | 5.903 | 1.578 |
+| Pixel filtering, within deblocking | 3.093 | 3.072 |
+
+These are nested elapsed observations including instrumentation overhead, not
+CPU percentages. The separate whole-process comparisons above establish the
+measured throughput improvement. Luma/chroma prediction still accounts for
+11.245 instrumented elapsed seconds after this change.
+
+Three fresh optimized FFmpeg decode processes produced the same complete raw
+output. Each ran separately from owned compilation, validation and media work.
+
+| FFmpeg observation | CPU, s | Elapsed, s | RSS, MiB |
+| --- | ---: | ---: | ---: |
+| 1 | 3.633 | 3.637 | 64.78 |
+| 2 | 4.149 | 4.167 | 64.56 |
+| 3 | 3.784 | 7.312 | 74.61 |
+
+The ratio of the two changed-Mediana and three FFmpeg CPU medians is 8.34x.
+These small shared-host samples still show a large CPU gap. The difference
+from earlier external observations is not itself an improvement attributable
+to Mediana; the paired native measurements quantify this implementation change.
+
+Validation: Release build, all 2,930 managed tests, 669 H.264 tests with hardware
+intrinsics disabled, all 30 package checks, strict package-only Native AOT
+execution, native CLI build, license headers and formatting passed. Shared
+managed/native vectors cover P/B reference changes at slice boundaries inside
+rows, duplicate indices, list exchanges and exact filtered edge samples. Missing
+reference checks preserve intra/residual precedence for explicit and captured
+lists. Existing independent reference fixtures remain unchanged.
