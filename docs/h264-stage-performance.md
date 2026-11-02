@@ -6,8 +6,8 @@ observations per implementation. Paired CPU reductions for this change are
 [block interpolation comparison](h264-block-interpolation.md) measures raw
 encoding at 45.955 versus 14.218 CPU seconds (3.23x); the external reference
 remains smaller with higher PSNR. The stages are measured separately.
-The preceding [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
-uses 1205.322 CPU seconds versus 194.151 for FFmpeg, a 6.21x gap,
+The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
+uses 992.938 CPU seconds versus 197.567 for FFmpeg, a 5.03x gap,
 with all 406 published files identical to their independently verified references.
 
 The complete 60.041667-second HD input was measured separately through video
