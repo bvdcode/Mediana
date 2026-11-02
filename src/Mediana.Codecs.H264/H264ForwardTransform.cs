@@ -11,6 +11,7 @@ namespace Mediana.Codecs.H264
     internal static class H264ForwardTransform
     {
         private static ReadOnlySpan<int> Scan => [0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15];
+        private static ReadOnlySpan<byte> ScanScales => [0, 1, 1, 0, 2, 0, 1, 1, 1, 1, 2, 0, 2, 1, 1, 2];
         private static ReadOnlySpan<int> Even => [13107, 11916, 10082, 9362, 8192, 7282];
         private static ReadOnlySpan<int> Mixed => [8066, 7490, 6554, 5825, 5243, 4559];
         private static ReadOnlySpan<int> Odd => [5243, 4660, 4194, 3647, 3355, 2893];
@@ -44,19 +45,14 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentException("The forward H.264 quantizer configuration is invalid.");
             }
             int skip = 16 - scanned.Length;
+            int remainder = qp % 6;
+            Span<int> scales = stackalloc int[3] { Even[remainder], Mixed[remainder], Odd[remainder] };
+            int shift = 15 + qp / 6;
+            long rounding = (1L << shift) / 3;
             for (int index = skip; index < 16; index++)
             {
                 int position = Scan[index];
-                int row = position / 4;
-                int column = position % 4;
-                int scale = ((row & 1), (column & 1)) switch
-                {
-                    (0, 0) => Even[qp % 6],
-                    (1, 1) => Odd[qp % 6],
-                    (0, 1) or (1, 0) => Mixed[qp % 6],
-                    _ => throw new InvalidOperationException()
-                };
-                scanned[index - skip] = Quantize(transformed[position], scale, 15 + qp / 6);
+                scanned[index - skip] = Quantize(transformed[position], scales[ScanScales[index]], shift, rounding);
             }
         }
 
@@ -72,15 +68,17 @@ namespace Mediana.Codecs.H264
             int d = dc[2] - dc[3];
             int shift = 16 + qp / 6;
             int scale = Even[qp % 6];
-            levels[0] = Quantize(a + c, scale, shift);
-            levels[1] = Quantize(b + d, scale, shift);
-            levels[2] = Quantize(a - c, scale, shift);
-            levels[3] = Quantize(b - d, scale, shift);
+            long rounding = (1L << shift) / 3;
+            levels[0] = Quantize(a + c, scale, shift, rounding);
+            levels[1] = Quantize(b + d, scale, shift, rounding);
+            levels[2] = Quantize(a - c, scale, shift, rounding);
+            levels[3] = Quantize(b - d, scale, shift, rounding);
         }
 
-        private static int Quantize(int value, int scale, int shift)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int Quantize(int value, int scale, int shift, long rounding)
         {
-            long magnitude = ((long)Math.Abs(value) * scale + (1L << shift) / 3) >> shift;
+            long magnitude = ((long)Math.Abs(value) * scale + rounding) >> shift;
             return checked((int)(value < 0 ? -magnitude : magnitude));
         }
 

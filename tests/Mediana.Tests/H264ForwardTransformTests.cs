@@ -13,6 +13,27 @@ namespace Mediana.Tests
         [Fact]
         public void RepeatedTransformsAllocateNoHeapStorage() => H264ForwardTransformTestInput.VerifyAllocation();
 
+        [Fact]
+        public void QuantizationMatchesScalarEquationsAtAllQuantizersAndRoundingBoundaries() => H264ForwardQuantizationTestInput.Verify();
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(52)]
+        public void InvalidQuantizersLeaveOutputUntouched(int qp)
+        {
+            int[] output = Enumerable.Repeat(93, 16).ToArray();
+            Assert.Throws<ArgumentException>(() => H264ForwardTransform.Quantize4x4(new int[16], qp, output));
+            Assert.All(output, value => Assert.Equal(93, value));
+        }
+
+        [Fact]
+        public void UnrepresentableCoefficientMagnitudeIsRejected()
+        {
+            int[] input = new int[16];
+            input[0] = int.MinValue;
+            Assert.Throws<OverflowException>(() => H264ForwardTransform.Quantize4x4(input, 26, new int[16]));
+        }
+
         [Theory]
         [InlineData(0, 16)]
         [InlineData(15, 16)]
