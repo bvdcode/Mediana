@@ -53,6 +53,9 @@ The [accepted-reference filtering comparison](h264-reference-filter.md) tests a
 separate quality change: all reconstructed frames match independent decoding,
 but its 0.138 dB aggregate PSNR gain accompanies 19.92% higher observed encoding
 CPU. It is not enabled by default and does not update production throughput.
+A separate [decoder metadata reuse control](h264-frame-memory.md#decoder-metadata-reuse-control)
+reduces complete-decode allocation traffic by only 2.36% and establishes no CPU
+or peak-memory improvement. Its single-slot cache is not adopted.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
 uses 891.914 CPU seconds versus 247.791 for FFmpeg, a 3.60x gap,
 with all 406 published files identical to their independently verified references.

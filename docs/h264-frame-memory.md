@@ -144,3 +144,57 @@ with Native AOT. An actual CLI HD conversion preserves the preceding transport
 exactly, and independent decoding reads all 49 pictures without errors.
 Release compilation has zero warnings and errors; formatting and root license
 header checks pass.
+
+## Decoder metadata reuse control
+
+A separate decoder-private cache retained one retired metadata allocation.
+Published pixel leases remained independent, and all cached bytes stayed charged
+to the media allocator. Retired picture owners rejected further access; reused
+storage was cleared before a new picture acquired it. The encoder retained its
+existing workspace policy, but the shared picture access guard also affected it.
+
+The control uses the same complete 1,441-picture HD input and frozen Native AOT
+consumers as the synchronous-access comparison above. Before/after/after/before
+operations run serially on logical CPU 2 with `DOTNET_PROCESSOR_COUNT=1`, with no
+owned build, test or other media workload overlapping timing. Each table entry
+is the median of two complete processes per version. CPU is user plus system.
+
+| Resource | Decode before | Decode with cache | Encode before | Encode with shared guard |
+| --- | ---: | ---: | ---: | ---: |
+| CPU, s | 18.293961 | 18.478476 | 45.868709 | 46.105159 |
+| Elapsed, s | 18.974647 | 18.728401 | 50.067046 | 48.628052 |
+| Peak RSS, KiB | 68,452 | 69,748 | 37,390 | 38,902 |
+| Cumulative managed allocation, bytes | 3,377,445,520 | 3,297,722,072 | 2,283,481,516 | 2,283,460,188 |
+
+Decode allocation traffic decreases by 2.36%, while observed CPU is 1.01%
+higher. Encoding CPU is 0.52% higher and its allocation traffic is effectively
+unchanged. The encoding observations span 35.25–56.49 CPU seconds across the
+batch, so these small median differences do not isolate a causal CPU regression.
+No useful acceleration or peak-memory reduction is established. The variant is
+not adopted; no second execution-order batch was performed.
+
+A separate counter-instrumented complete decode explains the limited reuse:
+
+| Event | One-list metadata, 669,600 bytes | Two-list metadata, 1,188,000 bytes |
+| --- | ---: | ---: |
+| Requested pictures | 781 | 660 |
+| Reused allocations | 119 | 0 |
+| Idle allocations evicted for incompatible size | 600 | 660 |
+| Returned allocations discarded because the slot was occupied | 61 | 0 |
+
+The counter run also reproduces every independent raw output byte. It is a
+lifetime census, not a performance measurement. A single exact-size slot
+repeatedly discards storage as the picture layouts alternate. Increasing cache
+capacity also requires accounting for idle storage under allocation pressure;
+output-frame disposal alone cannot determine metadata reuse because reference
+pictures can still require it.
+
+All eight timed operations reach EOF, release their media charges and match the
+independent raw or encoded transport reference byte for byte. Sources, fixtures
+and executable hashes remain unchanged during measurement. The isolated variant
+passes 3,119 managed tests, 724 H.264 tests with hardware intrinsics disabled,
+and strict Native AOT ownership and arithmetic checks. These checks include
+retained published pixels, stale-owner rejection, reset state, bounded leases,
+allocation failures and changes of geometry and reference-list count. They
+establish correctness of the tested variant, without establishing a useful
+performance improvement or a new complete-film HLS result.
