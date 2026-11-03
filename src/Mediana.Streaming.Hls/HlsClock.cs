@@ -7,6 +7,16 @@ namespace Mediana.Streaming.Hls
 {
     internal static class HlsClock
     {
+        public static long ExactTicks(MediaTimestamp timestamp, TimeBase clock)
+        {
+            MediaTimestamp scaled = timestamp.Rescale(clock, TimestampRounding.TowardZero);
+            if (scaled != timestamp)
+            {
+                throw new NotSupportedException("HLS access-unit timing must be exactly representable in the configured stream clock.");
+            }
+            return scaled.Value;
+        }
+
         public static TimeBase Common(TimeBase video, TimeBase audio)
         {
             if (video == audio)

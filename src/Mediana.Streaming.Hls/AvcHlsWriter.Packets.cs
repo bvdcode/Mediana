@@ -10,11 +10,11 @@ namespace Mediana.Streaming.Hls
     {
         public async ValueTask WritePacketAsync(MediaPacket packet, CancellationToken cancellationToken = default)
         {
-            Enter();
+            output.Enter();
             bool success = false;
             try
             {
-                EnsureWritable();
+                output.EnsureWritable();
                 ArgumentNullException.ThrowIfNull(packet);
                 cancellationToken.ThrowIfCancellationRequested();
                 bool video = packet.StreamIndex == stream.StreamIndex;
@@ -23,8 +23,8 @@ namespace Mediana.Streaming.Hls
                 {
                     throw new NotSupportedException("AVC HLS writing requires a configured stream, known PTS = DTS and a positive duration.");
                 }
-                long start = ExactTicks(pts);
-                long length = ExactTicks(new(duration.Value, duration.TimeBase));
+                long start = HlsClock.ExactTicks(pts, clock);
+                long length = HlsClock.ExactTicks(new(duration.Value, duration.TimeBase), clock);
                 long end = checked(start + length);
                 if ((video ? lastEnd : audioEnd) > start || lastDecodeTime > start ||
                     (video && lastWasAudio && lastDecodeTime == start))
@@ -34,7 +34,7 @@ namespace Mediana.Streaming.Hls
                 if (video)
                 {
                     bool first = lastEnd is null;
-                    bool boundary = first || new MediaTimestamp(checked(start - segmentStart), clock)
+                    bool boundary = first || new MediaTimestamp(checked(start - output.SegmentStart), clock)
                         .CompareTo(new(options.TargetDuration.Value, options.TargetDuration.TimeBase)) >= 0;
                     if (boundary)
                     {
@@ -43,21 +43,21 @@ namespace Mediana.Streaming.Hls
                         {
                             throw new InvalidDataException("The first AVC HLS video packet must contain an IDR access unit.");
                         }
-                        if (idr && (!first || transport is null))
+                        if (idr && (!first || !output.HasOutput))
                         {
-                            await BeginAsync(start, cancellationToken).ConfigureAwait(false);
+                            await output.BeginAsync(start, cancellationToken).ConfigureAwait(false);
                         }
                         if (first)
                         {
-                            segmentStart = start;
+                            output.SegmentStart = start;
                         }
                     }
                 }
-                else if (transport is null)
+                else if (!output.HasOutput)
                 {
-                    await BeginAsync(start, cancellationToken).ConfigureAwait(false);
+                    await output.BeginAsync(start, cancellationToken).ConfigureAwait(false);
                 }
-                await transport!.WritePacketAsync(packet, cancellationToken).ConfigureAwait(false);
+                await output.WritePacketAsync(packet, cancellationToken).ConfigureAwait(false);
                 if (video)
                 {
                     lastEnd = end;
@@ -72,8 +72,7 @@ namespace Mediana.Streaming.Hls
             }
             finally
             {
-                faulted |= !success;
-                Volatile.Write(ref busy, 0);
+                output.FinishOperation(success);
             }
         }
     }
