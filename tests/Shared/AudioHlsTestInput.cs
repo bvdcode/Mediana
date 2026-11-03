@@ -4,6 +4,7 @@
 using System.Globalization;
 using System.Numerics;
 using Mediana.Containers.Mp4;
+using Mediana.Containers.MpegTs;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -22,7 +23,10 @@ namespace Mediana.Tests
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
             {
                 EncodedStreamInfo audio = reader.Streams.Single(stream => stream.Kind == MediaKind.Audio);
-                await using AudioHlsWriter writer = AudioHlsWriter.Create(audio, (number, token) =>
+                List<MpegTsSegmentState?> states = [];
+                List<int> indices = [];
+                List<(int Stream, byte[] Data, long Pts, long Dts)> all = [];
+                await using AudioHlsWriter writer = AudioHlsWriter.Create(audio, (number, state, token) =>
                 {
                     token.ThrowIfCancellationRequested();
                     if (number != destinations.Count)
@@ -30,10 +34,11 @@ namespace Mediana.Tests
                         throw new InvalidDataException("Audio HLS segment numbers are not contiguous.");
                     }
                     MemoryStream destination = new();
+                    states.Add(state);
+                    indices.Add(all.Count - 1);
                     destinations.Add(destination);
                     return ValueTask.FromResult<Stream>(destination);
                 }, allocator, new() { TargetDuration = new(1, new(1, 4)) });
-                List<(int Stream, byte[] Data, long Pts, long Dts)> all = [];
                 List<List<(int Stream, byte[] Data, long Pts, long Dts)>> windows = [[]];
                 List<long> starts = [];
                 long? origin = null;
@@ -116,6 +121,7 @@ namespace Mediana.Tests
                     throw new InvalidDataException("The measured audio rendition differs from its configuration or complete transport extent.");
                 }
                 MpegTsTestInput.Verify(destinations.SelectMany(destination => destination.ToArray()).ToArray(), [audio], all);
+                await HlsSegmentReplayTestInput.VerifyAsync([audio], all, indices, states, destinations, allocator);
             }
             if (allocator.AllocatedBytes != 0)
             {

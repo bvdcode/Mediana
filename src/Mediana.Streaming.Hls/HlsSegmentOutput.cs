@@ -12,7 +12,8 @@ namespace Mediana.Streaming.Hls
     {
         private readonly IReadOnlyList<EncodedStreamInfo> streams;
         private readonly TimeBase clock;
-        private readonly Func<int, CancellationToken, ValueTask<Stream>> openSegment;
+        private readonly Func<int, MpegTsSegmentState?, CancellationToken, ValueTask<Stream>> openSegment;
+        private readonly bool captureState;
         private readonly MediaBufferAllocator allocator;
         private readonly MpegTsWriteOptions options;
         private readonly int? maximumSegments;
@@ -25,12 +26,13 @@ namespace Mediana.Streaming.Hls
         private int busy;
 
         public HlsSegmentOutput(IReadOnlyList<EncodedStreamInfo> streams, TimeBase clock,
-            Func<int, CancellationToken, ValueTask<Stream>> openSegment, MediaBufferAllocator allocator,
-            MpegTsWriteOptions options, int? maximumSegments)
+            Func<int, MpegTsSegmentState?, CancellationToken, ValueTask<Stream>> openSegment, MediaBufferAllocator allocator,
+            MpegTsWriteOptions options, int? maximumSegments, bool captureState = true)
         {
             this.streams = streams;
             this.clock = clock;
             this.openSegment = openSegment;
+            this.captureState = captureState;
             this.allocator = allocator;
             this.options = options;
             this.maximumSegments = maximumSegments;
@@ -50,7 +52,8 @@ namespace Mediana.Streaming.Hls
             {
                 throw new NotSupportedException("The HLS presentation exceeds the configured segment count limit.");
             }
-            Stream next = await openSegment(number, token).ConfigureAwait(false)
+            MpegTsSegmentState? state = captureState ? transport?.CaptureSegmentState() : null;
+            Stream next = await openSegment(number, state, token).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("The HLS segment factory returned no destination.");
             bool selected = false;
             try

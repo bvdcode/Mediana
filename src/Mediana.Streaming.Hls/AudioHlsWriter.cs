@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Containers;
+using Mediana.Containers.MpegTs;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -23,11 +24,18 @@ namespace Mediana.Streaming.Hls
 
         private AudioHlsWriter(EncodedStreamInfo stream, Func<int, CancellationToken, ValueTask<Stream>> openSegment,
             MediaBufferAllocator allocator, HlsWriteOptions options)
+            : this(stream, (number, _, token) => openSegment(number, token), allocator, options, false)
+        {
+        }
+
+        private AudioHlsWriter(EncodedStreamInfo stream,
+            Func<int, MpegTsSegmentState?, CancellationToken, ValueTask<Stream>> openSegment,
+            MediaBufferAllocator allocator, HlsWriteOptions options, bool captureState = true)
         {
             audio = new(stream);
             frameTicks = HlsClock.ExactTicks(new(audio.CodedDuration.Value, audio.CodedDuration.TimeBase), stream.TimeBase);
             this.options = options;
-            output = new([stream], stream.TimeBase, openSegment, allocator, options.Transport, options.MaximumSegments);
+            output = new([stream], stream.TimeBase, openSegment, allocator, options.Transport, options.MaximumSegments, captureState);
         }
 
         public IReadOnlyList<HlsMediaSegment> Segments => output.Segments;
@@ -36,6 +44,21 @@ namespace Mediana.Streaming.Hls
         public string Codecs => audio.Codecs;
 
         public static AudioHlsWriter Create(EncodedStreamInfo stream, Func<int, CancellationToken, ValueTask<Stream>> openSegment,
+            MediaBufferAllocator allocator, HlsWriteOptions? options = null)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(openSegment);
+            ArgumentNullException.ThrowIfNull(allocator);
+            options ??= new();
+            options.Validate();
+            return new(stream, openSegment, allocator, options);
+        }
+
+        /// <summary>Supplies immutable preceding transport state to the destination factory; segment zero receives null.
+        /// Completed segments can be recreated from their original packets after disposal using ResumeSegment.
+        /// The state retains no media buffers and does not make audio independently decodable or restore encoder history.</summary>
+        public static AudioHlsWriter Create(EncodedStreamInfo stream,
+            Func<int, MpegTsSegmentState?, CancellationToken, ValueTask<Stream>> openSegment,
             MediaBufferAllocator allocator, HlsWriteOptions? options = null)
         {
             ArgumentNullException.ThrowIfNull(stream);

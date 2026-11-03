@@ -3,6 +3,7 @@
 
 using Mediana.Codecs.H264;
 using Mediana.Containers;
+using Mediana.Containers.MpegTs;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -27,13 +28,20 @@ namespace Mediana.Streaming.Hls
 
         private AvcHlsWriter(EncodedStreamInfo stream, HlsAudioTrack? audio, Func<int, CancellationToken, ValueTask<Stream>> openSegment,
             MediaBufferAllocator allocator, AvcHlsWriteOptions options)
+            : this(stream, audio, (number, _, token) => openSegment(number, token), allocator, options, false)
+        {
+        }
+
+        private AvcHlsWriter(EncodedStreamInfo stream, HlsAudioTrack? audio,
+            Func<int, MpegTsSegmentState?, CancellationToken, ValueTask<Stream>> openSegment,
+            MediaBufferAllocator allocator, AvcHlsWriteOptions options, bool captureState = true)
         {
             this.stream = stream;
             this.audio = audio;
             clock = audio is null ? stream.TimeBase : HlsClock.Common(stream.TimeBase, audio.Stream.TimeBase);
             this.options = options;
             inspector = new(stream);
-            output = new(audio is null ? [stream] : [stream, audio.Stream], clock, openSegment, allocator, options.Transport, options.MaximumSegments);
+            output = new(audio is null ? [stream] : [stream, audio.Stream], clock, openSegment, allocator, options.Transport, options.MaximumSegments, captureState);
         }
 
         public IReadOnlyList<HlsMediaSegment> Segments => output.Segments;
@@ -53,6 +61,41 @@ namespace Mediana.Streaming.Hls
 
         public static AvcHlsWriter Create(EncodedStreamInfo video, EncodedStreamInfo audio,
             Func<int, CancellationToken, ValueTask<Stream>> openSegment, MediaBufferAllocator allocator, AvcHlsWriteOptions? options = null)
+        {
+            ArgumentNullException.ThrowIfNull(video);
+            ArgumentNullException.ThrowIfNull(audio);
+            ArgumentNullException.ThrowIfNull(openSegment);
+            ArgumentNullException.ThrowIfNull(allocator);
+            if (video.StreamIndex == audio.StreamIndex)
+            {
+                throw new ArgumentException("HLS video and audio stream indices must differ.", nameof(audio));
+            }
+            options ??= new();
+            options.Validate();
+            return new(video, new HlsAudioTrack(audio), openSegment, allocator, options);
+        }
+
+        /// <summary>Creates video-only output and supplies immutable preceding transport state to each destination factory call.
+        /// Segment zero receives null. Later states support ResumeSegment after disposal without retaining media buffers.
+        /// The state remains reusable if destination creation fails; publish media only after successful completion.
+        /// It does not contain encoded data or encoder history.</summary>
+        public static AvcHlsWriter Create(EncodedStreamInfo stream,
+            Func<int, MpegTsSegmentState?, CancellationToken, ValueTask<Stream>> openSegment,
+            MediaBufferAllocator allocator, AvcHlsWriteOptions? options = null)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(openSegment);
+            ArgumentNullException.ThrowIfNull(allocator);
+            options ??= new();
+            options.Validate();
+            return new(stream, null, openSegment, allocator, options);
+        }
+
+        /// <summary>Creates muxed output with the same destination-state contract as video-only output.
+        /// Recreating segments requires the original continuous audio packets; the state does not restore audio codec history.</summary>
+        public static AvcHlsWriter Create(EncodedStreamInfo video, EncodedStreamInfo audio,
+            Func<int, MpegTsSegmentState?, CancellationToken, ValueTask<Stream>> openSegment,
+            MediaBufferAllocator allocator, AvcHlsWriteOptions? options = null)
         {
             ArgumentNullException.ThrowIfNull(video);
             ArgumentNullException.ThrowIfNull(audio);

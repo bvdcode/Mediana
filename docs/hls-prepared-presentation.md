@@ -27,6 +27,37 @@ encoded packets, decoded pictures or audio history. This check establishes reuse
 of a prepared boundary. It does not establish generating arbitrary transport
 continuations without preparation of preceding state.
 
+`AvcHlsWriter` and `AudioHlsWriter` also accept a destination factory with
+`(number, state, cancellationToken)` arguments. The first segment receives a null
+state. Subsequent calls receive the immutable `MpegTsSegmentState` immediately
+before the writer begins that segment. Applications can retain these snapshots
+without running an additional transport writer during preparation:
+
+```csharp
+List<MpegTsSegmentState?> states = [];
+await using AvcHlsWriter writer = AvcHlsWriter.Create(video,
+    (number, state, token) =>
+    {
+        states.Add(state);
+        return OpenSegmentAsync(number, token);
+    }, allocator);
+```
+
+After preparation and disposal, use `MpegTsWriter.ResumeSegment` with a retained
+non-null state, a new destination and an allocator. The initial segment uses
+`MpegTsWriter.Create` with the original stream configuration and transport options.
+The destination remains borrowed by these transport writers. A factory failure
+faults the HLS writer; a previously delivered snapshot remains reusable. Publish
+only media whose writing and completion succeeded. This preserves the continuous
+timestamps and counters required by
+[RFC 8216, section 3](https://www.rfc-editor.org/rfc/rfc8216.html#section-3).
+
+These snapshots do not restore encoder or audio decoder history. Recreating
+audio-containing segments requires the original continuous audio packets.
+Independent video encoding still requires an IDR and unchanged codec configuration
+and presentation timestamps. The original two-argument factories do not capture
+transport snapshots.
+
 The master associates a video-only playlist with the prepared audio group:
 
 ```csharp
