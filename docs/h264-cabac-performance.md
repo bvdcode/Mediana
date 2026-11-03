@@ -85,3 +85,23 @@ The subsequent [SIMD weighting comparison](h264-weighted-prediction.md) reduces
 complete decoding CPU on the same CABAC input in both execution orders. It
 measures a separate change and does not replace the ordinary FFmpeg comparison
 above.
+
+
+## Internal-index comparison control
+
+A separate internal-edge shortcut checks equal reference indices and close
+motion vectors within a macroblock before resolving full physical identities.
+Intra/residual priority, swapped or duplicate references, unavailable entries
+and slice edges remain independently checked in 93,312 cases in managed,
+hardware-disabled and strict Native AOT execution.
+
+Four complete CABAC decodes preserve every raw sample, timestamp and duration,
+EOF and zero owned media. CPU median changes from 20.870151 to 20.426722 seconds,
+a 2.13% reduction. This series does not meet its predeclared 5% threshold, so
+the shortcut is not adopted and no reverse-order or CAVLC extension is run.
+These are paired results on a shared host, not an update to the FFmpeg ratio.
+
+The subsequent [CABAC history comparison](h264-cabac-history.md) reduces
+auxiliary syntax storage from the complete picture to two macroblock rows.
+Complete CABAC allocation traffic falls 15.35%; no sustained CPU improvement
+is established for that change.

@@ -66,3 +66,8 @@ metadata and package-only dependencies are verified; the full strict Native AOT
 runner built from those packages passes. CLI and sample Native AOT builds,
 full formatting, Release compilation with zero warnings and root license-header
 checks also pass.
+
+
+The subsequent [CABAC history comparison](h264-cabac-history.md) keeps this
+weighting kernel and reduces cumulative allocation during complete decoding.
+Its memory and CPU measurements are separate from the weighting result above.
