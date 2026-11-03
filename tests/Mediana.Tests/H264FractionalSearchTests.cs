@@ -15,6 +15,10 @@ namespace Mediana.Tests
         public void PreparedNeighborhoodsMatchIndependentConvolutionAtAllOffsetsAndBorders() => H264LumaNeighborhoodTestInput.Verify();
 
         [Fact]
+        public void ShortIntermediateFilteringMatchesWideConvolutionAcrossItsCompleteDomain() =>
+            Assert.Equal(334904, H264ShortInterpolationTestInput.Verify());
+
+        [Fact]
         public void RepeatedNeighborhoodPreparationAndReadAllocateNoHeapStorage() => H264LumaNeighborhoodTestInput.VerifyAllocation();
 
         [Fact]

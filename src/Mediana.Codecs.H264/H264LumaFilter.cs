@@ -45,6 +45,44 @@ namespace Mediana.Codecs.H264
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<byte> Diagonal8(ReadOnlySpan<short> horizontal, int stride, int start)
+        {
+            // Byte-domain first-pass sums are between -2550 and 10710.
+            Vector128<short> outer = Read8(horizontal, start) + Read8(horizontal, start + 5 * stride);
+            Vector128<short> middle = Read8(horizontal, start + stride) + Read8(horizontal, start + 4 * stride);
+            Vector128<short> inner = Read8(horizontal, start + 2 * stride) + Read8(horizontal, start + 3 * stride);
+            Vector128<int> lower;
+            Vector128<int> upper;
+            if (Sse2.IsSupported)
+            {
+                Vector128<short> factors = Vector128.Create((short)-5, 20, -5, 20, -5, 20, -5, 20);
+                lower = Sse2.MultiplyAddAdjacent(Sse2.UnpackLow(middle, inner), factors) + Vector128.WidenLower(outer);
+                upper = Sse2.MultiplyAddAdjacent(Sse2.UnpackHigh(middle, inner), factors) + Vector128.WidenUpper(outer);
+            }
+            else
+            {
+                lower = Vector128.WidenLower(outer) - Vector128.WidenLower(middle) * Vector128.Create(5)
+                    + Vector128.WidenLower(inner) * Vector128.Create(20);
+                upper = Vector128.WidenUpper(outer) - Vector128.WidenUpper(middle) * Vector128.Create(5)
+                    + Vector128.WidenUpper(inner) * Vector128.Create(20);
+            }
+            lower = Vector128.ShiftRightArithmetic(lower + Vector128.Create(512), 10);
+            upper = Vector128.ShiftRightArithmetic(upper + Vector128.Create(512), 10);
+            return Pack(lower, upper);
+        }
+
+        public static int Diagonal(ReadOnlySpan<short> horizontal, int stride, int start)
+        {
+            int sum = horizontal[start] + horizontal[start + 5 * stride]
+                - 5 * (horizontal[start + stride] + horizontal[start + 4 * stride])
+                + 20 * (horizontal[start + 2 * stride] + horizontal[start + 3 * stride]);
+            return Math.Clamp((sum + 512) >> 10, 0, 255);
+        }
+
+        private static Vector128<short> Read8(ReadOnlySpan<short> horizontal, int start) =>
+            Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)start);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Diagonal8(ReadOnlySpan<int> horizontal, int stride, int start)
         {
             Vector128<int> lower = Diagonal4(horizontal, stride, start);

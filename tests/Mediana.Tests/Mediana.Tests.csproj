@@ -81,6 +81,7 @@
     <Compile Include="../Shared/H264CavlcLevelTestInput.cs" Link="H264CavlcLevelTestInput.cs" />
     <Compile Include="../Shared/H264SourceBlockTestInput.cs" Link="H264SourceBlockTestInput.cs" />
     <Compile Include="../Shared/H264LumaNeighborhoodTestInput.cs" Link="H264LumaNeighborhoodTestInput.cs" />
+    <Compile Include="../Shared/H264ShortInterpolationTestInput.cs" Link="H264ShortInterpolationTestInput.cs" />
     <Compile Include="../Shared/H264VectorKernelTestInput.cs" Link="H264VectorKernelTestInput.cs" />
     <Compile Include="../Shared/H264MotionSearchTestInput.cs" Link="H264MotionSearchTestInput.cs" />
     <None Include="Data/H264/motion-*.yuv;Data/H264/MOTION-SEARCH.json" CopyToOutputDirectory="PreserveNewest" />
