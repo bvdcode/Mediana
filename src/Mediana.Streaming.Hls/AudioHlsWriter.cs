@@ -110,22 +110,32 @@ namespace Mediana.Streaming.Hls
         /// <summary>Creates a VOD playlist after completion. Codec history, encoder priming and padding remain in the coded stream;
         /// the playlist does not declare independent segments.</summary>
         public string CreateVodPlaylist(Func<int, string> segmentUri)
+            => CreateVodPlaylist(segmentUri, options.PlaylistTargetDurationSeconds);
+
+        /// <summary>Creates a completed playlist with an explicit presentation target, replacing the configured value.
+        /// Null selects the measured ceiling. Use the same target when measuring the audio rendition.</summary>
+        public string CreateVodPlaylist(Func<int, string> segmentUri, long? targetDurationSeconds)
         {
             output.EnsureComplete();
             return HlsVodPlaylist.Create(Segments, static segment => segment.Duration, segmentUri, options.MaximumSegmentUriCharacters,
-                targetDurationSeconds: options.PlaylistTargetDurationSeconds);
+                targetDurationSeconds: targetDurationSeconds);
         }
 
         /// <summary>Measures complete transport output for an external audio group. Selection attributes can be set on the returned record.
         /// Presentations shorter than half TARGETDURATION have no defined peak bandwidth.</summary>
         public HlsAudioRendition CreateRendition(string playlistUri, string groupId, string name)
+            => CreateRendition(playlistUri, groupId, name, options.PlaylistTargetDurationSeconds);
+
+        /// <summary>Measures audio using the target advertised by its completed playlist.
+        /// The explicit value replaces configuration; null selects the measured ceiling.</summary>
+        public HlsAudioRendition CreateRendition(string playlistUri, string groupId, string name, long? targetDurationSeconds)
         {
             output.EnsureComplete();
             HlsUri.Validate(playlistUri, options.MaximumSegmentUriCharacters);
             HlsAttribute.Validate(playlistUri);
             HlsAttribute.Validate(groupId);
             HlsAttribute.Validate(name);
-            (long peak, long average) = HlsBandwidth.Calculate(Segments, options.PlaylistTargetDurationSeconds);
+            (long peak, long average) = HlsBandwidth.Calculate(Segments, targetDurationSeconds);
             return new(playlistUri, groupId, name, Codecs, peak, average, audio.Channels);
         }
 

@@ -56,6 +56,13 @@ target. A 6.016-second audio segment fits a target of six; a 1.5-second segment
 does not fit a target of one. Without an explicit target, each playlist uses its
 measured maximum segment-duration ceiling.
 
+For VOD, the common target can also be chosen after every writer completes.
+`CreateVodPlaylist`, `CreateVariant` and `CreateRendition` have overloads with
+an explicit `targetDurationSeconds`. That argument replaces the writer's configured
+value; `null` selects the measured ceiling. Pass the same common value to playlist
+creation and bitrate measurement. The overloads leave segment contents, durations
+and the writer's configuration unchanged.
+
 Peak bitrate measurement uses this advertised target duration too. Changing it
 changes the set of eligible measurement windows; writing a different target
 after measuring bandwidth would produce inconsistent metadata.

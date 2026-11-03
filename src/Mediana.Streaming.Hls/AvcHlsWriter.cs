@@ -95,19 +95,29 @@ namespace Mediana.Streaming.Hls
         /// <summary>Creates a VOD playlist after successful completion. Only video-only output declares independent segments.
         /// Leading audio priming is retained; the playlist starts at the first video PTS and includes any final audio tail.</summary>
         public string CreateVodPlaylist(Func<int, string> segmentUri)
+            => CreateVodPlaylist(segmentUri, options.PlaylistTargetDurationSeconds);
+
+        /// <summary>Creates a completed playlist with an explicit presentation target, replacing the configured value.
+        /// Null selects the measured ceiling. Use the same target when measuring the variant.</summary>
+        public string CreateVodPlaylist(Func<int, string> segmentUri, long? targetDurationSeconds)
         {
             output.EnsureComplete();
             return HlsVodPlaylist.Create(Segments, static segment => segment.Duration, segmentUri,
-                options.MaximumSegmentUriCharacters, independent: audio is null, targetDurationSeconds: options.PlaylistTargetDurationSeconds);
+                options.MaximumSegmentUriCharacters, independent: audio is null, targetDurationSeconds: targetDurationSeconds);
         }
 
         /// <summary>Measures peak/average bitrates from complete TS output. Peak uses the RFC 8216 contiguous-duration window.
         /// Optional dimensions must describe the intended display pixels. Presentations shorter than half TARGETDURATION have no defined peak.</summary>
         public HlsVariant CreateVariant(string playlistUri, int? displayWidth = null, int? displayHeight = null)
+            => CreateVariant(playlistUri, displayWidth, displayHeight, options.PlaylistTargetDurationSeconds);
+
+        /// <summary>Measures the variant using the target advertised by its completed playlist.
+        /// The explicit value replaces configuration; null selects the measured ceiling.</summary>
+        public HlsVariant CreateVariant(string playlistUri, int? displayWidth, int? displayHeight, long? targetDurationSeconds)
         {
             output.EnsureComplete();
             HlsUri.Validate(playlistUri, options.MaximumSegmentUriCharacters);
-            (long peak, long average) = HlsBandwidth.Calculate(Segments, options.PlaylistTargetDurationSeconds);
+            (long peak, long average) = HlsBandwidth.Calculate(Segments, targetDurationSeconds);
             string codecs = "avc1." + Convert.ToHexString(stream.Configuration.Span.Slice(1, 3));
             if (audio is not null)
             {

@@ -56,6 +56,12 @@ namespace Mediana.Tests
                 Assert.Throws<ArgumentException>(() => writer.CreateVodPlaylist(_ => "video.ts"));
                 Assert.Throws<ArgumentException>(() => writer.CreateVariant("video.m3u8"));
             }
+            Assert.Contains("#EXT-X-TARGETDURATION:2\n", writer.CreateVodPlaylist(_ => "video.ts", 2));
+            Assert.Contains("#EXT-X-TARGETDURATION:2\n", writer.CreateVodPlaylist(_ => "video.ts", null));
+            Assert.True(writer.CreateVariant("video.m3u8", null, null, 2).Bandwidth > 0);
+            Assert.Equal(writer.CreateVariant("video.m3u8", null, null, 2), writer.CreateVariant("video.m3u8", null, null, null));
+            Assert.Throws<ArgumentOutOfRangeException>(() => writer.CreateVodPlaylist(_ => "video.ts", 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => writer.CreateVariant("video.m3u8", null, null, -1));
             Assert.Equal(new MediaDuration(milliseconds, new(1, 1000)), Assert.Single(writer.Segments).Duration);
         }
 
@@ -81,6 +87,28 @@ namespace Mediana.Tests
             HlsVariant variant = writer.CreateVariant("video.m3u8");
             Assert.Equal(writer.BytesWritten * 8, variant.AverageBandwidth);
             Assert.Equal(variant.AverageBandwidth, variant.Bandwidth);
+            long peak = 0;
+            for (int start = 0; start < writer.Segments.Count; start++)
+            {
+                long bytes = 0;
+                long milliseconds = 0;
+                for (int end = start; end < writer.Segments.Count; end++)
+                {
+                    HlsMediaSegment segment = writer.Segments[end];
+                    Assert.Equal(new TimeBase(1, 1000), segment.Duration.TimeBase);
+                    bytes += segment.ByteLength;
+                    milliseconds += segment.Duration.Value;
+                    if (milliseconds is >= 500 and <= 1500)
+                    {
+                        peak = Math.Max(peak, (bytes * 8000 + milliseconds - 1) / milliseconds);
+                    }
+                }
+            }
+            HlsVariant measured = writer.CreateVariant("video.m3u8", null, null, 1);
+            Assert.Equal(peak, measured.Bandwidth);
+            Assert.Equal(variant.AverageBandwidth, measured.AverageBandwidth);
+            Assert.Contains("#EXT-X-TARGETDURATION:1\n", writer.CreateVodPlaylist(number => $"{number}.ts", 1));
+            Assert.Contains("#EXT-X-TARGETDURATION:2\n", writer.CreateVodPlaylist(number => $"{number}.ts"));
         }
     }
 }

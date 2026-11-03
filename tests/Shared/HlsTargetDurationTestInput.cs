@@ -17,7 +17,7 @@ namespace Mediana.Tests
             EncodedStreamInfo audio = new(0, MediaKind.Audio, "aac", StreamFormats.Aac, new(1, 48000), [0x11, 0x88]);
             await using (AudioHlsWriter writer = AudioHlsWriter.Create(audio,
                 (_, _) => ValueTask.FromResult<Stream>(new MemoryStream()), allocator,
-                new() { TargetDuration = new(6, new(1, 1)), PlaylistTargetDurationSeconds = 6 }))
+                new() { TargetDuration = new(6, new(1, 1)), PlaylistTargetDurationSeconds = 9 }))
             {
                 for (int frame = 0; frame < 282; frame++)
                 {
@@ -29,13 +29,19 @@ namespace Mediana.Tests
                     await writer.WritePacketAsync(packet);
                 }
                 await writer.CompleteAsync();
-                string playlist = writer.CreateVodPlaylist(_ => "audio.ts");
-                HlsAudioRendition rendition = writer.CreateRendition("audio.m3u8", "audio", "Main");
+                string playlist = writer.CreateVodPlaylist(_ => "audio.ts", 6);
+                HlsAudioRendition rendition = writer.CreateRendition("audio.m3u8", "audio", "Main", 6);
                 if (writer.Segments.Count != 1 || writer.Segments[0].Duration != new MediaDuration(288768, audio.TimeBase) ||
+                    !writer.CreateVodPlaylist(_ => "audio.ts").Contains("#EXT-X-TARGETDURATION:9\n", StringComparison.Ordinal) ||
+                    !writer.CreateVodPlaylist(_ => "audio.ts", null).Contains("#EXT-X-TARGETDURATION:7\n", StringComparison.Ordinal) ||
                     !playlist.Contains("#EXT-X-TARGETDURATION:6\n", StringComparison.Ordinal) ||
                     !playlist.Contains("#EXTINF:6.016,\n", StringComparison.Ordinal) || rendition.Bandwidth != rendition.AverageBandwidth)
                 {
                     throw new InvalidDataException("The common HLS target duration changed coded packet extent or rejected legal nearest-integer rounding.");
+                }
+                if (writer.CreateRendition("audio.m3u8", "audio", "Main", null).AverageBandwidth != rendition.AverageBandwidth)
+                {
+                    throw new InvalidDataException("Changing the advertised target changed the complete-presentation average bandwidth.");
                 }
             }
             if (allocator.AllocatedBytes != 0)
