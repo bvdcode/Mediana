@@ -16,6 +16,20 @@ namespace Mediana.Codecs.H264
             bool complete = false;
             try
             {
+                H264BidirectionalReferences[] sliceReferences = new H264BidirectionalReferences[slices.Count];
+                for (int index = 0; index < slices.Count; index++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    H264SliceHeader header = slices[index].Header;
+                    H264BidirectionalReferences lists = header.Kind switch
+                    {
+                        H264SliceKind.B => references.GetBidirectionalLists(header, order),
+                        H264SliceKind.I or H264SliceKind.P => new(references.GetList0(header), []),
+                        _ => throw new NotSupportedException("H.264 reconstruction supports I, P and B slices.")
+                    };
+                    sliceReferences[index] = lists;
+                    picture.CaptureReferences(header.FirstMacroblock, lists.L0, lists.L1);
+                }
                 for (int index = 0; index < slices.Count; index++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -24,12 +38,7 @@ namespace Mediana.Codecs.H264
                     ReadOnlySpan<byte> nal = unit.Slices[index].Span;
                     H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
                     H264SliceHeaderReader.Read(ref bits, unit.Configuration, nal[0], options);
-                    H264BidirectionalReferences lists = header.Kind switch
-                    {
-                        H264SliceKind.B => references.GetBidirectionalLists(header, order),
-                        H264SliceKind.I or H264SliceKind.P => new(references.GetList0(header), []),
-                        _ => throw new NotSupportedException("H.264 reconstruction supports I, P and B slices.")
-                    };
+                    H264BidirectionalReferences lists = sliceReferences[index];
                     picture.FirstMacroblock = header.FirstMacroblock;
                     if (header.Picture.Cabac)
                     {
@@ -43,7 +52,6 @@ namespace Mediana.Codecs.H264
                     {
                         H264PictureDecoder.DecodeSlice(ref bits, header, lists.L0, picture, region.EndMacroblock, cancellationToken);
                     }
-                    picture.CaptureReferences(lists.L0, lists.L1);
                 }
                 picture.FirstMacroblock = 0;
                 H264Deblocking.Apply(picture, slices, cancellationToken);

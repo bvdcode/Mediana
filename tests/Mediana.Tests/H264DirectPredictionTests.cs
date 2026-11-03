@@ -29,7 +29,7 @@ namespace Mediana.Tests
             H264ReferencePicture futureReference = new(future, 2, new H264PictureOrder(8, 8));
             H264ReferenceList list = bidirectional ? H264ReferenceList.L1 : H264ReferenceList.L0;
             future.SetMotion(list, 0, 0, 48, 48, 1, 12, -8);
-            future.CaptureReferences(bidirectional ? [] : [otherReference, pastReference], bidirectional ? [otherReference, pastReference] : []);
+            future.CaptureReferences(0, bidirectional ? [] : [otherReference, pastReference], bidirectional ? [otherReference, pastReference] : []);
             H264SliceHeader header = Header(sequence);
             H264BidirectionalReferences references = new([otherReference, pastReference, pastReference], [futureReference]);
             Span<byte> prediction = stackalloc byte[384];

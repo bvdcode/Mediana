@@ -43,8 +43,7 @@ namespace Mediana.Tests
                     int start = starts[index];
                     H264ReferencePicture active = identities[start] == 0 ? a : b;
                     H264ReferencePicture other = identities[start] == 0 ? b : a;
-                    picture.FirstMacroblock = start;
-                    picture.CaptureReferences([active, other, active], bidirectional ? [other, active] : []);
+                    picture.CaptureReferences(start, [active, other, active], bidirectional ? [other, active] : []);
                     regions[index] = new(header with { FirstMacroblock = start }, index + 1 < starts.Length ? starts[index + 1] : 9);
                 }
                 for (int address = 0; address < identities.Length; address++)

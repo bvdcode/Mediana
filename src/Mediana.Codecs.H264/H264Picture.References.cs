@@ -9,9 +9,14 @@ namespace Mediana.Codecs.H264
 
         public H264PictureIdentity Identity { get; } = new();
 
-        public void CaptureReferences(IReadOnlyList<H264ReferencePicture?> l0, IReadOnlyList<H264ReferencePicture?> l1)
+        public void CaptureReferences(int firstMacroblock, IReadOnlyList<H264ReferencePicture?> l0, IReadOnlyList<H264ReferencePicture?> l1)
         {
-            referenceSlices.Add(new H264PictureReferences(FirstMacroblock, Capture(l0), Capture(l1)));
+            if ((uint)firstMacroblock >= (uint)macroblocks ||
+                (referenceSlices.Count == 0 ? firstMacroblock != 0 : firstMacroblock <= referenceSlices[^1].FirstMacroblock))
+            {
+                throw new ArgumentOutOfRangeException(nameof(firstMacroblock), "H.264 reference lists must cover ordered, distinct slice starts from macroblock zero.");
+            }
+            referenceSlices.Add(new H264PictureReferences(firstMacroblock, Capture(l0), Capture(l1)));
         }
 
         public H264PictureIdentity ReferenceIdentity(H264ReferenceList list, int index, int macroblock = 0)

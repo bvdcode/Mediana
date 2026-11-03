@@ -45,7 +45,7 @@ namespace Mediana.Tests
             H264ReferencePicture reference1 = new(past1, 1, new(-4, -4), longTerm ? 2 : null);
             H264ReferencePicture colocated = new(future, 2, new(8, 8), longTerm ? 0 : null);
             H264BidirectionalReferences references = new([reference0, reference1], [colocated]);
-            future.CaptureReferences(references.L0, []);
+            future.CaptureReferences(0, references.L0, []);
             for (int row = 0; row < 48; row += 4)
                 for (int column = 0; column < 48; column += 4)
                 {

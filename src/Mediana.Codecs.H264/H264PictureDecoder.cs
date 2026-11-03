@@ -30,7 +30,7 @@ namespace Mediana.Codecs.H264
             {
                 DecodeSlice(ref bits, header, references, result, result.Quantizers.Length, cancellationToken);
                 H264Deblocking.Apply(result, header, cancellationToken, references);
-                result.CaptureReferences(references, []);
+                result.CaptureReferences(0, references, []);
                 complete = true;
                 return result;
             }
