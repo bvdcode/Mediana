@@ -269,8 +269,6 @@ namespace Mediana.NativeTests
             await H264BidirectionalTestInput.VerifyHeadersAsync(root);
             await H264BidirectionalTestInput.VerifyReferenceListsAsync(root);
             H264BidirectionalTestInput.VerifyMotion();
-            H264BidirectionalDeblockingTestInput.Verify();
-            H264DeblockingMotionTestInput.Verify();
             AllocationMeasurementTestInput.Verify();
             H264CabacPredictionWindowTestInput.Verify();
             H264SliceDeblockingTestInput.Verify();

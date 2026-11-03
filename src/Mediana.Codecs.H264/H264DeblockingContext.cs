@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal ref struct H264DeblockingContext
+    internal ref partial struct H264DeblockingContext
     {
         private readonly H264Picture picture;
         private readonly IReadOnlyList<H264ReferencePicture?>? referencesL0;
@@ -19,6 +19,8 @@ namespace Mediana.Codecs.H264
         private readonly ReadOnlySpan<int> motionYL1;
         private readonly int stride;
         private readonly int columns;
+        private bool? uniformPrediction;
+        private bool uniformValidated;
         private int address;
         private H264PictureReferences? currentReferences;
         private H264PictureReferences? leftReferences;
@@ -54,7 +56,10 @@ namespace Mediana.Codecs.H264
             topReferences = null;
         }
 
-        public int Strength(int x, int y, bool vertical, bool macroblockEdge)
+        public int Strength(int x, int y, bool vertical, bool macroblockEdge) =>
+            Strength(x, y, vertical, macroblockEdge, false);
+
+        private int Strength(int x, int y, bool vertical, bool macroblockEdge, bool reuseUniformPrediction)
         {
             int current = y / 4 * stride + x / 4;
             int previous = current - (vertical ? 1 : stride);
@@ -68,6 +73,10 @@ namespace Mediana.Codecs.H264
                 || HasResidual(x, y, current, address))
             {
                 return 2;
+            }
+            if (reuseUniformPrediction && !previousMacroblock && UniformPrediction(previous, vertical))
+            {
+                return 0;
             }
             H264PictureIdentity? p0 = Resolve(H264ReferenceList.L0, previous, true, vertical, previousMacroblock);
             H264PictureIdentity? q0 = Resolve(H264ReferenceList.L0, current, false, vertical, previousMacroblock);
