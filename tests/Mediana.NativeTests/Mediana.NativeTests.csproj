@@ -274,6 +274,7 @@
     <Compile Include="../Shared/H264BidirectionalPictureTestInput.cs" Link="H264BidirectionalPictureTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalFixture.cs" Link="H264BidirectionalFixture.cs" />
     <Compile Include="../Shared/H264BiPredictionTestInput.cs" Link="H264BiPredictionTestInput.cs" />
+    <Compile Include="../Shared/H264BiPredictionVectorTestInput.cs" Link="H264BiPredictionVectorTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalPredictionTestInput.cs" Link="H264BidirectionalPredictionTestInput.cs" />
     <Compile Include="../Shared/H264EightByEightTestInput.cs" Link="H264EightByEightTestInput.cs" />
     <Compile Include="../Shared/H264CabacTransformTestInput.cs" Link="H264CabacTransformTestInput.cs" />

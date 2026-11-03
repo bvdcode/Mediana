@@ -284,6 +284,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS H.264 CABAC B: 98 independent YUV pictures, all initializations, 8x8 transforms, direct modes, public timing and selected PNG previews match.");
             Console.WriteLine("PASS H.264 CAVLC B: 36 independent YUV pictures, spatial/temporal direct, display order, selected B previews and decoded PNG samples match.");
             H264BiPredictionTestInput.Verify();
+            H264BiPredictionVectorTestInput.Verify();
             H264BidirectionalPredictionTestInput.Verify();
             Console.WriteLine("PASS H.264 B prediction components: independent L0/L1 motion and ordinary, explicit, implicit 8-bit sample weighting match fixed vectors.");
             Console.WriteLine("PASS H.264 B partitions: single L0/L1 and Bi modes, fractional luma/chroma compensation, all weighting modes and exact partition placement match.");

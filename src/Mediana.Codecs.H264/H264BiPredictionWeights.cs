@@ -59,7 +59,8 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentException("H.264 bidirectional prediction blocks cannot partially overlap their output.");
             }
             int rounding = 1 << Denominator;
-            for (int index = 0; index < output.Length; index++)
+            int processed = H264BiPredictionVector.Apply(l0, l1, output, this);
+            for (int index = processed; index < output.Length; index++)
             {
                 output[index] = (byte)Math.Clamp(((l0[index] * Weight0 + l1[index] * Weight1 + rounding) >> (Denominator + 1)) + Offset, 0, 255);
             }
