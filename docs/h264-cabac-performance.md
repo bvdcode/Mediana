@@ -380,3 +380,79 @@ CPU remains 51.289 and 51.000 seconds. GC allocation includes approximately
 These diagnostics support less repeated lookup work but do not establish
 GC as the cause of ordinary-run variation or prove sustained acceleration.
 Inclusive parent and child estimates overlap and must not be added together.
+
+## Sustained external decoder comparison
+
+A subsequent serial comparison decodes 180.125 seconds: the independently
+checked 60.041667-second High/CABAC scene repeated three times with continuous
+timestamps. This is a sustained operation, rather than three minutes of
+distinct scenes. The accepted decoder code is unchanged during this comparison.
+
+Both programs run on logical CPU 2 with one decoder thread. FFmpeg filters
+also use one thread. The raw-output encoder selects its automatic count from
+the available CPU affinity. This constrains media computation; runtime and
+I/O thread counts need not match. Native AOT uses the existing default compiler
+settings and ordinary GC.
+
+The order is FFmpeg, Mediana, Mediana, FFmpeg. Each operation writes exactly
+4,323 pictures and 5,976,115,200 planar YUV bytes with the same SHA-256.
+Mediana also verifies every rational timestamp, duration, EOF and released
+media storage. Medians are:
+
+| Measurement | Mediana | FFmpeg 6.1.1 |
+| --- | ---: | ---: |
+| Process CPU, s | 51.354 | 11.055 |
+| Elapsed, s | 93.457 | 71.070 |
+| Peak RSS, MiB | 76.844 | 76.734 |
+
+The CPU ratio is **4.645 times**. The previous 60.041667-second comparison
+reported 5.056 times; no decoder change separates the two measurements, so
+their difference is not evidence of an optimization. FFmpeg elapsed time
+varies from 42.725 to 99.415 seconds within the new series. CPU measurements
+and all individual observations are retained; elapsed medians on this host
+do not establish a stable throughput ratio.
+
+### Matched native function diagnostics
+
+Two additional complete operations produce the same output bytes. Matching
+official Ubuntu ELF debug files are checked against the installed FFmpeg
+and library build IDs. The programs and libraries used for comparison remain
+byte-identical to the installed files.
+
+The recordings contain 9,435 FFmpeg samples and 52,170 Mediana samples at the
+requested one-millisecond CPU sampling interval. Their final samples precede
+exit by 0.280634 and 0.022303 seconds. Both collector timer-change warnings
+are retained. These are diagnostic estimates, rather than exact unperturbed
+function CPU times.
+
+| Mediana function group | Exclusive sampled seconds |
+| --- | ---: |
+| Deblocking classes | 11.463 |
+| CABAC classes | 7.575 |
+| Luma and chroma interpolation | 3.443 |
+| Memory moves | 3.680 |
+
+Boundary-strength filling includes 8.536 sampled seconds, while the complete
+deblocking call includes 12.623. Those inclusive values overlap with the
+exclusive groups and must not be added to them. GC allocation includes 0.568
+sampled seconds and collection 0.085; this recording does not support GC
+as the dominant explanation of the total gap.
+
+FFmpeg's sized ELF functions resolve normally, including CABAC and
+`loop_filter`. Some assembly entries have no ELF size and appear as broad
+address-only groups in the initial function report. Independently reading
+the original sampled PCs resolves 4,997 library samples inside explicitly
+sized functions. Another 2,818 samples lie between zero-sized function entries;
+all sampled addresses are checked against disassembled instruction boundaries.
+Two library samples remain unresolved. Shared unnamed assembly helpers retain
+their ambiguity and are not attributed solely from the preceding symbol name.
+
+The boundary-strength assembly entry contains 338 samples at 112 distinct
+instruction addresses. Its source calculates several strengths together from
+packed reference, motion and residual data. Mediana's current profile instead
+shows substantial work in individual strength, residual and physical-reference
+checks. This is a concrete direction for a grouped calculation with preserved
+validation semantics, not proof that one replacement removes the whole gap.
+The comparison uses the
+[FFmpeg strength calculation](https://github.com/FFmpeg/FFmpeg/blob/n6.1.1/libavcodec/x86/h264_deblock.asm)
+and [DSP selection](https://github.com/FFmpeg/FFmpeg/blob/n6.1.1/libavcodec/x86/h264dsp_init.c).
