@@ -96,7 +96,8 @@ formatting and license-header checks pass.
 
 An actual master playlist combining prepared audio with independently requested
 video now passes [complete decoding and request-order checks](hls-prepared-presentation.md).
-Browser-player verification, the common VOD presentation boundary around audio
-priming, and application integration remain open. The CLI continues to expose its existing muxed HLS encoding path. See
+Chrome/hls.js completes playback and buffered seeks. Smooth rendering, the common
+VOD presentation boundary around audio priming and padding, and application
+integration remain open. The CLI continues to expose its existing muxed HLS encoding path. See
 [continuous audio HLS](audio-hls.md) and the measured
 [independent interval boundary](audiovisual-windows.md#independently-encoded-interval-boundaries).

@@ -1708,8 +1708,9 @@ for byte, including a 12-second stereo AAC preparation from 5.1 input.
 `HlsMasterPlaylist` audio groups. `PlaylistTargetDurationSeconds` selects a common
 advertised target for audio and video and their bandwidth measurements. A real
 [prepared presentation](docs/hls-prepared-presentation.md) passes complete
-master-playlist decoding with video requests in order 1, 0, 1. Browser playback
-and common VOD presentation boundaries remain open.
+master-playlist decoding with video requests in order 1, 0, 1. Chrome/hls.js
+completes playback and buffered seeks; exact VOD presentation boundaries and
+smooth rendering remain open.
 See [audio HLS contracts and checks](docs/audio-hls.md).
 See [audio group contracts and checks](docs/hls-audio-groups.md).
 

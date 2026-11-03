@@ -84,9 +84,10 @@ coded packet coverage therefore differs from the selected audible interval:
 
 These clock differences do not indicate duplicated input selection. One encoder
 is retained across audio boundaries, and every coded access unit occurs once.
-Browser-player behavior and exact VOD presentation-range handling around priming
-and padding remain unverified. The existing audiovisual interval sample still
-initializes AAC separately for each request; it has not been converted to this
+The browser check below observes the remaining padding in the presentation's
+duration; exact VOD presentation-range handling remains open. The existing
+audiovisual interval sample still initializes AAC separately for each request;
+it has not been converted to this
 prepared-audio composition.
 
 An additional transport check reads original PES timestamps and every complete
@@ -95,6 +96,49 @@ ADTS frame directly. In a separate FFmpeg HLS output, 564 AAC access units acros
 incorrect timestamps to six initial access units. Direct transport inspection
 resolves that discrepancy; packet timestamp interpolation alone is insufficient
 evidence of a media discontinuity.
+
+## Browser playback and remaining presentation work
+
+Chrome 156 on Linux with hls.js 1.7.4 opens the actual master over HTTP, selects
+its stereo audio rendition and completes playback. Seeking to 5.8 seconds crosses
+the six-second video boundary; seeking back to one second also reaches the end.
+These are buffered seeks. All three paths finish without hls.js errors or an
+`HTMLMediaElement` error. Video dimensions are 320×180. The video element is muted;
+these checks do not establish listening quality or sample-exact browser PCM.
+
+The browser reports an end time and duration of 12.010666 seconds. Its final audio
+buffer ends there, while the video buffer ends at 11.999999 seconds. The observed
+excess agrees, to the browser's microsecond reporting precision, with 512 padding
+samples at 48 kHz. Basic playback therefore succeeds while the selected 12-second
+presentation boundary remains unresolved.
+
+This behavior is consistent with the
+[MSE end-of-stream algorithm](https://www.w3.org/TR/2016/REC-media-source-20161117/#end-of-stream-algorithm),
+which updates duration from the latest buffered track end, and with
+[hls.js audio remuxing](https://github.com/video-dev/hls.js/blob/v1.7.4/src/remux/mp4-remuxer.ts),
+which represents complete AAC frames. The
+[Apple HLS authoring specification, section 8.7](https://developer.apple.com/streaming/hls-authoring-specification-for-apple-devices.html)
+requires a common VOD media range; these playback results do not establish that
+requirement for the current prepared presentation.
+
+The browser also reports substantial dropped video frames:
+
+| Playback conditions | Reported total frames | Reported dropped frames |
+| --- | ---: | ---: |
+| Mediana, background full pass | 292 | 143 |
+| Mediana, visible replay, counter increments | 288 | 153 |
+| x264 control, visible full pass | 292 | 134 |
+
+The control encodes the same 288 reference pictures at 320×180 and 24 fps,
+preserves every video PTS/DTS and uses the identical prepared AAC files. It also
+reaches the end; hls.js reports one nonfatal `bufferAppendNoProgress` event for the
+control. Corrupted-frame counters remain zero for all three passes. Initial-load
+and seek work contributes to the cumulative frame counters.
+
+The drops occur with both video encoders in this browser environment. Their cause
+has not been isolated; smooth rendering and comparative playback performance
+remain unverified. Other browsers, native HLS players and application integration
+still require acceptance checks.
 
 The preparation and request checks do not measure throughput or resolve the
 remaining H.264 CPU, quality and compression-efficiency work.

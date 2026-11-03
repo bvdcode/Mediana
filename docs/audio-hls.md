@@ -86,5 +86,6 @@ reports zero warnings and errors; formatting and license-header checks pass.
 This verification establishes audio media-playlist continuity. Master audio-group
 metadata is supported. A [prepared audio/video presentation](hls-prepared-presentation.md)
 also passes complete master-playlist decoding with independently requested video.
-Common VOD presentation boundaries and application playback acceptance remain open. See
+Chrome/hls.js completes playback and buffered seeks; exact VOD presentation
+boundaries, smooth rendering and application playback acceptance remain open. See
 [independently encoded interval boundaries](audiovisual-windows.md#independently-encoded-interval-boundaries).
