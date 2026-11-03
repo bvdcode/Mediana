@@ -98,9 +98,17 @@ the same independent request with the same snapshot produces identical bytes.
 The video peak/average rates are checked against the actual requested file sizes.
 
 The public package consumer builds with strict Native AOT warnings and releases
-its allocator-owned media storage. The library source and fixtures match the
-validated 3,181-test, 30-package build described in
-[audio group verification](hls-audio-groups.md#verification-and-remaining-work).
+its allocator-owned media storage. Preparation captures the boundary directly
+from the HLS destination factory using a single transport writer. Every output
+file matches the earlier presentation, including the independently requested
+video files.
+
+The corresponding Release build passes 3,198 managed tests, verification of all
+30 packages, the complete package-only Native AOT test runner and Native AOT CLI
+build. Shared managed and Native tests replay AVC, AAC and MPEG-1/2 Layer
+III segments from captured states after disposing their original HLS writers.
+Additional tests check reusable state and destination ownership after factory
+failure and cancellation.
 
 ## Coded clocks and presentation boundaries
 
