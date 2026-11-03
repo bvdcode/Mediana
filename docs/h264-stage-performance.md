@@ -1,3 +1,8 @@
+The separate [complete High/CABAC comparison](h264-cabac-performance.md)
+measures 34.345 versus 5.204 CPU seconds (6.60x), with all 1,441 pictures exact.
+Its different bitstream and stack observations do not update the CAVLC or
+complete-film HLS ratios below.
+
 Repository Native AOT builds now prefer execution speed. The
 [unchanged-source compiler comparison](native-aot-performance.md) reduces
 complete raw-encoding CPU by 6.64% with identical output. Decoder timing varies
