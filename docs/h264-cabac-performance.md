@@ -317,3 +317,66 @@ further investigation. It does not establish that removing one copy or helper
 will reduce complete processing cost. The
 [interior source-region control](h264-fractional-motion.md#interior-source-region-control)
 preserves all output samples but does not produce a CPU improvement.
+
+## Region-scoped spatial direct prediction control
+
+Two repeated Native AOT diagnostic pairs decode the complete 60.041667-second
+High/CABAC input without changing prediction decisions. Every output byte,
+frame timestamp and duration, EOF and released-storage check passes. The
+counts agree between repetitions and between both diagnostic versions:
+
+| Work | Count |
+| --- | ---: |
+| Direct regions | 3,311,779 |
+| Already fully uniform regions | 3,305,413 |
+| Current prediction partitions | 3,330,877 |
+| Conservative equal-motion rectangular cover | 3,320,471 |
+| All motion lookups | 53,893,364 |
+| Direct-region motion lookups | 46,647,258 |
+| Repeated identical lookups within an unchanged region | 13,095,903 |
+| Regions whose preferred spatial vectors make co-located lookup unnecessary | 1,959,380 |
+
+The rectangular cover removes only 0.31% of partition calls and is not
+implemented. The spatial invariant applies to 59.16% of these regions. This
+input exercises spatial direct prediction with 8x8 inference; these counts
+do not characterize temporal direct prediction or 4x4 inference workloads.
+
+A separate calculation reads the two preferred spatial vectors once per
+region and omits co-located reads only when the zero condition cannot change
+either selected vector. The original neighbor selection and prediction
+arithmetic are shared. Temporal mapping, weights, reference validation and
+prediction partitions retain their existing semantics. This is consistent
+with the separation of preferred spatial motion and co-located zero handling
+in the [FFmpeg direct prediction implementation](https://github.com/FFmpeg/FFmpeg/blob/n6.1.1/libavcodec/h264_direct.c).
+
+Independent controls pass 1,920 whole-region pixel/motion cases and 16,384
+neighbor-availability, reference-selection and extreme-vector cases in
+managed, hardware-disabled and strict Native AOT execution. The region
+matrix also covers temporal prediction, 4x4 inference, long-term references
+and explicit and implicit weights. All 725 H.264 tests pass with hardware
+intrinsics enabled and disabled; the selection checks allocate zero managed
+bytes after warmup.
+
+Eight complete 180.125-second Native AOT decodes run serially on logical CPU 2,
+with one media-processing thread, ordinary GC and default compiler settings.
+Each writes the same 4,323 pictures and 5,976,115,200 bytes, including every
+rational clock, EOF and released-storage check. Medians are:
+
+| Order | Current CPU, s | Scoped CPU, s | CPU change | Current elapsed, s | Scoped elapsed, s | Current RSS, KiB | Scoped RSS, KiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Current, scoped, scoped, current | 51.777 | 48.759 | -5.83% | 66.679 | 65.192 | 72,392 | 73,196 |
+| Scoped, current, current, scoped | 51.123 | 51.027 | -0.19% | 88.556 | 76.068 | 74,124 | 74,072 |
+
+The reverse series does not reproduce the minimum 5% CPU reduction. The
+calculation is not adopted, and CAVLC, encoding and full-HLS extensions are
+not run. The independent FFmpeg comparison remains unchanged.
+
+Two additional complete native PC recordings contain 51,289 and 51,000
+resolved samples, ending 0.000464 and 0.011193 seconds before exit. The
+collector timer-change warnings are retained. Motion-lookup inclusive
+sample estimates decrease from 3.035 to 1.940 seconds, while total sampled
+CPU remains 51.289 and 51.000 seconds. GC allocation includes approximately
+0.655 and 0.619 sampled seconds; collection includes 0.097 and 0.062 seconds.
+These diagnostics support less repeated lookup work but do not establish
+GC as the cause of ordinary-run variation or prove sustained acceleration.
+Inclusive parent and child estimates overlap and must not be added together.
