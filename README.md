@@ -55,7 +55,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
-| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists |
+| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants, continuous AAC/MP3 audio playlists and measured transport output |
 | `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |
 | `Mediana` | Explicit input/output registration, container detection and individual or combined A/V sessions |
 | `Mediana.Cli` | Command-line media inspection, conversions, previews and exports |
@@ -1692,6 +1692,20 @@ The current mode uses I/P video with IDRs aligned to segment targets. Optional
 per-variant video packet rates use adaptive QP; otherwise QP is fixed. Full HRD
 conformance and perceptual AAC quality remain open.
 See [HLS encoding contracts and checks](docs/hls-encoding.md).
+
+## Preparing continuous audio HLS
+
+The library's `AudioHlsWriter` partitions one AAC-LC or MPEG-1/2 Layer III packet
+sequence into TS files and a VOD media playlist. Applications can copy audio or
+keep one AAC encoder running across all segments. Boundaries follow a fixed grid
+from the first coded PTS; final segment duration includes the complete coded tail.
+`HlsWriteOptions` supplies the target duration and output limits. Destination
+ownership and transport continuation use the same component as `AvcHlsWriter`.
+
+Independent decoding of complete playlists matches continuous reference PCM byte
+for byte, including a 12-second stereo AAC preparation from 5.1 input. Master
+audio groups and playback with independently requested video remain open.
+See [audio HLS contracts and checks](docs/audio-hls.md).
 
 ## Connecting modules
 
