@@ -200,6 +200,26 @@ The direction of the CPU difference reversed, and peak RSS was higher in both
 trial runs. These shared-host measurements do not establish a repeatable
 full-operation improvement. The general interpolation change was not adopted.
 
+### Fused quarter-sample averaging control
+
+A separate control at baseline `9cd82a0` combines half-sample filtering and
+integer/half-sample averaging in one pass. It preserves clipping before upward
+averaging under H.264 clause 8.4.2.2.1 and removes the second traversal of the
+output block. Bounded scratch, diagonal arithmetic and sample ownership remain
+the same. Independent scalar convolution agrees on all 7,392 blocks covering
+all sixteen phases, borders, unusual widths, tiling and output guards in managed,
+hardware-disabled and strict Native AOT execution. Repeated interpolation
+allocates no managed storage in these checks.
+
+Four complete 1,441-picture High/CABAC decodes run serially in
+current/candidate/candidate/current order on logical CPU 2 with one media thread
+and the ordinary GC policy. Every YUV byte, rational timestamp and duration is
+exact; EOF and released-storage checks pass. CPU medians are 19.486 and 19.441
+seconds, a 0.23% difference. Peak RSS medians are 61,614 and 66,754 KiB.
+This does not meet the predeclared minimum 5% CPU reduction, so the candidate is
+not adopted and no reverse-order, CAVLC or encoding extension is run. These
+observations establish neither a repeatable acceleration nor a memory gain.
+
 ## Native AOT stage observations
 
 An instrumented build of the retained implementation processed the same complete
