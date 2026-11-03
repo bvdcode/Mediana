@@ -112,7 +112,8 @@ namespace Mediana.Streaming.Hls
         public string CreateVodPlaylist(Func<int, string> segmentUri)
         {
             output.EnsureComplete();
-            return HlsVodPlaylist.Create(Segments, static segment => segment.Duration, segmentUri, options.MaximumSegmentUriCharacters);
+            return HlsVodPlaylist.Create(Segments, static segment => segment.Duration, segmentUri, options.MaximumSegmentUriCharacters,
+                targetDurationSeconds: options.PlaylistTargetDurationSeconds);
         }
 
         /// <summary>Measures complete transport output for an external audio group. Selection attributes can be set on the returned record.
@@ -124,7 +125,7 @@ namespace Mediana.Streaming.Hls
             HlsAttribute.Validate(playlistUri);
             HlsAttribute.Validate(groupId);
             HlsAttribute.Validate(name);
-            (long peak, long average) = HlsBandwidth.Calculate(Segments);
+            (long peak, long average) = HlsBandwidth.Calculate(Segments, options.PlaylistTargetDurationSeconds);
             return new(playlistUri, groupId, name, Codecs, peak, average, audio.Channels);
         }
 

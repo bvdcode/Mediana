@@ -7,11 +7,10 @@ namespace Mediana.Streaming.Hls
 {
     internal static class HlsBandwidth
     {
-        public static (long Peak, long Average) Calculate(IReadOnlyList<HlsMediaSegment> segments)
+        public static (long Peak, long Average) Calculate(IReadOnlyList<HlsMediaSegment> segments, long? targetDurationSeconds = null)
         {
             TimeBase clock = segments[0].Duration.TimeBase;
-            long targetSeconds = segments.Max(segment => new MediaTimestamp(segment.Duration.Value, segment.Duration.TimeBase)
-                .Rescale(new(1, 1), TimestampRounding.Ceiling).Value);
+            long targetSeconds = HlsVodPlaylist.GetTargetDuration(segments, static segment => segment.Duration, targetDurationSeconds);
             long totalBytes = 0;
             Int128 totalDuration = 0;
             long peak = 0;

@@ -10,11 +10,10 @@ namespace Mediana.Streaming.Hls
     internal static class HlsVodPlaylist
     {
         public static string Create<T>(IReadOnlyList<T> segments, Func<T, MediaDuration> durationOf,
-            Func<int, string> segmentUri, int maximumUriCharacters, bool independent = false)
+            Func<int, string> segmentUri, int maximumUriCharacters, bool independent = false, long? targetDurationSeconds = null)
         {
             ArgumentNullException.ThrowIfNull(segmentUri);
-            long target = segments.Max(segment => new MediaTimestamp(durationOf(segment).Value, durationOf(segment).TimeBase)
-                .Rescale(new(1, 1), TimestampRounding.Ceiling).Value);
+            long target = GetTargetDuration(segments, durationOf, targetDurationSeconds);
             StringBuilder text = new();
             text.Append("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:");
             text.Append(target.ToString(CultureInfo.InvariantCulture));
@@ -37,6 +36,27 @@ namespace Mediana.Streaming.Hls
             }
             text.Append("#EXT-X-ENDLIST\n");
             return text.ToString();
+        }
+
+        public static long GetTargetDuration<T>(IReadOnlyList<T> segments, Func<T, MediaDuration> durationOf, long? requested)
+        {
+            if (requested is not long target)
+            {
+                return segments.Max(segment => new MediaTimestamp(durationOf(segment).Value, durationOf(segment).TimeBase)
+                    .Rescale(new(1, 1), TimestampRounding.Ceiling).Value);
+            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(target);
+            foreach (T segment in segments)
+            {
+                MediaDuration duration = durationOf(segment);
+                Int128 numerator = (Int128)duration.Value * duration.TimeBase.Numerator * 2 + duration.TimeBase.Denominator;
+                Int128 rounded = numerator / (2L * duration.TimeBase.Denominator);
+                if (rounded > target)
+                {
+                    throw new ArgumentException("A segment's rounded duration exceeds the configured playlist TARGETDURATION.", nameof(requested));
+                }
+            }
+            return target;
         }
     }
 }

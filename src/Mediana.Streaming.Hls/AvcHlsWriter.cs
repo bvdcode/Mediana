@@ -98,7 +98,7 @@ namespace Mediana.Streaming.Hls
         {
             output.EnsureComplete();
             return HlsVodPlaylist.Create(Segments, static segment => segment.Duration, segmentUri,
-                options.MaximumSegmentUriCharacters, independent: audio is null);
+                options.MaximumSegmentUriCharacters, independent: audio is null, targetDurationSeconds: options.PlaylistTargetDurationSeconds);
         }
 
         /// <summary>Measures peak/average bitrates from complete TS output. Peak uses the RFC 8216 contiguous-duration window.
@@ -107,7 +107,7 @@ namespace Mediana.Streaming.Hls
         {
             output.EnsureComplete();
             HlsUri.Validate(playlistUri, options.MaximumSegmentUriCharacters);
-            (long peak, long average) = HlsBandwidth.Calculate(Segments);
+            (long peak, long average) = HlsBandwidth.Calculate(Segments, options.PlaylistTargetDurationSeconds);
             string codecs = "avc1." + Convert.ToHexString(stream.Configuration.Span.Slice(1, 3));
             if (audio is not null)
             {

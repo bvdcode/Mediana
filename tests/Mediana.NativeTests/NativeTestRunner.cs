@@ -301,6 +301,7 @@ namespace Mediana.NativeTests
             }
             Console.WriteLine("PASS audio-only MPEG-TS segments: AAC and MPEG-1/2 Layer III packets, clocks and counters match across files and out-of-order snapshot restoration.");
             HlsAudioGroupTestInput.Verify();
+            await HlsTargetDurationTestInput.VerifyAsync();
             await AudioHlsTestInput.VerifyAsync(root, "avc-aac.mp4", "mp4a.40.2", 1024, 1);
             await AudioHlsTestInput.VerifyAsync(root, "avc-mp3-44.mp4", "mp4a.6B", 1152, 2);
             await AudioHlsTestInput.VerifyAsync(root, "avc-mp3-22.mp4", "mp4a.69", 576, 1);
