@@ -63,8 +63,10 @@ Each PSNR report covers all 1,441 pictures.
 
 A separate FFmpeg TS-to-MP4 remux retains a zero byte after the PPS RBSP trailing
 bits. The current strict decoder rejects that configuration for both the unchanged
-and filtered outputs. This container-conversion case remains open; the direct
-codec verification does not prove that remuxed MP4 is accepted.
+and filtered outputs. The subsequent [parameter-framing inspection](h264-parameter-framing.md)
+confirms that the original MPEG-TS PPS is valid and the additional zero is inside
+the MP4 configuration's declared NAL length. The direct codec verification does
+not prove that remuxed MP4 is accepted.
 
 ## Decision
 
