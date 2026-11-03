@@ -13,17 +13,19 @@ Movie edits select exactly 28,630,160 audio samples per channel, starting at zer
 Both operations apply the [normalized ITU stereo matrix](audio-downmix.md),
 omitting LFE, before encoding the selected audio.
 
-The latest measurement uses a Native AOT consumer whose product sources
-match `453dec6`. Earlier measurements used `2391693`, `5d2882e`, `241476e`
-and `67fc7b7`.
+The latest measurement uses the validated Native AOT CLI with product sources
+at `0456bfc`, including compact interpolation scratch and checked synchronous
+buffer access. Earlier measurements used `453dec6`, `2391693`, `5d2882e`,
+`241476e` and `67fc7b7`.
 All comparisons use FFmpeg 6.1.1-3ubuntu5 with libx264 on Linux x64,
 an Intel Core i5-12450H and .NET 10.0.13. The two measured processes ran
 sequentially, restricted to logical CPU 2. Mediana used `DOTNET_PROCESSOR_COUNT=1`; FFmpeg used one input decoder
 thread, one filter-complex thread and one thread per output codec. Independent
 decoding of the original reference outputs ran after the baseline measurements.
 The latest outputs were compared with those complete references after both new
-measured processes terminated. These are single complete-process observations
-on a shared host.
+measured processes terminated. Runtime and helper threads may exist; process
+affinity restricts execution to the same single logical CPU. These are single
+complete-process observations on a shared host.
 
 Both video outputs use progressive YUV420P8, Constrained Baseline level 4.1,
 BT.709 labels, no B pictures and an IDR every 144 pictures. The first 99 segments
@@ -45,10 +47,10 @@ bytes include all 203 files of each complete ladder.
 
 | Implementation | CPU | Elapsed | Peak RSS | Published bytes | Processing speed |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Mediana Native AOT | 794.189 s | 824.912 s | 151.82 MiB | 1,172,197,543 | 0.723x |
-| FFmpeg / libx264 veryfast | 195.026 s | 197.108 s | 200.57 MiB | 1,136,231,473 | 3.026x |
+| Mediana Native AOT | 891.914 s | 947.016 s | 123.80 MiB | 1,172,197,543 | 0.630x |
+| FFmpeg / libx264 veryfast | 247.791 s | 250.427 s | 191.95 MiB | 1,136,231,473 | 2.382x |
 
-Mediana used 4.07 times the CPU, 24.31% less peak RSS and 3.17% more output
+Mediana used 3.60 times the CPU, 35.51% less peak RSS and 3.17% more output
 bytes on this operation. Processing speed divides the original video duration
 by elapsed time and includes both variants and audio. This does not establish
 equal-quality throughput or general performance across other inputs.
@@ -62,22 +64,22 @@ The complete Mediana observations retain identical output:
 | `5d2882e` | 992.938 | 1022.200 | 120.59 MiB |
 | `2391693` | 962.836 | 1005.875 | 119.66 MiB |
 | `453dec6` | 794.189 | 824.912 | 151.82 MiB |
+| `0456bfc` | 891.914 | 947.016 | 123.80 MiB |
 
-The latest observation uses 17.52% less CPU and 17.99% less elapsed time than
-`2391693`, with 26.88% higher peak RSS. These single full-operation observations
-include accumulated changes and variation on a shared host; they do not isolate
-the contribution of any one change. The cause of the higher RSS peak was not
-established. Complete-minute allocation and kernel improvements do not establish
-the same resource improvement for the complete HLS operation, which includes
-two video and two audio encoders.
+Relative to `453dec6`, the latest Mediana observation has
+12.31% higher CPU,
+14.80% higher elapsed time and
+18.46% lower peak RSS.
+The latest FFmpeg observation has
+27.06% higher CPU than its preceding 195.026-second observation.
+Earlier FFmpeg observations used 186.728, 194.151, 197.567 and 274.925 CPU seconds.
 
-Earlier FFmpeg observations used 186.728, 194.151, 197.567 and 274.925 CPU
-seconds, compared with 195.026 in this batch. The latest external observation is
-29.06% lower than the preceding one. Its cause was not established by these
-measurements. The change from the preceding 3.50x CPU ratio to 4.07x therefore
-does not establish a corresponding Mediana slowdown: both implementations used
-less CPU in this batch. A substantial CPU gap and the video quality/efficiency
-difference below remain open.
+These single full-operation observations include accumulated source changes and
+variation on a shared host. They do not isolate individual optimizations or the
+cause of a changed RSS peak. Complete-minute allocation and kernel improvements
+do not establish the same resource improvement for complete HLS, which includes
+two video and two audio encoders. The substantial CPU gap and video
+quality/efficiency difference below remain open.
 
 PSNR uses every visible decoded Y, U and V sample, weighted by sample count.
 The 720p reference is the independently decoded original; 360p uses an

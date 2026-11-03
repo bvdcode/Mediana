@@ -54,13 +54,12 @@ separate quality change: all reconstructed frames match independent decoding,
 but its 0.138 dB aggregate PSNR gain accompanies 19.92% higher observed encoding
 CPU. It is not enabled by default and does not update production throughput.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
-uses 794.189 CPU seconds versus 195.026 for FFmpeg, a 4.07x gap,
+uses 891.914 CPU seconds versus 247.791 for FFmpeg, a 3.60x gap,
 with all 406 published files identical to their independently verified references.
-The latest full-film measurements include the subsequent Native AOT, interpolation,
-CAVLC and paired-residual changes. Mediana CPU is 17.52% lower than its preceding
-full-film observation, while its peak RSS is 26.88% higher; FFmpeg CPU is 29.06%
-lower. These single observations do not isolate an optimization or establish
-equal-quality throughput.
+It includes compact interpolation scratch and checked synchronous buffer access.
+These single complete-process observations do not isolate individual changes or
+establish equal-quality throughput. The separate stage comparisons above and
+the complete-film workload have different input and processing scopes.
 
 The complete 60.041667-second HD input was measured separately through video
 decoding and video encoding. Separating the stages identifies where the current
