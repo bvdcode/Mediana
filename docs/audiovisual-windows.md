@@ -119,6 +119,12 @@ units. Independent video requests need an audio preparation strategy that
 preserves that continuous encoded timeline. Repeated AAC encoder initialization
 is not equivalent to partitioning a continuous stream.
 
+The transport writer also supports [audio-only segment continuation and reusable
+snapshots](audio-transport-segments.md). AAC and MPEG-1/2 Layer III packet windows
+preserve continuous clocks and counters, including out-of-order regeneration.
+This supplies a transport building block for prepared audio renditions; the
+independent audiovisual sample still creates a fresh AAC encoder per request.
+
 [RFC 8216, section 6.2.1](https://www.rfc-editor.org/rfc/rfc8216.html#section-6.2.1)
 describes division of continuous encoded media at packet and key-frame boundaries.
 The [discontinuity tag](https://www.rfc-editor.org/rfc/rfc8216.html#section-4.3.2.3)

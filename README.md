@@ -1314,9 +1314,11 @@ transport/PES scratch storage and framed access units. CompleteAsync flushes
 without closing the destination. Any failed operation faults the writer and
 releases its buffers; unfinished or failed output must be discarded.
 
-For a program with exactly one AVC track, `BeginSegmentAsync(nextOutput)` flushes
-the previous borrowed stream and continues in a different writable stream.
-The next packet must be that track's IDR access unit. PAT/PMT begin the new file;
+For a program with one audio track or exactly one AVC track with optional audio,
+`BeginSegmentAsync(nextOutput)` flushes the previous borrowed stream and continues
+in a different writable stream. The next packet must belong to the program's
+clock track: the sole audio track, or the AVC track with an IDR access unit.
+PAT/PMT begin the new file;
 all PID counters, PCR state and timestamp offsets continue across the boundary.
 No stream is closed. A pending empty segment cannot be completed or skipped.
 Callers select boundaries and keep audio packets in global decode order.
@@ -1324,10 +1326,13 @@ Callers select boundaries and keep audio packets in global decode order.
 `CaptureSegmentState()` records the current configuration, limits, clocks and
 counters without I/O. After disposing the preceding writer, use
 `MpegTsWriter.ResumeSegment(output, state, allocator)` to write the next segment
-from that state. Its first packet must be the next AVC IDR. Snapshots are immutable,
+from that state. Its first packet follows the same clock-track and AVC IDR rules.
+Snapshots are immutable,
 retain no I/O resources or media buffers and can be reused for requests in any
 order. Given the same packets, resumed segments match continuous output byte for
 byte. A snapshot does not select packet ranges or prove decoder independence.
+Audio decoding can depend on preceding packets; see
+[audio transport segment contracts and verification](docs/audio-transport-segments.md).
 
 The writer uses the caller's timeline. The MP4 reader defaults to original media
 timestamps; select LinearMovie for the supported edit-list translation before
