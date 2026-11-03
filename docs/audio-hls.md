@@ -84,6 +84,7 @@ The full validation passes 3,149 managed tests, all 30 package checks, the stric
 Native AOT test executable and Native AOT CLI compilation. Release compilation
 reports zero warnings and errors; formatting and license-header checks pass.
 This verification establishes audio media-playlist continuity. Master audio-group
-metadata is supported; independently requested video playback, common VOD
-presentation boundaries and application playback acceptance remain open. See
+metadata is supported. A [prepared audio/video presentation](hls-prepared-presentation.md)
+also passes complete master-playlist decoding with independently requested video.
+Common VOD presentation boundaries and application playback acceptance remain open. See
 [independently encoded interval boundaries](audiovisual-windows.md#independently-encoded-interval-boundaries).

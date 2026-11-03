@@ -1706,8 +1706,10 @@ Independent decoding of complete playlists matches continuous reference PCM byte
 for byte, including a 12-second stereo AAC preparation from 5.1 input.
 `CreateRendition` supplies codec, channel and measured bitrate metadata for
 `HlsMasterPlaylist` audio groups. `PlaylistTargetDurationSeconds` selects a common
-advertised target for audio and video and their bandwidth measurements. Playback
-with independently requested video and common VOD presentation boundaries remain open.
+advertised target for audio and video and their bandwidth measurements. A real
+[prepared presentation](docs/hls-prepared-presentation.md) passes complete
+master-playlist decoding with video requests in order 1, 0, 1. Browser playback
+and common VOD presentation boundaries remain open.
 See [audio HLS contracts and checks](docs/audio-hls.md).
 See [audio group contracts and checks](docs/hls-audio-groups.md).
 

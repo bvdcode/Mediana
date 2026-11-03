@@ -94,8 +94,9 @@ package-only Native AOT test executable, a public package Native AOT exporter an
 Native AOT CLI compilation. Release compilation reports zero warnings and errors;
 formatting and license-header checks pass.
 
-Playback combining prepared audio with independently requested video, the common
-VOD presentation boundary around audio priming, and application integration remain
-open. The CLI continues to expose its existing muxed HLS encoding path. See
+An actual master playlist combining prepared audio with independently requested
+video now passes [complete decoding and request-order checks](hls-prepared-presentation.md).
+Browser-player verification, the common VOD presentation boundary around audio
+priming, and application integration remain open. The CLI continues to expose its existing muxed HLS encoding path. See
 [continuous audio HLS](audio-hls.md) and the measured
 [independent interval boundary](audiovisual-windows.md#independently-encoded-interval-boundaries).

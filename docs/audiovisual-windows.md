@@ -131,7 +131,10 @@ preserves every coded packet and decoded sample across its files. This establish
 the audio preparation step; the independent audiovisual sample has not yet been
 integrated with that separate rendition. The library also formats measured
 [master-playlist audio groups](hls-audio-groups.md); common VOD presentation
-boundaries and combined playback still require validation.
+boundaries and browser playback still require validation. A separate
+[prepared-audio presentation check](hls-prepared-presentation.md) now verifies
+complete master-playlist decoding with video requests in order 1, 0, 1 and
+unchanged continuous audio.
 
 [RFC 8216, section 6.2.1](https://www.rfc-editor.org/rfc/rfc8216.html#section-6.2.1)
 describes division of continuous encoded media at packet and key-frame boundaries.
