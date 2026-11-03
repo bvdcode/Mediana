@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs.Aac;
+using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
@@ -75,7 +76,7 @@ namespace Mediana.Cli
         }
 
         public override async ValueTask WriteBeforeAsync(MediaTimestamp? boundary,
-            IReadOnlyList<HlsVideoRendition> renditions, CancellationToken token)
+            IReadOnlyList<IContainerWriter> destinations, CancellationToken token)
         {
             Enter();
             bool success = false;
@@ -86,9 +87,9 @@ namespace Mediana.Cli
                 {
                     throw new InvalidOperationException("The HLS audio encoding group has failed.");
                 }
-                if (renditions.Count != 0 && renditions.Count != variantTracks.Length)
+                if (destinations.Count != 0 && destinations.Count != variantTracks.Length)
                 {
-                    throw new ArgumentException("Supply every configured video variant.", nameof(renditions));
+                    throw new ArgumentException("Supply a destination for every configured audio variant.", nameof(destinations));
                 }
                 while (true)
                 {
@@ -99,11 +100,11 @@ namespace Mediana.Cli
                             || next.DecodeTime!.Value.CompareTo(boundary.Value) < 0))
                         {
                             using MediaPacket packet = tracks[index].Take();
-                            for (int variant = 0; variant < renditions.Count; variant++)
+                            for (int variant = 0; variant < destinations.Count; variant++)
                             {
                                 if (variantTracks[variant] == index)
                                 {
-                                    await renditions[variant].Writer.WritePacketAsync(packet, token);
+                                    await destinations[variant].WritePacketAsync(packet, token);
                                 }
                             }
                             PacketsWritten = checked(PacketsWritten + 1);

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Timing;
 
@@ -16,7 +17,7 @@ namespace Mediana.Cli
             return Stream;
         }
         public abstract ValueTask WriteBeforeAsync(MediaTimestamp? boundary,
-            IReadOnlyList<HlsVideoRendition> renditions, CancellationToken token);
+            IReadOnlyList<IContainerWriter> destinations, CancellationToken token);
         public abstract ValueTask DisposeAsync();
     }
 }

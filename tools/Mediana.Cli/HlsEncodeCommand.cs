@@ -3,6 +3,7 @@
 
 using System.Text;
 using Mediana.Codecs.H264;
+using Mediana.Containers;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
@@ -60,6 +61,7 @@ namespace Mediana.Cli
                             throw new ArgumentException("The selected width bounds produce duplicate encoded dimensions.", nameof(widths));
                         }
                     }
+                    IContainerWriter[] audioDestinations = renditions.Select(rendition => (IContainerWriter)rendition.Writer).ToArray();
                     VideoFrame? frame = first;
                     while (frame is not null)
                     {
@@ -67,7 +69,7 @@ namespace Mediana.Cli
                         {
                             if (audio is not null)
                             {
-                                await audio.WriteBeforeAsync(frame.Timestamp, renditions, token);
+                                await audio.WriteBeforeAsync(frame.Timestamp, audioDestinations, token);
                             }
                             foreach (HlsVideoRendition rendition in renditions)
                             {
@@ -81,7 +83,7 @@ namespace Mediana.Cli
                     }
                     if (audio is not null)
                     {
-                        await audio.WriteBeforeAsync(null, renditions, token);
+                        await audio.WriteBeforeAsync(null, audioDestinations, token);
                     }
                     List<HlsVariant> variants = [];
                     foreach (HlsVideoRendition rendition in renditions)
