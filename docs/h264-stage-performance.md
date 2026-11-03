@@ -693,3 +693,11 @@ Motion selection and coefficient writing/reconstruction remain substantial encod
 work. Instrumented intervals include overhead and are not CPU percentages; all
 eight complete outputs retain the independent references. No codec change or new
 complete-film throughput claim follows from the diagnostic.
+
+## Indexed CAVLC symbols
+
+[Direct immutable symbol lookup](h264-symbol-writing.md) replaces dictionary
+lookup when writing normative CAVLC codewords. Eight complete exact Native AOT
+encodes show 2.06% and 1.49% CPU reductions in the two execution orders. This
+is a small local improvement; it establishes no meaningful RSS decrease or new
+complete-film throughput ratio.
