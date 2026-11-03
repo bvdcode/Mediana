@@ -49,8 +49,9 @@ follow [RFC 8216, section 3](https://www.rfc-editor.org/rfc/rfc8216.html#section
 and its [packet-boundary requirements](https://www.rfc-editor.org/rfc/rfc8216.html#section-6.2.1).
 
 The playlist does not declare `EXT-X-INDEPENDENT-SEGMENTS`: AAC overlap and MP3
-reservoir history can require preceding packets. The writer does not create
-master-playlist audio groups or associate this rendition with a video rendition.
+reservoir history can require preceding packets. `CreateRendition` supplies measured
+metadata for [master-playlist audio groups](hls-audio-groups.md). Applications
+coordinate the associated video and audio presentation timelines.
 
 ## Verification
 
@@ -83,5 +84,6 @@ The full validation passes 3,149 managed tests, all 30 package checks, the stric
 Native AOT test executable and Native AOT CLI compilation. Release compilation
 reports zero warnings and errors; formatting and license-header checks pass.
 This verification establishes audio media-playlist continuity. Master audio-group
-integration, independently requested video playback and application playback
-acceptance remain open. See [independently encoded interval boundaries](audiovisual-windows.md#independently-encoded-interval-boundaries).
+metadata is supported; independently requested video playback, common VOD
+presentation boundaries and application playback acceptance remain open. See
+[independently encoded interval boundaries](audiovisual-windows.md#independently-encoded-interval-boundaries).

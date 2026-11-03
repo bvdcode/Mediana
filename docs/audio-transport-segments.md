@@ -62,7 +62,8 @@ request. These transport APIs provide a building block for prepared continuous
 audio renditions; they do not make separately encoded intervals seamless.
 [`AudioHlsWriter`](audio-hls.md) now composes that transport lifecycle with a fixed
 audio segment grid and a VOD media playlist. A public Native AOT consumer verifies
-one continuous AAC encoder across a real 12-second preparation. Master audio
-groups, their integration with independently requested video and application
+one continuous AAC encoder across a real 12-second preparation. Measured
+[master audio-group metadata](hls-audio-groups.md) is also available. Timeline
+integration with independently requested video and application
 playback verification remain open. See the measured
 [audiovisual interval boundaries](audiovisual-windows.md#independently-encoded-interval-boundaries).

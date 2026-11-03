@@ -1703,9 +1703,13 @@ from the first coded PTS; final segment duration includes the complete coded tai
 ownership and transport continuation use the same component as `AvcHlsWriter`.
 
 Independent decoding of complete playlists matches continuous reference PCM byte
-for byte, including a 12-second stereo AAC preparation from 5.1 input. Master
-audio groups and playback with independently requested video remain open.
+for byte, including a 12-second stereo AAC preparation from 5.1 input.
+`CreateRendition` supplies codec, channel and measured bitrate metadata for
+`HlsMasterPlaylist` audio groups. `PlaylistTargetDurationSeconds` selects a common
+advertised target for audio and video and their bandwidth measurements. Playback
+with independently requested video and common VOD presentation boundaries remain open.
 See [audio HLS contracts and checks](docs/audio-hls.md).
+See [audio group contracts and checks](docs/hls-audio-groups.md).
 
 ## Connecting modules
 

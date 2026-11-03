@@ -129,7 +129,9 @@ independent audiovisual sample still creates a fresh AAC encoder per request.
 playlist. A 12-second, six-second-target AAC preparation uses one encoder and
 preserves every coded packet and decoded sample across its files. This establishes
 the audio preparation step; the independent audiovisual sample has not yet been
-integrated with that separate rendition or master-playlist audio groups.
+integrated with that separate rendition. The library also formats measured
+[master-playlist audio groups](hls-audio-groups.md); common VOD presentation
+boundaries and combined playback still require validation.
 
 [RFC 8216, section 6.2.1](https://www.rfc-editor.org/rfc/rfc8216.html#section-6.2.1)
 describes division of continuous encoded media at packet and key-frame boundaries.
