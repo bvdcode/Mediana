@@ -271,6 +271,7 @@ namespace Mediana.NativeTests
             H264BidirectionalTestInput.VerifyMotion();
             H264BidirectionalDeblockingTestInput.Verify();
             AllocationMeasurementTestInput.Verify();
+            H264CabacPredictionWindowTestInput.Verify();
             H264SliceDeblockingTestInput.Verify();
             foreach (string name in new[] { "avc-cavlc-b-spatial", "avc-cavlc-b-temporal", "avc-aac", "avc-segments",
                 "avc-cabac-b-0", "avc-cabac-b-1", "avc-cabac-b-2" })

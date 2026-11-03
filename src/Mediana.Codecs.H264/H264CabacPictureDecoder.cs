@@ -57,6 +57,7 @@ namespace Mediana.Codecs.H264
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                predictionReader?.BeginMacroblock(address);
                 int skipContext = state.SkipCondition(state.Left(address)) + state.SkipCondition(state.Top(address));
                 bool skipped = header.Kind switch
                 {
