@@ -15,7 +15,7 @@ namespace Mediana.Streaming.Hls
         public HlsAudioTrack(EncodedStreamInfo stream)
         {
             Stream = stream;
-            (Codecs, CodedDuration) = (stream.Kind, stream.CodecId) switch
+            (Codecs, CodedDuration, Channels) = (stream.Kind, stream.CodecId) switch
             {
                 (MediaKind.Audio, AacConfiguration.CodecId) => AacInfo(stream),
                 (MediaKind.Audio, Mp3FrameHeader.CodecId) => Mp3Info(stream),
@@ -26,16 +26,17 @@ namespace Mediana.Streaming.Hls
         public EncodedStreamInfo Stream { get; }
         public string Codecs { get; }
         public MediaDuration CodedDuration { get; }
+        public int Channels { get; }
 
-        private static (string Codecs, MediaDuration Duration) AacInfo(EncodedStreamInfo stream)
+        private static (string Codecs, MediaDuration Duration, int Channels) AacInfo(EncodedStreamInfo stream)
         {
             StreamFormats.Aac.Require(stream.Format);
             AacConfiguration configuration = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out string? reason)
                 ?? throw new NotSupportedException(reason);
-            return ("mp4a.40.2", new(configuration.SamplesPerFrame, new(1, configuration.SampleRate)));
+            return ("mp4a.40.2", new(configuration.SamplesPerFrame, new(1, configuration.SampleRate)), configuration.ChannelCount);
         }
 
-        private static (string Codecs, MediaDuration Duration) Mp3Info(EncodedStreamInfo stream)
+        private static (string Codecs, MediaDuration Duration, int Channels) Mp3Info(EncodedStreamInfo stream)
         {
             StreamFormats.Mp3.Require(stream.Format);
             Mp3FrameHeader header = Mp3FrameHeader.Read(stream.Configuration.Span);
@@ -46,7 +47,7 @@ namespace Mediana.Streaming.Hls
                 MpegAudioVersion.Mpeg25 => throw new NotSupportedException("MPEG-2.5 Layer III is not supported in MPEG-TS."),
                 _ => throw new InvalidDataException("The MPEG audio version is invalid.")
             };
-            return (codecs, new(header.SamplesPerFrame, new(1, header.SampleRate)));
+            return (codecs, new(header.SamplesPerFrame, new(1, header.SampleRate)), header.ChannelCount);
         }
     }
 }

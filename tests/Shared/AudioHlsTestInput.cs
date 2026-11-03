@@ -14,7 +14,7 @@ namespace Mediana.Tests
 {
     internal static class AudioHlsTestInput
     {
-        public static async Task VerifyAsync(string root, string file, string codecs, int frameSamples)
+        public static async Task VerifyAsync(string root, string file, string codecs, int frameSamples, int channels)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             List<MemoryStream> destinations = [];
@@ -105,6 +105,15 @@ namespace Mediana.Tests
                 if (writer.BytesWritten != bytes || writer.Segments.Sum(segment => segment.ByteLength) != bytes)
                 {
                     throw new InvalidDataException("Audio HLS byte accounting omits transport overhead.");
+                }
+                HlsAudioRendition rendition = writer.CreateRendition("audio.m3u8", "audio", "Main");
+                BigInteger rateNumerator = (BigInteger)bytes * 8 * audio.TimeBase.Denominator;
+                BigInteger rateDenominator = ((BigInteger)end - origin!.Value) * audio.TimeBase.Numerator;
+                long average = (long)((rateNumerator + rateDenominator - 1) / rateDenominator);
+                if (rendition.PlaylistUri != "audio.m3u8" || rendition.GroupId != "audio" || rendition.Name != "Main" ||
+                    rendition.Codecs != codecs || rendition.Channels != channels || rendition.AverageBandwidth != average || rendition.Bandwidth <= 0)
+                {
+                    throw new InvalidDataException("The measured audio rendition differs from its configuration or complete transport extent.");
                 }
                 MpegTsTestInput.Verify(destinations.SelectMany(destination => destination.ToArray()).ToArray(), [audio], all);
             }

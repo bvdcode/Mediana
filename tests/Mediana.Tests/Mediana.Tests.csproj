@@ -248,6 +248,7 @@
     <Compile Include="../Shared/MpegTsSegmentTestInput.cs" Link="MpegTsSegmentTestInput.cs" />
     <Compile Include="../Shared/MpegTsAudioSegmentTestInput.cs" Link="MpegTsAudioSegmentTestInput.cs" />
     <Compile Include="../Shared/AudioHlsTestInput.cs" Link="AudioHlsTestInput.cs" />
+    <Compile Include="../Shared/HlsAudioGroupTestInput.cs" Link="HlsAudioGroupTestInput.cs" />
     <Compile Include="../Shared/Mp4TimelineTestInput.cs" Link="Mp4TimelineTestInput.cs" />
     <Compile Include="../Shared/Mp4SampleAccessTestInput.cs" Link="Mp4SampleAccessTestInput.cs" />
     <Compile Include="../Shared/HlsPlanTestInput.cs" Link="HlsPlanTestInput.cs" />

@@ -12,11 +12,11 @@ namespace Mediana.Tests
     public class AudioHlsWriterTests
     {
         [Theory]
-        [InlineData("avc-aac.mp4", "mp4a.40.2", 1024)]
-        [InlineData("avc-mp3-44.mp4", "mp4a.6B", 1152)]
-        [InlineData("avc-mp3-22.mp4", "mp4a.69", 576)]
-        public Task RealAudioPreservesAllPacketsAndUsesOneExactSegmentGrid(string file, string codecs, int frameSamples) =>
-            AudioHlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), file, codecs, frameSamples);
+        [InlineData("avc-aac.mp4", "mp4a.40.2", 1024, 1)]
+        [InlineData("avc-mp3-44.mp4", "mp4a.6B", 1152, 2)]
+        [InlineData("avc-mp3-22.mp4", "mp4a.69", 576, 1)]
+        public Task RealAudioPreservesAllPacketsAndUsesOneExactSegmentGrid(string file, string codecs, int frameSamples, int channels) =>
+            AudioHlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), file, codecs, frameSamples, channels);
 
         [Theory]
         [InlineData(0)]
