@@ -228,3 +228,33 @@ Reversed-order and CAVLC extensions are not run. This single series does not
 establish a sustained regression or a cause for the wider decoder gap. The
 current filter retains both live and captured reference inputs; its previous
 complete validation and independent FFmpeg comparison remain separate results.
+
+## Grouped arithmetic normalization control
+
+A control at baseline `b6fbbba` replaces the per-bit normalization loop with a
+bounded shift count and one call to the existing checked bit reader. The shift
+count is `8 - floor(log2(range))` for an arithmetic range below 256. The reader
+continues validating emulation prevention and truncation; normalized offsets
+retain the H.264 clause 9.3.3.2.2 bound. No input lookahead, arithmetic state,
+media buffer, worker or public API is added.
+
+Independent arbitrary-precision intervals and scalar bit shifts agree on
+32,768 decisions and 81,920 false termination transitions across all initial
+probability states, both most-probable symbols, every byte alignment, all four
+range columns and normalization lengths zero through seven. Damaged EBSP and
+truncated-input errors retain the consumed bit position. These checks and strict
+zero-allocation repetition pass in managed, hardware-disabled and Native AOT
+execution. Probability and transition constants are shared with the existing
+interval writer; the interval coordinates use arbitrary-precision arithmetic.
+
+Four complete minute decodes run in current/candidate/candidate/current order
+under the preceding CPU, thread and GC settings. All 1,441 pictures, YUV bytes,
+rational timestamps, durations, EOF and released-storage checks pass. CPU
+medians are 20.228 and 22.466 seconds: the candidate is 11.06% slower in this
+series. Elapsed medians are 21.905 and 24.548 seconds; peak RSS medians are
+61,306 and 56,590 KiB.
+
+The candidate is not adopted. No reverse-order, CAVLC, encoding or complete-HLS
+extension is run. Fewer calls in the source do not establish lower complete
+decoding cost; these observations do not identify the cause of the CPU change
+or update the independent FFmpeg comparison.
