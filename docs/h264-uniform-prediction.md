@@ -87,3 +87,35 @@ disabled, all 30 packages, strict package-only Native AOT execution, native CLI,
 managed sample publication, formatting and root license-header checks passed.
 Independent calculation checks also pass in managed, software-managed and strict Native AOT
 execution. Codec settings, output samples and encoded bytes are unchanged.
+
+## Grouped internal-edge control
+
+A subsequent control specializes all-inter macroblocks whose prediction is
+uniform, and all-inter macroblocks whose residual covers every cell. It packs
+the sixteen residual flags into one mask, expands 8x8 transform groups and
+derives internal strengths zero or two directly. Macroblock boundaries and
+nonuniform prediction retain the general physical-reference calculation.
+Reference validation stays after residual classification and is required only
+when a residual-free edge needs prediction comparison.
+
+The control passes the preceding 264,192 topology, 93,312 physical-reference
+and 31,248 mutation cases in managed, hardware-disabled and strict Native AOT
+execution. Additional checks cover 1,920 combinations of requested first edge,
+edge step, orientation, transform size, P/B storage, residual pattern and
+missing reference. They compare all output bytes, partial writes on failure,
+exception messages and surrounding guards. Mutable contexts and zero-allocation
+checks pass; all 725 H.264 tests pass with intrinsics enabled and disabled.
+
+Four complete 180.125-second decodes run in current/control/control/current
+order under the same CPU, thread, compiler and GC settings. Every output byte,
+rational clock, duration, EOF and released-storage check passes.
+
+| Version | Median CPU, s | Median elapsed, s | Median peak RSS, KiB |
+| --- | ---: | ---: | ---: |
+| Current | 50.160 | 74.906 | 72,600 |
+| Grouped internal edges | 49.542 | 76.459 | 74,028 |
+
+CPU decreases by 1.23%, below the declared minimum 5%. The calculation is not
+adopted; no reverse-order, CAVLC, encoding or full-HLS extension is run. The
+range, partial-write and error checks are retained for the current algorithm.
+This control does not update the independent FFmpeg comparison above.
