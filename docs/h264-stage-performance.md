@@ -40,6 +40,10 @@ establish an acceleration from targeting the build processor's instructions.
 Subsequent [paired residual processing](h264-paired-residuals.md) reduces
 complete encoding CPU by 6.33% with identical output in its separate comparison.
 These separate measurements do not update complete-film throughput.
+The [accepted-reference filtering comparison](h264-reference-filter.md) tests a
+separate quality change: all reconstructed frames match independent decoding,
+but its 0.138 dB aggregate PSNR gain accompanies 19.92% higher observed encoding
+CPU. It is not enabled by default and does not update production throughput.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
 uses 794.189 CPU seconds versus 195.026 for FFmpeg, a 4.07x gap,
 with all 406 published files identical to their independently verified references.
