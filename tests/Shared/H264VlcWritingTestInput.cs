@@ -99,7 +99,11 @@ namespace Mediana.Tests
             {
                 table.Write(writer, 0);
             }
-            Require(GC.GetAllocatedBytesForCurrentThread() == before && writer.BitPosition == 16385);
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+            if (allocated != 0 || writer.BitPosition != 16385)
+            {
+                throw new InvalidDataException($"H.264 VLC writing allocated {allocated} bytes at bit position {writer.BitPosition}; expected zero bytes and position 16385.");
+            }
             writer.Dispose();
             Require(allocator.AllocatedBytes == 0);
         }

@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
@@ -263,6 +264,7 @@
     <Compile Include="../Shared/H264CabacTestInput.cs" Link="H264CabacTestInput.cs" />
     <Compile Include="../Shared/H264CabacPredictionTestInput.cs" Link="H264CabacPredictionTestInput.cs" />
     <Compile Include="../Shared/H264CabacBidirectionalTestInput.cs" Link="H264CabacBidirectionalTestInput.cs" />
+    <Compile Include="../Shared/AllocationMeasurementTestInput.cs" Link="AllocationMeasurementTestInput.cs" />
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
     <Compile Include="../Shared/SdrPreviewTestInput.cs" Link="SdrPreviewTestInput.cs" />
