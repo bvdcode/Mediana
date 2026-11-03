@@ -300,6 +300,10 @@ namespace Mediana.NativeTests
                 await MpegTsAudioSegmentTestInput.VerifyAsync(root, file);
             }
             Console.WriteLine("PASS audio-only MPEG-TS segments: AAC and MPEG-1/2 Layer III packets, clocks and counters match across files and out-of-order snapshot restoration.");
+            await AudioHlsTestInput.VerifyAsync(root, "avc-aac.mp4", "mp4a.40.2", 1024);
+            await AudioHlsTestInput.VerifyAsync(root, "avc-mp3-44.mp4", "mp4a.6B", 1152);
+            await AudioHlsTestInput.VerifyAsync(root, "avc-mp3-22.mp4", "mp4a.69", 576);
+            Console.WriteLine("PASS audio HLS: continuous AAC and MPEG-1/2 Layer III, fixed packet-grid boundaries, complete VOD metadata, payloads, clocks, counters and owned destination disposal.");
             await Mp4SampleAccessTestInput.VerifyAsync(root, "avc-segments.mp4", Mp4TimestampMode.LinearMovie);
             Console.WriteLine("PASS AVC video segment plan: inspected IDR boundaries at 0, 3 and 6 seconds, exact durations and reverse access preserve decoder order and reader cursors.");
             foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov", "avc-timecode.mov", "avc-sound-v2.mov" })
