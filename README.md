@@ -1656,6 +1656,7 @@ mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 -
 mediana hls encode input.mp4 output-av --audio-stream 1 --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-aac --audio-stream 1 --audio-codec Aac --audio-bit-rate 128000 --widths 1280 640
 mediana hls encode input.mp4 output-stereo --audio-stream 1 --audio-codec Aac --audio-channels 2 --widths 1280 640
+mediana hls encode input.mp4 output-separate --audio-stream 1 --audio-codec Aac --separate-audio --widths 1280 640
 ```
 
 The command decodes supported MP4/MOV AVC video once and produces one smaller
@@ -1672,6 +1673,11 @@ settings share an encoder; distinct settings encode the same decoded PCM through
 independent AAC states. Rate and channel order are preserved unless an explicit
 downmix is selected. The command requires an identity display
 transform.
+
+`--separate-audio` writes audio-only playlists and video-only variants. Equal audio
+settings share one continuous audio rendition, referenced by each matching video
+variant. Distinct AAC bitrates have separate audio groups. Completed media
+playlists use the same measured target duration and corresponding bitrate window.
 
 Each variant contains IDR-aligned TS segments and a VOD
 media playlist. The master playlist records actual peak/average transport bitrates

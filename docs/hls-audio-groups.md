@@ -105,6 +105,8 @@ An actual master playlist combining prepared audio with independently requested
 video now passes [complete decoding and request-order checks](hls-prepared-presentation.md).
 Chrome/hls.js completes playback and buffered seeks. Smooth rendering, the common
 VOD presentation boundary around audio priming and padding, and application
-integration remain open. The CLI continues to expose its existing muxed HLS encoding path. See
+integration remain open. The CLI defaults to muxed encoding and also supports
+[`hls encode --separate-audio`](hls-encoding.md), with audio renditions shared by
+variants that use equal audio settings. See
 [continuous audio HLS](audio-hls.md) and the measured
 [independent interval boundary](audiovisual-windows.md#independently-encoded-interval-boundaries).

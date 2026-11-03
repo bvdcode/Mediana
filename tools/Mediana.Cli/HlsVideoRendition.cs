@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Globalization;
-using System.Text;
 using Mediana.Codecs.H264;
 using Mediana.Core;
 using Mediana.Core.Memory;
@@ -14,7 +13,7 @@ using Mediana.Execution;
 namespace Mediana.Cli
 {
     internal class HlsVideoRendition(Yuv420AreaResizer resizer, H264Encoder encoder, AvcHlsWriter writer,
-        string directory, string name) : IAsyncDisposable
+        HlsRenditionFiles files) : IAsyncDisposable
     {
         private readonly MediaEncodePipeline<VideoFrame> pipeline = new(encoder, writer);
         public AvcHlsWriter Writer { get; } = writer;
@@ -31,19 +30,11 @@ namespace Mediana.Cli
                 encoder = H264Encoder.Create(resizer.OutputFormat, video.TimeBase, allocator,
                     new() { Quantizer = qp, RateControl = rate, KeyFrameInterval = TimeSpan.FromTicks(checked(targetMilliseconds * TimeSpan.TicksPerMillisecond)) }, video.StreamIndex);
                 string name = "variant-" + width.ToString(CultureInfo.InvariantCulture);
-                string directory = Path.Combine(root, name);
-                Directory.CreateDirectory(directory);
-                ValueTask<Stream> OpenSegment(int number, CancellationToken token)
-                {
-                    token.ThrowIfCancellationRequested();
-                    Stream destination = new FileStream(Path.Combine(directory, SegmentName(number)), FileMode.CreateNew,
-                        FileAccess.Write, FileShare.None, bufferSize: 4096, FileOptions.Asynchronous);
-                    return ValueTask.FromResult(destination);
-                }
+                HlsRenditionFiles files = HlsRenditionFiles.Create(root, name);
                 AvcHlsWriteOptions options = new() { TargetDuration = new(targetMilliseconds, new(1, 1000)) };
-                AvcHlsWriter writer = audio is null ? AvcHlsWriter.Create(encoder.Stream, OpenSegment, allocator, options) :
-                    AvcHlsWriter.Create(encoder.Stream, audio, OpenSegment, allocator, options);
-                HlsVideoRendition result = new(resizer, encoder, writer, directory, name);
+                AvcHlsWriter writer = audio is null ? AvcHlsWriter.Create(encoder.Stream, files.OpenSegmentAsync, allocator, options) :
+                    AvcHlsWriter.Create(encoder.Stream, audio, files.OpenSegmentAsync, allocator, options);
+                HlsVideoRendition result = new(resizer, encoder, writer, files);
                 success = true;
                 return result;
             }
@@ -63,12 +54,16 @@ namespace Mediana.Cli
             await pipeline.WriteAsync(prepared, token);
         }
 
-        public async ValueTask<HlsVariant> CompleteAsync(CancellationToken token)
+        public async ValueTask CompleteAsync(CancellationToken token)
         {
             await pipeline.CompleteInputAsync(token);
             await Writer.CompleteAsync(token);
-            string playlist = Writer.CreateVodPlaylist(SegmentName);
-            await File.WriteAllTextAsync(Path.Combine(directory, "index.m3u8"), playlist, new UTF8Encoding(false), token);
+        }
+
+        public async ValueTask<HlsVariant> WritePlaylistAsync(long? targetDurationSeconds, CancellationToken token)
+        {
+            string playlist = Writer.CreateVodPlaylist(HlsRenditionFiles.SegmentName, targetDurationSeconds);
+            await files.WritePlaylistAsync(playlist, token);
             int? displayWidth = null;
             int? displayHeight = null;
             if (Format.SampleAspectRatio is SampleAspectRatio aspect)
@@ -80,10 +75,8 @@ namespace Mediana.Cli
                     displayHeight = Format.Height;
                 }
             }
-            return Writer.CreateVariant(name + "/index.m3u8", displayWidth, displayHeight);
+            return Writer.CreateVariant(files.PlaylistUri, displayWidth, displayHeight, targetDurationSeconds);
         }
-
-        private static string SegmentName(int number) => "segment-" + number.ToString(CultureInfo.InvariantCulture) + ".ts";
 
         public async ValueTask DisposeAsync()
         {
