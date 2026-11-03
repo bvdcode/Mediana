@@ -197,3 +197,34 @@ without hardware intrinsics, all 30 package checks, the complete package-only
 strict Linux x64 Native AOT runner, native CLI, sample build, formatting and root
 license-header checks pass. This change does not introduce a concurrency model
 or close the remaining encoding, HLS, quality and application acceptance work.
+
+## Captured reference representation control
+
+A separate control at baseline `f52d998` uses the existing captured physical
+reference identities for single-slice filtering as well as multi-slice filtering.
+Single-slice decoders capture their already required identity arrays before
+filtering. This removes the filter's live-picture-list branch without adding a
+snapshot, buffer, cache, worker or public API.
+
+The complete High/CABAC input, output verification, CPU affinity, one-thread
+settings and ordinary GC policy above are retained. The first series produces:
+
+| Version | Observation | CPU, s | Elapsed, s | Peak RSS, KiB |
+| --- | --- | ---: | ---: | ---: |
+| Current | 1 | 19.629 | 22.017 | 69,452 |
+| Captured only | 1 | 20.376 | 26.505 | 62,080 |
+| Captured only | 2 | 19.496 | 22.810 | 72,072 |
+| Current | 2 | 19.347 | 20.965 | 61,756 |
+
+CPU medians are 19.488 and 19.936 seconds: the candidate is 2.30% slower in this
+series. RSS medians are 65,604 and 67,076 KiB; no memory improvement is established.
+All four complete 1,441-picture outputs, rational timestamps and durations are
+exact; EOF and released media storage checks pass. The independent 46,656-case
+captured-reference matrix, missing-reference, reset and zero-allocation controls
+pass in managed, hardware-disabled and strict Native AOT execution.
+
+The candidate fails the predeclared minimum 5% CPU reduction and is not adopted.
+Reversed-order and CAVLC extensions are not run. This single series does not
+establish a sustained regression or a cause for the wider decoder gap. The
+current filter retains both live and captured reference inputs; its previous
+complete validation and independent FFmpeg comparison remain separate results.
