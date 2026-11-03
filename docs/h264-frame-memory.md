@@ -198,3 +198,11 @@ retained published pixels, stale-owner rejection, reset state, bounded leases,
 allocation failures and changes of geometry and reference-list count. They
 establish correctness of the tested variant, without establishing a useful
 performance improvement or a new complete-film HLS result.
+
+## Measured allocation cost
+
+The separate [complete-operation allocation diagnostic](h264-allocation-cost.md)
+observes about 0.255 seconds inside buffer allocation calls for full decoding and
+0.262 seconds for full encoding. GC pauses are about 0.149/0.158 seconds.
+These elapsed intervals overlap and do not measure attributed CPU. They do not
+support treating a buffer pool as the main remedy for the multi-fold CPU gap.
