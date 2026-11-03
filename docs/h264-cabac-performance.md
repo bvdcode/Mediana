@@ -288,3 +288,32 @@ The subsequent [uniform prediction comparison](h264-uniform-prediction.md)
 checks the current decoder on complete three-minute input and refreshes the
 one-thread external decoder comparison. It preserves decoded samples and
 encoded bytes.
+
+## Current complete native diagnostic
+
+A subsequent PC sampling run checks the accepted uniform-prediction decoder
+on the complete 60.041667-second High/CABAC input. All 1,441 pictures and
+1,992,038,400 output bytes match the independent reference, including rational
+timestamps, durations, EOF and released media storage. The run uses logical
+CPU 2 and one media-processing thread.
+
+The recording contains 16,911 resolved native samples, with the final sample
+0.000356 seconds before process exit. The collector reports its timer-change
+warning; the complete record and warning are retained. These are diagnostic
+sample estimates, not exact unperturbed function CPU times or an acceleration
+measurement.
+
+| Function | Exclusive sampled seconds | Inclusive sampled seconds |
+| --- | ---: | ---: |
+| Boundary-strength fill | 0.389 | 2.766 |
+| Direct prediction region | 0.201 | 3.931 |
+| Motion lookup | 0.506 | 0.958 |
+| Motion assignment | 0.654 | 0.752 |
+| All memory moves | 1.150 | 1.150 |
+
+Parent inclusive values contain their children and must not be added together.
+The profile identifies repeated prediction and boundary calculations for
+further investigation. It does not establish that removing one copy or helper
+will reduce complete processing cost. The
+[interior source-region control](h264-fractional-motion.md#interior-source-region-control)
+preserves all output samples but does not produce a CPU improvement.

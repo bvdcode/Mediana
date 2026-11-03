@@ -240,3 +240,37 @@ film comparison available at that point used 9.02 times FFmpeg's CPU, with highe
 video error at slightly greater output size. The subsequent
 [full-film measurements](hls-hd-encoding.md) include later decoder and encoder
 changes; their ratio does not follow from these minute-long filter measurements.
+
+## Interior source-region control
+
+A separate calculation reads an interior luma interpolation region directly
+from the reference picture, retaining its row stride. Boundary regions and
+overlapping input/output spans retain the existing per-tile snapshot. Six-tap
+arithmetic, all sixteen fractional positions, clipping and rounding are unchanged.
+The calculation uses the complete source extent required by the four- and
+eight-sample vector loads, including the final row and column of filter taps.
+
+Independent scalar convolution checks cover 2,192 cases: interior thresholds,
+immediately adjacent boundaries, guarded exact spans, extreme coordinates,
+overlapping destinations and sequential snapshots across multiple tiles.
+They pass in managed, hardware-intrinsics-disabled and strict Native AOT
+execution, including zero managed allocations. All 725 managed H.264 tests also pass.
+
+Four complete Native AOT decodes run in current/candidate/candidate/current
+order on logical CPU 2, with one media thread, ordinary GC and default compiler
+settings. The 180.125-second input repeats the checked minute source three
+times with continuous timestamps. Each operation produces the same 4,323
+pictures and 5,976,115,200 raw bytes; all rational clocks, EOF and released
+media storage are checked.
+
+| Median measurement | Current | Source-region calculation |
+| --- | ---: | ---: |
+| Process CPU, s | 49.975 | 50.478 |
+| Elapsed, s | 66.445 | 96.020 |
+| Peak RSS, KiB | 73,566 | 73,856 |
+
+The observed CPU change is +1.01%, which does not meet the declared minimum
+5% reduction. The calculation is not adopted; no reverse-order, CAVLC or
+encoding extension is run. Host elapsed time varies substantially within the
+series. This establishes no acceleration or memory reduction and does not
+update the [external decoder comparison](h264-uniform-prediction.md).
