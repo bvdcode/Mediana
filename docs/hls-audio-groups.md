@@ -96,9 +96,9 @@ target of six.
 | Copied 22.05 kHz mono MPEG-2 Layer III | 152,163 | 151,187 |
 | Encoded 12-second stereo AAC-LC | 170,000 | 169,625 |
 
-The full validation passes 3,181 managed tests, all 30 package checks, the strict
-package-only Native AOT test executable, a public package Native AOT exporter and
-Native AOT CLI compilation. Release compilation reports zero warnings and errors;
+The current validation passes 3,196 managed tests, all 30 package checks, the strict
+package-only Native AOT test executable and Native AOT CLI compilation.
+Release compilation reports zero warnings and errors;
 formatting and license-header checks pass.
 
 An actual master playlist combining prepared audio with independently requested
