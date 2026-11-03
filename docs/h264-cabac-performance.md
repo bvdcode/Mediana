@@ -1,4 +1,4 @@
-Complete High-profile CABAC decoding was measured separately from the existing
+At baseline `e96eb92`, complete High-profile CABAC decoding was measured separately from the existing
 [CAVLC stage comparison](h264-stage-performance.md). Mediana uses 34.345 CPU
 seconds versus FFmpeg's 5.204 seconds for this input, a 6.60x gap. Every decoded
 sample and every Mediana presentation timestamp and duration is exact.
@@ -80,3 +80,8 @@ and 63,020 KiB. This first series falls short of the predeclared 5% minimum CPU
 reduction. The variant is not adopted; the remaining CAVLC and reverse-order
 series are not run. The ordinary decoder and its storage contracts are
 unchanged.
+
+The subsequent [SIMD weighting comparison](h264-weighted-prediction.md) reduces
+complete decoding CPU on the same CABAC input in both execution orders. It
+measures a separate change and does not replace the ordinary FFmpeg comparison
+above.

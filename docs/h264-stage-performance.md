@@ -1,6 +1,8 @@
-The separate [complete High/CABAC comparison](h264-cabac-performance.md)
-measures 34.345 versus 5.204 CPU seconds (6.60x), with all 1,441 pictures exact.
-Its different bitstream and stack observations do not update the CAVLC or
+The [complete High/CABAC comparison](h264-cabac-performance.md) measures
+34.345 versus 5.204 CPU seconds (6.60x), with all 1,441 pictures exact. The
+subsequent [SIMD weighting comparison](h264-weighted-prediction.md) lowers paired
+CABAC/CAVLC decoding CPU by 7.24%/4.36%, preserving every sample in both execution
+orders. These separate bitstreams and decoding workloads do not update the
 complete-film HLS ratios below.
 
 Repository Native AOT builds now prefer execution speed. The
@@ -14,7 +16,7 @@ A complete chroma prediction-and-comparison fusion preserves every output byte
 but reduces CPU by only 0.86%, so it is not adopted. Stack counts are not CPU
 percentages and establish no new competitive ratio.
 
-The latest [direct-region comparison](h264-direct-prediction.md) uses
+The [direct-region comparison](h264-direct-prediction.md) uses
 23.105 CPU seconds for complete HD decoding versus 4.243 for optimized
 FFmpeg, with identical raw samples (5.45x). The paired median decoder CPU
 reduction is 16.18% over four complete 60.041667-second observations per version;
