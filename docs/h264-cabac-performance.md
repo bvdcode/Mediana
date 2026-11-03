@@ -198,6 +198,29 @@ strict Linux x64 Native AOT runner, native CLI, sample build, formatting and roo
 license-header checks pass. This change does not introduce a concurrency model
 or close the remaining encoding, HLS, quality and application acceptance work.
 
+### Profile after direct reference comparison
+
+Four complete decodes repeat the unchanged implementation after the direct
+reference comparison: ordinary, sampled, sampled, ordinary. All 1,441 pictures,
+raw output bytes, rational presentation times and durations remain exact;
+EOF and released-storage checks pass. CPU affinity, one media thread and
+ordinary GC settings are unchanged.
+
+The ordinary runs use 19.722 and 20.007 CPU seconds, with a median of 19.864.
+Their elapsed times are 25.421 and 20.486 seconds. Sampled elapsed median is
+27.396 seconds and is excluded from competitive timing.
+
+The two sampled runs provide 291 selected stack points: 72 in deblocking,
+47 in prediction, 20 in CABAC arithmetic/context work, four in inverse
+transforms, four in intra prediction, two in residual syntax and 142 elsewhere.
+The remaining group includes 32 stacks through motion metadata reads or writes,
+19 with raw-file writing as the innermost frame and 19 with thread yielding.
+These stop counts are not CPU percentages or proof of the full decoder gap's
+cause. They identify boundary classification and motion metadata access as
+remaining areas to investigate alongside pixel prediction. No computation is
+changed by this profile; the independent FFmpeg comparison above remains the
+current paired comparison.
+
 ## Captured reference representation control
 
 A separate control at baseline `f52d998` uses the existing captured physical
