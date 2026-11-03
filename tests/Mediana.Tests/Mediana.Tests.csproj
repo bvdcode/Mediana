@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/WritableMediaSpanTestInput.cs" Link="WritableMediaSpanTestInput.cs" />
     <Compile Include="../Shared/AacSeekTestInput.cs" Link="AacSeekTestInput.cs" />
     <Compile Include="../Shared/H264PictureReuseTestInput.cs" Link="H264PictureReuseTestInput.cs" />
     <Compile Include="../Shared/Mp4RecoveryTestInput.cs" Link="Mp4RecoveryTestInput.cs" />

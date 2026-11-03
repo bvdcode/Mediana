@@ -8,6 +8,16 @@ namespace Mediana.Tests
     public class MemoryTests
     {
         [Fact]
+        public void WritableSpanSharesStorageAndPublicationPreservesRetainedLeases() =>
+            WritableMediaSpanTestInput.VerifyPublication();
+
+        [Fact]
+        public void DisposedWritableStorageCannotExposeASpan() => WritableMediaSpanTestInput.VerifyDisposal();
+
+        [Fact]
+        public void RepeatedWritableSpanAccessAllocatesNoHeapStorage() => WritableMediaSpanTestInput.VerifyAllocation();
+
+        [Fact]
         public void PublishingTransfersOwnershipAndRetainingSharesTheBudget()
         {
             MediaBufferAllocator allocator = new(8);
