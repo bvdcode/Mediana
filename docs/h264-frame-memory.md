@@ -85,3 +85,62 @@ presentation times. The original film's 540–546 second transcode and actual
 cropped/HD CLI previews also remain byte-identical. Release compilation, format,
 license headers, 2,976 managed tests, 700 H.264 checks without hardware intrinsics,
 30 isolated package references, strict Native AOT execution and the CLI pass.
+
+## Synchronous reconstruction access
+
+Writable reconstruction pixels and macroblock metadata use
+`WritableMediaBuffer.Span` directly. This checked synchronous view borrows the
+same allocation as `Memory`; the existing owner validation still rejects access
+after publication or disposal. Asynchronous I/O continues to use `Memory`.
+This change adds no cached array, reference-plane workspace or frame copy.
+
+The frozen Linux x64 Native AOT code for mode access decreases from 139 to 86
+bytes, coefficient-count access from 434 to 272 bytes, and writable-plane access
+from 218 to 154 bytes. Their generic `Memory.Span` interpretation paths disappear.
+The owner's storage-validation method remains unchanged. The presence of a
+generic indirect-call path in the preceding code does not prove that the path
+was executed for array-backed buffers.
+
+Frozen consumers compare complete decoding and encoding of the same
+1,441-picture, 1280x720 minute input. The baseline already contains
+[compact interpolation scratch](h264-native-interpolation.md#compact-first-pass-storage).
+Both versions run serially on logical CPU 2 with `DOTNET_PROCESSOR_COUNT=1`;
+CPU includes user and system time. No owned build, test or other media workload
+overlaps measurement. Each table row contains two observations per version.
+
+| Operation and order | Before CPU median, s | Direct span CPU median, s | CPU reduction |
+| --- | ---: | ---: | ---: |
+| Decode, before/after/after/before | 19.342899 | 17.955264 | 7.17% |
+| Decode, after/before/before/after | 22.265763 | 20.642579 | 7.29% |
+| Encode, before/after/after/before | 35.466529 | 33.712926 | 4.94% |
+| Encode, after/before/before/after | 34.718658 | 33.791355 | 2.67% |
+
+Across both orders, complete-process medians are:
+
+| Resource | Decode before | Decode direct span | Encode before | Encode direct span |
+| --- | ---: | ---: | ---: | ---: |
+| CPU, s | 19.993417 | 18.504284 | 34.718658 | 33.791355 |
+| Elapsed, s | 20.719284 | 18.981822 | 36.277639 | 35.071204 |
+| Peak RSS, KiB | 69,142 | 68,814 | 38,248 | 38,344 |
+| Cumulative managed allocation, bytes | 3,377,466,452 | 3,377,427,148 | 2,283,431,400 | 2,283,418,676 |
+
+These memory observations do not establish a substantial process-memory
+improvement. Resource differences are local observations on a shared host.
+
+All sixteen operations process every picture, reach EOF and release owned media
+storage. Every decoded output matches the independent 1,992,038,400-byte raw
+reference, and every encoded output matches the 78,332,832-byte transport
+reference. Product sources, fixtures and executable hashes remain unchanged
+during timing. This is a local access-path improvement; it establishes no new
+FFmpeg ratio or complete-film HLS throughput result.
+
+The shared buffer checks cover zero initialization, identity of span and memory
+views, writes through either view, publication, retained sliced leases, released
+owners and allocation-free repeated access. All 3,114 managed tests and 719
+H.264 tests with hardware intrinsics disabled pass. All 30 packages pass
+assembly, metadata and package-only dependency verification; the strict Linux
+x64 Native AOT consumer passes its complete run. The sample and CLI publish
+with Native AOT. An actual CLI HD conversion preserves the preceding transport
+exactly, and independent decoding reads all 49 pictures without errors.
+Release compilation has zero warnings and errors; formatting and root license
+header checks pass.

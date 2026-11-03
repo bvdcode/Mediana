@@ -56,6 +56,12 @@ decoders and output modules without introducing container-to-codec dependencies.
 The same module owns H.264 RBSP reading/writing and SPS/VUI syntax; the decoder
 uses these headers while retaining reconstruction and reference-picture state.
 
+`WritableMediaBuffer.Span` provides a checked borrowed view for synchronous
+computation; `Memory` supports asynchronous I/O. Both views share the owned
+allocation. Publication transfers ownership to a read-only lease and invalidates
+further writable access. Borrowed writable views must not outlive publication
+or disposal.
+
 ## Source pixel geometry
 
 `EncodedStreamInfo.AspectRatioDescription` carries a source pixel aspect ratio

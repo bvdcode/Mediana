@@ -38,6 +38,9 @@ establish a useful encoding CPU improvement. Subsequent
 [compact interpolation scratch comparison](h264-native-interpolation.md#compact-first-pass-storage)
 shows 4.13% and 5.16% lower encoding CPU in its two execution orders, with exact
 output. The
+[synchronous reconstruction-access comparison](h264-frame-memory.md#synchronous-reconstruction-access)
+then observes 7.17%/7.29% lower decoding CPU and 4.94%/2.67% lower encoding CPU
+in its two execution orders, preserving every output byte. The
 [same-source instruction-set control](h264-instruction-set.md) does not
 establish an acceleration from targeting the build processor's instructions.
 Subsequent [paired residual processing](h264-paired-residuals.md) reduces
