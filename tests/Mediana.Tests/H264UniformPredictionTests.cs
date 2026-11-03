@@ -10,5 +10,8 @@ namespace Mediana.Tests
 
         [Fact]
         public void MutableContextsRevalidateInternalReferencesWithoutAllocation() => H264UniformContextTestInput.Verify();
+
+        [Fact]
+        public void UniformRangesPreservePartialWritesAndReferenceErrors() => H264UniformRangeTestInput.Verify();
     }
 }
