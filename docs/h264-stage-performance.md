@@ -35,6 +35,9 @@ establish a useful encoding CPU improvement. Subsequent
 [native interpolation](h264-native-interpolation.md) and
 [direct CAVLC coding](h264-cavlc-encoding.md) reduce encoding CPU by 5.04% and
 8.08% in separate comparisons. The current
+[compact interpolation scratch comparison](h264-native-interpolation.md#compact-first-pass-storage)
+shows 4.13% and 5.16% lower encoding CPU in its two execution orders, with exact
+output. The
 [same-source instruction-set control](h264-instruction-set.md) does not
 establish an acceleration from targeting the build processor's instructions.
 Subsequent [paired residual processing](h264-paired-residuals.md) reduces

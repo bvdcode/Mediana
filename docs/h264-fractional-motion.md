@@ -124,8 +124,10 @@ alone do not establish better complete-sequence coding efficiency.
 ## Vectorized neighborhood filtering
 
 The neighborhood constructor evaluates eight horizontal or vertical filter sums
-at once with BCL `Vector128` operations. Unrounded diagonal intermediates remain
-32-bit; first-pass sums fit signed 16-bit lanes (-2550 through 10710). The two
+at once with BCL `Vector128` operations. In that comparison, unrounded diagonal
+intermediates remain 32-bit; first-pass sums fit signed 16-bit lanes (-2550
+through 10710). Subsequent [compact scratch processing](h264-native-interpolation.md#compact-first-pass-storage)
+stores the first-pass sums in 16 bits and retains 32-bit second-pass arithmetic. The two
 remaining columns use the same scalar equations. Storage bounds, filter taps,
 clipping, candidate order and motion-vector tie handling remain unchanged.
 

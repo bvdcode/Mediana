@@ -85,3 +85,61 @@ H.264 tests with hardware intrinsics disabled pass. All 30 packages pass assembl
 metadata and package-only dependency checks. The strict Linux x64 Native AOT
 package consumer passes its complete test run; the sample and CLI also publish
 with Native AOT. Formatting and license-header checks pass.
+
+## Compact first-pass storage
+
+A subsequent change stores the fractional-search neighborhood's unrounded
+horizontal filter sums in signed 16-bit scratch instead of signed 32-bit
+scratch. For 8-bit input, the positive six-tap coefficients sum to 42 and the
+negative coefficients sum to -10. Each first-pass sum is therefore between
+-2,550 and 10,710. Pairing symmetric rows stays between -5,100 and 21,420,
+within signed 16-bit range. The second pass produces signed 32-bit results
+before the existing rounding and byte clipping.
+
+This reduces the 23x18 first-pass scratch from 1,656 to 828 bytes per
+neighborhood. Horizontal results can be stored and reloaded directly as eight
+16-bit lanes. With SSE2, the diagonal pass uses two
+[MultiplyAddAdjacent](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.intrinsics.x86.sse2.multiplyaddadjacent?view=net-10.0)
+operations on paired rows; portable vector arithmetic implements the same
+equation. The frozen Native AOT neighborhood constructor decreases from 1,992
+to 1,795 code bytes. Its generated loop contains the two `pmaddwd` operations.
+These code and scratch sizes do not establish a reduction in process RSS.
+
+An independent 64-bit scalar convolution checks 334,904 eight-sample blocks,
+including every possible first-pass value at each of six tap positions,
+extreme-value combinations, mixed lanes, randomized blocks, padded rows and
+unaligned starts. Each input view ends at its last required sample. Checks also
+verify unchanged source storage, scalar tail results and allocation-free
+repetition. They pass in ordinary managed execution, with hardware intrinsics
+disabled, and in strict Linux x64 Native AOT. Independent complete-neighborhood,
+row-rejection and 188 motion-search references also pass in all three modes.
+
+Eight complete encoding observations use the same input, settings, CPU and
+serial execution procedure as the preceding comparison. All process 1,441
+pictures, reach EOF and release owned media storage. Every output matches the
+same 78,332,832-byte independent transport reference. Sources, inputs and frozen
+executables remain unchanged during timing.
+
+| Execution order | Before CPU median, s | Compact scratch CPU median, s | CPU reduction |
+| --- | ---: | ---: | ---: |
+| before/after/after/before | 36.939266 | 35.414328 | 4.13% |
+| after/before/before/after | 38.725267 | 36.728315 | 5.16% |
+
+Across all eight observations, CPU medians are 36.939266 and 35.414328 seconds.
+Host scheduling varies substantially: individual elapsed observations range
+from 36.11 to 91.79 seconds. These local measurements do not establish a
+portable elapsed-time improvement. Median RSS is 39,528 versus 38,782 KiB;
+cumulative managed allocation is 2,283,517,476 versus 2,283,401,684 bytes.
+Neither memory observation establishes a substantial process-memory reduction.
+The smaller scratch retains the original candidate order, motion decisions,
+quality and output size. The general integer-domain interpolation helpers keep
+their existing arithmetic. These measurements establish no new FFmpeg ratio
+or complete-film HLS result.
+
+The compact implementation passes all 3,111 managed tests and 719 H.264 tests
+with hardware intrinsics disabled. All 30 packages pass metadata, assembly and
+package-only dependency verification. Their strict Linux x64 Native AOT consumer
+passes its complete run; the sample and CLI also publish successfully. An actual
+Native AOT CLI conversion preserves the preceding HD transport byte for byte,
+and independent decoding reads all 49 pictures without errors. Release builds
+have zero warnings and errors; formatting and license-header checks pass.
