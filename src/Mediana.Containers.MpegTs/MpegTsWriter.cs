@@ -120,9 +120,9 @@ namespace Mediana.Containers.MpegTs
                 {
                     throw new InvalidDataException("Each AVC track must start with an IDR access unit.");
                 }
-                if (segmentPending && (track != clockTrack || !idr))
+                if (segmentPending && (track != clockTrack || (track.Type == 0x1B && !idr)))
                 {
-                    throw new InvalidDataException("A new TS segment must start with the program's AVC IDR access unit.");
+                    throw new InvalidDataException("A new TS segment must start with the program's clock track and, for AVC, an IDR access unit.");
                 }
                 long clock = dts - PcrLead;
                 if (!lastTables.HasValue || segmentPending)

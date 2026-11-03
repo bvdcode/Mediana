@@ -248,6 +248,7 @@
     <ProjectReference Include="../../src/Mediana.Streaming.Hls/Mediana.Streaming.Hls.csproj" />
     <Compile Include="../Shared/MpegTsTestInput.cs" Link="MpegTsTestInput.cs" />
     <Compile Include="../Shared/MpegTsSegmentTestInput.cs" Link="MpegTsSegmentTestInput.cs" />
+    <Compile Include="../Shared/MpegTsAudioSegmentTestInput.cs" Link="MpegTsAudioSegmentTestInput.cs" />
     <Compile Include="../Shared/Mp4TimelineTestInput.cs" Link="Mp4TimelineTestInput.cs" />
     <Compile Include="../Shared/Mp4SampleAccessTestInput.cs" Link="Mp4SampleAccessTestInput.cs" />
     <Compile Include="../Shared/HlsPlanTestInput.cs" Link="HlsPlanTestInput.cs" />
