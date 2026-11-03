@@ -281,3 +281,10 @@ The candidate is not adopted. No reverse-order, CAVLC, encoding or complete-HLS
 extension is run. Fewer calls in the source do not establish lower complete
 decoding cost; these observations do not identify the cause of the CPU change
 or update the independent FFmpeg comparison.
+
+## Uniform prediction reuse
+
+The subsequent [uniform prediction comparison](h264-uniform-prediction.md)
+checks the current decoder on complete three-minute input and refreshes the
+one-thread external decoder comparison. It preserves decoded samples and
+encoded bytes.
