@@ -684,3 +684,12 @@ consumer passed. Shared bit-writing checks cover all eight initial alignments,
 all widths from zero through 64, mixed fields, independent NAL packing and
 escaping, exact bit positions, budget overflow and restoration after storage
 growth. Release build, CLI Native AOT, formatting and license-header checks passed.
+
+## Current computation diagnostic
+
+The [current complete-operation diagnostic](h264-current-computation.md) records
+repeatable stage call counts and elapsed intervals for both decoding and encoding.
+Motion selection and coefficient writing/reconstruction remain substantial encoder
+work. Instrumented intervals include overhead and are not CPU percentages; all
+eight complete outputs retain the independent references. No codec change or new
+complete-film throughput claim follows from the diagnostic.
