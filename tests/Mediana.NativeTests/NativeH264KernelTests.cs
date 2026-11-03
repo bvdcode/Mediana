@@ -18,6 +18,7 @@ namespace Mediana.NativeTests
             H264BlockPairTestInput.Verify();
             H264BitReadingTestInput.Verify();
             H264VlcTestInput.Verify();
+            H264VlcWritingTestInput.Verify();
             H264CavlcLevelTestInput.Verify();
             H264DcResidualTestInput.VerifyDcOnly();
             H264DcResidualTestInput.VerifyAcBlocks();
