@@ -206,3 +206,50 @@ observes about 0.255 seconds inside buffer allocation calls for full decoding an
 0.262 seconds for full encoding. GC pauses are about 0.149/0.158 seconds.
 These elapsed intervals overlap and do not measure attributed CPU. They do not
 support treating a buffer pool as the main remedy for the multi-fold CPU gap.
+
+## Per-operation metadata borrowing control
+
+A separate two-file control borrows the existing checked mode span once within
+a synchronous operation. Motion and intra-neighbour reads reuse an already read
+mode value; motion writes and reconstructed-block availability updates reuse a
+method-local span. The borrow does not outlive the operation. The existing
+buffer owner, slice and partition checks, metadata layout and pixel ownership
+remain unchanged. No pool, retained array or public API is added.
+
+The frozen Linux x64 Native AOT functions become smaller:
+
+| Function | Before, bytes | Local borrow, bytes |
+| --- | ---: | ---: |
+| Motion partition write | 761 | 694 |
+| Reconstructed-block write | 457 | 376 |
+| Motion sample lookup | 605 | 587 |
+| Intra prediction mode | 307 | 293 |
+| Intra-neighbour availability | 231 | 172 |
+
+The motion-write and reconstructed-block loops move checked storage access out
+of their cell loops. This static reduction does not establish lower process CPU.
+The complete-input comparison uses the same 1,441-picture references, CPU 2,
+`DOTNET_PROCESSOR_COUNT=1`, serial processes and no overlapping owned heavy
+workloads as the synchronous-access comparison above. Each row reports medians
+of two complete processes per version; CPU includes user and system time.
+
+| Operation and order | Before CPU, s | Local borrow CPU, s | Observed CPU change |
+| --- | ---: | ---: | ---: |
+| Decode, before/after/after/before | 18.614428 | 23.731872 | +27.49% |
+| Decode, after/before/before/after | 18.352584 | 18.789542 | +2.38% |
+| Encode, before/after/after/before | 34.694918 | 39.246704 | +13.12% |
+| Encode, after/before/before/after | 34.317315 | 33.630942 | -2.00% |
+
+The trial's individual decoding observations range from 17.92 to 29.54 CPU
+seconds; encoding ranges from 33.30 to 42.83. Across both orders, CPU medians
+are 18.389928 → 18.789542 seconds for decoding and 34.694918 → 34.813789 for
+encoding. Cumulative allocation and peak RSS do not establish a useful memory
+improvement. Smaller native functions and fewer repeated owner checks do not
+produce a consistent complete-operation acceleration here. The variant is not
+adopted.
+
+All sixteen complete outputs match the independent raw or transport reference,
+reach EOF and release owned media storage. Source, fixture, input and executable
+hashes remain unchanged during timing. The isolated consumer publishes with
+strict Native AOT warnings. This control establishes no new FFmpeg ratio or
+complete-film HLS result.
