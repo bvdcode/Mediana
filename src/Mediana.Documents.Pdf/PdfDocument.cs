@@ -71,12 +71,18 @@ namespace Mediana.Documents.Pdf
             lock (_sync) { RequireOpen(); return Page(pageNumber).Info; }
         }
         public PdfPage GetPage(int pageNumber, CancellationToken cancellationToken = default)
+            => Interpret(pageNumber, null, cancellationToken);
+
+        internal PdfPage GetPageForRender(int pageNumber, double samplesPerPoint, CancellationToken cancellationToken)
+            => Interpret(pageNumber, samplesPerPoint, cancellationToken);
+
+        private PdfPage Interpret(int pageNumber, double? samplesPerPoint, CancellationToken cancellationToken)
         {
             lock (_sync)
             {
                 PdfStorage storage = RequireOpen();
                 cancellationToken.ThrowIfCancellationRequested();
-                return new PdfInterpreter(storage, cancellationToken).Interpret(Page(pageNumber));
+                return new PdfInterpreter(storage, cancellationToken, samplesPerPoint).Interpret(Page(pageNumber));
             }
         }
         private PdfPageSource Page(int number)

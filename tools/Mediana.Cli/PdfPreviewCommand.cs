@@ -13,9 +13,9 @@ namespace Mediana.Cli
         public static async Task<int> RenderAsync(string input, CommandOutputFile output, int pageNumber, int maximumWidth, CancellationToken cancellationToken = default)
         {
             using PdfDocument document = await PdfReader.ReadFileAsync(input, cancellationToken: cancellationToken);
-            PdfPage page = document.GetPage(pageNumber, cancellationToken);
+            PdfPageInfo page = document.GetPageInfo(pageNumber);
             MediaBufferAllocator allocator = new(256L * 1024 * 1024);
-            using PixelBuffer image = PdfRenderer.Render(page, new() { MaximumWidth = maximumWidth }, cancellationToken, allocator);
+            using PixelBuffer image = PdfRenderer.Render(document, pageNumber, new() { MaximumWidth = maximumWidth }, cancellationToken, allocator);
             using VideoFrame frame = image.PublishVideoFrame(cancellationToken);
             await WriteAsync(frame, output, allocator, cancellationToken);
             await Console.Out.WriteLineAsync($"PDF page {pageNumber}/{document.PageCount}: {page.Width} x {page.Height} pt; {image.Width} x {image.Height} px.");
@@ -24,7 +24,7 @@ namespace Mediana.Cli
         public static async Task<int> ImageAsync(string input, CommandOutputFile output, int pageNumber, int index, CancellationToken cancellationToken = default)
         {
             using PdfDocument document = await PdfReader.ReadFileAsync(input, cancellationToken: cancellationToken);
-            PdfPage page = document.GetPage(pageNumber, cancellationToken);
+            using PdfPage page = document.GetPage(pageNumber, cancellationToken);
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, page.Images.Count);
             MediaBufferAllocator allocator = new(256L * 1024 * 1024);

@@ -11,18 +11,20 @@ namespace Mediana.Documents.Pdf
         private readonly HashSet<PdfObject> _activeImages = [];
         private PdfImage Image(PdfObject obj, string name, int depth)
         {
-            if (Get(obj.Value, "ImageMask").Number == 0 && _decodedImages.TryGetValue(obj, out PdfImage? existing)) { return existing; }
+            int width = Get(obj.Value, "Width").Integer(), height = Get(obj.Value, "Height").Integer();
+            if (width <= 0 || height <= 0 || (long)width * height > storage.Budget.Options.MaximumImagePixels) { throw new InvalidDataException("PDF image exceeds its pixel limit."); }
+            PdfValue filters = Get(obj.Value, "Filter");
+            PdfValue terminal = filters.Kind == PdfValueKind.Array ? Resolve(filters.Items[^1]) : filters;
+            string codec = terminal.Kind == PdfValueKind.Null ? string.Empty : terminal.Name();
+            int reduction = ImageReduction(obj, codec, width, height, depth);
+            if (Get(obj.Value, "ImageMask").Number == 0 && _decodedImages.TryGetValue((obj, reduction), out PdfImage? existing)) { return existing; }
             if (depth >= storage.Budget.Options.MaximumDepth || !_activeImages.Add(obj)) { throw new InvalidDataException("Cyclic or excessive PDF image mask."); }
             PixelBuffer? pending = null;
             try
             {
-                int width = Get(obj.Value, "Width").Integer(), height = Get(obj.Value, "Height").Integer();
-                if (width <= 0 || height <= 0 || (long)width * height > storage.Budget.Options.MaximumImagePixels) { throw new InvalidDataException("PDF image exceeds its pixel limit."); }
-                _imageBytes += (long)width * height * 4;
+                int decodedWidth = (width - 1) / reduction + 1, decodedHeight = (height - 1) / reduction + 1;
+                _imageBytes = checked(_imageBytes + (long)decodedWidth * decodedHeight * 4);
                 if (_imageBytes > storage.Budget.Options.MaximumImageBytes) { throw new InvalidDataException("PDF page images exceed their byte limit."); }
-                PdfValue filters = Get(obj.Value, "Filter");
-                PdfValue terminal = filters.Kind == PdfValueKind.Array ? Resolve(filters.Items[^1]) : filters;
-                string codec = terminal.Kind == PdfValueKind.Null ? string.Empty : terminal.Name();
                 ReadOnlyMemory<byte> data = storage.Decode(obj, token, image: true);
                 PdfValue colorSpace = Get(obj.Value, "ColorSpace");
                 bool stencil = Get(obj.Value, "ImageMask").Number != 0;
@@ -30,7 +32,7 @@ namespace Mediana.Documents.Pdf
                 PixelBuffer pixels;
                 if (codec == "DCTDecode")
                 {
-                    pixels = DecodeJpeg(obj, data, width, height, bits, colorSpace, stencil);
+                    pixels = DecodeJpeg(obj, data, width, height, bits, colorSpace, stencil, reduction);
                 }
                 else if (codec == "JPXDecode" && colorSpace.Kind == PdfValueKind.Null)
                 {
@@ -92,7 +94,7 @@ namespace Mediana.Documents.Pdf
                     }
                 }
                 PdfImage result = new(name, pixels);
-                if (!stencil) { _decodedImages.Add(obj, result); }
+                if (!stencil) { _decodedImages.Add((obj, reduction), result); }
                 _images.Add(result); pending = null; return result;
             }
             finally { pending?.Dispose(); _activeImages.Remove(obj); }

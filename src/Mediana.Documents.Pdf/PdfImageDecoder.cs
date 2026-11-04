@@ -36,8 +36,7 @@ namespace Mediana.Documents.Pdf
             request.Validate(Features);
             using PdfDocument document = PdfReader.ReadBorrowed(encoded, readerOptions, cancellationToken);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(request.PageIndex, document.PageCount, nameof(request.PageIndex));
-            PdfPage page = document.GetPage(request.PageIndex + 1, cancellationToken);
-            using PixelBuffer pixels = PdfRenderer.Render(page, renderOptions, cancellationToken, allocator);
+            using PixelBuffer pixels = PdfRenderer.Render(document, request.PageIndex + 1, renderOptions, cancellationToken, allocator);
             return ValueTask.FromResult(pixels.PublishVideoFrame(cancellationToken));
         }
     }

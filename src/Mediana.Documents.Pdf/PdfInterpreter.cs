@@ -5,13 +5,13 @@ using System.Numerics;
 using Mediana.Drawing;
 namespace Mediana.Documents.Pdf
 {
-    internal partial class PdfInterpreter(PdfStorage storage, CancellationToken token)
+    internal partial class PdfInterpreter(PdfStorage storage, CancellationToken token, double? samplesPerPoint = null)
     {
         private readonly List<IPdfDrawCommand> _commands = [];
         private readonly HashSet<string> _unsupported = new(StringComparer.Ordinal);
         private readonly List<PdfImage> _images = [];
         private readonly HashSet<PdfObject> _forms = [];
-        private readonly Dictionary<PdfObject, PdfImage> _decodedImages = [];
+        private readonly Dictionary<(PdfObject Object, int Reduction), PdfImage> _decodedImages = [];
         private PdfGraphicsState _state = new();
         private VectorPath _path = new();
         private Vector2 _current;
@@ -27,6 +27,21 @@ namespace Mediana.Documents.Pdf
         private bool _hasTextClip;
         private PdfValue _pageResources = PdfValue.Null;
         internal PdfPage Interpret(PdfPageSource page)
+        {
+            bool completed = false;
+            try
+            {
+                PdfPage result = InterpretPage(page);
+                completed = true;
+                return result;
+            }
+            finally
+            {
+                if (!completed) { foreach (PdfImage image in _images) { image.Dispose(); } }
+            }
+        }
+
+        private PdfPage InterpretPage(PdfPageSource page)
         {
             _state = _state with { Transform = page.Transform };
             _pageResources = page.Resources;

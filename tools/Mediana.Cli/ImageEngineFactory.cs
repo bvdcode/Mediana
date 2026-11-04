@@ -17,13 +17,18 @@ namespace Mediana.Cli
     {
         private const int MaximumInputBytes = 64 * 1024 * 1024;
         private const int MaximumPixels = 16 * 1024 * 1024;
+        private const int MaximumDocumentPreviewDimension = 1200;
 
         public static MediaEngine Create() => AddDecoders(new MediaEngineBuilder()).Build();
 
         internal static MediaEngineBuilder AddDecoders(MediaEngineBuilder builder) => AddStillImageDecoders(builder)
             .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
             .AddImageDecoder(new TgsImageDecoder())
-            .AddImageDecoder(new PdfImageDecoder());
+            .AddImageDecoder(new PdfImageDecoder(renderOptions: new()
+            {
+                MaximumWidth = MaximumDocumentPreviewDimension,
+                MaximumHeight = MaximumDocumentPreviewDimension
+            }));
 
         internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
             .AddImageDecoder(new PngImageDecoder())
