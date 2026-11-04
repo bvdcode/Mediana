@@ -18,6 +18,7 @@ duration, EOF and released media allocation is checked.
 | Separate orientation masks | BAAB | 45.176 | 45.670 | +1.09% |
 | Paired current-block masks | ABBA | 46.540 | 43.558 | -6.41% |
 | Paired current-block masks | BAAB | 48.602 | 44.361 | -8.73% |
+| Bidirectional-only paired masks | ABBA | 53.368 | 52.394 | -1.83% |
 
 Separate masks fail the requirement of at least 5% CPU reduction in both orders.
 The paired calculation passes that requirement. Its peak RSS medians are
@@ -27,6 +28,11 @@ The paired calculation also completes sixteen exact CAVLC/encoding controls.
 CAVLC CPU changes by -0.28% and -0.06%. Encoding changes by -2.20% and +4.12%;
 the reverse order exceeds the predefined 3% regression allowance. Therefore
 the general paired replacement fails the complete acceptance criteria.
+
+The bidirectional-only calculation retains the original scalar strength and
+single-orientation implementation for I/P pictures. Four complete exact CABAC
+operations give a 1.83% CPU reduction, below the same 5% minimum. Its peak RSS
+medians are 71.74 and 70.95 MiB. This organization also fails CPU acceptance.
 
 Both calculations pass 524,288 independent sample-coordinate topology cases,
 264,192 further topology cases and physical-reference, mutation and range
