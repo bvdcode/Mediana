@@ -9,6 +9,12 @@ namespace Mediana.Tests
     public class H264MotionPredictionTests
     {
         [Fact]
+        public void MotionLookupPreservesAvailabilityAndFullVectorValues()
+        {
+            Assert.Equal(525640, H264MotionLookupTestInput.Verify());
+        }
+
+        [Fact]
         public void MedianAndUniqueReferenceMatchUseAvailableNeighbours()
         {
             using H264Picture picture = CreatePicture();
