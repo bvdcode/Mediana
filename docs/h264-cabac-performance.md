@@ -644,3 +644,33 @@ Neither control reaches the predefined 5% CPU reduction, so neither is
 adopted. Reverse-order, CAVLC and encoding extensions are not run. The
 accepted decoder and its external and complete HLS comparisons remain
 unchanged.
+
+## Macroblock intra and residual classification control
+
+A separate control classifies all sixteen luma cells of a macroblock
+into intra and residual bit masks once per edge orientation. An 8x8
+transform expands residual presence across its four 4x4 cells. Internal
+edges reuse those masks; physical-reference and motion comparisons retain
+the existing rules. The masks use local values and add no media allocation.
+
+All 524,288 exhaustive intra/residual combinations agree with scalar
+boundary strengths in managed, hardware-disabled and strict Native AOT
+execution. Existing reference identity, mutation, error priority, partial
+write and zero-allocation checks pass. All 729 H.264 tests pass in each
+managed execution mode.
+
+Four complete 180.125-second Native AOT decodes run in current, candidate,
+candidate, current order, pinned to one CPU. Every run matches all 4,323
+pictures, 5,976,115,200 output bytes, rational timestamps and durations,
+EOF and released media storage. Medians are:
+
+| Measurement | Current | Candidate |
+| --- | ---: | ---: |
+| CPU, seconds | 52.154649 | 53.401616 |
+| Elapsed, seconds | 122.813818 | 104.269049 |
+| Peak RSS, KiB | 75078 | 71696 |
+
+The CPU change is +2.391%. The complete series does not meet the
+required 5% CPU reduction, so the control is not adopted. Reverse-order,
+CAVLC and encoding extensions are not run. This control establishes no new
+FFmpeg or complete HLS performance ratio.
