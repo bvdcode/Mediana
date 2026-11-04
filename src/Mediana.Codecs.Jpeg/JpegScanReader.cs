@@ -173,6 +173,10 @@ namespace Mediana.Codecs.Jpeg
             }
             bits.Align();
             reader.Position = bits.Position;
+            if (interval != 0 && total % interval == 0)
+            {
+                image.RecoverFinalRestart(restart);
+            }
         }
 
     }

@@ -22,6 +22,8 @@ namespace Mediana.NativeTests
             JpegComponentTestInput.VerifyOwnership();
             JpegComponentTestInput.VerifyMetadata();
             JpegComponentTestInput.VerifyFailures();
+            await JpegRestartTestInput.VerifyRecoveryAsync();
+            await JpegRestartTestInput.VerifyRejectedAsync();
             await JpegReducedTestInput.VerifyReferencesAsync(Path.Combine(root, "Jpeg"));
             JpegReducedTestInput.VerifyBudgets();
             await JpegReducedTestInput.VerifySamplingAsync(Path.Combine(root, "Jpeg"));

@@ -29,6 +29,7 @@
     <None Include="Data/JpegExif/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/JpegExifTestInput.cs" Link="JpegExifTestInput.cs" />
     <Compile Include="../Shared/JpegComponentTestInput.cs" Link="JpegComponentTestInput.cs" />
+    <Compile Include="../Shared/JpegRestartTestInput.cs" Link="JpegRestartTestInput.cs" />
     <Compile Include="../Shared/JpegReducedTestInput.cs" Link="JpegReducedTestInput.cs" />
     <Compile Include="../Shared/JpegTestData.cs" Link="JpegTestData.cs" />
     <Compile Include="../Shared/JpegDecodeTestInput.cs" Link="JpegDecodeTestInput.cs" />

@@ -12,11 +12,14 @@ namespace Mediana.Codecs.Jpeg
         internal JpegImage(JpegDocument image)
         {
             AdobeColorTransform = image.Metadata.AdobeColorTransform;
+            Warnings = image.Warnings;
             EncodedWidth = image.Width;
             EncodedHeight = image.Height;
             samples = image.TakeSamples();
         }
 
+        /// <summary>Diagnostics for a recovered redundant final restart marker, without changing decoded samples.</summary>
+        public IReadOnlyList<string> Warnings { get; }
         public int Width => samples.Width;
         public int Height => samples.Height;
         public int ComponentCount => samples.Components.Count;

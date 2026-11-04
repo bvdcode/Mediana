@@ -268,3 +268,26 @@ reduced dimensions, ownership and allocator release, including subsampled odd
 edges; those latter checks do not establish independent reduced chroma color
 accuracy. Cancellation, truncation and progressive workspace limits remain
 covered.
+
+## Redundant final restart marker
+
+After decoding every MCU and checking entropy padding, the decoder can recover
+one redundant restart marker at the end of a complete restart interval. The
+remaining input must be exactly the expected `RST0`–`RST7` marker followed by
+`EOI`, with no other bytes. The marker still counts toward `MaximumMarkers`.
+Wrong numbers, incomplete intervals, premature markers, repeated markers,
+additional scans/segments and bytes after EOI remain errors. The decoder does
+not search ahead or change reconstructed coefficients and samples.
+
+This narrow recovery handles a malformed encoding: T.81 Annex B.2.1 requires
+restart markers between entropy segments and excludes one after the last
+segment. `JpegImage.Warnings` reports the recovery for component callers;
+`JpegImageDecoder` reports it through `ImageDecodeRequest.WarningHandler`.
+Header probing does not decode MCU data and cannot establish this recovery's
+conditions.
+
+Shared managed and Native AOT checks compare every pixel with the corresponding
+JPEG without the redundant marker. They cover sequential and progressive DC
+scans, restart sequence wrap, factors 1/2/4/8, exact sample/output budgets,
+malformed endings and diagnostic-handler failure. CLI tests run complete
+processes and check both the warning and output publication.

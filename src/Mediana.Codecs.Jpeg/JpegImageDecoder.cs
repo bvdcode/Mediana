@@ -52,6 +52,10 @@ namespace Mediana.Codecs.Jpeg
             request.Validate(Features);
             using JpegDocument image = new(encoded, options, sourceColorSpace, sampleAspectRatio, cancellationToken);
             image.Read(allocator);
+            foreach (string warning in image.Warnings)
+            {
+                request.WarningHandler?.Invoke(warning);
+            }
             return ValueTask.FromResult(JpegPixelWriter.Create(image, allocator, cancellationToken));
         }
     }

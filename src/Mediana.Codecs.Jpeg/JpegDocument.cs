@@ -17,6 +17,11 @@ namespace Mediana.Codecs.Jpeg
         private readonly JpegHuffmanTable?[] huffman = new JpegHuffmanTable[8];
         private JpegComponent[] components = [];
         private readonly JpegMetadata metadata = new();
+        private static readonly IReadOnlyList<string> RestartWarnings = Array.AsReadOnly(new[]
+        {
+            "Ignored a redundant final JPEG restart marker immediately before EOI."
+        });
+        private bool recoveredRestart;
         private int restartInterval;
         private byte frameMarker;
         internal int Width { get; private set; }
@@ -26,6 +31,18 @@ namespace Mediana.Codecs.Jpeg
         internal IReadOnlyList<JpegComponent> Components => components;
         internal JpegMetadata Metadata => metadata;
         internal bool Progressive => frameMarker == 194;
+        internal IReadOnlyList<string> Warnings => recoveredRestart ? RestartWarnings : Array.Empty<string>();
+
+        internal void RecoverFinalRestart(int expected)
+        {
+            ReadOnlySpan<byte> remaining = reader.Encoded.Span[reader.Position..];
+            if (remaining.Length == 4 && remaining[0] == 255 && remaining[1] == 208 + expected
+                && remaining[2] == 255 && remaining[3] == 217)
+            {
+                reader.NextMarker();
+                recoveredRestart = true;
+            }
+        }
 
         internal void Read(MediaBufferAllocator? allocator, bool componentSamples = false)
         {
