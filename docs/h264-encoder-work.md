@@ -299,3 +299,58 @@ large CPU improvement nor a memory improvement. The added processor-specific
 path is not adopted. The production coefficient pipeline and output remain
 unchanged, and these observations establish no new FFmpeg or full-film HLS
 performance ratio.
+
+## Inverse-transform and pixel-addition controls
+
+Two separate diagnostics test reconstruction arithmetic without changing motion
+search, quantization, coding decisions or output. Both use the complete
+1,441-picture, 1,280x720 input, frozen Native AOT executables and serial execution
+on one CPU with one reported .NET processor. CPU time includes user and system
+time. Each table row contains two baseline and two variant observations.
+
+The first diagnostic uses four 32-bit SIMD lanes for the 4x4 inverse transform.
+It follows the row-before-column transform and final rounding in
+[H.264 section 8.5.12](https://www.itu.int/rec/T-REC-H.264-202606-I/en).
+An explicit coefficient bound keeps both transform passes within signed 32-bit
+arithmetic; inputs outside that bound retain the existing checked wide path.
+The DC-only shortcut remains unchanged. Arithmetic checks cover all 52
+quantizers, separate DC, overlapping input/output spans, overflow behavior and
+destination guards. The final Native AOT diagnostic passes 438,256 cases,
+including values immediately around the SIMD eligibility thresholds.
+
+| Operation and execution order | Baseline CPU median, s | Variant CPU median, s | CPU change |
+| --- | ---: | ---: | ---: |
+| Decode, baseline/variant/variant/baseline | 19.495900 | 19.193617 | -1.55% |
+| Decode, variant/baseline/baseline/variant | 21.521384 | 21.035520 | -2.26% |
+| Encode, baseline/variant/variant/baseline | 39.357833 | 36.774263 | -6.56% |
+| Encode, variant/baseline/baseline/variant | 36.478276 | 36.507799 | +0.08% |
+
+The small decoding difference does not justify the extra specialized path.
+The encoding reduction is not reproduced in the reverse order. This variant
+is not adopted.
+
+The second diagnostic changes only prediction-plus-residual addition and
+clipping. It uses signed saturating packing and addition, followed by unsigned
+byte packing. This preserves the original clipping result for every signed
+32-bit residual, including the extreme values. It does not include the first
+diagnostic's inverse transform. Its 98,304 arithmetic checks pass in managed
+execution, strict Native AOT and managed execution with hardware intrinsics
+disabled. They cover 4x4 and 8x8 blocks, padded strides, unaligned offsets,
+pixel ordering and destination guards. Repeated arithmetic allocates no heap
+storage.
+
+| Operation, baseline/variant/variant/baseline | Baseline CPU median, s | Variant CPU median, s | CPU change |
+| --- | ---: | ---: | ---: |
+| Decode | 21.082288 | 21.984219 | +4.28% |
+| Encode | 43.799105 | 45.905218 | +4.81% |
+
+This control provides no evidence of acceleration and is not adopted. A reverse
+series is not performed for this variant.
+
+All 24 complete operations in these final comparisons reach EOF, process all
+1,441 pictures and release owned media storage. Every decoded output matches
+the independent 1,992,038,400-byte raw reference; every encoded output matches
+the independent 78,332,832-byte transport reference. Source, executable and
+input hashes remain unchanged during measurement. Neither diagnostic changes
+the production reconstruction pipeline or establishes a memory improvement,
+new FFmpeg ratio or complete-film HLS improvement.

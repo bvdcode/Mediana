@@ -64,16 +64,16 @@ namespace Mediana.Codecs.H264
         public bool HasBidirectionalMotion => referenceLists == 2;
         public int FirstMacroblock { get; set; }
         private int ModesOffset => lumaBlocks + chromaBlocks * 2;
-        public Span<byte> Modes => storage.Memory.Span.Slice(ModesOffset, lumaBlocks);
+        public Span<byte> Modes => storage.Span.Slice(ModesOffset, lumaBlocks);
         private int QuantizersOffset => ModesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
-        public Span<byte> Quantizers => storage.Memory.Span.Slice(QuantizersOffset, macroblocks);
-        public Span<byte> Transforms8x8 => storage.Memory.Span.Slice(QuantizersOffset + macroblocks, macroblocks);
+        public Span<byte> Quantizers => storage.Span.Slice(QuantizersOffset, macroblocks);
+        public Span<byte> Transforms8x8 => storage.Span.Slice(QuantizersOffset + macroblocks, macroblocks);
 
         public Span<byte> Counts(int index) => index switch
         {
-            0 => storage.Memory.Span[..lumaBlocks],
-            1 => storage.Memory.Span.Slice(lumaBlocks, chromaBlocks),
-            2 => storage.Memory.Span.Slice(lumaBlocks + chromaBlocks, chromaBlocks),
+            0 => storage.Span[..lumaBlocks],
+            1 => storage.Span.Slice(lumaBlocks, chromaBlocks),
+            2 => storage.Span.Slice(lumaBlocks + chromaBlocks, chromaBlocks),
             _ => throw new ArgumentOutOfRangeException(nameof(index))
         };
 

@@ -26,7 +26,7 @@ namespace Mediana.Codecs.H264
             {
                 DecodeSlice(ref bits, header, references, order, result, result.Quantizers.Length, allocator, cancellationToken);
                 H264Deblocking.Apply(result, header, cancellationToken, references.L0, references.L1);
-                result.CaptureReferences(references.L0, references.L1);
+                result.CaptureReferences(0, references.L0, references.L1);
                 complete = true;
                 return result;
             }
@@ -57,6 +57,7 @@ namespace Mediana.Codecs.H264
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                predictionReader?.BeginMacroblock(address);
                 int skipContext = state.SkipCondition(state.Left(address)) + state.SkipCondition(state.Top(address));
                 bool skipped = header.Kind switch
                 {

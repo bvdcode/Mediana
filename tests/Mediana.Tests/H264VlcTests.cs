@@ -10,5 +10,8 @@ namespace Mediana.Tests
 
         [Fact]
         public void MixedCodesPreserveTailsAndCheckedBoundaries() => H264VlcTestInput.Verify();
+
+        [Fact]
+        public void WritingPreservesSymbolsBitsPositionsAndRejection() => H264VlcWritingTestInput.Verify();
     }
 }

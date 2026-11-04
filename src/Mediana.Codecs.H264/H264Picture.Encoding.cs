@@ -12,7 +12,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidOperationException("Only unpublished I/P reconstruction storage can be reused for encoding.");
             }
-            storage.Memory.Span.Clear();
+            storage.Span.Clear();
             Modes.Fill(byte.MaxValue);
             ReferenceIndices(H264ReferenceList.L0).Fill(byte.MaxValue);
             FirstMacroblock = 0;

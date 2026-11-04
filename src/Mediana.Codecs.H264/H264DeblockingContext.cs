@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal ref struct H264DeblockingContext
+    internal ref partial struct H264DeblockingContext
     {
         private readonly H264Picture picture;
         private readonly IReadOnlyList<H264ReferencePicture?>? referencesL0;
@@ -19,6 +19,8 @@ namespace Mediana.Codecs.H264
         private readonly ReadOnlySpan<int> motionYL1;
         private readonly int stride;
         private readonly int columns;
+        private bool? uniformPrediction;
+        private bool uniformValidated;
         private int address;
         private H264PictureReferences? currentReferences;
         private H264PictureReferences? leftReferences;
@@ -54,7 +56,10 @@ namespace Mediana.Codecs.H264
             topReferences = null;
         }
 
-        public int Strength(int x, int y, bool vertical, bool macroblockEdge)
+        public int Strength(int x, int y, bool vertical, bool macroblockEdge) =>
+            Strength(x, y, vertical, macroblockEdge, false);
+
+        private int Strength(int x, int y, bool vertical, bool macroblockEdge, bool reuseUniformPrediction)
         {
             int current = y / 4 * stride + x / 4;
             int previous = current - (vertical ? 1 : stride);
@@ -69,14 +74,35 @@ namespace Mediana.Codecs.H264
             {
                 return 2;
             }
-            (H264PictureIdentity? Picture, int X, int Y) p0 = Resolve(H264ReferenceList.L0, previous, true, vertical, previousMacroblock);
-            (H264PictureIdentity? Picture, int X, int Y) q0 = Resolve(H264ReferenceList.L0, current, false, vertical, previousMacroblock);
-            (H264PictureIdentity? Picture, int X, int Y) p1 = picture.HasBidirectionalMotion
-                ? Resolve(H264ReferenceList.L1, previous, true, vertical, previousMacroblock) : (null, 0, 0);
-            (H264PictureIdentity? Picture, int X, int Y) q1 = picture.HasBidirectionalMotion
-                ? Resolve(H264ReferenceList.L1, current, false, vertical, previousMacroblock) : (null, 0, 0);
-            return H264DeblockingMotion.Strength(p0, q0, p1, q1);
+            if (reuseUniformPrediction && !previousMacroblock && UniformPrediction(previous, vertical))
+            {
+                return 0;
+            }
+            H264PictureIdentity? p0 = Resolve(H264ReferenceList.L0, previous, true, vertical, previousMacroblock);
+            H264PictureIdentity? q0 = Resolve(H264ReferenceList.L0, current, false, vertical, previousMacroblock);
+            H264PictureIdentity? p1 = picture.HasBidirectionalMotion
+                ? Resolve(H264ReferenceList.L1, previous, true, vertical, previousMacroblock) : null;
+            H264PictureIdentity? q1 = picture.HasBidirectionalMotion
+                ? Resolve(H264ReferenceList.L1, current, false, vertical, previousMacroblock) : null;
+            if ((p0 is null && p1 is null) || (q0 is null && q1 is null))
+            {
+                throw new InvalidDataException("The H.264 inter edge has no prediction reference.");
+            }
+            if (ReferenceEquals(p0, q0) && ReferenceEquals(p1, q1)
+                && (p0 is null || Near(motionXL0, motionYL0, motionXL0, motionYL0, previous, current))
+                && (p1 is null || Near(motionXL1, motionYL1, motionXL1, motionYL1, previous, current)))
+            {
+                return 0;
+            }
+            return ReferenceEquals(p0, q1) && ReferenceEquals(p1, q0)
+                && (p0 is null || Near(motionXL0, motionYL0, motionXL1, motionYL1, previous, current))
+                && (p1 is null || Near(motionXL1, motionYL1, motionXL0, motionYL0, previous, current)) ? 0 : 1;
         }
+
+        private static bool Near(ReadOnlySpan<int> previousX, ReadOnlySpan<int> previousY,
+            ReadOnlySpan<int> currentX, ReadOnlySpan<int> currentY, int previous, int current) =>
+            Math.Abs((long)previousX[previous] - currentX[current]) < 4
+            && Math.Abs((long)previousY[previous] - currentY[current]) < 4;
 
         private readonly bool HasResidual(int x, int y, int position, int macroblock)
         {
@@ -88,25 +114,19 @@ namespace Mediana.Codecs.H264
             return counts[first] != 0 || counts[first + 1] != 0 || counts[first + stride] != 0 || counts[first + stride + 1] != 0;
         }
 
-        private (H264PictureIdentity? Picture, int X, int Y) Resolve(H264ReferenceList list, int index,
+        private H264PictureIdentity? Resolve(H264ReferenceList list, int index,
             bool previous, bool vertical, bool macroblockEdge)
         {
             ReadOnlySpan<byte> indices;
-            ReadOnlySpan<int> motionX;
-            ReadOnlySpan<int> motionY;
             IReadOnlyList<H264ReferencePicture?>? references;
             switch (list)
             {
                 case H264ReferenceList.L0:
                     indices = indicesL0;
-                    motionX = motionXL0;
-                    motionY = motionYL0;
                     references = referencesL0;
                     break;
                 case H264ReferenceList.L1:
                     indices = indicesL1;
-                    motionX = motionXL1;
-                    motionY = motionYL1;
                     references = referencesL1;
                     break;
                 default:
@@ -115,7 +135,7 @@ namespace Mediana.Codecs.H264
             int referenceIndex = indices[index];
             if (referenceIndex == byte.MaxValue)
             {
-                return (null, 0, 0);
+                return null;
             }
             H264PictureIdentity identity;
             if (references is null)
@@ -144,7 +164,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("The H.264 edge uses an unavailable reference picture.");
             }
-            return (identity, motionX[index], motionY[index]);
+            return identity;
         }
     }
 }

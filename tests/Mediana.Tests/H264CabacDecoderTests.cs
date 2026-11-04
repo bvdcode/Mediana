@@ -11,6 +11,10 @@ namespace Mediana.Tests
         public void MixedBinsMatchTheExactIntervalWriter() => H264CabacTestInput.VerifyMixedBins();
 
         [Fact]
+        public void EveryOffsetAtRepresentativeRangesMatchesNormativeDecisionTables() =>
+            Assert.Equal(245504, H264CabacDecisionTestInput.Verify());
+
+        [Fact]
         public void MostProbableDecisionAdvancesStateWithoutRenormalizing()
         {
             H264BitReader reader = new([0, 0]);

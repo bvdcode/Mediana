@@ -66,20 +66,11 @@ namespace Mediana.Codecs.H264
             bool vertical, ref H264DeblockingContext context,
             scoped Span<byte> strengths)
         {
-            strengths.Clear();
             int edgeStep = picture.Transforms8x8[address] == 0 ? 4 : 8;
             int firstEdge = (vertical ? x == 0 : y == 0) ||
                 (header.DeblockingIdc == 2 && address - (vertical ? 1 : header.Sequence.WidthInMbs) < header.FirstMacroblock)
                 ? edgeStep : 0;
-            for (int edge = firstEdge; edge < 16; edge += edgeStep)
-            {
-                for (int segment = 0; segment < 4; segment++)
-                {
-                    int lumaX = x + (vertical ? edge : segment * 4);
-                    int lumaY = y + (vertical ? segment * 4 : edge);
-                    strengths[edge + segment] = (byte)context.Strength(lumaX, lumaY, vertical, edge == 0);
-                }
-            }
+            context.FillStrengths(x, y, vertical, firstEdge, edgeStep, strengths);
         }
 
         private static void ApplyEdges(H264Picture picture, H264SliceHeader header, int plane,

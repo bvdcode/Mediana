@@ -6,15 +6,29 @@ namespace Mediana.Codecs.H264
     internal class H264Vlc
     {
         private readonly int[] branches;
-        private readonly Dictionary<int, (ulong Bits, int Length)> codes = [];
+        private readonly (ulong Bits, int Length)[] codes;
 
         public H264Vlc(string[] codes, int[]? symbols = null)
         {
+            int maximumSymbol = -1;
+            for (int index = 0; index < codes.Length; index++)
+            {
+                int symbol = symbols?[index] ?? index;
+                ArgumentOutOfRangeException.ThrowIfNegative(symbol);
+                maximumSymbol = Math.Max(maximumSymbol, symbol);
+            }
+            this.codes = new (ulong Bits, int Length)[checked(maximumSymbol + 1)];
             List<int> nodes = [0, 0];
             for (int index = 0; index < codes.Length; index++)
             {
                 string code = codes[index];
-                this.codes.Add(symbols?[index] ?? index, (Convert.ToUInt64(code, 2), code.Length));
+                int symbol = symbols?[index] ?? index;
+                (ulong Bits, int Length) entry = (Convert.ToUInt64(code, 2), code.Length);
+                if (this.codes[symbol].Length != 0)
+                {
+                    throw new ArgumentException("The H.264 VLC table contains a duplicate symbol.", nameof(symbols));
+                }
+                this.codes[symbol] = entry;
                 int node = 0;
                 for (int bit = 0; bit < code.Length; bit++)
                 {
@@ -66,10 +80,11 @@ namespace Mediana.Codecs.H264
 
         public void Write(H264BitWriter bits, int symbol)
         {
-            if (!codes.TryGetValue(symbol, out (ulong Bits, int Length) code))
+            if ((uint)symbol >= (uint)codes.Length || codes[symbol].Length == 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(symbol));
             }
+            (ulong Bits, int Length) code = codes[symbol];
             bits.WriteBits(code.Bits, code.Length);
         }
     }

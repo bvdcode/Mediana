@@ -8,5 +8,9 @@ namespace Mediana.Tests
         [Fact]
         public void EmptyMacroblocksPreservePredictionModesCountsAndBitstreamAtEveryQuantizer() =>
             H264ZeroResidualTestInput.VerifyMacroblocks();
+
+        [Fact]
+        public void CodedRegionsPreserveScanOrderNeighborMetadataAndPixelsAtEveryQuantizer() =>
+            Assert.Equal(22464, H264ResidualRegionTestInput.Verify());
     }
 }

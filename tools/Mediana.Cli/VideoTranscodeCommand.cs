@@ -7,6 +7,7 @@ using Mediana.Execution;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
+using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.IO;
@@ -20,16 +21,19 @@ namespace Mediana.Cli
         private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, H264EncoderOptions options,
-            int? maximumWidth, int? maximumHeight, ILogger logger, CancellationToken cancellationToken)
+            int? maximumWidth, int? maximumHeight, bool videoOnly, ILogger logger, CancellationToken cancellationToken)
         {
             MediaEngine engine = ContainerEngineFactory.CreateBuilder(Mp4TimestampMode.LinearMovie)
                 .AddVideoDecoder(new H264DecoderFactory())
                 .AddVideoEncoder(new H264EncoderFactory(options))
                 .AddContainerWriter(new MpegTsWriterFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
-            await using VideoSession session = streamIndex is int index
-                ? await engine.OpenVideoAsync(source, index, cancellationToken: cancellationToken)
-                : await engine.OpenVideoAsync(source, cancellationToken: cancellationToken);
+            await using ContainerSession container = await engine.OpenContainerAsync(source, cancellationToken: cancellationToken);
+            if (!videoOnly && container.Streams.Any(stream => stream.Kind == MediaKind.Audio))
+            {
+                throw new NotSupportedException("The input contains audio. Combined video encoding and audio output is not supported by this command. Use --video-only to explicitly omit audio.");
+            }
+            await using VideoSession session = engine.OpenVideo(container, streamIndex, cancellationToken);
             if (session.Stream.DisplayMatrix != VideoDisplayMatrix.Identity)
             {
                 throw new NotSupportedException("Video encoding currently requires an identity display transform.");

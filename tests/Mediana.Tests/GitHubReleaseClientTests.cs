@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Net;
-using System.Text.Json.Nodes;
+using System.Text;
 using Mediana.Cli.Updates;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -18,9 +18,9 @@ namespace Mediana.Tests
         [InlineData((int)ReleasePlatform.WindowsX64, "Mediana-1.2.3-win-x64.exe")]
         [InlineData((int)ReleasePlatform.LinuxX64, "Mediana-1.2.3-linux-x64")]
         [InlineData((int)ReleasePlatform.MacOsArm64, "Mediana-1.2.3-osx-arm64")]
-        public async Task ExactPlatformExecutableIsDownloadedAndVerified(int platform, string expected)
+        public async Task ExactPlatformExecutableIsDownloadedAndVerifiedWithoutApiRequests(int platform, string expected)
         {
-            using UpdateHttpHandler handler = new(UpdateTestRelease.Metadata("1.2.3", Payload).ToJsonString(), Payload);
+            using UpdateHttpHandler handler = new(new UpdateTestRelease(Payload));
             using HttpClient http = new(handler);
             GitHubReleaseClient client = new(http, (ReleasePlatform)platform, Retry);
             GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
@@ -29,70 +29,92 @@ namespace Mediana.Tests
             Assert.Equal(new Version(1, 2, 3), release.Version);
             Assert.Equal($"https://github.com/bvdcode/Mediana/releases/download/v1.2.3/{expected}", release.DownloadUrl.AbsoluteUri);
             Assert.Equal(Payload, await File.ReadAllBytesAsync(destination));
-            Assert.Equal(2, handler.RequestCount);
+            Assert.Equal(4, handler.RequestCount);
         }
 
         [Theory]
-        [InlineData(null)]
-        [InlineData("sha512:abcd")]
+        [InlineData("")]
         [InlineData("sha256:1234")]
-        [InlineData("sha256:zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")]
-        public async Task MissingOrMalformedChecksumIsRejected(string? digest)
+        [InlineData("not a checksum")]
+        [InlineData("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz  Mediana-1.2.3-win-x64.exe")]
+        [InlineData("0000000000000000000000000000000000000000000000000000000000000000  Mediana-1.2.3-linux-x64")]
+        [InlineData("0000000000000000000000000000000000000000000000000000000000000000 *Mediana-1.2.3-win-x64.exe")]
+        public async Task MalformedOrWrongPlatformChecksumIsRejected(string checksum)
         {
-            JsonObject metadata = UpdateTestRelease.Metadata("1.2.3", Payload);
-            metadata["assets"]![0]!["digest"] = digest;
-            await AssertMetadataRejectedAsync(metadata);
-        }
-
-        [Theory]
-        [InlineData("v1.2.3-preview")]
-        [InlineData("v1.2.3.4")]
-        [InlineData("1.2.3")]
-        [InlineData("v1.2")]
-        public async Task UnsupportedReleaseTagIsRejected(string tag)
-        {
-            JsonObject metadata = UpdateTestRelease.Metadata("1.2.3", Payload);
-            metadata["tag_name"] = tag;
-            await AssertMetadataRejectedAsync(metadata);
-        }
-
-        [Theory]
-        [InlineData("draft")]
-        [InlineData("prerelease")]
-        public async Task UnpublishedOrPrereleaseBuildIsRejected(string property)
-        {
-            JsonObject metadata = UpdateTestRelease.Metadata("1.2.3", Payload);
-            metadata[property] = true;
-            await AssertMetadataRejectedAsync(metadata);
-        }
-
-        [Theory]
-        [InlineData("https://example.com/Mediana-1.2.3-win-x64.exe")]
-        [InlineData("http://github.com/bvdcode/Mediana/releases/download/v1.2.3/Mediana-1.2.3-win-x64.exe")]
-        [InlineData("https://github.com/another/Mediana/releases/download/v1.2.3/Mediana-1.2.3-win-x64.exe")]
-        public async Task ForeignDownloadUrlIsRejected(string url)
-        {
-            JsonObject metadata = UpdateTestRelease.Metadata("1.2.3", Payload);
-            metadata["assets"]![0]!["browser_download_url"] = url;
-            await AssertMetadataRejectedAsync(metadata);
+            await AssertMetadataRejectedAsync(new UpdateTestRelease(Payload) { ChecksumOverride = checksum });
         }
 
         [Fact]
-        public async Task MissingPlatformAssetDoesNotSelectAnotherPlatform()
+        public async Task OversizedChecksumIsRejectedWithoutReadingTheWholeBody()
         {
-            JsonObject metadata = UpdateTestRelease.Metadata("1.2.3", Payload);
-            metadata["assets"]!.AsArray().RemoveAt(0);
-            await AssertMetadataRejectedAsync(metadata);
+            byte[] payload = new byte[4096];
+            using FragmentedReadStream body = new(payload, maximumRead: 1);
+            using UpdateRetryHttpHandler handler = new((request, _) => request.RequestUri!.AbsolutePath.EndsWith(".sha256", StringComparison.Ordinal)
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) }
+                : UpdateRetryHttpHandler.Release(request, Payload));
+            using HttpClient http = new(handler);
+            GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, Retry);
+            await Assert.ThrowsAsync<InvalidDataException>(() => client.GetLatestAsync(CancellationToken.None));
+            Assert.Equal(2, handler.RequestCount);
+            Assert.InRange(body.AsyncReads, 1, 128);
+            Assert.Equal(0, body.SyncReads);
+            Assert.False(body.CanRead);
+        }
+
+        [Fact]
+        public async Task FragmentedChecksumIsReadToCompletionAndDisposed()
+        {
+            using FragmentedReadStream body = new(Encoding.ASCII.GetBytes(new string('0', 64) + "  Mediana-1.2.3-win-x64.exe\r\n"), maximumRead: 1);
+            using UpdateRetryHttpHandler handler = new((request, _) => request.RequestUri!.AbsolutePath.EndsWith(".sha256", StringComparison.Ordinal)
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StreamContent(body) }
+                : UpdateRetryHttpHandler.Release(request, Payload));
+            using HttpClient http = new(handler);
+            GitHubRelease release = await new GitHubReleaseClient(http, ReleasePlatform.WindowsX64, Retry).GetLatestAsync(CancellationToken.None);
+            Assert.Equal(new byte[32], release.Sha256);
+            Assert.Equal(3, handler.RequestCount);
+            Assert.Equal(0, body.SyncReads);
+            Assert.False(body.CanRead);
         }
 
         [Theory]
-        [InlineData(0)]
-        [InlineData(-1)]
-        public async Task InvalidSizeIsRejected(int size)
+        [InlineData("")]
+        [InlineData("\n")]
+        [InlineData("\r\n")]
+        public async Task PublishedChecksumLineEndingsAreAccepted(string ending)
         {
-            JsonObject metadata = UpdateTestRelease.Metadata("1.2.3", Payload);
-            metadata["assets"]![0]!["size"] = size;
-            await AssertMetadataRejectedAsync(metadata);
+            string name = ReleaseAssets.GetName(ReleasePlatform.WindowsX64, new Version(1, 2, 3));
+            UpdateTestRelease metadata = new(Payload) { ChecksumOverride = new string('0', 64) + "  " + name + ending };
+            using HttpClient http = new(new UpdateHttpHandler(metadata));
+            GitHubRelease release = await new GitHubReleaseClient(http, ReleasePlatform.WindowsX64, Retry).GetLatestAsync(CancellationToken.None);
+            Assert.Equal(new byte[32], release.Sha256);
+        }
+
+        [Theory]
+        [InlineData("https://github.com/bvdcode/Mediana/releases/tag/v1.2.3-preview")]
+        [InlineData("https://github.com/bvdcode/Mediana/releases/tag/v1.2.3.4")]
+        [InlineData("https://github.com/bvdcode/Mediana/releases/tag/1.2.3")]
+        [InlineData("https://github.com/bvdcode/Mediana/releases/tag/v1.2")]
+        [InlineData("https://github.com/bvdcode/Mediana/releases/tag/v01.2.3")]
+        [InlineData("https://github.com/bvdcode/Mediana/releases/tag/v1.2.3?other=4")]
+        [InlineData("https://github.com/bvdcode/Mediana/releases/tag/v1.2.3#other")]
+        [InlineData("https://github.com/bvdcode/Mediana/releases/latest")]
+        [InlineData("https://example.com/bvdcode/Mediana/releases/tag/v1.2.3")]
+        [InlineData("http://github.com/bvdcode/Mediana/releases/tag/v1.2.3")]
+        [InlineData("https://github.com/another/Mediana/releases/tag/v1.2.3")]
+        public async Task UnrecognizedReleaseRedirectIsRejectedBeforeRequestingAssets(string url)
+        {
+            using UpdateHttpHandler handler = new(new UpdateTestRelease(Payload) { ReleaseUri = new Uri(url) });
+            using HttpClient http = new(handler);
+            await Assert.ThrowsAsync<InvalidDataException>(() => new GitHubReleaseClient(http, ReleasePlatform.WindowsX64, Retry).GetLatestAsync(CancellationToken.None));
+            Assert.Equal(1, handler.RequestCount);
+        }
+
+        [Theory]
+        [InlineData(0L)]
+        [InlineData(null)]
+        public async Task InvalidOrMissingSizeIsRejected(long? size)
+        {
+            await AssertMetadataRejectedAsync(new UpdateTestRelease(Payload) { Size = size });
         }
 
         [Theory]
@@ -100,18 +122,31 @@ namespace Mediana.Tests
         [InlineData(5)]
         public async Task IncorrectDownloadLengthIsRejected(int size)
         {
-            JsonObject metadata = UpdateTestRelease.Metadata("1.2.3", Payload);
-            metadata["assets"]![0]!["size"] = size;
-            using HttpClient http = new(new UpdateHttpHandler(metadata.ToJsonString(), Payload));
+            using HttpClient http = new(new UpdateHttpHandler(new UpdateTestRelease(Payload) { Size = size }));
             GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, Retry);
             GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
             await Assert.ThrowsAsync<InvalidDataException>(() => client.DownloadAsync(release, Path.Combine(directory, "download"), CancellationToken.None));
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public async Task MissingReleaseOrPlatformAssetIsReportedWithoutSelectingAnotherAsset(int failedRequest)
+        {
+            using UpdateRetryHttpHandler handler = new((request, attempt) => attempt == failedRequest
+                ? new HttpResponseMessage(HttpStatusCode.NotFound)
+                : UpdateRetryHttpHandler.Release(request, Payload));
+            using HttpClient http = new(handler);
+            HttpRequestException error = await Assert.ThrowsAsync<HttpRequestException>(() => new GitHubReleaseClient(http, ReleasePlatform.WindowsX64, Retry).GetLatestAsync(CancellationToken.None));
+            Assert.Equal(HttpStatusCode.NotFound, error.StatusCode);
+            Assert.Equal(failedRequest, handler.RequestCount);
+        }
+
         [Fact]
         public async Task HttpFailureIsReported()
         {
-            using HttpClient http = new(new UpdateHttpHandler("{}", [], status: HttpStatusCode.Forbidden));
+            using HttpClient http = new(new UpdateHttpHandler(new UpdateTestRelease([]), status: HttpStatusCode.Forbidden));
             GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, Retry);
             await Assert.ThrowsAsync<HttpRequestException>(() => client.GetLatestAsync(CancellationToken.None));
         }
@@ -121,18 +156,18 @@ namespace Mediana.Tests
         {
             string destination = Path.Combine(directory, "existing");
             await File.WriteAllBytesAsync(destination, Payload);
-            using UpdateHttpHandler handler = new(UpdateTestRelease.Metadata("1.2.3", Payload).ToJsonString(), Payload);
+            using UpdateHttpHandler handler = new(new UpdateTestRelease(Payload));
             using HttpClient http = new(handler);
             GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, Retry);
             GitHubRelease release = await client.GetLatestAsync(CancellationToken.None);
             await Assert.ThrowsAsync<IOException>(() => client.DownloadAsync(release, destination, CancellationToken.None));
             Assert.Equal(Payload, await File.ReadAllBytesAsync(destination));
-            Assert.Equal(1, handler.RequestCount);
+            Assert.Equal(3, handler.RequestCount);
         }
 
-        private static async Task AssertMetadataRejectedAsync(JsonObject metadata)
+        private static async Task AssertMetadataRejectedAsync(UpdateTestRelease metadata)
         {
-            using HttpClient http = new(new UpdateHttpHandler(metadata.ToJsonString(), Payload));
+            using HttpClient http = new(new UpdateHttpHandler(metadata));
             GitHubReleaseClient client = new(http, ReleasePlatform.WindowsX64, Retry);
             await Assert.ThrowsAsync<InvalidDataException>(() => client.GetLatestAsync(CancellationToken.None));
         }

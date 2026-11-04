@@ -55,7 +55,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
-| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants with copied AAC/MP3 or encoded AAC and measured playlists |
+| `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants, continuous AAC/MP3 audio playlists and measured transport output |
 | `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |
 | `Mediana` | Explicit input/output registration, container detection and individual or combined A/V sessions |
 | `Mediana.Cli` | Command-line media inspection, conversions, previews and exports |
@@ -213,9 +213,11 @@ Layer III files. MP4-to-HLS copies the supported AVC/AAC/MP3 tracks without re-e
 supports WAVE/AIFF PCM, FLAC, MP3 and the supported AAC-LC subset in MP4/M4A. It writes raw,
 native-endian interleaved samples without a WAVE header and prints the sample
 format, channel layout and sample rate. Video previews require the supported
-H.264 subset described above. An explicit `--video-codec H264 --video-only` selects
-fixed-QP I/P video encoding to TS. `--audio-codec Aac` selects audio-only AAC-LC
-encoding to TS; see [audio encoding contracts and limits](docs/aac-encoding.md).
+H.264 subset described above. `--video-codec H264` selects fixed-QP I/P video
+encoding to TS. Inputs without audio need no audio-selection option. If audio is
+present, this command requires `--video-only` to explicitly omit it; combined video
+encoding and audio output is available through `hls encode`. `--audio-codec Aac`
+selects audio-only AAC-LC encoding to TS; see [audio encoding contracts and limits](docs/aac-encoding.md).
 The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
 
@@ -1312,9 +1314,11 @@ transport/PES scratch storage and framed access units. CompleteAsync flushes
 without closing the destination. Any failed operation faults the writer and
 releases its buffers; unfinished or failed output must be discarded.
 
-For a program with exactly one AVC track, `BeginSegmentAsync(nextOutput)` flushes
-the previous borrowed stream and continues in a different writable stream.
-The next packet must be that track's IDR access unit. PAT/PMT begin the new file;
+For a program with one audio track or exactly one AVC track with optional audio,
+`BeginSegmentAsync(nextOutput)` flushes the previous borrowed stream and continues
+in a different writable stream. The next packet must belong to the program's
+clock track: the sole audio track, or the AVC track with an IDR access unit.
+PAT/PMT begin the new file;
 all PID counters, PCR state and timestamp offsets continue across the boundary.
 No stream is closed. A pending empty segment cannot be completed or skipped.
 Callers select boundaries and keep audio packets in global decode order.
@@ -1322,10 +1326,13 @@ Callers select boundaries and keep audio packets in global decode order.
 `CaptureSegmentState()` records the current configuration, limits, clocks and
 counters without I/O. After disposing the preceding writer, use
 `MpegTsWriter.ResumeSegment(output, state, allocator)` to write the next segment
-from that state. Its first packet must be the next AVC IDR. Snapshots are immutable,
+from that state. Its first packet follows the same clock-track and AVC IDR rules.
+Snapshots are immutable,
 retain no I/O resources or media buffers and can be reused for requests in any
 order. Given the same packets, resumed segments match continuous output byte for
 byte. A snapshot does not select packet ranges or prove decoder independence.
+Audio decoding can depend on preceding packets; see
+[audio transport segment contracts and verification](docs/audio-transport-segments.md).
 
 The writer uses the caller's timeline. The MP4 reader defaults to original media
 timestamps; select LinearMovie for the supported edit-list translation before
@@ -1649,6 +1656,7 @@ mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 -
 mediana hls encode input.mp4 output-av --audio-stream 1 --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-aac --audio-stream 1 --audio-codec Aac --audio-bit-rate 128000 --widths 1280 640
 mediana hls encode input.mp4 output-stereo --audio-stream 1 --audio-codec Aac --audio-channels 2 --widths 1280 640
+mediana hls encode input.mp4 output-separate --audio-stream 1 --audio-codec Aac --separate-audio --widths 1280 640
 ```
 
 The command decodes supported MP4/MOV AVC video once and produces one smaller
@@ -1665,6 +1673,11 @@ settings share an encoder; distinct settings encode the same decoded PCM through
 independent AAC states. Rate and channel order are preserved unless an explicit
 downmix is selected. The command requires an identity display
 transform.
+
+`--separate-audio` writes audio-only playlists and video-only variants. Equal audio
+settings share one continuous audio rendition, referenced by each matching video
+variant. Distinct AAC bitrates have separate audio groups. Completed media
+playlists use the same measured target duration and corresponding bitrate window.
 
 Each variant contains IDR-aligned TS segments and a VOD
 media playlist. The master playlist records actual peak/average transport bitrates
@@ -1685,6 +1698,27 @@ The current mode uses I/P video with IDRs aligned to segment targets. Optional
 per-variant video packet rates use adaptive QP; otherwise QP is fixed. Full HRD
 conformance and perceptual AAC quality remain open.
 See [HLS encoding contracts and checks](docs/hls-encoding.md).
+
+## Preparing continuous audio HLS
+
+The library's `AudioHlsWriter` partitions one AAC-LC or MPEG-1/2 Layer III packet
+sequence into TS files and a VOD media playlist. Applications can copy audio or
+keep one AAC encoder running across all segments. Boundaries follow a fixed grid
+from the first coded PTS; final segment duration includes the complete coded tail.
+`HlsWriteOptions` supplies the target duration and output limits. Destination
+ownership and transport continuation use the same component as `AvcHlsWriter`.
+
+Independent decoding of complete playlists matches continuous reference PCM byte
+for byte, including a 12-second stereo AAC preparation from 5.1 input.
+`CreateRendition` supplies codec, channel and measured bitrate metadata for
+`HlsMasterPlaylist` audio groups. `PlaylistTargetDurationSeconds` selects a common
+advertised target for audio and video and their bandwidth measurements. A real
+[prepared presentation](docs/hls-prepared-presentation.md) passes complete
+master-playlist decoding with video requests in order 1, 0, 1. Chrome/hls.js
+completes playback and buffered seeks; exact VOD presentation boundaries and
+smooth rendering remain open.
+See [audio HLS contracts and checks](docs/audio-hls.md).
+See [audio group contracts and checks](docs/hls-audio-groups.md).
 
 ## Connecting modules
 

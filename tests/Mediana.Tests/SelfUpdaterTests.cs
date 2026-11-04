@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Text;
-using System.Text.Json.Nodes;
 using Mediana.Cli.Updates;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -27,7 +26,7 @@ namespace Mediana.Tests
             byte[] original = await File.ReadAllBytesAsync(installed);
             using UpdateHttpHandler handler = Handler(latestVersion, Executable(latestVersion));
             await UpdateAsync(handler, installed, checkOnly);
-            Assert.Equal(1, handler.RequestCount);
+            Assert.Equal(3, handler.RequestCount);
             Assert.Equal(original, await File.ReadAllBytesAsync(installed));
             Assert.Single(Directory.GetFiles(directory));
         }
@@ -96,10 +95,9 @@ namespace Mediana.Tests
             string installed = await CreateInstalledAsync();
             byte[] original = await File.ReadAllBytesAsync(installed);
             byte[] payload = Executable("1.2.3");
-            JsonObject metadata = UpdateTestRelease.Metadata("1.2.3", payload);
-            int assetIndex = OperatingSystem.IsMacOS() ? 2 : 1;
-            metadata["assets"]![assetIndex]!["digest"] = "sha256:" + new string('0', 64);
-            using UpdateHttpHandler handler = new(metadata.ToJsonString(), payload);
+            string name = ReleaseAssets.GetName(ReleaseAssets.CurrentPlatform, new Version(1, 2, 3));
+            UpdateTestRelease release = new(payload) { ChecksumOverride = new string('0', 64) + "  " + name };
+            using UpdateHttpHandler handler = new(release);
             await Assert.ThrowsAsync<InvalidDataException>(() => UpdateAsync(handler, installed));
             Assert.Equal(original, await File.ReadAllBytesAsync(installed));
             Assert.Single(Directory.GetFiles(directory));
@@ -116,7 +114,7 @@ namespace Mediana.Tests
             byte[] original = await File.ReadAllBytesAsync(installed);
             byte[] payload = Executable("1.2.3");
             using CancellationTokenSource source = new();
-            using UpdateHttpHandler handler = new(UpdateTestRelease.Metadata("1.2.3", payload).ToJsonString(), payload, source.Cancel);
+            using UpdateHttpHandler handler = new(new UpdateTestRelease(payload), source.Cancel);
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => UpdateAsync(handler, installed, token: source.Token));
             Assert.Equal(original, await File.ReadAllBytesAsync(installed));
             Assert.Single(Directory.GetFiles(directory));
@@ -140,7 +138,7 @@ namespace Mediana.Tests
 
         private static UpdateHttpHandler Handler(string version, byte[] payload)
         {
-            return new UpdateHttpHandler(UpdateTestRelease.Metadata(version, payload).ToJsonString(), payload);
+            return new UpdateHttpHandler(new UpdateTestRelease(payload, version));
         }
 
         private static async Task UpdateAsync(UpdateHttpHandler handler, string installed, bool checkOnly = false, CancellationToken token = default)

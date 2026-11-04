@@ -28,7 +28,6 @@ namespace Mediana.Cli
 
             using HttpClient httpClient = new();
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mediana-Updater");
-            httpClient.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
             using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromMinutes(15));
             SelfUpdater updater = new(new GitHubReleaseClient(httpClient, ReleaseAssets.CurrentPlatform, new UpdateRetryPolicy(logger)),

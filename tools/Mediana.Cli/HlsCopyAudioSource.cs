@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Containers;
 using Mediana.Containers.Mp4;
 using Mediana.Core;
 using Mediana.Core.Memory;
@@ -55,7 +56,7 @@ namespace Mediana.Cli
             return packet;
         }
 
-        public override async ValueTask WriteBeforeAsync(MediaTimestamp? boundary, IReadOnlyList<HlsVideoRendition> renditions, CancellationToken token)
+        public override async ValueTask WriteBeforeAsync(MediaTimestamp? boundary, IReadOnlyList<IContainerWriter> destinations, CancellationToken token)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             while (true)
@@ -66,9 +67,9 @@ namespace Mediana.Cli
                 {
                     return;
                 }
-                foreach (HlsVideoRendition rendition in renditions)
+                foreach (IContainerWriter destination in destinations)
                 {
-                    await rendition.Writer.WritePacketAsync(pending, token);
+                    await destination.WritePacketAsync(pending, token);
                 }
                 pending.Dispose();
                 pending = null;

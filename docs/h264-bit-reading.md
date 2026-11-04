@@ -85,3 +85,28 @@ trailing/alignment/CABAC padding, long mixed VLC sequences, final-byte codes,
 invalid or truncated prefixes and repeated allocation-free decoding.
 Native H.264 kernel checks are grouped in a focused component within the
 existing source-size analyzer limit.
+
+## Byte-window zero-prefix control
+
+A separate arithmetic variant counts leading zeroes in the reader's existing
+byte with `BitOperations.LeadingZeroCount`, for both Exp-Golomb values and CAVLC
+level prefixes. The syntax follows H.264 clauses 9.1 and 9.2.2.1. It adds no
+lookahead or codebook tables. The variant passes 5,224 independent valid-prefix,
+Exp-Golomb, reader-copy, escaping and bit-position cases in managed and strict
+Native AOT execution.
+
+Complete native decoding of the same 1,441-picture input gives:
+
+| Observation | CPU seconds | Elapsed seconds | Peak RSS, KiB |
+| --- | ---: | ---: | ---: |
+| Existing reader, first | 30.396920 | 30.527095 | 68,796 |
+| Byte-window prefix, first | 31.199501 | 32.679014 | 61,240 |
+| Byte-window prefix, second | 31.124404 | 31.754400 | 60,836 |
+| Existing reader, second | 31.499818 | 33.963463 | 58,020 |
+
+Each output has the exact independent raw reference bytes, with EOF and zero
+owned media storage. CPU medians are 30.948369 seconds for the existing reader
+and 31.161953 for the variant, a 0.69% increase. Allocation traffic is essentially
+unchanged; the varying RSS observations do not establish a memory improvement.
+The variant is not adopted. This control establishes no new FFmpeg ratio or
+complete-film HLS result.

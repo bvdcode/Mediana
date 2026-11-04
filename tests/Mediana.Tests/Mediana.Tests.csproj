@@ -1,9 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/HlsSegmentReplayTestInput.cs" Link="HlsSegmentReplayTestInput.cs" />
+    <Compile Include="../Shared/WritableMediaSpanTestInput.cs" Link="WritableMediaSpanTestInput.cs" />
     <Compile Include="../Shared/AacSeekTestInput.cs" Link="AacSeekTestInput.cs" />
     <Compile Include="../Shared/H264PictureReuseTestInput.cs" Link="H264PictureReuseTestInput.cs" />
     <Compile Include="../Shared/Mp4RecoveryTestInput.cs" Link="Mp4RecoveryTestInput.cs" />
@@ -64,6 +67,10 @@
     <Compile Include="../Shared/EbmlValueTestInput.cs" Link="EbmlValueTestInput.cs" />
     <Compile Include="../Shared/H264DcResidualTestInput.cs" Link="H264DcResidualTestInput.cs" />
     <Compile Include="../Shared/H264ZeroResidualTestInput.cs" Link="H264ZeroResidualTestInput.cs" />
+    <Compile Include="../Shared/H264ResidualRegionReader.cs" Link="H264ResidualRegionReader.cs" />
+    <Compile Include="../Shared/H264ResidualRegionTestInput.cs" Link="H264ResidualRegionTestInput.cs" />
+    <Compile Include="../Shared/H264CabacDecisionTestInput.cs" Link="H264CabacDecisionTestInput.cs" />
+    <Compile Include="../Shared/H264CabacDecisionTestInput.Tables.cs" Link="H264CabacDecisionTestInput.Tables.cs" />
     <Compile Include="../Shared/CodecProfileTestInput.cs" Link="CodecProfileTestInput.cs" />
     <Compile Include="../Shared/FontGlyphTestInput.cs" Link="FontGlyphTestInput.cs" />
     <Compile Include="../Shared/PngCoverTestInput.cs" Link="PngCoverTestInput.cs" />
@@ -78,9 +85,11 @@
     <Compile Include="../Shared/H264BitWritingTestInput.cs" Link="H264BitWritingTestInput.cs" />
     <Compile Include="../Shared/H264BitReadingTestInput.cs" Link="H264BitReadingTestInput.cs" />
     <Compile Include="../Shared/H264VlcTestInput.cs" Link="H264VlcTestInput.cs" />
+    <Compile Include="../Shared/H264VlcWritingTestInput.cs" Link="H264VlcWritingTestInput.cs" />
     <Compile Include="../Shared/H264CavlcLevelTestInput.cs" Link="H264CavlcLevelTestInput.cs" />
     <Compile Include="../Shared/H264SourceBlockTestInput.cs" Link="H264SourceBlockTestInput.cs" />
     <Compile Include="../Shared/H264LumaNeighborhoodTestInput.cs" Link="H264LumaNeighborhoodTestInput.cs" />
+    <Compile Include="../Shared/H264ShortInterpolationTestInput.cs" Link="H264ShortInterpolationTestInput.cs" />
     <Compile Include="../Shared/H264VectorKernelTestInput.cs" Link="H264VectorKernelTestInput.cs" />
     <Compile Include="../Shared/H264MotionSearchTestInput.cs" Link="H264MotionSearchTestInput.cs" />
     <None Include="Data/H264/motion-*.yuv;Data/H264/MOTION-SEARCH.json" CopyToOutputDirectory="PreserveNewest" />
@@ -236,13 +245,25 @@
     <None Include="Data/Resize/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalDeblockingTestInput.cs" Link="H264BidirectionalDeblockingTestInput.cs" />
+    <Compile Include="../Shared/H264DeblockingMotionTestInput.cs" Link="H264DeblockingMotionTestInput.cs" />
+    <Compile Include="../Shared/H264DeblockingMotionTestInput.Batches.cs" Link="H264DeblockingMotionTestInput.Batches.cs" />
+    <Compile Include="../Shared/H264MotionLookupTestInput.cs" Link="H264MotionLookupTestInput.cs" />
+    <Compile Include="../Shared/H264UniformContextTestInput.cs" Link="H264UniformContextTestInput.cs" />
+    <Compile Include="../Shared/H264UniformRangeTestInput.cs" Link="H264UniformRangeTestInput.cs" />
+    <Compile Include="../Shared/H264UniformPredictionTestInput.cs" Link="H264UniformPredictionTestInput.cs" />
     <Compile Include="../Shared/H264SliceDeblockingTestInput.cs" Link="H264SliceDeblockingTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalPictureTestInput.cs" Link="H264BidirectionalPictureTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalFixture.cs" Link="H264BidirectionalFixture.cs" />
     <Compile Include="../Shared/H264BiPredictionTestInput.cs" Link="H264BiPredictionTestInput.cs" />
+    <Compile Include="../Shared/H264BiPredictionVectorTestInput.cs" Link="H264BiPredictionVectorTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalPredictionTestInput.cs" Link="H264BidirectionalPredictionTestInput.cs" />
     <Compile Include="../Shared/MpegTsTestInput.cs" Link="MpegTsTestInput.cs" />
     <Compile Include="../Shared/MpegTsSegmentTestInput.cs" Link="MpegTsSegmentTestInput.cs" />
+    <Compile Include="../Shared/MpegTsAudioSegmentTestInput.cs" Link="MpegTsAudioSegmentTestInput.cs" />
+    <Compile Include="../Shared/AudioHlsTestInput.cs" Link="AudioHlsTestInput.cs" />
+    <Compile Include="../Shared/HlsAudioGroupTestInput.cs" Link="HlsAudioGroupTestInput.cs" />
+    <Compile Include="../Shared/HlsTargetDurationTestInput.cs" Link="HlsTargetDurationTestInput.cs" />
+    <Compile Include="../Shared/HlsCompletedSegmentsTestInput.cs" Link="HlsCompletedSegmentsTestInput.cs" />
     <Compile Include="../Shared/Mp4TimelineTestInput.cs" Link="Mp4TimelineTestInput.cs" />
     <Compile Include="../Shared/Mp4SampleAccessTestInput.cs" Link="Mp4SampleAccessTestInput.cs" />
     <Compile Include="../Shared/HlsPlanTestInput.cs" Link="HlsPlanTestInput.cs" />
@@ -254,6 +275,8 @@
     <Compile Include="../Shared/H264CabacTestInput.cs" Link="H264CabacTestInput.cs" />
     <Compile Include="../Shared/H264CabacPredictionTestInput.cs" Link="H264CabacPredictionTestInput.cs" />
     <Compile Include="../Shared/H264CabacBidirectionalTestInput.cs" Link="H264CabacBidirectionalTestInput.cs" />
+    <Compile Include="../Shared/H264CabacPredictionWindowTestInput.cs" Link="H264CabacPredictionWindowTestInput.cs" />
+    <Compile Include="../Shared/AllocationMeasurementTestInput.cs" Link="AllocationMeasurementTestInput.cs" />
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
     <Compile Include="../Shared/SdrPreviewTestInput.cs" Link="SdrPreviewTestInput.cs" />

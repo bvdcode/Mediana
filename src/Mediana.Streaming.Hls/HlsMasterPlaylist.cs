@@ -7,35 +7,50 @@ using System.Text;
 namespace Mediana.Streaming.Hls
 {
     /// <summary>Formats AVC VOD variants with optional AAC-LC or MPEG-1/2 Layer III audio.
-    /// The caller must provide matching timelines and measured metadata.</summary>
-    public static class HlsMasterPlaylist
+    /// External audio groups are combined with video-only playlists. The caller must provide matching timelines,
+    /// common target durations and measured metadata; this formatter does not read media playlists.</summary>
+    public static partial class HlsMasterPlaylist
     {
-        public static string Create(IReadOnlyList<HlsVariant> variants, int maximumUriCharacters = 4096)
+        public static string Create(IReadOnlyList<HlsVariant> variants, int maximumUriCharacters = 4096) =>
+            Create(variants, [], maximumUriCharacters);
+
+        public static string Create(IReadOnlyList<HlsVariant> variants, IReadOnlyList<HlsAudioRendition> audio,
+            int maximumUriCharacters = 4096)
         {
             ArgumentNullException.ThrowIfNull(variants);
+            ArgumentNullException.ThrowIfNull(audio);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumUriCharacters);
             if (variants.Count == 0)
             {
                 throw new ArgumentException("An HLS master playlist requires at least one variant.", nameof(variants));
             }
-            HashSet<string> uris = new(StringComparer.Ordinal);
+            Dictionary<string, List<HlsAudioRendition>> groups = ValidateAudio(audio, maximumUriCharacters);
+            HashSet<(string Uri, string? AudioGroup)> references = [];
             StringBuilder text = new("#EXTM3U\n#EXT-X-VERSION:3\n");
+            AppendAudio(text, audio);
             foreach (HlsVariant variant in variants)
             {
                 HlsUri.Validate(variant.PlaylistUri, maximumUriCharacters);
-                if (!uris.Add(variant.PlaylistUri) || variant.Bandwidth <= 0 || variant.AverageBandwidth <= 0 ||
+                if (!references.Add((variant.PlaylistUri, variant.AudioGroupId)) || variant.Bandwidth <= 0 || variant.AverageBandwidth <= 0 ||
                     !ValidCodecs(variant.Codecs) ||
                     (variant.DisplayWidth is null) != (variant.DisplayHeight is null) || variant.DisplayWidth is <= 0 || variant.DisplayHeight is <= 0)
                 {
-                    throw new ArgumentException("HLS variants require unique URIs, positive bitrates, an AVC codec identifier and optional positive display dimensions.", nameof(variants));
+                    throw new ArgumentException("HLS variants require unique playlist/audio-group pairs, positive bitrates, an AVC codec identifier and optional positive display dimensions.", nameof(variants));
                 }
+                HlsVariant resolved = ResolveAudio(variant, groups);
                 text.Append("#EXT-X-STREAM-INF:BANDWIDTH=");
-                text.Append(variant.Bandwidth.ToString(CultureInfo.InvariantCulture));
+                text.Append(resolved.Bandwidth.ToString(CultureInfo.InvariantCulture));
                 text.Append(",AVERAGE-BANDWIDTH=");
-                text.Append(variant.AverageBandwidth.ToString(CultureInfo.InvariantCulture));
+                text.Append(resolved.AverageBandwidth.ToString(CultureInfo.InvariantCulture));
                 text.Append(",CODECS=\"");
-                text.Append(variant.Codecs);
+                text.Append(resolved.Codecs);
                 text.Append('"');
+                if (variant.AudioGroupId is string groupId)
+                {
+                    text.Append(",AUDIO=\"");
+                    text.Append(groupId);
+                    text.Append('"');
+                }
                 if (variant.DisplayWidth is int width && variant.DisplayHeight is int height)
                 {
                     text.Append(",RESOLUTION=");

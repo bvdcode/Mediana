@@ -110,6 +110,7 @@ object types from the [MP4 Registration Authority](https://mp4ra.org/registered-
 mediana hls encode input.mp4 output-hls --video-only --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-av --audio-stream 1 --segment-ms 6000 --qp 26 --widths 1280 640
 mediana hls encode input.mp4 output-aac --audio-stream 1 --audio-codec Aac --audio-bit-rate 128000 --widths 1280 640
+mediana hls encode input.mp4 output-separate --audio-stream 1 --audio-codec Aac --separate-audio --widths 1280 640
 ```
 
 The CLI decodes supported MP4/MOV AVC input once. Each frame passes sequentially to
@@ -151,7 +152,33 @@ All consume the same decoded, edited and converted PCM frames. For example:
 mediana hls encode input.mp4 output-audio-rates --audio-stream 1 --audio-codec Aac --audio-bit-rates 96000,128000,192000 --widths 1920 1280 854
 ```
 
-It is a variable bitrate ceiling excluding transport overhead, rather than a target
+`--separate-audio` writes video-only variants and audio-only media playlists.
+Copied audio is written once in `audio-0`. With AAC encoding, each distinct audio
+setting has one `audio-<profile-index>` directory and one continuous encoder;
+variants with equal settings reference the same audio group. Per-width bitrate
+ordering still applies. For example, `96000,128000,96000` associates the first and
+third video variants with `audio-0`, and the second with `audio-1`.
+
+After every writer completes, the command chooses a common target duration from
+the largest measured segment-duration ceiling across video and audio. The same
+target is used for all media playlists and their peak-bandwidth measurements.
+Only the video playlists declare independent segments. Audio access units retain
+their full codec duration and original movie timing; separate playlists do not
+remove AAC priming or padding. All files are published together after completion.
+The [audio group contracts](hls-audio-groups.md) describe group metadata and
+the remaining presentation-range work.
+
+Linux x64 Native AOT checks cover copied AAC and MPEG-1/2 Layer III, distinct and
+equal AAC ceilings, repeated per-width settings, and a complete 60.041667-second
+1280×720 movie with 5.1 AAC downmixed to stereo. The movie produces 1,441 pictures
+per video variant and 2,814 AAC packets per audio profile. Independent decoding
+through all seven generated masters matches the previous continuous output;
+packet payloads, PTS/DTS, every segment duration and measured master bitrates are
+checked. Ninety files from the existing muxed and video-only modes remain
+byte-identical. These checks do not establish gapless AAC presentation boundaries
+or comparative encoding performance.
+
+The AAC bit setting is a variable bitrate ceiling excluding transport overhead, rather than a target
 file size. The source's explicit edit removes its declared codec delay; newly
 encoded AAC introduces its own 1024-sample priming. That packet starts before the
 selected PCM origin. Final drain emits the overlap tail and at most 1023 padding

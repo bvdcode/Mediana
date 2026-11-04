@@ -74,9 +74,9 @@ namespace Mediana.Cli
             }
             if (encode || videoOnly || qp is not null || width is not null || height is not null || videoBitRate is not null || videoBufferMs is not null)
             {
-                if (!encode || !videoOnly || !Path.GetExtension(output).Equals(".ts", StringComparison.OrdinalIgnoreCase))
+                if (!encode || !Path.GetExtension(output).Equals(".ts", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new NotSupportedException("H264 encoding requires .ts output, --video-codec H264 and --video-only; encoding options do not apply to stream copy or other outputs.");
+                    throw new NotSupportedException("H264 encoding requires .ts output and --video-codec H264; encoding options do not apply to stream copy or other outputs.");
                 }
                 if (qp is < 0 or > 51)
                 {
@@ -92,7 +92,7 @@ namespace Mediana.Cli
                 }
                 H264EncoderOptions options = new() { Quantizer = qp ?? 26, RateControl = VideoRateOptions.Create(videoBitRate, videoBufferMs) };
                 return ExecuteFileAsync(input, output, outputFile => VideoTranscodeCommand.RunAsync(input, outputFile, stream, options,
-                    width, height, logger, cancellationToken), cancellationToken);
+                    width, height, videoOnly, logger, cancellationToken), cancellationToken);
             }
             return ExecuteFileAsync(input, output, outputFile => Path.GetExtension(output).ToLowerInvariant() switch
             {

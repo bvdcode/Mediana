@@ -6,37 +6,48 @@ using Mediana.Formats;
 using Mediana.Core.Audio;
 
 using Mediana.Formats.Audio;
+using Mediana.Core.Timing;
 
 namespace Mediana.Streaming.Hls
 {
-    internal class HlsAudioTrack(EncodedStreamInfo stream)
+    internal class HlsAudioTrack
     {
-        public EncodedStreamInfo Stream { get; } = stream;
-        public string Codecs { get; } = (stream.Kind, stream.CodecId) switch
+        public HlsAudioTrack(EncodedStreamInfo stream)
         {
-            (MediaKind.Audio, AacConfiguration.CodecId) => AacCodecs(stream),
-            (MediaKind.Audio, Mp3FrameHeader.CodecId) => Mp3Codecs(stream),
-            _ => throw new NotSupportedException("AVC HLS audio requires AAC-LC or MPEG-1/2 Layer III.")
-        };
-
-        private static string AacCodecs(EncodedStreamInfo stream)
-        {
-            StreamFormats.Aac.Require(stream.Format);
-            _ = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out string? reason)
-                ?? throw new NotSupportedException(reason);
-            return "mp4a.40.2";
+            Stream = stream;
+            (Codecs, CodedDuration, Channels) = (stream.Kind, stream.CodecId) switch
+            {
+                (MediaKind.Audio, AacConfiguration.CodecId) => AacInfo(stream),
+                (MediaKind.Audio, Mp3FrameHeader.CodecId) => Mp3Info(stream),
+                _ => throw new NotSupportedException("HLS audio requires AAC-LC or MPEG-1/2 Layer III.")
+            };
         }
 
-        private static string Mp3Codecs(EncodedStreamInfo stream)
+        public EncodedStreamInfo Stream { get; }
+        public string Codecs { get; }
+        public MediaDuration CodedDuration { get; }
+        public int Channels { get; }
+
+        private static (string Codecs, MediaDuration Duration, int Channels) AacInfo(EncodedStreamInfo stream)
+        {
+            StreamFormats.Aac.Require(stream.Format);
+            AacConfiguration configuration = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out string? reason)
+                ?? throw new NotSupportedException(reason);
+            return ("mp4a.40.2", new(configuration.SamplesPerFrame, new(1, configuration.SampleRate)), configuration.ChannelCount);
+        }
+
+        private static (string Codecs, MediaDuration Duration, int Channels) Mp3Info(EncodedStreamInfo stream)
         {
             StreamFormats.Mp3.Require(stream.Format);
-            return Mp3FrameHeader.Read(stream.Configuration.Span).Version switch
+            Mp3FrameHeader header = Mp3FrameHeader.Read(stream.Configuration.Span);
+            string codecs = header.Version switch
             {
                 MpegAudioVersion.Mpeg1 => "mp4a.6B",
                 MpegAudioVersion.Mpeg2 => "mp4a.69",
                 MpegAudioVersion.Mpeg25 => throw new NotSupportedException("MPEG-2.5 Layer III is not supported in MPEG-TS."),
                 _ => throw new InvalidDataException("The MPEG audio version is invalid.")
             };
+            return (codecs, new(header.SamplesPerFrame, new(1, header.SampleRate)), header.ChannelCount);
         }
     }
 }

@@ -124,8 +124,10 @@ alone do not establish better complete-sequence coding efficiency.
 ## Vectorized neighborhood filtering
 
 The neighborhood constructor evaluates eight horizontal or vertical filter sums
-at once with BCL `Vector128` operations. Unrounded diagonal intermediates remain
-32-bit; first-pass sums fit signed 16-bit lanes (-2550 through 10710). The two
+at once with BCL `Vector128` operations. In that comparison, unrounded diagonal
+intermediates remain 32-bit; first-pass sums fit signed 16-bit lanes (-2550
+through 10710). Subsequent [compact scratch processing](h264-native-interpolation.md#compact-first-pass-storage)
+stores the first-pass sums in 16 bits and retains 32-bit second-pass arithmetic. The two
 remaining columns use the same scalar equations. Storage bounds, filter taps,
 clipping, candidate order and motion-vector tie handling remain unchanged.
 
@@ -198,6 +200,26 @@ The direction of the CPU difference reversed, and peak RSS was higher in both
 trial runs. These shared-host measurements do not establish a repeatable
 full-operation improvement. The general interpolation change was not adopted.
 
+### Fused quarter-sample averaging control
+
+A separate control at baseline `9cd82a0` combines half-sample filtering and
+integer/half-sample averaging in one pass. It preserves clipping before upward
+averaging under H.264 clause 8.4.2.2.1 and removes the second traversal of the
+output block. Bounded scratch, diagonal arithmetic and sample ownership remain
+the same. Independent scalar convolution agrees on all 7,392 blocks covering
+all sixteen phases, borders, unusual widths, tiling and output guards in managed,
+hardware-disabled and strict Native AOT execution. Repeated interpolation
+allocates no managed storage in these checks.
+
+Four complete 1,441-picture High/CABAC decodes run serially in
+current/candidate/candidate/current order on logical CPU 2 with one media thread
+and the ordinary GC policy. Every YUV byte, rational timestamp and duration is
+exact; EOF and released-storage checks pass. CPU medians are 19.486 and 19.441
+seconds, a 0.23% difference. Peak RSS medians are 61,614 and 66,754 KiB.
+This does not meet the predeclared minimum 5% CPU reduction, so the candidate is
+not adopted and no reverse-order, CAVLC or encoding extension is run. These
+observations establish neither a repeatable acceleration nor a memory gain.
+
 ## Native AOT stage observations
 
 An instrumented build of the retained implementation processed the same complete
@@ -218,3 +240,37 @@ film comparison available at that point used 9.02 times FFmpeg's CPU, with highe
 video error at slightly greater output size. The subsequent
 [full-film measurements](hls-hd-encoding.md) include later decoder and encoder
 changes; their ratio does not follow from these minute-long filter measurements.
+
+## Interior source-region control
+
+A separate calculation reads an interior luma interpolation region directly
+from the reference picture, retaining its row stride. Boundary regions and
+overlapping input/output spans retain the existing per-tile snapshot. Six-tap
+arithmetic, all sixteen fractional positions, clipping and rounding are unchanged.
+The calculation uses the complete source extent required by the four- and
+eight-sample vector loads, including the final row and column of filter taps.
+
+Independent scalar convolution checks cover 2,192 cases: interior thresholds,
+immediately adjacent boundaries, guarded exact spans, extreme coordinates,
+overlapping destinations and sequential snapshots across multiple tiles.
+They pass in managed, hardware-intrinsics-disabled and strict Native AOT
+execution, including zero managed allocations. All 725 managed H.264 tests also pass.
+
+Four complete Native AOT decodes run in current/candidate/candidate/current
+order on logical CPU 2, with one media thread, ordinary GC and default compiler
+settings. The 180.125-second input repeats the checked minute source three
+times with continuous timestamps. Each operation produces the same 4,323
+pictures and 5,976,115,200 raw bytes; all rational clocks, EOF and released
+media storage are checked.
+
+| Median measurement | Current | Source-region calculation |
+| --- | ---: | ---: |
+| Process CPU, s | 49.975 | 50.478 |
+| Elapsed, s | 66.445 | 96.020 |
+| Peak RSS, KiB | 73,566 | 73,856 |
+
+The observed CPU change is +1.01%, which does not meet the declared minimum
+5% reduction. The calculation is not adopted; no reverse-order, CAVLC or
+encoding extension is run. Host elapsed time varies substantially within the
+series. This establishes no acceleration or memory reduction and does not
+update the [external decoder comparison](h264-uniform-prediction.md).

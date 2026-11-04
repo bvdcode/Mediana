@@ -8,7 +8,8 @@ namespace Mediana.Containers.MpegTs
     public partial class MpegTsWriter
     {
         /// <summary>Flushes the previous destination and continues the same program in a borrowed writable stream.
-        /// Requires exactly one AVC track and a preceding packet. The next packet must be its IDR access unit.
+        /// Requires a preceding packet and either one audio track or exactly one AVC track with optional audio.
+        /// The next packet must belong to the clock track; AVC requires an IDR access unit.
         /// Preserves timestamps, continuity counters and clock state; emits PAT/PMT before the new segment's payload.</summary>
         public async ValueTask BeginSegmentAsync(Stream destination, CancellationToken cancellationToken = default)
         {
@@ -36,7 +37,7 @@ namespace Mediana.Containers.MpegTs
         }
 
         /// <summary>Captures the program state for a subsequent segment without performing I/O or retaining media buffers.
-        /// The snapshot can be reused after this writer is disposed. It does not establish an IDR boundary.</summary>
+        /// The snapshot can be reused after this writer is disposed. It does not establish an AVC IDR boundary.</summary>
         public MpegTsSegmentState CaptureSegmentState()
         {
             Enter();
@@ -56,7 +57,8 @@ namespace Mediana.Containers.MpegTs
         }
 
         /// <summary>Continues a captured program in a borrowed stream using the snapshot's configuration and write limits.
-        /// The first packet must be the configured AVC IDR access unit and follow the captured decode timeline.</summary>
+        /// The first packet must belong to the clock track and follow the captured decode timeline.
+        /// AVC requires an IDR access unit; audio retains the preceding segment's decoder history.</summary>
         public static MpegTsWriter ResumeSegment(Stream destination, MpegTsSegmentState state, MediaBufferAllocator allocator)
         {
             ArgumentNullException.ThrowIfNull(state);
@@ -77,9 +79,9 @@ namespace Mediana.Containers.MpegTs
 
         private void EnsureSegmentBoundary()
         {
-            if (!lastDecodeTime.HasValue || segmentPending || tracks.Count(track => track.Type == 0x1B) != 1)
+            if (!lastDecodeTime.HasValue || segmentPending || (tracks.Length != 1 && tracks.Count(track => track.Type == 0x1B) != 1))
             {
-                throw new InvalidOperationException("A segment boundary requires a nonempty program with exactly one AVC track.");
+                throw new InvalidOperationException("A segment boundary requires a nonempty program with one audio track or exactly one AVC track.");
             }
         }
     }

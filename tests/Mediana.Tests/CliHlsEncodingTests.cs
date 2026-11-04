@@ -42,7 +42,7 @@ namespace Mediana.Tests
         {
             ProgressTestContext logger = new();
             int code = await HlsEncodeCommand.RunAsync(Data("avc-multislice-cabac.mp4"), Path.Combine(directory, "hls"),
-                0, null, null, [], null, [96, 48], null, 26, 500, logger, CancellationToken.None);
+                0, null, null, [], null, [96, 48], null, 26, 500, false, TextWriter.Null, logger, CancellationToken.None);
             Assert.Equal(0, code);
             Assert.True(logger.Messages.Count >= 2);
             string completed = logger.Messages[^1];

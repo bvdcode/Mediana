@@ -11,6 +11,9 @@ namespace Mediana.Tests
         [Fact]
         public void AverageExplicitPlanesAndImplicitSampleVectorsMatch() => H264BiPredictionTestInput.Verify();
 
+        [Fact]
+        public void VectorPredictionsMatchIndependentSamplesAndStorageContracts() => H264BiPredictionVectorTestInput.Verify();
+
         [Theory]
         [InlineData(0, 6, 2, 0, 43, 21)]
         [InlineData(6, 0, 4, 0, 43, 21)]

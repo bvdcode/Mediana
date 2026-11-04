@@ -11,6 +11,9 @@ namespace Mediana.Tests
         [Fact]
         public void ReferenceIdentityListSwapsAndMotionThresholdsMatchBoundaryVectors() => H264BidirectionalDeblockingTestInput.Verify();
 
+        [Fact]
+        public void PhysicalReferencesAndMotionMatchIndependentEdgeMatrix() => H264DeblockingMotionTestInput.Verify();
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]

@@ -12,16 +12,18 @@ namespace Mediana.Tests
 {
     public class MpegTsSegmentStateTests
     {
-        [Fact]
-        public async Task SnapshotOutlivesOriginalReaderWriterSourceAndAllocator()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task SnapshotOutlivesOriginalReaderWriterSourceAndAllocator(bool audio)
         {
             MediaBufferAllocator firstAllocator = new(1024 * 1024);
             MpegTsSegmentState state;
             using (MemoryStream output = new())
             await using (RandomAccessStreamByteSource source = new(File.OpenRead(Input())))
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, firstAllocator))
-            await using (MpegTsWriter writer = MpegTsWriter.Create(output, reader.Streams, firstAllocator))
-            using (MediaPacket packet = await reader.ReadPacketAtAsync(0, 0))
+            await using (MpegTsWriter writer = MpegTsWriter.Create(output, audio ? [reader.Streams[1]] : reader.Streams, firstAllocator))
+            using (MediaPacket packet = await reader.ReadPacketAtAsync(audio ? 1 : 0, 0))
             {
                 await writer.WritePacketAsync(packet);
                 state = writer.CaptureSegmentState();
@@ -32,7 +34,7 @@ namespace Mediana.Tests
             await using (RandomAccessStreamByteSource source = new(File.OpenRead(Input())))
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, secondAllocator))
             await using (MpegTsWriter writer = MpegTsWriter.ResumeSegment(output, state, secondAllocator))
-            using (MediaPacket packet = await reader.ReadPacketAtAsync(0, 0))
+            using (MediaPacket packet = await reader.ReadPacketAtAsync(audio ? 1 : 0, 0))
             using (MediaPacket shifted = Shift(secondAllocator, packet, new(1, new TimeBase(1, 1))))
             {
                 await writer.WritePacketAsync(shifted);
@@ -43,17 +45,19 @@ namespace Mediana.Tests
             Assert.Equal(0, secondAllocator.AllocatedBytes);
         }
 
-        [Fact]
-        public async Task SnapshotRequiresPrecedingOutputWithoutFaultingTheWriter()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task SnapshotRequiresPrecedingOutputWithoutFaultingTheWriter(bool audio)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             using MemoryStream output = new();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Input()));
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
             long readerBytes = allocator.AllocatedBytes;
-            await using MpegTsWriter writer = MpegTsWriter.Create(output, reader.Streams, allocator);
+            await using MpegTsWriter writer = MpegTsWriter.Create(output, audio ? [reader.Streams[1]] : reader.Streams, allocator);
             Assert.Throws<InvalidOperationException>(writer.CaptureSegmentState);
-            using (MediaPacket packet = await reader.ReadPacketAtAsync(0, 0))
+            using (MediaPacket packet = await reader.ReadPacketAtAsync(audio ? 1 : 0, 0))
             {
                 await writer.WritePacketAsync(packet);
             }
@@ -104,8 +108,10 @@ namespace Mediana.Tests
             Assert.Equal(readerBytes + idr.Data.Length, allocator.AllocatedBytes);
         }
 
-        [Fact]
-        public async Task RejectedResumeDoesNotChangeReusableSnapshot()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task RejectedResumeDoesNotChangeReusableSnapshot(bool audio)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             using MemoryStream original = new();
@@ -113,10 +119,10 @@ namespace Mediana.Tests
             await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
             long readerBytes = allocator.AllocatedBytes;
             MpegTsSegmentState state;
-            using MediaPacket idr = await reader.ReadPacketAtAsync(0, 0);
-            await using (MpegTsWriter writer = MpegTsWriter.Create(original, reader.Streams, allocator))
+            using MediaPacket firstPacket = await reader.ReadPacketAtAsync(audio ? 1 : 0, 0);
+            await using (MpegTsWriter writer = MpegTsWriter.Create(original, audio ? [reader.Streams[1]] : reader.Streams, allocator))
             {
-                await writer.WritePacketAsync(idr);
+                await writer.WritePacketAsync(firstPacket);
                 state = writer.CaptureSegmentState();
             }
             for (int attempt = 0; attempt < 2; attempt++)
@@ -125,18 +131,18 @@ namespace Mediana.Tests
                 await using MpegTsWriter writer = MpegTsWriter.ResumeSegment(output, state, allocator);
                 if (attempt == 0)
                 {
-                    await Assert.ThrowsAsync<InvalidDataException>(() => writer.WritePacketAsync(idr).AsTask());
+                    await Assert.ThrowsAsync<InvalidDataException>(() => writer.WritePacketAsync(firstPacket).AsTask());
                     Assert.Equal(0, output.Length);
                 }
                 else
                 {
-                    using MediaPacket shifted = Shift(allocator, idr, new(1, new TimeBase(1, 1)));
+                    using MediaPacket shifted = Shift(allocator, firstPacket, new(1, new TimeBase(1, 1)));
                     await writer.WritePacketAsync(shifted);
                     await writer.CompleteAsync();
                     Assert.NotEqual(0, output.Length);
                 }
             }
-            Assert.Equal(readerBytes + idr.Data.Length, allocator.AllocatedBytes);
+            Assert.Equal(readerBytes + firstPacket.Data.Length, allocator.AllocatedBytes);
         }
 
         private static MediaPacket Shift(MediaBufferAllocator allocator, MediaPacket packet, MediaDuration offset)

@@ -10,14 +10,23 @@ namespace Mediana.NativeTests
         public static async Task RunAsync()
         {
             H264ZeroResidualTestInput.VerifyMacroblocks();
+            H264ResidualRegionTestInput.Verify();
+            H264CabacDecisionTestInput.Verify();
             H264DeblockingFilterTestInput.Verify();
             H264DeblockingFilterTestInput.VerifyAllocation();
+            H264BidirectionalDeblockingTestInput.Verify();
+            H264DeblockingMotionTestInput.Verify();
+            H264MotionLookupTestInput.Verify();
+            H264UniformPredictionTestInput.Verify();
+            H264UniformContextTestInput.Verify();
+            H264UniformRangeTestInput.Verify();
             H264ForwardTransformTestInput.Verify();
             H264ForwardTransformTestInput.VerifyAllocation();
             H264ForwardQuantizationTestInput.Verify();
             H264BlockPairTestInput.Verify();
             H264BitReadingTestInput.Verify();
             H264VlcTestInput.Verify();
+            H264VlcWritingTestInput.Verify();
             H264CavlcLevelTestInput.Verify();
             H264DcResidualTestInput.VerifyDcOnly();
             H264DcResidualTestInput.VerifyAcBlocks();
@@ -25,6 +34,7 @@ namespace Mediana.NativeTests
             H264VectorKernelTestInput.Verify();
             H264MotionInterpolationTestInput.Verify();
             H264LumaNeighborhoodTestInput.Verify();
+            H264ShortInterpolationTestInput.Verify();
             H264SampleDifferenceTestInput.Verify();
             H264LumaCandidateTestInput.Verify();
             H264LumaNeighborhoodTestInput.VerifyAllocation();

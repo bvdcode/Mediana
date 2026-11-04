@@ -13,6 +13,7 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            NativeCoreMemoryTests.Run();
             await NativeEbmlTests.RunAsync();
             foreach (bool stereo in new[] { false, true })
             {
@@ -268,7 +269,8 @@ namespace Mediana.NativeTests
             await H264BidirectionalTestInput.VerifyHeadersAsync(root);
             await H264BidirectionalTestInput.VerifyReferenceListsAsync(root);
             H264BidirectionalTestInput.VerifyMotion();
-            H264BidirectionalDeblockingTestInput.Verify();
+            AllocationMeasurementTestInput.Verify();
+            H264CabacPredictionWindowTestInput.Verify();
             H264SliceDeblockingTestInput.Verify();
             foreach (string name in new[] { "avc-cavlc-b-spatial", "avc-cavlc-b-temporal", "avc-aac", "avc-segments",
                 "avc-cabac-b-0", "avc-cabac-b-1", "avc-cabac-b-2" })
@@ -283,6 +285,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS H.264 CABAC B: 98 independent YUV pictures, all initializations, 8x8 transforms, direct modes, public timing and selected PNG previews match.");
             Console.WriteLine("PASS H.264 CAVLC B: 36 independent YUV pictures, spatial/temporal direct, display order, selected B previews and decoded PNG samples match.");
             H264BiPredictionTestInput.Verify();
+            H264BiPredictionVectorTestInput.Verify();
             H264BidirectionalPredictionTestInput.Verify();
             Console.WriteLine("PASS H.264 B prediction components: independent L0/L1 motion and ordinary, explicit, implicit 8-bit sample weighting match fixed vectors.");
             Console.WriteLine("PASS H.264 B partitions: single L0/L1 and Bi modes, fractional luma/chroma compensation, all weighting modes and exact partition placement match.");
@@ -294,6 +297,18 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS MP4 HLS session: exact AVC/AAC windows, VOD playlist, segments requested as 2, 0, 1, 2, all compressed packets and continuous transport state match.");
             await MpegTsSegmentTestInput.VerifyAsync(root);
             Console.WriteLine("PASS MPEG-TS segments: all 36 AVC and 339 AAC packets, clocks and counters match; restored segments in order 2, 0, 1, 2 equal continuous output byte for byte.");
+            foreach (string file in new[] { "avc-aac.mp4", "avc-mp3-44.mp4", "avc-mp3-22.mp4" })
+            {
+                await MpegTsAudioSegmentTestInput.VerifyAsync(root, file);
+            }
+            Console.WriteLine("PASS audio-only MPEG-TS segments: AAC and MPEG-1/2 Layer III packets, clocks and counters match across files and out-of-order snapshot restoration.");
+            HlsAudioGroupTestInput.Verify();
+            await HlsTargetDurationTestInput.VerifyAsync();
+            HlsCompletedSegmentsTestInput.Verify();
+            await AudioHlsTestInput.VerifyAsync(root, "avc-aac.mp4", "mp4a.40.2", 1024, 1);
+            await AudioHlsTestInput.VerifyAsync(root, "avc-mp3-44.mp4", "mp4a.6B", 1152, 2);
+            await AudioHlsTestInput.VerifyAsync(root, "avc-mp3-22.mp4", "mp4a.69", 576, 1);
+            Console.WriteLine("PASS audio HLS: continuous AAC and MPEG-1/2 Layer III, fixed packet-grid boundaries, complete VOD metadata, payloads, clocks, counters and owned destination disposal.");
             await Mp4SampleAccessTestInput.VerifyAsync(root, "avc-segments.mp4", Mp4TimestampMode.LinearMovie);
             Console.WriteLine("PASS AVC video segment plan: inspected IDR boundaries at 0, 3 and 6 seconds, exact durations and reverse access preserve decoder order and reader cursors.");
             foreach (string file in new[] { "avc-aac.mp4", "avc-tail.mov", "avc-timecode.mov", "avc-sound-v2.mov" })

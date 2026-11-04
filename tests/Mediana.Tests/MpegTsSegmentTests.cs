@@ -17,6 +17,13 @@ namespace Mediana.Tests
             await MpegTsSegmentTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
 
         [Theory]
+        [InlineData("avc-aac.mp4")]
+        [InlineData("avc-mp3-44.mp4")]
+        [InlineData("avc-mp3-22.mp4")]
+        public async Task RealAudioSegmentsPreserveAllPacketsAndRestoreOutOfOrder(string file) =>
+            await MpegTsAudioSegmentTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), file);
+
+        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public async Task SegmentRejectsAudioOrNonIdrBeforeWritingAnyBytes(bool audio)
@@ -40,16 +47,18 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task PendingSegmentCannotBeCompletedOrSkipped(bool complete)
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public async Task PendingSegmentCannotBeCompletedOrSkipped(bool complete, bool audio)
         {
             MediaBufferAllocator allocator = new(4096);
             using MemoryStream first = new();
             using MemoryStream second = new();
             using MemoryStream third = new();
-            await using MpegTsWriter writer = MpegTsWriter.Create(first, [Video()], allocator);
-            using (MediaPacket packet = Packet(allocator, 0, true, 0))
+            await using MpegTsWriter writer = MpegTsWriter.Create(first, audio ? [Audio()] : [Video()], allocator);
+            using (MediaPacket packet = Packet(allocator, audio ? 1 : 0, true, 0))
             {
                 await writer.WritePacketAsync(packet);
             }
@@ -121,22 +130,24 @@ namespace Mediana.Tests
         [InlineData(0)]
         [InlineData(1)]
         [InlineData(2)]
-        public async Task SegmentRequiresExactlyOneVideoTrackAndPrecedingOutput(int videos)
+        [InlineData(3)]
+        public async Task SegmentRequiresSupportedTrackSetAndPrecedingOutput(int scenario)
         {
             MediaBufferAllocator allocator = new(4096);
             using MemoryStream first = new();
             using MemoryStream second = new();
-            EncodedStreamInfo[] streams = videos switch
+            EncodedStreamInfo[] streams = scenario switch
             {
-                0 => [Audio()],
+                0 => [Audio(), Audio(2)],
                 1 => [Video()],
                 2 => [Video(), Video(2)],
-                _ => throw new ArgumentOutOfRangeException(nameof(videos))
+                3 => [Audio()],
+                _ => throw new ArgumentOutOfRangeException(nameof(scenario))
             };
             await using MpegTsWriter writer = MpegTsWriter.Create(first, streams, allocator);
-            if (videos != 1)
+            if (scenario is 0 or 2)
             {
-                using MediaPacket packet = Packet(allocator, videos == 0 ? 1 : 0, true, 0);
+                using MediaPacket packet = Packet(allocator, scenario == 0 ? 1 : 0, true, 0);
                 await writer.WritePacketAsync(packet);
             }
             await Assert.ThrowsAsync<InvalidOperationException>(() => writer.BeginSegmentAsync(second).AsTask());
@@ -147,7 +158,7 @@ namespace Mediana.Tests
         private static EncodedStreamInfo Video(int stream = 0) => new(stream, MediaKind.Video, "h264", StreamFormats.Avc, new(1, 1000),
             [1, 66, 0, 30, 0xFC, 0xE1, 0, 2, 0x67, 0x42, 1, 0, 2, 0x68, 0xCE]);
 
-        private static EncodedStreamInfo Audio() => new(1, MediaKind.Audio, "aac", StreamFormats.Aac, new(1, 1000), [0x11, 0x88]);
+        private static EncodedStreamInfo Audio(int stream = 1) => new(stream, MediaKind.Audio, "aac", StreamFormats.Aac, new(1, 1000), [0x11, 0x88]);
 
         private static MediaPacket Packet(MediaBufferAllocator allocator, int stream, bool idr, int milliseconds)
         {

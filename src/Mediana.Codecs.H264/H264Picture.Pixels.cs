@@ -19,7 +19,7 @@ namespace Mediana.Codecs.H264
                 throw new InvalidOperationException("Published H.264 picture pixels cannot be modified.");
             }
             (int offset, int length) = PlaneRange(index);
-            return writablePixels.Memory.Span.Slice(offset, length);
+            return writablePixels.Span.Slice(offset, length);
         }
 
         public ReadOnlySpan<byte> ReadPlane(int index)

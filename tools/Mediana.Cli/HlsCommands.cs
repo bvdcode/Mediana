@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class HlsCommands(ILogger logger, CommandOutputPolicy outputs) : MediaCommands(outputs)
+    internal class HlsCommands(ILogger logger, CommandOutputPolicy outputs, TextWriter console) : MediaCommands(outputs)
     {
         /// <summary>List HLS segment boundaries for an MP4/MOV video track.</summary>
         /// <param name="input">Existing MP4/MOV file.</param>
@@ -42,6 +42,7 @@ namespace Mediana.Cli
         /// <param name="input">Existing supported MP4/MOV file.</param>
         /// <param name="output">New output directory for all variants.</param>
         /// <param name="videoOnly">Explicitly omit audio from every variant.</param>
+        /// <param name="separateAudio">Write audio-only playlists shared by video variants with identical audio settings; requires audio-stream.</param>
         /// <param name="audioStream">Audio track for every variant; copied unless audio-codec is supplied. Mutually exclusive with video-only.</param>
         /// <param name="audioCodec">Encode the selected audio track as AAC-LC; omit to copy AAC/MP3.</param>
         /// <param name="audioBitRate">Raw AAC bit ceiling for all variants; requires audio-codec Aac. Defaults to 128000.</param>
@@ -53,7 +54,7 @@ namespace Mediana.Cli
         /// <param name="videoBitRates">Optional comma-separated AVC packet rates in bits/second, one per width in the same order.</param>
         /// <param name="videoBufferMs">Common video buffer duration in milliseconds; requires video-bit-rates, defaults to 2000.</param>
         /// <param name="widths">Maximum storage widths, separated by spaces; no enlargement. Put this option last.</param>
-        public Task<int> Encode([Argument] string input, [Argument] string output, bool videoOnly = false,
+        public Task<int> Encode([Argument] string input, [Argument] string output, bool videoOnly = false, bool separateAudio = false,
             int videoStream = 0, int? audioStream = null, AudioCodecMode? audioCodec = null, int? audioBitRate = null, int? audioChannels = null,
             long segmentMs = 6000, int qp = 26, int[]? videoBitRates = null, long? videoBufferMs = null, int[]? audioBitRates = null,
             CancellationToken cancellationToken = default, params int[] widths)
@@ -69,6 +70,10 @@ namespace Mediana.Cli
             if (audioStream is < 0 || (videoOnly && audioStream is not null) || audioStream == videoStream)
             {
                 throw new ArgumentException("Select a distinct nonnegative audio stream or video-only output.", nameof(audioStream));
+            }
+            if (separateAudio && (audioStream is null || videoOnly))
+            {
+                throw new ArgumentException("Separate audio requires --audio-stream and cannot be combined with --video-only.", nameof(separateAudio));
             }
             if ((audioCodec is not null && (audioCodec != AudioCodecMode.Aac || audioStream is null)) ||
                 (audioBitRate is not null && (audioCodec != AudioCodecMode.Aac || audioBitRate <= 0)))
@@ -91,7 +96,7 @@ namespace Mediana.Cli
             int[] audioRates = audioBitRates ?? Enumerable.Repeat(audioBitRate ?? 128000, widths.Length).ToArray();
             Mediana.Codecs.H264.H264RateControlOptions?[]? rates = VideoRateOptions.CreateVariants(videoBitRates, videoBufferMs, widths.Length);
             return ExecuteAsync(input, output, () => HlsEncodeCommand.RunAsync(input, output, videoStream, audioStream,
-                audioCodec, audioRates, audioChannels, widths, rates, qp, segmentMs, logger, cancellationToken));
+                audioCodec, audioRates, audioChannels, widths, rates, qp, segmentMs, separateAudio, console, logger, cancellationToken));
         }
     }
 }

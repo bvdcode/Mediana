@@ -7,11 +7,11 @@ namespace Mediana.Codecs.H264
 {
     internal partial class H264Picture
     {
-        public Span<byte> ReferenceIndices(H264ReferenceList list) => storage.Memory.Span.Slice(MotionOffset(list), lumaBlocks);
+        public Span<byte> ReferenceIndices(H264ReferenceList list) => storage.Span.Slice(MotionOffset(list), lumaBlocks);
         public Span<int> MotionX(H264ReferenceList list) => MemoryMarshal.Cast<byte, int>(
-            storage.Memory.Span.Slice(MotionOffset(list) + lumaBlocks, lumaBlocks * sizeof(int)));
+            storage.Span.Slice(MotionOffset(list) + lumaBlocks, lumaBlocks * sizeof(int)));
         public Span<int> MotionY(H264ReferenceList list) => MemoryMarshal.Cast<byte, int>(
-            storage.Memory.Span.Slice(MotionOffset(list) + lumaBlocks * (1 + sizeof(int)), lumaBlocks * sizeof(int)));
+            storage.Span.Slice(MotionOffset(list) + lumaBlocks * (1 + sizeof(int)), lumaBlocks * sizeof(int)));
 
         public H264MotionSample MotionAt(H264ReferenceList list, int x, int y)
         {

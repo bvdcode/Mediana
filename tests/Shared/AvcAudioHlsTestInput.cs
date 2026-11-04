@@ -3,6 +3,7 @@
 
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
+using Mediana.Containers.MpegTs;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -28,17 +29,21 @@ namespace Mediana.Tests
             using H264Encoder encoder = H264Encoder.Create(first.Format, session.Stream.TimeBase, allocator,
                 new() { KeyFrameInterval = TimeSpan.FromMilliseconds(500) });
             List<MemoryStream> outputs = [];
-            await using AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, reader.Streams[1], (number, _) =>
+            List<MpegTsSegmentState?> states = [];
+            List<int> starts = [];
+            List<(int Stream, byte[] Data, long Pts, long Dts)> expected = [];
+            await using AvcHlsWriter writer = AvcHlsWriter.Create(encoder.Stream, reader.Streams[1], (number, state, _) =>
             {
                 if (number != outputs.Count)
                 {
                     throw new InvalidDataException("The A/V HLS segment numbers are not contiguous.");
                 }
                 MemoryStream destination = new();
+                states.Add(state);
+                starts.Add(expected.Count - 1);
                 outputs.Add(destination);
                 return ValueTask.FromResult<Stream>(destination);
             }, allocator, new() { TargetDuration = new(1, new(1, 2)) });
-            List<(int Stream, byte[] Data, long Pts, long Dts)> expected = [];
             int audio = 0;
             VideoFrame? frame = first.Retain();
             while (frame is not null)
@@ -99,6 +104,11 @@ namespace Mediana.Tests
             if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)
             {
                 throw new InvalidOperationException("The A/V HLS pipeline retained media storage.");
+            }
+            await HlsSegmentReplayTestInput.VerifyAsync([encoder.Stream, reader.Streams[1]], expected, starts, states, outputs, allocator);
+            if (allocator.AllocatedBytes != 0)
+            {
+                throw new InvalidOperationException("Recreating audiovisual HLS segments retained media storage.");
             }
         }
 

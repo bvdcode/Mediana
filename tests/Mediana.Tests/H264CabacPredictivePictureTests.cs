@@ -35,7 +35,8 @@ namespace Mediana.Tests
                 pictureBytes = measurement.AllocatedBytes;
             }
             long stateBytes = sequence.WidthInMbs * sequence.HeightInMapUnits * 4;
-            long motionBytes = sequence.CodedWidth * sequence.CodedHeight / 16 * sizeof(short) * 2;
+            int historyRows = Math.Min(sequence.HeightInMapUnits, 2);
+            long motionBytes = sequence.WidthInMbs * historyRows * 16 * sizeof(short) * 2;
             foreach (long budget in new[] { 1, pictureBytes, pictureBytes + stateBytes, pictureBytes + stateBytes + motionBytes - 1 })
             {
                 MediaBufferAllocator allocator = new(budget);

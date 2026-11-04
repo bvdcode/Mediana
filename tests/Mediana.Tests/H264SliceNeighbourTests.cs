@@ -46,14 +46,51 @@ namespace Mediana.Tests
             using (H264Picture second = new(Sequence(), allocator, H264SliceKind.P))
             using (H264Picture picture = new(Sequence(), allocator, H264SliceKind.P))
             {
-                picture.CaptureReferences([new(first, 0, new(0, 0))], []);
-                picture.FirstMacroblock = 4;
-                picture.CaptureReferences([new(second, 1, new(2, 2))], []);
+                picture.CaptureReferences(0, [new(first, 0, new(0, 0))], []);
+                picture.CaptureReferences(4, [new(second, 1, new(2, 2))], []);
                 Assert.Same(first.Identity, picture.ReferenceIdentity(H264ReferenceList.L0, 0, 3));
                 Assert.Same(second.Identity, picture.ReferenceIdentity(H264ReferenceList.L0, 0, 4));
                 picture.Modes.Fill(H264Picture.InterMode);
                 picture.ReferenceIndices(H264ReferenceList.L0).Clear();
                 Assert.Equal(1, H264Deblocking.BoundaryStrength(picture, 16, 16, true, true, null));
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(1)]
+        [InlineData(9)]
+        public void ReferenceListsMustStartAtTheFirstMacroblock(int firstMacroblock)
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using (H264Picture picture = new(Sequence(), allocator, H264SliceKind.P))
+            {
+                Assert.Throws<ArgumentOutOfRangeException>(() => picture.CaptureReferences(firstMacroblock, [], []));
+                picture.CaptureReferences(0, [], []);
+                Assert.Empty(picture.ReferenceLists(0).L0);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(-1)]
+        [InlineData(0)]
+        [InlineData(3)]
+        [InlineData(4)]
+        [InlineData(9)]
+        public void InvalidSliceReferenceStartsCannotCorruptExistingMappings(int firstMacroblock)
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using (H264Picture first = new(Sequence(), allocator, H264SliceKind.P))
+            using (H264Picture second = new(Sequence(), allocator, H264SliceKind.P))
+            using (H264Picture picture = new(Sequence(), allocator, H264SliceKind.P))
+            {
+                picture.CaptureReferences(0, [new(first, 0, new(0, 0))], []);
+                picture.CaptureReferences(4, [new(second, 1, new(2, 2))], []);
+                Assert.Throws<ArgumentOutOfRangeException>(() => picture.CaptureReferences(firstMacroblock, [], []));
+                Assert.Same(first.Identity, picture.ReferenceIdentity(H264ReferenceList.L0, 0, 3));
+                Assert.Same(second.Identity, picture.ReferenceIdentity(H264ReferenceList.L0, 0, 4));
             }
             Assert.Equal(0, allocator.AllocatedBytes);
         }

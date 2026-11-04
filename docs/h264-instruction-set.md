@@ -121,14 +121,52 @@ does not separate their contributions or establish which algorithm change
 would close the gap. The previous rejected search and reconstruction trials
 remain applicable; no search, rate, quality or buffer policy changes here.
 
-The last [complete-film HLS observation](hls-hd-encoding.md) remains 962.836
-versus 274.925 CPU seconds, a 3.50x gap. It precedes the latest interpolation
-and CAVLC changes. Minute-stage observations do not update that complete-film
-result.
+The subsequent [complete-film HLS observation](hls-hd-encoding.md) uses 794.189
+versus 195.026 CPU seconds, a 4.07x gap. It includes the later interpolation,
+CAVLC and paired-residual changes with the default instruction set. Its 406
+output files remain identical to the complete independently verified references;
+it does not isolate the effect of an instruction-set choice.
 
-Product and fixture sources are unchanged from the passing 3,075 managed,
-709 software H.264 and 30-package checks and the complete strict Native AOT
+For the instruction-set experiment, product and fixture sources were unchanged
+from the passing 3,075 managed, 709 software H.264 and 30-package checks and the complete strict Native AOT
 package-consumer validation recorded with
 [direct CAVLC encoding](h264-cavlc-encoding.md). Both diagnostic configurations
-publish successfully with strict Native AOT warnings. The final Release build
-has zero warnings and errors; the root license-header check requires no updates.
+published successfully with strict Native AOT warnings. Its final Release build
+had zero warnings and errors; the root license-header check required no updates.
+
+## Complete decoder dispatch control
+
+A separate control at `8e2a722` compares the unchanged current Native AOT
+decoder with FFmpeg 6.1.1 using its default runtime dispatch and two explicit
+CPU masks. It uses the complete 60.041667-second High/CABAC input from the
+[decoder comparison](h264-cabac-performance.md#current-independent-decoder-comparison):
+1,441 pictures at 1280x720/24 fps. Every operation writes all 1,992,038,400 raw
+YUV420P8 bytes. All eight outputs have the same independently verified hash;
+Mediana also verifies every rational timestamp and duration, EOF and released
+media storage.
+
+The serial order is FFmpeg default, Mediana, FFmpeg SSE4.2, FFmpeg SSE2, then
+the reverse. Both implementations use one media thread and logical CPU 2;
+Mediana uses `DOTNET_PROCESSOR_COUNT=1` and its ordinary GC configuration.
+The Native AOT compiler settings and executable are unchanged.
+
+| Decoder dispatch | Median CPU, s | Median elapsed, s | Median peak RSS, KiB |
+| --- | ---: | ---: | ---: |
+| Mediana | 19.167731 | 20.043059 | 60,614 |
+| FFmpeg default | 3.723980 | 4.096801 | 73,152 |
+| FFmpeg through SSE4.2 | 3.658337 | 3.724619 | 77,060 |
+| FFmpeg through SSE2 | 3.946126 | 3.948271 | 69,466 |
+
+The SSE2 mask is `cmov+mmx+mmxext+sse+sse2`; the SSE4.2 mask additionally
+allows `sse3+ssse3+sse4.1+sse4.2`. FFmpeg documents
+[`-cpuflags`](https://ffmpeg.org/ffmpeg.html#Generic-options) as a runtime
+testing control. These masks constrain kernel selection; they do not establish
+identical generated instructions or remove compiler vectorization.
+
+Mediana requires 5.15 times the default FFmpeg CPU and 4.86 times the
+SSE2-restricted FFmpeg CPU in this series. Restricting FFmpeg dispatch through
+SSE2 adds 5.97% CPU relative to its default, leaving most of the gap. The
+small reversal between SSE4.2 and default and the varying absolute times on
+the shared host do not establish a general advantage for either mask. Wider
+runtime dispatch alone does not explain the observed multiple-times gap.
+This is decoding only; it does not update encoding or complete HLS results.

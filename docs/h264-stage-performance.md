@@ -1,3 +1,10 @@
+The [complete High/CABAC comparison](h264-cabac-performance.md) measures
+34.345 versus 5.204 CPU seconds (6.60x), with all 1,441 pictures exact. The
+subsequent [SIMD weighting comparison](h264-weighted-prediction.md) lowers paired
+CABAC/CAVLC decoding CPU by 7.24%/4.36%, preserving every sample in both execution
+orders. These separate bitstreams and decoding workloads do not update the
+complete-film HLS ratios below.
+
 Repository Native AOT builds now prefer execution speed. The
 [unchanged-source compiler comparison](native-aot-performance.md) reduces
 complete raw-encoding CPU by 6.64% with identical output. Decoder timing varies
@@ -9,7 +16,7 @@ A complete chroma prediction-and-comparison fusion preserves every output byte
 but reduces CPU by only 0.86%, so it is not adopted. Stack counts are not CPU
 percentages and establish no new competitive ratio.
 
-The latest [direct-region comparison](h264-direct-prediction.md) uses
+The [direct-region comparison](h264-direct-prediction.md) uses
 23.105 CPU seconds for complete HD decoding versus 4.243 for optimized
 FFmpeg, with identical raw samples (5.45x). The paired median decoder CPU
 reduction is 16.18% over four complete 60.041667-second observations per version;
@@ -35,18 +42,40 @@ establish a useful encoding CPU improvement. Subsequent
 [native interpolation](h264-native-interpolation.md) and
 [direct CAVLC coding](h264-cavlc-encoding.md) reduce encoding CPU by 5.04% and
 8.08% in separate comparisons. The current
+[compact interpolation scratch comparison](h264-native-interpolation.md#compact-first-pass-storage)
+shows 4.13% and 5.16% lower encoding CPU in its two execution orders, with exact
+output. The
+[synchronous reconstruction-access comparison](h264-frame-memory.md#synchronous-reconstruction-access)
+then observes 7.17%/7.29% lower decoding CPU and 4.94%/2.67% lower encoding CPU
+in its two execution orders, preserving every output byte. The
 [same-source instruction-set control](h264-instruction-set.md) does not
 establish an acceleration from targeting the build processor's instructions.
 Subsequent [paired residual processing](h264-paired-residuals.md) reduces
 complete encoding CPU by 6.33% with identical output in its separate comparison.
 These separate measurements do not update complete-film throughput.
+Further [inverse-transform and pixel-addition controls](h264-encoder-work.md#inverse-transform-and-pixel-addition-controls)
+do not establish a useful reconstruction acceleration. Neither specialized
+variant is adopted.
+The [accepted-reference filtering comparison](h264-reference-filter.md) tests a
+separate quality change: all reconstructed frames match independent decoding,
+but its 0.138 dB aggregate PSNR gain accompanies 19.92% higher observed encoding
+CPU. It is not enabled by default and does not update production throughput.
+A separate [decoder metadata reuse control](h264-frame-memory.md#decoder-metadata-reuse-control)
+reduces complete-decode allocation traffic by only 2.36% and establishes no CPU
+or peak-memory improvement. Its single-slot cache is not adopted.
+The [allocation-cost diagnostic](h264-allocation-cost.md) then measures about
+0.255/0.262 seconds inside buffer allocation for complete decoding/encoding;
+these elapsed intervals are not attributed CPU. Further
+[per-operation metadata borrowing](h264-frame-memory.md#per-operation-metadata-borrowing-control)
+shrinks native functions but does not establish a consistent complete-operation
+acceleration, so that variant is not adopted.
 The latest [complete-film audiovisual HLS comparison](hls-hd-encoding.md)
-uses 962.836 CPU seconds versus 274.925 for FFmpeg, a 3.50x gap,
+uses 891.914 CPU seconds versus 247.791 for FFmpeg, a 3.60x gap,
 with all 406 published files identical to their independently verified references.
-The latest full-film measurements include edge filtering, shared decoded pixels
-and direct regions. Mediana CPU is 3.03% lower than its preceding full-film
-observation; FFmpeg CPU is 39.16% higher. These single observations do not
-isolate an optimization or establish equal-quality throughput.
+It includes compact interpolation scratch and checked synchronous buffer access.
+These single complete-process observations do not isolate individual changes or
+establish equal-quality throughput. The separate stage comparisons above and
+the complete-film workload have different input and processing scopes.
 
 The complete 60.041667-second HD input was measured separately through video
 decoding and video encoding. Separating the stages identifies where the current
@@ -662,3 +691,20 @@ consumer passed. Shared bit-writing checks cover all eight initial alignments,
 all widths from zero through 64, mixed fields, independent NAL packing and
 escaping, exact bit positions, budget overflow and restoration after storage
 growth. Release build, CLI Native AOT, formatting and license-header checks passed.
+
+## Current computation diagnostic
+
+The [current complete-operation diagnostic](h264-current-computation.md) records
+repeatable stage call counts and elapsed intervals for both decoding and encoding.
+Motion selection and coefficient writing/reconstruction remain substantial encoder
+work. Instrumented intervals include overhead and are not CPU percentages; all
+eight complete outputs retain the independent references. No codec change or new
+complete-film throughput claim follows from the diagnostic.
+
+## Indexed CAVLC symbols
+
+[Direct immutable symbol lookup](h264-symbol-writing.md) replaces dictionary
+lookup when writing normative CAVLC codewords. Eight complete exact Native AOT
+encodes show 2.06% and 1.49% CPU reductions in the two execution orders. This
+is a small local improvement; it establishes no meaningful RSS decrease or new
+complete-film throughput ratio.
