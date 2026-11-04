@@ -18,6 +18,7 @@ namespace Mediana.Images.Tgs
         private readonly CancellationToken _token;
         private readonly HashSet<string> _warnings = new();
         private int _items;
+        internal bool RequiresKeyframeOrdering { get; private set; }
         internal TgsFeatureCheck(TgsReaderOptions limits, CancellationToken token)
         {
             _limits = limits;
@@ -71,7 +72,7 @@ namespace Mediana.Images.Tgs
             }
         }
 
-        private static void ValidateKeys(JsonElement array)
+        private void ValidateKeys(JsonElement array)
         {
             if (array.GetArrayLength() == 0 || TgsJson.Get(array[0], "ty").ValueKind != JsonValueKind.Undefined || TgsJson.Get(array[0], "t").ValueKind != JsonValueKind.Number)
             {
@@ -82,10 +83,12 @@ namespace Mediana.Images.Tgs
             foreach (JsonElement key in array.EnumerateArray())
             {
                 double next = TgsJson.Number(key, "t", double.NaN);
-                if (!double.IsFinite(next) || next < previous)
+                if (!double.IsFinite(next))
                 {
-                    throw new InvalidDataException("Lottie keyframes must have ascending times.");
+                    throw new InvalidDataException("Each Lottie keyframe must have a finite time.");
                 }
+
+                RequiresKeyframeOrdering |= next < previous;
 
                 previous = next;
             }

@@ -31,6 +31,8 @@ namespace Mediana.Cli
             ImageDecodeRequest? request = null, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            Action<string> warning = message => logger.LogWarning("{Warning}", message);
+            request = (request ?? new ImageDecodeRequest()) with { WarningHandler = request?.WarningHandler + warning };
             using (VideoFrame frame = await engine.DecodeImageAsync(source, allocator, request, cancellationToken: cancellationToken))
             using (VideoFrame srgb = SrgbConverter.Apply(frame, PreviewColorPolicy.Resolve(frame.Format, logger), allocator, cancellationToken))
             {

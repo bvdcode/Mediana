@@ -151,6 +151,7 @@
     <None Include="../Mediana.Tests/Data/Tgs/*" Link="Data/Tgs/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/TgsReferenceTestInput.cs" Link="TgsReferenceTestInput.cs" />
     <Compile Include="../Shared/TgsStrokeTestInput.cs" Link="TgsStrokeTestInput.cs" />
+    <Compile Include="../Shared/TgsKeyframeOrderTestInput.cs" Link="TgsKeyframeOrderTestInput.cs" />
     <Compile Include="../Shared/TgsEffectTestInput.cs" Link="TgsEffectTestInput.cs" />
     <Compile Include="../Shared/TgsLayerReferenceTestInput.cs" Link="TgsLayerReferenceTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Tgs/Mediana.Images.Tgs.csproj" />

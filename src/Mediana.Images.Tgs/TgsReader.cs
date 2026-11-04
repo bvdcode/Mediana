@@ -99,8 +99,11 @@ namespace Mediana.Images.Tgs
                 throw new InvalidDataException("Lottie layers must be an array.");
             }
 
-            string[] features = new TgsFeatureCheck(options, token).Check(root);
-            return new TgsDocument(root.Clone(), options, features);
+            TgsFeatureCheck check = new(options, token);
+            string[] features = check.Check(root);
+            string[] warnings = check.RequiresKeyframeOrdering ? ["Lottie keyframes reordered by time."] : [];
+            JsonElement owned = check.RequiresKeyframeOrdering ? TgsKeyframeOrder.Restore(root, token) : root.Clone();
+            return new TgsDocument(owned, options, features, warnings);
         }
 
         private static void Validate(TgsReaderOptions o)

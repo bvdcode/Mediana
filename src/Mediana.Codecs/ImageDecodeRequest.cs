@@ -10,6 +10,8 @@ namespace Mediana.Codecs
     {
         public int PageIndex { get; init; }
         public MediaTimestamp? Time { get; init; }
+        /// <summary>Receives nonfatal diagnostics synchronously during image decoding.</summary>
+        public Action<string>? WarningHandler { get; init; }
 
         public void Validate(ImageDecoderFeatures features)
         {
