@@ -131,7 +131,7 @@ namespace Mediana.Tests
             return glyph;
         }
 
-        private static byte[] Create(params byte[][] glyphs)
+        internal static byte[] Create(params byte[][] glyphs)
         {
             byte[] head = new byte[54];
             BinaryPrimitives.WriteUInt32BigEndian(head, 0x10000);
