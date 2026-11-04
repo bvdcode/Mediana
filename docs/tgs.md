@@ -44,3 +44,15 @@ not independent Lottie conformance evidence.
 
 Concurrent renders of one composition use independent scene state and effect-buffer budgets.
 A failed render releases temporary effect buffers; later renders can reuse the composition.
+
+Unordered finite keyframe times are stably sorted before rendering. Tied times
+retain their source order and property values remain unchanged. Missing or
+non-finite times remain errors. Reordering is exposed in `TgsDocument.Warnings`
+and through `ImageDecodeRequest.WarningHandler`; the CLI logs it as a warning.
+Already ordered documents do not require JSON reconstruction.
+
+Layer references use declared indices, including parent and Set Matte targets.
+Unreferenced duplicate indices retain paint order; an ambiguous referenced index
+is rejected. Parameter groups do not themselves create visual effects. RGB
+Invert supports animated Blend With Original and preserves alpha; other Invert
+channel selections remain unsupported.
