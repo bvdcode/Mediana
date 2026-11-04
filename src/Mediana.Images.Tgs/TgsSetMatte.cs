@@ -13,7 +13,7 @@ namespace Mediana.Images.Tgs
     internal partial class TgsSceneBuilder
     {
         private void SetMatte(JsonElement layer, TgsLayer content, JsonElement[] layers,
-            Dictionary<double, JsonElement> byIndex, double frame, int depth, HashSet<int> active)
+            TgsLayerIndex byIndex, double frame, int depth, HashSet<int> active)
         {
             foreach (JsonElement effect in ExpandEffects(TgsJson.Get(layer, "ef")).Where(effect => TgsEffectInfo.Type(effect) == 28))
             {
@@ -32,11 +32,7 @@ namespace Mediana.Images.Tgs
                     continue;
                 }
 
-                int index = Array.FindIndex(layers, candidate => TgsJson.Number(candidate, "ind", double.NaN) == source);
-                if (index < 0)
-                {
-                    throw new InvalidDataException("Missing Lottie Set Matte source layer.");
-                }
+                int index = byIndex.Find(source);
 
                 TgsLayer drawing = PaintLayer(layers, index, byIndex, frame, depth + 1, active, includeHidden: true);
                 SceneMask mask = Matte(drawing, Scalar(2) == 0 ? 1 : 2);

@@ -54,7 +54,7 @@ namespace Mediana.Images.Tgs
         {
             Count(depth);
             JsonElement[] layers = TgsJson.Array(array);
-            Dictionary<double, JsonElement> byIndex = IndexLayers(layers);
+            TgsLayerIndex byIndex = new(layers);
 
             TgsLayer? group = new TgsLayer();
             var matteLayers = new HashSet<int>();
@@ -62,7 +62,7 @@ namespace Mediana.Images.Tgs
             {
                 if (TgsJson.Number(layers[i], "tt") is >= 1 and <= 4)
                 {
-                    matteLayers.Add(MatteIndex(layers, i));
+                    matteLayers.Add(MatteIndex(layers, i, byIndex));
                 }
             }
 
@@ -81,22 +81,7 @@ namespace Mediana.Images.Tgs
             return group;
         }
 
-        private static Dictionary<double, JsonElement> IndexLayers(JsonElement[] layers)
-        {
-            var byIndex = new Dictionary<double, JsonElement>();
-            foreach (JsonElement layer in layers)
-            {
-                JsonElement index = TgsJson.Get(layer, "ind");
-                if (index.ValueKind == JsonValueKind.Number && !byIndex.TryAdd(TgsJson.Number(index), layer))
-                {
-                    throw new InvalidDataException("Duplicate Lottie layer index.");
-                }
-            }
-
-            return byIndex;
-        }
-
-        private TgsLayer PaintLayer(JsonElement[] layers, int index, Dictionary<double, JsonElement> byIndex, double frame, int depth, HashSet<int> active, bool includeHidden = false)
+        private TgsLayer PaintLayer(JsonElement[] layers, int index, TgsLayerIndex byIndex, double frame, int depth, HashSet<int> active, bool includeHidden = false)
         {
             Count(depth);
             if (!active.Add(index))
@@ -124,7 +109,7 @@ namespace Mediana.Images.Tgs
                 int matte = (int)TgsJson.Number(layer, "tt");
                 if (matte is >= 1 and <= 4)
                 {
-                    TgsLayer drawing = PaintLayer(layers, MatteIndex(layers, index), byIndex, frame, depth + 1, active);
+                    TgsLayer drawing = PaintLayer(layers, MatteIndex(layers, index, byIndex), byIndex, frame, depth + 1, active);
                     result.Mask = Matte(drawing, matte);
                 }
 
@@ -145,25 +130,18 @@ namespace Mediana.Images.Tgs
             }
         }
 
-        private static int MatteIndex(JsonElement[] layers, int index)
+        private static int MatteIndex(JsonElement[] layers, int index, TgsLayerIndex byIndex)
         {
             JsonElement target = TgsJson.Get(layers[index], "tp");
             if (target.ValueKind == JsonValueKind.Number)
             {
-                double id = TgsJson.Number(target);
-                int found = Array.FindIndex(layers, layer => TgsJson.Number(layer, "ind", double.NaN) == id);
-                if (found >= 0)
-                {
-                    return found;
-                }
-
-                throw new InvalidDataException("Missing Lottie track matte layer.");
+                return byIndex.Find(TgsJson.Number(target));
             }
 
             return index > 0 ? index - 1 : throw new InvalidDataException("Missing preceding Lottie track matte.");
         }
 
-        private Matrix3x2 LayerTransform(JsonElement layer, double frame, Dictionary<double, JsonElement> siblings, HashSet<double> active)
+        private Matrix3x2 LayerTransform(JsonElement layer, double frame, TgsLayerIndex siblings, HashSet<double> active)
         {
             JsonElement values = TgsJson.Get(layer, "ks");
             Matrix3x2 matrix = Transform(values, frame, TgsJson.Flag(layer, "ao") ? AutoOrientation(TgsJson.Get(values, "p"), frame) : 0);
@@ -176,12 +154,7 @@ namespace Mediana.Images.Tgs
                     throw new InvalidDataException("Cyclic/deep Lottie parent chain.");
                 }
 
-                if (!siblings.TryGetValue(index, out JsonElement ancestor))
-                {
-                    throw new InvalidDataException("Missing Lottie parent.");
-                }
-
-                matrix *= LayerTransform(ancestor, frame, siblings, active);
+                matrix *= LayerTransform(siblings.Resolve(index), frame, siblings, active);
             }
 
             return matrix;
