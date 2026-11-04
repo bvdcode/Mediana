@@ -351,3 +351,12 @@ bytes are rejected. This API extracts the document without verifying signatures:
 `PdfDocument.Warnings`, the image request warning handler and the CLI report
 that signature verification was not performed. The result conveys no signature
 authenticity or certificate trust decision.
+
+Page interpretation collects non-fatal codec diagnostics in `PdfPage.Warnings`,
+separately from `UnsupportedFeatures` and the document-envelope diagnostics in
+`PdfDocument.Warnings`. Repeated use of one recovered image produces one page
+diagnostic. `PdfRenderOptions.WarningHandler` receives page warnings before
+rendering; registered image decoding also preserves the request warning handler.
+Both PNG conversion and explicit PDF render/image commands log the diagnostic.
+The JPEG decoder's [redundant final restart recovery](jpeg.md#redundant-final-restart-marker)
+therefore remains visible when the JPEG is embedded in a PDF.

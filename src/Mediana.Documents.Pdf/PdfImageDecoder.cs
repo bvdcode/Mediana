@@ -40,7 +40,11 @@ namespace Mediana.Documents.Pdf
             {
                 request.WarningHandler?.Invoke(warning);
             }
-            using PixelBuffer pixels = PdfRenderer.Render(document, request.PageIndex + 1, renderOptions, cancellationToken, allocator);
+            PdfRenderOptions rendering = (renderOptions ?? new PdfRenderOptions()) with
+            {
+                WarningHandler = renderOptions?.WarningHandler + request.WarningHandler
+            };
+            using PixelBuffer pixels = PdfRenderer.Render(document, request.PageIndex + 1, rendering, cancellationToken, allocator);
             return ValueTask.FromResult(pixels.PublishVideoFrame(cancellationToken));
         }
     }

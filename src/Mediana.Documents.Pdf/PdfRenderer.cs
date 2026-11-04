@@ -43,6 +43,10 @@ namespace Mediana.Documents.Pdf
                 throw new NotSupportedException("Page contains unsupported PDF features: " + string.Join("; ", page.UnsupportedFeatures));
             }
 
+            foreach (string warning in page.Warnings)
+            {
+                options.WarningHandler?.Invoke(warning);
+            }
             (int width, int height, double scale) = plan;
             int samples = options.Supersampling;
             PixelBuffer output = allocator is null ? new(width, height) : new(width, height, allocator);

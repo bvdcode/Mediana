@@ -45,6 +45,10 @@ namespace Mediana.Documents.Pdf
             {
                 throw new InvalidDataException("PDF JPEG dimensions or component count differ from the image dictionary.");
             }
+            foreach (string warning in image.Warnings)
+            {
+                _warnings.Add(warning);
+            }
             JpegColorSpace color;
             if (components == 1) { color = JpegColorSpace.Rgb; }
             else

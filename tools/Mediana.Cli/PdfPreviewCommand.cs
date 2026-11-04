@@ -14,10 +14,10 @@ namespace Mediana.Cli
         public static async Task<int> RenderAsync(string input, CommandOutputFile output, int pageNumber, int maximumWidth, ILogger logger, CancellationToken cancellationToken = default)
         {
             using PdfDocument document = await PdfReader.ReadFileAsync(input, cancellationToken: cancellationToken);
-            LogWarnings(document, logger);
+            LogWarnings(document.Warnings, logger);
             PdfPageInfo page = document.GetPageInfo(pageNumber);
             MediaBufferAllocator allocator = new(256L * 1024 * 1024);
-            using PixelBuffer image = PdfRenderer.Render(document, pageNumber, new() { MaximumWidth = maximumWidth }, cancellationToken, allocator);
+            using PixelBuffer image = PdfRenderer.Render(document, pageNumber, new() { MaximumWidth = maximumWidth, WarningHandler = message => logger.LogWarning("{Warning}", message) }, cancellationToken, allocator);
             using VideoFrame frame = image.PublishVideoFrame(cancellationToken);
             await WriteAsync(frame, output, allocator, cancellationToken);
             await Console.Out.WriteLineAsync($"PDF page {pageNumber}/{document.PageCount}: {page.Width} x {page.Height} pt; {image.Width} x {image.Height} px.");
@@ -26,8 +26,9 @@ namespace Mediana.Cli
         public static async Task<int> ImageAsync(string input, CommandOutputFile output, int pageNumber, int index, ILogger logger, CancellationToken cancellationToken = default)
         {
             using PdfDocument document = await PdfReader.ReadFileAsync(input, cancellationToken: cancellationToken);
-            LogWarnings(document, logger);
+            LogWarnings(document.Warnings, logger);
             using PdfPage page = document.GetPage(pageNumber, cancellationToken);
+            LogWarnings(page.Warnings, logger);
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, page.Images.Count);
             MediaBufferAllocator allocator = new(256L * 1024 * 1024);
@@ -35,9 +36,9 @@ namespace Mediana.Cli
             await WriteAsync(frame, output, allocator, cancellationToken);
             return 0;
         }
-        private static void LogWarnings(PdfDocument document, ILogger logger)
+        private static void LogWarnings(IReadOnlyList<string> warnings, ILogger logger)
         {
-            foreach (string warning in document.Warnings)
+            foreach (string warning in warnings)
             {
                 logger.LogWarning("{Warning}", warning);
             }

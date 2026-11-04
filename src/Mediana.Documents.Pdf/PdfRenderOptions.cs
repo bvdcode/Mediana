@@ -21,5 +21,7 @@ namespace Mediana.Documents.Pdf
         public bool AllowPartialRendering { get; init; }
         /// <summary>Gets the maximum number of samples, including supersampling. Defaults to 16,777,216.</summary>
         public int MaximumSamples { get; init; } = 16_777_216;
+        /// <summary>Receives page interpretation diagnostics synchronously before rendering.</summary>
+        public Action<string>? WarningHandler { get; init; }
     }
 }

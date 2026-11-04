@@ -12,10 +12,12 @@ namespace Mediana.Documents.Pdf
         public double Height => Info.Height;
         public int Number => Info.Number;
         public IReadOnlyList<string> UnsupportedFeatures { get; }
+        /// <summary>Non-fatal diagnostics collected while interpreting page resources.</summary>
+        public IReadOnlyList<string> Warnings { get; }
         public IReadOnlyList<PdfImage> Images { get; }
         internal IReadOnlyList<IPdfDrawCommand> Commands { get; }
-        internal PdfPage(PdfPageInfo info, List<IPdfDrawCommand> commands, HashSet<string> unsupported, List<PdfImage> images)
-        { Info = info; Commands = commands.AsReadOnly(); UnsupportedFeatures = Array.AsReadOnly(unsupported.Order(StringComparer.Ordinal).ToArray()); Images = images.AsReadOnly(); }
+        internal PdfPage(PdfPageInfo info, List<IPdfDrawCommand> commands, HashSet<string> unsupported, List<PdfImage> images, HashSet<string> warnings)
+        { Info = info; Commands = commands.AsReadOnly(); UnsupportedFeatures = Array.AsReadOnly(unsupported.Order(StringComparer.Ordinal).ToArray()); Images = images.AsReadOnly(); Warnings = Array.AsReadOnly(warnings.Order(StringComparer.Ordinal).ToArray()); }
         internal void RequireOpen() => ObjectDisposedException.ThrowIf(_disposed, this);
         public void Dispose()
         {

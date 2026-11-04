@@ -9,6 +9,7 @@ namespace Mediana.Documents.Pdf
     {
         private readonly List<IPdfDrawCommand> _commands = [];
         private readonly HashSet<string> _unsupported = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _warnings = new(StringComparer.Ordinal);
         private readonly List<PdfImage> _images = [];
         private readonly HashSet<PdfObject> _forms = [];
         private readonly Dictionary<(PdfObject Object, int Reduction), PdfImage> _decodedImages = [];
@@ -54,7 +55,7 @@ namespace Mediana.Documents.Pdf
             {
                 Execute(contents, page.Resources, 0);
             }
-            return new(page.Info, _commands, _unsupported, _images);
+            return new(page.Info, _commands, _unsupported, _images, _warnings);
         }
         private PdfValue Resolve(PdfValue value) => storage.Resolve(value, token);
         private PdfValue Get(PdfValue value, string key) => Resolve(value.Get(key));
