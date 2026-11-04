@@ -608,3 +608,34 @@ The [normative decision checks](../tests/Shared/H264CabacDecisionTestInput.cs)
 remain in both test projects. The unchanged decoder passes the full
 3,208-test managed suite, 729 hardware-disabled H.264 tests, a strict Native
 AOT decision consumer, Release build, formatting and license checks.
+
+## Checked-byte arithmetic register controls
+
+Two further controls retain the already validated suffix of the current
+input byte in the arithmetic register. One uses a variable scale and an
+explicit buffered-bit count; the other uses a fixed scale and a low-bit
+boundary marker. Both remove the bit-at-a-time normalization loop and read
+the next byte only when its first bit is required. They preserve the
+logical reader position after every bin and the partial range, offset and
+reader state when checked input rejects a damaged byte.
+
+Both pass the 245,504 normative decision cases, 32,768 exact interval
+decisions, 81,920 false terminations, all normalization shifts and byte
+phases, malformed-input and zero-allocation checks in managed,
+hardware-disabled and strict Native AOT execution. Each also passes all
+729 H.264 tests with hardware intrinsics enabled and disabled.
+
+Each control runs four complete 180.125-second operations in
+before/after/after/before order. Medians within each separate series are:
+
+| Register | CPU before/after, seconds | CPU change | Elapsed before/after, seconds | Peak RSS before/after, KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Variable scale | 48.045 / 47.095 | -1.98% | 70.254 / 59.704 | 74,698 / 74,012 |
+| Fixed scale and marker | 47.791 / 47.538 | -0.53% | 68.220 / 65.723 | 71,176 / 72,944 |
+
+Every operation produces the same 4,323 pictures and 5,976,115,200 raw
+bytes, rational timestamps, durations, EOF and released media storage.
+Neither control reaches the predefined 5% CPU reduction, so neither is
+adopted. Reverse-order, CAVLC and encoding extensions are not run. The
+accepted decoder and its external and complete HLS comparisons remain
+unchanged.
