@@ -1,5 +1,7 @@
 Complete comparisons of per-orientation and paired macroblock boundary
 calculations are recorded in [boundary classification](h264-boundary-controls.md).
+Complete fractional-filter coverage counts and cache capacity estimates are
+recorded in [interpolation reuse](h264-interpolation-reuse.md).
 
 At baseline `e96eb92`, complete High-profile CABAC decoding was measured separately from the existing
 [CAVLC stage comparison](h264-stage-performance.md). Mediana uses 34.345 CPU
