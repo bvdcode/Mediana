@@ -1,3 +1,6 @@
+Complete comparisons of per-orientation and paired macroblock boundary
+calculations are recorded in [boundary classification](h264-boundary-controls.md).
+
 At baseline `e96eb92`, complete High-profile CABAC decoding was measured separately from the existing
 [CAVLC stage comparison](h264-stage-performance.md). Mediana uses 34.345 CPU
 seconds versus FFmpeg's 5.204 seconds for this input, a 6.60x gap. Every decoded
