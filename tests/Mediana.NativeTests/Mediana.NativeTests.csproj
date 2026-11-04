@@ -272,6 +272,7 @@
     <Compile Include="../Shared/H264BidirectionalTestInput.cs" Link="H264BidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264BidirectionalDeblockingTestInput.cs" Link="H264BidirectionalDeblockingTestInput.cs" />
     <Compile Include="../Shared/H264DeblockingMotionTestInput.cs" Link="H264DeblockingMotionTestInput.cs" />
+    <Compile Include="../Shared/H264DeblockingMotionTestInput.Batches.cs" Link="H264DeblockingMotionTestInput.Batches.cs" />
     <Compile Include="../Shared/H264UniformContextTestInput.cs" Link="H264UniformContextTestInput.cs" />
     <Compile Include="../Shared/H264UniformRangeTestInput.cs" Link="H264UniformRangeTestInput.cs" />
     <Compile Include="../Shared/H264UniformPredictionTestInput.cs" Link="H264UniformPredictionTestInput.cs" />

@@ -6,7 +6,7 @@ using Mediana.Core.Memory;
 
 namespace Mediana.Tests
 {
-    internal static class H264DeblockingMotionTestInput
+    internal static partial class H264DeblockingMotionTestInput
     {
         public static void Verify()
         {
@@ -40,6 +40,7 @@ namespace Mediana.Tests
                     (0, 0, -4, 0), (0, 0, 0, 4), (16, 0, 0, 0),
                     (int.MinValue, 0, int.MaxValue, 0), (int.MaxValue, int.MinValue, 0, int.MaxValue)
                 ];
+                Span<byte> batch = stackalloc byte[8];
                 int checks = 0;
                 for (int captured = 0; captured < 2; captured++)
                 {
@@ -61,21 +62,57 @@ namespace Mediana.Tests
                                         foreach (int q1 in indices)
                                             foreach ((int X0, int Y0, int X1, int Y1) vector in vectors)
                                             {
-                                                Set(picture, previous, p0, p1, 0, 0, 16, 0);
-                                                Set(picture, current, q0, q1, vector.X0, vector.Y0, vector.X1, vector.Y1);
+                                                int batchX = vertical ? x : x / 16 * 16;
+                                                int batchY = vertical ? y / 16 * 16 : y;
+                                                for (int lane = 0; lane < 4; lane++)
+                                                {
+                                                    int q = picture.BlockIndex(0, batchX + (vertical ? 0 : lane * 4), batchY + (vertical ? lane * 4 : 0));
+                                                    Set(picture, q - (vertical ? 1 : 8), p0, p1, 0, 0, 16, 0);
+                                                    Set(picture, q, q0, q1, vector.X0, vector.Y0, vector.X1, vector.Y1);
+                                                }
+                                                batch.Fill(165);
                                                 IReadOnlyList<H264ReferencePicture?> qL0 = captured == 1 && address == 1 ? alternateL0 : l0;
                                                 IReadOnlyList<H264ReferencePicture?> qL1 = captured == 1 && address == 1 ? alternateL1 : l1;
                                                 IReadOnlyList<H264ReferencePicture?> pL0 = boundary == 1 ? l0 : qL0;
                                                 IReadOnlyList<H264ReferencePicture?> pL1 = boundary == 1 ? l1 : qL1;
                                                 int expected = Expected(p0, p1, q0, q1, pL0, pL1, qL0, qL1, vector);
+                                                int scalar;
+                                                try
+                                                {
+                                                    scalar = context.Strength(x, y, vertical, boundary == 1);
+                                                }
+                                                catch (InvalidDataException)
+                                                {
+                                                    scalar = -1;
+                                                }
+                                                if (scalar != expected)
+                                                {
+                                                    throw new InvalidDataException("Scalar physical-reference strength differs from its independent result.");
+                                                }
                                                 int actual;
                                                 try
                                                 {
-                                                    actual = context.Strength(x, y, vertical, boundary == 1);
+                                                    FillEdge(ref context, batchX, batchY, vertical, boundary == 1, batch.Slice(2, 4));
+                                                    actual = batch[2];
+                                                    for (int lane = 1; lane < 4; lane++)
+                                                    {
+                                                        if (batch[2 + lane] != actual)
+                                                        {
+                                                            throw new InvalidOperationException("Homogeneous boundary lanes differ.");
+                                                        }
+                                                    }
                                                 }
                                                 catch (InvalidDataException)
                                                 {
                                                     actual = -1;
+                                                }
+                                                if (batch[0] != 165 || batch[1] != 165 || batch[6] != 165 || batch[7] != 165)
+                                                {
+                                                    throw new InvalidOperationException("The boundary classifier overwrote its destination guards.");
+                                                }
+                                                if (actual == -1 && batch.Slice(2, 4).ContainsAnyExcept((byte)0))
+                                                {
+                                                    throw new InvalidOperationException("A homogeneous invalid edge wrote a completed segment.");
                                                 }
                                                 if (actual != expected)
                                                 {
@@ -86,6 +123,17 @@ namespace Mediana.Tests
                         }
                     }
                 }
+                VerifyMixed(picture, l0, l1, alternateL0, alternateL1, vectors);
+                using (H264Picture unidirectional = new(sequence, allocator, H264SliceKind.P))
+                {
+                    unidirectional.CaptureReferences(0, l0, []);
+                    unidirectional.CaptureReferences(1, alternateL0, []);
+                    unidirectional.CaptureReferences(2, l0, []);
+                    unidirectional.CaptureReferences(3, [null], []);
+                    VerifyMixed(unidirectional, l0, [], alternateL0, [], vectors);
+                }
+                picture.Counts(0).Clear();
+                picture.Transforms8x8.Clear();
                 int internalPosition = picture.BlockIndex(0, 4, 4);
                 Set(picture, internalPosition - 1, 0, -1, 0, 0, 0, 0);
                 Set(picture, internalPosition, 0, -1, 0, 0, 0, 0);
@@ -139,11 +187,14 @@ namespace Mediana.Tests
         {
             picture.Modes[position] = H264Picture.InterMode;
             picture.ReferenceIndices(H264ReferenceList.L0)[position] = l0 < 0 ? byte.MaxValue : (byte)l0;
-            picture.ReferenceIndices(H264ReferenceList.L1)[position] = l1 < 0 ? byte.MaxValue : (byte)l1;
             picture.MotionX(H264ReferenceList.L0)[position] = x0;
             picture.MotionY(H264ReferenceList.L0)[position] = y0;
-            picture.MotionX(H264ReferenceList.L1)[position] = x1;
-            picture.MotionY(H264ReferenceList.L1)[position] = y1;
+            if (picture.HasBidirectionalMotion)
+            {
+                picture.ReferenceIndices(H264ReferenceList.L1)[position] = l1 < 0 ? byte.MaxValue : (byte)l1;
+                picture.MotionX(H264ReferenceList.L1)[position] = x1;
+                picture.MotionY(H264ReferenceList.L1)[position] = y1;
+            }
         }
 
         private static int Expected(int p0, int p1, int q0, int q1,
