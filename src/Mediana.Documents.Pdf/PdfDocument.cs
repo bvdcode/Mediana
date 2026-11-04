@@ -10,10 +10,14 @@ namespace Mediana.Documents.Pdf
         private PdfStorage? _storage;
         private readonly object _sync = new();
         private readonly List<PdfPageSource> _pages = [];
+        private static readonly IReadOnlyList<string> SignedContentWarnings = Array.AsReadOnly(new[] { "CMS signature verification was not performed." });
+        /// <summary>Diagnostics about the input envelope; signature authenticity is not evaluated.</summary>
+        public IReadOnlyList<string> Warnings { get; }
         public int PageCount => _pages.Count;
-        internal PdfDocument(PdfStorage storage, CancellationToken token)
+        internal PdfDocument(PdfStorage storage, CancellationToken token, bool signedContent)
         {
             _storage = storage;
+            Warnings = signedContent ? SignedContentWarnings : Array.Empty<string>();
             PdfValue catalog = storage.Resolve(storage.Trailer.Get("Root"), token);
             if (catalog.Get("Type").Name() != "Catalog") { throw new InvalidDataException("Missing PDF catalog."); }
             if (catalog.Get("OCProperties").Kind != PdfValueKind.Null) { throw new NotSupportedException("PDF optional-content configurations are not supported."); }

@@ -13,9 +13,9 @@ namespace Mediana.Documents.Pdf
     public class PdfImageDecoder(PdfReaderOptions? readerOptions = null, PdfRenderOptions? renderOptions = null) : IImageDecoder, IImageInfoReader
     {
         public string ImplementationId => "pdf.managed.image";
-        public int ProbeLength => 5;
+        public int ProbeLength => 32;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.Pages;
-        public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.StartsWith("%PDF-"u8);
+        public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.StartsWith("%PDF-"u8) || CmsPdfContent.IsSignedDataPrefix(prefix);
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {
@@ -36,6 +36,10 @@ namespace Mediana.Documents.Pdf
             request.Validate(Features);
             using PdfDocument document = PdfReader.ReadBorrowed(encoded, readerOptions, cancellationToken);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(request.PageIndex, document.PageCount, nameof(request.PageIndex));
+            foreach (string warning in document.Warnings)
+            {
+                request.WarningHandler?.Invoke(warning);
+            }
             using PixelBuffer pixels = PdfRenderer.Render(document, request.PageIndex + 1, renderOptions, cancellationToken, allocator);
             return ValueTask.FromResult(pixels.PublishVideoFrame(cancellationToken));
         }

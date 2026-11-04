@@ -18,7 +18,7 @@ namespace Mediana.Documents.Pdf
             ArgumentNullException.ThrowIfNull(input);
             options ??= new(); Validate(options);
             byte[] data = await BoundedStreamReader.ReadAsync(input, options.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
-            return new(new PdfStorage(data, options, cancellationToken), cancellationToken);
+            return Create(data, options, cancellationToken);
         }
         /// <summary>The caller keeps input valid until the document and its parsing operations are disposed.</summary>
         internal static PdfDocument ReadBorrowed(ReadOnlyMemory<byte> input, PdfReaderOptions? options, CancellationToken cancellationToken)
@@ -30,7 +30,13 @@ namespace Mediana.Documents.Pdf
             {
                 throw new InvalidDataException("PDF encoded input exceeds its byte limit.");
             }
-            return new(new PdfStorage(input, options, cancellationToken), cancellationToken);
+            return Create(input, options, cancellationToken);
+        }
+
+        private static PdfDocument Create(ReadOnlyMemory<byte> input, PdfReaderOptions options, CancellationToken token)
+        {
+            ReadOnlyMemory<byte> content = CmsPdfContent.Unwrap(input, options, token, out bool signedContent);
+            return new(new PdfStorage(content, options, token), token, signedContent);
         }
 
         private static void Validate(PdfReaderOptions options)

@@ -10,6 +10,7 @@ namespace Mediana.NativeTests
         internal static async Task RunAsync()
         {
             string root = Path.Combine(AppContext.BaseDirectory, "Data");
+            await PdfCmsTestInput.VerifyAsync();
             await PdfType3TestInput.VerifyPaintingAsync();
             await PdfScaledImageTestInput.VerifyBudgetsAsync(Path.Combine(root, "Jpeg"));
             await PdfScaledImageTestInput.VerifyMultiplePlacementsAsync(Path.Combine(root, "Jpeg"));
