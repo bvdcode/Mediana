@@ -160,6 +160,50 @@ which represents complete AAC frames. The
 requires a common VOD media range; these playback results do not establish that
 requirement for the current prepared presentation.
 
+### Finite fMP4 edit control
+
+A separate reference-muxed fMP4 control isolates edit-list handling using all
+564 original AAC access units from the prepared audio. Every coded payload is
+verified unchanged. Each initialization contains the AAC-LC configuration;
+fragment sample times, durations and payloads remain equal across the cases.
+The edit uses media rate one and a 1,024-sample media offset. The finite case
+also declares a 12-second movie and track duration.
+
+| Initialization | Independently decoded samples per channel | Chrome MSE duration, s |
+| --- | ---: | ---: |
+| No presentation offset | 577,536 | 12.031999 |
+| Offset, unbounded edit | 576,512 | 12.010666 |
+| Offset, 12-second edit | 576,512 | 12.010666 |
+
+Chrome 156 on Linux appends each complete file through MSE and plays it to EOF
+at normal speed without a media error. The finite edit's buffered end remains
+12.010666 seconds. Both edited files decode to identical Float32 PCM, equal
+to the unedited decode after its first 1,024 samples. They retain 512 padding
+samples beyond the selected 576,000 input samples per channel.
+
+This control rules out a finite edit alone as the padding-removal mechanism
+for the tested MSE path. The
+[W3C ISO BMFF byte-stream requirements](https://www.w3.org/TR/mse-byte-stream-format-isobmff/#initialization-segments)
+describe edit-list handling for the composition-to-presentation offset;
+browser trimming of the final AAC padding still needs a supported mechanism.
+
+### Application-controlled MSE append window
+
+Appending the identical finite-edit file with `SourceBuffer.appendWindowEnd`
+set to 12 seconds produces a buffered range of `[0, 12]` in Chrome 156 on Linux.
+Both the reported duration and buffered end remain 12 seconds after
+`endOfStream()`. Normal-speed muted playback reaches EOF at exactly 12 seconds
+without a media error. Without the append window, the same file ends at
+12.010666 seconds as shown above.
+
+This establishes the presentation boundary for the tested application-controlled
+MSE path. The [MSE coded-frame processing specification](https://www.w3.org/TR/media-source-2/#sourcebuffer-coded-frame-processing)
+permits partial audio-frame trimming at an append-window boundary but makes that
+behavior optional. Sample-exact browser PCM, listening quality, prepared HLS
+master integration and other players remain unverified by this control.
+
+### Video playback counters
+
 The browser also reports substantial dropped video frames:
 
 | Playback conditions | Reported total frames | Reported dropped frames |
