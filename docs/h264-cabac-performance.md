@@ -534,3 +534,42 @@ The retained motion-lookup checks pass against the accepted decoder in the
 full 3,206-test managed suite, the 727-test hardware-disabled H.264 suite,
 and a strict Native AOT consumer. Release builds have no warnings or errors;
 license-header and formatting checks pass.
+
+## Macroblock motion and coded residual region controls
+
+Two further controls use the same complete 180.125-second High/CABAC input:
+4,323 pictures from a minute scene repeated three times with continuous
+timestamps. Each first series runs before/after/after/before, one decoder
+thread on one processor, with unchanged compilation settings.
+
+The motion control borrows the existing mutable metadata once per list and
+macroblock, carrying it through prediction and immediate partition writes.
+It preserves full Int32 vectors, live slice boundaries and reference-index
+visibility. Independent read/write cases, direct prediction, 727 managed
+H.264 tests, 727 hardware-disabled tests and strict Native AOT checks pass.
+
+The residual control reconstructs each absent coded 8x8 luma region once
+instead of visiting its four 4x4 blocks separately. Present regions retain
+the original entropy order. All 22,464 independent cases, the same H.264
+test suites and strict Native AOT checks pass.
+
+| Control | CPU before, seconds | CPU after, seconds | CPU change | Peak RSS before/after, KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Macroblock motion access | 47.034 | 45.618 | -3.01% | 74,688 / 73,792 |
+| Coded residual regions | 47.671 | 47.029 | -1.35% | 73,324 / 72,400 |
+
+These are medians within each separate series. Median elapsed changes from
+53.972 to 54.411 seconds and from 63.275 to 69.850 seconds, respectively.
+All four outputs in each series have identical 5,976,115,200 decoded bytes,
+rational timestamps, durations, EOF and released media storage. Neither
+control reaches the predefined 5% CPU reduction, so neither is adopted.
+Reverse-order, CAVLC and encoding extensions are not run. These controls
+provide no new comparison with FFmpeg or complete HLS processing.
+
+The retained [residual checks](../tests/Shared/H264ResidualRegionTestInput.cs)
+cover all 16 luma masks, 52 quantizers, nine macroblock positions and three
+zero/DC/mixed coefficient patterns. They verify pixels, input consumption,
+completed neighbor metadata, unchanged prediction and adjacent storage,
+and media release. The decoder algorithm remains unchanged. The full
+3,207-test managed suite, 728 hardware-disabled H.264 tests, strict Native
+AOT residual consumer, Release build, formatting and license checks pass.
