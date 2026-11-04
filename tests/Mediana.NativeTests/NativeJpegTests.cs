@@ -22,6 +22,10 @@ namespace Mediana.NativeTests
             JpegComponentTestInput.VerifyOwnership();
             JpegComponentTestInput.VerifyMetadata();
             JpegComponentTestInput.VerifyFailures();
+            await JpegReducedTestInput.VerifyReferencesAsync(Path.Combine(root, "Jpeg"));
+            JpegReducedTestInput.VerifyBudgets();
+            await JpegReducedTestInput.VerifySamplingAsync(Path.Combine(root, "Jpeg"));
+            await JpegReducedTestInput.VerifyFailuresAsync(Path.Combine(root, "Jpeg"));
             string exif = Path.Combine(root, "JpegExif");
             await JpegExifTestInput.VerifyCorpusAsync(exif);
             await JpegExifTestInput.VerifyFailuresAsync(exif);

@@ -45,14 +45,15 @@ namespace Mediana.Codecs.Jpeg
 
         internal void Reconstruct(JpegComponent component, int[] quantization, MediaBufferAllocator allocator, CancellationToken token)
         {
-            component.Samples = allocator.Allocate(checked(component.Stride * component.PaddedHeight));
+            component.Samples = allocator.Allocate(checked(component.SampleStride * component.SamplePaddedHeight));
             for (int y = 0; y < component.PaddedHeight / 8; y++)
             {
                 token.ThrowIfCancellationRequested();
                 for (int x = 0; x < component.Stride / 8; x++)
                 {
-                    Span<byte> output = component.Samples.Memory.Span[(y * 8 * component.Stride + x * 8)..];
-                    JpegInverseTransform.Write(Block(x, y, component.Stride), quantization, output, component.Stride);
+                    int size = 8 / component.Reduction;
+                    Span<byte> output = component.Samples.Memory.Span[(y * size * component.SampleStride + x * size)..];
+                    JpegReducedTransform.Write(Block(x, y, component.Stride), quantization, output, component.SampleStride, component.Reduction);
                 }
             }
             Dispose();

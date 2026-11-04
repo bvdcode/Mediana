@@ -12,12 +12,18 @@ namespace Mediana.Codecs.Jpeg
         internal JpegImage(JpegDocument image)
         {
             AdobeColorTransform = image.Metadata.AdobeColorTransform;
+            EncodedWidth = image.Width;
+            EncodedHeight = image.Height;
             samples = image.TakeSamples();
         }
 
         public int Width => samples.Width;
         public int Height => samples.Height;
         public int ComponentCount => samples.Components.Count;
+        /// <summary>Width declared in the encoded JPEG frame, before reduction.</summary>
+        public int EncodedWidth { get; }
+        /// <summary>Height declared in the encoded JPEG frame, before reduction.</summary>
+        public int EncodedHeight { get; }
         /// <summary>Original APP14 transform code: 0 (none), 1 (YCbCr), 2 (YCCK), or null when absent.</summary>
         public int? AdobeColorTransform { get; }
 
