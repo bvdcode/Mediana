@@ -8,19 +8,40 @@ namespace Mediana.Documents.Pdf
         private void PageGroup(PdfValue group)
         {
             if (group.Kind == PdfValueKind.Null) { return; }
-            if (group.Kind != PdfValueKind.Dictionary) { throw new InvalidDataException("PDF page Group requires a dictionary."); }
-            if (Get(group, "S").Text != "Transparency") { _unsupported.Add("Unknown page group subtype"); return; }
+            if (!TransparencyGroup(group)) { return; }
             PdfValue colorSpace = Get(group, "CS");
             if (colorSpace.Kind != PdfValueKind.Null && (colorSpace.Kind != PdfValueKind.Name || colorSpace.Text != "DeviceRGB"))
             {
                 _unsupported.Add("Page group blending color space");
             }
-            PdfValue isolated = Get(group, "I"), knockout = Get(group, "K");
-            if (isolated.Kind is not (PdfValueKind.Null or PdfValueKind.Boolean) || knockout.Kind is not (PdfValueKind.Null or PdfValueKind.Boolean))
+            _ = GroupFlag(group, "I");
+            if (GroupFlag(group, "K")) { _unsupported.Add("Knockout page group"); }
+        }
+
+        private void FormGroup(PdfValue group)
+        {
+            if (group.Kind == PdfValueKind.Null || !TransparencyGroup(group)) { return; }
+            bool isolated = GroupFlag(group, "I"), knockout = GroupFlag(group, "K");
+            if (isolated || knockout || _state.FillAlpha != 1 || _state.StrokeAlpha != 1
+                || _state.Blend != Mediana.Drawing.ColorBlendMode.Normal)
             {
-                throw new InvalidDataException("PDF page group flags require booleans.");
+                _unsupported.Add("Form transparency group requiring separate composition");
             }
-            if (knockout.Number != 0) { _unsupported.Add("Knockout page group"); }
+        }
+
+        private bool TransparencyGroup(PdfValue group)
+        {
+            if (group.Kind != PdfValueKind.Dictionary) { throw new InvalidDataException("PDF Group requires a dictionary."); }
+            if (Get(group, "S").Name() == "Transparency") { return true; }
+            _unsupported.Add("Unknown transparency group subtype");
+            return false;
+        }
+
+        private bool GroupFlag(PdfValue group, string key)
+        {
+            PdfValue value = Get(group, key);
+            if (value.Kind is not (PdfValueKind.Null or PdfValueKind.Boolean)) { throw new InvalidDataException("PDF group flags require booleans."); }
+            return value.Number != 0;
         }
     }
 }

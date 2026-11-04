@@ -47,7 +47,7 @@ namespace Mediana.Documents.Pdf
             _pageResources = page.Resources;
             PdfValue annotations = Get(page.Dictionary, "Annots");
             if (annotations.Kind is not (PdfValueKind.Null or PdfValueKind.Array)) { throw new InvalidDataException("PDF annotations must be an array."); }
-            if (annotations.Items.Length > 0) { _unsupported.Add("Annotation appearance streams"); }
+            Annotations(annotations.Items);
             PageGroup(Get(page.Dictionary, "Group"));
             ReadOnlyMemory<byte> contents = PdfPageContents.Read(storage, page.Dictionary.Get("Contents"), token);
             if (!contents.IsEmpty)
@@ -241,7 +241,7 @@ namespace Mediana.Documents.Pdf
                 if (!_forms.Add(obj)) { throw new InvalidDataException("Recursive PDF Form XObject."); }
                 try
                 {
-                    if (obj.Value.Get("Group").Kind != PdfValueKind.Null) { _unsupported.Add("Form transparency groups"); }
+                    FormGroup(Get(obj.Value, "Group"));
                     if (obj.Value.Get("OC").Kind != PdfValueKind.Null) { _unsupported.Add("Form optional content"); }
                     Matrix3x2 transform = _state.Transform;
                     if (obj.Value.Get("Matrix").Kind != PdfValueKind.Null) { transform = Matrix(obj.Value.Get("Matrix")) * transform; }

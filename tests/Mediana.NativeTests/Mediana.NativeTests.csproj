@@ -157,6 +157,7 @@
     <Compile Include="../Shared/PdfInvisibleTextTestInput.cs" Link="PdfInvisibleTextTestInput.cs" />
     <Compile Include="../Shared/PdfPageGroupTestInput.cs" Link="PdfPageGroupTestInput.cs" />
     <Compile Include="../Shared/CffOutlineTestInput.cs" Link="CffOutlineTestInput.cs" />
+    <Compile Include="../Shared/PdfNonPaintingAnnotationTestInput.cs" Link="PdfNonPaintingAnnotationTestInput.cs" />
     <Compile Include="../Shared/TgsKeyframeOrderTestInput.cs" Link="TgsKeyframeOrderTestInput.cs" />
     <Compile Include="../Shared/TgsEffectTestInput.cs" Link="TgsEffectTestInput.cs" />
     <Compile Include="../Shared/TgsLayerReferenceTestInput.cs" Link="TgsLayerReferenceTestInput.cs" />

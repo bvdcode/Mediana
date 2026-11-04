@@ -19,6 +19,8 @@ namespace Mediana.NativeTests
             await PdfPageGroupTestInput.VerifyAsync();
             CffOutlineTestInput.VerifyPaths();
             CffOutlineTestInput.VerifyRejected();
+            await PdfNonPaintingAnnotationTestInput.VerifyAsync();
+            await PdfNonPaintingAnnotationTestInput.VerifyFormAsync();
             FontGlyphTestInput.VerifyRejectedAllocation();
             FontGlyphTestInput.VerifyTruncatedGlyphs();
             FontGlyphTestInput.VerifyValidOutlines();
