@@ -51,7 +51,7 @@ namespace Mediana.Documents.Pdf
             {
                 using PixelBuffer? supersampled = samples == 1 ? null : new(width * samples, height * samples);
                 PixelBuffer image = supersampled ?? output;
-                image.Clear(options.Background);
+                image.Clear(default);
                 RasterCanvas canvas = new(image);
                 Matrix3x2 transform = new((float)(scale * samples), 0, 0, (float)(-scale * samples), 0, (float)(page.Height * scale * samples));
                 foreach (IPdfDrawCommand command in page.Commands)
@@ -60,6 +60,7 @@ namespace Mediana.Documents.Pdf
                     command.Draw(canvas, transform, cancellationToken);
                 }
 
+                image.CompositeBackground(options.Background, cancellationToken);
                 supersampled?.DownsampleTo(output, samples, cancellationToken);
                 completed = true;
                 return output;

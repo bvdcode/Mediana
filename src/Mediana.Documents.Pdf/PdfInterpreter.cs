@@ -48,7 +48,7 @@ namespace Mediana.Documents.Pdf
             PdfValue annotations = Get(page.Dictionary, "Annots");
             if (annotations.Kind is not (PdfValueKind.Null or PdfValueKind.Array)) { throw new InvalidDataException("PDF annotations must be an array."); }
             if (annotations.Items.Length > 0) { _unsupported.Add("Annotation appearance streams"); }
-            if (page.Dictionary.Get("Group").Kind != PdfValueKind.Null) { _unsupported.Add("Page transparency groups"); }
+            PageGroup(Get(page.Dictionary, "Group"));
             ReadOnlyMemory<byte> contents = PdfPageContents.Read(storage, page.Dictionary.Get("Contents"), token);
             if (!contents.IsEmpty)
             {
