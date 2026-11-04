@@ -101,8 +101,8 @@ namespace Mediana.Images.Tgs
 
             TgsFeatureCheck check = new(options, token);
             string[] features = check.Check(root);
-            string[] warnings = check.RequiresKeyframeOrdering ? ["Lottie keyframes reordered by time."] : [];
-            JsonElement owned = check.RequiresKeyframeOrdering ? TgsKeyframeOrder.Restore(root, token) : root.Clone();
+            string[] warnings = check.Diagnostics;
+            JsonElement owned = check.RequiresKeyframeOrdering ? TgsKeyframeOrder.Restore(root, options, token) : root.Clone();
             return new TgsDocument(owned, options, features, warnings);
         }
 

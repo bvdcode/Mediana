@@ -10,35 +10,36 @@ namespace Mediana.Images.Tgs
 {
     internal static class TgsKeyframeOrder
     {
-        internal static JsonElement Restore(JsonElement root, CancellationToken token)
+        internal static JsonElement Restore(JsonElement root, TgsReaderOptions options, CancellationToken token)
         {
             ArrayBufferWriter<byte> buffer = new();
             using (Utf8JsonWriter writer = new(buffer))
             {
-                Write(root, writer, token);
+                Write(root, writer, options, token);
             }
 
             using JsonDocument document = JsonDocument.Parse(buffer.WrittenMemory);
             return document.RootElement.Clone();
         }
 
-        private static void Write(JsonElement element, Utf8JsonWriter writer, CancellationToken token)
+        private static void Write(JsonElement element, Utf8JsonWriter writer, TgsReaderOptions options, CancellationToken token, bool validate = true, bool effect = false)
         {
             token.ThrowIfCancellationRequested();
             switch (element.ValueKind)
             {
                 case JsonValueKind.Object:
+                    validate = validate && !(effect && TgsEffectInfo.IsIgnored(element, options));
                     writer.WriteStartObject();
                     foreach (JsonProperty property in element.EnumerateObject())
                     {
                         writer.WritePropertyName(property.Name);
-                        Write(property.Value, writer, token);
+                        Write(property.Value, writer, options, token, validate, property.Name == "ef");
                     }
                     writer.WriteEndObject();
                     break;
                 case JsonValueKind.Array:
                     writer.WriteStartArray();
-                    bool keys = element.GetArrayLength() > 0 && TgsJson.Get(element[0], "ty").ValueKind == JsonValueKind.Undefined
+                    bool keys = validate && element.GetArrayLength() > 0 && TgsJson.Get(element[0], "ty").ValueKind == JsonValueKind.Undefined
                         && TgsJson.Get(element[0], "t").ValueKind == JsonValueKind.Number;
                     IEnumerable<JsonElement> values = element.EnumerateArray();
                     if (keys)
@@ -47,7 +48,7 @@ namespace Mediana.Images.Tgs
                     }
                     foreach (JsonElement child in values)
                     {
-                        Write(child, writer, token);
+                        Write(child, writer, options, token, validate, effect);
                     }
                     writer.WriteEndArray();
                     break;

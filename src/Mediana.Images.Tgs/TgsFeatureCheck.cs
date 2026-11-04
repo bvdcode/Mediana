@@ -17,6 +17,8 @@ namespace Mediana.Images.Tgs
         private readonly TgsReaderOptions _limits;
         private readonly CancellationToken _token;
         private readonly HashSet<string> _warnings = new();
+        private readonly HashSet<string> _diagnostics = new(StringComparer.Ordinal);
+        internal string[] Diagnostics => _diagnostics.Concat(RequiresKeyframeOrdering ? ["Lottie keyframes reordered by time."] : Array.Empty<string>()).Order().ToArray();
         private int _items;
         internal bool RequiresKeyframeOrdering { get; private set; }
         internal TgsFeatureCheck(TgsReaderOptions limits, CancellationToken token)
@@ -31,7 +33,7 @@ namespace Mediana.Images.Tgs
             return _warnings.Order().ToArray();
         }
 
-        private void Visit(JsonElement e, bool layer = false, bool visible = true)
+        private void Visit(JsonElement e, bool layer = false, bool visible = true, bool validate = true, bool effect = false)
         {
             _token.ThrowIfCancellationRequested();
             if (++_items > _limits.MaximumItems)
@@ -42,27 +44,38 @@ namespace Mediana.Images.Tgs
             switch (e.ValueKind)
             {
                 case JsonValueKind.Object:
-                    if (TgsJson.Get(e, "x").ValueKind == JsonValueKind.String)
+                    if (effect && TgsEffectInfo.IsIgnored(e, _limits))
                     {
-                        throw new NotSupportedException("Lottie expressions are not supported.");
+                        if (visible && TgsJson.Number(e, "en", 1) != 0 && !TgsEffectInfo.IsIdentity(e))
+                        {
+                            _diagnostics.Add("Lottie Puppet deformation was omitted.");
+                        }
+                        validate = false;
+                    }
+                    if (validate)
+                    {
+                        CheckExpression(e);
                     }
                     visible = visible && !(layer && TgsJson.Flag(e, "hd")) && !TgsEffectInfo.IsParameterGroup(e);
-                    if (visible)
+                    if (visible && validate)
                     {
                         Features(e, layer);
                     }
 
                     foreach (JsonProperty property in e.EnumerateObject())
                     {
-                        Visit(property.Value, property.Name == "layers", visible);
+                        Visit(property.Value, property.Name == "layers", visible, validate, property.Name == "ef");
                     }
 
                     break;
                 case JsonValueKind.Array:
-                    ValidateKeys(e);
+                    if (validate)
+                    {
+                        ValidateKeys(e);
+                    }
                     foreach (JsonElement child in e.EnumerateArray())
                     {
-                        Visit(child, layer, visible);
+                        Visit(child, layer, visible, validate, effect);
                     }
 
                     break;
@@ -70,6 +83,23 @@ namespace Mediana.Images.Tgs
                     TgsJson.Number(e);
                     break;
             }
+        }
+
+        private void CheckExpression(JsonElement property)
+        {
+            if (TgsJson.Get(property, "x").ValueKind != JsonValueKind.String)
+            {
+                return;
+            }
+            if (!_limits.IgnoreExpressions)
+            {
+                throw new NotSupportedException("Lottie expressions are not supported.");
+            }
+            if (TgsJson.Get(property, "k").ValueKind is not (JsonValueKind.Number or JsonValueKind.Array or JsonValueKind.Object))
+            {
+                throw new InvalidDataException("A Lottie expression property must have a stored value or keyframes.");
+            }
+            _diagnostics.Add("Lottie expressions were not evaluated; stored property values and keyframes were used.");
         }
 
         private void ValidateKeys(JsonElement array)
@@ -160,7 +190,7 @@ namespace Mediana.Images.Tgs
                     continue;
                 }
 
-                if (TgsEffectInfo.IsParameterGroup(effect) || TgsEffectInfo.IsIdentity(effect) || TgsEffectInfo.IsRoughenEdges(effect) || TgsEffectInfo.IsInvert(effect))
+                if (TgsEffectInfo.IsIgnored(effect, _limits) || TgsEffectInfo.IsParameterGroup(effect) || TgsEffectInfo.IsIdentity(effect) || TgsEffectInfo.IsRoughenEdges(effect) || TgsEffectInfo.IsInvert(effect))
                 {
                     continue;
                 }

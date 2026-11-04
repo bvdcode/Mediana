@@ -13,6 +13,7 @@ namespace Mediana.NativeTests
             TgsStrokeTestInput.VerifyZeroPatterns();
             TgsStrokeTestInput.VerifyAnimatedZeroDash();
             TgsKeyframeOrderTestInput.Verify();
+            TgsStoredValuesTestInput.Verify();
             TgsEffectTestInput.VerifyParameterGroups();
             TgsEffectTestInput.VerifyInvert();
             TgsLayerReferenceTestInput.VerifyUnreferencedDuplicates();

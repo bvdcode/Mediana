@@ -10,6 +10,8 @@ namespace Mediana.Images.Tgs
 {
     internal static class TgsEffectInfo
     {
+        internal static bool IsPuppet(JsonElement effect) => Type(effect) == 34 && TgsJson.Text(effect, "mn") == "ADBE FreePin3";
+        internal static bool IsIgnored(JsonElement effect, TgsReaderOptions options) => options.IgnorePuppetEffects && IsPuppet(effect);
         internal static bool IsRoughenEdges(JsonElement effect) => TgsJson.Text(effect, "mn") == "ADBE Roughen Edges";
         internal static bool IsInvert(JsonElement effect) => TgsJson.Text(effect, "mn") == "ADBE Invert";
         internal static int Type(JsonElement effect) => TgsJson.Text(effect, "mn") switch

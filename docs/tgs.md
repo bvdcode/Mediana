@@ -25,8 +25,15 @@ or elapsed time. Features include 2D shapes, keyframes, transforms, gradients,
 precompositions, repeaters, merge/round/offset paths, trim paths, masks, mattes,
 blend modes and supported effects.
 
-Programmatic expressions are explicitly rejected. They are not silently replaced
-with saved property values. Text/image/external-asset layers, 3D scenes, property
+The default reader rejects programmatic expressions and the default renderer
+rejects unsupported visual effects. `TgsReaderOptions.IgnoreExpressions` explicitly
+uses stored property values and keyframes without executing expression code;
+properties without stored values remain errors. `IgnorePuppetEffects` explicitly
+omits named `ADBE FreePin3` Puppet deformation. Both options default to false and
+report their omissions through `TgsDocument.Warnings` and decoded-frame warnings.
+Invalid keyframe times inside omitted Puppet data are not interpreted or repaired;
+all input size, nesting, item-count and finite-number checks still apply.
+Text/image/external-asset layers, 3D scenes, property
 slots and unsupported effects remain outside the implemented subset. Reader and
 renderer limits bound compressed/decompressed input, scene items, nesting,
 paths, samples and effect buffers; these are not a hard process-memory limit.
