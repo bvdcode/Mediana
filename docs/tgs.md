@@ -31,6 +31,8 @@ uses stored property values and keyframes without executing expression code;
 properties without stored values remain errors. `IgnorePuppetEffects` explicitly
 omits named `ADBE FreePin3` Puppet deformation. Both options default to false and
 report their omissions through `TgsDocument.Warnings` and decoded-frame warnings.
+The CLI enables both options for ordinary image conversion and `image tgs`,
+logging one warning for each kind of omission present in the input.
 Invalid keyframe times inside omitted Puppet data are not interpreted or repaired;
 all input size, nesting, item-count and finite-number checks still apply.
 Text/image/external-asset layers, 3D scenes, property
@@ -43,7 +45,7 @@ RGB allows one 8-bit code of rounding difference; alpha must match exactly.
 Compressed pixel references are verified against the original stored hashes.
 On Linux x64, ordinary .NET matches all original hashes; Native AOT differs in
 four RGB channels across two pixels, each by one code. Four expression-bearing
-compositions are rejection cases. Three
+compositions are rejection cases for the default reader. Three
 original synthetic animations also produce equal output from JSON and gzip at
 four positions each. Timing, frame limits, cancellation and malformed input
 bounds are checked separately. The hashes are renderer regression references,

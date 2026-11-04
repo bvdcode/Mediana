@@ -6,9 +6,9 @@ using System.Diagnostics;
 namespace Mediana.Tests
 {
     [Collection("CommandLine")]
-    public class CliRestartTests : IDisposable
+    public class CliImageWarningTests : IDisposable
     {
-        private readonly string directory = Directory.CreateTempSubdirectory("mediana-restart-").FullName;
+        private readonly string directory = Directory.CreateTempSubdirectory("mediana-image-warnings-").FullName;
 
         [Theory]
         [InlineData("convert")]
@@ -59,6 +59,30 @@ namespace Mediana.Tests
             Assert.Equal(4, code);
             Assert.DoesNotContain(JpegRestartTestInput.Warning, text + error, StringComparison.Ordinal);
             Assert.Equal(original, await File.ReadAllBytesAsync(output));
+        }
+
+        [Theory]
+        [InlineData("convert")]
+        [InlineData("tgs")]
+        public async Task LottieStoredValuesProducePngAndOneWarningPerOmission(string operation)
+        {
+            string input = Path.Combine(directory, "input.bin");
+            string output = Path.Combine(directory, "output.png");
+            await File.WriteAllBytesAsync(input, TgsStoredValuesTestInput.Encoded);
+            string[] arguments = operation switch
+            {
+                "convert" => ["-i", input, output],
+                "tgs" => ["image", "tgs", input, output],
+                _ => throw new ArgumentOutOfRangeException(nameof(operation))
+            };
+            (int code, string text, string error) = await RunAsync(arguments);
+            Assert.True(code == 0, text + error);
+            foreach (string warning in new[] { TgsStoredValuesTestInput.PuppetWarning, TgsStoredValuesTestInput.ExpressionWarning })
+            {
+                Assert.Equal(1, (text + error).Split(warning, StringSplitOptions.None).Length - 1);
+            }
+            byte[] png = await File.ReadAllBytesAsync(output);
+            Assert.True(png.AsSpan().StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }));
         }
 
         private static async Task<(int Code, string Output, string Error)> RunAsync(string[] arguments)

@@ -23,7 +23,7 @@ namespace Mediana.Cli
 
         internal static MediaEngineBuilder AddDecoders(MediaEngineBuilder builder) => AddStillImageDecoders(builder)
             .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
-            .AddImageDecoder(new TgsImageDecoder())
+            .AddImageDecoder(CreateTgs())
             .AddImageDecoder(new PdfImageDecoder(renderOptions: new()
             {
                 MaximumWidth = MaximumDocumentPreviewDimension,
@@ -36,6 +36,12 @@ namespace Mediana.Cli
             .AddImageDecoder(CreateHeic(SampleAspectRatio.Square))
             .AddImageDecoder(CreateJpeg2000(SampleAspectRatio.Square))
             .AddImageDecoder(new SvgImageDecoder());
+
+        public static TgsImageDecoder CreateTgs(int? width = null) => new(new()
+        {
+            IgnorePuppetEffects = true,
+            IgnoreExpressions = true
+        }, new() { Width = width });
 
         public static HeicImageDecoder CreateHeic(SampleAspectRatio aspect) => new(aspect,
             new HeicDecodeOptions(maxInputBytes: MaximumInputBytes, maxPixels: MaximumPixels));
