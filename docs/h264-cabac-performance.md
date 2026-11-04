@@ -456,3 +456,40 @@ validation semantics, not proof that one replacement removes the whole gap.
 The comparison uses the
 [FFmpeg strength calculation](https://github.com/FFmpeg/FFmpeg/blob/n6.1.1/libavcodec/x86/h264_deblock.asm)
 and [DSP selection](https://github.com/FFmpeg/FFmpeg/blob/n6.1.1/libavcodec/x86/h264dsp_init.c).
+
+## Four-segment packed boundary calculation control
+
+A separate control computes mode, residual and motion comparisons for four
+segments together. It retains physical picture identity, duplicate reference
+indices, L0/L1 exchanges, uniform-prediction validation and sequential error
+handling. Motion components retain their full Int32 range: packed subtraction
+checks signed overflow before accepting a difference from -3 through 3.
+There is no new media buffer, persistent cache, worker or compiler ISA override.
+
+Independent widened scalar arithmetic agrees on 7,079,332 motion lanes in
+managed, hardware-disabled and strict Native AOT execution. The same modes
+pass 264,192 topology patterns, physical-reference and mixed-edge controls,
+31,248 uniform/mutation cases and 1,920 range/partial-write cases. All 726
+H.264 tests pass with hardware intrinsics enabled and disabled. Disassembly
+confirms packed motion instructions in the actual Native AOT consumer.
+
+Eight complete 180.125-second operations produce the same 4,323 pictures and
+5,976,115,200 output bytes, every rational timestamp and duration, EOF and
+released media storage. Medians are:
+
+| Order | Current CPU, s | Packed CPU, s | CPU change | Current elapsed, s | Packed elapsed, s | Current RSS, KiB | Packed RSS, KiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Current, packed, packed, current | 48.432 | 45.794 | -5.45% | 71.368 | 63.786 | 71,970 | 82,944 |
+| Packed, current, current, packed | 47.449 | 49.680 | +4.70% | 74.611 | 70.871 | 71,912 | 75,210 |
+
+The reverse order does not reproduce the required 5% CPU reduction, and peak
+RSS increases. The control is not adopted. CAVLC and encoding extensions are
+not run, and the external decoder comparison remains unchanged.
+
+One further complete diagnostic operation matches every output check. Its
+45,646 PC samples end 0.000239 seconds before exit; the collector timer-change
+warning is retained. Deblocking includes 9.431 sampled seconds, grouped
+strength filling 5.731, and packed motion arithmetic 0.395. These overlapping
+sample estimates help inspect the calculation but do not override the failed
+ordinary-run control or establish sustained acceleration. GC allocation
+includes 0.580 sampled seconds and collection 0.073.
