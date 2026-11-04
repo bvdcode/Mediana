@@ -493,3 +493,44 @@ strength filling 5.731, and packed motion arithmetic 0.395. These overlapping
 sample estimates help inspect the calculation but do not override the failed
 ordinary-run control or establish sustained acceleration. GC allocation
 includes 0.580 sampled seconds and collection 0.073.
+
+## Complete-operation repeatability and motion lookup control
+
+Eight complete decodes execute the same accepted Native AOT binary under
+labels A and B, in ABBA and BAAB order. The 180.125-second input repeats the
+same minute scene three times. Every operation produces the same 4,323
+pictures and 5,976,115,200 raw bytes, with exact rational timestamps,
+durations, EOF and released media storage.
+
+The sham CPU differences between label medians are +1.17% and -1.75%.
+Individual CPU times range from 46.434 to 49.139 seconds; their sample
+coefficient of variation is 2.03%. These observations describe this batch;
+they establish neither future measurement stability nor the cause of
+variation in earlier batches.
+
+A subsequent control borrows motion indices, vectors and modes once per
+neighbor group. It preserves the prediction algorithm, full Int32 vector
+values and current slice availability. Independent checks cover 525,640
+mode/reference/vector/coordinate/slice cases, invalid and unavailable lists,
+disposed owners, metadata mutation, allocation and release. Those checks
+and 384 direct-region pixel/motion cases pass with original callers and
+with the control, including managed, hardware-disabled and strict Native
+AOT execution. All 726 existing H.264 tests pass in both managed modes.
+
+Four complete decodes run in current/control/control/current order:
+
+| Metric | Current | Borrowed lookup |
+| --- | ---: | ---: |
+| Median CPU, seconds | 47.309 | 46.224 |
+| Median elapsed, seconds | 63.916 | 66.476 |
+| Median peak RSS, KiB | 73,162 | 73,966 |
+
+Every output byte and clock check passes. The observed CPU reduction is
+2.29%, below the predefined 5% requirement, so the control is not adopted.
+Reverse-order, CAVLC and encoding extensions are not run. The accepted
+decoder and its last external CPU comparison remain unchanged.
+
+The retained motion-lookup checks pass against the accepted decoder in the
+full 3,206-test managed suite, the 727-test hardware-disabled H.264 suite,
+and a strict Native AOT consumer. Release builds have no warnings or errors;
+license-header and formatting checks pass.
