@@ -123,8 +123,9 @@ coded packet coverage therefore differs from the selected audible interval:
 
 These clock differences do not indicate duplicated input selection. One encoder
 is retained across audio boundaries, and every coded access unit occurs once.
-The browser check below observes the remaining padding in the presentation's
-duration; exact VOD presentation-range handling remains open. The existing
+The default browser playback below includes the remaining padding in the
+presentation's duration. An application-controlled boundary is checked separately.
+The existing
 audiovisual interval sample still initializes AAC separately for each request;
 it has not been converted to this
 prepared-audio composition.
@@ -145,11 +146,12 @@ These are buffered seeks. All three paths finish without hls.js errors or an
 `HTMLMediaElement` error. Video dimensions are 320×180. The video element is muted;
 these checks do not establish listening quality or sample-exact browser PCM.
 
-The browser reports an end time and duration of 12.010666 seconds. Its final audio
+With default player settings, the browser reports an end time and duration of
+12.010666 seconds. Its final audio
 buffer ends there, while the video buffer ends at 11.999999 seconds. The observed
 excess agrees, to the browser's microsecond reporting precision, with 512 padding
-samples at 48 kHz. Basic playback therefore succeeds while the selected 12-second
-presentation boundary remains unresolved.
+samples at 48 kHz. Basic playback succeeds, but default playback does not enforce
+the selected 12-second presentation boundary.
 
 This behavior is consistent with the
 [MSE end-of-stream algorithm](https://www.w3.org/TR/2016/REC-media-source-20161117/#end-of-stream-algorithm),
@@ -200,7 +202,51 @@ This establishes the presentation boundary for the tested application-controlled
 MSE path. The [MSE coded-frame processing specification](https://www.w3.org/TR/media-source-2/#sourcebuffer-coded-frame-processing)
 permits partial audio-frame trimming at an append-window boundary but makes that
 behavior optional. Sample-exact browser PCM, listening quality, prepared HLS
-master integration and other players remain unverified by this control.
+master integration and other players are outside this isolated audio control.
+
+### Prepared HLS master with an explicit boundary
+
+The same append-window mechanism is also checked through the original prepared
+HLS master with hls.js 1.7.4. All playlists and TS files remain unchanged.
+The player still loads two video segments and three audio segments; the final
+AAC access unit retains its coded end of 12.010666… seconds. Only the audio
+`SourceBuffer` receives a 12-second `appendWindowEnd`, before its first append.
+The video buffer keeps its default append window.
+
+| Application playback path | Reported EOF and duration, s | Audio buffer end, s |
+| --- | ---: | ---: |
+| Default, full pass | 12.010666 | 12.010666 |
+| Explicit boundary, full pass | 12 | 12 |
+| Explicit boundary, seek to 5.8 s | 12 | 12 |
+| Explicit boundary, seek to 5.8 s and back to 1 s | 12 | 12 |
+
+All four normal-speed muted passes complete without hls.js or media errors.
+Both buffered seeks cross or revisit the six-second video boundary. Every pass
+selects the stereo audio rendition and reports 320×180 video. The video buffer
+ends at 11.999999 seconds in every case, reflecting browser time precision.
+
+For this zero-origin 12-second selection, the application setup is:
+
+```javascript
+const presentationEndSeconds = 12;
+const hls = new Hls();
+hls.on(Hls.Events.BUFFER_CREATED, (_, { tracks }) => {
+    if (!tracks.audio) {
+        throw new Error('Expected the prepared audio rendition.');
+    }
+    tracks.audio.buffer.appendWindowEnd = presentationEndSeconds;
+});
+hls.attachMedia(video);
+hls.loadSource(masterUrl);
+```
+
+In this [pinned hls.js implementation](https://github.com/video-dev/hls.js/blob/v1.7.4/src/controller/buffer-controller.ts),
+`BUFFER_CREATED` exposes the buffers before their queued appends execute.
+The boundary comes from the application's selected presentation interval;
+it is not inferred from the sum of coded AAC segment durations. This verifies
+one Chrome 156/Linux application-controlled HLS path. It does not establish
+native HLS behavior, sample-exact browser PCM, listening quality or smooth video
+rendering. Integration into the consuming application remains separate.
 
 ### Video playback counters
 
