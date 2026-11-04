@@ -68,6 +68,20 @@ namespace Mediana.Images.Tgs
                 return;
             }
 
+            if (TgsEffectInfo.IsInvert(effect))
+            {
+                if (Scalar(0, 1) != 1)
+                {
+                    _warnings.Add("Lottie Invert channel other than RGB");
+                    return;
+                }
+
+                float amount = Number(1 - Math.Clamp(Scalar(1) / 100, 0, 1));
+                float scale = 1 - (2 * amount);
+                filter.Add(SceneEffects.Matrix([scale, 0, 0, 0, amount, 0, scale, 0, 0, amount, 0, 0, scale, 0, amount, 0, 0, 0, 1, 0]));
+                return;
+            }
+
             if (type == 24)
             {
                 LevelsEffect(filter, Scalar);

@@ -157,7 +157,7 @@ namespace Mediana.Images.Tgs
                     continue;
                 }
 
-                if (TgsEffectInfo.IsParameterGroup(effect) || TgsEffectInfo.IsIdentity(effect) || TgsEffectInfo.IsRoughenEdges(effect))
+                if (TgsEffectInfo.IsParameterGroup(effect) || TgsEffectInfo.IsIdentity(effect) || TgsEffectInfo.IsRoughenEdges(effect) || TgsEffectInfo.IsInvert(effect))
                 {
                     continue;
                 }

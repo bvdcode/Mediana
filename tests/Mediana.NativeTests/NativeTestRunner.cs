@@ -87,6 +87,7 @@ namespace Mediana.NativeTests
             TgsStrokeTestInput.VerifyAnimatedZeroDash();
             Console.WriteLine("PASS animated strokes: exact first/last values and solid all-zero dash patterns.");
             TgsEffectTestInput.VerifyParameterGroups();
+            TgsEffectTestInput.VerifyInvert();
             TgsLayerReferenceTestInput.VerifyUnreferencedDuplicates();
             TgsLayerReferenceTestInput.VerifyAmbiguousReferences();
             Console.WriteLine("PASS Lottie references: parameter groups, ordered duplicate layers and unambiguous parent/matte targets.");
