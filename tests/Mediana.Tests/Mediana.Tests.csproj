@@ -69,6 +69,8 @@
     <Compile Include="../Shared/H264ZeroResidualTestInput.cs" Link="H264ZeroResidualTestInput.cs" />
     <Compile Include="../Shared/H264ResidualRegionReader.cs" Link="H264ResidualRegionReader.cs" />
     <Compile Include="../Shared/H264ResidualRegionTestInput.cs" Link="H264ResidualRegionTestInput.cs" />
+    <Compile Include="../Shared/H264CabacDecisionTestInput.cs" Link="H264CabacDecisionTestInput.cs" />
+    <Compile Include="../Shared/H264CabacDecisionTestInput.Tables.cs" Link="H264CabacDecisionTestInput.Tables.cs" />
     <Compile Include="../Shared/CodecProfileTestInput.cs" Link="CodecProfileTestInput.cs" />
     <Compile Include="../Shared/FontGlyphTestInput.cs" Link="FontGlyphTestInput.cs" />
     <Compile Include="../Shared/PngCoverTestInput.cs" Link="PngCoverTestInput.cs" />

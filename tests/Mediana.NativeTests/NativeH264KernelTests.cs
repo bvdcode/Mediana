@@ -11,6 +11,7 @@ namespace Mediana.NativeTests
         {
             H264ZeroResidualTestInput.VerifyMacroblocks();
             H264ResidualRegionTestInput.Verify();
+            H264CabacDecisionTestInput.Verify();
             H264DeblockingFilterTestInput.Verify();
             H264DeblockingFilterTestInput.VerifyAllocation();
             H264BidirectionalDeblockingTestInput.Verify();
