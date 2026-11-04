@@ -34,19 +34,22 @@ namespace Mediana.Documents.Pdf
             if (type is not ("TrueType" or "CIDFontType2")) { return null; }
             PdfValue descriptor = Get(dictionary, "FontDescriptor");
             PdfValue file = descriptor.Get("FontFile2");
-            if (file.Kind == PdfValueKind.Null) { return null; }
-            TrueTypeFont face = new(storage.Decode(storage.Object(file, token), token));
+            TrueTypeFont? face = null;
+            if (file.Kind != PdfValueKind.Null) { face = new(storage.Decode(storage.Object(file, token), token)); }
             Dictionary<int, int> glyphs = [];
             Dictionary<int, double> widths = [];
             double defaultWidth;
             if (composite)
             {
                 defaultWidth = dictionary.Get("DW").Kind == PdfValueKind.Null ? 1000 : Get(dictionary, "DW").Numeric();
-                PdfValue map = Get(dictionary, "CIDToGIDMap");
-                if (map.Kind == PdfValueKind.Name && map.Text != "Identity") { throw new NotSupportedException("Unknown PDF CIDToGIDMap."); }
-                ReadOnlyMemory<byte> mapping = dictionary.Get("CIDToGIDMap").Kind == PdfValueKind.Reference ? storage.Decode(storage.Object(dictionary.Get("CIDToGIDMap"), token), token) : ReadOnlyMemory<byte>.Empty;
-                if (mapping.Length % 2 != 0 || mapping.Length > 131072) { throw new InvalidDataException("Invalid PDF glyph map."); }
-                for (int code = 0; code < 65536; code++) { glyphs[code] = mapping.Length == 0 ? code : code < mapping.Length / 2 ? BinaryPrimitives.ReadUInt16BigEndian(mapping.Span.Slice(code * 2)) : 0; }
+                if (face is not null)
+                {
+                    PdfValue map = Get(dictionary, "CIDToGIDMap");
+                    if (map.Kind == PdfValueKind.Name && map.Text != "Identity") { throw new NotSupportedException("Unknown PDF CIDToGIDMap."); }
+                    ReadOnlyMemory<byte> mapping = dictionary.Get("CIDToGIDMap").Kind == PdfValueKind.Reference ? storage.Decode(storage.Object(dictionary.Get("CIDToGIDMap"), token), token) : ReadOnlyMemory<byte>.Empty;
+                    if (mapping.Length % 2 != 0 || mapping.Length > 131072) { throw new InvalidDataException("Invalid PDF glyph map."); }
+                    for (int code = 0; code < 65536; code++) { glyphs[code] = mapping.Length == 0 ? code : code < mapping.Length / 2 ? BinaryPrimitives.ReadUInt16BigEndian(mapping.Span.Slice(code * 2)) : 0; }
+                }
                 PdfValue[] w = Get(dictionary, "W").Items;
                 for (int i = 0; i < w.Length;)
                 {
@@ -68,6 +71,7 @@ namespace Mediana.Documents.Pdf
             {
                 defaultWidth = descriptor.Get("MissingWidth").Kind == PdfValueKind.Null ? 0 : Get(descriptor, "MissingWidth").Numeric();
                 widths = SimpleWidths(dictionary);
+                if (face is null) { return new PdfMetricsFont(widths, defaultWidth, composite); }
                 PdfValue encoding = Get(dictionary, "Encoding");
                 string baseName = encoding.Kind == PdfValueKind.Name ? encoding.Text : Get(encoding, "BaseEncoding").Text;
                 if (baseName is not ("" or "WinAnsiEncoding")) { return null; }
@@ -90,6 +94,7 @@ namespace Mediana.Documents.Pdf
                     else { glyphs[current++] = face.Glyph(unicode); }
                 }
             }
+            if (face is null) { return new PdfMetricsFont(widths, defaultWidth, composite); }
             return new PdfOutlineFont(face, glyphs, widths, defaultWidth, composite);
         }
         private void RequireText() { if (!_inText) { throw new InvalidDataException("PDF text operator outside BT/ET."); } }
@@ -108,7 +113,12 @@ namespace Mediana.Documents.Pdf
                 int code = font.Composite ? BinaryPrimitives.ReadUInt16BigEndian(text.Bytes.AsSpan(i++, 2)) : text.Bytes[i];
                 switch (font)
                 {
-                    case PdfOutlineFont outline: ShowOutline(outline, code); break;
+                    case PdfOutlineFont outline:
+                        if (_state.TextMode != 3) { ShowOutline(outline, code); }
+                        break;
+                    case PdfMetricsFont:
+                        if (_state.TextMode != 3) { _unsupported.Add("Visible text without an embedded outline font"); }
+                        break;
                     case PdfType3Font type3: ShowType3(type3, code, depth); break;
                     default: throw new NotSupportedException("Unsupported PDF font implementation.");
                 }
