@@ -26,8 +26,10 @@ namespace Mediana.Images.Tgs
         public double Duration => (OutPoint - InPoint) / FrameRate;
         /// <summary>Gets explicitly detected unsupported features. Rendering rejects them by default.</summary>
         public IReadOnlyList<string> UnsupportedFeatures { get; }
+        /// <summary>Gets nonfatal input diagnostics, including restored keyframe ordering.</summary>
+        public IReadOnlyList<string> Warnings { get; }
 
-        internal TgsDocument(JsonElement root, TgsReaderOptions limits, string[] features)
+        internal TgsDocument(JsonElement root, TgsReaderOptions limits, string[] features, string[] warnings)
         {
             Root = root;
             Limits = limits;
@@ -37,6 +39,7 @@ namespace Mediana.Images.Tgs
             InPoint = TgsJson.Number(root, "ip");
             OutPoint = TgsJson.Number(root, "op");
             UnsupportedFeatures = System.Array.AsReadOnly(features);
+            Warnings = System.Array.AsReadOnly(warnings);
         }
     }
 }

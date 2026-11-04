@@ -2,10 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using ConsoleAppFramework;
+using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
-    internal class PdfCommands(CommandOutputPolicy outputs) : MediaCommands(outputs)
+    internal class PdfCommands(ILogger logger, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
         /// <summary>Render a supported PDF page to PNG at up to 96 DPI.</summary>
         /// <param name="input">Existing PDF file.</param>
@@ -17,7 +18,7 @@ namespace Mediana.Cli
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
-            return ExecuteFileAsync(input, output, outputFile => PdfPreviewCommand.RenderAsync(input, outputFile, page, width, cancellationToken), cancellationToken);
+            return ExecuteFileAsync(input, output, outputFile => PdfPreviewCommand.RenderAsync(input, outputFile, page, width, logger, cancellationToken), cancellationToken);
         }
 
         /// <summary>Extract one decoded PDF image to PNG.</summary>
@@ -30,7 +31,7 @@ namespace Mediana.Cli
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(page);
             ArgumentOutOfRangeException.ThrowIfNegative(index);
-            return ExecuteFileAsync(input, output, outputFile => PdfPreviewCommand.ImageAsync(input, outputFile, page, index, cancellationToken), cancellationToken);
+            return ExecuteFileAsync(input, output, outputFile => PdfPreviewCommand.ImageAsync(input, outputFile, page, index, logger, cancellationToken), cancellationToken);
         }
     }
 }

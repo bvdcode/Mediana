@@ -17,7 +17,7 @@ namespace Mediana.Drawing
         public StrokeJoin Join { get; init; }
         /// <summary>Gets the maximum miter length divided by half the line width.</summary>
         public float MiterLimit { get; init; } = 10;
-        /// <summary>Gets alternating dash and gap lengths. An empty list is solid.</summary>
+        /// <summary>Gets alternating dash and gap lengths. An empty or all-zero list is solid.</summary>
         public IReadOnlyList<float> Dashes { get; init; } = Array.Empty<float>();
         /// <summary>Gets the distance into the repeated dash pattern.</summary>
         public float DashOffset { get; init; }

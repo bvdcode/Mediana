@@ -12,14 +12,14 @@ namespace Mediana.Drawing
     {
         internal static VectorPath Outline(VectorPath path, StrokeStyle style, Matrix3x2 transform, CancellationToken cancellationToken)
         {
-            Validate(style);
+            float dashLength = Validate(style);
             float scale = Math.Max(new Vector2(transform.M11, transform.M12).Length(), new Vector2(transform.M21, transform.M22).Length());
             float radius = style.Width == 0 ? 0.5f / Math.Max(scale, 0.000001f) : style.Width / 2;
             VectorPath? outline = new VectorPath();
             foreach (PathContour contour in PathFlattener.Flatten(path, Matrix3x2.Identity, 0.2f / Math.Max(scale, 0.000001f), cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (style.Dashes.Count == 0)
+                if (dashLength == 0)
                 {
                     Solid(outline, contour, radius, style);
                 }
@@ -37,7 +37,7 @@ namespace Mediana.Drawing
             return outline;
         }
 
-        private static void Validate(StrokeStyle style)
+        private static float Validate(StrokeStyle style)
         {
             if (!float.IsFinite(style.Width) || style.Width < 0 || !float.IsFinite(style.MiterLimit) || style.MiterLimit < 1 || !float.IsFinite(style.DashOffset))
             {
@@ -60,10 +60,12 @@ namespace Mediana.Drawing
                 total += dash;
             }
 
-            if (style.Dashes.Count > 0 && (!float.IsFinite(total) || total <= 0))
+            if (!float.IsFinite(total))
             {
-                throw new ArgumentOutOfRangeException(nameof(style), "A dash pattern must have positive total length.");
+                throw new ArgumentOutOfRangeException(nameof(style), "A dash pattern must have finite total length.");
             }
+
+            return total;
         }
 
         private static void Solid(VectorPath output, PathContour contour, float radius, StrokeStyle style)

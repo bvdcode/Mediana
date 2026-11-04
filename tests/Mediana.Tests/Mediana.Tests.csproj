@@ -29,6 +29,9 @@
     <None Include="Data/JpegExif/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/JpegExifTestInput.cs" Link="JpegExifTestInput.cs" />
     <Compile Include="../Shared/JpegComponentTestInput.cs" Link="JpegComponentTestInput.cs" />
+    <Compile Include="../Shared/JpegRestartTestInput.cs" Link="JpegRestartTestInput.cs" />
+    <Compile Include="../Shared/PdfRestartTestInput.cs" Link="PdfRestartTestInput.cs" />
+    <Compile Include="../Shared/JpegReducedTestInput.cs" Link="JpegReducedTestInput.cs" />
     <Compile Include="../Shared/JpegTestData.cs" Link="JpegTestData.cs" />
     <Compile Include="../Shared/JpegDecodeTestInput.cs" Link="JpegDecodeTestInput.cs" />
     <Compile Include="../Shared/JpegProgressiveTestInput.cs" Link="JpegProgressiveTestInput.cs" />
@@ -140,6 +143,18 @@
     <Compile Include="../Shared/VectorImageEngineTestInput.cs" Link="VectorImageEngineTestInput.cs" />
     <Compile Include="../Shared/Jbig2TestInput.cs" Link="Jbig2TestInput.cs" />
     <Compile Include="../Shared/TgsReferenceTestInput.cs" Link="TgsReferenceTestInput.cs" />
+    <Compile Include="../Shared/TgsStrokeTestInput.cs" Link="TgsStrokeTestInput.cs" />
+    <Compile Include="../Shared/PdfType3TestInput.cs" Link="PdfType3TestInput.cs" />
+    <Compile Include="../Shared/PdfScaledImageTestInput.cs" Link="PdfScaledImageTestInput.cs" />
+    <Compile Include="../Shared/PdfInvisibleTextTestInput.cs" Link="PdfInvisibleTextTestInput.cs" />
+    <Compile Include="../Shared/PdfPageGroupTestInput.cs" Link="PdfPageGroupTestInput.cs" />
+    <Compile Include="../Shared/CffOutlineTestInput.cs" Link="CffOutlineTestInput.cs" />
+    <Compile Include="../Shared/PdfCmsTestInput.cs" Link="PdfCmsTestInput.cs" />
+    <Compile Include="../Shared/PdfNonPaintingAnnotationTestInput.cs" Link="PdfNonPaintingAnnotationTestInput.cs" />
+    <Compile Include="../Shared/TgsKeyframeOrderTestInput.cs" Link="TgsKeyframeOrderTestInput.cs" />
+    <Compile Include="../Shared/TgsStoredValuesTestInput.cs" Link="TgsStoredValuesTestInput.cs" />
+    <Compile Include="../Shared/TgsEffectTestInput.cs" Link="TgsEffectTestInput.cs" />
+    <Compile Include="../Shared/TgsLayerReferenceTestInput.cs" Link="TgsLayerReferenceTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Tgs/Mediana.Images.Tgs.csproj" />
     <Compile Include="../Shared/SvgReferenceTestInput.cs" Link="SvgReferenceTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Svg/Mediana.Images.Svg.csproj" />

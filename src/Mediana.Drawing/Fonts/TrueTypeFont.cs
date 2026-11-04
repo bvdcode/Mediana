@@ -12,7 +12,8 @@ using System.Text;
 
 namespace Mediana.Drawing.Fonts
 {
-    /// <summary>Managed TrueType outlines, metrics and character maps. Instances require a single consumer; returned outlines are independent copies.</summary>
+    /// <summary>Managed OpenType metrics, character maps and TrueType or CFF Type 2 outlines.
+    /// Instances require a single consumer; returned outlines are independent copies.</summary>
     public partial class TrueTypeFont
     {
         private readonly byte[] _data;
@@ -20,6 +21,7 @@ namespace Mediana.Drawing.Fonts
         private readonly int _glyphs;
         private readonly int _metrics;
         private readonly int _locaFormat;
+        private readonly CffFont? _cff;
         private readonly Dictionary<int, VectorPath> _outlines = new();
         private readonly Dictionary<(int, int), float> _pairs = new();
         public float Units { get; }
@@ -50,8 +52,15 @@ namespace Mediana.Drawing.Fonts
                 throw new InvalidDataException("Invalid TrueType font metrics.");
             }
 
-            Table("loca", (_glyphs + 1) * (_locaFormat == 0 ? 2 : 4));
-            Table("glyf", 0);
+            if (_tables.TryGetValue("CFF ", out (int Start, int Length) cff))
+            {
+                _cff = new(_data.AsMemory(cff.Start, cff.Length), _glyphs, Units);
+            }
+            else
+            {
+                Table("loca", (_glyphs + 1) * (_locaFormat == 0 ? 2 : 4));
+                Table("glyf", 0);
+            }
             Table("hmtx", (_metrics * 4) + ((_glyphs - _metrics) * 2));
             Table("cmap", 4);
         }
@@ -260,8 +269,8 @@ namespace Mediana.Drawing.Fonts
         {
             if (!_outlines.TryGetValue(glyph, out VectorPath? path))
             {
-                GlyphShape shape = ReadGlyph(glyph, new HashSet<int>(), 0);
-                path = Path(shape);
+                if (_cff is not null) { path = _cff.Outline(glyph); }
+                else { path = Path(ReadGlyph(glyph, new HashSet<int>(), 0)); }
                 _outlines.Add(glyph, path);
             }
 

@@ -82,8 +82,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS registered image decoding: HEIC, JPEG 2000 and JBIG2 match independent pixels with owned frames and unchanged source cursors.");
             await ImageFrameTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS image conversion: HEIC, JPEG 2000 and JBIG2 produce owned frames and complete sRGB PNG files.");
-            await TgsReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Tgs"));
-            Console.WriteLine("PASS TGS/Lottie: 33 supported frames match every reference channel within one RGB code and exact alpha.");
+            await NativeTgsTests.RunAsync();
             SceneBufferOwnershipTestInput.VerifyReuse();
             SceneBufferOwnershipTestInput.VerifyTrim();
             SceneBufferOwnershipTestInput.VerifyDisposal();

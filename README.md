@@ -118,7 +118,9 @@ memory limit.
 Supported subsets and limits: [HEIC](docs/heif.md),
 [JPEG 2000](docs/jpeg2000.md), [JBIG2](docs/jbig2.md),
 [SVG](docs/svg.md), [TGS/Lottie](docs/tgs.md), [PNG](docs/png.md), [JPEG](docs/jpeg.md).
-TGS/Lottie expressions are explicitly unsupported.
+TGS/Lottie expression code is not executed. CLI previews use stored property
+values and omit Puppet deformation, with warnings; library callers enable these
+policies explicitly through `TgsReaderOptions`.
 PDF page rendering supports the subset described below. 3D file formats are outside
 the library's scope.
 

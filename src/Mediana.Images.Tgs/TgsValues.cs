@@ -138,6 +138,11 @@ namespace Mediana.Images.Tgs
 
         internal static double Ease(JsonElement key, double progress, int dimension = 0)
         {
+            if (progress == 0 || progress == 1)
+            {
+                return progress;
+            }
+
             JsonElement outgoing = TgsJson.Get(key, "o"), incoming = TgsJson.Get(key, "i");
             if (outgoing.ValueKind != JsonValueKind.Object || incoming.ValueKind != JsonValueKind.Object)
             {

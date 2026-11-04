@@ -38,3 +38,9 @@ coefficients exercise both spectral selection and successive approximation.
 bits. `progressive-dc-only` retains a coarse DC progression with untransmitted AC
 coefficients. Every authored image is decoded independently by libjpeg before its
 complete RGBA reference is stored.
+
+`reduced.tsv` identifies 24 independently decoded references at 1/2, 1/4 and 1/8
+resolution, produced with libjpeg's reduced IDCT through Pillow's `draft` API.
+They cover grayscale, three-component 4:4:4, RGB, sequential and progressive
+scans, restart markers and odd dimensions. The permitted difference is three
+codes per color component; alpha and dimensions must match exactly.

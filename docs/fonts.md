@@ -1,7 +1,7 @@
-# TrueType glyph reading
+# OpenType glyph reading
 
-`Mediana.Drawing.Fonts.TrueTypeFont` supplies the TrueType outlines used by SVG
-and PDF previews. Each outline reader is restricted to the glyph's own `loca`
+`Mediana.Drawing.Fonts.TrueTypeFont` supplies the TrueType and supported CFF
+outlines used by SVG and PDF previews. Each TrueType outline reader is restricted to the glyph's own `loca`
 extent within the `glyf` table. Headers, contour endpoints, flags, coordinates,
 component transforms and instruction data cannot consume an adjacent glyph.
 Truncated contour arrays and instruction data are rejected before allocating
@@ -34,3 +34,24 @@ declared glyphs from the eight bundled TrueType files against version 0.1.12:
 every path command and coordinate bit remained identical, with no rejected
 glyphs. These checks cover the bundled fonts and the specified malformed-record
 boundaries; broader font complexity and cumulative resource limits remain open.
+
+## CFF Type 2 outlines
+
+OpenType fonts with a name-keyed CFF version 1 table use a bounded CFF reader.
+It validates INDEX offsets/counts, dictionary operands, CharStrings and private
+subroutine extents. Type 2 paths support optional widths, stem hints/masks,
+local/global subroutines, line/curve operators and the four flex forms. FontMatrix
+maps the paths into the font's units per em. Metrics, cmap selection and the
+existing outline cache remain common to both formats.
+
+The interpreter limits the operand stack to 48 values, stems to 96, subroutine
+nesting to ten calls and byte operations per glyph to 100,000. Returned paths
+remain independent. CID-keyed CFF, composite endchar forms, arithmetic operators
+and CFF2 are not implemented. Synthetic checks exercise public font dispatch,
+curve/flex endpoints, hints, subroutines, malformed indexes, truncation, stack
+limits and recursive subroutine rejection. These do not establish complete CFF
+font conformance.
+
+The format references are Microsoft's [OpenType CFF specification](https://learn.microsoft.com/en-us/typography/opentype/spec/cff),
+Adobe's [CFF format](https://adobe-type-tools.github.io/font-tech-notes/pdfs/5176.CFF.pdf)
+and [Type 2 charstrings](https://adobe-type-tools.github.io/font-tech-notes/pdfs/5177.Type2.pdf).

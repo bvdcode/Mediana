@@ -41,7 +41,7 @@ namespace Mediana.Images.Tgs
                 SourceFrame = frame,
                 Timestamp = TimeSpan.FromSeconds((frame - document.InPoint) / document.FrameRate),
                 Duration = TimeSpan.FromSeconds(Math.Min(1, document.OutPoint - frame) / document.FrameRate),
-                Warnings = Array.AsReadOnly(document.UnsupportedFeatures.Concat(builder.Warnings).Distinct().Order().ToArray()),
+                Warnings = Array.AsReadOnly(document.Warnings.Concat(document.UnsupportedFeatures).Concat(builder.Warnings).Distinct().Order().ToArray()),
                 Image = SceneRasterizer.Render(scene, document.Width, document.Height, options,
                     (width, height) => Viewport(document, width, height), cancellationToken, allocator)
             };

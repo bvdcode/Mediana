@@ -8,7 +8,6 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Images.Svg;
-using Mediana.Images.Tgs;
 using Mediana.IO;
 using Mediana.Processing;
 using Microsoft.Extensions.Logging;
@@ -31,6 +30,8 @@ namespace Mediana.Cli
             ImageDecodeRequest? request = null, CancellationToken cancellationToken = default)
         {
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            Action<string> warning = message => logger.LogWarning("{Warning}", message);
+            request = (request ?? new ImageDecodeRequest()) with { WarningHandler = request?.WarningHandler + warning };
             using (VideoFrame frame = await engine.DecodeImageAsync(source, allocator, request, cancellationToken: cancellationToken))
             using (VideoFrame srgb = SrgbConverter.Apply(frame, PreviewColorPolicy.Resolve(frame.Format, logger), allocator, cancellationToken))
             {
@@ -52,7 +53,7 @@ namespace Mediana.Cli
             RunAsync(new SvgImageDecoder(renderOptions: new DrawingRenderOptions { Width = width }), inputPath, outputFile, logger, cancellationToken: cancellationToken);
 
         public static Task<int> TgsAsync(string inputPath, CommandOutputFile outputFile, double seconds, int? width, ILogger logger, CancellationToken cancellationToken = default) =>
-            RunAsync(new TgsImageDecoder(renderOptions: new DrawingRenderOptions { Width = width }), inputPath, outputFile, logger,
+            RunAsync(ImageEngineFactory.CreateTgs(width), inputPath, outputFile, logger,
                 new ImageDecodeRequest { Time = new MediaTimestamp(TimeSpan.FromSeconds(seconds).Ticks, TimeBase.TimeSpanTicks) }, cancellationToken);
     }
 }

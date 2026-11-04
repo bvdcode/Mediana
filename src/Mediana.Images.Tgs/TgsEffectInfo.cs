@@ -10,7 +10,10 @@ namespace Mediana.Images.Tgs
 {
     internal static class TgsEffectInfo
     {
+        internal static bool IsPuppet(JsonElement effect) => Type(effect) == 34 && TgsJson.Text(effect, "mn") == "ADBE FreePin3";
+        internal static bool IsIgnored(JsonElement effect, TgsReaderOptions options) => options.IgnorePuppetEffects && IsPuppet(effect);
         internal static bool IsRoughenEdges(JsonElement effect) => TgsJson.Text(effect, "mn") == "ADBE Roughen Edges";
+        internal static bool IsInvert(JsonElement effect) => TgsJson.Text(effect, "mn") == "ADBE Invert";
         internal static int Type(JsonElement effect) => TgsJson.Text(effect, "mn") switch
         {
             "ADBE Gaussian Blur" => 29,
@@ -19,11 +22,29 @@ namespace Mediana.Images.Tgs
 
         internal static bool IsParameterGroup(JsonElement effect)
         {
+            if (Type(effect) != 5)
+            {
+                return false;
+            }
+
             string name = TgsJson.Text(effect, "mn");
-            return Type(effect) == 5 && (name.StartsWith("Pseudo/", StringComparison.Ordinal) || name is
+            if (name.StartsWith("Pseudo/", StringComparison.Ordinal) || name is
                 "ADBE Layer Control" or "ADBE Slider Control" or "ADBE Angle Control" or "ADBE Color Control"
-                or "ADBE Point Control" or "ADBE Checkbox Control" or "ADBE Point3D Control");
+                or "ADBE Point Control" or "ADBE Checkbox Control" or "ADBE Point3D Control")
+            {
+                return true;
+            }
+
+            JsonElement[] children = TgsJson.Array(TgsJson.Get(effect, "ef"));
+            return name.Length == 0 && children.Length > 0 && children.All(IsParameter);
         }
+
+        private static bool IsParameter(JsonElement effect) => Type(effect) switch
+        {
+            0 or 1 or 2 or 3 or 4 or 6 or 7 or 10 or 11 => TgsJson.Get(effect, "v").ValueKind != JsonValueKind.Undefined,
+            5 => IsParameterGroup(effect),
+            _ => false
+        };
 
         internal static bool IsIdentity(JsonElement effect)
         {

@@ -9,7 +9,7 @@ namespace Mediana.Documents.Pdf
 {
     internal partial class PdfInterpreter
     {
-        private PixelBuffer DecodeJpeg(PdfObject obj, ReadOnlyMemory<byte> data, int width, int height, int bits, PdfValue space, bool stencil)
+        private PixelBuffer DecodeJpeg(PdfObject obj, ReadOnlyMemory<byte> data, int width, int height, int bits, PdfValue space, bool stencil, int reduction)
         {
             if (stencil || bits != 8)
             {
@@ -36,14 +36,18 @@ namespace Mediana.Documents.Pdf
             long available = storage.Budget.Options.MaximumImageBytes - _imageBytes;
             if (available <= 0) { throw new MediaMemoryLimitException(1, available); }
             MediaBufferAllocator workspace = new(available);
-            using JpegImage image = JpegDecoder.DecodeComponents(data, workspace, new()
+            using JpegImage image = JpegDecoder.DecodeReducedComponents(data, workspace, reduction, new()
             {
                 MaximumEncodedBytes = storage.Budget.Options.MaximumInputBytes,
                 MaximumPixels = checked(width * height)
             }, token);
-            if (image.Width != width || image.Height != height || image.ComponentCount != components)
+            if (image.EncodedWidth != width || image.EncodedHeight != height || image.ComponentCount != components)
             {
                 throw new InvalidDataException("PDF JPEG dimensions or component count differ from the image dictionary.");
+            }
+            foreach (string warning in image.Warnings)
+            {
+                _warnings.Add(warning);
             }
             JpegColorSpace color;
             if (components == 1) { color = JpegColorSpace.Rgb; }
@@ -57,7 +61,7 @@ namespace Mediana.Documents.Pdf
                     _ => throw new InvalidDataException("Invalid PDF JPEG Adobe transform.")
                 };
             }
-            PixelBuffer pixels = new(width, height);
+            PixelBuffer pixels = new(image.Width, image.Height);
             bool transferred = false;
             try
             {

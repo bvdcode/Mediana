@@ -63,10 +63,16 @@ namespace Mediana.Tests
         [Fact]
         public async Task UnsupportedAnimationPublishesNothing()
         {
+            string input = Path.Combine(directory, "unsupported.json");
             string output = Path.Combine(directory, "unsupported.png");
-            (int code, _, _) = await RunAsync(["image", "tgs", Data("Tgs", "controller-expressions.tgs"), output]);
+            await File.WriteAllTextAsync(input, """
+                {"w":8,"h":8,"fr":30,"ip":0,"op":30,"layers":[
+                  {"ty":1,"sw":8,"sh":8,"sc":"#804020","ef":[{"ty":999,"ef":[]}]}]}
+                """);
+            (int code, _, _) = await RunAsync(["image", "tgs", input, output]);
             Assert.Equal(3, code);
-            Assert.Empty(Directory.GetFiles(directory));
+            Assert.False(File.Exists(output));
+            Assert.Equal(new[] { input }, Directory.GetFiles(directory));
         }
 
         [Fact]

@@ -45,6 +45,10 @@ namespace Mediana.Images.Tgs
             TgsFrame rendered = TgsRenderer.RenderFrameDetailed(document, document.InPoint + seconds * document.FrameRate,
                 renderOptions, cancellationToken, allocator);
             using PixelBuffer pixels = rendered.Image;
+            foreach (string warning in rendered.Warnings)
+            {
+                request.WarningHandler?.Invoke(warning);
+            }
             MediaDuration duration = new(rendered.Duration.Ticks, TimeBase.TimeSpanTicks);
             return ValueTask.FromResult(pixels.PublishVideoFrame(cancellationToken, time, duration));
         }

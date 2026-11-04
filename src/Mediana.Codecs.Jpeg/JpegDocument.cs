@@ -8,7 +8,7 @@ using Mediana.Core.Video;
 namespace Mediana.Codecs.Jpeg
 {
     internal class JpegDocument(ReadOnlyMemory<byte> encoded, JpegDecodeOptions options, JpegColorSpace? sourceColorSpace,
-        SampleAspectRatio? sampleAspectRatio, CancellationToken token) : IDisposable
+        SampleAspectRatio? sampleAspectRatio, CancellationToken token, int reduction = 1) : IDisposable
     {
         private readonly JpegMarkerReader reader = new(encoded, options.MaximumMarkers, token);
         private readonly int[][] quantization = new int[4][];
@@ -17,6 +17,11 @@ namespace Mediana.Codecs.Jpeg
         private readonly JpegHuffmanTable?[] huffman = new JpegHuffmanTable[8];
         private JpegComponent[] components = [];
         private readonly JpegMetadata metadata = new();
+        private static readonly IReadOnlyList<string> RestartWarnings = Array.AsReadOnly(new[]
+        {
+            "Ignored a redundant final JPEG restart marker immediately before EOI."
+        });
+        private bool recoveredRestart;
         private int restartInterval;
         private byte frameMarker;
         internal int Width { get; private set; }
@@ -26,6 +31,18 @@ namespace Mediana.Codecs.Jpeg
         internal IReadOnlyList<JpegComponent> Components => components;
         internal JpegMetadata Metadata => metadata;
         internal bool Progressive => frameMarker == 194;
+        internal IReadOnlyList<string> Warnings => recoveredRestart ? RestartWarnings : Array.Empty<string>();
+
+        internal void RecoverFinalRestart(int expected)
+        {
+            ReadOnlySpan<byte> remaining = reader.Encoded.Span[reader.Position..];
+            if (remaining.Length == 4 && remaining[0] == 255 && remaining[1] == 208 + expected
+                && remaining[2] == 255 && remaining[3] == 217)
+            {
+                reader.NextMarker();
+                recoveredRestart = true;
+            }
+        }
 
         internal void Read(MediaBufferAllocator? allocator, bool componentSamples = false)
         {
@@ -135,7 +152,8 @@ namespace Mediana.Codecs.Jpeg
 
         internal JpegSampleLayout TakeSamples()
         {
-            JpegSampleLayout result = new(Width, Height, MaximumHorizontal, MaximumVertical, components);
+            JpegSampleLayout result = new((Width + reduction - 1) / reduction, (Height + reduction - 1) / reduction,
+                MaximumHorizontal, MaximumVertical, components);
             components = [];
             return result;
         }
@@ -197,7 +215,7 @@ namespace Mediana.Codecs.Jpeg
                         throw new InvalidDataException("JPEG frame component identifiers must be unique.");
                     }
                 }
-                components[i] = new(id, horizontal, vertical, table);
+                components[i] = new(id, horizontal, vertical, table, reduction);
                 MaximumHorizontal = Math.Max(MaximumHorizontal, horizontal);
                 MaximumVertical = Math.Max(MaximumVertical, vertical);
             }
@@ -210,13 +228,17 @@ namespace Mediana.Codecs.Jpeg
                 component.Height = (Height * component.Vertical + MaximumVertical - 1) / MaximumVertical;
                 component.Stride = checked(mcuColumns * component.Horizontal * 8);
                 component.PaddedHeight = checked(mcuRows * component.Vertical * 8);
+                component.SampleWidth = (component.Width + reduction - 1) / reduction;
+                component.SampleHeight = (component.Height + reduction - 1) / reduction;
+                component.SampleStride = component.Stride / reduction;
+                component.SamplePaddedHeight = component.PaddedHeight / reduction;
                 if (Progressive)
                 {
                     component.Progression = new(allocator, checked(component.Stride * component.PaddedHeight));
                 }
                 else if (allocator is not null)
                 {
-                    component.Samples = allocator.Allocate(checked(component.Stride * component.PaddedHeight));
+                    component.Samples = allocator.Allocate(checked(component.SampleStride * component.SamplePaddedHeight));
                 }
             }
         }

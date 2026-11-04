@@ -163,8 +163,9 @@ namespace Mediana.Codecs.Jpeg
                             {
                                 coefficients.Clear();
                                 JpegSequentialBlock.Decode(ref bits, dc!, ac!, ref predictors[i], coefficients);
-                                Span<byte> output = component.Samples!.Memory.Span[(blockY * 8 * component.Stride + blockX * 8)..];
-                                JpegInverseTransform.Write(coefficients, quantization, output, component.Stride);
+                                int size = 8 / component.Reduction;
+                                Span<byte> output = component.Samples!.Memory.Span[(blockY * size * component.SampleStride + blockX * size)..];
+                                JpegReducedTransform.Write(coefficients, quantization, output, component.SampleStride, component.Reduction);
                             }
                         }
                     }
@@ -172,6 +173,10 @@ namespace Mediana.Codecs.Jpeg
             }
             bits.Align();
             reader.Position = bits.Position;
+            if (interval != 0 && total % interval == 0)
+            {
+                image.RecoverFinalRestart(restart);
+            }
         }
 
     }

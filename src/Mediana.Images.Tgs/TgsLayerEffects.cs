@@ -13,11 +13,11 @@ namespace Mediana.Images.Tgs
 {
     internal partial class TgsSceneBuilder
     {
-        private static IEnumerable<JsonElement> ExpandEffects(JsonElement array)
+        private IEnumerable<JsonElement> ExpandEffects(JsonElement array)
         {
             foreach (JsonElement effect in TgsJson.Array(array))
             {
-                if (TgsJson.Number(effect, "en", 1) == 0 || TgsEffectInfo.IsParameterGroup(effect) || TgsEffectInfo.IsIdentity(effect))
+                if (TgsJson.Number(effect, "en", 1) == 0 || TgsEffectInfo.IsIgnored(effect, _document.Limits) || TgsEffectInfo.IsParameterGroup(effect) || TgsEffectInfo.IsIdentity(effect))
                 {
                     continue;
                 }

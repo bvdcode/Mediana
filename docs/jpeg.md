@@ -247,3 +247,47 @@ PDF `DCTDecode` integration uses the container component API described above.
 
 Format references: [ITU T.81](https://www.w3.org/Graphics/JPEG/itu-t81.pdf),
 Annexes A/B/C/E/F/G, and [JFIF 1.02](https://www.w3.org/Graphics/JPEG/jfif3.pdf).
+
+## Reduced component resolution
+
+`JpegDecoder.DecodeReducedComponents` accepts a reduction factor of 1, 2, 4 or 8.
+It decodes the complete entropy stream and reconstructs 8×8 DCT blocks into
+8×8, 4×4, 2×2 or 1×1 sample blocks. `JpegImage.Width` and `Height` describe
+reduced pixels; `EncodedWidth` and `EncodedHeight` preserve source dimensions.
+The factor-one path uses the existing full-resolution transform.
+
+Source pixel limits still apply. Sequential sample allocation decreases with
+reduction; progressive coefficient retention remains at source resolution and
+counts toward the allocator budget. Exact minimal grayscale sample budgets are
+64, 16, 4 and 1 byte for the four factors, before any RGBA destination.
+
+Twenty-four reduced grayscale, RGB and Adobe RGB references compare every RGBA
+component with independent libjpeg/Pillow reduced decoding, allowing three
+color codes and requiring exact alpha. The full 47-image corpus also checks
+reduced dimensions, ownership and allocator release, including subsampled odd
+edges; those latter checks do not establish independent reduced chroma color
+accuracy. Cancellation, truncation and progressive workspace limits remain
+covered.
+
+## Redundant final restart marker
+
+After decoding every MCU and checking entropy padding, the decoder can recover
+one redundant restart marker at the end of a complete restart interval. The
+remaining input must be exactly the expected `RST0`–`RST7` marker followed by
+`EOI`, with no other bytes. The marker still counts toward `MaximumMarkers`.
+Wrong numbers, incomplete intervals, premature markers, repeated markers,
+additional scans/segments and bytes after EOI remain errors. The decoder does
+not search ahead or change reconstructed coefficients and samples.
+
+This narrow recovery handles a malformed encoding: T.81 Annex B.2.1 requires
+restart markers between entropy segments and excludes one after the last
+segment. `JpegImage.Warnings` reports the recovery for component callers;
+`JpegImageDecoder` reports it through `ImageDecodeRequest.WarningHandler`.
+Header probing does not decode MCU data and cannot establish this recovery's
+conditions.
+
+Shared managed and Native AOT checks compare every pixel with the corresponding
+JPEG without the redundant marker. They cover sequential and progressive DC
+scans, restart sequence wrap, factors 1/2/4/8, exact sample/output budgets,
+malformed endings and diagnostic-handler failure. CLI tests run complete
+processes and check both the warning and output publication.

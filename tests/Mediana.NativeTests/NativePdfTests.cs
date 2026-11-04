@@ -9,6 +9,21 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            string root = Path.Combine(AppContext.BaseDirectory, "Data");
+            await PdfRestartTestInput.VerifyAsync();
+            await PdfRestartTestInput.VerifyCallbackFailureAsync();
+            await PdfCmsTestInput.VerifyAsync();
+            await PdfType3TestInput.VerifyPaintingAsync();
+            await PdfScaledImageTestInput.VerifyBudgetsAsync(Path.Combine(root, "Jpeg"));
+            await PdfScaledImageTestInput.VerifyMultiplePlacementsAsync(Path.Combine(root, "Jpeg"));
+            await PdfScaledImageTestInput.VerifyOwnershipAsync();
+            await PdfScaledImageTestInput.VerifyLargeScanAsync();
+            await PdfInvisibleTextTestInput.VerifyAsync();
+            await PdfPageGroupTestInput.VerifyAsync();
+            CffOutlineTestInput.VerifyPaths();
+            CffOutlineTestInput.VerifyRejected();
+            await PdfNonPaintingAnnotationTestInput.VerifyAsync();
+            await PdfNonPaintingAnnotationTestInput.VerifyFormAsync();
             FontGlyphTestInput.VerifyRejectedAllocation();
             FontGlyphTestInput.VerifyTruncatedGlyphs();
             FontGlyphTestInput.VerifyValidOutlines();

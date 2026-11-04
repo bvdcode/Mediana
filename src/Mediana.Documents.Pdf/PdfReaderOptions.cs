@@ -13,7 +13,8 @@ namespace Mediana.Documents.Pdf
         public int MaximumDepth { get; init; } = 64;
         public int MaximumPages { get; init; } = 10_000;
         public int MaximumOperations { get; init; } = 1_000_000;
-        public int MaximumImagePixels { get; init; } = 16_777_216;
+        /// <summary>Maximum encoded pixel count per source image. Rendering may reduce JPEG samples before allocation.</summary>
+        public int MaximumImagePixels { get; init; } = 64 * 1024 * 1024;
         public int MaximumImageBytes { get; init; } = 128 * 1024 * 1024;
     }
 }

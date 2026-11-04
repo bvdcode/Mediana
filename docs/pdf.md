@@ -1,12 +1,12 @@
 # PDF page previews
 
 `Mediana.Documents.Pdf` reads PDF structure and interprets page painting commands
-with managed C# code. It uses Mediana's drawing, TrueType, JPEG, JPEG 2000 and JBIG2
+with managed C# code. It uses Mediana's drawing, OpenType, JPEG, JPEG 2000 and JBIG2
 implementations. There are no PDF parser packages, native libraries or external
 processes in the runtime path. The module is packaged as `Mediana.Documents.Pdf`.
 
-[TrueType glyph reading](fonts.md) describes the outline bounds and ownership
-used for embedded TrueType fonts.
+[OpenType glyph reading](fonts.md) describes the outline bounds and ownership
+used for embedded TrueType and supported CFF fonts.
 
 ```csharp
 using Mediana.Documents.Pdf;
@@ -18,9 +18,8 @@ using Mediana.Codecs.Png;
 using PdfDocument document = await PdfReader.ReadFileAsync("report.pdf",
     cancellationToken: cancellationToken);
 PdfPageInfo info = document.GetPageInfo(1);
-PdfPage page = document.GetPage(1, cancellationToken);
 MediaBufferAllocator allocator = new(32 * 1024 * 1024);
-using PixelBuffer pixels = PdfRenderer.Render(page,
+using PixelBuffer pixels = PdfRenderer.Render(document, 1,
     new PdfRenderOptions { MaximumWidth = 1200 }, cancellationToken, allocator);
 using VideoFrame frame = pixels.PublishVideoFrame(cancellationToken);
 await using FileStream output = new("preview.png", FileMode.CreateNew, FileAccess.Write, FileShare.None);
@@ -33,8 +32,9 @@ DPI defaults to 96; maximum dimensions reduce the page proportionally. Pixel
 extents round upward without stretching the geometry. Supersampling defaults to
 two. Output is straight sRGB RGBA8 on an opaque white background by default.
 
-A page owns its interpreted paths and image pixels and remains usable after the
-document is disposed. It can be rendered repeatedly or concurrently. Access to a
+A disposable page owns its interpreted paths and image pixels and remains usable
+after the document is disposed. It can be rendered repeatedly or concurrently
+until the page itself is disposed. Access to a
 document's parser is serialized. Input streams remain open; files and bounded
 non-seekable streams are accepted. Decoding a document retains encoded data and
 caches resolved objects/streams, rather than streaming through an entire file
@@ -81,11 +81,19 @@ The implemented subset includes:
   TIFF prediction. Stream ends and declared lengths are checked.
 - Ordered paths, nonzero/even-odd fills, affine strokes, dashes, clipping,
   save/restore, nested Form XObjects and their bounding boxes.
-- Fill/stroke opacity and named PDF blend modes on the RGB canvas.
+- Fill/stroke opacity and named PDF blend modes on the RGB canvas. Pages blend
+  over transparency before composition with the output background. Non-isolated,
+  non-knockout Form groups with ordinary alpha and blending can be interpreted
+  inline; other Form group composition remains unsupported.
 - Embedded TrueType simple fonts (WinAnsi and supported Differences, or the
   font's Macintosh `(1,0)` cmap for symbolic codes) and Identity-H CIDFontType2.
   PDF widths, text matrices, spacing, rise, fill/stroke/invisible/clip modes are
-  applied. Embedded outlines are used; no font substitution is applied.
+  applied. Supported name-keyed OpenType CFF Type 2 outlines use the same font
+  mapping. Type 3 fonts execute their glyph streams with FontMatrix, d0/d1
+  metrics and glyph/page resources; d1 glyphs retain the text ink. Invisible
+  unembedded text preserves PDF advance widths without requiring outlines.
+  Embedded outlines are used for visible outline text; no font substitution
+  is applied.
 - Raw or filtered image XObjects with 1/2/4/8/16-bit samples, DeviceGray/RGB/CMYK,
   Indexed palettes, Decode arrays, color-key masks and image/soft masks. CMYK
   conversion is an arithmetic RGB preview, without ICC-managed printing.
@@ -95,12 +103,16 @@ The implemented subset includes:
   DeviceGray or DeviceRGB, chained byte filters, Decode arrays and color-key,
   explicit image and soft masks.
 
+Non-painting annotations, including hidden entries, empty rectangles and
+borderless links without appearance streams, do not prevent page rendering.
+
 Known gaps include inline images, LZW/CCITT filters, encrypted documents,
-Type 1/CFF/Type 3 or unembedded font outlines, general CMaps and glyph-name
-coverage, gradients/patterns, ICC color transforms, transparency groups,
-graphics-state soft masks, annotations and optional content. JPX color-space
-and opacity overrides and soft-mask Matte correction are also open. Text
-extraction, forms editing, signatures and OCR are outside the preview API.
+Type 1, CID-keyed CFF or unembedded visible font outlines, general CMaps and
+glyph-name coverage, gradients/patterns, ICC color transforms, isolated or
+knockout Form groups, graphics-state soft masks, visible annotations and
+optional content. JPX color-space and opacity overrides and soft-mask Matte
+correction are also open. Text extraction, forms editing, signature verification
+and OCR are outside the preview API.
 
 Known unsupported painting is reported in `UnsupportedFeatures`; rendering
 rejects it by default. Unsupported structure/codecs may fail while opening or
@@ -312,3 +324,39 @@ checks pass.
 These medians include process startup and input reading on a shared host. They
 describe complete image extraction for these inputs; they do not establish a
 process memory ceiling or general page-rendering throughput.
+
+## Preview planning and encapsulated documents
+
+`PdfRenderer.Render(document, pageNumber, options, ...)` determines the output
+sample count before page interpretation and disposes temporary page images.
+For unmasked DCT images it selects full, half, quarter or eighth component
+resolution from the placement transform and supersampling scale. A larger later
+placement cannot reuse an undersized cached image. `GetPage` and image extraction
+retain full source resolution. Masks and stencils retain their existing sample
+semantics.
+
+The default source image limit is 64 Mi pixels; it does not allocate that many
+samples in advance. The default 128 MiB image budget still accounts for retained
+RGBA images and live JPEG samples/coefficient workspace. Progressive coefficients
+remain at source resolution. A synthetic 35 MP sequential grayscale scan renders
+within a 3 MiB image budget. Exact budget boundaries, larger repeated placements
+and independent output ownership have regression checks.
+
+The reader also accepts a BER/DER CMS SignedData envelope containing an attached
+`id-data` PDF, as defined by [RFC 5652](https://www.rfc-editor.org/rfc/rfc5652).
+It reads the ASN.1 content structure and checks the input/entry limits. Primitive
+OCTET STRING content is borrowed; constructed content is assembled into one
+owned payload. Detached signatures, other content types and trailing envelope
+bytes are rejected. This API extracts the document without verifying signatures:
+`PdfDocument.Warnings`, the image request warning handler and the CLI report
+that signature verification was not performed. The result conveys no signature
+authenticity or certificate trust decision.
+
+Page interpretation collects non-fatal codec diagnostics in `PdfPage.Warnings`,
+separately from `UnsupportedFeatures` and the document-envelope diagnostics in
+`PdfDocument.Warnings`. Repeated use of one recovered image produces one page
+diagnostic. `PdfRenderOptions.WarningHandler` receives page warnings before
+rendering; registered image decoding also preserves the request warning handler.
+Both PNG conversion and explicit PDF render/image commands log the diagnostic.
+The JPEG decoder's [redundant final restart recovery](jpeg.md#redundant-final-restart-marker)
+therefore remains visible when the JPEG is embedded in a PDF.

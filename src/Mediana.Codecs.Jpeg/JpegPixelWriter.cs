@@ -88,7 +88,7 @@ namespace Mediana.Codecs.Jpeg
             ReadOnlySpan<byte> samples = component.Samples!.Memory.Span;
             if (component.Horizontal == image.MaximumHorizontal && component.Vertical == image.MaximumVertical)
             {
-                return samples[y * component.Stride + x];
+                return samples[y * component.SampleStride + x];
             }
             int dx = image.MaximumHorizontal * 2;
             int dy = image.MaximumVertical * 2;
@@ -106,10 +106,10 @@ namespace Mediana.Codecs.Jpeg
                 lowY--;
                 fractionY += dy;
             }
-            int x0 = Math.Clamp(lowX, 0, component.Width - 1);
-            int x1 = Math.Clamp(lowX + 1, 0, component.Width - 1);
-            int y0 = Math.Clamp(lowY, 0, component.Height - 1) * component.Stride;
-            int y1 = Math.Clamp(lowY + 1, 0, component.Height - 1) * component.Stride;
+            int x0 = Math.Clamp(lowX, 0, component.SampleWidth - 1);
+            int x1 = Math.Clamp(lowX + 1, 0, component.SampleWidth - 1);
+            int y0 = Math.Clamp(lowY, 0, component.SampleHeight - 1) * component.SampleStride;
+            int y1 = Math.Clamp(lowY + 1, 0, component.SampleHeight - 1) * component.SampleStride;
             int top = samples[y0 + x0] * (dx - fractionX) + samples[y0 + x1] * fractionX;
             int bottom = samples[y1 + x0] * (dx - fractionX) + samples[y1 + x1] * fractionX;
             int divisor = dx * dy;
