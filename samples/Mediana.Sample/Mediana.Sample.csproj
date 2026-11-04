@@ -4,6 +4,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Streaming.Hls/Mediana.Streaming.Hls.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
     <ProjectReference Include="../../src/Mediana/Mediana.csproj" />

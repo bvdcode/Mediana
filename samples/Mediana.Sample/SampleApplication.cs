@@ -14,6 +14,12 @@ namespace Mediana.Sample
     {
         public static async Task<int> RunAsync(string[] args)
         {
+            if (args.Length == 6 && args[0] == "--prepare-hls")
+            {
+                return await PreparedHlsSample.RunAsync(args[1], args[2], new(
+                    long.Parse(args[3], CultureInfo.InvariantCulture), long.Parse(args[4], CultureInfo.InvariantCulture),
+                    int.Parse(args[5], CultureInfo.InvariantCulture)));
+            }
             if (args.Length == 5 && args[0] == "--transcode-av-window")
             {
                 return await AudiovisualWindowSample.RunAsync(args[1], args[2],
@@ -42,7 +48,7 @@ namespace Mediana.Sample
             }
             if (args.Length > 1 || (args.Length == 1 && args[0] != "--self-test"))
             {
-                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --transcode input.mp4 output.ts | --transcode-window input.mp4 output.ts start-ms end-ms | --transcode-av-window input.mp4 output.ts start-ms end-ms | --preview input output.png | --waveform input | --audio-preview input cover.png waveform.json]");
+                await Console.Error.WriteLineAsync("Usage: Mediana.Sample [--self-test | --prepare-hls input.mp4 output-directory end-ms segment-ms maximum-width | --transcode input.mp4 output.ts | --transcode-window input.mp4 output.ts start-ms end-ms | --transcode-av-window input.mp4 output.ts start-ms end-ms | --preview input output.png | --waveform input | --audio-preview input cover.png waveform.json]");
                 return 2;
             }
 
