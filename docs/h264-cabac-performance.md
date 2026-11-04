@@ -573,3 +573,38 @@ completed neighbor metadata, unchanged prediction and adjacent storage,
 and media release. The decoder algorithm remains unchanged. The full
 3,207-test managed suite, 728 hardware-disabled H.264 tests, strict Native
 AOT residual consumer, Release build, formatting and license checks pass.
+
+## Combined CABAC decision table control
+
+A control combines the least-probable interval, both next contexts and the
+current symbol in one indexed decision table. It preserves the checked bit
+reader and skips normalization only when the selected range is already
+normalized. Bypass, termination and input consumption remain unchanged.
+
+Independent checks use the probability and transition tables from
+[H.264, June 2026](https://www.itu.int/rec/T-REC-H.264-202606-I),
+Tables 9-44 and 9-45. They cover 245,504 cases: all 64 probability states,
+both symbols and every valid initial offset at ranges 256, 320, 384, 448
+and 510. They verify the decoded symbol, next context, arithmetic interval,
+bit position and alignment, including every normalization shift from zero
+through seven. The original and modified decoders pass these checks in
+managed, hardware-disabled and strict Native AOT execution.
+
+Four complete 180.125-second decodes run in before/after/after/before order:
+
+| Metric | Current | Combined table |
+| --- | ---: | ---: |
+| Median CPU, seconds | 48.469 | 48.283 |
+| Median elapsed, seconds | 77.312 | 83.677 |
+| Median peak RSS, KiB | 73,634 | 74,334 |
+
+Each produces the same 4,323 pictures and 5,976,115,200 raw bytes, rational
+timestamps, durations, EOF and released media storage. The observed CPU
+reduction is 0.38%, below the predefined 5% requirement, so the control is
+not adopted. Reverse-order, CAVLC and encoding extensions are not run;
+the external decoder and complete HLS comparisons remain unchanged.
+
+The [normative decision checks](../tests/Shared/H264CabacDecisionTestInput.cs)
+remain in both test projects. The unchanged decoder passes the full
+3,208-test managed suite, 729 hardware-disabled H.264 tests, a strict Native
+AOT decision consumer, Release build, formatting and license checks.
