@@ -141,6 +141,7 @@
     <Compile Include="../Shared/Jbig2TestInput.cs" Link="Jbig2TestInput.cs" />
     <Compile Include="../Shared/TgsReferenceTestInput.cs" Link="TgsReferenceTestInput.cs" />
     <Compile Include="../Shared/TgsStrokeTestInput.cs" Link="TgsStrokeTestInput.cs" />
+    <Compile Include="../Shared/PdfType3TestInput.cs" Link="PdfType3TestInput.cs" />
     <Compile Include="../Shared/TgsKeyframeOrderTestInput.cs" Link="TgsKeyframeOrderTestInput.cs" />
     <Compile Include="../Shared/TgsEffectTestInput.cs" Link="TgsEffectTestInput.cs" />
     <Compile Include="../Shared/TgsLayerReferenceTestInput.cs" Link="TgsLayerReferenceTestInput.cs" />

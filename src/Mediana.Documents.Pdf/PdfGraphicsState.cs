@@ -10,6 +10,9 @@ namespace Mediana.Documents.Pdf
         internal Matrix3x2 Transform { get; init; } = Matrix3x2.Identity;
         internal Rgba32 Fill { get; init; } = new(0, 0, 0);
         internal Rgba32 Stroke { get; init; } = new(0, 0, 0);
+        internal bool UncoloredGlyph { get; init; }
+        internal PdfColorSpace FillSpace { get; init; }
+        internal PdfColorSpace StrokeSpace { get; init; }
         internal float FillAlpha { get; init; } = 1;
         internal float StrokeAlpha { get; init; } = 1;
         internal ColorBlendMode Blend { get; init; }

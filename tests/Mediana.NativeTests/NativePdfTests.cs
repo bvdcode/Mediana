@@ -9,6 +9,7 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            await PdfType3TestInput.VerifyPaintingAsync();
             FontGlyphTestInput.VerifyRejectedAllocation();
             FontGlyphTestInput.VerifyTruncatedGlyphs();
             FontGlyphTestInput.VerifyValidOutlines();
