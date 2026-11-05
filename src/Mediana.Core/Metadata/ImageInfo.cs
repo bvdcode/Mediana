@@ -5,12 +5,12 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Core.Metadata
 {
-    /// <summary>Declared properties of the primary image, first page or animation canvas.
-    /// Dimensions describe the presentation after declared orientation and cropping, without rasterization.</summary>
+    /// <summary>Properties of the primary image, first page, animation canvas or configured model preview.
+    /// Dimensions describe the presentation without rasterization; IsPreviewCanvas distinguishes a configured viewport from source dimensions.</summary>
     public class ImageInfo
     {
         public ImageInfo(string formatId, double width, double height, ImageDimensionUnit dimensionUnit,
-            int? pageCount = null, MediaDuration? duration = null, double? frameRate = null)
+            int? pageCount = null, MediaDuration? duration = null, double? frameRate = null, bool isPreviewCanvas = false)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
             if (!double.IsFinite(width) || width <= 0 || !double.IsFinite(height) || height <= 0)
@@ -30,6 +30,7 @@ namespace Mediana.Core.Metadata
                 throw new ArgumentOutOfRangeException(nameof(frameRate));
             }
             duration?.TimeBase.Validate();
+            IsPreviewCanvas = isPreviewCanvas;
             FormatId = formatId;
             Width = width;
             Height = height;
@@ -39,6 +40,8 @@ namespace Mediana.Core.Metadata
             FrameRate = frameRate;
         }
 
+        /// <summary>True when dimensions describe a configured model preview, rather than an intrinsic raster or page size.</summary>
+        public bool IsPreviewCanvas { get; }
         public string FormatId { get; }
         public double Width { get; }
         public double Height { get; }
