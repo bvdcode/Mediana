@@ -16,7 +16,7 @@ namespace Mediana.Cli
         public static async Task<int> RunAsync(IImageDecoder decoder, string inputPath, CommandOutputFile outputFile, ILogger logger,
             IImageEncoder encoder, ImageDecodeRequest? request = null, CancellationToken cancellationToken = default)
         {
-            MediaEngine engine = new MediaEngineBuilder().UseResources(CommandTextResources.Shared).AddImageDecoder(decoder).Build();
+            MediaEngine engine = ImageEngineFactory.AddDecoders(new MediaEngineBuilder()).ReplaceImageDecoder(decoder).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             return await RunAsync(engine, source, outputFile, logger, encoder, request, cancellationToken);
         }
