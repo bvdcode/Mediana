@@ -74,60 +74,37 @@ namespace Mediana.Images.Svg
             });
         }
 
+        private static float GraphicBaseline(Dictionary<string, string> style, InlineGraphic graphic, float size)
+        {
+            string value = Value(style, "dominant-baseline", Value(style, "alignment-baseline", "auto"));
+            float offset = value switch
+            {
+                "middle" => size * .25f,
+                "central" => (float)(graphic.Ascent - graphic.Descent) * size / 2,
+                "hanging" => (float)graphic.Ascent * size * .8f,
+                "text-before-edge" or "text-top" => (float)graphic.Ascent * size,
+                "text-after-edge" or "text-bottom" => (float)-graphic.Descent * size,
+                _ => 0
+            };
+            string shift = Value(style, "baseline-shift", "0");
+            return offset - (shift switch
+            {
+                "super" => size * .6f,
+                "sub" => -size * .3f,
+                "baseline" => 0,
+                _ => TextLength(shift, size)
+            });
+        }
+
         private (TrueTypeFont Font, int Glyph) TextFont(Dictionary<string, string> style, int character)
         {
             string family = Value(style, "font-family", "sans-serif");
             string weight = Value(style, "font-weight", "400");
             int numeric = weight is "bold" or "bolder" ? 700 : int.TryParse(weight, out int parsed) ? parsed : 400;
-            SvgFontRequest? request = new SvgFontRequest(family, numeric, Value(style, "font-style", "normal") is "italic" or "oblique");
-            TrueTypeFont[] fonts = TextFonts(request);
-            foreach (TrueTypeFont font in fonts)
-            {
-                int glyph = font.Glyph(character);
-                if (glyph != 0)
-                {
-                    return (font, glyph);
-                }
-            }
-
-            Warn("Missing SVG font glyph U+" + character.ToString("X4", System.Globalization.CultureInfo.InvariantCulture));
-            return (fonts[0], 0);
-        }
-
-        private TrueTypeFont[] TextFonts(SvgFontRequest request)
-        {
-            if (!_fonts.TryGetValue(request, out TrueTypeFont[]? fonts))
-            {
-                var list = new List<TrueTypeFont>();
-                foreach (string candidate in request.Family.Split(','))
-                {
-                    ReadOnlyMemory<byte> custom = _limits.FontResolver?.Invoke(request with { Family = candidate.Trim().Trim('\'', '"') }) ?? default;
-                    if (!custom.IsEmpty)
-                    {
-                        list.Add(new TrueTypeFont(custom));
-                    }
-                }
-
-                string variant = request.Weight >= 600 ? request.Italic ? "BoldItalic" : "Bold" : request.Italic ? "Italic" : "Regular";
-                list.Add(BundledFont("Aileron-" + variant));
-                list.Add(BundledFont("Canada1500-" + variant));
-                fonts = list.ToArray();
-                _fonts.Add(request, fonts);
-            }
-
-            return fonts;
-        }
-
-        private TrueTypeFont BundledFont(string name)
-        {
-            if (_bundledFonts.TryGetValue(name, out TrueTypeFont? cached))
-            {
-                return cached;
-            }
-
-            TrueTypeFont font = new(BundledFontPrograms.Read(name));
-            _bundledFonts.Add(name, font);
-            return font;
+            FontRequest request = new(family, numeric >= 600, Value(style, "font-style", "normal") is "italic" or "oblique");
+            (TrueTypeFont font, int glyph) = _text.ResolveGlyph(request, character, _token);
+            if (glyph == 0) { Warn("Missing SVG font glyph U+" + character.ToString("X4", System.Globalization.CultureInfo.InvariantCulture)); }
+            return (font, glyph);
         }
     }
 }

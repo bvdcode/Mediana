@@ -15,6 +15,7 @@ namespace Mediana.Images.Svg
     internal partial class SvgSceneBuilder
     {
         private readonly XElement _root;
+        private readonly TextRenderer _text;
         private readonly SvgReaderOptions _limits;
         private readonly CancellationToken _token;
         private readonly Dictionary<string, XElement> _ids = new(StringComparer.Ordinal);
@@ -34,6 +35,7 @@ namespace Mediana.Images.Svg
         internal SvgSceneBuilder(XElement root, SvgReaderOptions limits, CancellationToken token)
         {
             _root = root;
+            _text = new(limits.Text);
             _limits = limits;
             _token = token;
         }

@@ -5,6 +5,9 @@ using Mediana.Core.Memory;
 using Mediana.Documents.Word;
 using Mediana.Drawing;
 using Mediana.Drawing.Emoji.Fluent;
+using Mediana.Drawing.Fonts;
+using Mediana.Images.Svg;
+using Mediana.Documents.Pdf;
 using System.Numerics;
 
 namespace Mediana.Tests
@@ -68,6 +71,42 @@ namespace Mediana.Tests
                 Require(budget.AllocatedBytes == 0);
             })));
             Require(pageBudget.AllocatedBytes == 0);
+        }
+
+        internal static async Task VerifySharedTextAsync()
+        {
+            using FluentEmojiProvider emoji = new();
+            List<FontRequest> requests = [];
+            TextOptions text = new()
+            {
+                FontResolver = request => { requests.Add(request); return BundledFontPrograms.GetFont("Aileron", request.Bold, request.Italic); },
+                InlineGraphicProvider = emoji
+            };
+            WordLayout word = WordRenderer.Layout(Read("<w:p><w:r><w:t>A👩‍💻B</w:t></w:r></w:p>"), new() { Text = text });
+            using PixelBuffer wordPixels = await WordRenderer.RenderAsync(word, 1, new() { Dpi = 72, Supersampling = 1 });
+            Require(ColoredPixels(wordPixels) > 20);
+            SvgReaderOptions options = new() { Text = text };
+            const string start = "<svg xmlns='http://www.w3.org/2000/svg' width='120' height='60'><text x='4' y='44' font-family='Aileron' font-size='32'>";
+            const string end = "</text></svg>";
+            SvgDocument whole = SvgReader.Read(start + "A👩‍💻B" + end, options);
+            SvgDocument split = SvgReader.Read(start + "A<tspan>👩</tspan><tspan>‍</tspan><tspan>💻</tspan>B" + end, options);
+            Require(whole.UnsupportedFeatures.Count == 0 && split.UnsupportedFeatures.Count == 0);
+            emoji.Dispose();
+            MediaBufferAllocator allocator = new(120 * 60 * 4);
+            using (PixelBuffer pixels = SvgRenderer.Render(whole, new() { Supersampling = 1 }, allocator: allocator))
+            using (PixelBuffer reference = SvgRenderer.Render(split, new() { Supersampling = 1 }))
+            {
+                Require(ColoredPixels(pixels) > 100);
+                Require(pixels.Pixels.Span.SequenceEqual(reference.Pixels.Span));
+                Require(allocator.AllocatedBytes == 120 * 60 * 4);
+            }
+            Require(allocator.AllocatedBytes == 0);
+            byte[] pdf = PdfTestDocument.Create("BT /F 20 Tf 10 40 Td (A) Tj ET", resources: "/Font << /F 5 0 R >>",
+                extraObjects: PdfTestDocument.Bytes("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-BoldOblique >>"));
+            using PdfDocument document = await PdfReader.ReadAsync(new MemoryStream(pdf), new() { Text = text });
+            using PixelBuffer pdfPixels = PdfRenderer.Render(document, 1, new() { Dpi = 72, Supersampling = 1 });
+            Require(pdfPixels.Pixels.Span.Contains((byte)0));
+            Require(requests.Contains(new FontRequest("Helvetica", true, true)));
         }
 
         internal static int ColoredPixels(PixelBuffer pixels)

@@ -5,6 +5,7 @@ using Mediana.Drawing;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -16,12 +17,6 @@ namespace Mediana.Images.Svg
 {
     internal partial class SvgSceneBuilder
     {
-        private readonly Dictionary<SvgFontRequest, TrueTypeFont[]> _fonts = new();
-        private readonly Dictionary<string, TrueTypeFont> _bundledFonts = new(StringComparer.Ordinal);
-
-
-
-
         private SceneNode[] TextNodes(XElement e, Dictionary<string, string> style, int depth)
         {
             var raw = new List<TextCharacter>();
@@ -39,10 +34,47 @@ namespace Mediana.Images.Svg
             float x = 0, y = 0;
             TrueTypeFont? previousFont = null;
             int previousGlyph = 0;
-            foreach (TextCharacter character in text)
+            StringBuilder builder = new();
+            foreach (TextCharacter item in text) { builder.Append(item.Rune.ToString()); }
+            string source = builder.ToString();
+            int offset = 0, clusterEnd = 0;
+            for (int index = 0; index < text.Count; index++)
             {
+                TextCharacter character = text[index];
                 _token.ThrowIfCancellationRequested();
+                InlineGraphic? graphic = null;
+                if (offset == clusterEnd)
+                {
+                    int length = StringInfo.GetNextTextElementLength(source.AsSpan(offset));
+                    clusterEnd = offset + length;
+                    graphic = _text.ResolveGraphic(source.AsSpan(offset, length), _token);
+                }
                 bool chunk = Position(character.Span, ref x, ref y, out float rotation);
+                if (graphic is not null)
+                {
+                    float size = character.Span.Size;
+                    float graphicAdvance = (float)(graphic.Advance * size) + TextLength(Value(character.Span.Style, "letter-spacing", "0"), size);
+                    VectorPath decoration = new();
+                    Decorate(decoration, character.Span.Style, graphicAdvance, size);
+                    glyphs.Add(new(decoration, character.Span.Style, x, y + GraphicBaseline(character.Span.Style, graphic, size), graphicAdvance, rotation, character.Span, chunk || glyphs.Count == 0)
+                    {
+                        Graphic = graphic,
+                        GraphicTransform = Matrix3x2.CreateScale(size) * Matrix3x2.CreateTranslation(0, (float)(-graphic.Ascent * size))
+                    });
+                    x += graphicAdvance;
+                    offset += character.Rune.Utf16SequenceLength;
+                    while (offset < clusterEnd)
+                    {
+                        TextCharacter continuation = text[++index];
+                        float ignoredX = x, ignoredY = y;
+                        Position(continuation.Span, ref ignoredX, ref ignoredY, out _);
+                        offset += continuation.Rune.Utf16SequenceLength;
+                    }
+                    previousFont = null;
+                    continue;
+                }
+                offset += character.Rune.Utf16SequenceLength;
+                if (character.Rune.Value is 0xFE0E or 0xFE0F or 0x200D or 0xAD) { continue; }
                 (TrueTypeFont font, int glyph) = TextFont(character.Span.Style, character.Rune.Value);
                 float scale = character.Span.Size / font.Units;
                 if (!chunk && previousFont == font && Value(character.Span.Style, "font-kerning", "auto") != "none")
@@ -50,7 +82,7 @@ namespace Mediana.Images.Svg
                     x += font.Kerning(previousGlyph, glyph) * scale;
                 }
 
-                VectorPath path = font.Outline(glyph).Transform(Matrix3x2.CreateScale(scale, -scale));
+                VectorPath path = _text.BorrowOutline(font, glyph).Transform(Matrix3x2.CreateScale(scale, -scale));
                 float spacing = TextLength(Value(character.Span.Style, "letter-spacing", "0"), character.Span.Size);
                 if (Rune.IsWhiteSpace(character.Rune))
                 {
@@ -98,9 +130,15 @@ namespace Mediana.Images.Svg
 
             foreach (PlacedGlyph glyph in glyphs)
             {
-                VectorPath path = PlaceTextGlyph(glyph);
+                Matrix3x2? placement = TextGlyphPlacement(glyph);
+                if (placement is null) { continue; }
+                VectorPath path = glyph.Path.Transform(placement.Value);
                 path = ValidatePath(path, glyph.Style) ?? new VectorPath();
-                Container(glyph.Span).Add(new SceneNode(path, Paint(Value(glyph.Style, "fill", "black"), glyph.Style), Paint(Value(glyph.Style, "stroke", "none"), glyph.Style), Pen(glyph.Style), Rule(Value(glyph.Style, "fill-rule", "nonzero")), FillRule.NonZero, Matrix3x2.Identity, 1, Opacity(glyph.Style, "fill-opacity"), Opacity(glyph.Style, "stroke-opacity"), null, Array.Empty<SceneNode>()));
+                Container(glyph.Span).Add(new SceneNode(path, Paint(Value(glyph.Style, "fill", "black"), glyph.Style), Paint(Value(glyph.Style, "stroke", "none"), glyph.Style), Pen(glyph.Style), Rule(Value(glyph.Style, "fill-rule", "nonzero")), FillRule.NonZero, Matrix3x2.Identity, 1, Opacity(glyph.Style, "fill-opacity"), Opacity(glyph.Style, "stroke-opacity"), null, Array.Empty<SceneNode>())
+                {
+                    Graphic = Value(glyph.Style, "visibility", "visible") is "hidden" or "collapse" ? null : glyph.Graphic,
+                    GraphicTransform = glyph.GraphicTransform * placement.Value
+                });
             }
 
             SceneNode Finish(SceneNode node)
@@ -120,183 +158,6 @@ namespace Mediana.Images.Svg
             }
 
             return result.Select(Finish).ToArray();
-        }
-
-        private void GatherText(XElement element, Dictionary<string, string> style, TextSpan? parent, float parentSize, Matrix3x2 transform, bool preserve, List<TextCharacter> text, int depth)
-        {
-            Count(depth);
-            float size = TextLength(Value(style, "font-size", "16"), parentSize);
-            if (size < 0 || size > 1_000_000)
-            {
-                throw new InvalidDataException("Invalid SVG font size.");
-            }
-
-            style = new Dictionary<string, string>(style)
-            {
-                ["font-size"] = size.ToString(System.Globalization.CultureInfo.InvariantCulture)
-            };
-            TextFeatures(style);
-            TextSpan? span = new TextSpan
-            {
-                Element = element,
-                Style = style,
-                Parent = parent,
-                Size = size,
-                Transform = transform,
-                X = TextPositions(element, "x", _width, size),
-                Y = TextPositions(element, "y", _height, size),
-                Dx = TextPositions(element, "dx", _width, size),
-                Dy = TextPositions(element, "dy", _height, size),
-                Rotate = element.Attribute("rotate") is { } rotate ? SvgNumbers.List(rotate.Value) : Array.Empty<float>()
-            };
-            string space = (string?)element.Attribute(XNamespace.Xml + "space") ?? "";
-            preserve = space == "preserve" || (space != "default" && preserve) || Value(style, "white-space", "normal").StartsWith("pre", StringComparison.Ordinal);
-            GatherChildren(element, span, size, transform, preserve, text, depth);
-        }
-
-        private void GatherChildren(XElement element, TextSpan span, float size, Matrix3x2 transform, bool preserve, List<TextCharacter> text, int depth)
-        {
-            Dictionary<string, string> style = span.Style;
-            foreach (XNode node in element.Nodes())
-            {
-                if (node is XText value)
-                {
-                    foreach (Rune rune in value.Value.EnumerateRunes())
-                    {
-                        if (text.Count >= _limits.MaximumPathCommands)
-                        {
-                            throw new InvalidDataException("SVG text exceeds MaximumPathCommands.");
-                        }
-
-                        text.Add(new TextCharacter(rune, span, preserve));
-                    }
-                }
-                else if (node is XElement child)
-                {
-                    if (child.Name.LocalName is "tspan" or "textPath" or "a")
-                    {
-                        Dictionary<string, string> childStyle = Style(child, style);
-                        GatherText(child, childStyle, span, size, SvgNumbers.Transform((string?)child.Attribute("transform")) * transform, preserve, text, depth + 1);
-                    }
-                    else if (!Metadata.Contains(child.Name.LocalName))
-                    {
-                        Warn("SVG text element: " + child.Name.LocalName);
-                    }
-                }
-            }
-        }
-
-        private static List<TextCharacter> NormalizeText(List<TextCharacter> source)
-        {
-            var result = new List<TextCharacter>();
-            bool space = true;
-            foreach (TextCharacter item in source)
-            {
-                bool whitespace = item.Rune.Value is 9 or 10 or 13 or 32;
-                if (item.Preserve)
-                {
-                    result.Add(whitespace ? item with { Rune = new Rune(' ') } : item);
-                    space = whitespace;
-                }
-                else if (!whitespace || !space)
-                {
-                    result.Add(whitespace ? item with { Rune = new Rune(' ') } : item);
-                    space = whitespace;
-                }
-            }
-
-            if (result.Count > 0 && !result[^1].Preserve && result[^1].Rune.Value == 32)
-            {
-                result.RemoveAt(result.Count - 1);
-            }
-
-            return result;
-        }
-
-        private void TextFeatures(Dictionary<string, string> style)
-        {
-            foreach ((string, string) feature in new[]
-            {
-                ("direction", "ltr"),
-                ("unicode-bidi", "normal"),
-                ("writing-mode", "horizontal-tb"),
-                ("font-feature-settings", "normal"),
-                ("font-variant", "normal")
-            }
-
-            )
-            {
-                if (Value(style, feature.Item1, feature.Item2) != feature.Item2)
-                {
-                    Warn("SVG text property: " + feature.Item1);
-                }
-            }
-        }
-
-        private static void Decorate(VectorPath path, Dictionary<string, string> style, float advance, float size)
-        {
-            float thickness = Math.Max(size / 16, .5f);
-            foreach (string name in Value(style, "text-decoration", "none").Split(' '))
-            {
-                float? y = name switch
-                {
-                    "underline" => size * .1f,
-                    "overline" => -size * .8f,
-                    "line-through" => -size * .3f,
-                    _ => null
-                };
-                if (y.HasValue)
-                {
-                    path.Rectangle(0, y.Value, advance, thickness);
-                }
-            }
-        }
-
-        private static bool Position(TextSpan span, ref float x, ref float y, out float rotation)
-        {
-            var ancestors = new Stack<TextSpan>();
-            for (TextSpan? current = span; current is not null; current = current.Parent)
-            {
-                ancestors.Push(current);
-            }
-
-            bool absolute = false;
-            float dx = 0, dy = 0;
-            rotation = 0;
-            foreach (TextSpan current in ancestors)
-            {
-                int i = current.Index++;
-                if (i < current.X.Length)
-                {
-                    x = current.X[i];
-                    absolute = true;
-                }
-
-                if (i < current.Y.Length)
-                {
-                    y = current.Y[i];
-                    absolute = true;
-                }
-
-                if (i < current.Dx.Length)
-                {
-                    dx = current.Dx[i];
-                }
-
-                if (i < current.Dy.Length)
-                {
-                    dy = current.Dy[i];
-                }
-
-                if (current.Rotate.Length > 0)
-                {
-                    rotation = current.Rotate[Math.Min(i, current.Rotate.Length - 1)];
-                }
-            }
-
-            x += dx;
-            y += dy;
-            return absolute;
         }
 
         private static void Anchor(List<PlacedGlyph> glyphs)
@@ -351,7 +212,8 @@ namespace Mediana.Images.Svg
                 {
                     X = origin + (((g.X - origin) * target) / actual),
                     Path = g.Path.Transform(Matrix3x2.CreateScale(target / actual, 1)),
-                    Advance = (g.Advance * target) / actual
+                    Advance = (g.Advance * target) / actual,
+                    GraphicTransform = g.GraphicTransform * Matrix3x2.CreateScale(target / actual, 1)
                 }
 
                 : g with
@@ -361,7 +223,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private VectorPath PlaceTextGlyph(PlacedGlyph glyph)
+        private Matrix3x2? TextGlyphPlacement(PlacedGlyph glyph)
         {
             TextSpan? path = glyph.Span;
             while (path is not null && path.Element.Name.LocalName != "textPath")
@@ -376,19 +238,19 @@ namespace Mediana.Images.Svg
                 VectorPath? curve = target is null ? null : Shape(target)?.Transform(SvgNumbers.Transform((string?)target.Attribute("transform")));
                 if (curve is null)
                 {
-                    return new VectorPath();
+                    return null;
                 }
 
                 float offset = SvgLength.Parse((string?)path.Element.Attribute("startOffset") ?? "0", PathLength(curve));
                 if (!PointOnPath(curve, glyph.X + offset + (glyph.Advance / 2), out Vector2 point, out float angle))
                 {
-                    return new VectorPath();
+                    return null;
                 }
 
                 placement = Matrix3x2.CreateTranslation(-glyph.Advance / 2, glyph.Y) * Matrix3x2.CreateRotation(angle + ((glyph.Rotation * MathF.PI) / 180)) * Matrix3x2.CreateTranslation(point);
             }
 
-            return glyph.Path.Transform(placement * glyph.Span.Transform);
+            return placement * glyph.Span.Transform;
         }
 
         private float PathLength(VectorPath path) => PathSegments(path).Sum(segment => segment.Length);

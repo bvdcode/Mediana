@@ -9,7 +9,7 @@ namespace Mediana.Tests
 {
     public class PdfFontResolverTests
     {
-        private static PdfReaderOptions Fonts => new() { FontResolver = _ => BundledFontPrograms.GetFont("Canada1500") };
+        private static PdfReaderOptions Fonts => new() { Text = new() { FontResolver = _ => BundledFontPrograms.GetFont("Canada1500") } };
         private static PdfRenderOptions Render => new() { Dpi = 72, Supersampling = 1 };
 
         [Fact]
@@ -61,7 +61,7 @@ namespace Mediana.Tests
         public async Task ResolvedFontProgramsAreOwnedByTheDetachedPage()
         {
             byte[] program = BundledFontPrograms.GetFont("Canada1500").ToArray();
-            PdfReaderOptions options = new() { FontResolver = _ => program };
+            PdfReaderOptions options = new() { Text = new() { FontResolver = _ => program } };
             using PdfDocument document = await PdfReader.ReadAsync(new MemoryStream(Simple("BT /F 20 Tf 10 40 Td (A) Tj ET")), options);
             using PdfPage page = document.GetPage(1);
             Array.Clear(program);
@@ -95,7 +95,7 @@ namespace Mediana.Tests
         public async Task TransientFontProgramsDoNotAccumulateAcrossRepeatedPageInterpretation()
         {
             ReadOnlyMemory<byte> program = BundledFontPrograms.GetFont("Canada1500");
-            PdfReaderOptions options = new() { FontResolver = _ => program, MaximumDecodedBytes = program.Length + 1024 };
+            PdfReaderOptions options = new() { Text = new() { FontResolver = _ => program }, MaximumDecodedBytes = program.Length + 1024 };
             using PdfDocument document = await PdfReader.ReadAsync(new MemoryStream(Simple("BT /F 10 Tf 10 40 Td (A) Tj ET")), options);
             using PixelBuffer first = PdfRenderer.Render(document, 1, Render);
             using PixelBuffer second = PdfRenderer.Render(document, 1, Render);

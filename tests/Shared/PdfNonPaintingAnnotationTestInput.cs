@@ -111,7 +111,7 @@ namespace Mediana.Tests
             byte[] input = PdfTestDocument.Create("BT /F 20 Tf 10 40 Td (A) Tj ET",
                 resources: "/Font << /F 5 0 R >>",
                 extraObjects: PdfTestDocument.Bytes("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"));
-            PdfReaderOptions reader = new() { FontResolver = _ => BundledFontPrograms.GetFont("Canada1500") };
+            PdfReaderOptions reader = new() { Text = new() { FontResolver = _ => BundledFontPrograms.GetFont("Canada1500") } };
             MediaEngine engine = new MediaEngineBuilder().AddImageDecoder(new PdfImageDecoder(reader, new() { Dpi = 72, Supersampling = 1 })).Build();
             MediaBufferAllocator allocator = new(1000000);
             List<string> warnings = [];

@@ -13,6 +13,9 @@ namespace Mediana.Tests
     public class FluentEmojiTests
     {
         [Fact]
+        public Task WordSvgAndPdfUseTheSameLibraryTextResources() => FluentEmojiTestInput.VerifySharedTextAsync();
+
+        [Fact]
         public Task SequencesSelectorsBorrowedCanvasOwnershipAndConcurrentWordPages() => FluentEmojiTestInput.VerifyAsync();
 
         [Fact]

@@ -20,8 +20,8 @@ namespace Mediana.Images.Svg
         public int MaximumDepth { get; init; } = 64;
         /// <summary>Gets the decoded pixel budget per embedded or resolved image.</summary>
         public int MaximumImagePixels { get; init; } = 16_777_216;
-        /// <summary>Gets an optional caller-controlled font resolver. Return TrueType/OpenType glyf font bytes, or empty to use the bundled CC0 fonts.</summary>
-        public Func<SvgFontRequest, ReadOnlyMemory<byte>>? FontResolver { get; init; }
+        /// <summary>Shared text resources. The default uses the bundled CC0 sans-serif and supplemental faces.</summary>
+        public TextOptions Text { get; init; } = new() { SubstituteMissingFonts = true, SubstituteFamilies = ["Aileron", "Canada1500"] };
         /// <summary>Gets an optional caller-controlled image resolver. No network or file access is performed implicitly.</summary>
         public Func<string, PixelBuffer?>? ImageResolver { get; init; }
     }

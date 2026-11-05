@@ -13,7 +13,7 @@ namespace Mediana.Cli
     {
         public static async Task<int> RenderAsync(string input, CommandOutputFile output, int pageNumber, int maximumWidth, ILogger logger, IImageEncoder encoder, CancellationToken cancellationToken = default)
         {
-            using PdfDocument document = await PdfReader.ReadFileAsync(input, CommandImageResources.PdfReaderOptions, cancellationToken);
+            using PdfDocument document = await PdfReader.ReadFileAsync(input, CommandImageResources.PdfReaderOptions with { Text = await CommandTextResources.GetAsync(cancellationToken) }, cancellationToken);
             LogWarnings(document.Warnings, logger);
             PdfPageInfo page = document.GetPageInfo(pageNumber);
             MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
