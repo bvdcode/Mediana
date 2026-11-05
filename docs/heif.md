@@ -46,6 +46,11 @@ Input bytes, pixels per image, item count and derivation depth are bounded by
 `HeicDecodeOptions`. These are admission limits, not a total working-memory or
 RSS limit. Large grids and intermediate images require additional memory.
 
+The CLI does not impose a megapixel threshold or a fixed image-memory budget.
+Image input and output buffers must fit the runtime's managed-array length,
+and decoding requires enough available memory. Applications using the library
+can choose their own admission limits and allocator budget.
+
 Tests verify complete RGBA hashes and visible dimensions for 42 independent
 synthetic HEIC references. Three additional 8/10-bit/monochrome wavefront
 streams match independent plane hashes with one and four workers. Further checks

@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Drawing;
 using Mediana.Codecs;
 using Mediana.Codecs.Png;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
-using Mediana.Images.Svg;
 using Mediana.IO;
 using Mediana.Processing;
 using Microsoft.Extensions.Logging;
@@ -16,8 +14,6 @@ namespace Mediana.Cli
 {
     internal static class ImagePreviewCommand
     {
-        private const long BufferBudgetBytes = 256L * 1024 * 1024;
-
         public static async Task<int> RunAsync(IImageDecoder decoder, string inputPath, CommandOutputFile outputFile, ILogger logger,
             ImageDecodeRequest? request = null, CancellationToken cancellationToken = default)
         {
@@ -29,10 +25,10 @@ namespace Mediana.Cli
         public static async Task<int> RunAsync(MediaEngine engine, IByteSource source, CommandOutputFile outputFile, ILogger logger,
             ImageDecodeRequest? request = null, CancellationToken cancellationToken = default)
         {
-            MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
             Action<string> warning = message => logger.LogWarning("{Warning}", message);
             request = (request ?? new ImageDecodeRequest()) with { WarningHandler = request?.WarningHandler + warning };
-            using (VideoFrame frame = await engine.DecodeImageAsync(source, allocator, request, cancellationToken: cancellationToken))
+            using (VideoFrame frame = await engine.DecodeImageAsync(source, allocator, request, CommandImageResources.OpenOptions, cancellationToken))
             using (VideoFrame srgb = SrgbConverter.Apply(frame, PreviewColorPolicy.Resolve(frame.Format, logger), allocator, cancellationToken))
             {
                 long encodedLength = 0;
@@ -50,7 +46,7 @@ namespace Mediana.Cli
         }
 
         public static Task<int> SvgAsync(string inputPath, CommandOutputFile outputFile, int? width, ILogger logger, CancellationToken cancellationToken = default) =>
-            RunAsync(new SvgImageDecoder(renderOptions: new DrawingRenderOptions { Width = width }), inputPath, outputFile, logger, cancellationToken: cancellationToken);
+            RunAsync(ImageEngineFactory.CreateSvg(width), inputPath, outputFile, logger, cancellationToken: cancellationToken);
 
         public static Task<int> TgsAsync(string inputPath, CommandOutputFile outputFile, double seconds, int? width, ILogger logger, CancellationToken cancellationToken = default) =>
             RunAsync(ImageEngineFactory.CreateTgs(width), inputPath, outputFile, logger,

@@ -194,6 +194,11 @@ are points (1/72 inch); animation metadata includes duration and frame rate. Ima
 inspection reads bounded input and does not decode pixel data. Conversion options
 require an output path.
 
+CLI image inspection and conversion do not impose fixed megabyte or megapixel
+budgets. Image buffers must fit the runtime's managed-array length, and processing
+requires enough available memory. Library applications can configure input,
+pixel and allocation budgets for their own workloads.
+
 `mediana cover input output --index N` extracts original picture bytes from MP3,
 FLAC or MP4/M4A metadata. Detection uses input contents, and indices follow
 container order; no preference for the front or largest cover is applied. The

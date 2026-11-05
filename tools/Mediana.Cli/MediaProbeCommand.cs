@@ -15,7 +15,7 @@ namespace Mediana.Cli
         {
             MediaEngine engine = MetadataEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
-            MediaInfo info = await engine.ProbeAsync(source, cancellationToken: cancellationToken);
+            MediaInfo info = await engine.ProbeAsync(source, CommandImageResources.ProbeOptions, cancellationToken);
             if (info.Image is ImageInfo image)
             {
                 await ImageInfoFormatter.WriteAsync(image, output);
