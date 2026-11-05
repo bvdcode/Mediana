@@ -2,7 +2,7 @@
 
 `Mediana.Drawing.Emoji.Fluent` is an optional MIT-licensed resource module using
 Microsoft Fluent Emoji's Flat SVG artwork. It contains 1,595 base sequences in
-a 1,496,994-byte archive. The CLI includes this module for Word previews;
+a 1,496,994-byte archive. The CLI includes this module for Word and SVG previews;
 `Mediana.Drawing` and `Mediana.Documents.Word` do not depend on it.
 
 The module uses Mediana's managed SVG renderer and BCL compression. It does not
@@ -18,8 +18,7 @@ using FluentEmojiProvider emoji = new();
 WordDocument document = WordReader.Read(encodedDocument);
 WordLayout layout = WordRenderer.Layout(document, new()
 {
-    InlineGraphicProvider = emoji,
-    SubstituteMissingFonts = true
+    Text = new() { InlineGraphicProvider = emoji, SubstituteMissingFonts = true }
 });
 using PixelBuffer pixels = await WordRenderer.RenderAsync(layout, 1,
     cancellationToken: cancellationToken);
@@ -31,11 +30,17 @@ Returned `InlineGraphic` instances expose em-based advance, ascent and descent
 and draw directly into a caller-owned `RasterCanvas`. They remain valid after
 the provider's cache is cleared or the provider is disposed.
 
+The same `TextOptions` can be passed to `SvgReaderOptions.Text` and
+`PdfReaderOptions.Text`. SVG text resolves color artwork through the same provider.
+PDF uses the shared source for external font programs; encoded PDF glyphs and
+embedded font programs retain their document-defined meaning. See
+[shared text resources](text-rendering.md).
+
 ## Text and placement
 
-Word segments adjacent text runs with BCL `StringInfo` before selecting a
+Word and SVG segment adjacent text fragments with BCL `StringInfo` before selecting a
 graphic or individual font outlines. ZWJ sequences, keycaps and variation
-selectors reach the provider intact, including sequences split between runs.
+selectors reach the provider intact, including sequences split between fragments.
 The first scalar's formatting sets an inline graphic's size and baseline.
 Line wrapping does not split a grapheme cluster.
 
@@ -58,8 +63,8 @@ The importer uses `CompressionLevel.SmallestSize`, Brotli quality 11.
 Resolving a new graphic expands one block into pooled temporary storage and
 retains an interpreted vector scene. The cache retains at most 128 scenes by
 default, configurable through `FluentEmojiOptions.MaximumCachedGraphics`.
-Word separately limits distinct inline graphics per layout to 256 through
-`WordLayoutOptions.MaximumInlineGraphics`. Layouts retain the graphics they use.
+Each shared text renderer limits distinct inline graphics to 256 through
+`TextOptions.MaximumInlineGraphics`. Word layouts and SVG scenes retain the graphics they use.
 
 Graphics draw onto the page without pre-rasterizing each emoji. SVG opacity
 groups may require temporary compositing layers; they share the canvas allocation
@@ -71,7 +76,7 @@ returned graphics support concurrent callers and independent page renders.
 ## Verification
 
 Tests resolve and draw every bundled sequence. Additional cases cover text and
-emoji selectors, keycaps, ZWJ sequences split across Word runs, wrapping,
+emoji selectors, keycaps, ZWJ sequences split across Word runs and SVG spans, wrapping,
 concurrent pages, cache eviction, provider disposal, cancellation and memory
 limit failures. Temporary compositing storage is released after successful
 drawing and failed allocation. Shared rendering cases run through Native AOT.

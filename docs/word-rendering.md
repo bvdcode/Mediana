@@ -23,7 +23,7 @@ WordDocument document = WordReader.Read(input, new()
 });
 WordLayout layout = WordRenderer.Layout(document, new()
 {
-    SubstituteMissingFonts = true
+    Text = new() { SubstituteMissingFonts = true }
 });
 
 MediaBufferAllocator allocator = new(256L * 1024 * 1024);
@@ -64,23 +64,26 @@ characteristics take precedence over the preview policy.
 ## Fonts
 
 The library does not search the filesystem or download fonts. For exact fonts,
-set `WordLayoutOptions.FontResolver`; the callback receives family, bold and
+set `WordLayoutOptions.Text.FontResolver`; the callback receives family, bold and
 italic attributes and returns a font program, or empty memory when unavailable.
 The layout owns the decoded outlines after resolution. The existing bundled
 CC0 Canada1500 and Aileron faces remain available without extra font files.
 Unavailable fonts cause an error unless substitution is explicitly enabled.
 
-`WordFontCollection.LoadAsync(fontFiles)` loads a bounded collection of
+`Mediana.Drawing.FontCollection.LoadAsync(fontFiles)` loads a bounded collection of
 caller-supplied static TrueType files. Connect its `Resolve` and
 `ResolveCharacter` methods to `FontResolver` and `FallbackFontResolver`:
 
 ```csharp
-WordFontCollection fonts = await WordFontCollection.LoadAsync(fontFiles);
+FontCollection fonts = await FontCollection.LoadAsync(fontFiles);
 WordLayout layout = WordRenderer.Layout(document, new()
 {
-    FontResolver = fonts.Resolve,
-    FallbackFontResolver = fonts.ResolveCharacter,
-    SubstituteMissingFonts = true
+    Text = new()
+    {
+        FontResolver = fonts.Resolve,
+        FallbackFontResolver = fonts.ResolveCharacter,
+        SubstituteMissingFonts = true
+    }
 });
 ```
 
@@ -91,7 +94,7 @@ Microsoft families. Font changes are reported and can change line wrapping and
 page count. Missing characters may use a supplemental font; if none contains
 the character, substitution mode draws the font's missing-glyph symbol with a
 warning. Optional [Fluent color emoji](emoji.md) are available through
-`WordLayoutOptions.InlineGraphicProvider` and enabled in the CLI.
+`WordLayoutOptions.Text.InlineGraphicProvider` and enabled in the CLI.
 Complex-script shaping and OpenType color-font tables are not implemented.
 
 ## Media engine and CLI

@@ -545,8 +545,9 @@ allocation. `ToVideoFrame` remains an explicit independent copy.
 SVG, TGS and PDF image decoders render final RGBA output directly into the
 operation's allocator and publish it. Supersampling writes its downsampled pixels
 directly into that output. The output budget is reserved before rasterization
-and released if rendering fails. Temporary supersampling and drawing effects
-remain governed by their rendering limits, separately from the final frame.
+and released if rendering fails. Output, supersampling and temporary effect
+surfaces share that allocator, with additional rendering limits on samples and
+effect workspace.
 
 Preparing already-canonical, tightly packed sRGB pixels with `SrgbConverter`
 retains their storage when geometry, color metadata and aspect ratio also remain
@@ -600,3 +601,32 @@ A MIME match with the wrong root relationship cannot select another page decoder
 OPC XML limits are enforced while the tree loader consumes each node. The package
 counts elements across parts and repeated reads, checks depth and cancellation,
 and prohibits DTD/entity resolution without a separate full validation parse.
+
+## Shared text resources
+
+`Mediana.Drawing.TextOptions` supplies font programs, supplemental glyph fonts and
+complete text-element artwork to Word, SVG and external PDF font resolution.
+`FontCollection` loads explicitly supplied files and matches family/style metadata.
+`TextRenderer` owns bounded face, outline and graphic caches for one layout operation;
+source options and thread-safe providers can be shared across independent operations.
+Font outlines have one cached geometry owner in `TrueTypeFont`; format adapters borrow
+these outlines for placement rather than duplicating the cache. Public outline access
+returns independent mutable paths.
+
+Word retains paragraph pagination, SVG retains its positioning and paint rules, and
+PDF retains embedded font encodings, CID mappings, declared advances and text clipping.
+Color emoji participate in Word and SVG Unicode text. PDF character codes do not
+implicitly become Unicode text or color artwork. TGS text layers remain unsupported.
+Future document renderers can consume the same Drawing contracts without referencing
+Word or the optional Fluent resource module. See [text resources](text-rendering.md).
+
+Vector rendering charges the output, supersampling and temporary effect surfaces to
+the caller's allocator. `MaximumEffectBytes` remains an additional bound on effect
+workspace; clipping arrays and runtime storage are outside the RGBA surface budget.
+
+SVG embedded PNG resources use `Mediana.Codecs.Png`, including its validation,
+sample-depth conversion and scanline budget. The scene retains immutable decoded
+frame leases and draws them through `RasterCanvas` without a second pixel image.
+`SvgDocument.Dispose` releases retained images; failed reads release previously
+loaded resources. `SvgReaderOptions.ImageAllocator` supplies a separate source-image
+budget, with `MaximumImageBytes` used when no allocator is supplied.

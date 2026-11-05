@@ -99,7 +99,7 @@ The implemented subset includes:
   metrics and glyph/page resources; d1 glyphs retain the text ink. Invisible
   unembedded text preserves PDF advance widths without requiring outlines.
   Visible unembedded Type 1/TrueType and Identity-H CIDFontType2 text can use an
-  explicitly supplied OpenType program through FontResolver. Composite fonts
+  explicitly supplied OpenType program through Text.FontResolver. Composite fonts
   require a supported ToUnicode mapping; numeric character codes are not assumed
   to be Unicode.
 - Raw or filtered image XObjects with 1/2/4/8/16-bit samples, DeviceGray/RGB/CMYK,
@@ -164,7 +164,7 @@ using Mediana.Drawing.Fonts;
 
 PdfReaderOptions readerOptions = new()
 {
-    FontResolver = request => BundledFontPrograms.GetFont("Canada1500")
+    Text = new() { FontResolver = request => BundledFontPrograms.GetFont("Canada1500", request.Bold, request.Italic) }
 };
 using PdfDocument document = await PdfReader.ReadFileAsync("report.pdf", readerOptions);
 using PixelBuffer pixels = PdfRenderer.Render(document, 1, new()
@@ -174,7 +174,7 @@ using PixelBuffer pixels = PdfRenderer.Render(document, 1, new()
 ~~~
 
 This example deliberately chooses one replacement family. An application can
-instead match PdfFontRequest.PostScriptName to its font collection or return
+instead match FontRequest.Family and its style attributes to its font collection or return
 empty memory to decline a request. Declared PDF advances retain priority.
 Standard fonts omitting widths use the supplied font's advances, with a warning;
 substitution can change text spacing.
