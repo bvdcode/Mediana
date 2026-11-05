@@ -8,7 +8,7 @@ using Mediana.Core.Video;
 
 namespace Mediana.Codecs.Webp
 {
-    internal class WebpLosslessImage : IDisposable
+    internal class WebpLosslessImage : IWebpImagePayload
     {
         private WebpEntropyStream? pixels;
         private WebpEntropyStream? predictors;
@@ -17,8 +17,9 @@ namespace Mediana.Codecs.Webp
         private bool alpha;
         private int width;
         private int height;
-        internal int PayloadLength { get; private set; }
-        internal bool HasAlpha => alpha;
+        public int PayloadLength { get; private set; }
+        public bool HasAlpha => alpha;
+        public ReadOnlySpan<byte> FourCc => "VP8L"u8;
 
         internal static WebpLosslessImage Create(VideoFrame input, MediaBufferAllocator allocator, CancellationToken token)
         {
@@ -63,7 +64,7 @@ namespace Mediana.Codecs.Webp
             }
         }
 
-        internal void Write(Memory<byte> output, CancellationToken token)
+        public void Write(Memory<byte> output, CancellationToken token)
         {
             output.Span[0] = 0x2f;
             uint dimensions = (uint)(width - 1) | ((uint)(height - 1) << 14);

@@ -6,12 +6,18 @@ using Mediana.Core.Video;
 
 namespace Mediana.Codecs.Webp
 {
-    public class WebpImageEncoder : IImageEncoder
+    public class WebpImageEncoder(WebpEncodingOptions? options = null) : IImageEncoder
     {
-        public string ImplementationId => "webp.managed.lossless.encoder";
+        private readonly WebpEncodingOptions settings = options ?? new();
+        public string ImplementationId => settings.Compression switch
+        {
+            WebpCompression.Lossless => "webp.managed.lossless.encoder",
+            WebpCompression.Lossy => "webp.managed.lossy.encoder",
+            _ => throw new ArgumentOutOfRangeException(nameof(options))
+        };
         public string FormatId => "webp";
         public ImageEncoderFeatures Features => ImageEncoderFeatures.None;
         public Task<long> EncodeAsync(VideoFrame input, Stream destination, MediaBufferAllocator allocator,
-            CancellationToken cancellationToken = default) => WebpEncoder.EncodeAsync(input, destination, allocator, cancellationToken);
+            CancellationToken cancellationToken = default) => WebpEncoder.EncodeAsync(input, destination, allocator, settings, cancellationToken);
     }
 }
