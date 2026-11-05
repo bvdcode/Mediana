@@ -11,10 +11,12 @@ namespace Mediana.Documents.Word
         private readonly WordFormatReader _formats = new(context);
         private XNamespace W => context.W;
 
-        internal IReadOnlyList<WordBlock> Blocks(XElement parent, string part)
+        internal IReadOnlyList<WordBlock> Blocks(XElement parent, string part) => Blocks(parent.Elements(), part);
+
+        internal IReadOnlyList<WordBlock> Blocks(IEnumerable<XElement> elements, string part)
         {
             List<WordBlock> blocks = [];
-            foreach (XElement element in parent.Elements())
+            foreach (XElement element in elements)
             {
                 context.Token.ThrowIfCancellationRequested();
                 if (element.Name.Namespace != W) { throw new NotSupportedException("Unsupported Word block namespace: " + element.Name.NamespaceName); }

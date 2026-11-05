@@ -55,7 +55,7 @@ namespace Mediana.Tests
         {
             byte[] input = Create("<w:p><w:r><w:rPr><w:rFonts w:ascii=\"Canada1500\"/><w:sz w:val=\"9pt\"/></w:rPr><w:t>Document</w:t></w:r></w:p>");
             WordDocument document = WordReader.Read(input);
-            WordText text = (WordText)((WordParagraph)document.Blocks[0]).Content[0];
+            WordText text = (WordText)((WordParagraph)document.Sections.Single().Blocks[0]).Content[0];
             if (document.PageSize != WordPageSize.Letter || text.Text != "Document" || text.Format.Size != 9 || document.Warnings.Count != 0)
             {
                 throw new InvalidDataException("Word reading must retain page, text and unit-bearing font size.");

@@ -24,37 +24,38 @@ namespace Mediana.Documents.Word
             WordFonts fonts = new(options, warnings, cancellationToken);
             WordTextLayouter text = new(fonts, cancellationToken);
             WordFlowBuilder flow = new(text, cancellationToken);
-            WordPageGeometry geometry = document.Geometry;
-            double bodyWidth = geometry.Width - geometry.Left - geometry.Right;
-            WordPaginator paginator = new(geometry, options.MaximumPages, cancellationToken);
-            IReadOnlyList<IReadOnlyList<WordPaint>> body = paginator.Paginate(flow.Build(document.Blocks, bodyWidth));
-            Dictionary<IReadOnlyList<WordBlock>, (IReadOnlyList<WordPaint> Paint, double Height)> marginCache = [];
-            List<IReadOnlyList<WordPaint>> pages = [];
+            WordPaginator paginator = new(options.MaximumPages, cancellationToken);
+            IReadOnlyList<WordPaginatedPage> body = paginator.Paginate(document.Sections, flow);
+            Dictionary<(IReadOnlyList<WordBlock> Blocks, double Width), (IReadOnlyList<WordPaint> Paint, double Height)> marginCache = [];
+            List<WordLayoutPage> pages = [];
             for (int index = 0; index < body.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                List<WordPaint> commands = new(body[index]);
-                AddMargin(document.Header, false);
-                AddMargin(document.Footer, true);
-                pages.Add(commands.AsReadOnly());
+                WordPaginatedPage page = body[index];
+                WordSection section = page.Section;
+                WordPageGeometry geometry = section.Geometry;
+                double bodyWidth = geometry.Width - geometry.Left - geometry.Right;
+                List<WordPaint> commands = new(page.Paint);
+                if (!page.Blank) { AddMargin(section.Header, false); AddMargin(section.Footer, true); }
+                pages.Add(new(section.PageSize, commands.AsReadOnly()));
 
                 void AddMargin(WordMarginContent margin, bool footer)
                 {
                     IReadOnlyList<WordBlock> blocks;
-                    if (index == 0 && document.DistinctFirstPage) { blocks = margin.First; }
-                    else if (index % 2 == 1 && document.DistinctEvenPages) { blocks = margin.Even; }
+                    if (page.FirstInSection && section.DistinctFirstPage) { blocks = margin.First; }
+                    else if (index % 2 == 1 && section.DistinctEvenPages) { blocks = margin.Even; }
                     else { blocks = margin.Default; }
                     if (blocks.Count == 0) { return; }
-                    if (!marginCache.TryGetValue(blocks, out (IReadOnlyList<WordPaint> Paint, double Height) placed))
+                    if (!marginCache.TryGetValue((blocks, bodyWidth), out (IReadOnlyList<WordPaint> Paint, double Height) placed))
                     {
                         placed = WordFlowBuilder.Stack(flow.Build(blocks, bodyWidth));
-                        marginCache.Add(blocks, placed);
+                        marginCache.Add((blocks, bodyWidth), placed);
                     }
                     double y = footer ? geometry.Height - geometry.Footer - placed.Height : geometry.Header;
                     commands.Add(new WordGroupPaint(placed.Paint, geometry.Left, y));
                 }
             }
-            return new(document.PageSize, pages.AsReadOnly(), Array.AsReadOnly(warnings.ToArray()));
+            return new(pages.AsReadOnly(), Array.AsReadOnly(warnings.ToArray()));
         }
 
         /// <summary>Renders a one-based page from a reusable layout. The caller owns and disposes the returned pixels.
@@ -66,7 +67,7 @@ namespace Mediana.Documents.Word
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(pageNumber, layout.PageCount);
             options ??= new();
-            WordRenderPlan plan = WordRenderPlan.Create(layout.PageSize, options);
+            WordRenderPlan plan = WordRenderPlan.Create(layout.GetPageSize(pageNumber), options);
             cancellationToken.ThrowIfCancellationRequested();
             foreach (string warning in layout.Warnings) { options.WarningHandler?.Invoke(warning); }
             cancellationToken.ThrowIfCancellationRequested();
@@ -81,7 +82,7 @@ namespace Mediana.Documents.Word
                 surface.Clear(options.Background);
                 RasterCanvas canvas = new(surface);
                 using WordPageRasterizer rasterizer = new(canvas, allocator, options, cancellationToken);
-                await rasterizer.DrawAsync(layout.Pages[pageNumber - 1], Matrix3x2.CreateScale((float)(plan.Scale * samples)));
+                await rasterizer.DrawAsync(layout.Pages[pageNumber - 1].Paint, Matrix3x2.CreateScale((float)(plan.Scale * samples)));
                 cancellationToken.ThrowIfCancellationRequested();
                 supersampled?.DownsampleTo(output, samples, cancellationToken);
                 completed = true;

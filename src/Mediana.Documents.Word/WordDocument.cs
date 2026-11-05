@@ -6,25 +6,14 @@ namespace Mediana.Documents.Word
     /// <summary>An independent, read-only Word document. Encoded package storage is not retained.</summary>
     public class WordDocument
     {
-        internal WordDocument(IReadOnlyList<WordBlock> blocks, WordPageGeometry geometry,
-            WordMarginContent header, WordMarginContent footer, bool distinctFirstPage, bool distinctEvenPages, IReadOnlyList<string> warnings)
+        internal WordDocument(IReadOnlyList<WordSection> sections, IReadOnlyList<string> warnings)
         {
-            Blocks = blocks;
-            Geometry = geometry;
-            Header = header;
-            Footer = footer;
-            DistinctFirstPage = distinctFirstPage;
-            DistinctEvenPages = distinctEvenPages;
+            Sections = sections;
             Warnings = warnings;
         }
-
-        public WordPageSize PageSize => new(Geometry.Width, Geometry.Height);
+        /// <summary>Gets the first section's page size. Paginated pages can have different dimensions.</summary>
+        public WordPageSize PageSize => Sections[0].PageSize;
+        public IReadOnlyList<WordSection> Sections { get; }
         public IReadOnlyList<string> Warnings { get; }
-        internal IReadOnlyList<WordBlock> Blocks { get; }
-        internal WordPageGeometry Geometry { get; }
-        internal WordMarginContent Header { get; }
-        internal WordMarginContent Footer { get; }
-        internal bool DistinctFirstPage { get; }
-        internal bool DistinctEvenPages { get; }
     }
 }
