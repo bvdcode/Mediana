@@ -90,7 +90,9 @@ faces; it can use installed Liberation or Carlito replacements for common
 Microsoft families. Font changes are reported and can change line wrapping and
 page count. Missing characters may use a supplemental font; if none contains
 the character, substitution mode draws the font's missing-glyph symbol with a
-warning. Complex-script shaping and color emoji are not implemented.
+warning. Optional [Fluent color emoji](emoji.md) are available through
+`WordLayoutOptions.InlineGraphicProvider` and enabled in the CLI.
+Complex-script shaping and OpenType color-font tables are not implemented.
 
 ## Media engine and CLI
 

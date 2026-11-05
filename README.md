@@ -22,6 +22,8 @@ An experimental PDF module reads page geometry, renders supported vector/text/im
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
 Word documents can be paginated and rendered directly to PNG from the library or
 CLI. See [Word rendering and public API](docs/word-rendering.md).
+Word previews include [Fluent color emoji](docs/emoji.md); library callers can
+enable the optional resource module through the same public API.
 STL, OBJ and 3MF models can be loaded and rendered to PNG with configurable
 camera, material, shadows and ambient occlusion. See [Mesh APIs and previews](docs/mesh.md).
 Experimental fixed-QP H.264 I/P encoding and YUV downscaling are available.
@@ -37,6 +39,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Documents.Word` | DOCX styles, pagination and direct page rasterization ([API](docs/word-rendering.md)) |
 | `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction |
 | `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
+| `Mediana.Drawing.Emoji.Fluent` | Optional compressed Microsoft Fluent Flat emoji and reusable inline graphics ([API](docs/emoji.md)) |
 | `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha |
 | `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion |
 | `Mediana.Codecs.Jpeg` | Sequential/progressive Huffman JPEG, grayscale/RGB pixels, restart intervals and explicit source interpretation ([API](docs/jpeg.md)) |

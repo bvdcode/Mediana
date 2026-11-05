@@ -135,6 +135,7 @@ jobs:
           $executableName = if ($env:RUNNER_OS -eq "Windows") { "mediana.exe" } else { "mediana" }
           Copy-Item "artifacts/native/$env:NATIVE_EXECUTABLE" -Destination "$packageDirectory/$executableName"
           Copy-Item README.md, LICENSE -Destination $packageDirectory
+          Copy-Item src/Mediana.Drawing.Emoji.Fluent/Assets/LICENSE.txt -Destination "$packageDirectory/FluentEmoji.LICENSE.txt"
           if ($env:RUNNER_OS -eq "Windows") {
             $archiveName = "$packageName.zip"
             Compress-Archive -Path "$packageDirectory/*" -DestinationPath "$releaseDirectory/$archiveName"

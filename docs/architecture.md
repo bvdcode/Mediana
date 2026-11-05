@@ -21,6 +21,8 @@ flowchart BT
     Execution --> Codecs
     Mediana --> Execution
     Svg[SVG adapter] --> Drawing
+    Fluent[Optional Fluent emoji resources] --> Svg
+    Fluent --> Drawing
     Tgs[TGS adapter] --> Drawing
     Pdf[PDF adapter] --> Drawing
     Pdf --> CodecModules
