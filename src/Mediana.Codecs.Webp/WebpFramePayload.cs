@@ -9,15 +9,13 @@ namespace Mediana.Codecs.Webp
     internal class WebpFramePayload : IDisposable
     {
         private readonly IWebpImagePayload image;
-        private readonly VideoFrame? alphaSource;
-        private readonly int alphaLength;
+        private readonly WebpAlphaImage? alpha;
 
-        private WebpFramePayload(IWebpImagePayload image, VideoFrame? alphaSource)
+        private WebpFramePayload(IWebpImagePayload image, WebpAlphaImage? alpha)
         {
             this.image = image;
-            this.alphaSource = alphaSource;
-            alphaLength = alphaSource is null ? 0 : checked(1 + alphaSource.Format.Width * alphaSource.Format.Height);
-            Length = checked(WebpRiff.ChunkLength(image.PayloadLength) + (alphaSource is null ? 0 : WebpRiff.ChunkLength(alphaLength)));
+            this.alpha = alpha;
+            Length = checked(WebpRiff.ChunkLength(image.PayloadLength) + (alpha is null ? 0 : WebpRiff.ChunkLength(alpha.Length)));
         }
 
         internal int Length { get; }
@@ -26,36 +24,29 @@ namespace Mediana.Codecs.Webp
         internal static WebpFramePayload Create(VideoFrame input, MediaBufferAllocator allocator, WebpEncodingOptions options, CancellationToken token)
         {
             IWebpImagePayload image = WebpEncoder.CreatePayload(input, allocator, options, token);
-            VideoFrame? alphaSource = null;
+            WebpAlphaImage? alpha = null;
             bool complete = false;
             try
             {
-                if (options.Compression == WebpCompression.Lossy && image.HasAlpha) { alphaSource = input.Retain(); }
-                WebpFramePayload result = new(image, alphaSource);
+                if (options.Compression == WebpCompression.Lossy && image.HasAlpha) { alpha = WebpAlphaImage.Create(input, allocator, token); }
+                WebpFramePayload result = new(image, alpha);
                 complete = true;
                 return result;
             }
             finally
             {
-                if (!complete) { image.Dispose(); alphaSource?.Dispose(); }
+                if (!complete) { image.Dispose(); alpha?.Dispose(); }
             }
         }
 
         internal void Write(Memory<byte> output, CancellationToken token)
         {
             int position = 0;
-            if (alphaSource is not null)
+            if (alpha is not null)
             {
-                WebpRiff.WriteChunk(output.Span, "ALPH"u8, alphaLength);
-                Span<byte> alpha = output.Span.Slice(WebpRiff.ChunkHeaderBytes, alphaLength);
-                alpha[0] = 0;
-                for (int row = 0; row < alphaSource.Format.Height; row++)
-                {
-                    token.ThrowIfCancellationRequested();
-                    ReadOnlySpan<byte> source = alphaSource.GetRow(0, row);
-                    for (int x = 0; x < alphaSource.Format.Width; x++) { alpha[1 + row * alphaSource.Format.Width + x] = source[x * 4 + 3]; }
-                }
-                position += WebpRiff.ChunkLength(alphaLength);
+                WebpRiff.WriteChunk(output.Span, "ALPH"u8, alpha.Length);
+                alpha.Write(output.Slice(WebpRiff.ChunkHeaderBytes, alpha.Length), token);
+                position += WebpRiff.ChunkLength(alpha.Length);
             }
             WebpRiff.WriteChunk(output.Span[position..], image.FourCc, image.PayloadLength);
             image.Write(output.Slice(position + WebpRiff.ChunkHeaderBytes, image.PayloadLength), token);
@@ -64,7 +55,7 @@ namespace Mediana.Codecs.Webp
         public void Dispose()
         {
             image.Dispose();
-            alphaSource?.Dispose();
+            alpha?.Dispose();
         }
     }
 }

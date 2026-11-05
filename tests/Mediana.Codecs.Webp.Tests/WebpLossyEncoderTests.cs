@@ -45,9 +45,7 @@ namespace Mediana.Tests
                     }
                     else if (name.SequenceEqual("ALPH"u8))
                     {
-                        Assert.Equal(0, payload[0]);
-                        Assert.Equal(width * height + 1, payload.Length);
-                        for (int pixel = 0; pixel < width * height; pixel++) { Assert.Equal(rgba[pixel * 4 + 3], payload[pixel + 1]); }
+                        VerifyAlpha(payload, rgba, width, height);
                     }
                     else
                     {
@@ -112,6 +110,30 @@ namespace Mediana.Tests
             Assert.False(modes.Read());
             Assert.Equal(0, modes.Literal(2));
             Assert.Equal((127 * (100 - quality) + 50) / 100, modes.Literal(7));
+        }
+
+        private static void VerifyAlpha(ReadOnlySpan<byte> payload, byte[] rgba, int width, int height)
+        {
+            if (payload[0] == 0)
+            {
+                Assert.Equal(width * height + 1, payload.Length);
+                for (int pixel = 0; pixel < width * height; pixel++) { Assert.Equal(rgba[pixel * 4 + 3], payload[pixel + 1]); }
+                return;
+            }
+            Assert.Equal(1, payload[0]);
+            int size = payload.Length + 4;
+            byte[] file = new byte[20 + size + (size & 1)];
+            "RIFF"u8.CopyTo(file);
+            BinaryPrimitives.WriteUInt32LittleEndian(file.AsSpan(4), (uint)(file.Length - 8));
+            "WEBPVP8L"u8.CopyTo(file.AsSpan(8));
+            BinaryPrimitives.WriteUInt32LittleEndian(file.AsSpan(16), (uint)size);
+            file[20] = 0x2f;
+            BinaryPrimitives.WriteUInt32LittleEndian(file.AsSpan(21), (uint)(width - 1) | ((uint)(height - 1) << 14));
+            payload[1..].CopyTo(file.AsSpan(25));
+            byte[] decoded = WebpLosslessTestReader.Decode(file, out int decodedWidth, out int decodedHeight);
+            Assert.Equal(width, decodedWidth);
+            Assert.Equal(height, decodedHeight);
+            for (int pixel = 0; pixel < width * height; pixel++) { Assert.Equal(rgba[pixel * 4 + 3], decoded[pixel * 4 + 1]); }
         }
     }
 }

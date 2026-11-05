@@ -13,20 +13,41 @@ namespace Mediana.Codecs.Webp
         internal const int BlockBits = 5;
         private const int BlockSize = 1 << BlockBits;
 
-        internal static bool TryReadUniform(VideoFrame input, CancellationToken token, out uint value)
+        internal static bool TryReadUniform(VideoFrame input, CancellationToken token, out uint value, WebpPixelProjection projection = WebpPixelProjection.Rgba)
         {
             uint stored = MemoryMarshal.Cast<byte, uint>(input.GetRow(0, 0))[0];
             value = BitConverter.IsLittleEndian ? stored : BinaryPrimitives.ReverseEndianness(stored);
+            uint mask = projection switch
+            {
+                WebpPixelProjection.Rgba => uint.MaxValue,
+                WebpPixelProjection.Alpha => BitConverter.IsLittleEndian ? 0xff000000u : 255u,
+                _ => throw new ArgumentOutOfRangeException(nameof(projection))
+            };
+            if (projection == WebpPixelProjection.Alpha) { value = 0xff000000u | ((value >> 24) << 8); }
             for (int row = 0; row < input.Format.Height; row++)
             {
                 token.ThrowIfCancellationRequested();
-                if (MemoryMarshal.Cast<byte, uint>(input.GetRow(0, row)).IndexOfAnyExcept(stored) >= 0) { return false; }
+                ReadOnlySpan<uint> pixels = MemoryMarshal.Cast<byte, uint>(input.GetRow(0, row));
+                if (projection == WebpPixelProjection.Rgba)
+                {
+                    if (pixels.IndexOfAnyExcept(stored) >= 0) { return false; }
+                }
+                else
+                {
+                    for (int index = 0; index < pixels.Length; index++) { if ((pixels[index] & mask) != (stored & mask)) { return false; } }
+                }
             }
             return true;
         }
 
-        internal static bool ReadPixels(VideoFrame input, Span<uint> pixels, CancellationToken token)
+        internal static bool ReadPixels(VideoFrame input, Span<uint> pixels, CancellationToken token, WebpPixelProjection projection = WebpPixelProjection.Rgba)
         {
+            bool alphaOnly = projection switch
+            {
+                WebpPixelProjection.Rgba => false,
+                WebpPixelProjection.Alpha => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(projection))
+            };
             bool alpha = false;
             for (int row = 0; row < input.Format.Height; row++)
             {
@@ -39,6 +60,11 @@ namespace Mediana.Codecs.Webp
                     for (; index <= source.Length - Vector256<uint>.Count; index += Vector256<uint>.Count)
                     {
                         Vector256<uint> value = Vector256.LoadUnsafe(ref MemoryMarshal.GetReference(source), (nuint)index);
+                        if (alphaOnly)
+                        {
+                            ((value >> 24 << 8) | Vector256.Create(0xff000000u)).StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)index);
+                            continue;
+                        }
                         alpha |= !Vector256.EqualsAll(value | Vector256.Create(0x00ffffffu), Vector256.Create(uint.MaxValue));
                         Vector256<uint> green = (value >> 8) & Vector256.Create(255u);
                         Vector256<uint> rb = ((value & Vector256.Create(0x00ff00ffu)) + Vector256.Create(0x01000100u) - (green | (green << 16)))
@@ -49,6 +75,7 @@ namespace Mediana.Codecs.Webp
                 for (; index < source.Length; index++)
                 {
                     uint value = BitConverter.IsLittleEndian ? source[index] : BinaryPrimitives.ReverseEndianness(source[index]);
+                    if (alphaOnly) { output[index] = 0xff000000u | (value >> 24 << 8); continue; }
                     uint green = (value >> 8) & 255;
                     alpha |= value >> 24 != 255;
                     output[index] = (((value & 0x00ff00ff) + 0x01000100 - (green | (green << 16))) & 0x00ff00ff) | (value & 0xff00ff00);
