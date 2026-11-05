@@ -11,6 +11,45 @@ namespace Mediana.WebpBenchmarks
 {
     internal static class BenchmarkAnimation
     {
+        internal static async Task WriteMixedAsync(string directory)
+        {
+            MediaBufferAllocator allocator = new(long.MaxValue);
+            using VideoFrame red = Solid(6, 6, new Rgba32(255, 0, 0), allocator);
+            using VideoFrame cyan = Solid(2, 2, new Rgba32(0, 255, 255), allocator);
+            using VideoFrame green = Solid(2, 2, new Rgba32(0, 255, 0, 128), allocator);
+            WebpAnimationFrame[] frames =
+            [
+                new(red),
+                new(cyan)
+                {
+                    X = 2, Y = 2, Disposal = WebpFrameDisposal.Background,
+                    Encoding = new() { Compression = WebpCompression.Lossy, Quality = 75 }
+                },
+                new(green) { Blending = WebpFrameBlending.AlphaBlend }
+            ];
+            await using FileStream output = File.Create(Path.Combine(directory, "mixed-animation.webp"));
+            await WebpAnimationEncoder.EncodeAsync(EnumerateRectangles(frames), output, allocator, new(6, 6) { LoopCount = 3 });
+        }
+
+        private static VideoFrame Solid(int width, int height, Rgba32 color, MediaBufferAllocator allocator)
+        {
+            using WritableMediaBuffer writable = allocator.Allocate(width * height * 4);
+            Span<byte> pixels = writable.Memory.Span;
+            for (int offset = 0; offset < pixels.Length; offset += 4)
+            {
+                pixels[offset] = color.R; pixels[offset + 1] = color.G; pixels[offset + 2] = color.B; pixels[offset + 3] = color.A;
+            }
+            using MediaBuffer owned = writable.Publish();
+            VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, VideoColorInfo.Srgb, SampleAspectRatio.Square);
+            return new(format, owned, format.CreateTightLayout(), duration: new(40, new(1, 1000)));
+        }
+
+        private static async IAsyncEnumerable<WebpAnimationFrame> EnumerateRectangles(IEnumerable<WebpAnimationFrame> frames)
+        {
+            await Task.CompletedTask;
+            foreach (WebpAnimationFrame frame in frames) { yield return frame; }
+        }
+
         internal static async Task VerifyAsync(VideoFrame input, byte[] pixels, MediaBufferAllocator allocator, string directory)
         {
             List<VideoFrame> frames = [];
