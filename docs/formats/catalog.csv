@@ -88,9 +88,9 @@ png-alpha,Web images and modern still-image coding,PNG,"Grayscale/truecolor with
 png-adam7,Web images and modern still-image coding,PNG,Adam7 interlace,image-codec,.png,A,png,
 apng,Web images and modern still-image coding,APNG,Animated PNG with frame disposal/blending,image-codec,.png .apng,A,png,
 webp-lossy,Web images and modern still-image coding,WebP,Lossy VP8 image,image-codec,.webp,A,webp,
-webp-lossless,Web images and modern still-image coding,WebP,Lossless VP8L image,image-codec,.webp,A,webp,
-webp-extended,Web images and modern still-image coding,WebP,"Extended RIFF, alpha and metadata",image-codec,.webp,A,webp,"Test lossy alpha, lossless alpha, ICC, Exif and XMP independently."
-webp-animation,Web images and modern still-image coding,WebP,Animated extended WebP,image-codec,.webp,A,webp,"Frame rectangles, timestamps, blending and disposal are separate from still images."
+webp-lossless,Web images and modern still-image coding,WebP,Lossless VP8L image,image-codec,.webp,A,webp,"Current encoder preserves straight RGBA8 sRGB exactly, including transparent RGB; decoding remains open."
+webp-extended,Web images and modern still-image coding,WebP,"Extended RIFF, alpha and metadata",image-codec,.webp,A,webp,"Lossless alpha and animation headers are written; lossy alpha, ICC, Exif and XMP remain open."
+webp-animation,Web images and modern still-image coding,WebP,Animated extended WebP,image-codec,.webp,A,webp,"Current writer emits timed full-canvas lossless replacement frames to a seekable stream; partial rectangles, blending and disposal remain open."
 avif-still,Web images and modern still-image coding,AVIF,"Still image, Baseline/Advanced profiles",image-codec,.avif,A,avif;av1,Split profile/precision coverage as AV1 implementation grows.
 avif-alpha,Web images and modern still-image coding,AVIF,Auxiliary alpha images,image-codec,.avif,A,avif,
 avif-hdr,Web images and modern still-image coding,AVIF,10/12-bit and HDR presentation,image-codec,.avif,A,avif;av1,"HDR decoding, color preservation and SDR tone mapping are distinct tasks."

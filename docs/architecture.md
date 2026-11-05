@@ -554,6 +554,16 @@ unchanged. Each returned frame has an independent lease. The original allocator
 keeps counting shared bytes until the final lease is released. Pixel conversion,
 resizing, repacking and metadata changes retain the conversion path.
 
+Complete-image encoding uses `IImageEncoder`, implemented by PNG and lossless
+WebP adapters. It borrows a frame, retains it through asynchronous writes, leaves
+the destination open and reports bytes written. Independent calls have independent
+workspace. `ImageEncoderFeatures` declares whether sample aspect ratio metadata
+can be stored. The CLI selects the encoder by output extension after common source
+detection; formats without that feature receive square-pixel display geometry in
+the shared color/resampling pass. Video previews already resolve orientation and
+aspect ratio before encoding. Animated WebP uses the same VP8L engine through a
+separate timed-sequence writer. See [WebP contracts and ownership](webp.md).
+
 The registered HEIC decoder borrows encoded input for the awaited call, reserves
 its final RGBA frame before picture decoding, and directs the last render,
 composition or transform into that storage. Auxiliary alpha modifies pixels
