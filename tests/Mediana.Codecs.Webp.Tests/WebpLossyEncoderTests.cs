@@ -109,7 +109,20 @@ namespace Mediana.Tests
             Assert.Equal(0, modes.Literal(3));
             Assert.False(modes.Read());
             Assert.Equal(0, modes.Literal(2));
-            Assert.Equal((127 * (100 - quality) + 50) / 100, modes.Literal(7));
+            Assert.Equal(quality switch { 0 => 127, 75 => 26, 100 => 0, _ => throw new ArgumentOutOfRangeException(nameof(quality)) }, modes.Literal(7));
+        }
+
+        [Theory]
+        [InlineData(0, 127)]
+        [InlineData(25, 57)]
+        [InlineData(50, 39)]
+        [InlineData(75, 26)]
+        [InlineData(90, 9)]
+        [InlineData(100, 0)]
+        public void QualityUsesPerceptualQuantizerScale(int quality, int expected)
+        {
+            Assert.Equal(expected, Vp8Quantizer.FromQuality(quality));
+            for (int value = 1; value <= 100; value++) { Assert.True(Vp8Quantizer.FromQuality(value) <= Vp8Quantizer.FromQuality(value - 1)); }
         }
 
         private static void VerifyAlpha(ReadOnlySpan<byte> payload, byte[] rgba, int width, int height)

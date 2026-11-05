@@ -36,7 +36,7 @@ namespace Mediana.Codecs.Webp
             bool complete = false;
             try
             {
-                result.Encode(input, (127 * (100 - quality) + 50) / 100, allocator, token);
+                result.Encode(input, Vp8Quantizer.FromQuality(quality), allocator, token);
                 complete = true;
                 return result;
             }
