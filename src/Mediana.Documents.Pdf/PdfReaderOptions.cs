@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
+using Mediana.Core.Memory;
 
 namespace Mediana.Documents.Pdf
 {
@@ -22,5 +23,7 @@ namespace Mediana.Documents.Pdf
         /// <summary>Maximum encoded pixel count per source image. Rendering may reduce JPEG samples before allocation.</summary>
         public int MaximumImagePixels { get; init; } = 64 * 1024 * 1024;
         public int MaximumImageBytes { get; init; } = 128 * 1024 * 1024;
+        /// <summary>Optional shared budget for retained image pixels and JPEG workspace.</summary>
+        public MediaBufferAllocator? ImageAllocator { get; init; }
     }
 }

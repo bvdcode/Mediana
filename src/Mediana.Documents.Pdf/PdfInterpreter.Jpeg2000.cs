@@ -31,7 +31,7 @@ namespace Mediana.Documents.Pdf
             {
                 throw new InvalidDataException("PDF JPEG 2000 dimensions differ from the image dictionary.");
             }
-            PixelBuffer pixels = new(width, height);
+            PixelBuffer pixels = new(width, height, _imageAllocator);
             bool completed = false;
             try
             {

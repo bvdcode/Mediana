@@ -35,7 +35,7 @@ namespace Mediana.Documents.Pdf
             double[] ranges = SampleRanges(mask.Kind == PdfValueKind.Array ? mask : PdfValue.Null, components, "Mask");
             long available = storage.Budget.Options.MaximumImageBytes - _imageBytes;
             if (available <= 0) { throw new MediaMemoryLimitException(1, available); }
-            MediaBufferAllocator workspace = new(available);
+            MediaBufferAllocator workspace = _imageAllocator.CreateScope(available);
             using JpegImage image = JpegDecoder.DecodeReducedComponents(data, workspace, reduction, new()
             {
                 MaximumEncodedBytes = storage.Budget.Options.MaximumInputBytes,
@@ -61,7 +61,7 @@ namespace Mediana.Documents.Pdf
                     _ => throw new InvalidDataException("Invalid PDF JPEG Adobe transform.")
                 };
             }
-            PixelBuffer pixels = new(image.Width, image.Height);
+            PixelBuffer pixels = new(image.Width, image.Height, _imageAllocator);
             bool transferred = false;
             try
             {

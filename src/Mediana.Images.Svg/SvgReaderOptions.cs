@@ -26,7 +26,7 @@ namespace Mediana.Images.Svg
         public int MaximumImagePixels { get; init; } = 16_777_216;
         /// <summary>Live decoded image and decoder scanline budget when ImageAllocator is absent.</summary>
         public long MaximumImageBytes { get; init; } = 256L * 1024 * 1024;
-        /// <summary>Optional caller budget for retained images and decode workspace. Independent of raster output storage.</summary>
+        /// <summary>Optional budget for retained images and decode workspace. Registered decoding requires a scope of its operation budget.</summary>
         public MediaBufferAllocator? ImageAllocator { get; init; }
         /// <summary>Decoders shared by embedded resources. Registered decoding uses the engine's context.</summary>
         public ImageDecodeContext Images { get; init; } = ImageResources.DefaultDecoders;

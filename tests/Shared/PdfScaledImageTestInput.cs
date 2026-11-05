@@ -26,12 +26,21 @@ namespace Mediana.Tests
                 Require(image.Width == 20 && image.Height == 10 && image[15, 2] == new Rgba32(255, 255, 255));
             }
             Require(allocator.AllocatedBytes == 0);
+            bool rejected = false;
+            try
+            {
+                using VideoFrame unexpected = await new PdfImageDecoder(new() { MaximumImageBytes = 960 }, Preview)
+                    .DecodeAsync(pdf, new ImageDecodeRequest(), allocator);
+            }
+            catch (MediaMemoryLimitException) { rejected = true; }
+            Require(rejected && allocator.AllocatedBytes == 0);
+            MediaBufferAllocator operation = new(1520);
             using (VideoFrame frame = await new PdfImageDecoder(new() { MaximumImageBytes = 960 }, Preview)
-                .DecodeAsync(pdf, new ImageDecodeRequest(), allocator))
+                .DecodeAsync(pdf, new ImageDecodeRequest(), operation))
             {
                 Require(frame.Format.Width == 20 && frame.Format.Height == 10);
             }
-            Require(allocator.AllocatedBytes == 0);
+            Require(operation.AllocatedBytes == 0);
             using PdfDocument shortBudget = await PdfReader.ReadAsync(new MemoryStream(pdf), new() { MaximumImageBytes = 959 });
             Reject<MediaMemoryLimitException>(() => PdfRenderer.Render(shortBudget, 1, Preview));
             using PdfDocument sourceLimit = await PdfReader.ReadAsync(new MemoryStream(pdf), new() { MaximumImagePixels = 664 });

@@ -52,7 +52,9 @@ the implemented subset.
 
 Dispose `SvgDocument` after all renders finish to release retained raster images.
 `SvgReaderOptions.ImageAllocator` supplies their decode and retained-storage
-budget; `MaximumImageBytes` supplies the default when no allocator is provided.
+budget; `MaximumImageBytes` bounds that scope. Registered SVG decoding charges
+retained images and workspace to the operation allocator as well as the local
+image limit. An explicitly configured image allocator must belong to that budget.
 Failed reads release images already loaded.
 Use `SvgReader.ReadAsync` or `ReadFileAsync` for asynchronous image implementations.
 The synchronous reader supports `ISynchronousImageDecoder` implementations and

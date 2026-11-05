@@ -121,44 +121,50 @@ namespace Mediana.Documents.Pdf
             if (decode.Kind != PdfValueKind.Null && decode.Items.Length != channels * 2) { throw new InvalidDataException("Invalid PDF image Decode array."); }
             if (mask.Kind == PdfValueKind.Array && mask.Items.Length != channels * 2) { throw new InvalidDataException("Invalid PDF color-key mask."); }
             int maximum = (1 << bits) - 1;
-            PixelBuffer output = new(width, height);
-            Span<double> values = stackalloc double[4];
-            for (int y = 0; y < height; y++)
+            PixelBuffer output = new(width, height, _imageAllocator);
+            bool completed = false;
+            try
             {
-                token.ThrowIfCancellationRequested();
-                for (int x = 0; x < width; x++)
+                Span<double> values = stackalloc double[4];
+                for (int y = 0; y < height; y++)
                 {
-                    bool transparent = mask.Kind == PdfValueKind.Array;
-                    for (int c = 0; c < channels; c++)
+                    token.ThrowIfCancellationRequested();
+                    for (int x = 0; x < width; x++)
                     {
-                        int bit = (x * channels + c) * bits, sample = 0;
-                        for (int k = 0; k < bits; k++) { int index = bit + k; sample = (sample << 1) | ((samples[y * row + index / 8] >> (7 - index % 8)) & 1); }
-                        if (transparent && (sample < mask.Items[c * 2].Numeric() || sample > mask.Items[c * 2 + 1].Numeric())) { transparent = false; }
-                        double low = decode.Kind == PdfValueKind.Null ? 0 : decode.Items[c * 2].Numeric();
-                        double high = decode.Kind == PdfValueKind.Null ? indexed ? maximum : 1 : decode.Items[c * 2 + 1].Numeric();
-                        values[c] = low + sample * (high - low) / maximum;
-                    }
-                    Rgba32 result;
-                    if (stencil) { result = _state.Fill with { A = Channel(1 - values[0]) }; }
-                    else
-                    {
-                        if (indexed)
+                        bool transparent = mask.Kind == PdfValueKind.Array;
+                        for (int c = 0; c < channels; c++)
                         {
-                            int index = Math.Clamp((int)Math.Round(values[0]), 0, highest);
-                            for (int c = 0; c < components; c++) { values[c] = palette.Span[index * components + c] / 255.0; }
+                            int bit = (x * channels + c) * bits, sample = 0;
+                            for (int k = 0; k < bits; k++) { int index = bit + k; sample = (sample << 1) | ((samples[y * row + index / 8] >> (7 - index % 8)) & 1); }
+                            if (transparent && (sample < mask.Items[c * 2].Numeric() || sample > mask.Items[c * 2 + 1].Numeric())) { transparent = false; }
+                            double low = decode.Kind == PdfValueKind.Null ? 0 : decode.Items[c * 2].Numeric();
+                            double high = decode.Kind == PdfValueKind.Null ? indexed ? maximum : 1 : decode.Items[c * 2 + 1].Numeric();
+                            values[c] = low + sample * (high - low) / maximum;
                         }
-                        result = components switch
+                        Rgba32 result;
+                        if (stencil) { result = _state.Fill with { A = Channel(1 - values[0]) }; }
+                        else
                         {
-                            1 => new(Channel(values[0]), Channel(values[0]), Channel(values[0])),
-                            3 => new(Channel(values[0]), Channel(values[1]), Channel(values[2])),
-                            4 => new(Channel(1 - Math.Min(1, values[0] + values[3])), Channel(1 - Math.Min(1, values[1] + values[3])), Channel(1 - Math.Min(1, values[2] + values[3]))),
-                            _ => throw new InvalidDataException("Invalid PDF component count.")
-                        };
+                            if (indexed)
+                            {
+                                int index = Math.Clamp((int)Math.Round(values[0]), 0, highest);
+                                for (int c = 0; c < components; c++) { values[c] = palette.Span[index * components + c] / 255.0; }
+                            }
+                            result = components switch
+                            {
+                                1 => new(Channel(values[0]), Channel(values[0]), Channel(values[0])),
+                                3 => new(Channel(values[0]), Channel(values[1]), Channel(values[2])),
+                                4 => new(Channel(1 - Math.Min(1, values[0] + values[3])), Channel(1 - Math.Min(1, values[1] + values[3])), Channel(1 - Math.Min(1, values[2] + values[3]))),
+                                _ => throw new InvalidDataException("Invalid PDF component count.")
+                            };
+                        }
+                        output[x, y] = transparent ? result with { A = 0 } : result;
                     }
-                    output[x, y] = transparent ? result with { A = 0 } : result;
                 }
+                completed = true;
+                return output;
             }
-            return output;
+            finally { if (!completed) { output.Dispose(); } }
         }
     }
 }

@@ -43,7 +43,13 @@ namespace Mediana.Documents.Pdf
             ArgumentNullException.ThrowIfNull(request);
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
-            using PdfDocument document = PdfReader.ReadBorrowed(encoded, readerOptions, cancellationToken);
+            PdfReaderOptions configured = readerOptions ?? new();
+            MediaBufferAllocator images = configured.ImageAllocator ?? allocator;
+            if (!images.IsWithin(allocator))
+            {
+                throw new ArgumentException("The PDF image allocator must belong to the operation allocation budget.", nameof(readerOptions));
+            }
+            using PdfDocument document = PdfReader.ReadBorrowed(encoded, configured with { ImageAllocator = images }, cancellationToken);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(request.PageIndex, document.PageCount, nameof(request.PageIndex));
             foreach (string warning in document.Warnings)
             {
