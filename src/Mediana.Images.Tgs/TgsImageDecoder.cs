@@ -29,8 +29,19 @@ namespace Mediana.Images.Tgs
             }
             MediaDuration duration = new(TimeSpan.FromSeconds(document.Duration).Ticks, TimeBase.TimeSpanTicks);
             string format = encoded.Span.StartsWith<byte>([0x1f, 0x8b]) ? "tgs" : "lottie";
+            List<MediaProperty> properties = [new("lottie", "in_point", document.InPoint), new("lottie", "out_point", document.OutPoint),
+                new("lottie", "frame_rate", document.FrameRate)];
+            foreach (System.Text.Json.JsonProperty property in document.Root.EnumerateObject().Where(property => property.Name is "v" or "nm"))
+            {
+                if (property.Value.ValueKind != System.Text.Json.JsonValueKind.String)
+                {
+                    throw new InvalidDataException("Lottie " + property.Name + " must be a string.");
+                }
+                properties.Add(new("lottie", property.Name, property.Value.GetString()!));
+            }
             return ValueTask.FromResult(new ImageInfo(format, document.Width, document.Height, ImageDimensionUnit.Pixels,
-                duration: duration, frameRate: document.FrameRate));
+                duration: duration, frameRate: document.FrameRate,
+                metadata: new("animation", properties)));
         }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,

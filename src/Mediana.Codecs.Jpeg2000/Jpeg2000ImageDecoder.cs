@@ -40,7 +40,14 @@ namespace Mediana.Codecs.Jpeg2000
             }
             (ReadOnlyMemory<byte> Stream, ContainerInfo Info) container = Jp2Container.Read(encoded);
             CodestreamSize size = CodestreamSize.Read(new ByteReader(container.Stream), container.Info, budget);
-            return ValueTask.FromResult(new ImageInfo("jpeg2000", size.X1 - size.X0, size.Y1 - size.Y0, ImageDimensionUnit.Pixels));
+            MediaMetadata metadata = new("image", [new("media", "codec", "jpeg2000"),
+                new("jpeg2000", "tile_dimensions", size.TileWidth, size.TileHeight), new("jpeg2000", "tile_count", size.TileCount),
+                new("jpeg2000", "color_space", container.Info.ColorSpace.ToString()), new("jpeg2000", "alpha_component", container.Info.Alpha),
+                new("jpeg2000", "has_icc_profile", container.Info.Profile)],
+                size.Components.Select((component, index) => new MediaMetadata("component/" + index,
+                    [new("media", "bit_depth", component.BitDepth), new("media", "signed", component.IsSigned),
+                    new("media", "sample_spacing", component.HorizontalSampling, component.VerticalSampling)])));
+            return ValueTask.FromResult(new ImageInfo("jpeg2000", size.X1 - size.X0, size.Y1 - size.Y0, ImageDimensionUnit.Pixels, metadata: metadata));
         }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,

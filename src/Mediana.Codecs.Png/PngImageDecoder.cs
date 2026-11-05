@@ -31,8 +31,9 @@ namespace Mediana.Codecs.Png
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {
-            PngImageData image = Read(encoded, cancellationToken);
-            return ValueTask.FromResult(new ImageInfo("png", image.Width, image.Height, ImageDimensionUnit.Pixels));
+            PngImageData image = PngImageParser.Read(encoded, options, cancellationToken);
+            return ValueTask.FromResult(new ImageInfo("png", image.Width, image.Height, ImageDimensionUnit.Pixels,
+                metadata: PngImageMetadata.Read(image, cancellationToken)));
         }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,

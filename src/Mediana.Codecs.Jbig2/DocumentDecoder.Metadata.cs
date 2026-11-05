@@ -27,7 +27,10 @@ namespace Mediana.Codecs.Jbig2
                 throw new InvalidDataException("JBIG2 contains no pages.");
             }
             PageHeader first = pages.First().Value;
-            return new ImageInfo("jbig2", first.Width, first.Height, ImageDimensionUnit.Pixels, pages.Count);
+            return new ImageInfo("jbig2", first.Width, first.Height, ImageDimensionUnit.Pixels, pages.Count,
+                metadata: new("image", [new("media", "codec", "jbig2"), new("media", "bit_depth", 1)],
+                    pages.Select(page => new MediaMetadata("page/" + page.Key,
+                        [new("media", "dimensions", page.Value.Width, page.Value.Height)]))));
         }
     }
 }

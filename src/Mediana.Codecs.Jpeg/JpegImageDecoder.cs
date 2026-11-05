@@ -41,7 +41,8 @@ namespace Mediana.Codecs.Jpeg
             using JpegDocument image = new(encoded, options, sourceColorSpace, sampleAspectRatio, cancellationToken);
             image.Read(null);
             bool swap = image.Metadata.Orientation.SwapsAxes;
-            return ValueTask.FromResult(new ImageInfo("jpeg", swap ? image.Height : image.Width, swap ? image.Width : image.Height, ImageDimensionUnit.Pixels));
+            return ValueTask.FromResult(new ImageInfo("jpeg", swap ? image.Height : image.Width, swap ? image.Width : image.Height,
+                ImageDimensionUnit.Pixels, metadata: image.Metadata.Inspect(image)));
         }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,

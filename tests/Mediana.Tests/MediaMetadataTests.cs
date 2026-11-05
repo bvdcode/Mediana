@@ -4,11 +4,30 @@
 using Mediana.Cli;
 using Mediana.Containers;
 using Mediana.Core.Metadata;
+using Mediana.IO;
 
 namespace Mediana.Tests
 {
     public class MediaMetadataTests
     {
+        [Fact]
+        public async Task ContainerProbeRetainsExtensibleMetadataAfterReaderDisposalWithoutReadingPackets()
+        {
+            MediaMetadata metadata = new("container", [new("custom", "identifier", ulong.MaxValue)],
+                [new("stream/0", [new("custom", "mode", "example")])]);
+            FixtureContainerFactory factory = new(info: new("fixture", metadata: metadata));
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(factory).Build();
+            MediaInfo info;
+            await using (RandomAccessStreamByteSource source = new(new MemoryStream("TEST"u8.ToArray())))
+            {
+                info = await engine.ProbeAsync(source);
+            }
+            Assert.Same(metadata, info.Metadata);
+            Assert.True(factory.LastReader!.IsDisposed);
+            Assert.Equal(0, factory.LastReader.PacketReads);
+            Assert.Equal(ulong.MaxValue, info.Metadata.Properties[0].Values[0].AsUnsignedInteger());
+        }
+
         [Fact]
         public async Task UnknownPropertiesAndScopesUseTheSameTypedFormatterForImagesAndContainers()
         {

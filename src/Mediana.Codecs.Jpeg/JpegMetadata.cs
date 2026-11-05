@@ -6,7 +6,7 @@ using Mediana.Core.Video;
 
 namespace Mediana.Codecs.Jpeg
 {
-    internal class JpegMetadata
+    internal partial class JpegMetadata
     {
         private bool jfif;
         private int? adobeTransform;

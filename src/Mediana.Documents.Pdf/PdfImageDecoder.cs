@@ -25,7 +25,16 @@ namespace Mediana.Documents.Pdf
                 throw new InvalidDataException("PDF contains no pages.");
             }
             PdfPageInfo page = document.GetPageInfo(1);
-            return ValueTask.FromResult(new ImageInfo("pdf", page.Width, page.Height, ImageDimensionUnit.Points, document.PageCount));
+            List<MediaMetadata> pages = [];
+            for (int number = 1; number <= document.PageCount; number++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                PdfPageInfo current = document.GetPageInfo(number);
+                pages.Add(new("page/" + number, [new("pdf", "width_points", current.Width), new("pdf", "height_points", current.Height),
+                    new("pdf", "rotation_degrees", current.Rotation)]));
+            }
+            return ValueTask.FromResult(new ImageInfo("pdf", page.Width, page.Height, ImageDimensionUnit.Points, document.PageCount,
+                metadata: new("document", [new("pdf", "page_count", document.PageCount)], pages)));
         }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,

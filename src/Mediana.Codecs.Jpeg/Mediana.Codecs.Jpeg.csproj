@@ -2,5 +2,6 @@
   <ItemGroup>
     <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
     <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />
+    <ProjectReference Include="../Mediana.Formats/Mediana.Formats.csproj" />
   </ItemGroup>
 </Project>
