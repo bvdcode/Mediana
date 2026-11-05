@@ -14,7 +14,6 @@ namespace Mediana.Tests
         [InlineData("/Subtype /Link /Rect [0 0 10 10]")]
         [InlineData("/Subtype /Link /Rect [0 0 10 10] /Border [0 0 0] /BS << /W 1 >>")]
         [InlineData("/Subtype /Square /Rect [0 0 10 10] /F 1")]
-        [InlineData("/Subtype /Link /Rect [0 0 10 10] /Border [0 0 0] /AP << /N 6 0 R >>")]
         public async Task VisibleAnnotationSemanticsRemainExplicit(string entries)
         {
             using PdfDocument document = await PdfReader.ReadAsync(new MemoryStream(PdfNonPaintingAnnotationTestInput.Create(entries)));

@@ -48,13 +48,16 @@ namespace Mediana.Documents.Pdf
             _pageResources = page.Resources;
             PdfValue annotations = Get(page.Dictionary, "Annots");
             if (annotations.Kind is not (PdfValueKind.Null or PdfValueKind.Array)) { throw new InvalidDataException("PDF annotations must be an array."); }
-            Annotations(annotations.Items);
             PageGroup(Get(page.Dictionary, "Group"));
             ReadOnlyMemory<byte> contents = PdfPageContents.Read(storage, page.Dictionary.Get("Contents"), token);
             if (!contents.IsEmpty)
             {
+                _commands.Add(new StateCommand(true));
                 Execute(contents, page.Resources, 0);
+                _commands.Add(new StateCommand(false));
             }
+            _state = new PdfGraphicsState { Transform = page.Transform };
+            Annotations(annotations.Items);
             return new(page.Info, _commands, _unsupported, _images, _warnings);
         }
         private PdfValue Resolve(PdfValue value) => storage.Resolve(value, token);
@@ -251,21 +254,25 @@ namespace Mediana.Documents.Pdf
             }
             else if (subtype == "Form")
             {
-                if (!_forms.Add(obj)) { throw new InvalidDataException("Recursive PDF Form XObject."); }
-                try
-                {
-                    FormGroup(Get(obj.Value, "Group"));
-                    Matrix3x2 transform = _state.Transform;
-                    if (obj.Value.Get("Matrix").Kind != PdfValueKind.Null) { transform = Matrix(obj.Value.Get("Matrix")) * transform; }
-                    PdfValue local = obj.Value.Get("Resources").Kind == PdfValueKind.Null ? resources : Get(obj.Value, "Resources");
-                    ExecuteNested(obj, local, transform, depth + 1, boundingBox: Get(obj.Value, "BBox"));
-                }
-                finally
-                {
-                    _forms.Remove(obj);
-                }
+                Matrix3x2 transform = _state.Transform;
+                if (obj.Value.Get("Matrix").Kind != PdfValueKind.Null) { transform = Matrix(obj.Value.Get("Matrix")) * transform; }
+                PaintForm(obj, resources, transform, depth);
             }
             else { throw new NotSupportedException("Unsupported PDF XObject subtype: " + subtype); }
+        }
+        private void PaintForm(PdfObject obj, PdfValue resources, Matrix3x2 transform, int depth)
+        {
+            if (!_forms.Add(obj)) { throw new InvalidDataException("Recursive PDF Form XObject."); }
+            try
+            {
+                FormGroup(Get(obj.Value, "Group"));
+                PdfValue local = obj.Value.Get("Resources").Kind == PdfValueKind.Null ? resources : Get(obj.Value, "Resources");
+                ExecuteNested(obj, local, transform, depth + 1, boundingBox: Get(obj.Value, "BBox"));
+            }
+            finally
+            {
+                _forms.Remove(obj);
+            }
         }
     }
 }
