@@ -15,6 +15,7 @@ namespace Mediana.NativeTests
         {
             NativeCoreMemoryTests.Run();
             OpenXmlPackageTestInput.Verify();
+            WordTestInput.Verify();
             await NativeEbmlTests.RunAsync();
             foreach (bool stereo in new[] { false, true })
             {

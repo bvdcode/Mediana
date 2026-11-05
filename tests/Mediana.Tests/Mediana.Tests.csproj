@@ -5,6 +5,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/WordTestInput.cs" Link="WordTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Documents.OpenXml/Mediana.Documents.OpenXml.csproj" />
     <Compile Include="../Shared/OpenXmlPackageTestInput.cs" Link="OpenXmlPackageTestInput.cs" />
     <Compile Include="../Shared/HlsSegmentReplayTestInput.cs" Link="HlsSegmentReplayTestInput.cs" />
@@ -297,5 +298,8 @@
     <Compile Include="../Shared/PngTestInput.cs" Link="PngTestInput.cs" />
     <Compile Include="../Shared/RotatedPreviewTestInput.cs" Link="RotatedPreviewTestInput.cs" />
     <Compile Include="../Shared/SdrPreviewTestInput.cs" Link="SdrPreviewTestInput.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Mediana.Documents.Word\Mediana.Documents.Word.csproj" />
   </ItemGroup>
 </Project>
