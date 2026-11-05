@@ -35,6 +35,17 @@ namespace Mediana.Tests
             }
             Require(allocator.AllocatedBytes == 0);
 
+            using (FluentEmojiProvider layers = new())
+            {
+                MediaBufferAllocator workspace = new(128 * 1024);
+                using (PixelBuffer pixels = new(32, 32, workspace))
+                {
+                    layers.Resolve("🎅")!.Draw(new RasterCanvas(pixels), Matrix3x2.CreateScale(32));
+                    Require(ColoredPixels(pixels) > 100 && workspace.AllocatedBytes == 4096);
+                }
+                Require(workspace.AllocatedBytes == 0);
+            }
+
             using FluentEmojiProvider shared = new();
             WordLayoutOptions options = new() { InlineGraphicProvider = shared };
             WordLayout whole = WordRenderer.Layout(Read("<w:p><w:r><w:t>A👩‍💻B</w:t></w:r></w:p>"), options);

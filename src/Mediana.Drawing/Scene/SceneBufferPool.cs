@@ -27,7 +27,7 @@ namespace Mediana.Drawing
             bool retained = false;
             try
             {
-                image = new PixelBuffer(width, height);
+                image = context.Allocator is null ? new PixelBuffer(width, height) : new PixelBuffer(width, height, context.Allocator);
                 _buffers.Add(image, reservation);
                 retained = true;
                 return image;

@@ -16,12 +16,12 @@ namespace Mediana.Tests
         public Task SequencesSelectorsBorrowedCanvasOwnershipAndConcurrentWordPages() => FluentEmojiTestInput.VerifyAsync();
 
         [Fact]
-        public async Task EveryBundledSequenceDrawsAColorGraphicWithoutAllocatingAnotherPixelBuffer()
+        public async Task EveryBundledSequenceDrawsOnTheBorrowedCanvasAndReleasesItsWorkspace()
         {
             string[] sequences = await File.ReadAllLinesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Emoji", "sequences.txt"));
             using FluentEmojiProvider provider = new(new() { MaximumCachedGraphics = 2 });
             Assert.Equal(provider.Count, sequences.Length);
-            MediaBufferAllocator allocator = new(4096);
+            MediaBufferAllocator allocator = new(128 * 1024);
             using (PixelBuffer pixels = new(32, 32, allocator))
             {
                 foreach (string sequence in sequences)
@@ -32,6 +32,20 @@ namespace Mediana.Tests
                     Assert.True(pixels.Pixels.Span.ContainsAnyExcept((byte)0), sequence);
                     Assert.Equal(4096, allocator.AllocatedBytes);
                 }
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public void OpacityWorkspaceCannotBypassTheCanvasBudgetAndFailureReleasesReservations()
+        {
+            using FluentEmojiProvider provider = new();
+            InlineGraphic graphic = Assert.IsAssignableFrom<InlineGraphic>(provider.Resolve("🎅"));
+            MediaBufferAllocator allocator = new(4096);
+            using (PixelBuffer pixels = new(32, 32, allocator))
+            {
+                Assert.Throws<MediaMemoryLimitException>(() => graphic.Draw(new RasterCanvas(pixels), Matrix3x2.CreateScale(32)));
+                Assert.Equal(4096, allocator.AllocatedBytes);
             }
             Assert.Equal(0, allocator.AllocatedBytes);
         }

@@ -13,8 +13,8 @@ namespace Mediana.Images.Svg
     public static class SvgRenderer
     {
         /// <summary>Draws a scene at its intrinsic CSS viewport size into an existing canvas.
-        /// The transform controls placement and scale; no intermediate RGBA image is created.
-        /// Effect workspace is bounded separately by MaximumEffectBytes.</summary>
+        /// The transform controls placement and scale. Opacity/effect workspace shares the canvas
+        /// allocation budget and is also bounded by MaximumEffectBytes.</summary>
         public static void Draw(SvgDocument document, RasterCanvas canvas, Matrix3x2 transform,
             DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
         {
@@ -32,7 +32,7 @@ namespace Mediana.Images.Svg
             {
                 throw new NotSupportedException("Unsupported SVG features: " + string.Join("; ", document.UnsupportedFeatures));
             }
-            using SceneRenderContext context = new(options, cancellationToken);
+            using SceneRenderContext context = new(options, cancellationToken, canvas.Buffer.Allocator);
             document.Root.Draw(canvas, Viewport(document.ViewBox, document.Width, document.Height, document.AspectRatio) * transform, context);
         }
 
