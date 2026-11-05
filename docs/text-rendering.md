@@ -15,8 +15,8 @@ FontCollection fonts = await FontCollection.LoadAsync(fontFiles);
 using FluentEmojiProvider emoji = new();
 TextOptions text = new()
 {
-    FontResolver = fonts.Resolve,
-    FallbackFontResolver = fonts.ResolveCharacter,
+    FontProgramResolver = fonts.ResolveProgram,
+    FallbackFontProgramResolver = fonts.ResolveCharacterProgram,
     InlineGraphicProvider = emoji,
     SubstituteMissingFonts = true
 };

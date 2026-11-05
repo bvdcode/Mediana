@@ -89,8 +89,8 @@ WordLayout layout = WordRenderer.Layout(document, new()
 {
     Text = new()
     {
-        FontResolver = fonts.Resolve,
-        FallbackFontResolver = fonts.ResolveCharacter,
+        FontProgramResolver = fonts.ResolveProgram,
+        FallbackFontProgramResolver = fonts.ResolveCharacterProgram,
         SubstituteMissingFonts = true
     }
 });

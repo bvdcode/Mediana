@@ -10,9 +10,9 @@ namespace Mediana.Drawing
     /// Family names and style attributes come from OpenType tables, rather than filenames. Resolution is read-only and thread-safe.</summary>
     public class FontCollection
     {
-        private readonly IReadOnlyList<(TrueTypeFont Font, FontFaceInfo? Info)> _fonts;
-        private readonly IReadOnlyDictionary<FontRequest, TrueTypeFont> _faces;
-        private FontCollection(IReadOnlyList<(TrueTypeFont Font, FontFaceInfo? Info)> fonts, IReadOnlyDictionary<FontRequest, TrueTypeFont> faces)
+        private readonly IReadOnlyList<(FontProgram Font, FontFaceInfo? Info)> _fonts;
+        private readonly IReadOnlyDictionary<FontRequest, FontProgram> _faces;
+        private FontCollection(IReadOnlyList<(FontProgram Font, FontFaceInfo? Info)> fonts, IReadOnlyDictionary<FontRequest, FontProgram> faces)
         {
             _fonts = fonts;
             _faces = faces;
@@ -25,8 +25,8 @@ namespace Mediana.Drawing
             ArgumentNullException.ThrowIfNull(files);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumFonts);
-            List<(TrueTypeFont Font, FontFaceInfo? Info)> fonts = [];
-            Dictionary<FontRequest, TrueTypeFont> faces = [];
+            List<(FontProgram Font, FontFaceInfo? Info)> fonts = [];
+            Dictionary<FontRequest, FontProgram> faces = [];
             long total = 0;
             foreach (string file in files.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
             {
@@ -39,7 +39,7 @@ namespace Mediana.Drawing
                 await source.ReadExactlyAsync(bytes, cancellationToken);
                 if (await source.ReadAsync(new byte[1], cancellationToken) != 0) { throw new InvalidDataException("Font changed length during reading."); }
                 if (!HasStaticOutlines(bytes)) { continue; }
-                TrueTypeFont font = new(bytes);
+                FontProgram font = FontProgram.TakeOwnership(bytes);
                 FontFaceInfo? faceInfo = font.ReadFaceInfo();
                 fonts.Add((font, faceInfo));
                 total += font.Program.Length;
@@ -52,21 +52,28 @@ namespace Mediana.Drawing
             return new(fonts.AsReadOnly(), faces);
         }
 
-        /// <summary>Returns a matching family and face, or empty. Attach to TextOptions.FontResolver.</summary>
-        public ReadOnlyMemory<byte> Resolve(FontRequest request) =>
-            _faces.TryGetValue(request with { Family = request.Family.ToUpperInvariant() }, out TrueTypeFont? font) ? font.Program : ReadOnlyMemory<byte>.Empty;
+        /// <summary>Returns immutable program bytes, or empty. Use ResolveProgram for shared parsed rendering.</summary>
+        public ReadOnlyMemory<byte> Resolve(FontRequest request) => ResolveProgram(request)?.Program ?? default;
 
-        /// <summary>Finds an outline glyph for a missing character, preferring the requested face style. Attach to FallbackFontResolver.</summary>
+        /// <summary>Returns a shared parsed face, or null when the family and style are absent.</summary>
+        public FontProgram? ResolveProgram(FontRequest request) =>
+            _faces.TryGetValue(request with { Family = request.Family.ToUpperInvariant() }, out FontProgram? font) ? font : null;
+
+        /// <summary>Returns bytes for a missing character, preferring the requested face style. Use ResolveCharacterProgram to share parsed data.</summary>
         public ReadOnlyMemory<byte> ResolveCharacter(FontRequest request, int codepoint)
+            => ResolveCharacterProgram(request, codepoint)?.Program ?? default;
+
+        /// <summary>Finds a shared outline program for a character without constructing a mutable reader.</summary>
+        public FontProgram? ResolveCharacterProgram(FontRequest request, int codepoint)
         {
-            TrueTypeFont? alternative = null;
-            foreach ((TrueTypeFont font, FontFaceInfo? info) in _fonts)
+            FontProgram? alternative = null;
+            foreach ((FontProgram font, FontFaceInfo? info) in _fonts)
             {
                 if (font.Glyph(codepoint) == 0) { continue; }
                 alternative ??= font;
-                if (info is not null && (info.Weight >= 600) == request.Bold && info.Italic == request.Italic) { return font.Program; }
+                if (info is not null && (info.Weight >= 600) == request.Bold && info.Italic == request.Italic) { return font; }
             }
-            return alternative?.Program ?? ReadOnlyMemory<byte>.Empty;
+            return alternative;
         }
 
         private static bool HasStaticOutlines(ReadOnlySpan<byte> bytes)

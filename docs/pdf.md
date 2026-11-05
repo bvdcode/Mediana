@@ -164,7 +164,7 @@ using Mediana.Drawing.Fonts;
 
 PdfReaderOptions readerOptions = new()
 {
-    Text = new() { FontResolver = request => BundledFontPrograms.GetFont("Canada1500", request.Bold, request.Italic) }
+    Text = new() { FontProgramResolver = request => BundledFontPrograms.GetProgram("Canada1500", request.Bold, request.Italic) }
 };
 using PdfDocument document = await PdfReader.ReadFileAsync("report.pdf", readerOptions);
 using PixelBuffer pixels = PdfRenderer.Render(document, 1, new()

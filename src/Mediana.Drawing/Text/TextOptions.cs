@@ -7,6 +7,9 @@ namespace Mediana.Drawing
     /// Callbacks and providers must support concurrent use when options are shared between render operations.</summary>
     public record TextOptions
     {
+        /// <summary>Resolves shared parsed font programs without copying or reparsing their storage.</summary>
+        public Func<FontRequest, Fonts.FontProgram?>? FontProgramResolver { get; init; }
+        public Func<FontRequest, int, Fonts.FontProgram?>? FallbackFontProgramResolver { get; init; }
         public Func<FontRequest, ReadOnlyMemory<byte>>? FontResolver { get; init; }
         public Func<FontRequest, int, ReadOnlyMemory<byte>>? FallbackFontResolver { get; init; }
         public IInlineGraphicProvider? InlineGraphicProvider { get; init; }
