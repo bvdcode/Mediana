@@ -7,23 +7,10 @@ namespace Mediana.Documents.Word
 {
     internal partial class WordFonts
     {
-        private readonly Dictionary<string, InlineGraphic> _graphics = new(StringComparer.Ordinal);
-
         internal WordAtom? Graphic(WordRunFormat format, ReadOnlySpan<char> element)
         {
-            if (options.InlineGraphicProvider is null) { return null; }
-            if (!_graphics.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(element, out InlineGraphic? graphic))
-            {
-                graphic = options.InlineGraphicProvider.Resolve(element, token);
-                if (graphic is null) { return null; }
-                if (!double.IsFinite(graphic.Advance) || graphic.Advance <= 0 || !double.IsFinite(graphic.Ascent)
-                    || graphic.Ascent < 0 || !double.IsFinite(graphic.Descent) || graphic.Descent < 0 || graphic.Ascent + graphic.Descent <= 0)
-                {
-                    throw new InvalidDataException("Inline graphic metrics must be finite and have positive width and height.");
-                }
-                if (_graphics.Count >= options.MaximumInlineGraphics) { throw new InvalidDataException("Word layout exceeds MaximumInlineGraphics."); }
-                _graphics.Add(new(element), graphic);
-            }
+            InlineGraphic? graphic = _text.ResolveGraphic(element, token);
+            if (graphic is null) { return null; }
             if (++_glyphs > options.MaximumGlyphs) { throw new InvalidDataException("Word layout exceeds MaximumGlyphs."); }
             double size = format.Baseline == 0 ? format.Size : format.Size * .65;
             return new(format, null, size, graphic.Advance * size,

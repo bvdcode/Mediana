@@ -265,7 +265,9 @@ namespace Mediana.Drawing.Fonts
         }
 
         public float Advance(int glyph) => U16(Table("hmtx", 0) + (Math.Min(glyph, _metrics - 1) * 4));
-        public VectorPath Outline(int glyph)
+        public VectorPath Outline(int glyph) => BorrowOutline(glyph).Transform(Matrix3x2.Identity);
+
+        internal VectorPath BorrowOutline(int glyph)
         {
             if (!_outlines.TryGetValue(glyph, out VectorPath? path))
             {
@@ -274,7 +276,7 @@ namespace Mediana.Drawing.Fonts
                 _outlines.Add(glyph, path);
             }
 
-            return path.Transform(Matrix3x2.Identity);
+            return path;
         }
 
         private static byte[] DecodeWoff(byte[] data)

@@ -47,7 +47,7 @@ namespace Mediana.Tests
             }
 
             using FluentEmojiProvider shared = new();
-            WordLayoutOptions options = new() { InlineGraphicProvider = shared };
+            WordLayoutOptions options = new() { Text = new() { InlineGraphicProvider = shared } };
             WordLayout whole = WordRenderer.Layout(Read("<w:p><w:r><w:t>A👩‍💻B</w:t></w:r></w:p>"), options);
             WordLayout split = WordRenderer.Layout(Read("<w:p><w:r><w:t>A👩</w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t>‍</w:t></w:r><w:r><w:t>💻B</w:t></w:r></w:p>"), options);
             Require(whole.Warnings.Count == 0 && split.Warnings.Count == 0);

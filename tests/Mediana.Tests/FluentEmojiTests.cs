@@ -55,14 +55,14 @@ namespace Mediana.Tests
         {
             using FluentEmojiProvider provider = new();
             WordLayout layout = WordRenderer.Layout(FluentEmojiTestInput.Read("<w:p><w:r><w:rPr><w:sz w:val=\"180\"/></w:rPr><w:t>👩‍💻👩‍💻</w:t></w:r></w:p>"),
-                new() { InlineGraphicProvider = provider });
+                new() { Text = new() { InlineGraphicProvider = provider } });
             WordInlineGraphicPaint[] graphics = Flatten(layout.Pages.SelectMany(page => page.Paint)).OfType<WordInlineGraphicPaint>().ToArray();
             Assert.Equal(2, graphics.Length);
             Assert.Equal(graphics[0].X, graphics[1].X);
             Assert.True(graphics[1].Top > graphics[0].Top || layout.PageCount > 1);
             Assert.Same(graphics[0].Graphic, graphics[1].Graphic);
             Assert.Throws<InvalidDataException>(() => WordRenderer.Layout(FluentEmojiTestInput.Read("<w:p><w:r><w:t>😀👍</w:t></w:r></w:p>"),
-                new() { InlineGraphicProvider = provider, MaximumInlineGraphics = 1 }));
+                new() { Text = new() { InlineGraphicProvider = provider, MaximumInlineGraphics = 1 } }));
             Assert.Throws<ArgumentOutOfRangeException>(() => new FluentEmojiProvider(new() { MaximumCachedGraphics = 0 }));
             Assert.Throws<OperationCanceledException>(() => provider.Resolve("😀", new(true)));
             provider.Dispose();
@@ -74,12 +74,12 @@ namespace Mediana.Tests
         {
             using FluentEmojiProvider provider = new();
             WordLayout layout = WordRenderer.Layout(FluentEmojiTestInput.Read("<w:p><w:r><w:t>♥︎♥️</w:t></w:r></w:p>"),
-                new() { InlineGraphicProvider = provider });
+                new() { Text = new() { InlineGraphicProvider = provider } });
             Assert.Single(Flatten(layout.Pages.SelectMany(page => page.Paint)).OfType<WordInlineGraphicPaint>());
             Assert.NotEmpty(Flatten(layout.Pages.SelectMany(page => page.Paint)).OfType<WordGlyphPaint>());
             Assert.Empty(layout.Warnings);
             WordLayout missing = WordRenderer.Layout(FluentEmojiTestInput.Read("<w:p><w:r><w:t>🇺🇸</w:t></w:r></w:p>"),
-                new() { InlineGraphicProvider = provider, SubstituteMissingFonts = true });
+                new() { Text = new() { InlineGraphicProvider = provider, SubstituteMissingFonts = true } });
             Assert.Contains(missing.Warnings, warning => warning.Contains("missing-glyph", StringComparison.Ordinal));
         }
 

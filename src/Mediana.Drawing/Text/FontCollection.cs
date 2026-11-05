@@ -4,29 +4,29 @@
 using Mediana.Drawing.Fonts;
 using System.Buffers.Binary;
 
-namespace Mediana.Documents.Word
+namespace Mediana.Drawing
 {
     /// <summary>A bounded collection of caller-supplied installed font files. It performs no implicit discovery or network access.
     /// Family names and style attributes come from OpenType tables, rather than filenames. Resolution is read-only and thread-safe.</summary>
-    public class WordFontCollection
+    public class FontCollection
     {
         private readonly IReadOnlyList<(TrueTypeFont Font, FontFaceInfo? Info)> _fonts;
-        private readonly IReadOnlyDictionary<WordFontRequest, TrueTypeFont> _faces;
-        private WordFontCollection(IReadOnlyList<(TrueTypeFont Font, FontFaceInfo? Info)> fonts, IReadOnlyDictionary<WordFontRequest, TrueTypeFont> faces)
+        private readonly IReadOnlyDictionary<FontRequest, TrueTypeFont> _faces;
+        private FontCollection(IReadOnlyList<(TrueTypeFont Font, FontFaceInfo? Info)> fonts, IReadOnlyDictionary<FontRequest, TrueTypeFont> faces)
         {
             _fonts = fonts;
             _faces = faces;
         }
 
         /// <summary>Loads bounded static TrueType outline programs. Bitmap-only, variable, CFF and collection formats are excluded.</summary>
-        public static async Task<WordFontCollection> LoadAsync(IEnumerable<string> files, int maximumBytes = 64 * 1024 * 1024,
+        public static async Task<FontCollection> LoadAsync(IEnumerable<string> files, int maximumBytes = 64 * 1024 * 1024,
             int maximumFonts = 256, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(files);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumFonts);
             List<(TrueTypeFont Font, FontFaceInfo? Info)> fonts = [];
-            Dictionary<WordFontRequest, TrueTypeFont> faces = [];
+            Dictionary<FontRequest, TrueTypeFont> faces = [];
             long total = 0;
             foreach (string file in files.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
             {
@@ -45,19 +45,19 @@ namespace Mediana.Documents.Word
                 total += font.Program.Length;
                 if (faceInfo is FontFaceInfo info)
                 {
-                    WordFontRequest request = new(info.Family.ToUpperInvariant(), info.Weight >= 600, info.Italic);
+                    FontRequest request = new(info.Family.ToUpperInvariant(), info.Weight >= 600, info.Italic);
                     faces.TryAdd(request, font);
                 }
             }
             return new(fonts.AsReadOnly(), faces);
         }
 
-        /// <summary>Returns a matching family and face, or empty. Attach to WordLayoutOptions.FontResolver.</summary>
-        public ReadOnlyMemory<byte> Resolve(WordFontRequest request) =>
+        /// <summary>Returns a matching family and face, or empty. Attach to TextOptions.FontResolver.</summary>
+        public ReadOnlyMemory<byte> Resolve(FontRequest request) =>
             _faces.TryGetValue(request with { Family = request.Family.ToUpperInvariant() }, out TrueTypeFont? font) ? font.Program : ReadOnlyMemory<byte>.Empty;
 
         /// <summary>Finds an outline glyph for a missing character, preferring the requested face style. Attach to FallbackFontResolver.</summary>
-        public ReadOnlyMemory<byte> ResolveCharacter(WordFontRequest request, int codepoint)
+        public ReadOnlyMemory<byte> ResolveCharacter(FontRequest request, int codepoint)
         {
             TrueTypeFont? alternative = null;
             foreach ((TrueTypeFont font, FontFaceInfo? info) in _fonts)
