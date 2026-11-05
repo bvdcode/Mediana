@@ -102,3 +102,25 @@ case has essentially equal file sizes. Uniform-image encoding benefits from a
 specialized path with no full-image transform allocation. These results do not
 establish a universal speed or memory advantage, and animation performance has
 not been benchmarked.
+
+## Isolated hardware-intrinsics comparison
+
+The same lossless encoder and executable were measured with
+`DOTNET_EnableHWIntrinsic=1` and `0`, keeping all other settings above. Three
+process pairs per sample alternated their order between repetitions. This changes
+both explicit Vector128/Vector256 operations and BCL intrinsic implementations.
+Output lengths were identical across modes. The
+[30 raw measurements](simd-results.json) use the lossless implementation at
+revision `9012cf1`. CPU medians:
+
+| Sample | CPU without intrinsics, ms | CPU with intrinsics, ms | CPU reduction |
+| --- | ---: | ---: | ---: |
+| gradient | 10.91 | 7.66 | 29.8% |
+| alpha | 15.93 | 9.49 | 40.4% |
+| noise | 59.45 | 53.68 | 9.7% |
+| photo.png | 11.47 | 11.28 | 1.7% |
+| photo3.png | 59.09 | 56.22 | 4.9% |
+
+The photographic gain is small relative to run-to-run variation. SIMD has a
+clearer effect on predictable synthetic residuals; these results do not attribute
+the complete ImageSharp comparison ratio to SIMD.
