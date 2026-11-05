@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Mediana.Documents.Word
 {
-    internal class WordFonts(WordLayoutOptions options, HashSet<string> warnings, CancellationToken token)
+    internal partial class WordFonts(WordLayoutOptions options, HashSet<string> warnings, CancellationToken token)
     {
         private readonly Dictionary<WordFontRequest, TrueTypeFont> _requests = [];
         private readonly Dictionary<ReadOnlyMemory<byte>, TrueTypeFont> _programs = [];

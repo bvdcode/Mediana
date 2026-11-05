@@ -15,7 +15,7 @@ namespace Mediana.Documents.Word
         {
             ArgumentNullException.ThrowIfNull(document);
             options ??= new();
-            if (options.MaximumPages <= 0 || options.MaximumGlyphs <= 0 || options.MaximumFontFaces <= 0 || options.MaximumPathCommands <= 0)
+            if (options.MaximumPages <= 0 || options.MaximumGlyphs <= 0 || options.MaximumFontFaces <= 0 || options.MaximumPathCommands <= 0 || options.MaximumInlineGraphics <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(options));
             }

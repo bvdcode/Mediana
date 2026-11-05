@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
-using System.Text;
 
 namespace Mediana.Documents.Word
 {
@@ -12,27 +11,7 @@ namespace Mediana.Documents.Word
         {
             WordParagraphFormat format = paragraph.Format;
             WordAtom mark = fonts.Mark(paragraph.MarkFormat);
-            List<WordAtom> atoms = [];
-            foreach (WordInline inline in paragraph.Content)
-            {
-                if (inline.Format.Hidden) { continue; }
-                switch (inline)
-                {
-                    case WordText text:
-                        foreach (Rune character in text.Text.EnumerateRunes())
-                        {
-                            if (character.Value is 0x00ad or 0xfe0e or 0xfe0f or 0x200d) { continue; }
-                            atoms.Add(fonts.Character(text.Format, character));
-                        }
-                        break;
-                    case WordPicture picture:
-                        atoms.Add(new(picture.Format, null, 0, picture.Width, picture.Height, 0, Picture: picture));
-                        break;
-                    case WordTab tab: atoms.Add(fonts.Mark(tab.Format) with { Tab = true, BreakAfter = true }); break;
-                    case WordBreak next: atoms.Add(mark with { LineBreak = true, PageBreak = next.Page }); break;
-                    default: throw new NotSupportedException("Unsupported Word inline layout.");
-                }
-            }
+            List<WordAtom> atoms = new WordTextAtoms(fonts, token).Build(paragraph.Content, mark);
             List<WordLine> lines = [];
             int cursor = 0;
             bool emptyAfterBreak = false;
@@ -57,7 +36,7 @@ namespace Mediana.Documents.Word
                         break;
                     }
                     double current = atom.Tab ? TabAdvance(atoms, end, left + advance, format.Left, format.Tabs) : atom.Advance;
-                    if (advance + current > available && end > start)
+                    if (advance + current > available && end > start && !atom.ClusterContinuation)
                     {
                         if (lastBreak >= start) { end = lastBreak + 1; }
                         break;
@@ -126,6 +105,11 @@ namespace Mediana.Documents.Word
                     foreground.Add(new WordGlyphPaint(path, x, baseline - atom.Format.Baseline * atom.Format.Size, atom.Scale, atom.Format.Color));
                 }
                 if (atom.Picture is WordPicture picture) { foreground.Add(new WordImagePaint(picture, x, baseline - picture.Height)); }
+                if (atom.Graphic is InlineGraphic graphic)
+                {
+                    foreground.Add(new WordInlineGraphicPaint(graphic, x,
+                        baseline - atom.Format.Baseline * atom.Format.Size - graphic.Ascent * atom.Scale, atom.Scale));
+                }
                 if (atom.Format.Underline) { foreground.Add(new WordRectanglePaint(x, baseline + atom.Format.Size * .1, current, Math.Max(.4, atom.Format.Size / 16), atom.Format.Color)); }
                 if (atom.Format.Strike) { foreground.Add(new WordRectanglePaint(x, baseline - atom.Format.Size * .3, current, Math.Max(.4, atom.Format.Size / 16), atom.Format.Color)); }
                 x += current;

@@ -44,6 +44,10 @@ namespace Mediana.Documents.Word
                             * Matrix3x2.CreateTranslation((float)image.X, (float)image.Y) * transform;
                         canvas.DrawImage(pixels, imageTransform, cancellationToken: token);
                         break;
+                    case WordInlineGraphicPaint graphic:
+                        graphic.Graphic.Draw(canvas, Matrix3x2.CreateScale((float)graphic.Size)
+                            * Matrix3x2.CreateTranslation((float)graphic.X, (float)graphic.Top) * transform, token);
+                        break;
                     case WordGroupPaint group:
                         Matrix3x2 placed = Matrix3x2.CreateTranslation((float)group.X, (float)group.Y) * transform;
                         bool clipped = group.ClipWidth.HasValue && group.ClipHeight.HasValue;

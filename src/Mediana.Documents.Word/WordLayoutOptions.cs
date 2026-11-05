@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Drawing;
+
 namespace Mediana.Documents.Word
 {
     /// <summary>Font selection and bounds for device-independent document pagination.</summary>
@@ -10,11 +12,14 @@ namespace Mediana.Documents.Word
         public Func<WordFontRequest, ReadOnlyMemory<byte>>? FontResolver { get; init; }
         /// <summary>Returns a font containing a missing Unicode character, or empty. Used only when substitution is enabled.</summary>
         public Func<WordFontRequest, int, ReadOnlyMemory<byte>>? FallbackFontResolver { get; init; }
+        /// <summary>Optional shared provider for complete text elements, such as color emoji.</summary>
+        public IInlineGraphicProvider? InlineGraphicProvider { get; init; }
         /// <summary>Permits replacing unavailable faces with the bundled CC0 Canada1500 family. Substitutions are reported in layout warnings.</summary>
         public bool SubstituteMissingFonts { get; init; }
         public int MaximumPages { get; init; } = 2048;
         public int MaximumGlyphs { get; init; } = 500_000;
         public int MaximumFontFaces { get; init; } = 64;
+        public int MaximumInlineGraphics { get; init; } = 256;
         public int MaximumPathCommands { get; init; } = 2_000_000;
     }
 }
