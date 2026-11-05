@@ -39,6 +39,51 @@ namespace Mediana.Tests
             }
         }
 
+        public static async Task VerifyReducedCorpusAsync(string directory)
+        {
+            foreach (string entry in await System.IO.File.ReadAllLinesAsync(Path.Combine(directory, "corpus.tsv")))
+            {
+                string[] values = entry.Split('\t');
+                int width = int.Parse(values[1], CultureInfo.InvariantCulture), height = int.Parse(values[2], CultureInfo.InvariantCulture);
+                byte[] encoded = await System.IO.File.ReadAllBytesAsync(Path.Combine(directory, values[0] + ".png"));
+                byte[] expected = await System.IO.File.ReadAllBytesAsync(Path.Combine(directory, values[0] + ".rgba"));
+                foreach (int factor in new[] { 2, 3, 8 })
+                {
+                    int outputWidth = (width - 1) / factor + 1, outputHeight = (height - 1) / factor + 1;
+                    MediaBufferAllocator allocator = new(65536);
+                    using (VideoFrame frame = await new PngImageDecoder(new() { ReductionFactor = factor }).DecodeAsync(encoded, new(), allocator))
+                    {
+                        Require(frame.Format.Width == outputWidth && frame.Format.Height == outputHeight, values[0]);
+                        for (int y = 0; y < outputHeight; y++)
+                        {
+                            for (int x = 0; x < outputWidth; x++)
+                            {
+                                Require(frame.Data.Span.Slice((y * outputWidth + x) * 4, 4)
+                                    .SequenceEqual(expected.AsSpan((y * factor * width + x * factor) * 4, 4)), values[0]);
+                            }
+                        }
+                        Require(allocator.AllocatedBytes == outputWidth * outputHeight * 4);
+                        SampleAspectRatio aspect = frame.Format.SampleAspectRatio ?? throw new InvalidDataException("Missing reduced aspect ratio.");
+                        Require((long)outputWidth * aspect.Numerator * height * 2 == (long)width * 3 * outputHeight * aspect.Denominator);
+                    }
+                    Require(allocator.AllocatedBytes == 0);
+                }
+            }
+            byte[] truncated = File(Chunk("IHDR", Header(2, 2)), Chunk("IDAT", Compressed([0, 1, 2, 3, 4, 1, 2, 3, 4])), Chunk("IEND", []));
+            await RejectAsync<InvalidDataException>(truncated, new() { ReductionFactor = 2 });
+            byte[] invalidSkippedPalette = File(Chunk("IHDR", Header(1, 2, color: 3)), Chunk("PLTE", [255, 0, 0]),
+                Chunk("IDAT", Compressed([0, 0, 0, 1])), Chunk("IEND", []));
+            await RejectAsync<InvalidDataException>(invalidSkippedPalette, new() { ReductionFactor = 2 });
+            byte[] unknownAspect = File(Chunk("IHDR", Header(3, 1)), Chunk("pHYs", new byte[9]), Chunk("IDAT", Compressed([0, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255])), Chunk("IEND", []));
+            MediaBufferAllocator budget = new(100);
+            using (VideoFrame frame = await new PngImageDecoder(new() { ReductionFactor = 2 }).DecodeAsync(unknownAspect, new(), budget))
+            {
+                Require(frame.Format.Width == 2 && frame.Format.Height == 1 && frame.Format.SampleAspectRatio is null);
+            }
+            Require(budget.AllocatedBytes == 0);
+            await RejectAsync<MediaMemoryLimitException>(Image([0, 1, 2, 3, 4]), new() { ReductionFactor = 2 }, budget: 15);
+        }
+
         public static async Task VerifyIntegrityAsync()
         {
             byte[] header = Chunk("IHDR", Header());
