@@ -176,7 +176,7 @@ png-adam7,encode,planned,planned,planned,planned,planned,planned,
 apng,decode,planned,planned,planned,planned,planned,planned,
 apng,encode,planned,planned,planned,planned,planned,planned,
 webp-lossy,decode,planned,planned,planned,planned,planned,planned,
-webp-lossy,encode,planned,planned,planned,planned,planned,planned,
+webp-lossy,encode,partial,partial,partial,partial,partial,partial,../webp.md;../../benchmarks/Mediana.WebpBenchmarks/README.md
 webp-lossless,decode,planned,planned,planned,planned,planned,planned,
 webp-lossless,encode,partial,partial,partial,partial,partial,partial,../webp.md;../../benchmarks/Mediana.WebpBenchmarks/README.md
 webp-extended,decode,planned,planned,planned,planned,planned,planned,

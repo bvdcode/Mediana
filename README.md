@@ -64,7 +64,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
-| `Mediana.Codecs.Webp` | Lossless VP8L images with exact alpha and incremental full-canvas WebP animation ([API](docs/webp.md)) |
+| `Mediana.Codecs.Webp` | Managed VP8/VP8L encoding, exact alpha, ICC/EXIF/XMP and streamed WebP animation ([API](docs/webp.md)) |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
 | `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants, continuous AAC/MP3 audio playlists and measured transport output |
 | `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |
@@ -180,6 +180,8 @@ From the download or extraction directory on Linux/macOS:
 ./mediana -i audio.mp3 out.wav
 ./mediana -i photo.heic out.png
 ./mediana -i photo.heic out.webp
+./mediana -i artwork.svg out.webp --image-compression Lossy --quality 80
+./mediana -i sticker.tgs animation.webp --animate
 ./mediana -i artwork.svg out.png
 ./mediana -i report.pdf page.png --page 1
 ./mediana -i input.mp4 frame.png --time-ms 250
@@ -248,14 +250,17 @@ The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
 
 The main command is `mediana -i input output`. Input content determines its
-format; the output extension selects WAVE PCM16 (`.wav` or `.wave`), PNG (`.png`) or
+format; the output extension selects WAVE PCM16 (`.wav` or `.wave`), PNG (`.png`), WebP (`.webp`) or
 MPEG-TS (`.ts`, stream copy by default). WAVE conversion preserves sample rate and channel
 order and performs no resampling or dithering. RIFF output must fit its 32-bit
 size fields; RF64 is not supported. Named multichannel audio must follow WAVE
-speaker order. PNG output is one image, a video frame at or after `--time-ms`
+speaker order. Still-image output is one image, a video frame at or after `--time-ms`
 (default 0), an animation rendered at that time, or a document `--page` (default 1). Vector and animation
 images use intrinsic dimensions; PDF and DOCX pages render at up to 96 DPI. The existing format
-subsets described below also apply to these commands. Unsupported output formats
+subsets described below also apply to these commands. WebP defaults to lossless;
+`--image-compression Lossy --quality 80` selects lossy color with exact alpha.
+`--animate` writes a WebP sequence from TGS or video using shared frame timing.
+See [WebP encoding](docs/webp.md). Unsupported output formats
 fail explicitly.
 
 Every invocation first prints the product version and copyright in stderr.
@@ -265,7 +270,7 @@ Add `--log-level Debug` after the command to include diagnostic details, or
 `--log-level None` to disable diagnostics. Logs go to stderr; command results go
 to stdout. Colors are automatic in an interactive terminal; `--no-color` or the
 `NO_COLOR` environment variable disables them.
-WAVE, AAC and H.264 conversion and `hls encode` report processed media time,
+WAVE, AAC and H.264 conversion, WebP animation and `hls encode` report processed media time,
 speed relative to playback and output size immediately, at one-second intervals,
 and on completion. HLS counts input video duration once across all variants and
 reports their combined transport size. When
@@ -1399,7 +1404,7 @@ the decoder does not declare that capability. Recognized malformed input fails i
 the selected decoder; ambiguous recognition is rejected without trying another
 implementation. `ImageProbeLength` and `RecognizeImage(prefix)` expose the same
 registry for bounded routing; recognition does not validate the complete input.
-The CLI uses these registrations for `mediana -i input output.png`, including
+The CLI uses these registrations for PNG and WebP image output, including
 renamed files. A recognized image failure propagates from that decoder.
 
 SVG XML bytes retain their BOM and encoding declaration; external entities and
