@@ -11,6 +11,7 @@ namespace Mediana.Codecs
     {
         string ImplementationId { get; }
         string FormatId { get; }
+        ImageEncoderFeatures Features { get; }
         /// <summary>Retains input until completion, leaves the destination open and returns bytes written.
         /// Destinations need not support seeking. Failed output must be discarded.</summary>
         Task<long> EncodeAsync(VideoFrame input, Stream destination, MediaBufferAllocator allocator,

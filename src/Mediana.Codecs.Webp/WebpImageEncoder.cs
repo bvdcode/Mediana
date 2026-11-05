@@ -10,6 +10,7 @@ namespace Mediana.Codecs.Webp
     {
         public string ImplementationId => "webp.managed.lossless.encoder";
         public string FormatId => "webp";
+        public ImageEncoderFeatures Features => ImageEncoderFeatures.None;
         public Task<long> EncodeAsync(VideoFrame input, Stream destination, MediaBufferAllocator allocator,
             CancellationToken cancellationToken = default) => WebpEncoder.EncodeAsync(input, destination, allocator, cancellationToken);
     }

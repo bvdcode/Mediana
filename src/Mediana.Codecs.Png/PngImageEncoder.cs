@@ -10,6 +10,7 @@ namespace Mediana.Codecs.Png
     {
         public string ImplementationId => "png.managed.encoder";
         public string FormatId => "png";
+        public ImageEncoderFeatures Features => ImageEncoderFeatures.SampleAspectRatio;
         public Task<long> EncodeAsync(VideoFrame input, Stream destination, MediaBufferAllocator allocator,
             CancellationToken cancellationToken = default) => PngEncoder.EncodeAsync(input, destination, allocator, cancellationToken);
     }
