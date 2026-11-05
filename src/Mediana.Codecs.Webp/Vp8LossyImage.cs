@@ -54,6 +54,9 @@ namespace Mediana.Codecs.Webp
             using Vp8Reconstruction reconstruction = new((width + 15) & ~15, allocator);
             Span<byte> source = stackalloc byte[384];
             Span<byte> prediction = stackalloc byte[16];
+            Span<byte> top = stackalloc byte[8];
+            Span<byte> leftPixels = stackalloc byte[4];
+            Span<byte> chromaPrediction = stackalloc byte[128];
             Span<short> quantized = stackalloc short[16];
             Span<short> dequantized = stackalloc short[16];
             int lumaDc = Vp8ProbabilityTables.DcQuantizers[quantizer];
@@ -61,21 +64,25 @@ namespace Mediana.Codecs.Webp
             for (int y = 0; y < height; y += 16)
             {
                 reconstruction.Left.Clear();
+                reconstruction.LeftModes.Clear();
                 for (int x = 0; x < width; x += 16)
                 {
                     token.ThrowIfCancellationRequested();
                     HasAlpha |= Vp8PixelSource.ReadMacroblock(input, x, y, source);
+                    reconstruction.BeginMacroblock(x, y == 0);
                     modes.Write(false, 145);
-                    for (int block = 0; block < 16; block++) { modes.Write(false, 231); }
-                    modes.Write(false, 142);
                     for (int plane = 0; plane < 3; plane++)
                     {
+                        if (plane == 1)
+                        {
+                            Vp8ChromaMode chromaMode = Vp8ChromaPrediction.Select(source[256..], reconstruction, x / 2, y == 0, chromaPrediction);
+                            Vp8ChromaPrediction.Write(modes, chromaMode);
+                        }
                         int columns = plane == 0 ? 4 : 2;
                         int sourceStride = columns * 4;
                         int sourceStart = plane switch { 0 => 0, 1 => 256, 2 => 320, _ => throw new InvalidOperationException() };
                         int canvasX = plane == 0 ? x : x / 2;
                         int leftStart = plane switch { 0 => 0, 1 => 4, 2 => 6, _ => throw new InvalidOperationException() };
-                        byte chroma = plane == 0 ? (byte)0 : reconstruction.ChromaDc(plane, canvasX, y == 0);
                         int dc = plane == 0 ? lumaDc : Math.Min(lumaDc, 132);
                         for (int row = 0; row < columns; row++)
                         {
@@ -83,8 +90,20 @@ namespace Mediana.Codecs.Webp
                             {
                                 int px = canvasX + column * 4;
                                 int py = row * 4;
-                                prediction.Fill(plane == 0 ? reconstruction.LumaDc(px, py, y == 0) : chroma);
                                 int offset = sourceStart + py * sourceStride + column * 4;
+                                if (plane == 0)
+                                {
+                                    byte corner = reconstruction.LumaNeighbors(px, py, y == 0, top, leftPixels);
+                                    Vp8IntraMode mode = Vp8IntraPrediction.Select(source, offset, sourceStride, top, leftPixels, corner, prediction);
+                                    Vp8IntraPrediction.Write(modes, mode, reconstruction.AboveModes[px / 4], reconstruction.LeftModes[row]);
+                                    reconstruction.AboveModes[px / 4] = (byte)mode;
+                                    reconstruction.LeftModes[row] = (byte)mode;
+                                }
+                                else
+                                {
+                                    int start = (plane - 1) * 64 + py * 8 + column * 4;
+                                    for (int line = 0; line < 4; line++) { chromaPrediction.Slice(start + line * 8, 4).CopyTo(prediction[(line * 4)..]); }
+                                }
                                 Vp8Transform.Quantize(source, offset, sourceStride, prediction, dc, ac, quantized, dequantized);
                                 Vp8Transform.Reconstruct(dequantized, prediction, reconstruction.Plane(plane),
                                     py * reconstruction.Stride(plane) + px, reconstruction.Stride(plane));
