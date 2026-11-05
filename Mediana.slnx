@@ -11,7 +11,9 @@
     <Project Path="src/Mediana.Formats/Mediana.Formats.csproj" />
     <Project Path="src/Mediana.Containers.Aiff/Mediana.Containers.Aiff.csproj" />
     <Project Path="src/Mediana.Documents.Pdf/Mediana.Documents.Pdf.csproj" />
+    <Project Path="src/Mediana.Documents.OpenXml/Mediana.Documents.OpenXml.csproj" />
     <Project Path="src/Mediana.Images.Tgs/Mediana.Images.Tgs.csproj" />
+    <Project Path="src/Mediana.Documents.Word/Mediana.Documents.Word.csproj" />
     <Project Path="src/Mediana.Drawing/Mediana.Drawing.csproj" />
     <Project Path="src/Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
     <Project Path="src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />

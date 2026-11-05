@@ -125,7 +125,7 @@ namespace Mediana.Images.Svg
                 return cached;
             }
 
-            TrueTypeFont font = new(Resources.BundledResources.Read(name));
+            TrueTypeFont font = new(BundledFontPrograms.Read(name));
             _bundledFonts.Add(name, font);
             return font;
         }

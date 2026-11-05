@@ -10,6 +10,10 @@ namespace Mediana.Tests
     public class PngImageDecoderTests
     {
         [Fact]
+        public Task DecodesReducedScanlinesAndAdam7WithoutFullSizePixels() =>
+            PngDecodeTestInput.VerifyReducedCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
+
+        [Fact]
         public Task AllColorDepthFilterAndAdam7CombinationsMatchIndependentCompletePixels() =>
             PngDecodeTestInput.VerifyCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
 

@@ -10,6 +10,7 @@ namespace Mediana.NativeTests
         internal static async Task RunAsync()
         {
             await PngDecodeTestInput.VerifyCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
+            await PngDecodeTestInput.VerifyReducedCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
             await PngDecodeTestInput.VerifyIntegrityAsync();
             await PngDecodeTestInput.VerifyBudgetsAndColorAsync();
             await PngCoverTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));

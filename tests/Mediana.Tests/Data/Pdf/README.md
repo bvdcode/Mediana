@@ -7,7 +7,7 @@ an ASCIIHex filter and an indirect Flate-compressed global symbol dictionary.
 No third-party document content is included.
 
 `report.pdf` is an original synthetic report. It embeds a CC0 Aileron TrueType subset
-from Mediana.Images.Svg/Fonts; font provenance is recorded in that directory.
+from Mediana.Drawing/Fonts/Bundled; font provenance is recorded in that directory.
 The document uses an RGB chart, original text and a generated 24x24 RGB image.
 The document has deterministic IDs and timestamps.
 

@@ -9,6 +9,11 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Documents.Word/Mediana.Documents.Word.csproj" />
+    <Compile Include="../Shared/WordTestInput.cs" Link="WordTestInput.cs" />
+    <Compile Include="../Shared/WordRenderTestInput.cs" Link="WordRenderTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Documents.OpenXml/Mediana.Documents.OpenXml.csproj" />
+    <Compile Include="../Shared/OpenXmlPackageTestInput.cs" Link="OpenXmlPackageTestInput.cs" />
     <Compile Include="../Shared/HlsSegmentReplayTestInput.cs" Link="HlsSegmentReplayTestInput.cs" />
     <Compile Include="../Shared/WritableMediaSpanTestInput.cs" Link="WritableMediaSpanTestInput.cs" />
     <Compile Include="../Shared/AacSeekTestInput.cs" Link="AacSeekTestInput.cs" />

@@ -20,6 +20,8 @@ frames, SDR color conversion and PNG encoding. These modules compile inside
 Mediana and do not depend on Heic.NET or Render.NET packages.
 An experimental PDF module reads page geometry, renders supported vector/text/image
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
+Word documents can be paginated and rendered directly to PNG from the library or
+CLI. See [Word rendering and public API](docs/word-rendering.md).
 Experimental fixed-QP H.264 I/P encoding and YUV downscaling are available.
 Experimental AAC-LC audio encoding to MPEG-TS selects long/short windows for
 transients; perceptual allocation remains open. HLS variants can copy or encode audio.
@@ -28,6 +30,8 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 
 | Project | Current responsibility |
 | --- | --- |
+| `Mediana.Documents.OpenXml` | Bounded OPC packages, relationships and content-type page decoder routing |
+| `Mediana.Documents.Word` | DOCX styles, pagination and direct page rasterization ([API](docs/word-rendering.md)) |
 | `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction |
 | `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
 | `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha |
@@ -64,6 +68,11 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 Core does not reference the other components. Containers do not reference codecs,
 and codecs do not perform I/O. The public facade composes these contracts.
 See [module boundaries, stream contracts and reusable operations](docs/architecture.md).
+
+The [format implementation catalog](docs/formats/README.md) maps target containers,
+codecs, images, documents and 3D formats, with independent progress for reading,
+decoding, rendering, encoding and writing. Its operation checklist separately tracks
+samples, correctness, CPU, memory and Native AOT.
 
 The H.264 work currently reconstructs progressive 8-bit 4:2:0 CAVLC I/P/B
 and CABAC I/P/B pictures with default scaling, including motion compensation, reference
@@ -121,8 +130,9 @@ Supported subsets and limits: [HEIC](docs/heif.md),
 TGS/Lottie expression code is not executed. CLI previews use stored property
 values and omit Puppet deformation, with warnings; library callers enable these
 policies explicitly through `TgsReaderOptions`.
-PDF page rendering supports the subset described below. 3D file formats are outside
-the library's scope.
+PDF page rendering supports the subset described below. 3D scene/model import,
+rendering and export are future targets in the
+[format catalog](docs/formats/README.md#3d-meshes-and-manufacturing-interchange).
 
 ## Download and run
 
@@ -175,8 +185,8 @@ From the download or extraction directory on Linux/macOS:
 
 `mediana -i input` inspects media when no output path is supplied, using the same
 operation as `mediana probe input`. Detection uses file contents. Containers report
-streams and declared metadata; PNG, JPEG, SVG, HEIF, JPEG 2000, JBIG2, PDF and TGS/Lottie report
-image, first-page or animation-canvas dimensions without rendering. PDF dimensions
+streams and declared metadata; PNG, JPEG, SVG, HEIF, JPEG 2000, JBIG2, PDF, DOCX and TGS/Lottie report
+image, first-page or animation-canvas dimensions without rendering. PDF and DOCX dimensions
 are points (1/72 inch); animation metadata includes duration and frame rate. Image
 inspection reads bounded input and does not decode pixel data. Conversion options
 require an output path.
@@ -229,8 +239,8 @@ MPEG-TS (`.ts`, stream copy by default). WAVE conversion preserves sample rate a
 order and performs no resampling or dithering. RIFF output must fit its 32-bit
 size fields; RF64 is not supported. Named multichannel audio must follow WAVE
 speaker order. PNG output is one image, a video frame at or after `--time-ms`
-(default 0), an animation rendered at that time, or a PDF `--page` (default 1). Vector and animation
-images use intrinsic dimensions; PDF pages render at 96 DPI. The existing format
+(default 0), an animation rendered at that time, or a document `--page` (default 1). Vector and animation
+images use intrinsic dimensions; PDF and DOCX pages render at up to 96 DPI. The existing format
 subsets described below also apply to these commands. Unsupported output formats
 fail explicitly.
 
