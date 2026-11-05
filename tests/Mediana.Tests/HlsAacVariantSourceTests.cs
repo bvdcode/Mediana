@@ -4,6 +4,8 @@
 using Mediana.Cli;
 using Mediana.Core.Memory;
 
+using Mediana.Streaming.Hls;
+
 namespace Mediana.Tests
 {
     public class HlsAacVariantSourceTests
@@ -15,12 +17,12 @@ namespace Mediana.Tests
             await using TrackingRandomAccessSource singleInput = new(data);
             await using TrackingRandomAccessSource groupedInput = new(data);
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
-            await using (HlsAacAudioSource single = await HlsAacAudioSource.OpenAsync(singleInput, 1, [128000], null, allocator, default))
+            await using (HlsAacAudioSource single = await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(), singleInput, 1, [128000], null, allocator, default))
             {
                 await single.WriteBeforeAsync(null, [], default);
                 Assert.Equal(76, single.PacketsWritten);
             }
-            await using (HlsAacAudioSource grouped = await HlsAacAudioSource.OpenAsync(groupedInput, 1,
+            await using (HlsAacAudioSource grouped = await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(), groupedInput, 1,
                 [96000, 128000, 96000, 192000], null, allocator, default))
             {
                 Assert.Equal(3, grouped.EncoderCount);
@@ -51,7 +53,7 @@ namespace Mediana.Tests
             await using TrackingRandomAccessSource input = new(await File.ReadAllBytesAsync(Data()));
             if (cancel)
             {
-                await using HlsAacAudioSource grouped = await HlsAacAudioSource.OpenAsync(input, 1,
+                await using HlsAacAudioSource grouped = await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(), input, 1,
                     [96000, 128000, 192000], null, allocator, default);
                 await grouped.WriteBeforeAsync(new(-1, new(1, 1)), [], default);
                 Assert.Equal(0, grouped.PacketsWritten);
@@ -66,7 +68,7 @@ namespace Mediana.Tests
             else
             {
                 await Assert.ThrowsAnyAsync<ArgumentException>(async () =>
-                    await HlsAacAudioSource.OpenAsync(input, 1, [128000, 5000000], null, allocator, default));
+                    await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(), input, 1, [128000, 5000000], null, allocator, default));
             }
             Assert.Equal(0, allocator.AllocatedBytes);
             Assert.False(input.IsDisposed);

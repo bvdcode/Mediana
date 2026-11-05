@@ -18,7 +18,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             await using TrackingRandomAccessSource input = new(await File.ReadAllBytesAsync(Data("avc-aac.mp4")));
-            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(input, 1,
+            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(), input, 1,
                 [96000, 128000, 96000], null, allocator, default);
             List<MemoryStream>[] segments = [[], [], []];
             AudioHlsWriter[] writers = Enumerable.Range(0, segments.Length)
@@ -39,7 +39,7 @@ namespace Mediana.Tests
                 }
                 for (int variant = 0; variant < 2; variant++)
                 {
-                    await using HlsAacAudioSource reference = await HlsAacAudioSource.OpenAsync(input, 1,
+                    await using HlsAacAudioSource reference = await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(), input, 1,
                         [variant == 0 ? 96000 : 128000], null, allocator, default);
                     CollectingPacketWriter packets = new();
                     await reference.WriteBeforeAsync(null, [packets], default);
@@ -109,7 +109,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             await using TrackingRandomAccessSource input = new(await File.ReadAllBytesAsync(Data("avc-aac.mp4")));
-            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(input, 1,
+            await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(), input, 1,
                 [96000, 96000], null, allocator, default);
             CollectingPacketWriter first = new();
             CollectingPacketWriter failing = new() { FailWrites = true };

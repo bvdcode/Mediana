@@ -6,7 +6,7 @@ using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Timing;
 
-namespace Mediana.Cli
+namespace Mediana.Streaming.Hls
 {
     internal class HlsAacPacketBuffer(AacEncoder encoder) : IContainerWriter
     {

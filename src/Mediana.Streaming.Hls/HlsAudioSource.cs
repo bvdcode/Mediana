@@ -5,9 +5,9 @@ using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Timing;
 
-namespace Mediana.Cli
+namespace Mediana.Streaming.Hls
 {
-    internal abstract class HlsAudioSource : IAsyncDisposable
+    public abstract class HlsAudioSource : IAsyncDisposable
     {
         public abstract EncodedStreamInfo Stream { get; }
         public abstract long PacketsWritten { get; protected set; }

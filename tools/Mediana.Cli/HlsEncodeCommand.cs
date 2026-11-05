@@ -39,7 +39,7 @@ namespace Mediana.Cli
             await using HlsAudioSource? audio = audioIndex is int index ? audioCodec switch
             {
                 null => await HlsCopyAudioSource.OpenAsync(source, index, allocator, token),
-                AudioCodecMode.Aac => await HlsAacAudioSource.OpenAsync(source, index, sourceRates, audioChannels, allocator, token),
+                AudioCodecMode.Aac => await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(), source, index, sourceRates, audioChannels, allocator, token),
                 _ => throw new ArgumentOutOfRangeException(nameof(audioCodec))
             } : null;
             long frames = 0;

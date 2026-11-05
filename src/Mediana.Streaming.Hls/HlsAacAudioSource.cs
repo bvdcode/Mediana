@@ -9,13 +9,26 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Execution;
 using Mediana.IO;
+using Mediana.Processing.Audio;
 
-namespace Mediana.Cli
+namespace Mediana.Streaming.Hls
 {
-    internal class HlsAacAudioSource(HlsAacPcmSource pcm, HlsAacPacketBuffer[] tracks, int[] variantTracks) : HlsAudioSource
+    /// <summary>Shared PCM decoding and independent AAC encoders for HLS audio variants.
+    /// Borrows input and packet destinations; owns decoder, encoders and bounded pending packet queues.</summary>
+    public class HlsAacAudioSource : HlsAudioSource
     {
-        private readonly MediaEncodeGroup<AudioFrame> group = new(tracks.Select(track =>
-            new MediaEncodePipeline<AudioFrame>(track.Encoder, track)).ToArray());
+        private readonly HlsAacPcmSource pcm;
+        private readonly HlsAacPacketBuffer[] tracks;
+        private readonly int[] variantTracks;
+        private readonly MediaEncodeGroup<AudioFrame> group;
+
+        private HlsAacAudioSource(HlsAacPcmSource pcm, HlsAacPacketBuffer[] tracks, int[] variantTracks)
+        {
+            this.pcm = pcm;
+            this.tracks = tracks;
+            this.variantTracks = variantTracks;
+            group = new(tracks.Select(track => new MediaEncodePipeline<AudioFrame>(track.Encoder, track)).ToArray());
+        }
         private bool completed;
         private bool disposed;
         private bool faulted;
@@ -28,8 +41,8 @@ namespace Mediana.Cli
         public int EncoderCount => tracks.Length;
         public override EncodedStreamInfo GetStream(int variantIndex) => tracks[variantTracks[variantIndex]].Encoder.Stream;
 
-        public static async ValueTask<HlsAacAudioSource> OpenAsync(IRandomAccessByteSource source, int streamIndex,
-            IReadOnlyList<int> bitRates, int? channels, MediaBufferAllocator allocator, CancellationToken token)
+        public static async ValueTask<HlsAacAudioSource> OpenAsync(MediaEngine engine, IRandomAccessByteSource source, int streamIndex,
+            IReadOnlyList<int> bitRates, int? channels, MediaBufferAllocator allocator, CancellationToken token = default)
         {
             ArgumentNullException.ThrowIfNull(bitRates);
             int[] settings = bitRates.ToArray();
@@ -37,7 +50,7 @@ namespace Mediana.Cli
             {
                 throw new ArgumentException("Select at least one AAC variant bit rate.", nameof(bitRates));
             }
-            HlsAacPcmSource pcm = await HlsAacPcmSource.OpenAsync(source, streamIndex, channels, allocator, token);
+            HlsAacPcmSource pcm = await HlsAacPcmSource.OpenAsync(engine, source, streamIndex, channels, allocator, token).ConfigureAwait(false);
             List<HlsAacPacketBuffer> tracks = [];
             Dictionary<int, int> indices = [];
             int[] mapping = new int[settings.Length];
@@ -68,9 +81,9 @@ namespace Mediana.Cli
                 {
                     foreach (HlsAacPacketBuffer track in tracks)
                     {
-                        await track.DisposeAsync();
+                        await track.DisposeAsync().ConfigureAwait(false);
                     }
-                    await pcm.DisposeAsync();
+                    await pcm.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -104,7 +117,7 @@ namespace Mediana.Cli
                             {
                                 if (variantTracks[variant] == index)
                                 {
-                                    await destinations[variant].WritePacketAsync(packet, token);
+                                    await destinations[variant].WritePacketAsync(packet, token).ConfigureAwait(false);
                                 }
                             }
                             PacketsWritten = checked(PacketsWritten + 1);
@@ -115,19 +128,19 @@ namespace Mediana.Cli
                         success = true;
                         return;
                     }
-                    using AudioFrame? frame = await pcm.ReadFrameAsync(token);
+                    using AudioFrame? frame = await pcm.ReadFrameAsync(token).ConfigureAwait(false);
                     if (frame is null)
                     {
-                        await group.CompleteInputAsync(token);
+                        await group.CompleteInputAsync(token).ConfigureAwait(false);
                         foreach (HlsAacPacketBuffer track in tracks)
                         {
-                            await track.CompleteAsync(token);
+                            await track.CompleteAsync(token).ConfigureAwait(false);
                         }
                         completed = true;
                     }
                     else
                     {
-                        await group.WriteAsync(frame, token);
+                        await group.WriteAsync(frame, token).ConfigureAwait(false);
                     }
                 }
             }
@@ -148,9 +161,9 @@ namespace Mediana.Cli
                     disposed = true;
                     foreach (HlsAacPacketBuffer track in tracks)
                     {
-                        await track.DisposeAsync();
+                        await track.DisposeAsync().ConfigureAwait(false);
                     }
-                    await pcm.DisposeAsync();
+                    await pcm.DisposeAsync().ConfigureAwait(false);
                 }
             }
             finally

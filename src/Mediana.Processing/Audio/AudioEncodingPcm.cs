@@ -5,9 +5,10 @@ using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Processing.Audio;
 
-namespace Mediana.Cli
+namespace Mediana.Processing.Audio
 {
-    internal class AudioEncodingPcm
+    /// <summary>Prepares mono/stereo interleaved Float32 frames, retaining compatible storage or applying explicit downmix.</summary>
+    public class AudioEncodingPcm
     {
         private readonly AudioChannelMixer? mixer;
 
@@ -22,7 +23,7 @@ namespace Mediana.Cli
             };
             if ((mixer?.OutputFormat ?? input).Channels.Count > 2)
             {
-                throw new NotSupportedException("AAC encoding requires mono or stereo; select --audio-channels 1 or 2 to downmix explicitly.");
+                throw new NotSupportedException("Encoding preparation requires mono or stereo; select one or two output channels to downmix explicitly.");
             }
         }
 

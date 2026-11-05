@@ -8,21 +8,30 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
-namespace Mediana.Cli
+namespace Mediana.Streaming.Hls
 {
-    internal class HlsCopyAudioSource(Mp4Reader reader, EncodedStreamInfo stream) : HlsAudioSource
+    /// <summary>Indexed MP4 audio packet delivery to HLS destinations without re-encoding.
+    /// Owns its reader and pending packet, borrows input and destinations. Operations must not overlap.</summary>
+    public class HlsCopyAudioSource : HlsAudioSource
     {
+        private readonly Mp4Reader reader;
         private int sample;
         private MediaPacket? pending;
         private bool disposed;
         public override long PacketsWritten { get; protected set; }
-        public override EncodedStreamInfo Stream { get; } = stream;
+        public override EncodedStreamInfo Stream { get; }
+
+        private HlsCopyAudioSource(Mp4Reader reader, EncodedStreamInfo stream)
+        {
+            this.reader = reader;
+            Stream = stream;
+        }
 
         public static async ValueTask<HlsCopyAudioSource> OpenAsync(IRandomAccessByteSource source, int streamIndex,
             MediaBufferAllocator allocator, CancellationToken token)
         {
             Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator,
-                new() { TimestampMode = Mp4TimestampMode.LinearMovie }, token);
+                new() { TimestampMode = Mp4TimestampMode.LinearMovie }, token).ConfigureAwait(false);
             bool success = false;
             try
             {
@@ -40,7 +49,7 @@ namespace Mediana.Cli
             {
                 if (!success)
                 {
-                    await reader.DisposeAsync();
+                    await reader.DisposeAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -51,7 +60,7 @@ namespace Mediana.Cli
             {
                 return null;
             }
-            MediaPacket packet = await reader.ReadPacketAtAsync(Stream.StreamIndex, sample, token);
+            MediaPacket packet = await reader.ReadPacketAtAsync(Stream.StreamIndex, sample, token).ConfigureAwait(false);
             sample++;
             return packet;
         }
@@ -62,14 +71,14 @@ namespace Mediana.Cli
             while (true)
             {
                 token.ThrowIfCancellationRequested();
-                pending ??= await ReadPacketAsync(token);
+                pending ??= await ReadPacketAsync(token).ConfigureAwait(false);
                 if (pending is null || (boundary is MediaTimestamp limit && pending.DecodeTime!.Value.CompareTo(limit) >= 0))
                 {
                     return;
                 }
                 foreach (IContainerWriter destination in destinations)
                 {
-                    await destination.WritePacketAsync(pending, token);
+                    await destination.WritePacketAsync(pending, token).ConfigureAwait(false);
                 }
                 pending.Dispose();
                 pending = null;
@@ -85,7 +94,7 @@ namespace Mediana.Cli
                 disposed = true;
                 pending?.Dispose();
                 pending = null;
-                await reader.DisposeAsync();
+                await reader.DisposeAsync().ConfigureAwait(false);
             }
             GC.SuppressFinalize(this);
         }
