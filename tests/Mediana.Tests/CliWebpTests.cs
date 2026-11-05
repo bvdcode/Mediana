@@ -72,6 +72,24 @@ namespace Mediana.Tests
             Assert.Equal(expected.Data.ToArray(), actual);
         }
 
+        [Theory]
+        [InlineData("render")]
+        [InlineData("image")]
+        public async Task NamedPdfOperationsSelectTheSameRegisteredEncoder(string operation)
+        {
+            string input = Path.Combine(directory, "input.pdf");
+            await File.WriteAllBytesAsync(input, PdfRestartTestInput.Create());
+            string png = Path.Combine(directory, "output.png");
+            string webp = Path.Combine(directory, "output.webp");
+            (int pngCode, _, string pngError) = await CliTests.RunAsync(["pdf", operation, input, png]);
+            (int code, _, string error) = await CliTests.RunAsync(["pdf", operation, input, webp]);
+            Assert.True(pngCode == 0, pngError);
+            Assert.True(code == 0, error);
+            MediaBufferAllocator allocator = new(64 * 1024 * 1024);
+            using VideoFrame expected = await new PngImageDecoder().DecodeAsync(await File.ReadAllBytesAsync(png), new(), allocator);
+            Assert.Equal(expected.Data.ToArray(), WebpLosslessTestReader.Decode(await File.ReadAllBytesAsync(webp), out _, out _));
+        }
+
         public void Dispose() => Directory.Delete(directory, true);
     }
 }

@@ -15,8 +15,6 @@ namespace Mediana.Cli
 {
     internal static class VideoPreviewCommand
     {
-        private const long ProcessingBufferBudgetBytes = 64 * 1024 * 1024;
-
         public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int? streamIndex, long milliseconds,
             int maximumWidth, int maximumHeight, ILogger logger, IImageEncoder encoder, CancellationToken cancellationToken = default)
         {
@@ -33,7 +31,7 @@ namespace Mediana.Cli
             VideoDisplayMatrix displayMatrix = session.Stream.DisplayMatrix
                 ?? throw new NotSupportedException("The video stream has no display transform interpretation.");
             VideoColorInfo color = PreviewColorPolicy.Resolve(decoded.Format, logger);
-            MediaBufferAllocator allocator = new(ProcessingBufferBudgetBytes);
+            MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
             int width;
             int height;
             long encodedLength = 0;
