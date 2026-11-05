@@ -1,7 +1,7 @@
 # HEIC still images
 
 `Mediana.Images.Heif` is a source module containing a managed HEIF item reader
-and intra HEVC decoder. It depends only on Mediana.Core and the BCL. The code was
+and intra HEVC decoder. It uses Mediana.Core, Mediana.Formats and the BCL. The code was
 adapted from the same author's MIT-licensed Heic.NET implementation at commit
 `3eefb9f`; Mediana owns its asynchronous decoding and cancellation path.
 
@@ -41,6 +41,16 @@ including crop and orientation, without decoding HEVC samples. Metadata inspecti
 and CLI `probe` do not apply the decode pixel limit. Encoded-input and item-count
 limits and structural validation remain active; decoding still checks the pixel
 limit before reserving output storage.
+
+Inspection also exposes file brands, primary item identity/type, stored dimensions,
+grid layout, item counts by type, ordered transformations and grouped coded image
+configurations through the common `MediaInfo.Metadata` tree. Configuration facts
+include native HEVC profile/level codes, tier, chroma format and bit depths. CICP
+codes and embedded ICC bytes retain their declared values. Coded items are grouped
+only when their property associations match, including color and transformation
+properties. The shared Exif reader exposes native TIFF directories, camera and
+capture fields, exact fractions and uninterpreted MakerNote bytes without decoding
+pixels. The same Exif reader supplies JPEG and PNG inspection.
 
 Input bytes, pixels per image, item count and derivation depth are bounded by
 `HeicDecodeOptions`. These are admission limits, not a total working-memory or

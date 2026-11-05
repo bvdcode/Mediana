@@ -15,6 +15,7 @@ namespace Mediana.NativeTests
             await HeifFrameOwnershipTestInput.VerifyAsync(root);
             await HeifMetadataTestInput.VerifyAsync(root);
             ExifMetadataTestInput.Verify();
+            await HeifExifTestInput.VerifyAsync(root);
             Console.WriteLine("PASS HEIC: 42 independent full RGBA references, transforms, grids, alpha and metadata independent of decode pixel limits.");
         }
     }

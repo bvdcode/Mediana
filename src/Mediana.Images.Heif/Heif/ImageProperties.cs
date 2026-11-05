@@ -19,6 +19,7 @@ namespace Mediana.Images.Heif.Container
         public DecoderConfiguration? Configuration { get; private set; }
         public ColorEncoding? Color { get; private set; }
         public ReadOnlyMemory<byte> IccProfile { get; private set; }
+        public bool IccRestricted { get; private set; }
         public ReadOnlyMemory<byte> PixelDepths { get; private set; }
         public bool PixelDepthsEssential { get; private set; }
         public string? AuxiliaryType { get; private set; }
@@ -181,6 +182,7 @@ namespace Mediana.Images.Heif.Container
                 }
 
                 IccProfile = reader.Bytes(reader.Remaining);
+                IccRestricted = type == HeifBox.Code("rICC");
             }
             else
             {

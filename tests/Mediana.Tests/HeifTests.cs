@@ -15,6 +15,10 @@ namespace Mediana.Tests
         private static string Root => Path.Combine(AppContext.BaseDirectory, "Data", "Heif");
 
         [Fact]
+        public async Task MetadataRetainsNativeDeclarationsAndOwnedExifWithoutDecodingSamples() =>
+            await HeifExifTestInput.VerifyAsync(Root);
+
+        [Fact]
         public async Task ParallelWavefrontSamplesAndCancellationAreCorrect()
         {
             await HeifReferenceTestInput.VerifyWavefrontAsync();

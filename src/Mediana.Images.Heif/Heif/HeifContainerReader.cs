@@ -5,6 +5,7 @@ using Mediana.Images.Heif.Binary;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Mediana.Core.Metadata;
 
 namespace Mediana.Images.Heif.Container
 {
@@ -14,6 +15,7 @@ namespace Mediana.Images.Heif.Container
         private readonly List<HeifBox> properties = new List<HeifBox>();
         private ReadOnlyMemory<byte> itemData;
         private uint primaryItemId;
+        private readonly List<MediaProperty> fileProperties = [];
 
         public HeifContainer Read(ReadOnlyMemory<byte> file)
         {
@@ -52,7 +54,7 @@ namespace Mediana.Images.Heif.Container
                 throw new InvalidDataException("HEIF requires a file type, metadata and primary image item.");
             }
 
-            return new HeifContainer(file, itemData, primaryItemId, FreezeItems(), properties.ToArray(), limits.MaxInputBytes);
+            return new HeifContainer(file, itemData, primaryItemId, FreezeItems(), properties.ToArray(), limits.MaxInputBytes, fileProperties);
         }
 
         private Dictionary<uint, HeifItem> FreezeItems()
@@ -108,16 +110,23 @@ namespace Mediana.Images.Heif.Container
             return item;
         }
 
-        private static void ReadFileType(HeifBox box)
+        private void ReadFileType(HeifBox box)
         {
             ByteReader reader = new ByteReader(box.Payload);
             uint major = reader.U32();
-            reader.U32();
+            fileProperties.Add(new("isobmff", "major_brand", TypeName(major)));
+            fileProperties.Add(new("isobmff", "minor_version", reader.U32()));
+            List<MediaPropertyValue> compatible = [];
             bool supported = (major == HeifBox.Code("heic")) || (major == HeifBox.Code("heix"));
             while (reader.Remaining > 0)
             {
                 uint brand = reader.U32();
+                compatible.Add(TypeName(brand));
                 supported |= (brand == HeifBox.Code("heic")) || (brand == HeifBox.Code("heix"));
+            }
+            if (compatible.Count != 0)
+            {
+                fileProperties.Add(new("isobmff", "compatible_brands", compatible.ToArray()));
             }
 
             if (!supported)
