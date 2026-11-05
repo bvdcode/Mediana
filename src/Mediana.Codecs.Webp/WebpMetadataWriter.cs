@@ -8,6 +8,9 @@ namespace Mediana.Codecs.Webp
         internal static int Length(WebpMetadata? metadata) => metadata is null ? 0 : checked(
             ChunkLength(metadata.IccProfile) + ChunkLength(metadata.Exif) + ChunkLength(metadata.Xmp));
 
+        internal static int ChunkProfileLength(WebpMetadata? metadata) => metadata is null ? 0 : ChunkLength(metadata.IccProfile);
+        internal static int DescriptionsLength(WebpMetadata? metadata) => metadata is null ? 0 : checked(ChunkLength(metadata.Exif) + ChunkLength(metadata.Xmp));
+
         internal static byte Flags(WebpMetadata? metadata)
         {
             if (metadata is null) { return 0; }
