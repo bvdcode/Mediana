@@ -18,7 +18,7 @@ namespace Mediana.Tests
             using VideoFrame frame = Frame(inputBudget, width, height, noisy);
             byte[] original = frame.Data.ToArray();
             MediaBufferAllocator scratch = new(ScratchBytes);
-            using PngOutputTestStream output = new();
+            using ImageOutputTestStream output = new();
             output.BeforeWrite = async (_, bytes, _) =>
             {
                 byte[] borrowed = bytes.ToArray();
@@ -79,7 +79,7 @@ namespace Mediana.Tests
             MediaBufferAllocator inputBudget = new(14);
             using VideoFrame frame = Frame(inputBudget, 1, 1, false);
             MediaBufferAllocator scratch = new(ScratchBytes);
-            using PngOutputTestStream output = new();
+            using ImageOutputTestStream output = new();
             TaskCompletionSource entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
             TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
             output.BeforeWrite = async (index, _, token) =>
@@ -107,13 +107,13 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator inputBudget = new((512 * 4 + 7) * 512 + 3);
             using VideoFrame frame = Frame(inputBudget, 512, 512, true);
-            using PngOutputTestStream reference = new();
+            using ImageOutputTestStream reference = new();
             MediaBufferAllocator scratch = new(ScratchBytes);
             await PngEncoder.EncodeAsync(frame, reference, scratch);
             foreach (int failAt in new[] { 1, 2, reference.Writes - 1, reference.Writes })
             {
                 using CancellationTokenSource cancellation = new();
-                using PngOutputTestStream output = new();
+                using ImageOutputTestStream output = new();
                 IOException expected = new("PNG output rejected a write.");
                 output.BeforeWrite = async (index, _, token) =>
                 {
@@ -151,7 +151,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator inputBudget = new(14);
             using VideoFrame frame = Frame(inputBudget, 1, 1, false);
-            using PngOutputTestStream output = new();
+            using ImageOutputTestStream output = new();
             MediaBufferAllocator scratch = new(ScratchBytes - 1);
             await RequireFailureAsync<MediaMemoryLimitException>(() => PngEncoder.EncodeAsync(frame, output, scratch));
             await RequireFailureAsync<OperationCanceledException>(() => PngEncoder.EncodeAsync(frame, output, new(ScratchBytes), new(true)));

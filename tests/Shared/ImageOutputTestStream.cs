@@ -3,7 +3,7 @@
 
 namespace Mediana.Tests
 {
-    internal class PngOutputTestStream : Stream
+    internal class ImageOutputTestStream : Stream
     {
         private readonly MemoryStream output = new();
         private bool disposed;
