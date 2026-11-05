@@ -33,12 +33,15 @@ namespace Mediana.Documents.Word
                     "color" => result with { Color = Color(value) ?? new Rgba32(0, 0, 0) },
                     "shd" => result with { Shading = Shading(item) },
                     "highlight" => result with { Shading = Highlight(value) },
-                    "u" => result with { Underline = value switch
+                    "u" => result with
                     {
-                        null or "single" => true,
-                        "none" => false,
-                        _ => throw new NotSupportedException("Unsupported Word underline style: " + value)
-                    } },
+                        Underline = value switch
+                        {
+                            null or "single" => true,
+                            "none" => false,
+                            _ => throw new NotSupportedException("Unsupported Word underline style: " + value)
+                        }
+                    },
                     "vertAlign" => value switch
                     {
                         "baseline" => result with { Baseline = 0 },
@@ -80,10 +83,32 @@ namespace Mediana.Documents.Word
                 KeepLines = WordReadContext.On(properties.Element(W + "keepLines")),
                 WidowControl = properties.Element(W + "widowControl") is null || WordReadContext.On(properties.Element(W + "widowControl")),
                 Shading = Shading(properties.Element(W + "shd")),
-                Borders = Borders(properties.Element(W + "pBdr"))
+                Borders = Borders(properties.Element(W + "pBdr")),
+                Tabs = ReadTabs(properties.Element(W + "tabs"))
             };
             if (WordReadContext.On(properties.Element(W + "bidi"))) { throw new NotSupportedException("Bidirectional Word paragraphs are not supported."); }
             return format;
+        }
+
+        private IReadOnlyList<WordTabStop> ReadTabs(XElement? element)
+        {
+            List<WordTabStop> stops = [];
+            foreach (XElement tab in element?.Elements(W + "tab") ?? [])
+            {
+                double position = context.Length(tab, "pos");
+                if (context.Value(tab) == "clear") { stops.RemoveAll(stop => stop.Position == position); continue; }
+                WordTabAlignment alignment = context.Value(tab) switch
+                {
+                    "left" or "start" or "num" => WordTabAlignment.Left,
+                    "center" => WordTabAlignment.Center,
+                    "right" or "end" => WordTabAlignment.Right,
+                    "decimal" => WordTabAlignment.Decimal,
+                    _ => throw new NotSupportedException("Unsupported Word tab stop alignment.")
+                };
+                stops.Add(new(position, alignment));
+            }
+            stops.Sort((left, right) => left.Position.CompareTo(right.Position));
+            return stops.AsReadOnly();
         }
 
         internal static WordAlignment Alignment(string? value) => value switch

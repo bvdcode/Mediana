@@ -21,5 +21,6 @@ namespace Mediana.Documents.Word
         internal bool WidowControl { get; init; } = true;
         internal Rgba32? Shading { get; init; }
         internal WordBorders Borders { get; init; } = new();
+        internal IReadOnlyList<WordTabStop> Tabs { get; init; } = Array.Empty<WordTabStop>();
     }
 }
