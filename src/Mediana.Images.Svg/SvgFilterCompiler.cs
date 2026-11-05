@@ -80,7 +80,7 @@ namespace Mediana.Images.Svg
             RasterCanvas? canvas = new RasterCanvas(result);
             if (node.Image is not null)
             {
-                Matrix3x2 viewport = SvgRenderer.Viewport((0, 0, node.Image.Width, node.Image.Height), region.Width, region.Height, Text(p, "preserveAspectRatio", "xMidYMid meet")) * Matrix3x2.CreateTranslation(region.X, region.Y);
+                Matrix3x2 viewport = SvgRenderer.Viewport((0, 0, node.Image.Format.Width, node.Image.Format.Height), region.Width, region.Height, Text(p, "preserveAspectRatio", "xMidYMid meet")) * Matrix3x2.CreateTranslation(region.X, region.Y);
                 canvas.DrawImage(node.Image, viewport * matrix, cancellationToken: context.Token);
             }
             else

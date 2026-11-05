@@ -2,6 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
+using Mediana.Core.Memory;
+using Mediana.Core.Video;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,6 +18,7 @@ namespace Mediana.Images.Svg
     {
         private readonly XElement _root;
         private readonly TextRenderer _text;
+        private readonly MediaBufferAllocator _imageAllocator;
         private readonly SvgReaderOptions _limits;
         private readonly CancellationToken _token;
         private readonly Dictionary<string, XElement> _ids = new(StringComparer.Ordinal);
@@ -36,6 +39,7 @@ namespace Mediana.Images.Svg
         {
             _root = root;
             _text = new(limits.Text);
+            _imageAllocator = limits.ImageAllocator ?? new(limits.MaximumImageBytes);
             _limits = limits;
             _token = token;
         }
@@ -47,8 +51,18 @@ namespace Mediana.Images.Svg
                 throw new InvalidDataException("Expected an SVG root element.");
             }
 
-            Index(_root, 0);
-            return BuildViewport();
+            bool completed = false;
+            try
+            {
+                Index(_root, 0);
+                SvgDocument document = BuildViewport();
+                completed = true;
+                return document;
+            }
+            finally
+            {
+                if (!completed) { foreach (VideoFrame? image in _images.Values) { image?.Dispose(); } }
+            }
         }
 
         private SvgDocument BuildViewport()
@@ -57,7 +71,7 @@ namespace Mediana.Images.Svg
             _width = viewport.ViewBox.Width;
             _height = viewport.ViewBox.Height;
             SceneNode node = Node(_root, new Dictionary<string, string>(), 0, true);
-            return new SvgDocument(node, viewport.Width, viewport.Height, viewport.ViewBox, (string?)_root.Attribute("preserveAspectRatio") ?? "xMidYMid meet", _warnings.Order().ToArray());
+            return new SvgDocument(node, viewport.Width, viewport.Height, viewport.ViewBox, (string?)_root.Attribute("preserveAspectRatio") ?? "xMidYMid meet", _warnings.Order().ToArray(), _images.Values.OfType<VideoFrame>().ToArray());
         }
 
         private static bool IsSvgElement(XElement element) => element.Name.NamespaceName.Length == 0 || element.Name.NamespaceName == "http://www.w3.org/2000/svg";
@@ -144,7 +158,7 @@ namespace Mediana.Images.Svg
             Matrix3x2 transform = SvgNumbers.Transform((string?)e.Attribute("transform"));
             var children = new List<SceneNode>();
             VectorPath? path = Shape(e);
-            PixelBuffer? image = name == "image" ? Image(Href(e)) : null;
+            VideoFrame? image = name == "image" ? Image(Href(e)) : null;
             Populate(e, name, style, path, children, depth);
             if (path is not null)
             {
@@ -161,7 +175,7 @@ namespace Mediana.Images.Svg
             return PlaceImage(node, e, image);
         }
 
-        private SceneNode PlaceImage(SceneNode node, XElement element, PixelBuffer? image)
+        private SceneNode PlaceImage(SceneNode node, XElement element, VideoFrame? image)
         {
             if (image is null)
             {
@@ -172,7 +186,7 @@ namespace Mediana.Images.Svg
             {
                 Image = image,
                 ImageTransform = ImagePlacement(element, image),
-                ImageViewport = new VectorPath().Rectangle(Length(element, "x", 0, _width), Length(element, "y", 0, _height), Length(element, "width", image.Width, _width), Length(element, "height", image.Height, _height))
+                ImageViewport = new VectorPath().Rectangle(Length(element, "x", 0, _width), Length(element, "y", 0, _height), Length(element, "width", image.Format.Width, _width), Length(element, "height", image.Format.Height, _height))
             };
         }
 

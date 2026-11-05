@@ -37,6 +37,11 @@ namespace Mediana.Codecs.Png
         }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(Decode(encoded, request, allocator, cancellationToken));
+
+        /// <summary>Decodes an in-memory PNG synchronously using the same parser, limits and pixels as DecodeAsync.</summary>
+        public VideoFrame Decode(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
@@ -81,7 +86,7 @@ namespace Mediana.Codecs.Png
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = pixels.Publish();
-            return ValueTask.FromResult(new VideoFrame(format, buffer, layout));
+            return new VideoFrame(format, buffer, layout);
         }
 
         private PngImageData Read(ReadOnlyMemory<byte> encoded, CancellationToken token)

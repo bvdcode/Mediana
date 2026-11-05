@@ -38,7 +38,7 @@ namespace Mediana.Images.Svg
             ArgumentNullException.ThrowIfNull(request);
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
-            SvgDocument document = SvgReader.Read(encoded, readerOptions, cancellationToken);
+            using SvgDocument document = SvgReader.Read(encoded, readerOptions, cancellationToken);
             using PixelBuffer pixels = SvgRenderer.Render(document, renderOptions, cancellationToken, allocator);
             return ValueTask.FromResult(pixels.PublishVideoFrame(cancellationToken));
         }

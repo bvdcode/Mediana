@@ -36,7 +36,7 @@ namespace Mediana.Images.Svg
             document.Root.Draw(canvas, Viewport(document.ViewBox, document.Width, document.Height, document.AspectRatio) * transform, context);
         }
 
-        /// <summary>Renders an SVG to RGBA pixels. The allocator counts final output storage.
+        /// <summary>Renders an SVG to RGBA pixels. The allocator counts output, supersampling and temporary effect surfaces.
         /// Unsupported features require explicit partial-render opt-in.</summary>
         public static PixelBuffer Render(SvgDocument document, DrawingRenderOptions? options = null,
             CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)

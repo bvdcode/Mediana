@@ -87,7 +87,7 @@ namespace Mediana.Images.Svg
 
         private static void Validate(SvgReaderOptions o)
         {
-            if (o.MaximumInputBytes <= 0 || o.MaximumElements <= 0 || o.MaximumPathCommands <= 0 || o.MaximumDepth < 1 || o.MaximumDepth > 64 || o.MaximumImagePixels <= 0)
+            if (o.MaximumInputBytes <= 0 || o.MaximumElements <= 0 || o.MaximumPathCommands <= 0 || o.MaximumDepth < 1 || o.MaximumDepth > 64 || o.MaximumImagePixels <= 0 || o.MaximumImageBytes <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(o));
             }

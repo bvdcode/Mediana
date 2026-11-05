@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
+using Mediana.Core.Video;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -15,7 +16,7 @@ namespace Mediana.Drawing
         internal SceneMask? Mask { get; init; }
         internal SceneEffect? Filter { get; init; }
         internal ColorBlendMode BlendMode { get; init; }
-        internal PixelBuffer? Image { get; init; }
+        internal VideoFrame? Image { get; init; }
         internal InlineGraphic? Graphic { get; init; }
         internal Matrix3x2 GraphicTransform { get; init; } = Matrix3x2.Identity;
         internal Matrix3x2 ImageTransform { get; init; } = Matrix3x2.Identity;
