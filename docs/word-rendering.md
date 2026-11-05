@@ -100,8 +100,9 @@ MediaEngine engine = new MediaEngineBuilder()
 
 `OpenXmlImageDecoder` recognizes ZIP bytes and selects a handler using the OPC
 main-part relationship and content type. It does not depend on the filename or
-a fixed `word/document.xml` path. Additional document families can register
+a fixed `word/document.xml` path. Additional document families and 3MF models can register
 their own `IOpenXmlPageDecoder` without competing for the same ZIP signature.
+Word and 3MF use one package registration in the CLI.
 Image decode requests use zero-based `PageIndex`, following the common image
 codec contract. Metadata probing reports the declared first-page size in points;
 it does not invent a page count from cached application properties or paginate

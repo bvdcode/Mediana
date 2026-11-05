@@ -11,6 +11,7 @@ Render.NET does not mark a Mediana operation as implemented.
 
 | Render.NET area | Mediana implementation | Remaining distinction |
 | --- | --- | --- |
+| Mesh | `Mediana.Models.Mesh`: STL/OBJ/3MF readers, explicit assembly selection and CPU previews | Geometry ownership and render scratch use Mediana contracts; see [Mesh API](mesh.md). |
 | Drawing, paths and compositing | `Mediana.Drawing`: paths, clipping, shared scenes, effects, fonts and owned RGBA surfaces | Reuse the common drawing layer; another drawing core would duplicate storage and contracts. |
 | SVG | `Mediana.Images.Svg`: static SVG, text, masks, filters and embedded PNG | Compare individual rendering changes and tests against the existing implementation. |
 | TGS / Lottie | `Mediana.Images.Tgs`: scene parsing, keyframes, effects and timed rendering | Expression execution is separate from stored-value rendering; see below. |
@@ -25,11 +26,12 @@ Word layout and rasterization are implemented in `Mediana.Documents.Word`, on
 supply Word, Excel or PowerPoint layout. XLSX and PPTX rendering remain open in
 the catalog independently of OPC package reading and DOCX rendering.
 
-## Mesh: reusable model readers and preview renderer
+## Mesh: implemented model readers and preview renderer
 
 The complete supported scope of
 [`Render.NET.Mesh`](https://github.com/bvdcode/Render.NET/tree/8d2a4375c719c9bc394f755a4c989ed685bd36b6/Sources/Render.NET.Mesh)
-is a useful source for a Mediana model module. Its project targets .NET 10 and
+is implemented in `Mediana.Models.Mesh` with Mediana ownership and OPC integration.
+The Render.NET source project targets .NET 10 and
 references only the Render.NET drawing project, with no third-party runtime
 package or native graphics dependency. The source is MIT-licensed.
 
@@ -44,9 +46,10 @@ package or native graphics dependency. The source is MIT-licensed.
 | Rendering | Orthographic camera, automatic framing, depth testing, studio lighting, roughness/metallic controls, filtered shadows, ambient occlusion, tone mapping and supersampling | CPU rendering of opaque mesh surfaces; no textured PBR renderer, perspective scene camera or GPU backend. |
 | Output | Straight-alpha sRGB RGBA with transparent background support | Mediana's existing frame and PNG output contracts should own publication and encoding. |
 
-These features are not implemented in Mediana yet. STL, OBJ and 3MF read/render
-operations therefore remain planned in the catalog. Model writing remains a
-separate task; the source module supplies readers and a preview renderer.
+STL, OBJ, 3MF Core and Production reference read/render operations are marked as
+implemented subsets in the catalog. Their exact scope, resource contracts and
+public examples are documented in [Mesh loading and previews](mesh.md). Model
+writing remains a separate task; the module supplies readers and a preview renderer.
 
 glTF/GLB, FBX, PLY, CAD/BIM, point clouds and volume rendering are not supplied by
 this Mesh module. PDF mesh shadings interpolate colors on a PDF page; they are
@@ -54,37 +57,29 @@ not a 3D model importer.
 
 ### Integration boundaries
 
-Keep typed geometry loading separate from rasterization. Expose the mesh and
-3MF build/object selection to library callers, and connect model previews to the
-existing image-to-frame-to-PNG path. Audio/video packet contracts do not need to
-represent model geometry. Model code belongs outside the common 2D drawing core.
+Typed geometry loading is separate from rasterization. Library callers can retain
+meshes and select 3MF builds/objects; model previews publish through the existing
+image-to-frame-to-PNG path. Audio/video packet contracts do not represent geometry,
+and the model module stays outside the common 2D drawing core.
 
-The source's convenience `MeshReader` dispatches by filename extension. Mediana
-input detection must inspect content. STL needs validated binary lengths/counts
-or ASCII grammar, OBJ needs a bounded text probe, and 3MF needs its OPC
-relationships and model parts. ZIP alone cannot distinguish 3MF from DOCX, XLSX
-or PPTX. Extension-based output selection remains a separate concern.
+The source convenience reader dispatches by extension. Mediana's `MeshReader`
+uses content and exact binary STL length/count checks. OBJ uses a bounded text
+probe. 3MF and DOCX share the OPC adapter, selected by root relationship and part
+content type. A ZIP signature alone does not select a model or Word decoder.
 
-Account for geometry and render scratch storage before allocation. The source
-allocates depth and normal arrays per supersample, another depth map for shadows,
-prepared geometry and the final image. Dimension limits alone do not establish
-one shared memory budget. Adapt these lifetimes to Mediana's allocation contracts,
-including cancellation and failure cleanup. Publish the existing owned RGBA
-storage as a frame without a second full image copy.
+Prepared geometry, adjacency, projection, normals, depth/shadow maps and output
+pixels use the shared allocation budget. Source model/parser storage has separate
+byte and geometry limits. Internal readers transfer final arrays instead of
+re-copying them into the mesh. Public constructors retain caller isolation.
+Publishing the owned output as a frame does not copy its RGBA array.
 
-Preserve current public mesh-copy semantics where callers require isolation, but
-avoid a repeated copy between bounded readers and internal owned geometry.
-Material/UV storage can be added through explicit geometry attributes when those
-features are implemented; accepting OBJ `vt` records must not imply textured
-rendering.
-
-The source includes `StlReaderTests`, `ObjReaderTests`, `ThreeMfReaderTests` and
-`MeshRendererTests`. Useful cases include malformed geometry, assembly transforms,
-negative indices, concave polygons, depth-order independence, extreme coordinate
-scales, automatic framing and antialiased alpha edges. Native AOT, shared memory
-budget enforcement, cancellation ownership and full-load/render CPU/RAM need
-validation in Mediana after integration. Render.NET benchmark results are not
-Mediana performance measurements.
+The source reader/render regression cases run in Mediana alongside additional
+allocation, ownership, cancellation, concurrency, OPC routing and CLI checks.
+The strict Native AOT runner includes model loading, shared Word/3MF registration,
+rendering, frame publication and PNG checks. Per-operation correctness and
+performance acceptance remain independent; successful integration is not a claim
+of complete format conformance. Render.NET benchmark results are not Mediana
+performance measurements.
 
 ## PDF: additional painting operations
 
@@ -129,9 +124,8 @@ accepted fix with the affected output and memory/CPU measurements.
 
 ## Adaptable order
 
-The first distinct new end-to-end feature available from Render.NET is
-STL/OBJ/3MF geometry-to-PNG rendering, including the existing reader and renderer
-tests. PDF shading/pattern support and transparency/appearance handling are
-separate increments on the existing PDF API. Update operation marks only when
+STL/OBJ/3MF geometry-to-PNG rendering is implemented, including reader and renderer
+regression cases. PDF shading/pattern support and transparency/appearance handling
+are independent next increments on the existing PDF API. Update operation marks only when
 those increments work through Mediana's public contracts. Encoding, model export,
 new 3D formats and general expression execution remain independent tasks.

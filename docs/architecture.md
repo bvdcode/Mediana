@@ -24,7 +24,9 @@ flowchart BT
     Tgs[TGS adapter] --> Drawing
     Pdf[PDF adapter] --> Drawing
     Pdf --> CodecModules
-    OpenXml[OPC packages and document routing] --> IO
+    OpenXml[OPC packages and document/model routing] --> IO
+    Mesh[Mesh geometry and previews] --> OpenXml
+    Mesh --> Drawing
     OpenXml --> Codecs
     Word[Word document layout and rendering] --> OpenXml
     Word --> Drawing
@@ -544,3 +546,28 @@ returns independent images. Explicit `RgbaImage.ToVideoFrame` remains a copy.
 JPEG 2000 component conversion can write tightly packed RGBA8 into caller storage
 through `WriteRgbaTo`. PDF JPX decoding uses that destination directly, preserving
 subsequent mask application and cached-image reuse without an intermediate frame.
+
+## Mesh geometry and previews
+
+`Mediana.Models.Mesh` separates bounded STL/OBJ/3MF loading from CPU rendering.
+Indexed geometry and explicit 3MF build/object selection stay outside audio/video
+packet contracts. The existing drawing layer supplies RGBA ownership and frame
+publication; PNG encoding remains in its codec module. Render scratch storage
+uses the shared allocator, while parser and retained source geometry have separate
+reader limits. See [Mesh APIs and resource boundaries](mesh.md).
+
+`IImageDecoder.CanDecode` receives the complete encoded length when known. This
+allows formats without a unique signature, such as binary STL, to check structural
+lengths instead of claiming unrelated media from a prefix heuristic. Complete-image
+decoding finalizes recognition after bounded input reading; metadata probing can
+finish deferred recognition when no prefix reader matches. Model `ImageInfo` marks
+configured viewport dimensions with `IsPreviewCanvas`; those are not intrinsic
+model dimensions.
+
+The shared OPC adapter dispatches by registered root relationship types and the
+selected part's content type. Word and 3MF share the package parser and registration.
+A MIME match with the wrong root relationship cannot select another page decoder.
+
+OPC XML limits are enforced while the tree loader consumes each node. The package
+counts elements across parts and repeated reads, checks depth and cancellation,
+and prohibits DTD/entity resolution without a separate full validation parse.

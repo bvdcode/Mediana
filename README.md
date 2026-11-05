@@ -22,6 +22,8 @@ An experimental PDF module reads page geometry, renders supported vector/text/im
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
 Word documents can be paginated and rendered directly to PNG from the library or
 CLI. See [Word rendering and public API](docs/word-rendering.md).
+STL, OBJ and 3MF models can be loaded and rendered to PNG with configurable
+camera, material, shadows and ambient occlusion. See [Mesh APIs and previews](docs/mesh.md).
 Experimental fixed-QP H.264 I/P encoding and YUV downscaling are available.
 Experimental AAC-LC audio encoding to MPEG-TS selects long/short windows for
 transients; perceptual allocation remains open. HLS variants can copy or encode audio.
@@ -30,7 +32,8 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 
 | Project | Current responsibility |
 | --- | --- |
-| `Mediana.Documents.OpenXml` | Bounded OPC packages, relationships and content-type page decoder routing |
+| `Mediana.Models.Mesh` | STL/OBJ/3MF geometry, assembly selection and managed 3D previews ([API](docs/mesh.md)) |
+| `Mediana.Documents.OpenXml` | Bounded OPC packages, relationships and content-type document/model preview routing |
 | `Mediana.Documents.Word` | DOCX styles, pagination and direct page rasterization ([API](docs/word-rendering.md)) |
 | `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction |
 | `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
