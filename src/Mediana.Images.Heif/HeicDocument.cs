@@ -35,7 +35,12 @@ namespace Mediana.Images.Heif
                 if ((item.Type == HeifBox.Code("hvc1")) || (item.Type == HeifBox.Code("grid")) || (item.Type == HeifBox.Code("iden")) ||
                     (item.Type == HeifBox.Code("iovl")))
                 {
-                    images.Add(item.Id, ImageProperties.Read(container, item, options));
+                    ImageProperties properties = ImageProperties.Read(container, item);
+                    if (((long)properties.Width * properties.Height) > options.MaxPixels)
+                    {
+                        throw new InvalidDataException("Image dimensions exceed the pixel limit.");
+                    }
+                    images.Add(item.Id, properties);
                 }
             }
 

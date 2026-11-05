@@ -14,7 +14,7 @@ namespace Mediana.Tests
         {
             byte[] input = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif", "basic-8bit.heic"));
             HeifContainer source = new HeifContainerReader(HeicDecodeOptions.Default).Read(input);
-            ImageProperties properties = ImageProperties.Read(source, source.Items[source.PrimaryItemId], HeicDecodeOptions.Default);
+            ImageProperties properties = ImageProperties.Read(source, source.Items[source.PrimaryItemId]);
             byte[] overlay = new byte[22];
             BinaryPrimitives.WriteUInt16BigEndian(overlay.AsSpan(10), (ushort)properties.Width);
             BinaryPrimitives.WriteUInt16BigEndian(overlay.AsSpan(12), (ushort)properties.Height);

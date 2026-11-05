@@ -96,6 +96,7 @@ namespace Mediana.NativeTests
             await HeifReferenceTestInput.VerifyWavefrontAsync();
             await HeifReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
             await HeifFrameOwnershipTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
+            await HeifMetadataTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
             Console.WriteLine("PASS HEIC: 42 independent full RGBA references, transforms, grids and alpha.");
             await Jbig2ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jbig2"));
             Console.WriteLine("PASS JBIG2: 98 authored pixel references match all packed page bytes.");

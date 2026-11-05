@@ -36,6 +36,12 @@ RGB is not implicitly sRGB. `RgbaImage.ToVideoFrame` copies pixels into a Median
 aperture, pixel-aspect correction, HEVC inter prediction, tiles, dependent
 slices, 12-bit/multilayer coding and protected/external items are unsupported.
 
+`HeicImageDecoder.ReadInfoAsync` reads the primary image's display dimensions,
+including crop and orientation, without decoding HEVC samples. Metadata inspection
+and CLI `probe` do not apply the decode pixel limit. Encoded-input and item-count
+limits and structural validation remain active; decoding still checks the pixel
+limit before reserving output storage.
+
 Input bytes, pixels per image, item count and derivation depth are bounded by
 `HeicDecodeOptions`. These are admission limits, not a total working-memory or
 RSS limit. Large grids and intermediate images require additional memory.

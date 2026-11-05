@@ -71,11 +71,13 @@ namespace Mediana.Images.Heif
             return false;
         }
 
+        /// <summary>Reads transformed primary-image dimensions without decoding pixels or applying the decode pixel limit.
+        /// Encoded input, item-count and structural validation limits still apply.</summary>
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             HeifContainer container = new HeifContainerReader(options).Read(encoded);
-            ImageProperties properties = ImageProperties.Read(container, container.Items[container.PrimaryItemId], options);
+            ImageProperties properties = ImageProperties.Read(container, container.Items[container.PrimaryItemId]);
             (int width, int height) = properties.GetDisplaySize(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult(new ImageInfo("heif", width, height, ImageDimensionUnit.Pixels));
