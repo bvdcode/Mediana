@@ -78,6 +78,10 @@ namespace Mediana.Tests
             Assert.Throws<InvalidDataException>(() => PdfRenderer.Render(document, 1, Render));
         }
 
+        [Fact]
+        public Task PublicImageIntegrationReceivesWarningsThroughTheRequest() =>
+            PdfNonPaintingAnnotationTestInput.VerifyFontIntegrationAsync();
+
         private static byte[] Simple(string content, string entries = "") => PdfTestDocument.Create(content,
             resources: "/Font << /F 5 0 R >>", extraObjects: PdfTestDocument.Bytes("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica " + entries + " >>"));
 

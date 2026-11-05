@@ -24,7 +24,8 @@ namespace Mediana.Documents.Pdf
 
         private void AddPaint(IPdfDrawCommand command)
         {
-            if (_contentVisible) { _commands.Add(command); }
+            if (_contentVisible)
+            { _commands.Add(_state.SoftMask is PdfSoftMask mask ? new MaskedCommand(command, mask) : command); }
         }
     }
 }

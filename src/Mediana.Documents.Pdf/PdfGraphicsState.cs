@@ -16,6 +16,7 @@ namespace Mediana.Documents.Pdf
         internal float FillAlpha { get; init; } = 1;
         internal float StrokeAlpha { get; init; } = 1;
         internal ColorBlendMode Blend { get; init; }
+        internal PdfSoftMask? SoftMask { get; init; }
         internal StrokeStyle Pen { get; init; } = new();
         internal PdfFont? Font { get; init; }
         internal float FontSize { get; init; }

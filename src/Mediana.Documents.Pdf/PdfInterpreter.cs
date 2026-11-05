@@ -142,7 +142,7 @@ namespace Mediana.Documents.Pdf
                     case "g": case "G": Count(1); Color(new(Channel(N(0)), Channel(N(0)), Channel(N(0))), value.Text == "G", PdfColorSpace.DeviceGray); break;
                     case "k": case "K": Count(4); Color(new(Channel(1 - Math.Min(1, N(0) + N(3))), Channel(1 - Math.Min(1, N(1) + N(3))), Channel(1 - Math.Min(1, N(2) + N(3)))), value.Text == "K", PdfColorSpace.DeviceCmyk); break;
                     case "sh": Count(1); Shading(Name(0), resources); break;
-                    case "gs": Count(1); ExtState(Get(Get(resources, "ExtGState"), Name(0))); break;
+                    case "gs": Count(1); ExtState(Get(Get(resources, "ExtGState"), Name(0)), resources, depth); break;
                     case "Do": Count(1); XObject(Name(0), resources, depth); break;
                     case "BT": Count(0); if (_inText) { throw new InvalidDataException("Nested PDF text object."); } _inText = true; _text = _textLine = Matrix3x2.Identity; break;
                     case "ET": Count(0); RequireText(); _inText = false; if (_hasTextClip) { _commands.Add(new ClipCommand(_textClip, FillRule.NonZero)); _hasTextClip = false; _textClip = new(); } break;
@@ -199,7 +199,7 @@ namespace Mediana.Documents.Pdf
             }
         }
         private static byte Channel(double value) => (byte)Math.Clamp(Math.Round(value * 255), 0, 255);
-        private void ExtState(PdfValue state)
+        private void ExtState(PdfValue state, PdfValue resources, int depth)
         {
             if (state.Kind != PdfValueKind.Dictionary) { throw new InvalidDataException("Missing PDF extended graphics state."); }
             foreach ((string key, PdfValue raw) in state.Entries)
@@ -212,8 +212,12 @@ namespace Mediana.Documents.Pdf
                     case "CA": _state = _state with { StrokeAlpha = Math.Clamp(Float(value.Numeric()), 0, 1) }; break;
                     case "BM":
                         if (value.Kind == PdfValueKind.Array) { _unsupported.Add("Blend mode preference array"); break; }
-                        _state = _state with { Blend = Blend(value.Name()) }; break;
-                    case "SMask": if (value.Kind != PdfValueKind.Name || value.Text != "None") { _unsupported.Add("Graphics-state soft mask"); } break;
+                        ColorBlendMode blend = Blend(value.Name());
+                        if (_grayGroup && blend != ColorBlendMode.Normal) { _unsupported.Add("Non-normal blend in a grayscale group"); }
+                        _state = _state with { Blend = blend }; break;
+                    case "SMask":
+                        _state = _state with { SoftMask = ReadSoftMask(value, resources, depth) };
+                        break;
                     default: _unsupported.Add("Extended graphics state: " + key); break;
                 }
             }
@@ -266,9 +270,12 @@ namespace Mediana.Documents.Pdf
             if (!_forms.Add(obj)) { throw new InvalidDataException("Recursive PDF Form XObject."); }
             try
             {
-                FormGroup(Get(obj.Value, "Group"));
                 PdfValue local = obj.Value.Get("Resources").Kind == PdfValueKind.Null ? resources : Get(obj.Value, "Resources");
-                ExecuteNested(obj, local, transform, depth + 1, boundingBox: Get(obj.Value, "BBox"));
+                PdfValue group = Get(obj.Value, "Group");
+                if (group.Kind == PdfValueKind.Null)
+                { ExecuteNested(obj, local, transform, depth + 1, boundingBox: Get(obj.Value, "BBox")); }
+                else
+                { AddPaint(CaptureGroup(obj, local, transform, depth, group)); }
             }
             finally
             {

@@ -8,14 +8,14 @@ namespace Mediana.Documents.Pdf
     internal record ShadingCommand(bool Radial, double[] Coordinates, bool ExtendStart, bool ExtendEnd,
         Rgba32[] Colors, Matrix3x2 Transform, VectorPath? Bounds, ColorBlendMode Blend) : IPdfDrawCommand
     {
-        public void Draw(RasterCanvas canvas, Matrix3x2 device, CancellationToken cancellationToken)
+        public void Draw(RasterCanvas canvas, PdfDrawingContext context)
         {
             canvas.Save();
             try
             {
-                if (Bounds is not null) { canvas.ClipPath(Bounds, Transform * device, cancellationToken: cancellationToken); }
+                if (Bounds is not null) { canvas.ClipPath(Bounds, Transform * context.Device, cancellationToken: context.Token); }
                 canvas.DrawShader(point => Colors[(int)Math.Round(Math.Clamp(Parameter(point), 0, 1) * (Colors.Length - 1))],
-                    point => !double.IsNaN(Parameter(point)), Transform * device, Blend, cancellationToken);
+                    point => !double.IsNaN(Parameter(point)), Transform * context.Device, Blend, context.Token);
             }
             finally { canvas.Restore(); }
         }

@@ -24,6 +24,13 @@ namespace Mediana.NativeTests
             CffOutlineTestInput.VerifyRejected();
             await PdfNonPaintingAnnotationTestInput.VerifyAsync();
             await PdfNonPaintingAnnotationTestInput.VerifyFormAsync();
+            await PdfNonPaintingAnnotationTestInput.VerifyGroupOpacityAsync();
+            await PdfNonPaintingAnnotationTestInput.VerifySoftMaskAsync(false, false);
+            await PdfNonPaintingAnnotationTestInput.VerifySoftMaskAsync(false, true);
+            await PdfNonPaintingAnnotationTestInput.VerifySoftMaskAsync(true, false);
+            await PdfNonPaintingAnnotationTestInput.VerifySoftMaskAsync(true, true);
+            await PdfNonPaintingAnnotationTestInput.VerifyMaskBudgetAsync();
+            await PdfNonPaintingAnnotationTestInput.VerifyFontIntegrationAsync();
             FontGlyphTestInput.VerifyRejectedAllocation();
             FontGlyphTestInput.VerifyTruncatedGlyphs();
             FontGlyphTestInput.VerifyValidOutlines();
