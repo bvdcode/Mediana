@@ -11,6 +11,7 @@ namespace Mediana.Drawing
     public partial class PixelBuffer : IDisposable
     {
         private readonly WritableMediaBuffer _pixels;
+        internal MediaBufferAllocator Allocator { get; }
 
         /// <summary>Gets the image width in pixels.</summary>
         public int Width { get; }
@@ -38,6 +39,7 @@ namespace Mediana.Drawing
                 throw new ArgumentOutOfRangeException(nameof(width), "The pixel buffer exceeds the supported array size.");
             }
 
+            Allocator = allocator;
             Width = width;
             Height = height;
             _pixels = allocator.Allocate((int)pixelCount * 4);

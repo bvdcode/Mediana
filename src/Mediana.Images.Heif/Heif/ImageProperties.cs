@@ -49,7 +49,7 @@ namespace Mediana.Images.Heif.Container
             return (width, height);
         }
 
-        public static ImageProperties Read(HeifContainer container, HeifItem item, HeicDecodeOptions options)
+        public static ImageProperties Read(HeifContainer container, HeifItem item)
         {
             ImageProperties result = new ImageProperties();
             HashSet<uint> seen = new HashSet<uint>();
@@ -62,7 +62,7 @@ namespace Mediana.Images.Heif.Container
                     throw new InvalidDataException("Duplicate image property.");
                 }
 
-                result.Read(property, association.Essential, options);
+                result.Read(property, association.Essential);
             }
 
             if ((result.Width == 0) || (result.Height == 0))
@@ -80,7 +80,7 @@ namespace Mediana.Images.Heif.Container
             return result;
         }
 
-        private void Read(HeifBox box, bool essential, HeicDecodeOptions options)
+        private void Read(HeifBox box, bool essential)
         {
             ByteReader reader = new ByteReader(box.Payload);
             if (box.Type == HeifBox.Code("ispe"))
@@ -88,9 +88,9 @@ namespace Mediana.Images.Heif.Container
                 FullBox(reader);
                 uint width = reader.U32();
                 uint height = reader.U32();
-                if ((width == 0) || (height == 0) || (((ulong)width * height) > (ulong)options.MaxPixels))
+                if ((width == 0) || (height == 0) || (width > int.MaxValue) || (height > int.MaxValue))
                 {
-                    throw new InvalidDataException("Image dimensions exceed the pixel limit.");
+                    throw new InvalidDataException("Image dimensions must be positive and fit the supported coordinate range.");
                 }
 
                 Width = checked((int)width);

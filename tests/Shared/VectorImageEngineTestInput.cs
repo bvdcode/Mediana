@@ -24,7 +24,7 @@ namespace Mediana.Tests
             VerifyPublishedSurface();
             await VerifySupersampledOutputAsync(root);
             MediaEngine svgEngine = CreateEngine(new DrawingRenderOptions { Supersampling = 1 });
-            MediaBufferAllocator allocator = new(4 * 1024 * 1024);
+            MediaBufferAllocator allocator = new(8 * 1024 * 1024);
             using (JsonDocument manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "Svg", "filter-reference.json"))))
             {
                 int compared = 0;
@@ -137,11 +137,15 @@ namespace Mediana.Tests
             using MemoryStream pdfInput = new(pdf);
             using PdfDocument document = await PdfReader.ReadAsync(pdfInput);
             PdfPage page = document.GetPage(1);
-            MediaBufferAllocator allocator = new(64 * 1024);
-            foreach (int factor in new[] { 1, 2, 4 })
+            const int dimension = 32;
+            const int maximumSupersampling = 4;
+            int maximumInputBytes = Math.Max(svg.Length, Math.Max(tgs.Length, pdf.Length));
+            long rasterBytes = 4L * dimension * dimension * (1 + maximumSupersampling * maximumSupersampling);
+            MediaBufferAllocator allocator = new(maximumInputBytes + CreateEngine().ImageProbeLength + rasterBytes);
+            foreach (int factor in new[] { 1, 2, maximumSupersampling })
             {
-                DrawingRenderOptions vectors = new() { Width = 32, Height = 32, Supersampling = factor };
-                PdfRenderOptions pages = new() { MaximumWidth = 32, MaximumHeight = 32, Supersampling = factor };
+                DrawingRenderOptions vectors = new() { Width = dimension, Height = dimension, Supersampling = factor };
+                PdfRenderOptions pages = new() { MaximumWidth = dimension, MaximumHeight = dimension, Supersampling = factor };
                 MediaEngine engine = CreateEngine(vectors, pages);
                 using PixelBuffer svgPixels = SvgRenderer.Render(SvgReader.Read(svg), vectors);
                 using PixelBuffer tgsPixels = TgsRenderer.RenderAtTime(TgsReader.Read(tgs), 0, vectors);

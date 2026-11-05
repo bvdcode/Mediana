@@ -46,14 +46,26 @@ namespace Mediana.Drawing
         {
             if (_element is null)
             {
-                PixelBuffer? buffer = new PixelBuffer(_target.Width, _target.Height);
-                _knockoutBackdrop?.Pixels.CopyTo(buffer.Pixels);
-                _element = new RasterCanvas(buffer)
+                PixelBuffer buffer = new(_target.Width, _target.Height, _target.Allocator);
+                bool retained = false;
+                try
                 {
-                    _coverage = new byte[_target.Width * _target.Height],
-                    _shape = new byte[_target.Width * _target.Height],
-                    _layerDepth = _layerDepth
-                };
+                    _knockoutBackdrop?.Pixels.CopyTo(buffer.Pixels);
+                    _element = new RasterCanvas(buffer)
+                    {
+                        _coverage = new byte[_target.Width * _target.Height],
+                        _shape = new byte[_target.Width * _target.Height],
+                        _layerDepth = _layerDepth
+                    };
+                    retained = true;
+                }
+                finally
+                {
+                    if (!retained)
+                    {
+                        buffer.Dispose();
+                    }
+                }
             }
             else
             {

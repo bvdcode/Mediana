@@ -65,14 +65,16 @@ namespace Mediana.Drawing
                 throw new ArgumentException("The layer mask must match the canvas dimensions.", nameof(alphaMask));
             }
 
-            PixelBuffer buffer = storage ?? new PixelBuffer(_target.Width, _target.Height);
+            cancellationToken.ThrowIfCancellationRequested();
+            using PixelBuffer? owned = storage is null ? new PixelBuffer(_target.Width, _target.Height, _target.Allocator) : null;
+            PixelBuffer buffer = storage ?? owned!;
             if (!isolated)
             {
                 _target.Pixels.CopyTo(buffer.Pixels);
             }
 
             bool trackShape = knockout || _shape is not null || !isolated || shapeMask is not null;
-            RasterCanvas? layer = new RasterCanvas(buffer)
+            RasterCanvas layer = new(buffer)
             {
                 _clip = shapeMask is null ? _clip : IntersectShape(shapeMask),
                 _coverage = trackShape ? new byte[_target.Width * _target.Height] : null,
@@ -81,8 +83,15 @@ namespace Mediana.Drawing
                 _knockout = knockout,
                 _layerDepth = _layerDepth + 1
             };
-            draw(layer);
-            CompositeLayer(layer, opacity, blendMode, isolated, alphaMask, shapeMask, cancellationToken);
+            try
+            {
+                draw(layer);
+                CompositeLayer(layer, opacity, blendMode, isolated, alphaMask, shapeMask, cancellationToken);
+            }
+            finally
+            {
+                layer._element?._target.Dispose();
+            }
         }
 
         private void CompositeLayer(RasterCanvas layer, float opacity, ColorBlendMode blendMode, bool isolated,

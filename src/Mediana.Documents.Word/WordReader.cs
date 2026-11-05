@@ -7,7 +7,7 @@ using System.Xml.Linq;
 namespace Mediana.Documents.Word
 {
     /// <summary>Reads a DOCX package through OPC relationships without invoking Office or a native renderer.</summary>
-    public static class WordReader
+    public static partial class WordReader
     {
         public const string DocumentContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml";
 
@@ -20,42 +20,27 @@ namespace Mediana.Documents.Word
 
         internal static WordDocument Read(OpenXmlPackage package, string main, WordReaderOptions options, CancellationToken cancellationToken)
         {
-            (WordReadContext context, XElement body, XElement section) = Structure(package, main, options, cancellationToken);
-            WordPageGeometry geometry = Geometry(context, section);
+            (WordReadContext context, XElement body) = Structure(package, main, options, cancellationToken);
             WordStyles styles = new(context, main);
             WordNumbering numbering = new(context, main);
             WordContentReader reader = new(context, styles, numbering);
-            IReadOnlyList<WordBlock> blocks = reader.Blocks(body, main);
-            WordMarginContent header = ReadMargin("header"), footer = ReadMargin("footer");
-            bool first = WordReadContext.On(section.Element(context.W + "titlePg"));
             bool even = WordReadContext.On(context.RelatedXml(main, "settings")?.Element(context.W + "evenAndOddHeaders"));
-            return new(blocks, geometry, header, footer, first, even, context.Warnings);
-
-            WordMarginContent ReadMargin(string kind)
+            List<WordSection> sections = [];
+            foreach (WordSectionSource source in SectionSources(context, body))
             {
-                XElement[] references = section.Elements(context.W + (kind + "Reference")).ToArray();
-                Dictionary<string, IReadOnlyList<WordBlock>> contents = new(StringComparer.Ordinal);
-                foreach (XElement reference in references)
-                {
-                    string type = context.Attribute(reference, "type") ?? "default";
-                    if (type is not ("default" or "first" or "even") || contents.ContainsKey(type)) { throw new InvalidDataException("Invalid or duplicated Word header/footer type."); }
-                    string id = (string?)reference.Attribute(context.R + "id") ?? throw new InvalidDataException("Missing Word header/footer relationship.");
-                    string part = context.RelationshipPart(main, id);
-                    contents.Add(type, reader.Blocks(context.Xml(part), part));
-                }
-                return new(contents.GetValueOrDefault("default") ?? Array.Empty<WordBlock>(), contents.GetValueOrDefault("first") ?? Array.Empty<WordBlock>(),
-                    contents.GetValueOrDefault("even") ?? Array.Empty<WordBlock>());
+                sections.Add(ReadSection(context, source, reader, main, sections.LastOrDefault(), even));
             }
+            return new(sections.AsReadOnly(), context.Warnings);
         }
 
         internal static WordPageSize ReadPageSize(OpenXmlPackage package, string main, WordReaderOptions options, CancellationToken token)
         {
-            (WordReadContext context, _, XElement section) = Structure(package, main, options, token);
-            WordPageGeometry geometry = Geometry(context, section);
+            (WordReadContext context, XElement body) = Structure(package, main, options, token);
+            WordPageGeometry geometry = Geometry(context, SectionSources(context, body)[0].Properties);
             return new(geometry.Width, geometry.Height);
         }
 
-        private static (WordReadContext Context, XElement Body, XElement Section) Structure(OpenXmlPackage package, string main,
+        private static (WordReadContext Context, XElement Body) Structure(OpenXmlPackage package, string main,
             WordReaderOptions options, CancellationToken token)
         {
             if (options.MaximumCharacters <= 0 || options.MaximumBlocks <= 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
@@ -64,9 +49,7 @@ namespace Mediana.Documents.Word
             WordReadContext context = new(package, options, root.Name.Namespace, token);
             if (root.Name.LocalName != "document") { throw new InvalidDataException("Invalid Word document root."); }
             XElement body = root.Element(context.W + "body") ?? throw new InvalidDataException("Word document has no body.");
-            XElement[] sections = body.Descendants(context.W + "sectPr").ToArray();
-            if (sections.Length != 1) { throw new NotSupportedException("Word rendering currently requires one page section."); }
-            return (context, body, sections[0]);
+            return (context, body);
         }
 
         private static WordPageGeometry Geometry(WordReadContext context, XElement section)

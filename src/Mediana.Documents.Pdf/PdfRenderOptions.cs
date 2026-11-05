@@ -21,6 +21,9 @@ namespace Mediana.Documents.Pdf
         public bool AllowPartialRendering { get; init; }
         /// <summary>Gets the maximum number of samples, including supersampling. Defaults to 16,777,216.</summary>
         public int MaximumSamples { get; init; } = 16_777_216;
+        /// <summary>Gets the live RGBA surface byte limit used when no allocator is supplied. Includes output, supersampling,
+        /// transparency layers and cached masks. Decoded source images use the reader's separate image budget.</summary>
+        public long MaximumWorkingBytes { get; init; } = 256L * 1024 * 1024;
         /// <summary>Receives page interpretation diagnostics synchronously before rendering.</summary>
         public Action<string>? WarningHandler { get; init; }
     }

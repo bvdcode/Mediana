@@ -24,7 +24,7 @@ namespace Mediana.Documents.Pdf
             return Render(page, options, plan, cancellationToken, allocator);
         }
 
-        /// <summary>Renders the visible page, honoring its crop box and rotation. The allocator counts final output storage.</summary>
+        /// <summary>Renders the visible page, honoring its crop box and rotation. The allocator counts output and temporary raster storage.</summary>
         public static PixelBuffer Render(PdfPage page, PdfRenderOptions? options = null,
             CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)
         {
@@ -49,19 +49,21 @@ namespace Mediana.Documents.Pdf
             }
             (int width, int height, double scale) = plan;
             int samples = options.Supersampling;
-            PixelBuffer output = allocator is null ? new(width, height) : new(width, height, allocator);
+            allocator ??= new MediaBufferAllocator(options.MaximumWorkingBytes);
+            PixelBuffer output = new(width, height, allocator);
             bool completed = false;
             try
             {
-                using PixelBuffer? supersampled = samples == 1 ? null : new(width * samples, height * samples);
+                using PixelBuffer? supersampled = samples == 1 ? null : new(width * samples, height * samples, allocator);
                 PixelBuffer image = supersampled ?? output;
                 image.Clear(default);
                 RasterCanvas canvas = new(image);
                 Matrix3x2 transform = new((float)(scale * samples), 0, 0, (float)(-scale * samples), 0, (float)(page.Height * scale * samples));
+                using PdfDrawingContext context = new(transform, image.Width, image.Height, allocator, cancellationToken);
                 foreach (IPdfDrawCommand command in page.Commands)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    command.Draw(canvas, transform, cancellationToken);
+                    command.Draw(canvas, context);
                 }
 
                 image.CompositeBackground(options.Background, cancellationToken);

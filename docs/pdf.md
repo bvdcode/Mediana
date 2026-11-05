@@ -81,10 +81,16 @@ The implemented subset includes:
   TIFF prediction. Stream ends and declared lengths are checked.
 - Ordered paths, nonzero/even-odd fills, affine strokes, dashes, clipping,
   save/restore, nested Form XObjects and their bounding boxes.
-- Fill/stroke opacity and named PDF blend modes on the RGB canvas. Pages blend
-  over transparency before composition with the output background. Non-isolated,
-  non-knockout Form groups with ordinary alpha and blending can be interpreted
-  inline; other Form group composition remains unsupported.
+- Fill/stroke opacity and named PDF blend modes on the RGB canvas. Form
+  transparency groups compose once with isolated/non-isolated and knockout
+  semantics. Alpha/luminosity graphics-state masks support backdrop colors and
+  supported one-input transfer functions.
+- Axial and radial shading with DeviceGray/RGB/CMYK colors, domain/extension
+  bounds, exponential and stitching functions. Color functions are sampled
+  once; pixel painting uses the resulting lookup table.
+- Optional-content groups and membership expressions use the default view
+  configuration, including explicit ON/OFF states and view usage. Hidden painting
+  is suppressed while graphics-state and clipping operations still execute.
 - Embedded TrueType simple fonts (WinAnsi and supported Differences, or the
   font's Macintosh `(1,0)` cmap for symbolic codes) and Identity-H CIDFontType2.
   PDF widths, text matrices, spacing, rise, fill/stroke/invisible/clip modes are
@@ -92,26 +98,32 @@ The implemented subset includes:
   mapping. Type 3 fonts execute their glyph streams with FontMatrix, d0/d1
   metrics and glyph/page resources; d1 glyphs retain the text ink. Invisible
   unembedded text preserves PDF advance widths without requiring outlines.
-  Embedded outlines are used for visible outline text; no font substitution
-  is applied.
+  Visible unembedded Type 1/TrueType and Identity-H CIDFontType2 text can use an
+  explicitly supplied OpenType program through FontResolver. Composite fonts
+  require a supported ToUnicode mapping; numeric character codes are not assumed
+  to be Unicode.
 - Raw or filtered image XObjects with 1/2/4/8/16-bit samples, DeviceGray/RGB/CMYK,
   Indexed palettes, Decode arrays, color-key masks and image/soft masks. CMYK
   conversion is an arithmetic RGB preview, without ICC-managed printing.
-- JP2 images declaring their own supported color space, and JBIG2 including
-  chained filters and indirect compressed JBIG2Globals.
+- JP2 images declaring their own supported color space or overridden by a PDF
+  DeviceGray/RGB/CMYK ColorSpace. JPX Decode arrays are ignored as specified.
+  JBIG2 supports chained filters and indirect compressed JBIG2Globals.
 - Eight-bit sequential and progressive Huffman JPEG image XObjects with
   DeviceGray or DeviceRGB, chained byte filters, Decode arrays and color-key,
   explicit image and soft masks.
 
-Non-painting annotations, including hidden entries, empty rectangles and
-borderless links without appearance streams, do not prevent page rendering.
+Normal annotation appearance streams render after page contents. Their BBox
+and Matrix are mapped to the annotation rectangle; state dictionaries use the
+declared AS selection. Hidden/NoView entries, empty rectangles and borderless
+links without appearances do not prevent page rendering.
 
 Known gaps include inline images, LZW/CCITT filters, encrypted documents,
-Type 1, CID-keyed CFF or unembedded visible font outlines, general CMaps and
-glyph-name coverage, gradients/patterns, ICC color transforms, isolated or
-knockout Form groups, graphics-state soft masks, visible annotations and
-optional content. JPX color-space and opacity overrides and soft-mask Matte
-correction are also open. Text extraction, forms editing, signature verification
+embedded Type 1 and CID-keyed CFF programs, general CMaps, multi-character
+outline mappings and full glyph-name coverage, mesh shading and patterns, ICC
+color transforms, grayscale groups with non-normal blending, knockout page
+groups, annotation appearance generation and fixed zoom/rotation flags.
+Optional-content usage depending on contexts other than the default view remains
+open. JPX opacity overrides and image soft-mask Matte correction are also open. Text extraction, forms editing, signature verification
 and OCR are outside the preview API.
 
 Known unsupported painting is reported in `UnsupportedFeatures`; rendering
@@ -141,6 +153,50 @@ observed mean error is 2.19/255 with 95.67% within 8. Extracted JBIG2 pixels mat
 the original synthetic scan exactly. These are bounded regression comparisons,
 not arbitrary-document conformance evidence. Poppler is used for development
 verification only.
+
+## Font selection and diagnostics
+
+The library does not discover installed fonts. The application supplies programs
+for unembedded fonts explicitly:
+
+~~~csharp
+using Mediana.Drawing.Fonts;
+
+PdfReaderOptions readerOptions = new()
+{
+    FontResolver = request => BundledFontPrograms.GetFont("Canada1500")
+};
+using PdfDocument document = await PdfReader.ReadFileAsync("report.pdf", readerOptions);
+using PixelBuffer pixels = PdfRenderer.Render(document, 1, new()
+{
+    WarningHandler = message => logger.LogWarning("{Warning}", message)
+});
+~~~
+
+This example deliberately chooses one replacement family. An application can
+instead match PdfFontRequest.PostScriptName to its font collection or return
+empty memory to decline a request. Declared PDF advances retain priority.
+Standard fonts omitting widths use the supplied font's advances, with a warning;
+substitution can change text spacing.
+
+Supported ToUnicode blocks include bfchar and bfrange with UTF-16BE destinations.
+Ranges crossing the last-byte boundary are recovered by incrementing the full
+destination string, with a page warning. Missing mappings and unsupported
+multi-character destinations remain explicit rendering failures when used.
+
+Reader warnings are available on PdfDocument.Warnings, and page interpretation
+warnings on PdfPage.Warnings. PdfRenderOptions.WarningHandler receives page
+warnings before rasterization. The registered PdfImageDecoder forwards reader
+and renderer warnings to ImageDecodeRequest.WarningHandler; the CLI connects
+that same request handler to its logger. Callback exceptions propagate to the
+caller and release owned temporary buffers.
+
+Output, supersampling surfaces, transparency layers and cached masks share the
+supplied MediaBufferAllocator. Without an allocator, MaximumWorkingBytes defaults
+to 256 MiB. Masks are cached for one render, charged to that budget and disposed
+before returning the output. Source image pixels have the reader's separate
+MaximumImageBytes budget. Coverage/clip arrays, font data and command objects
+have separate structural or dimension bounds rather than allocator accounting.
 
 ## JPEG image interpretation
 

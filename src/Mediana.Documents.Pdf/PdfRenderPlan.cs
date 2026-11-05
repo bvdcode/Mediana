@@ -8,7 +8,7 @@ namespace Mediana.Documents.Pdf
         internal static PdfRenderPlan Create(PdfPageInfo page, PdfRenderOptions options)
         {
             if (!double.IsFinite(options.Dpi) || options.Dpi <= 0 || options.Dpi > 2400 || options.Supersampling is < 1 or > 4
-                || options.MaximumWidth <= 0 || options.MaximumHeight <= 0 || options.MaximumSamples <= 0)
+                || options.MaximumWidth <= 0 || options.MaximumHeight <= 0 || options.MaximumSamples <= 0 || options.MaximumWorkingBytes <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(options));
             }

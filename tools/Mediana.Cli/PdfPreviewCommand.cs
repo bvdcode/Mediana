@@ -13,11 +13,11 @@ namespace Mediana.Cli
     {
         public static async Task<int> RenderAsync(string input, CommandOutputFile output, int pageNumber, int maximumWidth, ILogger logger, CancellationToken cancellationToken = default)
         {
-            using PdfDocument document = await PdfReader.ReadFileAsync(input, cancellationToken: cancellationToken);
+            using PdfDocument document = await PdfReader.ReadFileAsync(input, CommandImageResources.PdfReaderOptions, cancellationToken);
             LogWarnings(document.Warnings, logger);
             PdfPageInfo page = document.GetPageInfo(pageNumber);
-            MediaBufferAllocator allocator = new(256L * 1024 * 1024);
-            using PixelBuffer image = PdfRenderer.Render(document, pageNumber, new() { MaximumWidth = maximumWidth, WarningHandler = message => logger.LogWarning("{Warning}", message) }, cancellationToken, allocator);
+            MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
+            using PixelBuffer image = PdfRenderer.Render(document, pageNumber, CommandImageResources.PdfRenderOptions with { MaximumWidth = maximumWidth, WarningHandler = message => logger.LogWarning("{Warning}", message) }, cancellationToken, allocator);
             using VideoFrame frame = image.PublishVideoFrame(cancellationToken);
             await WriteAsync(frame, output, allocator, cancellationToken);
             await Console.Out.WriteLineAsync($"PDF page {pageNumber}/{document.PageCount}: {page.Width} x {page.Height} pt; {image.Width} x {image.Height} px.");
@@ -25,13 +25,13 @@ namespace Mediana.Cli
         }
         public static async Task<int> ImageAsync(string input, CommandOutputFile output, int pageNumber, int index, ILogger logger, CancellationToken cancellationToken = default)
         {
-            using PdfDocument document = await PdfReader.ReadFileAsync(input, cancellationToken: cancellationToken);
+            using PdfDocument document = await PdfReader.ReadFileAsync(input, CommandImageResources.PdfReaderOptions, cancellationToken);
             LogWarnings(document.Warnings, logger);
             using PdfPage page = document.GetPage(pageNumber, cancellationToken);
             LogWarnings(page.Warnings, logger);
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, page.Images.Count);
-            MediaBufferAllocator allocator = new(256L * 1024 * 1024);
+            MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
             using VideoFrame frame = page.Images[index].ToVideoFrame(allocator, cancellationToken);
             await WriteAsync(frame, output, allocator, cancellationToken);
             return 0;

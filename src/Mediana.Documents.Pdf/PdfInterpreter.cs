@@ -5,7 +5,7 @@ using System.Numerics;
 using Mediana.Drawing;
 namespace Mediana.Documents.Pdf
 {
-    internal partial class PdfInterpreter(PdfStorage storage, CancellationToken token, double? samplesPerPoint = null)
+    internal partial class PdfInterpreter(PdfStorage storage, PdfOptionalContent optionalContent, CancellationToken token, double? samplesPerPoint = null)
     {
         private readonly List<IPdfDrawCommand> _commands = [];
         private readonly HashSet<string> _unsupported = new(StringComparer.Ordinal);
@@ -48,13 +48,16 @@ namespace Mediana.Documents.Pdf
             _pageResources = page.Resources;
             PdfValue annotations = Get(page.Dictionary, "Annots");
             if (annotations.Kind is not (PdfValueKind.Null or PdfValueKind.Array)) { throw new InvalidDataException("PDF annotations must be an array."); }
-            Annotations(annotations.Items);
             PageGroup(Get(page.Dictionary, "Group"));
             ReadOnlyMemory<byte> contents = PdfPageContents.Read(storage, page.Dictionary.Get("Contents"), token);
             if (!contents.IsEmpty)
             {
+                _commands.Add(new StateCommand(true));
                 Execute(contents, page.Resources, 0);
+                _commands.Add(new StateCommand(false));
             }
+            _state = new PdfGraphicsState { Transform = page.Transform };
+            Annotations(annotations.Items);
             return new(page.Info, _commands, _unsupported, _images, _warnings);
         }
         private PdfValue Resolve(PdfValue value) => storage.Resolve(value, token);
@@ -74,6 +77,7 @@ namespace Mediana.Documents.Pdf
             List<PdfValue> operands = [];
             Stack<PdfGraphicsState> saved = [];
             int compatibility = 0;
+            Stack<bool> visibility = [];
             bool glyphMetrics = false;
             while (true)
             {
@@ -137,7 +141,8 @@ namespace Mediana.Documents.Pdf
                     case "rg": case "RG": Count(3); Color(new(Channel(N(0)), Channel(N(1)), Channel(N(2))), value.Text == "RG", PdfColorSpace.DeviceRgb); break;
                     case "g": case "G": Count(1); Color(new(Channel(N(0)), Channel(N(0)), Channel(N(0))), value.Text == "G", PdfColorSpace.DeviceGray); break;
                     case "k": case "K": Count(4); Color(new(Channel(1 - Math.Min(1, N(0) + N(3))), Channel(1 - Math.Min(1, N(1) + N(3))), Channel(1 - Math.Min(1, N(2) + N(3)))), value.Text == "K", PdfColorSpace.DeviceCmyk); break;
-                    case "gs": Count(1); ExtState(Get(Get(resources, "ExtGState"), Name(0))); break;
+                    case "sh": Count(1); Shading(Name(0), resources); break;
+                    case "gs": Count(1); ExtState(Get(Get(resources, "ExtGState"), Name(0)), resources, depth); break;
                     case "Do": Count(1); XObject(Name(0), resources, depth); break;
                     case "BT": Count(0); if (_inText) { throw new InvalidDataException("Nested PDF text object."); } _inText = true; _text = _textLine = Matrix3x2.Identity; break;
                     case "ET": Count(0); RequireText(); _inText = false; if (_hasTextClip) { _commands.Add(new ClipCommand(_textClip, FillRule.NonZero)); _hasTextClip = false; _textClip = new(); } break;
@@ -155,9 +160,17 @@ namespace Mediana.Documents.Pdf
                     case "TJ": Count(1); RequireText(); foreach (PdfValue part in Resolve(operands[0]).Items) { if (part.Kind == PdfValueKind.Number) { Advance(-Float(part.Number) * _state.FontSize * _state.HorizontalScale / 1000); } else { Show(part, depth); } } break;
                     case "'": Count(1); MoveText(0, -_state.Leading); Show(Resolve(operands[0]), depth); break;
                     case "\"": Count(3); _state = _state with { WordSpace = F(0), CharacterSpace = F(1) }; MoveText(0, -_state.Leading); Show(Resolve(operands[2]), depth); break;
+                    case "BMC": Count(1); BeginMarkedContent(visibility, Name(0), PdfValue.Null, resources); break;
+                    case "BDC": Count(2); BeginMarkedContent(visibility, Name(0), Resolve(operands[1]), resources); break;
+                    case "EMC":
+                        Count(0);
+                        if (!visibility.TryPop(out bool visible)) { throw new InvalidDataException("Unbalanced PDF marked content."); }
+                        _contentVisible = visible;
+                        break;
+                    case "MP": Count(1); _ = Name(0); break;
+                    case "DP": Count(2); _ = Name(0); break;
                     case "BX": Count(0); compatibility++; break;
                     case "EX": Count(0); if (--compatibility < 0) { throw new InvalidDataException("Unbalanced PDF compatibility section."); } break;
-                    case "BMC": case "BDC": case "EMC": case "MP": case "DP": break;
                     case "ri": Count(1); _unsupported.Add("Rendering intent: " + Name(0)); break;
                     case "i": Count(1); break;
                     case "BI": throw new NotSupportedException("Inline PDF images are not supported yet.");
@@ -165,15 +178,15 @@ namespace Mediana.Documents.Pdf
                 }
                 operands.Clear();
             }
-            if (operands.Count != 0 || saved.Count != 0 || compatibility != 0 || _inText || glyph && !glyphMetrics) { throw new InvalidDataException("Unbalanced PDF content stream."); }
+            if (operands.Count != 0 || saved.Count != 0 || visibility.Count != 0 || compatibility != 0 || _inText || glyph && !glyphMetrics) { throw new InvalidDataException("Unbalanced PDF content stream."); }
         }
         private void RequirePoint() { if (!_hasPoint) { throw new InvalidDataException("PDF path has no current point."); } }
         private void Close() { RequirePoint(); _path.Close(); _current = _start; }
         private void Curve(Vector2 a, Vector2 b, Vector2 end) { _path.CubicTo(a.X, a.Y, b.X, b.Y, end.X, end.Y); _current = end; }
         private void Finish(bool fill, bool stroke, FillRule rule)
         {
-            if (fill) { _commands.Add(new FillCommand(_path, _state.Fill with { A = Channel(_state.FillAlpha) }, rule, _state.Blend)); }
-            if (stroke) { _commands.Add(new StrokeCommand(_path, _state.Stroke with { A = Channel(_state.StrokeAlpha) }, _state.Pen, _state.Transform, _state.Blend)); }
+            if (fill) { AddPaint(new FillCommand(_path, _state.Fill with { A = Channel(_state.FillAlpha) }, rule, _state.Blend)); }
+            if (stroke) { AddPaint(new StrokeCommand(_path, _state.Stroke with { A = Channel(_state.StrokeAlpha) }, _state.Pen, _state.Transform, _state.Blend)); }
             if (_pendingClip is FillRule clip) { _commands.Add(new ClipCommand(_path, clip)); }
             _path = new(); _hasPoint = false; _pendingClip = null;
         }
@@ -186,7 +199,7 @@ namespace Mediana.Documents.Pdf
             }
         }
         private static byte Channel(double value) => (byte)Math.Clamp(Math.Round(value * 255), 0, 255);
-        private void ExtState(PdfValue state)
+        private void ExtState(PdfValue state, PdfValue resources, int depth)
         {
             if (state.Kind != PdfValueKind.Dictionary) { throw new InvalidDataException("Missing PDF extended graphics state."); }
             foreach ((string key, PdfValue raw) in state.Entries)
@@ -199,8 +212,12 @@ namespace Mediana.Documents.Pdf
                     case "CA": _state = _state with { StrokeAlpha = Math.Clamp(Float(value.Numeric()), 0, 1) }; break;
                     case "BM":
                         if (value.Kind == PdfValueKind.Array) { _unsupported.Add("Blend mode preference array"); break; }
-                        _state = _state with { Blend = Blend(value.Name()) }; break;
-                    case "SMask": if (value.Kind != PdfValueKind.Name || value.Text != "None") { _unsupported.Add("Graphics-state soft mask"); } break;
+                        ColorBlendMode blend = Blend(value.Name());
+                        if (_grayGroup && blend != ColorBlendMode.Normal) { _unsupported.Add("Non-normal blend in a grayscale group"); }
+                        _state = _state with { Blend = blend }; break;
+                    case "SMask":
+                        _state = _state with { SoftMask = ReadSoftMask(value, resources, depth) };
+                        break;
                     default: _unsupported.Add("Extended graphics state: " + key); break;
                 }
             }
@@ -227,34 +244,43 @@ namespace Mediana.Documents.Pdf
         };
         private void XObject(string name, PdfValue resources, int depth)
         {
+            if (!_contentVisible) { return; }
             PdfValue reference = Get(resources, "XObject").Get(name);
             PdfObject obj = storage.Object(reference, token);
+            PdfValue membership = Get(obj.Value, "OC");
+            if (membership.Kind != PdfValueKind.Null && !optionalContent.IsVisible(membership, token, ref _operations)) { return; }
             string subtype = Get(obj.Value, "Subtype").Name();
             if (subtype == "Image")
             {
                 if (_state.UncoloredGlyph && Get(obj.Value, "ImageMask").Number == 0) { throw new InvalidDataException("An uncolored Type 3 glyph may contain only image masks."); }
                 PdfImage image = Image(obj, name, 0);
                 Matrix3x2 placement = new Matrix3x2(1f / image.Width, 0, 0, -1f / image.Height, 0, 1) * _state.Transform;
-                _commands.Add(new ImageCommand(image.Buffer, placement, _state.FillAlpha, _state.Blend));
+                AddPaint(new ImageCommand(image.Buffer, placement, _state.FillAlpha, _state.Blend));
             }
             else if (subtype == "Form")
             {
-                if (!_forms.Add(obj)) { throw new InvalidDataException("Recursive PDF Form XObject."); }
-                try
-                {
-                    FormGroup(Get(obj.Value, "Group"));
-                    if (obj.Value.Get("OC").Kind != PdfValueKind.Null) { _unsupported.Add("Form optional content"); }
-                    Matrix3x2 transform = _state.Transform;
-                    if (obj.Value.Get("Matrix").Kind != PdfValueKind.Null) { transform = Matrix(obj.Value.Get("Matrix")) * transform; }
-                    PdfValue local = obj.Value.Get("Resources").Kind == PdfValueKind.Null ? resources : Get(obj.Value, "Resources");
-                    ExecuteNested(obj, local, transform, depth + 1, boundingBox: Get(obj.Value, "BBox"));
-                }
-                finally
-                {
-                    _forms.Remove(obj);
-                }
+                Matrix3x2 transform = _state.Transform;
+                if (obj.Value.Get("Matrix").Kind != PdfValueKind.Null) { transform = Matrix(obj.Value.Get("Matrix")) * transform; }
+                PaintForm(obj, resources, transform, depth);
             }
             else { throw new NotSupportedException("Unsupported PDF XObject subtype: " + subtype); }
+        }
+        private void PaintForm(PdfObject obj, PdfValue resources, Matrix3x2 transform, int depth)
+        {
+            if (!_forms.Add(obj)) { throw new InvalidDataException("Recursive PDF Form XObject."); }
+            try
+            {
+                PdfValue local = obj.Value.Get("Resources").Kind == PdfValueKind.Null ? resources : Get(obj.Value, "Resources");
+                PdfValue group = Get(obj.Value, "Group");
+                if (group.Kind == PdfValueKind.Null)
+                { ExecuteNested(obj, local, transform, depth + 1, boundingBox: Get(obj.Value, "BBox")); }
+                else
+                { AddPaint(CaptureGroup(obj, local, transform, depth, group)); }
+            }
+            finally
+            {
+                _forms.Remove(obj);
+            }
         }
     }
 }

@@ -17,8 +17,6 @@ namespace Mediana.Cli
 {
     internal static class ImageEngineFactory
     {
-        private const int MaximumInputBytes = 64 * 1024 * 1024;
-        private const int MaximumPixels = 16 * 1024 * 1024;
         private const int MaximumDocumentPreviewDimension = 1200;
 
         public static MediaEngine Create() => AddDecoders(new MediaEngineBuilder()).Build();
@@ -27,37 +25,56 @@ namespace Mediana.Cli
             .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
             .AddImageDecoder(CreateTgs())
             .AddImageDecoder(new MeshImageDecoder())
-            .AddImageDecoder(new OpenXmlImageDecoder([new WordPreviewDecoder(), new ThreeMfPageDecoder()]))
-            .AddImageDecoder(new PdfImageDecoder(renderOptions: new()
+            .AddImageDecoder(new OpenXmlImageDecoder([new WordPreviewDecoder(), new ThreeMfPageDecoder()], CommandImageResources.PackageOptions))
+            .AddImageDecoder(new PdfImageDecoder(CommandImageResources.PdfReaderOptions, CommandImageResources.PdfRenderOptions with
             {
                 MaximumWidth = MaximumDocumentPreviewDimension,
                 MaximumHeight = MaximumDocumentPreviewDimension
             }));
 
         internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
-            .AddImageDecoder(new PngImageDecoder())
-            .AddImageDecoder(new JpegImageDecoder())
+            .AddImageDecoder(new PngImageDecoder(new()
+            {
+                MaximumEncodedBytes = CommandImageResources.MaximumBufferLength,
+                MaximumPixels = CommandImageResources.MaximumRgbaPixels
+            }))
+            .AddImageDecoder(new JpegImageDecoder(new()
+            {
+                MaximumEncodedBytes = CommandImageResources.MaximumBufferLength,
+                MaximumPixels = CommandImageResources.MaximumRgbaPixels
+            }))
             .AddImageDecoder(CreateHeic(SampleAspectRatio.Square))
             .AddImageDecoder(CreateJpeg2000(SampleAspectRatio.Square))
-            .AddImageDecoder(new SvgImageDecoder());
+            .AddImageDecoder(CreateSvg());
 
         public static TgsImageDecoder CreateTgs(int? width = null) => new(new()
         {
             IgnorePuppetEffects = true,
-            IgnoreExpressions = true
-        }, new() { Width = width });
+            IgnoreExpressions = true,
+            MaximumInputBytes = CommandImageResources.MaximumBufferLength,
+            MaximumJsonBytes = CommandImageResources.MaximumBufferLength
+        }, CommandImageResources.DrawingOptions(width));
+
+        public static SvgImageDecoder CreateSvg(int? width = null) => new(new()
+        {
+            MaximumInputBytes = CommandImageResources.MaximumBufferLength,
+            MaximumImagePixels = CommandImageResources.MaximumRgbaPixels
+        }, CommandImageResources.DrawingOptions(width));
 
         public static HeicImageDecoder CreateHeic(SampleAspectRatio aspect) => new(aspect,
-            new HeicDecodeOptions(maxInputBytes: MaximumInputBytes, maxPixels: MaximumPixels));
+            new HeicDecodeOptions(maxInputBytes: CommandImageResources.MaximumBufferLength, maxPixels: CommandImageResources.MaximumRgbaPixels));
         public static Jpeg2000ImageDecoder CreateJpeg2000(SampleAspectRatio aspect) => new(aspect, new()
         {
-            MaximumEncodedBytes = MaximumInputBytes,
-            MaximumPixels = MaximumPixels
+            MaximumEncodedBytes = CommandImageResources.MaximumBufferLength,
+            MaximumPixels = CommandImageResources.MaximumRgbaPixels,
+            MaximumWorkingBytes = long.MaxValue
         });
         public static Jbig2ImageDecoder CreateJbig2(SampleAspectRatio aspect) => new(aspect, new()
         {
-            MaximumEncodedBytes = MaximumInputBytes,
-            MaximumPixels = MaximumPixels
+            MaximumEncodedBytes = CommandImageResources.MaximumBufferLength,
+            MaximumPixels = CommandImageResources.MaximumRgbaPixels,
+            MaximumDecodedPixels = long.MaxValue,
+            MaximumWorkingBytes = long.MaxValue
         });
     }
 }

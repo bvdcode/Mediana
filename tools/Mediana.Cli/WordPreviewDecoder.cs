@@ -13,8 +13,8 @@ namespace Mediana.Cli
 {
     internal class WordPreviewDecoder : IOpenXmlPageDecoder
     {
-        private static readonly WordReaderOptions ReaderOptions = new() { AllowFractionalMeasurements = true, DefaultPageSize = WordPageSize.A4 };
-        private static readonly WordRenderOptions RenderOptions = new() { MaximumWidth = 1200, MaximumHeight = 1200, ImageColorResolver = SdrPreviewColorPolicy.Resolve };
+        private static readonly WordReaderOptions ReaderOptions = new() { Package = CommandImageResources.PackageOptions, AllowFractionalMeasurements = true, DefaultPageSize = WordPageSize.A4 };
+        private static readonly WordRenderOptions RenderOptions = new() { MaximumWidth = 1200, MaximumHeight = 1200, MaximumSamples = CommandImageResources.MaximumRgbaPixels, MaximumImagePixels = CommandImageResources.MaximumRgbaPixels, ImageColorResolver = SdrPreviewColorPolicy.Resolve };
 
         public string ContentType => WordReader.DocumentContentType;
         public IReadOnlyList<string> RelationshipTypes => OpenXmlPackage.OfficeDocumentRelationships;

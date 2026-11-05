@@ -93,10 +93,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS drawing surfaces: reuse, trimming, disposal, construction failure and exact effect budgets.");
             await SvgReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Svg"));
             Console.WriteLine("PASS SVG: 352 filter pixel references and Latin/Cyrillic font rendering.");
-            await HeifReferenceTestInput.VerifyWavefrontAsync();
-            await HeifReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
-            await HeifFrameOwnershipTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif"));
-            Console.WriteLine("PASS HEIC: 42 independent full RGBA references, transforms, grids and alpha.");
+            await NativeHeifTests.RunAsync();
             await Jbig2ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jbig2"));
             Console.WriteLine("PASS JBIG2: 98 authored pixel references match all packed page bytes.");
             await Jpeg2000ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg2000"));

@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs.Jbig2;
-using Mediana.Codecs.Jpeg2000;
 using Mediana.Drawing;
 namespace Mediana.Documents.Pdf
 {
@@ -34,26 +33,12 @@ namespace Mediana.Documents.Pdf
                 {
                     pixels = DecodeJpeg(obj, data, width, height, bits, colorSpace, stencil, reduction);
                 }
-                else if (codec == "JPXDecode" && colorSpace.Kind == PdfValueKind.Null)
+                else if (codec == "JPXDecode")
                 {
-                    if (obj.Value.Get("Decode").Kind != PdfValueKind.Null || Get(obj.Value, "SMaskInData").Number != 0) { throw new NotSupportedException("JPX Decode and SMaskInData overrides are not supported yet."); }
-                    Jpeg2000Image jpeg = Jpeg2000Decoder.Decode(data, new() { MaximumEncodedBytes = storage.Budget.Options.MaximumInputBytes, MaximumPixels = storage.Budget.Options.MaximumImagePixels, MaximumWorkingBytes = storage.Budget.Options.MaximumImageBytes, ExpectedWidth = width, ExpectedHeight = height }, token);
-                    if (jpeg.Width != width || jpeg.Height != height) { throw new InvalidDataException("PDF JPEG 2000 dimensions differ."); }
-                    pixels = new(width, height);
-                    bool converted = false;
-                    try
-                    {
-                        jpeg.WriteRgbaTo(pixels.Pixels.Span, cancellationToken: token);
-                        converted = true;
-                    }
-                    finally
-                    {
-                        if (!converted) { pixels.Dispose(); }
-                    }
+                    pixels = DecodeJpeg2000(obj, data, width, height, colorSpace, stencil);
                 }
                 else
                 {
-                    if (codec == "JPXDecode") { throw new NotSupportedException("JPX images with an explicit PDF color space are not implemented yet."); }
                     if (codec == "JBIG2Decode")
                     {
                         PdfValue parameters = Get(obj.Value, "DecodeParms");

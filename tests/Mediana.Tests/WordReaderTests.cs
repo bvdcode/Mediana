@@ -24,7 +24,7 @@ namespace Mediana.Tests
                 <w:p><w:pPr><w:pStyle w:val="child"/><w:rPr><w:sz w:val="40"/></w:rPr></w:pPr>
                 <w:r><w:rPr><w:rStyle w:val="plain"/><w:i w:val="0"/></w:rPr><w:t>Text</w:t></w:r></w:p>
                 """, styles));
-            WordParagraph paragraph = Assert.IsType<WordParagraph>(Assert.Single(document.Blocks));
+            WordParagraph paragraph = Assert.IsType<WordParagraph>(Assert.Single(document.Sections.Single().Blocks));
             WordText text = Assert.IsType<WordText>(Assert.Single(paragraph.Content));
             Assert.Equal(5, paragraph.Format.Before);
             Assert.Equal(15, paragraph.Format.After);
@@ -51,7 +51,7 @@ namespace Mediana.Tests
             byte[] input = WordTestInput.Create("<w:p><w:pPr><w:ind w:left=\"283.4645\"/></w:pPr></w:p>");
             Assert.Throws<InvalidDataException>(() => WordReader.Read(input));
             WordDocument document = WordReader.Read(input, new() { AllowFractionalMeasurements = true });
-            Assert.Equal(14.173225, Assert.IsType<WordParagraph>(document.Blocks[0]).Format.Left, 10);
+            Assert.Equal(14.173225, Assert.IsType<WordParagraph>(document.Sections.Single().Blocks[0]).Format.Left, 10);
             Assert.Single(document.Warnings);
         }
 
@@ -65,7 +65,7 @@ namespace Mediana.Tests
                 """;
             const string paragraph = "<w:p><w:pPr><w:numPr><w:numId w:val=\"2\"/></w:numPr></w:pPr><w:r><w:t>List</w:t></w:r></w:p>";
             WordDocument document = WordReader.Read(WordTestInput.Create(paragraph + paragraph, numbering: numbering));
-            WordParagraph first = Assert.IsType<WordParagraph>(document.Blocks[0]), second = Assert.IsType<WordParagraph>(document.Blocks[1]);
+            WordParagraph first = Assert.IsType<WordParagraph>(document.Sections.Single().Blocks[0]), second = Assert.IsType<WordParagraph>(document.Sections.Single().Blocks[1]);
             Assert.Equal("3.", Assert.IsType<WordText>(first.Content[0]).Text);
             Assert.Equal("4.", Assert.IsType<WordText>(second.Content[0]).Text);
             Assert.Equal(36, first.Format.Left);
@@ -81,7 +81,7 @@ namespace Mediana.Tests
                 <w:tc><w:p><w:r><w:t>A</w:t></w:r></w:p></w:tc><w:tc><w:p><w:r><w:t>B</w:t></w:r></w:p></w:tc>
                 </w:tr></w:tbl>
                 """));
-            WordTable table = Assert.IsType<WordTable>(document.Blocks[0]);
+            WordTable table = Assert.IsType<WordTable>(document.Sections.Single().Blocks[0]);
             Assert.Equal(new double[] { 150, 200 }, table.Columns);
             Assert.Equal(2, Assert.Single(table.Rows).Cells.Count);
             Assert.Equal(5, table.Rows[0].Cells[0].Left);
@@ -107,9 +107,9 @@ namespace Mediana.Tests
                 <w:p><w:r><w:t>B</w:t></w:r></w:p>
                 <w:p><w:pPr><w:pStyle w:val="missing"/></w:pPr><w:r><w:t>C</w:t></w:r></w:p>
                 """, styles));
-            WordText first = Assert.IsType<WordText>(Assert.IsType<WordParagraph>(document.Blocks[0]).Content[0]);
-            WordText second = Assert.IsType<WordText>(Assert.IsType<WordParagraph>(document.Blocks[1]).Content[0]);
-            WordText third = Assert.IsType<WordText>(Assert.IsType<WordParagraph>(document.Blocks[2]).Content[0]);
+            WordText first = Assert.IsType<WordText>(Assert.IsType<WordParagraph>(document.Sections.Single().Blocks[0]).Content[0]);
+            WordText second = Assert.IsType<WordText>(Assert.IsType<WordParagraph>(document.Sections.Single().Blocks[1]).Content[0]);
+            WordText third = Assert.IsType<WordText>(Assert.IsType<WordParagraph>(document.Sections.Single().Blocks[2]).Content[0]);
             Assert.True(first.Format.Bold);
             Assert.False(first.Format.Italic);
             Assert.True(second.Format.Italic);
@@ -125,7 +125,7 @@ namespace Mediana.Tests
                 <w:p><w:pPr><w:ind w:firstLine="300" w:hanging="200"/></w:pPr>
                 <w:r><w:rPr><w:b xmlns:other="urn:other" other:val="0"/></w:rPr><w:t>Text</w:t></w:r></w:p>
                 """));
-            WordParagraph paragraph = Assert.IsType<WordParagraph>(document.Blocks[0]);
+            WordParagraph paragraph = Assert.IsType<WordParagraph>(document.Sections.Single().Blocks[0]);
             Assert.Equal(-10, paragraph.Format.FirstLine);
             Assert.True(Assert.IsType<WordText>(paragraph.Content[0]).Format.Bold);
         }
