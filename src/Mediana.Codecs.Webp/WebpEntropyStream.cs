@@ -61,12 +61,15 @@ namespace Mediana.Codecs.Webp
             for (int block = 0; block < tokens.BlockCount; block++)
             {
                 token.ThrowIfCancellationRequested();
-                foreach (ulong value in tokens.GetBlock(block))
+                ReadOnlySpan<uint> values = tokens.GetBlock(block);
+                ReadOnlySpan<uint> references = tokens.GetReferences(block);
+                for (int index = 0; index < values.Length; index++)
                 {
-                    int length = (int)(value >> 32);
-                    if (length == 0)
+                    uint value = values[index];
+                    bool reference = (references[index / 32] & (1u << (index & 31))) != 0;
+                    if (!reference)
                     {
-                        uint pixel = (uint)value;
+                        uint pixel = value;
                         codes[0].WriteSymbol(output, (byte)(pixel >> 8));
                         codes[1].WriteSymbol(output, (byte)pixel);
                         codes[2].WriteSymbol(output, (byte)(pixel >> 16));
@@ -74,8 +77,8 @@ namespace Mediana.Codecs.Webp
                     }
                     else
                     {
-                        WebpLengthCode run = WebpLengthCode.FromValue(length);
-                        WebpLengthCode distance = WebpLengthCode.FromValue((int)(uint)value);
+                        WebpLengthCode run = WebpLengthCode.FromValue((int)values[++index]);
+                        WebpLengthCode distance = WebpLengthCode.FromValue((int)value);
                         codes[0].WriteSymbol(output, 256 + run.Symbol);
                         output.Write(run.Extra, run.ExtraBits);
                         codes[4].WriteSymbol(output, distance.Symbol);
