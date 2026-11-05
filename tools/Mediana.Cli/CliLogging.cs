@@ -12,13 +12,12 @@ namespace Mediana.Cli
         public static void Configure(ILoggingBuilder builder, LogLevel minimumLevel, bool noColor)
         {
             builder.SetMinimumLevel(minimumLevel);
-            builder.AddSimpleConsole(options =>
+            builder.AddConsole(options => options.FormatterName = CliConsoleFormatter.FormatterName);
+            builder.Services.AddSingleton<ConsoleFormatter>(new CliConsoleFormatter(new CliConsoleFormatterOptions
             {
-                options.SingleLine = true;
-                options.TimestampFormat = "HH:mm:ss ";
-                options.ColorBehavior = ColorsEnabled(noColor)
-                    ? LoggerColorBehavior.Enabled : LoggerColorBehavior.Disabled;
-            });
+                TimestampFormat = "HH:mm:ss ",
+                ColorsEnabled = ColorsEnabled(noColor)
+            }));
             builder.Services.Configure<ConsoleLoggerOptions>(options =>
                 options.LogToStandardErrorThreshold = LogLevel.Trace);
         }
