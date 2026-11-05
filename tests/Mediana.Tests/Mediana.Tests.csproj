@@ -5,6 +5,9 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="Data/Emoji/*" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/FluentEmojiTestInput.cs" Link="FluentEmojiTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Drawing.Emoji.Fluent/Mediana.Drawing.Emoji.Fluent.csproj" />
     <Compile Include="../Shared/ExifMetadataTestInput.cs" Link="ExifMetadataTestInput.cs" />
     <Compile Include="../Shared/HeifExifTestInput.cs" Link="HeifExifTestInput.cs" />
     <Compile Include="../Shared/MeshGeometryTestInput.cs" Link="MeshGeometryTestInput.cs" />

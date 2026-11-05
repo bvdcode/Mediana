@@ -7,12 +7,14 @@ using Mediana.Core.Metadata;
 using Mediana.Core.Video;
 using Mediana.Documents.OpenXml;
 using Mediana.Documents.Word;
+using Mediana.Drawing.Emoji.Fluent;
 using Mediana.Processing;
 
 namespace Mediana.Cli
 {
     internal class WordPreviewDecoder : IOpenXmlPageDecoder
     {
+        private static readonly Lazy<FluentEmojiProvider> Emojis = new(() => new());
         private static readonly WordReaderOptions ReaderOptions = new() { Package = CommandImageResources.PackageOptions, AllowFractionalMeasurements = true, DefaultPageSize = WordPageSize.A4 };
         private static readonly WordRenderOptions RenderOptions = new() { MaximumWidth = 1200, MaximumHeight = 1200, MaximumSamples = CommandImageResources.MaximumRgbaPixels, MaximumImagePixels = CommandImageResources.MaximumRgbaPixels, ImageColorResolver = SdrPreviewColorPolicy.Resolve };
 
@@ -30,7 +32,8 @@ namespace Mediana.Cli
             {
                 SubstituteMissingFonts = true,
                 FontResolver = Resolve,
-                FallbackFontResolver = fonts.ResolveCharacter
+                FallbackFontResolver = fonts.ResolveCharacter,
+                InlineGraphicProvider = Emojis.Value
             };
             return await new WordPageDecoder(ReaderOptions, layout, RenderOptions).DecodeAsync(package, mainPart, request, allocator, cancellationToken);
 

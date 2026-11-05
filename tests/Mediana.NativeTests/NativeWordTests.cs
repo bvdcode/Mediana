@@ -12,6 +12,7 @@ namespace Mediana.NativeTests
             OpenXmlPackageTestInput.Verify();
             WordTestInput.Verify();
             await WordRenderTestInput.VerifyAsync();
+            await FluentEmojiTestInput.VerifyAsync();
             Console.WriteLine("PASS Word: public pagination, page rasterization, font ownership and Open XML registration.");
         }
     }
