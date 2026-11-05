@@ -747,7 +747,7 @@ font-cff-cid,read,planned,planned,planned,planned,planned,planned,
 font-cff-cid,write,planned,planned,planned,planned,planned,planned,
 font-cff2,read,planned,planned,planned,planned,planned,planned,
 font-cff2,write,planned,planned,planned,planned,planned,planned,
-font-collection,read,planned,planned,planned,planned,planned,planned,
+font-collection,read,partial,planned,planned,planned,planned,planned,../fonts.md;../../src/Mediana.Drawing/Fonts/TrueTypeFont.cs
 font-collection,write,planned,planned,planned,planned,planned,planned,
 font-variable,read,planned,planned,planned,planned,planned,planned,
 font-variable,write,planned,planned,planned,planned,planned,planned,
@@ -757,15 +757,15 @@ font-bitmap,read,planned,planned,planned,planned,planned,planned,
 font-bitmap,write,planned,planned,planned,planned,planned,planned,
 font-svg,read,planned,planned,planned,planned,planned,planned,
 font-svg,write,planned,planned,planned,planned,planned,planned,
-font-woff,read,planned,planned,planned,planned,planned,planned,
+font-woff,read,partial,planned,planned,planned,planned,planned,../fonts.md;../../src/Mediana.Drawing/Fonts/TrueTypeFont.cs
 font-woff,write,planned,planned,planned,planned,planned,planned,
 font-woff2,read,planned,planned,planned,planned,planned,planned,
 font-woff2,write,planned,planned,planned,planned,planned,planned,
 font-type1,read,planned,planned,planned,planned,planned,planned,
 font-type1,write,planned,planned,planned,planned,planned,planned,
 font-type3,read,partial,partial,partial,planned,planned,planned,../fonts.md;../pdf.md
-font-shaping,read,planned,planned,planned,planned,planned,planned,
-font-shaping,render,planned,planned,planned,planned,planned,planned,
+font-shaping,read,partial,planned,planned,planned,planned,planned,../fonts.md;../../src/Mediana.Drawing/Fonts/TrueTypeFont.Kerning.cs
+font-shaping,render,partial,planned,planned,planned,planned,planned,../fonts.md;../../src/Mediana.Images.Svg/SvgText.cs
 srt,read,planned,planned,planned,planned,planned,planned,
 srt,render,planned,planned,planned,planned,planned,planned,
 srt,write,planned,planned,planned,planned,planned,planned,
@@ -833,7 +833,7 @@ srt-transport,read,planned,planned,planned,planned,planned,planned,
 srt-transport,write,planned,planned,planned,planned,planned,planned,
 id3v2,read,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/Data/Mp3/README.md
 id3v2,write,planned,planned,planned,planned,planned,planned,
-id3v1,read,planned,planned,planned,planned,planned,planned,
+id3v1,read,partial,partial,partial,planned,planned,planned,../../src/Mediana.Containers.Mp3/Id3v1Tag.cs;../../tests/Mediana.Tests/Mp3ReaderTests.cs
 id3v1,write,planned,planned,planned,planned,planned,planned,
 vorbis-comments,read,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/Data/Flac/README.md
 vorbis-comments,write,planned,planned,planned,planned,planned,planned,

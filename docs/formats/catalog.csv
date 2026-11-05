@@ -351,16 +351,16 @@ font-truetype,Fonts and text presentation resources,TrueType / OpenType,glyf out
 font-cff1,Fonts and text presentation resources,OpenType,CFF1 Type 2 outlines,font,.otf,A,opentype,Current name-keyed subset; CID-keyed coverage remains open.
 font-cff-cid,Fonts and text presentation resources,OpenType / CFF,CID-keyed CFF1 fonts,font,.otf,B,opentype,
 font-cff2,Fonts and text presentation resources,OpenType,CFF2 outlines,font,.otf,B,opentype,
-font-collection,Fonts and text presentation resources,TrueType Collection,TTC / OTC multiple faces,font,.ttc .otc,B,opentype,
+font-collection,Fonts and text presentation resources,TrueType Collection,TTC / OTC multiple faces,font,.ttc .otc,B,opentype,"Read: TrueTypeFont opens the first TTC face. Face enumeration, selection and broader TTC/OTC coverage remain open."
 font-variable,Fonts and text presentation resources,OpenType,Variable axes and outline/metric variation,font,.ttf .otf,B,opentype,
 font-colr,Fonts and text presentation resources,OpenType,COLR/CPAL color glyphs v0/v1,font,.ttf .otf,B,opentype,
 font-bitmap,Fonts and text presentation resources,OpenType,"CBDT/CBLC, EBDT/EBLC and sbix glyphs",font,.ttf .otf,B,opentype,
 font-svg,Fonts and text presentation resources,OpenType,SVG glyph documents,font,.ttf .otf,B,opentype;svg,
-font-woff,Fonts and text presentation resources,WOFF,Web font wrapper,font,.woff,B,opentype,
+font-woff,Fonts and text presentation resources,WOFF,Web font wrapper,font,.woff,B,opentype,"Read: WOFF 1 table reconstruction, including raw and zlib-compressed tables, through TrueTypeFont. Wrapper conformance fixtures and writing remain open."
 font-woff2,Fonts and text presentation resources,WOFF2,Transformed/compressed web font wrapper,font,.woff2,B,opentype,
 font-type1,Fonts and text presentation resources,PostScript Type 1,PFA / PFB font programs,font,.pfa .pfb,B,pdf;discovery,
 font-type3,Fonts and text presentation resources,PDF Type 3,Embedded glyph content streams,font,,A,pdf,Current PDF subset draws glyph streams through the page renderer.
-font-shaping,Fonts and text presentation resources,OpenType layout,GSUB/GPOS and script shaping,font,,A,opentype,"Font parsing alone does not implement shaping, bidi or complex-script layout."
+font-shaping,Fonts and text presentation resources,OpenType layout,GSUB/GPOS and script shaping,font,,A,opentype,"Read/render: GPOS kern pair positioning and legacy kern pairs, applied by SVG text. GSUB, script shaping and bidi remain open."
 srt,"Subtitles, captions and timed graphics",SubRip,Timed text cues,timed-text,.srt,A,subtitles;discovery,
 webvtt,"Subtitles, captions and timed graphics",WebVTT,"Text cues, regions and styling",timed-text,.vtt,A,subtitles,
 ass,"Subtitles, captions and timed graphics",ASS / SSA,Styled subtitle scripts,timed-text,.ass .ssa,B,subtitles;discovery,
@@ -388,7 +388,7 @@ rtsp,Streaming presentations and transport protocols,RTSP,Session control and me
 rtmp,Streaming presentations and transport protocols,RTMP,Chunked media transport,streaming,,C,flv;discovery,
 srt-transport,Streaming presentations and transport protocols,SRT transport,Reliable low-latency transport,streaming,,C,discovery,SRT transport is unrelated to SubRip .srt subtitle files.
 id3v2,"Metadata, color and ancillary records",ID3v2,"Text, artwork and structured frames",metadata,,A,metadata,"Current MP3 reader exposes supported text and original pictures, not every frame/revision."
-id3v1,"Metadata, color and ancillary records",ID3v1,Legacy fixed-length tags,metadata,,B,metadata,
+id3v1,"Metadata, color and ancillary records",ID3v1,Legacy fixed-length tags,metadata,,B,metadata,Read: Latin-1 ID3v1/v1.1 trailer fields after packet EOF; retained separately from ID3v2. Writing remains open.
 vorbis-comments,"Metadata, color and ancillary records",Vorbis comments,Text metadata and picture mappings,metadata,,A,flac;vorbis,Current native FLAC reader provides supported comments and pictures.
 mp4-metadata,"Metadata, color and ancillary records",MP4 / QuickTime metadata,"iTunes, indexed keys and artwork",metadata,,A,iso-bmff;quicktime,Current movie-level text and original cover extraction; broader namespaces remain open.
 exif,"Metadata, color and ancillary records",Exif,TIFF directories and presentation tags,metadata,,A,metadata,Current JPEG parser applies primary orientation and supported color/aspect declarations.

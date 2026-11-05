@@ -5,8 +5,10 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
+**Existing implementations: 69 variants · 88 operations.** These counts include implemented subsets; exact scope is recorded below.
+
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
-[Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv)
+[Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
 
 R = read structure/demux; D = decode; V = render; E = encode; W = write/mux/export.
 □ planned; ◐ implemented subset; ✓ complete for the stated scope. A = core; B = expansion;
@@ -19,27 +21,27 @@ does not close these checks. Existing subsets remain ◐ until the row's scope i
 Update the two CSV sources, then run `python3 tools/format-catalog.py` from the repository root.
 Verify the tables with `python3 tools/format-catalog.py --check`.
 
-| Group | Variants | Operations |
-| --- | ---: | ---: |
-| [Containers and packaging](#containers-and-packaging) | 44 | 88 |
-| [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 15 | 30 |
-| [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 23 | 46 |
-| [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 26 | 52 |
-| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 35 | 64 |
-| [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 16 | 32 |
-| [GPU texture coding](#gpu-texture-coding) | 14 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 62 | 124 |
-| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 63 | 128 |
-| [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 11 | 33 |
-| [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 39 | 115 |
-| [Fonts and text presentation resources](#fonts-and-text-presentation-resources) | 14 | 27 |
-| [Subtitles, captions and timed graphics](#subtitles-captions-and-timed-graphics) | 13 | 39 |
-| [Streaming presentations and transport protocols](#streaming-presentations-and-transport-protocols) | 13 | 26 |
-| [Metadata, color and ancillary records](#metadata-color-and-ancillary-records) | 12 | 24 |
-| [3D meshes and manufacturing interchange](#3d-meshes-and-manufacturing-interchange) | 14 | 41 |
-| [3D scenes, materials and animation](#3d-scenes-materials-and-animation) | 20 | 60 |
-| [CAD, BIM and engineering geometry](#cad-bim-and-engineering-geometry) | 18 | 54 |
-| [Point clouds, geometry compression and volumes](#point-clouds-geometry-compression-and-volumes) | 17 | 47 |
+| Group | Implemented variants | Target variants | Implemented operations | Target operations |
+| --- | ---: | ---: | ---: | ---: |
+| [Containers and packaging](#containers-and-packaging) | 12 | 44 | 14 | 88 |
+| [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 6 | 30 |
+| [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
+| [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 8 | 26 | 9 | 52 |
+| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 0 | 35 | 0 | 64 |
+| [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
+| [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 4 | 62 | 5 | 124 |
+| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 12 | 63 | 18 | 128 |
+| [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
+| [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 5 | 39 | 8 | 115 |
+| [Fonts and text presentation resources](#fonts-and-text-presentation-resources) | 6 | 14 | 7 | 27 |
+| [Subtitles, captions and timed graphics](#subtitles-captions-and-timed-graphics) | 0 | 13 | 0 | 39 |
+| [Streaming presentations and transport protocols](#streaming-presentations-and-transport-protocols) | 2 | 13 | 2 | 26 |
+| [Metadata, color and ancillary records](#metadata-color-and-ancillary-records) | 5 | 12 | 5 | 24 |
+| [3D meshes and manufacturing interchange](#3d-meshes-and-manufacturing-interchange) | 0 | 14 | 0 | 41 |
+| [3D scenes, materials and animation](#3d-scenes-materials-and-animation) | 0 | 20 | 0 | 60 |
+| [CAD, BIM and engineering geometry](#cad-bim-and-engineering-geometry) | 0 | 18 | 0 | 54 |
+| [Point clouds, geometry compression and volumes](#point-clouds-geometry-compression-and-volumes) | 0 | 17 | 0 | 47 |
 
 ## Containers and packaging
 
@@ -452,16 +454,16 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `font-cff1` | OpenType — CFF1 Type 2 outlines | .otf | R ◐ · W □ | A | Current name-keyed subset; CID-keyed coverage remains open. [opentype](sources.md#opentype) |
 | `font-cff-cid` | OpenType / CFF — CID-keyed CFF1 fonts | .otf | R □ · W □ | B | [opentype](sources.md#opentype) |
 | `font-cff2` | OpenType — CFF2 outlines | .otf | R □ · W □ | B | [opentype](sources.md#opentype) |
-| `font-collection` | TrueType Collection — TTC / OTC multiple faces | .ttc .otc | R □ · W □ | B | [opentype](sources.md#opentype) |
+| `font-collection` | TrueType Collection — TTC / OTC multiple faces | .ttc .otc | R ◐ · W □ | B | Read: TrueTypeFont opens the first TTC face. Face enumeration, selection and broader TTC/OTC coverage remain open. [opentype](sources.md#opentype) |
 | `font-variable` | OpenType — Variable axes and outline/metric variation | .ttf .otf | R □ · W □ | B | [opentype](sources.md#opentype) |
 | `font-colr` | OpenType — COLR/CPAL color glyphs v0/v1 | .ttf .otf | R □ · W □ | B | [opentype](sources.md#opentype) |
 | `font-bitmap` | OpenType — CBDT/CBLC, EBDT/EBLC and sbix glyphs | .ttf .otf | R □ · W □ | B | [opentype](sources.md#opentype) |
 | `font-svg` | OpenType — SVG glyph documents | .ttf .otf | R □ · W □ | B | [opentype](sources.md#opentype), [svg](sources.md#svg) |
-| `font-woff` | WOFF — Web font wrapper | .woff | R □ · W □ | B | [opentype](sources.md#opentype) |
+| `font-woff` | WOFF — Web font wrapper | .woff | R ◐ · W □ | B | Read: WOFF 1 table reconstruction, including raw and zlib-compressed tables, through TrueTypeFont. Wrapper conformance fixtures and writing remain open. [opentype](sources.md#opentype) |
 | `font-woff2` | WOFF2 — Transformed/compressed web font wrapper | .woff2 | R □ · W □ | B | [opentype](sources.md#opentype) |
 | `font-type1` | PostScript Type 1 — PFA / PFB font programs | .pfa .pfb | R □ · W □ | B | [pdf](sources.md#pdf), [discovery](sources.md#discovery) |
 | `font-type3` | PDF Type 3 — Embedded glyph content streams | — | R ◐ | A | Current PDF subset draws glyph streams through the page renderer. [pdf](sources.md#pdf) |
-| `font-shaping` | OpenType layout — GSUB/GPOS and script shaping | — | R □ · V □ | A | Font parsing alone does not implement shaping, bidi or complex-script layout. [opentype](sources.md#opentype) |
+| `font-shaping` | OpenType layout — GSUB/GPOS and script shaping | — | R ◐ · V ◐ | A | Read/render: GPOS kern pair positioning and legacy kern pairs, applied by SVG text. GSUB, script shaping and bidi remain open. [opentype](sources.md#opentype) |
 
 ## Subtitles, captions and timed graphics
 
@@ -504,7 +506,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources |
 | --- | --- | --- | --- | :---: | --- |
 | `id3v2` | ID3v2 — Text, artwork and structured frames | — | R ◐ · W □ | A | Current MP3 reader exposes supported text and original pictures, not every frame/revision. [metadata](sources.md#metadata) |
-| `id3v1` | ID3v1 — Legacy fixed-length tags | — | R □ · W □ | B | [metadata](sources.md#metadata) |
+| `id3v1` | ID3v1 — Legacy fixed-length tags | — | R ◐ · W □ | B | Read: Latin-1 ID3v1/v1.1 trailer fields after packet EOF; retained separately from ID3v2. Writing remains open. [metadata](sources.md#metadata) |
 | `vorbis-comments` | Vorbis comments — Text metadata and picture mappings | — | R ◐ · W □ | A | Current native FLAC reader provides supported comments and pictures. [flac](sources.md#flac), [vorbis](sources.md#vorbis) |
 | `mp4-metadata` | MP4 / QuickTime metadata — iTunes, indexed keys and artwork | — | R ◐ · W □ | A | Current movie-level text and original cover extraction; broader namespaces remain open. [iso-bmff](sources.md#iso-bmff), [quicktime](sources.md#quicktime) |
 | `exif` | Exif — TIFF directories and presentation tags | — | R ◐ · W □ | A | Current JPEG parser applies primary orientation and supported color/aspect declarations. [metadata](sources.md#metadata) |

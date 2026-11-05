@@ -115,6 +115,8 @@ def section_anchor(section: str) -> str:
 def render(formats: list[Format], checks: list[Check]) -> str:
     """Render the overview and grouped format tables."""
     sections = list(dict.fromkeys(item.section for item in formats))
+    implemented = [item for item in checks if item.implementation != "planned"]
+    implemented_ids = {item.format_id for item in implemented}
     lines = [
         "# Format implementation catalog",
         "",
@@ -126,10 +128,15 @@ def render(formats: list[Format], checks: list[Check]) -> str:
         f"**{len(formats)} variants · {len(checks)} operations · "
         f"{len(sections)} groups.**",
         "",
+        f"**Existing implementations: {len(implemented_ids)} variants · "
+        f"{len(implemented)} operations.** "
+        "These counts include implemented subsets; exact scope is recorded below.",
+        "",
         "[How to use the checklist and verify completion](guide.md) · "
         "[Specifications](sources.md) ·",
         "[Format definitions (CSV)](catalog.csv) · "
-        "[Operation checklist (CSV)](checks.csv)",
+        "[Operation checklist (CSV)](checks.csv) · "
+        "[Render.NET coverage and remaining modules](../rendering-coverage.md)",
         "",
         "R = read structure/demux; D = decode; V = render; "
         "E = encode; W = write/mux/export.",
@@ -148,13 +155,20 @@ def render(formats: list[Format], checks: list[Check]) -> str:
         "Update the two CSV sources, then run `python3 tools/format-catalog.py` "
         "from the repository root.",
         "Verify the tables with `python3 tools/format-catalog.py --check`.", "",
-        "| Group | Variants | Operations |", "| --- | ---: | ---: |",
+        "| Group | Implemented variants | Target variants | "
+        "Implemented operations | Target operations |",
+        "| --- | ---: | ---: | ---: | ---: |",
     ]
     for section in sections:
         ids = {item.id for item in formats if item.section == section}
         count = sum(item.format_id in ids for item in checks)
+        implemented_count = sum(item.format_id in ids for item in implemented)
+        implemented_variants = len(ids & implemented_ids)
         anchor = section_anchor(section)
-        lines.append(f"| [{cell(section)}](#{anchor}) | {len(ids)} | {count} |")
+        lines.append(
+            f"| [{cell(section)}](#{anchor}) | {implemented_variants} | "
+            f"{len(ids)} | {implemented_count} | {count} |"
+        )
     for section in sections:
         lines.extend(
             [
