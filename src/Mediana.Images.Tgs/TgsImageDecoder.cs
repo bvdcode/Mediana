@@ -12,7 +12,7 @@ namespace Mediana.Images.Tgs
 {
     /// <summary>Registered TGS/Lottie rendering at an elapsed time from the composition in-point.
     /// Output timestamps preserve the requested time; durations use the renderer's TimeSpan resolution.</summary>
-    public class TgsImageDecoder(TgsReaderOptions? readerOptions = null, DrawingRenderOptions? renderOptions = null) : IImageDecoder, IImageInfoReader
+    public partial class TgsImageDecoder(TgsReaderOptions? readerOptions = null, DrawingRenderOptions? renderOptions = null) : IImageDecoder, IImageInfoReader
     {
         public string ImplementationId => "tgs.managed.image";
         public int ProbeLength => 512;
@@ -52,6 +52,12 @@ namespace Mediana.Images.Tgs
             request.Validate(Features);
             TgsDocument document = TgsReader.Read(encoded, readerOptions, cancellationToken);
             MediaTimestamp time = request.Time ?? new MediaTimestamp(0, TimeBase.TimeSpanTicks);
+            return ValueTask.FromResult(Render(document, time, null, request, allocator, cancellationToken));
+        }
+
+        private VideoFrame Render(TgsDocument document, MediaTimestamp time, MediaDuration? duration, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken)
+        {
             double seconds = time.Value * (double)time.TimeBase.Numerator / time.TimeBase.Denominator;
             TgsFrame rendered = TgsRenderer.RenderFrameDetailed(document, document.InPoint + seconds * document.FrameRate,
                 renderOptions, cancellationToken, allocator);
@@ -60,8 +66,7 @@ namespace Mediana.Images.Tgs
             {
                 request.WarningHandler?.Invoke(warning);
             }
-            MediaDuration duration = new(rendered.Duration.Ticks, TimeBase.TimeSpanTicks);
-            return ValueTask.FromResult(pixels.PublishVideoFrame(cancellationToken, time, duration));
+            return pixels.PublishVideoFrame(cancellationToken, time, duration ?? new(rendered.Duration.Ticks, TimeBase.TimeSpanTicks));
         }
     }
 }
