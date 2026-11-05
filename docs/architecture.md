@@ -165,6 +165,23 @@ not scan encoded packets. Image readers may inspect the entire input, bounded by
 retains its own parsing-work limits. A successful probe describes declared metadata
 and does not guarantee support for every encoded feature.
 
+`MediaInfo.Metadata` is the common extensible property tree for every representation.
+Each `MediaMetadata` scope contains namespaced `MediaProperty` entries and child
+scopes: for example, pages, streams, slides, components or native Exif directories.
+Properties contain ordered typed values: text, signed/unsigned integers, finite
+numbers, booleans, exact rational pairs or owned binary data. Adding a format or
+native property does not add a field to the shared result or a format branch to
+the CLI formatter. Native names and numeric declarations remain available even
+when the library does not decode the corresponding feature.
+
+Operation contracts such as stream selection, timestamps, dimensions and color
+conversion remain typed domain APIs. The property tree describes inspection
+results; processing does not depend on looking up arbitrary metadata keys.
+Container and image readers populate the same immutable tree, and one CLI
+formatter escapes text and formats values independent of the input format.
+Binary properties expose their bytes through the library; console output shows
+their lengths.
+
 Movies explicitly declaring QuickTime compatibility accept both classic `meta`
 atoms and version-0 ISO-style metadata boxes. The initial zero version/flags word
 selects the full-box form; other QuickTime payloads start directly with child

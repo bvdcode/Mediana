@@ -1443,6 +1443,15 @@ Headers and decoder configuration are inspected; this is not a complete file
 validation, a packet index export or a cover-art API. The existing
 format-specific probe commands provide their additional diagnostics.
 
+`MediaInfo.Metadata` provides a common immutable tree of namespaced, typed
+properties for containers, images and documents. Child scopes retain pages,
+components, encoding configurations and Exif directories. New native properties
+do not require new fields in the shared model. The CLI prints this tree through
+one formatter and reports encoded size when the source supplies it. HEIF exposes
+brands, coded configurations, grids, transformations and color declarations;
+JPEG and PNG use the same Exif reader. PDF exposes each page's dimensions and
+rotation, SVG its root attributes, and TGS/Lottie its composition timing.
+
 `ContainerInfo.Tags` exposes immutable header text without changing native keys.
 ID3v2 frames use namespace `id3v2`; FLAC Vorbis comments use `vorbis`; MP4 text
 items keep their native `mdir`, `mdta` or freeform namespace. Repeated names,
