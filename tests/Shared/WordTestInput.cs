@@ -11,22 +11,28 @@ namespace Mediana.Tests
     {
         internal const string Page = "<w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/><w:pgMar w:top=\"1440\" w:bottom=\"1440\" w:left=\"1440\" w:right=\"1440\"/></w:sectPr>";
 
-        internal static byte[] Create(string body, string? styles = null, string? numbering = null, string? page = Page)
+        internal static byte[] Create(string body, string? styles = null, string? numbering = null, string? page = Page, byte[]? picture = null)
         {
             const string word = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
             const string relations = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/";
             using MemoryStream output = new();
             using (ZipArchive archive = new(output, ZipArchiveMode.Create, leaveOpen: true))
             {
-                Write("[Content_Types].xml", "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"xml\" ContentType=\"application/xml\"/>"
+                Write("[Content_Types].xml", "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"png\" ContentType=\"image/png\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/>"
                     + "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Override PartName=\"/content/report.xml\" ContentType=\""
                     + WordReader.DocumentContentType + "\"/></Types>");
                 Write("_rels/.rels", "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"main\" Type=\""
                     + relations + "officeDocument\" Target=\"content/report.xml\"/></Relationships>");
-                Write("content/report.xml", "<w:document xmlns:w=\"" + word + "\"><w:body>" + body + page + "</w:body></w:document>");
+                Write("content/report.xml", "<w:document xmlns:w=\"" + word + "\" xmlns:r=\"" + relations.TrimEnd('/') + "\"><w:body>" + body + page + "</w:body></w:document>");
                 StringBuilder linked = new("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
                 if (styles is not null) { Part("styles", styles); }
                 if (numbering is not null) { Part("numbering", numbering); }
+                if (picture is not null)
+                {
+                    using Stream image = archive.CreateEntry("resources/picture.png", CompressionLevel.Fastest).Open();
+                    image.Write(picture);
+                    linked.Append("<Relationship Id=\"picture\" Type=\"").Append(relations).Append("image\" Target=\"../resources/picture.png\"/>");
+                }
                 linked.Append("</Relationships>");
                 Write("content/_rels/report.xml.rels", linked.ToString());
 

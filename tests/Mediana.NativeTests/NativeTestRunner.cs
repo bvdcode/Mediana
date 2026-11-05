@@ -14,8 +14,7 @@ namespace Mediana.NativeTests
         public static async Task RunAsync()
         {
             NativeCoreMemoryTests.Run();
-            OpenXmlPackageTestInput.Verify();
-            WordTestInput.Verify();
+            await NativeWordTests.RunAsync();
             await NativeEbmlTests.RunAsync();
             foreach (bool stereo in new[] { false, true })
             {
