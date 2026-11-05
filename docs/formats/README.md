@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 77 variants · 101 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 78 variants · 102 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -26,7 +26,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Containers and packaging](#containers-and-packaging) | 12 | 44 | 14 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 6 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
-| [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 11 | 26 | 12 | 52 |
+| [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 13 | 52 |
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 0 | 35 | 0 | 64 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
@@ -150,10 +150,10 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `png-alpha` | PNG — Grayscale/truecolor with alpha, 8/16-bit | .png | D ◐ · E ◐ | A | Current encoder emits noninterlaced straight-alpha RGBA8 sRGB only. [png](sources.md#png) |
 | `png-adam7` | PNG — Adam7 interlace | .png | D ◐ · E □ | A | [png](sources.md#png) |
 | `apng` | APNG — Animated PNG with frame disposal/blending | .png .apng | D □ · E □ | A | [png](sources.md#png) |
-| `webp-lossy` | WebP — Lossy VP8 image | .webp | D □ · E □ | A | [webp](sources.md#webp) |
+| `webp-lossy` | WebP — Lossy VP8 image | .webp | D □ · E ◐ | A | Managed VP8 keyframe encoding with quality 0-100 and lossless alpha; decoding remains open. [webp](sources.md#webp) |
 | `webp-lossless` | WebP — Lossless VP8L image | .webp | D □ · E ◐ | A | Current encoder preserves straight RGBA8 sRGB exactly, including transparent RGB; decoding remains open. [webp](sources.md#webp) |
-| `webp-extended` | WebP — Extended RIFF, alpha and metadata | .webp | D □ · E ◐ | A | Lossless alpha and animation headers are written; lossy alpha, ICC, Exif and XMP remain open. [webp](sources.md#webp) |
-| `webp-animation` | WebP — Animated extended WebP | .webp | D □ · E ◐ | A | Current writer emits timed full-canvas lossless replacement frames to a seekable stream; partial rectangles, blending and disposal remain open. [webp](sources.md#webp) |
+| `webp-extended` | WebP — Extended RIFF, alpha and metadata | .webp | D □ · E ◐ | A | VP8X canvas flags, raw or lossless-compressed ALPH and unchanged ICC/EXIF/XMP payloads. [webp](sources.md#webp) |
+| `webp-animation` | WebP — Animated extended WebP | .webp | D □ · E ◐ | A | Incremental VP8/VP8L or mixed frames, partial rectangles, blending, disposal, background, loop count and metadata; CLI exports TGS/video sequences. [webp](sources.md#webp) |
 | `avif-still` | AVIF — Still image, Baseline/Advanced profiles | .avif | D □ · E □ | A | Split profile/precision coverage as AV1 implementation grows. [avif](sources.md#avif), [av1](sources.md#av1) |
 | `avif-alpha` | AVIF — Auxiliary alpha images | .avif | D □ · E □ | A | [avif](sources.md#avif) |
 | `avif-hdr` | AVIF — 10/12-bit and HDR presentation | .avif | D □ · E □ | A | HDR decoding, color preservation and SDR tone mapping are distinct tasks. [avif](sources.md#avif), [av1](sources.md#av1) |
