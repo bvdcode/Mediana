@@ -12,6 +12,30 @@ namespace Mediana.Images.Svg
     /// <summary>Renders an interpreted SVG viewport with the managed CPU raster canvas.</summary>
     public static class SvgRenderer
     {
+        /// <summary>Draws a scene at its intrinsic CSS viewport size into an existing canvas.
+        /// The transform controls placement and scale; no intermediate RGBA image is created.
+        /// Effect workspace is bounded separately by MaximumEffectBytes.</summary>
+        public static void Draw(SvgDocument document, RasterCanvas canvas, Matrix3x2 transform,
+            DrawingRenderOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(canvas);
+            options ??= new();
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaximumEffectBytes);
+            if (!float.IsFinite(transform.M11) || !float.IsFinite(transform.M12) || !float.IsFinite(transform.M21)
+                || !float.IsFinite(transform.M22) || !float.IsFinite(transform.M31) || !float.IsFinite(transform.M32))
+            {
+                throw new ArgumentOutOfRangeException(nameof(transform));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!options.AllowPartialRendering && document.UnsupportedFeatures.Count != 0)
+            {
+                throw new NotSupportedException("Unsupported SVG features: " + string.Join("; ", document.UnsupportedFeatures));
+            }
+            using SceneRenderContext context = new(options, cancellationToken);
+            document.Root.Draw(canvas, Viewport(document.ViewBox, document.Width, document.Height, document.AspectRatio) * transform, context);
+        }
+
         /// <summary>Renders an SVG to RGBA pixels. The allocator counts final output storage.
         /// Unsupported features require explicit partial-render opt-in.</summary>
         public static PixelBuffer Render(SvgDocument document, DrawingRenderOptions? options = null,
