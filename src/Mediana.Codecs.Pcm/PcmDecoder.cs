@@ -45,9 +45,8 @@ namespace Mediana.Codecs.Pcm
                 {
                     throw new NotSupportedException("The PCM packet exceeds the configured sample limit.");
                 }
-                using WritableMediaBuffer writable = allocator.Allocate(configuration.Format.GetBufferSize(samples));
-                ConvertSamples(input.Data.Span, writable.Memory.Span, cancellationToken);
-                using MediaBuffer buffer = writable.Publish();
+                using MediaBuffer buffer = DecodeStorage(input, samples, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 pending = new AudioFrame(configuration.Format, samples, buffer, input.PresentationTime);
                 succeeded = true;
                 return CodecInputStatus.Accepted;
@@ -59,6 +58,21 @@ namespace Mediana.Codecs.Pcm
                     Fault();
                 }
             }
+        }
+
+        private MediaBuffer DecodeStorage(MediaPacket input, int samples, CancellationToken cancellationToken)
+        {
+            bool nativeStorage = configuration.SourceBitsPerSample == configuration.Format.BytesPerSample * 8
+                && configuration.ValidBitsPerSample == configuration.SourceBitsPerSample
+                && !configuration.IsSigned8Bit
+                && (configuration.SourceBitsPerSample == 8 || configuration.IsBigEndian != BitConverter.IsLittleEndian);
+            if (nativeStorage)
+            {
+                return input.RetainData();
+            }
+            using WritableMediaBuffer writable = allocator.Allocate(configuration.Format.GetBufferSize(samples));
+            ConvertSamples(input.Data.Span, writable.Memory.Span, cancellationToken);
+            return writable.Publish();
         }
 
         private void ConvertSamples(ReadOnlySpan<byte> source, Span<byte> destination, CancellationToken cancellationToken)

@@ -105,25 +105,47 @@ namespace Mediana.Tests
         public void CancellationAllocationFailureAndSampleLimitsReleasePendingStorage()
         {
             MediaBufferAllocator allocator = new(64);
-            using MediaPacket packet = Packet(allocator, new byte[8]);
-            using IMediaCodec<MediaPacket, AudioFrame> decoder = new PcmDecoderFactory().Create(Stream(WaveTestInput.Format(16, 1)), allocator);
+            using MediaPacket packet = Packet(allocator, new byte[6]);
+            using IMediaCodec<MediaPacket, AudioFrame> decoder = new PcmDecoderFactory().Create(Stream(WaveTestInput.Format(24, 1)), allocator);
             decoder.TrySend(packet);
-            Assert.Equal(16, allocator.AllocatedBytes);
+            Assert.Equal(14, allocator.AllocatedBytes);
             Assert.Throws<OperationCanceledException>(() => decoder.Receive(new CancellationToken(true)));
-            Assert.Equal(8, allocator.AllocatedBytes);
+            Assert.Equal(6, allocator.AllocatedBytes);
             decoder.Reset();
             decoder.TrySend(packet);
             using AudioFrame frame = decoder.Receive().Value;
             decoder.Dispose();
             Assert.Equal(8, frame.GetPlane(0).Length);
-            using IMediaCodec<MediaPacket, AudioFrame> limited = new PcmDecoderFactory(maxSamplesPerFrame: 2).Create(Stream(WaveTestInput.Format(16, 1)), allocator);
+            using IMediaCodec<MediaPacket, AudioFrame> limited = new PcmDecoderFactory(maxSamplesPerFrame: 1).Create(Stream(WaveTestInput.Format(24, 1)), allocator);
             Assert.Throws<NotSupportedException>(() => limited.TrySend(packet));
-            Assert.Equal(16, allocator.AllocatedBytes);
+            Assert.Equal(14, allocator.AllocatedBytes);
             MediaBufferAllocator small = new(12);
-            using MediaPacket tooLarge = Packet(small, new byte[8]);
-            using IMediaCodec<MediaPacket, AudioFrame> failed = new PcmDecoderFactory().Create(Stream(WaveTestInput.Format(16, 1)), small);
+            using MediaPacket tooLarge = Packet(small, new byte[6]);
+            using IMediaCodec<MediaPacket, AudioFrame> failed = new PcmDecoderFactory().Create(Stream(WaveTestInput.Format(24, 1)), small);
             Assert.Throws<MediaMemoryLimitException>(() => failed.TrySend(tooLarge));
-            Assert.Equal(8, small.AllocatedBytes);
+            Assert.Equal(6, small.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(AudioSampleFormat.Unsigned8)]
+        [InlineData(AudioSampleFormat.Signed16)]
+        [InlineData(AudioSampleFormat.Signed32)]
+        [InlineData(AudioSampleFormat.Float32)]
+        [InlineData(AudioSampleFormat.Float64)]
+        public void NativeStorageRetainsPayloadAndItsOriginalBudget(AudioSampleFormat sampleFormat) =>
+            PcmStorageTestInput.Verify(sampleFormat);
+
+        [Theory]
+        [InlineData(16)]
+        [InlineData(32)]
+        public void ReducedPrecisionStillValidatesUnusedBits(int bits)
+        {
+            MediaBufferAllocator allocator = new(64);
+            using MediaPacket packet = Packet(allocator, [1, 0, 0, 0]);
+            using IMediaCodec<MediaPacket, AudioFrame> decoder = new PcmDecoderFactory().Create(
+                Stream(WaveTestInput.Format(bits, 1, tag: 0xfffe, validBits: bits - 4, mask: 4)), allocator);
+            Assert.Throws<InvalidDataException>(() => decoder.TrySend(packet));
+            Assert.Equal(4, allocator.AllocatedBytes);
         }
 
         [Fact]
