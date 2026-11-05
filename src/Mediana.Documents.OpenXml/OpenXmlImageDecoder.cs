@@ -8,11 +8,12 @@ using Mediana.Core.Video;
 
 namespace Mediana.Documents.OpenXml
 {
-    /// <summary>One ZIP signature registration routes Office documents by their declared main-part type, independent of filenames.</summary>
+    /// <summary>One ZIP signature registration routes OPC documents and models by their declared main-part type, independent of filenames.</summary>
     public class OpenXmlImageDecoder : IImageDecoder, IImageInfoReader
     {
         private readonly IReadOnlyDictionary<string, IOpenXmlPageDecoder> _decoders;
         private readonly OpenXmlPackageOptions _options;
+        private readonly string[] _relationshipTypes;
 
         public OpenXmlImageDecoder(IEnumerable<IOpenXmlPageDecoder> decoders, OpenXmlPackageOptions? options = null)
         {
@@ -22,9 +23,14 @@ namespace Mediana.Documents.OpenXml
             {
                 ArgumentNullException.ThrowIfNull(decoder);
                 ArgumentException.ThrowIfNullOrWhiteSpace(decoder.ContentType);
+                ArgumentNullException.ThrowIfNull(decoder.RelationshipTypes);
+                if (decoder.RelationshipTypes.Count == 0) { throw new ArgumentException("A page decoder must declare its root relationship types.", nameof(decoders)); }
+                foreach (string relationship in decoder.RelationshipTypes) { ArgumentException.ThrowIfNullOrWhiteSpace(relationship); }
                 if (!registered.TryAdd(decoder.ContentType, decoder)) { throw new ArgumentException("Duplicate Open XML main-part decoder.", nameof(decoders)); }
             }
             _decoders = registered;
+            _relationshipTypes = registered.Values.SelectMany(decoder => decoder.RelationshipTypes).Distinct(StringComparer.Ordinal).ToArray();
+            if (_relationshipTypes.Length == 0) { throw new ArgumentException("At least one root relationship type is required.", nameof(decoders)); }
             _options = options ?? new();
         }
 
@@ -36,8 +42,8 @@ namespace Mediana.Documents.OpenXml
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {
             using OpenXmlPackage package = OpenXmlPackage.Open(encoded, _options, cancellationToken);
-            string main = package.MainPart(cancellationToken);
-            return ValueTask.FromResult(Select(package, main).ReadInfo(package, main, cancellationToken));
+            (string main, string rootType) = package.MainPartInfo(_relationshipTypes, cancellationToken);
+            return ValueTask.FromResult(Select(package, main, rootType).ReadInfo(package, main, cancellationToken));
         }
 
         public async ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
@@ -47,14 +53,15 @@ namespace Mediana.Documents.OpenXml
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
             using OpenXmlPackage package = OpenXmlPackage.Open(encoded, _options, cancellationToken);
-            string main = package.MainPart(cancellationToken);
-            return await Select(package, main).DecodeAsync(package, main, request, allocator, cancellationToken);
+            (string main, string rootType) = package.MainPartInfo(_relationshipTypes, cancellationToken);
+            return await Select(package, main, rootType).DecodeAsync(package, main, request, allocator, cancellationToken);
         }
 
-        private IOpenXmlPageDecoder Select(OpenXmlPackage package, string main)
+        private IOpenXmlPageDecoder Select(OpenXmlPackage package, string main, string rootType)
         {
             string contentType = package.ContentType(main);
-            return _decoders.TryGetValue(contentType, out IOpenXmlPageDecoder? decoder) ? decoder
+            return _decoders.TryGetValue(contentType, out IOpenXmlPageDecoder? decoder)
+                && decoder.RelationshipTypes.Contains(rootType, StringComparer.Ordinal) ? decoder
                 : throw new NotSupportedException("No registered page decoder supports the Open XML main-part type: " + contentType);
         }
     }

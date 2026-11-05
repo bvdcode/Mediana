@@ -9,6 +9,30 @@ namespace Mediana.Tests
     public class OpenXmlPackageTests
     {
         [Fact]
+        public void PartNamesMatchWithoutCaseAndRetainStoredSpelling()
+        {
+            using OpenXmlPackage package = OpenXmlPackage.Open(OpenXmlPackageTestInput.Create(target: "CONTENT/REPORT.XML"));
+            Assert.Equal("content/report.xml", package.MainPart());
+            Assert.Equal("content/report.xml", package.CanonicalPart("CONTENT/report.XML"));
+            Assert.Equal("application/xml", package.ContentType("CONTENT/REPORT.XML"));
+            Assert.NotNull(package.ReadXml("CONTENT/REPORT.XML").Root);
+        }
+
+        [Fact]
+        public void CaseEquivalentPartsAreRejected()
+        {
+            Assert.Throws<InvalidDataException>(() => OpenXmlPackage.Open(OpenXmlPackageTestInput.Create(extra: "CONTENT/REPORT.XML")));
+        }
+
+        [Fact]
+        public void PartLimitIsCheckedBeforeReadingAndDoesNotConsumeBudget()
+        {
+            using OpenXmlPackage package = OpenXmlPackage.Open(OpenXmlPackageTestInput.Create());
+            Assert.Throws<InvalidDataException>(() => package.ReadPart(package.MainPart(), maximumBytes: 1));
+            Assert.Equal("<document/>", System.Text.Encoding.UTF8.GetString(package.ReadPart(package.MainPart())));
+        }
+
+        [Fact]
         public void RelatedPartsPreserveSourceMemory() => OpenXmlPackageTestInput.Verify();
 
         [Theory]

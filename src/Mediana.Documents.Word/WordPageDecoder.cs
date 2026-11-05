@@ -15,6 +15,7 @@ namespace Mediana.Documents.Word
         WordRenderOptions? renderOptions = null) : IOpenXmlPageDecoder
     {
         public string ContentType => WordReader.DocumentContentType;
+        public IReadOnlyList<string> RelationshipTypes => OpenXmlPackage.OfficeDocumentRelationships;
 
         public ImageInfo ReadInfo(OpenXmlPackage package, string mainPart, CancellationToken cancellationToken = default)
         {

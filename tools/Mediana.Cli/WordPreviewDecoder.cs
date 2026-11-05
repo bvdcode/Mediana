@@ -17,6 +17,7 @@ namespace Mediana.Cli
         private static readonly WordRenderOptions RenderOptions = new() { MaximumWidth = 1200, MaximumHeight = 1200, ImageColorResolver = SdrPreviewColorPolicy.Resolve };
 
         public string ContentType => WordReader.DocumentContentType;
+        public IReadOnlyList<string> RelationshipTypes => OpenXmlPackage.OfficeDocumentRelationships;
 
         public ImageInfo ReadInfo(OpenXmlPackage package, string mainPart, CancellationToken cancellationToken = default) =>
             new WordPageDecoder(ReaderOptions).ReadInfo(package, mainPart, cancellationToken);
