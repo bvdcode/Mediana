@@ -89,7 +89,10 @@ namespace Mediana
             return new MediaInfo(container.Info, container.Streams, metadata);
         }
 
-        private IContainerReaderFactory SelectContainer(ReadOnlySpan<byte> prefix)
+        private IContainerReaderFactory SelectContainer(ReadOnlySpan<byte> prefix) => FindContainer(prefix)
+            ?? throw new NotSupportedException("No registered container reader recognizes the input.");
+
+        private IContainerReaderFactory? FindContainer(ReadOnlySpan<byte> prefix)
         {
             IContainerReaderFactory? selected = null;
             foreach (IContainerReaderFactory factory in containers)
@@ -103,7 +106,7 @@ namespace Mediana
                     selected = factory;
                 }
             }
-            return selected ?? throw new NotSupportedException("No registered container reader recognizes the input.");
+            return selected;
         }
 
     }

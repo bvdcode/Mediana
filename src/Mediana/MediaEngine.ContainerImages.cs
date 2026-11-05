@@ -48,7 +48,7 @@ namespace Mediana
                     prefix ??= session.Allocator.Allocate(probeLength);
                     int count = await candidate.ReadPrefixAsync(session, prefix.Memory, cancellationToken).ConfigureAwait(false);
                     cancellationToken.ThrowIfCancellationRequested();
-                    IImageDecoder? decoder = FindImageDecoder(prefix.Memory.Span[..count]);
+                    IImageDecoder? decoder = FindImageDecoder(prefix.Memory.Span[..count], candidate.ByteLength);
                     if (decoder is null)
                     {
                         continue;

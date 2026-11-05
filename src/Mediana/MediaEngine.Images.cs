@@ -23,12 +23,14 @@ namespace Mediana
             int probeLength = GetImageProbeLength(options, cancellationToken);
             using WritableMediaBuffer writable = allocator.Allocate(Math.Min(probeLength, options.MaxInputBytes));
             int read = await MediaInputProbe.ReadAsync(source, writable.Memory, cancellationToken).ConfigureAwait(false);
-            IImageDecoder decoder = FindImageDecoder(writable.Memory.Span[..read])
-                ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
-            request.Validate(decoder.Features);
+            IImageDecoder? opening = FindImageDecoder(writable.Memory.Span[..read], source.Length ?? (read < writable.Memory.Length ? read : null));
+            if (opening is not null) { request.Validate(opening.Features); }
             using MediaBuffer prefix = writable.Publish();
             await using IByteSource replay = MediaInputProbe.Replay(source, prefix, read);
             using MediaBuffer input = await EncodedImageInput.ReadAsync(replay, options.MaxInputBytes, allocator, cancellationToken).ConfigureAwait(false);
+            IImageDecoder decoder = FindImageDecoder(input.Memory.Span[..Math.Min(probeLength, input.Memory.Length)], input.Memory.Length)
+                ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
+            request.Validate(decoder.Features);
             return await DecodeRecognizedImageAsync(decoder, input.Memory, request, allocator, cancellationToken).ConfigureAwait(false);
         }
 
@@ -47,7 +49,7 @@ namespace Mediana
             {
                 throw new NotSupportedException("The encoded image exceeds the configured input byte limit.");
             }
-            IImageDecoder decoder = FindImageDecoder(encoded.Span[..Math.Min(probeLength, encoded.Length)])
+            IImageDecoder decoder = FindImageDecoder(encoded.Span[..Math.Min(probeLength, encoded.Length)], encoded.Length)
                 ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
             request.Validate(decoder.Features);
             return DecodeRecognizedImageAsync(decoder, encoded, request, allocator, cancellationToken);
@@ -90,14 +92,18 @@ namespace Mediana
 
         /// <summary>Returns the uniquely recognized image implementation, or null. The prefix may be shorter than
         /// ImageProbeLength at EOF. Recognition does not validate the complete file; ambiguity throws.</summary>
-        public string? RecognizeImage(ReadOnlySpan<byte> prefix) => FindImageDecoder(prefix)?.ImplementationId;
+        public string? RecognizeImage(ReadOnlySpan<byte> prefix, long? encodedLength = null)
+        {
+            if (encodedLength < prefix.Length) { throw new ArgumentOutOfRangeException(nameof(encodedLength)); }
+            return FindImageDecoder(prefix, encodedLength)?.ImplementationId;
+        }
 
-        private IImageDecoder? FindImageDecoder(ReadOnlySpan<byte> prefix)
+        private IImageDecoder? FindImageDecoder(ReadOnlySpan<byte> prefix, long? encodedLength = null)
         {
             IImageDecoder? selected = null;
             foreach (IImageDecoder decoder in imageDecoders)
             {
-                if (decoder.CanDecode(prefix))
+                if (decoder.CanDecode(prefix, encodedLength))
                 {
                     if (selected is not null)
                     {

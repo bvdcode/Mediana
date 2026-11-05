@@ -15,7 +15,7 @@ namespace Mediana.Documents.Pdf
         public string ImplementationId => "pdf.managed.image";
         public int ProbeLength => 32;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.Pages;
-        public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.StartsWith("%PDF-"u8) || CmsPdfContent.IsSignedDataPrefix(prefix);
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) => prefix.StartsWith("%PDF-"u8) || CmsPdfContent.IsSignedDataPrefix(prefix);
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {

@@ -37,7 +37,7 @@ namespace Mediana.Documents.OpenXml
         public string ImplementationId => "openxml.managed.image";
         public int ProbeLength => 4;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.Pages;
-        public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.StartsWith("PK\x03\x04"u8);
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) => prefix.StartsWith("PK\x03\x04"u8);
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {
