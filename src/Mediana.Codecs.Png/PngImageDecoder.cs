@@ -14,7 +14,7 @@ namespace Mediana.Codecs.Png
     /// Borrows encoded data only during the call. The allocator accounts for the output, two filter scanlines,
     /// and one expanded scanline when reduction is enabled;
     /// BCL zlib workspace and bounded chunk metadata are separate. ICC/gamma conversion, Exif and animation are unsupported.</summary>
-    public class PngImageDecoder : IImageDecoder, IImageInfoReader
+    public class PngImageDecoder : ISynchronousImageDecoder, IImageInfoReader
     {
         private readonly PngDecodeOptions options;
 
@@ -48,7 +48,17 @@ namespace Mediana.Codecs.Png
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
             PngImageData image = Read(encoded, cancellationToken);
+            if (request.MaximumPixels is int limit && (long)image.Width * image.Height > limit)
+            {
+                throw new InvalidDataException("PNG source exceeds MaximumPixels.");
+            }
             int factor = options.ReductionFactor;
+            if (request.PreferredWidth is not null || request.PreferredHeight is not null)
+            {
+                double horizontal = request.PreferredWidth is int preferredWidth ? image.Width / (double)preferredWidth : double.PositiveInfinity;
+                double vertical = request.PreferredHeight is int preferredHeight ? image.Height / (double)preferredHeight : double.PositiveInfinity;
+                factor = Math.Max(factor, (int)Math.Clamp(Math.Floor(Math.Min(horizontal, vertical)), 1, 256));
+            }
             int width = (image.Width - 1) / factor + 1, height = (image.Height - 1) / factor + 1;
             VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, image.Color,
                 ReducedAspect(image, width, height), image.ColorDescription);
