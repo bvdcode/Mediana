@@ -5,6 +5,9 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/HlsAudioPreparationTestInput.cs" Link="HlsAudioPreparationTestInput.cs" />
+    <Compile Include="../Shared/EmbeddedImageTestInput.cs" Link="EmbeddedImageTestInput.cs" />
+    <Compile Include="../Shared/EmbeddedTestImageDecoder.cs" Link="EmbeddedTestImageDecoder.cs" />
     <None Include="Data/Emoji/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/FluentEmojiTestInput.cs" Link="FluentEmojiTestInput.cs" />
     <Compile Include="../Shared/WebpTestBitReader.cs" Link="WebpTestBitReader.cs" />
