@@ -164,7 +164,7 @@ using Mediana.Drawing.Fonts;
 
 PdfReaderOptions readerOptions = new()
 {
-    Text = new() { FontResolver = request => BundledFontPrograms.GetFont("Canada1500", request.Bold, request.Italic) }
+    Text = new() { FontProgramResolver = request => BundledFontPrograms.GetProgram("Canada1500", request.Bold, request.Italic) }
 };
 using PdfDocument document = await PdfReader.ReadFileAsync("report.pdf", readerOptions);
 using PixelBuffer pixels = PdfRenderer.Render(document, 1, new()
@@ -194,8 +194,11 @@ caller and release owned temporary buffers.
 Output, supersampling surfaces, transparency layers and cached masks share the
 supplied MediaBufferAllocator. Without an allocator, MaximumWorkingBytes defaults
 to 256 MiB. Masks are cached for one render, charged to that budget and disposed
-before returning the output. Source image pixels have the reader's separate
-MaximumImageBytes budget. Coverage/clip arrays, font data and command objects
+before returning the output. Source image pixels have the reader's
+MaximumImageBytes budget. Registered page decoding also charges those pixels and
+JPEG workspace to the operation allocator; direct readers can share a budget
+through PdfReaderOptions.ImageAllocator. Retained image frames keep their original
+budget charge until their final lease is disposed. Coverage/clip arrays, font data and command objects
 have separate structural or dimension bounds rather than allocator accounting.
 
 ## JPEG image interpretation

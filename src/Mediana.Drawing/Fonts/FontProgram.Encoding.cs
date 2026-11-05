@@ -3,7 +3,7 @@
 
 namespace Mediana.Drawing.Fonts
 {
-    public partial class TrueTypeFont
+    public partial class FontProgram
     {
         public int EncodedGlyph(int code, int platform, int encoding)
         {

@@ -38,8 +38,16 @@ namespace Mediana.Images.Svg
             ArgumentNullException.ThrowIfNull(request);
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
-            SvgReaderOptions options = (readerOptions ?? new()) with
+            SvgReaderOptions configured = readerOptions ?? new();
+            MediaBufferAllocator imageBudget = configured.ImageAllocator ?? allocator;
+            if (!imageBudget.IsWithin(allocator))
             {
+                throw new ArgumentException("The SVG image allocator must belong to the operation allocation budget.", nameof(readerOptions));
+            }
+            SvgReaderOptions options = configured with
+            {
+                Text = request.Resources is null ? configured.Text : await request.Resources.GetAsync<TextOptions>(cancellationToken).ConfigureAwait(false) ?? configured.Text,
+                ImageAllocator = imageBudget,
                 Images = request.Images ?? readerOptions?.Images ?? Imaging.ImageResources.DefaultDecoders,
                 WarningHandler = readerOptions?.WarningHandler + request.WarningHandler
             };

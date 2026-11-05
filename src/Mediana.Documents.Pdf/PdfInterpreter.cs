@@ -3,11 +3,14 @@
 
 using System.Numerics;
 using Mediana.Drawing;
+using Mediana.Core.Memory;
 namespace Mediana.Documents.Pdf
 {
     internal partial class PdfInterpreter(PdfStorage storage, PdfOptionalContent optionalContent, CancellationToken token, double? samplesPerPoint = null)
     {
         private readonly List<IPdfDrawCommand> _commands = [];
+        private readonly MediaBufferAllocator _imageAllocator = (storage.Budget.Options.ImageAllocator
+            ?? new(storage.Budget.Options.MaximumImageBytes)).CreateScope(storage.Budget.Options.MaximumImageBytes);
         private readonly HashSet<string> _unsupported = new(StringComparer.Ordinal);
         private readonly HashSet<string> _warnings = new(StringComparer.Ordinal);
         private readonly List<PdfImage> _images = [];

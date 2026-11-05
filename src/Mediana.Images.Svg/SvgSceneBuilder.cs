@@ -39,7 +39,7 @@ namespace Mediana.Images.Svg
         {
             _root = root;
             _text = new(limits.Text);
-            _imageAllocator = limits.ImageAllocator ?? new(limits.MaximumImageBytes);
+            _imageAllocator = (limits.ImageAllocator ?? new(limits.MaximumImageBytes)).CreateScope(limits.MaximumImageBytes);
             _limits = limits;
             _token = token;
         }

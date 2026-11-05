@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using System.Resources;
+using System.Collections.Concurrent;
 
 namespace Mediana.Drawing.Fonts
 {
@@ -10,6 +11,12 @@ namespace Mediana.Drawing.Fonts
     public static class BundledFontPrograms
     {
         private static readonly ResourceManager Manager = new(typeof(BundledFontPrograms));
+        private static readonly ConcurrentDictionary<(string Family, bool Bold, bool Italic), Lazy<FontProgram>> Programs = new();
+
+        /// <summary>Returns an immutable program parsed once and shared across concurrent renderers.</summary>
+        public static FontProgram GetProgram(string family, bool bold = false, bool italic = false) =>
+            Programs.GetOrAdd((family, bold, italic), static key =>
+                new Lazy<FontProgram>(() => new FontProgram(GetFont(key.Family, key.Bold, key.Italic)))).Value;
 
         /// <summary>Returns a read-only program for Aileron or Canada1500. Storage is shared and must not be mutated.</summary>
         public static ReadOnlyMemory<byte> GetFont(string family, bool bold = false, bool italic = false)

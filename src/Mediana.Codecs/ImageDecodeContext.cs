@@ -4,6 +4,7 @@
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using System.Runtime.CompilerServices;
+using Mediana.Core;
 
 namespace Mediana.Codecs
 {
@@ -13,8 +14,9 @@ namespace Mediana.Codecs
     {
         private readonly IImageDecoder[] decoders;
         private readonly int remainingDepth;
+        private readonly MediaResourceSet resources;
 
-        public ImageDecodeContext(IEnumerable<IImageDecoder> decoders, int maximumDepth = 16)
+        public ImageDecodeContext(IEnumerable<IImageDecoder> decoders, int maximumDepth = 16, MediaResourceSet? resources = null)
         {
             ArgumentNullException.ThrowIfNull(decoders);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDepth);
@@ -25,12 +27,14 @@ namespace Mediana.Codecs
                 throw new ArgumentException("Supply distinct image implementations with positive probe lengths.", nameof(decoders));
             }
             remainingDepth = maximumDepth;
+            this.resources = resources ?? MediaResourceSet.Empty;
         }
 
         private ImageDecodeContext(ImageDecodeContext parent)
         {
             decoders = parent.decoders;
             remainingDepth = parent.remainingDepth - 1;
+            resources = parent.resources;
         }
 
         public IImageDecoder? FindDecoder(ReadOnlySpan<byte> prefix, long? encodedLength = null)
@@ -92,7 +96,11 @@ namespace Mediana.Codecs
             return decoder;
         }
 
-        private ImageDecodeRequest Descend(ImageDecodeRequest request) => request with { Images = new ImageDecodeContext(this) };
+        private ImageDecodeRequest Descend(ImageDecodeRequest request) => request with
+        {
+            Images = new ImageDecodeContext(this),
+            Resources = request.Resources ?? resources
+        };
 
         private static VideoFrame ValidateFrame(VideoFrame frame, ImageDecodeRequest request, CancellationToken token)
         {

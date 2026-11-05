@@ -39,6 +39,14 @@ namespace Mediana.Streaming.Hls
         public int PrimingSamples => tracks[0].Encoder.PrimingSamples;
         public int? PaddingSamples => tracks[0].Encoder.PaddingSamples;
         public int EncoderCount => tracks.Length;
+        public override int ProfileCount => variantTracks.Length;
+        internal override void ValidateDestinationCount(int count)
+        {
+            if (count != 0 && count != variantTracks.Length)
+            {
+                throw new ArgumentException("Supply a destination for every configured audio variant.", nameof(count));
+            }
+        }
         public override EncodedStreamInfo GetStream(int variantIndex) => tracks[variantTracks[variantIndex]].Encoder.Stream;
 
         public static async ValueTask<HlsAacAudioSource> OpenAsync(MediaEngine engine, IRandomAccessByteSource source, int streamIndex,
@@ -100,10 +108,7 @@ namespace Mediana.Streaming.Hls
                 {
                     throw new InvalidOperationException("The HLS audio encoding group has failed.");
                 }
-                if (destinations.Count != 0 && destinations.Count != variantTracks.Length)
-                {
-                    throw new ArgumentException("Supply a destination for every configured audio variant.", nameof(destinations));
-                }
+                ValidateDestinationCount(destinations.Count);
                 while (true)
                 {
                     token.ThrowIfCancellationRequested();

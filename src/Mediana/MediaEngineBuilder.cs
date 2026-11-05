@@ -5,6 +5,7 @@ using Mediana.Codecs;
 using Mediana.Containers;
 using Mediana.Core.Audio;
 using Mediana.Core.Video;
+using Mediana.Core;
 
 namespace Mediana
 {
@@ -19,6 +20,15 @@ namespace Mediana
         private readonly List<IAudioEncoderFactory> audioEncoders = [];
         private readonly List<IVideoEncoderFactory> videoEncoders = [];
         private readonly List<IContainerWriterFactory> writers = [];
+        private MediaResourceSet resources = MediaResourceSet.Empty;
+
+        /// <summary>Shares explicit resource providers with image and document decoding, including nested resources.</summary>
+        public MediaEngineBuilder UseResources(MediaResourceSet resources)
+        {
+            ArgumentNullException.ThrowIfNull(resources);
+            this.resources = resources;
+            return this;
+        }
 
         public MediaEngineBuilder AddAudioEncoder(IAudioEncoderFactory factory)
         {
@@ -96,16 +106,31 @@ namespace Mediana
 
         public MediaEngineBuilder AddImageDecoder(IImageDecoder decoder)
         {
-            ArgumentNullException.ThrowIfNull(decoder);
-            ArgumentException.ThrowIfNullOrWhiteSpace(decoder.ImplementationId);
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(decoder.ProbeLength);
-            new ImageDecodeRequest().Validate(decoder.Features);
+            ValidateImageDecoder(decoder);
             if (imageDecoders.Any(item => item.ImplementationId == decoder.ImplementationId))
             {
                 throw new ArgumentException($"Image decoder '{decoder.ImplementationId}' is already registered.", nameof(decoder));
             }
             imageDecoders.Add(decoder);
             return this;
+        }
+
+        /// <summary>Reconfigures an existing image implementation while preserving all other resource decoders.</summary>
+        public MediaEngineBuilder ReplaceImageDecoder(IImageDecoder decoder)
+        {
+            ValidateImageDecoder(decoder);
+            int index = imageDecoders.FindIndex(item => item.ImplementationId == decoder.ImplementationId);
+            if (index < 0) { throw new ArgumentException("No image decoder with this implementation identifier is registered.", nameof(decoder)); }
+            imageDecoders[index] = decoder;
+            return this;
+        }
+
+        private static void ValidateImageDecoder(IImageDecoder decoder)
+        {
+            ArgumentNullException.ThrowIfNull(decoder);
+            ArgumentException.ThrowIfNullOrWhiteSpace(decoder.ImplementationId);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(decoder.ProbeLength);
+            new ImageDecodeRequest().Validate(decoder.Features);
         }
 
         private static void ValidateDecoder<TFrame>(IDecoderFactory<TFrame> factory, IEnumerable<IDecoderFactory<TFrame>> existing)
@@ -120,6 +145,6 @@ namespace Mediana
             }
         }
 
-        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray(), imageDecoders.ToArray(), audioEncoders.ToArray(), videoEncoders.ToArray(), writers.ToArray());
+        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray(), imageDecoders.ToArray(), audioEncoders.ToArray(), videoEncoders.ToArray(), writers.ToArray(), resources);
     }
 }

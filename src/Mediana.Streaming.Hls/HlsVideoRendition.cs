@@ -9,29 +9,32 @@ using Mediana.Core.Video;
 using Mediana.Processing;
 using Mediana.Streaming.Hls;
 using Mediana.Execution;
+using Mediana.Core.Timing;
 
-namespace Mediana.Cli
+namespace Mediana.Streaming.Hls
 {
     internal class HlsVideoRendition(Yuv420AreaResizer resizer, H264Encoder encoder, AvcHlsWriter writer,
-        HlsRenditionFiles files) : IAsyncDisposable
+        HlsRenditionOutput files) : IAsyncDisposable
     {
         private readonly MediaEncodePipeline<VideoFrame> pipeline = new(encoder, writer);
         public AvcHlsWriter Writer { get; } = writer;
         public VideoFormat Format => resizer.OutputFormat;
 
         public static HlsVideoRendition Create(VideoFormat source, EncodedStreamInfo video, EncodedStreamInfo? audio, MediaBufferAllocator allocator,
-            int width, int qp, H264RateControlOptions? rate, long targetMilliseconds, string root)
+            int width, H264EncoderOptions encoderOptions, MediaDuration targetDuration, IHlsPackageOutput output)
         {
             Yuv420AreaResizer resizer = Yuv420AreaResizer.CreateFit(source, width, source.Height, allocator);
             H264Encoder? encoder = null;
             bool success = false;
             try
             {
+                long intervalTicks = new MediaTimestamp(targetDuration.Value, targetDuration.TimeBase)
+                    .Rescale(TimeBase.TimeSpanTicks, TimestampRounding.Ceiling).Value;
                 encoder = H264Encoder.Create(resizer.OutputFormat, video.TimeBase, allocator,
-                    new() { Quantizer = qp, RateControl = rate, KeyFrameInterval = TimeSpan.FromTicks(checked(targetMilliseconds * TimeSpan.TicksPerMillisecond)) }, video.StreamIndex);
+                    encoderOptions with { KeyFrameInterval = TimeSpan.FromTicks(intervalTicks) }, video.StreamIndex);
                 string name = "variant-" + width.ToString(CultureInfo.InvariantCulture);
-                HlsRenditionFiles files = HlsRenditionFiles.Create(root, name);
-                AvcHlsWriteOptions options = new() { TargetDuration = new(targetMilliseconds, new(1, 1000)) };
+                HlsRenditionOutput files = new(output, name);
+                AvcHlsWriteOptions options = new() { TargetDuration = targetDuration };
                 AvcHlsWriter writer = audio is null ? AvcHlsWriter.Create(encoder.Stream, files.OpenSegmentAsync, allocator, options) :
                     AvcHlsWriter.Create(encoder.Stream, audio, files.OpenSegmentAsync, allocator, options);
                 HlsVideoRendition result = new(resizer, encoder, writer, files);
@@ -51,19 +54,19 @@ namespace Mediana.Cli
         public async ValueTask WriteAsync(VideoFrame input, CancellationToken token)
         {
             using VideoFrame prepared = resizer.ResizeOrRetain(input, token);
-            await pipeline.WriteAsync(prepared, token);
+            await pipeline.WriteAsync(prepared, token).ConfigureAwait(false);
         }
 
         public async ValueTask CompleteAsync(CancellationToken token)
         {
-            await pipeline.CompleteInputAsync(token);
-            await Writer.CompleteAsync(token);
+            await pipeline.CompleteInputAsync(token).ConfigureAwait(false);
+            await Writer.CompleteAsync(token).ConfigureAwait(false);
         }
 
         public async ValueTask<HlsVariant> WritePlaylistAsync(long? targetDurationSeconds, CancellationToken token)
         {
-            string playlist = Writer.CreateVodPlaylist(HlsRenditionFiles.SegmentName, targetDurationSeconds);
-            await files.WritePlaylistAsync(playlist, token);
+            string playlist = Writer.CreateVodPlaylist(HlsRenditionOutput.SegmentName, targetDurationSeconds);
+            await files.WritePlaylistAsync(playlist, token).ConfigureAwait(false);
             int? displayWidth = null;
             int? displayHeight = null;
             if (Format.SampleAspectRatio is SampleAspectRatio aspect)
@@ -82,7 +85,7 @@ namespace Mediana.Cli
         {
             try
             {
-                await Writer.DisposeAsync();
+                await Writer.DisposeAsync().ConfigureAwait(false);
             }
             finally
             {

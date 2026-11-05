@@ -13,7 +13,8 @@ namespace Mediana.Drawing
     {
         private readonly TextOptions _options;
         private readonly Dictionary<FontRequest, TrueTypeFont[]> _requests = [];
-        private readonly Dictionary<ReadOnlyMemory<byte>, TrueTypeFont> _programs = [];
+        private readonly Dictionary<FontProgram, TrueTypeFont> _programs = [];
+        private readonly Dictionary<ReadOnlyMemory<byte>, FontProgram> _sources = [];
         private readonly Dictionary<(TrueTypeFont Font, int Glyph), VectorPath> _outlines = [];
         private readonly Dictionary<(FontRequest Request, int Character), TrueTypeFont?> _supplemental = [];
         private long _fontBytes;
@@ -42,13 +43,14 @@ namespace Mediana.Drawing
                 int glyph = font.Glyph(codepoint);
                 if (glyph != 0) { return (font, glyph); }
             }
-            if (_options.SubstituteMissingFonts && _options.FallbackFontResolver is not null)
+            if (_options.SubstituteMissingFonts && (_options.FallbackFontProgramResolver is not null || _options.FallbackFontResolver is not null))
             {
                 if (!_supplemental.TryGetValue((request, codepoint), out TrueTypeFont? font))
                 {
-                    ReadOnlyMemory<byte> program = _options.FallbackFontResolver(request, codepoint);
+                    FontProgram? shared = _options.FallbackFontProgramResolver?.Invoke(request, codepoint);
+                    ReadOnlyMemory<byte> program = shared is null ? _options.FallbackFontResolver?.Invoke(request, codepoint) ?? default : default;
                     cancellationToken.ThrowIfCancellationRequested();
-                    font = program.IsEmpty ? null : LoadFont(program);
+                    font = shared is not null ? LoadFont(shared) : program.IsEmpty ? null : LoadFont(program);
                     _supplemental.Add((request, codepoint), font);
                 }
                 if (font is not null && font.Glyph(codepoint) is int glyph && glyph != 0) { return (font, glyph); }
@@ -91,36 +93,47 @@ namespace Mediana.Drawing
             foreach (string candidate in request.Family.Split(','))
             {
                 FontRequest face = request with { Family = candidate.Trim().Trim('\'', '"') };
-                ReadOnlyMemory<byte> program = _options.FontResolver?.Invoke(face) ?? default;
+                FontProgram? shared = _options.FontProgramResolver?.Invoke(face);
+                ReadOnlyMemory<byte> program = shared is null ? _options.FontResolver?.Invoke(face) ?? default : default;
                 token.ThrowIfCancellationRequested();
-                if (program.IsEmpty && BundledFamily(face.Family) is string bundled)
-                { program = BundledFontPrograms.GetFont(bundled, face.Bold, face.Italic); }
-                if (!program.IsEmpty) { Add(program); }
+                if (shared is null && program.IsEmpty && BundledFamily(face.Family) is string bundled)
+                { shared = BundledFontPrograms.GetProgram(bundled, face.Bold, face.Italic); }
+                if (shared is not null) { Add(LoadFont(shared)); }
+                else if (!program.IsEmpty) { Add(LoadFont(program)); }
             }
             if (_options.SubstituteMissingFonts)
             {
                 foreach (string family in _options.SubstituteFamilies)
-                { Add(BundledFontPrograms.GetFont(family, request.Bold, request.Italic)); }
+                { Add(LoadFont(BundledFontPrograms.GetProgram(family, request.Bold, request.Italic))); }
             }
             TrueTypeFont[] result = fonts.ToArray();
             _requests.Add(request, result);
             return result;
 
-            void Add(ReadOnlyMemory<byte> program)
+            void Add(TrueTypeFont font)
             {
-                TrueTypeFont font = LoadFont(program);
                 if (!fonts.Contains(font)) { fonts.Add(font); }
             }
         }
 
         private TrueTypeFont LoadFont(ReadOnlyMemory<byte> program)
         {
+            if (!_sources.TryGetValue(program, out FontProgram? shared))
+            {
+                if (program.Length > _options.MaximumFontBytes - _fontBytes) { throw new InvalidDataException("Text fonts exceed MaximumFontBytes."); }
+                shared = new(program);
+                _sources.Add(program, shared);
+            }
+            return LoadFont(shared);
+        }
+
+        private TrueTypeFont LoadFont(FontProgram program)
+        {
             if (_programs.TryGetValue(program, out TrueTypeFont? cached)) { return cached; }
             if (_programs.Count >= _options.MaximumFontFaces) { throw new InvalidDataException("Text fonts exceed MaximumFontFaces."); }
-            if (program.Length > _options.MaximumFontBytes - _fontBytes) { throw new InvalidDataException("Text fonts exceed MaximumFontBytes."); }
+            if (program.Program.Length > _options.MaximumFontBytes - _fontBytes) { throw new InvalidDataException("Decoded text fonts exceed MaximumFontBytes."); }
             TrueTypeFont font = new(program);
-            if (font.Program.Length > _options.MaximumFontBytes - _fontBytes) { throw new InvalidDataException("Decoded text fonts exceed MaximumFontBytes."); }
-            _fontBytes += font.Program.Length;
+            _fontBytes += program.Program.Length;
             _programs.Add(program, font);
             return font;
         }

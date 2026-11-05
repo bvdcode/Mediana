@@ -37,13 +37,23 @@ namespace Mediana.Documents.Pdf
                 metadata: new("document", [new("pdf", "page_count", document.PageCount)], pages)));
         }
 
-        public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+        public async ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
-            using PdfDocument document = PdfReader.ReadBorrowed(encoded, readerOptions, cancellationToken);
+            PdfReaderOptions configured = readerOptions ?? new();
+            if (request.Resources is not null && await request.Resources.GetAsync<TextOptions>(cancellationToken).ConfigureAwait(false) is TextOptions text)
+            {
+                configured = configured with { Text = text };
+            }
+            MediaBufferAllocator images = configured.ImageAllocator ?? allocator;
+            if (!images.IsWithin(allocator))
+            {
+                throw new ArgumentException("The PDF image allocator must belong to the operation allocation budget.", nameof(readerOptions));
+            }
+            using PdfDocument document = PdfReader.ReadBorrowed(encoded, configured with { ImageAllocator = images }, cancellationToken);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(request.PageIndex, document.PageCount, nameof(request.PageIndex));
             foreach (string warning in document.Warnings)
             {
@@ -54,7 +64,7 @@ namespace Mediana.Documents.Pdf
                 WarningHandler = renderOptions?.WarningHandler + request.WarningHandler
             };
             using PixelBuffer pixels = PdfRenderer.Render(document, request.PageIndex + 1, rendering, cancellationToken, allocator);
-            return ValueTask.FromResult(pixels.PublishVideoFrame(cancellationToken));
+            return pixels.PublishVideoFrame(cancellationToken);
         }
     }
 }

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Mediana.Drawing.Fonts
 {
-    public partial class TrueTypeFont
+    public partial class FontProgram
     {
         /// <summary>Gets the immutable decoded OpenType program owned by this reader.</summary>
         public ReadOnlyMemory<byte> Program => _data;

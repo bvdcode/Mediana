@@ -5,27 +5,28 @@ using System.Globalization;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Streaming.Hls;
+using Mediana.Core.Timing;
 
-namespace Mediana.Cli
+namespace Mediana.Streaming.Hls
 {
-    internal class HlsAudioOutput(AudioHlsWriter writer, HlsRenditionFiles files, string groupId) : IAsyncDisposable
+    internal class HlsAudioOutput(AudioHlsWriter writer, HlsRenditionOutput files, string groupId) : IAsyncDisposable
     {
         public AudioHlsWriter Writer { get; } = writer;
         public string GroupId { get; } = groupId;
 
         public static HlsAudioOutput Create(EncodedStreamInfo stream, MediaBufferAllocator allocator,
-            long targetMilliseconds, string root, int index)
+            MediaDuration targetDuration, IHlsPackageOutput output, int index)
         {
             string name = "audio-" + index.ToString(CultureInfo.InvariantCulture);
-            HlsRenditionFiles files = HlsRenditionFiles.Create(root, name);
+            HlsRenditionOutput files = new(output, name);
             AudioHlsWriter writer = AudioHlsWriter.Create(stream, files.OpenSegmentAsync, allocator,
-                new() { TargetDuration = new(targetMilliseconds, new(1, 1000)) });
+                new() { TargetDuration = targetDuration });
             return new(writer, files, name);
         }
 
         public async ValueTask<HlsAudioRendition> WritePlaylistAsync(long targetDurationSeconds, CancellationToken token)
         {
-            await files.WritePlaylistAsync(Writer.CreateVodPlaylist(HlsRenditionFiles.SegmentName, targetDurationSeconds), token);
+            await files.WritePlaylistAsync(Writer.CreateVodPlaylist(HlsRenditionOutput.SegmentName, targetDurationSeconds), token).ConfigureAwait(false);
             return Writer.CreateRendition(files.PlaylistUri, GroupId, "Main", targetDurationSeconds) with
             {
                 IsDefault = true,

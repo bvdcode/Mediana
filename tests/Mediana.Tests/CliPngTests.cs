@@ -13,6 +13,18 @@ namespace Mediana.Tests
         private readonly string directory = Directory.CreateTempSubdirectory("mediana-png-").FullName;
 
         [Fact]
+        public async Task ExplicitSvgCommandKeepsTheEmbeddedDecoderRegistry()
+        {
+            string input = Path.Combine(directory, "input.svg");
+            string output = Path.Combine(directory, "output.png");
+            byte[] png = PngDecodeTestData.Image([0, 21, 43, 65, 255], PngDecodeTestData.Chunk("sRGB", [0]));
+            await File.WriteAllBytesAsync(input, EmbeddedImageTestInput.Svg(png));
+            (int code, _, string error) = await CliTests.RunAsync(["image", "svg", input, output, "--width", "1"]);
+            Assert.True(code == 0, error);
+            PngTestInput.VerifyPreview(await File.ReadAllBytesAsync(output), 1, 1, [21, 43, 65, 255], 1, (x, y) => (x, y), 0);
+        }
+
+        [Fact]
         public async Task EveryIndependentPngReferenceConvertsByContentAndPreservesEveryOutputPixel()
         {
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Png");
