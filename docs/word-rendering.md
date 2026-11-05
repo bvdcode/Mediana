@@ -47,6 +47,14 @@ output DPI or maximum dimensions does not change pagination. Page numbers in
 `WordRenderer` are one-based. The returned `PixelBuffer` belongs to the caller;
 publication transfers its storage to a `VideoFrame` without copying RGBA bytes.
 
+Documents expose their Sections. Each section carries its own page size,
+margins, start type and header/footer references. Layout.GetPageSize(pageNumber)
+returns the selected page's actual size; PageSize describes the first page.
+Next-page, odd-page and even-page starts insert the necessary breaks; inherited
+headers and footers retain their variants. Continuous sections share a page when
+their geometry matches. A continuous change of page geometry and next-column
+starts remain explicit unsupported cases.
+
 The example explicitly selects fractional measurements, an A4 page size when
 the document omits it, font substitution, and SDR interpretation of missing
 image color labels. Reader and layout warnings are available on the document
@@ -119,7 +127,7 @@ supersampling. Output extension selects PNG; document recognition uses content.
 
 ## Coverage and validation
 
-Rendering covers single-section pages; paragraph and character style inheritance;
+Rendering covers multiple sections with independent page geometry; paragraph and character style inheritance;
 physical measurements; Latin, Cyrillic and available Unicode outlines; font
 size/style/color; underline and strike; left/center/right/justified text;
 explicit line/page breaks; tabs; numbering; paragraph spacing and indentation;
@@ -135,7 +143,7 @@ page rendering, PNG round trips, cancellation, warning failures and resource
 release. The complete Native AOT test executable and CLI corpus passed. This does not establish pixel equivalence with Word: pagination still
 differs on some documents, particularly with substituted fonts.
 
-Multiple sections, floating drawings, vertical table merges, multicolumn flow,
+Continuous changes of page geometry, floating drawings, vertical table merges, multicolumn flow,
 charts and bidirectional/complex-script layout remain open. Legacy binary DOC,
 Excel and PowerPoint rendering are separate operations in the
 [format catalog](formats/README.md).
