@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Webp/Mediana.Codecs.Webp.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <Using Include="Xunit" />
+    <Compile Include="../Shared/WebpTestBitReader.cs" Link="WebpTestBitReader.cs" />
+    <Compile Include="../Shared/WebpTestHuffman.cs" Link="WebpTestHuffman.cs" />
+    <Compile Include="../Shared/WebpLosslessTestReader.cs" Link="WebpLosslessTestReader.cs" />
+    <Compile Include="../Shared/WebpEncodingTestInput.cs" Link="WebpEncodingTestInput.cs" />
+    <Compile Include="../Shared/ImageOutputTestStream.cs" Link="ImageOutputTestStream.cs" />
+    <Compile Include="../Shared/Vp8TestBooleanReader.cs" Link="Vp8TestBooleanReader.cs" />
+  </ItemGroup>
+</Project>

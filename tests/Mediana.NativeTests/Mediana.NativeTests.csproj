@@ -11,6 +11,7 @@
   <ItemGroup>
     <Compile Include="../Shared/FluentEmojiTestInput.cs" Link="FluentEmojiTestInput.cs" />
     <Compile Include="../Shared/WebpTestBitReader.cs" Link="WebpTestBitReader.cs" />
+    <Compile Include="../Shared/Vp8TestBooleanReader.cs" Link="Vp8TestBooleanReader.cs" />
     <Compile Include="../Shared/WebpTestHuffman.cs" Link="WebpTestHuffman.cs" />
     <Compile Include="../Shared/WebpLosslessTestReader.cs" Link="WebpLosslessTestReader.cs" />
     <Compile Include="../Shared/WebpEncodingTestInput.cs" Link="WebpEncodingTestInput.cs" />
