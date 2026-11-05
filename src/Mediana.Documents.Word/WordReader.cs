@@ -14,29 +14,26 @@ namespace Mediana.Documents.Word
         public static WordDocument Read(ReadOnlyMemory<byte> input, WordReaderOptions? options = null, CancellationToken cancellationToken = default)
         {
             options ??= new();
-            if (options.MaximumCharacters <= 0 || options.MaximumBlocks <= 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
             using OpenXmlPackage package = OpenXmlPackage.Open(input, options.Package, cancellationToken);
-            string main = package.MainPart(cancellationToken);
-            if (package.ContentType(main) != DocumentContentType) { throw new NotSupportedException("The Open XML package is not a DOCX document."); }
-            XElement root = package.ReadXml(main, cancellationToken).Root ?? throw new InvalidDataException("Empty Word document.");
-            WordReadContext context = new(package, options, root.Name.Namespace, cancellationToken);
-            if (root.Name.LocalName != "document") { throw new InvalidDataException("Invalid Word document root."); }
-            XElement body = root.Element(context.W + "body") ?? throw new InvalidDataException("Word document has no body.");
-            XElement[] sections = body.Descendants(context.W + "sectPr").ToArray();
-            if (sections.Length != 1) { throw new NotSupportedException("Word rendering currently requires one page section."); }
-            WordPageGeometry geometry = Geometry(context, sections[0]);
+            return Read(package, package.MainPart(cancellationToken), options, cancellationToken);
+        }
+
+        internal static WordDocument Read(OpenXmlPackage package, string main, WordReaderOptions options, CancellationToken cancellationToken)
+        {
+            (WordReadContext context, XElement body, XElement section) = Structure(package, main, options, cancellationToken);
+            WordPageGeometry geometry = Geometry(context, section);
             WordStyles styles = new(context, main);
             WordNumbering numbering = new(context, main);
             WordContentReader reader = new(context, styles, numbering);
             IReadOnlyList<WordBlock> blocks = reader.Blocks(body, main);
             WordMarginContent header = ReadMargin("header"), footer = ReadMargin("footer");
-            bool first = WordReadContext.On(sections[0].Element(context.W + "titlePg"));
+            bool first = WordReadContext.On(section.Element(context.W + "titlePg"));
             bool even = WordReadContext.On(context.RelatedXml(main, "settings")?.Element(context.W + "evenAndOddHeaders"));
             return new(blocks, geometry, header, footer, first, even, context.Warnings);
 
             WordMarginContent ReadMargin(string kind)
             {
-                XElement[] references = sections[0].Elements(context.W + (kind + "Reference")).ToArray();
+                XElement[] references = section.Elements(context.W + (kind + "Reference")).ToArray();
                 Dictionary<string, IReadOnlyList<WordBlock>> contents = new(StringComparer.Ordinal);
                 foreach (XElement reference in references)
                 {
@@ -49,6 +46,27 @@ namespace Mediana.Documents.Word
                 return new(contents.GetValueOrDefault("default") ?? Array.Empty<WordBlock>(), contents.GetValueOrDefault("first") ?? Array.Empty<WordBlock>(),
                     contents.GetValueOrDefault("even") ?? Array.Empty<WordBlock>());
             }
+        }
+
+        internal static WordPageSize ReadPageSize(OpenXmlPackage package, string main, WordReaderOptions options, CancellationToken token)
+        {
+            (WordReadContext context, _, XElement section) = Structure(package, main, options, token);
+            WordPageGeometry geometry = Geometry(context, section);
+            return new(geometry.Width, geometry.Height);
+        }
+
+        private static (WordReadContext Context, XElement Body, XElement Section) Structure(OpenXmlPackage package, string main,
+            WordReaderOptions options, CancellationToken token)
+        {
+            if (options.MaximumCharacters <= 0 || options.MaximumBlocks <= 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
+            if (package.ContentType(main) != DocumentContentType) { throw new NotSupportedException("The Open XML package is not a DOCX document."); }
+            XElement root = package.ReadXml(main, token).Root ?? throw new InvalidDataException("Empty Word document.");
+            WordReadContext context = new(package, options, root.Name.Namespace, token);
+            if (root.Name.LocalName != "document") { throw new InvalidDataException("Invalid Word document root."); }
+            XElement body = root.Element(context.W + "body") ?? throw new InvalidDataException("Word document has no body.");
+            XElement[] sections = body.Descendants(context.W + "sectPr").ToArray();
+            if (sections.Length != 1) { throw new NotSupportedException("Word rendering currently requires one page section."); }
+            return (context, body, sections[0]);
         }
 
         private static WordPageGeometry Geometry(WordReadContext context, XElement section)
