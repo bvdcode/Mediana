@@ -7,6 +7,7 @@ namespace Mediana.Codecs.Webp
     {
         public WebpCompression Compression { get; init; } = WebpCompression.Lossless;
         public int Quality { get; init; } = 75;
+        public WebpMetadata? Metadata { get; init; }
 
         internal void Validate()
         {

@@ -24,24 +24,25 @@ namespace Mediana.Codecs.Webp
             ArgumentNullException.ThrowIfNull(options);
             options.Validate();
             ValidateInput(input, cancellationToken);
-            using IWebpImagePayload image = CreatePayload(input, allocator, options, cancellationToken);
-            bool separateAlpha = options.Compression == WebpCompression.Lossy && image.HasAlpha;
-            int alphaLength = separateAlpha ? checked(1 + input.Format.Width * input.Format.Height) : 0;
-            int length = checked(WebpRiff.HeaderBytes + WebpRiff.ChunkLength(image.PayloadLength));
-            if (separateAlpha) { length = checked(length + WebpRiff.CanvasChunkBytes + WebpRiff.ChunkLength(alphaLength)); }
+            using WebpFramePayload image = WebpFramePayload.Create(input, allocator, options, cancellationToken);
+            byte metadataFlags = WebpMetadataWriter.Flags(options.Metadata);
+            bool extended = metadataFlags != 0 || (options.Compression == WebpCompression.Lossy && image.HasAlpha);
+            int length = checked(WebpRiff.HeaderBytes + image.Length + WebpMetadataWriter.Length(options.Metadata)
+                + (extended ? WebpRiff.CanvasChunkBytes : 0));
             using WritableMediaBuffer output = allocator.Allocate(length);
             WebpRiff.WriteHeader(output.Memory.Span, length);
             int position = WebpRiff.HeaderBytes;
-            if (separateAlpha)
+            if (extended)
             {
-                WebpRiff.WriteCanvas(output.Memory.Span[position..], input.Format.Width, input.Format.Height, 16);
+                byte flags = (byte)(metadataFlags | (image.HasAlpha ? 16 : 0));
+                WebpRiff.WriteCanvas(output.Memory.Span[position..], input.Format.Width, input.Format.Height, flags);
                 position += WebpRiff.CanvasChunkBytes;
-                WebpRiff.WriteChunk(output.Memory.Span[position..], "ALPH"u8, alphaLength);
-                WriteAlpha(input, output.Memory.Span.Slice(position + WebpRiff.ChunkHeaderBytes, alphaLength), cancellationToken);
-                position += WebpRiff.ChunkLength(alphaLength);
             }
-            WebpRiff.WriteChunk(output.Memory.Span[position..], image.FourCc, image.PayloadLength);
-            image.Write(output.Memory.Slice(position + WebpRiff.ChunkHeaderBytes, image.PayloadLength), cancellationToken);
+            position += WebpMetadataWriter.WriteProfile(output.Memory.Span[position..], options.Metadata);
+            image.Write(output.Memory.Slice(position, image.Length), cancellationToken);
+            position += image.Length;
+            position += WebpMetadataWriter.WriteDescriptions(output.Memory.Span[position..], options.Metadata);
+            if (position != length) { throw new InvalidOperationException("WebP chunk lengths do not match the RIFF size."); }
             cancellationToken.ThrowIfCancellationRequested();
             return output.Publish();
         }
@@ -53,17 +54,6 @@ namespace Mediana.Codecs.Webp
                 WebpCompression.Lossy => Vp8LossyImage.Create(input, options.Quality, allocator, token),
                 _ => throw new ArgumentOutOfRangeException(nameof(options))
             };
-
-        private static void WriteAlpha(VideoFrame input, Span<byte> output, CancellationToken token)
-        {
-            output[0] = 0;
-            for (int row = 0; row < input.Format.Height; row++)
-            {
-                token.ThrowIfCancellationRequested();
-                ReadOnlySpan<byte> source = input.GetRow(0, row);
-                for (int x = 0; x < input.Format.Width; x++) { output[1 + row * input.Format.Width + x] = source[x * 4 + 3]; }
-            }
-        }
 
         /// <summary>Writes a complete lossless WebP to a writable, possibly non-seekable destination.
         /// Retains input until completion, leaves destination open and does not flush it. Failed output must be discarded.</summary>
