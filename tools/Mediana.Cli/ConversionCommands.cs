@@ -9,12 +9,12 @@ namespace Mediana.Cli
 {
     internal class ConversionCommands(ILogger logger, TextWriter writer, CliOperation operation, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
-        /// <summary>Inspect media: mediana -i input. Convert media: mediana -i input output.wav|output.png|output.ts.</summary>
+        /// <summary>Inspect media: mediana -i input. Convert media: mediana -i input output.wav|output.png|output.webp|output.ts.</summary>
         /// <param name="output">Optional output file. Omit to inspect the input; its extension selects the conversion format.</param>
         /// <param name="input">-i, Existing input file; its content determines the input format.</param>
         /// <param name="stream">Audio or video stream index; defaults to the first stream of the required kind.</param>
-        /// <param name="timeMs">Video/animation frame timestamp in milliseconds for PNG output.</param>
-        /// <param name="page">One-based document page number for PNG output.</param>
+        /// <param name="timeMs">Video/animation frame timestamp in milliseconds for image output.</param>
+        /// <param name="page">One-based document page number for image output.</param>
         /// <param name="videoCodec">TS video mode: Copy preserves encoded streams; H264 encodes I/P video.</param>
         /// <param name="videoOnly">Explicitly omit audio when encoding H264 to TS.</param>
         /// <param name="qp">H264 quantizer from 0 to 51; fixed without video-bit-rate, otherwise the initial value. Defaults to 26.</param>
@@ -97,10 +97,10 @@ namespace Mediana.Cli
             return ExecuteFileAsync(input, output, outputFile => Path.GetExtension(output).ToLowerInvariant() switch
             {
                 ".wav" or ".wave" => WaveAudioCommand.RunAsync(input, outputFile, stream, logger, cancellationToken),
-                ".png" => FilePreviewCommand.RunAsync(input, outputFile, stream, timeMs, page, logger, cancellationToken),
+                ".png" or ".webp" => FilePreviewCommand.RunAsync(input, outputFile, stream, timeMs, page, logger, ImageOutputEncoders.ForPath(output), cancellationToken),
                 ".ts" => MpegTsRemuxCommand.RunAsync(input, outputFile, stream, cancellationToken),
                 _ => throw new NotSupportedException("Cannot select an output format from the extension '" + Path.GetExtension(output)
-                    + "'. Use .wav or .wave (PCM16), .png (one image/frame/page), or .ts (AVC/AAC/MP3 stream copy).")
+                    + "'. Use .wav or .wave (PCM16), .png or .webp (one image/frame/page), or .ts (AVC/AAC/MP3 stream copy).")
             }, cancellationToken);
         }
     }

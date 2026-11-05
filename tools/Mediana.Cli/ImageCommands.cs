@@ -42,7 +42,7 @@ namespace Mediana.Cli
             CancellationToken cancellationToken = default)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
-            return ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.SvgAsync(input, outputFile, width, logger, cancellationToken), cancellationToken);
+            return ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.SvgAsync(input, outputFile, width, logger, ImageOutputEncoders.ForPath(output), cancellationToken), cancellationToken);
         }
 
         /// <summary>Render one supported TGS/Lottie frame to PNG.</summary>
@@ -58,10 +58,10 @@ namespace Mediana.Cli
             {
                 throw new ArgumentOutOfRangeException(nameof(time), "Animation time must be finite and nonnegative.");
             }
-            return ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.TgsAsync(input, outputFile, time, width, logger, cancellationToken), cancellationToken);
+            return ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.TgsAsync(input, outputFile, time, width, logger, ImageOutputEncoders.ForPath(output), cancellationToken), cancellationToken);
         }
 
         private Task<int> RasterAsync(IImageDecoder decoder, string input, string output, CancellationToken token) =>
-            ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.RunAsync(decoder, input, outputFile, logger, cancellationToken: token), token);
+            ExecuteFileAsync(input, output, outputFile => ImagePreviewCommand.RunAsync(decoder, input, outputFile, logger, ImageOutputEncoders.ForPath(output), cancellationToken: token), token);
     }
 }

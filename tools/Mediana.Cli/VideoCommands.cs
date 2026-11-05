@@ -22,7 +22,7 @@ namespace Mediana.Cli
             ArgumentOutOfRangeException.ThrowIfNegative(timeMs);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
-            return ExecuteFileAsync(input, output, outputFile => VideoPreviewCommand.RunAsync(input, outputFile, stream, timeMs, width, height, logger, cancellationToken), cancellationToken);
+            return ExecuteFileAsync(input, output, outputFile => VideoPreviewCommand.RunAsync(input, outputFile, stream, timeMs, width, height, logger, ImageOutputEncoders.ForPath(output), cancellationToken), cancellationToken);
         }
     }
 }

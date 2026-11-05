@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs.H264;
-using Mediana.Codecs.Png;
+using Mediana.Codecs;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -18,7 +18,7 @@ namespace Mediana.Cli
         private const long ProcessingBufferBudgetBytes = 64 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int? streamIndex, long milliseconds,
-            int maximumWidth, int maximumHeight, ILogger logger, CancellationToken cancellationToken = default)
+            int maximumWidth, int maximumHeight, ILogger logger, IImageEncoder encoder, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = ContainerEngineFactory.CreateBuilder(Mp4TimestampMode.LinearMovie)
                 .AddVideoDecoder(new H264DecoderFactory()).Build();
@@ -43,7 +43,7 @@ namespace Mediana.Cli
                 height = preview.Format.Height;
                 await outputFile.WriteAsync(async output =>
                 {
-                    encodedLength = await PngEncoder.EncodeAsync(preview, output, allocator, cancellationToken);
+                    encodedLength = await encoder.EncodeAsync(preview, output, allocator, cancellationToken);
                 }, cancellationToken: cancellationToken);
             }
             decoded.Dispose();
@@ -52,7 +52,7 @@ namespace Mediana.Cli
             {
                 throw new InvalidOperationException("Preview buffers were not released.");
             }
-            await Console.Out.WriteLineAsync($"PNG preview: {width}x{height}; {encodedLength} bytes; PTS {decoded.Timestamp?.Value} at {decoded.Timestamp?.TimeBase.Numerator}/{decoded.Timestamp?.TimeBase.Denominator}; square pixels, sRGB. Live buffer bytes: 0.");
+            await Console.Out.WriteLineAsync($"{encoder.FormatId.ToUpperInvariant()} preview: {width}x{height}; {encodedLength} bytes; PTS {decoded.Timestamp?.Value} at {decoded.Timestamp?.TimeBase.Numerator}/{decoded.Timestamp?.TimeBase.Denominator}; square pixels, sRGB. Live buffer bytes: 0.");
             return 0;
         }
     }
