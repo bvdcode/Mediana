@@ -33,9 +33,19 @@ fetch network resources or resolve external XML entities.
 [TrueType glyph reading](fonts.md) describes outline bounds, ownership and
 regression coverage shared with PDF previews.
 
-Embedded PNG decoding covers standard color/depth combinations and Adam7.
-It uses `Mediana.Codecs.Png`, the same parser and decoder as standalone PNG
-input, and retains its decoded frame without another pixel copy. Unsupported SVG features are reported by
+Embedded images use the shared `Mediana.Imaging` preparation path. Direct reader
+calls include managed PNG/JPEG decoders; `SvgReaderOptions.Images` supplies a
+replacement context. When decoding through `MediaEngine`, the engine's registered
+decoders are passed to embedded resources automatically, including asynchronous
+implementations. Data URI content is recognized by its bytes. External files and
+URLs still require the explicit caller resolver.
+
+Image colors are converted to sRGB before drawing. Already canonical sRGB pixels
+retain their storage; transformations allocate a separate converted frame.
+Missing labels require an explicit `ImageColorResolver`, such as
+`SdrPreviewColorPolicy.Resolve`; CLI previews select this policy and report
+substitutions. PNG decoding covers standard color/depth combinations and Adam7.
+Unsupported SVG features are reported by
 `UnsupportedFeatures`; strict rendering rejects them. SVG animation, patterns,
 markers, complex CSS selectors, WOFF2 and complex-script shaping are outside
 the implemented subset.
@@ -44,6 +54,10 @@ Dispose `SvgDocument` after all renders finish to release retained raster images
 `SvgReaderOptions.ImageAllocator` supplies their decode and retained-storage
 budget; `MaximumImageBytes` supplies the default when no allocator is provided.
 Failed reads release images already loaded.
+Use `SvgReader.ReadAsync` or `ReadFileAsync` for asynchronous image implementations.
+The synchronous reader supports `ISynchronousImageDecoder` implementations and
+rejects asynchronous-only decoders before starting them. Embedded resources
+inherit the same decoder context and bounded nesting allowance.
 
 Input size, elements, nesting, path commands, embedded-image pixels,
 supersampled output and effect workspace have separate bounds. The

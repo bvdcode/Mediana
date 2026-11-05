@@ -61,6 +61,15 @@ image color labels. Reader and layout warnings are available on the document
 and layout, and delivered to the render warning handler. Declared image color
 characteristics take precedence over the preview policy.
 
+Embedded pictures use `Mediana.Imaging` for decoder selection and sRGB preparation.
+Direct rendering defaults to managed PNG/JPEG; set `WordRenderOptions.Images` to
+use a shared `ImageDecodeContext` with additional formats. Registered Word
+decoding inherits the engine's image registry through `ImageDecodeRequest`.
+Adding a decoder to that registry also makes it available to embedded pictures.
+PNG honors the shared preferred-resolution hints to retain bounded scanline
+decoding for large source pictures. Unsupported hints may leave other decoders
+at full resolution; page placement still determines the visible picture size.
+
 ## Fonts
 
 The library does not search the filesystem or download fonts. For exact fonts,

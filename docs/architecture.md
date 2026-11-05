@@ -13,6 +13,8 @@ flowchart BT
     Codecs --> Core
     Drawing --> Core
     Processing --> Core
+    Imaging[Shared image preparation] --> CodecModules
+    Imaging --> Processing
     ContainerModules[Container modules] --> Containers
     ContainerModules --> Formats
     CodecModules[Codec modules] --> Codecs
@@ -21,6 +23,7 @@ flowchart BT
     Execution --> Codecs
     Mediana --> Execution
     Svg[SVG adapter] --> Drawing
+    Svg --> Imaging
     Fluent[Optional Fluent emoji resources] --> Svg
     Fluent --> Drawing
     Tgs[TGS adapter] --> Drawing
@@ -32,8 +35,10 @@ flowchart BT
     OpenXml --> Codecs
     Word[Word document layout and rendering] --> OpenXml
     Word --> Drawing
-    Word --> Processing
-    Word --> CodecModules
+    Word --> Imaging
+    Hls[HLS audio and segment operations] --> Mediana
+    Hls --> ContainerModules
+    Hls --> CodecModules
     Application[Application / CLI] --> Mediana
     Application --> ContainerModules
     Application --> CodecModules

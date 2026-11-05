@@ -19,6 +19,19 @@ by the distinct encoder pipelines; the operation does not accumulate the full
 recording or decode again for another bitrate. Equal bitrates reuse the same AAC
 encoder and packets, including nonadjacent variants in the requested order.
 
+`Mediana.Streaming.Hls` exposes this preparation as `HlsAacPcmSource` and
+`HlsAacAudioSource`. The caller supplies a `MediaEngine` with audio decoders and
+the shared allocator; container factory registration is not required. The MP4
+reader is opened once for edits and packet indexing, then transferred to
+`MediaEngine.OpenAudio(reader, allocator, streamIndex)`. Decoder creation failure
+leaves reader ownership with the caller. The source remains borrowed throughout.
+`HlsCopyAudioSource` exposes the corresponding indexed audio-copy path.
+
+The PCM source applies explicit movie edit windows and `AudioEncodingPcm` once.
+It does not own unrelated allocations in the shared budget. Each returned frame
+belongs to the caller; source operations must not overlap. The CLI uses these
+same library types for its audio variants.
+
 `MediaEncodeGroup<TFrame>` provides the format-independent library operation for
 submitting a borrowed frame to multiple `MediaEncodePipeline<TFrame>` instances.
 It copies registrations, rejects empty/duplicate/null targets, submits in order
