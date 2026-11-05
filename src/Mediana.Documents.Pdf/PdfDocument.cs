@@ -8,6 +8,7 @@ namespace Mediana.Documents.Pdf
     public class PdfDocument : IDisposable
     {
         private PdfStorage? _storage;
+        private readonly PdfOptionalContent _optionalContent;
         private readonly object _sync = new();
         private readonly List<PdfPageSource> _pages = [];
         private static readonly IReadOnlyList<string> SignedContentWarnings = Array.AsReadOnly(new[] { "CMS signature verification was not performed." });
@@ -20,7 +21,7 @@ namespace Mediana.Documents.Pdf
             Warnings = signedContent ? SignedContentWarnings : Array.Empty<string>();
             PdfValue catalog = storage.Resolve(storage.Trailer.Get("Root"), token);
             if (catalog.Get("Type").Name() != "Catalog") { throw new InvalidDataException("Missing PDF catalog."); }
-            if (catalog.Get("OCProperties").Kind != PdfValueKind.Null) { throw new NotSupportedException("PDF optional-content configurations are not supported."); }
+            _optionalContent = new(storage, catalog, token);
             Walk(catalog.Get("Pages"), PdfValue.Null, PdfValue.Null, PdfValue.Null, 0, new HashSet<PdfValue>(), 0, storage, token);
         }
         private void Walk(PdfValue node, PdfValue resources, PdfValue media, PdfValue crop, int rotation, HashSet<PdfValue> visited, int depth, PdfStorage storage, CancellationToken token)
@@ -86,7 +87,7 @@ namespace Mediana.Documents.Pdf
             {
                 PdfStorage storage = RequireOpen();
                 cancellationToken.ThrowIfCancellationRequested();
-                return new PdfInterpreter(storage, cancellationToken, samplesPerPoint).Interpret(Page(pageNumber));
+                return new PdfInterpreter(storage, _optionalContent, cancellationToken, samplesPerPoint).Interpret(Page(pageNumber));
             }
         }
         private PdfPageSource Page(int number)

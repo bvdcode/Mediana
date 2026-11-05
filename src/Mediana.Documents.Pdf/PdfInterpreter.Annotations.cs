@@ -12,6 +12,8 @@ namespace Mediana.Documents.Pdf
                 token.ThrowIfCancellationRequested();
                 PdfValue annotation = Resolve(reference);
                 if (annotation.Kind != PdfValueKind.Dictionary) { throw new InvalidDataException("PDF annotation requires a dictionary."); }
+                PdfValue membership = Get(annotation, "OC");
+                if (membership.Kind != PdfValueKind.Null && !optionalContent.IsVisible(membership, token, ref _operations)) { continue; }
                 PdfValue flags = Get(annotation, "F");
                 int value = flags.Kind == PdfValueKind.Null ? 0 : flags.Integer();
                 if (value < 0) { throw new InvalidDataException("Invalid PDF annotation flags."); }

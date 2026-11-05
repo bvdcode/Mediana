@@ -105,7 +105,7 @@ namespace Mediana.Documents.Pdf
             RequireText();
             if (text.Kind != PdfValueKind.String) { throw new InvalidDataException("Expected a PDF text string."); }
             PdfFont? font = _state.Font;
-            if (font is null) { _unsupported.Add("Text without a supported embedded font"); return; }
+            if (font is null) { if (_contentVisible) { _unsupported.Add("Text without a supported embedded font"); } return; }
             if (font.Composite && text.Bytes.Length % 2 != 0) { throw new InvalidDataException("Odd Identity-H string length."); }
             for (int i = 0; i < text.Bytes.Length; i++)
             {
@@ -114,12 +114,12 @@ namespace Mediana.Documents.Pdf
                 switch (font)
                 {
                     case PdfOutlineFont outline:
-                        if (_state.TextMode != 3) { ShowOutline(outline, code); }
+                        if (_contentVisible && _state.TextMode != 3) { ShowOutline(outline, code); }
                         break;
                     case PdfMetricsFont:
-                        if (_state.TextMode != 3) { _unsupported.Add("Visible text without an embedded outline font"); }
+                        if (_contentVisible && _state.TextMode != 3) { _unsupported.Add("Visible text without an embedded outline font"); }
                         break;
-                    case PdfType3Font type3: ShowType3(type3, code, depth); break;
+                    case PdfType3Font type3: if (_contentVisible) { ShowType3(type3, code, depth); } break;
                     default: throw new NotSupportedException("Unsupported PDF font implementation.");
                 }
                 double width = font.Widths.GetValueOrDefault(code, font.DefaultWidth);
@@ -138,8 +138,8 @@ namespace Mediana.Documents.Pdf
             _operations = checked(_operations + source.CommandCount + 1);
             if (_operations > storage.Budget.Options.MaximumOperations) { throw new InvalidDataException("PDF glyph geometry exceeds the page operation limit."); }
             VectorPath outline = source.Transform(placement);
-            if (_state.TextMode is 0 or 2 or 4 or 6) { _commands.Add(new FillCommand(outline, _state.Fill with { A = Channel(_state.FillAlpha) }, FillRule.NonZero, _state.Blend)); }
-            if (_state.TextMode is 1 or 2 or 5 or 6) { _commands.Add(new StrokeCommand(outline, _state.Stroke with { A = Channel(_state.StrokeAlpha) }, _state.Pen, _state.Transform, _state.Blend)); }
+            if (_state.TextMode is 0 or 2 or 4 or 6) { AddPaint(new FillCommand(outline, _state.Fill with { A = Channel(_state.FillAlpha) }, FillRule.NonZero, _state.Blend)); }
+            if (_state.TextMode is 1 or 2 or 5 or 6) { AddPaint(new StrokeCommand(outline, _state.Stroke with { A = Channel(_state.StrokeAlpha) }, _state.Pen, _state.Transform, _state.Blend)); }
             if (_state.TextMode >= 4) { _textClip.Append(outline); _hasTextClip = true; }
         }
         private static int GlyphCode(string name)

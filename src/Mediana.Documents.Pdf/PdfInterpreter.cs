@@ -5,7 +5,7 @@ using System.Numerics;
 using Mediana.Drawing;
 namespace Mediana.Documents.Pdf
 {
-    internal partial class PdfInterpreter(PdfStorage storage, CancellationToken token, double? samplesPerPoint = null)
+    internal partial class PdfInterpreter(PdfStorage storage, PdfOptionalContent optionalContent, CancellationToken token, double? samplesPerPoint = null)
     {
         private readonly List<IPdfDrawCommand> _commands = [];
         private readonly HashSet<string> _unsupported = new(StringComparer.Ordinal);
@@ -74,6 +74,7 @@ namespace Mediana.Documents.Pdf
             List<PdfValue> operands = [];
             Stack<PdfGraphicsState> saved = [];
             int compatibility = 0;
+            Stack<bool> visibility = [];
             bool glyphMetrics = false;
             while (true)
             {
@@ -155,9 +156,17 @@ namespace Mediana.Documents.Pdf
                     case "TJ": Count(1); RequireText(); foreach (PdfValue part in Resolve(operands[0]).Items) { if (part.Kind == PdfValueKind.Number) { Advance(-Float(part.Number) * _state.FontSize * _state.HorizontalScale / 1000); } else { Show(part, depth); } } break;
                     case "'": Count(1); MoveText(0, -_state.Leading); Show(Resolve(operands[0]), depth); break;
                     case "\"": Count(3); _state = _state with { WordSpace = F(0), CharacterSpace = F(1) }; MoveText(0, -_state.Leading); Show(Resolve(operands[2]), depth); break;
+                    case "BMC": Count(1); BeginMarkedContent(visibility, Name(0), PdfValue.Null, resources); break;
+                    case "BDC": Count(2); BeginMarkedContent(visibility, Name(0), Resolve(operands[1]), resources); break;
+                    case "EMC":
+                        Count(0);
+                        if (!visibility.TryPop(out bool visible)) { throw new InvalidDataException("Unbalanced PDF marked content."); }
+                        _contentVisible = visible;
+                        break;
+                    case "MP": Count(1); _ = Name(0); break;
+                    case "DP": Count(2); _ = Name(0); break;
                     case "BX": Count(0); compatibility++; break;
                     case "EX": Count(0); if (--compatibility < 0) { throw new InvalidDataException("Unbalanced PDF compatibility section."); } break;
-                    case "BMC": case "BDC": case "EMC": case "MP": case "DP": break;
                     case "ri": Count(1); _unsupported.Add("Rendering intent: " + Name(0)); break;
                     case "i": Count(1); break;
                     case "BI": throw new NotSupportedException("Inline PDF images are not supported yet.");
@@ -165,15 +174,15 @@ namespace Mediana.Documents.Pdf
                 }
                 operands.Clear();
             }
-            if (operands.Count != 0 || saved.Count != 0 || compatibility != 0 || _inText || glyph && !glyphMetrics) { throw new InvalidDataException("Unbalanced PDF content stream."); }
+            if (operands.Count != 0 || saved.Count != 0 || visibility.Count != 0 || compatibility != 0 || _inText || glyph && !glyphMetrics) { throw new InvalidDataException("Unbalanced PDF content stream."); }
         }
         private void RequirePoint() { if (!_hasPoint) { throw new InvalidDataException("PDF path has no current point."); } }
         private void Close() { RequirePoint(); _path.Close(); _current = _start; }
         private void Curve(Vector2 a, Vector2 b, Vector2 end) { _path.CubicTo(a.X, a.Y, b.X, b.Y, end.X, end.Y); _current = end; }
         private void Finish(bool fill, bool stroke, FillRule rule)
         {
-            if (fill) { _commands.Add(new FillCommand(_path, _state.Fill with { A = Channel(_state.FillAlpha) }, rule, _state.Blend)); }
-            if (stroke) { _commands.Add(new StrokeCommand(_path, _state.Stroke with { A = Channel(_state.StrokeAlpha) }, _state.Pen, _state.Transform, _state.Blend)); }
+            if (fill) { AddPaint(new FillCommand(_path, _state.Fill with { A = Channel(_state.FillAlpha) }, rule, _state.Blend)); }
+            if (stroke) { AddPaint(new StrokeCommand(_path, _state.Stroke with { A = Channel(_state.StrokeAlpha) }, _state.Pen, _state.Transform, _state.Blend)); }
             if (_pendingClip is FillRule clip) { _commands.Add(new ClipCommand(_path, clip)); }
             _path = new(); _hasPoint = false; _pendingClip = null;
         }
@@ -227,15 +236,18 @@ namespace Mediana.Documents.Pdf
         };
         private void XObject(string name, PdfValue resources, int depth)
         {
+            if (!_contentVisible) { return; }
             PdfValue reference = Get(resources, "XObject").Get(name);
             PdfObject obj = storage.Object(reference, token);
+            PdfValue membership = Get(obj.Value, "OC");
+            if (membership.Kind != PdfValueKind.Null && !optionalContent.IsVisible(membership, token, ref _operations)) { return; }
             string subtype = Get(obj.Value, "Subtype").Name();
             if (subtype == "Image")
             {
                 if (_state.UncoloredGlyph && Get(obj.Value, "ImageMask").Number == 0) { throw new InvalidDataException("An uncolored Type 3 glyph may contain only image masks."); }
                 PdfImage image = Image(obj, name, 0);
                 Matrix3x2 placement = new Matrix3x2(1f / image.Width, 0, 0, -1f / image.Height, 0, 1) * _state.Transform;
-                _commands.Add(new ImageCommand(image.Buffer, placement, _state.FillAlpha, _state.Blend));
+                AddPaint(new ImageCommand(image.Buffer, placement, _state.FillAlpha, _state.Blend));
             }
             else if (subtype == "Form")
             {
@@ -243,7 +255,6 @@ namespace Mediana.Documents.Pdf
                 try
                 {
                     FormGroup(Get(obj.Value, "Group"));
-                    if (obj.Value.Get("OC").Kind != PdfValueKind.Null) { _unsupported.Add("Form optional content"); }
                     Matrix3x2 transform = _state.Transform;
                     if (obj.Value.Get("Matrix").Kind != PdfValueKind.Null) { transform = Matrix(obj.Value.Get("Matrix")) * transform; }
                     PdfValue local = obj.Value.Get("Resources").Kind == PdfValueKind.Null ? resources : Get(obj.Value, "Resources");
