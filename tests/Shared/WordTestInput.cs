@@ -11,6 +11,17 @@ namespace Mediana.Tests
     {
         internal const string Page = "<w:sectPr><w:pgSz w:w=\"12240\" w:h=\"15840\"/><w:pgMar w:top=\"1440\" w:bottom=\"1440\" w:left=\"1440\" w:right=\"1440\"/></w:sectPr>";
 
+        internal const string PictureBody = """
+                <w:p><w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+                  <wp:extent cx="254000" cy="254000"/><wp:docPr id="1" name="Picture"/>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                    <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Picture"/><pic:cNvPicPr/></pic:nvPicPr>
+                    <pic:blipFill><a:blip r:embed="picture"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+                    <pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="254000" cy="254000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
+                    </pic:pic></a:graphicData></a:graphic>
+                </wp:inline></w:drawing></w:r></w:p>
+                """;
+
         internal static byte[] Create(string body, string? styles = null, string? numbering = null, string? page = Page, byte[]? picture = null)
         {
             const string word = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";

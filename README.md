@@ -22,6 +22,8 @@ An experimental PDF module reads page geometry, renders supported vector/text/im
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
 Word documents can be paginated and rendered directly to PNG from the library or
 CLI. See [Word rendering and public API](docs/word-rendering.md).
+Word previews include [Fluent color emoji](docs/emoji.md); library callers can
+enable the optional resource module through the same public API.
 STL, OBJ and 3MF models can be loaded and rendered to PNG with configurable
 camera, material, shadows and ambient occlusion. See [Mesh APIs and previews](docs/mesh.md).
 Experimental fixed-QP H.264 I/P encoding and YUV downscaling are available.
@@ -37,6 +39,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Documents.Word` | DOCX styles, pagination and direct page rasterization ([API](docs/word-rendering.md)) |
 | `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction |
 | `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
+| `Mediana.Drawing.Emoji.Fluent` | Optional compressed Microsoft Fluent Flat emoji and reusable inline graphics ([API](docs/emoji.md)) |
 | `Mediana.Images.Heif` | HEIC item graphs, intra HEVC, grids, transforms and alpha |
 | `Mediana.Codecs.Jpeg2000` | JP2/J2K integer components with native precision and optional RGBA conversion |
 | `Mediana.Codecs.Jpeg` | Sequential/progressive Huffman JPEG, grayscale/RGB pixels, restart intervals and explicit source interpretation ([API](docs/jpeg.md)) |
@@ -61,6 +64,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
+| `Mediana.Codecs.Webp` | Managed VP8/VP8L encoding, exact alpha, ICC/EXIF/XMP and streamed WebP animation ([API](docs/webp.md)) |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
 | `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants, continuous AAC/MP3 audio playlists and measured transport output |
 | `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |
@@ -68,8 +72,9 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Cli` | Command-line media inspection, conversions, previews and exports |
 | `Mediana.Sample` | Minimal generated-frame example using the public API |
 
-Core does not reference the other components. Containers do not reference codecs,
-and codecs do not perform I/O. The public facade composes these contracts.
+Core does not reference the other components. Containers do not reference codecs.
+Codec modules do not open files or invoke external processes; complete-image
+adapters can write to caller-owned streams. The public facade composes these contracts.
 See [module boundaries, stream contracts and reusable operations](docs/architecture.md).
 
 The [format implementation catalog](docs/formats/README.md) maps target containers,
@@ -174,6 +179,9 @@ From the download or extraction directory on Linux/macOS:
 ./mediana cover audio.mp3 cover.png
 ./mediana -i audio.mp3 out.wav
 ./mediana -i photo.heic out.png
+./mediana -i photo.heic out.webp
+./mediana -i artwork.svg out.webp --image-compression Lossy --quality 80
+./mediana -i sticker.tgs animation.webp --animate
 ./mediana -i artwork.svg out.png
 ./mediana -i report.pdf page.png --page 1
 ./mediana -i input.mp4 frame.png --time-ms 250
@@ -242,14 +250,17 @@ The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
 
 The main command is `mediana -i input output`. Input content determines its
-format; the output extension selects WAVE PCM16 (`.wav` or `.wave`), PNG (`.png`) or
+format; the output extension selects WAVE PCM16 (`.wav` or `.wave`), PNG (`.png`), WebP (`.webp`) or
 MPEG-TS (`.ts`, stream copy by default). WAVE conversion preserves sample rate and channel
 order and performs no resampling or dithering. RIFF output must fit its 32-bit
 size fields; RF64 is not supported. Named multichannel audio must follow WAVE
-speaker order. PNG output is one image, a video frame at or after `--time-ms`
+speaker order. Still-image output is one image, a video frame at or after `--time-ms`
 (default 0), an animation rendered at that time, or a document `--page` (default 1). Vector and animation
 images use intrinsic dimensions; PDF and DOCX pages render at up to 96 DPI. The existing format
-subsets described below also apply to these commands. Unsupported output formats
+subsets described below also apply to these commands. WebP defaults to lossless;
+`--image-compression Lossy --quality 80` selects lossy color with exact alpha.
+`--animate` writes a WebP sequence from TGS or video using shared frame timing.
+See [WebP encoding](docs/webp.md). Unsupported output formats
 fail explicitly.
 
 Every invocation first prints the product version and copyright in stderr.
@@ -259,7 +270,7 @@ Add `--log-level Debug` after the command to include diagnostic details, or
 `--log-level None` to disable diagnostics. Logs go to stderr; command results go
 to stdout. Colors are automatic in an interactive terminal; `--no-color` or the
 `NO_COLOR` environment variable disables them.
-WAVE, AAC and H.264 conversion and `hls encode` report processed media time,
+WAVE, AAC and H.264 conversion, WebP animation and `hls encode` report processed media time,
 speed relative to playback and output size immediately, at one-second intervals,
 and on completion. HLS counts input video duration once across all variants and
 reports their combined transport size. When
@@ -1393,7 +1404,7 @@ the decoder does not declare that capability. Recognized malformed input fails i
 the selected decoder; ambiguous recognition is rejected without trying another
 implementation. `ImageProbeLength` and `RecognizeImage(prefix)` expose the same
 registry for bounded routing; recognition does not validate the complete input.
-The CLI uses these registrations for `mediana -i input output.png`, including
+The CLI uses these registrations for PNG and WebP image output, including
 renamed files. A recognized image failure propagates from that decoder.
 
 SVG XML bytes retain their BOM and encoding declaration; external entities and
@@ -1442,6 +1453,15 @@ padding, and MP4 movie duration need not equal the last presented timestamp.
 Headers and decoder configuration are inspected; this is not a complete file
 validation, a packet index export or a cover-art API. The existing
 format-specific probe commands provide their additional diagnostics.
+
+`MediaInfo.Metadata` provides a common immutable tree of namespaced, typed
+properties for containers, images and documents. Child scopes retain pages,
+components, encoding configurations and Exif directories. New native properties
+do not require new fields in the shared model. The CLI prints this tree through
+one formatter and reports encoded size when the source supplies it. HEIF exposes
+brands, coded configurations, grids, transformations and color declarations;
+JPEG and PNG use the same Exif reader. PDF exposes each page's dimensions and
+rotation, SVG its root attributes, and TGS/Lottie its composition timing.
 
 `ContainerInfo.Tags` exposes immutable header text without changing native keys.
 ID3v2 frames use namespace `id3v2`; FLAC Vorbis comments use `vorbis`; MP4 text

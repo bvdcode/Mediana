@@ -11,7 +11,7 @@ namespace Mediana.Images.Heif.Container
 {
     internal static class GridImageDecoder
     {
-        private static IReadOnlyList<uint> ReadInputs(HeifContainer container, HeifItem item, ImageProperties properties,
+        internal static IReadOnlyList<uint> ReadInputs(HeifContainer container, HeifItem item, ImageProperties properties,
             out int rows, out int columns)
         {
             ByteReader reader = new ByteReader(container.ReadData(item.Id));

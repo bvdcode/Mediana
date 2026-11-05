@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Drawing;
 using Mediana.Drawing.Fonts;
-using Mediana.Documents.Word;
 
 namespace Mediana.Tests
 {
@@ -33,15 +33,15 @@ namespace Mediana.Tests
                 byte[] normal = BundledFontPrograms.GetFont("Aileron").ToArray();
                 await File.WriteAllBytesAsync(regular, normal);
                 await File.WriteAllBytesAsync(bold, BundledFontPrograms.GetFont("Aileron", true).ToArray());
-                WordFontCollection fonts = await WordFontCollection.LoadAsync([regular, bold]);
+                FontCollection fonts = await FontCollection.LoadAsync([regular, bold]);
                 Assert.True(fonts.Resolve(new("aileron", false, false)).Span.SequenceEqual(normal));
                 TrueTypeFont face = new(fonts.Resolve(new("Aileron", true, false)));
                 Assert.True(face.ReadFaceInfo()!.Weight >= 600);
                 Assert.False(fonts.ResolveCharacter(new("Unknown", false, false), 'A').IsEmpty);
                 Assert.True(fonts.Resolve(new("Unknown", false, false)).IsEmpty);
-                WordFontCollection bounded = await WordFontCollection.LoadAsync([regular], maximumBytes: normal.Length - 1);
+                FontCollection bounded = await FontCollection.LoadAsync([regular], maximumBytes: normal.Length - 1);
                 Assert.True(bounded.Resolve(new("Aileron", false, false)).IsEmpty);
-                await Assert.ThrowsAsync<OperationCanceledException>(() => WordFontCollection.LoadAsync([regular], cancellationToken: new(true)));
+                await Assert.ThrowsAsync<OperationCanceledException>(() => FontCollection.LoadAsync([regular], cancellationToken: new(true)));
             }
             finally { Directory.Delete(directory, recursive: true); }
         }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Codecs;
 using Mediana.Codecs.Jbig2;
 using Mediana.Codecs.Jpeg;
 using Mediana.Codecs.Jpeg2000;
@@ -12,6 +13,7 @@ using Mediana.Images.Heif;
 using Mediana.Images.Svg;
 using Mediana.Images.Tgs;
 using Mediana.Models.Mesh;
+using Mediana.Processing;
 
 namespace Mediana.Cli
 {
@@ -26,11 +28,14 @@ namespace Mediana.Cli
             .AddImageDecoder(CreateTgs())
             .AddImageDecoder(new MeshImageDecoder())
             .AddImageDecoder(new OpenXmlImageDecoder([new WordPreviewDecoder(), new ThreeMfPageDecoder()], CommandImageResources.PackageOptions))
-            .AddImageDecoder(new PdfImageDecoder(CommandImageResources.PdfReaderOptions, CommandImageResources.PdfRenderOptions with
-            {
-                MaximumWidth = MaximumDocumentPreviewDimension,
-                MaximumHeight = MaximumDocumentPreviewDimension
-            }));
+            .AddImageDecoder(new TextImageDecoder(
+                new PdfImageDecoder(CommandImageResources.PdfReaderOptions),
+                text => new PdfImageDecoder(CommandImageResources.PdfReaderOptions with { Text = text }, CommandImageResources.PdfRenderOptions with
+                {
+                    MaximumWidth = MaximumDocumentPreviewDimension,
+                    MaximumHeight = MaximumDocumentPreviewDimension
+                })));
+
 
         internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
             .AddImageDecoder(new PngImageDecoder(new()
@@ -55,11 +60,16 @@ namespace Mediana.Cli
             MaximumJsonBytes = CommandImageResources.MaximumBufferLength
         }, CommandImageResources.DrawingOptions(width));
 
-        public static SvgImageDecoder CreateSvg(int? width = null) => new(new()
+        public static IImageDecoder CreateSvg(int? width = null)
         {
-            MaximumInputBytes = CommandImageResources.MaximumBufferLength,
-            MaximumImagePixels = CommandImageResources.MaximumRgbaPixels
-        }, CommandImageResources.DrawingOptions(width));
+            SvgReaderOptions reader = new()
+            {
+                MaximumInputBytes = CommandImageResources.MaximumBufferLength,
+                MaximumImagePixels = CommandImageResources.MaximumRgbaPixels,
+                ImageColorResolver = SdrPreviewColorPolicy.Resolve
+            };
+            return new TextImageDecoder(new SvgImageDecoder(reader), text => new SvgImageDecoder(reader with { Text = text }, CommandImageResources.DrawingOptions(width)));
+        }
 
         public static HeicImageDecoder CreateHeic(SampleAspectRatio aspect) => new(aspect,
             new HeicDecodeOptions(maxInputBytes: CommandImageResources.MaximumBufferLength, maxPixels: CommandImageResources.MaximumRgbaPixels));

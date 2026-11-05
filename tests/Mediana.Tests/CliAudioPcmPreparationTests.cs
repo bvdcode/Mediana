@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Cli;
+using Mediana.Processing.Audio;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 

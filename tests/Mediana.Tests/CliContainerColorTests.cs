@@ -23,7 +23,7 @@ namespace Mediana.Tests
         {
             string output = Path.Combine(directory, "preview.png");
             ProgressTestContext logger = new();
-            await VideoPreviewCommand.RunAsync(Mp4ColorTestData.PathFor(file), new CommandOutputFile(output, false), null, 0, 96, 64, logger);
+            await VideoPreviewCommand.RunAsync(Mp4ColorTestData.PathFor(file), new CommandOutputFile(output, false), null, 0, 96, 64, logger, new Mediana.Codecs.Png.PngImageEncoder());
             Assert.Empty(logger.Messages);
             Assert.NotEmpty(PngTestInput.ReadChunks(await File.ReadAllBytesAsync(output))["IDAT"]);
             Assert.Single(Directory.GetFiles(directory));
@@ -45,7 +45,7 @@ namespace Mediana.Tests
             (int code, _, _) = await CliTests.RunAsync(["-i", Mp4ColorTestData.PathFor("container-2020-pq.mp4"), output]);
             Assert.Equal(CliExitCodes.Unsupported, code);
             NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(() => VideoPreviewCommand.RunAsync(
-                Mp4ColorTestData.PathFor("container-2020-pq.mp4"), new CommandOutputFile(output, false), null, 0, 96, 64, new ProgressTestContext()));
+                Mp4ColorTestData.PathFor("container-2020-pq.mp4"), new CommandOutputFile(output, false), null, 0, 96, 64, new ProgressTestContext(), new Mediana.Codecs.Png.PngImageEncoder()));
             Assert.Contains("tone mapping", error.Message, StringComparison.Ordinal);
             Assert.Empty(Directory.GetFiles(directory));
         }
@@ -82,7 +82,7 @@ namespace Mediana.Tests
             string output = Path.Combine(directory, "preview.png");
             await File.WriteAllBytesAsync(input, await Mp4ColorTestData.ReplaceAsync(Mp4ColorTestData.Cicp(transfer: 2)));
             ProgressTestContext logger = new();
-            await VideoPreviewCommand.RunAsync(input, new CommandOutputFile(output, false), null, 0, 96, 64, logger);
+            await VideoPreviewCommand.RunAsync(input, new CommandOutputFile(output, false), null, 0, 96, 64, logger, new Mediana.Codecs.Png.PngImageEncoder());
             string warning = Assert.Single(logger.Messages);
             Assert.Contains("metadata (transfer)", warning, StringComparison.Ordinal);
             Assert.Contains("primaries Bt709, transfer Bt709, matrix Bt709", warning, StringComparison.Ordinal);

@@ -140,14 +140,16 @@ namespace Mediana.Tests
             const int dimension = 32;
             const int maximumSupersampling = 4;
             int maximumInputBytes = Math.Max(svg.Length, Math.Max(tgs.Length, pdf.Length));
-            long rasterBytes = 4L * dimension * dimension * (1 + maximumSupersampling * maximumSupersampling);
+            long effectBytes = 4L * dimension * dimension * maximumSupersampling * maximumSupersampling;
+            long rasterBytes = 4L * dimension * dimension * (1 + maximumSupersampling * maximumSupersampling) + effectBytes;
             MediaBufferAllocator allocator = new(maximumInputBytes + CreateEngine().ImageProbeLength + rasterBytes);
             foreach (int factor in new[] { 1, 2, maximumSupersampling })
             {
-                DrawingRenderOptions vectors = new() { Width = dimension, Height = dimension, Supersampling = factor };
+                DrawingRenderOptions vectors = new() { Width = dimension, Height = dimension, Supersampling = factor, MaximumEffectBytes = effectBytes };
                 PdfRenderOptions pages = new() { MaximumWidth = dimension, MaximumHeight = dimension, Supersampling = factor };
                 MediaEngine engine = CreateEngine(vectors, pages);
-                using PixelBuffer svgPixels = SvgRenderer.Render(SvgReader.Read(svg), vectors);
+                using SvgDocument svgDocument = await SvgReader.ReadAsync(svg);
+                using PixelBuffer svgPixels = SvgRenderer.Render(svgDocument, vectors);
                 using PixelBuffer tgsPixels = TgsRenderer.RenderAtTime(TgsReader.Read(tgs), 0, vectors);
                 using PixelBuffer pdfPixels = PdfRenderer.Render(page, pages);
                 byte[][] inputs = [svg, tgs, pdf];

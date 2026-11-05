@@ -20,7 +20,9 @@ namespace Mediana.Documents.Word
         public ImageInfo ReadInfo(OpenXmlPackage package, string mainPart, CancellationToken cancellationToken = default)
         {
             WordPageSize size = WordReader.ReadPageSize(package, mainPart, readerOptions ?? new(), cancellationToken);
-            return new("docx", size.Width, size.Height, ImageDimensionUnit.Points);
+            return new("docx", size.Width, size.Height, ImageDimensionUnit.Points,
+                metadata: new("document", [new("ooxml", "main_part", mainPart), new("ooxml", "content_type", ContentType),
+                    new("word", "first_section_width_points", size.Width), new("word", "first_section_height_points", size.Height)]));
         }
 
         public async ValueTask<VideoFrame> DecodeAsync(OpenXmlPackage package, string mainPart, ImageDecodeRequest request,
@@ -32,7 +34,11 @@ namespace Mediana.Documents.Word
             WordDocument document = WordReader.Read(package, mainPart, readerOptions ?? new(), cancellationToken);
             WordLayout layout = WordRenderer.Layout(document, layoutOptions, cancellationToken);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(request.PageIndex, layout.PageCount, nameof(request.PageIndex));
-            WordRenderOptions rendering = (renderOptions ?? new()) with { WarningHandler = renderOptions?.WarningHandler + request.WarningHandler };
+            WordRenderOptions rendering = (renderOptions ?? new()) with
+            {
+                Images = request.Images ?? renderOptions?.Images ?? Imaging.ImageResources.DefaultDecoders,
+                WarningHandler = renderOptions?.WarningHandler + request.WarningHandler
+            };
             using PixelBuffer pixels = await WordRenderer.RenderAsync(layout, request.PageIndex + 1, rendering, cancellationToken, allocator);
             return pixels.PublishVideoFrame(cancellationToken);
         }

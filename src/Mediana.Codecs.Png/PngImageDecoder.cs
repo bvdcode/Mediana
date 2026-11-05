@@ -14,7 +14,7 @@ namespace Mediana.Codecs.Png
     /// Borrows encoded data only during the call. The allocator accounts for the output, two filter scanlines,
     /// and one expanded scanline when reduction is enabled;
     /// BCL zlib workspace and bounded chunk metadata are separate. ICC/gamma conversion, Exif and animation are unsupported.</summary>
-    public class PngImageDecoder : IImageDecoder, IImageInfoReader
+    public class PngImageDecoder : ISynchronousImageDecoder, IImageInfoReader
     {
         private readonly PngDecodeOptions options;
 
@@ -31,18 +31,34 @@ namespace Mediana.Codecs.Png
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {
-            PngImageData image = Read(encoded, cancellationToken);
-            return ValueTask.FromResult(new ImageInfo("png", image.Width, image.Height, ImageDimensionUnit.Pixels));
+            PngImageData image = PngImageParser.Read(encoded, options, cancellationToken);
+            return ValueTask.FromResult(new ImageInfo("png", image.Width, image.Height, ImageDimensionUnit.Pixels,
+                metadata: PngImageMetadata.Read(image, cancellationToken)));
         }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default) =>
+            ValueTask.FromResult(Decode(encoded, request, allocator, cancellationToken));
+
+        /// <summary>Decodes an in-memory PNG synchronously using the same parser, limits and pixels as DecodeAsync.</summary>
+        public VideoFrame Decode(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
             PngImageData image = Read(encoded, cancellationToken);
+            if (request.MaximumPixels is int limit && (long)image.Width * image.Height > limit)
+            {
+                throw new InvalidDataException("PNG source exceeds MaximumPixels.");
+            }
             int factor = options.ReductionFactor;
+            if (request.PreferredWidth is not null || request.PreferredHeight is not null)
+            {
+                double horizontal = request.PreferredWidth is int preferredWidth ? image.Width / (double)preferredWidth : double.PositiveInfinity;
+                double vertical = request.PreferredHeight is int preferredHeight ? image.Height / (double)preferredHeight : double.PositiveInfinity;
+                factor = Math.Max(factor, (int)Math.Clamp(Math.Floor(Math.Min(horizontal, vertical)), 1, 256));
+            }
             int width = (image.Width - 1) / factor + 1, height = (image.Height - 1) / factor + 1;
             VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, image.Color,
                 ReducedAspect(image, width, height), image.ColorDescription);
@@ -80,7 +96,7 @@ namespace Mediana.Codecs.Png
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = pixels.Publish();
-            return ValueTask.FromResult(new VideoFrame(format, buffer, layout));
+            return new VideoFrame(format, buffer, layout);
         }
 
         private PngImageData Read(ReadOnlyMemory<byte> encoded, CancellationToken token)

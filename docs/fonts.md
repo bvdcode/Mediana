@@ -1,7 +1,7 @@
 # OpenType glyph reading
 
 `Mediana.Drawing.Fonts.TrueTypeFont` supplies the TrueType and supported CFF
-outlines used by SVG and PDF previews. Each TrueType outline reader is restricted to the glyph's own `loca`
+outlines used by Word, SVG and PDF previews. Each TrueType outline reader is restricted to the glyph's own `loca`
 extent within the `glyf` table. Headers, contour endpoints, flags, coordinates,
 component transforms and instruction data cannot consume an adjacent glyph.
 Truncated contour arrays and instruction data are rejected before allocating
@@ -70,3 +70,12 @@ pairs; SVG text applies the resulting horizontal adjustment. This is a subset of
 OpenType positioning. GSUB substitution, script shaping and bidirectional text
 layout are not implemented by this pair API. These distinctions are tracked in
 the [format checklist](formats/README.md#fonts-and-text-presentation-resources).
+
+## Shared selection and drawing
+
+[TextOptions and TextRenderer](text-rendering.md) provide document-independent
+font selection, bounded caches and canvas drawing. FontCollection loads explicitly
+supplied files for any consumer. Word and SVG use the same glyph and inline-artwork
+resolution. PDF external fonts use the same family/style source while retaining
+PDF character codes and advances. Internal format placement borrows the font's
+cached geometry; public outline calls retain their independent-path ownership.

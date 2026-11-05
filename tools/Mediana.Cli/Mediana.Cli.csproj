@@ -11,6 +11,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Drawing.Emoji.Fluent/Mediana.Drawing.Emoji.Fluent.csproj" />
     <ProjectReference Include="../../src/Mediana.Models.Mesh/Mediana.Models.Mesh.csproj" />
     <PackageReference Include="ConsoleAppFramework" Version="5.8.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.14" />
@@ -41,6 +42,7 @@
     <ProjectReference Include="../../src/Mediana.Streaming.Hls/Mediana.Streaming.Hls.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Webp/Mediana.Codecs.Webp.csproj" />
   </ItemGroup>
   <Target Name="GenerateCliBuildInfo" BeforeTargets="CoreCompile">
     <PropertyGroup>

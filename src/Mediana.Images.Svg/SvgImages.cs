@@ -2,6 +2,10 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
+using Mediana.Codecs;
+using Mediana.Imaging;
+using Mediana.Core.Memory;
+using Mediana.Core.Video;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,8 +16,8 @@ namespace Mediana.Images.Svg
 {
     internal partial class SvgSceneBuilder
     {
-        private readonly Dictionary<string, PixelBuffer?> _images = new(StringComparer.Ordinal);
-        private PixelBuffer? Image(string? href)
+        private readonly Dictionary<string, VideoFrame?> _images = new(StringComparer.Ordinal);
+        private async ValueTask<VideoFrame?> ImageAsync(string? href)
         {
             if (href is null)
             {
@@ -21,21 +25,25 @@ namespace Mediana.Images.Svg
                 return null;
             }
 
-            if (_images.TryGetValue(href, out PixelBuffer? cached))
+            if (_images.TryGetValue(href, out VideoFrame? cached))
             {
                 return cached;
             }
 
-            PixelBuffer? image = null;
-            if (href.StartsWith("data:image/png", StringComparison.OrdinalIgnoreCase))
+            VideoFrame? image = null;
+            if (href.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
             {
                 int comma = href.IndexOf(',');
                 if (comma < 0 || !href[..comma].EndsWith(";base64", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidDataException("Embedded PNG must use a base64 data URI.");
+                    throw new InvalidDataException("Embedded images must use a base64 data URI.");
                 }
 
-                image = SvgPng.Decode(Convert.FromBase64String(href[(comma + 1)..]), _limits.MaximumImagePixels, _token);
+                byte[] encoded = Convert.FromBase64String(href[(comma + 1)..]);
+                ImageDecodeRequest request = new() { MaximumPixels = _limits.MaximumImagePixels, WarningHandler = _limits.WarningHandler };
+                image = _synchronous
+                    ? ImageResources.DecodeSynchronously(encoded, _limits.Images, request, _imageAllocator, _limits.ImageColorResolver, _token)
+                    : await ImageResources.DecodeAsync(encoded, _limits.Images, request, _imageAllocator, _limits.ImageColorResolver, _token).ConfigureAwait(false);
             }
             else if (_limits.ImageResolver?.Invoke(href) is { } resolved)
             {
@@ -44,7 +52,7 @@ namespace Mediana.Images.Svg
                     throw new InvalidDataException("Resolved SVG image exceeds MaximumImagePixels.");
                 }
 
-                image = ScenePixels.Copy(resolved);
+                image = resolved.ToVideoFrame(_imageAllocator, _token);
             }
             else
             {
@@ -55,15 +63,15 @@ namespace Mediana.Images.Svg
             return image;
         }
 
-        private Matrix3x2 ImagePlacement(XElement element, PixelBuffer image)
+        private Matrix3x2 ImagePlacement(XElement element, VideoFrame image)
         {
-            float width = Length(element, "width", image.Width, _width), height = Length(element, "height", image.Height, _height);
+            float width = Length(element, "width", image.Format.Width, _width), height = Length(element, "height", image.Format.Height, _height);
             if (width < 0 || height < 0)
             {
                 throw new InvalidDataException("Negative SVG image dimensions.");
             }
 
-            return SvgRenderer.Viewport((0, 0, image.Width, image.Height), width, height, (string?)element.Attribute("preserveAspectRatio") ?? "xMidYMid meet") * Matrix3x2.CreateTranslation(Length(element, "x", 0, _width), Length(element, "y", 0, _height));
+            return SvgRenderer.Viewport((0, 0, image.Format.Width, image.Format.Height), width, height, (string?)element.Attribute("preserveAspectRatio") ?? "xMidYMid meet") * Matrix3x2.CreateTranslation(Length(element, "x", 0, _width), Length(element, "y", 0, _height));
         }
     }
 }

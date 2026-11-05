@@ -255,7 +255,7 @@ namespace Mediana.Documents.Pdf
                 if (_state.UncoloredGlyph && Get(obj.Value, "ImageMask").Number == 0) { throw new InvalidDataException("An uncolored Type 3 glyph may contain only image masks."); }
                 PdfImage image = Image(obj, name, 0);
                 Matrix3x2 placement = new Matrix3x2(1f / image.Width, 0, 0, -1f / image.Height, 0, 1) * _state.Transform;
-                AddPaint(new ImageCommand(image.Buffer, placement, _state.FillAlpha, _state.Blend));
+                AddPaint(new ImageCommand(image.Frame, placement, _state.FillAlpha, _state.Blend));
             }
             else if (subtype == "Form")
             {

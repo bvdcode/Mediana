@@ -52,7 +52,7 @@ namespace Mediana.Tests
             string output = Path.Combine(directory, "output.png");
             ProgressTestContext logger = new();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Data("Metadata", "cover.png")));
-            int code = await ImagePreviewCommand.RunAsync(ImageEngineFactory.Create(), source, new CommandOutputFile(output, false), logger);
+            int code = await ImagePreviewCommand.RunAsync(ImageEngineFactory.Create(), source, new CommandOutputFile(output, false), logger, new Mediana.Codecs.Png.PngImageEncoder());
             Assert.Equal(0, code);
             Assert.Single(logger.Messages, line => line.Contains("Missing source color metadata", StringComparison.Ordinal));
             byte[] expected = await File.ReadAllBytesAsync(Data("Png", "cover.rgba"));

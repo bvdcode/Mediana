@@ -3,6 +3,8 @@
     <EmbeddedResource Update="BundledFontPrograms.resx" LogicalName="Mediana.Drawing.Fonts.BundledFontPrograms.resources" />
     <InternalsVisibleTo Include="Mediana.Images.Svg" />
     <InternalsVisibleTo Include="Mediana.Images.Tgs" />
+    <InternalsVisibleTo Include="Mediana.Documents.Word" />
+    <InternalsVisibleTo Include="Mediana.Documents.Pdf" />
     <InternalsVisibleTo Include="Mediana.Tests" />
     <InternalsVisibleTo Include="Mediana.NativeTests" />
     <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />

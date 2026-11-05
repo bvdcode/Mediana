@@ -50,17 +50,7 @@ namespace Mediana.Tests
             }
             byte[] image = PngDecodeTestData.File(PngDecodeTestData.Chunk("IHDR", PngDecodeTestData.Header(size, size)),
                 PngDecodeTestData.Chunk("sRGB", [0]), PngDecodeTestData.Chunk("IDAT", PngDecodeTestData.Compressed(scanlines)), PngDecodeTestData.Chunk("IEND", []));
-            const string body = """
-                <w:p><w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-                  <wp:extent cx="254000" cy="254000"/><wp:docPr id="1" name="Picture"/>
-                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                    <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Picture"/><pic:cNvPicPr/></pic:nvPicPr>
-                    <pic:blipFill><a:blip r:embed="picture"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
-                    <pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="254000" cy="254000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
-                    </pic:pic></a:graphicData></a:graphic>
-                </wp:inline></w:drawing></w:r></w:p>
-                """;
-            WordDocument document = WordReader.Read(WordTestInput.Create(body, WordRenderTestInput.Fonts, page: WordRenderTestInput.SmallPage, picture: image));
+            WordDocument document = WordReader.Read(WordTestInput.Create(WordTestInput.PictureBody, WordRenderTestInput.Fonts, page: WordRenderTestInput.SmallPage, picture: image));
             MediaBufferAllocator allocator = new(400_000);
             using (PixelBuffer pixels = await WordRenderer.RenderAsync(document, 1, new() { Dpi = 72, Supersampling = 1 }, allocator: allocator))
             {
@@ -77,7 +67,7 @@ namespace Mediana.Tests
             int calls = 0;
             WordLayout layout = WordRenderer.Layout(document, new()
             {
-                FontResolver = request => { calls++; return request.Family == "Custom" ? program : BundledFontPrograms.GetFont("Canada1500"); }
+                Text = new() { FontResolver = request => { calls++; return request.Family == "Custom" ? program : BundledFontPrograms.GetFont("Canada1500"); } }
             });
             Assert.Equal(2, calls);
             Assert.Single(layout.Warnings);
@@ -105,15 +95,15 @@ namespace Mediana.Tests
         {
             WordDocument unavailable = Read("<w:p><w:r><w:rPr><w:rFonts w:ascii=\"Unavailable face\"/></w:rPr><w:t>Text</w:t></w:r></w:p>");
             Assert.Throws<NotSupportedException>(() => WordRenderer.Layout(unavailable));
-            Assert.Single(WordRenderer.Layout(unavailable, new() { SubstituteMissingFonts = true }).Warnings);
-            Assert.Throws<InvalidDataException>(() => WordRenderer.Layout(unavailable, new() { SubstituteMissingFonts = true, MaximumGlyphs = 2 }));
+            Assert.Single(WordRenderer.Layout(unavailable, new() { Text = new() { SubstituteMissingFonts = true } }).Warnings);
+            Assert.Throws<InvalidDataException>(() => WordRenderer.Layout(unavailable, new() { Text = new() { SubstituteMissingFonts = true }, MaximumGlyphs = 2 }));
             Assert.Throws<InvalidDataException>(() => WordRenderer.Layout(Read("<w:p><w:r><w:br w:type=\"page\"/><w:t>Second</w:t></w:r></w:p>"), new() { MaximumPages = 1 }));
         }
 
         [Fact]
         public async Task WarningCallbackFailureOccursBeforePixelAllocation()
         {
-            WordLayout layout = WordRenderer.Layout(WordReader.Read(WordTestInput.Create("<w:p/>")), new() { SubstituteMissingFonts = true });
+            WordLayout layout = WordRenderer.Layout(WordReader.Read(WordTestInput.Create("<w:p/>")), new() { Text = new() { SubstituteMissingFonts = true } });
             MediaBufferAllocator allocator = new(1024);
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await WordRenderer.RenderAsync(layout, 1,
                 new() { WarningHandler = _ => throw new InvalidOperationException("diagnostic") }, allocator: allocator));
@@ -125,7 +115,7 @@ namespace Mediana.Tests
         {
             OpenXmlImageDecoder decoder = new([new WordPageDecoder(layoutOptions: new()
             {
-                FontResolver = _ => throw new InvalidOperationException("Font resolution is not part of probing.")
+                Text = new() { FontResolver = _ => throw new InvalidOperationException("Font resolution is not part of probing.") }
             })]);
             Assert.Throws<ArgumentException>(() => new OpenXmlImageDecoder([new WordPageDecoder(), new WordPageDecoder()]));
             Assert.False(decoder.CanDecode("not a package"u8));

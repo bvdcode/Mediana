@@ -66,7 +66,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS encode operation: multiple packets, delayed output, finalization and frame ownership.");
             await MultiStreamTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-aac.mp4"));
             await NativePdfTests.RunAsync();
-            await NativePngTests.RunAsync();
+            await NativeImageCodecTests.RunAsync();
             await NativeJpegTests.RunAsync();
             await NativeContainerImageTests.RunAsync();
             BoundedStreamReadTestInput.VerifySynchronous();
@@ -290,6 +290,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS H.264 B headers: reference and non-reference slices, both active lists, picture order and CABAC alignment match the independent trace.");
             Console.WriteLine("PASS H.264 B reference lists: parsed I/P/B picture order, retained reference B pictures and both lists match the expected first GOP order.");
             await Mp4TimelineTestInput.VerifyAsync(root);
+            await HlsAudioPreparationTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
             await HlsPlanTestInput.VerifyAsync(root);
             await HlsSessionTestInput.VerifyAsync(root);
             Console.WriteLine("PASS MP4 HLS session: exact AVC/AAC windows, VOD playlist, segments requested as 2, 0, 1, 2, all compressed packets and continuous transport state match.");

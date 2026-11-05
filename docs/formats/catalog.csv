@@ -87,10 +87,10 @@ png-indexed,Web images and modern still-image coding,PNG,"Indexed color, 1/2/4/8
 png-alpha,Web images and modern still-image coding,PNG,"Grayscale/truecolor with alpha, 8/16-bit",image-codec,.png,A,png,Current encoder emits noninterlaced straight-alpha RGBA8 sRGB only.
 png-adam7,Web images and modern still-image coding,PNG,Adam7 interlace,image-codec,.png,A,png,
 apng,Web images and modern still-image coding,APNG,Animated PNG with frame disposal/blending,image-codec,.png .apng,A,png,
-webp-lossy,Web images and modern still-image coding,WebP,Lossy VP8 image,image-codec,.webp,A,webp,
-webp-lossless,Web images and modern still-image coding,WebP,Lossless VP8L image,image-codec,.webp,A,webp,
-webp-extended,Web images and modern still-image coding,WebP,"Extended RIFF, alpha and metadata",image-codec,.webp,A,webp,"Test lossy alpha, lossless alpha, ICC, Exif and XMP independently."
-webp-animation,Web images and modern still-image coding,WebP,Animated extended WebP,image-codec,.webp,A,webp,"Frame rectangles, timestamps, blending and disposal are separate from still images."
+webp-lossy,Web images and modern still-image coding,WebP,Lossy VP8 image,image-codec,.webp,A,webp,"Managed VP8 keyframe encoding with quality 0-100 and lossless alpha; decoding remains open."
+webp-lossless,Web images and modern still-image coding,WebP,Lossless VP8L image,image-codec,.webp,A,webp,"Current encoder preserves straight RGBA8 sRGB exactly, including transparent RGB; decoding remains open."
+webp-extended,Web images and modern still-image coding,WebP,"Extended RIFF, alpha and metadata",image-codec,.webp,A,webp,"VP8X canvas flags, raw or lossless-compressed ALPH and unchanged ICC/EXIF/XMP payloads."
+webp-animation,Web images and modern still-image coding,WebP,Animated extended WebP,image-codec,.webp,A,webp,"Incremental VP8/VP8L or mixed frames, partial rectangles, blending, disposal, background, loop count and metadata; CLI exports TGS/video sequences."
 avif-still,Web images and modern still-image coding,AVIF,"Still image, Baseline/Advanced profiles",image-codec,.avif,A,avif;av1,Split profile/precision coverage as AV1 implementation grows.
 avif-alpha,Web images and modern still-image coding,AVIF,Auxiliary alpha images,image-codec,.avif,A,avif,
 avif-hdr,Web images and modern still-image coding,AVIF,10/12-bit and HDR presentation,image-codec,.avif,A,avif;av1,"HDR decoding, color preservation and SDR tone mapping are distinct tasks."

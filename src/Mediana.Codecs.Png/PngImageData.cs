@@ -21,6 +21,7 @@ namespace Mediana.Codecs.Png
         public VideoColorDescription? ColorDescription { get; set; }
         public bool Animated { get; set; }
         public bool HasExif { get; set; }
+        public ReadOnlyMemory<byte> Exif { get; set; }
         public int Channels => ColorType switch
         {
             0 or 3 => 1,

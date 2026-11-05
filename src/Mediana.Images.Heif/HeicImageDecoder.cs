@@ -80,7 +80,8 @@ namespace Mediana.Images.Heif
             ImageProperties properties = ImageProperties.Read(container, container.Items[container.PrimaryItemId]);
             (int width, int height) = properties.GetDisplaySize(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            return ValueTask.FromResult(new ImageInfo("heif", width, height, ImageDimensionUnit.Pixels));
+            return ValueTask.FromResult(new ImageInfo("heif", width, height, ImageDimensionUnit.Pixels,
+                metadata: HeifMetadataReader.Read(container, properties, cancellationToken)));
         }
 
         public async ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,

@@ -119,6 +119,7 @@ namespace Mediana.Codecs.Png
                                 throw new NotSupportedException("Unknown critical PNG chunk.");
                             }
                             colors.Read(code, payload.Span, beforeData, image);
+                            if (code == 0x65584966) { image.Exif = payload; }
                             break;
                     }
                 }

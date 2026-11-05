@@ -10,7 +10,7 @@ namespace Mediana.Cli
 {
     internal static class FilePreviewCommand
     {
-        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? stream, long milliseconds, int page, ILogger logger, CancellationToken token)
+        public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? stream, long milliseconds, int page, ILogger logger, IImageEncoder encoder, CancellationToken token)
         {
             MediaEngine images = ImageEngineFactory.Create();
             byte[] probe = new byte[images.ImageProbeLength];
@@ -29,13 +29,13 @@ namespace Mediana.Cli
                     PageIndex = page - 1,
                     Time = new MediaTimestamp(milliseconds, new TimeBase(1, 1000))
                 };
-                return await ImagePreviewCommand.RunAsync(images, source, outputFile, logger, request, token);
+                return await ImagePreviewCommand.RunAsync(images, source, outputFile, logger, encoder, request, token);
             }
             if (page != 1)
             {
                 throw new NotSupportedException("Video preview does not support document page selection.");
             }
-            return await VideoPreviewCommand.RunAsync(input, outputFile, stream, milliseconds, int.MaxValue, int.MaxValue, logger, token);
+            return await VideoPreviewCommand.RunAsync(input, outputFile, stream, milliseconds, int.MaxValue, int.MaxValue, logger, encoder, token);
         }
     }
 }

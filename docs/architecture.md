@@ -13,6 +13,8 @@ flowchart BT
     Codecs --> Core
     Drawing --> Core
     Processing --> Core
+    Imaging[Shared image preparation] --> CodecModules
+    Imaging --> Processing
     ContainerModules[Container modules] --> Containers
     ContainerModules --> Formats
     CodecModules[Codec modules] --> Codecs
@@ -21,6 +23,9 @@ flowchart BT
     Execution --> Codecs
     Mediana --> Execution
     Svg[SVG adapter] --> Drawing
+    Svg --> Imaging
+    Fluent[Optional Fluent emoji resources] --> Svg
+    Fluent --> Drawing
     Tgs[TGS adapter] --> Drawing
     Pdf[PDF adapter] --> Drawing
     Pdf --> CodecModules
@@ -30,8 +35,10 @@ flowchart BT
     OpenXml --> Codecs
     Word[Word document layout and rendering] --> OpenXml
     Word --> Drawing
-    Word --> Processing
-    Word --> CodecModules
+    Word --> Imaging
+    Hls[HLS audio and segment operations] --> Mediana
+    Hls --> ContainerModules
+    Hls --> CodecModules
     Application[Application / CLI] --> Mediana
     Application --> ContainerModules
     Application --> CodecModules
@@ -164,6 +171,23 @@ not scan encoded packets. Image readers may inspect the entire input, bounded by
 `MaxImageInputBytes`; encoded buffers share `BufferBudgetBytes`, and each module
 retains its own parsing-work limits. A successful probe describes declared metadata
 and does not guarantee support for every encoded feature.
+
+`MediaInfo.Metadata` is the common extensible property tree for every representation.
+Each `MediaMetadata` scope contains namespaced `MediaProperty` entries and child
+scopes: for example, pages, streams, slides, components or native Exif directories.
+Properties contain ordered typed values: text, signed/unsigned integers, finite
+numbers, booleans, exact rational pairs or owned binary data. Adding a format or
+native property does not add a field to the shared result or a format branch to
+the CLI formatter. Native names and numeric declarations remain available even
+when the library does not decode the corresponding feature.
+
+Operation contracts such as stream selection, timestamps, dimensions and color
+conversion remain typed domain APIs. The property tree describes inspection
+results; processing does not depend on looking up arbitrary metadata keys.
+Container and image readers populate the same immutable tree, and one CLI
+formatter escapes text and formats values independent of the input format.
+Binary properties expose their bytes through the library; console output shows
+their lengths.
 
 Movies explicitly declaring QuickTime compatibility accept both classic `meta`
 atoms and version-0 ISO-style metadata boxes. The initial zero version/flags word
@@ -526,14 +550,29 @@ allocation. `ToVideoFrame` remains an explicit independent copy.
 SVG, TGS and PDF image decoders render final RGBA output directly into the
 operation's allocator and publish it. Supersampling writes its downsampled pixels
 directly into that output. The output budget is reserved before rasterization
-and released if rendering fails. Temporary supersampling and drawing effects
-remain governed by their rendering limits, separately from the final frame.
+and released if rendering fails. Output, supersampling and temporary effect
+surfaces share that allocator, with additional rendering limits on samples and
+effect workspace.
 
 Preparing already-canonical, tightly packed sRGB pixels with `SrgbConverter`
 retains their storage when geometry, color metadata and aspect ratio also remain
 unchanged. Each returned frame has an independent lease. The original allocator
 keeps counting shared bytes until the final lease is released. Pixel conversion,
 resizing, repacking and metadata changes retain the conversion path.
+
+Complete-image encoding uses `IImageEncoder`, implemented by PNG and VP8/VP8L
+WebP adapters. It borrows a frame, retains it through asynchronous writes, leaves
+the destination open and reports bytes written. Independent calls have independent
+workspace. `ImageEncoderFeatures` declares whether sample aspect ratio metadata
+can be stored. The CLI selects the encoder by output extension after common source
+detection; formats without that feature receive square-pixel display geometry in
+the shared color/resampling pass. Video previews already resolve orientation and
+aspect ratio before encoding. `IImageSequenceDecoder` parses animation input once
+and transfers an independent frame lease for each yielded frame. `IImageSequenceEncoder`
+borrows those frames and declares its duration clock. `VideoFrameTimeQuantizer`
+rounds presentation boundaries to that clock without cumulative duration drift or
+copying pixels. WebP still images and animations share frame payload and RIFF
+writers, including exact alpha and metadata. See [WebP contracts and ownership](webp.md).
 
 The registered HEIC decoder borrows encoded input for the awaited call, reserves
 its final RGBA frame before picture decoding, and directs the last render,
@@ -571,3 +610,32 @@ A MIME match with the wrong root relationship cannot select another page decoder
 OPC XML limits are enforced while the tree loader consumes each node. The package
 counts elements across parts and repeated reads, checks depth and cancellation,
 and prohibits DTD/entity resolution without a separate full validation parse.
+
+## Shared text resources
+
+`Mediana.Drawing.TextOptions` supplies font programs, supplemental glyph fonts and
+complete text-element artwork to Word, SVG and external PDF font resolution.
+`FontCollection` loads explicitly supplied files and matches family/style metadata.
+`TextRenderer` owns bounded face, outline and graphic caches for one layout operation;
+source options and thread-safe providers can be shared across independent operations.
+Font outlines have one cached geometry owner in `TrueTypeFont`; format adapters borrow
+these outlines for placement rather than duplicating the cache. Public outline access
+returns independent mutable paths.
+
+Word retains paragraph pagination, SVG retains its positioning and paint rules, and
+PDF retains embedded font encodings, CID mappings, declared advances and text clipping.
+Color emoji participate in Word and SVG Unicode text. PDF character codes do not
+implicitly become Unicode text or color artwork. TGS text layers remain unsupported.
+Future document renderers can consume the same Drawing contracts without referencing
+Word or the optional Fluent resource module. See [text resources](text-rendering.md).
+
+Vector rendering charges the output, supersampling and temporary effect surfaces to
+the caller's allocator. `MaximumEffectBytes` remains an additional bound on effect
+workspace; clipping arrays and runtime storage are outside the RGBA surface budget.
+
+SVG embedded PNG resources use `Mediana.Codecs.Png`, including its validation,
+sample-depth conversion and scanline budget. The scene retains immutable decoded
+frame leases and draws them through `RasterCanvas` without a second pixel image.
+`SvgDocument.Dispose` releases retained images; failed reads release previously
+loaded resources. `SvgReaderOptions.ImageAllocator` supplies a separate source-image
+budget, with `MaximumImageBytes` used when no allocator is supplied.

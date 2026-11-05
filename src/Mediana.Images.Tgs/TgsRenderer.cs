@@ -17,7 +17,7 @@ namespace Mediana.Images.Tgs
             CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)
             => RenderFrameDetailed(document, frame, options, cancellationToken, allocator).Image;
 
-        /// <summary>Renders one frame with timing and detected feature diagnostics. The allocator counts final output storage.</summary>
+        /// <summary>Renders one frame with timing and detected feature diagnostics. The allocator counts output, supersampling and temporary effect surfaces.</summary>
         public static TgsFrame RenderFrameDetailed(TgsDocument document, double frame, DrawingRenderOptions? options = null,
             CancellationToken cancellationToken = default, MediaBufferAllocator? allocator = null)
         {

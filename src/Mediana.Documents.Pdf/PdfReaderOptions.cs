@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Drawing;
+
 namespace Mediana.Documents.Pdf
 {
     /// <summary>Separate limits for encoded data, decoded streams and structural complexity.</summary>
     public record PdfReaderOptions
     {
-        /// <summary>Supplies an OpenType font program for an unembedded PDF font. Empty memory declines the request.
-        /// Character mappings and declared advances remain controlled by the PDF. No fonts are selected automatically.</summary>
-        public Func<PdfFontRequest, ReadOnlyMemory<byte>>? FontResolver { get; init; }
+        /// <summary>Shared external font resources. Embedded PDF fonts, encodings and declared advances remain authoritative.
+        /// Inline artwork does not replace encoded PDF glyphs.</summary>
+        public TextOptions Text { get; init; } = new();
 
         public int MaximumInputBytes { get; init; } = 64 * 1024 * 1024;
         public int MaximumDecodedBytes { get; init; } = 128 * 1024 * 1024;

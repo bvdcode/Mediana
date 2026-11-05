@@ -8,9 +8,9 @@ namespace Mediana.Cli
 {
     internal class VideoCommands(ILogger logger, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
-        /// <summary>Extract a supported H.264 frame to an sRGB PNG.</summary>
+        /// <summary>Extract a supported H.264 frame to an sRGB PNG or lossless WebP.</summary>
         /// <param name="input">Existing MP4/MOV file.</param>
-        /// <param name="output">Output PNG file.</param>
+        /// <param name="output">Output PNG or WebP file; the extension selects the encoder.</param>
         /// <param name="stream">Video stream index.</param>
         /// <param name="timeMs">Select the first frame at or after this media timestamp in milliseconds.</param>
         /// <param name="width">Maximum preview width.</param>
@@ -22,7 +22,7 @@ namespace Mediana.Cli
             ArgumentOutOfRangeException.ThrowIfNegative(timeMs);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
-            return ExecuteFileAsync(input, output, outputFile => VideoPreviewCommand.RunAsync(input, outputFile, stream, timeMs, width, height, logger, cancellationToken), cancellationToken);
+            return ExecuteFileAsync(input, output, outputFile => VideoPreviewCommand.RunAsync(input, outputFile, stream, timeMs, width, height, logger, ImageOutputEncoders.ForPath(output), cancellationToken), cancellationToken);
         }
     }
 }

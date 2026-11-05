@@ -29,16 +29,22 @@ namespace Mediana.Images.Svg
                 throw new InvalidDataException("Expected an SVG root element.");
             }
             XElement root = new(XName.Get(reader.LocalName, reader.NamespaceURI));
+            List<MediaProperty> properties = [];
             while (reader.MoveToNextAttribute())
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (reader.NamespaceURI.Length == 0)
+                {
+                    properties.Add(new("svg", reader.LocalName, reader.Value));
+                }
                 if (reader.NamespaceURI.Length == 0 && reader.LocalName is "width" or "height" or "viewBox")
                 {
                     root.Add(new XAttribute(reader.LocalName, reader.Value));
                 }
             }
             SvgViewport viewport = SvgViewport.Read(root);
-            return new ImageInfo("svg", viewport.Width, viewport.Height, ImageDimensionUnit.Pixels);
+            return new ImageInfo("svg", viewport.Width, viewport.Height, ImageDimensionUnit.Pixels,
+                metadata: new("document", properties));
         }
     }
 }

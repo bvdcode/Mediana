@@ -31,7 +31,7 @@ namespace Mediana
             IImageDecoder decoder = FindImageDecoder(input.Memory.Span[..Math.Min(probeLength, input.Memory.Length)], input.Memory.Length)
                 ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
             request.Validate(decoder.Features);
-            return await DecodeRecognizedImageAsync(decoder, input.Memory, request, allocator, cancellationToken).ConfigureAwait(false);
+            return await imageContext.DecodeAsync(input.Memory, request, allocator, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Decodes complete encoded bytes without copying them into another input/probe buffer.
@@ -52,27 +52,7 @@ namespace Mediana
             IImageDecoder decoder = FindImageDecoder(encoded.Span[..Math.Min(probeLength, encoded.Length)], encoded.Length)
                 ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
             request.Validate(decoder.Features);
-            return DecodeRecognizedImageAsync(decoder, encoded, request, allocator, cancellationToken);
-        }
-
-        private static async ValueTask<VideoFrame> DecodeRecognizedImageAsync(IImageDecoder decoder, ReadOnlyMemory<byte> encoded,
-            ImageDecodeRequest request, MediaBufferAllocator allocator, CancellationToken cancellationToken)
-        {
-            VideoFrame frame = await decoder.DecodeAsync(encoded, request, allocator, cancellationToken).ConfigureAwait(false);
-            bool transferred = false;
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                transferred = true;
-                return frame;
-            }
-            finally
-            {
-                if (!transferred)
-                {
-                    frame.Dispose();
-                }
-            }
+            return imageContext.DecodeAsync(encoded, request, allocator, cancellationToken);
         }
 
         private int GetImageProbeLength(ImageOpenOptions options, CancellationToken token)
@@ -99,20 +79,6 @@ namespace Mediana
         }
 
         private IImageDecoder? FindImageDecoder(ReadOnlySpan<byte> prefix, long? encodedLength = null)
-        {
-            IImageDecoder? selected = null;
-            foreach (IImageDecoder decoder in imageDecoders)
-            {
-                if (decoder.CanDecode(prefix, encodedLength))
-                {
-                    if (selected is not null)
-                    {
-                        throw new NotSupportedException("Multiple image decoders recognize the input; register one implementation for this format.");
-                    }
-                    selected = decoder;
-                }
-            }
-            return selected;
-        }
+            => imageContext.FindDecoder(prefix, encodedLength);
     }
 }

@@ -1,0 +1,122 @@
+[
+  {
+    "Sample": "gradient",
+    "Encoder": "export-lossy",
+    "Quality": 75,
+    "EncodedBytes": 19376,
+    "RgbPsnrDecibels": 41.97086307885161,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "gradient",
+    "Encoder": "export-imagesharp-lossy",
+    "Quality": 75,
+    "EncodedBytes": 5720,
+    "RgbPsnrDecibels": 44.15745469785824,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "gradient",
+    "Encoder": "export-imagesharp-lossy-fast",
+    "Quality": 75,
+    "EncodedBytes": 9272,
+    "RgbPsnrDecibels": 43.36653450878033,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "alpha",
+    "Encoder": "export-lossy",
+    "Quality": 75,
+    "EncodedBytes": 87550,
+    "RgbPsnrDecibels": 24.10161040250736,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "alpha",
+    "Encoder": "export-imagesharp-lossy",
+    "Quality": 75,
+    "EncodedBytes": 30658,
+    "RgbPsnrDecibels": 23.499239133614918,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "alpha",
+    "Encoder": "export-imagesharp-lossy-fast",
+    "Quality": 75,
+    "EncodedBytes": 31400,
+    "RgbPsnrDecibels": 23.876074118812962,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "photo.png",
+    "Encoder": "export-lossy",
+    "Quality": 75,
+    "EncodedBytes": 44442,
+    "RgbPsnrDecibels": 32.03762435560152,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "photo.png",
+    "Encoder": "export-imagesharp-lossy",
+    "Quality": 75,
+    "EncodedBytes": 33148,
+    "RgbPsnrDecibels": 31.9490074862143,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "photo.png",
+    "Encoder": "export-imagesharp-lossy-fast",
+    "Quality": 75,
+    "EncodedBytes": 40596,
+    "RgbPsnrDecibels": 32.14273765978887,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "photo2.png",
+    "Encoder": "export-lossy",
+    "Quality": 75,
+    "EncodedBytes": 98488,
+    "RgbPsnrDecibels": 31.11049120518864,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "photo2.png",
+    "Encoder": "export-imagesharp-lossy",
+    "Quality": 75,
+    "EncodedBytes": 76364,
+    "RgbPsnrDecibels": 31.03473325029137,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "photo2.png",
+    "Encoder": "export-imagesharp-lossy-fast",
+    "Quality": 75,
+    "EncodedBytes": 80650,
+    "RgbPsnrDecibels": 31.152738501143826,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "photo3.png",
+    "Encoder": "export-lossy",
+    "Quality": 75,
+    "EncodedBytes": 318052,
+    "RgbPsnrDecibels": 32.27376556046054,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "photo3.png",
+    "Encoder": "export-imagesharp-lossy",
+    "Quality": 75,
+    "EncodedBytes": 257394,
+    "RgbPsnrDecibels": 32.19844025303007,
+    "ExactAlpha": true
+  },
+  {
+    "Sample": "photo3.png",
+    "Encoder": "export-imagesharp-lossy-fast",
+    "Quality": 75,
+    "EncodedBytes": 279008,
+    "RgbPsnrDecibels": 32.34416051999302,
+    "ExactAlpha": true
+  }
+]

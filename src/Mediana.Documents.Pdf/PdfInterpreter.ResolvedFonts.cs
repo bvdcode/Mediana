@@ -2,25 +2,30 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing.Fonts;
+using Mediana.Drawing;
 
 namespace Mediana.Documents.Pdf
 {
     internal partial class PdfInterpreter
     {
         private long _fontProgramBytes;
+        private readonly TextRenderer _textResources = new(storage.Budget.Options.Text);
+        private readonly HashSet<TrueTypeFont> _resolvedFaces = [];
 
         private PdfFont? CreateResolvedFont(PdfValue source, PdfValue dictionary, bool composite)
         {
             PdfValue unicode = source.Get("ToUnicode");
             if (composite && unicode.Kind == PdfValueKind.Null) { return null; }
             string name = Get(source, "BaseFont").Name();
-            ReadOnlyMemory<byte> program = storage.Budget.Options.FontResolver!(new(name, composite));
-            token.ThrowIfCancellationRequested();
-            if (program.IsEmpty) { return null; }
-            if (program.Length > storage.Budget.Options.MaximumDecodedBytes - _fontProgramBytes)
-            { throw new InvalidDataException("PDF page font programs exceed the decoded byte limit."); }
-            _fontProgramBytes += program.Length;
-            TrueTypeFont face = new(program);
+            TrueTypeFont? face = _textResources.ResolveFont(ExternalFontRequest(name), token);
+            if (face is null) { return null; }
+            ReadOnlyMemory<byte> program = face.Program;
+            if (_resolvedFaces.Add(face))
+            {
+                if (program.Length > storage.Budget.Options.MaximumDecodedBytes - _fontProgramBytes)
+                { throw new InvalidDataException("PDF page font programs exceed the decoded byte limit."); }
+                _fontProgramBytes += program.Length;
+            }
             Dictionary<int, int> characters = unicode.Kind == PdfValueKind.Null ? [] : ReadToUnicode(unicode, composite);
             Dictionary<int, int> glyphs = [];
             Dictionary<int, double> widths;
@@ -76,6 +81,20 @@ namespace Mediana.Documents.Pdf
                 int glyph = face.Glyph(scalar);
                 return glyph == 0 ? -1 : glyph;
             }
+        }
+
+        private static FontRequest ExternalFontRequest(string name)
+        {
+            if (name.Length > 7 && name[6] == '+' && name.AsSpan(0, 6).IndexOfAnyExceptInRange('A', 'Z') < 0) { name = name[7..]; }
+            string[] suffixes = ["BoldItalic", "BoldOblique", "Bold", "Italic", "Oblique", "Regular", "Roman"];
+            foreach (string suffix in suffixes)
+            {
+                if (name.EndsWith("-" + suffix, StringComparison.Ordinal))
+                {
+                    return new(name[..^(suffix.Length + 1)], suffix.StartsWith("Bold", StringComparison.Ordinal), suffix.EndsWith("Italic", StringComparison.Ordinal) || suffix.EndsWith("Oblique", StringComparison.Ordinal));
+                }
+            }
+            return new(name);
         }
 
         private static bool StandardFont(string name) => name is "Helvetica" or "Helvetica-Bold" or "Helvetica-Oblique"

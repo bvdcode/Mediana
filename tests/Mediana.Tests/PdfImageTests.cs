@@ -38,14 +38,15 @@ namespace Mediana.Tests
             PdfImage pixels = page.Images.Single(x => x.Name == "I");
             Assert.Equal(new byte[] { 255, 0, 0, 128, 0, 0, 255, 255 }, pixels.Pixels.ToArray());
             document.Dispose();
-            MediaBufferAllocator allocator = new(8);
-            using (VideoFrame frame = pixels.ToVideoFrame(allocator))
+            using (VideoFrame frame = pixels.ToVideoFrame())
             {
-                Assert.Equal(pixels.Pixels.ToArray(), frame.Data.ToArray());
-                Assert.Equal(8, allocator.AllocatedBytes);
-                Assert.Throws<MediaMemoryLimitException>(() => pixels.ToVideoFrame(allocator));
+                Assert.Equal(pixels.Pixels, frame.Data);
+                using VideoFrame second = pixels.ToVideoFrame();
+                Assert.Equal(frame.Data, second.Data);
+                page.Dispose();
+                Assert.Equal(new byte[] { 255, 0, 0, 128, 0, 0, 255, 255 }, frame.Data.ToArray());
+                Assert.Throws<ObjectDisposedException>(() => pixels.ToVideoFrame());
             }
-            Assert.Equal(0, allocator.AllocatedBytes);
         }
         [Fact]
         public async Task Jp2ImageUsesDeclaredColorAndPreservesIndependentRgbReference()

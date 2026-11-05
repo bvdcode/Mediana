@@ -55,7 +55,7 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
             string output = Path.Combine(directory, "preview.png");
             ProgressTestContext logger = new();
-            await VideoPreviewCommand.RunAsync(Input, new CommandOutputFile(output, false), null, 0, 96, 64, logger);
+            await VideoPreviewCommand.RunAsync(Input, new CommandOutputFile(output, false), null, 0, 96, 64, logger, new Mediana.Codecs.Png.PngImageEncoder());
             Assert.Equal(expected, await File.ReadAllBytesAsync(output));
             string warning = Assert.Single(logger.Messages);
             Assert.Contains("primaries, transfer, matrix", warning, StringComparison.Ordinal);
@@ -69,7 +69,7 @@ namespace Mediana.Tests
             string input = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-weighted.mp4");
             string output = Path.Combine(directory, "preview.png");
             ProgressTestContext logger = new();
-            await VideoPreviewCommand.RunAsync(input, new CommandOutputFile(output, false), null, 0, 32, 32, logger);
+            await VideoPreviewCommand.RunAsync(input, new CommandOutputFile(output, false), null, 0, 32, 32, logger, new Mediana.Codecs.Png.PngImageEncoder());
             Assert.Empty(logger.Messages);
             Assert.True(File.Exists(output));
         }

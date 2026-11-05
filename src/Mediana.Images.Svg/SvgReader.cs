@@ -37,16 +37,24 @@ namespace Mediana.Images.Svg
         public static SvgDocument Read(ReadOnlyMemory<byte> xml, SvgReaderOptions? options = null, CancellationToken cancellationToken = default)
         {
             options ??= new SvgReaderOptions();
+            return new SvgSceneBuilder(ReadRoot(xml, options, cancellationToken), options, cancellationToken).Build();
+        }
+
+        /// <summary>Parses borrowed XML and asynchronously decodes referenced image resources. The returned scene owns its data.</summary>
+        public static ValueTask<SvgDocument> ReadAsync(ReadOnlyMemory<byte> xml, SvgReaderOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            options ??= new SvgReaderOptions();
+            return new SvgSceneBuilder(ReadRoot(xml, options, cancellationToken), options, cancellationToken).BuildAsync();
+        }
+
+        private static XElement ReadRoot(ReadOnlyMemory<byte> xml, SvgReaderOptions options, CancellationToken token)
+        {
             Validate(options);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (xml.Length > options.MaximumInputBytes)
-            {
-                throw new InvalidDataException("SVG exceeds MaximumInputBytes.");
-            }
+            token.ThrowIfCancellationRequested();
+            if (xml.Length > options.MaximumInputBytes) { throw new InvalidDataException("SVG exceeds MaximumInputBytes."); }
             using ReadOnlyMemoryStream source = new(xml);
             using XmlReader reader = XmlReader.Create(source, Settings(options));
-            XElement root = XElement.Load(reader);
-            return new SvgSceneBuilder(root, options, cancellationToken).Build();
+            return XElement.Load(reader);
         }
 
         /// <summary>Reads bounded SVG input and leaves the source stream open.</summary>
@@ -55,20 +63,8 @@ namespace Mediana.Images.Svg
             ArgumentNullException.ThrowIfNull(source);
             options ??= new SvgReaderOptions();
             Validate(options);
-            using MemoryStream? data = new MemoryStream();
-            byte[] buffer = new byte[8192];
-            int count;
-            while ((count = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) != 0)
-            {
-                if (data.Length + count > options.MaximumInputBytes)
-                {
-                    throw new InvalidDataException("SVG exceeds MaximumInputBytes.");
-                }
-
-                await data.WriteAsync(buffer.AsMemory(0, count), cancellationToken).ConfigureAwait(false);
-            }
-
-            return Read(data.GetBuffer().AsMemory(0, checked((int)data.Length)), options, cancellationToken);
+            byte[] data = await BoundedStreamReader.ReadAsync(source, options.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
+            return await ReadAsync(data, options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Reads a local SVG file.</summary>
@@ -87,7 +83,7 @@ namespace Mediana.Images.Svg
 
         private static void Validate(SvgReaderOptions o)
         {
-            if (o.MaximumInputBytes <= 0 || o.MaximumElements <= 0 || o.MaximumPathCommands <= 0 || o.MaximumDepth < 1 || o.MaximumDepth > 64 || o.MaximumImagePixels <= 0)
+            if (o.MaximumInputBytes <= 0 || o.MaximumElements <= 0 || o.MaximumPathCommands <= 0 || o.MaximumDepth < 1 || o.MaximumDepth > 64 || o.MaximumImagePixels <= 0 || o.MaximumImageBytes <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(o));
             }

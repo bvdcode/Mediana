@@ -6,6 +6,7 @@
     <Project Path="samples/Mediana.Sample/Mediana.Sample.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Mediana.Imaging/Mediana.Imaging.csproj" />
     <Project Path="src/Mediana.Models.Mesh/Mediana.Models.Mesh.csproj" />
     <Project Path="src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
     <Project Path="src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
@@ -15,6 +16,7 @@
     <Project Path="src/Mediana.Documents.OpenXml/Mediana.Documents.OpenXml.csproj" />
     <Project Path="src/Mediana.Images.Tgs/Mediana.Images.Tgs.csproj" />
     <Project Path="src/Mediana.Documents.Word/Mediana.Documents.Word.csproj" />
+    <Project Path="src/Mediana.Drawing.Emoji.Fluent/Mediana.Drawing.Emoji.Fluent.csproj" />
     <Project Path="src/Mediana.Drawing/Mediana.Drawing.csproj" />
     <Project Path="src/Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
     <Project Path="src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />
@@ -25,6 +27,7 @@
     <Project Path="src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
     <Project Path="src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
     <Project Path="src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
+    <Project Path="src/Mediana.Codecs.Webp/Mediana.Codecs.Webp.csproj" />
     <Project Path="src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />
     <Project Path="src/Mediana.Codecs/Mediana.Codecs.csproj" />
     <Project Path="src/Mediana.Containers.Mp3/Mediana.Containers.Mp3.csproj" />
@@ -41,6 +44,7 @@
     <Project Path="src/Mediana/Mediana.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Mediana.Codecs.Webp.Tests/Mediana.Codecs.Webp.Tests.csproj" />
     <Project Path="tests/Mediana.NativeTests/Mediana.NativeTests.csproj" />
     <Project Path="tests/Mediana.Tests/Mediana.Tests.csproj" />
   </Folder>

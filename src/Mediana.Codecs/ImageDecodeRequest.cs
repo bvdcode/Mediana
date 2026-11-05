@@ -12,6 +12,13 @@ namespace Mediana.Codecs
         public MediaTimestamp? Time { get; init; }
         /// <summary>Receives nonfatal diagnostics synchronously during image decoding.</summary>
         public Action<string>? WarningHandler { get; init; }
+        /// <summary>Shared decoder scope for embedded resources. Engines supply it automatically.</summary>
+        public ImageDecodeContext? Images { get; init; }
+        /// <summary>Optional source pixel limit. Decoders validate source dimensions before allocation when supported.</summary>
+        public int? MaximumPixels { get; init; }
+        /// <summary>Optional decoding resolution hints. Decoders may retain a higher resolution; presentation controls final sizing.</summary>
+        public int? PreferredWidth { get; init; }
+        public int? PreferredHeight { get; init; }
 
         public void Validate(ImageDecoderFeatures features)
         {
@@ -20,6 +27,7 @@ namespace Mediana.Codecs
                 throw new ArgumentOutOfRangeException(nameof(features));
             }
             ArgumentOutOfRangeException.ThrowIfNegative(PageIndex);
+            if (MaximumPixels is <= 0 || PreferredWidth is <= 0 || PreferredHeight is <= 0) { throw new ArgumentOutOfRangeException(nameof(MaximumPixels)); }
             if (Time is MediaTimestamp time)
             {
                 time.TimeBase.Validate();

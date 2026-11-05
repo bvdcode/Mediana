@@ -2,6 +2,10 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
+using Mediana.Core.Memory;
+using Mediana.Core.Video;
+using Mediana.Codecs;
+using Mediana.Imaging;
 using System;
 using System.Collections.Generic;
 
@@ -20,8 +24,17 @@ namespace Mediana.Images.Svg
         public int MaximumDepth { get; init; } = 64;
         /// <summary>Gets the decoded pixel budget per embedded or resolved image.</summary>
         public int MaximumImagePixels { get; init; } = 16_777_216;
-        /// <summary>Gets an optional caller-controlled font resolver. Return TrueType/OpenType glyf font bytes, or empty to use the bundled CC0 fonts.</summary>
-        public Func<SvgFontRequest, ReadOnlyMemory<byte>>? FontResolver { get; init; }
+        /// <summary>Live decoded image and decoder scanline budget when ImageAllocator is absent.</summary>
+        public long MaximumImageBytes { get; init; } = 256L * 1024 * 1024;
+        /// <summary>Optional caller budget for retained images and decode workspace. Independent of raster output storage.</summary>
+        public MediaBufferAllocator? ImageAllocator { get; init; }
+        /// <summary>Decoders shared by embedded resources. Registered decoding uses the engine's context.</summary>
+        public ImageDecodeContext Images { get; init; } = ImageResources.DefaultDecoders;
+        /// <summary>Optional explicit interpretation of missing source color labels. Declared labels remain authoritative.</summary>
+        public Func<VideoFormat, VideoColorInfo>? ImageColorResolver { get; init; }
+        public Action<string>? WarningHandler { get; init; }
+        /// <summary>Shared text resources. The default uses the bundled CC0 sans-serif and supplemental faces.</summary>
+        public TextOptions Text { get; init; } = new() { SubstituteMissingFonts = true, SubstituteFamilies = ["Aileron", "Canada1500"] };
         /// <summary>Gets an optional caller-controlled image resolver. No network or file access is performed implicitly.</summary>
         public Func<string, PixelBuffer?>? ImageResolver { get; init; }
     }

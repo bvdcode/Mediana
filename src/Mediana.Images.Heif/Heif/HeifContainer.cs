@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using Mediana.Core.Metadata;
 
 namespace Mediana.Images.Heif.Container
 {
@@ -12,11 +13,13 @@ namespace Mediana.Images.Heif.Container
     /// The input owner must preserve those bytes for the lifetime of the container.
     /// </summary>
     internal class HeifContainer(ReadOnlyMemory<byte> file, ReadOnlyMemory<byte> itemData,
-        uint primaryItemId, Dictionary<uint, HeifItem> items, HeifBox[] properties, int maxItemBytes)
+        uint primaryItemId, Dictionary<uint, HeifItem> items, HeifBox[] properties, int maxItemBytes,
+        IEnumerable<MediaProperty>? fileProperties = null)
     {
         public uint PrimaryItemId { get; } = primaryItemId;
         public IReadOnlyDictionary<uint, HeifItem> Items { get; } = new ReadOnlyDictionary<uint, HeifItem>(items);
         public IReadOnlyList<HeifBox> Properties { get; } = Array.AsReadOnly(properties);
+        public IReadOnlyList<MediaProperty> FileProperties { get; } = Array.AsReadOnly(fileProperties?.ToArray() ?? []);
 
         public ReadOnlyMemory<byte> ReadData(uint id) => Items[id].ReadData(file, itemData, maxItemBytes);
     }

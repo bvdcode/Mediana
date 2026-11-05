@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Execution;
+using Mediana.Processing.Audio;
 using Mediana.Codecs;
 using Mediana.Codecs.Aac;
 using Mediana.Containers.MpegTs;

@@ -14,7 +14,7 @@ using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Codecs.Png;
 
-SvgDocument document = await SvgReader.ReadFileAsync("image.svg", cancellationToken: cancellationToken);
+using SvgDocument document = await SvgReader.ReadFileAsync("image.svg", cancellationToken: cancellationToken);
 MediaBufferAllocator allocator = new(16 * 1024 * 1024);
 using PixelBuffer pixels = SvgRenderer.Render(document,
     new DrawingRenderOptions { Width = 512, MaximumSamples = 4_000_000 }, cancellationToken, allocator);
@@ -27,26 +27,45 @@ Output is straight sRGB RGBA8. Features include paths and shapes, gradients,
 transforms, local references, CSS declarations, fill/stroke rules, clipping,
 opacity, masks, common filter primitives and TrueType text. Bundled Latin and
 Cyrillic fonts are CC0; provenance and input hashes are recorded in the Fonts
-folder. A caller can resolve fonts or images explicitly. The reader does not
+folder. A caller can supply shared `TextOptions` or resolve images explicitly. The reader does not
 fetch network resources or resolve external XML entities.
 
 [TrueType glyph reading](fonts.md) describes outline bounds, ownership and
 regression coverage shared with PDF previews.
 
-Embedded PNG decoding covers standard color/depth combinations and Adam7.
-It is currently an internal SVG operation; it does not provide standalone PNG
-color-profile handling. Unsupported SVG features are reported by
+Embedded images use the shared `Mediana.Imaging` preparation path. Direct reader
+calls include managed PNG/JPEG decoders; `SvgReaderOptions.Images` supplies a
+replacement context. When decoding through `MediaEngine`, the engine's registered
+decoders are passed to embedded resources automatically, including asynchronous
+implementations. Data URI content is recognized by its bytes. External files and
+URLs still require the explicit caller resolver.
+
+Image colors are converted to sRGB before drawing. Already canonical sRGB pixels
+retain their storage; transformations allocate a separate converted frame.
+Missing labels require an explicit `ImageColorResolver`, such as
+`SdrPreviewColorPolicy.Resolve`; CLI previews select this policy and report
+substitutions. PNG decoding covers standard color/depth combinations and Adam7.
+Unsupported SVG features are reported by
 `UnsupportedFeatures`; strict rendering rejects them. SVG animation, patterns,
-markers, complex CSS selectors, CFF/WOFF2 and complex-script shaping are outside
+markers, complex CSS selectors, WOFF2 and complex-script shaping are outside
 the implemented subset.
+
+Dispose `SvgDocument` after all renders finish to release retained raster images.
+`SvgReaderOptions.ImageAllocator` supplies their decode and retained-storage
+budget; `MaximumImageBytes` supplies the default when no allocator is provided.
+Failed reads release images already loaded.
+Use `SvgReader.ReadAsync` or `ReadFileAsync` for asynchronous image implementations.
+The synchronous reader supports `ISynchronousImageDecoder` implementations and
+rejects asynchronous-only decoders before starting them. Embedded resources
+inherit the same decoder context and bounded nesting allowance.
 
 Input size, elements, nesting, path commands, embedded-image pixels,
 supersampled output and effect workspace have separate bounds. The
-`MediaBufferAllocator` above counts the final drawing surface and the PNG stream's
-64 KiB plus 12 bytes of working storage.
+`MediaBufferAllocator` above counts the output, supersampling and temporary effect
+surfaces, plus the PNG stream's 64 KiB and 12 bytes of working storage.
 Publishing transfers that surface to the frame without copying its RGBA bytes.
-Rendering workspace has separate limits; these are not a whole process memory
-cap. Idle effect surfaces are cleared before reuse and disposed when evicted
+`MaximumEffectBytes` is an additional effect workspace bound; these limits are
+not a whole process memory cap. Idle effect surfaces are cleared before reuse and disposed when evicted
 or when rendering finishes. Failed surface creation releases its budget.
 
 Tests match 352 stored filter pixel references and exercise bundled fonts,

@@ -4,6 +4,7 @@
 using Mediana.Drawing;
 using System;
 using System.Threading;
+using Mediana.Core.Memory;
 
 namespace Mediana.Drawing
 {
@@ -13,12 +14,14 @@ namespace Mediana.Drawing
         internal DrawingRenderOptions Options { get; }
         internal CancellationToken Token { get; }
         internal SceneBufferPool Buffers { get; }
+        internal MediaBufferAllocator? Allocator { get; }
         internal SceneBufferScope? Scope { get; set; }
 
-        internal SceneRenderContext(DrawingRenderOptions options, CancellationToken token)
+        internal SceneRenderContext(DrawingRenderOptions options, CancellationToken token, MediaBufferAllocator? allocator = null)
         {
             Options = options;
             Token = token;
+            Allocator = allocator;
             Buffers = new SceneBufferPool(this);
         }
 

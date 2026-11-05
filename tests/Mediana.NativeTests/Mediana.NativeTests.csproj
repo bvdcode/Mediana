@@ -9,6 +9,18 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/HlsAudioPreparationTestInput.cs" Link="HlsAudioPreparationTestInput.cs" />
+    <Compile Include="../Shared/EmbeddedImageTestInput.cs" Link="EmbeddedImageTestInput.cs" />
+    <Compile Include="../Shared/EmbeddedTestImageDecoder.cs" Link="EmbeddedTestImageDecoder.cs" />
+    <Compile Include="../Shared/FluentEmojiTestInput.cs" Link="FluentEmojiTestInput.cs" />
+    <Compile Include="../Shared/WebpTestBitReader.cs" Link="WebpTestBitReader.cs" />
+    <Compile Include="../Shared/Vp8TestBooleanReader.cs" Link="Vp8TestBooleanReader.cs" />
+    <Compile Include="../Shared/WebpTestHuffman.cs" Link="WebpTestHuffman.cs" />
+    <Compile Include="../Shared/WebpLosslessTestReader.cs" Link="WebpLosslessTestReader.cs" />
+    <Compile Include="../Shared/WebpEncodingTestInput.cs" Link="WebpEncodingTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Drawing.Emoji.Fluent/Mediana.Drawing.Emoji.Fluent.csproj" />
+    <Compile Include="../Shared/ExifMetadataTestInput.cs" Link="ExifMetadataTestInput.cs" />
+    <Compile Include="../Shared/HeifExifTestInput.cs" Link="HeifExifTestInput.cs" />
     <Compile Include="../Shared/MeshGeometryTestInput.cs" Link="MeshGeometryTestInput.cs" />
     <Compile Include="../Shared/MeshTestInput.cs" Link="MeshTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Models.Mesh/Mediana.Models.Mesh.csproj" />
@@ -93,7 +105,7 @@
     <Compile Include="../Shared/PngDecodeTestData.cs" Link="PngDecodeTestData.cs" />
     <Compile Include="../Shared/PngDecodeTestInput.cs" Link="PngDecodeTestInput.cs" />
     <Compile Include="../Shared/PngStreamingTestInput.cs" Link="PngStreamingTestInput.cs" />
-    <Compile Include="../Shared/PngOutputTestStream.cs" Link="PngOutputTestStream.cs" />
+    <Compile Include="../Shared/ImageOutputTestStream.cs" Link="ImageOutputTestStream.cs" />
     <Compile Include="../Shared/SceneBufferOwnershipTestInput.cs" Link="SceneBufferOwnershipTestInput.cs" />
     <Compile Include="../Shared/ImageOutputAllocationTestInput.cs" Link="ImageOutputAllocationTestInput.cs" />
     <Compile Include="../Shared/H264BaselineEncodingTestInput.cs" Link="H264BaselineEncodingTestInput.cs" />
@@ -273,6 +285,7 @@
     <ProjectReference Include="../../src/Mediana.Processing/Mediana.Processing.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Webp/Mediana.Codecs.Webp.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.MpegTs/Mediana.Containers.MpegTs.csproj" />
     <ProjectReference Include="../../src/Mediana.Streaming.Hls/Mediana.Streaming.Hls.csproj" />

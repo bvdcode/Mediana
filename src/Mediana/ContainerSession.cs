@@ -12,7 +12,7 @@ namespace Mediana
     /// Returned packets retain their storage until disposed, including after session disposal.</summary>
     public partial class ContainerSession : IContainerReader
     {
-        private readonly IByteSource replay;
+        private readonly IByteSource? replay;
         internal MediaOpenOptions Options { get; }
         private long packetReads;
         private bool packetsStarted;
@@ -20,7 +20,7 @@ namespace Mediana
         private bool faulted;
         private int busy;
 
-        internal ContainerSession(IContainerReader reader, IByteSource replay, MediaBufferAllocator allocator, MediaOpenOptions options)
+        internal ContainerSession(IContainerReader reader, IByteSource? replay, MediaBufferAllocator allocator, MediaOpenOptions options)
         {
             Reader = reader;
             this.replay = replay;
@@ -127,7 +127,7 @@ namespace Mediana
                     }
                     finally
                     {
-                        await replay.DisposeAsync().ConfigureAwait(false);
+                        if (replay is not null) { await replay.DisposeAsync().ConfigureAwait(false); }
                     }
                 }
             }

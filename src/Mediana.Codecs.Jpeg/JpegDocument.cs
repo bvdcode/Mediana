@@ -113,9 +113,17 @@ namespace Mediana.Codecs.Jpeg
                         if (!componentSamples || marker == 238)
                         {
                             metadata.Read(marker, segment, token);
+                            if (allocator is null)
+                            {
+                                metadata.Inspect(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);
+                            }
                         }
                         break;
                     case 254:
+                        if (allocator is null)
+                        {
+                            metadata.Inspect(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);
+                        }
                         break;
                     case 220:
                         throw new NotSupportedException("JPEG deferred image height (DNL) is not supported.");

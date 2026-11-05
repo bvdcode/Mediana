@@ -18,6 +18,7 @@ namespace Mediana
         private readonly IContainerReaderFactory[] containers;
         private readonly IVideoDecoderFactory[] decoders;
         private readonly IImageDecoder[] imageDecoders;
+        private readonly ImageDecodeContext imageContext;
         private readonly IAudioDecoderFactory[] audioDecoders;
         private readonly Dictionary<string, IStreamMetadataReader> metadataReaders;
 
@@ -30,6 +31,7 @@ namespace Mediana
             this.videoEncoders = videoEncoders.ToDictionary(item => item.CodecId, StringComparer.Ordinal);
             this.writers = writers.ToDictionary(item => item.FormatId, StringComparer.Ordinal);
             this.imageDecoders = imageDecoders;
+            imageContext = new(imageDecoders);
             ImageProbeLength = imageDecoders.Length == 0 ? 0 : imageDecoders.Max(item => item.ProbeLength);
             ImageDecoderImplementations = Array.AsReadOnly(imageDecoders.Select(item => item.ImplementationId).ToArray());
             this.decoders = decoders;
