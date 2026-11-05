@@ -1,0 +1,470 @@
+id,section,name,variant,kind,extensions,tier,specs,notes
+mp4-classic,Containers and packaging,MP4 / ISO BMFF,Non-fragmented files,container,.mp4 .m4a .m4v,A,iso-bmff,Current reader maps AVC/AAC/MP3; other codec mappings remain separate work.
+mp4-fragmented,Containers and packaging,MP4 / ISO BMFF,Fragmented files,container,.mp4 .m4s,A,iso-bmff,"Includes initialization segments, fragment timing and incremental input."
+mov,Containers and packaging,QuickTime,Movie files,container,.mov .qt,A,quicktime,Current MP4-family reader covers a subset; legacy QuickTime sample descriptions remain open.
+3gp,Containers and packaging,3GPP,3GP / 3G2 files,container,.3gp .3g2,B,iso-bmff;discovery,Validate their brands and track mappings independently of MP4.
+matroska-indexed,Containers and packaging,Matroska,Indexed file presentation,container,.mkv .mka .mks,A,matroska,"Current packet mappings are AVC/AAC/MP3, not all Matroska codecs."
+matroska-live,Containers and packaging,Matroska,Live / unknown-size stream,container,.mkv,B,matroska,
+webm-file,Containers and packaging,WebM,File presentation,container,.webm,A,webm,Codec mappings and track constraints must conform to WebM.
+webm-live,Containers and packaging,WebM,Incremental / live presentation,container,.webm,B,webm,"Track metadata, unknown sizes and incremental clusters need separate fixtures."
+ogg,Containers and packaging,Ogg,Single and multiplexed logical streams,container,.ogg .oga .ogv .opus .spx,A,ogg,"Codec-specific headers, granules and chaining are not interchangeable."
+ogg-chained,Containers and packaging,Ogg,Chained logical streams,container,.ogg .opus,B,ogg,
+avi,Containers and packaging,AVI,RIFF AVI 1.0,container,.avi,B,riff,
+avi-opendml,Containers and packaging,AVI,OpenDML / AVI 2.0,container,.avi,B,riff;discovery,
+asf,Containers and packaging,ASF,File and streaming structure,container,.asf .wmv .wma,B,asf,
+flv,Containers and packaging,FLV,Classic file structure,container,.flv,B,flv,
+flv-enhanced,Containers and packaging,Enhanced FLV,Extended codec mappings,container,.flv,C,discovery,Pin the extended specification and codec mappings first.
+mpeg-ts,Containers and packaging,MPEG-TS,188-byte transport packets,container,.ts .mpegts,A,mpeg-systems,Current writer: one program with AVC/AAC/MP3; reader and broader mappings are open.
+m2ts,Containers and packaging,MPEG-TS,192-byte source packets,container,.m2ts .mts,B,mpeg-systems;discovery,
+mpeg-ts-204,Containers and packaging,MPEG-TS,204-byte protected packets,container,.ts,C,mpeg-systems,
+mpeg-ps,Containers and packaging,MPEG Program Stream,MPEG-1 / MPEG-2 systems,container,.mpg .mpeg .vob,B,mpeg-systems,
+mxf-op1a,Containers and packaging,MXF,OP1a interleaved essence,container,.mxf,B,mxf,Essence mappings require their own codec and metadata fixtures.
+mxf-opatom,Containers and packaging,MXF,OP-Atom essence,container,.mxf,C,mxf,
+gxf,Containers and packaging,GXF,Broadcast exchange,container,.gxf,C,discovery,
+wave-riff,Containers and packaging,WAVE,RIFF little-endian PCM / float,container,.wav .wave,A,riff,Reader and writer exist; supported sample representations differ by direction.
+wave-extensible,Containers and packaging,WAVE,WAVE_FORMAT_EXTENSIBLE,container,.wav .wave,A,riff,"Channel masks, valid bits and subformat GUIDs require coverage."
+wave-rifx,Containers and packaging,WAVE,RIFX big-endian,container,.wav,B,riff,
+wave-rf64,Containers and packaging,RF64 / BW64,Large WAVE files,container,.wav .rf64,A,bwf,Handle ds64 sizes and long-duration streaming output.
+wave-bwf,Containers and packaging,Broadcast WAVE,BWF metadata and timeline,container,.wav .bwf,B,bwf,
+wave-compressed,Containers and packaging,WAVE,Compressed format-tag mappings,container,.wav,B,riff,Container support is separate from ADPCM and other codecs.
+wave64,Containers and packaging,Wave64,64-bit chunk format,container,.w64,B,discovery,
+aiff,Containers and packaging,AIFF,Big-endian integer PCM,container,.aif .aiff,B,aiff,Current sequential reader is mono/stereo.
+aifc,Containers and packaging,AIFF-C,Compressed / alternate PCM mappings,container,.aifc .aiff,B,aiff,"Current mappings: NONE/twos, supported sowt and float32/64; no general compressed AIFF-C decoder."
+caf,Containers and packaging,Core Audio Format,Chunked audio container,container,.caf,B,caf,
+au,Containers and packaging,Sun / NeXT AU,Audio container,container,.au .snd,B,discovery,
+flac-native,Containers and packaging,FLAC,Native file framing and metadata,container,.flac,A,flac,FLAC codec operation is tracked separately.
+mp3-file,Containers and packaging,MP3,Layer III frame stream with metadata,container,.mp3,A,mpeg-audio;metadata,"Writer means framing/metadata and stream copy, not MP3 compression."
+heif-wrapper,Containers and packaging,HEIF,Image item graph and derived items,container,.heif .heic,A,heif,"Current HEIC item graph includes grids, identity, overlays, transforms and alpha."
+avif-wrapper,Containers and packaging,AVIF,HEIF AV1 image item mapping,container,.avif,A,avif,Requires AV1 decoding/encoding in addition to item-graph support.
+jp2-wrapper,Containers and packaging,JP2,JPEG 2000 Part 1 file format,container,.jp2,A,jpeg2000,Current reader supports a subset of color and channel boxes.
+jpx-wrapper,Containers and packaging,JPX,JPEG 2000 Part 2 file format,container,.jpx .jpf,B,jpeg2000,"Composition, multiple codestreams and additional color/channel mappings."
+mj2-wrapper,Containers and packaging,Motion JPEG 2000,JPEG 2000 Part 3 file format,container,.mj2 .mjp2,C,jpeg2000,
+jxl-wrapper,Containers and packaging,JPEG XL,Part 2 boxed file format,container,.jxl,A,jpegxl,"Boxes, metadata and codestream fragmentation are distinct from coding modes."
+ktx1-wrapper,Containers and packaging,KTX,Version 1 texture container,container,.ktx,B,ktx,
+ktx2-wrapper,Containers and packaging,KTX,Version 2 texture container,container,.ktx2,B,ktx,"Supercompression, levels, layers, faces and format descriptors are independent checks."
+dds-wrapper,Containers and packaging,DDS,Legacy and DX10 texture headers,container,.dds,B,bmp-dds,
+avc-annexb,Elementary streams and packet representations,AVC,Annex B byte stream,framing,.h264 .264,A,h264,Current access-unit converter is not a complete arbitrary-stream demuxer.
+avc-length,Elementary streams and packet representations,AVC,Length-prefixed NAL units / avcC,framing,.avc,A,h264;iso-bmff,Configuration and packet syntax already shared by container and codec modules.
+hevc-annexb,Elementary streams and packet representations,HEVC,Annex B byte stream,framing,.h265 .265 .hevc,B,h265,
+hevc-length,Elementary streams and packet representations,HEVC,Length-prefixed NAL units / hvcC,framing,.hevc,B,h265;iso-bmff,HEIC configuration parsing is not a complete video elementary-stream reader.
+vvc-annexb,Elementary streams and packet representations,VVC,Annex B byte stream,framing,.h266 .266 .vvc,C,h266,
+av1-obu,Elementary streams and packet representations,AV1,Low-overhead OBU stream,framing,.obu,A,av1,
+av1-annexb,Elementary streams and packet representations,AV1,Annex B framing,framing,.av1,B,av1,
+ivf,Elementary streams and packet representations,IVF,Framed VP8/VP9/AV1 video,framing,.ivf,B,webm;discovery,
+aac-adts,Elementary streams and packet representations,AAC,ADTS framing,framing,.aac .adts,A,mpeg-audio,Existing access-unit conversion does not provide a standalone ADTS source reader.
+aac-adif,Elementary streams and packet representations,AAC,ADIF framing,framing,.aac,C,mpeg-audio,
+aac-latm,Elementary streams and packet representations,AAC,LATM / LOAS framing,framing,.latm .loas,B,mpeg-audio,
+aac-asc,Elementary streams and packet representations,AAC,Raw access units / AudioSpecificConfig,framing,,A,mpeg-audio,Already used for MP4 AAC and AAC encoding; transport boundaries remain explicit.
+ac3-framing,Elementary streams and packet representations,AC-3 / E-AC-3,Syncframe streams,framing,.ac3 .eac3,B,etsi-audio,
+dts-framing,Elementary streams and packet representations,DTS,Core / extension stream framing,framing,.dts,C,discovery,
+y4m,Elementary streams and packet representations,YUV4MPEG2,Frame stream with explicit geometry,framing,.y4m,B,discovery,
+jpeg-baseline,JPEG families and monochrome coding,JPEG,"Baseline sequential Huffman DCT, 8-bit",image-codec,.jpg .jpeg .jpe,A,jpeg,Current grayscale/three-component decoding; encoder is open.
+jpeg-sequential,JPEG families and monochrome coding,JPEG,"Extended sequential Huffman DCT, 8/12-bit",image-codec,.jpg .jpeg,B,jpeg,Current SOF1 decoder is 8-bit; 12-bit precision remains open.
+jpeg-progressive,JPEG families and monochrome coding,JPEG,"Progressive Huffman DCT, 8/12-bit",image-codec,.jpg .jpeg,A,jpeg,Current SOF2 decoder is 8-bit; no encoder or 12-bit reconstruction yet.
+jpeg-arithmetic,JPEG families and monochrome coding,JPEG,Arithmetic DCT coding,image-codec,.jpg .jpeg,B,jpeg,
+jpeg-lossless,JPEG families and monochrome coding,JPEG,"Predictive lossless, Huffman/arithmetic",image-codec,.jpg .jpeg,B,jpeg,Original JPEG lossless is distinct from JPEG-LS and JPEG XL.
+jpeg-hierarchical,JPEG families and monochrome coding,JPEG,Hierarchical modes,image-codec,.jpg .jpeg,C,jpeg,
+jpeg-cmyk,JPEG families and monochrome coding,JPEG,Four-component CMYK / YCCK presentation,image-codec,.jpg .jpeg,A,jpeg;metadata,Color interpretation and conversion need independent verification.
+jpeg-mpo,JPEG families and monochrome coding,MPO,Multi-picture JPEG,image-codec,.mpo,B,jpeg;metadata;discovery,
+jpegls-lossless,JPEG families and monochrome coding,JPEG-LS,Part 1 lossless,image-codec,.jls,B,jpegls,
+jpegls-near,JPEG families and monochrome coding,JPEG-LS,Part 1 near-lossless,image-codec,.jls,B,jpegls,
+jpegls-extensions,JPEG families and monochrome coding,JPEG-LS,Part 2 extensions,image-codec,.jls,C,jpegls,
+j2k-reversible,JPEG families and monochrome coding,JPEG 2000,Part 1 reversible 5/3,image-codec,.j2k .j2c .jpc,A,jpeg2000,Current decoder covers integer components; packet/header extensions remain open.
+j2k-irreversible,JPEG families and monochrome coding,JPEG 2000,Part 1 irreversible 9/7,image-codec,.j2k .j2c .jpc,A,jpeg2000,Current tests include independent references with an explicit numeric tolerance.
+j2k-part2,JPEG families and monochrome coding,JPEG 2000,Part 2 coding extensions,image-codec,.j2k .jpx,B,jpeg2000,
+htj2k,JPEG families and monochrome coding,HTJ2K,JPEG 2000 Part 15 block coding,image-codec,.j2k .jhc .jph,B,htj2k,Track HT block coding independently of JP2/JPX wrappers.
+jpegxr,JPEG families and monochrome coding,JPEG XR,HD Photo coding,image-codec,.jxr .wdp .hdp,B,jpegxr,
+jpegxs,JPEG families and monochrome coding,JPEG XS,Low-latency coding profiles,image-codec,.jxs,C,jpegxs,Split profiles when a concrete use case and conformance corpus are selected.
+jbig1,JPEG families and monochrome coding,JBIG,T.82 bi-level coding,image-codec,.jbg .jbig,B,jbig,
+jbig2-sequential,JPEG families and monochrome coding,JBIG2,Sequential standalone pages,image-codec,.jb2 .jbig2,A,jbig,Current decoder has bounded arithmetic/Huffman/MMR regions and dictionaries.
+jbig2-random,JPEG families and monochrome coding,JBIG2,Random-access organization,image-codec,.jb2 .jbig2,B,jbig,
+jbig2-embedded,JPEG families and monochrome coding,JBIG2,Embedded streams with globals,image-codec,,A,jbig;pdf,Used for PDF images; not a standalone-file wrapper.
+fax-t4,JPEG families and monochrome coding,CCITT Group 3,T.4 one-/two-dimensional fax coding,image-codec,,B,jbig,
+fax-t6,JPEG families and monochrome coding,CCITT Group 4,T.6 MMR coding,image-codec,,B,jbig,An internal JBIG2 primitive is not yet a general exposed image decoder.
+png-gray,Web images and modern still-image coding,PNG,"Grayscale, 1/2/4/8/16-bit",image-codec,.png,A,png,Current decode expands to RGBA8; native 16-bit output and grayscale encoding are open.
+png-rgb,Web images and modern still-image coding,PNG,"Truecolor RGB, 8/16-bit",image-codec,.png,A,png,
+png-indexed,Web images and modern still-image coding,PNG,"Indexed color, 1/2/4/8-bit",image-codec,.png,A,png,
+png-alpha,Web images and modern still-image coding,PNG,"Grayscale/truecolor with alpha, 8/16-bit",image-codec,.png,A,png,Current encoder emits noninterlaced straight-alpha RGBA8 sRGB only.
+png-adam7,Web images and modern still-image coding,PNG,Adam7 interlace,image-codec,.png,A,png,
+apng,Web images and modern still-image coding,APNG,Animated PNG with frame disposal/blending,image-codec,.png .apng,A,png,
+webp-lossy,Web images and modern still-image coding,WebP,Lossy VP8 image,image-codec,.webp,A,webp,
+webp-lossless,Web images and modern still-image coding,WebP,Lossless VP8L image,image-codec,.webp,A,webp,
+webp-extended,Web images and modern still-image coding,WebP,"Extended RIFF, alpha and metadata",image-codec,.webp,A,webp,"Test lossy alpha, lossless alpha, ICC, Exif and XMP independently."
+webp-animation,Web images and modern still-image coding,WebP,Animated extended WebP,image-codec,.webp,A,webp,"Frame rectangles, timestamps, blending and disposal are separate from still images."
+avif-still,Web images and modern still-image coding,AVIF,"Still image, Baseline/Advanced profiles",image-codec,.avif,A,avif;av1,Split profile/precision coverage as AV1 implementation grows.
+avif-alpha,Web images and modern still-image coding,AVIF,Auxiliary alpha images,image-codec,.avif,A,avif,
+avif-hdr,Web images and modern still-image coding,AVIF,10/12-bit and HDR presentation,image-codec,.avif,A,avif;av1,"HDR decoding, color preservation and SDR tone mapping are distinct tasks."
+avif-sequence,Web images and modern still-image coding,AVIF,Image sequences / animation,image-codec,.avif .avifs,A,avif,
+heic-main,Web images and modern still-image coding,HEIC,"HEVC Main still-image coding, 8-bit",image-codec,.heic .heif,A,heif;h265,Current intra-only implementation; general inter-frame HEVC is separate.
+heic-main10,Web images and modern still-image coding,HEIC,HEVC Main 10 still-image coding,image-codec,.heic .heif,A,heif;h265,Current implementation reconstructs a supported 10-bit intra subset.
+heic-rext,Web images and modern still-image coding,HEIC,Range-extension still images,image-codec,.heic .heif,B,heif;h265,Current subset includes monochrome/4:2:2/4:4:4 at 8/10-bit; not general RExt conformance.
+heic-sequence,Web images and modern still-image coding,HEIC,Timed image sequences,image-codec,.heic .heif,B,heif;h265,
+heif-jpeg,Web images and modern still-image coding,HEIF,JPEG-coded image items,image-codec,.heif,B,heif;jpeg,
+heif-j2k,Web images and modern still-image coding,HEIF,JPEG 2000-coded image items,image-codec,.heif .hej2,B,heif;jpeg2000,
+jxl-modular,Web images and modern still-image coding,JPEG XL,Part 1 Modular coding,image-codec,.jxl,A,jpegxl,Includes lossless integer coding; precision/channels and transforms need their own samples.
+jxl-vardct,Web images and modern still-image coding,JPEG XL,Part 1 VarDCT coding,image-codec,.jxl,A,jpegxl,
+jxl-raw,Web images and modern still-image coding,JPEG XL,Raw codestream representation,image-codec,.jxl,A,jpegxl,Distinct from the Part 2 boxed container.
+jxl-jpeg-reconstruction,Web images and modern still-image coding,JPEG XL,Reversible JPEG recompression,image-codec,.jxl,B,jpegxl,Verify exact reconstruction of the original supported JPEG representation.
+jxl-animation,Web images and modern still-image coding,JPEG XL,Animation and frame composition,image-codec,.jxl,B,jpegxl,
+jxl-extra,Web images and modern still-image coding,JPEG XL,"HDR, floating-point and extra channels",image-codec,.jxl,B,jpegxl,
+gif87a,"Raster files, archives and camera images",GIF,GIF87a still images,image-codec,.gif,A,gif,
+gif89a,"Raster files, archives and camera images",GIF,GIF89a transparency and animation,image-codec,.gif,A,gif,"Disposal, palette changes, timing and loop metadata require independent samples."
+bmp-rgb,"Raster files, archives and camera images",BMP,Uncompressed palettes / RGB / bitfields,image-codec,.bmp .dib,A,bmp-dds,
+bmp-rle,"Raster files, archives and camera images",BMP,RLE4 / RLE8,image-codec,.bmp .dib,B,bmp-dds,
+bmp-v5,"Raster files, archives and camera images",BMP,V4/V5 color and alpha,image-codec,.bmp,B,bmp-dds,
+tiff-strips,"Raster files, archives and camera images",TIFF,"Classic TIFF, strips and tiles",image-codec,.tif .tiff,A,tiff,"Both byte orders, planar configurations, multipage and native precision."
+tiff-bigtiff,"Raster files, archives and camera images",BigTIFF,64-bit offsets and sizes,image-codec,.tif .tiff .btf,B,tiff;discovery,
+tiff-packbits,"Raster files, archives and camera images",TIFF,PackBits compression,image-codec,.tif .tiff,A,tiff,
+tiff-lzw,"Raster files, archives and camera images",TIFF,LZW compression and predictors,image-codec,.tif .tiff,A,tiff,
+tiff-deflate,"Raster files, archives and camera images",TIFF,Deflate compression and predictors,image-codec,.tif .tiff,A,tiff,
+tiff-jpeg,"Raster files, archives and camera images",TIFF,JPEG compression mappings,image-codec,.tif .tiff,B,tiff;jpeg,Old and revised JPEG-in-TIFF representations need separate fixtures.
+tiff-fax,"Raster files, archives and camera images",TIFF,CCITT fax compression,image-codec,.tif .tiff,A,tiff;jbig,
+tga,"Raster files, archives and camera images",TGA,"Raw/RLE truecolor, indexed and alpha",image-codec,.tga,B,discovery,
+pcx,"Raster files, archives and camera images",PCX,Palette / RGB RLE,image-codec,.pcx,C,discovery,
+sgi,"Raster files, archives and camera images",SGI RGB,Raw/RLE planar images,image-codec,.sgi .rgb .rgba,C,discovery,
+pbm,"Raster files, archives and camera images",Netpbm PBM,Plain/binary monochrome,image-codec,.pbm,B,pnm,
+pgm,"Raster files, archives and camera images",Netpbm PGM,Plain/binary grayscale,image-codec,.pgm,B,pnm,
+ppm,"Raster files, archives and camera images",Netpbm PPM,Plain/binary RGB,image-codec,.ppm .pnm,B,pnm,
+pam,"Raster files, archives and camera images",Netpbm PAM,Arbitrary tuple images,image-codec,.pam,B,pnm,
+qoi,"Raster files, archives and camera images",QOI,Lossless RGB/RGBA,image-codec,.qoi,B,qoi,
+farbfeld,"Raster files, archives and camera images",farbfeld,16-bit RGBA,image-codec,.ff,C,discovery,
+psd,"Raster files, archives and camera images",Photoshop PSD,"Composite, layers, masks and channels",image-codec,.psd,B,psd,Merged preview and full layer composition require independent coverage.
+psb,"Raster files, archives and camera images",Photoshop PSB,Large-document structure,image-codec,.psb,C,psd,
+ora,"Raster files, archives and camera images",OpenRaster,Layered image package,image-codec,.ora,B,discovery,
+xcf,"Raster files, archives and camera images",GIMP XCF,Layered image revisions,image-codec,.xcf,C,discovery,
+icns,"Raster files, archives and camera images",Apple ICNS,Multi-resolution icons,image-codec,.icns,B,discovery,
+ico,"Raster files, archives and camera images",Windows ICO / CUR,Multi-image icons and cursors,image-codec,.ico .cur,A,bmp-dds;discovery,Embedded PNG and DIB entries are distinct payloads.
+ani,"Raster files, archives and camera images",Windows ANI,Animated cursors,image-codec,.ani,C,riff;discovery,
+dng,"Raster files, archives and camera images",Digital Negative,DNG raw and rendered previews,image-codec,.dng,B,tiff,"Raw sample decode, demosaic/color processing and embedded previews are different operations."
+raw-cr2,"Raster files, archives and camera images",Canon RAW,CR2,image-codec,.cr2,C,discovery,"Camera-specific unpacking, metadata and color calibration need sourced coverage."
+raw-cr3,"Raster files, archives and camera images",Canon RAW,CR3 / CRX,image-codec,.cr3,C,discovery,
+raw-nef,"Raster files, archives and camera images",Nikon RAW,NEF / NRW,image-codec,.nef .nrw,C,discovery,
+raw-arw,"Raster files, archives and camera images",Sony RAW,ARW / SR2,image-codec,.arw .sr2,C,discovery,
+raw-raf,"Raster files, archives and camera images",Fujifilm RAW,RAF Bayer / X-Trans,image-codec,.raf,C,discovery,
+raw-other,"Raster files, archives and camera images",Camera RAW,ORF / RW2 / PEF / SRW families,image-codec,.orf .rw2 .pef .srw,C,discovery,Split by documented coding process and camera family before implementation.
+exr-scanline,"HDR, scientific images and raw sample layouts",OpenEXR,Scanline images,image-codec,.exr,B,openexr,
+exr-tiled,"HDR, scientific images and raw sample layouts",OpenEXR,"Tiled, mipmapped and ripmapped images",image-codec,.exr,B,openexr,
+exr-multipart,"HDR, scientific images and raw sample layouts",OpenEXR,Multipart and multiview images,image-codec,.exr,C,openexr,
+exr-deep,"HDR, scientific images and raw sample layouts",OpenEXR,Deep samples,image-codec,.exr,C,openexr,
+exr-compression,"HDR, scientific images and raw sample layouts",OpenEXR,PIZ / ZIP / PXR24 / B44 / DWA families,image-codec,.exr,B,openexr,Split each accepted compression family into its own row before implementation.
+radiance-hdr,"HDR, scientific images and raw sample layouts",Radiance HDR,RGBE / XYZE images,image-codec,.hdr .pic,B,discovery,
+pfm,"HDR, scientific images and raw sample layouts",Portable FloatMap,Floating-point gray/RGB,image-codec,.pfm,B,pnm,
+dpx,"HDR, scientific images and raw sample layouts",DPX,Digital motion-picture samples,image-codec,.dpx,C,mxf;discovery,
+cineon,"HDR, scientific images and raw sample layouts",Cineon,Logarithmic film samples,image-codec,.cin,C,discovery,
+fits,"HDR, scientific images and raw sample layouts",FITS,Astronomical image arrays,image-codec,.fits .fit .fts,C,discovery,
+raw-rgb,"HDR, scientific images and raw sample layouts",Raw RGB,RGB/BGR packed integer samples,image-codec,.rgb .bgr .raw,B,gpu-textures,"Requires explicit dimensions, stride, precision and component order."
+raw-rgba,"HDR, scientific images and raw sample layouts",Raw RGBA,RGBA/BGRA and alpha conventions,image-codec,.rgba .bgra .raw,B,gpu-textures,
+raw-yuv-planar,"HDR, scientific images and raw sample layouts",Raw YUV,Planar 4:2:0 / 4:2:2 / 4:4:4,image-codec,.yuv,A,h264;gpu-textures,Stored frame planes already exist; complete raw-file import/export remains open.
+raw-yuv-semi,"HDR, scientific images and raw sample layouts",Raw YUV,NV12 / NV21 / P010 / P016,image-codec,.yuv,B,gpu-textures,
+raw-yuv-packed,"HDR, scientific images and raw sample layouts",Raw YUV,YUY2 / UYVY / v210,image-codec,.yuv,B,gpu-textures,
+raw-float,"HDR, scientific images and raw sample layouts",Raw raster,Half/float/double component arrays,image-codec,.raw,B,gpu-textures,
+bc1,GPU texture coding,BC1 / DXT1,RGB / one-bit alpha blocks,texture-codec,.dds .ktx .ktx2,B,gpu-textures,
+bc2,GPU texture coding,BC2 / DXT3,Explicit alpha blocks,texture-codec,.dds .ktx .ktx2,B,gpu-textures,
+bc3,GPU texture coding,BC3 / DXT5,Interpolated alpha blocks,texture-codec,.dds .ktx .ktx2,B,gpu-textures,
+bc4,GPU texture coding,BC4,One-component signed/unsigned blocks,texture-codec,.dds .ktx .ktx2,B,gpu-textures,
+bc5,GPU texture coding,BC5,Two-component signed/unsigned blocks,texture-codec,.dds .ktx .ktx2,B,gpu-textures,
+bc6h,GPU texture coding,BC6H,HDR RGB blocks,texture-codec,.dds .ktx .ktx2,B,gpu-textures,
+bc7,GPU texture coding,BC7,RGBA block coding,texture-codec,.dds .ktx .ktx2,B,gpu-textures,
+etc1,GPU texture coding,ETC1,RGB blocks,texture-codec,.pkm .ktx,B,gpu-textures,
+etc2-eac,GPU texture coding,ETC2 / EAC,RGB/RGBA and one-/two-channel blocks,texture-codec,.ktx .ktx2,B,gpu-textures,
+astc-ldr,GPU texture coding,ASTC,LDR block coding,texture-codec,.astc .ktx .ktx2,B,gpu-textures,
+astc-hdr,GPU texture coding,ASTC,HDR block coding,texture-codec,.astc .ktx .ktx2,C,gpu-textures,
+pvrtc,GPU texture coding,PVRTC,PVRTC1 / PVRTC2,texture-codec,.pvr .ktx,C,gpu-textures;discovery,
+basis-etc1s,GPU texture coding,Basis Universal,ETC1S / BasisLZ,texture-codec,.basis .ktx2,B,ktx;gltf,Decode/transcode and container supercompression are distinct boundaries.
+basis-uastc,GPU texture coding,Basis Universal,UASTC,texture-codec,.basis .ktx2,B,ktx;gltf,
+avc-constrained-baseline,Video codecs and substantial profiles,H.264 / AVC,Constrained Baseline,video-codec,.h264 .264,A,h264,Current decoder subset and fixed-QP I/P encoder; complete profile coverage remains open.
+avc-baseline,Video codecs and substantial profiles,H.264 / AVC,Baseline,video-codec,.h264 .264,A,h264,Includes tools beyond the constrained profile; do not inherit its completion.
+avc-main,Video codecs and substantial profiles,H.264 / AVC,Main,video-codec,.h264 .264,A,h264,Current progressive 8-bit 4:2:0 CABAC/CAVLC subset includes I/P/B pictures.
+avc-extended,Video codecs and substantial profiles,H.264 / AVC,Extended,video-codec,.h264 .264,B,h264,
+avc-high,Video codecs and substantial profiles,H.264 / AVC,High,video-codec,.h264 .264,A,h264,Current progressive 8-bit 4:2:0 reconstruction uses default scaling matrices.
+avc-high10,Video codecs and substantial profiles,H.264 / AVC,High 10 / High 10 Intra,video-codec,.h264 .264,B,h264,Parsing profile identifiers is not 10-bit decoding support.
+avc-high422,Video codecs and substantial profiles,H.264 / AVC,High 4:2:2 / High 4:2:2 Intra,video-codec,.h264 .264,B,h264,
+avc-high444,Video codecs and substantial profiles,H.264 / AVC,High 4:4:4 Predictive / Intra,video-codec,.h264 .264,B,h264,
+avc-cavlc444,Video codecs and substantial profiles,H.264 / AVC,CAVLC 4:4:4 Intra,video-codec,.h264 .264,C,h264,
+avc-interlaced,Video codecs and substantial profiles,H.264 / AVC,Field pictures / PAFF / MBAFF,video-codec,.h264 .264,B,h264,Tool-specific coverage across applicable profiles.
+avc-svc,Video codecs and substantial profiles,H.264 / AVC,Scalable extension profiles,video-codec,.h264,C,h264,
+avc-mvc,Video codecs and substantial profiles,H.264 / AVC,Multiview / stereo extension profiles,video-codec,.h264,C,h264,
+avc-3d,Video codecs and substantial profiles,H.264 / AVC,Depth and 3D extensions,video-codec,.h264,C,h264,
+hevc-main,Video codecs and substantial profiles,H.265 / HEVC,"Main, 8-bit 4:2:0 video",video-codec,.h265 .hevc,A,h265,HEIC intra reconstruction does not close general I/P/B video decoding.
+hevc-main10,Video codecs and substantial profiles,H.265 / HEVC,Main 10,video-codec,.h265 .hevc,A,h265,
+hevc-main-still,Video codecs and substantial profiles,H.265 / HEVC,Main Still Picture,video-codec,.h265 .hevc,B,h265,Current HEIC intra path provides a subset; standalone video-codec integration remains open.
+hevc-rext,Video codecs and substantial profiles,H.265 / HEVC,Range extensions / 12-bit / 4:2:2 / 4:4:4,video-codec,.h265 .hevc,B,h265,Split concrete RExt profiles when selecting implementation work.
+hevc-scc,Video codecs and substantial profiles,H.265 / HEVC,Screen-content extensions,video-codec,.h265 .hevc,B,h265,
+hevc-shvc,Video codecs and substantial profiles,H.265 / HEVC,Scalable extensions,video-codec,.h265 .hevc,C,h265,
+hevc-multiview,Video codecs and substantial profiles,H.265 / HEVC,Multiview / 3D extensions,video-codec,.h265 .hevc,C,h265,
+vvc-main10,Video codecs and substantial profiles,H.266 / VVC,Main 10,video-codec,.h266 .vvc,B,h266,
+vvc-main444,Video codecs and substantial profiles,H.266 / VVC,Main 10 4:4:4,video-codec,.h266 .vvc,C,h266,
+vvc-multilayer,Video codecs and substantial profiles,H.266 / VVC,Multilayer and still-picture profiles,video-codec,.h266 .vvc,C,h266,Split the selected profiles before implementation.
+vp8,Video codecs and substantial profiles,VP8,Video bitstream,video-codec,.ivf,A,webm,WebP lossy image coding shares tools but has a separate file/alpha/animation contract.
+vp9-p0,Video codecs and substantial profiles,VP9,"Profile 0, 8-bit 4:2:0",video-codec,.ivf,A,webm,
+vp9-p1,Video codecs and substantial profiles,VP9,"Profile 1, 8-bit other sampling",video-codec,.ivf,B,webm,
+vp9-p2,Video codecs and substantial profiles,VP9,"Profile 2, 10/12-bit 4:2:0",video-codec,.ivf,A,webm,
+vp9-p3,Video codecs and substantial profiles,VP9,"Profile 3, 10/12-bit other sampling",video-codec,.ivf,B,webm,
+av1-main,Video codecs and substantial profiles,AV1,Main profile,video-codec,.obu .ivf,A,av1,
+av1-high,Video codecs and substantial profiles,AV1,High profile,video-codec,.obu .ivf,B,av1,
+av1-professional,Video codecs and substantial profiles,AV1,Professional profile,video-codec,.obu .ivf,B,av1,
+av1-scalable,Video codecs and substantial profiles,AV1,Operating points and scalable streams,video-codec,.obu .ivf,B,av1,"Film grain, super-resolution and temporal/spatial layers need explicit tool coverage."
+av2,Video codecs and substantial profiles,AV2,Versioned AOM bitstream,video-codec,.obu,C,av2,Pin the published bitstream revision and profile before implementation.
+mpeg1-video,Video codecs and substantial profiles,MPEG-1 Video,ISO/IEC 11172-2,video-codec,.m1v .mpg,B,mpeg-video,
+mpeg2-main,Video codecs and substantial profiles,MPEG-2 Video,Simple/Main profiles,video-codec,.m2v .mpg,B,mpeg-video,
+mpeg2-high,Video codecs and substantial profiles,MPEG-2 Video,4:2:2 / High / scalable profiles,video-codec,.m2v,C,mpeg-video,
+mpeg4-simple,Video codecs and substantial profiles,MPEG-4 Visual,Simple profile,video-codec,.m4v,B,mpeg-video,
+mpeg4-asp,Video codecs and substantial profiles,MPEG-4 Visual,Advanced Simple profile,video-codec,.m4v,B,mpeg-video,Includes familiar DivX/Xvid-era interoperability; product names are not new standards.
+h261,Video codecs and substantial profiles,H.261,Video coding,video-codec,.h261,C,itu-video,
+h263,Video codecs and substantial profiles,H.263,Baseline,video-codec,.h263,C,itu-video,
+h263-extensions,Video codecs and substantial profiles,H.263,Annex extensions / H.263+,video-codec,.h263,C,itu-video,
+theora,Video codecs and substantial profiles,Theora,Video coding,video-codec,.ogv,B,theora,
+vc1,Video codecs and substantial profiles,VC-1,Simple/Main/Advanced profiles,video-codec,,C,discovery,Select the SMPTE 421M revision and transport mappings before implementation.
+wmv-legacy,Video codecs and substantial profiles,Windows Media Video,Earlier WMV revisions,video-codec,,C,discovery,Split WMV1/WMV2 and concrete bitstream revisions when scoped.
+vp6,Video codecs and substantial profiles,VP6,Legacy web video,video-codec,,C,discovery,
+vp7,Video codecs and substantial profiles,VP7,Legacy video,video-codec,,C,discovery,
+avs-family,Video codecs and substantial profiles,AVS,AVS1 / AVS2 / AVS3 families,video-codec,,C,discovery,These are separate standards; split them before implementation.
+prores-422,Video codecs and substantial profiles,ProRes,422 Proxy/LT/standard/HQ,video-codec,,B,prores,Profiles share a family; preserve chroma/precision and select normative bitstream sources.
+prores-4444,Video codecs and substantial profiles,ProRes,4444 / 4444 XQ with alpha,video-codec,,B,prores,
+dnxhd,Video codecs and substantial profiles,DNxHD,HD editing profiles,video-codec,,C,mxf;discovery,
+dnxhr,Video codecs and substantial profiles,DNxHR,Resolution-independent profiles,video-codec,,C,mxf;discovery,
+dv,Video codecs and substantial profiles,DV,DV25 / DV50 / DV100,video-codec,,C,discovery,
+ffv1-v1,Video codecs and substantial profiles,FFV1,Version 1 archival coding,video-codec,,B,ffv1,
+ffv1-v3,Video codecs and substantial profiles,FFV1,"Version 3, slices and integrity checks",video-codec,,B,ffv1,
+huffyuv,Video codecs and substantial profiles,HuffYUV,Lossless video,video-codec,,C,discovery,
+utvideo,Video codecs and substantial profiles,Ut Video,Lossless video families,video-codec,,C,discovery,
+ffvhuff,Video codecs and substantial profiles,FFVHUFF,HuffYUV-derived lossless video,video-codec,,C,discovery,
+mjpeg,Video codecs and substantial profiles,Motion JPEG,Independently JPEG-coded video frames,video-codec,,B,jpeg;mpeg-video,Frame coding and AVI/MOV mappings must be tested separately.
+mjpeg2000,Video codecs and substantial profiles,Motion JPEG 2000,Independently JPEG 2000-coded frames,video-codec,,C,jpeg2000,
+vc2,Video codecs and substantial profiles,VC-2 / Dirac,Wavelet video,video-codec,,C,discovery,
+cineform,Video codecs and substantial profiles,CineForm,Wavelet editing codec,video-codec,,C,discovery,
+rawvideo,Video codecs and substantial profiles,Raw video,Uncompressed frame sequences,video-codec,,B,gpu-textures,Pixel-layout rows define exact bytes; video timing still comes from a container or explicit options.
+pcm-u8,Audio coding and sample representations,PCM,Unsigned 8-bit,audio-codec,,A,riff,Current PCM reading/conversion and WAVE output paths; not a general audio encoder factory.
+pcm-s16,Audio coding and sample representations,PCM,"Signed 16-bit, LE/BE",audio-codec,,A,riff;aiff,Both byte orders and native frame conversion need explicit fixtures.
+pcm-s24,Audio coding and sample representations,PCM,"Packed signed 24-bit, LE/BE",audio-codec,,A,riff;aiff,Current decoding accepts supported 24-bit input; WAVE writer has no packed-24 output.
+pcm-s32,Audio coding and sample representations,PCM,"Signed 32-bit, LE/BE",audio-codec,,A,riff;aiff,
+pcm-validbits,Audio coding and sample representations,PCM,Valid bits within aligned storage,audio-codec,,B,riff;aiff,Includes non-byte-aligned precision and extensible WAVE valid-bit declarations.
+pcm-f32,Audio coding and sample representations,PCM,"IEEE float32, LE/BE",audio-codec,,A,riff;aiff,
+pcm-f64,Audio coding and sample representations,PCM,"IEEE float64, LE/BE",audio-codec,,B,riff;aiff,
+g711-alaw,Audio coding and sample representations,G.711,A-law,audio-codec,,B,itu-audio,
+g711-mulaw,Audio coding and sample representations,G.711,Mu-law,audio-codec,,B,itu-audio,
+adpcm-ima-wave,Audio coding and sample representations,IMA ADPCM,WAVE block layout,audio-codec,,B,riff;discovery,
+adpcm-ima-qt,Audio coding and sample representations,IMA ADPCM,QuickTime block layout,audio-codec,,B,quicktime;discovery,
+adpcm-ms,Audio coding and sample representations,Microsoft ADPCM,WAVE block layout,audio-codec,,B,riff;discovery,
+adpcm-g726,Audio coding and sample representations,G.726,ADPCM bit-rate modes,audio-codec,,C,itu-audio,
+g722,Audio coding and sample representations,G.722,Wideband sub-band coding,audio-codec,,C,itu-audio,
+mp1,Audio coding and sample representations,MPEG Audio,MPEG-1/2 Layer I,audio-codec,.mp1,B,mpeg-audio,
+mp2,Audio coding and sample representations,MPEG Audio,MPEG-1/2 Layer II,audio-codec,.mp2,B,mpeg-audio,
+mp3-mpeg1,Audio coding and sample representations,MP3,MPEG-1 Layer III,audio-codec,.mp3,A,mpeg-audio,Current decoder covers mono/stereo/joint stereo; no MP3 encoder.
+mp3-mpeg2,Audio coding and sample representations,MP3,MPEG-2 Layer III lower sampling rates,audio-codec,.mp3,A,mpeg-audio,
+mp3-mpeg25,Audio coding and sample representations,MP3,MPEG-2.5 Layer III extension,audio-codec,.mp3,B,mpeg-audio;discovery,Widely used non-ISO extension; track it separately from MPEG-2.
+aac-lc,Audio coding and sample representations,AAC,"Low Complexity, 1024/960-sample modes",audio-codec,,A,mpeg-audio,Current decode: supported 1024-sample configurations 1–7; encode: experimental mono/stereo 1024 only.
+aac-main,Audio coding and sample representations,AAC,Main object type,audio-codec,,C,mpeg-audio,
+aac-ssr,Audio coding and sample representations,AAC,Scalable Sample Rate,audio-codec,,C,mpeg-audio,
+aac-ltp,Audio coding and sample representations,AAC,Long Term Prediction,audio-codec,,C,mpeg-audio,
+heaac-v1,Audio coding and sample representations,HE-AAC,AAC-LC plus SBR,audio-codec,,A,mpeg-audio,
+heaac-v2,Audio coding and sample representations,HE-AAC v2,SBR plus Parametric Stereo,audio-codec,,A,mpeg-audio,
+aac-ld,Audio coding and sample representations,AAC-LD,Low Delay,audio-codec,,B,mpeg-audio,
+aac-eld,Audio coding and sample representations,AAC-ELD,Enhanced Low Delay,audio-codec,,B,mpeg-audio,
+usac,Audio coding and sample representations,USAC / xHE-AAC,Unified speech and audio coding,audio-codec,,B,mpeg-audio,
+mpeg-surround,Audio coding and sample representations,MPEG Surround,Spatial audio coding extension,audio-codec,,C,mpeg-audio,
+mpegh-audio,Audio coding and sample representations,MPEG-H 3D Audio,Channel/object/scene-based audio,audio-codec,,C,mpeg-audio,
+flac-codec,Audio coding and sample representations,FLAC,Lossless sample coding,audio-codec,.flac,A,flac,"Current decoder has fixed/LPC prediction, Rice residuals, stereo decorrelation and CRC checks."
+alac,Audio coding and sample representations,Apple Lossless,ALAC sample coding,audio-codec,,A,alac,
+opus-silk,Audio coding and sample representations,Opus,SILK speech mode,audio-codec,,A,opus,
+opus-celt,Audio coding and sample representations,Opus,CELT transform mode,audio-codec,,A,opus,
+opus-hybrid,Audio coding and sample representations,Opus,Hybrid and mode transitions,audio-codec,,A,opus,
+opus-multistream,Audio coding and sample representations,Opus,Multistream and channel mappings,audio-codec,,B,opus,Ambisonics mappings need their own declared scope and reference fixtures.
+vorbis,Audio coding and sample representations,Vorbis,Vorbis I mono/stereo/multichannel,audio-codec,,A,vorbis,
+speex-nb,Audio coding and sample representations,Speex,Narrowband,audio-codec,,B,speex,
+speex-wb,Audio coding and sample representations,Speex,Wideband / ultra-wideband,audio-codec,,B,speex,
+wavpack-lossless,Audio coding and sample representations,WavPack,Lossless coding,audio-codec,.wv,B,wavpack,
+wavpack-hybrid,Audio coding and sample representations,WavPack,Hybrid lossy/correction streams,audio-codec,.wv .wvc,B,wavpack,
+ape,Audio coding and sample representations,Monkey's Audio,APE revisions and compression modes,audio-codec,.ape,B,discovery,
+tak,Audio coding and sample representations,TAK,Lossless coding,audio-codec,.tak,C,discovery,
+tta,Audio coding and sample representations,True Audio,Lossless coding,audio-codec,.tta,C,discovery,
+shorten,Audio coding and sample representations,Shorten,Lossless coding,audio-codec,.shn,C,discovery,
+mlp,Audio coding and sample representations,MLP,Lossless multichannel coding,audio-codec,,C,discovery,
+truehd,Audio coding and sample representations,Dolby TrueHD,MLP-derived HD coding,audio-codec,,C,discovery,
+ac3,Audio coding and sample representations,AC-3,Dolby Digital,audio-codec,,B,etsi-audio,
+eac3,Audio coding and sample representations,E-AC-3,Dolby Digital Plus,audio-codec,,B,etsi-audio,
+dts-core,Audio coding and sample representations,DTS,Core coding,audio-codec,,B,discovery,
+dts-hd,Audio coding and sample representations,DTS-HD,High-resolution / lossless extensions,audio-codec,,C,discovery,
+amr-nb,Audio coding and sample representations,AMR,Narrowband,audio-codec,.amr,B,etsi-audio,
+amr-wb,Audio coding and sample representations,AMR-WB,Wideband,audio-codec,.awb,B,etsi-audio,
+gsm,Audio coding and sample representations,GSM Full Rate,Speech frames,audio-codec,.gsm,C,discovery,
+ilbc,Audio coding and sample representations,iLBC,Internet low-bit-rate speech,audio-codec,,C,discovery,
+g729,Audio coding and sample representations,G.729,CS-ACELP speech,audio-codec,,C,itu-audio,
+wma,Audio coding and sample representations,Windows Media Audio,Standard coding revisions,audio-codec,,C,discovery,
+wma-pro,Audio coding and sample representations,Windows Media Audio,Professional coding,audio-codec,,C,discovery,
+wma-lossless,Audio coding and sample representations,Windows Media Audio,Lossless coding,audio-codec,,C,discovery,
+dsd,Audio coding and sample representations,DSD,One-bit samples and channel layout,audio-codec,.dsf .dff,C,discovery,DSF/DFF wrappers and DSD-to-PCM processing require separate coverage.
+dst,Audio coding and sample representations,DST,Lossless DSD coding,audio-codec,,C,discovery,
+midi-smf,Audio coding and sample representations,Standard MIDI File,Type 0/1/2 event sequences,audio-codec,.mid .midi,B,discovery,"Playback requires an explicit synthesis/instrument-bank contract, not an audio decoder label."
+tracker-mod,Audio coding and sample representations,Tracker modules,MOD/XM/S3M/IT families,audio-codec,.mod .xm .s3m .it,C,discovery,Split formats before implementation; rendering includes sample mixing and effect semantics.
+svg-static,Vector graphics and 2D animation,SVG,Static SVG 1.1/2 scene subset,vector-animation,.svg,A,svg,"Current rasterizer covers paths, styles, text, masks, filters and embedded PNG; authoring/export is open."
+svg-compressed,Vector graphics and 2D animation,SVGZ,Gzip-compressed SVG,vector-animation,.svgz,B,svg,
+svg-animation,Vector graphics and 2D animation,SVG,Declarative/CSS animation,vector-animation,.svg,B,svg;html,Timeline evaluation is separate from static rendering.
+lottie-json,Vector graphics and 2D animation,Lottie,JSON 2D animation,vector-animation,.json .lottie.json,A,lottie,Current renderer uses a bounded 2D subset; no document writer.
+tgs,Vector graphics and 2D animation,TGS,Gzip Lottie sticker animation,vector-animation,.tgs,A,lottie,CLI can use stored expression values and omit Puppet with explicit warnings; these are not implemented effects.
+dotlottie,Vector graphics and 2D animation,dotLottie,Packaged animations and resources,vector-animation,.lottie,B,lottie;discovery,
+wmf,Vector graphics and 2D animation,Windows Metafile,16-bit vector record stream,vector-animation,.wmf,B,discovery,
+emf,Vector graphics and 2D animation,Enhanced Metafile,EMF records,vector-animation,.emf,B,discovery,
+emf-plus,Vector graphics and 2D animation,EMF+,Extended GDI+ records,vector-animation,.emf,B,discovery,
+postscript,Vector graphics and 2D animation,PostScript / EPS,Page description / encapsulated artwork,vector-animation,.ps .eps,C,discovery,"Interpretation, fonts and execution/resource limits require a dedicated design."
+swf,Vector graphics and 2D animation,SWF,Timeline/vector media without application scripting,vector-animation,.swf,C,discovery,Define static/timeline scope separately from executable ActionScript content.
+pdf-1,"Documents, spreadsheets and presentations",PDF,PDF 1.x / ISO 32000-1 page content,document,.pdf,A,pdf,Current parser/rendering covers a subset; current image extraction is not PDF writing.
+pdf-2,"Documents, spreadsheets and presentations",PDF,PDF 2.0 / ISO 32000-2,document,.pdf,B,pdf,
+pdf-a,"Documents, spreadsheets and presentations",PDF/A,Archival conformance profiles,document,.pdf,B,pdf,Rendering a PDF/A file is distinct from validating or writing a conforming archival document.
+pdf-x,"Documents, spreadsheets and presentations",PDF/X,Print exchange profiles,document,.pdf,B,pdf,
+pdf-forms,"Documents, spreadsheets and presentations",PDF,AcroForm and annotation appearance,document,.pdf,B,pdf,"Current renderer handles supported annotation appearances, not a complete form system."
+pdf-encrypted,"Documents, spreadsheets and presentations",PDF,Standard encrypted documents,document,.pdf,B,pdf,Authentication/decryption is separate from signature verification and page rendering.
+pdf-3d,"Documents, spreadsheets and presentations",PDF,Embedded U3D / PRC annotations,document,.pdf,C,pdf;discovery,Embedded geometry decoding and 3D annotation rendering remain separate tasks.
+openxml-opc,"Documents, spreadsheets and presentations",Open Packaging Conventions,"ZIP parts, content types and relationships",document,.docx .xlsx .pptx,A,office,Current bounded package reader does not implement Office document layout.
+docx-transitional,"Documents, spreadsheets and presentations",WordprocessingML,OOXML Transitional documents,document,.docx,A,office,"Current structural reader covers a subset; pagination, text shaping, tables, drawings and sections still require rendering coverage."
+docx-strict,"Documents, spreadsheets and presentations",WordprocessingML,OOXML Strict documents,document,.docx,B,office,Current reader recognizes Strict namespaces; full structure and rendering remain open.
+docm,"Documents, spreadsheets and presentations",WordprocessingML,"Macro-enabled package, static document content",document,.docm .dotm,B,office,Macro execution is not part of static rendering.
+dotx,"Documents, spreadsheets and presentations",WordprocessingML,Templates,document,.dotx,B,office,
+xlsx-transitional,"Documents, spreadsheets and presentations",SpreadsheetML,OOXML Transitional workbooks,document,.xlsx,A,office,"Cell parsing, formula evaluation and styled print/page rendering are distinct capabilities."
+xlsx-strict,"Documents, spreadsheets and presentations",SpreadsheetML,OOXML Strict workbooks,document,.xlsx,B,office,
+xlsm,"Documents, spreadsheets and presentations",SpreadsheetML,"Macro-enabled workbook, static content",document,.xlsm .xltm,B,office,Macro execution is separate from workbook rendering.
+xlsb,"Documents, spreadsheets and presentations",Excel binary workbook,BIFF12 in OPC package,document,.xlsb,B,office,
+xltx,"Documents, spreadsheets and presentations",SpreadsheetML,Workbook templates,document,.xltx,B,office,
+pptx-transitional,"Documents, spreadsheets and presentations",PresentationML,OOXML Transitional presentations,document,.pptx,A,office,"Theme/layout/master inheritance, shapes, text, charts and media need separate fixtures."
+pptx-strict,"Documents, spreadsheets and presentations",PresentationML,OOXML Strict presentations,document,.pptx,B,office,
+pptm,"Documents, spreadsheets and presentations",PresentationML,"Macro-enabled presentation, static content",document,.pptm .potm,B,office,
+potx,"Documents, spreadsheets and presentations",PresentationML,Templates and slideshow packages,document,.potx .ppsx,B,office,
+pptx-animation,"Documents, spreadsheets and presentations",PresentationML,Slide transitions and animation timing,document,.pptx,B,office,Static slide rendering does not close timed presentation rendering.
+doc-binary,"Documents, spreadsheets and presentations",Word binary,Legacy DOC revisions,document,.doc .dot,B,office,
+xls-binary,"Documents, spreadsheets and presentations",Excel binary,BIFF5 / BIFF8 workbooks,document,.xls .xlt,B,office,
+ppt-binary,"Documents, spreadsheets and presentations",PowerPoint binary,Legacy presentation revisions,document,.ppt .pps .pot,B,office,
+rtf,"Documents, spreadsheets and presentations",Rich Text Format,Formatted text and embedded resources,document,.rtf,B,office;discovery,
+odt,"Documents, spreadsheets and presentations",OpenDocument Text,ODF text documents,document,.odt .ott .fodt,B,odf,
+ods,"Documents, spreadsheets and presentations",OpenDocument Spreadsheet,ODF workbooks,document,.ods .ots .fods,B,odf,
+odp,"Documents, spreadsheets and presentations",OpenDocument Presentation,ODF presentations,document,.odp .otp .fodp,B,odf,
+odg,"Documents, spreadsheets and presentations",OpenDocument Graphics,ODF drawings,document,.odg .otg .fodg,B,odf,
+xps,"Documents, spreadsheets and presentations",XPS,Microsoft XPS document packages,document,.xps,B,xps;discovery,
+openxps,"Documents, spreadsheets and presentations",OpenXPS,ECMA-388 packages,document,.oxps,B,xps,
+epub-reflow,"Documents, spreadsheets and presentations",EPUB,Reflowable EPUB 2/3 publications,document,.epub,B,epub,
+epub-fixed,"Documents, spreadsheets and presentations",EPUB,Fixed-layout publications,document,.epub,B,epub,
+fb2,"Documents, spreadsheets and presentations",FictionBook,FB2 / zipped FB2,document,.fb2 .fb2.zip,C,discovery,
+html-static,"Documents, spreadsheets and presentations",HTML / CSS,Static document and print layout,document,.html .htm .xhtml,B,html,"Explicitly define supported layout, resource and pagination features before implementation."
+markdown,"Documents, spreadsheets and presentations",Markdown,Document text and defined dialects,document,.md .markdown,C,discovery,
+plain-text,"Documents, spreadsheets and presentations",Plain text,Unicode text layout,document,.txt,B,html;opentype,
+csv,"Documents, spreadsheets and presentations",Delimited text,CSV / TSV tabular interchange,document,.csv .tsv,B,discovery,Styled spreadsheet/page rendering is not implied by parsing delimited values.
+font-truetype,Fonts and text presentation resources,TrueType / OpenType,glyf outlines and metrics,font,.ttf .otf,A,opentype,Current outline/font-name subset is shared by drawing and document modules.
+font-cff1,Fonts and text presentation resources,OpenType,CFF1 Type 2 outlines,font,.otf,A,opentype,Current name-keyed subset; CID-keyed coverage remains open.
+font-cff-cid,Fonts and text presentation resources,OpenType / CFF,CID-keyed CFF1 fonts,font,.otf,B,opentype,
+font-cff2,Fonts and text presentation resources,OpenType,CFF2 outlines,font,.otf,B,opentype,
+font-collection,Fonts and text presentation resources,TrueType Collection,TTC / OTC multiple faces,font,.ttc .otc,B,opentype,
+font-variable,Fonts and text presentation resources,OpenType,Variable axes and outline/metric variation,font,.ttf .otf,B,opentype,
+font-colr,Fonts and text presentation resources,OpenType,COLR/CPAL color glyphs v0/v1,font,.ttf .otf,B,opentype,
+font-bitmap,Fonts and text presentation resources,OpenType,"CBDT/CBLC, EBDT/EBLC and sbix glyphs",font,.ttf .otf,B,opentype,
+font-svg,Fonts and text presentation resources,OpenType,SVG glyph documents,font,.ttf .otf,B,opentype;svg,
+font-woff,Fonts and text presentation resources,WOFF,Web font wrapper,font,.woff,B,opentype,
+font-woff2,Fonts and text presentation resources,WOFF2,Transformed/compressed web font wrapper,font,.woff2,B,opentype,
+font-type1,Fonts and text presentation resources,PostScript Type 1,PFA / PFB font programs,font,.pfa .pfb,B,pdf;discovery,
+font-type3,Fonts and text presentation resources,PDF Type 3,Embedded glyph content streams,font,,A,pdf,Current PDF subset draws glyph streams through the page renderer.
+font-shaping,Fonts and text presentation resources,OpenType layout,GSUB/GPOS and script shaping,font,,A,opentype,"Font parsing alone does not implement shaping, bidi or complex-script layout."
+srt,"Subtitles, captions and timed graphics",SubRip,Timed text cues,timed-text,.srt,A,subtitles;discovery,
+webvtt,"Subtitles, captions and timed graphics",WebVTT,"Text cues, regions and styling",timed-text,.vtt,A,subtitles,
+ass,"Subtitles, captions and timed graphics",ASS / SSA,Styled subtitle scripts,timed-text,.ass .ssa,B,subtitles;discovery,
+ttml,"Subtitles, captions and timed graphics",TTML,TTML2 timed text,timed-text,.ttml .xml,B,subtitles,
+imsc,"Subtitles, captions and timed graphics",IMSC,Text and image subtitle profiles,timed-text,.ttml .xml,B,subtitles,
+tx3g,"Subtitles, captions and timed graphics",Timed Text,3GPP / MP4 timed-text samples,timed-text,,B,iso-bmff;subtitles,
+mov-text,"Subtitles, captions and timed graphics",QuickTime text,Legacy text samples,timed-text,,C,quicktime,
+cea608,"Subtitles, captions and timed graphics",CEA-608,Line-21 closed captions,timed-text,,B,subtitles;discovery,
+cea708,"Subtitles, captions and timed graphics",CEA-708,Digital television closed captions,timed-text,,B,subtitles;discovery,
+dvb-subtitles,"Subtitles, captions and timed graphics",DVB subtitles,Bitmap page/region composition,timed-text,,B,subtitles;discovery,
+pgs,"Subtitles, captions and timed graphics",HDMV PGS,Blu-ray presentation graphics,timed-text,.sup,B,subtitles;discovery,
+vobsub,"Subtitles, captions and timed graphics",DVD VobSub,Bitmap subpictures and index,timed-text,.idx .sub,B,subtitles;discovery,
+ebu-stl,"Subtitles, captions and timed graphics",EBU STL,Broadcast subtitle exchange,timed-text,.stl,C,subtitles;discovery,
+hls-ts-vod,Streaming presentations and transport protocols,HLS,VOD MPEG-TS media playlists,streaming,.m3u8,A,hls,Current writer supports stream copy and supported AVC/AAC encoding; no general HLS reader.
+hls-master,Streaming presentations and transport protocols,HLS,Master playlists and rendition groups,streaming,.m3u8,A,hls,Current writer prepares supported video/audio variants and measured transport output.
+hls-live,Streaming presentations and transport protocols,HLS,Live/event playlists and discontinuities,streaming,.m3u8,A,hls,
+hls-fmp4,Streaming presentations and transport protocols,HLS,Fragmented MP4 segments,streaming,.m3u8 .m4s,A,hls;iso-bmff,
+hls-lowlatency,Streaming presentations and transport protocols,HLS,Low-latency parts and blocking reload,streaming,.m3u8,B,hls,
+hls-encryption,Streaming presentations and transport protocols,HLS,Declared encryption and key handling,streaming,.m3u8,B,hls,Encryption is separate from codec support and external rights-management systems.
+dash-static,Streaming presentations and transport protocols,MPEG-DASH,Static MPD and segment addressing,streaming,.mpd,B,dash,
+dash-dynamic,Streaming presentations and transport protocols,MPEG-DASH,Dynamic presentations and updates,streaming,.mpd,B,dash,
+cmaf,Streaming presentations and transport protocols,CMAF,Fragmented media constraints and switching,streaming,.cmfv .cmfa .m4s,B,iso-bmff;dash;hls,"CMAF is a constrained media format, not another video codec."
+rtp-rtcp,Streaming presentations and transport protocols,RTP / RTCP,Packet transport and media clocks,streaming,,B,rtp,Each codec payload mapping and packetization mode needs its own fixtures.
+rtsp,Streaming presentations and transport protocols,RTSP,Session control and media setup,streaming,,C,rtp,
+rtmp,Streaming presentations and transport protocols,RTMP,Chunked media transport,streaming,,C,flv;discovery,
+srt-transport,Streaming presentations and transport protocols,SRT transport,Reliable low-latency transport,streaming,,C,discovery,SRT transport is unrelated to SubRip .srt subtitle files.
+id3v2,"Metadata, color and ancillary records",ID3v2,"Text, artwork and structured frames",metadata,,A,metadata,"Current MP3 reader exposes supported text and original pictures, not every frame/revision."
+id3v1,"Metadata, color and ancillary records",ID3v1,Legacy fixed-length tags,metadata,,B,metadata,
+vorbis-comments,"Metadata, color and ancillary records",Vorbis comments,Text metadata and picture mappings,metadata,,A,flac;vorbis,Current native FLAC reader provides supported comments and pictures.
+mp4-metadata,"Metadata, color and ancillary records",MP4 / QuickTime metadata,"iTunes, indexed keys and artwork",metadata,,A,iso-bmff;quicktime,Current movie-level text and original cover extraction; broader namespaces remain open.
+exif,"Metadata, color and ancillary records",Exif,TIFF directories and presentation tags,metadata,,A,metadata,Current JPEG parser applies primary orientation and supported color/aspect declarations.
+xmp,"Metadata, color and ancillary records",XMP,Embedded and sidecar metadata,metadata,.xmp,B,metadata,
+iptc,"Metadata, color and ancillary records",IPTC,IIM / image metadata mappings,metadata,,B,metadata;discovery,
+icc,"Metadata, color and ancillary records",ICC,v2/v4 profiles and color transforms,metadata,.icc .icm,A,metadata,Detecting or retaining a profile is not a color-management implementation.
+hdr-static,"Metadata, color and ancillary records",HDR metadata,Mastering display and content light levels,metadata,,B,h265;av1,
+hdr-dynamic,"Metadata, color and ancillary records",HDR metadata,Dynamic metadata / gain maps,metadata,,B,h265;avif;jpegxl;metadata,Split the selected metadata standards and mapping revisions before implementation.
+spherical,"Metadata, color and ancillary records",Spherical media,360-degree / projection / stereo metadata,metadata,,C,iso-bmff;discovery,
+timecode,"Metadata, color and ancillary records",Timecode,Media timecode tracks and records,metadata,,B,quicktime;mxf,
+obj,3D meshes and manufacturing interchange,Wavefront OBJ,"Polygon geometry, attributes and groups",3d-model,.obj,B,obj-ply,"Materials are tracked separately; include faces, indices, normals, UVs and units policy."
+mtl,3D meshes and manufacturing interchange,Wavefront MTL,Material library and texture references,3d-model,.mtl,B,obj-ply,Interpret legacy material parameters explicitly when mapping to a renderer.
+stl-ascii,3D meshes and manufacturing interchange,STL,ASCII triangle mesh,3d-model,.stl,B,discovery,
+stl-binary,3D meshes and manufacturing interchange,STL,Binary triangle mesh,3d-model,.stl,B,discovery,Binary headers are not a reliable ASCII/binary detection rule by themselves.
+ply-ascii,3D meshes and manufacturing interchange,PLY,ASCII elements and properties,3d-model,.ply,B,obj-ply,"Mesh, point and custom-property support need explicit scope."
+ply-binary-le,3D meshes and manufacturing interchange,PLY,Binary little-endian,3d-model,.ply,B,obj-ply,
+ply-binary-be,3D meshes and manufacturing interchange,PLY,Binary big-endian,3d-model,.ply,B,obj-ply,
+off,3D meshes and manufacturing interchange,OFF,Object File Format mesh variants,3d-model,.off .coff .noff,C,discovery,
+3mf-core,3D meshes and manufacturing interchange,3MF,"Core meshes, objects and build items",3d-model,.3mf,B,3mf,
+3mf-materials,3D meshes and manufacturing interchange,3MF,Materials/properties and textures,3d-model,.3mf,B,3mf,
+3mf-production,3D meshes and manufacturing interchange,3MF,Production and other selected extensions,3d-model,.3mf,C,3mf,Split selected extensions before implementation.
+amf,3D meshes and manufacturing interchange,AMF,Additive manufacturing XML,3d-model,.amf,C,discovery,
+3ds,3D meshes and manufacturing interchange,3D Studio,Legacy chunked scenes,3d-model,.3ds,C,discovery,
+lwo,3D meshes and manufacturing interchange,LightWave Object,LWO2 / related revisions,3d-model,.lwo,C,discovery,
+gltf2-json,"3D scenes, materials and animation",glTF,2.0 JSON with external/data resources,3d-scene,.gltf,B,gltf,"Initial core coverage must distinguish geometry, PBR materials, cameras, skins, morphs and animation."
+gltf2-glb,"3D scenes, materials and animation",glTF,2.0 binary GLB package,3d-scene,.glb,B,gltf,
+gltf2-materials,"3D scenes, materials and animation",glTF,Registered material/light extensions,3d-scene,.gltf .glb,B,gltf,"Split transmission, volume, clearcoat, specular, emissive, texture transforms and lights when selected."
+gltf1,"3D scenes, materials and animation",glTF,Legacy 1.0 scenes,3d-scene,.gltf .glb,C,gltf;discovery,
+collada14,"3D scenes, materials and animation",COLLADA,1.4 interchange documents,3d-scene,.dae,B,collada,
+collada15,"3D scenes, materials and animation",COLLADA,1.5 interchange documents,3d-scene,.dae,C,collada,
+fbx-binary,"3D scenes, materials and animation",FBX,Binary scene revisions,3d-scene,.fbx,B,fbx,Managed implementation requires independently sourced file details; no native SDK dependency implied.
+fbx-ascii,"3D scenes, materials and animation",FBX,ASCII scene revisions,3d-scene,.fbx,B,fbx,
+usd-ascii,"3D scenes, materials and animation",USD,USDA text layers,3d-scene,.usda .usd,B,usd,"Layer parsing, composition and rendered scene features are separate acceptance scopes."
+usd-crate,"3D scenes, materials and animation",USD,USDC crate layers,3d-scene,.usdc .usd,B,usd,
+usdz,"3D scenes, materials and animation",USDZ,Packaged scene/resources,3d-scene,.usdz,B,usd,
+usd-composition,"3D scenes, materials and animation",USD,"References, variants, payloads and instancing",3d-scene,.usd .usda .usdc,B,usd,
+vrml1,"3D scenes, materials and animation",VRML,Version 1,3d-scene,.wrl .vrml,C,x3d,
+vrml2,"3D scenes, materials and animation",VRML,VRML97 / version 2,3d-scene,.wrl .vrml,C,x3d,
+x3d-xml,"3D scenes, materials and animation",X3D,XML scene encoding,3d-scene,.x3d,C,x3d,
+x3d-classic,"3D scenes, materials and animation",X3D,Classic VRML encoding,3d-scene,.x3dv,C,x3d,
+x3d-binary,"3D scenes, materials and animation",X3D,Compressed binary encoding,3d-scene,.x3db,C,x3d,
+blend,"3D scenes, materials and animation",Blender,Versioned .blend data blocks,3d-scene,.blend,C,blend,Import/render/export scope is separate from supporting every application node or modifier.
+alembic-ogawa,"3D scenes, materials and animation",Alembic,Ogawa geometry cache,3d-scene,.abc,B,alembic,
+alembic-hdf5,"3D scenes, materials and animation",Alembic,Legacy HDF5 geometry cache,3d-scene,.abc,C,alembic,
+step-ap203,"CAD, BIM and engineering geometry",STEP,AP203 product/assembly data,cad,.step .stp,C,cad,"Exact geometry, topology, assemblies and tessellation are distinct tasks."
+step-ap214,"CAD, BIM and engineering geometry",STEP,AP214 product data,cad,.step .stp,C,cad,
+step-ap242,"CAD, BIM and engineering geometry",STEP,AP242 managed model-based engineering,cad,.step .stp,B,cad,
+step-xml,"CAD, BIM and engineering geometry",STEP,Part 28 XML representation,cad,.stpx .xml,C,cad,
+iges,"CAD, BIM and engineering geometry",IGES,"Curves, surfaces and solids",cad,.iges .igs,C,cad,
+ifc2x3,"CAD, BIM and engineering geometry",IFC,IFC2x3 building models,cad,.ifc,C,ifc,
+ifc4,"CAD, BIM and engineering geometry",IFC,IFC4 building models,cad,.ifc,B,ifc,
+ifc43,"CAD, BIM and engineering geometry",IFC,IFC4.3 infrastructure/building models,cad,.ifc,B,ifc,
+ifcxml,"CAD, BIM and engineering geometry",IFC,ifcXML / ifcZIP wrappers,cad,.ifcxml .ifczip,C,ifc,
+dxf-ascii,"CAD, BIM and engineering geometry",DXF,ASCII exchange drawing,cad,.dxf,B,cad,2D drawings and 3D entities both need coverage; do not close on line parsing alone.
+dxf-binary,"CAD, BIM and engineering geometry",DXF,Binary exchange drawing,cad,.dxf,C,cad,
+dwg,"CAD, BIM and engineering geometry",DWG,Versioned native drawing family,cad,.dwg,C,cad,Exact revision and usable format documentation must be established first.
+jt,"CAD, BIM and engineering geometry",JT,Tessellated/exact engineering data,cad,.jt,C,cad;discovery,
+3dxml,"CAD, BIM and engineering geometry",3DXML,Product structure and representation,cad,.3dxml,C,discovery,
+parasolid,"CAD, BIM and engineering geometry",Parasolid,X_T / X_B model exchange,cad,.x_t .x_b,C,cad;discovery,
+acis,"CAD, BIM and engineering geometry",ACIS,SAT / SAB model exchange,cad,.sat .sab,C,cad;discovery,
+u3d,"CAD, BIM and engineering geometry",U3D,Universal 3D streams,cad,.u3d,C,pdf;discovery,
+prc,"CAD, BIM and engineering geometry",PRC,Product representation compact,cad,.prc,C,pdf;discovery,
+las12,"Point clouds, geometry compression and volumes",LAS,1.2 point records,3d-data,.las,B,points,
+las14,"Point clouds, geometry compression and volumes",LAS,1.4 point records and extended metadata,3d-data,.las,B,points,
+laz,"Point clouds, geometry compression and volumes",LAZ,Lossless compressed LAS,3d-data,.laz,B,points,Compressed point reconstruction and spatial preview are separate acceptance stages.
+e57,"Point clouds, geometry compression and volumes",E57,3D imaging/point exchange,3d-data,.e57,C,points,
+pcd-ascii,"Point clouds, geometry compression and volumes",PCD,ASCII point-cloud fields,3d-data,.pcd,B,points,
+pcd-binary,"Point clouds, geometry compression and volumes",PCD,Binary / binary-compressed fields,3d-data,.pcd,B,points,
+xyz-points,"Point clouds, geometry compression and volumes",XYZ / PTS / PTX,Text point-cloud families,3d-data,.xyz .pts .ptx,C,points;discovery,"Specify delimiters, attributes, units and coordinate conventions; split dialects as selected."
+draco-mesh,"Point clouds, geometry compression and volumes",Draco,Compressed triangular meshes,3d-data,.drc,B,geometry-codecs;gltf,
+draco-points,"Point clouds, geometry compression and volumes",Draco,Compressed point clouds,3d-data,.drc,B,geometry-codecs,
+meshopt,"Point clouds, geometry compression and volumes",Meshopt,Vertex/index/attribute compression,3d-data,,B,geometry-codecs;gltf,glTF buffer-view compression is separate from scene parsing and rendering.
+gaussian-ply,"Point clouds, geometry compression and volumes",Gaussian splats,PLY-based scene conventions,3d-data,.ply,C,geometry-codecs;obj-ply,"Pin attribute schema, spherical harmonics, opacity and ordering; no universal PLY splat standard implied."
+spz,"Point clouds, geometry compression and volumes",SPZ,Compressed Gaussian splats,3d-data,.spz,C,geometry-codecs,
+openvdb,"Point clouds, geometry compression and volumes",OpenVDB,Sparse volume grids,3d-data,.vdb,C,volumes,
+nanovdb,"Point clouds, geometry compression and volumes",NanoVDB,Compact sparse volume grids,3d-data,.nvdb,C,volumes,
+dicom-images,"Point clouds, geometry compression and volumes",DICOM,Image transfer syntaxes / multiframe objects,3d-data,.dcm .dicom,C,volumes,"Split transfer syntax, pixel reconstruction, modality transforms and image/volume presentation before implementation."
+nifti1,"Point clouds, geometry compression and volumes",NIfTI,NIfTI-1 volumes,3d-data,.nii .nii.gz .hdr .img,C,volumes,
+nifti2,"Point clouds, geometry compression and volumes",NIfTI,NIfTI-2 volumes,3d-data,.nii .nii.gz,C,volumes;discovery,
