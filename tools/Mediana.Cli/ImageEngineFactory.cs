@@ -7,6 +7,7 @@ using Mediana.Codecs.Jpeg2000;
 using Mediana.Codecs.Png;
 using Mediana.Core.Video;
 using Mediana.Documents.Pdf;
+using Mediana.Documents.OpenXml;
 using Mediana.Images.Heif;
 using Mediana.Images.Svg;
 using Mediana.Images.Tgs;
@@ -24,6 +25,7 @@ namespace Mediana.Cli
         internal static MediaEngineBuilder AddDecoders(MediaEngineBuilder builder) => AddStillImageDecoders(builder)
             .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
             .AddImageDecoder(CreateTgs())
+            .AddImageDecoder(new OpenXmlImageDecoder([new WordPreviewDecoder()]))
             .AddImageDecoder(new PdfImageDecoder(renderOptions: new()
             {
                 MaximumWidth = MaximumDocumentPreviewDimension,
