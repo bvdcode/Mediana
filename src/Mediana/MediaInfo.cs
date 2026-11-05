@@ -37,6 +37,8 @@ namespace Mediana
         public ContainerInfo? Container { get; }
         /// <summary>Image/document metadata, or null for a packet container. Exactly one representation is present.</summary>
         public ImageInfo? Image { get; }
+        /// <summary>Extensible native properties from the inspected media, independent of its representation.</summary>
+        public MediaMetadata Metadata => Image?.Metadata ?? Container?.Metadata ?? MediaMetadata.Empty;
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
         /// <summary>Codec header facts keyed by stream index. Missing entries mean no reader is registered
         /// or the registered reader does not support that configuration.</summary>

@@ -12,7 +12,8 @@ namespace Mediana.Containers
     public class ContainerInfo
     {
         public ContainerInfo(string formatId, MediaDuration? declaredDuration = null, IEnumerable<MediaTag>? tags = null,
-            IEnumerable<ContainerStreamInfo>? streamInfo = null, IEnumerable<MediaDateTimeTag>? dates = null)
+            IEnumerable<ContainerStreamInfo>? streamInfo = null, IEnumerable<MediaDateTimeTag>? dates = null,
+            MediaMetadata? metadata = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
             declaredDuration?.TimeBase.Validate();
@@ -32,11 +33,13 @@ namespace Mediana.Containers
                 StreamInfo = new ReadOnlyDictionary<int, ContainerStreamInfo>(snapshot);
             }
             FormatId = formatId;
+            Metadata = metadata ?? MediaMetadata.Empty;
             DeclaredDuration = declaredDuration;
         }
 
         /// <summary>Stable container-family identifier, independent of the filename and implementation ID.</summary>
         public string FormatId { get; }
+        public MediaMetadata Metadata { get; }
         /// <summary>Duration declared by container metadata in the reader's time representation. Null means unknown.
         /// Format-specific declarations retain native precision when the common representation requires rounding.</summary>
         public MediaDuration? DeclaredDuration { get; }

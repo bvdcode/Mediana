@@ -10,7 +10,8 @@ namespace Mediana.Core.Metadata
     public class ImageInfo
     {
         public ImageInfo(string formatId, double width, double height, ImageDimensionUnit dimensionUnit,
-            int? pageCount = null, MediaDuration? duration = null, double? frameRate = null, bool isPreviewCanvas = false)
+            int? pageCount = null, MediaDuration? duration = null, double? frameRate = null, bool isPreviewCanvas = false,
+            MediaMetadata? metadata = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(formatId);
             if (!double.IsFinite(width) || width <= 0 || !double.IsFinite(height) || height <= 0)
@@ -38,6 +39,7 @@ namespace Mediana.Core.Metadata
             PageCount = pageCount;
             Duration = duration;
             FrameRate = frameRate;
+            Metadata = metadata ?? MediaMetadata.Empty;
         }
 
         /// <summary>True when dimensions describe a configured model preview, rather than an intrinsic raster or page size.</summary>
@@ -50,5 +52,6 @@ namespace Mediana.Core.Metadata
         public int? PageCount { get; }
         public MediaDuration? Duration { get; }
         public double? FrameRate { get; }
+        public MediaMetadata Metadata { get; }
     }
 }

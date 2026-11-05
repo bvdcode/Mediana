@@ -16,11 +16,24 @@ namespace Mediana.Cli
             MediaEngine engine = MetadataEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             MediaInfo info = await engine.ProbeAsync(source, CommandImageResources.ProbeOptions, cancellationToken);
+            if (source.Length is long length)
+            {
+                await output.WriteLineAsync($"Encoded size: {length} bytes.");
+            }
             if (info.Image is ImageInfo image)
             {
                 await ImageInfoFormatter.WriteAsync(image, output);
-                return 0;
             }
+            else
+            {
+                await WriteContainerAsync(info, output, cancellationToken);
+            }
+            await MediaMetadataFormatter.WriteAsync(info.Metadata, output, cancellationToken);
+            return 0;
+        }
+
+        private static async Task WriteContainerAsync(MediaInfo info, TextWriter output, CancellationToken cancellationToken)
+        {
             ContainerInfo container = info.Container ?? throw new InvalidOperationException("Media metadata has no representation.");
             await output.WriteLineAsync($"Container: {container.FormatId}; {info.Streams.Count} streams.");
             if (container.DeclaredDuration is MediaDuration duration)
@@ -61,7 +74,6 @@ namespace Mediana.Cli
             {
                 await output.WriteLineAsync("Header text tags: unavailable.");
             }
-            return 0;
         }
     }
 }
