@@ -6,6 +6,7 @@
     <Project Path="samples/Mediana.Sample/Mediana.Sample.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Mediana.Models.Mesh/Mediana.Models.Mesh.csproj" />
     <Project Path="src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
     <Project Path="src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
     <Project Path="src/Mediana.Formats/Mediana.Formats.csproj" />

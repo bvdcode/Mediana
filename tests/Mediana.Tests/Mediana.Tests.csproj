@@ -5,6 +5,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MeshGeometryTestInput.cs" Link="MeshGeometryTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Models.Mesh/Mediana.Models.Mesh.csproj" />
     <Compile Include="../Shared/WordTestInput.cs" Link="WordTestInput.cs" />
     <Compile Include="../Shared/WordRenderTestInput.cs" Link="WordRenderTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Documents.OpenXml/Mediana.Documents.OpenXml.csproj" />
