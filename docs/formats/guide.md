@@ -71,7 +71,8 @@ The initial catalog marks existing implementations as `partial`, with links to
 their module descriptions or fixture documentation. It does not promote existing
 regression tests to full profile conformance. Historic performance measurements
 are not imported as per-profile performance acceptance. Office package reading is
-listed separately from Word, Excel and PowerPoint layout. 3D entries are targets.
+listed separately from Word, Excel and PowerPoint layout. STL/OBJ/3MF geometry
+reading and previews have implemented subsets; other 3D entries remain targets.
 The overview counts variants and operations with an implementation independently
 of their remaining acceptance checks. Each existing mark links to its scope and
 code or test evidence; code-only paths can have an implementation mark while their

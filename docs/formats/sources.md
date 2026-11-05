@@ -141,6 +141,8 @@ Discovery entries identify targets; they do not establish conformance requiremen
 - **metadata** — [CIPA Exif specifications](https://www.cipa.jp/e/std/std-sec.html), [ICC specifications](https://www.color.org/icc_specs2.xalter), [Adobe XMP](https://developer.adobe.com/xmp/), [ID3 specifications](https://id3.org/Developer%20Information).
 <a id="gltf"></a>
 - **gltf** — [Khronos glTF 2.0](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html), [registered extensions](https://github.com/KhronosGroup/glTF/tree/main/extensions).
+<a id="stl"></a>
+- **stl** — [STL ASCII structure](https://www.loc.gov/preservation/digital/formats/fdd/fdd000506.shtml), [STL binary structure and format references](https://www.loc.gov/preservation/digital/formats/fdd/fdd000505.shtml).
 <a id="obj-ply"></a>
 - **obj-ply** — [Wavefront OBJ description and specification references](https://www.loc.gov/preservation/digital/formats/fdd/fdd000507.shtml), [MTL references](https://www.loc.gov/preservation/digital/formats/fdd/fdd000508.shtml), [original PLY specification](https://paulbourke.net/dataformats/ply/).
 <a id="3mf"></a>

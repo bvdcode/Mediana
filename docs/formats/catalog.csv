@@ -399,17 +399,17 @@ hdr-static,"Metadata, color and ancillary records",HDR metadata,Mastering displa
 hdr-dynamic,"Metadata, color and ancillary records",HDR metadata,Dynamic metadata / gain maps,metadata,,B,h265;avif;jpegxl;metadata,Split the selected metadata standards and mapping revisions before implementation.
 spherical,"Metadata, color and ancillary records",Spherical media,360-degree / projection / stereo metadata,metadata,,C,iso-bmff;discovery,
 timecode,"Metadata, color and ancillary records",Timecode,Media timecode tracks and records,metadata,,B,quicktime;mxf,
-obj,3D meshes and manufacturing interchange,Wavefront OBJ,"Polygon geometry, attributes and groups",3d-model,.obj,B,obj-ply,"Materials are tracked separately; include faces, indices, normals, UVs and units policy."
+obj,3D meshes and manufacturing interchange,Wavefront OBJ,"Polygon geometry, attributes and groups",3d-model,.obj,B,obj-ply,"Indexed geometry and preview implemented; UVs are not retained, groups are combined and MTL/textures remain separate."
 mtl,3D meshes and manufacturing interchange,Wavefront MTL,Material library and texture references,3d-model,.mtl,B,obj-ply,Interpret legacy material parameters explicitly when mapping to a renderer.
-stl-ascii,3D meshes and manufacturing interchange,STL,ASCII triangle mesh,3d-model,.stl,B,discovery,
-stl-binary,3D meshes and manufacturing interchange,STL,Binary triangle mesh,3d-model,.stl,B,discovery,Binary headers are not a reliable ASCII/binary detection rule by themselves.
+stl-ascii,3D meshes and manufacturing interchange,STL,ASCII triangle mesh,3d-model,.stl,B,stl,Reader and CPU preview implemented; model writing remains open.
+stl-binary,3D meshes and manufacturing interchange,STL,Binary triangle mesh,3d-model,.stl,B,stl,Reader and CPU preview implemented; recognition checks exact length and triangle count. Facet color extensions are not rendered.
 ply-ascii,3D meshes and manufacturing interchange,PLY,ASCII elements and properties,3d-model,.ply,B,obj-ply,"Mesh, point and custom-property support need explicit scope."
 ply-binary-le,3D meshes and manufacturing interchange,PLY,Binary little-endian,3d-model,.ply,B,obj-ply,
 ply-binary-be,3D meshes and manufacturing interchange,PLY,Binary big-endian,3d-model,.ply,B,obj-ply,
 off,3D meshes and manufacturing interchange,OFF,Object File Format mesh variants,3d-model,.off .coff .noff,C,discovery,
-3mf-core,3D meshes and manufacturing interchange,3MF,"Core meshes, objects and build items",3d-model,.3mf,B,3mf,
+3mf-core,3D meshes and manufacturing interchange,3MF,"Core meshes, objects and build items",3d-model,.3mf,B,3mf,"Geometry, root build, components, transforms and units implemented; material and texture interpretation remains separate."
 3mf-materials,3D meshes and manufacturing interchange,3MF,Materials/properties and textures,3d-model,.3mf,B,3mf,
-3mf-production,3D meshes and manufacturing interchange,3MF,Production and other selected extensions,3d-model,.3mf,C,3mf,Split selected extensions before implementation.
+3mf-production,3D meshes and manufacturing interchange,3MF,Production Extension model-part references and assemblies,3d-model,.3mf,C,3mf,Cross-part component geometry implemented; other Production features require separate evidence.
 amf,3D meshes and manufacturing interchange,AMF,Additive manufacturing XML,3d-model,.amf,C,discovery,
 3ds,3D meshes and manufacturing interchange,3D Studio,Legacy chunked scenes,3d-model,.3ds,C,discovery,
 lwo,3D meshes and manufacturing interchange,LightWave Object,LWO2 / related revisions,3d-model,.lwo,C,discovery,

@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 69 variants · 88 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 74 variants · 98 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -38,7 +38,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Subtitles, captions and timed graphics](#subtitles-captions-and-timed-graphics) | 0 | 13 | 0 | 39 |
 | [Streaming presentations and transport protocols](#streaming-presentations-and-transport-protocols) | 2 | 13 | 2 | 26 |
 | [Metadata, color and ancillary records](#metadata-color-and-ancillary-records) | 5 | 12 | 5 | 24 |
-| [3D meshes and manufacturing interchange](#3d-meshes-and-manufacturing-interchange) | 0 | 14 | 0 | 41 |
+| [3D meshes and manufacturing interchange](#3d-meshes-and-manufacturing-interchange) | 5 | 14 | 10 | 41 |
 | [3D scenes, materials and animation](#3d-scenes-materials-and-animation) | 0 | 20 | 0 | 60 |
 | [CAD, BIM and engineering geometry](#cad-bim-and-engineering-geometry) | 0 | 18 | 0 | 54 |
 | [Point clouds, geometry compression and volumes](#point-clouds-geometry-compression-and-volumes) | 0 | 17 | 0 | 47 |
@@ -522,17 +522,17 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources |
 | --- | --- | --- | --- | :---: | --- |
-| `obj` | Wavefront OBJ — Polygon geometry, attributes and groups | .obj | R □ · V □ · W □ | B | Materials are tracked separately; include faces, indices, normals, UVs and units policy. [obj-ply](sources.md#obj-ply) |
+| `obj` | Wavefront OBJ — Polygon geometry, attributes and groups | .obj | R ◐ · V ◐ · W □ | B | Indexed geometry and preview implemented; UVs are not retained, groups are combined and MTL/textures remain separate. [obj-ply](sources.md#obj-ply) |
 | `mtl` | Wavefront MTL — Material library and texture references | .mtl | R □ · W □ | B | Interpret legacy material parameters explicitly when mapping to a renderer. [obj-ply](sources.md#obj-ply) |
-| `stl-ascii` | STL — ASCII triangle mesh | .stl | R □ · V □ · W □ | B | [discovery](sources.md#discovery) |
-| `stl-binary` | STL — Binary triangle mesh | .stl | R □ · V □ · W □ | B | Binary headers are not a reliable ASCII/binary detection rule by themselves. [discovery](sources.md#discovery) |
+| `stl-ascii` | STL — ASCII triangle mesh | .stl | R ◐ · V ◐ · W □ | B | Reader and CPU preview implemented; model writing remains open. [stl](sources.md#stl) |
+| `stl-binary` | STL — Binary triangle mesh | .stl | R ◐ · V ◐ · W □ | B | Reader and CPU preview implemented; recognition checks exact length and triangle count. Facet color extensions are not rendered. [stl](sources.md#stl) |
 | `ply-ascii` | PLY — ASCII elements and properties | .ply | R □ · V □ · W □ | B | Mesh, point and custom-property support need explicit scope. [obj-ply](sources.md#obj-ply) |
 | `ply-binary-le` | PLY — Binary little-endian | .ply | R □ · V □ · W □ | B | [obj-ply](sources.md#obj-ply) |
 | `ply-binary-be` | PLY — Binary big-endian | .ply | R □ · V □ · W □ | B | [obj-ply](sources.md#obj-ply) |
 | `off` | OFF — Object File Format mesh variants | .off .coff .noff | R □ · V □ · W □ | C | [discovery](sources.md#discovery) |
-| `3mf-core` | 3MF — Core meshes, objects and build items | .3mf | R □ · V □ · W □ | B | [3mf](sources.md#3mf) |
+| `3mf-core` | 3MF — Core meshes, objects and build items | .3mf | R ◐ · V ◐ · W □ | B | Geometry, root build, components, transforms and units implemented; material and texture interpretation remains separate. [3mf](sources.md#3mf) |
 | `3mf-materials` | 3MF — Materials/properties and textures | .3mf | R □ · V □ · W □ | B | [3mf](sources.md#3mf) |
-| `3mf-production` | 3MF — Production and other selected extensions | .3mf | R □ · V □ · W □ | C | Split selected extensions before implementation. [3mf](sources.md#3mf) |
+| `3mf-production` | 3MF — Production Extension model-part references and assemblies | .3mf | R ◐ · V ◐ · W □ | C | Cross-part component geometry implemented; other Production features require separate evidence. [3mf](sources.md#3mf) |
 | `amf` | AMF — Additive manufacturing XML | .amf | R □ · V □ · W □ | C | [discovery](sources.md#discovery) |
 | `3ds` | 3D Studio — Legacy chunked scenes | .3ds | R □ · V □ · W □ | C | [discovery](sources.md#discovery) |
 | `lwo` | LightWave Object — LWO2 / related revisions | .lwo | R □ · V □ · W □ | C | [discovery](sources.md#discovery) |

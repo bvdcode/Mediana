@@ -141,6 +141,9 @@ Native AOT runner exercises the same owned mesh/frame/PNG path. Per-operation
 acceptance remains in the
 [format checklist](formats/README.md#3d-meshes-and-manufacturing-interchange).
 
+CPU, memory and exact-output comparisons with the source renderer are recorded in
+[Mesh performance](mesh-performance.md).
+
 The [3MF Core specification](https://github.com/3MFConsortium/spec_core/blob/master/3MF%20Core%20Specification.md)
 defines model relationships and content types. The
 [Production Extension](https://github.com/3MFConsortium/spec_production) describes
