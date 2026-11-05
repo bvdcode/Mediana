@@ -247,25 +247,37 @@ namespace Mediana.Drawing
             ColorBlendMode blendMode = ColorBlendMode.Normal, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(image);
-            if (ReferenceEquals(image, _target) || !float.IsFinite(opacity) || opacity < 0 || opacity > 1)
+            if (ReferenceEquals(image, _target))
             {
                 throw new ArgumentOutOfRangeException(nameof(image));
             }
+            DrawRgbaImage(image.Pixels, image.Width, image.Height, image.Width * 4, transform, opacity, blendMode, cancellationToken);
+        }
 
+        private void DrawRgbaImage(ReadOnlyMemory<byte> pixels, int width, int height, int stride, Matrix3x2 transform,
+            float opacity, ColorBlendMode blendMode, CancellationToken cancellationToken)
+        {
+            if (!float.IsFinite(opacity) || opacity < 0 || opacity > 1 || pixels.Span.Overlaps(_target.Pixels.Span))
+            {
+                throw new ArgumentOutOfRangeException(nameof(opacity));
+            }
+            cancellationToken.ThrowIfCancellationRequested();
             if (!Matrix3x2.Invert(transform, out Matrix3x2 inverse))
             {
                 return;
             }
 
-            VectorPath? rectangle = new VectorPath().Rectangle(0, 0, image.Width, image.Height);
+            VectorPath rectangle = new VectorPath().Rectangle(0, 0, width, height);
             ScanlineRasterizer.Paint(rectangle, transform, FillRule.NonZero, _target.Width, _target.Height, (y, left, right) =>
             {
                 for (int x = left; x < right; x++)
                 {
                     Vector2 point = Vector2.Transform(new Vector2(x + 0.5f, y + 0.5f), inverse);
-                    int sourceX = Math.Clamp((int)MathF.Floor(point.X), 0, image.Width - 1);
-                    int sourceY = Math.Clamp((int)MathF.Floor(point.Y), 0, image.Height - 1);
-                    Rgba32 color = image[sourceX, sourceY];
+                    int sourceX = Math.Clamp((int)MathF.Floor(point.X), 0, width - 1);
+                    int sourceY = Math.Clamp((int)MathF.Floor(point.Y), 0, height - 1);
+                    int offset = sourceY * stride + sourceX * 4;
+                    ReadOnlySpan<byte> source = pixels.Span;
+                    Rgba32 color = new(source[offset], source[offset + 1], source[offset + 2], source[offset + 3]);
                     Paint(x, y, color with { A = (byte)MathF.Round(color.A * opacity) }, blendMode, color.A);
                 }
             }, cancellationToken);
