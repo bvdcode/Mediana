@@ -35,5 +35,21 @@ namespace Mediana.Tests
                 Assert.Equal(4, allocator.AllocatedBytes);
             }
         }
+
+        [Fact]
+        public void LargeCoprimeClocksDoNotOverflowIntermediateProducts()
+        {
+            MediaBufferAllocator allocator = new(4);
+            using WritableMediaBuffer writable = allocator.Allocate(4);
+            using MediaBuffer pixels = writable.Publish();
+            VideoFormat format = new(1, 1, VideoPixelFormat.Rgba32, VideoColorInfo.Srgb, SampleAspectRatio.Square);
+            TimeBase source = new(2147483629, 2147483647);
+            TimeBase target = new(2147483587, 2147483629);
+            long value = long.MaxValue / 2;
+            using VideoFrame frame = new(format, pixels, format.CreateTightLayout(), new(value, source), new(1, source));
+            using VideoFrame output = new VideoFrameTimeQuantizer(target).Apply(frame);
+            long expected = new MediaTimestamp(value + 1, source).Rescale(target, TimestampRounding.NearestEven).Value;
+            Assert.Equal(expected, output.Timestamp!.Value.Value + output.Duration!.Value.Value);
+        }
     }
 }
