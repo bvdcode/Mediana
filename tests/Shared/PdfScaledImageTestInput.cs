@@ -54,16 +54,15 @@ namespace Mediana.Tests
             using PdfDocument document = await PdfReader.ReadAsync(new MemoryStream(pdf));
             PdfPage page = document.GetPage(1);
             PdfImage image = page.Images.Single();
-            MediaBufferAllocator allocator = new(4);
-            using (VideoFrame frame = image.ToVideoFrame(allocator))
+            using (VideoFrame frame = image.ToVideoFrame())
             {
+                Require(frame.Data.Equals(image.Pixels));
                 page.Dispose();
                 page.Dispose();
                 Reject<ObjectDisposedException>(() => { _ = image.Pixels; });
                 Reject<ObjectDisposedException>(() => PdfRenderer.Render(page, Preview));
                 Require(frame.Data.Span.SequenceEqual(new byte[] { 128, 128, 128, 255 }));
             }
-            Require(allocator.AllocatedBytes == 0);
         }
 
         internal static async Task VerifyLargeScanAsync()

@@ -32,7 +32,7 @@ namespace Mediana.Cli
             ArgumentOutOfRangeException.ThrowIfNegative(index);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, page.Images.Count);
             MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
-            using VideoFrame frame = page.Images[index].ToVideoFrame(allocator, cancellationToken);
+            using VideoFrame frame = page.Images[index].ToVideoFrame(cancellationToken);
             await WriteAsync(frame, output, encoder, allocator, cancellationToken);
             return 0;
         }

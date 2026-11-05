@@ -220,8 +220,9 @@ also bounds the live component samples and progressive coefficient workspace;
 cached page images count toward that budget. The exact sequential grayscale
 1×1 case needs 68 bytes: 64 padded component bytes and four RGBA bytes. Parser
 objects, compressed streams and later page rendering have separate limits.
-Extracting an independent `VideoFrame` from a retained `PdfImage` still copies
-its pixels; direct DCT interpretation does not remove that ownership boundary.
+`PdfImage.ToVideoFrame()` retains the immutable image storage without copying.
+Each returned frame has its own lease, survives page disposal, and keeps the
+source allocation budget until the final image or frame lease is released.
 
 The 57 authored PDF references compare complete extracted image pixels with
 independent libjpeg output and complete page pixels with Poppler/Cairo at
