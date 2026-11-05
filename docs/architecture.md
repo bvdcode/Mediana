@@ -24,6 +24,12 @@ flowchart BT
     Tgs[TGS adapter] --> Drawing
     Pdf[PDF adapter] --> Drawing
     Pdf --> CodecModules
+    OpenXml[OPC packages and document routing] --> IO
+    OpenXml --> Codecs
+    Word[Word document layout and rendering] --> OpenXml
+    Word --> Drawing
+    Word --> Processing
+    Word --> CodecModules
     Application[Application / CLI] --> Mediana
     Application --> ContainerModules
     Application --> CodecModules

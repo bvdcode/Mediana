@@ -648,7 +648,7 @@ pdf-3d,write,planned,planned,planned,planned,planned,planned,
 openxml-opc,read,partial,partial,partial,planned,planned,planned,../../src/Mediana.Documents.OpenXml/OpenXmlPackage.cs;../../tests/Mediana.Tests/OpenXmlPackageTests.cs
 openxml-opc,write,planned,planned,planned,planned,planned,planned,
 docx-transitional,read,partial,partial,partial,planned,planned,planned,../../src/Mediana.Documents.Word/WordReader.cs;../../tests/Mediana.Tests/WordReaderTests.cs
-docx-transitional,render,planned,planned,planned,planned,planned,planned,
+docx-transitional,render,partial,partial,partial,planned,partial,partial,../word-rendering.md;../../tests/Mediana.Tests/WordRenderTests.cs;../../tests/Shared/WordRenderTestInput.cs
 docx-transitional,write,planned,planned,planned,planned,planned,planned,
 docx-strict,read,partial,partial,partial,planned,planned,planned,../../src/Mediana.Documents.Word/WordReader.cs;../../tests/Mediana.Tests/WordReaderTests.cs
 docx-strict,render,planned,planned,planned,planned,planned,planned,
