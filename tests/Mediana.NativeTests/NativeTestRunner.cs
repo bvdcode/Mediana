@@ -291,6 +291,8 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS H.264 B reference lists: parsed I/P/B picture order, retained reference B pictures and both lists match the expected first GOP order.");
             await Mp4TimelineTestInput.VerifyAsync(root);
             await HlsAudioPreparationTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
+            await HlsRenditionTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
+            await HlsRenditionTestInput.VerifySeparateAudioAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
             await HlsPlanTestInput.VerifyAsync(root);
             await HlsSessionTestInput.VerifyAsync(root);
             Console.WriteLine("PASS MP4 HLS session: exact AVC/AAC windows, VOD playlist, segments requested as 2, 0, 1, 2, all compressed packets and continuous transport state match.");

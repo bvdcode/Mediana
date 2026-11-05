@@ -11,6 +11,8 @@ namespace Mediana.Streaming.Hls
     {
         public abstract EncodedStreamInfo Stream { get; }
         public abstract long PacketsWritten { get; protected set; }
+        public virtual int ProfileCount => 1;
+        internal virtual void ValidateDestinationCount(int count) { ArgumentOutOfRangeException.ThrowIfNegative(count); }
         public virtual EncodedStreamInfo GetStream(int variantIndex)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(variantIndex);
