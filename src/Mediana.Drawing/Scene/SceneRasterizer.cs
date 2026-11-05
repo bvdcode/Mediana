@@ -28,11 +28,11 @@ namespace Mediana.Drawing
             bool completed = false;
             try
             {
-                using PixelBuffer? samples = factor == 1 ? null : new(w * factor, h * factor);
+                using PixelBuffer? samples = factor == 1 ? null : new(w * factor, h * factor, output.Allocator);
                 PixelBuffer image = samples ?? output;
                 image.Clear(options.Background);
                 Matrix3x2 matrix = viewport(w, h) * Matrix3x2.CreateScale(factor);
-                using SceneRenderContext context = new(options, token);
+                using SceneRenderContext context = new(options, token, output.Allocator);
                 root.Draw(new RasterCanvas(image), matrix, context);
                 samples?.DownsampleTo(output, factor, token);
                 completed = true;
