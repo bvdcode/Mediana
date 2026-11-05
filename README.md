@@ -65,6 +65,11 @@ Core does not reference the other components. Containers do not reference codecs
 and codecs do not perform I/O. The public facade composes these contracts.
 See [module boundaries, stream contracts and reusable operations](docs/architecture.md).
 
+The [format implementation catalog](docs/formats/README.md) maps target containers,
+codecs, images, documents and 3D formats, with independent progress for reading,
+decoding, rendering, encoding and writing. Its operation checklist separately tracks
+samples, correctness, CPU, memory and Native AOT.
+
 The H.264 work currently reconstructs progressive 8-bit 4:2:0 CAVLC I/P/B
 and CABAC I/P/B pictures with default scaling, including motion compensation, reference
 picture management, intra prediction, inverse transforms, PCM blocks and deblocking.
@@ -121,8 +126,9 @@ Supported subsets and limits: [HEIC](docs/heif.md),
 TGS/Lottie expression code is not executed. CLI previews use stored property
 values and omit Puppet deformation, with warnings; library callers enable these
 policies explicitly through `TgsReaderOptions`.
-PDF page rendering supports the subset described below. 3D file formats are outside
-the library's scope.
+PDF page rendering supports the subset described below. 3D scene/model import,
+rendering and export are future targets in the
+[format catalog](docs/formats/README.md#3d-meshes-and-manufacturing-interchange).
 
 ## Download and run
 
