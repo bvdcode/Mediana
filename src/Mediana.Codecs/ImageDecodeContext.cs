@@ -3,6 +3,7 @@
 
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
+using System.Runtime.CompilerServices;
 
 namespace Mediana.Codecs
 {
@@ -61,6 +62,22 @@ namespace Mediana.Codecs
                 throw new NotSupportedException("This image implementation requires asynchronous decoding. Use the asynchronous document reader.");
             }
             return ValidateFrame(synchronous.Decode(encoded, Descend(request), allocator, cancellationToken), request, cancellationToken);
+        }
+
+        /// <summary>Decodes a sequence in the same nested-image scope as still decoding. Each frame transfers ownership to the caller.</summary>
+        public async IAsyncEnumerable<VideoFrame> DecodeFramesAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            IImageDecoder decoder = Select(encoded, request, allocator, cancellationToken);
+            if (decoder is not IImageSequenceDecoder sequence)
+            {
+                throw new NotSupportedException($"Image decoder '{decoder.ImplementationId}' does not expose an animation sequence.");
+            }
+            ImageDecodeRequest nested = Descend(request);
+            await foreach (VideoFrame frame in sequence.DecodeFramesAsync(encoded, nested, allocator, cancellationToken).ConfigureAwait(false))
+            {
+                yield return ValidateFrame(frame, request, cancellationToken);
+            }
         }
 
         private IImageDecoder Select(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request, MediaBufferAllocator allocator, CancellationToken token)

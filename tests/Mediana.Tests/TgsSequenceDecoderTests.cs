@@ -38,6 +38,11 @@ namespace Mediana.Tests
                 break;
             }
             Assert.Equal(0, allocator.AllocatedBytes);
+            await Assert.ThrowsAsync<InvalidDataException>(async () =>
+            {
+                await foreach (VideoFrame frame in engine.DecodeImageFramesAsync(encoded, allocator, new() { MaximumPixels = 1 })) { frame.Dispose(); }
+            });
+            Assert.Equal(0, allocator.AllocatedBytes);
         }
     }
 }

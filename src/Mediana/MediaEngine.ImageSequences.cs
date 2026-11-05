@@ -36,16 +36,9 @@ namespace Mediana
             ArgumentNullException.ThrowIfNull(allocator);
             options ??= new();
             request ??= new();
-            int probeLength = GetImageProbeLength(options, cancellationToken);
+            GetImageProbeLength(options, cancellationToken);
             if (encoded.Length > options.MaxInputBytes) { throw new NotSupportedException("The encoded image exceeds the configured input byte limit."); }
-            IImageDecoder decoder = FindImageDecoder(encoded.Span[..Math.Min(probeLength, encoded.Length)], encoded.Length)
-                ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
-            request.Validate(decoder.Features);
-            if (decoder is not IImageSequenceDecoder sequence)
-            {
-                throw new NotSupportedException($"Image decoder '{decoder.ImplementationId}' does not expose an animation sequence.");
-            }
-            return sequence.DecodeFramesAsync(encoded, request, allocator, cancellationToken);
+            return imageContext.DecodeFramesAsync(encoded, request, allocator, cancellationToken);
         }
     }
 }
