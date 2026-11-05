@@ -3,6 +3,9 @@
 
 using Mediana.Drawing;
 using Mediana.Core.Memory;
+using Mediana.Core.Video;
+using Mediana.Codecs;
+using Mediana.Imaging;
 using System;
 using System.Collections.Generic;
 
@@ -25,6 +28,11 @@ namespace Mediana.Images.Svg
         public long MaximumImageBytes { get; init; } = 256L * 1024 * 1024;
         /// <summary>Optional caller budget for retained images and decode workspace. Independent of raster output storage.</summary>
         public MediaBufferAllocator? ImageAllocator { get; init; }
+        /// <summary>Decoders shared by embedded resources. Registered decoding uses the engine's context.</summary>
+        public ImageDecodeContext Images { get; init; } = ImageResources.DefaultDecoders;
+        /// <summary>Optional explicit interpretation of missing source color labels. Declared labels remain authoritative.</summary>
+        public Func<VideoFormat, VideoColorInfo>? ImageColorResolver { get; init; }
+        public Action<string>? WarningHandler { get; init; }
         /// <summary>Shared text resources. The default uses the bundled CC0 sans-serif and supplemental faces.</summary>
         public TextOptions Text { get; init; } = new() { SubstituteMissingFonts = true, SubstituteFamilies = ["Aileron", "Canada1500"] };
         /// <summary>Gets an optional caller-controlled image resolver. No network or file access is performed implicitly.</summary>

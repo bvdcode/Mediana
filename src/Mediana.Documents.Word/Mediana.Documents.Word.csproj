@@ -3,8 +3,7 @@
     <ProjectReference Include="../Mediana.Documents.OpenXml/Mediana.Documents.OpenXml.csproj" />
     <ProjectReference Include="../Mediana.Processing/Mediana.Processing.csproj" />
     <ProjectReference Include="../Mediana.Drawing/Mediana.Drawing.csproj" />
-    <ProjectReference Include="../Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
-    <ProjectReference Include="../Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
+    <ProjectReference Include="../Mediana.Imaging/Mediana.Imaging.csproj" />
     <InternalsVisibleTo Include="Mediana.Tests" />
     <InternalsVisibleTo Include="Mediana.NativeTests" />
   </ItemGroup>

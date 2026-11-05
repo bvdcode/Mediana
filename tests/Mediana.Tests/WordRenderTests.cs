@@ -50,17 +50,7 @@ namespace Mediana.Tests
             }
             byte[] image = PngDecodeTestData.File(PngDecodeTestData.Chunk("IHDR", PngDecodeTestData.Header(size, size)),
                 PngDecodeTestData.Chunk("sRGB", [0]), PngDecodeTestData.Chunk("IDAT", PngDecodeTestData.Compressed(scanlines)), PngDecodeTestData.Chunk("IEND", []));
-            const string body = """
-                <w:p><w:r><w:drawing><wp:inline xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-                  <wp:extent cx="254000" cy="254000"/><wp:docPr id="1" name="Picture"/>
-                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                    <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="Picture"/><pic:cNvPicPr/></pic:nvPicPr>
-                    <pic:blipFill><a:blip r:embed="picture"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
-                    <pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="254000" cy="254000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>
-                    </pic:pic></a:graphicData></a:graphic>
-                </wp:inline></w:drawing></w:r></w:p>
-                """;
-            WordDocument document = WordReader.Read(WordTestInput.Create(body, WordRenderTestInput.Fonts, page: WordRenderTestInput.SmallPage, picture: image));
+            WordDocument document = WordReader.Read(WordTestInput.Create(WordTestInput.PictureBody, WordRenderTestInput.Fonts, page: WordRenderTestInput.SmallPage, picture: image));
             MediaBufferAllocator allocator = new(400_000);
             using (PixelBuffer pixels = await WordRenderer.RenderAsync(document, 1, new() { Dpi = 72, Supersampling = 1 }, allocator: allocator))
             {

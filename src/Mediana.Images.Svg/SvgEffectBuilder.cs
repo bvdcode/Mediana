@@ -13,7 +13,7 @@ namespace Mediana.Images.Svg
     internal partial class SvgSceneBuilder
     {
         private SvgRegion Region(XElement e, string units, string x = "-10%", string y = "-10%", string width = "120%", string height = "120%") => new((string?)e.Attribute("x") ?? x, (string?)e.Attribute("y") ?? y, (string?)e.Attribute("width") ?? width, (string?)e.Attribute("height") ?? height, (string?)e.Attribute(units) != "userSpaceOnUse", _width, _height);
-        private SceneMask? Mask(string value, int depth)
+        private async ValueTask<SceneMask?> MaskAsync(string value, int depth)
         {
             if (value == "none")
             {
@@ -33,10 +33,10 @@ namespace Mediana.Images.Svg
             }
 
             Dictionary<string, string> style = Style(target, new Dictionary<string, string>());
-            return new SceneMask(Node(target, new Dictionary<string, string>(), depth + 1, true), Region(target, "maskUnits"), (string?)target.Attribute("maskContentUnits") == "objectBoundingBox", Value(style, "mask-type", "luminance") != "alpha", Value(style, "color-interpolation", "sRGB") == "linearRGB");
+            return new SceneMask(await NodeAsync(target, new Dictionary<string, string>(), depth + 1, true), Region(target, "maskUnits"), (string?)target.Attribute("maskContentUnits") == "objectBoundingBox", Value(style, "mask-type", "luminance") != "alpha", Value(style, "color-interpolation", "sRGB") == "linearRGB");
         }
 
-        private SceneFilter? Filter(string value, Dictionary<string, string> inherited, int depth)
+        private async ValueTask<SceneFilter?> FilterAsync(string value, Dictionary<string, string> inherited, int depth)
         {
             if (value == "none")
             {
@@ -78,7 +78,7 @@ namespace Mediana.Images.Svg
                 Dictionary<string, string> properties = Style(operation, style);
                 if (operation.Name.LocalName == "feImage")
                 {
-                    if (FilterImage(operation, depth) is { } image)
+                    if (await FilterImageAsync(operation, depth).ConfigureAwait(false) is { } image)
                     {
                         images[operation] = image;
                     }
@@ -107,16 +107,16 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private SceneNode? FilterImage(XElement operation, int depth)
+        private async ValueTask<SceneNode?> FilterImageAsync(XElement operation, int depth)
         {
             string? href = Href(operation);
             if (href?.StartsWith('#') == true)
             {
                 XElement? referenced = Reference(href);
-                return referenced is null ? null : Node(referenced, new Dictionary<string, string>(), depth + 1, true);
+                return referenced is null ? null : await NodeAsync(referenced, new Dictionary<string, string>(), depth + 1, true).ConfigureAwait(false);
             }
 
-            return Image(href) is { } image ? Empty with
+            return await ImageAsync(href).ConfigureAwait(false) is { } image ? Empty with
             {
                 Image = image
             }

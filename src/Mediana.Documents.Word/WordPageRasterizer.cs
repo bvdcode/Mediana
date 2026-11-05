@@ -2,13 +2,10 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
-using Mediana.Codecs.Jpeg;
-using Mediana.Codecs.Png;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Drawing;
-using Mediana.Processing;
-using Mediana.Core.Metadata;
+using Mediana.Imaging;
 using System.Numerics;
 
 namespace Mediana.Documents.Word
@@ -16,8 +13,7 @@ namespace Mediana.Documents.Word
     internal class WordPageRasterizer(RasterCanvas canvas, MediaBufferAllocator allocator, WordRenderOptions options,
         CancellationToken token) : IDisposable
     {
-        private readonly Dictionary<(string Part, int Reduction), VideoFrame> _images = [];
-        private readonly Dictionary<string, ImageInfo> _headers = new(StringComparer.Ordinal);
+        private readonly Dictionary<(string Part, int Width, int Height), VideoFrame> _images = [];
 
         internal async ValueTask DrawAsync(IReadOnlyList<WordPaint> paint, Matrix3x2 transform)
         {
@@ -73,37 +69,23 @@ namespace Mediana.Documents.Word
 
         private async ValueTask<VideoFrame> ImageAsync(WordPicture picture, Matrix3x2 transform)
         {
-            PngImageDecoder png = new(new() { MaximumPixels = options.MaximumImagePixels });
-            JpegImageDecoder jpeg = new(new() { MaximumPixels = options.MaximumImagePixels });
-            IImageDecoder decoder = picture.Encoded.Span switch
+            double scale = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
+            int width = (int)Math.Clamp(Math.Ceiling(picture.Width * scale), 1, int.MaxValue);
+            int height = (int)Math.Clamp(Math.Ceiling(picture.Height * scale), 1, int.MaxValue);
+            if (_images.TryGetValue((picture.PartName, width, height), out VideoFrame? existing)) { return existing; }
+            ImageDecodeRequest request = new()
             {
-                ReadOnlySpan<byte> bytes when png.CanDecode(bytes) => png,
-                ReadOnlySpan<byte> bytes when jpeg.CanDecode(bytes) => jpeg,
-                _ => throw new NotSupportedException("Word pictures require a supported PNG or JPEG image.")
+                MaximumPixels = options.MaximumImagePixels,
+                PreferredWidth = width,
+                PreferredHeight = height,
+                WarningHandler = options.WarningHandler
             };
-            int factor = 1;
-            if (decoder == png)
-            {
-                if (!_headers.TryGetValue(picture.PartName, out ImageInfo? info))
-                {
-                    info = await png.ReadInfoAsync(picture.Encoded, token);
-                    _headers.Add(picture.PartName, info);
-                }
-                double scale = Math.Sqrt(transform.M11 * transform.M11 + transform.M12 * transform.M12);
-                double targetWidth = Math.Max(1, picture.Width * scale), targetHeight = Math.Max(1, picture.Height * scale);
-                factor = Math.Clamp((int)Math.Floor(Math.Min(info.Width / targetWidth, info.Height / targetHeight)), 1, 256);
-                decoder = new PngImageDecoder(new() { MaximumPixels = options.MaximumImagePixels, ReductionFactor = factor });
-            }
-            if (_images.TryGetValue((picture.PartName, factor), out VideoFrame? existing)) { return existing; }
-            using VideoFrame decoded = await decoder.DecodeAsync(picture.Encoded, new() { WarningHandler = options.WarningHandler }, allocator, token);
-            VideoColorInfo declared = decoded.Format.GetColorInterpretation();
-            VideoColorInfo interpretation = options.ImageColorResolver?.Invoke(decoded.Format) ?? declared;
-            if (interpretation != declared) { options.WarningHandler?.Invoke("An embedded Word picture uses the configured interpretation for missing color labels."); }
-            VideoFrame frame = SrgbConverter.Apply(decoded, interpretation, allocator, token);
+            VideoFrame frame = await ImageResources.DecodeAsync(picture.Encoded, options.Images, request,
+                allocator, options.ImageColorResolver, token);
             bool retained = false;
             try
             {
-                _images.Add((picture.PartName, factor), frame);
+                _images.Add((picture.PartName, width, height), frame);
                 retained = true;
                 return frame;
             }

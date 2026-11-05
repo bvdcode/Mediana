@@ -148,7 +148,8 @@ namespace Mediana.Tests
                 DrawingRenderOptions vectors = new() { Width = dimension, Height = dimension, Supersampling = factor, MaximumEffectBytes = effectBytes };
                 PdfRenderOptions pages = new() { MaximumWidth = dimension, MaximumHeight = dimension, Supersampling = factor };
                 MediaEngine engine = CreateEngine(vectors, pages);
-                using PixelBuffer svgPixels = SvgRenderer.Render(SvgReader.Read(svg), vectors);
+                using SvgDocument svgDocument = await SvgReader.ReadAsync(svg);
+                using PixelBuffer svgPixels = SvgRenderer.Render(svgDocument, vectors);
                 using PixelBuffer tgsPixels = TgsRenderer.RenderAtTime(TgsReader.Read(tgs), 0, vectors);
                 using PixelBuffer pdfPixels = PdfRenderer.Render(page, pages);
                 byte[][] inputs = [svg, tgs, pdf];

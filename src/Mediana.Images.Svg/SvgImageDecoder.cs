@@ -32,15 +32,20 @@ namespace Mediana.Images.Svg
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default) =>
             ValueTask.FromResult(SvgReader.ReadInfo(encoded, readerOptions, cancellationToken));
 
-        public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+        public async ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
-            using SvgDocument document = SvgReader.Read(encoded, readerOptions, cancellationToken);
+            SvgReaderOptions options = (readerOptions ?? new()) with
+            {
+                Images = request.Images ?? readerOptions?.Images ?? Imaging.ImageResources.DefaultDecoders,
+                WarningHandler = readerOptions?.WarningHandler + request.WarningHandler
+            };
+            using SvgDocument document = await SvgReader.ReadAsync(encoded, options, cancellationToken).ConfigureAwait(false);
             using PixelBuffer pixels = SvgRenderer.Render(document, renderOptions, cancellationToken, allocator);
-            return ValueTask.FromResult(pixels.PublishVideoFrame(cancellationToken));
+            return pixels.PublishVideoFrame(cancellationToken);
         }
     }
 }

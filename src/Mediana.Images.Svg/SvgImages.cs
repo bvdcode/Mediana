@@ -2,7 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Drawing;
-using Mediana.Codecs.Png;
+using Mediana.Codecs;
+using Mediana.Imaging;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using System;
@@ -16,7 +17,7 @@ namespace Mediana.Images.Svg
     internal partial class SvgSceneBuilder
     {
         private readonly Dictionary<string, VideoFrame?> _images = new(StringComparer.Ordinal);
-        private VideoFrame? Image(string? href)
+        private async ValueTask<VideoFrame?> ImageAsync(string? href)
         {
             if (href is null)
             {
@@ -30,16 +31,19 @@ namespace Mediana.Images.Svg
             }
 
             VideoFrame? image = null;
-            if (href.StartsWith("data:image/png", StringComparison.OrdinalIgnoreCase))
+            if (href.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
             {
                 int comma = href.IndexOf(',');
                 if (comma < 0 || !href[..comma].EndsWith(";base64", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidDataException("Embedded PNG must use a base64 data URI.");
+                    throw new InvalidDataException("Embedded images must use a base64 data URI.");
                 }
 
-                PngImageDecoder decoder = new(new() { MaximumPixels = _limits.MaximumImagePixels, MaximumEncodedBytes = _limits.MaximumInputBytes });
-                image = decoder.Decode(Convert.FromBase64String(href[(comma + 1)..]), new(), _imageAllocator, _token);
+                byte[] encoded = Convert.FromBase64String(href[(comma + 1)..]);
+                ImageDecodeRequest request = new() { MaximumPixels = _limits.MaximumImagePixels, WarningHandler = _limits.WarningHandler };
+                image = _synchronous
+                    ? ImageResources.DecodeSynchronously(encoded, _limits.Images, request, _imageAllocator, _limits.ImageColorResolver, _token)
+                    : await ImageResources.DecodeAsync(encoded, _limits.Images, request, _imageAllocator, _limits.ImageColorResolver, _token).ConfigureAwait(false);
             }
             else if (_limits.ImageResolver?.Invoke(href) is { } resolved)
             {

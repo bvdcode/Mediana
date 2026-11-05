@@ -44,8 +44,18 @@ namespace Mediana.Images.Svg
             _token = token;
         }
 
+        private bool _synchronous;
+
         internal SvgDocument Build()
         {
+            ValueTask<SvgDocument> operation = BuildAsync(true);
+            if (!operation.IsCompleted) { throw new InvalidOperationException("Synchronous SVG construction must complete inline."); }
+            return operation.GetAwaiter().GetResult();
+        }
+
+        internal async ValueTask<SvgDocument> BuildAsync(bool synchronous = false)
+        {
+            _synchronous = synchronous;
             if (_root.Name.LocalName != "svg" || !IsSvgElement(_root))
             {
                 throw new InvalidDataException("Expected an SVG root element.");
@@ -55,7 +65,7 @@ namespace Mediana.Images.Svg
             try
             {
                 Index(_root, 0);
-                SvgDocument document = BuildViewport();
+                SvgDocument document = await BuildViewportAsync().ConfigureAwait(false);
                 completed = true;
                 return document;
             }
@@ -65,12 +75,12 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private SvgDocument BuildViewport()
+        private async ValueTask<SvgDocument> BuildViewportAsync()
         {
             SvgViewport viewport = SvgViewport.Read(_root);
             _width = viewport.ViewBox.Width;
             _height = viewport.ViewBox.Height;
-            SceneNode node = Node(_root, new Dictionary<string, string>(), 0, true);
+            SceneNode node = await NodeAsync(_root, new Dictionary<string, string>(), 0, true);
             return new SvgDocument(node, viewport.Width, viewport.Height, viewport.ViewBox, (string?)_root.Attribute("preserveAspectRatio") ?? "xMidYMid meet", _warnings.Order().ToArray(), _images.Values.OfType<VideoFrame>().ToArray());
         }
 
@@ -113,7 +123,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private SceneNode Node(XElement e, Dictionary<string, string> inherited, int depth, bool definition = false)
+        private async ValueTask<SceneNode> NodeAsync(XElement e, Dictionary<string, string> inherited, int depth, bool definition = false)
         {
             Count(depth);
             if (!_active.Add(e))
@@ -123,7 +133,7 @@ namespace Mediana.Images.Svg
 
             try
             {
-                return BuildNode(e, inherited, depth, definition);
+                return await BuildNodeAsync(e, inherited, depth, definition).ConfigureAwait(false);
             }
             finally
             {
@@ -131,7 +141,7 @@ namespace Mediana.Images.Svg
             }
         }
 
-        private SceneNode BuildNode(XElement e, Dictionary<string, string> inherited, int depth, bool definition)
+        private async ValueTask<SceneNode> BuildNodeAsync(XElement e, Dictionary<string, string> inherited, int depth, bool definition)
         {
             if (!IsSvgElement(e))
             {
@@ -158,18 +168,18 @@ namespace Mediana.Images.Svg
             Matrix3x2 transform = SvgNumbers.Transform((string?)e.Attribute("transform"));
             var children = new List<SceneNode>();
             VectorPath? path = Shape(e);
-            VideoFrame? image = name == "image" ? Image(Href(e)) : null;
-            Populate(e, name, style, path, children, depth);
+            VideoFrame? image = name == "image" ? await ImageAsync(Href(e)).ConfigureAwait(false) : null;
+            await PopulateAsync(e, name, style, path, children, depth).ConfigureAwait(false);
             if (path is not null)
             {
                 path = ValidatePath(path, style);
             }
 
-            SceneClip? clip = Clip(Value(style, "clip-path", "none"), depth);
+            SceneClip? clip = await ClipAsync(Value(style, "clip-path", "none"), depth);
             SceneNode node = new SceneNode(path, Paint(Value(style, "fill", "black"), style), Paint(Value(style, "stroke", "none"), style), Pen(style), Rule(Value(style, "fill-rule", "nonzero")), Rule(Value(style, "clip-rule", "nonzero")), transform, Opacity(style, "opacity"), Opacity(style, "fill-opacity"), Opacity(style, "stroke-opacity"), clip, children.ToArray())
             {
-                Mask = Mask(Value(style, "mask", "none"), depth),
-                Filter = Filter(Value(style, "filter", "none"), style, depth),
+                Mask = await MaskAsync(Value(style, "mask", "none"), depth),
+                Filter = await FilterAsync(Value(style, "filter", "none"), style, depth),
                 BlendMode = Blend(Value(style, "mix-blend-mode", "normal"))
             };
             return PlaceImage(node, e, image);
@@ -190,21 +200,21 @@ namespace Mediana.Images.Svg
             };
         }
 
-        private void Populate(XElement e, string name, Dictionary<string, string> style, VectorPath? path, List<SceneNode> children, int depth)
+        private async ValueTask PopulateAsync(XElement e, string name, Dictionary<string, string> style, VectorPath? path, List<SceneNode> children, int depth)
         {
             if (name == "use")
             {
-                Use(e, style, children, depth);
+                await UseAsync(e, style, children, depth).ConfigureAwait(false);
             }
             else if (name == "text")
             {
-                children.AddRange(TextNodes(e, style, depth));
+                children.AddRange(await TextNodesAsync(e, style, depth).ConfigureAwait(false));
             }
             else if (Containers.Contains(name))
             {
                 foreach (XElement child in e.Elements())
                 {
-                    children.Add(Node(child, style, depth + 1));
+                    children.Add(await NodeAsync(child, style, depth + 1).ConfigureAwait(false));
                 }
             }
             else if (path is null && name != "image" && !Metadata.Contains(name))
@@ -226,7 +236,7 @@ namespace Mediana.Images.Svg
 
         private static SceneNode Empty => new(null, null, null, new StrokeStyle(), FillRule.NonZero, FillRule.NonZero, Matrix3x2.Identity, 1, 1, 1, null, Array.Empty<SceneNode>());
 
-        private void Use(XElement e, Dictionary<string, string> style, List<SceneNode> children, int depth)
+        private async ValueTask UseAsync(XElement e, Dictionary<string, string> style, List<SceneNode> children, int depth)
         {
             XElement? target = Reference(Href(e));
             if (target is null)
@@ -234,7 +244,7 @@ namespace Mediana.Images.Svg
                 return;
             }
 
-            SceneNode node = Node(target, style, depth + 1, true);
+            SceneNode node = await NodeAsync(target, style, depth + 1, true);
             Matrix3x2 placement = Matrix3x2.CreateTranslation(Length(e, "x", 0, _width), Length(e, "y", 0, _height));
             if (target.Name.LocalName == "symbol" && target.Attribute("viewBox") is { } box)
             {
@@ -250,7 +260,7 @@ namespace Mediana.Images.Svg
             children.Add(node with { Transform = node.Transform * placement });
         }
 
-        private SceneClip? Clip(string value, int depth)
+        private async ValueTask<SceneClip?> ClipAsync(string value, int depth)
         {
             if (value == "none")
             {
@@ -269,7 +279,7 @@ namespace Mediana.Images.Svg
                 return null;
             }
 
-            SceneNode node = Node(target, new Dictionary<string, string>(), depth + 1, true);
+            SceneNode node = await NodeAsync(target, new Dictionary<string, string>(), depth + 1, true);
             var shapes = new List<SceneClipShape>();
             try
             {

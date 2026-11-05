@@ -13,6 +13,7 @@ using Mediana.Images.Heif;
 using Mediana.Images.Svg;
 using Mediana.Images.Tgs;
 using Mediana.Models.Mesh;
+using Mediana.Processing;
 
 namespace Mediana.Cli
 {
@@ -64,7 +65,8 @@ namespace Mediana.Cli
             SvgReaderOptions reader = new()
             {
                 MaximumInputBytes = CommandImageResources.MaximumBufferLength,
-                MaximumImagePixels = CommandImageResources.MaximumRgbaPixels
+                MaximumImagePixels = CommandImageResources.MaximumRgbaPixels,
+                ImageColorResolver = SdrPreviewColorPolicy.Resolve
             };
             return new TextImageDecoder(new SvgImageDecoder(reader), text => new SvgImageDecoder(reader with { Text = text }, CommandImageResources.DrawingOptions(width)));
         }

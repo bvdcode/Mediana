@@ -17,7 +17,7 @@ namespace Mediana.Images.Svg
 {
     internal partial class SvgSceneBuilder
     {
-        private SceneNode[] TextNodes(XElement e, Dictionary<string, string> style, int depth)
+        private async ValueTask<SceneNode[]> TextNodesAsync(XElement e, Dictionary<string, string> style, int depth)
         {
             var raw = new List<TextCharacter>();
             GatherText(e, style, null, 16, Matrix3x2.Identity, false, raw, depth);
@@ -25,7 +25,7 @@ namespace Mediana.Images.Svg
             List<PlacedGlyph> glyphs = LayoutText(text);
             AdjustTextLength(e, glyphs);
             Anchor(glyphs);
-            return BuildTextNodes(glyphs, depth);
+            return await BuildTextNodesAsync(glyphs, depth).ConfigureAwait(false);
         }
 
         private List<PlacedGlyph> LayoutText(List<TextCharacter> text)
@@ -100,11 +100,11 @@ namespace Mediana.Images.Svg
             return glyphs;
         }
 
-        private SceneNode[] BuildTextNodes(List<PlacedGlyph> glyphs, int depth)
+        private async ValueTask<SceneNode[]> BuildTextNodesAsync(List<PlacedGlyph> glyphs, int depth)
         {
             var result = new List<SceneNode>();
             var spans = new Dictionary<TextSpan, (SceneNode Node, List<SceneNode> Children)>();
-            List<SceneNode> Container(TextSpan span)
+            async ValueTask<List<SceneNode>> ContainerAsync(TextSpan span)
             {
                 if (span.Parent is null)
                 {
@@ -117,12 +117,12 @@ namespace Mediana.Images.Svg
                     SceneNode node = Empty with
                     {
                         Opacity = Opacity(span.Style, "opacity"),
-                        Clip = Clip(Value(span.Style, "clip-path", "none"), depth + 1),
-                        Mask = Mask(Value(span.Style, "mask", "none"), depth + 1),
-                        Filter = Filter(Value(span.Style, "filter", "none"), span.Style, depth + 1)
+                        Clip = await ClipAsync(Value(span.Style, "clip-path", "none"), depth + 1),
+                        Mask = await MaskAsync(Value(span.Style, "mask", "none"), depth + 1),
+                        Filter = await FilterAsync(Value(span.Style, "filter", "none"), span.Style, depth + 1)
                     };
                     spans.Add(span, group = (node, children));
-                    Container(span.Parent).Add(node);
+                    (await ContainerAsync(span.Parent).ConfigureAwait(false)).Add(node);
                 }
 
                 return group.Children;
@@ -134,7 +134,7 @@ namespace Mediana.Images.Svg
                 if (placement is null) { continue; }
                 VectorPath path = glyph.Path.Transform(placement.Value);
                 path = ValidatePath(path, glyph.Style) ?? new VectorPath();
-                Container(glyph.Span).Add(new SceneNode(path, Paint(Value(glyph.Style, "fill", "black"), glyph.Style), Paint(Value(glyph.Style, "stroke", "none"), glyph.Style), Pen(glyph.Style), Rule(Value(glyph.Style, "fill-rule", "nonzero")), FillRule.NonZero, Matrix3x2.Identity, 1, Opacity(glyph.Style, "fill-opacity"), Opacity(glyph.Style, "stroke-opacity"), null, Array.Empty<SceneNode>())
+                (await ContainerAsync(glyph.Span).ConfigureAwait(false)).Add(new SceneNode(path, Paint(Value(glyph.Style, "fill", "black"), glyph.Style), Paint(Value(glyph.Style, "stroke", "none"), glyph.Style), Pen(glyph.Style), Rule(Value(glyph.Style, "fill-rule", "nonzero")), FillRule.NonZero, Matrix3x2.Identity, 1, Opacity(glyph.Style, "fill-opacity"), Opacity(glyph.Style, "stroke-opacity"), null, Array.Empty<SceneNode>())
                 {
                     Graphic = Value(glyph.Style, "visibility", "visible") is "hidden" or "collapse" ? null : glyph.Graphic,
                     GraphicTransform = glyph.GraphicTransform * placement.Value
