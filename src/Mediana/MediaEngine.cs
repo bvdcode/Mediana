@@ -24,14 +24,14 @@ namespace Mediana
 
         internal MediaEngine(IContainerReaderFactory[] containers, IVideoDecoderFactory[] decoders, IAudioDecoderFactory[] audioDecoders,
             IStreamMetadataReader[] metadataReaders, IImageDecoder[] imageDecoders,
-            IAudioEncoderFactory[] audioEncoders, IVideoEncoderFactory[] videoEncoders, IContainerWriterFactory[] writers)
+            IAudioEncoderFactory[] audioEncoders, IVideoEncoderFactory[] videoEncoders, IContainerWriterFactory[] writers, MediaResourceSet resources)
         {
             this.containers = containers;
             this.audioEncoders = audioEncoders.ToDictionary(item => item.CodecId, StringComparer.Ordinal);
             this.videoEncoders = videoEncoders.ToDictionary(item => item.CodecId, StringComparer.Ordinal);
             this.writers = writers.ToDictionary(item => item.FormatId, StringComparer.Ordinal);
             this.imageDecoders = imageDecoders;
-            imageContext = new(imageDecoders);
+            imageContext = new(imageDecoders, resources: resources);
             ImageProbeLength = imageDecoders.Length == 0 ? 0 : imageDecoders.Max(item => item.ProbeLength);
             ImageDecoderImplementations = Array.AsReadOnly(imageDecoders.Select(item => item.ImplementationId).ToArray());
             this.decoders = decoders;

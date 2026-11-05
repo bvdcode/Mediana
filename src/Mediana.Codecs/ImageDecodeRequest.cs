@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Timing;
+using Mediana.Core;
 
 namespace Mediana.Codecs
 {
@@ -14,6 +15,8 @@ namespace Mediana.Codecs
         public Action<string>? WarningHandler { get; init; }
         /// <summary>Shared decoder scope for embedded resources. Engines supply it automatically.</summary>
         public ImageDecodeContext? Images { get; init; }
+        /// <summary>Shared operation resources. Nested decoders inherit this set; an explicit request overrides engine resources.</summary>
+        public MediaResourceSet? Resources { get; init; }
         /// <summary>Optional source pixel limit. Decoders validate source dimensions before allocation when supported.</summary>
         public int? MaximumPixels { get; init; }
         /// <summary>Optional decoding resolution hints. Decoders may retain a higher resolution; presentation controls final sizing.</summary>

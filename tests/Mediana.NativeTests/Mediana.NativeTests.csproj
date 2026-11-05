@@ -9,6 +9,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/DocumentResourceTestInput.cs" Link="DocumentResourceTestInput.cs" />
     <Compile Include="../Shared/HlsAudioPreparationTestInput.cs" Link="HlsAudioPreparationTestInput.cs" />
     <Compile Include="../Shared/EmbeddedImageTestInput.cs" Link="EmbeddedImageTestInput.cs" />
     <Compile Include="../Shared/EmbeddedTestImageDecoder.cs" Link="EmbeddedTestImageDecoder.cs" />

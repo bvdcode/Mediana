@@ -12,6 +12,7 @@ namespace Mediana.NativeTests
             OpenXmlPackageTestInput.Verify();
             WordTestInput.Verify();
             await WordRenderTestInput.VerifyAsync();
+            await DocumentResourceTestInput.VerifyAsync();
             await EmbeddedImageTestInput.VerifyRegistryAsync();
             await EmbeddedImageTestInput.VerifyColorAsync();
             await EmbeddedImageTestInput.VerifyJpegAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg"));

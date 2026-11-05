@@ -633,9 +633,20 @@ Vector rendering charges the output, supersampling and temporary effect surfaces
 the caller's allocator. `MaximumEffectBytes` remains an additional bound on effect
 workspace; clipping arrays and runtime storage are outside the RGBA surface budget.
 
-SVG embedded PNG resources use `Mediana.Codecs.Png`, including its validation,
-sample-depth conversion and scanline budget. The scene retains immutable decoded
+SVG embedded resources use the shared decoder registry and sRGB preparation,
+including codec validation, sample-depth conversion and scanline budgets. The scene retains immutable decoded
 frame leases and draws them through `RasterCanvas` without a second pixel image.
 `SvgDocument.Dispose` releases retained images; failed reads release previously
-loaded resources. `SvgReaderOptions.ImageAllocator` supplies a separate source-image
-budget, with `MaximumImageBytes` used when no allocator is supplied.
+loaded resources. Registered document decoding uses hierarchical image budgets:
+local format limits and the caller's operation budget are both enforced.
+
+`MediaEngineBuilder.UseResources` shares an immutable `MediaResourceSet` with image
+and document decoders. A request can supply its own resource set; nested decoders
+inherit it. Providers are typed, may load asynchronously, and control their own
+caching. Probing does not resolve resources. `TextOptions` is consumed by Word,
+SVG and PDF, so callers configure font and inline artwork sources once.
+
+`FontProgram` contains immutable parsed OpenType data. `TrueTypeFont` keeps mutable
+outline and kerning caches for one consumer. Collections and bundled resources
+share programs across independent readers without copying or reparsing their
+bytes. Text renderers retain separate bounds on referenced fonts and cached paths.

@@ -46,7 +46,8 @@ namespace Mediana.Images.Svg
             }
             SvgReaderOptions options = configured with
             {
-                ImageAllocator = imageBudget.CreateScope(configured.MaximumImageBytes),
+                Text = request.Resources is null ? configured.Text : await request.Resources.GetAsync<TextOptions>(cancellationToken).ConfigureAwait(false) ?? configured.Text,
+                ImageAllocator = imageBudget,
                 Images = request.Images ?? readerOptions?.Images ?? Imaging.ImageResources.DefaultDecoders,
                 WarningHandler = readerOptions?.WarningHandler + request.WarningHandler
             };

@@ -32,7 +32,12 @@ namespace Mediana.Documents.Word
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(ImageDecoderFeatures.Pages);
             WordDocument document = WordReader.Read(package, mainPart, readerOptions ?? new(), cancellationToken);
-            WordLayout layout = WordRenderer.Layout(document, layoutOptions, cancellationToken);
+            WordLayoutOptions layoutSettings = layoutOptions ?? new();
+            if (request.Resources is not null && await request.Resources.GetAsync<TextOptions>(cancellationToken).ConfigureAwait(false) is TextOptions text)
+            {
+                layoutSettings = layoutSettings with { Text = text };
+            }
+            WordLayout layout = WordRenderer.Layout(document, layoutSettings, cancellationToken);
             ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(request.PageIndex, layout.PageCount, nameof(request.PageIndex));
             WordRenderOptions rendering = (renderOptions ?? new()) with
             {

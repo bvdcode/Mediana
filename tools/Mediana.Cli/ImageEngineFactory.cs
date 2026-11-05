@@ -8,6 +8,7 @@ using Mediana.Codecs.Jpeg2000;
 using Mediana.Codecs.Png;
 using Mediana.Core.Video;
 using Mediana.Documents.Pdf;
+using Mediana.Documents.Word;
 using Mediana.Documents.OpenXml;
 using Mediana.Images.Heif;
 using Mediana.Images.Svg;
@@ -27,17 +28,26 @@ namespace Mediana.Cli
             .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
             .AddImageDecoder(CreateTgs())
             .AddImageDecoder(new MeshImageDecoder())
-            .AddImageDecoder(new OpenXmlImageDecoder([new WordPreviewDecoder(), new ThreeMfPageDecoder()], CommandImageResources.PackageOptions))
-            .AddImageDecoder(new TextImageDecoder(
-                new PdfImageDecoder(CommandImageResources.PdfReaderOptions),
-                text => new PdfImageDecoder(CommandImageResources.PdfReaderOptions with { Text = text }, CommandImageResources.PdfRenderOptions with
-                {
-                    MaximumWidth = MaximumDocumentPreviewDimension,
-                    MaximumHeight = MaximumDocumentPreviewDimension
-                })));
+            .AddImageDecoder(new OpenXmlImageDecoder([new WordPageDecoder(new()
+            {
+                Package = CommandImageResources.PackageOptions,
+                AllowFractionalMeasurements = true,
+                DefaultPageSize = WordPageSize.A4
+            }, renderOptions: new()
+            {
+                MaximumWidth = MaximumDocumentPreviewDimension, MaximumHeight = MaximumDocumentPreviewDimension,
+                MaximumSamples = CommandImageResources.MaximumRgbaPixels, MaximumImagePixels = CommandImageResources.MaximumRgbaPixels,
+                ImageColorResolver = SdrPreviewColorPolicy.Resolve
+            }), new ThreeMfPageDecoder()], CommandImageResources.PackageOptions))
+            .AddImageDecoder(new PdfImageDecoder(CommandImageResources.PdfReaderOptions, CommandImageResources.PdfRenderOptions with
+            {
+                MaximumWidth = MaximumDocumentPreviewDimension,
+                MaximumHeight = MaximumDocumentPreviewDimension
+            }));
 
 
         internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
+            .UseResources(CommandTextResources.Shared)
             .AddImageDecoder(new PngImageDecoder(new()
             {
                 MaximumEncodedBytes = CommandImageResources.MaximumBufferLength,
@@ -68,7 +78,7 @@ namespace Mediana.Cli
                 MaximumImagePixels = CommandImageResources.MaximumRgbaPixels,
                 ImageColorResolver = SdrPreviewColorPolicy.Resolve
             };
-            return new TextImageDecoder(new SvgImageDecoder(reader), text => new SvgImageDecoder(reader with { Text = text }, CommandImageResources.DrawingOptions(width)));
+            return new SvgImageDecoder(reader, CommandImageResources.DrawingOptions(width));
         }
 
         public static HeicImageDecoder CreateHeic(SampleAspectRatio aspect) => new(aspect,

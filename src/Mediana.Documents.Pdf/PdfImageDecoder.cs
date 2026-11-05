@@ -37,13 +37,17 @@ namespace Mediana.Documents.Pdf
                 metadata: new("document", [new("pdf", "page_count", document.PageCount)], pages)));
         }
 
-        public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+        public async ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
             PdfReaderOptions configured = readerOptions ?? new();
+            if (request.Resources is not null && await request.Resources.GetAsync<TextOptions>(cancellationToken).ConfigureAwait(false) is TextOptions text)
+            {
+                configured = configured with { Text = text };
+            }
             MediaBufferAllocator images = configured.ImageAllocator ?? allocator;
             if (!images.IsWithin(allocator))
             {
@@ -60,7 +64,7 @@ namespace Mediana.Documents.Pdf
                 WarningHandler = renderOptions?.WarningHandler + request.WarningHandler
             };
             using PixelBuffer pixels = PdfRenderer.Render(document, request.PageIndex + 1, rendering, cancellationToken, allocator);
-            return ValueTask.FromResult(pixels.PublishVideoFrame(cancellationToken));
+            return pixels.PublishVideoFrame(cancellationToken);
         }
     }
 }

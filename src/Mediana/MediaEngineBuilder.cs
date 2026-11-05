@@ -5,6 +5,7 @@ using Mediana.Codecs;
 using Mediana.Containers;
 using Mediana.Core.Audio;
 using Mediana.Core.Video;
+using Mediana.Core;
 
 namespace Mediana
 {
@@ -19,6 +20,15 @@ namespace Mediana
         private readonly List<IAudioEncoderFactory> audioEncoders = [];
         private readonly List<IVideoEncoderFactory> videoEncoders = [];
         private readonly List<IContainerWriterFactory> writers = [];
+        private MediaResourceSet resources = MediaResourceSet.Empty;
+
+        /// <summary>Shares explicit resource providers with image and document decoding, including nested resources.</summary>
+        public MediaEngineBuilder UseResources(MediaResourceSet resources)
+        {
+            ArgumentNullException.ThrowIfNull(resources);
+            this.resources = resources;
+            return this;
+        }
 
         public MediaEngineBuilder AddAudioEncoder(IAudioEncoderFactory factory)
         {
@@ -120,6 +130,6 @@ namespace Mediana
             }
         }
 
-        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray(), imageDecoders.ToArray(), audioEncoders.ToArray(), videoEncoders.ToArray(), writers.ToArray());
+        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray(), imageDecoders.ToArray(), audioEncoders.ToArray(), videoEncoders.ToArray(), writers.ToArray(), resources);
     }
 }
