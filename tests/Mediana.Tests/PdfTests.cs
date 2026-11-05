@@ -55,7 +55,7 @@ namespace Mediana.Tests
         [Fact]
         public async Task UnsupportedPaintingCannotSilentlyProduceSuccessfulPreview()
         {
-            using PdfDocument doc = await Read(PdfTestDocument.Create("/S sh"));
+            using PdfDocument doc = await Read(PdfTestDocument.Create("/RelativeColorimetric ri 0 0 10 10 re f"));
             PdfPage page = doc.GetPage(1);
             Assert.NotEmpty(page.UnsupportedFeatures);
             Assert.Throws<NotSupportedException>(() => PdfRenderer.Render(page));

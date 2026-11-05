@@ -141,6 +141,7 @@ namespace Mediana.Documents.Pdf
                     case "rg": case "RG": Count(3); Color(new(Channel(N(0)), Channel(N(1)), Channel(N(2))), value.Text == "RG", PdfColorSpace.DeviceRgb); break;
                     case "g": case "G": Count(1); Color(new(Channel(N(0)), Channel(N(0)), Channel(N(0))), value.Text == "G", PdfColorSpace.DeviceGray); break;
                     case "k": case "K": Count(4); Color(new(Channel(1 - Math.Min(1, N(0) + N(3))), Channel(1 - Math.Min(1, N(1) + N(3))), Channel(1 - Math.Min(1, N(2) + N(3)))), value.Text == "K", PdfColorSpace.DeviceCmyk); break;
+                    case "sh": Count(1); Shading(Name(0), resources); break;
                     case "gs": Count(1); ExtState(Get(Get(resources, "ExtGState"), Name(0))); break;
                     case "Do": Count(1); XObject(Name(0), resources, depth); break;
                     case "BT": Count(0); if (_inText) { throw new InvalidDataException("Nested PDF text object."); } _inText = true; _text = _textLine = Matrix3x2.Identity; break;
