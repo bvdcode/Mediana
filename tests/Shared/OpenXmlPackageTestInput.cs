@@ -41,11 +41,43 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException("OPC reading must follow relationships and preserve source storage.");
             }
+            VerifyXmlLimits();
             OpenXmlRelationship related = new("r2", "image", "../media/picture%20one.png", false);
             if (OpenXmlPackage.Resolve(main, related) != "media/picture%20one.png")
             {
                 throw new InvalidDataException("OPC relative targets must resolve from their source part.");
             }
+        }
+
+        private static void VerifyXmlLimits()
+        {
+            const string xml = "<a xmlns='urn:sample' x='1'> text<![CDATA[value]]><b/></a>";
+            using OpenXmlPackage bounded = OpenXmlPackage.Open(Create(xml), new() { MaximumXmlElements = 7 });
+            for (int read = 0; read < 2; read++)
+            {
+                System.Xml.Linq.XElement root = bounded.ReadXml("content/report.xml").Root!;
+                if (root.Name.NamespaceName != "urn:sample" || root.Value != " textvalue" || root.Attribute("x")?.Value != "1")
+                {
+                    throw new InvalidDataException("OPC XML must preserve namespaces, attributes and mixed content.");
+                }
+            }
+            bool rejected = false;
+            try { bounded.ReadXml("content/report.xml"); }
+            catch (InvalidDataException exception)
+            {
+                System.Diagnostics.Trace.TraceInformation("Expected cumulative XML budget rejection: {0}", exception.Message);
+                rejected = true;
+            }
+            if (!rejected) { throw new InvalidDataException("OPC must count XML elements across repeated reads."); }
+            using OpenXmlPackage depth = OpenXmlPackage.Open(Create("<a><b><c><d/></c></b></a>"), new() { MaximumXmlDepth = 2 });
+            rejected = false;
+            try { depth.ReadXml("content/report.xml"); }
+            catch (InvalidDataException exception)
+            {
+                System.Diagnostics.Trace.TraceInformation("Expected XML depth rejection: {0}", exception.Message);
+                rejected = true;
+            }
+            if (!rejected) { throw new InvalidDataException("OPC must enforce XML depth before consuming a node."); }
         }
 
         private static void Write(ZipArchive archive, string name, string text)

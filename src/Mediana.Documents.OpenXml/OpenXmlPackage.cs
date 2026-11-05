@@ -128,21 +128,15 @@ namespace Mediana.Documents.OpenXml
         {
             byte[] data = ReadPart(name, cancellationToken, maximumBytes);
             XmlReaderSettings settings = new() { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _options.MaximumPartBytes };
-            using (MemoryStream source = new(data, writable: false))
-            using (XmlReader reader = XmlReader.Create(source, settings))
-            {
-                while (reader.Read())
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (reader.Depth > _options.MaximumXmlDepth || (reader.NodeType == XmlNodeType.Element && ++_xmlElements > _options.MaximumXmlElements))
-                    {
-                        throw new InvalidDataException("OPC XML exceeds its depth or element budget.");
-                    }
-                }
-            }
-            using MemoryStream xml = new(data, writable: false);
-            using XmlReader bounded = XmlReader.Create(xml, settings);
+            using MemoryStream source = new(data, writable: false);
+            using XmlReader reader = XmlReader.Create(source, settings);
+            using BoundedXmlReader bounded = new(reader, _options.MaximumXmlDepth, ConsumeXmlElement, cancellationToken);
             return XDocument.Load(bounded, LoadOptions.PreserveWhitespace);
+        }
+
+        private void ConsumeXmlElement()
+        {
+            if (++_xmlElements > _options.MaximumXmlElements) { throw new InvalidDataException("OPC XML exceeds its element budget."); }
         }
 
         public IReadOnlyList<OpenXmlRelationship> ReadRelationships(string sourcePart, CancellationToken cancellationToken = default)
