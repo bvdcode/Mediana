@@ -90,6 +90,7 @@ namespace Mediana.Tests
         {
             hash.AppendData(frame.Data.Span);
             AppendTimestamp(hash, frame.Timestamp);
+            AppendDuration(hash, frame.Duration);
         }
 
         private static void AppendAudio(IncrementalHash hash, AudioFrame frame)
@@ -99,6 +100,12 @@ namespace Mediana.Tests
                 hash.AppendData(frame.GetPlane(plane).Span);
             }
             AppendTimestamp(hash, frame.Timestamp);
+            AppendDuration(hash, frame.Duration);
+        }
+
+        private static void AppendDuration(IncrementalHash hash, MediaDuration? duration)
+        {
+            AppendTimestamp(hash, duration is MediaDuration value ? new MediaTimestamp(value.Value, value.TimeBase) : null);
         }
 
         private static void AppendTimestamp(IncrementalHash hash, MediaTimestamp? timestamp)

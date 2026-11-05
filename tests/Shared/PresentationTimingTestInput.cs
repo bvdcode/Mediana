@@ -12,6 +12,7 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.IO;
+using Mediana.Execution;
 
 namespace Mediana.Tests
 {
@@ -98,6 +99,37 @@ namespace Mediana.Tests
             Require(allocator.AllocatedBytes == 0);
         }
 
+        public static async Task VerifyJointDecodingAsync(string root, string name, Mp4TimestampMode mode) =>
+            await VerifyJointDecodingAsync(await File.ReadAllBytesAsync(Path.Combine(root, name)), mode);
+
+        private static async Task VerifyJointDecodingAsync(byte[] bytes, Mp4TimestampMode mode)
+        {
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory(new() { TimestampMode = mode }))
+                .AddVideoDecoder(new H264DecoderFactory()).Build();
+            TrackingRandomAccessSource source = new(bytes);
+            List<(MediaTimestamp? Time, MediaDuration? Duration)> expected = [];
+            await using (VideoSession session = await engine.OpenVideoAsync(source))
+            {
+                while (await session.ReadFrameAsync() is VideoFrame frame)
+                {
+                    using (frame) { expected.Add((frame.Timestamp, frame.Duration)); }
+                }
+                await session.DisposeAsync();
+                Require(session.AllocatedBufferBytes == 0);
+            }
+            List<(MediaTimestamp? Time, MediaDuration? Duration)> actual = [];
+            await using (MediaSession session = await engine.OpenMediaAsync(source, [0]))
+            {
+                while (await session.ReadFrameAsync() is DecodedMediaFrame frame)
+                {
+                    using (frame) { actual.Add((frame.Video!.Timestamp, frame.Video.Duration)); }
+                }
+                await session.DisposeAsync();
+                Require(session.AllocatedBufferBytes == 0);
+            }
+            Require(expected.Count > 0 && expected.SequenceEqual(actual) && !source.IsDisposed);
+        }
+
         public static async Task VerifySignedAndUnknownAsync(string root)
         {
             byte[] original = await File.ReadAllBytesAsync(Path.Combine(root, "frame-rate-vfr.mp4"));
@@ -154,6 +186,8 @@ namespace Mediana.Tests
             Require(unknownFrames == 2);
             await session.DisposeAsync();
             Require(session.AllocatedBufferBytes == 0);
+            await VerifyJointDecodingAsync(shifted, Mp4TimestampMode.Media);
+            await VerifyJointDecodingAsync(duplicate, Mp4TimestampMode.Media);
         }
 
         public static void VerifyRetainedPacket()

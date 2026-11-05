@@ -24,6 +24,18 @@ namespace Mediana.Tests
         public Task FailedIndexConstructionReleasesTemporaryStorageAndAllowsRetry() =>
             PresentationTimingTestInput.VerifyLimitsAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
 
+        [Theory]
+        [InlineData("frame-rate-cfr.mp4")]
+        [InlineData("frame-rate-vfr.mp4")]
+        [InlineData("frame-rate-edited.mp4")]
+        public async Task JointAndIndependentDecodingReturnIdenticalPresentationIntervals(string name)
+        {
+            foreach (Mp4TimestampMode mode in new[] { Mp4TimestampMode.Media, Mp4TimestampMode.LinearMovie })
+            {
+                await PresentationTimingTestInput.VerifyJointDecodingAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), name, mode);
+            }
+        }
+
         [Fact]
         public Task SignedCompositionOffsetsPreserveIntervalsAndDuplicatesRemainUnknown() =>
             PresentationTimingTestInput.VerifySignedAndUnknownAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"));
