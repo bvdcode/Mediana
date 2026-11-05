@@ -59,12 +59,15 @@ namespace Mediana.Cli
             MaximumJsonBytes = CommandImageResources.MaximumBufferLength
         }, CommandImageResources.DrawingOptions(width));
 
-        public static IImageDecoder CreateSvg(int? width = null) => new TextImageDecoder(new SvgImageDecoder(), text => new SvgImageDecoder(new()
+        public static IImageDecoder CreateSvg(int? width = null)
         {
-            MaximumInputBytes = CommandImageResources.MaximumBufferLength,
-            MaximumImagePixels = CommandImageResources.MaximumRgbaPixels,
-            Text = text
-        }, CommandImageResources.DrawingOptions(width)));
+            SvgReaderOptions reader = new()
+            {
+                MaximumInputBytes = CommandImageResources.MaximumBufferLength,
+                MaximumImagePixels = CommandImageResources.MaximumRgbaPixels
+            };
+            return new TextImageDecoder(new SvgImageDecoder(reader), text => new SvgImageDecoder(reader with { Text = text }, CommandImageResources.DrawingOptions(width)));
+        }
 
         public static HeicImageDecoder CreateHeic(SampleAspectRatio aspect) => new(aspect,
             new HeicDecodeOptions(maxInputBytes: CommandImageResources.MaximumBufferLength, maxPixels: CommandImageResources.MaximumRgbaPixels));

@@ -10,8 +10,11 @@ namespace Mediana.Cli
     {
         private static readonly Lazy<Task<TextOptions>> Resources = new(LoadAsync);
 
-        internal static async ValueTask<TextOptions> GetAsync(CancellationToken cancellationToken) =>
-            await Resources.Value.WaitAsync(cancellationToken);
+        internal static async ValueTask<TextOptions> GetAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return await Resources.Value.WaitAsync(cancellationToken);
+        }
 
         private static async Task<TextOptions> LoadAsync()
         {
