@@ -12,8 +12,8 @@ namespace Mediana.Codecs
         string ImplementationId { get; }
         int ProbeLength { get; }
         ImageDecoderFeatures Features { get; }
-        /// <summary>Recognizes an input prefix; recognition is not a promise of complete-file support.</summary>
-        bool CanDecode(ReadOnlySpan<byte> prefix);
+        /// <summary>Recognizes an input prefix using the complete byte length when known. A null length means the prefix may be incomplete; recognition is not a promise of complete-file support.</summary>
+        bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null);
         /// <summary>Borrows encoded bytes only during the call. Returns an independently owned frame.
         /// The allocator accounts for frame leases; codec workspace has module-specific limits.</summary>
         ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,

@@ -55,3 +55,18 @@ font conformance.
 The format references are Microsoft's [OpenType CFF specification](https://learn.microsoft.com/en-us/typography/opentype/spec/cff),
 Adobe's [CFF format](https://adobe-type-tools.github.io/font-tech-notes/pdfs/5176.CFF.pdf)
 and [Type 2 charstrings](https://adobe-type-tools.github.io/font-tech-notes/pdfs/5177.Type2.pdf).
+
+## Font wrappers and pair positioning
+
+The same outline reader reconstructs WOFF 1 tables stored directly or compressed
+with zlib. For a TrueType Collection it selects the first face; the API does not
+enumerate or select other faces. These code paths do not establish complete WOFF
+or TTC/OTC conformance. Dedicated wrapper and multiple-face fixture coverage
+remains open. They are font resources for rendering, not standalone image inputs
+to the CLI.
+
+`TrueTypeFont.Kerning` reads supported GPOS `kern` pair lookups and legacy `kern`
+pairs; SVG text applies the resulting horizontal adjustment. This is a subset of
+OpenType positioning. GSUB substitution, script shaping and bidirectional text
+layout are not implemented by this pair API. These distinctions are tracked in
+the [format checklist](formats/README.md#fonts-and-text-presentation-resources).

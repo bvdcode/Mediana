@@ -17,7 +17,7 @@ namespace Mediana.Images.Svg
         public ImageDecoderFeatures Features => ImageDecoderFeatures.SingleImage;
 
         /// <summary>Recognizes XML byte signatures. Complete parsing validates the SVG root and encoding.</summary>
-        public bool CanDecode(ReadOnlySpan<byte> prefix)
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null)
         {
             if (prefix.StartsWith<byte>([0xef, 0xbb, 0xbf]))
             {

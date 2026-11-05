@@ -9,6 +9,30 @@ namespace Mediana.Tests
     public class OpenXmlPackageTests
     {
         [Fact]
+        public void PartNamesMatchWithoutCaseAndRetainStoredSpelling()
+        {
+            using OpenXmlPackage package = OpenXmlPackage.Open(OpenXmlPackageTestInput.Create(target: "CONTENT/REPORT.XML"));
+            Assert.Equal("content/report.xml", package.MainPart());
+            Assert.Equal("content/report.xml", package.CanonicalPart("CONTENT/report.XML"));
+            Assert.Equal("application/xml", package.ContentType("CONTENT/REPORT.XML"));
+            Assert.NotNull(package.ReadXml("CONTENT/REPORT.XML").Root);
+        }
+
+        [Fact]
+        public void CaseEquivalentPartsAreRejected()
+        {
+            Assert.Throws<InvalidDataException>(() => OpenXmlPackage.Open(OpenXmlPackageTestInput.Create(extra: "CONTENT/REPORT.XML")));
+        }
+
+        [Fact]
+        public void PartLimitIsCheckedBeforeReadingAndDoesNotConsumeBudget()
+        {
+            using OpenXmlPackage package = OpenXmlPackage.Open(OpenXmlPackageTestInput.Create());
+            Assert.Throws<InvalidDataException>(() => package.ReadPart(package.MainPart(), maximumBytes: 1));
+            Assert.Equal("<document/>", System.Text.Encoding.UTF8.GetString(package.ReadPart(package.MainPart())));
+        }
+
+        [Fact]
         public void RelatedPartsPreserveSourceMemory() => OpenXmlPackageTestInput.Verify();
 
         [Theory]
@@ -44,13 +68,35 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public void XmlDtdDepthAndElementLimitsAreCheckedBeforeBuildingTheTree()
+        public void XmlDtdDepthAndElementLimitsAreCheckedBeforeConsumingNodes()
         {
             using OpenXmlPackage dtd = OpenXmlPackage.Open(OpenXmlPackageTestInput.Create("<!DOCTYPE a [<!ENTITY b 'test'>]><a>&b;</a>"));
             Assert.Throws<XmlException>(() => dtd.ReadXml(dtd.MainPart()));
             using OpenXmlPackage depth = OpenXmlPackage.Open(OpenXmlPackageTestInput.Create("<a><b><c><d/></c></b></a>"), new() { MaximumXmlDepth = 2 });
             Assert.Throws<InvalidDataException>(() => depth.ReadXml(depth.MainPart()));
             Assert.Throws<InvalidDataException>(() => OpenXmlPackage.Open(OpenXmlPackageTestInput.Create(), new() { MaximumXmlElements = 1 }));
+        }
+
+        [Fact]
+        public void XmlElementBudgetIncludesRepeatedPartReadsAndExcludesAttributes()
+        {
+            const string xml = "<a xmlns='urn:sample' x='1'><b y='2'/></a>";
+            using OpenXmlPackage package = OpenXmlPackage.Open(OpenXmlPackageTestInput.Create(xml), new() { MaximumXmlElements = 7 });
+            Assert.Equal("urn:sample", package.ReadXml("content/report.xml").Root!.Name.NamespaceName);
+            Assert.Equal("1", package.ReadXml("content/report.xml").Root!.Attribute("x")!.Value);
+            Assert.Throws<InvalidDataException>(() => package.ReadXml("content/report.xml"));
+        }
+
+        [Fact]
+        public void XmlSinglePassPreservesNamespacesWhitespaceAndMixedContent()
+        {
+            const string xml = "<?xml version='1.0'?><a xmlns='urn:sample' xmlns:p='urn:other' xml:space='preserve'> x<!--note--><![CDATA[y]]><p:b p:c='z'/> </a>";
+            using OpenXmlPackage package = OpenXmlPackage.Open(OpenXmlPackageTestInput.Create(xml));
+            System.Xml.Linq.XElement element = package.ReadXml("content/report.xml").Root!;
+            Assert.Equal(" xy ", element.Value);
+            Assert.Equal("preserve", element.Attribute(System.Xml.Linq.XNamespace.Xml + "space")!.Value);
+            Assert.Equal("z", element.Element(System.Xml.Linq.XName.Get("b", "urn:other"))!.Attribute(System.Xml.Linq.XName.Get("c", "urn:other"))!.Value);
+            Assert.IsType<System.Xml.Linq.XCData>(element.Nodes().ElementAt(2));
         }
 
         [Fact]

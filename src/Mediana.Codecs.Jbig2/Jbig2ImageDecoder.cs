@@ -23,7 +23,7 @@ namespace Mediana.Codecs.Jbig2
         public string ImplementationId => "jbig2.managed.image";
         public int ProbeLength => 8;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.Pages;
-        public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.StartsWith<byte>([0x97, 0x4a, 0x42, 0x32, 13, 10, 0x1a, 10]);
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) => prefix.StartsWith<byte>([0x97, 0x4a, 0x42, 0x32, 13, 10, 0x1a, 10]);
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {

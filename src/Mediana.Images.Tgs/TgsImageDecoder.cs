@@ -17,7 +17,7 @@ namespace Mediana.Images.Tgs
         public string ImplementationId => "tgs.managed.image";
         public int ProbeLength => 512;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.Animation;
-        public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.StartsWith<byte>([0x1f, 0x8b])
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) => prefix.StartsWith<byte>([0x1f, 0x8b])
             || prefix.TrimStart(" \r\n\t"u8).StartsWith("{"u8);
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)

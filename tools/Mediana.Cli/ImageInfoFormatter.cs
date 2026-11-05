@@ -17,6 +17,11 @@ namespace Mediana.Cli
                 ImageDimensionUnit.Points => "points",
                 _ => throw new ArgumentOutOfRangeException(nameof(image))
             };
+            if (image.IsPreviewCanvas)
+            {
+                await output.WriteLineAsync($"Model: {image.FormatId}; preview canvas {Number(image.Width)}x{Number(image.Height)} {unit}.");
+                return;
+            }
             await output.WriteLineAsync($"Image: {image.FormatId}; {Number(image.Width)}x{Number(image.Height)} {unit}.");
             if (image.PageCount is int pages)
             {

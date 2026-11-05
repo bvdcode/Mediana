@@ -12,6 +12,7 @@ namespace Mediana.Documents.OpenXml
     public interface IOpenXmlPageDecoder
     {
         string ContentType { get; }
+        IReadOnlyList<string> RelationshipTypes { get; }
         ImageInfo ReadInfo(OpenXmlPackage package, string mainPart, CancellationToken cancellationToken = default);
         ValueTask<VideoFrame> DecodeAsync(OpenXmlPackage package, string mainPart, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default);

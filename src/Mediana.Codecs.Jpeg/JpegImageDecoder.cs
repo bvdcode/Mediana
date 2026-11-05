@@ -34,7 +34,7 @@ namespace Mediana.Codecs.Jpeg
         public string ImplementationId => "jpeg.managed.image";
         public int ProbeLength => 3;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.SingleImage;
-        public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.Length >= 3 && prefix[0] == 255 && prefix[1] == 216 && prefix[2] == 255;
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) => prefix.Length >= 3 && prefix[0] == 255 && prefix[1] == 216 && prefix[2] == 255;
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {

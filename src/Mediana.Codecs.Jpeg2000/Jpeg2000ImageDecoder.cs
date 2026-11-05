@@ -26,7 +26,7 @@ namespace Mediana.Codecs.Jpeg2000
         public string ImplementationId => "jpeg2000.managed.image";
         public int ProbeLength => 12;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.SingleImage;
-        public bool CanDecode(ReadOnlySpan<byte> prefix) =>
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) =>
             prefix.StartsWith<byte>([0, 0, 0, 12, 0x6a, 0x50, 0x20, 0x20, 13, 10, 0x87, 10])
             || prefix.StartsWith<byte>([0xff, 0x4f, 0xff, 0x51]);
 

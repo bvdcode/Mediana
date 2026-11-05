@@ -27,7 +27,7 @@ namespace Mediana.Codecs.Png
         public string ImplementationId => "png.managed.image";
         public int ProbeLength => 8;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.SingleImage;
-        public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.StartsWith(PngImageParser.Signature);
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) => prefix.StartsWith(PngImageParser.Signature);
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {

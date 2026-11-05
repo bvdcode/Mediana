@@ -17,8 +17,8 @@ namespace Mediana.Documents.OpenXml
         private readonly ReadOnlyMemoryStream _source;
         private ZipArchive? _archive;
         private readonly OpenXmlPackageOptions _options;
-        private readonly Dictionary<string, ZipArchiveEntry> _parts = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, string> _overrides = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, ZipArchiveEntry> _parts = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _overrides = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, string> _extensions = new(StringComparer.OrdinalIgnoreCase);
         private int _xmlElements;
         private long _readBytes;
@@ -53,16 +53,36 @@ namespace Mediana.Documents.OpenXml
             }
         }
 
-        /// <summary>Gets the main office document part using package relationships, rather than a conventional filename.</summary>
-        public string MainPart(CancellationToken cancellationToken = default)
+        public static IReadOnlyList<string> OfficeDocumentRelationships { get; } = Array.AsReadOnly(new[]
         {
-            OpenXmlRelationship[] matches = ReadRelationships("", cancellationToken).Where(relation => relation.Type is
-                "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
-                or "http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument").ToArray();
-            if (matches.Length != 1 || matches[0].External) { throw new InvalidDataException("OPC must have one internal officeDocument relationship."); }
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+            "http://purl.oclc.org/ooxml/officeDocument/relationships/officeDocument"
+        });
+
+        /// <summary>Gets the main office document part using package relationships.</summary>
+        public string MainPart(CancellationToken cancellationToken = default) => MainPart(OfficeDocumentRelationships, cancellationToken);
+
+        /// <summary>Resolves exactly one root relationship from the accepted types, rejecting external or ambiguous roots.</summary>
+        public string MainPart(IEnumerable<string> relationshipTypes, CancellationToken cancellationToken = default)
+            => MainPartInfo(relationshipTypes, cancellationToken).Name;
+
+        internal (string Name, string RelationshipType) MainPartInfo(IEnumerable<string> relationshipTypes, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(relationshipTypes);
+            HashSet<string> accepted = new(relationshipTypes, StringComparer.Ordinal);
+            OpenXmlRelationship[] matches = ReadRelationships("", cancellationToken).Where(relation => accepted.Contains(relation.Type)).ToArray();
+            if (matches.Length != 1 || matches[0].External) { throw new InvalidDataException("OPC must have one internal main-part relationship of the registered types."); }
             string name = Resolve("", matches[0]);
-            if (!_parts.ContainsKey(name)) { throw new InvalidDataException("OPC main document part is missing."); }
-            return name;
+            if (!_parts.ContainsKey(name)) { throw new InvalidDataException("OPC main part is missing."); }
+            return (CanonicalPart(name), matches[0].Type);
+        }
+
+        /// <summary>Returns the stored spelling of an equivalent OPC part name.</summary>
+        public string CanonicalPart(string name)
+        {
+            ObjectDisposedException.ThrowIf(_archive is null, this);
+            return _parts.TryGetValue(name, out ZipArchiveEntry? part) ? part.FullName
+                : throw new InvalidDataException("OPC part is missing: " + name);
         }
 
         public bool ContainsPart(string name)
@@ -80,11 +100,13 @@ namespace Mediana.Documents.OpenXml
         }
 
         /// <summary>Reads exactly one bounded part. The cumulative budget includes repeated reads.</summary>
-        public byte[] ReadPart(string name, CancellationToken cancellationToken = default)
+        public byte[] ReadPart(string name, CancellationToken cancellationToken = default, int? maximumBytes = null)
         {
             ObjectDisposedException.ThrowIf(_archive is null, this);
             cancellationToken.ThrowIfCancellationRequested();
             if (!_parts.TryGetValue(name, out ZipArchiveEntry? part)) { throw new InvalidDataException("OPC part is missing: " + name); }
+            if (maximumBytes is <= 0) { throw new ArgumentOutOfRangeException(nameof(maximumBytes)); }
+            if (maximumBytes is int maximum && part.Length > maximum) { throw new InvalidDataException("OPC part exceeds the requested byte limit."); }
             if (part.Length > _options.MaximumUncompressedBytes - _readBytes) { throw new InvalidDataException("OPC reads exceed MaximumUncompressedBytes."); }
             _readBytes += part.Length;
             byte[] data = new byte[checked((int)part.Length)];
@@ -102,25 +124,19 @@ namespace Mediana.Documents.OpenXml
         }
 
         /// <summary>Reads bounded XML with DTD and external entity resolution disabled.</summary>
-        public XDocument ReadXml(string name, CancellationToken cancellationToken = default)
+        public XDocument ReadXml(string name, CancellationToken cancellationToken = default, int? maximumBytes = null)
         {
-            byte[] data = ReadPart(name, cancellationToken);
+            byte[] data = ReadPart(name, cancellationToken, maximumBytes);
             XmlReaderSettings settings = new() { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _options.MaximumPartBytes };
-            using (MemoryStream source = new(data, writable: false))
-            using (XmlReader reader = XmlReader.Create(source, settings))
-            {
-                while (reader.Read())
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (reader.Depth > _options.MaximumXmlDepth || (reader.NodeType == XmlNodeType.Element && ++_xmlElements > _options.MaximumXmlElements))
-                    {
-                        throw new InvalidDataException("OPC XML exceeds its depth or element budget.");
-                    }
-                }
-            }
-            using MemoryStream xml = new(data, writable: false);
-            using XmlReader bounded = XmlReader.Create(xml, settings);
+            using MemoryStream source = new(data, writable: false);
+            using XmlReader reader = XmlReader.Create(source, settings);
+            using BoundedXmlReader bounded = new(reader, _options.MaximumXmlDepth, ConsumeXmlElement, cancellationToken);
             return XDocument.Load(bounded, LoadOptions.PreserveWhitespace);
+        }
+
+        private void ConsumeXmlElement()
+        {
+            if (++_xmlElements > _options.MaximumXmlElements) { throw new InvalidDataException("OPC XML exceeds its element budget."); }
         }
 
         public IReadOnlyList<OpenXmlRelationship> ReadRelationships(string sourcePart, CancellationToken cancellationToken = default)

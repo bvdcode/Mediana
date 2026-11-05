@@ -16,7 +16,7 @@ namespace Mediana.Cli
             byte[] probe = new byte[images.ImageProbeLength];
             await using FileStream file = File.OpenRead(input);
             int length = await file.ReadAtLeastAsync(probe, probe.Length, throwOnEndOfStream: false, cancellationToken: token);
-            if (images.RecognizeImage(probe.AsSpan(0, length)) is not null)
+            if (images.RecognizeImage(probe.AsSpan(0, length), file.Length) is not null)
             {
                 if (stream is not null)
                 {

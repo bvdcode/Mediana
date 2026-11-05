@@ -11,6 +11,7 @@ using Mediana.Documents.OpenXml;
 using Mediana.Images.Heif;
 using Mediana.Images.Svg;
 using Mediana.Images.Tgs;
+using Mediana.Models.Mesh;
 
 namespace Mediana.Cli
 {
@@ -25,7 +26,8 @@ namespace Mediana.Cli
         internal static MediaEngineBuilder AddDecoders(MediaEngineBuilder builder) => AddStillImageDecoders(builder)
             .AddImageDecoder(CreateJbig2(SampleAspectRatio.Square))
             .AddImageDecoder(CreateTgs())
-            .AddImageDecoder(new OpenXmlImageDecoder([new WordPreviewDecoder()]))
+            .AddImageDecoder(new MeshImageDecoder())
+            .AddImageDecoder(new OpenXmlImageDecoder([new WordPreviewDecoder(), new ThreeMfPageDecoder()]))
             .AddImageDecoder(new PdfImageDecoder(renderOptions: new()
             {
                 MaximumWidth = MaximumDocumentPreviewDimension,

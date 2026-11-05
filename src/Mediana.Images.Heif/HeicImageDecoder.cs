@@ -28,7 +28,7 @@ namespace Mediana.Images.Heif
         public int ProbeLength => 512;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.SingleImage;
 
-        public bool CanDecode(ReadOnlySpan<byte> prefix)
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null)
         {
             if (prefix.Length < 16 || !prefix.Slice(4, 4).SequenceEqual("ftyp"u8))
             {

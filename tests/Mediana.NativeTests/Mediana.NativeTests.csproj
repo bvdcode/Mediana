@@ -9,6 +9,9 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MeshGeometryTestInput.cs" Link="MeshGeometryTestInput.cs" />
+    <Compile Include="../Shared/MeshTestInput.cs" Link="MeshTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Models.Mesh/Mediana.Models.Mesh.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Word/Mediana.Documents.Word.csproj" />
     <Compile Include="../Shared/WordTestInput.cs" Link="WordTestInput.cs" />
     <Compile Include="../Shared/WordRenderTestInput.cs" Link="WordRenderTestInput.cs" />

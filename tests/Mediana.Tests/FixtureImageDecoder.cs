@@ -15,7 +15,7 @@ namespace Mediana.Tests
         public ImageDecoderFeatures Features { get; init; }
         public int DecodeCalls { get; private set; }
         public byte[]? Received { get; private set; }
-        public bool CanDecode(ReadOnlySpan<byte> prefix) => prefix.StartsWith("TEST"u8);
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) => prefix.StartsWith("TEST"u8);
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
