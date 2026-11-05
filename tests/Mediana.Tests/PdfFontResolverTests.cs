@@ -82,14 +82,34 @@ namespace Mediana.Tests
         public Task PublicImageIntegrationReceivesWarningsThroughTheRequest() =>
             PdfNonPaintingAnnotationTestInput.VerifyFontIntegrationAsync();
 
+        [Fact]
+        public async Task ExpandedCidWidthsRespectThePageOperationLimit()
+        {
+            PdfReaderOptions options = Fonts with { MaximumOperations = 10000 };
+            byte[] input = Composite("<0001> <0002> <0410>", "<0001>", "/W [0 65535 1000]", "<0001> <0002>");
+            using PdfDocument document = await PdfReader.ReadAsync(new MemoryStream(input), options);
+            Assert.Throws<InvalidDataException>(() => PdfRenderer.Render(document, 1, Render));
+        }
+
+        [Fact]
+        public async Task TransientFontProgramsDoNotAccumulateAcrossRepeatedPageInterpretation()
+        {
+            ReadOnlyMemory<byte> program = BundledFontPrograms.GetFont("Canada1500");
+            PdfReaderOptions options = new() { FontResolver = _ => program, MaximumDecodedBytes = program.Length + 1024 };
+            using PdfDocument document = await PdfReader.ReadAsync(new MemoryStream(Simple("BT /F 10 Tf 10 40 Td (A) Tj ET")), options);
+            using PixelBuffer first = PdfRenderer.Render(document, 1, Render);
+            using PixelBuffer second = PdfRenderer.Render(document, 1, Render);
+            Assert.Equal(first.Pixels.ToArray(), second.Pixels.ToArray());
+        }
+
         private static byte[] Simple(string content, string entries = "") => PdfTestDocument.Create(content,
             resources: "/Font << /F 5 0 R >>", extraObjects: PdfTestDocument.Bytes("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica " + entries + " >>"));
 
-        private static byte[] Composite(string range, string text) => PdfTestDocument.Create("BT /F 20 Tf 10 40 Td " + text + " Tj ET",
+        private static byte[] Composite(string range, string text, string widths = "", string space = "<0000> <FFFF>") => PdfTestDocument.Create("BT /F 20 Tf 10 40 Td " + text + " Tj ET",
             resources: "/Font << /F 5 0 R >>", extraObjects:
             [PdfTestDocument.Bytes("<< /Type /Font /Subtype /Type0 /BaseFont /Arial /Encoding /Identity-H /DescendantFonts [6 0 R] /ToUnicode 7 0 R >>"),
-            PdfTestDocument.Bytes("<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Arial /DW 1000 >>"),
-            PdfTestDocument.Stream(PdfTestDocument.Bytes("begincmap 1 begincodespacerange <0000> <FFFF> endcodespacerange 1 beginbfrange "
+            PdfTestDocument.Bytes("<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Arial /DW 1000 " + widths + " >>"),
+            PdfTestDocument.Stream(PdfTestDocument.Bytes("begincmap 1 begincodespacerange " + space + " endcodespacerange 1 beginbfrange "
                 + range + " endbfrange endcmap"))]);
     }
 }

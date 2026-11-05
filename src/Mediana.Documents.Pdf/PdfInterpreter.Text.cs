@@ -56,6 +56,7 @@ namespace Mediana.Documents.Pdf
                     if (map.Kind == PdfValueKind.Name && map.Text != "Identity") { throw new NotSupportedException("Unknown PDF CIDToGIDMap."); }
                     ReadOnlyMemory<byte> mapping = dictionary.Get("CIDToGIDMap").Kind == PdfValueKind.Reference ? storage.Decode(storage.Object(dictionary.Get("CIDToGIDMap"), token), token) : ReadOnlyMemory<byte>.Empty;
                     if (mapping.Length % 2 != 0 || mapping.Length > 131072) { throw new InvalidDataException("Invalid PDF glyph map."); }
+                    ChargeOperations(65536);
                     for (int code = 0; code < 65536; code++) { glyphs[code] = mapping.Length == 0 ? code : code < mapping.Length / 2 ? BinaryPrimitives.ReadUInt16BigEndian(mapping.Span.Slice(code * 2)) : 0; }
                 }
 
@@ -101,12 +102,13 @@ namespace Mediana.Documents.Pdf
                 if ((uint)first > 65535 || i >= w.Length) { throw new InvalidDataException("Invalid PDF CID widths."); }
                 PdfValue next = Resolve(w[i++]);
                 if (next.Kind == PdfValueKind.Array)
-                { for (int j = 0; j < next.Items.Length; j++) { if (first + j > 65535) { throw new InvalidDataException("CID width overflow."); } widths[first + j] = next.Items[j].Numeric(); } }
+                { ChargeOperations(next.Items.Length); for (int j = 0; j < next.Items.Length; j++) { if (first + j > 65535) { throw new InvalidDataException("CID width overflow."); } widths[first + j] = next.Items[j].Numeric(); } }
                 else
                 {
                     int last = next.Integer();
                     if (last < first || last > 65535 || i >= w.Length) { throw new InvalidDataException("Invalid PDF CID width range."); }
                     double width = w[i++].Numeric();
+                    ChargeOperations(last - first + 1);
                     for (int code = first; code <= last; code++) { widths[code] = width; }
                 }
             }

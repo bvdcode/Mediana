@@ -7,6 +7,8 @@ namespace Mediana.Documents.Pdf
 {
     internal partial class PdfInterpreter
     {
+        private long _fontProgramBytes;
+
         private PdfFont? CreateResolvedFont(PdfValue source, PdfValue dictionary, bool composite)
         {
             PdfValue unicode = source.Get("ToUnicode");
@@ -15,7 +17,9 @@ namespace Mediana.Documents.Pdf
             ReadOnlyMemory<byte> program = storage.Budget.Options.FontResolver!(new(name, composite));
             token.ThrowIfCancellationRequested();
             if (program.IsEmpty) { return null; }
-            storage.Budget.Decoded(program.Length);
+            if (program.Length > storage.Budget.Options.MaximumDecodedBytes - _fontProgramBytes)
+            { throw new InvalidDataException("PDF page font programs exceed the decoded byte limit."); }
+            _fontProgramBytes += program.Length;
             TrueTypeFont face = new(program);
             Dictionary<int, int> characters = unicode.Kind == PdfValueKind.Null ? [] : ReadToUnicode(unicode, composite);
             Dictionary<int, int> glyphs = [];
@@ -24,6 +28,7 @@ namespace Mediana.Documents.Pdf
             if (composite)
             {
                 (widths, defaultWidth) = CompositeWidths(dictionary);
+                ChargeOperations(characters.Count);
                 foreach ((int code, int scalar) in characters) { glyphs[code] = ResolveGlyph(scalar); }
             }
             else

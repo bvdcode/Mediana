@@ -195,7 +195,8 @@ Output, supersampling surfaces, transparency layers and cached masks share the
 supplied MediaBufferAllocator. Without an allocator, MaximumWorkingBytes defaults
 to 256 MiB. Masks are cached for one render, charged to that budget and disposed
 before returning the output. Source image pixels have the reader's separate
-MaximumImageBytes budget.
+MaximumImageBytes budget. Coverage/clip arrays, font data and command objects
+have separate structural or dimension bounds rather than allocator accounting.
 
 ## JPEG image interpretation
 
