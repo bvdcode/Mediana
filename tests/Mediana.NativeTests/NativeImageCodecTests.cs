@@ -5,10 +5,11 @@ using Mediana.Tests;
 
 namespace Mediana.NativeTests
 {
-    internal static class NativePngTests
+    internal static class NativeImageCodecTests
     {
         internal static async Task RunAsync()
         {
+            await NativeWebpTests.RunAsync();
             await PngDecodeTestInput.VerifyCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
             await PngDecodeTestInput.VerifyReducedCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
             await PngDecodeTestInput.VerifyIntegrityAsync();
