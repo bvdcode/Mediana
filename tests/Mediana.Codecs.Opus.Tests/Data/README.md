@@ -315,3 +315,20 @@ quantization offset; unsigned 32-bit arithmetic range, 32-bit whole/eighth bits;
 and signed 16-bit pulses rounded up to complete 16-sample shell blocks.
 
 SHA-256: `5f12f9206455a64f90cbe94229006c2872508fd67b3753733545191bfcbb848c`.
+
+`silk-controls.bin` records 1,536 gain, stereo predictor and excitation cases
+from libopus 1.6.1, plus all 3,970 Q7 exponent inputs from -1 through 3,968.
+Independent/conditional gain coding, both subframe counts, all signal types,
+quantization offsets, seeds and prior gain indices are included. Excitation
+comes from the reference decoder core before prediction. Gain indices, Q16
+gains, stereo Q13 coefficients, mid-only flags, Q14 excitation and entropy
+state match exactly. Repeated decoding allocates no managed storage.
+
+The little-endian file begins with `OPUSSLC1` and a 32-bit case count. Cases
+contain compressed bytes, signal/conditional/subframe/history fields, gain
+indices and entropy state, final gain history and Q16 gains, stereo predictors
+and mid-only flag followed by entropy state, pulse count/seed/offset, signed
+16-bit pulses and signed 32-bit excitation. A final 32-bit count precedes Q7
+exponent/result integer pairs.
+
+SHA-256: `65e2ad45852354277398a75fa8f8b6310775ad63666cd6dfe90d80fcbed72290`.
