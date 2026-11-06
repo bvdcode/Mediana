@@ -56,7 +56,7 @@ namespace Mediana.Codecs.Tiff
                 for (int offset = 3; offset < pixels.Length; offset += 4) { pixels[offset] = 255; }
             }
             ReadBlocks(document, page, samples, compression, output.Memory.Span, allocator, cancellationToken);
-            if (samples.Alpha == 1)
+            if (samples.Alpha == 1 && samples.Depth != 16)
             {
                 for (int y = 0; y < format.Height; y++)
                 {
@@ -86,8 +86,11 @@ namespace Mediana.Codecs.Tiff
             ulong[] offsets = page.Numbers(tiled ? (ushort)324 : (ushort)273), lengths = page.Numbers(tiled ? (ushort)325 : (ushort)279);
             if (offsets.Length != checked(across * down * planes) || lengths.Length != offsets.Length)
             { throw new InvalidDataException("TIFF block offsets and lengths disagree with its dimensions."); }
-            for (int plane = 0; plane < planes; plane++)
+            using WritableMediaBuffer? associatedAlpha = samples.Alpha == 1 && samples.Depth == 16 && planes > 1
+                ? allocator.Allocate(checked(samples.Width * samples.Height * 2)) : null;
+            for (int planeIndex = 0; planeIndex < planes; planeIndex++)
             {
+                int plane = associatedAlpha is null ? planeIndex : planeIndex == 0 ? planes - 1 : planeIndex - 1;
                 for (int index = 0; index < across * down; index++)
                 {
                     token.ThrowIfCancellationRequested();
@@ -119,7 +122,7 @@ namespace Mediana.Codecs.Tiff
                     for (int row = 0; row < Math.Min(rows, samples.Height - y); row++)
                     {
                         token.ThrowIfCancellationRequested();
-                        samples.Paint(decoded.Memory.Span.Slice(row * rowBytes, rowBytes), pixels, y + row, x, Math.Min(tileWidth, samples.Width - x), plane);
+                        samples.Paint(decoded.Memory.Span.Slice(row * rowBytes, rowBytes), pixels, y + row, x, Math.Min(tileWidth, samples.Width - x), plane, associatedAlpha is null ? Span<byte>.Empty : associatedAlpha.Memory.Span);
                     }
                 }
             }

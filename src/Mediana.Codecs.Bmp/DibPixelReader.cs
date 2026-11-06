@@ -68,7 +68,11 @@ namespace Mediana.Codecs.Bmp
         }
         private static void ReadRle(DibImage image, Span<byte> pixels, CancellationToken token)
         {
-            for (int i = 0; i < pixels.Length / 4; i++) { Write(pixels, i, image.Palette(0)); }
+            for (int row = 0; row < image.Height; row++)
+            {
+                token.ThrowIfCancellationRequested();
+                for (int column = 0; column < image.Width; column++) { Write(pixels, row * image.Width + column, image.Palette(0)); }
+            }
             int position = image.PixelOffset, x = 0, y = 0;
             while (position < image.Data.Length)
             {

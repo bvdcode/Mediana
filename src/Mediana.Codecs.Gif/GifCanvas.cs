@@ -17,7 +17,7 @@ namespace Mediana.Codecs.Gif
         private readonly VideoFormat format;
         private readonly PlaneLayout[] layout;
 
-        internal GifCanvas(GifDocument document, MediaBufferAllocator allocator, ImageDecodeRequest request)
+        internal GifCanvas(GifDocument document, MediaBufferAllocator allocator, ImageDecodeRequest request, CancellationToken token)
         {
             this.document = document; this.allocator = allocator;
             if (request.MaximumPixels is int limit && (long)document.Width * document.Height > limit)
@@ -26,7 +26,9 @@ namespace Mediana.Codecs.Gif
             format = new(document.Width, document.Height, VideoPixelFormat.Rgba32, VideoColorInfo.Srgb, aspect);
             layout = format.CreateTightLayout();
             canvas = allocator.Allocate(checked((int)layout[0].EndOffset));
-            Clear(0, 0, document.Width, document.Height, document.Frames[0].TransparentIndex >= 0);
+            bool initialized = false;
+            try { Clear(0, 0, document.Width, document.Height, document.Frames[0].TransparentIndex >= 0, token); initialized = true; }
+            finally { if (!initialized) { canvas.Dispose(); } }
         }
         internal void Draw(GifFrame frame, CancellationToken token)
         {
@@ -36,9 +38,9 @@ namespace Mediana.Codecs.Gif
                 {
                     case 0:
                     case 1: break;
-                    case 2: Clear(last.Left, last.Top, last.Width, last.Height, last.TransparentIndex >= 0); break;
+                    case 2: Clear(last.Left, last.Top, last.Width, last.Height, last.TransparentIndex >= 0, token); break;
                     case 3:
-                        CopyRegion(last, previous!.Memory.Span, false);
+                        CopyRegion(last, previous!.Memory.Span, false, token);
                         previous.Dispose(); previous = null;
                         break;
                     default: throw new InvalidDataException("Unsupported GIF disposal.");
@@ -48,20 +50,21 @@ namespace Mediana.Codecs.Gif
             if (frame.Disposal == 3)
             {
                 previous = allocator.Allocate(checked(frame.Width * frame.Height * 4));
-                CopyRegion(frame, previous.Memory.Span, true);
+                CopyRegion(frame, previous.Memory.Span, true, token);
             }
             GifLzw.Paint(frame, canvas.Memory.Span, document.Width, token);
         }
-        private void CopyRegion(GifFrame frame, Span<byte> saved, bool save)
+        private void CopyRegion(GifFrame frame, Span<byte> saved, bool save, CancellationToken token)
         {
             for (int y = 0; y < frame.Height; y++)
             {
+                token.ThrowIfCancellationRequested();
                 Span<byte> row = canvas.Memory.Span.Slice(((frame.Top + y) * document.Width + frame.Left) * 4, frame.Width * 4);
                 Span<byte> backup = saved.Slice(y * frame.Width * 4, frame.Width * 4);
                 if (save) { row.CopyTo(backup); } else { backup.CopyTo(row); }
             }
         }
-        private void Clear(int left, int top, int width, int height, bool transparent)
+        private void Clear(int left, int top, int width, int height, bool transparent, CancellationToken token)
         {
             Span<byte> color = stackalloc byte[4];
             color.Clear();
@@ -69,6 +72,7 @@ namespace Mediana.Codecs.Gif
             { document.Palette.Span.Slice(document.BackgroundIndex * 3, 3).CopyTo(color); color[3] = 255; }
             for (int y = top; y < top + height; y++)
             {
+                token.ThrowIfCancellationRequested();
                 Span<byte> row = canvas.Memory.Span.Slice((y * document.Width + left) * 4, width * 4);
                 for (int x = 0; x < width; x++) { color.CopyTo(row[(x * 4)..]); }
             }

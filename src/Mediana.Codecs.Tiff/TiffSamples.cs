@@ -61,7 +61,7 @@ namespace Mediana.Codecs.Tiff
                 }
             }
         }
-        internal void Paint(ReadOnlySpan<byte> row, Span<byte> pixels, int y, int xStart, int width, int plane)
+        internal void Paint(ReadOnlySpan<byte> row, Span<byte> pixels, int y, int xStart, int width, int plane, Span<byte> associatedAlpha)
         {
             int components = Planar == 2 ? 1 : Channels;
             Span<int> values = stackalloc int[5];
@@ -78,6 +78,25 @@ namespace Mediana.Codecs.Tiff
                         _ => throw new InvalidDataException("Unsupported TIFF sample precision.")
                     };
                     values[channel] = sample;
+                }
+                if (Alpha == 1 && Depth == 16 && Planar == 2)
+                {
+                    int offset = (y * Width + xStart + x) * 2;
+                    if (plane == Channels - 1)
+                    {
+                        if (LittleEndian) { BinaryPrimitives.WriteUInt16LittleEndian(associatedAlpha[offset..], (ushort)values[0]); }
+                        else { BinaryPrimitives.WriteUInt16BigEndian(associatedAlpha[offset..], (ushort)values[0]); }
+                    }
+                    else
+                    {
+                        int alpha = Read16(associatedAlpha[offset..]);
+                        values[0] = alpha == 0 ? 0 : (int)Math.Min(65535, ((long)values[0] * 65535 + alpha / 2) / alpha);
+                    }
+                }
+                if (Alpha == 1 && Depth == 16 && Planar == 1)
+                {
+                    int alpha = values[Channels - 1];
+                    for (int c = 0; c < Channels - 1; c++) { values[c] = alpha == 0 ? 0 : (int)Math.Min(65535, ((long)values[c] * 65535 + alpha / 2) / alpha); }
                 }
                 (int targetX, int targetY) = Position(xStart + x, y);
                 int outputWidth = Orientation >= 5 ? Height : Width;

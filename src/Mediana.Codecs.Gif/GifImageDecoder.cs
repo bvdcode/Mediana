@@ -38,7 +38,7 @@ namespace Mediana.Codecs.Gif
             GifDocument document = new(encoded, cancellationToken);
             long time = request.Time?.Rescale(new(1, 100), TimestampRounding.Floor).Value ?? 0;
             if (time >= document.Duration && time != 0) { throw new ArgumentOutOfRangeException(nameof(request), "The selected time is outside the GIF cycle."); }
-            using GifCanvas canvas = new(document, allocator, request);
+            using GifCanvas canvas = new(document, allocator, request, cancellationToken);
             long start = 0;
             for (int index = 0; index < document.Frames.Count; index++)
             {
@@ -57,7 +57,7 @@ namespace Mediana.Codecs.Gif
             GifDocument document = new(encoded, cancellationToken);
             long time = request.Time?.Rescale(new(1, 100), TimestampRounding.Floor).Value ?? 0;
             if (time >= document.Duration && time != 0) { throw new ArgumentOutOfRangeException(nameof(request), "The selected time is outside the GIF cycle."); }
-            using GifCanvas canvas = new(document, allocator, request);
+            using GifCanvas canvas = new(document, allocator, request, cancellationToken);
             long start = 0;
             foreach (GifFrame frame in document.Frames)
             {

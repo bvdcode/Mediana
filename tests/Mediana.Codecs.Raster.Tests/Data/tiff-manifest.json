@@ -289,5 +289,19 @@
     "width": 137,
     "height": 65,
     "page": 0
+  },
+  {
+    "file": "tiff-associated16-0.tif",
+    "pixels": "tiff-associated16-0.rgba",
+    "width": 17,
+    "height": 11,
+    "page": 0
+  },
+  {
+    "file": "tiff-associated16-1.tif",
+    "pixels": "tiff-associated16-1.rgba",
+    "width": 17,
+    "height": 11,
+    "page": 0
   }
 ]
