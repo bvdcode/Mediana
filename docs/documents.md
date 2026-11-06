@@ -19,6 +19,10 @@ Slide indexes are zero based. `Slides`, `Width` and `Height` describe the presen
 
 The renderer reads the selected slide, its layout, master and theme. It uses Drawing for shapes, text and inline artwork, and the shared image registry for embedded pictures. Registering a decoder through `Images` also makes it available to the presentation. Pictures receive the same allocation budget and sRGB preparation as other documents. `TextResources` and `TextOptions` are shared with Word, SVG and PDF.
 
+Picture fills (`blipFill`) use the same decoding and image cache for shapes, backgrounds, table cells and picture objects. Relationships resolve in the part declaring the fill, including inherited layouts, masters and theme styles. Source cropping, destination insets, geometry clipping, stretched fills, tiled fills, tile alignment/offsets/mirroring and fixed opacity reduction are supported. Tiling samples the retained frame directly without creating an expanded texture buffer.
+
+A missing tile/stretch choice uses tiled placement. Tile size uses the fill's nonzero `dpi`; otherwise `PresentationRenderOptions.ImageDpi` supplies the source pixel resolution (96 by default). Embedded physical-density metadata is not imported automatically. A fill with `rotWithShape="false"` inside a rotated shape remains unsupported.
+
 Supported drawing elements include groups, offsets, rotation, reflection, inherited placeholders, solid and linear gradient fills, solid outlines, common preset shapes, numeric custom paths, cropped/stretched pictures and horizontal paragraph text. Normal text autofit measures prepared glyphs before drawing; horizontal and vertical overflow follow the stored body properties. Chart/SmartArt frames, theme-styled tables, vertical text and unsupported geometry report their feature explicitly. Animation playback and automatic bullet numbering remain open.
 
 ## Sequential spreadsheets
@@ -77,13 +81,15 @@ Limits reject excessive output instead of truncating it. Use `StartPartIndex`/`P
 
 ## Validation
 
-Document tests cover independent CFB and OPC parsers, sparse coordinates, typed values, cached formulas, shared-string continuation, Unicode mappings, declared/reconstructed reading order, cancellation and early disposal. Presentation checks compare reference pixels, inherited placeholders, automatic text sizing, per-axis overflow, shared image decoding and single-buffer publication. The same public-reader checks run in the Native AOT executable.
+Document tests cover independent CFB and OPC parsers, sparse coordinates, typed values, cached formulas, shared-string continuation, Unicode mappings, declared/reconstructed reading order, cancellation and early disposal. Presentation checks compare reference pixels, inherited placeholders, automatic text sizing, per-axis overflow, shared image decoding and single-buffer publication. Picture-fill checks cover inherited resource ownership, cropping, clipping, rotation, tiling, opacity, malformed geometry, allocation limits and cancellation cleanup. The public-reader and positive picture-fill checks also run in the Native AOT executable.
 
-Text extraction passed on 18 DOCX and 14 PPTX documents and two independent BIFF8 workbooks. First-slide previews succeeded for 12 of those presentations after enabling common ICC matrix/TRC conversion. Two stop at a picture fill (`blipFill`) and conflicting JFIF/Exif chroma-position declarations. All six distinct embedded RGB profiles matched LittleCMS conversion within one 8-bit RGB level; alpha matched exactly. Large-file checks use explicitly increased package limits; default limits remain unchanged.
+Text extraction passed on 18 DOCX and 14 PPTX documents and two independent BIFF8 workbooks. First-slide previews succeeded for all 14 presentations with picture fills, common ICC matrix/TRC conversion and the CLI's explicit JFIF chroma-conflict policy. All six distinct embedded RGB profiles matched LittleCMS conversion within one 8-bit RGB level; alpha matched exactly. Large-file checks use explicitly increased package limits; default limits remain unchanged.
 
 ## Specifications
 
 - [Microsoft PresentationML structure](https://learn.microsoft.com/en-us/office/open-xml/presentation/structure-of-a-presentationml-document)
+- [DrawingML picture fills](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.drawing.blipfill)
+- [DrawingML tile placement](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.drawing.tile)
 - [Microsoft SpreadsheetML sheets](https://learn.microsoft.com/en-us/office/open-xml/spreadsheet/working-with-sheets)
 - [MS-CFB](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cfb/53989ce4-7b05-4f8d-829b-d08d6148375b)
 - [MS-XLS](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xls/cd03cb5f-ca02-4934-a391-bb674cb8aa06)
