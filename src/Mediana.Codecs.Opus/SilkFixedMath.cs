@@ -14,5 +14,9 @@ namespace Mediana.Codecs.Opus
             if (logarithm < 2048) { return integral + (integral * interpolation >> 7); }
             return integral + (integral >> 7) * interpolation;
         }
+
+        public static int RoundShift(long value, int bits) => checked((int)(((value >> (bits - 1)) + 1) >> 1));
+
+        public static int Saturate32(long value) => (int)Math.Clamp(value, int.MinValue, int.MaxValue);
     }
 }

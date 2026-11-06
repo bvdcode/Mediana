@@ -349,3 +349,18 @@ fields. A third count precedes stabilization cases with order, input Q15
 frequencies and expected Q15 frequencies.
 
 SHA-256: `b4d9de05997885b0b504f7929fb3eda7e3b42e7c02631ea5ddbe1b631a468e34`.
+
+`silk-lpc.bin` records 4,096 LSF-to-LPC conversions and 2,048 inverse
+prediction-gain checks from libopus 1.6.1. Both orders, every first-stage LSF
+vector, extreme residuals, cosine interpolation, ordered polynomial
+construction, coefficient fitting, bandwidth expansion and stability checks
+are covered. All Q12 coefficients and Q30 inverse gains match exactly. Stable,
+near-unit-reflection and unstable filters are included. Repeated conversion
+allocates no managed storage.
+
+The little-endian file begins with `OPUSLPC1` and a 32-bit conversion count.
+Each case contains a 32-bit order, signed 16-bit Q15 frequencies, signed
+16-bit Q12 output and signed 32-bit Q30 inverse gain. A second 32-bit count
+precedes stability cases containing order, Q12 coefficients and inverse gain.
+
+SHA-256: `aba5a3cc413adfe942f884f19d2836a915a5fb735a78309a5ff6177fabd6681e`.
