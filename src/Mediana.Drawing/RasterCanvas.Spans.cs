@@ -7,6 +7,11 @@ namespace Mediana.Drawing
     {
         private void PaintSpan(int y, int left, int right, Rgba32 color, ColorBlendMode mode)
         {
+            if (mode == ColorBlendMode.Normal && _clip is null && _coverage is null && _shape is null)
+            {
+                PixelCompositor.BlendSpan(_target.Pixels.Span.Slice((y * _target.Width + left) * 4, (right - left) * 4), color);
+                return;
+            }
             if (color.A != 255 || mode != ColorBlendMode.Normal)
             {
                 for (int x = left; x < right; x++) { Paint(x, y, color, mode); }

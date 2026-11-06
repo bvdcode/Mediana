@@ -8,9 +8,16 @@ using System.Threading;
 
 namespace Mediana.Drawing
 {
-    internal static class PathFlattener
+    internal static partial class PathFlattener
     {
+        internal const float AntialiasTolerance = 1f / 64;
         internal static List<PathContour> Flatten(VectorPath path, Matrix3x2 transform, float tolerance = 0.2f, CancellationToken cancellationToken = default)
+            => FlattenCore(path, transform, tolerance, cancellationToken, false);
+
+        internal static List<PathContour> FlattenCoverage(VectorPath path, Matrix3x2 transform, float tolerance = AntialiasTolerance, CancellationToken cancellationToken = default)
+            => FlattenCore(path, transform, tolerance, cancellationToken, true);
+
+        private static List<PathContour> FlattenCore(VectorPath path, Matrix3x2 transform, float tolerance, CancellationToken cancellationToken, bool antialiased)
         {
             var contours = new List<PathContour>();
             List<Vector2>? points = null;
@@ -34,13 +41,27 @@ namespace Mediana.Drawing
                         break;
                     case 2 when points is not null:
                         Vector2 end = Vector2.Transform(element.Second, transform);
-                        FlattenCubic(points, current, current + ((first - current) * (2f / 3)),
-                            end + ((first - end) * (2f / 3)), end, tolerance, 0, ref remaining, cancellationToken);
+                        if (antialiased)
+                        {
+                            FlattenQuadraticCoverage(points, current, first, end, tolerance, 0, ref remaining, cancellationToken);
+                        }
+                        else
+                        {
+                            FlattenCubic(points, current, current + ((first - current) * (2f / 3)),
+                                end + ((first - end) * (2f / 3)), end, tolerance, 0, ref remaining, cancellationToken);
+                        }
                         current = end;
                         break;
                     case 3 when points is not null:
                         Vector2 third = Vector2.Transform(element.Third, transform);
-                        FlattenCubic(points, current, first, Vector2.Transform(element.Second, transform), third, tolerance, 0, ref remaining, cancellationToken);
+                        if (antialiased)
+                        {
+                            FlattenCubicCoverage(points, current, first, Vector2.Transform(element.Second, transform), third, tolerance, 0, ref remaining, cancellationToken);
+                        }
+                        else
+                        {
+                            FlattenCubic(points, current, first, Vector2.Transform(element.Second, transform), third, tolerance, 0, ref remaining, cancellationToken);
+                        }
                         current = third;
                         break;
                     case 4 when points is not null:

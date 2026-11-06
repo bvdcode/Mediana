@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using System.Buffers;
 using Mediana.Core.Memory;
 
 namespace Mediana.Drawing
@@ -10,6 +11,7 @@ namespace Mediana.Drawing
     /// Borrowed pixel memory must not be used after disposal or publication. This owner is not thread-safe.</summary>
     public partial class PixelBuffer : IDisposable
     {
+        private static readonly MediaBufferAllocator SharedAllocator = new(long.MaxValue, MemoryPool<byte>.Shared);
         private readonly WritableMediaBuffer _pixels;
         internal MediaBufferAllocator Allocator { get; }
 
@@ -23,7 +25,7 @@ namespace Mediana.Drawing
         public Memory<byte> Pixels => _pixels.Memory;
 
         /// <summary>Creates a transparent black image.</summary>
-        public PixelBuffer(int width, int height) : this(width, height, new MediaBufferAllocator(long.MaxValue))
+        public PixelBuffer(int width, int height) : this(width, height, SharedAllocator)
         {
         }
 

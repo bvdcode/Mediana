@@ -8,20 +8,24 @@ using System.Threading;
 
 namespace Mediana.Drawing
 {
-    internal static class PathStroker
+    internal static partial class PathStroker
     {
-        internal static VectorPath Outline(VectorPath path, StrokeStyle style, Matrix3x2 transform, CancellationToken cancellationToken)
+        internal static VectorPath Outline(VectorPath path, StrokeStyle style, Matrix3x2 transform, CancellationToken cancellationToken, float tolerance = .2f, bool antialiased = false)
         {
             float dashLength = Validate(style);
             float scale = Math.Max(new Vector2(transform.M11, transform.M12).Length(), new Vector2(transform.M21, transform.M22).Length());
             float radius = style.Width == 0 ? 0.5f / Math.Max(scale, 0.000001f) : style.Width / 2;
             VectorPath? outline = new VectorPath();
-            foreach (PathContour contour in PathFlattener.Flatten(path, Matrix3x2.Identity, 0.2f / Math.Max(scale, 0.000001f), cancellationToken))
+            float flatness = tolerance / Math.Max(scale, 0.000001f);
+            List<PathContour> contours = antialiased
+                ? PathFlattener.FlattenCoverage(path, Matrix3x2.Identity, flatness, cancellationToken)
+                : PathFlattener.Flatten(path, Matrix3x2.Identity, flatness, cancellationToken);
+            foreach (PathContour contour in contours)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (dashLength == 0)
                 {
-                    Solid(outline, contour, radius, style);
+                    Solid(outline, contour, radius, style, antialiased);
                 }
                 else
                 {
@@ -36,6 +40,9 @@ namespace Mediana.Drawing
 
             return outline;
         }
+
+        internal static VectorPath OutlineAntialiased(VectorPath path, StrokeStyle style, Matrix3x2 transform, CancellationToken token) =>
+            Outline(path, style, transform, token, PathFlattener.AntialiasTolerance, true);
 
         private static float Validate(StrokeStyle style)
         {
@@ -68,8 +75,9 @@ namespace Mediana.Drawing
             return total;
         }
 
-        private static void Solid(VectorPath output, PathContour contour, float radius, StrokeStyle style)
+        private static void Solid(VectorPath output, PathContour contour, float radius, StrokeStyle style, bool antialiased = false)
         {
+            if (antialiased && style.Join == StrokeJoin.Miter && style.Cap == StrokeCap.Butt && TryMiterContour(output, contour, radius, style.MiterLimit)) { return; }
             List<Vector2> points = contour.Points;
             int count = points.Count;
             int segments = contour.Closed ? count : count - 1;

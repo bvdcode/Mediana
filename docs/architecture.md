@@ -540,8 +540,16 @@ surfaces stay valid. Render completion disposes both active and idle surfaces.
 Failed surface construction rolls back its reservation, and repeated reservation
 disposal cannot increase the available budget.
 
-`PixelBuffer` owns exclusive writable storage and can use a supplied
-`MediaBufferAllocator`. `PublishVideoFrame` transfers that same storage into a
+`PixelBuffer` owns exclusive writable storage. Its default constructor rents cleared
+storage from the shared BCL `MemoryPool<byte>`. A supplied `MediaBufferAllocator`
+selects the caller's allocation policy: the single-argument allocator uses exact
+unpooled arrays, while the pool-taking constructor rents from a caller-owned pool.
+The budget counts each rental's complete capacity, including capacity beyond the
+visible pixels; child scopes inherit the pool and charge their parent budgets.
+Returning a rental releases its live-budget charge, while the pool can retain idle
+storage in process memory. The caller remains responsible for the pool's lifetime.
+
+`PublishVideoFrame` transfers that same storage into a
 read-only frame without copying. Publication invalidates the drawing owner and
 its borrowed writable views; retained frames keep the allocation charged until
 their final lease is disposed. Disposing an unpublished surface releases its

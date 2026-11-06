@@ -1,0 +1,28 @@
+{
+  "started_at": "2026-11-06T07:55:51.389513+00:00",
+  "suite": "series",
+  "source_commit": "5770797eac60f1787834ad229364680d4dfa5933",
+  "source_dirty": false,
+  "binary_sha256": "93fc50797872258daee0f14e40436c95539ea7098ed3752012de71350c86fa0a",
+  "drawing_sha256": "c61c0c17505c06c7de187f46bf834f1807777cee5a18efb88f7476024b88a18b",
+  "dotnet_sdk": "10.0.403",
+  "runtimes": [
+    "Microsoft.AspNetCore.App 10.0.14",
+    "Microsoft.NETCore.App 10.0.14"
+  ],
+  "reference_packages": [
+    "SixLabors.Fonts/3.2.0",
+    "SixLabors.ImageSharp.Drawing/3.1.3",
+    "SixLabors.ImageSharp/4.1.3",
+    "SixLabors.PolygonClipper/1.0.2"
+  ],
+  "os": "Linux",
+  "architecture": "x86_64",
+  "cpu_model": "12th Gen Intel(R) Core(TM) i5-12450H",
+  "cpu_quota": "1175000 100000",
+  "available_cpus": 12,
+  "tiered_compilation": false,
+  "repeats": 1,
+  "minimum_seconds": 30.0,
+  "minimum_iterations": 5
+}

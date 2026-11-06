@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Drawing/Mediana.Drawing.csproj" />
+    <PackageReference Include="EasyExtensions.Drawing" Version="3.0.95" />
+  </ItemGroup>
+</Project>

@@ -9,7 +9,7 @@ using System.Threading;
 namespace Mediana.Drawing
 {
     /// <summary>Scanline vector drawing, clipping, affine images, and alpha compositing into a pixel buffer.
-    /// Coordinates address pixel edges. Render at a larger resolution and downsample for antialiasing.</summary>
+    /// Coordinates address pixel edges. Antialiased fills, glyphs and strokes integrate fractional pixel coverage.</summary>
     public partial class RasterCanvas
     {
         private readonly PixelBuffer _target;

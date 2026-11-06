@@ -15,10 +15,8 @@ namespace Mediana.Drawing
         {
             ArgumentNullException.ThrowIfNull(path);
             ArgumentNullException.ThrowIfNull(style);
-            VectorPath outline = PathStroker.Outline(path, style, transform, cancellationToken);
-            ScanlineRasterizer.PaintCoverage(outline, transform, FillRule.NonZero, _target.Width, _target.Height,
-                (x, y, coverage) => Paint(x, y, color with { A = (byte)MathF.Round(color.A * coverage) }, blendMode,
-                    (byte)MathF.Round(255 * coverage)), cancellationToken);
+            VectorPath outline = PathStroker.OutlineAntialiased(path, style, transform, cancellationToken);
+            FillPathAntialiased(outline, color, transform, FillRule.NonZero, blendMode, cancellationToken);
         }
 
         /// <summary>Paints a stroke with arbitrary drawing content, applying its fractional shape once

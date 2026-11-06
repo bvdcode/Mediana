@@ -1,18 +1,28 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers;
+
 namespace Mediana.Core.Memory
 {
-    /// <summary>Thread-safe budget for live byte arrays. Object overhead is not included.</summary>
+    /// <summary>Thread-safe budget for live storage capacity. Object overhead and idle pool storage are not included.</summary>
     public class MediaBufferAllocator
     {
         private long allocatedBytes;
         private readonly MediaBufferAllocator? parent;
+        private readonly MemoryPool<byte>? pool;
 
         public MediaBufferAllocator(long limitBytes)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limitBytes);
             LimitBytes = limitBytes;
+        }
+
+        /// <summary>Creates a budget backed by a caller-owned pool. Rentals are cleared and their complete capacity counts against the budget.</summary>
+        public MediaBufferAllocator(long limitBytes, MemoryPool<byte> pool) : this(limitBytes)
+        {
+            ArgumentNullException.ThrowIfNull(pool);
+            this.pool = pool;
         }
 
         public long LimitBytes { get; }
@@ -21,6 +31,7 @@ namespace Mediana.Core.Memory
         private MediaBufferAllocator(long limitBytes, MediaBufferAllocator parent) : this(limitBytes)
         {
             this.parent = parent;
+            pool = parent.pool;
         }
 
         /// <summary>Creates a local budget whose allocations also count against this budget and its ancestors.</summary>
@@ -40,6 +51,7 @@ namespace Mediana.Core.Memory
         public WritableMediaBuffer Allocate(int length)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(length);
+            if (pool is not null) { return AllocatePooled(length); }
             Reserve(length);
             bool created = false;
             try
@@ -51,6 +63,32 @@ namespace Mediana.Core.Memory
             finally
             {
                 if (!created) { Release(length); }
+            }
+        }
+
+        private WritableMediaBuffer AllocatePooled(int length)
+        {
+            IMemoryOwner<byte> owner = pool!.Rent(length);
+            int capacity = 0;
+            bool reserved = false, created = false;
+            try
+            {
+                capacity = owner.Memory.Length;
+                Reserve(capacity);
+                reserved = true;
+                Memory<byte> data = owner.Memory[..length];
+                data.Span.Clear();
+                WritableMediaBuffer buffer = new(new SharedMediaBuffer(data, this, owner));
+                created = true;
+                return buffer;
+            }
+            finally
+            {
+                if (!created)
+                {
+                    try { owner.Dispose(); }
+                    finally { if (reserved) { Release(capacity); } }
+                }
             }
         }
 

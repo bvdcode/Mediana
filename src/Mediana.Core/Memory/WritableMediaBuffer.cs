@@ -13,7 +13,7 @@ namespace Mediana.Core.Memory
         public Memory<byte> Memory => GetStorage().Data;
 
         /// <summary>Returns a writable view borrowed until publication or disposal.</summary>
-        public Span<byte> Span => GetStorage().Data;
+        public Span<byte> Span => GetStorage().Data.Span;
 
         /// <summary>Transfers ownership to a read-only lease without copying. This owner is not thread-safe.</summary>
         public MediaBuffer Publish()

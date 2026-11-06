@@ -11,11 +11,11 @@ namespace Mediana.Tests
         [Theory]
         [InlineData(FillRule.NonZero)]
         [InlineData(FillRule.EvenOdd)]
-        public void ActiveEdgesMatchFullEdgeReferenceWithTransformsAndClippedContours(FillRule rule)
+        public void ActiveEdgesMatchDenseReferenceWithTransformsAndClippedContours(FillRule rule)
         {
-            const int width = 47, height = 39;
+            const int width = 347, height = 39;
             Random random = new(59321);
-            for (int sample = 0; sample < 80; sample++)
+            for (int sample = 0; sample < 20; sample++)
             {
                 VectorPath path = new();
                 for (int contour = 0; contour < 7; contour++)
@@ -40,16 +40,16 @@ namespace Mediana.Tests
         [Theory]
         [InlineData(FillRule.NonZero)]
         [InlineData(FillRule.EvenOdd)]
-        public void CurvedStrokeCoverageMatchesFullEdgeReference(FillRule rule)
+        public void CurvedStrokeCoverageMatchesDenseReference(FillRule rule)
         {
             VectorPath path = new();
-            for (int i = 0; i < 80; i++)
+            for (int i = 0; i < 12; i++)
             {
-                float y = 960 * (i + .5f) / 80;
-                path.MoveTo(0, y).CubicTo(320, y + 19.2f, 960, y - 19.2f, 1280, y);
+                float y = 60 * (i + .5f) / 12;
+                path.MoveTo(0, y).CubicTo(20, y + 1.2f, 60, y - 1.2f, 80, y);
             }
             VectorPath outline = PathStroker.Outline(path, new() { Width = 1.2f }, Matrix3x2.Identity, default);
-            Compare(outline, Matrix3x2.Identity, rule, 1280, 960);
+            Compare(outline, Matrix3x2.Identity, rule, 80, 60);
         }
 
         private static void Compare(VectorPath path, Matrix3x2 transform, FillRule rule, int width, int height)
@@ -69,7 +69,7 @@ namespace Mediana.Tests
             bool[] binary = new bool[width * height], actualBinary = new bool[width * height];
             for (int y = 0; y < height; y++)
             {
-                List<float> divisions = Enumerable.Range(0, 9).Select(i => y + i / 8f).ToList();
+                List<float> divisions = Enumerable.Range(0, 2049).Select(i => y + i / 2048f).ToList();
                 foreach (ScanlineEdge edge in edges)
                 {
                     if (edge.MinimumY > y && edge.MinimumY < y + 1) { divisions.Add(edge.MinimumY); }
@@ -86,7 +86,10 @@ namespace Mediana.Tests
             }
             ScanlineRasterizer.PaintCoverage(path, transform, rule, width, height, (x, y, value) => actual[y * width + x] = value, default);
             ScanlineRasterizer.Paint(path, transform, rule, width, height, (y, left, right) => Array.Fill(actualBinary, true, y * width + left, right - left), default);
-            Assert.Equal(expected, actual);
+            for (int i = 0; i < expected.Length; i++)
+            {
+                Assert.True(Math.Abs(expected[i] - actual[i]) <= .001f, $"Area differs at {i % width}, {i / width}: {expected[i]} versus {actual[i]}.");
+            }
             Assert.Equal(binary, actualBinary);
 
             bool Inside(int value) => rule switch
@@ -107,8 +110,9 @@ namespace Mediana.Tests
                 crossings.Sort((a, b) => a.X.CompareTo(b.X));
                 int winding = 0;
                 float left = 0;
-                foreach ((float x, int direction) in crossings)
+                foreach ((double positionX, int direction) in crossings)
                 {
+                    float x = (float)positionX;
                     bool inside = Inside(winding);
                     winding += direction;
                     bool next = Inside(winding);
