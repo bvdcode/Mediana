@@ -33,7 +33,7 @@ unchanged inputs and allocation-free repeated execution.
 
 The luma-only kernel passes 2,048 independent 16x16 cases; the YUV variant
 passes 4,096 cases spanning 16x16 and 8x8 blocks. Both pass managed execution,
-hardware-intrinsics-disabled execution and strict Linux x64 Native AOT.
+hardware-intrinsics-disabled execution and Linux x64 Native AOT.
 
 ## Complete temporal and rate-controlled sequences
 
@@ -63,11 +63,10 @@ the quality checks for a default change.
 
 ## Complete HD compute pilot
 
-The YUV variant also processes the complete 1,441-picture, 1280x720, 24 fps
-input used in the [stage comparison](h264-stage-performance.md). Both frozen
-Native AOT consumers use `OptimizationPreference=Speed`, the default instruction
-set, logical CPU 2 and `DOTNET_PROCESSOR_COUNT=1`. The operations run serially,
-without overlapping owned builds, tests or other media processing.
+The YUV variant also processes the complete 1,441-picture, 1280x720, 24 fps input used
+in the [stage comparison](h264-stage-performance.md). Both Native AOT consumers use
+`OptimizationPreference=Speed`, the default instruction set, logical CPU 2 and
+`DOTNET_PROCESSOR_COUNT=1`. The operations run serially.
 
 | Resource or result | Current encoder | YUV SATD variant |
 | --- | ---: | ---: |

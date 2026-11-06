@@ -49,8 +49,7 @@ for the stage comparisons, SHA256
 Each complete output contains 1,992,038,400 bytes, all matching independent decoding.
 
 Before/after/after/before processes ran serially on logical CPU 2 of the same
-Linux x64 host, using .NET SDK 10.0.402 and `DOTNET_PROCESSOR_COUNT=1`. No owned
-build, test or other media operation overlapped measurement. The table reports
+Linux x64 host, using .NET SDK 10.0.402 and `DOTNET_PROCESSOR_COUNT=1`. The table reports
 medians of two observations per version; CPU is user plus system time.
 
 | Resource | Separate output copy | Shared published pixels |
@@ -76,15 +75,12 @@ charges return to zero after session disposal.
 Two fresh, complete FFmpeg decode processes use one decoder/output thread, one
 filter thread and the same CPU affinity. Every output byte matches. Their median
 CPU time is 3.527 seconds versus 23.209 for the public Mediana consumer, a
-6.58x difference. The video CPU gap remains open. This change does not establish
-a new encoding or complete-film HLS throughput result.
+6.58x difference. The video CPU gap remains open.
 
 All four CFR, VFR, edited and HD full transcodes and their selected windows remain
 byte-identical to the preceding outputs and independently decode with the same
 presentation times. The original film's 540–546 second transcode and actual
-cropped/HD CLI previews also remain byte-identical. Release compilation, format,
-license headers, 2,976 managed tests, 700 H.264 checks without hardware intrinsics,
-30 isolated package references, strict Native AOT execution and the CLI pass.
+cropped/HD CLI previews also remain byte-identical.
 
 ## Synchronous reconstruction access
 
@@ -92,21 +88,20 @@ Writable reconstruction pixels and macroblock metadata use
 `WritableMediaBuffer.Span` directly. This checked synchronous view borrows the
 same allocation as `Memory`; the existing owner validation still rejects access
 after publication or disposal. Asynchronous I/O continues to use `Memory`.
-This change adds no cached array, reference-plane workspace or frame copy.
+Span access uses the existing allocation without retaining another array or copying pixels.
 
-The frozen Linux x64 Native AOT code for mode access decreases from 139 to 86
+The Linux x64 Native AOT code for mode access decreases from 139 to 86
 bytes, coefficient-count access from 434 to 272 bytes, and writable-plane access
 from 218 to 154 bytes. Their generic `Memory.Span` interpretation paths disappear.
 The owner's storage-validation method remains unchanged. The presence of a
 generic indirect-call path in the preceding code does not prove that the path
 was executed for array-backed buffers.
 
-Frozen consumers compare complete decoding and encoding of the same
+Native AOT consumers compare complete decoding and encoding of the same
 1,441-picture, 1280x720 minute input. The baseline already contains
 [compact interpolation scratch](h264-native-interpolation.md#compact-first-pass-storage).
 Both versions run serially on logical CPU 2 with `DOTNET_PROCESSOR_COUNT=1`;
-CPU includes user and system time. No owned build, test or other media workload
-overlaps measurement. Each table row contains two observations per version.
+CPU includes user and system time. Each table row contains two observations per version.
 
 | Operation and order | Before CPU median, s | Direct span CPU median, s | CPU reduction |
 | --- | ---: | ---: | ---: |
@@ -130,20 +125,12 @@ improvement. Resource differences are local observations on a shared host.
 All sixteen operations process every picture, reach EOF and release owned media
 storage. Every decoded output matches the independent 1,992,038,400-byte raw
 reference, and every encoded output matches the 78,332,832-byte transport
-reference. Product sources, fixtures and executable hashes remain unchanged
-during timing. This is a local access-path improvement; it establishes no new
-FFmpeg ratio or complete-film HLS throughput result.
+reference.
 
 The shared buffer checks cover zero initialization, identity of span and memory
 views, writes through either view, publication, retained sliced leases, released
-owners and allocation-free repeated access. All 3,114 managed tests and 719
-H.264 tests with hardware intrinsics disabled pass. All 30 packages pass
-assembly, metadata and package-only dependency verification; the strict Linux
-x64 Native AOT consumer passes its complete run. The sample and CLI publish
-with Native AOT. An actual CLI HD conversion preserves the preceding transport
+owners and allocation-free repeated access. A CLI HD conversion preserves the preceding transport
 exactly, and independent decoding reads all 49 pictures without errors.
-Release compilation has zero warnings and errors; formatting and root license
-header checks pass.
 
 ## Decoder metadata reuse control
 
@@ -153,10 +140,9 @@ to the media allocator. Retired picture owners rejected further access; reused
 storage was cleared before a new picture acquired it. The encoder retained its
 existing workspace policy, but the shared picture access guard also affected it.
 
-The control uses the same complete 1,441-picture HD input and frozen Native AOT
+The control uses the same complete 1,441-picture HD input and Native AOT
 consumers as the synchronous-access comparison above. Before/after/after/before
-operations run serially on logical CPU 2 with `DOTNET_PROCESSOR_COUNT=1`, with no
-owned build, test or other media workload overlapping timing. Each table entry
+operations run serially on logical CPU 2 with `DOTNET_PROCESSOR_COUNT=1`. Each table entry
 is the median of two complete processes per version. CPU is user plus system.
 
 | Resource | Decode before | Decode with cache | Encode before | Encode with shared guard |
@@ -190,10 +176,8 @@ output-frame disposal alone cannot determine metadata reuse because reference
 pictures can still require it.
 
 All eight timed operations reach EOF, release their media charges and match the
-independent raw or encoded transport reference byte for byte. Sources, fixtures
-and executable hashes remain unchanged during measurement. The isolated variant
-passes 3,119 managed tests, 724 H.264 tests with hardware intrinsics disabled,
-and strict Native AOT ownership and arithmetic checks. These checks include
+independent raw or encoded transport reference byte for byte. Native AOT ownership
+and arithmetic checks include
 retained published pixels, stale-owner rejection, reset state, bounded leases,
 allocation failures and changes of geometry and reference-list count. They
 establish correctness of the tested variant, without establishing a useful
@@ -216,7 +200,7 @@ method-local span. The borrow does not outlive the operation. The existing
 buffer owner, slice and partition checks, metadata layout and pixel ownership
 remain unchanged. No pool, retained array or public API is added.
 
-The frozen Linux x64 Native AOT functions become smaller:
+The Linux x64 Native AOT functions become smaller:
 
 | Function | Before, bytes | Local borrow, bytes |
 | --- | ---: | ---: |
@@ -226,12 +210,12 @@ The frozen Linux x64 Native AOT functions become smaller:
 | Intra prediction mode | 307 | 293 |
 | Intra-neighbour availability | 231 | 172 |
 
-The motion-write and reconstructed-block loops move checked storage access out
-of their cell loops. This static reduction does not establish lower process CPU.
-The complete-input comparison uses the same 1,441-picture references, CPU 2,
-`DOTNET_PROCESSOR_COUNT=1`, serial processes and no overlapping owned heavy
-workloads as the synchronous-access comparison above. Each row reports medians
-of two complete processes per version; CPU includes user and system time.
+The motion-write and reconstructed-block loops move checked storage access out of their
+cell loops. This static reduction does not establish lower process CPU. The
+complete-input comparison uses the same 1,441-picture references, CPU 2,
+`DOTNET_PROCESSOR_COUNT=1` and serial processes as the synchronous-access comparison
+above. Each row reports medians of two complete processes per version; CPU includes user
+and system time.
 
 | Operation and order | Before CPU, s | Local borrow CPU, s | Observed CPU change |
 | --- | ---: | ---: | ---: |
@@ -249,7 +233,5 @@ produce a consistent complete-operation acceleration here. The variant is not
 adopted.
 
 All sixteen complete outputs match the independent raw or transport reference,
-reach EOF and release owned media storage. Source, fixture, input and executable
-hashes remain unchanged during timing. The isolated consumer publishes with
-strict Native AOT warnings. This control establishes no new FFmpeg ratio or
-complete-film HLS result.
+reach EOF and release owned media storage. The isolated consumer publishes with
+Native AOT warnings treated as errors.

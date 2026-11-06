@@ -149,7 +149,7 @@ packet budget must remain enforced.
 
 Each of the 52 reconstructions matched independent decoding exactly. Both
 complete traces also matched independent pixels, every original coded-picture
-identity survived diagnostic remuxing, and strict Linux x64 Native AOT produced
+identity survived diagnostic remuxing, and Linux x64 Native AOT produced
 identical traces and all 52 curve outputs.
 
 A separate allocation trial used the known time to the next scheduled IDR

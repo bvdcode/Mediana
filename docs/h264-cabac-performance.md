@@ -48,8 +48,7 @@ audiovisual HLS and comparisons using the different CAVLC bitstream.
 
 Mediana's median RSS is 10.83% lower. The CPU gap remains substantial.
 All four complete outputs match the independent raw reference byte for byte.
-The Native AOT consumer builds with warnings treated as errors. Product code
-is unchanged from the 3,198-test managed and strict Native AOT validation.
+The Native AOT consumer builds with warnings treated as errors.
 
 ## Native stack observations
 
@@ -84,8 +83,7 @@ deblocking range; it creates no per-macroblock arrays.
 Four complete before/after/after/before Native AOT decodes preserve every raw
 sample, timestamp and duration, EOF and zero owned media. CPU median changes
 from 33.800783 to 32.158611 seconds, a 4.86% reduction. RSS medians are 62,950
-and 63,020 KiB. This first series falls short of the predeclared 5% minimum CPU
-reduction. The variant is not adopted; the remaining CAVLC and reverse-order
+and 63,020 KiB. The variant is not adopted; the remaining CAVLC and reverse-order
 series are not run. The ordinary decoder and its storage contracts are
 unchanged.
 
@@ -101,12 +99,12 @@ A separate internal-edge shortcut checks equal reference indices and close
 motion vectors within a macroblock before resolving full physical identities.
 Intra/residual priority, swapped or duplicate references, unavailable entries
 and slice edges remain independently checked in 93,312 cases in managed,
-hardware-disabled and strict Native AOT execution.
+hardware-disabled and Native AOT execution.
 
 Four complete CABAC decodes preserve every raw sample, timestamp and duration,
 EOF and zero owned media. CPU median changes from 20.870151 to 20.426722 seconds,
-a 2.13% reduction. This series does not meet its predeclared 5% threshold, so
-the shortcut is not adopted and no reverse-order or CAVLC extension is run.
+a 2.13% reduction. The shortcut is not adopted; reverse-order and CAVLC
+comparisons were not run.
 These are paired results on a shared host, not an update to the FFmpeg ratio.
 
 The subsequent [CABAC history comparison](h264-cabac-history.md) reduces
@@ -127,7 +125,7 @@ and is not used as competitive throughput. Of 359 selected stack points,
 one in the container and 151 elsewhere. These counts are observations, not CPU
 percentages.
 
-Boundary strength now resolves physical picture identities before comparing
+Boundary strength resolves physical picture identities before comparing
 motion components. It avoids constructing and passing four reference/motion
 tuples for each inter edge. A matching list order returns immediately; swapped
 lists are checked when needed. Intra and residual priority, unavailable-reference
@@ -160,12 +158,11 @@ media storage. Execution order is reversed for the second series of each input.
 | CAVLC: before, after, after, before | 20.401 | 20.388 | -0.06% |
 | CAVLC: after, before, before, after | 18.880 | 18.131 | -3.97% |
 
-All 16 complete outputs remain exact. CABAC passes the predeclared minimum 5%
-CPU reduction in each order; neither CAVLC series regresses. The overall CABAC
+All 16 complete outputs remain exact. CABAC CPU decreases by 7.82% and 5.49%
+in the two execution orders; neither CAVLC series regresses. The overall CABAC
 CPU medians are 21.895 and 20.182 seconds. CAVLC overall medians differ by only
 0.78%, so these results do not establish a sustained CAVLC speedup. CABAC RSS
 medians are 61,824 and 65,384 KiB; allocation traffic is essentially unchanged.
-No memory reduction is claimed for this computation change.
 
 ### Current independent decoder comparison
 
@@ -194,14 +191,8 @@ The independent 93,312-case matrix covers live and captured lists, reordered
 slice references, duplicate identities, list swaps, inactive vectors, missing
 references, both edge orientations, internal and macroblock edges, and extreme
 signed motion components. Strict zero-allocation and macroblock-reset checks
-also pass. The matrix runs in managed, hardware-disabled and strict Native AOT
+also pass. The matrix runs in managed, hardware-disabled and Native AOT
 execution, together with existing bidirectional and multi-slice checks.
-
-Release build without warnings or errors, all 3,202 managed tests, 723 H.264 tests
-without hardware intrinsics, all 30 package checks, the complete package-only
-strict Linux x64 Native AOT runner, native CLI, sample build, formatting and root
-license-header checks pass. This change does not introduce a concurrency model
-or close the remaining encoding, HLS, quality and application acceptance work.
 
 ### Profile after direct reference comparison
 
@@ -249,9 +240,9 @@ series. RSS medians are 65,604 and 67,076 KiB; no memory improvement is establis
 All four complete 1,441-picture outputs, rational timestamps and durations are
 exact; EOF and released media storage checks pass. The independent 46,656-case
 captured-reference matrix, missing-reference, reset and zero-allocation controls
-pass in managed, hardware-disabled and strict Native AOT execution.
+pass in managed, hardware-disabled and Native AOT execution.
 
-The candidate fails the predeclared minimum 5% CPU reduction and is not adopted.
+The candidate is not adopted.
 Reversed-order and CAVLC extensions are not run. This single series does not
 establish a sustained regression or a cause for the wider decoder gap. The
 current filter retains both live and captured reference inputs; its previous
@@ -356,10 +347,9 @@ in the [FFmpeg direct prediction implementation](https://github.com/FFmpeg/FFmpe
 
 Independent controls pass 1,920 whole-region pixel/motion cases and 16,384
 neighbor-availability, reference-selection and extreme-vector cases in
-managed, hardware-disabled and strict Native AOT execution. The region
+managed, hardware-disabled and Native AOT execution. The region
 matrix also covers temporal prediction, 4x4 inference, long-term references
-and explicit and implicit weights. All 725 H.264 tests pass with hardware
-intrinsics enabled and disabled; the selection checks allocate zero managed
+and explicit and implicit weights. The selection checks allocate zero managed
 bytes after warmup.
 
 Eight complete 180.125-second Native AOT decodes run serially on logical CPU 2,
@@ -391,7 +381,7 @@ Inclusive parent and child estimates overlap and must not be added together.
 A subsequent serial comparison decodes 180.125 seconds: the independently
 checked 60.041667-second High/CABAC scene repeated three times with continuous
 timestamps. This is a sustained operation, rather than three minutes of
-distinct scenes. The accepted decoder code is unchanged during this comparison.
+distinct scenes. The decoder code is unchanged during this comparison.
 
 Both programs run on logical CPU 2 with one decoder thread. FFmpeg filters
 also use one thread. The raw-output encoder selects its automatic count from
@@ -472,10 +462,9 @@ checks signed overflow before accepting a difference from -3 through 3.
 There is no new media buffer, persistent cache, worker or compiler ISA override.
 
 Independent widened scalar arithmetic agrees on 7,079,332 motion lanes in
-managed, hardware-disabled and strict Native AOT execution. The same modes
+managed, hardware-disabled and Native AOT execution. The same modes
 pass 264,192 topology patterns, physical-reference and mixed-edge controls,
-31,248 uniform/mutation cases and 1,920 range/partial-write cases. All 726
-H.264 tests pass with hardware intrinsics enabled and disabled. Disassembly
+31,248 uniform/mutation cases and 1,920 range/partial-write cases. Disassembly
 confirms packed motion instructions in the actual Native AOT consumer.
 
 Eight complete 180.125-second operations produce the same 4,323 pictures and
@@ -519,8 +508,8 @@ values and current slice availability. Independent checks cover 525,640
 mode/reference/vector/coordinate/slice cases, invalid and unavailable lists,
 disposed owners, metadata mutation, allocation and release. Those checks
 and 384 direct-region pixel/motion cases pass with original callers and
-with the control, including managed, hardware-disabled and strict Native
-AOT execution. All 726 existing H.264 tests pass in both managed modes.
+with the control, including managed, hardware-disabled and Native
+AOT execution.
 
 Four complete decodes run in current/control/control/current order:
 
@@ -535,10 +524,8 @@ Every output byte and clock check passes. The observed CPU reduction is
 Reverse-order, CAVLC and encoding extensions are not run. The accepted
 decoder and its last external CPU comparison remain unchanged.
 
-The retained motion-lookup checks pass against the accepted decoder in the
-full 3,206-test managed suite, the 727-test hardware-disabled H.264 suite,
-and a strict Native AOT consumer. Release builds have no warnings or errors;
-license-header and formatting checks pass.
+The motion-lookup checks pass in managed execution, with hardware intrinsics disabled
+and in a Native AOT consumer.
 
 ## Macroblock motion and coded residual region controls
 
@@ -550,13 +537,12 @@ thread on one processor, with unchanged compilation settings.
 The motion control borrows the existing mutable metadata once per list and
 macroblock, carrying it through prediction and immediate partition writes.
 It preserves full Int32 vectors, live slice boundaries and reference-index
-visibility. Independent read/write cases, direct prediction, 727 managed
-H.264 tests, 727 hardware-disabled tests and strict Native AOT checks pass.
+visibility. Independent read/write and direct-prediction checks pass with
+hardware intrinsics enabled and disabled, and under Native AOT.
 
 The residual control reconstructs each absent coded 8x8 luma region once
 instead of visiting its four 4x4 blocks separately. Present regions retain
-the original entropy order. All 22,464 independent cases, the same H.264
-test suites and strict Native AOT checks pass.
+the original entropy order. All 22,464 independent cases pass.
 
 | Control | CPU before, seconds | CPU after, seconds | CPU change | Peak RSS before/after, KiB |
 | --- | ---: | ---: | ---: | ---: |
@@ -575,9 +561,8 @@ The retained [residual checks](../tests/Shared/H264ResidualRegionTestInput.cs)
 cover all 16 luma masks, 52 quantizers, nine macroblock positions and three
 zero/DC/mixed coefficient patterns. They verify pixels, input consumption,
 completed neighbor metadata, unchanged prediction and adjacent storage,
-and media release. The decoder algorithm remains unchanged. The full
-3,207-test managed suite, 728 hardware-disabled H.264 tests, strict Native
-AOT residual consumer, Release build, formatting and license checks pass.
+and media release. They pass in managed execution, with hardware intrinsics disabled and in a Native
+AOT consumer.
 
 ## Combined CABAC decision table control
 
@@ -593,7 +578,7 @@ both symbols and every valid initial offset at ranges 256, 320, 384, 448
 and 510. They verify the decoded symbol, next context, arithmetic interval,
 bit position and alignment, including every normalization shift from zero
 through seven. The original and modified decoders pass these checks in
-managed, hardware-disabled and strict Native AOT execution.
+managed, hardware-disabled and Native AOT execution.
 
 Four complete 180.125-second decodes run in before/after/after/before order:
 
@@ -610,9 +595,8 @@ not adopted. Reverse-order, CAVLC and encoding extensions are not run;
 the external decoder and complete HLS comparisons remain unchanged.
 
 The [normative decision checks](../tests/Shared/H264CabacDecisionTestInput.cs)
-remain in both test projects. The unchanged decoder passes the full
-3,208-test managed suite, 729 hardware-disabled H.264 tests, a strict Native
-AOT decision consumer, Release build, formatting and license checks.
+run in managed execution, with hardware intrinsics disabled and in a Native
+AOT consumer.
 
 ## Checked-byte arithmetic register controls
 
@@ -627,8 +611,7 @@ reader state when checked input rejects a damaged byte.
 Both pass the 245,504 normative decision cases, 32,768 exact interval
 decisions, 81,920 false terminations, all normalization shifts and byte
 phases, malformed-input and zero-allocation checks in managed,
-hardware-disabled and strict Native AOT execution. Each also passes all
-729 H.264 tests with hardware intrinsics enabled and disabled.
+hardware-disabled and Native AOT execution.
 
 Each control runs four complete 180.125-second operations in
 before/after/after/before order. Medians within each separate series are:
@@ -642,7 +625,7 @@ Every operation produces the same 4,323 pictures and 5,976,115,200 raw
 bytes, rational timestamps, durations, EOF and released media storage.
 Neither control reaches the predefined 5% CPU reduction, so neither is
 adopted. Reverse-order, CAVLC and encoding extensions are not run. The
-accepted decoder and its external and complete HLS comparisons remain
+decoder and its external and complete HLS comparisons remain
 unchanged.
 
 ## Macroblock intra and residual classification control
@@ -654,10 +637,9 @@ edges reuse those masks; physical-reference and motion comparisons retain
 the existing rules. The masks use local values and add no media allocation.
 
 All 524,288 exhaustive intra/residual combinations agree with scalar
-boundary strengths in managed, hardware-disabled and strict Native AOT
+boundary strengths in managed, hardware-disabled and Native AOT
 execution. Existing reference identity, mutation, error priority, partial
-write and zero-allocation checks pass. All 729 H.264 tests pass in each
-managed execution mode.
+write and zero-allocation checks pass.
 
 Four complete 180.125-second Native AOT decodes run in current, candidate,
 candidate, current order, pinned to one CPU. Every run matches all 4,323
