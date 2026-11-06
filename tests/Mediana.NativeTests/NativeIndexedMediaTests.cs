@@ -25,11 +25,13 @@ namespace Mediana.NativeTests
                 OpusSplitTestInput.Verify(opusRoot) != 8105 || OpusSpectralTestInput.VerifyPartitions(opusRoot) != 7682 ||
                 OpusSpectralTestInput.VerifyBands(opusRoot) != 7782 || OpusSpectralTestInput.VerifyStereoBands(opusRoot) != 7708 ||
                 OpusSpectrumTestInput.Verify(opusRoot) != 1963 || OpusSpectrumTestInput.Verify(opusRoot, "encoded-spectra.bin") != 1152 ||
-                OpusImdctTestInput.Verify(opusRoot) != 128)
+                OpusImdctTestInput.Verify(opusRoot) != 128 || OpusRestorationTestInput.Verify(opusRoot) != 512 ||
+                OpusConfigurationTestInput.Verify(opusRoot) != 256 || OpusSynthesisTestInput.Verify(opusRoot) != 128 ||
+                OpusCeltPcmTestInput.Verify(opusRoot) != 2448)
             {
                 throw new InvalidDataException("The CELT reference case count differs.");
             }
-            Console.WriteLine("PASS CELT: pulse codewords, normalized spectral vectors, energies, allocation and sequential frame syntax match independent references.");
+            Console.WriteLine("PASS CELT: spectral stages, transforms, filtering and 2,448 sequential PCM frames match independent references.");
             Console.WriteLine("PASS on-demand HLS encoding: independent reverse and repeated mid-GOP windows, exact reference pixels, clocks and allocation release.");
             Console.WriteLine("PASS Ogg: independent Opus/Vorbis packets, metadata, reverse requests, seek preroll and borrowed source ownership.");
             Console.WriteLine("PASS indexed fMP4 HLS: initialization, reverse segment requests, repeated hashes and allocation release match.");
