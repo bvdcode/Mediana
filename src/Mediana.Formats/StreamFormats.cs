@@ -12,6 +12,8 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Aac { get; } = new("aac.audio-specific-config", "aac.raw-data-block", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mp3 { get; } = new("mpeg-audio.frame-header", "mpeg-audio.layer-iii-frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Flac { get; } = new("flac.stream-info", "flac.frames", EncodedPacketBoundary.ArbitraryBytes);
+        public static EncodedStreamFormat Opus { get; } = new("opus.identification-header", "opus.packet", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat Vorbis { get; } = new("vorbis.xiph-laced-headers", "vorbis.packet", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat WavePcm { get; } = new("wave.format", "pcm.samples", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat AiffPcm { get; } = new("aiff.common", "pcm.samples", EncodedPacketBoundary.SampleBlock);
         public static EncodedStreamFormat QuickTimeTimecode32 { get; } = new("quicktime.timecode-description", "quicktime.timecode32-be", EncodedPacketBoundary.SampleBlock);
