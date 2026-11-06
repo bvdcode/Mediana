@@ -298,3 +298,20 @@ interleaved float32 PCM. This covers CELT-only coding; SILK, hybrid coding,
 packet-loss reconstruction and Ogg presentation trimming remain outside it.
 
 SHA-256: `b21f9a0076b075e230f425f26c97012e6274f695feda80c3614e2b7252acf5bc`.
+
+`silk-pulses.bin` records 2,880 SILK excitation pulse decodes from libopus
+1.6.1. All 10/20 ms narrowband, mediumband and wideband frame lengths, three
+signal types, two quantization offsets, rate levels, pulse shell splits, extra
+least-significant bits and signs are covered. Constant, alternating, random,
+empty and short compressed inputs exercise required range-decoder zero
+extension. All signed pulses and entropy state match exactly, including the
+eight parsed but discarded samples of 10 ms mediumband frames. Tests preserve
+unused output and verify zero managed allocations per decode. These vectors
+cover pulse decoding independently of frame side information and SILK synthesis.
+
+The little-endian file begins with `OPUSSLP1` and a 32-bit case count. Each case
+contains compressed byte count and bytes; 32-bit frame samples, signal type and
+quantization offset; unsigned 32-bit arithmetic range, 32-bit whole/eighth bits;
+and signed 16-bit pulses rounded up to complete 16-sample shell blocks.
+
+SHA-256: `5f12f9206455a64f90cbe94229006c2872508fd67b3753733545191bfcbb848c`.

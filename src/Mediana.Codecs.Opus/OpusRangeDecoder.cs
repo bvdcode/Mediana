@@ -69,7 +69,7 @@ namespace Mediana.Codecs.Opus
         }
 
         /// <summary>The inverse cumulative table ends in zero and uses a power-of-two total up to 256.</summary>
-        public int ReadInverseCdf(ReadOnlySpan<byte> table, int totalBits = 8)
+        public int ReadInverseCdf(scoped ReadOnlySpan<byte> table, int totalBits = 8)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(totalBits);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(totalBits, 8);
