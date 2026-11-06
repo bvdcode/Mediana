@@ -16,6 +16,7 @@ namespace Mediana.Codecs.Hevc
         public BitReader Reader { get; private set; } = null!;
         public IReadOnlyList<ArraySegment<byte>> RowSubstreams { get; private set; } = Array.Empty<ArraySegment<byte>>();
         public int PictureOrderCount { get; private set; }
+        public HevcSliceReferences References { get; private set; } = HevcSliceReferences.Empty;
         public int StartCtbAddress { get; private set; }
         public int EndCtbAddress { get; set; }
         public bool LoopFilterAcrossSlices { get; private set; }
@@ -110,7 +111,8 @@ namespace Mediana.Codecs.Hevc
             }
             if ((nalType != 19) && (nalType != 20))
             {
-                this.PictureOrderCount = picture.Sequence.ReferencePictures.ReadIntraSlice(reader);
+                References = picture.Sequence.ReferencePictures.ReadSlice(reader);
+                this.PictureOrderCount = References.PictureOrderCountLsb;
                 if (picture.Sequence.TemporalMvpEnabled)
                 {
                     reader.ReadFlag();

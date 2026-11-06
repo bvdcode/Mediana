@@ -6,9 +6,10 @@ using System.IO;
 
 namespace Mediana.Codecs.Hevc
 {
-    internal class ShortTermReferenceSet(long[] deltas)
+    internal class ShortTermReferenceSet(HevcShortTermReference[] pictures)
     {
-        public long[] Deltas { get; } = deltas;
+        public static ShortTermReferenceSet Empty { get; } = new([]);
+        public IReadOnlyList<HevcShortTermReference> Pictures { get; } = Array.AsReadOnly(pictures);
 
         public static ShortTermReferenceSet Read(BitReader reader, ShortTermReferenceSet[] preceding, int index, bool slice)
         {
@@ -19,9 +20,9 @@ namespace Mediana.Codecs.Hevc
 
             int negative = HevcSyntax.Ue(reader, 16, "num_negative_pics");
             int positive = HevcSyntax.Ue(reader, 16 - negative, "num_positive_pics");
-            long[] explicitDeltas = new long[negative + positive];
+            HevcShortTermReference[] explicitPictures = new HevcShortTermReference[negative + positive];
             long previous = 0;
-            for (int i = 0; i < explicitDeltas.Length; i++)
+            for (int i = 0; i < explicitPictures.Length; i++)
             {
                 if (i == negative)
                 {
@@ -29,10 +30,9 @@ namespace Mediana.Codecs.Hevc
                 }
                 int step = HevcSyntax.Ue(reader, 32767, "delta_poc_minus1") + 1;
                 previous += i < negative ? -step : step;
-                explicitDeltas[i] = previous;
-                reader.ReadFlag();
+                explicitPictures[i] = new(previous, reader.ReadFlag());
             }
-            return new ShortTermReferenceSet(explicitDeltas);
+            return new ShortTermReferenceSet(explicitPictures);
         }
 
         private static ShortTermReferenceSet ReadPredicted(BitReader reader, ShortTermReferenceSet[] preceding, int index, bool slice)
@@ -41,15 +41,15 @@ namespace Mediana.Codecs.Hevc
             ShortTermReferenceSet source = preceding[index - distance];
             int sign = reader.ReadFlag() ? -1 : 1;
             int delta = sign * (HevcSyntax.Ue(reader, 32767, "abs_delta_rps_minus1") + 1);
-            List<long> entries = new List<long>();
-            for (int i = 0; i <= source.Deltas.Length; i++)
+            List<HevcShortTermReference> entries = new List<HevcShortTermReference>();
+            for (int i = 0; i <= source.Pictures.Count; i++)
             {
                 bool used = reader.ReadFlag();
                 bool include = used || reader.ReadFlag();
-                long shifted = (i < source.Deltas.Length ? source.Deltas[i] : 0) + delta;
+                long shifted = (i < source.Pictures.Count ? source.Pictures[i].Delta : 0) + delta;
                 if (include && (shifted != 0))
                 {
-                    entries.Add(shifted);
+                    entries.Add(new(shifted, used));
                 }
             }
             if (entries.Count > 16)
@@ -58,11 +58,11 @@ namespace Mediana.Codecs.Hevc
             }
             entries.Sort((left, right) =>
             {
-                if ((left < 0) && (right < 0))
+                if ((left.Delta < 0) && (right.Delta < 0))
                 {
-                    return right.CompareTo(left);
+                    return right.Delta.CompareTo(left.Delta);
                 }
-                return left.CompareTo(right);
+                return left.Delta.CompareTo(right.Delta);
             });
             return new ShortTermReferenceSet(entries.ToArray());
         }

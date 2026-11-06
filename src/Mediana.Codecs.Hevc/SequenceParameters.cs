@@ -47,6 +47,8 @@ namespace Mediana.Codecs.Hevc
         public int Log2MinTransform { get; private set; }
         public int Log2MaxTransform { get; private set; }
         public int MaxTransformDepthIntra { get; private set; }
+        public int MaximumDecodedPictures { get; private set; }
+        public int MaximumReorderPictures { get; private set; }
         public bool SaoEnabled { get; private set; }
         public ReferencePictureSyntax ReferencePictures { get; private set; } = null!;
         public bool TemporalMvpEnabled { get; private set; }
@@ -84,7 +86,9 @@ namespace Mediana.Codecs.Hevc
             for (int i = allOrdering ? 0 : subLayers; i <= subLayers; i++)
             {
                 int buffering = HevcSyntax.Ue(reader, 15, "sps_max_dec_pic_buffering_minus1");
-                HevcSyntax.Ue(reader, buffering, "sps_max_num_reorder_pics");
+                int reorder = HevcSyntax.Ue(reader, buffering, "sps_max_num_reorder_pics");
+                sps.MaximumDecodedPictures = buffering + 1;
+                sps.MaximumReorderPictures = reorder;
                 reader.ReadUev();
             }
 
