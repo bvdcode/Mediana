@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.IO.Compression;
-using Mediana.IO;
+using Mediana.Core.Memory;
 
 namespace Mediana.Codecs.Tiff
 {
@@ -19,7 +19,7 @@ namespace Mediana.Codecs.Tiff
                 case 5: Lzw(encoded.Span, output, token); break;
                 case 8:
                 case 32946:
-                    using (ReadOnlyMemoryStream input = new(encoded))
+                    using (BorrowedMemoryStream input = new(encoded))
                     using (ZLibStream zlib = new(input, CompressionMode.Decompress))
                     {
                         int position = 0;
