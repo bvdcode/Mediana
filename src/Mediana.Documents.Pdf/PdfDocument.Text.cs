@@ -7,11 +7,11 @@ namespace Mediana.Documents.Pdf
     {
         /// <summary>Extracts Unicode blocks without rasterization or font-program loading. Tagged structure is declared;
         /// geometric line ordering for untagged content is reconstructed.</summary>
-        public IEnumerable<DocumentTextBlock> ReadText(DocumentTextOptions? options = null,CancellationToken cancellationToken = default)
+        public IEnumerable<DocumentTextBlock> ReadText(DocumentTextOptions? options = null, CancellationToken cancellationToken = default)
         {
             options ??= new(); options.Validate();
             PdfDocumentText source;
-            lock (_sync) { source = new(RequireOpen(),_pages.ToArray(),_optionalContent,options,cancellationToken); }
+            lock (_sync) { source = new(RequireOpen(), _pages.ToArray(), _optionalContent, options, cancellationToken); }
             using IEnumerator<DocumentTextBlock> enumerator = source.Read().GetEnumerator();
             while (true)
             {

@@ -8,11 +8,12 @@ namespace Mediana.Documents.Pdf
 {
     internal static class PdfUnicodeMap
     {
-        internal static Dictionary<int, string> Read(PdfStorage storage, PdfValue reference, bool composite, CancellationToken token, Action<int> charge, Action<string> warning)
+        private static readonly Encoding Utf16 = new UnicodeEncoding(true, false, true);
+        internal static Dictionary<int, string?> Read(PdfStorage storage, PdfValue reference, bool composite, CancellationToken token, Action<int> charge, Action<string> warning)
         {
             ReadOnlyMemory<byte> bytes = storage.Decode(storage.Object(reference, token), token);
             PdfSyntax syntax = new(bytes, storage.Budget, token);
-            Dictionary<int, string> mappings = [];
+            Dictionary<int, string?> mappings = [];
             List<(int First, int Last)> spaces = [];
             PdfValue previous = PdfValue.Null;
             while (true)
@@ -28,7 +29,7 @@ namespace Mediana.Documents.Pdf
                     case "beginbfchar":
                     case "beginbfrange":
                         int count = previous.Integer();
-                        if (count is < 1 or > 100) { throw new InvalidDataException("Invalid PDF CMap block size."); }
+                        if (count < 0 || count > storage.Budget.Options.MaximumOperations) { throw new InvalidDataException("Invalid PDF CMap block size."); }
                         for (int i = 0; i < count; i++)
                         {
                             int first = Code(syntax.Read());
@@ -95,23 +96,31 @@ namespace Mediana.Documents.Pdf
                 { throw new NotSupportedException("PDF ToUnicode source width does not match the font encoding."); }
                 return width == 2 ? BinaryPrimitives.ReadUInt16BigEndian(value.Bytes) : value.Bytes[0];
             }
-            void Add(int code, string scalar)
+            void Add(int code, string? scalar)
             {
                 charge(1);
                 if (!mappings.TryAdd(code, scalar)) { throw new InvalidDataException("Overlapping PDF ToUnicode mappings."); }
             }
         }
 
-        private static string Scalar(PdfValue value)
+        private static string? Scalar(PdfValue value)
         {
-            if (value.Kind != PdfValueKind.String || value.Bytes.Length == 0 || value.Bytes.Length % 2 != 0)
+            if (value.Kind != PdfValueKind.String || value.Bytes.Length == 0 || value.Bytes.Length > 512 || value.Bytes.Length % 2 != 0)
             { throw new InvalidDataException("Invalid PDF ToUnicode destination."); }
             return ScalarBytes(value.Bytes);
         }
 
-        private static string ScalarBytes(ReadOnlySpan<byte> bytes)
+        private static string? ScalarBytes(ReadOnlySpan<byte> bytes)
         {
-            return new UnicodeEncoding(true,false,true).GetString(bytes);
+            for (int i = 0; i < bytes.Length; i += 2)
+            {
+                char character = (char)BinaryPrimitives.ReadUInt16BigEndian(bytes[i..]);
+                if (!char.IsSurrogate(character)) { continue; }
+                if (!char.IsHighSurrogate(character) || i + 3 >= bytes.Length
+                    || !char.IsLowSurrogate((char)BinaryPrimitives.ReadUInt16BigEndian(bytes[(i + 2)..]))) { return null; }
+                i += 2;
+            }
+            return Utf16.GetString(bytes);
         }
     }
 }

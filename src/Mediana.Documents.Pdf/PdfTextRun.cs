@@ -4,7 +4,7 @@
 using System.Numerics;
 namespace Mediana.Documents.Pdf
 {
-    internal class PdfTextRun(Func<string> decode,Vector2 position,double size,PdfValue stream,int? mcid,int sequence)
+    internal class PdfTextRun(Func<string> decode, Vector2 position, double size, PdfValue stream, int? mcid, int sequence)
     {
         private string? _text;
         internal string Text => _text ??= decode();

@@ -6,6 +6,7 @@ namespace Mediana.Documents
     /// <summary>Part selection is applied before reading content. Limits reject excessive output; use Take or break for early completion.</summary>
     public record DocumentTextOptions
     {
+        public Action<string>? WarningHandler { get; init; }
         public int StartPartIndex { get; init; }
         public int? PartCount { get; init; }
         public int MaximumBlocks { get; init; } = 1_000_000;

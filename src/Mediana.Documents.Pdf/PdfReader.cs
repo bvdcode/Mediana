@@ -9,8 +9,8 @@ namespace Mediana.Documents.Pdf
     public static class PdfReader
     {
         /// <summary>Opens borrowed memory. Keep its contents valid until the document and its enumerators are disposed.</summary>
-        public static PdfDocument Open(ReadOnlyMemory<byte> input,PdfReaderOptions? options = null,CancellationToken cancellationToken = default)
-            => ReadBorrowed(input,options,cancellationToken);
+        public static PdfDocument Open(ReadOnlyMemory<byte> input, PdfReaderOptions? options = null, CancellationToken cancellationToken = default)
+            => ReadBorrowed(input, options, cancellationToken);
 
         public static async Task<PdfDocument> ReadFileAsync(string path, PdfReaderOptions? options = null, CancellationToken cancellationToken = default)
         {
