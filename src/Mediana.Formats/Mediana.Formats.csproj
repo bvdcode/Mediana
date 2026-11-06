@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <InternalsVisibleTo Include="Mediana.Codecs.Tiff" />
     <InternalsVisibleTo Include="Mediana.Codecs.Png" />
     <InternalsVisibleTo Include="Mediana.Containers.Matroska" />
     <InternalsVisibleTo Include="Mediana.Tests" />
