@@ -3,6 +3,7 @@
 
 using Mediana.Core;
 using Mediana.Formats;
+using Mediana.Formats.Video;
 
 namespace Mediana.Containers.Mp4
 {
@@ -28,7 +29,7 @@ namespace Mediana.Containers.Mp4
             }
             return (kind, entry.Type) switch
             {
-                (MediaKind.Video, "avc1" or "avc3") => ParseVideo(entry, budget, quickTime),
+                (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1") => ParseVideo(entry, budget, quickTime),
                 (MediaKind.Audio, "mp4a") => ParseAudio(entry, budget),
                 (MediaKind.Data, "tmcd") => ParseTimecode(entry),
                 _ => throw new NotSupportedException($"MP4 sample entry '{entry.Type}' is not supported.")
@@ -52,13 +53,32 @@ namespace Mediana.Containers.Mp4
             }
             Mp4BoxCollection children = new(entry.Payload[78..], budget, allowTerminator: true);
             RejectEncryption(children);
-            ReadOnlyMemory<byte> configuration = children.Required("avcC").Payload;
-            if (configuration.Length < 7 || configuration.Span[0] != 1)
-            {
-                throw new InvalidDataException("The MP4 AVC configuration record is invalid.");
-            }
-            return new Mp4SampleDescription(entry.Type, "h264", StreamFormats.Avc, configuration, Width: width, Height: height,
+            (string codecId, EncodedStreamFormat format, ReadOnlyMemory<byte> configuration) = ReadVideoConfiguration(entry.Type, children);
+            return new Mp4SampleDescription(entry.Type, codecId, format, configuration, Width: width, Height: height,
                 ColorDescriptions: Mp4ColorDescriptionParser.Read(children), AspectRatioDescription: Mp4AspectRatioParser.Read(children, quickTime));
+        }
+
+        private static (string CodecId, EncodedStreamFormat Format, ReadOnlyMemory<byte> Configuration) ReadVideoConfiguration(
+            string sampleType, Mp4BoxCollection children)
+        {
+            switch (sampleType)
+            {
+                case "avc1":
+                case "avc3":
+                    ReadOnlyMemory<byte> avc = children.Required("avcC").Payload;
+                    if (avc.Length < 7 || avc.Span[0] != 1)
+                    {
+                        throw new InvalidDataException("The MP4 AVC configuration record is invalid.");
+                    }
+                    return ("h264", StreamFormats.Avc, avc);
+                case "hvc1":
+                case "hev1":
+                    ReadOnlyMemory<byte> hevc = children.Required("hvcC").Payload;
+                    HevcDecoderConfiguration.Read(hevc);
+                    return (HevcDecoderConfiguration.CodecId, StreamFormats.Hevc, hevc);
+                default:
+                    throw new InvalidOperationException("The MP4 video sample entry mapping is inconsistent.");
+            }
         }
 
         private static Mp4SampleDescription ParseAudio(Mp4Box entry, Mp4ParseBudget budget)

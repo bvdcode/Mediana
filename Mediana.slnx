@@ -50,6 +50,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Mediana.Codecs.Raster.Tests/Mediana.Codecs.Raster.Tests.csproj" />
     <Project Path="tests/Mediana.Containers.Ogg.Tests/Mediana.Containers.Ogg.Tests.csproj" />
+    <Project Path="tests/Mediana.Codecs.Hevc.Tests/Mediana.Codecs.Hevc.Tests.csproj" />
     <Project Path="tests/Mediana.Codecs.Webp.Tests/Mediana.Codecs.Webp.Tests.csproj" />
     <Project Path="tests/Mediana.NativeTests/Mediana.NativeTests.csproj" />
     <Project Path="tests/Mediana.Tests/Mediana.Tests.csproj" />
