@@ -364,3 +364,22 @@ Each case contains a 32-bit order, signed 16-bit Q15 frequencies, signed
 precedes stability cases containing order, Q12 coefficients and inverse gain.
 
 SHA-256: `aba5a3cc413adfe942f884f19d2836a915a5fb735a78309a5ff6177fabd6681e`.
+
+`silk-indices.bin` records 3,456 complete SILK side-information and pulse
+decodes using libopus 1.6.1 `silk_decode_indices` and `silk_decode_pulses`. All
+internal sample rates, both frame durations, all conditional coding modes,
+previous signal types, activity flags and changing lag histories are included.
+Tests compare every frame field, gain/LSF/LTP index, entropy history and range,
+then decode the excitation from that same entropy state. Voiced cases also
+verify subframe pitch lags, all five Q14 taps and LTP scaling. Repeated combined
+decoding allocates no managed storage; primary lag extremes clamp to the
+normative per-bandwidth limits.
+
+The little-endian file begins with `OPUSSLI1` and a 32-bit case count. Each
+case contains compressed bytes; rate/subframes/coding/activity/previous signal
+and lag; decoded frame and pitch fields; gain, LSF and LTP indices; resulting
+entropy history and range state; signed 16-bit padded pulses and resulting
+range state. Voiced cases append 32-bit subframe lags, signed 16-bit Q14 LTP
+coefficients and a 32-bit Q14 LTP scale.
+
+SHA-256: `75a9c09d64563cf58d46f5721170c8993290aa5775b403b98cf9aff79145fa42`.
