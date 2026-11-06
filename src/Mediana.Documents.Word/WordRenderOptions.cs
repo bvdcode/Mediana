@@ -9,13 +9,8 @@ using Mediana.Imaging;
 namespace Mediana.Documents.Word
 {
     /// <summary>Page rasterization settings. Layout coordinates are points; resolution does not change pagination.</summary>
-    public record WordRenderOptions
+    public record WordRenderOptions : PageRasterOptions
     {
-        public double Dpi { get; init; } = 96;
-        public int? MaximumWidth { get; init; }
-        public int? MaximumHeight { get; init; }
-        public int Supersampling { get; init; } = 2;
-        public int MaximumSamples { get; init; } = 16_777_216;
         /// <summary>Source image validation limit. Large PNG pictures are decoded to the page resolution using bounded scanlines.</summary>
         public int MaximumImagePixels { get; init; } = 67_108_864;
         /// <summary>Shared embedded image decoders. Registered document decoding uses the engine's registry.</summary>

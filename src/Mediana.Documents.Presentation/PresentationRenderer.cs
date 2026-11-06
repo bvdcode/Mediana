@@ -16,18 +16,12 @@ namespace Mediana.Documents.Presentation
             ArgumentNullException.ThrowIfNull(document);
             document.CheckSlide(slideIndex);
             options ??= new();
-            if (!double.IsFinite(options.Dpi) || options.Dpi <= 0 || options.Supersampling is < 1 or > 4 || options.MaximumWidth is <= 0
-                || options.MaximumHeight is <= 0 || options.MaximumSamples <= 0 || options.MaximumImagePixels <= 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
-            double scale = options.Dpi / 72;
-            if (options.MaximumWidth is int mw) { scale = Math.Min(scale, mw / document.Width); }
-            if (options.MaximumHeight is int mh) { scale = Math.Min(scale, mh / document.Height); }
-            double width = Math.Ceiling(document.Width * scale), height = Math.Ceiling(document.Height * scale);
-            if (width < 1 || height < 1 || width * height * options.Supersampling * options.Supersampling > options.MaximumSamples)
-            { throw new InvalidDataException("Presentation slide exceeds MaximumSamples at the requested resolution."); }
+            if (options.MaximumImagePixels <= 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
+            PageRasterPlan plan = PageRasterPlan.Create(document.Width,document.Height,options);
             cancellationToken.ThrowIfCancellationRequested();
             PresentationScene scene = new(document, slideIndex, cancellationToken);
             allocator ??= new(long.MaxValue);
-            PixelBuffer output = new(checked((int)width), checked((int)height), allocator);
+            PixelBuffer output = new(plan.Width,plan.Height,allocator);
             bool completed = false;
             try
             {
@@ -36,7 +30,7 @@ namespace Mediana.Documents.Presentation
                 PixelBuffer surface = high ?? output;
                 surface.Clear(new(255, 255, 255));
                 using PresentationRasterizer rasterizer = new(new(surface), document, scene, options, allocator, cancellationToken);
-                await rasterizer.DrawAsync(Matrix3x2.CreateScale((float)(scale * samples))).ConfigureAwait(false);
+                await rasterizer.DrawAsync(Matrix3x2.CreateScale((float)(plan.Scale * samples))).ConfigureAwait(false);
                 high?.DownsampleTo(output, samples, cancellationToken);
                 completed = true;
                 return output;

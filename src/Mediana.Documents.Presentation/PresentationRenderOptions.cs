@@ -7,13 +7,8 @@ using Mediana.Drawing;
 using Mediana.Imaging;
 namespace Mediana.Documents.Presentation
 {
-    public record PresentationRenderOptions
+    public record PresentationRenderOptions : PageRasterOptions
     {
-        public double Dpi { get; init; } = 96;
-        public int? MaximumWidth { get; init; }
-        public int? MaximumHeight { get; init; }
-        public int Supersampling { get; init; } = 2;
-        public int MaximumSamples { get; init; } = 16_777_216;
         public int MaximumImagePixels { get; init; } = 67_108_864;
         public TextOptions Text { get; init; } = new();
         public ImageDecodeContext Images { get; init; } = ImageResources.DefaultDecoders;
