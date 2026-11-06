@@ -1,0 +1,89 @@
+[
+  {
+    "file": "bitmap-1.bmp",
+    "pixels": "bitmap-1.rgba",
+    "width": 17,
+    "height": 11
+  },
+  {
+    "file": "bitmap-P.bmp",
+    "pixels": "bitmap-P.rgba",
+    "width": 17,
+    "height": 11
+  },
+  {
+    "file": "bitmap-RGB.bmp",
+    "pixels": "bitmap-RGB.rgba",
+    "width": 17,
+    "height": 11
+  },
+  {
+    "file": "bitmap-RGBA.bmp",
+    "pixels": "bitmap-RGBA.rgba",
+    "width": 17,
+    "height": 11
+  },
+  {
+    "file": "icon-png.ico",
+    "pixels": "icon-png-0.rgba",
+    "width": 16,
+    "height": 16,
+    "page": 0
+  },
+  {
+    "file": "icon-png.ico",
+    "pixels": "icon-png-1.rgba",
+    "width": 32,
+    "height": 32,
+    "page": 1
+  },
+  {
+    "file": "icon-bmp.ico",
+    "pixels": "icon-bmp-0.rgba",
+    "width": 16,
+    "height": 16,
+    "page": 0
+  },
+  {
+    "file": "icon-bmp.ico",
+    "pixels": "icon-bmp-1.rgba",
+    "width": 32,
+    "height": 32,
+    "page": 1
+  },
+  {
+    "file": "rle8.bmp",
+    "pixels": "rle8.rgba",
+    "width": 4,
+    "height": 2,
+    "reference": "FFmpeg RGBA8"
+  },
+  {
+    "file": "rle4.bmp",
+    "pixels": "rle4.rgba",
+    "width": 4,
+    "height": 2,
+    "reference": "FFmpeg RGBA8"
+  },
+  {
+    "file": "rgb565.bmp",
+    "pixels": "rgb565.rgba",
+    "width": 3,
+    "height": 2,
+    "reference": "FFmpeg RGBA8"
+  },
+  {
+    "file": "topdown.bmp",
+    "pixels": "topdown.rgba",
+    "width": 2,
+    "height": 2,
+    "reference": "FFmpeg RGBA8"
+  },
+  {
+    "file": "alpha-v4.bmp",
+    "pixels": "alpha-v4.rgba",
+    "width": 2,
+    "height": 2,
+    "reference": "FFmpeg RGBA8"
+  }
+]
