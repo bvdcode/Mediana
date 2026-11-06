@@ -267,3 +267,15 @@ contains the TOC byte followed by three 32-bit integers: coded channels, samples
 per frame and bandwidth (narrowband through fullband as values zero through four).
 
 SHA-256: `3901c777f70398c3f396156981acece497ebb5a53b61781f5bfe3f81025b7950`.
+
+`synthesis.bin` records 128 libopus 1.6.1 synthesis cases covering every CELT
+frame size, long/transient transforms, four bandwidths, hybrid-band starts,
+mono/stereo coding and output-channel combinations, nonzero incoming overlap,
+pitch-filter transitions and steady filters. Signal histories, normalized
+spectra, band energies and de-emphasis memory vary independently. Raw synthesis
+has relative L2 tolerance 0.000003 and peak tolerance 0.0001 of the reference
+peak (with a 0.00001 floor). De-emphasis is then verified on the reference raw
+signal, isolating it from transform rounding and cancellation in its final
+state. Repeated synthesis and filtering allocate no managed storage.
+
+SHA-256: `e2d2dbc351a64b29e0c96da57d0405ec786e5cad33ca96b75bcf3a4e87f98d21`.
