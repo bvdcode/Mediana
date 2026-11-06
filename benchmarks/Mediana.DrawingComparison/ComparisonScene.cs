@@ -5,16 +5,20 @@ using Mediana.Drawing;
 
 namespace Mediana.DrawingComparison
 {
-    internal partial class ComparisonScene(string name, int width, int height, int complexity)
+    internal partial class ComparisonScene(string name, int width, int height, int complexity, int scale = 1)
     {
         internal string Name => name;
         internal int Width => width;
         internal int Height => height;
         internal int Complexity => complexity;
+        internal int Scale => scale;
+        internal int PixelWidth => checked(width * scale);
+        internal int PixelHeight => checked(height * scale);
         private static Rgba32 Ink => new(30, 40, 60);
 
         internal void Draw(IDrawingTarget target)
         {
+            if (scale != 1) { target = new ScaledDrawingTarget(target, scale); }
             switch (name)
             {
                 case "short-text": Text(target, false, false); break;

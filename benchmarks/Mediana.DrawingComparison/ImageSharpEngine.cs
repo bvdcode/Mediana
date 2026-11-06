@@ -20,7 +20,7 @@ namespace Mediana.DrawingComparison
         }
         public IRenderedImage Render(ComparisonScene scene)
         {
-            Image<Rgba32> image = new(scene.Width, scene.Height);
+            Image<Rgba32> image = new(scene.PixelWidth, scene.PixelHeight);
             bool completed = false;
             try
             {

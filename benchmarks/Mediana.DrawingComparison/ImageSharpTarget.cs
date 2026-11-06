@@ -34,7 +34,7 @@ namespace Mediana.DrawingComparison
             context.Restore();
         }
         public void Stroke(ComparisonPath path, Rgba32 color, float width) =>
-            context.Draw(new SolidPen(ToColor(color), width), Convert(path));
+            context.Draw(new SolidPen(new PenOptions(ToColor(color), width) { StrokeOptions = new() { LineCap = LineCap.Butt, LineJoin = LineJoin.Miter, MiterLimit = 10 } }), Convert(path));
         public void Text(ReadOnlySpan<char> text, float x, float baseline, float size, Rgba32 color)
         {
             RichTextOptions textOptions = new(family.CreateFont(size, style))

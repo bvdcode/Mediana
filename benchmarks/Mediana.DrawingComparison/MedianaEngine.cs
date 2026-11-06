@@ -11,7 +11,7 @@ namespace Mediana.DrawingComparison
         private readonly FontProgram program = new(data);
         public IRenderedImage Render(ComparisonScene scene)
         {
-            PixelBuffer pixels = new(scene.Width, scene.Height);
+            PixelBuffer pixels = new(scene.PixelWidth, scene.PixelHeight);
             bool completed = false;
             try
             {

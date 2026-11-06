@@ -12,7 +12,7 @@ namespace Mediana.DrawingComparison
     {
         internal static async Task RunAsync(string[] args)
         {
-            if (args.Length != 10) { throw new ArgumentException("Usage: <mediana|imagesharp> <scene> <width> <height> <complexity> <font-file> <iterations> <seconds> <parallelism> <export-directory|->"); }
+            if (args.Length is not 10 and not 11) { throw new ArgumentException("Usage: <mediana|imagesharp> <scene> <width> <height> <complexity> <font-file> <iterations> <seconds> <parallelism> <export-directory|-> [scale]"); }
             int width = int.Parse(args[2], CultureInfo.InvariantCulture), height = int.Parse(args[3], CultureInfo.InvariantCulture);
             int complexity = int.Parse(args[4], CultureInfo.InvariantCulture), iterations = int.Parse(args[6], CultureInfo.InvariantCulture);
             double seconds = double.Parse(args[7], CultureInfo.InvariantCulture);
@@ -27,7 +27,7 @@ namespace Mediana.DrawingComparison
             };
             double fontTime = Stopwatch.GetElapsedTime(start).TotalMilliseconds;
             long fontBytes = GC.GetTotalAllocatedBytes(true) - allocated;
-            ComparisonScene scene = new(args[1], width, height, complexity);
+            ComparisonScene scene = new(args[1], width, height, complexity, args.Length == 11 ? int.Parse(args[10], CultureInfo.InvariantCulture) : 1);
             int running = 0, observed = 0;
             void Draw()
             {
@@ -62,7 +62,7 @@ namespace Mediana.DrawingComparison
             double cpuTime = (process.TotalProcessorTime - cpu).TotalMilliseconds;
             process.Refresh();
             int count = rounds * parallelism;
-            ComparisonMeasurement result = new(args[0], scene.Name, width, height, complexity, Path.GetFileName(args[5]), Convert.ToHexString(SHA256.HashData(font)),
+            ComparisonMeasurement result = new(args[0], scene.Name, width, height, scene.Scale, complexity, Path.GetFileName(args[5]), Convert.ToHexString(SHA256.HashData(font)),
                 Environment.ProcessorCount, parallelism, observed, count, elapsed.Elapsed.TotalSeconds, cold, coldBytes, fontTime, fontBytes,
                 elapsed.Elapsed.TotalMilliseconds / count, cpuTime / count, bytes / count, process.PeakWorkingSet64, process.WorkingSet64,
                 GC.CollectionCount(0) - gen0, GC.CollectionCount(1) - gen1, GC.CollectionCount(2) - gen2);
@@ -70,7 +70,7 @@ namespace Mediana.DrawingComparison
             {
                 Directory.CreateDirectory(args[9]);
                 using IRenderedImage image = engine.Render(scene);
-                byte[] pixels = new byte[checked(width * height * 4)];
+                byte[] pixels = new byte[checked(scene.PixelWidth * scene.PixelHeight * 4)];
                 image.CopyPixelsTo(pixels);
                 await File.WriteAllBytesAsync(Path.Combine(args[9], args[0] + ".rgba"), pixels);
             }
