@@ -67,3 +67,22 @@ contain six 32-bit values: zero probability, decay, signed residual, arithmetic
 range, whole bits and eighth bits. Probabilities use Q15 precision.
 
 SHA-256: `19acb99bf22c604f0185255e1e718a08388f0666fbc1eded2d289217e7b6555b`.
+
+`energy-decoder.bin` records all three energy reconstruction stages for 768
+libopus 1.6.1 cases: all four CELT frame sizes, mono/stereo, intra/inter prediction,
+full-band and hybrid-band starts, partial bandwidths, and frames from zero to
+1,275 bytes, with random, saturated and alternating input bytes. Tests require
+bit-exact float32 energies and arithmetic range/bit
+usage after coarse reconstruction, raw-bit refinement and final priority bits.
+Bands outside the requested range retain their initial values.
+
+The little-endian file begins with `OPUSENE1` and a 32-bit case count. Each case
+contains the input byte count and bytes; 32-bit channel count, start band, end
+band, frame-size shift and intra flag; 21 float32 starting energies per channel;
+21 32-bit fine-bit counts; and 21 32-bit priorities. The three output states each
+contain 21 float32 energies per channel and the 32-bit arithmetic range, whole
+bits and eighth bits.
+
+SHA-256: `3f2d7c70d2ae6513b92a6fb8d72901f217e3f72b69a9452deb2e1cd51273adce`.
+
+Energy reconstruction follows [RFC 6716 section 4.3.2](https://www.rfc-editor.org/rfc/rfc6716.html#section-4.3.2).

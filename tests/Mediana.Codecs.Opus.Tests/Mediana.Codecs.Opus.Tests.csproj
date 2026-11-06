@@ -7,6 +7,7 @@
     <Compile Include="../Shared/OpusRangeTestInput.cs" Link="OpusRangeTestInput.cs" />
     <Compile Include="../Shared/OpusPulseTestInput.cs" Link="OpusPulseTestInput.cs" />
     <Compile Include="../Shared/OpusLaplaceTestInput.cs" Link="OpusLaplaceTestInput.cs" />
+    <Compile Include="../Shared/OpusEnergyTestInput.cs" Link="OpusEnergyTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
