@@ -106,6 +106,7 @@ namespace Mediana.Formats.Metadata
                 50721 => "ColorMatrix1",
                 50722 => "ColorMatrix2",
                 50728 => "AsShotNeutral",
+                50736 => "LensInfo",
                 50778 => "CalibrationIlluminant1",
                 50779 => "CalibrationIlluminant2",
                 50829 => "ActiveArea",

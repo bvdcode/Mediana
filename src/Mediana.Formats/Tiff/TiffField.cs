@@ -71,7 +71,7 @@ namespace Mediana.Formats.Tiff
         }
         private static MediaPropertyValue Fraction(long numerator, long denominator)
         {
-            if (denominator == 0) { throw new InvalidDataException("Exif rational denominator is zero."); }
+            if (denominator == 0 && numerator != 0) { throw new InvalidDataException("Exif rational denominator is zero."); }
             return MediaPropertyValue.FromRational(numerator, denominator);
         }
         private static MediaPropertyValue Real(double value)
