@@ -23,12 +23,8 @@ namespace Mediana.Documents.Word
             if (format.SmallCaps && Rune.IsLower(character)) { character = Rune.ToUpperInvariant(character); size *= .8; }
             FontRequest request = new(format.Family, format.Bold, format.Italic);
             (TrueTypeFont font, int glyph) = _text.ResolveGlyph(request, character.Value, token);
-            if (_faces.Add((request, font)))
-            {
-                FontFaceInfo? face = font.ReadFaceInfo();
-                if (face is not null && !face.Family.Replace(" ", "", StringComparison.Ordinal).Equals(format.Family.Replace(" ", "", StringComparison.Ordinal), StringComparison.OrdinalIgnoreCase))
-                { warnings.Add("Word font '" + format.Family + "' is rendered with '" + face.Family + "'. Pagination can change with substituted fonts."); }
-            }
+            if (_faces.Add((request, font)) && TextRenderer.DescribeFontSubstitution(request, font) is string warning)
+            { warnings.Add(warning); }
             if (glyph == 0 && !Rune.IsWhiteSpace(character))
             {
                 if (!options.Text.SubstituteMissingFonts) { throw new NotSupportedException($"The selected font has no glyph for U+{character.Value:X4}. Supply a font containing this character."); }
