@@ -310,6 +310,9 @@
     <Compile Include="../Shared/HlsPlanTestInput.cs" Link="HlsPlanTestInput.cs" />
     <Compile Include="../Shared/HlsSessionTestInput.cs" Link="HlsSessionTestInput.cs" />
     <Compile Include="../Shared/FragmentHlsTestInput.cs" Link="FragmentHlsTestInput.cs" />
+    <Compile Include="../Shared/Ogg/OggContainerTestInput.cs" Link="OggContainerTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />
+    <None Include="../Mediana.Containers.Ogg.Tests/Data/*" Link="Data/Ogg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/H264MultiSliceTestInput.cs" Link="H264MultiSliceTestInput.cs" />
     <Compile Include="../Shared/VideoSeekTestInput.cs" Link="VideoSeekTestInput.cs" />

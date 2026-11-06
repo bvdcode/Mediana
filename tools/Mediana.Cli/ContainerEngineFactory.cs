@@ -6,6 +6,7 @@ using Mediana.Containers.Flac;
 using Mediana.Containers.Mp3;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.Matroska;
+using Mediana.Containers.Ogg;
 using Mediana.Containers.Wave;
 
 namespace Mediana.Cli
@@ -18,6 +19,7 @@ namespace Mediana.Cli
             .AddContainer(new WaveReaderFactory())
             .AddContainer(new AiffReaderFactory())
             .AddContainer(new MatroskaReaderFactory())
+            .AddContainer(new OggReaderFactory())
             .AddContainer(new Mp4ReaderFactory(new Mp4ReadOptions { TimestampMode = timestampMode }));
     }
 }

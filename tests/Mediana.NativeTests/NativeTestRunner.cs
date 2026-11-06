@@ -288,6 +288,8 @@ namespace Mediana.NativeTests
             await HlsPlanTestInput.VerifyAsync(root);
             await HlsSessionTestInput.VerifyAsync(root);
             await FragmentHlsTestInput.VerifyAsync(root);
+            await OggContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Ogg"));
+            Console.WriteLine("PASS Ogg: independent Opus/Vorbis packets, metadata, reverse requests, seek preroll and borrowed source ownership.");
             Console.WriteLine("PASS indexed fMP4 HLS: initialization, reverse segment requests, repeated hashes and allocation release match.");
             Console.WriteLine("PASS MP4 HLS session: exact AVC/AAC windows, VOD playlist, segments requested as 2, 0, 1, 2, all compressed packets and continuous transport state match.");
             await MpegTsSegmentTestInput.VerifyAsync(root);
