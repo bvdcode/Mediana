@@ -99,7 +99,7 @@ namespace Mediana.Codecs.Opus
             else { vector[0] = 1; }
         }
 
-        private static void Validate(CeltBandDecoderState state, Span<float> vector, CeltBandResolution resolution,
+        public static void Validate(CeltBandDecoderState state, Span<float> vector, CeltBandResolution resolution,
             ReadOnlySpan<float> lowBand, Span<float> lowBandOutput, float gain)
         {
             ArgumentNullException.ThrowIfNull(state.Codebook);

@@ -199,3 +199,13 @@ coefficients use 0.000001 absolute tolerance and scaled folding outputs 0.00001.
 The same spectral fixture reader verifies both partition and complete-band data.
 
 SHA-256: `3c06b075aea35941f90bd93e62bfbc2c675932325024df1ab06831a1bbac3f32`.
+
+`stereo-bands.bin` records 7,708 joint-stereo bands evaluated with libopus 1.6.1.
+It covers intensity boundaries, inversion control, joint mid/side allocation,
+the orthogonal two-coefficient representation, sign-only bands, time/frequency
+changes and folding. Both reconstructed channels, folding output, entropy state,
+noise seed, budgets and collapse masks use the same comparisons as mono bands.
+Repeated reconstruction allocates no managed storage and preserves borrowed
+folding input.
+
+SHA-256: `4509a70ad0c8a75c51754e5ae4b3ecfe15f765359ca8a49646d1db83d8b7e918`.

@@ -10,8 +10,9 @@ namespace Mediana.Tests
     {
         public static int VerifyPartitions(string root) => Verify(root, "partitions.bin", "OPUSPRT1"u8, false);
         public static int VerifyBands(string root) => Verify(root, "spectral-bands.bin", "OPUSBND1"u8, true);
+        public static int VerifyStereoBands(string root) => Verify(root, "stereo-bands.bin", "OPUSSTB1"u8, true, true);
 
-        private static int Verify(string root, string fileName, ReadOnlySpan<byte> header, bool bands)
+        private static int Verify(string root, string fileName, ReadOnlySpan<byte> header, bool bands, bool stereo = false)
         {
             MediaBufferAllocator allocator = new(128 * 1024);
             using CeltPulseCodebook codebook = CeltPulseCodebook.Create(176, 128, allocator);
@@ -22,6 +23,7 @@ namespace Mediana.Tests
             }
             int cases = reader.ReadInt32();
             Span<float> vector = stackalloc float[176], low = stackalloc float[176], output = stackalloc float[176];
+            Span<float> right = stackalloc float[176];
             for (int index = 0; index < cases; index++)
             {
                 byte[] bytes = reader.ReadBytes(reader.ReadInt32());
@@ -40,9 +42,17 @@ namespace Mediana.Tests
                 }
                 scoped ReadOnlySpan<float> folding = default;
                 if (hasLow) { folding = low[..dimensions]; }
-                CeltBandDecoderState state = new(codebook, band, spread, remaining, seed);
+                int intensity = 21;
+                bool disableInversion = false;
+                if (stereo) { intensity = reader.ReadInt32(); disableInversion = reader.ReadInt32() != 0; }
+                CeltBandDecoderState state = new(codebook, band, spread, remaining, seed, intensity, disableInversion);
                 uint mask;
-                if (bands)
+                if (stereo)
+                {
+                    mask = CeltStereoBandReader.Read(ref decoder, ref state, vector[..dimensions], right[..dimensions], budget,
+                        new(shift, blocks, change), folding, output[..dimensions], fill);
+                }
+                else if (bands)
                 {
                     mask = CeltBandReader.Read(ref decoder, ref state, vector[..dimensions], budget, new(shift, blocks, change),
                         folding, output[..dimensions], gain, fill);
@@ -57,6 +67,7 @@ namespace Mediana.Tests
                     throw new InvalidDataException($"CELT spectral {index} has a different mask, noise seed, allocation or entropy state.");
                 }
                 VerifyCoefficients(reader, vector[..dimensions], index, .000001f);
+                if (stereo) { VerifyCoefficients(reader, right[..dimensions], index, .000001f); }
                 if (bands) { VerifyCoefficients(reader, output[..dimensions], index, .00001f); }
             }
             if (reader.BaseStream.Position != reader.BaseStream.Length)
