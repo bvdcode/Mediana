@@ -24,6 +24,7 @@
     <Compile Include="../Shared/OpusSilkNlsfTestInput.cs" Link="OpusSilkNlsfTestInput.cs" />
     <Compile Include="../Shared/OpusSilkLpcTestInput.cs" Link="OpusSilkLpcTestInput.cs" />
     <Compile Include="../Shared/OpusSilkIndicesTestInput.cs" Link="OpusSilkIndicesTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkParametersTestInput.cs" Link="OpusSilkParametersTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />

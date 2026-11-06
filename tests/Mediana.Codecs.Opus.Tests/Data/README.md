@@ -383,3 +383,18 @@ range state. Voiced cases append 32-bit subframe lags, signed 16-bit Q14 LTP
 coefficients and a 32-bit Q14 LTP scale.
 
 SHA-256: `75a9c09d64563cf58d46f5721170c8993290aa5775b403b98cf9aff79145fa42`.
+
+`silk-parameters.bin` records 2,304 complete parameter reconstructions from
+libopus 1.6.1 `silk_decode_parameters`. All internal rates, frame durations,
+coding modes, first-frame resets, previous gain and LSF histories are included.
+Tests compare effective interpolation, updated histories, Q16 gains, both
+Q12 LPC filters, pitch lags, Q14 LTP taps and scale exactly. Repeated parameter
+reconstruction allocates no managed storage and preserves unused output.
+
+The little-endian file begins with `OPUSSLM1` and a 32-bit case count. Cases
+contain rate/subframes/coding/reset/gain history and prior Q15 LSFs; frame and
+pitch fields; raw gain/LSF/LTP indices; effective interpolation, final gain
+history and scale; updated LSFs, Q16 gains, both compact LPC sets, pitch lags
+and LTP coefficients.
+
+SHA-256: `60d852bac2f463ddd86d37d6b54cf997189c26bb72c17a6b34fb7c12c79bb3fa`.
