@@ -82,6 +82,14 @@ namespace Mediana.Drawing
             canvas.FillPath(BorrowOutline(font, glyph), color, transform, cancellationToken: cancellationToken);
         }
 
+        /// <summary>Draws a glyph with fractional pixel coverage at the canvas resolution.</summary>
+        public void DrawGlyphAntialiased(RasterCanvas canvas, TrueTypeFont font, int glyph, Rgba32 color, Matrix3x2 transform, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(canvas);
+            cancellationToken.ThrowIfCancellationRequested();
+            canvas.FillPathAntialiased(BorrowOutline(font, glyph), color, transform, cancellationToken: cancellationToken);
+        }
+
         internal VectorPath BorrowOutline(TrueTypeFont font, int glyph)
         {
             ArgumentNullException.ThrowIfNull(font);
