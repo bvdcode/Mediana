@@ -5,6 +5,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/SymbolFontTestInput.cs" Link="SymbolFontTestInput.cs" />
     <Compile Include="../Shared/PcmStorageTestInput.cs" Link="PcmStorageTestInput.cs" />
     <Compile Include="../Shared/HlsRenditionTestInput.cs" Link="HlsRenditionTestInput.cs" />
     <Compile Include="../Shared/HlsPackageTestOutput.cs" Link="HlsPackageTestOutput.cs" />

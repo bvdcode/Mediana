@@ -24,7 +24,7 @@ namespace Mediana.Drawing
         {
             _options = options ?? new();
             if (_options.MaximumFontFaces <= 0 || _options.MaximumFontBytes <= 0 || _options.MaximumInlineGraphics <= 0
-                || _options.MaximumPathCommands <= 0 || _options.SubstituteFamilies is null)
+                || _options.MaximumPathCommands <= 0 || _options.SubstituteFamilies is null || _options.FallbackFamilies is null)
             { throw new ArgumentOutOfRangeException(nameof(options)); }
         }
 
@@ -43,19 +43,32 @@ namespace Mediana.Drawing
                 int glyph = font.Glyph(codepoint);
                 if (glyph != 0) { return (font, glyph); }
             }
-            if (_options.SubstituteMissingFonts && (_options.FallbackFontProgramResolver is not null || _options.FallbackFontResolver is not null))
+            if (_options.SubstituteMissingFonts)
             {
                 if (!_supplemental.TryGetValue((request, codepoint), out TrueTypeFont? font))
                 {
-                    FontProgram? shared = _options.FallbackFontProgramResolver?.Invoke(request, codepoint);
-                    ReadOnlyMemory<byte> program = shared is null ? _options.FallbackFontResolver?.Invoke(request, codepoint) ?? default : default;
-                    cancellationToken.ThrowIfCancellationRequested();
-                    font = shared is not null ? LoadFont(shared) : program.IsEmpty ? null : LoadFont(program);
+                    font = ResolveFallback(request, codepoint, cancellationToken);
                     _supplemental.Add((request, codepoint), font);
                 }
                 if (font is not null && font.Glyph(codepoint) is int glyph && glyph != 0) { return (font, glyph); }
             }
             return (fonts[0], 0);
+        }
+
+        private TrueTypeFont? ResolveFallback(FontRequest request, int codepoint, CancellationToken token)
+        {
+            FontProgram? shared = _options.FallbackFontProgramResolver?.Invoke(request, codepoint);
+            ReadOnlyMemory<byte> program = shared is null ? _options.FallbackFontResolver?.Invoke(request, codepoint) ?? default : default;
+            token.ThrowIfCancellationRequested();
+            TrueTypeFont? custom = shared is not null ? LoadFont(shared) : program.IsEmpty ? null : LoadFont(program);
+            if (custom is not null && custom.Glyph(codepoint) != 0) { return custom; }
+            foreach (string family in _options.FallbackFamilies)
+            {
+                token.ThrowIfCancellationRequested();
+                FontProgram candidate = BundledFontPrograms.GetProgram(family, request.Bold, request.Italic);
+                if (candidate.Glyph(codepoint) != 0) { return LoadFont(candidate); }
+            }
+            return null;
         }
 
         /// <summary>Returns an independently mutable outline in the font's design coordinates.</summary>
@@ -142,6 +155,7 @@ namespace Mediana.Drawing
         {
             "AILERON" => "Aileron",
             "CANADA1500" => "Canada1500",
+            "NOTO SANS SYMBOLS 2" => "Noto Sans Symbols 2",
             _ => null
         };
     }

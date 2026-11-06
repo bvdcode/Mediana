@@ -17,24 +17,21 @@ namespace Mediana.Documents.Pdf
             PdfValue unicode = source.Get("ToUnicode");
             if (composite && unicode.Kind == PdfValueKind.Null) { return null; }
             string name = Get(source, "BaseFont").Name();
-            TrueTypeFont? face = _textResources.ResolveFont(ExternalFontRequest(name), token);
+            FontRequest request = ExternalFontRequest(name);
+            TrueTypeFont? face = _textResources.ResolveFont(request, token);
             if (face is null) { return null; }
-            ReadOnlyMemory<byte> program = face.Program;
-            if (_resolvedFaces.Add(face))
-            {
-                if (program.Length > storage.Budget.Options.MaximumDecodedBytes - _fontProgramBytes)
-                { throw new InvalidDataException("PDF page font programs exceed the decoded byte limit."); }
-                _fontProgramBytes += program.Length;
-            }
+            ChargeResolvedFont(face);
             Dictionary<int, int> characters = unicode.Kind == PdfValueKind.Null ? [] : ReadToUnicode(unicode, composite);
             Dictionary<int, int> glyphs = [];
+            Dictionary<int, TrueTypeFont> glyphFaces = [];
+            HashSet<TrueTypeFont> substitutedFaces = [];
             Dictionary<int, double> widths;
             double defaultWidth;
             if (composite)
             {
                 (widths, defaultWidth) = CompositeWidths(dictionary);
                 ChargeOperations(characters.Count);
-                foreach ((int code, int scalar) in characters) { glyphs[code] = ResolveGlyph(scalar); }
+                foreach ((int code, int scalar) in characters) { glyphs[code] = ResolveGlyph(code, scalar); }
             }
             else
             {
@@ -46,7 +43,7 @@ namespace Mediana.Documents.Pdf
                     int scalar = characters.TryGetValue(code, out int mapped) ? mapped
                         : baseName == "WinAnsiEncoding" ? WinAnsi(code)
                         : code switch { 39 => 0x2019, 96 => 0x2018, >= 32 and <= 126 => code, _ => -1 };
-                    glyphs[code] = ResolveGlyph(scalar);
+                    glyphs[code] = ResolveGlyph(code, scalar);
                 }
                 int current = -1;
                 foreach (PdfValue difference in Get(encoding, "Differences").Items)
@@ -55,7 +52,10 @@ namespace Mediana.Documents.Pdf
                     if ((uint)current > 255) { throw new InvalidDataException("Invalid PDF encoding Differences."); }
                     string glyphName = difference.Name();
                     if (!characters.ContainsKey(current))
-                    { glyphs[current] = glyphName == ".notdef" ? 0 : ResolveGlyph(GlyphCode(glyphName)); }
+                    {
+                        glyphFaces.Remove(current);
+                        glyphs[current] = glyphName == ".notdef" ? 0 : ResolveGlyph(current, GlyphCode(glyphName));
+                    }
                     current++;
                 }
                 defaultWidth = 0;
@@ -63,7 +63,10 @@ namespace Mediana.Documents.Pdf
                 {
                     widths = [];
                     foreach ((int code, int glyph) in glyphs)
-                    { if (glyph >= 0) { widths[code] = face.Advance(glyph) * 1000 / face.Units; } }
+                    {
+                        TrueTypeFont selected = glyphFaces.GetValueOrDefault(code, face);
+                        if (glyph >= 0) { widths[code] = selected.Advance(glyph) * 1000 / selected.Units; }
+                    }
                     _warnings.Add("Unembedded PDF font '" + name + "' uses the supplied font's advance metrics.");
                 }
                 else
@@ -74,13 +77,28 @@ namespace Mediana.Documents.Pdf
                 }
             }
             _warnings.Add("Unembedded PDF font '" + name + "' uses a caller-supplied font program.");
-            return new PdfOutlineFont(face, glyphs, widths, defaultWidth, composite);
-            int ResolveGlyph(int scalar)
+            return new PdfOutlineFont(face, glyphs, widths, defaultWidth, composite) { GlyphFaces = glyphFaces };
+            int ResolveGlyph(int code, int scalar)
             {
                 if (scalar < 0) { return -1; }
-                int glyph = face.Glyph(scalar);
+                (TrueTypeFont selected, int glyph) = _textResources.ResolveGlyph(request, scalar, token);
+                ChargeResolvedFont(selected);
+                if (!ReferenceEquals(selected, face))
+                {
+                    glyphFaces[code] = selected;
+                    if (substitutedFaces.Add(selected))
+                    { _warnings.Add("PDF font '" + name + "' uses '" + selected.ReadFaceInfo()?.Family + "' for missing characters."); }
+                }
                 return glyph == 0 ? -1 : glyph;
             }
+        }
+
+        private void ChargeResolvedFont(TrueTypeFont face)
+        {
+            if (!_resolvedFaces.Add(face)) { return; }
+            if (face.Program.Length > storage.Budget.Options.MaximumDecodedBytes - _fontProgramBytes)
+            { throw new InvalidDataException("PDF page font programs exceed the decoded byte limit."); }
+            _fontProgramBytes += face.Program.Length;
         }
 
         private static FontRequest ExternalFontRequest(string name)
