@@ -10,7 +10,7 @@ namespace Mediana.Drawing
 {
     internal static class PathFlattener
     {
-        internal const float AntialiasTolerance = 1f / 256;
+        internal const float AntialiasTolerance = 1f / 64;
         internal static List<PathContour> Flatten(VectorPath path, Matrix3x2 transform, float tolerance = 0.2f, CancellationToken cancellationToken = default)
         {
             var contours = new List<PathContour>();

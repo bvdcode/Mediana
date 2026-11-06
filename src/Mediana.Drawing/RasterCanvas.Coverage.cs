@@ -18,7 +18,7 @@ namespace Mediana.Drawing
 
         internal void FillPathAntialiased(FlattenedPath path, Rgba32 color, Vector2 offset, CancellationToken token)
         {
-            ScanlineEdgeTable edges = new(path.Contours, offset, _target.Width, _target.Height);
+            ScanlineEdgeTable edges = new(path, offset, _target.Width, _target.Height);
             FillCoverage(edges, color, FillRule.NonZero, ColorBlendMode.Normal, token);
         }
 
