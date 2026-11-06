@@ -21,7 +21,9 @@ namespace Mediana.NativeTests
             if (OpusPulseTestInput.Verify(opusRoot) != 13574 || OpusLaplaceTestInput.Verify(opusRoot) != 5257 ||
                 OpusEnergyTestInput.Verify(opusRoot) != 768 || OpusAllocationTestInput.Verify(opusRoot) != 4096 ||
                 OpusFrameSyntaxTestInput.Verify(opusRoot) != 1024 || OpusVectorTestInput.Verify(opusRoot) != 3793 ||
-                OpusVectorTestInput.Verify(opusRoot, "normalized-vectors-16.bin") != 1864)
+                OpusVectorTestInput.Verify(opusRoot, "normalized-vectors-16.bin") != 1864 ||
+                OpusSplitTestInput.Verify(opusRoot) != 8105 || OpusSpectralTestInput.VerifyPartitions(opusRoot) != 7682 ||
+                OpusSpectralTestInput.VerifyBands(opusRoot) != 7782 || OpusSpectralTestInput.VerifyStereoBands(opusRoot) != 7708)
             {
                 throw new InvalidDataException("The CELT reference case count differs.");
             }
