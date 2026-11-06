@@ -68,14 +68,7 @@ namespace Mediana.Drawing
         /// <summary>Fills the image with a color.</summary>
         public void Clear(Rgba32 color)
         {
-            Span<byte> pixels = Pixels.Span;
-            for (int offset = 0; offset < pixels.Length; offset += 4)
-            {
-                pixels[offset] = color.R;
-                pixels[offset + 1] = color.G;
-                pixels[offset + 2] = color.B;
-                pixels[offset + 3] = color.A;
-            }
+            PixelCompositor.Fill(Pixels.Span, color);
         }
 
         /// <summary>Releases unpublished storage. Published frames keep their own leases.</summary>

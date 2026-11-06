@@ -3,16 +3,45 @@
 
 using System;
 using System.Numerics;
+using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 
 namespace Mediana.Drawing
 {
     internal static class PixelCompositor
     {
+        internal static void Fill(Span<byte> pixels, Rgba32 color)
+        {
+            uint packed = color.R | ((uint)color.G << 8) | ((uint)color.B << 16) | ((uint)color.A << 24);
+            if (!BitConverter.IsLittleEndian) { packed = BinaryPrimitives.ReverseEndianness(packed); }
+            MemoryMarshal.Cast<byte, uint>(pixels).Fill(packed);
+        }
+
         internal static void Blend(Span<byte> pixels, int offset, Rgba32 source, ColorBlendMode mode)
         {
             if (source.A == 0)
             {
                 return;
+            }
+
+            if (mode == ColorBlendMode.Normal)
+            {
+                if (source.A == 255 || pixels[offset + 3] == 0)
+                {
+                    pixels[offset] = source.R;
+                    pixels[offset + 1] = source.G;
+                    pixels[offset + 2] = source.B;
+                    pixels[offset + 3] = source.A;
+                    return;
+                }
+                if (pixels[offset + 3] == 255)
+                {
+                    int retained = 255 - source.A;
+                    pixels[offset] = (byte)((source.R * source.A + pixels[offset] * retained + 127) / 255);
+                    pixels[offset + 1] = (byte)((source.G * source.A + pixels[offset + 1] * retained + 127) / 255);
+                    pixels[offset + 2] = (byte)((source.B * source.A + pixels[offset + 2] * retained + 127) / 255);
+                    return;
+                }
             }
 
             if (mode == ColorBlendMode.Add)

@@ -234,12 +234,7 @@ namespace Mediana.Drawing
         {
             ArgumentNullException.ThrowIfNull(path);
             ScanlineRasterizer.Paint(path, transform, rule, _target.Width, _target.Height, (y, left, right) =>
-            {
-                for (int x = left; x < right; x++)
-                {
-                    Paint(x, y, color, blendMode);
-                }
-            }, cancellationToken);
+                PaintSpan(y, left, right, color, blendMode), cancellationToken);
         }
 
         /// <summary>Strokes a path before applying its transform, preserving affine pen shapes.</summary>
