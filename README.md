@@ -22,6 +22,10 @@ An experimental PDF module reads page geometry, renders supported vector/text/im
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
 Word documents can be paginated and rendered directly to PNG from the library or
 CLI. See [Word rendering and public API](docs/word-rendering.md).
+PowerPoint slides render directly through Drawing. Independent XLS and XLSX readers
+expose typed rows and cached formula results. PDF, DOCX, PPTX and spreadsheets share
+a lazy Unicode text API with structural paths and cancellation.
+See [document reading, rendering and text APIs](docs/documents.md).
 Word previews include [Fluent color emoji](docs/emoji.md); library callers can
 enable the optional resource module through the same public API.
 STL, OBJ and 3MF models can be loaded and rendered to PNG with configurable
@@ -36,6 +40,11 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | --- | --- |
 | `Mediana.Models.Mesh` | STL/OBJ/3MF geometry, assembly selection and managed 3D previews ([API](docs/mesh.md)) |
 | `Mediana.Documents.OpenXml` | Bounded OPC packages, relationships and content-type document/model preview routing |
+| `Mediana.Documents` | Lazy Unicode text blocks, structural paths, part selection and output budgets |
+| `Mediana.Documents.Spreadsheets` | Typed sheets, rows, cells, date systems and cached formula contracts |
+| `Mediana.Documents.Xlsx` | Sequential SpreadsheetML reading through bounded OPC streams |
+| `Mediana.Documents.Xls` | Independent CFB/BIFF8 workbook reader with typed cells and cached formula results |
+| `Mediana.Documents.Presentation` | PresentationML slide reading, direct Drawing rasterization and text extraction ([API](docs/documents.md)) |
 | `Mediana.Documents.Word` | DOCX styles, pagination and direct page rasterization ([API](docs/word-rendering.md)) |
 | `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction |
 | `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
