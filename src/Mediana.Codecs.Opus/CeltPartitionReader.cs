@@ -107,22 +107,15 @@ namespace Mediana.Codecs.Opus
             }
             for (int at = 0; at < vector.Length; at++)
             {
-                state.Seed = unchecked(1664525 * state.Seed + 1013904223);
+                state.Seed = CeltNoise.Next(state.Seed);
                 if (lowBand.IsEmpty) { vector[at] = (int)state.Seed >> 20; }
                 else if ((state.Seed & 0x8000) != 0) { vector[at] = lowBand[at] + (1f / 256); }
                 else { vector[at] = lowBand[at] - (1f / 256); }
             }
-            Normalize(vector, gain);
+            CeltVectorMath.Normalize(vector, gain);
             if (lowBand.IsEmpty) { return mask; }
             return fill;
         }
 
-        private static void Normalize(Span<float> vector, float gain)
-        {
-            float energy = 1e-15f;
-            foreach (float coefficient in vector) { energy += coefficient * coefficient; }
-            float scale = (1f / MathF.Sqrt(energy)) * gain;
-            for (int at = 0; at < vector.Length; at++) { vector[at] *= scale; }
-        }
     }
 }

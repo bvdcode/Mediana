@@ -242,3 +242,14 @@ one float per coefficient, with no managed allocations per call. Cancellation
 preserves output/workspace and disposal releases the plan's allocation.
 
 SHA-256: `deb8b0980870297afab96b70b84c56831d9e95b3c37a60678ce35ff75ccdb225`.
+
+`spectrum-restoration.bin` records 512 transient anti-collapse and band-energy
+restoration cases from libopus 1.6.1. Mono/stereo, hybrid-band starts, partial
+bandwidths, prior energy histories, occupied/missing short blocks, bit depths,
+extreme energy differences and silence are included. Normalized coefficients
+use 0.000001 absolute tolerance. Scaled frequency coefficients use 0.000001
+absolute plus 0.000001 relative tolerance. The floating energy floor is verified
+at and immediately below exponent -50. Repeated processing allocates no managed
+storage.
+
+SHA-256: `c4148226f356bde1e7d49d5369650cdf97c69e8e4ccc3d85e6150a40645315ab`.
