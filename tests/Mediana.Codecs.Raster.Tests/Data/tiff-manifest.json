@@ -1,0 +1,293 @@
+[
+  {
+    "file": "tiff-1-raw.tif",
+    "pixels": "tiff-1-raw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-1-packbits.tif",
+    "pixels": "tiff-1-packbits.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-1-tiff_lzw.tif",
+    "pixels": "tiff-1-tiff_lzw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-1-tiff_adobe_deflate.tif",
+    "pixels": "tiff-1-tiff_adobe_deflate.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-L-raw.tif",
+    "pixels": "tiff-L-raw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-L-packbits.tif",
+    "pixels": "tiff-L-packbits.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-L-tiff_lzw.tif",
+    "pixels": "tiff-L-tiff_lzw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-L-tiff_adobe_deflate.tif",
+    "pixels": "tiff-L-tiff_adobe_deflate.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-P-raw.tif",
+    "pixels": "tiff-P-raw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-P-packbits.tif",
+    "pixels": "tiff-P-packbits.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-P-tiff_lzw.tif",
+    "pixels": "tiff-P-tiff_lzw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-P-tiff_adobe_deflate.tif",
+    "pixels": "tiff-P-tiff_adobe_deflate.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-RGB-raw.tif",
+    "pixels": "tiff-RGB-raw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-RGB-packbits.tif",
+    "pixels": "tiff-RGB-packbits.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-RGB-tiff_lzw.tif",
+    "pixels": "tiff-RGB-tiff_lzw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-RGB-tiff_adobe_deflate.tif",
+    "pixels": "tiff-RGB-tiff_adobe_deflate.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-RGBA-raw.tif",
+    "pixels": "tiff-RGBA-raw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-RGBA-packbits.tif",
+    "pixels": "tiff-RGBA-packbits.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-RGBA-tiff_lzw.tif",
+    "pixels": "tiff-RGBA-tiff_lzw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-RGBA-tiff_adobe_deflate.tif",
+    "pixels": "tiff-RGBA-tiff_adobe_deflate.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-CMYK-raw.tif",
+    "pixels": "tiff-CMYK-raw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-CMYK-packbits.tif",
+    "pixels": "tiff-CMYK-packbits.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-CMYK-tiff_lzw.tif",
+    "pixels": "tiff-CMYK-tiff_lzw.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-CMYK-tiff_adobe_deflate.tif",
+    "pixels": "tiff-CMYK-tiff_adobe_deflate.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-tile.tif",
+    "pixels": "tiff-tile.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-separate.tif",
+    "pixels": "tiff-separate.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-big-endian.tif",
+    "pixels": "tiff-big-endian.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-big-tiff.tif",
+    "pixels": "tiff-big-tiff.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-multi.tif",
+    "pixels": "tiff-multi-0.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-multi.tif",
+    "pixels": "tiff-multi-1.rgba",
+    "width": 29,
+    "height": 37,
+    "page": 1,
+    "reference": "Pillow/libtiff"
+  },
+  {
+    "file": "tiff-gray16-little.tif",
+    "pixels": "tiff-gray16-little.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "tifffile unsigned samples; nearest RGBA8 scaling"
+  },
+  {
+    "file": "tiff-gray16-big.tif",
+    "pixels": "tiff-gray16-big.rgba",
+    "width": 37,
+    "height": 29,
+    "page": 0,
+    "reference": "tifffile unsigned samples; nearest RGBA8 scaling"
+  },
+  {
+    "file": "tiff-1-group3.tif",
+    "pixels": "tiff-1-group3.rgba",
+    "width": 137,
+    "height": 65,
+    "page": 0
+  },
+  {
+    "file": "tiff-1-group4.tif",
+    "pixels": "tiff-1-group4.rgba",
+    "width": 137,
+    "height": 65,
+    "page": 0
+  },
+  {
+    "file": "tiff-1-tiff_ccitt.tif",
+    "pixels": "tiff-1-tiff_ccitt.rgba",
+    "width": 137,
+    "height": 65,
+    "page": 0
+  },
+  {
+    "file": "tiff-L-jpeg.tif",
+    "pixels": "tiff-L-jpeg.rgba",
+    "width": 137,
+    "height": 65,
+    "page": 0
+  },
+  {
+    "file": "tiff-RGB-jpeg.tif",
+    "pixels": "tiff-RGB-jpeg.rgba",
+    "width": 137,
+    "height": 65,
+    "page": 0
+  }
+]

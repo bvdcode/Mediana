@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
+    <ProjectReference Include="../Mediana.Formats/Mediana.Formats.csproj" />
+    <ProjectReference Include="../Mediana.IO/Mediana.IO.csproj" />
+  </ItemGroup>
+</Project>

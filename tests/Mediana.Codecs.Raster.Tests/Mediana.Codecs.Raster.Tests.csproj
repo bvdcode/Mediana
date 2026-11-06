@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Tiff/Mediana.Codecs.Tiff.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Gif/Mediana.Codecs.Gif.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Bmp/Mediana.Codecs.Bmp.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
