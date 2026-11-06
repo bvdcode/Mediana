@@ -29,6 +29,24 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void ImportRetainsTheFullRgbaFormatAndRejectsOtherPixelLayouts()
+        {
+            IccColorDescription profile = new([1, 2, 3], false);
+            VideoFormat format = new(1, 1, VideoPixelFormat.Rgba32,
+                new(Matrix: MatrixCoefficients.Rgb, Range: ColorRange.Full), SampleAspectRatio.Square, profile);
+            MediaBufferAllocator allocator = new(4);
+            using (VideoFrame frame = RgbaFrame.CopyFrom([10, 20, 30, 40], format, allocator))
+            {
+                Assert.Same(format, frame.Format);
+                Assert.Same(profile, frame.Format.ColorDescription);
+                Assert.Equal(new byte[] { 10, 20, 30, 40 }, frame.Data.ToArray());
+            }
+            Assert.Throws<ArgumentException>(() => RgbaFrame.CopyFrom(new byte[4],
+                new VideoFormat(1, 1, VideoPixelFormat.Yuv420P8), allocator));
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public void ImportValidatesLengthBudgetAndCancellation()
         {
             MediaBufferAllocator allocator = new(3);
