@@ -24,10 +24,9 @@ namespace Mediana.Drawing
 
         private void FillCoverage(ScanlineEdgeTable edges, Rgba32 color, FillRule rule, ColorBlendMode blendMode, CancellationToken cancellationToken)
         {
-            ScanlineRasterizer.PaintCoverage(edges, rule,
-                (x, y, coverage) => Paint(x, y, color with { A = (byte)MathF.Round(color.A * coverage) }, blendMode,
-                    (byte)MathF.Round(255 * coverage)), cancellationToken,
-                (y, left, right) => PaintSpan(y, left, right, color, blendMode));
+            ScanlineRasterizer.PaintCoverageRuns(edges, rule,
+                (y, left, coverage) => PaintCoverageRow(y, left, coverage, color, blendMode),
+                (y, left, right) => PaintSpan(y, left, right, color, blendMode), cancellationToken);
         }
     }
 }

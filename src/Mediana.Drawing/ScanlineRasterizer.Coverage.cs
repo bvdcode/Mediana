@@ -21,6 +21,17 @@ namespace Mediana.Drawing
 
         internal static void PaintCoverage(ScanlineEdgeTable edges, FillRule rule, Action<int, int, float> pixel,
             CancellationToken cancellationToken, Action<int, int, int>? span = null)
+            => PaintCoverageCore(edges, rule, pixel, cancellationToken, span, null);
+
+        internal static void PaintCoverageRows(ScanlineEdgeTable edges, FillRule rule, CoverageRow row, CancellationToken token)
+            => PaintCoverageCore(edges, rule, null, token, null, row);
+
+        internal static void PaintCoverageRuns(ScanlineEdgeTable edges, FillRule rule, CoverageRow row,
+            Action<int, int, int> span, CancellationToken token)
+            => PaintCoverageCore(edges, rule, null, token, span, row);
+
+        private static void PaintCoverageCore(ScanlineEdgeTable edges, FillRule rule, Action<int, int, float>? pixel,
+            CancellationToken cancellationToken, Action<int, int, int>? span, CoverageRow? row)
         {
             if (edges.Bottom <= edges.Top || edges.Right <= edges.Left) { return; }
             int coverageWidth = edges.Right - edges.Left;
@@ -31,12 +42,16 @@ namespace Mediana.Drawing
             for (int y = edges.Top; y < edges.Bottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                coverage.Clear();
                 edges.SelectRow(y);
+                if (edges.Active.IsEmpty) { continue; }
+                int left = edges.Left, right = edges.Right;
+                if (coverageWidth > 256 && !edges.GetRowBounds(y, out left, out right)) { continue; }
+                Span<float> values = coverage.Slice(left - edges.Left, right - left);
+                values.Clear();
                 DivideRow(edges.Active, y, divisions);
-                if (coverageWidth < PartitionWidth || edges.Active.Length < PartitionEdgeCount || divisions.Count <= PartitionDivisionCount)
+                if (values.Length < PartitionWidth || edges.Active.Length < PartitionEdgeCount || divisions.Count <= PartitionDivisionCount)
                 {
-                    IntegrateRow(edges.Active, y, coverage, edges.Left, rule, divisions, crossings, cancellationToken);
+                    IntegrateRow(edges.Active, y, values, left, rule, divisions, crossings, cancellationToken);
                 }
                 else
                 {
@@ -47,19 +62,29 @@ namespace Mediana.Drawing
                     {
                         ReadOnlySpan<ScanlineEdge> group = partitions.Edges.Slice(start, end - start);
                         DivideRow(group, y, divisions);
-                        IntegrateRow(group, y, coverage, edges.Left, rule, divisions, crossings, cancellationToken);
+                        IntegrateRow(group, y, values, left, rule, divisions, crossings, cancellationToken);
                         start = end;
                     }
                 }
-                for (int x = 0; x < coverage.Length; x++)
+                if (row is not null && span is null && pixel is null) { row(y, left, values); continue; }
+                for (int x = 0; x < values.Length; x++)
                 {
-                    if (span is not null && coverage[x] > 254.5f / 255)
+                    if (span is not null && values[x] > 254.5f / 255)
                     {
                         int start = x;
-                        while (x + 1 < coverage.Length && coverage[x + 1] > 254.5f / 255) { x++; }
-                        span(y, start + edges.Left, x + edges.Left + 1);
+                        while (x + 1 < values.Length && values[x + 1] > 254.5f / 255) { x++; }
+                        span(y, start + left, x + left + 1);
                     }
-                    else if (coverage[x] > 0) { pixel(x + edges.Left, y, Math.Min(1, coverage[x])); }
+                    else if (values[x] > 0)
+                    {
+                        if (row is null) { pixel!(x + left, y, Math.Min(1, values[x])); }
+                        else
+                        {
+                            int start = x;
+                            while (x + 1 < values.Length && values[x + 1] > 0 && values[x + 1] <= 254.5f / 255) { x++; }
+                            row(y, start + left, values.Slice(start, x - start + 1));
+                        }
+                    }
                 }
             }
         }

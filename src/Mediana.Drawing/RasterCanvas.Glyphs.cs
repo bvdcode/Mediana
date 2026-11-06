@@ -15,21 +15,7 @@ namespace Mediana.Drawing
             {
                 token.ThrowIfCancellationRequested();
                 ReadOnlySpan<float> row = glyph.Pixels.AsSpan(y * glyph.Width, glyph.Width);
-                for (int x = first; x < last; x++)
-                {
-                    float coverage = row[x];
-                    if (coverage == 1)
-                    {
-                        int start = x;
-                        while (x + 1 < last && row[x + 1] == 1) { x++; }
-                        PaintSpan((int)(y + originY), (int)(start + originX), (int)(x + originX + 1), color, ColorBlendMode.Normal);
-                    }
-                    else if (coverage > 0)
-                    {
-                        Paint((int)(x + originX), (int)(y + originY), color with { A = (byte)MathF.Round(color.A * coverage) }, ColorBlendMode.Normal,
-                            (byte)MathF.Round(255 * coverage));
-                    }
-                }
+                PaintCoverageRow((int)(y + originY), (int)(first + originX), row.Slice(first, last - first), color, ColorBlendMode.Normal);
             }
         }
     }

@@ -58,6 +58,23 @@ namespace Mediana.Drawing
             if (added) { active.Sort(static (a, b) => a.Order.CompareTo(b.Order)); }
         }
 
+        internal bool GetRowBounds(int y, out int left, out int right)
+        {
+            double minimum = double.PositiveInfinity, maximum = double.NegativeInfinity;
+            foreach (ScanlineEdge edge in Active)
+            {
+                double top = Math.Max(y, edge.MinimumY), bottom = Math.Min((double)y + 1, edge.MaximumY);
+                if (top >= bottom) { continue; }
+                double first = edge.X + (top - edge.MinimumY) * edge.Slope;
+                double last = edge.X + (bottom - edge.MinimumY) * edge.Slope;
+                minimum = Math.Min(minimum, Math.Min(first, last));
+                maximum = Math.Max(maximum, Math.Max(first, last));
+            }
+            left = (int)Math.Clamp(Math.Floor(minimum), Left, Right);
+            right = (int)Math.Clamp(Math.Ceiling(maximum), Left, Right);
+            return right > left;
+        }
+
         private ScanlineEdge Translate(ScanlineEdge edge) => edge with
         {
             X = edge.X + offset.X,

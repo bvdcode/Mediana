@@ -13,7 +13,7 @@ namespace Mediana.Tests
         [InlineData(FillRule.EvenOdd)]
         public void ActiveEdgesMatchDenseReferenceWithTransformsAndClippedContours(FillRule rule)
         {
-            const int width = 147, height = 39;
+            const int width = 347, height = 39;
             Random random = new(59321);
             for (int sample = 0; sample < 20; sample++)
             {

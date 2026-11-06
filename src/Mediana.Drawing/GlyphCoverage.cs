@@ -22,8 +22,8 @@ namespace Mediana.Drawing
             Pixels = new float[checked(Width * Height)];
             if (Pixels.Length == 0) { return; }
             ScanlineEdgeTable edges = new(path, fraction - new Vector2(Left, Top), Width, Height);
-            ScanlineRasterizer.PaintCoverage(edges, FillRule.NonZero, (x, y, value) => Pixels[y * Width + x] = value, token,
-                (y, left, right) => Pixels.AsSpan(y * Width + left, right - left).Fill(1));
+            ScanlineRasterizer.PaintCoverageRows(edges, FillRule.NonZero,
+                (y, left, values) => values.CopyTo(Pixels.AsSpan(y * Width + left, values.Length)), token);
         }
     }
 }
