@@ -21,7 +21,7 @@ namespace Mediana.Drawing
         public int MaximumFontFaces { get; init; } = 64;
         public long MaximumFontBytes { get; init; } = 64L * 1024 * 1024;
         public int MaximumInlineGraphics { get; init; } = 256;
-        /// <summary>Bounds retained outline commands and prepared contour points independently within one renderer.</summary>
+        /// <summary>Bounds retained outline commands, prepared contour points and cached coverage pixels independently within one renderer.</summary>
         public int MaximumPathCommands { get; init; } = 2_000_000;
     }
 }

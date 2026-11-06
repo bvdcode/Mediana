@@ -20,6 +20,8 @@ namespace Mediana.Drawing
         private long _fontBytes;
         private int _commands;
         private int _preparedPoints;
+        private int _coveragePixels;
+        private readonly Dictionary<(FlattenedPath Path, Vector2 Fraction), GlyphCoverage> _glyphCoverage = [];
         private readonly Dictionary<(TrueTypeFont Font, int Glyph, Matrix3x2 Transform), FlattenedPath> _prepared = [];
 
         public TextRenderer(TextOptions? options = null)
@@ -84,7 +86,7 @@ namespace Mediana.Drawing
             canvas.FillPath(BorrowOutline(font, glyph), color, transform, cancellationToken: cancellationToken);
         }
 
-        /// <summary>Draws a glyph with fractional pixel coverage at the canvas resolution.</summary>
+        /// <summary>Draws a glyph with fractional pixel coverage and placement rounded to 1/256 pixel at the canvas resolution.</summary>
         public void DrawGlyphAntialiased(RasterCanvas canvas, TrueTypeFont font, int glyph, Rgba32 color, Matrix3x2 transform, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(canvas);
@@ -95,10 +97,12 @@ namespace Mediana.Drawing
             if (!_prepared.TryGetValue(key, out FlattenedPath? path))
             {
                 path = new(BorrowOutline(font, glyph), transform, cancellationToken);
+                if (path.Edges.Length == 0) { return; }
                 if (path.PointCount > _options.MaximumPathCommands - _preparedPoints)
                 {
                     _prepared.Clear();
                     _preparedPoints = 0;
+                    _glyphCoverage.Clear(); _coveragePixels = 0;
                 }
                 if (path.PointCount <= _options.MaximumPathCommands)
                 {
@@ -106,7 +110,7 @@ namespace Mediana.Drawing
                     _preparedPoints += path.PointCount;
                 }
             }
-            canvas.FillPathAntialiased(path, color, offset, cancellationToken);
+            DrawPreparedGlyph(canvas, path, color, offset, cancellationToken);
         }
 
         internal VectorPath BorrowOutline(TrueTypeFont font, int glyph)
