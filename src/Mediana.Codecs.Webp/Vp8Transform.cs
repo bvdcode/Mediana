@@ -38,6 +38,27 @@ namespace Mediana.Codecs.Webp
 
         internal static void Reconstruct(ReadOnlySpan<int> coefficients, ReadOnlySpan<byte> prediction, Span<byte> destination, int offset, int stride)
         {
+            if (coefficients[1..16].IndexOfAnyExcept(0) < 0)
+            {
+                int dc = (coefficients[0] + 4) >> 3;
+                for (int row = 0; row < 4; row++)
+                {
+                    Span<byte> target = destination.Slice(offset + row * stride, 4);
+                    ReadOnlySpan<byte> source = prediction.Slice(row * 4, 4);
+                    if (dc == 0)
+                    {
+                        source.CopyTo(target);
+                    }
+                    else
+                    {
+                        for (int column = 0; column < 4; column++)
+                        {
+                            target[column] = (byte)Math.Clamp(source[column] + dc, 0, 255);
+                        }
+                    }
+                }
+                return;
+            }
             Span<int> vertical = stackalloc int[16];
             Span<int> residual = stackalloc int[16];
             for (int column = 0; column < 4; column++)
