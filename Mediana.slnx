@@ -34,6 +34,7 @@
     <Project Path="src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
     <Project Path="src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
     <Project Path="src/Mediana.Codecs.Hevc/Mediana.Codecs.Hevc.csproj" />
+    <Project Path="src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <Project Path="src/Mediana.Codecs.Bmp/Mediana.Codecs.Bmp.csproj" />
     <Project Path="src/Mediana.Codecs.Gif/Mediana.Codecs.Gif.csproj" />
     <Project Path="src/Mediana.Codecs.Tiff/Mediana.Codecs.Tiff.csproj" />
@@ -59,6 +60,7 @@
     <Project Path="tests/Mediana.Codecs.Raster.Tests/Mediana.Codecs.Raster.Tests.csproj" />
     <Project Path="tests/Mediana.Containers.Ogg.Tests/Mediana.Containers.Ogg.Tests.csproj" />
     <Project Path="tests/Mediana.Codecs.Hevc.Tests/Mediana.Codecs.Hevc.Tests.csproj" />
+    <Project Path="tests/Mediana.Codecs.Opus.Tests/Mediana.Codecs.Opus.Tests.csproj" />
     <Project Path="tests/Mediana.Codecs.Webp.Tests/Mediana.Codecs.Webp.Tests.csproj" />
     <Project Path="tests/Mediana.NativeTests/Mediana.NativeTests.csproj" />
     <Project Path="tests/Mediana.Tests/Mediana.Tests.csproj" />
