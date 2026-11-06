@@ -231,3 +231,14 @@ a state snapshot records the spectrum without changing the subsequent decode.
 All frames pass the same exact entropy/seed/mask and coefficient comparisons.
 
 SHA-256: `79a62b29dbffcfbd704560cacddc297ae70d745153dd1145fe8a548ae41a0da2`.
+
+`inverse-mdct.bin` records 128 inverse MDCT and overlap transforms from libopus
+1.6.1 for 120, 240, 480 and 960 coefficients, interleaved strides 1/2/4/8,
+zero, impulse, alternating and deterministic random spectra, several levels and
+nonzero preceding overlap. Relative L2 error is at most 0.000002; peak absolute
+error is at most 0.0001 times the larger of one and the peak input coefficient.
+The transform reuses a budgeted immutable plan and a caller-owned workspace of
+one float per coefficient, with no managed allocations per call. Cancellation
+preserves output/workspace and disposal releases the plan's allocation.
+
+SHA-256: `deb8b0980870297afab96b70b84c56831d9e95b3c37a60678ce35ff75ccdb225`.
