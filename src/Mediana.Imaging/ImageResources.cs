@@ -2,6 +2,10 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Mediana.Codecs.Bmp;
+using Mediana.Codecs.Gif;
+using Mediana.Codecs.Tiff;
+using Mediana.Codecs.Webp;
 using Mediana.Codecs.Jpeg;
 using Mediana.Codecs.Png;
 using Mediana.Core.Memory;
@@ -13,8 +17,9 @@ namespace Mediana.Imaging
     /// <summary>Common embedded-image decoding and sRGB preparation. Does not load external files or URLs.</summary>
     public static class ImageResources
     {
-        /// <summary>Managed PNG/JPEG defaults. A supplied context replaces this registry, including for nested images.</summary>
+        /// <summary>Managed raster defaults (PNG, JPEG, WebP, GIF, TIFF, BMP and ICO). A supplied context replaces this registry, including for nested images.</summary>
         public static ImageDecodeContext DefaultDecoders { get; } = new([
+            new BmpImageDecoder(), new IcoImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder(),
             new PngImageDecoder(new() { MaximumPixels = Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength }),
             new JpegImageDecoder(new() { MaximumPixels = Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength })]);
 

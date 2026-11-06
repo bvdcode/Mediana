@@ -281,14 +281,16 @@
     "pixels": "tiff-L-jpeg.rgba",
     "width": 137,
     "height": 65,
-    "page": 0
+    "page": 0,
+    "maximum_error": 4
   },
   {
     "file": "tiff-RGB-jpeg.tif",
     "pixels": "tiff-RGB-jpeg.rgba",
     "width": 137,
     "height": 65,
-    "page": 0
+    "page": 0,
+    "maximum_error": 4
   },
   {
     "file": "tiff-associated16-0.tif",

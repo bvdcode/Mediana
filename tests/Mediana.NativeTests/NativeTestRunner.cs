@@ -13,6 +13,7 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await NativeRasterTests.RunAsync();
             NativeCoreMemoryTests.Run();
             NativeDrawingCoverageTests.Run();
             await NativeWordTests.RunAsync();

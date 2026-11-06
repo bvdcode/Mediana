@@ -11,6 +11,9 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Bmp/Mediana.Codecs.Bmp.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Gif/Mediana.Codecs.Gif.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Tiff/Mediana.Codecs.Tiff.csproj" />
     <ProjectReference Include="../../src/Mediana.Drawing.Emoji.Fluent/Mediana.Drawing.Emoji.Fluent.csproj" />
     <ProjectReference Include="../../src/Mediana.Models.Mesh/Mediana.Models.Mesh.csproj" />
     <PackageReference Include="ConsoleAppFramework" Version="5.8.0" PrivateAssets="all" />

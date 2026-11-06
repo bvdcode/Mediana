@@ -2,6 +2,10 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Mediana.Codecs.Bmp;
+using Mediana.Codecs.Gif;
+using Mediana.Codecs.Tiff;
+using Mediana.Codecs.Webp;
 using Mediana.Codecs.Jbig2;
 using Mediana.Codecs.Jpeg;
 using Mediana.Codecs.Jpeg2000;
@@ -48,6 +52,11 @@ namespace Mediana.Cli
 
         internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
             .UseResources(CommandTextResources.Shared)
+            .AddImageDecoder(new BmpImageDecoder())
+            .AddImageDecoder(new IcoImageDecoder())
+            .AddImageDecoder(new GifImageDecoder())
+            .AddImageDecoder(new TiffImageDecoder())
+            .AddImageDecoder(new WebpImageDecoder())
             .AddImageDecoder(new PngImageDecoder(new()
             {
                 MaximumEncodedBytes = CommandImageResources.MaximumBufferLength,

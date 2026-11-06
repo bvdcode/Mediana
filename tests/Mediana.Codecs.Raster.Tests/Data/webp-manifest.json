@@ -185,7 +185,8 @@
     "pixels": [
       "webp-lossy-gradient-15.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-gradient-75.webp",
@@ -194,7 +195,8 @@
     "pixels": [
       "webp-lossy-gradient-75.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-gradient-100.webp",
@@ -203,7 +205,8 @@
     "pixels": [
       "webp-lossy-gradient-100.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-noise-15.webp",
@@ -212,7 +215,8 @@
     "pixels": [
       "webp-lossy-noise-15.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-noise-75.webp",
@@ -221,7 +225,8 @@
     "pixels": [
       "webp-lossy-noise-75.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-noise-100.webp",
@@ -230,7 +235,8 @@
     "pixels": [
       "webp-lossy-noise-100.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-alpha-15.webp",
@@ -239,7 +245,8 @@
     "pixels": [
       "webp-lossy-alpha-15.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-alpha-75.webp",
@@ -248,7 +255,8 @@
     "pixels": [
       "webp-lossy-alpha-75.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-alpha-100.webp",
@@ -257,7 +265,8 @@
     "pixels": [
       "webp-lossy-alpha-100.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-text-15.webp",
@@ -266,7 +275,8 @@
     "pixels": [
       "webp-lossy-text-15.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-text-75.webp",
@@ -275,7 +285,8 @@
     "pixels": [
       "webp-lossy-text-75.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-lossy-text-100.webp",
@@ -284,7 +295,8 @@
     "pixels": [
       "webp-lossy-text-100.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-edge-1-1-0.webp",
@@ -293,7 +305,8 @@
     "pixels": [
       "webp-edge-1-1-0.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-edge-1-1-1.webp",
@@ -311,7 +324,8 @@
     "pixels": [
       "webp-edge-1-19-0.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-edge-1-19-1.webp",
@@ -329,7 +343,8 @@
     "pixels": [
       "webp-edge-19-1-0.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-edge-19-1-1.webp",
@@ -347,7 +362,8 @@
     "pixels": [
       "webp-edge-16-16-0.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-edge-16-16-1.webp",
@@ -365,7 +381,8 @@
     "pixels": [
       "webp-edge-17-17-0.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-edge-17-17-1.webp",
@@ -383,7 +400,8 @@
     "pixels": [
       "webp-edge-1031-9-0.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   },
   {
     "file": "webp-edge-1031-9-1.webp",
@@ -416,6 +434,7 @@
       "webp-blended-1-2.rgba",
       "webp-blended-1-3.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 4
   }
 ]

@@ -9,6 +9,10 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../Mediana.Codecs.Raster.Tests/Data/*" Link="Data/Raster/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Bmp/Mediana.Codecs.Bmp.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Gif/Mediana.Codecs.Gif.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Tiff/Mediana.Codecs.Tiff.csproj" />
     <Compile Include="../Shared/SymbolFontTestInput.cs" Link="SymbolFontTestInput.cs" />
     <Compile Include="../Shared/PcmStorageTestInput.cs" Link="PcmStorageTestInput.cs" />
     <Compile Include="../Shared/HlsRenditionTestInput.cs" Link="HlsRenditionTestInput.cs" />
