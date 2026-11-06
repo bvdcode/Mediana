@@ -143,3 +143,18 @@ block count, spreading mode and float32 gain; 32-bit collapse mask, arithmetic
 range, whole bits and eighth bits; and the resulting float32 coefficients.
 
 SHA-256: `eafc50d9d0acebfb4f2337de8febf37ffb480c60590740bb59dd140ad6bc24e1`.
+
+`pulse-costs.bin` records the canonical pulse allocation tables and 49,955 nearest
+cost selections from libopus 1.6.1. All 105 combinations of band and split depth
+are represented; eight combinations have zero dimensions and no codebook. Tests
+compare all pulse counts and eighth-bit costs, and selections for every budget
+from -2 to 512 eighth bits, including equal costs and midpoint ties. Repeated
+lookup does not allocate managed storage.
+
+The little-endian file starts with `OPUSPUL1` and a 32-bit case count. Each case
+contains signed 32-bit band, frame shift and maximum pseudo-pulse index. A negative
+index marks an absent codebook. Present codebooks contain pairs of 32-bit actual
+pulse counts and eighth-bit costs for index zero through the maximum, followed
+by 515 32-bit selected indices in ascending budget order.
+
+SHA-256: `9a7b87d851981229448155d2c215f78471c19e57dcb489d8f2ed91ff4cf27a61`.
