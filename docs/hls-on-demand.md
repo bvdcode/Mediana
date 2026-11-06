@@ -55,8 +55,7 @@ requests. Managed tests verify cold-opening reads outside every media sample,
 requested byte ranges, unchanged payloads and clocks, cancellation, failed reads,
 allocator release and operation serialization. FFmpeg independently decodes the
 generated fMP4 playlist to exactly the original video's YUV420 pixels and audio's
-Float32 PCM bytes. These checks cover stream copy; independent on-demand encoding
-is a separate operation.
+Float32 PCM bytes.
 
 A Native AOT consumer also passes reverse and repeated segment requests. On a
 30-minute AVC/AAC MP4 (17,929,339 bytes), opening reads 586,471 bytes of index and
@@ -64,6 +63,64 @@ configuration. Requesting segment 873 of 874 reads a further 19,444 bytes and wr
 a 20,022-byte fragment. The allocator retains 586,415 bytes for the session and zero
 after disposal. This checks cold I/O on a long timeline; it is not a throughput
 comparison with other implementations.
+
+## Encoding requested video windows
+
+`AvcHlsTranscodeSession` encodes a requested video interval using an indexed reader
+and a registered video decoder with restart inspection. Creating the session only
+validates declarations and builds AVC configuration; it reads no source packets and
+encodes no frames. Every request creates fresh codec state, seeks to the preceding
+verified restart point, decodes the necessary preroll and encodes the selected
+window. The first output picture is an inspected IDR. Previously requested windows
+and preceding encoded segment states are not needed.
+
+```csharp
+HlsVideoWindow[] windows = indexedWindows
+    .Select((window, number) => new HlsVideoWindow(number, window.Start, window.Duration))
+    .ToArray();
+
+await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(
+    reader, sourceStreamIndex, decoderFactory, decodedVideoFormat, windows, allocator,
+    new H264EncoderOptions { Quantizer = 26 });
+
+string playlist = session.CreateVodPlaylist("init.mp4", number => $"{number}.m4s");
+await session.WriteInitializationAsync(initializationDestination, cancellationToken);
+await session.WriteSegmentAsync(requestedSegmentNumber, segmentDestination, cancellationToken);
+```
+
+Windows are supplied from an index or application timeline. Their numbers must be
+contiguous and zero-based, with positive durations and adjacent presentation
+intervals. Both boundaries must coincide with source frames; an end inside a frame
+fails before any bytes are published. A boundary can fall between source IDRs.
+Window clocks need not equal the track clock. Frame timing must be exactly
+representable in the output track's time base.
+
+The current encoding session produces one AVC video track at the decoded input
+dimensions and preserves the source display matrix. The supplied video format must
+match the decoder's output, including color interpretation and sample aspect ratio.
+The reader and allocator remain borrowed; operations on either the session or its
+reader must not overlap. Requests can be repeated after cancellation or an output
+failure. Failed output is discarded by the caller.
+
+Decoded pixels are released as frames are consumed. Encoded packet leases are
+retained only for the requested segment so the complete `moof` can precede `mdat`,
+without copying packet payloads. Buffer allocations use the supplied allocator.
+`Mp4VideoFragmentWriter` exposes new AVC/HEVC track initialization and timed-packet
+fragments separately from HLS. Its `avc3`/`hev1` sample entries permit parameter sets
+in samples; decoder configuration is also included in initialization. It requires
+explicit PTS, DTS, positive durations, sync indications and contiguous decode times.
+
+All 60 independently decoded output pictures from a 12-second AVC source match
+reference YUV pixels. Managed checks also compare the encoded packets with sequential
+source decoding, including mid-GOP windows, reverse and repeated requests, clocks,
+allocator release, cancellation and write/flush failures. These same independent
+picture checks run under Native AOT.
+
+On a generated 30-minute AVC file (1,801,168 bytes), opening reads 90,907 bytes of
+index and configuration. Requesting the final one-second window reads a further
+1,842 bytes, including the preceding GOP's decoder preroll, and writes a 1,331-byte
+fragment. The allocator retains 90,851 bytes for the open reader and zero after
+disposal. No earlier interval is encoded.
 
 Segment and initialization requirements follow
 [RFC 8216 section 3.3](https://www.rfc-editor.org/rfc/rfc8216.html#section-3.3)

@@ -281,6 +281,7 @@
     <Compile Include="../Shared/VideoSeekTestInput.cs" Link="VideoSeekTestInput.cs" />
     <Compile Include="../Shared/H264EncodingTestInput.cs" Link="H264EncodingTestInput.cs" />
     <Compile Include="../Shared/HlsEncodingTestInput.cs" Link="HlsEncodingTestInput.cs" />
+    <Compile Include="../Shared/OnDemandHlsTestInput.cs" Link="OnDemandHlsTestInput.cs" />
     <Compile Include="../Shared/AvcAudioHlsTestInput.cs" Link="AvcAudioHlsTestInput.cs" />
     <Compile Include="../Shared/YuvScalingTestInput.cs" Link="YuvScalingTestInput.cs" />
     <Compile Include="../Shared/YuvResizeOwnershipTestInput.cs" Link="YuvResizeOwnershipTestInput.cs" />
