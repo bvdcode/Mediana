@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.Jbig2
+namespace Mediana.Codecs.Compression
 {
     // ITU-T T.88 Annex B and T.6 Tables 2 and 3.
     internal static class FaxCodeData
