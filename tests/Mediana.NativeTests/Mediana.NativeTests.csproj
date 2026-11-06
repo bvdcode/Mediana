@@ -323,8 +323,14 @@
     <None Include="../Mediana.Tests/Data/Mp4/hls-on-demand.mp4;../Mediana.Tests/Data/Mp4/hls-on-demand.encoded-segments.yuv" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Ogg/OggContainerTestInput.cs" Link="OggContainerTestInput.cs" />
     <Compile Include="../Shared/OpusRangeTestInput.cs" Link="OpusRangeTestInput.cs" />
+    <Compile Include="../Shared/OpusPulseTestInput.cs" Link="OpusPulseTestInput.cs" />
+    <Compile Include="../Shared/OpusLaplaceTestInput.cs" Link="OpusLaplaceTestInput.cs" />
+    <Compile Include="../Shared/OpusEnergyTestInput.cs" Link="OpusEnergyTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <None Include="../Mediana.Codecs.Opus.Tests/Data/range-decoder.bin" Link="Data/Opus/range-decoder.bin" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Opus.Tests/Data/pulse-vectors.bin" Link="Data/Opus/pulse-vectors.bin" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Opus.Tests/Data/laplace-decoder.bin" Link="Data/Opus/laplace-decoder.bin" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Opus.Tests/Data/energy-decoder.bin" Link="Data/Opus/energy-decoder.bin" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />
     <None Include="../Mediana.Containers.Ogg.Tests/Data/*" Link="Data/Ogg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />

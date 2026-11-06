@@ -17,6 +17,13 @@ namespace Mediana.NativeTests
                 throw new InvalidDataException("The Opus entropy reference operation count differs.");
             }
             Console.WriteLine("PASS Opus entropy: 65,071 independent symbols, final ranges and whole/fractional bit budgets match.");
+            string opusRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Opus");
+            if (OpusPulseTestInput.Verify(opusRoot) != 13574 || OpusLaplaceTestInput.Verify(opusRoot) != 5257 ||
+                OpusEnergyTestInput.Verify(opusRoot) != 768)
+            {
+                throw new InvalidDataException("The CELT reference case count differs.");
+            }
+            Console.WriteLine("PASS CELT: 13,574 pulse vectors, 5,257 signed residuals and 768 exact coarse/fine energy sequences match.");
             Console.WriteLine("PASS on-demand HLS encoding: independent reverse and repeated mid-GOP windows, exact reference pixels, clocks and allocation release.");
             Console.WriteLine("PASS Ogg: independent Opus/Vorbis packets, metadata, reverse requests, seek preroll and borrowed source ownership.");
             Console.WriteLine("PASS indexed fMP4 HLS: initialization, reverse segment requests, repeated hashes and allocation release match.");
