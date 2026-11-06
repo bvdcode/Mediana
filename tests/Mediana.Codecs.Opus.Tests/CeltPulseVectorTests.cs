@@ -13,13 +13,19 @@ namespace Mediana.Codecs.Opus.Tests
             Assert.Equal(3793, OpusVectorTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data")));
 
         [Fact]
-        public void ZeroGainRetainsTheEncodedCollapseMask()
+        public void SixteenTimeBlocksMatchTheIndependentReference() =>
+            Assert.Equal(1864, OpusVectorTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data"), "normalized-vectors-16.bin"));
+
+        [Theory]
+        [InlineData(8, 4)]
+        [InlineData(16, 16)]
+        public void ZeroGainRetainsTheEncodedCollapseMask(int dimensions, int blocks)
         {
             MediaBufferAllocator allocator = new(4096);
-            using CeltPulseCodebook codebook = CeltPulseCodebook.Create(8, 1, allocator);
-            Span<float> vector = stackalloc float[8];
+            using CeltPulseCodebook codebook = CeltPulseCodebook.Create(dimensions, 1, allocator);
+            Span<float> vector = stackalloc float[dimensions];
             OpusRangeDecoder decoder = new(new byte[32]);
-            uint mask = CeltPulseVector.Read(codebook, ref decoder, vector, 1, 4, CeltSpreading.Normal, 0);
+            uint mask = CeltPulseVector.Read(codebook, ref decoder, vector, 1, blocks, CeltSpreading.Normal, 0);
             Assert.Equal(1u, mask);
             foreach (float coefficient in vector) { Assert.Equal(0, coefficient); }
         }

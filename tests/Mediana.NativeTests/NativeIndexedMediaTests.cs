@@ -20,7 +20,8 @@ namespace Mediana.NativeTests
             string opusRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Opus");
             if (OpusPulseTestInput.Verify(opusRoot) != 13574 || OpusLaplaceTestInput.Verify(opusRoot) != 5257 ||
                 OpusEnergyTestInput.Verify(opusRoot) != 768 || OpusAllocationTestInput.Verify(opusRoot) != 4096 ||
-                OpusFrameSyntaxTestInput.Verify(opusRoot) != 1024 || OpusVectorTestInput.Verify(opusRoot) != 3793)
+                OpusFrameSyntaxTestInput.Verify(opusRoot) != 1024 || OpusVectorTestInput.Verify(opusRoot) != 3793 ||
+                OpusVectorTestInput.Verify(opusRoot, "normalized-vectors-16.bin") != 1864)
             {
                 throw new InvalidDataException("The CELT reference case count differs.");
             }

@@ -8,11 +8,11 @@ namespace Mediana.Tests
 {
     internal static class OpusVectorTestInput
     {
-        public static int Verify(string root)
+        public static int Verify(string root, string fileName = "normalized-vectors.bin")
         {
             MediaBufferAllocator allocator = new(128 * 1024);
             using CeltPulseCodebook codebook = CeltPulseCodebook.Create(176, 128, allocator);
-            using BinaryReader reader = new(File.OpenRead(Path.Combine(root, "normalized-vectors.bin")));
+            using BinaryReader reader = new(File.OpenRead(Path.Combine(root, fileName)));
             if (!reader.ReadBytes(8).AsSpan().SequenceEqual("OPUSVEC1"u8))
             {
                 throw new InvalidDataException("The normalized vector reference header is invalid.");

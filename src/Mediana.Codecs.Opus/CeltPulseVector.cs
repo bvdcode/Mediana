@@ -16,7 +16,7 @@ namespace Mediana.Codecs.Opus
             ArgumentOutOfRangeException.ThrowIfLessThan(vector.Length, 2, nameof(vector));
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pulses);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(blocks);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(blocks, 8);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(blocks, CeltBandTables.MaximumTimeBlocks);
             if (!BitOperations.IsPow2(blocks) || vector.Length % blocks != 0)
             {
                 throw new ArgumentException("CELT pulse blocks require a power-of-two count dividing the vector.", nameof(blocks));

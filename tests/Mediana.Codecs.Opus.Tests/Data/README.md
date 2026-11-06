@@ -158,3 +158,11 @@ pulse counts and eighth-bit costs for index zero through the maximum, followed
 by 515 32-bit selected indices in ascending budget order.
 
 SHA-256: `9a7b87d851981229448155d2c215f78471c19e57dcb489d8f2ed91ff4cf27a61`.
+
+`normalized-vectors-16.bin` uses the `OPUSVEC1` layout and the same tolerances.
+It adds 1,864 reference vectors with sixteen time blocks, which may result from
+time/frequency resolution changes even though a CELT frame has at most eight
+short MDCTs. Dimensions, pulse counts, spreading modes and gains vary. This
+coverage also runs under Native AOT.
+
+SHA-256: `9a23afc70907d3cdc1aa9ec3cec512bf001ca06ee7709df969fc053a2c5ae104`.
