@@ -403,8 +403,9 @@ SHA-256: `60d852bac2f463ddd86d37d6b54cf997189c26bb72c17a6b34fb7c12c79bb3fa`.
 from libopus 1.6.1, covering SILK gains, LPC precision and saturation. Tests
 compare the Q-format results exactly, including saturation before left shifts.
 The little-endian file begins with `OPUSFIX1` and a 32-bit count. Each case
-contains five 32-bit integers: operation, numerator, denominator, precision
-and result. Operation zero computes a reciprocal; operation one divides.
+contains a 32-bit operation, denominator, precision and result. Operation
+zero computes a reciprocal; operation one inserts a numerator before the
+denominator and computes a ratio.
 
 SHA-256: `f13d7b0c7317ea934ba26592cfb49412952be2e90ef996b4fc7ebfc58bd375b4`.
 
@@ -423,3 +424,17 @@ Scalar controls and Q14/Q16 values are signed 32-bit integers; samples, pulses
 and Q12/Q14 filter taps are signed 16-bit integers.
 
 SHA-256: `b414a72f85f2d7597b7ce4f0f95928e0d35f16446150eca44f2d1b77f12362fa`.
+
+`silk-stereo.bin` records 1,536 sequential mid/side-to-left/right frames from
+libopus 1.6.1. All internal rates and frame durations are included, with
+changing prediction weights, silence, impulses, uncoded side channels and
+full-range samples. PCM and retained predictor/sample histories match exactly.
+Unmixing runs in place without managed allocations; mono output retains the
+same one-sample delay across frames.
+
+The little-endian file begins with `OPUSSTM1` and a 32-bit count. Cases store
+32-bit rate/subframes/frame index/prediction weights, both signed 16-bit input
+planes, both output planes, four retained signed 16-bit samples and two final
+32-bit weights. A zero frame index resets the histories.
+
+SHA-256: `0c762ed5cf235439783d904d031ce4c0723a138e491a731ba2273f0f1f48d6d7`.
