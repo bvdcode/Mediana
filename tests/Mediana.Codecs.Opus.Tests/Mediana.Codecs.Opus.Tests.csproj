@@ -21,6 +21,7 @@
     <Compile Include="../Shared/OpusCeltPcmTestInput.cs" Link="OpusCeltPcmTestInput.cs" />
     <Compile Include="../Shared/OpusSilkPulseTestInput.cs" Link="OpusSilkPulseTestInput.cs" />
     <Compile Include="../Shared/OpusSilkControlsTestInput.cs" Link="OpusSilkControlsTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkNlsfTestInput.cs" Link="OpusSilkNlsfTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />

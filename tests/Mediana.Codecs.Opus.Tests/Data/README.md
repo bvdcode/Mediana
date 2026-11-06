@@ -332,3 +332,20 @@ and mid-only flag followed by entropy state, pulse count/seed/offset, signed
 exponent/result integer pairs.
 
 SHA-256: `65e2ad45852354277398a75fa8f8b6310775ad63666cd6dfe90d80fcbed72290`.
+
+`silk-lsf.bin` records 768 LSF entropy decodes, 4,096 dequantizations and
+1,024 stabilization cases from libopus 1.6.1. Both LPC orders, every first-stage
+codebook vector, signal-type probability families, escaped residuals,
+interpolation, predictor selection, inverse weights and extreme/unsorted
+frequencies are covered. Indices, entropy state and all Q15 coefficients match
+exactly. Repeated LSF reading and reconstruction allocate no managed storage.
+
+The little-endian file begins with `OPUSLSF1` and a 32-bit syntax case count.
+Syntax cases contain compressed bytes, order/signal/subframe fields, signed
+8-bit indices, interpolation, entropy state, per-frequency model offset and
+predictor, and signed 16-bit Q15 frequencies. A second count precedes direct
+dequantization cases with order and indices followed by the same model/output
+fields. A third count precedes stabilization cases with order, input Q15
+frequencies and expected Q15 frequencies.
+
+SHA-256: `b4d9de05997885b0b504f7929fb3eda7e3b42e7c02631ea5ddbe1b631a468e34`.
