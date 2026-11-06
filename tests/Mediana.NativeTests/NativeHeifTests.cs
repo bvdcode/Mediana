@@ -13,6 +13,7 @@ namespace Mediana.NativeTests
             await HeifReferenceTestInput.VerifyWavefrontAsync();
             await HeifReferenceTestInput.VerifyAllAsync(root);
             await HeifFrameOwnershipTestInput.VerifyAsync(root);
+            await HeifFrameOwnershipTestInput.VerifyIccAsync(root, Path.Combine(AppContext.BaseDirectory, "Data", "Icc"));
             await HeifMetadataTestInput.VerifyAsync(root);
             ExifMetadataTestInput.Verify();
             await HeifExifTestInput.VerifyAsync(root);

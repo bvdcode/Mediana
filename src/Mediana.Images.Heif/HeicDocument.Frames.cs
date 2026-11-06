@@ -23,7 +23,7 @@ namespace Mediana.Images.Heif
             using WritableMediaBuffer output = allocator.Allocate(checked(width * height * 4));
             ImageItemDecoder decoder = new(document.container, document.metadata, options, cancellationToken);
             RgbaImage image = await decoder.DecodeToAsync(document.PrimaryItemId, output.Memory).ConfigureAwait(false);
-            VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, image.GetVideoColorInfo(), sampleAspectRatio);
+            VideoFormat format = image.GetVideoFormat(sampleAspectRatio);
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = output.Publish();
             return new VideoFrame(format, buffer, format.CreateTightLayout());

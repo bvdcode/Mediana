@@ -6,6 +6,7 @@ using System.IO;
 using Mediana.Images.Heif.Container;
 
 using Mediana.Codecs.Hevc;
+using Mediana.Core.Video;
 
 namespace Mediana.Images.Heif.Hevc
 {
@@ -19,7 +20,7 @@ namespace Mediana.Images.Heif.Hevc
     /// </remarks>
     internal static class PictureRenderer
     {
-        public static RgbaImage Render(DecodedPicture picture, ImageCrop crop, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null, Memory<byte> destination = default)
+        public static RgbaImage Render(DecodedPicture picture, ImageCrop crop, ColorEncoding color, IccColorDescription? iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null, Memory<byte> destination = default)
         {
             ColorConversion? conversion = CreateConversion(picture, color, alpha, alphaInformation);
             int width = crop.Width;

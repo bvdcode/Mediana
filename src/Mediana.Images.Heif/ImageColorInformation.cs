@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using Mediana.Core.Video;
 
 namespace Mediana.Images.Heif
 {
@@ -16,14 +17,17 @@ namespace Mediana.Images.Heif
     /// </remarks>
     public class ImageColorInformation(int colorPrimaries, int transferCharacteristics)
     {
-        internal ImageColorInformation(int colorPrimaries, int transferCharacteristics, ReadOnlyMemory<byte> iccProfile)
+        internal ImageColorInformation(int colorPrimaries, int transferCharacteristics, IccColorDescription? iccDescription)
             : this(colorPrimaries, transferCharacteristics)
         {
-            IccProfile = iccProfile.ToArray();
+            IccDescription = iccDescription;
         }
 
         internal bool Matches(ImageColorInformation other) => (ColorPrimaries == other.ColorPrimaries) &&
-            (TransferCharacteristics == other.TransferCharacteristics) && IccProfile.Span.SequenceEqual(other.IccProfile.Span);
+            (TransferCharacteristics == other.TransferCharacteristics) && IccDescription?.Restricted == other.IccDescription?.Restricted &&
+            IccProfile.Span.SequenceEqual(other.IccProfile.Span);
+
+        internal IccColorDescription? IccDescription { get; }
 
         /// <summary>
         /// Gets an owned copy of the embedded RGB ICC profile, or empty memory when absent.
@@ -31,7 +35,7 @@ namespace Mediana.Images.Heif
         /// <remarks>
         /// The profile describes the returned RGB signal and is preserved without applying a colour transform.
         /// </remarks>
-        public ReadOnlyMemory<byte> IccProfile { get; }
+        public ReadOnlyMemory<byte> IccProfile => IccDescription?.Profile ?? ReadOnlyMemory<byte>.Empty;
 
         /// <summary>
         /// Gets the CICP colour primaries code.

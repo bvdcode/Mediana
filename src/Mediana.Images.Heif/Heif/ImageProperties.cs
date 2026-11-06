@@ -7,6 +7,7 @@ using System.IO;
 using System.Text;
 using Mediana.Images.Heif.Binary;
 using Mediana.Images.Heif.Hevc;
+using Mediana.Core.Video;
 
 namespace Mediana.Images.Heif.Container
 {
@@ -18,8 +19,9 @@ namespace Mediana.Images.Heif.Container
         public int Height { get; private set; }
         public DecoderConfiguration? Configuration { get; private set; }
         public ColorEncoding? Color { get; private set; }
-        public ReadOnlyMemory<byte> IccProfile { get; private set; }
-        public bool IccRestricted { get; private set; }
+        public IccColorDescription? IccDescription { get; private set; }
+        public ReadOnlyMemory<byte> IccProfile => IccDescription?.Profile ?? ReadOnlyMemory<byte>.Empty;
+        public bool IccRestricted => IccDescription?.Restricted ?? false;
         public ReadOnlyMemory<byte> PixelDepths { get; private set; }
         public bool PixelDepthsEssential { get; private set; }
         public string? AuxiliaryType { get; private set; }
@@ -181,8 +183,11 @@ namespace Mediana.Images.Heif.Container
                     throw new InvalidDataException("Duplicate ICC colour profile.");
                 }
 
-                IccProfile = reader.Bytes(reader.Remaining);
-                IccRestricted = type == HeifBox.Code("rICC");
+                if (reader.Remaining == 0)
+                {
+                    throw new InvalidDataException("Empty ICC colour profile.");
+                }
+                IccDescription = new IccColorDescription(reader.Bytes(reader.Remaining).Span, type == HeifBox.Code("rICC"));
             }
             else
             {

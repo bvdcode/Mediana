@@ -11,7 +11,7 @@ using Mediana.Core.Video;
 namespace Mediana.Images.Heif
 {
     /// <summary>Registered HEIC primary-image decoding. HEIF transforms are applied by the document decoder;
-    /// pixel aspect is an explicit caller interpretation, and ICC conversion remains unsupported.</summary>
+    /// pixel aspect is an explicit caller interpretation, and ICC profiles are retained for common color processing.</summary>
     public class HeicImageDecoder : IImageDecoder, IImageInfoReader
     {
         private readonly SampleAspectRatio sampleAspectRatio;

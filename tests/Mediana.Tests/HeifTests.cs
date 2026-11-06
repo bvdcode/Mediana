@@ -39,6 +39,10 @@ namespace Mediana.Tests
             await HeifFrameOwnershipTestInput.VerifyAsync(Root);
 
         [Fact]
+        public Task IccProfilesSurviveCopiedAndDirectFramesAndUseCommonConversion() =>
+            HeifFrameOwnershipTestInput.VerifyIccAsync(Root, Path.Combine(AppContext.BaseDirectory, "Data", "Icc"));
+
+        [Fact]
         public async Task OutputBudgetIsReservedBeforePictureDecodingAndReleasedOnFailure()
         {
             byte[] data = await File.ReadAllBytesAsync(Path.Combine(Root, "basic-8bit.heic"));
@@ -59,7 +63,11 @@ namespace Mediana.Tests
             int nclx = profiled.AsSpan().IndexOf("nclx"u8);
             Assert.True(nclx >= 0);
             "prof"u8.CopyTo(profiled.AsSpan(nclx, 4));
-            await Assert.ThrowsAsync<NotSupportedException>(async () => await decoder.DecodeAsync(profiled, new(), output));
+            using (VideoFrame frame = await decoder.DecodeAsync(profiled, new(), output))
+            {
+                Assert.IsType<IccColorDescription>(frame.Format.ColorDescription);
+                Assert.Throws<InvalidDataException>(() => Processing.SrgbConverter.Apply(frame, output));
+            }
             Assert.Equal(0, output.AllocatedBytes);
         }
 
