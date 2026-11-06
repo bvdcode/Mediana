@@ -14,20 +14,11 @@ namespace Mediana.NativeTests
         public static async Task RunAsync()
         {
             NativeCoreMemoryTests.Run();
+            NativeDrawingCoverageTests.Run();
             await NativeWordTests.RunAsync();
             await NativeMeshTests.RunAsync();
             await NativeEbmlTests.RunAsync();
-            foreach (bool stereo in new[] { false, true })
-            {
-                foreach (AudioStorageLayout layout in new[] { AudioStorageLayout.Interleaved, AudioStorageLayout.Planar })
-                {
-                    AudioDownmixTestInput.Verify(stereo, layout);
-                    AudioDownmixTestInput.Verify(stereo, layout, AudioSampleFormat.Float32);
-                    AudioDownmixTestInput.Verify(stereo, layout, AudioSampleFormat.Float32, sideSurround: true);
-                }
-            }
-            AudioDownmixTestInput.VerifyBalance();
-            Console.WriteLine("PASS explicit audio downmix: shuffled speakers, mono/stereo coefficients, correlated peaks, timing and released storage.");
+            NativeAudioDownmixTests.Run();
             await NativeH264KernelTests.RunAsync();
             foreach (int configuration in new[] { 3, 4, 5, 6, 7 })
             {
