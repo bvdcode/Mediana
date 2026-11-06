@@ -20,6 +20,8 @@ namespace Mediana.Drawing.Fonts
         private readonly int _glyphs;
         private readonly int _metrics;
         private readonly int _locaFormat;
+        private readonly int _characterMap;
+        private readonly int _horizontalMetrics;
         private readonly CffFont? _cff;
         internal byte[] Data => _data;
         internal IReadOnlyDictionary<string, (int Start, int Length)> Tables => _tables;
@@ -77,8 +79,8 @@ namespace Mediana.Drawing.Fonts
                 Table("loca", (_glyphs + 1) * (_locaFormat == 0 ? 2 : 4));
                 Table("glyf", 0);
             }
-            Table("hmtx", (_metrics * 4) + ((_glyphs - _metrics) * 2));
-            Table("cmap", 4);
+            _horizontalMetrics = Table("hmtx", (_metrics * 4) + ((_glyphs - _metrics) * 2));
+            _characterMap = SelectCharacterMap();
         }
 
         private void ReadTables(int start)
@@ -156,6 +158,13 @@ namespace Mediana.Drawing.Fonts
 
         public int Glyph(int codepoint)
         {
+            if (_characterMap < 0) { return 0; }
+            int glyph = Cmap(_characterMap, codepoint);
+            return glyph >= 0 && glyph < _glyphs ? glyph : 0;
+        }
+
+        private int SelectCharacterMap()
+        {
             int table = Table("cmap", 4), count = U16(table + 2);
             int selected = 0, rank = -1;
             for (int i = 0; i < count; i++)
@@ -175,13 +184,7 @@ namespace Mediana.Drawing.Fonts
                 }
             }
 
-            if (rank < 0)
-            {
-                return 0;
-            }
-
-            int glyph = Cmap(selected, codepoint);
-            return glyph >= 0 && glyph < _glyphs ? glyph : 0;
+            return rank < 0 ? -1 : selected;
         }
 
         private static int CmapScore(int format) => format switch
@@ -280,7 +283,7 @@ namespace Mediana.Drawing.Fonts
             return glyph == 0 ? 0 : (glyph + S16(delta + (lo * 2))) & 65535;
         }
 
-        public float Advance(int glyph) => U16(Table("hmtx", 0) + (Math.Min(glyph, _metrics - 1) * 4));
+        public float Advance(int glyph) => U16(_horizontalMetrics + (Math.Min(glyph, _metrics - 1) * 4));
         private static byte[] DecodeWoff(byte[] data)
         {
             if (Encoding.ASCII.GetString(data, 0, 4) != "wOFF")
