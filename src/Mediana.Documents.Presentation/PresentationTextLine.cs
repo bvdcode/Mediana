@@ -3,5 +3,5 @@
 
 namespace Mediana.Documents.Presentation
 {
-    internal record PresentationTextLine(IReadOnlyList<PresentationTextAtom> Atoms,double X,double Y,double Baseline,double Height,double ExtraSpace);
+    internal record PresentationTextLine(IReadOnlyList<PresentationTextAtom> Atoms, double X, double Y, double Baseline, double Height, double ExtraSpace);
 }

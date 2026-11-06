@@ -17,11 +17,11 @@ namespace Mediana.Documents.Presentation
             document.CheckSlide(slideIndex);
             options ??= new();
             if (options.MaximumImagePixels <= 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
-            PageRasterPlan plan = PageRasterPlan.Create(document.Width,document.Height,options);
+            PageRasterPlan plan = PageRasterPlan.Create(document.Width, document.Height, options);
             cancellationToken.ThrowIfCancellationRequested();
             PresentationScene scene = new(document, slideIndex, cancellationToken);
             allocator ??= new(long.MaxValue);
-            PixelBuffer output = new(plan.Width,plan.Height,allocator);
+            PixelBuffer output = new(plan.Width, plan.Height, allocator);
             bool completed = false;
             try
             {

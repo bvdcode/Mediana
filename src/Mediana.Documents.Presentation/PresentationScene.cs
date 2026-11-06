@@ -18,7 +18,7 @@ namespace Mediana.Documents.Presentation
             Layout = Related(Slide, "slideLayout", "sldLayout");
             Master = Layout is null ? null : Related(Layout, "slideMaster", "sldMaster");
             OpenXmlRelationship? theme = Master?.Relationships.SingleOrDefault(item => OpenXmlNamespaces.IsOfficeRelationship(item.Type, "theme"));
-            XElement? themeRoot = theme is null ? null : document.Package.ReadXml(OpenXmlPackage.Resolve(Master!.Name, theme), token).Root;
+            XElement? themeRoot = theme is null ? null : document.ReadTheme(OpenXmlPackage.Resolve(Master!.Name, theme), token);
             Theme = new(themeRoot, Master?.Root, Slide.Root);
             Defaults = document.Defaults;
             PresentationPart? Related(PresentationPart source, string relationship, string root)

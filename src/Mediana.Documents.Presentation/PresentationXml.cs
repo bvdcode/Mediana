@@ -19,7 +19,10 @@ namespace Mediana.Documents.Presentation
         internal static double Points(XElement? element, string attribute, double defaultValue = 0) => Number(element, attribute, defaultValue * EmuPerPoint) / EmuPerPoint;
         internal static bool Boolean(XElement? element, string attribute, bool defaultValue = false) => (string?)element?.Attribute(attribute) switch
         {
-            null => defaultValue, "1" or "true" => true, "0" or "false" => false, _ => throw new InvalidDataException("Invalid DrawingML boolean.")
+            null => defaultValue,
+            "1" or "true" => true,
+            "0" or "false" => false,
+            _ => throw new InvalidDataException("Invalid DrawingML boolean.")
         };
         internal static string RelationId(XElement element, string name) => (string?)element.Attribute(XName.Get(name, OpenXmlNamespaces.OfficeRelationships))
             ?? (string?)element.Attribute(XName.Get(name, OpenXmlNamespaces.StrictOfficeRelationships)) ?? throw new InvalidDataException("Missing DrawingML relationship identifier.");

@@ -11,14 +11,14 @@ namespace Mediana.Documents.Presentation
     internal partial class PresentationRasterizer(RasterCanvas canvas, PresentationDocument document, PresentationScene scene,
         PresentationRenderOptions options, MediaBufferAllocator allocator, CancellationToken token) : IDisposable
     {
-        private readonly Dictionary<string, VideoFrame> _images = new(StringComparer.Ordinal);
+        private readonly Dictionary<(string Part, int Width, int Height), VideoFrame> _images = [];
         private readonly TextRenderer _text = new(options.Text);
         private int _shapes, _glyphs;
         internal async ValueTask DrawAsync(Matrix3x2 transform)
         {
             XElement? background = Background(scene.Slide) ?? Background(scene.Layout) ?? Background(scene.Master);
-            if (background is not null) { Paint(new VectorPath().Rectangle(0,0,(float)document.Width,(float)document.Height), background, transform); }
-            bool masterShapes = PresentationXml.Boolean(scene.Slide.Root,"showMasterSp",true) && PresentationXml.Boolean(scene.Layout?.Root,"showMasterSp",true);
+            if (background is not null) { Paint(new VectorPath().Rectangle(0, 0, (float)document.Width, (float)document.Height), background, transform); }
+            bool masterShapes = PresentationXml.Boolean(scene.Slide.Root, "showMasterSp", true) && PresentationXml.Boolean(scene.Layout?.Root, "showMasterSp", true);
             if (masterShapes && scene.Master?.Tree is XElement master) { await TreeAsync(scene.Master, master, transform, true); }
             if (scene.Layout?.Tree is XElement layout) { await TreeAsync(scene.Layout, layout, transform, true); }
             if (scene.Slide.Tree is not XElement tree) { throw new InvalidDataException("Presentation slide has no shape tree."); }
@@ -33,8 +33,8 @@ namespace Mediana.Documents.Presentation
                 token.ThrowIfCancellationRequested();
                 if (++_shapes > document.Options.MaximumShapes) { throw new InvalidDataException("Presentation exceeds MaximumShapes."); }
                 if (skipPlaceholders && PresentationXml.Placeholder(element) is not null) { continue; }
-                XElement? common = element.Elements().FirstOrDefault(item => item.Name.LocalName.StartsWith("nv",StringComparison.Ordinal))?.Element(p + "cNvPr");
-                if (PresentationXml.Boolean(common,"hidden")) { continue; }
+                XElement? common = element.Elements().FirstOrDefault(item => item.Name.LocalName.StartsWith("nv", StringComparison.Ordinal))?.Element(p + "cNvPr");
+                if (PresentationXml.Boolean(common, "hidden")) { continue; }
                 switch (element.Name.LocalName)
                 {
                     case "nvGrpSpPr": case "grpSpPr": case "extLst": break;
@@ -42,25 +42,29 @@ namespace Mediana.Documents.Presentation
                         XElement group = element.Element(p + "grpSpPr") ?? throw new InvalidDataException("Missing presentation group properties.");
                         XElement gx = group.Elements().FirstOrDefault(item => item.Name.LocalName == "xfrm") ?? throw new InvalidDataException("Missing presentation group transform.");
                         await TreeAsync(part, element, PresentationGeometry.GroupTransform(gx) * parent, skipPlaceholders); break;
-                    case "sp": case "cxnSp": case "pic": case "graphicFrame":
+                    case "sp":
+                    case "cxnSp":
+                    case "pic":
+                    case "graphicFrame":
                         IReadOnlyList<XElement> chain = part == scene.Slide ? scene.ShapeChain(element) : new[] { element };
                         XElement? xfrm = chain.Select(item => PresentationXml.Properties(item)?.Elements().FirstOrDefault(child => child.Name.LocalName == "xfrm")
                             ?? item.Element(p + "xfrm")).FirstOrDefault(item => item is not null);
                         if (xfrm is null) { throw new InvalidDataException("Presentation shape placement is missing."); }
-                        (double width,double height,Matrix3x2 placed) = PresentationGeometry.Placement(xfrm);
+                        (double width, double height, Matrix3x2 placed) = PresentationGeometry.Placement(xfrm);
                         if (width == 0 || height == 0)
                         {
                             if (element.Name.LocalName != "cxnSp") { continue; }
                         }
                         Matrix3x2 transform = placed * parent;
-                        if (element.Name.LocalName == "pic") { await PictureAsync(part,element,width,height,transform); break; }
-                        if (element.Name.LocalName == "graphicFrame") { await TableAsync(part,element,width,height,transform); break; }
-                        XElement? properties = chain.Select(PresentationXml.Properties).FirstOrDefault(item => item is not null);
+                        if (element.Name.LocalName == "pic") { await PictureAsync(part, element, width, height, transform); break; }
+                        if (element.Name.LocalName == "graphicFrame") { await TableAsync(part, element, width, height, transform); break; }
+                        XElement properties = new(p + "spPr", chain.Reverse().Select(PresentationXml.Properties).OfType<XElement>()
+                            .SelectMany(item => item.Elements()).GroupBy(item => item.Name).Select(group => new XElement(group.Last())));
                         XElement? geometry = properties?.Elements().FirstOrDefault(item => item.Name.LocalName is "prstGeom" or "custGeom");
-                        VectorPath path = PresentationGeometry.Path(geometry,width,height,element.Name.LocalName == "cxnSp");
+                        VectorPath path = PresentationGeometry.Path(geometry, width, height, element.Name.LocalName == "cxnSp");
                         XElement? style = element.Element(p + "style");
-                        Paint(path,properties,transform,style?.Elements().FirstOrDefault(item => item.Name.LocalName == "fillRef"));
-                        Stroke(path,properties,style,transform);
+                        Paint(path, properties, transform, style?.Elements().FirstOrDefault(item => item.Name.LocalName == "fillRef"));
+                        Stroke(path, properties, style, transform);
                         XElement? body = element.Element(p + "txBody");
                         if (body is not null) { DrawText(body, chain, width, height, transform); }
                         break;
