@@ -5,6 +5,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/IccColorTestInput.cs" Link="IccColorTestInput.cs" />
+    <None Include="Data/Icc/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Raster.Tests/Data/*" Link="Data/Raster/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/SymbolFontTestInput.cs" Link="SymbolFontTestInput.cs" />
     <Compile Include="../Shared/PcmStorageTestInput.cs" Link="PcmStorageTestInput.cs" />

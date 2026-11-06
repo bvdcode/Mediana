@@ -6,21 +6,21 @@ using Mediana.Core.Video;
 
 namespace Mediana.Processing
 {
-    public static class SrgbConverter
+    public static partial class SrgbConverter
     {
         private static readonly VideoColorInfo SrgbColor = new(ColorPrimaries.Bt709, TransferFunction.Srgb,
             MatrixCoefficients.Rgb, ColorRange.Full, ChromaLocation.Unspecified);
 
         /// <summary>Converts supported SDR YUV420P8 or straight RGBA32 to full-range straight sRGB RGBA32.
-        /// Requires known source color parameters. Borrows input; returns an independently disposable frame.
+        /// Uses supported ICC v2/v4 matrix/TRC profiles or known source color parameters.
+        /// Borrows input; returns an independently disposable frame.
         /// Unchanged tightly packed sRGB storage retains its original allocation budget without copying.
         /// Clips nominal source RGB before display transfer and target RGB to the sRGB gamut.
         /// BT.709 and SMPTE 240M use an ideal BT.1886 reference display. Does not perform HDR tone mapping.</summary>
         public static VideoFrame Apply(VideoFrame input, MediaBufferAllocator allocator,
             CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(input);
-            return Apply(input, input.Format.GetColorInterpretation(), allocator, cancellationToken);
+            return ApplyWithColorPolicy(input, null, allocator, cancellationToken);
         }
 
         /// <summary>Uses the explicitly supplied source color interpretation in place of the frame metadata.</summary>
@@ -55,17 +55,14 @@ namespace Mediana.Processing
             {
                 return input.Retain();
             }
+            if (!yuv)
+            {
+                return ApplyRgba(input, map, aspectRatio, allocator, transform, cancellationToken);
+            }
             VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio);
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
-            if (yuv)
-            {
-                RenderYuv(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken);
-            }
-            else
-            {
-                RenderRgba(input, writable.Memory.Span, map, transform, cancellationToken);
-            }
+            RenderYuv(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration);
@@ -113,8 +110,8 @@ namespace Mediana.Processing
             }
         }
 
-        private static void RenderRgba(VideoFrame input, Span<byte> output, NearestNeighborMap map, SdrRgbTransform transform,
-            CancellationToken cancellationToken)
+        private static void RenderRgba<TTransform>(VideoFrame input, Span<byte> output, NearestNeighborMap map, TTransform transform,
+            CancellationToken cancellationToken) where TTransform : IRgbaPixelTransform
         {
             int cachedRow = -1;
             ReadOnlySpan<byte> source = default;
@@ -135,7 +132,7 @@ namespace Mediana.Processing
                         cachedRow = sourceY;
                     }
                     ReadOnlySpan<byte> pixel = source.Slice(map.SourceX(x, y) * 4, 4);
-                    transform.Write(row.Slice(x * 4, 4), pixel[0] / 255.0, pixel[1] / 255.0, pixel[2] / 255.0, pixel[3]);
+                    transform.WritePixel(row.Slice(x * 4, 4), pixel);
                 }
             }
         }

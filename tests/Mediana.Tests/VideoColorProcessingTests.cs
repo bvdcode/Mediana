@@ -33,7 +33,7 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public void IccDescriptionAllowsRawResizeButNeverAnImplicitSrgbInterpretation()
+        public void MalformedIccDescriptionAllowsRawResizeButRequiresAValidTransform()
         {
             MediaBufferAllocator allocator = new(64 * 1024);
             IccColorDescription description = new([1, 2, 3], false);
@@ -42,8 +42,8 @@ namespace Mediana.Tests
             {
                 Assert.Same(description, resized.Format.ColorDescription);
                 Assert.Throws<NotSupportedException>(() => PngEncoder.Encode(resized, allocator));
-                Assert.Throws<NotSupportedException>(() => SrgbConverter.Apply(resized, allocator));
-                Assert.Throws<NotSupportedException>(() => SrgbPreview.Fit(resized, VideoDisplayMatrix.Identity, 2, 2, allocator));
+                Assert.Throws<InvalidDataException>(() => SrgbConverter.Apply(resized, allocator));
+                Assert.Throws<InvalidDataException>(() => SrgbPreview.Fit(resized, VideoDisplayMatrix.Identity, 2, 2, allocator));
                 using VideoFrame explicitColor = SrgbConverter.Apply(resized, VideoColorInfo.Srgb, allocator);
                 Assert.Null(explicitColor.Format.ColorDescription);
             }
