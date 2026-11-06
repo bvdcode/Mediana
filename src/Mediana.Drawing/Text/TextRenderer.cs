@@ -19,6 +19,8 @@ namespace Mediana.Drawing
         private readonly Dictionary<(FontRequest Request, int Character), TrueTypeFont?> _supplemental = [];
         private long _fontBytes;
         private int _commands;
+        private int _preparedPoints;
+        private readonly Dictionary<(TrueTypeFont Font, int Glyph, Matrix3x2 Transform), FlattenedPath> _prepared = [];
 
         public TextRenderer(TextOptions? options = null)
         {
@@ -87,7 +89,24 @@ namespace Mediana.Drawing
         {
             ArgumentNullException.ThrowIfNull(canvas);
             cancellationToken.ThrowIfCancellationRequested();
-            canvas.FillPathAntialiased(BorrowOutline(font, glyph), color, transform, cancellationToken: cancellationToken);
+            Vector2 offset = transform.Translation;
+            transform.Translation = Vector2.Zero;
+            (TrueTypeFont Font, int Glyph, Matrix3x2 Transform) key = (font, glyph, transform);
+            if (!_prepared.TryGetValue(key, out FlattenedPath? path))
+            {
+                path = new(BorrowOutline(font, glyph), transform, cancellationToken);
+                if (path.PointCount > _options.MaximumPathCommands - _preparedPoints)
+                {
+                    _prepared.Clear();
+                    _preparedPoints = 0;
+                }
+                if (path.PointCount <= _options.MaximumPathCommands)
+                {
+                    _prepared.Add(key, path);
+                    _preparedPoints += path.PointCount;
+                }
+            }
+            canvas.FillPathAntialiased(path, color, offset, cancellationToken);
         }
 
         internal VectorPath BorrowOutline(TrueTypeFont font, int glyph)

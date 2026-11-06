@@ -19,15 +19,20 @@ namespace Mediana.Drawing
         internal ReadOnlySpan<ScanlineEdge> Active => CollectionsMarshal.AsSpan(active ?? edges);
 
         internal ScanlineEdgeTable(VectorPath path, Matrix3x2 transform, int width, int height, CancellationToken token)
+            : this(PathFlattener.Flatten(path, transform, cancellationToken: token), Vector2.Zero, width, height)
+        {
+        }
+
+        internal ScanlineEdgeTable(IReadOnlyList<PathContour> contours, Vector2 offset, int width, int height)
         {
             float left = width, right = 0, top = height, bottom = 0;
-            foreach (PathContour contour in PathFlattener.Flatten(path, transform, cancellationToken: token))
+            foreach (PathContour contour in contours)
             {
                 List<Vector2> points = contour.Points;
                 for (int i = 0; i < points.Count; i++)
                 {
-                    Vector2 a = points[i], b = points[(i + 1) % points.Count];
-                    if (!float.IsFinite(a.X) || !float.IsFinite(a.Y)) { throw new ArgumentOutOfRangeException(nameof(path), "Transformed path coordinates must be finite."); }
+                    Vector2 a = points[i] + offset, b = points[(i + 1) % points.Count] + offset;
+                    if (!float.IsFinite(a.X) || !float.IsFinite(a.Y)) { throw new ArgumentOutOfRangeException(nameof(contours), "Transformed path coordinates must be finite."); }
                     left = Math.Min(left, a.X); right = Math.Max(right, a.X);
                     top = Math.Min(top, a.Y); bottom = Math.Max(bottom, a.Y);
                     if (a.Y != b.Y)

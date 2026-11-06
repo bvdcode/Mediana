@@ -17,6 +17,12 @@ namespace Mediana.Drawing
             Action<int, int, float> pixel, CancellationToken cancellationToken, Action<int, int, int>? span = null)
         {
             ScanlineEdgeTable edges = new(path, transform, width, height, cancellationToken);
+            PaintCoverage(edges, rule, pixel, cancellationToken, span);
+        }
+
+        internal static void PaintCoverage(ScanlineEdgeTable edges, FillRule rule, Action<int, int, float> pixel,
+            CancellationToken cancellationToken, Action<int, int, int>? span = null)
+        {
             if (edges.Bottom <= edges.Top || edges.Right <= edges.Left) { return; }
             int coverageWidth = edges.Right - edges.Left;
             Span<float> coverage = coverageWidth <= 256 ? stackalloc float[coverageWidth] : new float[coverageWidth];
