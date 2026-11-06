@@ -9,6 +9,15 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/DocumentPackageTestData.cs" Link="DocumentPackageTestData.cs" />
+    <Compile Include="../Shared/XlsxWorkbookTestData.cs" Link="XlsxWorkbookTestData.cs" />
+    <Compile Include="../Shared/XlsWorkbookTestData.cs" Link="XlsWorkbookTestData.cs" />
+    <Compile Include="../Shared/PresentationTestData.cs" Link="PresentationTestData.cs" />
+    <Compile Include="../Shared/PdfTextTestData.cs" Link="PdfTextTestData.cs" />
+    <Compile Include="../Shared/DocumentReadersTestInput.cs" Link="DocumentReadersTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Documents.Presentation/Mediana.Documents.Presentation.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Xls/Mediana.Documents.Xls.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Xlsx/Mediana.Documents.Xlsx.csproj" />
     <None Include="../Mediana.Codecs.Raster.Tests/Data/*" Link="Data/Raster/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Codecs.Bmp/Mediana.Codecs.Bmp.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Gif/Mediana.Codecs.Gif.csproj" />

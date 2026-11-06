@@ -12,6 +12,7 @@ using Mediana.Codecs.Jpeg2000;
 using Mediana.Codecs.Png;
 using Mediana.Core.Video;
 using Mediana.Documents.Pdf;
+using Mediana.Documents.Presentation;
 using Mediana.Documents.Word;
 using Mediana.Documents.OpenXml;
 using Mediana.Images.Heif;
@@ -38,6 +39,11 @@ namespace Mediana.Cli
                 AllowFractionalMeasurements = true,
                 DefaultPageSize = WordPageSize.A4
             }, renderOptions: new()
+            {
+                MaximumWidth = MaximumDocumentPreviewDimension, MaximumHeight = MaximumDocumentPreviewDimension,
+                MaximumSamples = CommandImageResources.MaximumRgbaPixels, MaximumImagePixels = CommandImageResources.MaximumRgbaPixels,
+                ImageColorResolver = SdrPreviewColorPolicy.Resolve
+            }), new PresentationPageDecoder(new() { Package = CommandImageResources.PackageOptions }, new()
             {
                 MaximumWidth = MaximumDocumentPreviewDimension, MaximumHeight = MaximumDocumentPreviewDimension,
                 MaximumSamples = CommandImageResources.MaximumRgbaPixels, MaximumImagePixels = CommandImageResources.MaximumRgbaPixels,
