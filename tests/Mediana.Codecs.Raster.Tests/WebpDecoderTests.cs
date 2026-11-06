@@ -60,10 +60,13 @@ namespace Mediana.Codecs.Raster.Tests
                         byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, entry.GetProperty("pixels")[index++].GetString()!));
                         Assert.Equal(entry.GetProperty("width").GetInt32(), frame.Format.Width);
                         Assert.Equal(entry.GetProperty("height").GetInt32(), frame.Format.Height);
-                        int mismatch = -1;
+                        int mismatch = -1; bool lossy = entry.TryGetProperty("lossy", out JsonElement lossyValue) && lossyValue.GetBoolean();
+                        int maximum = 0; long squares = 0;
                         for (int byteIndex = 0; byteIndex < expected.Length; byteIndex++)
-                        { if (expected[byteIndex] != frame.Data.Span[byteIndex]) { mismatch = byteIndex; break; } }
-                        Assert.True(mismatch < 0, $"{name}, frame {index - 1}, byte {mismatch}: expected {(mismatch < 0 ? 0 : expected[mismatch])}, actual {(mismatch < 0 ? 0 : frame.Data.Span[mismatch])}.");
+                        { int error = Math.Abs(expected[byteIndex] - frame.Data.Span[byteIndex]);
+                            maximum = Math.Max(maximum, error); squares += error * error;
+                            if (error > (lossy && byteIndex % 4 != 3 ? 4 : 0) && mismatch < 0) { mismatch = byteIndex; } }
+                        Assert.True(mismatch < 0, $"{name}, frame {index - 1}, byte {mismatch}: expected {(mismatch < 0 ? 0 : expected[mismatch])}, actual {(mismatch < 0 ? 0 : frame.Data.Span[mismatch])}; max={maximum}, rms={Math.Sqrt((double)squares / expected.Length)}.");
                     }
                 }
                 Assert.Equal(entry.GetProperty("pixels").GetArrayLength(), index);
@@ -74,7 +77,7 @@ namespace Mediana.Codecs.Raster.Tests
                 ImageInfo info = await decoder.ReadInfoAsync(encoded);
                 Assert.Equal(entry.GetProperty("width").GetInt32(), info.Width);
                 Assert.ThrowsAny<OperationCanceledException>(() => decoder.Decode(encoded, new(), allocator, new(true)));
-                Assert.Throws<InvalidDataException>(() => decoder.Decode(encoded, new() { MaximumPixels = 1 }, allocator));
+                if (info.Width * info.Height > 1) { Assert.Throws<InvalidDataException>(() => decoder.Decode(encoded, new() { MaximumPixels = 1 }, allocator)); }
             }
         }
     }

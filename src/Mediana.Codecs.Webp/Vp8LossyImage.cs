@@ -58,7 +58,7 @@ namespace Mediana.Codecs.Webp
             Span<byte> leftPixels = stackalloc byte[4];
             Span<byte> chromaPrediction = stackalloc byte[128];
             Span<short> quantized = stackalloc short[16];
-            Span<short> dequantized = stackalloc short[16];
+            Span<int> dequantized = stackalloc int[16];
             int lumaDc = Vp8ProbabilityTables.DcQuantizers[quantizer];
             int ac = Vp8ProbabilityTables.AcQuantizers[quantizer];
             for (int y = 0; y < height; y += 16)

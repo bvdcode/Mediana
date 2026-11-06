@@ -9,7 +9,7 @@ namespace Mediana.Codecs.Webp
         private const float Sine = 0.541196100f;
 
         internal static void Quantize(ReadOnlySpan<byte> source, int offset, int stride, ReadOnlySpan<byte> prediction,
-            int dc, int ac, Span<short> quantized, Span<short> dequantized)
+            int dc, int ac, Span<short> quantized, Span<int> dequantized)
         {
             Span<float> horizontal = stackalloc float[16];
             Span<float> transformed = stackalloc float[16];
@@ -32,11 +32,11 @@ namespace Mediana.Codecs.Webp
                 int step = index == 0 ? dc : ac;
                 int value = (int)MathF.Round(transformed[index] / (2 * step), MidpointRounding.AwayFromZero);
                 quantized[index] = checked((short)value);
-                dequantized[index] = checked((short)(value * step));
+                dequantized[index] = value * step;
             }
         }
 
-        internal static void Reconstruct(ReadOnlySpan<short> coefficients, ReadOnlySpan<byte> prediction, Span<byte> destination, int offset, int stride)
+        internal static void Reconstruct(ReadOnlySpan<int> coefficients, ReadOnlySpan<byte> prediction, Span<byte> destination, int offset, int stride)
         {
             Span<int> vertical = stackalloc int[16];
             Span<int> residual = stackalloc int[16];

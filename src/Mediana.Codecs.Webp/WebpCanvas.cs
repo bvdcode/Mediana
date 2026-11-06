@@ -50,7 +50,12 @@ namespace Mediana.Codecs.Webp
                     }
                 }
             }
-            else { throw new NotSupportedException("VP8 pixel decoding is not implemented."); }
+            else
+            {
+                using WebpDecodeWorkspace workspace = new(allocator);
+                Vp8ImageDecoder.Decode(frame.Image, decoded, frame.Width, frame.Height, workspace, token);
+                if (!frame.Alpha.IsEmpty) { WebpAlphaDecoder.Decode(frame.Alpha.Span, decoded, frame.Width, frame.Height, workspace, token); }
+            }
             if (block is null) { return; }
             for (int y = 0; y < frame.Height; y++)
             {
