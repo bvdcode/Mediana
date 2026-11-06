@@ -32,8 +32,13 @@ session or encode HEIC files.
 Returned pixels use straight alpha. Ordered container transformations and alpha
 composition are already applied. RGB retains the signalled CICP primaries and
 transfer function; embedded ICC bytes are retained in `ColorInformation`.
-RGB is not implicitly sRGB. `RgbaImage.ToVideoFrame` copies pixels into a Mediana buffer while preserving CICP color interpretation and requiring an explicit pixel aspect ratio; it rejects ICC-profiled images. ICC transforms, HDR tone mapping, fractional clean
-aperture, pixel-aspect correction, HEVC inter prediction, tiles, dependent
+RGB is not implicitly sRGB. `RgbaImage.ToVideoFrame` copies pixels into a Mediana
+buffer while retaining CICP labels and the owned ICC description. The registered
+decoder writes directly into its output frame. Both APIs require an explicit
+pixel aspect ratio and preserve `prof`/`rICC` identity, including profiles inherited
+through derived images. Use the common [ICC color conversion](icc-color.md)
+before encoding these samples as sRGB; CLI PNG conversion applies it automatically.
+HDR tone mapping, fractional clean aperture, pixel-aspect correction, HEVC inter prediction, tiles, dependent
 slices, 12-bit/multilayer coding and protected/external items are unsupported.
 
 `HeicImageDecoder.ReadInfoAsync` reads the primary image's display dimensions,
@@ -65,4 +70,7 @@ Tests verify complete RGBA hashes and visible dimensions for 42 independent
 synthetic HEIC references. Three additional 8/10-bit/monochrome wavefront
 streams match independent plane hashes with one and four workers. Further checks
 cover input ownership, concurrent results, item selection, malformed input,
-limits and cancellation. This coverage does not establish full format conformance.
+limits and cancellation. Six additional ICC fixtures cover copied and direct
+frames, RGB/gray, v2/v4 profiles, grids, identity inheritance, rotation, alpha and
+CLI PNG export. The same ownership and conversion checks run with Native AOT.
+This coverage does not establish full format conformance.

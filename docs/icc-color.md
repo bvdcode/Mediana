@@ -2,7 +2,8 @@
 
 `SrgbConverter.Apply` and `SrgbPreview.Fit` apply embedded ICC profiles from
 `IccColorDescription`. JPEG assembles numbered APP2 fragments into one owned
-profile; TIFF and WebP already carry this same color description. Decoding keeps
+profile; HEIF, TIFF and WebP carry this same color description. HEIF preserves
+`prof`/`rICC` identity through image derivations and both frame APIs. Decoding keeps
 source samples and profile bytes. Conversion publishes straight RGBA8 sRGB with
 the source profile removed and alpha unchanged.
 
@@ -63,6 +64,11 @@ matched every byte; the other three differed by at most one RGB level. Alpha
 matched exactly. The references compare the same decoded image samples before
 presentation composition. Conflicting JPEG chroma-position declarations use the
 separate, explicit policy described in [JPEG decoding](jpeg.md).
+
+A 16320×12240 HEIC photograph with a DCI-P3 D65/sRGB-transfer ICC profile
+completed CLI PNG conversion. An independent PNG decoder verified and decoded
+the complete output. At 16384 distributed pixels, the converted RGB differed
+from LittleCMS by at most one 8-bit level; alpha matched exactly.
 
 The matrix/TRC and curve model follows [ICC.1:2022, clauses 10.5, 10.18 and Annex F](https://www.color.org/specification/ICC.1-2022-05.pdf).
 The destination transfer and adaptation follow the [ICC interpretation of sRGB](https://registry.color.org/rgb-registry/files/sRGB.pdf).
