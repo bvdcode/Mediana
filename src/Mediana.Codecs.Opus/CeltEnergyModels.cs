@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Opus
 {
     internal static class CeltEnergyModels
     {
-        public const int Bands = 21;
+        public const int Bands = CeltBandTables.BandCount;
         public const int MaximumFineBits = 8;
 
         public static ReadOnlySpan<byte> GetProbabilities(int frameShift, bool intra)

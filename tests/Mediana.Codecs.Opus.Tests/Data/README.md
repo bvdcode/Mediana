@@ -86,3 +86,22 @@ bits and eighth bits.
 SHA-256: `3f2d7c70d2ae6513b92a6fb8d72901f217e3f72b69a9452deb2e1cd51273adce`.
 
 Energy reconstruction follows [RFC 6716 section 4.3.2](https://www.rfc-editor.org/rfc/rfc6716.html#section-4.3.2).
+
+`band-allocation.bin` records 4,096 allocation decisions evaluated with libopus
+1.6.1. Cases cover mono/stereo, every CELT frame size, full and hybrid band starts,
+partial bandwidth, trims 0 through 10, dynamic band boosts, constrained capacity
+and frame lengths from zero to 1,275 bytes. Tests compare shape budgets, fine-bit
+counts and priorities in every band, the coded bandwidth, intensity/dual stereo,
+remaining balance, arithmetic range and whole/fractional bit usage. Tests also
+verify that repeated planning does not allocate managed storage.
+
+The little-endian file starts with `OPUSALC1` and a 32-bit case count. Each case
+contains a 32-bit input length and input bytes; 32-bit channel count, frame shift,
+first band, end band, available eighth bits and trim; and 21 32-bit boosts. Results
+contain seven 32-bit fields: coded end band, intensity start, dual-stereo flag,
+remaining balance, arithmetic range, whole bits and eighth bits. Finally, 21
+triples record the shape eighth bits, fine bits and final priority for each band.
+
+SHA-256: `fe06f5378196fb4ec2a0257d96cb5c430517b6083e40c49d877bc4dacd41c099`.
+
+Allocation follows [RFC 6716 section 4.3.3](https://www.rfc-editor.org/rfc/rfc6716.html#section-4.3.3).
