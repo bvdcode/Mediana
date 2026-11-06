@@ -46,6 +46,19 @@ namespace Mediana.Containers.Mp4
             Position = checked(Position + 4);
         }
 
+        public void UInt16(ushort value)
+        {
+            if (!Measuring) { BinaryPrimitives.WriteUInt16BigEndian(storage.Span[Position..], value); }
+            Position = checked(Position + 2);
+        }
+
+        public void Zeros(int count)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            if (!Measuring) { storage.Span.Slice(Position, count).Clear(); }
+            Position = checked(Position + count);
+        }
+
         public void UInt64(ulong value)
         {
             if (!Measuring) { BinaryPrimitives.WriteUInt64BigEndian(storage.Span[Position..], value); }
