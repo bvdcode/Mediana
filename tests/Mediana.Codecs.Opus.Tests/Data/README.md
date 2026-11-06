@@ -166,3 +166,15 @@ short MDCTs. Dimensions, pulse counts, spreading modes and gains vary. This
 coverage also runs under Native AOT.
 
 SHA-256: `9a23afc70907d3cdc1aa9ec3cec512bf001ca06ee7709df969fc053a2c5ae104`.
+
+`split-angles.bin` records 8,105 mono/stereo split decisions from libopus 1.6.1,
+including triangular, uniform and stereo step probabilities, intensity inversion,
+angle resolution, both gains, bit-allocation delta, occupancy masks and exact
+entropy state. It also records integer cosine and log-tangent results for all
+16,257 angles from 64 through 16,320, covering the range reachable with the
+maximum 256 angle subdivisions. Corrupt uniform-integer cases are rejected
+separately rather than treated as successful reference results.
+
+SHA-256: `943c668c398aae1ff8cb59ce4ed550206dd2c1eaa88dd8f2b622e0ce114af25b`.
+
+Split reconstruction follows [RFC 6716 section 4.3.4.4](https://www.rfc-editor.org/rfc/rfc6716.html#section-4.3.4.4).

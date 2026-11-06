@@ -129,6 +129,65 @@ namespace Mediana.Codecs.Opus
             return result;
         }
 
+        public int ReadTriangular(int subdivisions)
+        {
+            ValidateSubdivisions(subdivisions);
+            uint half = (uint)(subdivisions / 2 + 1);
+            uint total = half * half;
+            uint unit = range / total;
+            uint target = total - Math.Min(value / unit + 1, total);
+            int low = 0, high = subdivisions;
+            while (low < high)
+            {
+                int middle = (low + high) / 2;
+                if (TriangularStart(middle + 1, subdivisions, total) <= target) { low = middle + 1; }
+                else { high = middle; }
+            }
+            uint start = TriangularStart(low, subdivisions, total);
+            uint weight = (uint)Math.Min(low + 1, subdivisions + 1 - low);
+            Apply(start, start + weight, total, unit);
+            return low;
+        }
+
+        public int ReadStereoStep(int subdivisions)
+        {
+            ValidateSubdivisions(subdivisions);
+            uint midpoint = (uint)(subdivisions / 2);
+            uint boundary = 3 * (midpoint + 1);
+            uint total = boundary + midpoint;
+            uint unit = range / total;
+            uint target = total - Math.Min(value / unit + 1, total);
+            uint symbol, start, weight;
+            if (target < boundary)
+            {
+                symbol = target / 3;
+                start = 3 * symbol;
+                weight = 3;
+            }
+            else
+            {
+                symbol = midpoint + 1 + target - boundary;
+                start = target;
+                weight = 1;
+            }
+            Apply(start, start + weight, total, unit);
+            return (int)symbol;
+        }
+
+        private static uint TriangularStart(int symbol, int subdivisions, uint total)
+        {
+            if (symbol <= subdivisions / 2) { return (uint)(symbol * (symbol + 1) / 2); }
+            int tail = subdivisions + 1 - symbol;
+            return total - (uint)(tail * (tail + 1) / 2);
+        }
+
+        private static void ValidateSubdivisions(int subdivisions)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(subdivisions, 2);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(subdivisions, 256);
+            if ((subdivisions & 1) != 0) { throw new ArgumentException("CELT angle subdivisions must be even.", nameof(subdivisions)); }
+        }
+
         /// <summary>Decodes CELT's symmetric signed energy residual with Q15 probabilities.</summary>
         public int ReadLaplace(int zeroProbability, int decay)
         {
