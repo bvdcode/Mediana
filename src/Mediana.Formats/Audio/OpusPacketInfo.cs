@@ -43,75 +43,111 @@ namespace Mediana.Formats.Audio
 
         /// <summary>Validates the complete non-self-delimited packet, including VBR lengths and padding.
         /// Does not validate compressed frame syntax.</summary>
-        public static OpusPacketInfo Read(ReadOnlySpan<byte> packet)
+        public static OpusPacketInfo Read(ReadOnlySpan<byte> packet) =>
+            ReadCore(packet, default, false, false, out _);
+
+        /// <summary>Validates a complete packet and returns borrowed frame ranges excluding all headers and padding.
+        /// The destination requires at least FrameCount slots and is changed only after validation succeeds.</summary>
+        public static OpusPacketInfo ReadFrames(ReadOnlySpan<byte> packet, Span<Range> frames) =>
+            ReadCore(packet, frames, true, false, out _);
+
+        /// <summary>Reads one self-delimited stream from a multistream packet, using RFC 6716 appendix B.
+        /// Consumed bytes include this stream's padding and exclude all following streams.</summary>
+        public static OpusPacketInfo ReadSelfDelimitedFrames(ReadOnlySpan<byte> packet, Span<Range> frames, out int consumedBytes) =>
+            ReadCore(packet, frames, true, true, out consumedBytes);
+
+        private static OpusPacketInfo ReadCore(ReadOnlySpan<byte> packet, Span<Range> frames,
+            bool writeFrames, bool selfDelimited, out int consumedBytes)
         {
             OpusPacketInfo result = ReadTiming(packet);
+            if (writeFrames && frames.Length < result.FrameCount)
+            {
+                throw new ArgumentException("The Opus frame range destination is too short.", nameof(frames));
+            }
+            Span<int> lengths = stackalloc int[result.FrameCount];
             int position = 1;
-            int end = packet.Length;
+            int padding = 0;
+            bool constant = true;
             switch (packet[0] & 3)
             {
                 case 0:
-                    CheckFrameLength(end - position);
                     break;
                 case 1:
-                    ValidateCbr(end - position, 2);
                     break;
                 case 2:
-                    int first = ReadLength(packet, ref position, end);
-                    if (first > end - position) { throw new InvalidDataException("The first Opus VBR frame exceeds its packet."); }
-                    CheckFrameLength(end - position - first);
+                    constant = false;
+                    lengths[0] = ReadLength(packet, ref position);
                     break;
                 case 3:
                     byte control = packet[position++];
                     if ((control & 64) != 0)
                     {
-                        int padding;
+                        int extension;
                         do
                         {
-                            if (position == end) { throw new InvalidDataException("The Opus padding length is truncated."); }
-                            padding = packet[position++];
-                            int length = padding == 255 ? 254 : padding;
-                            if (length > end - position) { throw new InvalidDataException("Opus padding exceeds its packet."); }
-                            end -= length;
-                        } while (padding == 255);
+                            if (position == packet.Length) { throw new InvalidDataException("The Opus padding length is truncated."); }
+                            extension = packet[position++];
+                            padding = checked(padding + (extension == 255 ? 254 : extension));
+                            if (padding > packet.Length - position) { throw new InvalidDataException("Opus padding exceeds its packet."); }
+                        } while (extension == 255);
                     }
-                    if ((control & 128) == 0)
+                    constant = (control & 128) == 0;
+                    if (!constant)
                     {
-                        ValidateCbr(end - position, result.FrameCount);
-                    }
-                    else
-                    {
-                        int total = 0;
-                        for (int frame = 1; frame < result.FrameCount; frame++)
+                        for (int frame = 0; frame < result.FrameCount - 1; frame++)
                         {
-                            total += ReadLength(packet, ref position, end);
-                            if (total > end - position) { throw new InvalidDataException("Opus VBR lengths exceed their packet."); }
+                            lengths[frame] = ReadLength(packet, ref position);
                         }
-                        CheckFrameLength(end - position - total);
                     }
                     break;
                 default:
                     throw new InvalidOperationException();
             }
+            int known = 0;
+            if (!constant)
+            {
+                for (int frame = 0; frame < result.FrameCount - 1; frame++) { known += lengths[frame]; }
+            }
+            int last;
+            if (selfDelimited) { last = ReadLength(packet, ref position); }
+            else
+            {
+                int remaining = packet.Length - position - padding - known;
+                if (remaining < 0) { throw new InvalidDataException("Opus frame lengths exceed their packet."); }
+                if (constant && remaining % result.FrameCount != 0) { throw new InvalidDataException("Opus CBR frames have unequal lengths."); }
+                last = constant ? remaining / result.FrameCount : remaining;
+            }
+            if (constant) { lengths.Fill(last); }
+            else { lengths[^1] = last; }
+            long total = (long)position + padding;
+            foreach (int length in lengths)
+            {
+                CheckFrameLength(length);
+                total += length;
+            }
+            if (total > packet.Length) { throw new InvalidDataException("Opus frame lengths exceed their packet."); }
+            consumedBytes = (int)total;
+            if (writeFrames)
+            {
+                for (int frame = 0; frame < lengths.Length; frame++)
+                {
+                    frames[frame] = new(position, position + lengths[frame]);
+                    position += lengths[frame];
+                }
+            }
             return result;
         }
 
-        private static int ReadLength(ReadOnlySpan<byte> packet, ref int position, int end)
+        private static int ReadLength(ReadOnlySpan<byte> packet, ref int position)
         {
-            if (position == end) { throw new InvalidDataException("An Opus frame length is missing."); }
+            if (position == packet.Length) { throw new InvalidDataException("An Opus frame length is missing."); }
             int value = packet[position++];
             if (value >= 252)
             {
-                if (position == end) { throw new InvalidDataException("A two-byte Opus frame length is truncated."); }
+                if (position == packet.Length) { throw new InvalidDataException("A two-byte Opus frame length is truncated."); }
                 value += packet[position++] * 4;
             }
             return value;
-        }
-
-        private static void ValidateCbr(int length, int frames)
-        {
-            if (length % frames != 0) { throw new InvalidDataException("Opus CBR frames have unequal lengths."); }
-            CheckFrameLength(length / frames);
         }
 
         private static void CheckFrameLength(int length)

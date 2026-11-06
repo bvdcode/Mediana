@@ -24,3 +24,17 @@ SHA-256: `ae97af08bd287c13138e06ed6f9dba98176eefb0e93830d2a3280a65ba15fdaa`.
 
 The entropy syntax follows [RFC 6716 section 4.1](https://www.rfc-editor.org/rfc/rfc6716.html#section-4.1).
 Reference releases are available from [Xiph.Org](https://downloads.xiph.org/releases/opus/).
+
+`packet-layout.bin` records 4,004 packet inputs parsed by libopus 1.6.1: 2,372
+valid layouts and 1,632 rejected inputs. It covers all 32 configurations, both
+channel flags, all four packing codes, CBR/VBR, empty and maximum-length frames,
+multi-byte padding, truncated data and self-delimited multistream boundaries.
+
+The little-endian file begins with `OPUSPKT1` and a 32-bit case count. Each case
+contains a 32-bit packet length, its bytes, one byte selecting self-delimiting
+framing and a signed 32-bit reference frame count or error. Successful entries add
+32-bit consumed-byte and samples-per-frame counts, followed by each frame's 32-bit
+offset and length. Tests compare every range and verify that rejected packets leave
+the caller's range destination unchanged.
+
+SHA-256: `8a92a08eaa486acde862012a9a01898c5caf4bce0925ec4d6b078e031bf59098`.
