@@ -8,7 +8,7 @@ using Mediana.Core.Video;
 namespace Mediana.Codecs.Jpeg
 {
     /// <summary>Decodes 8-bit sequential and progressive Huffman JPEG to independent RGBA32. Encoded input is borrowed;
-    /// progressive coefficients, component samples and output are charged to the allocator. Chroma uses centered bilinear reconstruction.
+    /// progressive coefficients, component samples and output are charged to the allocator. Chroma uses bilinear reconstruction at its declared sample positions.
     /// JFIF/Adobe/Exif declare component interpretation; Exif sRGB labels are retained and orientation applied.
     /// Lossless/arithmetic, custom Exif colorimetry and CMYK/YCCK are currently unsupported.</summary>
     public class JpegImageDecoder : ISynchronousImageDecoder, IImageInfoReader
@@ -59,7 +59,8 @@ namespace Mediana.Codecs.Jpeg
             {
                 MaximumPixels = Math.Min(maximum, options.MaximumPixels),
                 MaximumEncodedBytes = options.MaximumEncodedBytes,
-                MaximumMarkers = options.MaximumMarkers
+                MaximumMarkers = options.MaximumMarkers,
+                ChromaConflictPolicy = options.ChromaConflictPolicy
             } : options;
             using JpegDocument image = new(encoded, limits, sourceColorSpace, sampleAspectRatio, cancellationToken);
             image.Read(allocator);

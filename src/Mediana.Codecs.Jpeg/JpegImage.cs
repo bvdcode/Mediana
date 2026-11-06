@@ -18,7 +18,7 @@ namespace Mediana.Codecs.Jpeg
             samples = image.TakeSamples();
         }
 
-        /// <summary>Diagnostics for a recovered redundant final restart marker, without changing decoded samples.</summary>
+        /// <summary>Nonfatal decoding diagnostics.</summary>
         public IReadOnlyList<string> Warnings { get; }
         public int Width => samples.Width;
         public int Height => samples.Height;
