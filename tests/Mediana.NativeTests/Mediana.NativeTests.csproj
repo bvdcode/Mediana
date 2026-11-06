@@ -342,6 +342,10 @@
     <Compile Include="../Shared/OpusConfigurationTestInput.cs" Link="OpusConfigurationTestInput.cs" />
     <Compile Include="../Shared/OpusSynthesisTestInput.cs" Link="OpusSynthesisTestInput.cs" />
     <Compile Include="../Shared/OpusCeltPcmTestInput.cs" Link="OpusCeltPcmTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkPulseTestInput.cs" Link="OpusSilkPulseTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkControlsTestInput.cs" Link="OpusSilkControlsTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkNlsfTestInput.cs" Link="OpusSilkNlsfTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkLpcTestInput.cs" Link="OpusSilkLpcTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <None Include="../Mediana.Codecs.Opus.Tests/Data/*.bin" Link="Data/Opus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />
