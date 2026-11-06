@@ -407,3 +407,19 @@ contains five 32-bit integers: operation, numerator, denominator, precision
 and result. Operation zero computes a reciprocal; operation one divides.
 
 SHA-256: `f13d7b0c7317ea934ba26592cfb49412952be2e90ef996b4fc7ebfc58bd375b4`.
+
+`silk-synthesis.bin` records 768 complete LP/LTP synthesis cases from libopus
+1.6.1 `silk_decode_core`. All internal sample rates, both frame durations,
+signal types, interpolated LPC filters, pitch rewhitening, gain transitions
+and prior synthesis histories are covered. Tests compare every PCM sample,
+LPC history word, retained output sample and final gain exactly. Repeated
+synthesis uses budgeted storage with no managed allocation per frame.
+
+The little-endian file begins with `OPUSSLS1` and a 32-bit count. Cases store
+rate/subframes, signal/offset/seed/interpolation/scale; Q16 gains, two compact
+Q12 LPC sets, pitch lags and Q14 LTP taps; signed pulses; prior gain, PCM and
+Q14 LPC histories; expected PCM, LPC history, gain and retained PCM history.
+Scalar controls and Q14/Q16 values are signed 32-bit integers; samples, pulses
+and Q12/Q14 filter taps are signed 16-bit integers.
+
+SHA-256: `b414a72f85f2d7597b7ce4f0f95928e0d35f16446150eca44f2d1b77f12362fa`.
