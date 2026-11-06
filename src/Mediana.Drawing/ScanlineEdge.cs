@@ -8,5 +8,5 @@ using System.Threading;
 
 namespace Mediana.Drawing
 {
-    internal readonly record struct ScanlineEdge(float X, float MinimumY, float MaximumY, float Slope, int Winding);
+    internal readonly record struct ScanlineEdge(float X, float MinimumY, float MaximumY, float Slope, int Winding, int Order = 0);
 }
