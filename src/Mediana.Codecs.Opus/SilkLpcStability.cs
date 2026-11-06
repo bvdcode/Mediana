@@ -30,7 +30,8 @@ namespace Mediana.Codecs.Opus
                 inverseGain = (int)((long)inverseGain * scaleQ30 >> 32) << 2;
                 if (inverseGain < MinimumInverseGainQ30) { return 0; }
                 if (order == 0) { break; }
-                int precision = 32 - BitOperations.LeadingZeroCount((uint)scaleQ30), reciprocal = Reciprocal(scaleQ30, precision);
+                int precision = 32 - BitOperations.LeadingZeroCount((uint)scaleQ30);
+                int reciprocal = SilkFixedMath.InversePositive(scaleQ30, precision + 30);
                 for (int at = 0; at < (order + 1) / 2; at++)
                 {
                     int opposite = order - at - 1, left = polynomial[at], right = polynomial[opposite];
@@ -45,13 +46,5 @@ namespace Mediana.Codecs.Opus
             return inverseGain;
         }
 
-        private static int Reciprocal(int denominator, int precision)
-        {
-            int normalized = denominator << (31 - precision);
-            int inverse = (int.MaxValue >> 2) / (normalized >> 16);
-            int initial = inverse << 16;
-            int error = ((1 << 29) - (int)((long)normalized * (short)inverse >> 16)) << 3;
-            return unchecked(initial + (int)((long)error * inverse >> 16));
-        }
     }
 }

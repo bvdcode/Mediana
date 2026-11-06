@@ -398,3 +398,12 @@ history and scale; updated LSFs, Q16 gains, both compact LPC sets, pitch lags
 and LTP coefficients.
 
 SHA-256: `60d852bac2f463ddd86d37d6b54cf997189c26bb72c17a6b34fb7c12c79bb3fa`.
+
+`silk-fixed.bin` records 12,288 normalized reciprocal and gain-ratio results
+from libopus 1.6.1, covering SILK gains, LPC precision and saturation. Tests
+compare the Q-format results exactly, including saturation before left shifts.
+The little-endian file begins with `OPUSFIX1` and a 32-bit count. Each case
+contains five 32-bit integers: operation, numerator, denominator, precision
+and result. Operation zero computes a reciprocal; operation one divides.
+
+SHA-256: `f13d7b0c7317ea934ba26592cfb49412952be2e90ef996b4fc7ebfc58bd375b4`.
