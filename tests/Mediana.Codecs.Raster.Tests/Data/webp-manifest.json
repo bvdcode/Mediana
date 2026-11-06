@@ -1,0 +1,181 @@
+[
+  {
+    "file": "webp-uniform-0.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-uniform-0.rgba"
+    ]
+  },
+  {
+    "file": "webp-uniform-4.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-uniform-4.rgba"
+    ]
+  },
+  {
+    "file": "webp-uniform-6.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-uniform-6.rgba"
+    ]
+  },
+  {
+    "file": "webp-palette-0.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-palette-0.rgba"
+    ]
+  },
+  {
+    "file": "webp-palette-4.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-palette-4.rgba"
+    ]
+  },
+  {
+    "file": "webp-palette-6.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-palette-6.rgba"
+    ]
+  },
+  {
+    "file": "webp-gradient-0.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-gradient-0.rgba"
+    ]
+  },
+  {
+    "file": "webp-gradient-4.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-gradient-4.rgba"
+    ]
+  },
+  {
+    "file": "webp-gradient-6.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-gradient-6.rgba"
+    ]
+  },
+  {
+    "file": "webp-noise-0.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-noise-0.rgba"
+    ]
+  },
+  {
+    "file": "webp-noise-4.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-noise-4.rgba"
+    ]
+  },
+  {
+    "file": "webp-noise-6.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-noise-6.rgba"
+    ]
+  },
+  {
+    "file": "webp-regions-0.webp",
+    "width": 257,
+    "height": 193,
+    "pixels": [
+      "webp-regions-0.rgba"
+    ]
+  },
+  {
+    "file": "webp-regions-4.webp",
+    "width": 257,
+    "height": 193,
+    "pixels": [
+      "webp-regions-4.rgba"
+    ]
+  },
+  {
+    "file": "webp-regions-6.webp",
+    "width": 257,
+    "height": 193,
+    "pixels": [
+      "webp-regions-6.rgba"
+    ]
+  },
+  {
+    "file": "webp-text-0.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-text-0.rgba"
+    ]
+  },
+  {
+    "file": "webp-text-4.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-text-4.rgba"
+    ]
+  },
+  {
+    "file": "webp-text-6.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-text-6.rgba"
+    ]
+  },
+  {
+    "file": "webp-alpha-0.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-alpha-0.rgba"
+    ]
+  },
+  {
+    "file": "webp-alpha-4.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-alpha-4.rgba"
+    ]
+  },
+  {
+    "file": "webp-alpha-6.webp",
+    "width": 67,
+    "height": 43,
+    "pixels": [
+      "webp-alpha-6.rgba"
+    ]
+  },
+  {
+    "file": "webp-animation.webp",
+    "width": 41,
+    "height": 31,
+    "pixels": [
+      "webp-animation-0.rgba",
+      "webp-animation-1.rgba",
+      "webp-animation-2.rgba",
+      "webp-animation-3.rgba"
+    ]
+  }
+]
