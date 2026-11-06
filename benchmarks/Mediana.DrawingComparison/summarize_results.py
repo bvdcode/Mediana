@@ -72,7 +72,7 @@ def main() -> None:
     for path in args.inputs:
         for line in path.read_text(encoding="utf-8").splitlines():
             record = json.loads(line)
-            case = str(record["case"])
+            case = f"{path.stem}/{record['case']}"
             row = cast(dict[str, object], record["measurement"])
             engine = str(row["Engine"])
             grouped.setdefault(case, {}).setdefault(engine, []).append(row)
