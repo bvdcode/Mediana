@@ -1,4 +1,4 @@
-H.264 bit reading now consumes available bits directly, with a separate path for
+H.264 bit reading consumes available bits directly, with a separate path for
 reads crossing byte boundaries. Implementation `d66ea64` is compared with
 `ec76d3b`, following [block luma interpolation](h264-block-interpolation.md).
 
@@ -32,7 +32,7 @@ are not part of the implementation. All control outputs were byte-identical.
 Each operation demuxes and decodes the same 1,441-picture, 60.041667-second,
 1280x720 input and writes all 1,992,038,400 YUV bytes. Configuration and source
 identities follow the [stage comparison](h264-stage-performance.md#input-and-measurement).
-Frozen Native AOT binaries run sequentially on one assigned CPU, with one media
+Native AOT binaries run sequentially on one assigned CPU, with one media
 processing thread and no overlapping build, validation or media workload.
 CPU is user plus system time. Measurements are from a shared Linux x64 host.
 
@@ -58,15 +58,14 @@ Fresh optimized one-thread FFmpeg controls produce the same raw bytes:
 | ffmpeg-1 | 4.501947 | 4.530597 | 67,484 |
 | ffmpeg-2 | 4.122324 | 16.768741 | 75,864 |
 
-The ratio of CPU medians is **6.60x** (28.453 versus 4.312 seconds).
-The CPU gap remains. Variation in external timing must not be attributed to
-this change. No new encoding throughput or complete-film audiovisual HLS result
-is established. A complete 1,441-picture encoding control retains the exact
-MPEG-TS reference and releases all owned media storage.
+The ratio of CPU medians is **6.60x** (28.453 versus 4.312 seconds). The CPU gap
+remains. Variation in FFmpeg timing is separate from the reader comparison. A complete
+1,441-picture encoding control retains the exact MPEG-TS reference and releases all
+owned media storage.
 
 ## Decoder work distribution
 
-A separate diagnostic of the preceding accepted implementation records
+A separate diagnostic of the preceding baseline implementation records
 29,946,574 CAVLC residual reads at 3.697 instrumented elapsed seconds.
 Luma prediction takes 3.574 seconds, chroma prediction 3.240 and deblocking
 5.447, including 3.409 in pixel filtering. Inverse 4x4 transformation accounts
@@ -76,15 +75,10 @@ are not CPU percentages, and do not identify a single cause of the entire gap.
 
 ## Validation
 
-Release build, all 2,958 managed tests, 697 H.264 tests with hardware intrinsics
-disabled, all 30 package checks, strict package-only Native AOT execution,
-native CLI, formatting and root license-header checks passed. Shared managed
-and native cases cover mixed 0–32-bit reads at all initial alignments,
+Shared managed and Native AOT cases cover mixed 0–32-bit reads at all initial alignments,
 independent raw bit extraction, reader copies, escaping, exact positions,
 trailing/alignment/CABAC padding, long mixed VLC sequences, final-byte codes,
 invalid or truncated prefixes and repeated allocation-free decoding.
-Native H.264 kernel checks are grouped in a focused component within the
-existing source-size analyzer limit.
 
 ## Byte-window zero-prefix control
 
@@ -108,5 +102,4 @@ Each output has the exact independent raw reference bytes, with EOF and zero
 owned media storage. CPU medians are 30.948369 seconds for the existing reader
 and 31.161953 for the variant, a 0.69% increase. Allocation traffic is essentially
 unchanged; the varying RSS observations do not establish a memory improvement.
-The variant is not adopted. This control establishes no new FFmpeg ratio or
-complete-film HLS result.
+The variant is not adopted.

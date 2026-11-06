@@ -7,7 +7,7 @@ decisions, quantizers and complete encoded output remain unchanged.
 
 The default Linux x64 Native AOT code for the previous diagonal filter expands
 32-bit vector multiplication by 5 and 20 into four `pmuludq` instructions with
-additional shuffles. The filter now expresses those operations as
+additional shuffles. The filter expresses those operations as
 `5 * value = value + (value << 2)` and
 `20 * value = (value + (value << 2)) << 2`. These identities preserve the
 original 32-bit wrapping arithmetic, including extreme integer inputs.
@@ -45,16 +45,15 @@ Repeated kernel execution allocates no managed storage.
 Existing scalar luma and chroma interpolation references, all prepared
 neighborhood phases and borders, and 188 complete motion-search references
 remain exact. These checks pass in managed execution, with hardware intrinsics
-disabled, and in a strict Linux x64 Native AOT consumer.
+disabled, and in a Linux x64 Native AOT consumer.
 
 ## Complete-process measurements
 
-Frozen Native AOT consumers process the same complete 1,441-picture,
-1280x720, 24 fps input used in the [stage comparison](h264-stage-performance.md).
-Both use `OptimizationPreference=Speed`, the default instruction set, logical
-CPU 2 and `DOTNET_PROCESSOR_COUNT=1`. Each stage has four observations per
-version, ordered before/after/after/before and then after/before/before/after.
-No owned build, test or other media operation overlaps the timed processes.
+Native AOT consumers process the same complete 1,441-picture, 1280x720, 24 fps input
+used in the [stage comparison](h264-stage-performance.md). Both use
+`OptimizationPreference=Speed`, the default instruction set, logical CPU 2 and
+`DOTNET_PROCESSOR_COUNT=1`. Each stage has four observations per version, ordered
+before/after/after/before and then after/before/before/after.
 
 | Median process resource | Encode before | Encode after | Decode before | Decode after |
 | --- | ---: | ---: | ---: | ---: |
@@ -72,19 +71,11 @@ Every encode produces the exact 78,332,832-byte MPEG-TS reference with SHA256
 `d3090ee699cfdcc4330ec9815adaa1e7b08de1d95530e2e7af2e1596a399e543`.
 Every decode matches all 1,992,038,400 independent YUV sample bytes. All sixteen
 operations process 1,441 pictures, reach EOF and release all owned media
-storage. Input, executable, fixture and source hashes are verified throughout.
+storage.
 
 This measurement establishes a local encoding improvement with unchanged
 quality and bitrate. It does not establish a new FFmpeg ratio or complete-film
 HLS speedup; the remaining CPU and coding-efficiency gaps stay open.
-
-## Validation
-
-Release builds with zero warnings and errors. All 3,074 managed tests and 708
-H.264 tests with hardware intrinsics disabled pass. All 30 packages pass assembly,
-metadata and package-only dependency checks. The strict Linux x64 Native AOT
-package consumer passes its complete test run; the sample and CLI also publish
-with Native AOT. Formatting and license-header checks pass.
 
 ## Compact first-pass storage
 
@@ -101,7 +92,7 @@ neighborhood. Horizontal results can be stored and reloaded directly as eight
 16-bit lanes. With SSE2, the diagonal pass uses two
 [MultiplyAddAdjacent](https://learn.microsoft.com/en-us/dotnet/api/system.runtime.intrinsics.x86.sse2.multiplyaddadjacent?view=net-10.0)
 operations on paired rows; portable vector arithmetic implements the same
-equation. The frozen Native AOT neighborhood constructor decreases from 1,992
+equation. The Native AOT neighborhood constructor decreases from 1,992
 to 1,795 code bytes. Its generated loop contains the two `pmaddwd` operations.
 These code and scratch sizes do not establish a reduction in process RSS.
 
@@ -111,14 +102,13 @@ extreme-value combinations, mixed lanes, randomized blocks, padded rows and
 unaligned starts. Each input view ends at its last required sample. Checks also
 verify unchanged source storage, scalar tail results and allocation-free
 repetition. They pass in ordinary managed execution, with hardware intrinsics
-disabled, and in strict Linux x64 Native AOT. Independent complete-neighborhood,
+disabled, and in Linux x64 Native AOT. Independent complete-neighborhood,
 row-rejection and 188 motion-search references also pass in all three modes.
 
 Eight complete encoding observations use the same input, settings, CPU and
 serial execution procedure as the preceding comparison. All process 1,441
 pictures, reach EOF and release owned media storage. Every output matches the
-same 78,332,832-byte independent transport reference. Sources, inputs and frozen
-executables remain unchanged during timing.
+same 78,332,832-byte independent transport reference.
 
 | Execution order | Before CPU median, s | Compact scratch CPU median, s | CPU reduction |
 | --- | ---: | ---: | ---: |
@@ -133,13 +123,7 @@ cumulative managed allocation is 2,283,517,476 versus 2,283,401,684 bytes.
 Neither memory observation establishes a substantial process-memory reduction.
 The smaller scratch retains the original candidate order, motion decisions,
 quality and output size. The general integer-domain interpolation helpers keep
-their existing arithmetic. These measurements establish no new FFmpeg ratio
-or complete-film HLS result.
+their existing arithmetic.
 
-The compact implementation passes all 3,111 managed tests and 719 H.264 tests
-with hardware intrinsics disabled. All 30 packages pass metadata, assembly and
-package-only dependency verification. Their strict Linux x64 Native AOT consumer
-passes its complete run; the sample and CLI also publish successfully. An actual
-Native AOT CLI conversion preserves the preceding HD transport byte for byte,
-and independent decoding reads all 49 pictures without errors. Release builds
-have zero warnings and errors; formatting and license-header checks pass.
+A Native AOT CLI conversion with compact scratch storage preserves the preceding HD
+transport byte for byte. Independent decoding reads all 49 pictures without errors.

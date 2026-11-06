@@ -26,7 +26,6 @@ initial QP26, 10 Mbit/s packet-rate target and two-second buffer. The reconstruc
 filter and its slice controls are the experimental difference.
 
 Processing runs sequentially on logical CPU 2 with `DOTNET_PROCESSOR_COUNT=1`.
-No owned build, test or other media processing overlaps either observation.
 CPU is user plus system time, and memory is process peak RSS.
 
 | Complete encoding | Unfiltered references | Filtered references |

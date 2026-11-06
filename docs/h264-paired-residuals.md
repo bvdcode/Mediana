@@ -45,11 +45,11 @@ block. Each pair is checked with both the 16-coefficient luma scan and the
 The checks compare every coefficient, both original DC values, source
 immutability and output guards. Repeated kernel execution allocates no heap
 storage. They pass in managed execution, with hardware intrinsics disabled,
-and in a strict Linux x64 Native AOT consumer.
+and in a Linux x64 Native AOT consumer.
 
 ## Complete encoding comparison
 
-Frozen Native AOT consumers encode all 1,441 pictures of the
+Native AOT consumers encode all 1,441 pictures of the
 [60.041667-second HD raw input](h264-stage-performance.md). The baseline uses
 product sources at `83ac2c3`. Both consumers use the same public media APIs,
 encoder settings, .NET SDK 10.0.402, runtime 10.0.13,
@@ -89,17 +89,6 @@ retained media storage. All eight MPEG-TS outputs contain 78,332,832 bytes and
 have SHA256
 `d3090ee699cfdcc4330ec9815adaa1e7b08de1d95530e2e7af2e1596a399e543`.
 Their identical bytes preserve the preceding independent decoded-pixel,
-quality, timestamp and rate verification. Inputs, product and fixture sources
-and frozen binaries remain unchanged during measurement.
+quality, timestamp and rate verification.
 
-This comparison establishes no new FFmpeg ratio or complete-film HLS speedup.
 The remaining encoder CPU and coding-efficiency gaps stay open.
-
-## Product validation
-
-Release builds with zero warnings and errors. All 3,076 managed tests and
-710 H.264 tests with hardware intrinsics disabled pass. All 30 packages pass
-assembly, metadata and package-only dependency verification. The complete
-strict Linux x64 Native AOT package consumer passes, including the shared
-paired-block oracle. The sample and CLI publish with Native AOT. Formatting
-and root license-header checks pass.

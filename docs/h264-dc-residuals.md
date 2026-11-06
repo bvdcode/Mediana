@@ -25,10 +25,8 @@ cover every AC position at both quantizer extremes, and six overlapping-storage
 layouts check the output and untouched surrounding memory. Invalid quantizers
 and incomplete spans remain rejected.
 
-The original transform and the changed transform passed these checks. All 2,726
-managed tests passed; the 19 inverse-transform tests also passed with hardware
-intrinsics disabled. The complete Linux x64 Native AOT test executable, CLI,
-Release build, formatting and license-header checks passed without warnings.
+Both transforms pass these checks, including the 19 inverse-transform cases with
+hardware intrinsics disabled. The checks also run through Native AOT.
 
 ## Complete-file measurement
 

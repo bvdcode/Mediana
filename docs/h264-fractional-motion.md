@@ -67,16 +67,15 @@ zero heap allocation during repeated neighborhood construction/read are checked.
 The filter follows H.264 clause 8.4.2.2.1, Table 8-12, retaining unrounded
 intermediate sums before diagonal filtering and clipping before quarter averages.
 
-All 21 encoding sequences, including mixed I_PCM/transformed pictures, were
-freshly decoded independently before updating their references: 1,070 pictures
-and 2,873,448 visible samples match exactly. The separate scaled CLI sequence
-also matches independent decoding. Some short sequences lose up to 0.276 dB
+Independent decoding of all 21 encoding sequences, including mixed
+I_PCM/transformed pictures, matches 1,070 pictures and 2,873,448 visible samples
+exactly. The separate scaled CLI sequence also matches independent decoding.
+Some short sequences lose up to 0.276 dB
 PSNR, while others improve; local SAD selection does not guarantee better
 whole-sequence squared error after quantization and rate control.
 
-The 2,665-test managed suite, strict Linux x64 Native AOT runner and CLI build
-pass. Seventeen focused checks also pass with hardware intrinsics disabled.
-The final committed Native CLI reproduces the same complete transport hash in
+Seventeen focused checks pass with hardware intrinsics disabled.
+The Native AOT CLI reproduces the same complete transport hash in
 another full run: CPU 159.789 s, elapsed 163.278 s, peak RSS 96.40 MiB.
 A freshly built Native AOT consumer and fresh independent decoding agree on
 every visible byte and timestamp of its 1,441 pictures and release media storage
@@ -165,12 +164,11 @@ rate decisions and audio. Each variant contains 1,441 pictures and 2,814 AAC
 access units. Both complete playlists and all 22 individual transport segments
 were independently decoded to EOF. The tail segments contain video only.
 
-The neighborhood oracle now checks 2,646 candidate blocks across six patterns,
+The neighborhood oracle checks 2,646 candidate blocks across six patterns,
 nine origins and all 49 local offsets, including extreme filter-tap patterns,
 clipping, border extension and guard bytes. Source preservation, zero heap
-allocation and independent complete motion-search results also pass. The 2,923
-managed tests, 17 focused tests with hardware intrinsics disabled, all 30 local
-packages and the strict Linux x64 package-only Native AOT runner and CLI pass.
+allocation and independent complete motion-search results also pass. Seventeen
+focused tests pass with hardware intrinsics disabled.
 This minute-long pair does not replace the complete-film FFmpeg comparison or
 establish throughput on other hardware and inputs.
 
@@ -187,9 +185,7 @@ Two complete 60.041667-second audiovisual HLS pairs used the same settings,
 Native AOT binaries, source and logical CPU described above. Execution order
 was reversed for the second pair. Each process reached all 1,441 input pictures
 and released its media buffers. All 25 output files matched each other and the
-previously independently decoded output byte for byte. The trial also passed
-2,923 managed tests, 17 hardware-disabled tests and strict package-only Native
-AOT execution before measurement.
+previously independently decoded output byte for byte.
 
 | Pair and execution order | Current CPU, s | Trial CPU, s | CPU change | Current peak RSS, MiB | Trial peak RSS, MiB |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -208,7 +204,7 @@ averaging under H.264 clause 8.4.2.2.1 and removes the second traversal of the
 output block. Bounded scratch, diagonal arithmetic and sample ownership remain
 the same. Independent scalar convolution agrees on all 7,392 blocks covering
 all sixteen phases, borders, unusual widths, tiling and output guards in managed,
-hardware-disabled and strict Native AOT execution. Repeated interpolation
+hardware-disabled and Native AOT execution. Repeated interpolation
 allocates no managed storage in these checks.
 
 Four complete 1,441-picture High/CABAC decodes run serially in
@@ -216,8 +212,7 @@ current/candidate/candidate/current order on logical CPU 2 with one media thread
 and the ordinary GC policy. Every YUV byte, rational timestamp and duration is
 exact; EOF and released-storage checks pass. CPU medians are 19.486 and 19.441
 seconds, a 0.23% difference. Peak RSS medians are 61,614 and 66,754 KiB.
-This does not meet the predeclared minimum 5% CPU reduction, so the candidate is
-not adopted and no reverse-order, CAVLC or encoding extension is run. These
+The candidate is not adopted; reverse-order, CAVLC and encoding comparisons were not run. These
 observations establish neither a repeatable acceleration nor a memory gain.
 
 ## Native AOT stage observations
@@ -253,8 +248,8 @@ eight-sample vector loads, including the final row and column of filter taps.
 Independent scalar convolution checks cover 2,192 cases: interior thresholds,
 immediately adjacent boundaries, guarded exact spans, extreme coordinates,
 overlapping destinations and sequential snapshots across multiple tiles.
-They pass in managed, hardware-intrinsics-disabled and strict Native AOT
-execution, including zero managed allocations. All 725 managed H.264 tests also pass.
+They pass in managed, hardware-intrinsics-disabled and Native AOT
+execution, including zero managed allocations.
 
 Four complete Native AOT decodes run in current/candidate/candidate/current
 order on logical CPU 2, with one media thread, ordinary GC and default compiler

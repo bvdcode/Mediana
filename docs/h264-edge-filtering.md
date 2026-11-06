@@ -1,4 +1,4 @@
-H.264 deblocking now filters eight positions across an edge together.
+H.264 deblocking filters eight positions across an edge together.
 Implementation `f65c031` retains the existing boundary-strength classification,
 quantizer thresholds and picture, macroblock, slice and edge processing order.
 
@@ -30,7 +30,7 @@ operation, avoiding separate calls with intermediate sample vectors.
 Each operation demuxes and decodes all 1,441 pictures of the 60.041667-second
 1280x720 input, then writes all 1,992,038,400 visible YUV bytes. Source and
 configuration follow the [stage comparison](h264-stage-performance.md#input-and-measurement).
-Frozen Native AOT consumers run sequentially on logical CPU 2, with one media
+Native AOT consumers run sequentially on logical CPU 2, with one media
 processing thread and no overlapping build, validation or media workload.
 CPU is user plus system time; RSS is peak process resident memory.
 These are complete-process observations on a shared Linux x64 host.
@@ -59,7 +59,7 @@ Fresh optimized one-thread FFmpeg controls produce the same raw samples:
 
 CPU medians are 24.706 seconds for Mediana and 4.031 for FFmpeg:
 a **6.13x** gap remains. External timing also varies between batches;
-the paired Mediana observations measure this change's CPU effect.
+the paired Mediana observations measure the deblocking kernel's CPU effect.
 A complete 1,441-picture encoding control retains the exact MPEG-TS reference,
 reaches EOF and releases all owned media storage. This is a correctness control,
 not a new encoding throughput comparison. The
@@ -69,11 +69,8 @@ update that whole-operation ratio.
 
 ## Validation
 
-Release build, all 2,960 managed tests, all 699 H.264 tests with hardware
-intrinsics disabled, all 30 package assemblies and their metadata/dependencies,
-strict package-only Native AOT execution, the native CLI, formatting and root license
-headers passed. An actual native CLI preview at 15,000 ms of the real HD source
-is byte-identical to the preceding verified consumer.
+The Native AOT CLI preview at 15,000 ms of the HD source is byte-identical to the
+preceding verified consumer.
 
 Shared managed and native tests compare the equations across
 all 625 combinations of four boundary strengths, six threshold sets, both

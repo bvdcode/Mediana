@@ -1,4 +1,4 @@
-The H.264 forward quantizer now processes complete coefficient blocks with SSE2
+The H.264 forward quantizer processes complete coefficient blocks with SSE2
 on supported processors. Implementation `13ecd6d` is compared with `51ec1a1`,
 including the preceding [direct chroma reference access](h264-search-work.md).
 The existing scalar calculation remains in use on other processors.
@@ -32,7 +32,7 @@ Each process reads the same 1,992,038,400-byte raw YUV input and writes the
 complete MPEG-TS result: 1,441 pictures, 60.041667 seconds, 1280x720, 24 fps.
 Configuration and source identities are those of the
 [stage comparison](h264-stage-performance.md#input-and-measurement).
-Frozen Native AOT binaries run serially on one assigned CPU, with one processing
+Native AOT binaries run serially on one assigned CPU, with one processing
 thread and no overlapping build, validation or media workload. CPU is user plus
 system time. These observations were collected on a shared Linux x64 host.
 
@@ -66,9 +66,6 @@ complete-film audiovisual HLS throughput result.
 
 ## Validation
 
-Release build, all 2,956 managed tests, 695 H.264 checks with hardware intrinsics
-disabled, all 30 package checks, strict package-only Native AOT execution, the
-native CLI build, formatting and root license-header verification passed.
 Shared managed/native cases compare independent scalar equations at every QP,
 signed rounding boundaries, mixed full-range coefficients, all minimum-integer
 positions, skipped DC, source/output guards and repeated allocation-free calls.

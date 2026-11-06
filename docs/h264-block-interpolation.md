@@ -1,6 +1,6 @@
-H.264 luma interpolation now selects the fractional-sample calculation once per
+H.264 luma interpolation selects the fractional-sample calculation once per
 block and processes four or eight samples together. Implementation `ec76d3b`
-is compared with the frozen Native AOT binary from `13ecd6d`, following the
+is compared with the Native AOT binary from `13ecd6d`, following the
 [block quantization change](h264-block-quantization.md).
 
 ## Computation and correctness
@@ -13,10 +13,9 @@ provides a comparison for dispatching by block size and phase. Mediana retains
 its own implementation and shared encoder/decoder filter calculations.
 
 Horizontal, vertical, odd/odd and diagonal phases perform only their required
-calculations. Only diagonal phases allocate the bounded horizontal workspace.
-The existing bounded border patch remains; this change does not remove that
-copy. Intermediate storage is on the stack, and results are written to the
-caller's output. Four-sample vectors read and write exactly four bytes;
+calculations. Only diagonal phases allocate the bounded horizontal workspace. Border
+blocks use a bounded source patch. Intermediate storage is on the stack, and results are
+written to the caller's output. Four-sample vectors read and write exactly four bytes;
 one-to-three-sample tails retain the same scalar equations.
 
 Rounded byte averaging is shared with encoder motion search. Supported x86
@@ -38,7 +37,7 @@ input does not establish their individual throughput.
 The input, stage definitions and codec settings are those of the
 [stage comparison](h264-stage-performance.md#input-and-measurement):
 1,441 pictures, 60.041667 seconds, 1280x720 at 24 fps. Every operation reaches
-EOF. Frozen Native AOT binaries run serially on one assigned CPU, with one
+EOF. Native AOT binaries run serially on one assigned CPU, with one
 media-processing thread and no overlapping build, test or media workload.
 CPU is user plus system time. Observations are from a shared Linux x64 host.
 
@@ -94,9 +93,7 @@ observations above. No new complete-film audiovisual HLS timing is established.
 
 ## Validation
 
-Release build, all 2,956 managed tests, 695 H.264 tests with hardware intrinsics
-disabled, all 30 packages, strict package-only Native AOT execution, native CLI,
-formatting and root license-header checks passed. Shared managed/native checks
+Shared managed and Native AOT checks
 cover all 16 phases, 14 block shapes, every border, extreme coordinates,
 independent scalar convolution, source/output guards and all 65,536 pairs of
 byte values for rounded averaging. Existing H.264, encoding and HLS references

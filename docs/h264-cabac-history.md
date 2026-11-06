@@ -53,12 +53,7 @@ An independent full-picture shadow checks 80 complete history traversals:
 vertical wrap, single/multiple rows, slice starts within a row, skipped syntax,
 partition sizes, signed differences, distinct lists and exact/insufficient
 budgets. The traversal performs zero managed allocations. Managed,
-hardware-disabled and strict Native AOT checks pass.
-
-The complete Release build has zero warnings and errors. All 3,201 managed
-tests, 722 hardware-disabled H.264 tests, 30 package assembly/dependency checks
-and the full package-only Native AOT runner pass. Strict Native AOT builds of
-the CLI and sample pass, together with formatting and license-header checks.
+hardware-disabled and Native AOT checks pass.
 
 Exact allocation checks use an explicit non-concurrent GC policy in the two
 test executables, a Batch-mode guard and an allocating positive control. The
