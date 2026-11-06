@@ -32,6 +32,7 @@ namespace Mediana.Codecs.Opus
 
         public readonly uint Range => range;
         public readonly int FrameBitCount => checked(frame.Length * 8);
+        public void AccountForSilence() => totalBits = checked(totalBits + FrameBitCount - BitsUsed);
         public readonly int BitsUsed => totalBits - ILog(range);
 
         public readonly int EighthBitsUsed

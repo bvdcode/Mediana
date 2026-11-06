@@ -105,3 +105,25 @@ triples record the shape eighth bits, fine bits and final priority for each band
 SHA-256: `fe06f5378196fb4ec2a0257d96cb5c430517b6083e40c49d877bc4dacd41c099`.
 
 Allocation follows [RFC 6716 section 4.3.3](https://www.rfc-editor.org/rfc/rfc6716.html#section-4.3.3).
+
+`frame-syntax.bin` records 1,024 sequential CELT frame prefixes evaluated by the
+libopus 1.6.1 decoder immediately before spectral shape reconstruction. These
+tests combine silence, post-filter parameters, transients, intra prediction,
+coarse energies, time/frequency resolution changes, spreading, dynamic boosts,
+trim, anti-collapse reservation, allocation and fine energies. Frame sizes,
+channels, bandwidths, hybrid band starts and initial energies vary; compressed
+inputs include random and constant bytes. Every result and the final arithmetic
+state are compared exactly, including float32 energy bits. Shape reconstruction
+and PCM synthesis are outside this reference's coverage.
+
+The little-endian file starts with `OPUSCEL1` and a 32-bit case count. Each case
+contains a 32-bit compressed byte count and bytes; 32-bit channels, frame shift,
+first band and end band; and 21 initial float32 energies per channel. Results are
+32-bit fields for silence, transient, intra, post-filter period, float32 gain,
+tapset, spreading, trim, shape budget, anti-collapse reservation, coded end band,
+intensity band, dual stereo, balance, arithmetic range, whole bits and eighth bits.
+These are followed by 21 float32 resulting energies per channel and 21 tuples of
+32-bit time/frequency resolution, boost, shape eighth bits, fine bits and priority.
+Inactive band tuples contain zero.
+
+SHA-256: `056e4effd1fe970aa5c7d4a706731262dc363e9bf747dac472dfc8436361ea83`.
