@@ -15,11 +15,14 @@ namespace Mediana.Drawing
         internal float Top { get; }
         internal float Bottom { get; }
 
-        internal FlattenedPath(VectorPath path, Matrix3x2 transform, CancellationToken token, float tolerance = PathFlattener.AntialiasTolerance)
+        internal FlattenedPath(VectorPath path, Matrix3x2 transform, CancellationToken token, float tolerance = PathFlattener.AntialiasTolerance, bool antialiased = true)
         {
             List<ScanlineEdge> result = [];
             float left = float.PositiveInfinity, right = float.NegativeInfinity, top = float.PositiveInfinity, bottom = float.NegativeInfinity;
-            foreach (PathContour contour in PathFlattener.Flatten(path, transform, tolerance, token))
+            List<PathContour> contours = antialiased
+                ? PathFlattener.FlattenCoverage(path, transform, tolerance, token)
+                : PathFlattener.Flatten(path, transform, tolerance, token);
+            foreach (PathContour contour in contours)
             {
                 List<Vector2> points = contour.Points;
                 PointCount += points.Count;

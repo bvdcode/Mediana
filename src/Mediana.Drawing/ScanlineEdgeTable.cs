@@ -19,8 +19,8 @@ namespace Mediana.Drawing
         internal int Bottom { get; }
         internal ReadOnlySpan<ScanlineEdge> Active => CollectionsMarshal.AsSpan(active);
 
-        internal ScanlineEdgeTable(VectorPath path, Matrix3x2 transform, int width, int height, CancellationToken token, float tolerance = .2f)
-            : this(new FlattenedPath(path, transform, token, tolerance), Vector2.Zero, width, height)
+        internal ScanlineEdgeTable(VectorPath path, Matrix3x2 transform, int width, int height, CancellationToken token, float tolerance = .2f, bool antialiased = false)
+            : this(new FlattenedPath(path, transform, token, tolerance, antialiased), Vector2.Zero, width, height)
         {
         }
 
