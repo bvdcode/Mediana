@@ -38,3 +38,19 @@ offset and length. Tests compare every range and verify that rejected packets le
 the caller's range destination unchanged.
 
 SHA-256: `8a92a08eaa486acde862012a9a01898c5caf4bce0925ec4d6b078e031bf59098`.
+
+`pulse-vectors.bin` records 13,574 signed pyramid vector quantization codewords
+evaluated with libopus 1.6.1. Dimensions range from 2 to 256, pulse counts from 1
+to 2,048, and representable codebooks approach the 32-bit entropy interval. Small
+codebooks include every rank; larger ones include boundary, midpoint and
+deterministically sampled ranks. Tests compare every integer coefficient and its
+squared norm. Separate exact combinatorial tests cover the zero-pulse and
+single-dimension cases and reject codebooks beyond the 32-bit range.
+
+The little-endian file starts with `OPUSPVQ1` and a 32-bit case count. Each case
+contains four unsigned 32-bit values: dimension count, pulse count, codebook size
+and rank, followed by the signed 32-bit coefficients in dimension order.
+
+SHA-256: `bab6a5c2e66f78fdc61513514fb22362cd0d1738132575170ebb343c9283eb57`.
+
+The codeword enumeration follows [RFC 6716 section 4.3.4.2](https://www.rfc-editor.org/rfc/rfc6716.html#section-4.3.4.2).
