@@ -16,6 +16,43 @@ namespace Mediana.Documents.Tests
     public class DocumentReaderTests
     {
         [Fact] public Task PublicReadersPreserveValuesStructureAndPixels() => DocumentReadersTestInput.VerifyAsync();
+        [Fact] public Task PictureFillsPreservePixelsSourcesAndOwnership() => PresentationImageFillTestInput.VerifyAsync();
+        [Theory]
+        [InlineData("<a:tile sx='0'/>", "")]
+        [InlineData("<a:tile sy='-1'/>", "")]
+        [InlineData("<a:tile sx='NaN'/>", "")]
+        [InlineData("<a:tile algn='middle'/>", "")]
+        [InlineData("<a:tile flip='z'/>", "")]
+        [InlineData("<a:tile/><a:stretch/>", "")]
+        [InlineData("<a:stretch><a:fillRect l='60000' r='40000'/></a:stretch>", "")]
+        [InlineData("<a:stretch/>", "<a:srcRect l='100000'/>")]
+        public async Task InvalidImageFillGeometryReleasesAllBuffers(string mode, string crop)
+        {
+            using PresentationDocument document = PresentationReader.Open(PresentationImageFillTestData.Create(mode: mode, crop: crop));
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await Assert.ThrowsAsync<InvalidDataException>(async () => await PresentationRenderer.RenderAsync(document, 0,
+                new() { Dpi = 72, Supersampling = 1 }, allocator: allocator));
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+        [Fact]
+        public async Task ImageFillsShareTheOutputAllocationBudget()
+        {
+            using PresentationDocument document = PresentationReader.Open(PresentationImageFillTestData.Create());
+            MediaBufferAllocator allocator = new(64 * 48 * 4 + 31);
+            await Assert.ThrowsAsync<MediaMemoryLimitException>(async () => await PresentationRenderer.RenderAsync(document, 0,
+                new() { Dpi = 72, Supersampling = 1 }, allocator: allocator));
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+        [Fact]
+        public async Task CancellationDuringImageFillDecodingReleasesAllBuffers()
+        {
+            using PresentationDocument document = PresentationReader.Open(PresentationImageFillTestData.Create(image: "PIX"u8.ToArray()));
+            using CancellationTokenSource source = new();
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await Assert.ThrowsAsync<OperationCanceledException>(async () => await PresentationRenderer.RenderAsync(document, 0,
+                new() { Dpi = 72, Supersampling = 1, Images = new([new EmbeddedTestImageDecoder(decoded: () => source.Cancel())]) }, source.Token, allocator));
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
         [Theory]
         [InlineData("/", true)]
         [InlineData(" vertOverflow='clip'/", false)]

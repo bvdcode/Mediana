@@ -15,6 +15,9 @@
     <Compile Include="../Shared/XlsxWorkbookTestData.cs" Link="XlsxWorkbookTestData.cs" />
     <Compile Include="../Shared/XlsWorkbookTestData.cs" Link="XlsWorkbookTestData.cs" />
     <Compile Include="../Shared/PresentationTestData.cs" Link="PresentationTestData.cs" />
+    <Compile Include="../Shared/PresentationFillLocation.cs" Link="PresentationFillLocation.cs" />
+    <Compile Include="../Shared/PresentationImageFillTestData.cs" Link="PresentationImageFillTestData.cs" />
+    <Compile Include="../Shared/PresentationImageFillTestInput.cs" Link="PresentationImageFillTestInput.cs" />
     <Compile Include="../Shared/PdfTextTestData.cs" Link="PdfTextTestData.cs" />
     <Compile Include="../Shared/DocumentReadersTestInput.cs" Link="DocumentReadersTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Documents.Presentation/Mediana.Documents.Presentation.csproj" />
