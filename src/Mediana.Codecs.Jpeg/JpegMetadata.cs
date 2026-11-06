@@ -12,6 +12,7 @@ namespace Mediana.Codecs.Jpeg
         private int? adobeTransform;
         private int iccCount;
         private int iccParts;
+        private ReadOnlyMemory<byte>[]? iccFragments;
         private bool exif;
         private bool exifCustomColor;
         private ushort? exifColorSpace;
@@ -25,8 +26,9 @@ namespace Mediana.Codecs.Jpeg
         internal bool IsSrgb => exifColorSpace == 1;
         internal bool Uncalibrated => exifColorSpace == 65535;
 
-        internal void Read(byte marker, ReadOnlySpan<byte> segment, CancellationToken token)
+        internal void Read(byte marker, ReadOnlyMemory<byte> data, CancellationToken token)
         {
+            ReadOnlySpan<byte> segment = data.Span;
             if (marker == 224 && segment.StartsWith("JFIF\0"u8))
             {
                 if (jfif || segment.Length < 14 || segment[5] != 1 || segment[7] > 2 ||
@@ -61,6 +63,8 @@ namespace Mediana.Codecs.Jpeg
                 iccCount = segment[13];
                 iccSeen[segment[12]] = true;
                 iccParts++;
+                iccFragments ??= new ReadOnlyMemory<byte>[iccCount];
+                iccFragments[segment[12] - 1] = data[14..];
             }
             else if (marker == 225 && segment.StartsWith("Exif\0\0"u8))
             {
@@ -79,6 +83,9 @@ namespace Mediana.Codecs.Jpeg
             }
         }
 
+        internal IccColorDescription CreateIccDescription() => IccColorDescription.FromSegments(
+            iccFragments ?? throw new InvalidOperationException("JPEG has no ICC profile."), false);
+
         internal void Validate(IReadOnlyList<JpegComponent> components, JpegColorSpace? sourceColorSpace,
             SampleAspectRatio? sampleAspectRatio, bool requireColor)
         {
@@ -94,7 +101,7 @@ namespace Mediana.Codecs.Jpeg
                 }
                 Aspect = SampleAspectRatio.Square;
                 if (jfif && !Centered) { throw new InvalidDataException("JPEG JFIF and Exif chroma positions conflict."); }
-                if (exifCustomColor && requireColor) { throw new NotSupportedException("JPEG custom Exif colorimetry is not supported."); }
+                if (exifCustomColor && requireColor && !HasIcc) { throw new NotSupportedException("JPEG custom Exif colorimetry is not supported."); }
             }
             if (sampleAspectRatio is SampleAspectRatio suppliedAspect)
             {

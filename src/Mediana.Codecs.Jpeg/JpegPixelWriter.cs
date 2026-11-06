@@ -14,7 +14,7 @@ namespace Mediana.Codecs.Jpeg
             VideoColorDescription? description = null;
             if (image.Metadata.HasIcc)
             {
-                description = new JpegColorDescription();
+                description = image.Metadata.CreateIccDescription();
             }
             else if (image.Metadata.Uncalibrated) { description = new JpegExifColorDescription(); }
             bool swap = image.Metadata.Orientation.SwapsAxes;

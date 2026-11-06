@@ -112,7 +112,7 @@ namespace Mediana.Codecs.Jpeg
                     case >= 224 and <= 239:
                         if (!componentSamples || marker == 238)
                         {
-                            metadata.Read(marker, segment, token);
+                            metadata.Read(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);
                             if (allocator is null)
                             {
                                 metadata.Inspect(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);
