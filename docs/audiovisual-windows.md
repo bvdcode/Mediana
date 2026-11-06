@@ -73,10 +73,7 @@ original and remuxed coded slice is verified byte for byte. Their decoded AAC
 Float32 output differs by at most 7.46 × 10⁻⁸. These comparisons check decoding
 agreement on the encoded output, rather than lossless reproduction of the input.
 
-The complete validation also passes 3,067 managed tests, 636 audio tests with
-hardware intrinsics disabled, and the package-only Native AOT runner for all 30
-packages. Strict Native AOT compilation succeeds for the sample and CLI. Separate
-time-window tests enumerate sample instants using arbitrary-precision rational
+Time-window tests enumerate sample instants using arbitrary-precision rational
 arithmetic and check real edited AAC against independent PCM references. Indexed
 and sequential selection both cover missing edits, leading delays, fractional
 boundaries, empty edits and ranges that extend beyond actual decoder EOF.
@@ -132,7 +129,7 @@ the audio preparation step; the independent audiovisual sample has not yet been
 integrated with that separate rendition. The library also formats measured
 [master-playlist audio groups](hls-audio-groups.md); common VOD presentation
 boundaries and smooth browser rendering still require validation. A separate
-[prepared-audio presentation check](hls-prepared-presentation.md) now verifies
+[prepared-audio presentation check](hls-prepared-presentation.md) verifies
 complete master-playlist decoding with video requests in order 1, 0, 1 and
 unchanged continuous audio.
 Chrome/hls.js also completes playback and buffered seeks of that presentation;

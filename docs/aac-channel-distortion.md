@@ -106,7 +106,7 @@ byte-identical.
 
 ## Reusing unchanged channel costs
 
-The allocator now counts the current channel bit costs once, then recounts only
+The allocator counts the current channel bit costs once, then recounts only
 channels affected by an accepted refinement. It retains the existing candidate
 cache, exact section/scalefactor costs and search order, using the same stack
 storage. A two-band move in one channel triggers one recount after both changes;

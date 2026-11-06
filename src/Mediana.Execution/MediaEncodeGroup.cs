@@ -4,7 +4,7 @@
 namespace Mediana.Execution
 {
     /// <summary>Submits each borrowed frame to multiple encoding pipelines in registration order.
-    /// Each pipeline drains before the next input. No frame queue or worker thread is added.
+    /// Each pipeline drains before the next input; the group uses no frame queues or worker threads.
     /// Pipelines, encoders and writers remain borrowed; completion drains codecs without finalizing writers.
     /// Failure or cancellation is terminal, including partial submission to the group.</summary>
     public class MediaEncodeGroup<TFrame> where TFrame : class, IDisposable

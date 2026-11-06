@@ -105,6 +105,6 @@ an indexed reader directly to a codec can query it and retain the packet with th
 duration explicitly; codecs do not infer container timing from compressed pictures.
 The interval selector continues to preserve the duration supplied by its callback.
 
-Complete CFR, VFR, edited VFR and HD transcodes now finish and independently decode
+Complete CFR, VFR, edited VFR and HD transcodes finish and independently decode
 with every original presentation time. The CFR transport remains byte-for-byte
 identical to the preceding output. Independent AAC segment boundaries remain open.

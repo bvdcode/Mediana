@@ -10,7 +10,7 @@ Compiler arguments confirm `--Ot` without an instruction-set override.
 
 ## Complete stage comparison
 
-Two frozen strict Native AOT consumers use identical product and consumer
+Two Native AOT consumers use identical product and consumer
 sources from `edb7bae`, SDK 10.0.402, runtime 10.0.13 and the default minimum
 instruction set. Only the optimization preference differs. The input is the
 complete 1,441-picture, 1280x720, 24 fps, 60.041667-second sequence from the
@@ -19,7 +19,7 @@ complete 1,441-picture, 1280x720, 24 fps, 60.041667-second sequence from the
 Encoding reads the independent raw YUV420P8 input and writes MPEG-TS. Decoding
 reads the original MOV and writes all visible raw samples. Each operation uses
 one processing thread, logical CPU 2 and `DOTNET_PROCESSOR_COUNT=1`. Processes
-run sequentially, without an overlapping owned build, test or media workload.
+run sequentially.
 The second series reverses implementation order. CPU is user plus system time.
 
 | Order | Encode default CPU, s | Encode Speed CPU, s | Decode default CPU, s | Decode Speed CPU, s |
@@ -53,8 +53,7 @@ All eight encoding outputs are exactly the independently decoded reference:
 All eight decoding outputs contain exactly 1,992,038,400 bytes, SHA256
 `1ae555fcff80cdedd1f41a1d1b9aa86aadcb23884b1e11305d6c1ab5191d2bca`.
 Every observation completes 1,441 pictures, reaches EOF and releases owned
-media storage. Product sources, reference fixtures, inputs and frozen
-executables remain unchanged throughout measurement. Identical encoded bytes
+media storage. Identical encoded bytes
 retain the preceding independent timing and quality verification.
 
 ## External controls and remaining work

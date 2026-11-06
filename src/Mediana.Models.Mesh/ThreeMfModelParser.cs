@@ -71,7 +71,7 @@ namespace Mediana.Models.Mesh
             foreach (string prefix in ((string?)root.Attribute("requiredextensions") ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
             {
                 XNamespace? extension = root.GetNamespaceOfPrefix(prefix);
-                // Preview materials are intentionally replaced by the caller's BaseColor.
+                // All preview materials use the caller's BaseColor.
                 // The Materials extension does not change the underlying mesh geometry.
                 if (extension != ThreeMfReader.Production && extension != ThreeMfReader.Materials)
                 {

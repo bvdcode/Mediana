@@ -157,7 +157,6 @@ TGS sequence with the same frame count, duration and repeat count.
 
 libwebp also verified the composited pixels of a mixed VP8/VP8L animation with
 partial rectangles, alpha blending and background disposal, together with frame
-delays and repeat count. The managed suite passed 3,742 tests, including 199 WebP
-tests; the same 199 WebP tests passed with hardware intrinsics disabled. Native
-AOT test execution passed, and a separately compiled Native AOT CLI produced
-still, TGS and video WebP outputs that independent decoders opened successfully.
+delays and repeat count. All 199 WebP tests passed with hardware intrinsics
+disabled. A Native AOT CLI produced still, TGS and video WebP outputs that
+independent decoders opened successfully.

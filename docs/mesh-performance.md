@@ -31,7 +31,6 @@ There are three fresh processes per implementation/model, with rotating order.
 Each process performs one warm-up operation, a full collection, then three
 measured operations. The tables show medians of the three process means, or
 process lifetime peaks for RSS. CPU is total process user plus system time.
-Owned builds, tests and other model workloads do not overlap the measurements.
 The host is shared; CPU ranges remain wide even with fixed affinity.
 Complete observations are in [the measurement CSV](mesh-performance.csv).
 

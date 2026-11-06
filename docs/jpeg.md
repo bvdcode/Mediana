@@ -215,9 +215,7 @@ decoded color component differs from the independent reference by at most three
 8-bit codes, with exact opaque alpha. Ten native probes include progressive,
 unlabelled and Adobe RGB headers. Four failures preserve an approved existing
 destination: truncated input, unresolved component color, arithmetic coding and
-an embedded ICC profile requiring an unavailable transform. The complete managed
-suite passes 2,852 tests; all 30 library packages also pass the isolated Linux
-Native AOT consumer and native shared checks.
+an embedded ICC profile requiring an unavailable transform.
 
 An additional complete native conversion checks progressive 16-bit quantization,
 quantization/Huffman destination three and signed DC refinement. The AC table is

@@ -265,7 +265,7 @@ page previews also remained byte-identical.
 | Median peak RSS, KiB | 181,888 | 162,604 |
 | Peak RSS range, KiB | 138,128–181,888 | 141,568–162,944 |
 
-The CPU median increased 2.98%; this change establishes no speedup. RSS ranges
+The CPU median increased 2.98%. RSS ranges
 overlap on the shared host. The allocation result establishes removal of the
 cache copy; these process measurements do not establish a general memory bound.
 

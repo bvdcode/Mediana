@@ -26,7 +26,7 @@ The `.f32le` references contain complete AAC frames, including encoder priming
 and final padding. Reference decoding uses `-ignore_editlist 1`, matching the
 MP4 reader's media timeline. These sample counts intentionally exceed the source
 WAV lengths. Frame duration is 1024 samples even when the container declares a
-shorter final packet duration. No delay or padding trimming is claimed.
+shorter final packet duration. Priming and padding are retained.
 
 Without PNS, every interleaved PCM sample must match the independent decoder
 within an absolute error of `2e-6`, including short/long window transitions and

@@ -75,7 +75,7 @@ Publishing the owned output as a frame does not copy its RGBA array.
 
 The source reader/render regression cases run in Mediana alongside additional
 allocation, ownership, cancellation, concurrency, OPC routing and CLI checks.
-The strict Native AOT runner includes model loading, shared Word/3MF registration,
+The Native AOT runner includes model loading, shared Word/3MF registration,
 rendering, frame publication and PNG checks. Per-operation correctness and
 performance acceptance remain independent; successful integration is not a claim
 of complete format conformance. Render.NET benchmark results are not Mediana
