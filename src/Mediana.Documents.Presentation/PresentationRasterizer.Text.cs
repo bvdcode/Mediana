@@ -27,16 +27,18 @@ namespace Mediana.Documents.Presentation
                     bodyPr.Element(child.Name)?.Remove(); bodyPr.Add(new XElement(child));
                 }
             }
-            string vertical = (string?)bodyPr?.Attribute("vert") ?? "horz";
+            string vertical = (string?)bodyPr.Attribute("vert") ?? "horz";
             if (vertical != "horz") { throw new NotSupportedException("Unsupported presentation text direction: " + vertical); }
             double left = PresentationXml.Points(bodyPr, "lIns", 7.2), right = PresentationXml.Points(bodyPr, "rIns", 7.2);
             double top = PresentationXml.Points(bodyPr, "tIns", 3.6), bottom = PresentationXml.Points(bodyPr, "bIns", 3.6);
             if (width - left - right <= 0 || height - top - bottom <= 0) { return; }
-            bool wrap = (string?)bodyPr?.Attribute("wrap") switch { null or "square" => true, "none" => false, _ => throw new InvalidDataException("Invalid presentation text wrapping.") };
-            double fontScale = PresentationXml.Number(bodyPr?.Element(a + "normAutofit"), "fontScale", 100000) / 100000;
+            bool wrap = (string?)bodyPr.Attribute("wrap") switch { null or "square" => true, "none" => false, _ => throw new InvalidDataException("Invalid presentation text wrapping.") };
+            double fontScale = PresentationXml.Percent(bodyPr.Element(a + "normAutofit"), "fontScale", 1);
             if (fontScale <= 0 || fontScale > 1) { throw new InvalidDataException("Invalid presentation font scale."); }
-            List<PresentationTextLine> lines = [];
-            double y = top;
+            XElement? autoFit = bodyPr.Element(a + "normAutofit");
+            double lineReduction = PresentationXml.Percent(autoFit, "lnSpcReduction");
+            if (lineReduction < 0 || lineReduction > 1) { throw new InvalidDataException("Invalid presentation line spacing reduction."); }
+            List<PresentationTextParagraph> paragraphs = [];
             foreach (XElement paragraph in body.Elements(a + "p"))
             {
                 token.ThrowIfCancellationRequested();
@@ -61,65 +63,47 @@ namespace Mediana.Documents.Presentation
                 }
                 List<XElement> mark = RunProperties(styles, paragraph.Element(a + "endParaRPr"), a);
                 double markSize = Property(mark, "sz", 1800) / 100 * fontScale;
-                double before = Spacing(styles, "spcBef", markSize), after = Spacing(styles, "spcAft", markSize);
-                y += before;
-                int cursor = 0, lineIndex = 0;
-                bool empty = atoms.Count == 0;
-                do
-                {
-                    int start = cursor, end = cursor, lastBreak = -1;
-                    double x = left + marginLeft + (lineIndex == 0 ? indent : 0), available = width - right - marginRight - x, advance = 0;
-                    if (available <= 0) { throw new InvalidDataException("Presentation paragraph has no available line width."); }
-                    bool hardBreak = false;
-                    while (end < atoms.Count)
-                    {
-                        PresentationTextAtom atom = atoms[end];
-                        if (atom.Break) { hardBreak = true; break; }
-                        if (wrap && advance + atom.Advance > available && end > start)
-                        { if (lastBreak >= start) { end = lastBreak + 1; } break; }
-                        advance += atom.Advance;
-                        if (atom.Space) { lastBreak = end; }
-                        end++;
-                    }
-                    cursor = end + (hardBreak ? 1 : 0);
-                    if (!hardBreak) { while (cursor < atoms.Count && atoms[cursor].Space) { cursor++; } }
-                    int visible = end;
-                    while (visible > start && atoms[visible - 1].Space) { visible--; }
-                    PresentationTextAtom[] line = atoms.GetRange(start, visible - start).ToArray();
-                    double ascent = line.Length == 0 ? markSize * .8 : line.Max(item => item.Ascent);
-                    double descent = line.Length == 0 ? markSize * .2 : line.Max(item => item.Descent);
-                    double natural = ascent + descent;
-                    double lineHeight = Spacing(styles, "lnSpc", natural, natural);
-                    double lineWidth = line.Sum(item => item.Advance);
-                    double offset = alignment switch { "l" or "just" or "dist" or "justLow" => 0, "ctr" => (available - lineWidth) / 2, "r" => available - lineWidth, _ => throw new NotSupportedException("Unsupported presentation paragraph alignment: " + alignment) };
-                    int spaces = line.Count(item => item.Space);
-                    double extra = alignment == "just" && cursor < atoms.Count && !hardBreak && spaces > 0 ? Math.Max(0, available - lineWidth) / spaces : 0;
-                    lines.Add(new(line, x + offset, y, ascent + (lineHeight - natural) / 2, lineHeight, extra));
-                    y += lineHeight; lineIndex++; empty = false;
-                    if (hardBreak && cursor == atoms.Count) { empty = true; }
-                } while (cursor < atoms.Count || empty);
-                y += after;
+                paragraphs.Add(new(atoms, styles, markSize, indent, marginLeft, marginRight, alignment));
             }
-            string anchor = (string?)bodyPr?.Attribute("anchor") ?? "t";
+            double availableHeight = height - top - bottom;
+            double scale = 1;
+            (double Height, bool FitsWidth) measured = LayoutText(paragraphs, width, left, right, wrap, lineReduction, scale);
+            if (autoFit is not null && (measured.Height > availableHeight || !measured.FitsWidth))
+            {
+                double low = 0, high = 1;
+                while (high - low > 1d / 100000)
+                {
+                    token.ThrowIfCancellationRequested();
+                    double middle = (low + high) / 2;
+                    (double Height, bool FitsWidth) candidate = LayoutText(paragraphs, width, left, right, wrap, lineReduction, middle);
+                    if (candidate.Height > availableHeight || !candidate.FitsWidth) { high = middle; }
+                    else { low = middle; }
+                }
+                if (low == 0) { throw new NotSupportedException("Presentation paragraph spacing cannot fit within the automatic text bounds."); }
+                scale = low;
+            }
+            List<PresentationTextLine> lines = [];
+            double y = top + LayoutText(paragraphs, width, left, right, wrap, lineReduction, scale, lines).Height;
+            string anchor = (string?)bodyPr.Attribute("anchor") ?? "t";
             double delta = anchor switch { "t" => 0, "ctr" => (height - bottom - y) / 2, "b" => height - bottom - y, _ => throw new NotSupportedException("Unsupported presentation text anchor: " + anchor) };
             canvas.Save();
             try
             {
-                canvas.ClipPath(new VectorPath().Rectangle(0, 0, (float)width, (float)height), transform, cancellationToken: token);
+                ClipText(bodyPr, width, height, transform);
                 foreach (PresentationTextLine line in lines)
                 {
-                    double x = line.X, baseline = line.Y + line.Baseline + delta;
+                    double x = line.X, baseline = top + line.Y + line.Baseline + delta;
                     foreach (PresentationTextAtom atom in line.Atoms)
                     {
                         token.ThrowIfCancellationRequested();
                         if (atom.Graphic is InlineGraphic graphic)
-                        { graphic.Draw(canvas, Matrix3x2.CreateScale((float)atom.Size) * Matrix3x2.CreateTranslation((float)x, (float)(baseline - atom.Ascent)) * transform, token); }
+                        { graphic.Draw(canvas, Matrix3x2.CreateScale((float)(atom.Size * scale)) * Matrix3x2.CreateTranslation((float)x, (float)(baseline - atom.Ascent * scale)) * transform, token); }
                         else if (atom.Font is TrueTypeFont font)
                         {
-                            float scale = (float)(atom.Size / font.Units);
-                            _text.DrawGlyphAntialiased(canvas, font, atom.Glyph, atom.Color, Matrix3x2.CreateScale(scale, -scale) * Matrix3x2.CreateTranslation((float)x, (float)baseline) * transform, token);
+                            float glyphScale = (float)(atom.Size * scale / font.Units);
+                            _text.DrawGlyphAntialiased(canvas, font, atom.Glyph, atom.Color, Matrix3x2.CreateScale(glyphScale, -glyphScale) * Matrix3x2.CreateTranslation((float)x, (float)baseline) * transform, token);
                         }
-                        x += atom.Advance + (atom.Space ? line.ExtraSpace : 0);
+                        x += atom.Advance * scale + (atom.Space ? line.ExtraSpace : 0);
                     }
                 }
             }
@@ -209,11 +193,11 @@ namespace Mediana.Documents.Presentation
             return value is null ? defaultValue : PresentationXml.Number(value, name);
         }
         private static bool Bool(List<XElement> values, string name) => values.LastOrDefault(item => item.Attribute(name) is not null) is XElement value && PresentationXml.Boolean(value, name);
-        private static double Spacing(List<XElement> styles, string name, double natural, double defaultValue = 0)
+        private static double Spacing(IReadOnlyList<XElement> styles, string name, double natural, double defaultValue = 0)
         {
             XElement? spacing = styles.SelectMany(item => item.Elements()).LastOrDefault(item => item.Name.LocalName == name)?.Elements().FirstOrDefault();
             if (spacing is null) { return defaultValue; }
-            return spacing.Name.LocalName switch { "spcPct" => PresentationXml.Number(spacing, "val") / 100000 * natural, "spcPts" => PresentationXml.Number(spacing, "val") / 100, _ => throw new InvalidDataException("Invalid presentation paragraph spacing.") };
+            return spacing.Name.LocalName switch { "spcPct" => PresentationXml.Percent(spacing, "val") * natural, "spcPts" => PresentationXml.Number(spacing, "val") / 100, _ => throw new InvalidDataException("Invalid presentation paragraph spacing.") };
         }
     }
 }

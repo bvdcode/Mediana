@@ -17,6 +17,16 @@ namespace Mediana.Documents.Presentation
                 ? value : throw new InvalidDataException("Invalid DrawingML number: " + attribute);
         }
         internal static double Points(XElement? element, string attribute, double defaultValue = 0) => Number(element, attribute, defaultValue * EmuPerPoint) / EmuPerPoint;
+        internal static double Percent(XElement? element, string attribute, double defaultValue = 0)
+        {
+            string? text = (string?)element?.Attribute(attribute);
+            if (text is null) { return defaultValue; }
+            bool percent = text.EndsWith('%');
+            ReadOnlySpan<char> number = percent ? text.AsSpan(0, text.Length - 1) : text.AsSpan();
+            if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || !double.IsFinite(value))
+            { throw new InvalidDataException("Invalid DrawingML percentage: " + attribute); }
+            return value / (percent ? 100 : 100000);
+        }
         internal static bool Boolean(XElement? element, string attribute, bool defaultValue = false) => (string?)element?.Attribute(attribute) switch
         {
             null => defaultValue,
