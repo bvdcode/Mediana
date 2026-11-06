@@ -7,9 +7,9 @@ using Mediana.Drawing.Fonts;
 
 namespace Mediana.DrawingBenchmarks
 {
-    internal class DrawingWorkload(string scene, int width, int height, int scale)
+    internal partial class DrawingWorkload(string scene, int width, int height, int scale)
     {
-        private readonly FontProgram font = BundledFontPrograms.GetProgram("Canada1500");
+        private readonly FontProgram font = BundledFontPrograms.GetProgram(scene == "text-aileron" ? "Aileron" : "Canada1500");
         private readonly Matrix3x2 transform = Matrix3x2.CreateScale(scale);
 
         internal void Draw(RasterCanvas canvas)
@@ -17,6 +17,11 @@ namespace Mediana.DrawingBenchmarks
             switch (scene)
             {
                 case "text": Text(canvas); break;
+                case "text-aileron": Text(canvas); break;
+                case "short-text": Text(canvas, true); break;
+                case "table-empty": Table(canvas, false, false); break;
+                case "table-full": Table(canvas, true, false); break;
+                case "measure": Table(canvas, true, true); break;
                 case "bars": Bars(canvas); break;
                 case "curves": Curves(canvas); break;
                 case "strokes": Strokes(canvas); break;
@@ -25,12 +30,14 @@ namespace Mediana.DrawingBenchmarks
             }
         }
 
-        private void Text(RasterCanvas canvas)
+        private void Text(RasterCanvas canvas, bool shortText = false)
         {
             canvas.Buffer.Clear(new(250, 250, 250));
             TextRenderer renderer = new(new() { FontProgramResolver = _ => font });
             TrueTypeFont face = renderer.ResolveFont(new("Document"))!;
-            string text = "The quick brown fox — Пример текста 0123456789. ";
+            string text = scene == "text-aileron"
+                ? "The quick brown fox — jumps over 0123456789. "
+                : "The quick brown fox — Пример текста 0123456789. ";
             float size = Math.Max(9, width / 100f);
             int character = 0;
             for (float y = size * 1.5f; y < height - size; y += size * 1.4f)
@@ -38,6 +45,7 @@ namespace Mediana.DrawingBenchmarks
                 float x = size;
                 while (x < width - size * 2)
                 {
+                    if (shortText && character == text.Length) { return; }
                     int glyph = face.Glyph(text[character++ % text.Length]);
                     Matrix3x2 placement = Matrix3x2.CreateScale(size / face.Units, -size / face.Units)
                         * Matrix3x2.CreateTranslation(x, y) * transform;

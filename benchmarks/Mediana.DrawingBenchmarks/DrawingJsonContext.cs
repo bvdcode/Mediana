@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 namespace Mediana.DrawingBenchmarks
 {
     [JsonSerializable(typeof(DrawingMeasurement))]
+    [JsonSerializable(typeof(DrawingBatchMeasurement))]
     internal partial class DrawingJsonContext : JsonSerializerContext
     {
     }

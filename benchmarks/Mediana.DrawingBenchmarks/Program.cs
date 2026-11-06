@@ -3,4 +3,4 @@
 
 using Mediana.DrawingBenchmarks;
 
-DrawingBenchmark.Run(args);
+DrawingApplication.Run(args);
