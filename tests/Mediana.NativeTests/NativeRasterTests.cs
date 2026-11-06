@@ -8,6 +8,7 @@ using Mediana.Codecs.Gif;
 using Mediana.Codecs.Tiff;
 using Mediana.Codecs.Webp;
 using Mediana.Core.Memory;
+using Mediana.Core.Metadata;
 using Mediana.Core.Video;
 
 namespace Mediana.NativeTests
@@ -63,11 +64,58 @@ namespace Mediana.NativeTests
                     }
                 }
             }
-            byte[] gif = await File.ReadAllBytesAsync(Path.Combine(root, "opaque.gif"));
-            MediaBufferAllocator frames = new(16 * 1024 * 1024);
-            await foreach (VideoFrame frame in new GifImageDecoder().DecodeFramesAsync(gif, new(), frames)) { frame.Dispose(); }
-            if (frames.AllocatedBytes != 0) { throw new InvalidDataException("GIF sequence retained storage."); }
-            Console.WriteLine($"PASS raster decoding: {verified} BMP/ICO, TIFF and WebP cases match independent pixels; GIF animation releases all frames.");
+            await VerifyGifAsync(root, registry);
+            await VerifyRawMetadataAsync(root);
+            Console.WriteLine($"PASS raster decoding: {verified} BMP/ICO, TIFF and WebP cases, complete GIF/WebP sequences and TIFF-based RAW metadata.");
+        }
+        private static async Task VerifyGifAsync(string root, ImageDecodeContext registry)
+        {
+            using JsonDocument manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "gif-manifest.json")));
+            foreach (IGrouping<string, JsonElement> group in manifest.RootElement.EnumerateArray().GroupBy(entry => entry.GetProperty("file").GetString()!))
+            {
+                byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(root, group.Key));
+                JsonElement[] entries = group.ToArray();
+                MediaBufferAllocator allocator = new(16 * 1024 * 1024);
+                int frameIndex = 0;
+                await foreach (VideoFrame frame in registry.DecodeFramesAsync(encoded, new(), allocator))
+                {
+                    using (frame)
+                    {
+                        JsonElement entry = entries[frameIndex++];
+                        byte[] reference = await File.ReadAllBytesAsync(Path.Combine(root, entry.GetProperty("pixels").GetString()!));
+                        if (frame.Data.Length != reference.Length || frame.Duration!.Value.Value * 10 != entry.GetProperty("duration").GetInt32())
+                        {
+                            throw new InvalidDataException("GIF frame dimensions or duration differ: " + group.Key);
+                        }
+                        for (int offset = 0; offset < reference.Length; offset += 4)
+                        {
+                            if (frame.Data.Span[offset + 3] != reference[offset + 3] ||
+                                (reference[offset + 3] != 0 && !frame.Data.Span.Slice(offset, 3).SequenceEqual(reference.AsSpan(offset, 3))))
+                            {
+                                throw new InvalidDataException("GIF visible pixels differ: " + group.Key);
+                            }
+                        }
+                    }
+                }
+                if (frameIndex != entries.Length || allocator.AllocatedBytes != 0)
+                {
+                    throw new InvalidDataException("GIF sequence count or ownership differs: " + group.Key);
+                }
+            }
+        }
+
+        private static async Task VerifyRawMetadataAsync(string root)
+        {
+            foreach (string family in new[] { "dng", "cr2", "nef", "arw", "tiff" })
+            {
+                byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(root, $"raw-metadata-{family}.bin"));
+                ImageInfo info = await new TiffImageDecoder().ReadInfoAsync(encoded);
+                bool raw = family != "tiff";
+                if (info.FormatId != family || info.Width != (raw ? 4000 : 160) || info.Height != (raw ? 6000 : 120) || info.Metadata.Children.Count == 0)
+                {
+                    throw new InvalidDataException("TIFF-based RAW metadata differs: " + family);
+                }
+            }
         }
     }
 }
