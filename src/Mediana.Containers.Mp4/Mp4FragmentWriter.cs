@@ -37,17 +37,9 @@ namespace Mediana.Containers.Mp4
                 long count = reader.GetPacketCount(range.StreamIndex);
                 if ((long)range.FirstSample + range.SampleCount > count) { throw new ArgumentOutOfRangeException(nameof(ranges)); }
             }
-            Mp4BoxWriter measure = new(default);
-            long payload = BuildHeader(measure, reader, ranges, sequenceNumber, 0, cancellationToken);
-            int moofBytes = measure.Position;
-            int mdatBytes = payload <= uint.MaxValue - 8 ? 8 : 16;
-            using WritableMediaBuffer storage = allocator.Allocate(checked(moofBytes + mdatBytes));
-            Mp4BoxWriter writer = new(storage.Memory);
-            BuildHeader(writer, reader, ranges, sequenceNumber, checked(moofBytes + mdatBytes), cancellationToken);
-            writer.UInt32(mdatBytes == 8 ? checked((uint)(payload + 8)) : 1);
-            writer.Bytes("mdat"u8);
-            if (mdatBytes == 16) { writer.UInt64(checked((ulong)payload + 16)); }
-            await destination.WriteAsync(storage.Memory, cancellationToken).ConfigureAwait(false);
+            Mp4FragmentTrack[] tracks = ranges.Select(range => (Mp4FragmentTrack)new Mp4IndexedFragmentTrack(reader, range)).ToArray();
+            using MediaBuffer header = Mp4FragmentHeader.Create(tracks, sequenceNumber, allocator, cancellationToken);
+            await destination.WriteAsync(header.Memory, cancellationToken).ConfigureAwait(false);
             foreach (Mp4SampleRange range in ranges)
             {
                 for (int offset = 0; offset < range.SampleCount; offset++)
@@ -58,49 +50,6 @@ namespace Mediana.Containers.Mp4
                 }
             }
             await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        private static long BuildHeader(Mp4BoxWriter writer, Mp4Reader reader, IReadOnlyList<Mp4SampleRange> ranges,
-            uint sequence, int payloadOffset, CancellationToken token)
-        {
-            int moof = writer.Begin("moof"), mfhd = writer.Full("mfhd");
-            writer.UInt32(sequence);
-            writer.End(mfhd);
-            long bytes = 0;
-            foreach (Mp4SampleRange range in ranges)
-            {
-                token.ThrowIfCancellationRequested();
-                Mp4SampleLocation first = reader.GetFragmentSample(range.StreamIndex, range.FirstSample, token);
-                int traf = writer.Begin("traf"), tfhd = writer.Full("tfhd", 0x020000);
-                writer.UInt32(reader.Tracks[range.StreamIndex].TrackId);
-                writer.End(tfhd);
-                int tfdt = writer.Full("tfdt", 0x01000000);
-                writer.UInt64(checked((ulong)first.DecodeTime));
-                writer.End(tfdt);
-                bool signed = false;
-                for (int offset = 0; offset < range.SampleCount; offset++)
-                {
-                    Mp4SampleLocation sample = reader.GetFragmentSample(range.StreamIndex, range.FirstSample + offset, token);
-                    signed |= sample.PresentationTime < sample.DecodeTime;
-                }
-                int trun = writer.Full("trun", (signed ? 0x01000000u : 0) | 0x000F01);
-                writer.UInt32((uint)range.SampleCount);
-                writer.UInt32(checked((uint)(int)(payloadOffset + bytes)));
-                for (int offset = 0; offset < range.SampleCount; offset++)
-                {
-                    Mp4SampleLocation sample = reader.GetFragmentSample(range.StreamIndex, range.FirstSample + offset, token);
-                    writer.UInt32(sample.Duration);
-                    writer.UInt32((uint)sample.Size);
-                    writer.UInt32(sample.IsSync ? 0x02000000u : 0x01010000u);
-                    long composition = checked(sample.PresentationTime - sample.DecodeTime);
-                    writer.UInt32(signed ? unchecked((uint)checked((int)composition)) : checked((uint)composition));
-                    bytes = checked(bytes + sample.Size);
-                }
-                writer.End(trun);
-                writer.End(traf);
-            }
-            writer.End(moof);
-            return bytes;
         }
 
         private static void Validate(Mp4Reader reader, Stream destination, MediaBufferAllocator allocator)
