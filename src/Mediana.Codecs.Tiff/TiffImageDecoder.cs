@@ -23,14 +23,7 @@ namespace Mediana.Codecs.Tiff
             || prefix.StartsWith("MM\0*"u8) || prefix.StartsWith("II+\0"u8) || prefix.StartsWith("MM\0+"u8);
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {
-            TiffImageData document = new(encoded, cancellationToken);
-            TiffDirectory first = document.Pages[0];
-            int width = checked((int)first.Number(256)), height = checked((int)first.Number(257));
-            int orientation = checked((int)first.Number(274, 1));
-            MediaMetadata metadata = ExifMetadataReader.Read(document.Reader, cancellationToken);
-            return ValueTask.FromResult(new ImageInfo("tiff", orientation >= 5 ? height : width, orientation >= 5 ? width : height,
-                ImageDimensionUnit.Pixels, document.Pages.Count, metadata: new("image",
-                    [new("tiff", "big_tiff", document.Reader.BigTiff), new("tiff", "little_endian", document.Reader.LittleEndian)], [metadata])));
+            return ValueTask.FromResult(TiffMetadataReader.Read(encoded, cancellationToken));
         }
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default) => ValueTask.FromResult(Decode(encoded, request, allocator, cancellationToken));

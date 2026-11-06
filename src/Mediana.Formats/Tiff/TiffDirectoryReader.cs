@@ -10,6 +10,7 @@ namespace Mediana.Formats.Tiff
     {
         private readonly ReadOnlyMemory<byte> data;
         private readonly Dictionary<ulong, TiffDirectory> directories = [];
+        internal IReadOnlyCollection<TiffDirectory> Directories => directories.Values;
         internal bool LittleEndian { get; }
         internal bool BigTiff { get; }
         internal ulong FirstOffset { get; }
