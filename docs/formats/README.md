@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 78 variants · 102 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 91 variants · 119 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -26,8 +26,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Containers and packaging](#containers-and-packaging) | 12 | 44 | 14 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 6 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
-| [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 13 | 52 |
-| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 0 | 35 | 0 | 64 |
+| [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
+| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 13 | 35 | 13 | 64 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
 | [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 4 | 62 | 5 | 124 |
@@ -150,10 +150,10 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `png-alpha` | PNG — Grayscale/truecolor with alpha, 8/16-bit | .png | D ◐ · E ◐ | A | Current encoder emits noninterlaced straight-alpha RGBA8 sRGB only. [png](sources.md#png) |
 | `png-adam7` | PNG — Adam7 interlace | .png | D ◐ · E □ | A | [png](sources.md#png) |
 | `apng` | APNG — Animated PNG with frame disposal/blending | .png .apng | D □ · E □ | A | [png](sources.md#png) |
-| `webp-lossy` | WebP — Lossy VP8 image | .webp | D □ · E ◐ | A | Managed VP8 keyframe encoding with quality 0-100 and lossless alpha; decoding remains open. [webp](sources.md#webp) |
-| `webp-lossless` | WebP — Lossless VP8L image | .webp | D □ · E ◐ | A | Current encoder preserves straight RGBA8 sRGB exactly, including transparent RGB; decoding remains open. [webp](sources.md#webp) |
-| `webp-extended` | WebP — Extended RIFF, alpha and metadata | .webp | D □ · E ◐ | A | VP8X canvas flags, raw or lossless-compressed ALPH and unchanged ICC/EXIF/XMP payloads. [webp](sources.md#webp) |
-| `webp-animation` | WebP — Animated extended WebP | .webp | D □ · E ◐ | A | Incremental VP8/VP8L or mixed frames, partial rectangles, blending, disposal, background, loop count and metadata; CLI exports TGS/video sequences. [webp](sources.md#webp) |
+| `webp-lossy` | WebP — Lossy VP8 image | .webp | D ◐ · E ◐ | A | Managed VP8 keyframe encoding with quality 0-100 and lossless alpha; keyframe decoding includes segmentation and deblocking. [webp](sources.md#webp) |
+| `webp-lossless` | WebP — Lossless VP8L image | .webp | D ◐ · E ◐ | A | VP8L encoding and decoding preserve straight RGBA8 exactly, including transparent RGB. [webp](sources.md#webp) |
+| `webp-extended` | WebP — Extended RIFF, alpha and metadata | .webp | D ◐ · E ◐ | A | VP8X canvas flags, raw or lossless-compressed ALPH and unchanged ICC/EXIF/XMP payloads. [webp](sources.md#webp) |
+| `webp-animation` | WebP — Animated extended WebP | .webp | D ◐ · E ◐ | A | Incremental VP8/VP8L or mixed frames, partial rectangles, blending, disposal, background, loop count and metadata; CLI exports TGS/video sequences. [webp](sources.md#webp) |
 | `avif-still` | AVIF — Still image, Baseline/Advanced profiles | .avif | D □ · E □ | A | Split profile/precision coverage as AV1 implementation grows. [avif](sources.md#avif), [av1](sources.md#av1) |
 | `avif-alpha` | AVIF — Auxiliary alpha images | .avif | D □ · E □ | A | [avif](sources.md#avif) |
 | `avif-hdr` | AVIF — 10/12-bit and HDR presentation | .avif | D □ · E □ | A | HDR decoding, color preservation and SDR tone mapping are distinct tasks. [avif](sources.md#avif), [av1](sources.md#av1) |
@@ -175,18 +175,18 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources |
 | --- | --- | --- | --- | :---: | --- |
-| `gif87a` | GIF — GIF87a still images | .gif | D □ · E □ | A | [gif](sources.md#gif) |
-| `gif89a` | GIF — GIF89a transparency and animation | .gif | D □ · E □ | A | Disposal, palette changes, timing and loop metadata require independent samples. [gif](sources.md#gif) |
-| `bmp-rgb` | BMP — Uncompressed palettes / RGB / bitfields | .bmp .dib | D □ · E □ | A | [bmp-dds](sources.md#bmp-dds) |
-| `bmp-rle` | BMP — RLE4 / RLE8 | .bmp .dib | D □ · E □ | B | [bmp-dds](sources.md#bmp-dds) |
-| `bmp-v5` | BMP — V4/V5 color and alpha | .bmp | D □ · E □ | B | [bmp-dds](sources.md#bmp-dds) |
-| `tiff-strips` | TIFF — Classic TIFF, strips and tiles | .tif .tiff | D □ · E □ | A | Both byte orders, planar configurations, multipage and native precision. [tiff](sources.md#tiff) |
-| `tiff-bigtiff` | BigTIFF — 64-bit offsets and sizes | .tif .tiff .btf | D □ · E □ | B | [tiff](sources.md#tiff), [discovery](sources.md#discovery) |
-| `tiff-packbits` | TIFF — PackBits compression | .tif .tiff | D □ · E □ | A | [tiff](sources.md#tiff) |
-| `tiff-lzw` | TIFF — LZW compression and predictors | .tif .tiff | D □ · E □ | A | [tiff](sources.md#tiff) |
-| `tiff-deflate` | TIFF — Deflate compression and predictors | .tif .tiff | D □ · E □ | A | [tiff](sources.md#tiff) |
-| `tiff-jpeg` | TIFF — JPEG compression mappings | .tif .tiff | D □ · E □ | B | Old and revised JPEG-in-TIFF representations need separate fixtures. [tiff](sources.md#tiff), [jpeg](sources.md#jpeg) |
-| `tiff-fax` | TIFF — CCITT fax compression | .tif .tiff | D □ · E □ | A | [tiff](sources.md#tiff), [jbig](sources.md#jbig) |
+| `gif87a` | GIF — GIF87a still images | .gif | D ◐ · E □ | A | [gif](sources.md#gif) |
+| `gif89a` | GIF — GIF89a transparency and animation | .gif | D ◐ · E □ | A | Disposal, palette changes, timing and loop metadata require independent samples. [gif](sources.md#gif) |
+| `bmp-rgb` | BMP — Uncompressed palettes / RGB / bitfields | .bmp .dib | D ◐ · E □ | A | [bmp-dds](sources.md#bmp-dds) |
+| `bmp-rle` | BMP — RLE4 / RLE8 | .bmp .dib | D ◐ · E □ | B | [bmp-dds](sources.md#bmp-dds) |
+| `bmp-v5` | BMP — V4/V5 color and alpha | .bmp | D ◐ · E □ | B | [bmp-dds](sources.md#bmp-dds) |
+| `tiff-strips` | TIFF — Classic TIFF, strips and tiles | .tif .tiff | D ◐ · E □ | A | Both byte orders, planar configurations, multipage and native precision. [tiff](sources.md#tiff) |
+| `tiff-bigtiff` | BigTIFF — 64-bit offsets and sizes | .tif .tiff .btf | D ◐ · E □ | B | [tiff](sources.md#tiff), [discovery](sources.md#discovery) |
+| `tiff-packbits` | TIFF — PackBits compression | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff) |
+| `tiff-lzw` | TIFF — LZW compression and predictors | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff) |
+| `tiff-deflate` | TIFF — Deflate compression and predictors | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff) |
+| `tiff-jpeg` | TIFF — JPEG compression mappings | .tif .tiff | D ◐ · E □ | B | Old and revised JPEG-in-TIFF representations need separate fixtures. [tiff](sources.md#tiff), [jpeg](sources.md#jpeg) |
+| `tiff-fax` | TIFF — CCITT fax compression | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff), [jbig](sources.md#jbig) |
 | `tga` | TGA — Raw/RLE truecolor, indexed and alpha | .tga | D □ · E □ | B | [discovery](sources.md#discovery) |
 | `pcx` | PCX — Palette / RGB RLE | .pcx | D □ · E □ | C | [discovery](sources.md#discovery) |
 | `sgi` | SGI RGB — Raw/RLE planar images | .sgi .rgb .rgba | D □ · E □ | C | [discovery](sources.md#discovery) |
@@ -201,7 +201,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `ora` | OpenRaster — Layered image package | .ora | D □ · E □ | B | [discovery](sources.md#discovery) |
 | `xcf` | GIMP XCF — Layered image revisions | .xcf | D □ · E □ | C | [discovery](sources.md#discovery) |
 | `icns` | Apple ICNS — Multi-resolution icons | .icns | D □ · E □ | B | [discovery](sources.md#discovery) |
-| `ico` | Windows ICO / CUR — Multi-image icons and cursors | .ico .cur | D □ · E □ | A | Embedded PNG and DIB entries are distinct payloads. [bmp-dds](sources.md#bmp-dds), [discovery](sources.md#discovery) |
+| `ico` | Windows ICO / CUR — Multi-image icons and cursors | .ico .cur | D ◐ · E □ | A | Embedded PNG and DIB entries are distinct payloads. [bmp-dds](sources.md#bmp-dds), [discovery](sources.md#discovery) |
 | `ani` | Windows ANI — Animated cursors | .ani | D □ · E □ | C | [riff](sources.md#riff), [discovery](sources.md#discovery) |
 | `dng` | Digital Negative — DNG raw and rendered previews | .dng | D □ · E □ | B | Raw sample decode, demosaic/color processing and embedded previews are different operations. [tiff](sources.md#tiff) |
 | `raw-cr2` | Canon RAW — CR2 | .cr2 | D □ | C | Camera-specific unpacking, metadata and color calibration need sourced coverage. [discovery](sources.md#discovery) |

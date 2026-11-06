@@ -64,7 +64,10 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
-| `Mediana.Codecs.Webp` | Managed VP8/VP8L encoding, exact alpha, ICC/EXIF/XMP and streamed WebP animation ([API](docs/webp.md)) |
+| `Mediana.Codecs.Bmp` | BMP palettes, bitfields and RLE; ICO/CUR PNG/DIB entries with alpha ([API](docs/raster-decoding.md)) |
+| `Mediana.Codecs.Gif` | GIF LZW, interlace, transparency, disposal and timed animation ([API](docs/raster-decoding.md)) |
+| `Mediana.Codecs.Tiff` | TIFF/BigTIFF strips, tiles, pages and compression; TIFF-based RAW metadata ([API](docs/raster-decoding.md)) |
+| `Mediana.Codecs.Webp` | VP8/VP8L decoding/encoding, alpha, ICC/EXIF/XMP and WebP animation ([API](docs/webp.md)) |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
 | `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants, continuous AAC/MP3 audio playlists and measured transport output |
 | `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |

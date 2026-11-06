@@ -1,7 +1,7 @@
-# WebP encoding
+# WebP images and animation
 
-`Mediana.Codecs.Webp` writes VP8 and VP8L images and WebP animations in managed
-C#. It references only Mediana's codec and core contracts. No native codec,
+`Mediana.Codecs.Webp` reads and writes VP8 and VP8L images and WebP animations in managed
+C#. It uses Mediana's core, codec and format modules. No native codec,
 external process or third-party image package is used at runtime.
 
 WebP is a RIFF image container. VP8 carries lossy image data; VP8L carries
@@ -9,7 +9,9 @@ lossless image data. Extended files add alpha, metadata and animation chunks.
 The writer follows the [RIFF specification](https://developers.google.com/speed/webp/docs/riff_container),
 [VP8L specification](https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification)
 and [VP8 decoding specification](https://www.rfc-editor.org/rfc/rfc6386).
-WebP decoding is a separate capability and is not exposed by this module.
+`WebpImageDecoder` exposes still and animated decoding. `WebpInfoReader` reads
+container, frame and EXIF/GPS/ICC/XMP metadata without decoding samples. See
+[raster decoding, selection and ownership](raster-decoding.md).
 
 ## Still images
 
