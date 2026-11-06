@@ -85,8 +85,7 @@ drawing and failed allocation. Shared rendering cases run through Native AOT.
 
 The source is pinned to Microsoft Fluent Emoji commit
 `1ffb34c752ecf5d402f04cfb4b392c77f57c54bc`. Original SVG bytes and SHA-256 hashes
-are preserved in the archive's manifest. Microsoft copyright and the MIT
-license are included in the resource archive, NuGet package and CLI archives.
+are preserved in the archive's manifest.
 
 To rebuild resources from that checkout with a .NET 10 SDK:
 

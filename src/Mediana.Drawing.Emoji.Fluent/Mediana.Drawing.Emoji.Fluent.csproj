@@ -5,7 +5,6 @@
   <ItemGroup>
     <ProjectReference Include="../Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
     <EmbeddedResource Update="FluentEmojiResources.resx" LogicalName="Mediana.Drawing.Emoji.Fluent.FluentEmojiResources.resources" />
-    <None Update="Assets/LICENSE.txt" Pack="true" PackagePath="licenses/FluentEmoji.txt" />
     <None Update="Assets/provenance.json" Pack="true" PackagePath="licenses/FluentEmoji.provenance.json" />
   </ItemGroup>
 </Project>

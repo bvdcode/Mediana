@@ -56,7 +56,7 @@ def add(archive: zipfile.ZipFile, name: str, data: bytes) -> None:
 
 
 def import_assets(root: Path, output: Path, include_skin_tones: bool, dotnet: str) -> None:
-    """Preserve original SVG bytes, hashes, attribution and commit identity."""
+    """Preserve original SVG bytes, hashes and commit identity."""
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
     assets = discover(root)
     if not include_skin_tones:
@@ -68,7 +68,6 @@ def import_assets(root: Path, output: Path, include_skin_tones: bool, dotnet: st
         write_archive(root, raw_archive, assets, manifest)
         subprocess.run([dotnet, "run", "--file", str(Path(__file__).with_name("compress-fluent-emoji.cs")),
                         "--", str(raw_archive), str(output / "FluentEmoji.zip")], check=True)
-    (output / "LICENSE.txt").write_bytes((root / "LICENSE").read_bytes())
     provenance = {"repository": "https://github.com/microsoft/fluentui-emoji", "commit": commit,
                   "style": "Flat", "license": "MIT", "assets": len(assets), "skinToneVariants": include_skin_tones,
                   "compression": "Brotli, independent blocks up to 128 KiB",
@@ -89,7 +88,6 @@ def write_archive(root: Path, path: Path, assets: list[Asset], manifest: list[di
                              "sha256": hashlib.sha256(data).hexdigest()})
         add(archive, "index.tsv", ("\n".join(rows) + "\n").encode())
         add(archive, "manifest.json", (json.dumps(manifest, indent=2) + "\n").encode())
-        add(archive, "LICENSE.txt", (root / "LICENSE").read_bytes())
 
 
 def main() -> None:
