@@ -10,7 +10,7 @@ namespace Mediana.Codecs.Opus.Tests
     {
         [Fact]
         public void RecursivePartitionsMatchTheIndependentDecoder() =>
-            Assert.Equal(7682, OpusPartitionTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data")));
+            Assert.Equal(7682, OpusSpectralTestInput.VerifyPartitions(Path.Combine(AppContext.BaseDirectory, "Data")));
 
         [Fact]
         public void RecursiveDecodingReusesTheCodebookAndOutputStorage()

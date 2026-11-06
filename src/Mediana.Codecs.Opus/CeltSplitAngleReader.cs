@@ -77,7 +77,7 @@ namespace Mediana.Codecs.Opus
             ArgumentOutOfRangeException.ThrowIfLessThan(mode.FrameShift, -1);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(mode.FrameShift, 3);
             ArgumentOutOfRangeException.ThrowIfLessThan(mode.Dimensions, 2);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(mode.Dimensions, 176);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(mode.Dimensions, CeltBandTables.MaximumBandDimensions);
             ValidateBlocks(mode.Blocks);
             ValidateBlocks(mode.OriginalBlocks);
             ArgumentOutOfRangeException.ThrowIfNegative(mode.IntensityBand);

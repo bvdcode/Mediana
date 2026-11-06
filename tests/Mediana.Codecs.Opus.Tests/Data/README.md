@@ -189,3 +189,13 @@ Repeated reconstruction reuses its codebook and output buffers without managed
 heap allocations and leaves the borrowed folding spectrum unchanged.
 
 SHA-256: `e6ce07590ff8141c3cc154d90dde24cde8cf726373cd5507017665fbad0c69f0`.
+
+`spectral-bands.bin` records 7,782 complete mono bands evaluated with libopus
+1.6.1. It adds the time/frequency resolution changes for all four frame sizes,
+transient and long transforms, spectral reordering, folding-buffer preparation
+and inverse Haar reconstruction. One-dimensional sign-only bands and folding
+outputs are included. Entropy state, seed, budgets and masks are exact; normalized
+coefficients use 0.000001 absolute tolerance and scaled folding outputs 0.00001.
+The same spectral fixture reader verifies both partition and complete-band data.
+
+SHA-256: `3c06b075aea35941f90bd93e62bfbc2c675932325024df1ab06831a1bbac3f32`.
