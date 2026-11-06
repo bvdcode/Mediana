@@ -71,7 +71,7 @@ namespace Mediana.Cli
                     await foreach (VideoFrame frame in frames.WithCancellation(cancellation))
                     {
                         using (frame)
-                        using (VideoFrame pixels = SrgbPreview.Fit(frame, ResolveColor(frame.Format), matrix,
+                        using (VideoFrame pixels = SrgbPreview.FitWithColorPolicy(frame, ResolveColor, matrix,
                             int.MaxValue, int.MaxValue, allocator, cancellation))
                         using (VideoFrame timed = clock.Apply(pixels))
                         {

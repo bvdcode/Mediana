@@ -9,6 +9,8 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/IccColorTestInput.cs" Link="IccColorTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Icc/*" Link="Data/Icc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/DocumentPackageTestData.cs" Link="DocumentPackageTestData.cs" />
     <Compile Include="../Shared/XlsxWorkbookTestData.cs" Link="XlsxWorkbookTestData.cs" />
     <Compile Include="../Shared/XlsWorkbookTestData.cs" Link="XlsWorkbookTestData.cs" />

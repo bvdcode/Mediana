@@ -47,12 +47,12 @@ namespace Mediana.Cli
         private static VideoFrame PrepareFrame(VideoFrame input, IImageEncoder encoder, ILogger logger,
             MediaBufferAllocator allocator, CancellationToken cancellationToken)
         {
-            VideoColorInfo color = PreviewColorPolicy.Resolve(input.Format, logger);
+            VideoColorInfo Resolve(VideoFormat format) => PreviewColorPolicy.Resolve(format, logger);
             if ((encoder.Features & ImageEncoderFeatures.SampleAspectRatio) != 0)
             {
-                return SrgbConverter.Apply(input, color, allocator, cancellationToken);
+                return SrgbConverter.ApplyWithColorPolicy(input, Resolve, allocator, cancellationToken);
             }
-            return SrgbPreview.Fit(input, color, VideoDisplayMatrix.Identity, int.MaxValue, int.MaxValue, allocator, cancellationToken);
+            return SrgbPreview.FitWithColorPolicy(input, Resolve, VideoDisplayMatrix.Identity, int.MaxValue, int.MaxValue, allocator, cancellationToken);
         }
 
         public static Task<int> SvgAsync(string inputPath, CommandOutputFile outputFile, int? width, ILogger logger, IImageEncoder encoder, CancellationToken cancellationToken = default) =>

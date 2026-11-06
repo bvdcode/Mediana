@@ -42,10 +42,15 @@ namespace Mediana.Imaging
         private static VideoFrame Prepare(VideoFrame frame, ImageDecodeRequest request, MediaBufferAllocator allocator,
             Func<VideoFormat, VideoColorInfo>? colorResolver, CancellationToken token)
         {
-            VideoColorInfo declared = frame.Format.GetColorInterpretation();
-            VideoColorInfo color = colorResolver?.Invoke(frame.Format) ?? declared;
-            if (declared != color) { request.WarningHandler?.Invoke("An embedded image uses the configured interpretation for missing color labels."); }
-            return SrgbConverter.Apply(frame, color, allocator, token);
+            return SrgbConverter.ApplyWithColorPolicy(frame, Resolve, allocator, token);
+
+            VideoColorInfo Resolve(VideoFormat format)
+            {
+                VideoColorInfo declared = format.GetColorInterpretation();
+                VideoColorInfo color = colorResolver?.Invoke(format) ?? declared;
+                if (declared != color) { request.WarningHandler?.Invoke("An embedded image uses the configured interpretation for missing color labels."); }
+                return color;
+            }
         }
     }
 }
