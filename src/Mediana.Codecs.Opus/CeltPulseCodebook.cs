@@ -69,7 +69,7 @@ namespace Mediana.Codecs.Opus
             return true;
         }
 
-        public ulong Decode(ref OpusRangeDecoder decoder, Span<int> vector, int pulses) =>
+        public ulong Decode(ref OpusRangeDecoder decoder, scoped Span<int> vector, int pulses) =>
             DecodeRank(decoder.ReadUniform(GetSize(vector.Length, pulses)), vector, pulses);
 
         public ulong DecodeRank(uint rank, Span<int> vector, int pulses)

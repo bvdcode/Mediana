@@ -127,3 +127,19 @@ These are followed by 21 float32 resulting energies per channel and 21 tuples of
 Inactive band tuples contain zero.
 
 SHA-256: `056e4effd1fe970aa5c7d4a706731262dc363e9bf747dac472dfc8436361ea83`.
+
+`normalized-vectors.bin` records 3,793 PVQ spectral vectors evaluated with
+libopus 1.6.1: valid canonical pulse codebooks, up to 176 coefficients and 128
+pulses, all four spreading modes, one to eight time blocks, and gains including
+zero. Collapse masks and entropy states must match exactly. Normalized and rotated
+coefficients have an absolute error tolerance of 0.000001 for floating-point
+trigonometry. Corrupt uniform ranks are tested separately and must leave the
+coefficient workspace unchanged. Reused normalization and rotation allocate no
+managed storage.
+
+The little-endian file starts with `OPUSVEC1` and a 32-bit case count. Each case
+contains a 32-bit input length and input bytes; 32-bit dimension count, pulse count,
+block count, spreading mode and float32 gain; 32-bit collapse mask, arithmetic
+range, whole bits and eighth bits; and the resulting float32 coefficients.
+
+SHA-256: `eafc50d9d0acebfb4f2337de8febf37ffb480c60590740bb59dd140ad6bc24e1`.

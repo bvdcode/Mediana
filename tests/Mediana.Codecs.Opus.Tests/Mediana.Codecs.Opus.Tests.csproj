@@ -10,6 +10,7 @@
     <Compile Include="../Shared/OpusEnergyTestInput.cs" Link="OpusEnergyTestInput.cs" />
     <Compile Include="../Shared/OpusAllocationTestInput.cs" Link="OpusAllocationTestInput.cs" />
     <Compile Include="../Shared/OpusFrameSyntaxTestInput.cs" Link="OpusFrameSyntaxTestInput.cs" />
+    <Compile Include="../Shared/OpusVectorTestInput.cs" Link="OpusVectorTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
