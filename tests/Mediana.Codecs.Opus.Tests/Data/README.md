@@ -209,3 +209,15 @@ Repeated reconstruction allocates no managed storage and preserves borrowed
 folding input.
 
 SHA-256: `4509a70ad0c8a75c51754e5ae4b3ecfe15f765359ca8a49646d1db83d8b7e918`.
+
+`spectral-frames.bin` records 1,963 complete sequential frame-prefix and spectral
+reconstructions from libopus 1.6.1, intercepted after its actual all-band decoder.
+Cases include all frame sizes, mono/stereo, CELT-only and hybrid-band starts,
+partial bandwidths, silence, saturated and deterministic random compressed data.
+Tests compare the complete normalized spectrum, every collapse mask, final noise
+seed and entropy state. Workspaces begin with NaN values to expose unintended
+reads of uninitialized folding data. Spectrum tolerance is 0.000001; all integer
+state is exact. Repeated full-frame reconstruction allocates no managed storage.
+This fixture ends before anti-collapse, denormalization and inverse transforms.
+
+SHA-256: `34ce6f07c8502d5b52c024f3e92edd56cac32f4423bc77a9a692d6a27b19566c`.

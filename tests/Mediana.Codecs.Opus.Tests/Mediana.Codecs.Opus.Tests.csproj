@@ -13,6 +13,7 @@
     <Compile Include="../Shared/OpusVectorTestInput.cs" Link="OpusVectorTestInput.cs" />
     <Compile Include="../Shared/OpusSplitTestInput.cs" Link="OpusSplitTestInput.cs" />
     <Compile Include="../Shared/OpusSpectralTestInput.cs" Link="OpusSpectralTestInput.cs" />
+    <Compile Include="../Shared/OpusSpectrumTestInput.cs" Link="OpusSpectrumTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />

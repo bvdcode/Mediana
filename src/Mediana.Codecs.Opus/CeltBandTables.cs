@@ -9,6 +9,8 @@ namespace Mediana.Codecs.Opus
         public const int QualityCount = 11;
         public const int MaximumTimeBlocks = 16;
         public const int MaximumBandDimensions = 176;
+        public const int ShortTransformSize = 120;
+        public const int HybridFirstBand = 17;
 
         public static ReadOnlySpan<byte> Boundaries =>
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 20, 24, 28, 34, 40, 48, 60, 78, 100];
