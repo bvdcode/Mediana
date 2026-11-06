@@ -121,6 +121,7 @@ namespace Mediana.Documents.Xls
             reader.Bof(0x0010);
             List<SpreadsheetCell> cells = [];
             int previousRow = -1;
+            long characters = 0;
             int depth = 1;
             while (reader.MoveNext())
             {
@@ -143,9 +144,17 @@ namespace Mediana.Documents.Xls
                 int row = CompoundFile.U16(reader.Data.Span, 0);
                 if (row < previousRow || row >= _options.MaximumRows) { throw new InvalidDataException("XLS rows are not increasing or exceed their limit."); }
                 if (row != previousRow && cells.Count != 0)
-                { yield return new(previousRow, cells.AsReadOnly()); cells = []; }
+                { yield return new(previousRow, cells.AsReadOnly()); cells = []; characters = 0; }
                 previousRow = row;
+                int firstCell = cells.Count;
+                bool sharedText = reader.Type == BiffRecordType.LabelSst;
                 AppendCells(reader, cells);
+                if (!sharedText)
+                {
+                    for (int i = firstCell; i < cells.Count; i++)
+                    { if (cells[i].Value.Kind == SpreadsheetValueKind.Text) { characters += cells[i].Value.Text.Length; } }
+                    if (characters > _options.MaximumStringCharacters) { throw new InvalidDataException("XLS row exceeds its string limit."); }
+                }
             }
             throw new InvalidDataException("Missing XLS worksheet EOF record.");
         }
