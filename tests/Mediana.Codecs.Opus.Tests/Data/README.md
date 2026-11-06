@@ -438,3 +438,17 @@ planes, both output planes, four retained signed 16-bit samples and two final
 32-bit weights. A zero frame index resets the histories.
 
 SHA-256: `0c762ed5cf235439783d904d031ce4c0723a138e491a731ba2273f0f1f48d6d7`.
+
+`silk-resampler.bin` records 768 sequential conversions from 8, 12 and
+16 kHz to 48 kHz using libopus 1.6.1. Streams change between 1, 10 and
+20 ms input blocks and include impulses, ramps, alternating full-scale
+samples and noise. Every output sample matches exactly, including delay
+compensation and filter history. Repeated conversions allocate no managed
+storage; reset reproduces fresh-state output.
+
+The little-endian file begins with `OPUSRSF1` and a 32-bit count. Cases
+contain 32-bit input rate, frame index and input sample count, followed by
+signed 16-bit input and output samples. Output length follows the rate ratio;
+a zero frame index starts a new stream.
+
+SHA-256: `d8012e62ae05ca8c3a61558b829ecbaaa12ff1828cccf1493eb3f3f62ef7bc92`.
