@@ -23,8 +23,11 @@ Render.NET does not mark a Mediana operation as implemented.
 
 Word layout and rasterization are implemented in `Mediana.Documents.Word`, on
 `Mediana.Documents.OpenXml` and the shared drawing layer. Render.NET does not
-supply Word, Excel or PowerPoint layout. XLSX and PPTX rendering remain open in
-the catalog independently of OPC package reading and DOCX rendering.
+supply Word, Excel or PowerPoint layout. Mediana's static PresentationML slide
+reader and renderer now cover supported themes, masters, text, shapes and pictures.
+The XLSX and BIFF8 XLS readers expose cell values and cached formulas; spreadsheet
+page rendering and formula evaluation remain open. These operations are tracked
+independently of OPC package reading and DOCX rendering in the catalog.
 
 ## Mesh: implemented model readers and preview renderer
 

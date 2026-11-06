@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 91 variants · 119 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 99 variants · 129 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -23,7 +23,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | Group | Implemented variants | Target variants | Implemented operations | Target operations |
 | --- | ---: | ---: | ---: | ---: |
-| [Containers and packaging](#containers-and-packaging) | 12 | 44 | 14 | 88 |
+| [Containers and packaging](#containers-and-packaging) | 14 | 44 | 16 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 6 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
@@ -31,9 +31,9 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
 | [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 4 | 62 | 5 | 124 |
-| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 12 | 63 | 18 | 128 |
+| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 13 | 63 | 19 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
-| [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 5 | 39 | 8 | 115 |
+| [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
 | [Fonts and text presentation resources](#fonts-and-text-presentation-resources) | 6 | 14 | 7 | 27 |
 | [Subtitles, captions and timed graphics](#subtitles-captions-and-timed-graphics) | 0 | 13 | 0 | 39 |
 | [Streaming presentations and transport protocols](#streaming-presentations-and-transport-protocols) | 2 | 13 | 2 | 26 |
@@ -55,8 +55,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `matroska-live` | Matroska — Live / unknown-size stream | .mkv | R □ · W □ | B | [matroska](sources.md#matroska) |
 | `webm-file` | WebM — File presentation | .webm | R □ · W □ | A | Codec mappings and track constraints must conform to WebM. [webm](sources.md#webm) |
 | `webm-live` | WebM — Incremental / live presentation | .webm | R □ · W □ | B | Track metadata, unknown sizes and incremental clusters need separate fixtures. [webm](sources.md#webm) |
-| `ogg` | Ogg — Single and multiplexed logical streams | .ogg .oga .ogv .opus .spx | R □ · W □ | A | Codec-specific headers, granules and chaining are not interchangeable. [ogg](sources.md#ogg) |
-| `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R □ · W □ | B | [ogg](sources.md#ogg) |
+| `ogg` | Ogg — Single and multiplexed logical streams | .ogg .oga .ogv .opus .spx | R ◐ · W □ | A | Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate. [ogg](sources.md#ogg) |
+| `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R ◐ · W □ | B | Current reader keeps chained links separately selectable; selecting a link does not concatenate links. [ogg](sources.md#ogg) |
 | `avi` | AVI — RIFF AVI 1.0 | .avi | R □ · W □ | B | [riff](sources.md#riff) |
 | `avi-opendml` | AVI — OpenDML / AVI 2.0 | .avi | R □ · W □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) |
 | `asf` | ASF — File and streaming structure | .asf .wmv .wma | R □ · W □ | B | [asf](sources.md#asf) |
@@ -268,8 +268,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `avc-svc` | H.264 / AVC — Scalable extension profiles | .h264 | D □ · E □ | C | [h264](sources.md#h264) |
 | `avc-mvc` | H.264 / AVC — Multiview / stereo extension profiles | .h264 | D □ · E □ | C | [h264](sources.md#h264) |
 | `avc-3d` | H.264 / AVC — Depth and 3D extensions | .h264 | D □ · E □ | C | [h264](sources.md#h264) |
-| `hevc-main` | H.265 / HEVC — Main, 8-bit 4:2:0 video | .h265 .hevc | D □ · E □ | A | HEIC intra reconstruction does not close general I/P/B video decoding. [h265](sources.md#h265) |
-| `hevc-main10` | H.265 / HEVC — Main 10 | .h265 .hevc | D □ · E □ | A | [h265](sources.md#h265) |
+| `hevc-main` | H.265 / HEVC — Main, 8-bit 4:2:0 video | .h265 .hevc | D □ · E □ | A | Current module parses configuration, picture order and reference state; it does not yet reconstruct general HEVC video frames. [h265](sources.md#h265) |
+| `hevc-main10` | H.265 / HEVC — Main 10 | .h265 .hevc | D □ · E □ | A | Current module parses Main10 configuration and reference state; intra HEIC decoding does not close general Main10 video decoding. [h265](sources.md#h265) |
 | `hevc-main-still` | H.265 / HEVC — Main Still Picture | .h265 .hevc | D □ · E □ | B | Current HEIC intra path provides a subset; standalone video-codec integration remains open. [h265](sources.md#h265) |
 | `hevc-rext` | H.265 / HEVC — Range extensions / 12-bit / 4:2:2 / 4:4:4 | .h265 .hevc | D □ · E □ | B | Split concrete RExt profiles when selecting implementation work. [h265](sources.md#h265) |
 | `hevc-scc` | H.265 / HEVC — Screen-content extensions | .h265 .hevc | D □ · E □ | B | [h265](sources.md#h265) |
@@ -355,7 +355,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `flac-codec` | FLAC — Lossless sample coding | .flac | D ◐ · E □ | A | Current decoder has fixed/LPC prediction, Rice residuals, stereo decorrelation and CRC checks. [flac](sources.md#flac) |
 | `alac` | Apple Lossless — ALAC sample coding | — | D □ · E □ | A | [alac](sources.md#alac) |
 | `opus-silk` | Opus — SILK speech mode | — | D □ · E □ | A | [opus](sources.md#opus) |
-| `opus-celt` | Opus — CELT transform mode | — | D □ · E □ | A | [opus](sources.md#opus) |
+| `opus-celt` | Opus — CELT transform mode | — | D ◐ · E □ | A | Internal sequential mono/stereo CELT reconstruction has reference checks; no public Opus stream decoder or SILK/hybrid support yet. [opus](sources.md#opus) |
 | `opus-hybrid` | Opus — Hybrid and mode transitions | — | D □ · E □ | A | [opus](sources.md#opus) |
 | `opus-multistream` | Opus — Multistream and channel mappings | — | D □ · E □ | B | Ambisonics mappings need their own declared scope and reference fixtures. [opus](sources.md#opus) |
 | `vorbis` | Vorbis — Vorbis I mono/stereo/multichannel | — | D □ · E □ | A | [vorbis](sources.md#vorbis) |
@@ -418,18 +418,18 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `docx-strict` | WordprocessingML — OOXML Strict documents | .docx | R ◐ · V □ · W □ | B | Reader accepts Strict namespaces; independent Strict document rendering coverage remains open. [office](sources.md#office) |
 | `docm` | WordprocessingML — Macro-enabled package, static document content | .docm .dotm | R □ · V □ · W □ | B | Macro execution is not part of static rendering. [office](sources.md#office) |
 | `dotx` | WordprocessingML — Templates | .dotx | R □ · V □ · W □ | B | [office](sources.md#office) |
-| `xlsx-transitional` | SpreadsheetML — OOXML Transitional workbooks | .xlsx | R □ · V □ · W □ | A | Cell parsing, formula evaluation and styled print/page rendering are distinct capabilities. [office](sources.md#office) |
-| `xlsx-strict` | SpreadsheetML — OOXML Strict workbooks | .xlsx | R □ · V □ · W □ | B | [office](sources.md#office) |
+| `xlsx-transitional` | SpreadsheetML — OOXML Transitional workbooks | .xlsx | R ◐ · V □ · W □ | A | Current streaming workbook reader exposes cell data and cached formula values; styled page rendering and formula evaluation remain open. [office](sources.md#office) |
+| `xlsx-strict` | SpreadsheetML — OOXML Strict workbooks | .xlsx | R ◐ · V □ · W □ | B | Reader recognizes Strict SpreadsheetML namespaces; dedicated Strict corpus coverage and page rendering remain open. [office](sources.md#office) |
 | `xlsm` | SpreadsheetML — Macro-enabled workbook, static content | .xlsm .xltm | R □ · V □ · W □ | B | Macro execution is separate from workbook rendering. [office](sources.md#office) |
 | `xlsb` | Excel binary workbook — BIFF12 in OPC package | .xlsb | R □ · V □ · W □ | B | [office](sources.md#office) |
 | `xltx` | SpreadsheetML — Workbook templates | .xltx | R □ · V □ · W □ | B | [office](sources.md#office) |
-| `pptx-transitional` | PresentationML — OOXML Transitional presentations | .pptx | R □ · V □ · W □ | A | Theme/layout/master inheritance, shapes, text, charts and media need separate fixtures. [office](sources.md#office) |
-| `pptx-strict` | PresentationML — OOXML Strict presentations | .pptx | R □ · V □ · W □ | B | [office](sources.md#office) |
+| `pptx-transitional` | PresentationML — OOXML Transitional presentations | .pptx | R ◐ · V ◐ · W □ | A | Current static slide reader/renderer covers supported masters, themes, text, shapes and pictures; complete layout and animation remain open. [office](sources.md#office) |
+| `pptx-strict` | PresentationML — OOXML Strict presentations | .pptx | R ◐ · V ◐ · W □ | B | Current reader/renderer recognizes Strict namespaces; dedicated Strict corpus coverage remains open. [office](sources.md#office) |
 | `pptm` | PresentationML — Macro-enabled presentation, static content | .pptm .potm | R □ · V □ · W □ | B | [office](sources.md#office) |
 | `potx` | PresentationML — Templates and slideshow packages | .potx .ppsx | R □ · V □ · W □ | B | [office](sources.md#office) |
 | `pptx-animation` | PresentationML — Slide transitions and animation timing | .pptx | R □ · V □ · W □ | B | Static slide rendering does not close timed presentation rendering. [office](sources.md#office) |
 | `doc-binary` | Word binary — Legacy DOC revisions | .doc .dot | R □ · V □ · W □ | B | [office](sources.md#office) |
-| `xls-binary` | Excel binary — BIFF5 / BIFF8 workbooks | .xls .xlt | R □ · V □ · W □ | B | [office](sources.md#office) |
+| `xls-binary` | Excel binary — BIFF5 / BIFF8 workbooks | .xls .xlt | R ◐ · V □ · W □ | B | Current reader covers a bounded OLE/BIFF8 workbook subset; earlier BIFF revisions and styled rendering remain open. [office](sources.md#office) |
 | `ppt-binary` | PowerPoint binary — Legacy presentation revisions | .ppt .pps .pot | R □ · V □ · W □ | B | [office](sources.md#office) |
 | `rtf` | Rich Text Format — Formatted text and embedded resources | .rtf | R □ · V □ · W □ | B | [office](sources.md#office), [discovery](sources.md#discovery) |
 | `odt` | OpenDocument Text — ODF text documents | .odt .ott .fodt | R □ · V □ · W □ | B | [odf](sources.md#odf) |
