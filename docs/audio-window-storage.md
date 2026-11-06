@@ -45,13 +45,5 @@ destination budget. Existing checks cover both selection boundaries, short EOF,
 continuous clocks, source failure and cancellation after input ownership transfers.
 Real edited AAC selections remain checked against independently decoded PCM.
 
-Validation passes 2,988 managed tests and 567 audio/AAC tests with hardware
-intrinsics disabled. All 30 local packages pass assembly, metadata and isolated
-consumer dependency checks. The complete package-only Native AOT runner passes,
-including edited AAC and PCM ownership cases; the sample and CLI also publish
-successfully with strict Native AOT warnings. Release builds report zero warnings
-and errors, formatting is unchanged and license headers pass the root check.
-
-This change does not add audio seeking or infer codec preroll. Independent
-audiovisual intervals still require correct decoder restart and timestamp
+Independent audiovisual intervals require correct decoder restart and timestamp
 coordination.

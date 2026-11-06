@@ -358,10 +358,7 @@ Every video picture is selected again through indexed seeking in reverse order.
 Movie-time MP4 and Segment-time MKV conversions select the corresponding picture;
 complete WAV and PNG outputs match byte for byte on the common fixture.
 
-All 2,800 managed tests and the complete strict Linux x64 Native AOT runner pass.
-The Native runner consumes 29 locally built packages without project references.
-The standalone Native CLI probes the MKV, exports complete 48 kHz AAC and 8 kHz MP3
+The Native AOT CLI probes the MKV, exports complete 48 kHz AAC and 8 kHz MP3
 audio to PCM16 WAVE, and renders the requested video preview. Independent readback
 verifies 77,824 and 47,232 mono output samples, all PNG CRCs and sRGB/pixel-aspect
-tags, and every decoded PNG component. The Release build has no warnings or errors;
-formatting and license-header checks pass.
+tags, and every decoded PNG component.

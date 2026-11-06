@@ -348,8 +348,6 @@ increased by 8.62 MiB; the run does not demonstrate lower process memory.
 Ownership tests independently verify absence of a second frame allocation,
 retained tight and strided planes, independent disposal, metadata preservation
 and the original allocation charge even when the recipient budget is full.
-All 2616 managed tests, the complete strict Linux x64 Native AOT test runner,
-strict Native CLI build, formatting and license-header checks pass.
 
 A separately remuxed MOV with an edit ending 16 PCM samples beyond its decoded
 audio track currently fails with an exact-range error. Interpretation of that

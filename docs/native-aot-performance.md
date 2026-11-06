@@ -72,12 +72,7 @@ remaining motion-search, coding-efficiency and complete-film HLS performance
 requirements. The separate [joint candidate trial](h264-candidate-comparison.md)
 is not included: its added implementation was rejected.
 
-Release compilation completes without warnings or errors. All 3,073 managed
-tests and 707 H.264 checks with hardware intrinsics disabled pass. All 30 packages
-pass metadata and package-only dependency verification; the strict Native AOT
-consumer built from those packages passes its complete executable test suite.
-Strict Native AOT Sample and CLI publications also pass. The published Sample
-self-test, CLI version, real MOV metadata probe and MOV-to-PNG preview complete
-successfully. The preview retains its 80x48 dimensions. Formatting and
-license-header checks pass. Explicit `OptimizationPreference=Size` overrides the
+The Native AOT sample self-test, CLI version, MOV metadata probe and MOV-to-PNG
+preview pass; the preview has dimensions of 80x48.
+Explicit `OptimizationPreference=Size` overrides the
 repository default.

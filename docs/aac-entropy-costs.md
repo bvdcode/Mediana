@@ -68,6 +68,3 @@ Every access unit's byte-aligned bit ceiling, PTS, DTS and duration is checked.
 The long stream contains 25,841 access units and 26,461,184 decoded samples per
 channel, including 1024 priming samples and 160 final padding samples. A further
 complete conversion with the final executable matches the measured transport.
-All 2906 managed tests, 30 locally packed libraries, the isolated package-only
-strict Linux x64 Native AOT consumer and complete native test runner pass.
-Release build, formatting and root license-header checks pass.

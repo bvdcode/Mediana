@@ -45,10 +45,6 @@ all coded samples from the source track with movie edit trimming disabled:
 | MPEG-1 Layer III | 44,100 Hz | 2 | 92 / 92 / 93 | 319,104 |
 | MPEG-2 Layer III | 22,050 Hz | 1 | 92 / 93 / 93 | 160,128 |
 
-The complete validation passes 3,124 managed tests, all 30 package checks and the
-full strict Native AOT test executable. Release compilation reports no warnings
-or errors. Formatting and license-header checks pass.
-
 ## Continuous audio preparation
 
 Partitioning one encoded stream preserves its audio history across segments.
@@ -60,7 +56,7 @@ padding, or establish `EXT-X-INDEPENDENT-SEGMENTS`.
 The audiovisual interval sample still starts a fresh AAC encoder for each
 request. These transport APIs provide a building block for prepared continuous
 audio renditions; they do not make separately encoded intervals seamless.
-[`AudioHlsWriter`](audio-hls.md) now composes that transport lifecycle with a fixed
+[`AudioHlsWriter`](audio-hls.md) composes that transport lifecycle with a fixed
 audio segment grid and a VOD media playlist. A public Native AOT consumer verifies
 one continuous AAC encoder across a real 12-second preparation. Measured
 [master audio-group metadata](hls-audio-groups.md) is also available. Timeline

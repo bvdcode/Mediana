@@ -2,7 +2,7 @@
 
 `Mediana.Drawing.Emoji.Fluent` is an optional MIT-licensed resource module using
 Microsoft Fluent Emoji's Flat SVG artwork. It contains 1,595 base sequences in
-a 1,496,994-byte archive. The CLI includes this module for Word and SVG previews;
+a 1,498,458-byte archive. The CLI includes this module for Word and SVG previews;
 `Mediana.Drawing` and `Mediana.Documents.Word` do not depend on it.
 
 The module uses Mediana's managed SVG renderer and BCL compression. It does not
