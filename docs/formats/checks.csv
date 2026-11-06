@@ -191,7 +191,7 @@ avif-hdr,decode,planned,planned,planned,planned,planned,planned,
 avif-hdr,encode,planned,planned,planned,planned,planned,planned,
 avif-sequence,decode,planned,planned,planned,planned,planned,planned,
 avif-sequence,encode,planned,planned,planned,planned,planned,planned,
-heic-main,decode,partial,partial,partial,planned,planned,planned,../heif.md;../../tests/Mediana.Tests/Data/Heif/README.md
+heic-main,decode,partial,partial,partial,partial,partial,partial,../heif.md;../../tests/Mediana.Tests/Data/Heif/README.md;../performance/results/2026-11-06/README.md
 heic-main,encode,planned,planned,planned,planned,planned,planned,
 heic-main10,decode,partial,partial,partial,planned,planned,planned,../heif.md;../../tests/Mediana.Tests/Data/Heif/README.md
 heic-main10,encode,planned,planned,planned,planned,planned,planned,
@@ -495,7 +495,7 @@ mp1,decode,planned,planned,planned,planned,planned,planned,
 mp1,encode,planned,planned,planned,planned,planned,planned,
 mp2,decode,planned,planned,planned,planned,planned,planned,
 mp2,encode,planned,planned,planned,planned,planned,planned,
-mp3-mpeg1,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/Data/Mp3/README.md
+mp3-mpeg1,decode,partial,partial,partial,partial,partial,partial,../../tests/Mediana.Tests/Data/Mp3/README.md;../performance/results/2026-11-06/README.md
 mp3-mpeg1,encode,planned,planned,planned,planned,planned,planned,
 mp3-mpeg2,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/Data/Mp3/README.md
 mp3-mpeg2,encode,planned,planned,planned,planned,planned,planned,
@@ -523,7 +523,7 @@ mpeg-surround,decode,planned,planned,planned,planned,planned,planned,
 mpeg-surround,encode,planned,planned,planned,planned,planned,planned,
 mpegh-audio,decode,planned,planned,planned,planned,planned,planned,
 mpegh-audio,encode,planned,planned,planned,planned,planned,planned,
-flac-codec,decode,partial,partial,partial,planned,planned,planned,../../tests/Mediana.Tests/Data/Flac/README.md
+flac-codec,decode,partial,partial,partial,partial,partial,partial,../../tests/Mediana.Tests/Data/Flac/README.md;../performance/results/2026-11-06/README.md
 flac-codec,encode,planned,planned,planned,planned,planned,planned,
 alac,decode,planned,planned,planned,planned,planned,planned,
 alac,encode,planned,planned,planned,planned,planned,planned,

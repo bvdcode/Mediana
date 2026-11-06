@@ -1,17 +1,25 @@
-name: Check format catalog
+name: Check format catalog and comparisons
 
 on:
   push:
     branches: [main, develop]
     paths:
       - docs/formats/**
+      - docs/performance/**
+      - benchmarks/Mediana.MediaComparison/**
       - tools/format-catalog.py
+      - tools/performance_catalog.py
+      - tools/test_performance_catalog.py
       - .github/workflows/format-catalog.yml
   pull_request:
     branches: [main, develop]
     paths:
       - docs/formats/**
+      - docs/performance/**
+      - benchmarks/Mediana.MediaComparison/**
       - tools/format-catalog.py
+      - tools/performance_catalog.py
+      - tools/test_performance_catalog.py
       - .github/workflows/format-catalog.yml
 
 permissions:
@@ -20,9 +28,15 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - run: python3 tools/format-catalog.py --check
+      - run: python3 -m unittest discover -s tools -p 'test_performance_catalog.py'
+      - name: Test comparison runner
+        run: |
+          python3 -m venv "$RUNNER_TEMP/media-comparison-venv"
+          "$RUNNER_TEMP/media-comparison-venv/bin/python" -m pip install --requirement benchmarks/Mediana.MediaComparison/requirements.txt
+          "$RUNNER_TEMP/media-comparison-venv/bin/python" -m unittest discover -s benchmarks/Mediana.MediaComparison -p 'test_*.py'
