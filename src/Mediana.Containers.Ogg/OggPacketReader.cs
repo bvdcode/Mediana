@@ -80,6 +80,11 @@ namespace Mediana.Containers.Ogg
                     if (page.Lacing.Length == 0) { continue; }
                 }
                 OggLogicalStream state = current!;
+                if (state.Parts.Count == 0)
+                {
+                    state.PendingPage = page.Offset;
+                    state.PendingLace = lace;
+                }
                 int start = body;
                 while (lace < page.Lacing.Length)
                 {
@@ -95,7 +100,8 @@ namespace Mediana.Containers.Ogg
                         bool last = lace - 1 == lastCompleted;
                         return new(data, page.Serial, link, packetIndex,
                             last && page.Granule >= 0 ? page.Granule : null,
-                            packetIndex == 0, last && (page.Flags & 4) != 0, page.Offset);
+                            packetIndex == 0, last && (page.Flags & 4) != 0, page.Offset,
+                            state.PendingPage, state.PendingLace, lace == page.Lacing.Length);
                     }
                 }
                 int remaining = body - start;

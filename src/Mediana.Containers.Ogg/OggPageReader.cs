@@ -7,10 +7,10 @@ using Mediana.IO;
 
 namespace Mediana.Containers.Ogg
 {
-    internal class OggPageReader(IByteSource source, MediaBufferAllocator allocator, OggReadOptions options) : IDisposable
+    internal class OggPageReader(IByteSource source, MediaBufferAllocator allocator, OggReadOptions options, long startOffset = 0) : IDisposable
     {
         private readonly WritableMediaBuffer header = allocator.Allocate(OggPage.FixedHeaderBytes + byte.MaxValue);
-        private long position;
+        private long position = startOffset;
 
         public async ValueTask<OggPage?> ReadAsync(CancellationToken cancellationToken)
         {

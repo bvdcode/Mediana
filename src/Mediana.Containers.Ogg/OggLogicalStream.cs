@@ -11,6 +11,8 @@ namespace Mediana.Containers.Ogg
         public long NextPacket { get; set; }
         public bool Ended { get; set; }
         public int PendingBytes { get; set; }
+        public long PendingPage { get; set; }
+        public int PendingLace { get; set; }
         public List<MediaBuffer> Parts { get; } = [];
 
         public void Dispose()

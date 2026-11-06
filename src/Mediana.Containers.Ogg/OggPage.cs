@@ -18,6 +18,7 @@ namespace Mediana.Containers.Ogg
         public ReadOnlyMemory<byte> Lacing => Data.Slice(FixedHeaderBytes, Data.Span[26]);
         public int BodyOffset => FixedHeaderBytes + Lacing.Length;
         public MediaBuffer Slice(int start, int length) => data.Slice(start, length);
+        public OggPage Retain() => new(data.Retain(), Offset);
         public void Dispose() => data.Dispose();
     }
 }

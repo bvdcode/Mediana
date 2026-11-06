@@ -12,7 +12,7 @@ namespace Mediana.Containers.Ogg
         private readonly MediaBuffer data;
 
         internal OggPacket(MediaBuffer data, uint serial, int linkIndex, long packetIndex,
-            long? granule, bool beginning, bool end, long pageOffset)
+            long? granule, bool beginning, bool end, long pageOffset, long startPage, int startLace, bool endsPage)
         {
             this.data = data;
             Serial = serial;
@@ -22,6 +22,9 @@ namespace Mediana.Containers.Ogg
             IsBeginning = beginning;
             IsEnd = end;
             CompletionPageOffset = pageOffset;
+            StartPageOffset = startPage;
+            StartLace = startLace;
+            EndsPage = endsPage;
         }
 
         public uint Serial { get; }
@@ -31,6 +34,9 @@ namespace Mediana.Containers.Ogg
         public bool IsBeginning { get; }
         public bool IsEnd { get; }
         public long CompletionPageOffset { get; }
+        internal long StartPageOffset { get; }
+        internal int StartLace { get; }
+        internal bool EndsPage { get; }
         public ReadOnlyMemory<byte> Data => data.Memory;
         public MediaBuffer RetainData() => data.Retain();
         public void Dispose() => data.Dispose();
