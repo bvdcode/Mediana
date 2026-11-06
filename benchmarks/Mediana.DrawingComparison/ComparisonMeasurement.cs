@@ -7,5 +7,5 @@ namespace Mediana.DrawingComparison
         int ProcessorCount, int Parallelism, int ObservedParallelism, int Operations, double Seconds,
         double ColdMilliseconds, long ColdAllocatedBytes, double FontLoadMilliseconds, long FontLoadAllocatedBytes,
         double ElapsedMillisecondsPerImage, double CpuMillisecondsPerImage, long ManagedAllocatedBytesPerImage, long ManagedAllocatedBytes,
-        long PeakWorkingSetBytes, long WorkingSetBytes, int Gen0, int Gen1, int Gen2);
+        long PeakWorkingSetBytes, long WorkingSetBytes, int Gen0, int Gen1, int Gen2, int VerifiedConcurrentImages);
 }

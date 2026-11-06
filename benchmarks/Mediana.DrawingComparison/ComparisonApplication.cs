@@ -61,11 +61,14 @@ namespace Mediana.DrawingComparison
             long bytes = GC.GetTotalAllocatedBytes(true) - allocated;
             double cpuTime = (process.TotalProcessorTime - cpu).TotalMilliseconds;
             process.Refresh();
+            long peak = process.PeakWorkingSet64, workingSet = process.WorkingSet64;
+            int collections0 = GC.CollectionCount(0) - gen0, collections1 = GC.CollectionCount(1) - gen1, collections2 = GC.CollectionCount(2) - gen2;
+            int verifiedImages = ConcurrentImageVerification.Verify(engine, scene, parallelism);
             int count = rounds * parallelism;
             ComparisonMeasurement result = new(args[0], scene.Name, width, height, scene.Scale, complexity, Path.GetFileName(args[5]), Convert.ToHexString(SHA256.HashData(font)),
                 Environment.ProcessorCount, parallelism, observed, count, elapsed.Elapsed.TotalSeconds, cold, coldBytes, fontTime, fontBytes,
-                elapsed.Elapsed.TotalMilliseconds / count, cpuTime / count, bytes / count, bytes, process.PeakWorkingSet64, process.WorkingSet64,
-                GC.CollectionCount(0) - gen0, GC.CollectionCount(1) - gen1, GC.CollectionCount(2) - gen2);
+                elapsed.Elapsed.TotalMilliseconds / count, cpuTime / count, bytes / count, bytes, peak, workingSet,
+                collections0, collections1, collections2, verifiedImages);
             if (args[9] != "-")
             {
                 Directory.CreateDirectory(args[9]);

@@ -34,3 +34,5 @@ python check_quality.py --dotnet '<dotnet>' --binary '<comparison.dll>' --font-d
 ```
 
 This script requires Pillow. It renders the same scene natively in both engines and at 8x resolution for 200px scenes, or 4x for larger scenes, in the reference engine. It downsamples premultiplied RGBA with a box filter. The quality gate requires edge RGB RMSE no more than one byte code above the reference's native RMSE against that shared image. Alpha RMSE and direct native-image differences are recorded separately. Full-size PNGs and comparison strips support visual inspection; strips show Mediana, reference and downsampled reference from left to right. Table borders are drawn once per cell, including shared edges, in both engines.
+
+After the timed loop and memory sample, parallel workloads render two additional images per worker and compare their complete SHA-256 pixel hashes with a single-context image. Any mismatch fails the process. `VerifiedConcurrentImages` records the checked count; these verification buffers and hashing are excluded from all reported performance metrics.
