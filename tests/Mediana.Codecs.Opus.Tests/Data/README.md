@@ -279,3 +279,22 @@ signal, isolating it from transform rounding and cancellation in its final
 state. Repeated synthesis and filtering allocate no managed storage.
 
 SHA-256: `e2d2dbc351a64b29e0c96da57d0405ec786e5cad33ca96b75bcf3a4e87f98d21`.
+
+`decoded-celt.bin` records 196 independently encoded Opus streams and 2,448
+frames decoded through the libopus 1.6.1 public float API. All four CELT frame
+sizes, four bandwidths, mono/stereo inputs and outputs, three bitrate targets,
+CBR/VBR, tones, noise, impulses and silence are included. Four streams change
+frame duration, bandwidth and forced coded channels while preserving decoder
+state. Every final arithmetic range and sample count matches exactly. Complete
+PCM has relative L2 error at most 0.00001 and peak absolute error at most 0.000003
+times the larger of one and the reference peak. Frame decoding reuses budgeted
+storage with no managed allocations per frame; reset is deterministic.
+
+The little-endian file begins with `OPUSPCM1` and a 32-bit stream count. Each
+stream contains 32-bit output channels, inversion-disable flag and frame count.
+Each frame contains a 32-bit packet length, packet bytes including TOC, 32-bit
+decoded samples per channel, unsigned 32-bit final arithmetic range and
+interleaved float32 PCM. This covers CELT-only coding; SILK, hybrid coding,
+packet-loss reconstruction and Ogg presentation trimming remain outside it.
+
+SHA-256: `b21f9a0076b075e230f425f26c97012e6274f695feda80c3614e2b7252acf5bc`.
