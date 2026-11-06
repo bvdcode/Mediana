@@ -56,7 +56,8 @@ optional caller policy; these decoders impose no default megapixel cap.
 geometry, codec/frame data, animation rectangles/timing and original ICC/XMP
 bytes. EXIF/GPS is parsed by `ExifMetadataReader`. Image samples need not be
 valid for metadata inspection to succeed. ICC profiles remain attached to the
-frame; applying arbitrary ICC profiles requires color-management support.
+frame. Common [ICC conversion](icc-color.md) supports RGB and gray matrix/TRC
+profiles; LUT and CMYK transforms remain open.
 
 `TiffMetadataReader.Read` inspects TIFF and these initial TIFF-based RAW families:
 

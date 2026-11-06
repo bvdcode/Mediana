@@ -79,7 +79,7 @@ Limits reject excessive output instead of truncating it. Use `StartPartIndex`/`P
 
 Document tests cover independent CFB and OPC parsers, sparse coordinates, typed values, cached formulas, shared-string continuation, Unicode mappings, declared/reconstructed reading order, cancellation and early disposal. Presentation checks compare reference pixels, inherited placeholders, automatic text sizing, per-axis overflow, shared image decoding and single-buffer publication. The same public-reader checks run in the Native AOT executable.
 
-Text extraction passed on 18 DOCX and 14 PPTX documents and two independent BIFF8 workbooks. First-slide previews succeeded for eight of those presentations; six stop at JPEG pictures whose embedded ICC profiles are unsupported by the current JPEG decoder. Large-file checks use explicitly increased package limits; default limits remain unchanged.
+Text extraction passed on 18 DOCX and 14 PPTX documents and two independent BIFF8 workbooks. First-slide previews succeeded for 12 of those presentations after enabling common ICC matrix/TRC conversion. Two stop at a picture fill (`blipFill`) and conflicting JFIF/Exif chroma-position declarations. All six distinct embedded RGB profiles matched LittleCMS conversion within one 8-bit RGB level; alpha matched exactly. Large-file checks use explicitly increased package limits; default limits remain unchanged.
 
 ## Specifications
 
