@@ -16,7 +16,7 @@ namespace Mediana.Documents.Presentation
             ArgumentNullException.ThrowIfNull(document);
             document.CheckSlide(slideIndex);
             options ??= new();
-            if (options.MaximumImagePixels <= 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
+            if (options.MaximumImagePixels <= 0 || !double.IsFinite(options.ImageDpi) || options.ImageDpi <= 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
             PageRasterPlan plan = PageRasterPlan.Create(document.Width, document.Height, options);
             cancellationToken.ThrowIfCancellationRequested();
             PresentationScene scene = new(document, slideIndex, cancellationToken);

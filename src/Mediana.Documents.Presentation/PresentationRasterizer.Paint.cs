@@ -10,9 +10,8 @@ namespace Mediana.Documents.Presentation
     internal partial class PresentationRasterizer
     {
         private static XElement? Fill(XElement? properties) => properties?.Elements().FirstOrDefault(item => item.Name.LocalName is "noFill" or "solidFill" or "gradFill" or "blipFill" or "pattFill" or "grpFill");
-        private void Paint(VectorPath path, XElement? properties, Matrix3x2 transform, XElement? reference = null)
+        private async ValueTask PaintAsync(VectorPath path, XElement? fill, Matrix3x2 transform, XElement? reference = null)
         {
-            XElement? fill = properties?.Name.LocalName is "solidFill" or "gradFill" or "noFill" or "bgRef" ? properties : Fill(properties);
             Rgba32? placeholder = null;
             if (fill?.Name.LocalName == "bgRef") { reference = fill; fill = null; }
             if (reference is not null)
@@ -30,6 +29,7 @@ namespace Mediana.Documents.Presentation
             {
                 case "solidFill": canvas.FillPath(path, scene.Theme.Color(fill.Elements().Single(), placeholder), transform, cancellationToken: token); break;
                 case "gradFill": Gradient(path, fill, placeholder, transform); break;
+                case "blipFill": await ImageFillAsync(path, fill, transform).ConfigureAwait(false); break;
                 default: throw new NotSupportedException("Unsupported presentation fill: " + fill.Name.LocalName);
             }
         }
