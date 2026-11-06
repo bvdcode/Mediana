@@ -1,0 +1,12 @@
+{"case": "heic-photo-12mp", "repetition": 1, "representation": "source-color RGBA8", "samples": 48000000, "different_samples": 936837, "max_absolute_error": 1, "rmse": 0.13970482275139967}
+{"case": "heic-photo-200mp", "repetition": 1, "representation": "source-color RGBA8", "samples": 799027200, "different_samples": 13853248, "max_absolute_error": 1, "rmse": 0.13167248221769504}
+{"case": "flac-sustained", "repetition": 1, "representation": "PCM16LE", "channels": 2, "sample_rate": 48000, "frames": 28800000, "samples": 57600000, "different_samples": 0, "max_absolute_error": 0, "rmse": 0.0}
+{"case": "mp3-long", "repetition": 1, "representation": "PCM16LE", "channels": 2, "sample_rate": 48000, "frames": 118084608, "samples": 236169216, "different_samples": 564424, "max_absolute_error": 1, "rmse": 0.048886741660191274}
+{"case": "heic-photo-12mp", "repetition": 2, "representation": "source-color RGBA8", "samples": 48000000, "different_samples": 936837, "max_absolute_error": 1, "rmse": 0.13970482275139967}
+{"case": "heic-photo-200mp", "repetition": 2, "representation": "source-color RGBA8", "samples": 799027200, "different_samples": 13853248, "max_absolute_error": 1, "rmse": 0.13167248221769504}
+{"case": "flac-sustained", "repetition": 2, "representation": "PCM16LE", "channels": 2, "sample_rate": 48000, "frames": 28800000, "samples": 57600000, "different_samples": 0, "max_absolute_error": 0, "rmse": 0.0}
+{"case": "mp3-long", "repetition": 2, "representation": "PCM16LE", "channels": 2, "sample_rate": 48000, "frames": 118084608, "samples": 236169216, "different_samples": 564424, "max_absolute_error": 1, "rmse": 0.048886741660191274}
+{"case": "heic-photo-12mp", "repetition": 3, "representation": "source-color RGBA8", "samples": 48000000, "different_samples": 936837, "max_absolute_error": 1, "rmse": 0.13970482275139967}
+{"case": "heic-photo-200mp", "repetition": 3, "representation": "source-color RGBA8", "samples": 799027200, "different_samples": 13853248, "max_absolute_error": 1, "rmse": 0.13167248221769504}
+{"case": "flac-sustained", "repetition": 3, "representation": "PCM16LE", "channels": 2, "sample_rate": 48000, "frames": 28800000, "samples": 57600000, "different_samples": 0, "max_absolute_error": 0, "rmse": 0.0}
+{"case": "mp3-long", "repetition": 3, "representation": "PCM16LE", "channels": 2, "sample_rate": 48000, "frames": 118084608, "samples": 236169216, "different_samples": 564424, "max_absolute_error": 1, "rmse": 0.048886741660191274}

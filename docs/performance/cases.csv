@@ -1,0 +1,29 @@
+id,format_ids,operation,workload,alternative,track,report
+heic-photo-12mp,heif-wrapper;heic-main,decode,12 MP real photograph to source-color RGBA8 (no ICC transform),libheif + libde265,ordinary,
+heic-photo-200mp,heif-wrapper;heic-main,decode,199.76 MP real tiled photograph to source-color RGBA8 (no ICC transform),libheif + libde265,heavy,
+heic-preview,heif-wrapper;heic-main,decode,Real ICC-profiled photograph to full-size PNG,libheif + libde265 / heif-convert,ordinary,results/2026-11-06/README.md
+jpeg-photo,jpeg-baseline;jpeg-progressive,decode,High-detail photograph and progressive scan to PNG,FFmpeg / libjpeg-turbo,ordinary,
+png-large,png-rgb;png-alpha;png-adam7,decode,Large RGBA image with alpha and interlace to PNG,FFmpeg,heavy,
+webp-still,webp-lossy;webp-lossless;webp-extended,decode,Photograph and alpha image to full-size PNG,FFmpeg / libwebp,ordinary,
+webp-animation,webp-animation,decode,Composite every frame including disposal and blending,libwebp,heavy,
+webp-encode,webp-lossless;webp-lossy,encode,Photograph and difficult alpha/texture images,ImageSharp / libwebp,ordinary,../../benchmarks/Mediana.WebpBenchmarks/README.md
+raster-pages,bmp-rgb;bmp-rle;gif89a;tiff-strips;tiff-lzw;tiff-deflate;tiff-jpeg;tiff-fax,decode,Representative bitmap and compressed multipage scan,FFmpeg / libtiff,ordinary,
+jp2-scan,jp2-wrapper;j2k-reversible;j2k-irreversible,decode,Large tiled high-precision scanned image,OpenJPEG,heavy,
+jbig2-scan,jbig2-sequential;jbig2-embedded,decode,Dense monochrome text/image page with symbol dictionaries,jbig2dec,heavy,
+flac-track,flac-native;flac-codec,decode,Complete music track to PCM16 WAVE,FFmpeg / libFLAC,ordinary,
+flac-sustained,flac-native;flac-codec,decode,Complete 10-minute stereo stress stream to PCM16 WAVE,FFmpeg,heavy,
+mp3-long,mp3-file;mp3-mpeg1,decode,Complete long mono/stereo recording to PCM16 WAVE,FFmpeg,heavy,
+aac-multichannel,mp4-classic;aac-lc,decode,Complete long 5.1 AAC stream to PCM16 WAVE,FFmpeg,heavy,
+audio-resample,pcm-s16;mp3-mpeg1;aac-lc,decode,Complete long recording downmix and 48-to-16 kHz resampling,FFmpeg / libswresample,heavy,
+avc-decode-30m,mp4-classic;avc-main;avc-high,decode,Every frame of a 30-minute HD video to native YUV,FFmpeg,heavy,
+avc-transcode-30m,avc-constrained-baseline;mpeg-ts,encode,Complete 30-minute HD transcode at matched quality/rate,FFmpeg / libx264,heavy,../h264-hd-encoding.md
+remux-hls,mp4-classic;mpeg-ts;hls-ts-vod;hls-master,write,Complete 30-minute A/V stream copy and VOD segmentation,FFmpeg,heavy,
+pdf-page,pdf-1;pdf-forms,render,First-page preview of vector/text/image document at fixed DPI,Poppler,ordinary,
+pdf-scan,pdf-1;jpeg-baseline;jbig2-embedded,render,Large scanned page with masks and embedded image codecs,Poppler,heavy,
+svg-scene,svg-static,render,Text/clipping/gradient/filter artwork at 2560 square,librsvg / resvg,heavy,
+tgs-animation,tgs;lottie-json,render,Complete representative sticker animation,rlottie / lottie-web,heavy,
+word-page,docx-transitional,render,Paginated text/tables/images with fixed embedded fonts,LibreOffice,ordinary,
+presentation-slide,pptx-transitional,render,Slide with inherited layout and picture fills at fixed size,LibreOffice,ordinary,
+spreadsheet-read,xlsx-transitional;xls-binary,read,Large workbook streaming all cell values and cached formulas,ExcelDataReader,heavy,
+mesh-preview,obj;stl-binary;3mf-core;3mf-production,render,Complex mesh and component assembly to 512-square RGBA,Render.NET,heavy,../mesh-performance.md
+ogg-index,ogg;ogg-chained,read,Complete long Opus/Vorbis indexing and packet extraction,FFmpeg / libogg,heavy,
