@@ -127,6 +127,45 @@ namespace Mediana.Codecs.Opus
             return result;
         }
 
+        /// <summary>Decodes CELT's symmetric signed energy residual with Q15 probabilities.</summary>
+        public int ReadLaplace(int zeroProbability, int decay)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(zeroProbability);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(zeroProbability, 32736);
+            ArgumentOutOfRangeException.ThrowIfNegative(decay);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(decay, 16384);
+            const uint total = 32768;
+            uint unit = range >> 15;
+            uint rank = total - Math.Min(value / unit + 1, total);
+            uint start = (uint)zeroProbability;
+            if (rank < start)
+            {
+                Apply(0, start, total, unit);
+                return 0;
+            }
+            uint residual = rank - start;
+            uint weight = 1 + ((32736u - start) * (uint)(16384 - decay) >> 15);
+            int magnitude = 1;
+            while (weight > 1 && residual >= 2 * weight)
+            {
+                residual -= 2 * weight;
+                start += 2 * weight;
+                weight = 1 + ((weight - 1) * (uint)(2 * decay) >> 15);
+                magnitude++;
+            }
+            if (weight == 1)
+            {
+                magnitude += (int)(residual / 2);
+                start += residual & ~1u;
+                residual &= 1;
+            }
+            bool positive = residual >= weight;
+            if (positive) { start += weight; }
+            Apply(start, Math.Min(start + weight, total), total, unit);
+            if (positive) { return magnitude; }
+            return -magnitude;
+        }
+
         public uint ReadRawBits(int count)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(count);

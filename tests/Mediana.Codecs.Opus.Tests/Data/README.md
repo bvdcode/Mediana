@@ -54,3 +54,16 @@ and rank, followed by the signed 32-bit coefficients in dimension order.
 SHA-256: `bab6a5c2e66f78fdc61513514fb22362cd0d1738132575170ebb343c9283eb57`.
 
 The codeword enumeration follows [RFC 6716 section 4.3.4.2](https://www.rfc-editor.org/rfc/rfc6716.html#section-4.3.4.2).
+
+`laplace-decoder.bin` records 5,257 signed energy residuals from libopus 1.6.1,
+including arithmetic ranges and whole/fractional bit usage after each operation.
+Inputs include empty and truncated frames, sequentially changing probability
+models, boundary probabilities, the decaying portion of the distribution and
+its minimum-probability tails.
+
+The little-endian file starts with `OPUSLAP1` and a 32-bit case count. Each case
+contains a 32-bit byte length, input bytes and a 32-bit operation count. Operations
+contain six 32-bit values: zero probability, decay, signed residual, arithmetic
+range, whole bits and eighth bits. Probabilities use Q15 precision.
+
+SHA-256: `19acb99bf22c604f0185255e1e718a08388f0666fbc1eded2d289217e7b6555b`.
