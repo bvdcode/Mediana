@@ -178,3 +178,14 @@ separately rather than treated as successful reference results.
 SHA-256: `943c668c398aae1ff8cb59ce4ed550206dd2c1eaa88dd8f2b622e0ce114af25b`.
 
 Split reconstruction follows [RFC 6716 section 4.3.4.4](https://www.rfc-editor.org/rfc/rfc6716.html#section-4.3.4.4).
+
+`partitions.bin` records 7,682 recursive mono spectral partitions evaluated with
+libopus 1.6.1. Cases cover every canonical band size, all splitting depths,
+1–16 time blocks, each spreading mode, exhausted and redistributed bit budgets,
+zero/nonzero gain, empty occupancy masks, deterministic noise and spectral folding.
+Tests require exact arithmetic state, remaining budget, noise seed and collapse
+mask; every normalized coefficient has an absolute tolerance of 0.000001.
+Repeated reconstruction reuses its codebook and output buffers without managed
+heap allocations and leaves the borrowed folding spectrum unchanged.
+
+SHA-256: `e6ce07590ff8141c3cc154d90dde24cde8cf726373cd5507017665fbad0c69f0`.
