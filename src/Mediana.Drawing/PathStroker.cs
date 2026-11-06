@@ -8,9 +8,9 @@ using System.Threading;
 
 namespace Mediana.Drawing
 {
-    internal static class PathStroker
+    internal static partial class PathStroker
     {
-        internal static VectorPath Outline(VectorPath path, StrokeStyle style, Matrix3x2 transform, CancellationToken cancellationToken, float tolerance = .2f)
+        internal static VectorPath Outline(VectorPath path, StrokeStyle style, Matrix3x2 transform, CancellationToken cancellationToken, float tolerance = .2f, bool compactMiter = false)
         {
             float dashLength = Validate(style);
             float scale = Math.Max(new Vector2(transform.M11, transform.M12).Length(), new Vector2(transform.M21, transform.M22).Length());
@@ -21,7 +21,7 @@ namespace Mediana.Drawing
                 cancellationToken.ThrowIfCancellationRequested();
                 if (dashLength == 0)
                 {
-                    Solid(outline, contour, radius, style);
+                    Solid(outline, contour, radius, style, compactMiter);
                 }
                 else
                 {
@@ -36,6 +36,9 @@ namespace Mediana.Drawing
 
             return outline;
         }
+
+        internal static VectorPath OutlineAntialiased(VectorPath path, StrokeStyle style, Matrix3x2 transform, CancellationToken token) =>
+            Outline(path, style, transform, token, PathFlattener.AntialiasTolerance, true);
 
         private static float Validate(StrokeStyle style)
         {
@@ -68,8 +71,9 @@ namespace Mediana.Drawing
             return total;
         }
 
-        private static void Solid(VectorPath output, PathContour contour, float radius, StrokeStyle style)
+        private static void Solid(VectorPath output, PathContour contour, float radius, StrokeStyle style, bool compactMiter = false)
         {
+            if (compactMiter && style.Join == StrokeJoin.Miter && style.Cap == StrokeCap.Butt && TryMiterContour(output, contour, radius, style.MiterLimit)) { return; }
             List<Vector2> points = contour.Points;
             int count = points.Count;
             int segments = contour.Closed ? count : count - 1;
