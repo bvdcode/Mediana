@@ -7,6 +7,7 @@ using System.IO;
 using System.Security.Cryptography;
 using Mediana.Images.Heif;
 using Mediana.Images.Heif.Hevc;
+using Mediana.Codecs.Hevc;
 
 namespace Mediana.Tests
 {
@@ -22,7 +23,7 @@ namespace Mediana.Tests
                 switch (nal.Type)
                 {
                     case 33:
-                        SequenceParameters sps = SequenceParameters.Read(nal, HeicDecodeOptions.Default);
+                        SequenceParameters sps = SequenceParameters.Read(nal, HeicDecodeOptions.Default.MaxPixels);
                         sequences.Add(sps.Id, sps);
                         break;
                     case 34:

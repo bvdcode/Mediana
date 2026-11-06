@@ -27,6 +27,7 @@
     <Project Path="src/Mediana.Codecs.Flac/Mediana.Codecs.Flac.csproj" />
     <Project Path="src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
     <Project Path="src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
+    <Project Path="src/Mediana.Codecs.Hevc/Mediana.Codecs.Hevc.csproj" />
     <Project Path="src/Mediana.Codecs.Bmp/Mediana.Codecs.Bmp.csproj" />
     <Project Path="src/Mediana.Codecs.Gif/Mediana.Codecs.Gif.csproj" />
     <Project Path="src/Mediana.Codecs.Tiff/Mediana.Codecs.Tiff.csproj" />

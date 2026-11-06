@@ -7,6 +7,7 @@ using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using System.Runtime.InteropServices;
 using Mediana.Images.Heif.Hevc;
+using Mediana.Codecs.Hevc;
 
 namespace Mediana.Tests
 {

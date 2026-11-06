@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <InternalsVisibleTo Include="Mediana.Images.Heif" />
+    <InternalsVisibleTo Include="Mediana.Tests" />
+    <InternalsVisibleTo Include="Mediana.NativeTests" />
+    <InternalsVisibleTo Include="Mediana.Codecs.Hevc.Tests" />
+    <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />
+    <ProjectReference Include="../Mediana.Formats/Mediana.Formats.csproj" />
+    <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
+  </ItemGroup>
+</Project>

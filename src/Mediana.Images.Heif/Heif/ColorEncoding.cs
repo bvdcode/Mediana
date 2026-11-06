@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Images.Heif.Hevc;
+using Mediana.Codecs.Hevc;
 
 namespace Mediana.Images.Heif.Container
 {

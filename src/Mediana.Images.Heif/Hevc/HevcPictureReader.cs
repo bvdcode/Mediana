@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
+using Mediana.Codecs.Hevc;
+
 namespace Mediana.Images.Heif.Hevc
 {
     internal class HevcPictureReader(HeicDecodeOptions options)
@@ -30,7 +32,7 @@ namespace Mediana.Images.Heif.Hevc
                 case 32:
                     break;
                 case 33:
-                    SequenceParameters sequence = SequenceParameters.Read(unit, options);
+                    SequenceParameters sequence = SequenceParameters.Read(unit, options.MaxPixels);
                     if (!sequences.TryAdd(sequence.Id, sequence))
                     {
                         throw new InvalidDataException("Duplicate HEVC SPS identifier.");

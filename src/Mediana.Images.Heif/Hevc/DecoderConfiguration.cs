@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.IO;
 using Mediana.Formats.Video;
 
+using Mediana.Codecs.Hevc;
+
 namespace Mediana.Images.Heif.Hevc
 {
     internal class DecoderConfiguration

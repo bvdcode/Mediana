@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Mediana.Images.Heif;
 using Mediana.Images.Heif.Hevc;
+using Mediana.Codecs.Hevc;
 
 namespace Mediana.Tests
 {
