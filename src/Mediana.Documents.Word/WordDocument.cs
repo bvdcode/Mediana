@@ -4,7 +4,7 @@
 namespace Mediana.Documents.Word
 {
     /// <summary>An independent, read-only Word document. Encoded package storage is not retained.</summary>
-    public class WordDocument
+    public partial class WordDocument : IDocumentTextSource
     {
         internal WordDocument(IReadOnlyList<WordSection> sections, IReadOnlyList<string> warnings)
         {
