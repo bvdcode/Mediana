@@ -1,0 +1,130 @@
+[
+  {
+    "id": "heic-photo-12mp",
+    "input": "photo-12mp.heic",
+    "output_extension": ".rgba",
+    "description": "Real 4000x3000 HEIC photograph, primary image decode to source-color RGBA8; no ICC transform or PNG encoder",
+    "mediana": {
+      "tool": "mediana_heif",
+      "arguments": [
+        "{input}",
+        "{output}"
+      ],
+      "environment": {}
+    },
+    "alternative": {
+      "tool": "heif_reference",
+      "arguments": [
+        "{input}",
+        "{output}"
+      ],
+      "environment": {
+        "LD_LIBRARY_PATH": "{heif_libraries}"
+      }
+    }
+  },
+  {
+    "id": "heic-photo-200mp",
+    "input": "photo-200mp.heic",
+    "output_extension": ".rgba",
+    "description": "Real 16320x12240 tiled HEIC photograph, primary image decode to source-color RGBA8; no ICC transform or PNG encoder",
+    "mediana": {
+      "tool": "mediana_heif",
+      "arguments": [
+        "{input}",
+        "{output}"
+      ],
+      "environment": {}
+    },
+    "alternative": {
+      "tool": "heif_reference",
+      "arguments": [
+        "{input}",
+        "{output}"
+      ],
+      "environment": {
+        "LD_LIBRARY_PATH": "{heif_libraries}"
+      }
+    }
+  },
+  {
+    "id": "flac-sustained",
+    "input": "stress-10m.flac",
+    "output_extension": ".wav",
+    "description": "Complete 600-second 48 kHz stereo synthetic FLAC stress stream to PCM16 WAVE",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {}
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-map",
+        "0:a:0",
+        "-vn",
+        "-c:a",
+        "pcm_s16le",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {}
+    }
+  },
+  {
+    "id": "mp3-long",
+    "input": "recording-long.mp3",
+    "output_extension": ".wav",
+    "description": "Complete 2460.096-second 48 kHz stereo MP3 stress stream to PCM16 WAVE; provenance is not a real call recording",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {}
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-map",
+        "0:a:0",
+        "-vn",
+        "-c:a",
+        "pcm_s16le",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {}
+    }
+  }
+]
