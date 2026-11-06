@@ -6,8 +6,12 @@ file where they exercise different costs. It deliberately avoids a benchmark for
 every extension, profile and parameter combination.
 
 Each row identifies an alternative and reserves separate columns for its results
-and Mediana's results. Values are **elapsed seconds / total CPU seconds / peak
-resident MiB**. Empty cells mean the target run remains open. A measured subset
+and Mediana's results. Values are **elapsed time / total CPU time / peak RSS**,
+with a unit beside every number: `ms` is milliseconds, `s` is seconds
+(`1 s = 1000 ms`), and `MiB` is 1,048,576 bytes. Subsecond durations use `ms`.
+CPU time sums processor time across all threads: two cores working for one second
+consume about two CPU seconds. It describes processor cost; elapsed time describes
+how long the operation takes. Empty cells mean the target run remains open. A measured subset
 does not establish every variant linked to that row. Existing narrower reports
 remain related evidence; they do not close a 30-minute target run.
 
@@ -21,10 +25,10 @@ that conversion case.
 
 <!-- comparisons:start -->
 
-| Case | Operation / representative workload | Track | Alternative | Alternative: elapsed / CPU / peak RAM | Mediana: elapsed / CPU / peak RAM | Evidence |
+| Case | Operation / representative workload | Track | Alternative | Alternative: elapsed / CPU (ms or s) / peak RSS (MiB) | Mediana: elapsed / CPU (ms or s) / peak RSS (MiB) | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| <a id="heic-photo-12mp"></a>`heic-photo-12mp` | decode: 12 MP real photograph to source-color RGBA8 (no ICC transform) | ordinary | libheif + libde265 | 0.372 s / 0.588 s / 73.2 MiB | 0.610 s / 1.136 s / 65.0 MiB | [Measured subset](results/2026-11-06/README.md) |
-| <a id="heic-photo-200mp"></a>`heic-photo-200mp` | decode: 199.76 MP real tiled photograph to source-color RGBA8 (no ICC transform) | heavy | libheif + libde265 | 3.997 s / 6.189 s / 1074.8 MiB | 5.601 s / 10.930 s / 835.2 MiB | [Measured subset](results/2026-11-06/README.md) |
+| <a id="heic-photo-12mp"></a>`heic-photo-12mp` | decode: 12 MP real photograph to source-color RGBA8 (no ICC transform) | ordinary | libheif + libde265 | 371.5 ms / CPU 588.0 ms / RSS 73.2 MiB | 610.1 ms / CPU 1.136 s / RSS 65.0 MiB | [Measured subset](results/2026-11-06/README.md) |
+| <a id="heic-photo-200mp"></a>`heic-photo-200mp` | decode: 199.76 MP real tiled photograph to source-color RGBA8 (no ICC transform) | heavy | libheif + libde265 | 3.997 s / CPU 6.189 s / RSS 1074.8 MiB | 5.601 s / CPU 10.930 s / RSS 835.2 MiB | [Measured subset](results/2026-11-06/README.md) |
 | <a id="heic-preview"></a>`heic-preview` | decode: Real ICC-profiled photograph to full-size PNG | ordinary | libheif + libde265 / heif-convert | — | — | [Related measurements](results/2026-11-06/README.md); target run open |
 | <a id="jpeg-photo"></a>`jpeg-photo` | decode: High-detail photograph and progressive scan to PNG | ordinary | FFmpeg / libjpeg-turbo | — | — | Target run open |
 | <a id="png-large"></a>`png-large` | decode: Large RGBA image with alpha and interlace to PNG | heavy | FFmpeg | — | — | Target run open |
@@ -35,8 +39,8 @@ that conversion case.
 | <a id="jp2-scan"></a>`jp2-scan` | decode: Large tiled high-precision scanned image | heavy | OpenJPEG | — | — | Target run open |
 | <a id="jbig2-scan"></a>`jbig2-scan` | decode: Dense monochrome text/image page with symbol dictionaries | heavy | jbig2dec | — | — | Target run open |
 | <a id="flac-track"></a>`flac-track` | decode: Complete music track to PCM16 WAVE | ordinary | FFmpeg / libFLAC | — | — | Target run open |
-| <a id="flac-sustained"></a>`flac-sustained` | decode: Complete 10-minute stereo stress stream to PCM16 WAVE | heavy | FFmpeg | 0.629 s / 0.702 s / 52.0 MiB | 1.574 s / 1.640 s / 26.6 MiB | [Measured subset](results/2026-11-06/README.md) |
-| <a id="mp3-long"></a>`mp3-long` | decode: Complete long mono/stereo recording to PCM16 WAVE | heavy | FFmpeg | 2.596 s / 2.954 s / 52.2 MiB | 7.131 s / 8.345 s / 26.9 MiB | [Measured subset](results/2026-11-06/README.md) |
+| <a id="flac-sustained"></a>`flac-sustained` | decode: Complete 10-minute stereo stress stream to PCM16 WAVE | heavy | FFmpeg | 628.9 ms / CPU 702.2 ms / RSS 52.0 MiB | 1.574 s / CPU 1.640 s / RSS 26.6 MiB | [Measured subset](results/2026-11-06/README.md) |
+| <a id="mp3-long"></a>`mp3-long` | decode: Complete long mono/stereo recording to PCM16 WAVE | heavy | FFmpeg | 2.596 s / CPU 2.954 s / RSS 52.2 MiB | 7.131 s / CPU 8.345 s / RSS 26.9 MiB | [Measured subset](results/2026-11-06/README.md) |
 | <a id="aac-multichannel"></a>`aac-multichannel` | decode: Complete long 5.1 AAC stream to PCM16 WAVE | heavy | FFmpeg | — | — | Target run open |
 | <a id="audio-resample"></a>`audio-resample` | decode: Complete long recording downmix and 48-to-16 kHz resampling | heavy | FFmpeg / libswresample | — | — | Target run open |
 | <a id="avc-decode-30m"></a>`avc-decode-30m` | decode: Every frame of a 30-minute HD video to native YUV | heavy | FFmpeg | — | — | Target run open |

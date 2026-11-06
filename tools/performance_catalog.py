@@ -88,12 +88,19 @@ def escape(value: str) -> str:
     return value.replace("|", "\\|").replace("\n", " ")
 
 
+def duration(seconds: float) -> str:
+    """Show each duration with an explicit unit at a readable scale."""
+    if seconds < 1:
+        return f"{seconds * 1000:.1f} ms"
+    return f"{seconds:.3f} s"
+
+
 def metrics(result: Result, engine: str) -> str:
-    """Show elapsed time, CPU seconds and peak resident MiB independently."""
+    """Label elapsed time, total processor time and peak resident memory."""
     elapsed = float(getattr(result, f"{engine}_elapsed_seconds"))
     cpu = float(getattr(result, f"{engine}_cpu_seconds"))
     memory = float(getattr(result, f"{engine}_peak_rss_bytes")) / (1024 * 1024)
-    return f"{elapsed:.3f} s / {cpu:.3f} s / {memory:.1f} MiB"
+    return f"{duration(elapsed)} / CPU {duration(cpu)} / RSS {memory:.1f} MiB"
 
 
 def render_performance(
@@ -109,7 +116,8 @@ def render_performance(
     lines = [
         (
             "| Case | Operation / representative workload | Track | Alternative | "
-            "Alternative: elapsed / CPU / peak RAM | Mediana: elapsed / CPU / peak RAM | Evidence |"
+            "Alternative: elapsed / CPU (ms or s) / peak RSS (MiB) | "
+            "Mediana: elapsed / CPU (ms or s) / peak RSS (MiB) | Evidence |"
         ),
         "| --- | --- | --- | --- | --- | --- | --- |",
     ]
