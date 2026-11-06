@@ -74,9 +74,9 @@ namespace Mediana.Documents.Word
                     string property = cell ? "gridSpan" : "gridBefore";
                     if (properties.Element(ns + property) is XElement grid)
                     {
-                        if (!int.TryParse((string?)grid.Attribute(ns + "val"),NumberStyles.None,CultureInfo.InvariantCulture,out int count) || count < (cell ? 1 : 0) || count > 16384)
+                        if (!int.TryParse((string?)grid.Attribute(ns + "val"), NumberStyles.None, CultureInfo.InvariantCulture, out int count) || count < (cell ? 1 : 0) || count > 16384)
                         { throw new InvalidDataException("Invalid Word text table grid position."); }
-                        if (cell && containers.Count > 1) { containers[^2].NextIndex += count-1; }
+                        if (cell && containers.Count > 1) { containers[^2].NextIndex += count - 1; }
                         else { containers[^1].NextIndex = count; }
                     }
                     continue;
@@ -99,8 +99,8 @@ namespace Mediana.Documents.Word
                     int boxIndex = 0;
                     foreach (XElement box in paragraph.Descendants(ns + "txbxContent").Where(item => !item.Ancestors(ns + "txbxContent").Any()))
                     {
-                        DocumentTextPathSegment[] nestedPath = path.Append(new(DocumentTextNodeKind.TextBox,boxIndex++)).ToArray();
-                        foreach (DocumentTextBlock nested in NestedBlocks(box,ns,nestedPath,section,main,budget,cancellationToken)) { yield return nested; }
+                        DocumentTextPathSegment[] nestedPath = path.Append(new(DocumentTextNodeKind.TextBox, boxIndex++)).ToArray();
+                        foreach (DocumentTextBlock nested in NestedBlocks(box, ns, nestedPath, section, main, budget, cancellationToken)) { yield return nested; }
                     }
                 }
                 if (paragraph.Element(ns + "pPr")?.Element(ns + "sectPr") is not null)
@@ -113,7 +113,7 @@ namespace Mediana.Documents.Word
             if (bodyDepth < 0) { throw new InvalidDataException("Word document has no body."); }
         }
 
-        private static IEnumerable<DocumentTextBlock> NestedBlocks(XElement root,XNamespace ns,IReadOnlyList<DocumentTextPathSegment> parent,int section,string main,DocumentTextBudget budget,CancellationToken token)
+        private static IEnumerable<DocumentTextBlock> NestedBlocks(XElement root, XNamespace ns, IReadOnlyList<DocumentTextPathSegment> parent, int section, string main, DocumentTextBudget budget, CancellationToken token)
         {
             int index = 0;
             foreach (XElement element in root.Elements())
@@ -122,28 +122,32 @@ namespace Mediana.Documents.Word
                 if (element.Name.Namespace != ns || element.Name.LocalName is "del" or "moveFrom") { continue; }
                 DocumentTextNodeKind? kind = element.Name.LocalName switch
                 {
-                    "tbl" => DocumentTextNodeKind.Table,"tr" => DocumentTextNodeKind.Row,"tc" => DocumentTextNodeKind.Cell,
-                    "p" => DocumentTextNodeKind.Paragraph,"txbxContent" => DocumentTextNodeKind.TextBox,_ => null
+                    "tbl" => DocumentTextNodeKind.Table,
+                    "tr" => DocumentTextNodeKind.Row,
+                    "tc" => DocumentTextNodeKind.Cell,
+                    "p" => DocumentTextNodeKind.Paragraph,
+                    "txbxContent" => DocumentTextNodeKind.TextBox,
+                    _ => null
                 };
-                IReadOnlyList<DocumentTextPathSegment> path = kind is DocumentTextNodeKind type ? parent.Append(new(type,index++)).ToArray() : parent;
+                IReadOnlyList<DocumentTextPathSegment> path = kind is DocumentTextNodeKind type ? parent.Append(new(type, index++)).ToArray() : parent;
                 if (kind == DocumentTextNodeKind.Paragraph)
                 {
-                    string value = ParagraphText(element,ns); budget.Consume(value,token);
-                    yield return new(value,section,main,Array.AsReadOnly(path.ToArray()),DocumentTextStructure.Declared);
+                    string value = ParagraphText(element, ns); budget.Consume(value, token);
+                    yield return new(value, section, main, Array.AsReadOnly(path.ToArray()), DocumentTextStructure.Declared);
                     int boxIndex = 0;
-                    foreach (XElement box in element.Descendants(ns+"txbxContent").Where(item => !item.Ancestors(ns+"txbxContent").Any(ancestor => ancestor != root)))
+                    foreach (XElement box in element.Descendants(ns + "txbxContent").Where(item => item.Ancestors(ns + "p").FirstOrDefault() == element))
                     {
-                        foreach (DocumentTextBlock nested in NestedBlocks(box,ns,path.Append(new(DocumentTextNodeKind.TextBox,boxIndex++)).ToArray(),section,main,budget,token)) { yield return nested; }
+                        foreach (DocumentTextBlock nested in NestedBlocks(box, ns, path.Append(new(DocumentTextNodeKind.TextBox, boxIndex++)).ToArray(), section, main, budget, token)) { yield return nested; }
                     }
                 }
                 else
                 {
-                    foreach (DocumentTextBlock block in NestedBlocks(element,ns,path,section,main,budget,token)) { yield return block; }
+                    foreach (DocumentTextBlock block in NestedBlocks(element, ns, path, section, main, budget, token)) { yield return block; }
                 }
-                if (kind == DocumentTextNodeKind.Cell && element.Element(ns+"tcPr")?.Element(ns+"gridSpan") is XElement span)
+                if (kind == DocumentTextNodeKind.Cell && element.Element(ns + "tcPr")?.Element(ns + "gridSpan") is XElement span)
                 {
-                    if (!int.TryParse((string?)span.Attribute(ns+"val"),out int count) || count <= 0) { throw new InvalidDataException("Invalid Word text cell span."); }
-                    index += count-1;
+                    if (!int.TryParse((string?)span.Attribute(ns + "val"), out int count) || count <= 0) { throw new InvalidDataException("Invalid Word text cell span."); }
+                    index += count - 1;
                 }
             }
         }

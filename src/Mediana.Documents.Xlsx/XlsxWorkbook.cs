@@ -94,30 +94,30 @@ namespace Mediana.Documents.Xlsx
                 int index = reader.GetAttribute("r") is string value ? Integer(value, 1, Math.Min(_options.MaximumRows, 1_048_576)) - 1 : previous + 1;
                 if (index <= previous || index >= _options.MaximumRows || index >= 1_048_576) { throw new InvalidDataException("XLSX rows must be increasing and within their limit."); }
                 previous = index;
-                SpreadsheetRow? parsed = ReadRow(reader,index,cancellationToken);
+                SpreadsheetRow? parsed = ReadRow(reader, index, cancellationToken);
                 if (parsed is not null) { yield return parsed; }
             }
         }
 
-        private SpreadsheetRow? ReadRow(XmlReader reader,int index,CancellationToken cancellationToken)
+        private SpreadsheetRow? ReadRow(XmlReader reader, int index, CancellationToken cancellationToken)
         {
-                XElement row;
-                using (XmlReader subtree = reader.ReadSubtree()) { row = XElement.Load(subtree, LoadOptions.PreserveWhitespace); }
-                List<SpreadsheetCell> cells = [];
-                int column = -1;
-                long characters = 0;
-                foreach (XElement cell in row.Elements(_ns + "c"))
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    int next = cell.Attribute("r") is XAttribute address ? Column(address.Value, index) : column + 1;
-                    if (next <= column || next >= _options.MaximumColumns || next >= 16_384) { throw new InvalidDataException("XLSX cells must be increasing and within their column limit."); }
-                    column = next;
-                    SpreadsheetCell parsed = ReadCell(cell, next, cancellationToken);
-                    if (parsed.Value.Kind == SpreadsheetValueKind.Text && (string?)cell.Attribute("t") != "s") { characters += parsed.Value.Text.Length; }
-                    if (characters > _options.MaximumStringCharacters) { throw new InvalidDataException("XLSX row exceeds its string limit."); }
-                    cells.Add(parsed);
-                }
-                return cells.Count == 0 ? null : new(index,cells.AsReadOnly());
+            XElement row;
+            using (XmlReader subtree = reader.ReadSubtree()) { row = XElement.Load(subtree, LoadOptions.PreserveWhitespace); }
+            List<SpreadsheetCell> cells = [];
+            int column = -1;
+            long characters = 0;
+            foreach (XElement cell in row.Elements(_ns + "c"))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int next = cell.Attribute("r") is XAttribute address ? Column(address.Value, index) : column + 1;
+                if (next <= column || next >= _options.MaximumColumns || next >= 16_384) { throw new InvalidDataException("XLSX cells must be increasing and within their column limit."); }
+                column = next;
+                SpreadsheetCell parsed = ReadCell(cell, next, cancellationToken);
+                if (parsed.Value.Kind == SpreadsheetValueKind.Text && (string?)cell.Attribute("t") != "s") { characters += parsed.Value.Text.Length; }
+                if (characters > _options.MaximumStringCharacters) { throw new InvalidDataException("XLSX row exceeds its string limit."); }
+                cells.Add(parsed);
+            }
+            return cells.Count == 0 ? null : new(index, cells.AsReadOnly());
         }
 
         public override void Dispose() { _package?.Dispose(); _package = null; }

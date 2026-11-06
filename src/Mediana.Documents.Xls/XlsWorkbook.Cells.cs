@@ -106,7 +106,14 @@ namespace Mediana.Documents.Xls
         };
         private static string Error(byte code) => code switch
         {
-            0 => "#NULL!", 7 => "#DIV/0!", 15 => "#VALUE!", 23 => "#REF!", 29 => "#NAME?", 36 => "#NUM!", 42 => "#N/A", 43 => "#GETTING_DATA",
+            0 => "#NULL!",
+            7 => "#DIV/0!",
+            15 => "#VALUE!",
+            23 => "#REF!",
+            29 => "#NAME?",
+            36 => "#NUM!",
+            42 => "#N/A",
+            43 => "#GETTING_DATA",
             _ => throw new InvalidDataException("Unknown XLS error code.")
         };
         private static double Rk(uint value)

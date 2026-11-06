@@ -69,7 +69,7 @@ namespace Mediana.Documents.Word
             options ??= new();
             if (options.MaximumImagePixels <= 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
             WordPageSize size = layout.GetPageSize(pageNumber);
-            PageRasterPlan plan = PageRasterPlan.Create(size.Width,size.Height,options);
+            PageRasterPlan plan = PageRasterPlan.Create(size.Width, size.Height, options);
             cancellationToken.ThrowIfCancellationRequested();
             foreach (string warning in layout.Warnings) { options.WarningHandler?.Invoke(warning); }
             cancellationToken.ThrowIfCancellationRequested();
