@@ -4,6 +4,7 @@
 using Mediana.Codecs;
 using Mediana.Containers;
 using Mediana.Core;
+using Mediana.Core.Timing;
 
 namespace Mediana.Execution
 {
@@ -15,6 +16,8 @@ namespace Mediana.Execution
         private readonly IContainerReader reader;
         private readonly MediaDecodeTrack[] tracks;
         private readonly Dictionary<int, MediaDecodeTrack> byStream;
+        private readonly IIndexedPresentationTimingReader? presentationTiming;
+        private readonly Dictionary<int, long> packetPositions = [];
         private readonly bool[] ended;
         private readonly long? maxFrameReads;
         private long reads;
@@ -25,6 +28,14 @@ namespace Mediana.Execution
         private int busy;
 
         public MediaDecodeGroup(IContainerReader reader, IReadOnlyList<MediaDecodeTrack> tracks, long? maxFrameReads = null)
+            : this(reader, tracks, maxFrameReads, reader as IIndexedPresentationTimingReader)
+        {
+        }
+
+        /// <summary>The timing reader must describe the same packet sequence, starting at packet zero per stream.
+        /// Both readers remain borrowed; the timing reader may be the wrapped source of the packet reader.</summary>
+        public MediaDecodeGroup(IContainerReader reader, IReadOnlyList<MediaDecodeTrack> tracks, long? maxFrameReads,
+            IIndexedPresentationTimingReader? presentationTiming)
         {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentNullException.ThrowIfNull(tracks);
@@ -47,6 +58,7 @@ namespace Mediana.Execution
                 }
             }
             this.reader = reader;
+            this.presentationTiming = presentationTiming;
             this.maxFrameReads = maxFrameReads;
             ended = new bool[tracks.Count];
         }
@@ -108,10 +120,13 @@ namespace Mediana.Execution
                         }
                         inputCompleted = true;
                     }
-                    else if (byStream.TryGetValue(packet.StreamIndex, out MediaDecodeTrack? selected) &&
-                        selected.Send(packet, cancellationToken) != CodecInputStatus.Accepted)
+                    else if (byStream.TryGetValue(packet.StreamIndex, out MediaDecodeTrack? selected))
                     {
-                        throw new InvalidOperationException("The decoder refused input after requesting it.");
+                        using MediaPacket? timed = PreparePacket(packet, cancellationToken);
+                        if (selected.Send(timed ?? packet, cancellationToken) != CodecInputStatus.Accepted)
+                        {
+                            throw new InvalidOperationException("The decoder refused input after requesting it.");
+                        }
                     }
                 }
             }
@@ -148,6 +163,18 @@ namespace Mediana.Execution
                 Volatile.Write(ref busy, 0);
             }
             GC.SuppressFinalize(this);
+        }
+
+        private MediaPacket? PreparePacket(MediaPacket packet, CancellationToken cancellationToken)
+        {
+            if (presentationTiming is null)
+            {
+                return null;
+            }
+            long position = packetPositions.GetValueOrDefault(packet.StreamIndex);
+            packetPositions[packet.StreamIndex] = checked(position + 1);
+            MediaDuration? duration = presentationTiming.GetPresentationDuration(packet.StreamIndex, position, cancellationToken);
+            return packet.Duration == duration ? null : PacketPresentationTiming.Apply(packet.Retain(), duration);
         }
 
         private void ReleaseTracks()

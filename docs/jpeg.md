@@ -104,14 +104,12 @@ at most four codes and exact alpha. Truncated TIFF data, invalid pointers,
 duplicate/conflicting declarations, unknown colors, cancellation, detached input
 and exact one-byte allocation boundaries are checked separately.
 
-Actual managed and Linux Native AOT commands produce 76 complete PNGs from
+Managed and Linux Native AOT CLI checks produce 76 complete PNGs from
 renamed Exif inputs and run 76 probes. Every PNG pair is byte-identical, complete
 independent RGB error is at most three codes and alpha is exact. An independently
 muxed MP3 preserves the original Exif picture through extraction and common
 selection; its managed/native decoded PNGs equal direct JPEG conversion.
 Malformed Exif and uncalibrated-color failures preserve an existing destination.
-All 2,889 managed tests, the 30-package strict Native AOT consumer, complete native
-runner, CLI, formatting and source license-header checks pass.
 
 Two batches of three alternating fresh native process pairs measured complete
 2560×2560 ordinary JPEG → PNG conversion on one core with
@@ -217,9 +215,7 @@ decoded color component differs from the independent reference by at most three
 8-bit codes, with exact opaque alpha. Ten native probes include progressive,
 unlabelled and Adobe RGB headers. Four failures preserve an approved existing
 destination: truncated input, unresolved component color, arithmetic coding and
-an embedded ICC profile requiring an unavailable transform. The complete managed
-suite passes 2,852 tests; all 30 library packages also pass the isolated Linux
-Native AOT consumer and native shared checks.
+an embedded ICC profile requiring an unavailable transform.
 
 An additional complete native conversion checks progressive 16-bit quantization,
 quantization/Huffman destination three and signed DC refinement. The AC table is

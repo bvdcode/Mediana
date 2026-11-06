@@ -29,7 +29,7 @@ pictures, 60.041667 seconds, 1280x720 at 24 fps, QP26, a six-second GOP and a
 1,992,038,400-byte raw reference and writes MPEG-TS. Source decoding, resizing
 and audio processing are outside this measurement.
 
-Frozen Native AOT binaries ran serially on logical CPU 2 with
+Native AOT binaries ran serially on logical CPU 2 with
 `DOTNET_PROCESSOR_COUNT=1`. Four observations per version used ABBA followed by
 BAAB order, with no overlapping build, test or media workload. CPU is user plus
 system time; RSS is process peak resident memory. Allocation is cumulative
@@ -54,7 +54,7 @@ orders.
 CPU medians are 40.341536 and 39.189970 seconds, a 2.85% difference. However,
 the first series shows 6.50% while the reversed series shows only 0.19%.
 Variation in the unchanged baseline prevents claiming a stable CPU improvement.
-This change establishes lower allocation and RSS on the measured input.
+Reusing reconstruction storage lowers allocation and RSS on the measured input.
 
 Every run reaches all 1,441 output packets and releases owned media storage at
 EOF. All eight complete 78,332,832-byte transports match the independently
@@ -82,16 +82,10 @@ attributed to reconstruction reuse.
 
 ## Validation
 
-All 3,073 managed tests and 707 H.264 tests with hardware intrinsics disabled
-passed. The new regressions cover I/P and all-IDR reuse, per-picture allocation,
+Regression tests cover I/P and all-IDR reuse, per-picture allocation,
 metadata reset, retained packets, protected published pixels, budget exhaustion,
 cancellation, reset and release. The shared public-API reuse checks also run in
 Native AOT alongside the independent decoded-picture corpus.
-
-Release build completed with zero warnings and errors. Formatting, root
-license-header checks, all 30 isolated package checks, package-only strict Native
-AOT execution, native sample and CLI builds passed. Source and fixture hashes
-remained unchanged throughout validation.
 
 The [complete-film audiovisual HLS measurement](hls-hd-encoding.md) remains a
 separate result. Allocation savings do not establish a new full-film CPU ratio.

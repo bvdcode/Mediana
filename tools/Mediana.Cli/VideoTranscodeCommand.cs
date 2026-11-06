@@ -65,7 +65,7 @@ namespace Mediana.Cli
                         opening = false;
                         first.Dispose();
                     }
-                    return frame is null ? null : resizer is null ? frame.Retain() : resizer.Apply(frame, token);
+                    return frame is null ? null : resizer is null ? frame.Retain() : resizer.ResizeOrRetain(frame, token);
                 }
             }, cancellationToken);
             encoder.Dispose();

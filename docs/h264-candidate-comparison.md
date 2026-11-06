@@ -52,7 +52,7 @@ in all three execution configurations.
 
 ## Complete native comparison
 
-Both frozen consumers use product sources at `edb7bae`, with the described
+Both Native AOT consumers use product sources at `edb7bae`, with the described
 variant applied only to its consumer. They run sequentially on logical CPU 2,
 with one processing thread and `DOTNET_PROCESSOR_COUNT=1`, using SDK 10.0.402.
 No build, test or other owned media workload overlaps timing. The second series
@@ -88,7 +88,5 @@ temporary stores from these other changes.
 Every observation reaches EOF with zero retained media storage and produces
 exactly 1,441 packets. All eight transports have SHA256
 `d3090ee699cfdcc4330ec9815adaa1e7b08de1d95530e2e7af2e1596a399e543`.
-All source, fixture, raw-input and frozen-executable hashes remain unchanged
-throughout this comparison. The identical output retains the preceding
-independent full-picture quality and timestamp verification. This experiment
-establishes no new FFmpeg ratio or complete-film HLS speedup.
+The identical output retains the preceding
+independent full-picture quality and timestamp verification.

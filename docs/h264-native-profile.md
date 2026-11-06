@@ -62,8 +62,6 @@ Every ordinary and sampled operation completes all 1,441 pictures, reaches EOF
 and releases all owned media storage. All four decoded outputs match every
 byte of the independent 1,992,038,400-byte YUV reference. All four encoded
 outputs match the independently decoded 78,332,832-byte MPEG-TS reference.
-Product sources, fixtures, native executable, debug information and both inputs
-remain unchanged throughout the diagnostic.
 
 ## Fused chroma comparison
 
@@ -84,9 +82,9 @@ Independent scalar checks cover 12,288 chroma cases at seven error limits, all
 ties, output guards, unchanged inputs and allocation-free execution. The
 existing interpolation checks and all 188 complete motion-search fixtures also
 pass. These checks run in managed execution, with hardware intrinsics disabled,
-and in a strict Native AOT consumer.
+and in a Native AOT consumer.
 
-Frozen Speed consumers run serially with the preceding CPU and thread settings.
+Native AOT Speed consumers run serially with the preceding CPU and thread settings.
 Each row below is a complete 60.041667-second encoding observation. The second
 series reverses version order.
 

@@ -18,6 +18,8 @@ namespace Mediana.NativeTests
             await EmbeddedImageTestInput.VerifyJpegAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg"));
             await FluentEmojiTestInput.VerifyAsync();
             await FluentEmojiTestInput.VerifySharedTextAsync();
+            SymbolFontTestInput.VerifyResolution();
+            await SymbolFontTestInput.VerifyDocumentsAsync();
             Console.WriteLine("PASS Word: public pagination, page rasterization, font ownership and Open XML registration.");
         }
     }

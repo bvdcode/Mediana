@@ -70,8 +70,7 @@ The five FLAC references use FFmpeg decoding, mono mixing and resampling.
 The complete MP3 reference selects FFmpeg's `+skip_manual` decoder flag to retain
 the same coded extent, including priming/padding. Its Native AOT and managed JSON
 outputs are also byte-identical; the final window contains 29 samples.
-Differences include the different resampling filters and PCM16 rounding; exact
-media equivalence is not claimed.
+The resampling filters and PCM16 rounding differ between implementations.
 
 The film's final window contains 32 samples. This preserves every resampled sample;
 it differs from applications that discard a remainder when dividing a recording

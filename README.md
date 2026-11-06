@@ -82,7 +82,7 @@ codecs, images, documents and 3D formats, with independent progress for reading,
 decoding, rendering, encoding and writing. Its operation checklist separately tracks
 samples, correctness, CPU, memory and Native AOT.
 
-The H.264 work currently reconstructs progressive 8-bit 4:2:0 CAVLC I/P/B
+The H.264 decoder reconstructs progressive 8-bit 4:2:0 CAVLC I/P/B
 and CABAC I/P/B pictures with default scaling, including motion compensation, reference
 picture management, intra prediction, inverse transforms, PCM blocks and deblocking.
 Each packet contains a complete picture, with one or more slices in increasing
@@ -574,7 +574,7 @@ edits shift the returned PTS without generating silent PCM. Missing or nonlinear
 edits and unsupported exact clocks fail explicitly; codec delay and roll groups
 are not inferred. Range indices count from media time zero, so decode preceding
 packets from that point before applying the range; arbitrary seeking needs
-separate decoder preroll handling. MP4/MOV AAC-LC sessions now provide
+separate decoder preroll handling. MP4/MOV AAC-LC sessions provide
 [`AudioSession.SeekAsync`](docs/audio-seeking.md); after seeking, select time
 windows on the mapped clock instead of reapplying a media-zero sample index.
 `GetPresentationEnd(decodedSampleRate)` returns the first excluded sample instant
@@ -706,7 +706,7 @@ resamples and streams signed 16-bit little-endian PCM with no header. For stereo
 `--gains 0.5 0.5` selects an average; multichannel gains must be supplied explicitly. This
 provides the PCM shape needed for a 400 Hz waveform. The complete mono mix →
 resample → PCM16 → RMS path is checked on a real WAVE input and analytic tone energy
-in managed and Linux Native AOT execution. AAC-LC now supplies compressed input
+in managed and Linux Native AOT execution. AAC-LC supplies compressed input
 for the same processing steps. Other compressed audio, cover art in other
 containers and Cotton integration remain open.
 

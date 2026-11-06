@@ -5,9 +5,8 @@ consumer processes the same 1,441-picture input and settings as the
 
 ## Diagnostic work distribution
 
-The strict Native AOT diagnostic runs on one assigned CPU. Every output byte
-matches the independently decoded MPEG-TS reference, with EOF and zero retained
-media storage. Source hashes remain unchanged.
+The Native AOT diagnostic runs on one assigned CPU. Every output byte matches the
+independently decoded MPEG-TS reference, with EOF and zero retained media storage.
 
 | Timed region | Calls | Instrumented elapsed seconds |
 | --- | ---: | ---: |
@@ -41,7 +40,7 @@ interval enumeration at suffix lengths zero through six. Every representable
 word was also written and parsed at all eight bit alignments. All complete
 encoded transports match the original 78,332,832-byte reference exactly.
 
-Frozen binaries run serially on logical CPU 2 with one processing thread and no
+The binaries run serially on logical CPU 2 with one processing thread and no
 overlapping build, test or media workload. Each observation encodes the complete
 60.041667 seconds and reaches EOF. These are shared-host measurements.
 
@@ -74,7 +73,7 @@ provides a reference for organizing reusable planes.
 Independent scalar convolution checks cover all 49 refinement offsets, ringing
 patterns, borders and extreme coordinates. Additional tests check unchanged
 published pixels, allocation-free reuse, memory-budget rejection and
-cancellation. All 25 focused managed tests and the strict Native AOT build pass.
+cancellation. All 25 focused managed checks pass.
 
 The same complete raw input, encoder settings, CPU assignment and serial
 measurement procedure are used as above:
@@ -92,19 +91,18 @@ variation within each version prevents a portable throughput claim or a causal
 explanation from this series alone. No benefit is established, and the variant
 was not adopted.
 
-All four complete 78,332,832-byte transports match the independently decoded
-reference exactly. Every observation produces 1,441 packets, reaches EOF and
-releases media storage. Source, input and binary hashes remain unchanged during
-the comparison.
+All four complete 78,332,832-byte transports match the independently decoded reference
+exactly. Every observation produces 1,441 packets, reaches EOF and releases media
+storage.
 
 A separate full-input census records **5,057,417 prepared neighborhoods** over
-5,148,000 inter-picture macroblocks, about 98.24%. Thus rare fractional
-refinement does not explain the result on this input. The neighborhood filters
-calculate 5,370,976,854 scalar-equivalent six-tap output positions. Preparing
-complete planes for all 1,430 inter pictures calculates at most 4,001,855,000
-such positions. These counts are not instruction counts or CPU costs; fewer
-positions alone did not establish a useful implementation. The census also
-preserves the complete reference transport and releases all owned media.
+5,148,000 inter-picture macroblocks, about 98.24%. Thus rare fractional refinement does
+not explain the result on this input. The neighborhood filters calculate 5,370,976,854
+scalar-equivalent six-tap output positions. Preparing complete planes for all 1,430
+inter pictures calculates at most 4,001,855,000 such positions. These counts are not
+instruction counts or CPU costs; fewer positions alone did not establish a useful
+implementation. The census also preserves the complete reference transport and releases
+all owned media.
 
 The existing neighborhood implementation remains in use. Fractional candidate
 evaluation, memory access and generated Native AOT instructions require further
@@ -116,7 +114,7 @@ measurements; this experiment establishes no improvement over either.
 ## Fractional-filter instruction experiments
 
 Three further variants retain the same search order, thresholds, interpolation
-arithmetic and output bytes. Each comparison uses frozen strict Native AOT
+arithmetic and output bytes. Each comparison uses Native AOT
 binaries and eight complete serial observations in before/after/after/before,
 then after/before/before/after order. CPU assignment, input and processing-thread
 settings match the preceding experiments.
@@ -137,7 +135,7 @@ reversed series did not confirm that result.
 
 All 24 complete encoded transports match the same 78,332,832-byte reference.
 Each contains 1,441 pictures, reaches EOF and releases owned media storage.
-Focused managed checks and strict Native AOT builds pass for every variant.
+Focused managed checks and Native AOT builds pass for every variant.
 Independent scalar checks cover packing rounding, clipping, overflow boundaries
 and unchanged input storage; software-only fractional checks also pass for the
 SSSE3 and packing variants.
@@ -183,9 +181,9 @@ comparisons to collect occupied coefficient positions, then visits only those
 positions in the original descending order. The unchanged encoder is the
 baseline for each variant; the variants are measured separately.
 
-Each comparison uses frozen Native AOT binaries, sequential execution on logical
+Each comparison uses Native AOT binaries, sequential execution on logical
 CPU 2, one processing thread and `DOTNET_PROCESSOR_COUNT=1`. Each run encodes the
-complete input, and no owned build, test or other media process overlaps timing.
+complete input.
 
 | Execution order | Word-packing CPU, s | Nonzero-collection CPU, s |
 | --- | ---: | ---: |
@@ -212,13 +210,11 @@ All 16 complete transports are exactly the independently decoded
 78,332,832-byte reference, SHA256
 `d3090ee699cfdcc4330ec9815adaa1e7b08de1d95530e2e7af2e1596a399e543`.
 Every run produces 1,441 packets, reaches EOF and releases owned media storage.
-Source, raw input and frozen executable hashes remain unchanged throughout the
-measurements. These controls establish no new FFmpeg or complete-film HLS ratio.
 
 ## Motion-search policy controls
 
 Two further policies change coding decisions. Both use the same complete
-1,441-picture raw input, quantizer, rate settings, GOP, frozen Native AOT
+1,441-picture raw input, quantizer, rate settings, GOP, Native AOT
 consumers and single-CPU execution as the preceding controls. Each policy has
 one complete baseline/variant pair, followed by independent decoding of every
 picture and PSNR measurement against the raw source. These pilot pairs do not
@@ -249,7 +245,7 @@ Their one-pair CPU differences cannot be presented as equal-quality speedups.
 
 All four transports contain 1,441 pictures with exact PTS/DTS and the expected
 144-picture IDR spacing. Each encoding reaches EOF and releases owned media
-storage. Strict Native AOT compilation passes. The second policy's extended
+storage. Native AOT compilation passes. The second policy's extended
 fractional neighborhood also passes 5,400 independent direct-convolution cases,
 including border and extreme-coordinate cases, source/output guards and
 allocation checks. These checks establish prediction correctness, not improved
@@ -277,14 +273,13 @@ An independent direct-matrix and scalar 64-bit quantization oracle checks
 276,480 input blocks, all 52 quantizers, both coefficient scans, chroma's
 unquantized DC, padded strides, output guards and unchanged input samples.
 The checks include every binary residual corner pattern at three quantizers.
-They pass in strict Native AOT and with hardware intrinsics disabled. Repeated
+They pass in Native AOT and with hardware intrinsics disabled. Repeated
 prepared-block processing allocates no heap storage.
 
-Eight complete Native AOT encodes use the same input, settings and serial
-single-CPU measurement procedure as the preceding controls. Every observation
-produces the exact 78,332,832-byte reference transport, all 1,441 pictures,
-EOF and zero retained media storage. Sources, fixtures, raw input and frozen
-executables remain unchanged during measurement.
+Eight complete Native AOT encodes use the same input, settings and serial single-CPU
+measurement procedure as the preceding controls. Every observation produces the exact
+78,332,832-byte reference transport, all 1,441 pictures, EOF and zero retained media
+storage.
 
 | Execution order | Before CPU median, s | Variant CPU median, s | CPU change |
 | --- | ---: | ---: | ---: |
@@ -297,14 +292,13 @@ Median peak RSS is 36.73 versus 37.95 MiB; cumulative managed allocation is
 2,283,391,280 versus 2,283,383,620 bytes. This control establishes neither a
 large CPU improvement nor a memory improvement. The added processor-specific
 path is not adopted. The production coefficient pipeline and output remain
-unchanged, and these observations establish no new FFmpeg or full-film HLS
-performance ratio.
+unchanged.
 
 ## Inverse-transform and pixel-addition controls
 
 Two separate diagnostics test reconstruction arithmetic without changing motion
 search, quantization, coding decisions or output. Both use the complete
-1,441-picture, 1,280x720 input, frozen Native AOT executables and serial execution
+1,441-picture, 1,280x720 input, Native AOT executables and serial execution
 on one CPU with one reported .NET processor. CPU time includes user and system
 time. Each table row contains two baseline and two variant observations.
 
@@ -334,7 +328,7 @@ clipping. It uses signed saturating packing and addition, followed by unsigned
 byte packing. This preserves the original clipping result for every signed
 32-bit residual, including the extreme values. It does not include the first
 diagnostic's inverse transform. Its 98,304 arithmetic checks pass in managed
-execution, strict Native AOT and managed execution with hardware intrinsics
+execution, Native AOT and managed execution with hardware intrinsics
 disabled. They cover 4x4 and 8x8 blocks, padded strides, unaligned offsets,
 pixel ordering and destination guards. Repeated arithmetic allocates no heap
 storage.
@@ -350,7 +344,6 @@ series is not performed for this variant.
 All 24 complete operations in these final comparisons reach EOF, process all
 1,441 pictures and release owned media storage. Every decoded output matches
 the independent 1,992,038,400-byte raw reference; every encoded output matches
-the independent 78,332,832-byte transport reference. Source, executable and
-input hashes remain unchanged during measurement. Neither diagnostic changes
+the independent 78,332,832-byte transport reference. Neither diagnostic changes
 the production reconstruction pipeline or establishes a memory improvement,
 new FFmpeg ratio or complete-film HLS improvement.

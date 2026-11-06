@@ -237,7 +237,7 @@ records original-signal, transport and decoded hashes and independent commands.
 The original 48-picture all-IDR corpus remains checked with an explicit zero
 interval. Failure tests cover invalid options, cancellation with a live reference,
 reset replay, returned-packet ownership, allocation failure and packet limits.
-The strict Linux x64 Native AOT runner also checks these references.
+The Linux x64 Native AOT runner also checks these references.
 
 Four complete PCM sequences add 32 pictures and 111,264 visible YUV samples,
 all exactly matching independent decoding. QP0 and QP6 exercise I/P PCM beside
@@ -368,7 +368,7 @@ AAC encoding and segment output on the same original film.
 
 The coefficient-prefix and PCM-sample corrections were measured on the same
 complete 1441-picture, 60.041667-second, 1280x720 raw input and
-[encoding-stage settings](h264-stage-performance.md). Frozen Linux x64 Native AOT
+[encoding-stage settings](h264-stage-performance.md). Linux x64 Native AOT
 binaries ran serially on one assigned CPU in before/after/after/before order.
 
 | Order | Version | CPU seconds | Wall seconds | Peak RSS, KiB |
@@ -392,8 +392,5 @@ PSNR and smaller output remain unchanged, so the ratio does not represent
 equal-quality throughput. The full audiovisual HLS operation was not rerun for
 this correction.
 
-Release verification passed 2,956 managed tests, 695 H.264 tests with hardware
-intrinsics disabled, all 30 packages, the strict package-only Native AOT consumer
-and CLI, formatting and license-header checks. Six complete boundary sequences
-match independent decoding; these checks do not establish full Annex C HRD
-conformance.
+Six complete boundary sequences match independent decoding; these checks do not
+establish full Annex C HRD conformance.

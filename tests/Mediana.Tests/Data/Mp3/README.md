@@ -38,8 +38,8 @@ Coded timing retains priming and padding. Xing/Info is a metadata frame and is
 excluded from returned packets. A packet does not imply independent decoding:
 Layer III may depend on earlier main-data bytes through its bit reservoir.
 The reader does not validate MPEG CRC; the decoder verifies protected fields.
-No gapless interpretation, free-format discovery,
-resynchronization or seek claim is made.
+The reader does not implement gapless interpretation, free-format discovery,
+resynchronization or seeking.
 
 Primary format references:
 [ID3v2.3](https://id3.org/id3v2.3.0),

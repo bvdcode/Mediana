@@ -7,26 +7,31 @@ using System.Collections.Concurrent;
 
 namespace Mediana.Drawing.Fonts
 {
-    /// <summary>Existing bundled CC0 font programs shared by document and image renderers.</summary>
+    /// <summary>Bundled font programs shared by document and image renderers.</summary>
     public static class BundledFontPrograms
     {
         private static readonly ResourceManager Manager = new(typeof(BundledFontPrograms));
-        private static readonly ConcurrentDictionary<(string Family, bool Bold, bool Italic), Lazy<FontProgram>> Programs = new();
+        private static readonly ConcurrentDictionary<string, Lazy<FontProgram>> Programs = new();
 
         /// <summary>Returns an immutable program parsed once and shared across concurrent renderers.</summary>
         public static FontProgram GetProgram(string family, bool bold = false, bool italic = false) =>
-            Programs.GetOrAdd((family, bold, italic), static key =>
-                new Lazy<FontProgram>(() => new FontProgram(GetFont(key.Family, key.Bold, key.Italic)))).Value;
+            Programs.GetOrAdd(ResourceName(family, bold, italic), static name =>
+                new Lazy<FontProgram>(() => new FontProgram(Read(name)))).Value;
 
-        /// <summary>Returns a read-only program for Aileron or Canada1500. Storage is shared and must not be mutated.</summary>
-        public static ReadOnlyMemory<byte> GetFont(string family, bool bold = false, bool italic = false)
+        /// <summary>Returns a read-only OpenType or WOFF program. Storage is shared and must not be mutated.
+        /// Noto Sans Symbols 2 provides a single regular face for all style requests.</summary>
+        public static ReadOnlyMemory<byte> GetFont(string family, bool bold = false, bool italic = false) =>
+            Read(ResourceName(family, bold, italic));
+
+        private static string ResourceName(string family, bool bold, bool italic)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(family);
+            if (family == "Noto Sans Symbols 2") { return "NotoSansSymbols2-Regular"; }
             string name = family switch
             {
                 "Aileron" => "Aileron",
                 "Canada1500" => "Canada1500",
-                _ => throw new ArgumentException("The bundled family must be Aileron or Canada1500.", nameof(family))
+                _ => throw new ArgumentException("The bundled family must be Aileron, Canada1500 or Noto Sans Symbols 2.", nameof(family))
             };
             string variant = (bold, italic) switch
             {
@@ -35,7 +40,7 @@ namespace Mediana.Drawing.Fonts
                 (false, true) => "Italic",
                 (true, true) => "BoldItalic"
             };
-            return Read(name + "-" + variant);
+            return name + "-" + variant;
         }
 
         internal static byte[] Read(string name) => Manager.GetObject(name, CultureInfo.InvariantCulture) as byte[]

@@ -52,7 +52,7 @@ plus system time; RSS is peak process resident memory.
 
 The median of four observations per version is 27.565 → 23.105 seconds CPU
 (16.18% less) and 28.299 → 24.158 seconds elapsed (14.63% less). Median peak RSS
-is 71.48 → 71.90 MiB; this change does not establish a memory reduction.
+is 71.48 → 71.90 MiB.
 The first baseline observation is substantially slower than the remaining
 baseline observations and is included in the table and medians. These are
 observations on one host and one complete input.
@@ -83,10 +83,7 @@ derived motion and separate subpartition calculations. Pixels outside a
 selected 8×8 region remain unchanged, and picture disposal releases all media
 storage. The same checks pass without hardware intrinsics.
 
-Release compilation, formatting, license headers, 2,977 managed tests and 701
-H.264 checks without hardware intrinsics pass. The same shared direct-region
-checks pass in a strict Native AOT consumer that references only the 30 built
-packages. Native AOT compilation of the sample and CLI also passes.
+The direct-region checks also pass in a Native AOT consumer using built NuGet packages.
 
 All four CFR, VFR, edited and HD full transcodes and their selected windows
 remain byte-identical in managed and Native AOT execution. Independent decoding

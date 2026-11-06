@@ -29,10 +29,9 @@ using (StreamWriter writer = new(Entry("index.tsv", CompressionLevel.Optimal).Op
 {
     foreach (string row in rows) { writer.Write(row); writer.Write('\n'); }
 }
-foreach (string name in new[] { "LICENSE.txt", "manifest.json" })
+using (Stream input = source.GetEntry("manifest.json")!.Open())
+using (Stream destination = Entry("manifest.json", CompressionLevel.Optimal).Open())
 {
-    using Stream input = source.GetEntry(name)!.Open();
-    using Stream destination = Entry(name, CompressionLevel.Optimal).Open();
     input.CopyTo(destination);
 }
 

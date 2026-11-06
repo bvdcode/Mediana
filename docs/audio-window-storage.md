@@ -8,7 +8,7 @@ a small selection does not keep an entire input block alive.
 
 ## Complete edited AAC selection
 
-Frozen strict Native AOT consumers process the complete AAC track of the
+Native AOT consumers process the complete AAC track of the
 [full-film HLS input](hls-hd-encoding.md). Its SHA256 is
 `45c8bafeb9a53df7f491198d2e71529701bcf1cd51805782089fac1d32869f9b`.
 The 48 kHz track has six channels. Its explicit movie edit selects 28,630,160
@@ -17,8 +17,7 @@ priming and padding, hashes every selected PCM byte and timestamp, reaches EOF
 of the selection and releases all media buffers.
 
 Each version runs four times, serially in before/after/after/before and reversed
-order, on logical CPU 2 with one processing thread. No owned build, test or other
-media workload overlaps timing. Measurements use .NET SDK 10.0.402 on Linux x64
+order, on logical CPU 2 with one processing thread. Measurements use .NET SDK 10.0.402 on Linux x64
 and a shared host; CPU is user plus system time. Allocation totals cover managed
 allocations during the operation, including decoding and selection.
 
@@ -29,8 +28,7 @@ allocations during the operation, including decoding and selection.
 | Managed allocated bytes | 1,495,344,284 | 804,868,120 |
 | Peak RSS, KiB | 17,280 | 17,216 |
 
-All eight complete PCM and timestamp hashes match. Source, fixture, media and
-binary hashes remain unchanged throughout measurement. Allocated bytes fall by
+All eight complete PCM and timestamp hashes match. Allocated bytes fall by
 46.18%, about 658.49 MiB, while median CPU falls by 3.44%. Peak RSS is essentially
 unchanged. These results cover decoded audio selection; they do not measure a
 video encoder or establish an HLS throughput improvement.
@@ -45,13 +43,5 @@ destination budget. Existing checks cover both selection boundaries, short EOF,
 continuous clocks, source failure and cancellation after input ownership transfers.
 Real edited AAC selections remain checked against independently decoded PCM.
 
-Validation passes 2,988 managed tests and 567 audio/AAC tests with hardware
-intrinsics disabled. All 30 local packages pass assembly, metadata and isolated
-consumer dependency checks. The complete package-only Native AOT runner passes,
-including edited AAC and PCM ownership cases; the sample and CLI also publish
-successfully with strict Native AOT warnings. Release builds report zero warnings
-and errors, formatting is unchanged and license headers pass the root check.
-
-This change does not add audio seeking or infer codec preroll. Independent
-audiovisual intervals still require correct decoder restart and timestamp
+Independent audiovisual intervals require correct decoder restart and timestamp
 coordination.

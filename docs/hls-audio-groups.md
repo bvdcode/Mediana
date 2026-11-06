@@ -96,13 +96,8 @@ target of six.
 | Copied 22.05 kHz mono MPEG-2 Layer III | 152,163 | 151,187 |
 | Encoded 12-second stereo AAC-LC | 170,000 | 169,625 |
 
-The current validation passes 3,196 managed tests, all 30 package checks, the strict
-package-only Native AOT test executable and Native AOT CLI compilation.
-Release compilation reports zero warnings and errors;
-formatting and license-header checks pass.
-
 An actual master playlist combining prepared audio with independently requested
-video now passes [complete decoding and request-order checks](hls-prepared-presentation.md).
+video passes [complete decoding and request-order checks](hls-prepared-presentation.md).
 Chrome/hls.js completes playback and buffered seeks. Smooth rendering, the common
 VOD presentation boundary around audio priming and padding, and application
 integration remain open. The CLI defaults to muxed encoding and also supports

@@ -11,6 +11,12 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            foreach (AudioSampleFormat sampleFormat in new[] { AudioSampleFormat.Unsigned8, AudioSampleFormat.Signed16,
+                AudioSampleFormat.Signed32, AudioSampleFormat.Float32, AudioSampleFormat.Float64 })
+            {
+                PcmStorageTestInput.Verify(sampleFormat);
+            }
+            Console.WriteLine("PASS native PCM storage: independent packet/frame leases, bounded slices and original allocation budgets.");
             foreach (AudioStorageLayout layout in new[] { AudioStorageLayout.Interleaved, AudioStorageLayout.Planar })
             {
                 await AudioWindowTestInput.VerifyAsync(layout, 6, 100, 34, false);

@@ -34,6 +34,9 @@ namespace Mediana.Core
         /// <summary>Container sync indication, when known. This alone does not prove independent segment decoding.</summary>
         public bool? IsKeyFrame { get; }
         public ReadOnlyMemory<byte> Data => buffer.Memory;
+        /// <summary>Returns an independently owned lease of the immutable payload without copying.
+        /// It survives packet disposal and retains the original backing allocation and its budget.</summary>
+        public MediaBuffer RetainData() => buffer.Retain();
         public MediaPacket Retain() => new(StreamIndex, buffer, PresentationTime, DecodeTime, Duration, IsKeyFrame);
         /// <summary>Retains the same immutable payload and timestamps with an explicit duration, including unknown.
         /// The original packet remains independently owned and unchanged.</summary>

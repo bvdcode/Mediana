@@ -1,4 +1,4 @@
-H.264 bidirectional sample weighting now processes 16 samples per SIMD block
+H.264 bidirectional sample weighting processes 16 samples per SIMD block
 using SSE2. Complete minute decoding uses 7.24% less CPU for the High/CABAC
 input and 4.36% less for the Main/CAVLC input, with every output sample unchanged.
 
@@ -41,31 +41,25 @@ RSS is peak resident process memory. The host is shared.
 
 High/CABAC CPU reductions are 6.88% and 7.76% in the two execution orders.
 Main/CAVLC reductions are 4.65% and 3.82%. RSS varies between observations;
-this change does not establish a substantial memory reduction. These isolated
+the measurements do not show a consistent memory reduction. These isolated
 decoding comparisons do not remeasure FFmpeg or complete-film HLS throughput.
 
 Every one of the 16 complete raw outputs matches its independent reference
 byte for byte. All presentation timestamps and frame durations are checked as
 exact rationals; each operation reaches EOF with zero owned media bytes.
-Inputs, executables and source files remain fixed throughout measurement.
 
 ## Validation
 
 An independent floor-division oracle checks 585 weight/denominator/offset cases,
 all 65,536 input byte pairs per principal case and 41,052,376 output samples.
 The same checks pass in managed execution, hardware-disabled managed execution
-and strict Native AOT. Cases cover signed weights, saturation, rounding,
+and Native AOT. Cases cover signed weights, saturation, rounding,
 unaligned starts, short and partial vectors, output guards, unchanged borrowed
 inputs and writing over either input. Additional shared product tests cover
 both inputs and output sharing storage, partial-overlap rejection and zero
 allocation in repeated prediction calls.
 
-The adopted implementation is `a51eb83`. All 3,199 managed tests and 721
-hardware-disabled H.264 tests pass. Thirty locally built package assemblies,
-metadata and package-only dependencies are verified; the full strict Native AOT
-runner built from those packages passes. CLI and sample Native AOT builds,
-full formatting, Release compilation with zero warnings and root license-header
-checks also pass.
+The measured implementation is `a51eb83`.
 
 
 The subsequent [CABAC history comparison](h264-cabac-history.md) keeps this

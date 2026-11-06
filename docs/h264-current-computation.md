@@ -1,9 +1,8 @@
-The current Native AOT implementation was measured at product revision
-`ad431b1` using complete decoding and encoding operations. The product and
-configuration files match the accepted
+The current Native AOT implementation was measured at product revision `ad431b1` using
+complete decoding and encoding operations. The product and configuration files match the
 [checked-span implementation](h264-frame-memory.md#synchronous-reconstruction-access).
-The diagnostic adds elapsed timers and call counters around named codec methods.
-It does not change codec decisions, storage contracts or output bytes.
+The diagnostic adds elapsed timers and call counters around named codec methods. It does
+not change codec decisions, storage contracts or output bytes.
 
 ## Input and controls
 
@@ -16,8 +15,7 @@ QP26, a six-second key-frame interval and the existing 10 Mbit/s rate budget.
 Both versions use .NET SDK 10.0.402, Linux x64 Native AOT, Speed compilation,
 the default instruction set, logical CPU 2 and `DOTNET_PROCESSOR_COUNT=1`.
 Ordinary and diagnostic operations run serially in ordinary/diagnostic/
-diagnostic/ordinary order for each stage. No owned build, test or other media
-operation overlaps timing. CPU is user plus system time; RSS is peak resident
+diagnostic/ordinary order for each stage. CPU is user plus system time; RSS is peak resident
 process memory. The host is shared.
 
 | Operation | Version | CPU, s | Elapsed, s | RSS, KiB |
@@ -108,10 +106,6 @@ Every raw output matches the independently decoded reference, SHA256
 Every encoded output matches the previously independently verified MPEG-TS
 reference, SHA256
 `d3090ee699cfdcc4330ec9815adaa1e7b08de1d95530e2e7af2e1596a399e543`.
-Both diagnostic repetitions have identical call counts. Product, input,
-diagnostic source and executable identities remain fixed throughout the run.
+Both diagnostic repetitions have identical call counts.
 
-The diagnostic publishes with Native AOT warnings treated as errors. Root
-Release compilation and license-header checks pass. Product code is unchanged;
-this diagnostic does not constitute a fresh full managed or package test run.
-The remaining complete-operation CPU, coding-efficiency and quality gaps stay open.
+The instrumented binary publishes with Native AOT warnings treated as errors.

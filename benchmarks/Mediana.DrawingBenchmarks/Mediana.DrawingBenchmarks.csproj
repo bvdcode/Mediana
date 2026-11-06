@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(DrawingReferenceDirectory)' == ''">
+    <ProjectReference Include="../../src/Mediana.Drawing/Mediana.Drawing.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Webp/Mediana.Codecs.Webp.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(DrawingReferenceDirectory)' != ''">
+    <Reference Include="Mediana.Drawing" HintPath="$(DrawingReferenceDirectory)/Mediana.Drawing.dll" />
+    <Reference Include="Mediana.Core" HintPath="$(DrawingReferenceDirectory)/Mediana.Core.dll" />
+    <Reference Include="Mediana.Codecs" HintPath="$(DrawingReferenceDirectory)/Mediana.Codecs.dll" />
+    <Reference Include="Mediana.Codecs.Webp" HintPath="$(DrawingReferenceDirectory)/Mediana.Codecs.Webp.dll" />
+  </ItemGroup>
+</Project>

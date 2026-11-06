@@ -82,11 +82,8 @@ Int32 values. Shared tests add 31,248 uniform-prediction and every-cell mutation
 patterns, internal-only missing references, reused mutable contexts, output
 guards, inactive-list values and zero steady-state allocation.
 
-Release build, all 3,204 managed tests, 725 H.264 tests with hardware intrinsics
-disabled, all 30 packages, strict package-only Native AOT execution, native CLI,
-managed sample publication, formatting and root license-header checks passed.
-Independent calculation checks also pass in managed, software-managed and strict Native AOT
-execution. Codec settings, output samples and encoded bytes are unchanged.
+Independent calculation checks pass in managed, hardware-intrinsics-disabled and Native
+AOT execution. Codec settings, output samples and encoded bytes are unchanged.
 
 ## Grouped internal-edge control
 
@@ -99,12 +96,12 @@ Reference validation stays after residual classification and is required only
 when a residual-free edge needs prediction comparison.
 
 The control passes the preceding 264,192 topology, 93,312 physical-reference
-and 31,248 mutation cases in managed, hardware-disabled and strict Native AOT
+and 31,248 mutation cases in managed, hardware-disabled and Native AOT
 execution. Additional checks cover 1,920 combinations of requested first edge,
 edge step, orientation, transform size, P/B storage, residual pattern and
 missing reference. They compare all output bytes, partial writes on failure,
 exception messages and surrounding guards. Mutable contexts and zero-allocation
-checks pass; all 725 H.264 tests pass with intrinsics enabled and disabled.
+checks pass.
 
 Four complete 180.125-second decodes run in current/control/control/current
 order under the same CPU, thread, compiler and GC settings. Every output byte,

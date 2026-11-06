@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Containers;
 using Mediana.Execution;
 using Mediana.IO;
 
@@ -45,7 +46,7 @@ namespace Mediana
                         _ => throw new NotSupportedException("The selected stream is not audio or video.")
                     });
                 }
-                group = new(container, tracks, options.MaxFrameReads);
+                group = new(container, tracks, options.MaxFrameReads, container.Reader as IIndexedPresentationTimingReader);
                 cancellationToken.ThrowIfCancellationRequested();
                 MediaSession session = new(container, group, streams);
                 success = true;

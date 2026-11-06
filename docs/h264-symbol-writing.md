@@ -1,4 +1,4 @@
-H.264 CAVLC codeword writing now indexes an immutable symbol table directly.
+H.264 CAVLC codeword writing indexes an immutable symbol table directly.
 The preceding implementation looked up each symbol in a dictionary. Code bits,
 lengths, the decoder tree, coefficient analysis and the bit writer are unchanged.
 Invalid symbols are rejected before any bits are appended.
@@ -17,15 +17,14 @@ bounds and membership checks. The code-size change is not a throughput claim.
 
 ## Complete encoding
 
-The baseline product revision is `1ddf2e9`; the change is `543d554`. Both frozen
-Native AOT consumers process all 1,441 pictures of the 60.041667-second, 1280x720, 24 fps raw input
-described in the [stage comparison](h264-stage-performance.md). They use the
-same QP26, six-second key-frame interval and 10 Mbit/s rate budget.
+The baseline product revision is `1ddf2e9`; the change is `543d554`. Both Native AOT
+consumers process all 1,441 pictures of the 60.041667-second, 1280x720, 24 fps raw input
+described in the [stage comparison](h264-stage-performance.md). They use the same QP26,
+six-second key-frame interval and 10 Mbit/s rate budget.
 
 Measurements use .NET SDK 10.0.402, Linux x64 Native AOT, Speed compilation,
 the default instruction set, logical CPU 2 and `DOTNET_PROCESSOR_COUNT=1`.
-Processes run serially in both execution orders, without overlapping owned
-build, validation or media work. CPU is user plus system time. RSS is peak
+Processes run serially in both execution orders. CPU is user plus system time. RSS is peak
 resident process memory on the shared host.
 
 | Order and observation | Version | CPU, s | Elapsed, s | RSS, KiB |
@@ -50,23 +49,15 @@ CPU decreases by 2.06% in the first order and 1.49% in the reverse order;
 the pooled median decrease is 1.69%. This is a small local CPU improvement.
 Elapsed time does not improve consistently, and there is no meaningful peak
 RSS reduction. The original complete-operation CPU and coding-efficiency gaps
-remain open; this measurement establishes no new FFmpeg or full-film HLS ratio.
+remain open.
 
 All eight operations reach EOF after 1,441 pictures and packets, with zero
 owned media bytes. Every output contains 78,332,832 bytes and matches the
 previously independently verified MPEG-TS reference, SHA256
 `d3090ee699cfdcc4330ec9815adaa1e7b08de1d95530e2e7af2e1596a399e543`.
 Encoded bytes, decoded samples, timing, quality and bitrate are unchanged.
-Product, diagnostic sources, inputs and executable hashes stay fixed during
-measurement.
 
 ## Validation
-
-Release compilation completes with zero warnings and errors. All 3,115 managed
-tests and 720 H.264 tests with hardware intrinsics disabled pass. All 30 packages
-pass assembly, metadata and package-only dependency checks. The strict Linux x64
-Native AOT package consumer completes its full run; both sample and CLI publish
-with Native AOT. Formatting and root license-header checks pass.
 
 Shared managed and Native AOT checks compare writing against independently
 packed bits for dense and sparse symbols, every initial bit alignment, codewords

@@ -70,9 +70,6 @@ Checks cover finite PCM, independently decoded channel-block energy, and declare
 spectral energy and stereo correlation across different generator states. They
 do not require pointwise identity for independently generated noise.
 
-The complete validation passes 3,067 managed tests, 636 audio/recovery tests with
-hardware intrinsics disabled, and the package-only Native AOT runner using all
-30 packages. Strict Native AOT compilation also succeeds for the sample and CLI.
 Independent output AAC encoder priming, padding and gapless joins remain separate
 from input decoder preroll; see [audio/video intervals](audiovisual-windows.md).
 

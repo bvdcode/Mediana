@@ -206,7 +206,7 @@ adaptive packet-rate controllers, one rate per width in the same order.
 `--video-buffer-ms` sets their common buffer duration, defaulting to 2000.
 The limit counts AVC packet bytes and excludes inserted parameter sets, audio
 and transport overhead; master bandwidth still measures complete TS segments.
-There is no filler or complete HRD timing/conformance claim.
+The encoder emits no filler or HRD timing messages; full HRD conformance is unverified.
 See [H.264 encoding](h264-encoding.md#constrained-variable-packet-rate).
 Per-variant audio rates, arbitrary display transforms, live/event playlists,
 fragmented MP4, encryption
@@ -331,7 +331,7 @@ of allocating another image and filtering every pixel. Actual downscaling keeps
 the independent area-filter output. The separate `Apply` operation continues to
 return tightly packed, independent storage.
 
-A complete 60.04-second 1280x720 clip was processed before and after this change,
+A complete 60.04-second 1280x720 clip was processed with copied and retained frame storage,
 with two video variants, two AAC ceilings and the same settings as the full-source
 run. Both Native AOT processes used the same file on one CPU core, sequentially,
 after builds and other media checks completed. All 65 transport and playlist
@@ -348,8 +348,6 @@ increased by 8.62 MiB; the run does not demonstrate lower process memory.
 Ownership tests independently verify absence of a second frame allocation,
 retained tight and strided planes, independent disposal, metadata preservation
 and the original allocation charge even when the recipient budget is full.
-All 2616 managed tests, the complete strict Linux x64 Native AOT test runner,
-strict Native CLI build, formatting and license-header checks pass.
 
 A separately remuxed MOV with an edit ending 16 PCM samples beyond its decoded
 audio track currently fails with an exact-range error. Interpretation of that

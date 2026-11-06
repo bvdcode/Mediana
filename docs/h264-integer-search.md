@@ -25,7 +25,7 @@ pictures, 60.041667 seconds, 1280x720 at 24 fps. Encoding reads the complete
 1,992,038,400-byte raw reference and writes MPEG-TS; it includes frame ownership,
 input and output, without source decoding, resizing or audio processing.
 
-Frozen Native AOT binaries run serially on logical CPU 2 with
+Native AOT binaries run serially on logical CPU 2 with
 `DOTNET_PROCESSOR_COUNT=1` and no overlapping build, test or media workload.
 CPU is user plus system time. These are two observations per version on a shared
 Linux x64 host; they do not establish a general throughput guarantee.
@@ -51,7 +51,7 @@ Compressed samples, timing, size and decoded quality are unchanged.
 ## External reference and remaining work
 
 Fresh optimized one-thread FFmpeg/libx264 processes reuse the stage comparison's
-command on the same CPU, with no overlapping owned workload:
+command on the same CPU:
 
 | Observation | CPU seconds | Elapsed seconds | Peak RSS, KiB |
 | --- | ---: | ---: | ---: |
@@ -68,12 +68,3 @@ are not attributed to the Mediana optimization.
 This measurement does not update the
 [complete-film audiovisual HLS result](hls-hd-encoding.md). Fractional refinement,
 coefficient writing and reconstruction remain candidates for further profiling.
-
-## Validation
-
-Release build with zero warnings/errors, formatting, root license-header checks,
-all 2,977 managed tests and 701 H.264 tests with hardware intrinsics disabled
-passed. All 30 packages were checked through an isolated package-only strict
-Native AOT consumer, including full native test execution. Native CLI and sample
-AOT builds also passed. Source and fixture hashes remained unchanged throughout
-validation.

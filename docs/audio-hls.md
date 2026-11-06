@@ -80,10 +80,7 @@ final short segment contains the remaining coded tail. Packet payloads also
 match an uninterrupted transport output from that same encoder. Media allocations
 return to zero after completion and disposal.
 
-The full validation passes 3,149 managed tests, all 30 package checks, the strict
-Native AOT test executable and Native AOT CLI compilation. Release compilation
-reports zero warnings and errors; formatting and license-header checks pass.
-This verification establishes audio media-playlist continuity. Master audio-group
+The decoded media playlists preserve audio continuity. Master audio-group
 metadata is supported. A [prepared audio/video presentation](hls-prepared-presentation.md)
 also passes complete master-playlist decoding with independently requested video.
 Chrome/hls.js completes playback and buffered seeks; exact VOD presentation

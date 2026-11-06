@@ -6,7 +6,8 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Containers
 {
-    /// <summary>Independent packet access that preserves the reader's sequential cursors.</summary>
+    /// <summary>Independent packet access that preserves the reader's sequential cursors.
+    /// Each stream's zero-based packet indices follow its sequential packet order.</summary>
     public interface IIndexedContainerReader : IContainerReader
     {
         long GetPacketCount(int streamIndex);

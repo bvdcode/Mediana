@@ -343,7 +343,7 @@ rejects NaN and infinity. A sample-type or layout change still converts into new
 storage; explicit channel mixing retains its existing matrix operation.
 
 A complete stereo AAC recording at 44,100 Hz, containing 4,059,136 samples per
-channel (92.044 seconds), was transcoded before and after this change. Three
+channel (92.044 seconds), was transcoded with copied and retained PCM input. Three
 alternating pairs of fresh Linux x64 Native AOT processes, pinned to one CPU,
 produced byte-identical MPEG-TS files. Median process CPU changed from 9.684 to
 9.302 seconds, a 3.94% reduction; median peak RSS stayed at 24.125 MiB. This

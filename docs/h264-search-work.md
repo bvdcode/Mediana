@@ -1,7 +1,7 @@
 The H.264 search and interpolation comparison uses the complete 1,441-picture,
 60.041667-second, 1280x720 input from the
 [stage performance comparison](h264-stage-performance.md). The implementation
-is `19e2c6b`, measured against `64b8d2b`. Frozen Native AOT consumers and FFmpeg
+is `19e2c6b`, measured against `64b8d2b`. Native AOT consumers and FFmpeg
 run serially on one assigned CPU, with one processing thread. CPU is user plus
 system time; RSS is peak process resident memory. These are observations on a
 shared Linux x64 host, not cross-platform throughput guarantees.
@@ -37,7 +37,7 @@ Chroma interpolation previously copied every source tile into a temporary patch,
 including tiles entirely inside the reference picture. Each interior 8x8
 prediction therefore copied 9x9 samples per chroma plane before interpolation.
 
-Interior tiles now read the reference span with its original row stride. Tiles
+Interior tiles read the reference span with its original row stride. Tiles
 requiring border extension retain the existing bounded patch. The bounds include
 the additional right and lower interpolation samples. Rounding, candidate order,
 tie decisions and vector arithmetic are unchanged; no heap storage is added.
@@ -77,13 +77,11 @@ processes reach EOF and release their media storage.
 The single pair does not establish a decoder speed improvement: CPU differs by
 less than 0.5%, and elapsed time increases. Mediana still uses **8.44x** the
 FFmpeg decode CPU. This operation is decoding to raw samples, not transcoding.
-The full-film audiovisual HLS comparison has not been repeated for this change.
+The full-film audiovisual HLS comparison has not been repeated with direct interior-tile sampling.
 
 ## Validation
 
-Release build, all 2,956 managed tests, 695 H.264 tests with hardware intrinsics
-disabled, all 30 package checks, strict package-only Native AOT execution,
-native CLI publication, formatting and license headers pass. Shared tests cover
+Shared managed and Native AOT tests cover
 every chroma fraction, interior and border transitions, partial tiles, extreme
 coordinates, output guards and independent scalar sample calculations. Existing
 motion-search reference cases retain exact candidate decisions.

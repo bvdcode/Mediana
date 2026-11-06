@@ -43,37 +43,41 @@ namespace Mediana.Drawing
                 throw new ArgumentOutOfRangeException(nameof(factor));
             }
             cancellationToken.ThrowIfCancellationRequested();
-            _ = Pixels;
-            _ = output.Pixels;
+            ReadOnlySpan<byte> source = Pixels.Span;
+            Span<byte> destination = output.Pixels.Span;
+            int stride = Width * 4;
+            int samples = factor * factor;
             for (int y = 0; y < output.Height; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 for (int x = 0; x < output.Width; x++)
                 {
-                    output[x, y] = Average(this, x * factor, y * factor, factor);
+                    int r = 0, g = 0, b = 0, alpha = 0;
+                    int input = (y * factor * stride) + x * factor * 4;
+                    for (int dy = 0; dy < factor; dy++)
+                    {
+                        ReadOnlySpan<byte> row = source.Slice(input + dy * stride, factor * 4);
+                        for (int offset = 0; offset < row.Length; offset += 4)
+                        {
+                            int a = row[offset + 3];
+                            alpha += a;
+                            r += row[offset] * a;
+                            g += row[offset + 1] * a;
+                            b += row[offset + 2] * a;
+                        }
+                    }
+                    Span<byte> pixel = destination.Slice((y * output.Width + x) * 4, 4);
+                    if (alpha == 0) { pixel.Clear(); }
+                    else
+                    {
+                        pixel[0] = (byte)(r / alpha);
+                        pixel[1] = (byte)(g / alpha);
+                        pixel[2] = (byte)(b / alpha);
+                        pixel[3] = (byte)(alpha / samples);
+                    }
                 }
             }
         }
 
-        private static Rgba32 Average(PixelBuffer input, int x, int y, int factor)
-        {
-            int r = 0;
-            int g = 0;
-            int b = 0;
-            int alpha = 0;
-            for (int dy = 0; dy < factor; dy++)
-            {
-                for (int dx = 0; dx < factor; dx++)
-                {
-                    Rgba32 color = input[x + dx, y + dy];
-                    alpha += color.A;
-                    r += color.R * color.A;
-                    g += color.G * color.A;
-                    b += color.B * color.A;
-                }
-            }
-
-            return alpha == 0 ? default : new Rgba32((byte)(r / alpha), (byte)(g / alpha), (byte)(b / alpha), (byte)(alpha / (factor * factor)));
-        }
     }
 }

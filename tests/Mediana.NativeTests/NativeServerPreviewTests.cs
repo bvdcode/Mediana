@@ -24,6 +24,7 @@ namespace Mediana.NativeTests
                 foreach (Mp4TimestampMode mode in new[] { Mp4TimestampMode.Media, Mp4TimestampMode.LinearMovie })
                 {
                     await PresentationTimingTestInput.VerifyReferenceAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), name, mode);
+                    await PresentationTimingTestInput.VerifyJointDecodingAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), name, mode);
                 }
             }
             Console.WriteLine("PASS presentation timing: every independent interval, original packet durations, bounded lazy storage, signed offsets and unknown duplicates.");

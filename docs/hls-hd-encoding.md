@@ -138,7 +138,7 @@ Both complete FFmpeg audio streams were decoded by Mediana, FFmpeg and FAAD2
 of current/previous PNS agree across all three decoders within
 `2.086162567138672e-7`. Differences beyond the unchanged `2e-6` tolerance occur
 only where PNS can affect the samples. Whole-channel energy differs by at most
-0.00588% across the decoders. No pointwise identity is claimed for PNS samples.
+0.00588% across the decoders. PNS samples can differ between decoders.
 The existing source AAC decoder differences described in the
 [HD audio verification](real-hd.md) also prevent ranking AAC encoders from
 this full-pipeline comparison alone.

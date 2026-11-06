@@ -48,7 +48,6 @@ common names and levels together with the original numeric codes. The audio
 header corpus verifies AAC-LC declarations and absence of invented profiles for
 the other audio codecs.
 
-All 2,722 managed tests and the complete strict Linux x64 Native AOT runner pass.
 Fifteen complete files were also probed through both CLI builds: all 30 runs
 matched the independent profile references. Existing metadata for the combined
 AVC/AAC input remained identical to version 0.1.12 apart from the added profile

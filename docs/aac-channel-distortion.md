@@ -106,7 +106,7 @@ byte-identical.
 
 ## Reusing unchanged channel costs
 
-The allocator now counts the current channel bit costs once, then recounts only
+The allocator counts the current channel bit costs once, then recounts only
 channels affected by an accepted refinement. It retains the existing candidate
 cache, exact section/scalefactor costs and search order, using the same stack
 storage. A two-band move in one channel triggers one recount after both changes;
@@ -167,8 +167,7 @@ acceptance still open.
 All ten complete public CLI transports are byte-identical between managed and
 Native AOT builds. Their AAC payloads match the independently verified fixed-plan
 outputs exactly. The public 5.1-to-stereo HLS check also produces nine identical
-files in both builds. All 2711 managed tests, the complete strict Linux x64
-Native AOT runner and CLI build, formatting and license-header checks pass.
+files in both builds.
 
 The same ten complete raw-PCM/fixed-window-plan encode operations were measured
 as sequential Linux x64 Native AOT process pairs on one CPU core:

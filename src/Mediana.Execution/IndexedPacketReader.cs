@@ -44,14 +44,7 @@ namespace Mediana.Execution
         {
             MediaDuration? duration = presentationTiming?.GetPresentationDuration(streamIndex, packetIndex, cancellationToken);
             MediaPacket packet = await source.ReadPacketAtAsync(streamIndex, packetIndex, cancellationToken).ConfigureAwait(false);
-            if (presentationTiming is null || packet.Duration == duration)
-            {
-                return packet;
-            }
-            using (packet)
-            {
-                return packet.RetainWithDuration(duration);
-            }
+            return presentationTiming is null ? packet : PacketPresentationTiming.Apply(packet, duration);
         }
 
         public void Reposition(long nextPacketIndex)

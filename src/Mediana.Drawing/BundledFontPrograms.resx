@@ -10,4 +10,5 @@
   <data name="Canada1500-BoldItalic" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>Fonts/Bundled/Canada1500-BoldItalic.ttf;System.Byte[], mscorlib</value></data>
   <data name="Canada1500-Italic" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>Fonts/Bundled/Canada1500-Italic.ttf;System.Byte[], mscorlib</value></data>
   <data name="Canada1500-Regular" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>Fonts/Bundled/Canada1500-Regular.ttf;System.Byte[], mscorlib</value></data>
+  <data name="NotoSansSymbols2-Regular" type="System.Resources.ResXFileRef, System.Windows.Forms"><value>Fonts/Bundled/NotoSansSymbols2-Regular.woff;System.Byte[], mscorlib</value></data>
 </root>

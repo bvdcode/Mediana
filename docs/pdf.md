@@ -237,14 +237,12 @@ parameters, exact workspace limits, cancellation, repeated image reuse and
 detached page lifetimes. A 512×512 allocation check rejects a second full RGBA
 buffer during image interpretation.
 
-Actual managed and Linux Native AOT commands extract an image and render a page
+Managed and Linux Native AOT CLI checks extract an image and render a page
 from every reference: 228 complete PNG conversions. The PDF inputs use unrelated
 filename extensions. Managed/native PNG pairs are byte-identical; independent
 pixel readback has a maximum color difference of three codes and exact alpha.
 General `-i input output.png` matches explicit default page rendering. A failed
-extraction with overwrite enabled preserves the existing destination. The full
-2,885-test suite, all 30 package-only Native AOT dependencies and the native CLI
-pass alongside formatting and source license-header checks.
+extraction with overwrite enabled preserves the existing destination.
 
 ## Stream cache allocation measurement
 
@@ -267,7 +265,7 @@ page previews also remained byte-identical.
 | Median peak RSS, KiB | 181,888 | 162,604 |
 | Peak RSS range, KiB | 138,128–181,888 | 141,568–162,944 |
 
-The CPU median increased 2.98%; this change establishes no speedup. RSS ranges
+The CPU median increased 2.98%. RSS ranges
 overlap on the shared host. The allocation result establishes removal of the
 cache copy; these process measurements do not establish a general memory bound.
 
@@ -377,9 +375,7 @@ samples exercised base-85 zero tuples and repeated runs.
 All 30 complete PNGs were identical within their input case. Independent image
 extraction with Poppler 24.02.0 and independent PNG decoding matched every
 26,214,400-component RGBA image against its original samples. The three existing
-PDF page previews also remained byte-identical. All 2,687 managed tests, the
-complete strict Native AOT runner and CLI build, formatting and license-header
-checks pass.
+PDF page previews also remained byte-identical.
 
 These medians include process startup and input reading on a shared host. They
 describe complete image extraction for these inputs; they do not establish a

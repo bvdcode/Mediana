@@ -5,7 +5,7 @@ CABAC/CAVLC decoding CPU by 7.24%/4.36%, preserving every sample in both executi
 orders. These separate bitstreams and decoding workloads do not update the
 complete-film HLS ratios below.
 
-Repository Native AOT builds now prefer execution speed. The
+Repository Native AOT builds prefer execution speed. The
 [unchanged-source compiler comparison](native-aot-performance.md) reduces
 complete raw-encoding CPU by 6.64% with identical output. Decoder timing varies
 substantially, and fresh external controls also change markedly; this does not
@@ -56,7 +56,7 @@ These separate measurements do not update complete-film throughput.
 Further [inverse-transform and pixel-addition controls](h264-encoder-work.md#inverse-transform-and-pixel-addition-controls)
 do not establish a useful reconstruction acceleration. Neither specialized
 variant is adopted.
-The [accepted-reference filtering comparison](h264-reference-filter.md) tests a
+The [reference-frame filtering comparison](h264-reference-filter.md) tests a
 separate quality change: all reconstructed frames match independent decoding,
 but its 0.138 dB aggregate PSNR gain accompanies 19.92% higher observed encoding
 CPU. It is not enabled by default and does not update production throughput.
@@ -96,8 +96,7 @@ encoder and MPEG-TS APIs. It was published with .NET SDK 10.0.402 and strict AOT
 warnings. The external implementation is FFmpeg 6.1.1-3ubuntu5 with libx264.
 All timed processes ran sequentially on logical CPU 2 of the same Linux x64
 host, with one decoder/filter/encoder thread and `DOTNET_PROCESSOR_COUNT=1` for
-Mediana. No owned build, validation or other media workload overlapped timing.
-Each row is one complete process observation on a shared host.
+Mediana. Each row is one complete process observation on a shared host.
 
 Decoding includes demuxing, source decoding and writing all visible YUV420P8
 samples to a new raw file. The two outputs have exactly 1,992,038,400 identical
@@ -212,14 +211,14 @@ do not establish a new complete-film HLS CPU ratio.
 
 ## Known-zero reconstruction
 
-Known-zero blocks now copy prediction directly into picture storage while updating
+Known-zero blocks copy prediction directly into picture storage while updating
 coefficient counts and reconstruction availability. Whole zero-residual macroblocks
 avoid all per-4x4 inverse transforms, temporary prediction copies and per-sample
 addition/clipping. Partial 4x4 and 8x8 reconstruction uses the same operation;
 nonzero DC/AC arithmetic and entropy decisions remain unchanged. No additional
 heap storage or retained picture cache is introduced.
 
-The baseline is the production code at `cc87c3c`. Frozen Native AOT consumers
+The baseline is the production code at `cc87c3c`. Native AOT consumers
 processed the complete input sequentially with the same one-core settings.
 Decode was repeated in reverse implementation order. Encoding used identical
 raw input with the changed implementation first.
@@ -239,17 +238,14 @@ The repeated decode observations support a CPU improvement of about 11-12% on
 this input. Encoding has one paired observation; its elapsed time did not improve.
 There is no demonstrated RSS reduction or new ten-minute HLS measurement.
 
-Validation: all 2,924 managed tests, 18 focused tests with hardware intrinsics
-disabled, all 30 package checks, strict package-only Native AOT build and
-execution, strict CLI Native AOT publication, license headers and whitespace
-checks passed. The zero-macroblock regression covers all 52 QPs and four picture
+The zero-macroblock regression covers all 52 QPs and four picture
 corners, including surrounding pixels, counts, modes and borrowed input.
 Existing reference fixtures were unchanged.
 
 
 ## Shared deblocking classifications
 
-Deblocking now computes each active luma boundary classification once per
+Deblocking computes each active luma boundary classification once per
 macroblock and shares it with the corresponding chroma edges, as specified by
 H.264 clause 8.7.2. A 32-byte stack workspace covers both directions. Pixel
 filtering order, slice boundary controls, 8x8 transform edge selection, and
@@ -257,7 +253,7 @@ independent Cb/Cr quantizers are preserved. Zero-strength edges and zero
 alpha/beta thresholds skip pixel filtering.
 
 The baseline is `f6c5ba0`, including known-zero reconstruction. Both complete
-paired measurements use frozen Native AOT binaries and the same one-core
+paired measurements use Native AOT binaries and the same one-core
 methodology. The second pair reverses implementation order.
 
 | Execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
@@ -270,7 +266,7 @@ FFmpeg raw output. Every process reaches EOF with zero retained media storage.
 CPU improves in both execution orders, but peak RSS increases in both pairs.
 Cumulative managed allocations remain about 5.37 GB per process; the first pair
 reports 344 versus 319 generation-2 collections. These observations do not
-establish the cause of the higher RSS. There is no claim of a memory reduction.
+establish the cause of the higher RSS.
 
 Three fresh optimized FFmpeg decode processes used the same input and CPU
 affinity after the native pairs. Each produced identical raw samples.
@@ -283,14 +279,9 @@ affinity after the native pairs. Each produced identical raw samples.
 
 The ratio of the two Mediana and three FFmpeg CPU medians is 11.01x.
 These small samples on a shared host show that the CPU gap remains large;
-they do not establish a broad performance ranking or a new complete-film HLS
-result. The changed filter is a decoder path, so no new encoder throughput
-claim is made for this change.
+they do not establish a broad performance ranking.
 
-Validation: Release build, all 2,928 managed tests, 38 focused checks with
-hardware intrinsics disabled, all 30 package checks, strict package-only
-Native AOT execution, CLI and measurement-consumer Native AOT builds, license
-headers and formatting passed. New chroma tests cover both edge directions
+Chroma tests cover both edge directions
 and independent quantizer offsets; they also pass on the preceding filter.
 All existing independent reference fixtures remain unchanged.
 
@@ -303,9 +294,8 @@ kernel calls used by encoding. The candidate was rejected: complete decoding did
 not improve, and encoding used about 8% more CPU in both execution orders.
 Production retains the preceding implementation at `a236473`.
 
-The same frozen Native AOT consumers, complete 1,441-picture input, raw encoding
-input and one-core settings were used. The second pair reverses the order of each
-stage. No owned build, validation or media workload overlapped the timed processes.
+The same Native AOT consumers, complete 1,441-picture input, raw encoding input and
+one-core settings were used. The second pair reverses the order of each stage.
 
 | Stage and execution order | Before CPU, s | Candidate CPU, s | CPU increase | Before elapsed, s | Candidate elapsed, s | Before RSS, MiB | Candidate RSS, MiB |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -315,9 +305,7 @@ stage. No owned build, validation or media workload overlapped the timed process
 | Encode, before then candidate | 80.778 | 87.184 | 7.93% | 87.726 | 90.520 | 51.57 | 49.35 |
 
 All eight native outputs are byte-identical to their preceding independent
-references, reach EOF and release media storage. The candidate passed 2,949
-managed tests, 688 H.264 tests with hardware intrinsics disabled, all 30 package
-checks, strict Native AOT consumers and license checks. Correctness did not
+references, reach EOF and release media storage. Correctness did not
 establish a performance benefit. The measurements compare the whole candidate;
 they do not isolate the cost of its view representation from its data flow changes.
 
@@ -362,7 +350,7 @@ adding vector arithmetic to isolated helpers has not closed the measured gap.
 
 ## Prepared deblocking metadata
 
-The boundary classifier now borrows its coefficient, mode, reference-index and
+The boundary classifier borrows its coefficient, mode, reference-index and
 motion-vector spans once per filtering range. It resolves captured reference
 lists at most once for each of the current, left and top macroblocks while
 processing a macroblock. Both edge directions share that context. Reference
@@ -373,7 +361,7 @@ Reference identity, list swaps, quarter-pixel thresholds, 8x8 residual groups,
 slice controls and pixel filtering order retain their existing semantics.
 The comparison baseline is `a236473` and the changed implementation is `346f8cf`;
 the preceding direct-prediction candidate
-is absent from both implementations. Frozen Native AOT consumers ran on the
+is absent from both implementations. Native AOT consumers ran on the
 same full-minute input and one-core configuration in both execution orders.
 
 | Execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
@@ -384,7 +372,6 @@ same full-minute input and one-core configuration in both execution orders.
 All four outputs match the independent raw reference byte for byte, contain
 1,441 pictures and release media storage at EOF. CPU improves in both pairs;
 RSS changes in opposite directions, so no consistent memory reduction is shown.
-There is no new complete-film HLS or encoder throughput claim for this change.
 
 The same diagnostic instrumentation also verifies the intended reduction in
 boundary-classification work. Both instrumented results produce identical raw
@@ -399,10 +386,9 @@ pixels, with unchanged method call counts.
 These are nested elapsed observations including instrumentation overhead, not
 CPU percentages. The separate whole-process comparisons above establish the
 measured throughput improvement. Luma/chroma prediction still accounts for
-11.245 instrumented elapsed seconds after this change.
+11.245 instrumented elapsed seconds with borrowed boundary metadata.
 
-Three fresh optimized FFmpeg decode processes produced the same complete raw
-output. Each ran separately from owned compilation, validation and media work.
+Three fresh optimized FFmpeg decode processes produced the same complete raw output.
 
 | FFmpeg observation | CPU, s | Elapsed, s | RSS, MiB |
 | --- | ---: | ---: | ---: |
@@ -415,24 +401,22 @@ These small shared-host samples still show a large CPU gap. The difference
 from earlier external observations is not itself an improvement attributable
 to Mediana; the paired native measurements quantify this implementation change.
 
-Validation: Release build, all 2,930 managed tests, 669 H.264 tests with hardware
-intrinsics disabled, all 30 package checks, strict package-only Native AOT
-execution, native CLI build, license headers and formatting passed. Shared
-managed/native vectors cover P/B reference changes at slice boundaries inside
+Shared managed and Native AOT
+vectors cover P/B reference changes at slice boundaries inside
 rows, duplicate indices, list exchanges and exact filtered edge samples. Missing
 reference checks preserve intra/residual precedence for explicit and captured
 lists. Existing independent reference fixtures remain unchanged.
 
 ## Reused chroma interpolation rows
 
-Complete eight-column chroma tiles now retain the unrounded horizontal result
+Complete eight-column chroma tiles retain the unrounded horizontal result
 from the preceding row. Each subsequent row calculates only its new horizontal
 samples. The vertical stage combines the two rows and rounds once, preserving
 the bilinear interpolation result. Partial tiles keep the scalar equation.
 There is no additional heap storage or wider source read.
 
 The comparison baseline is `6d1a01f`; the changed implementation is `715a575`.
-The same frozen Native AOT consumers,
+The same Native AOT consumers,
 raw input, encoder settings and one-core configuration were measured in both
 execution orders. CPU includes all 1,441 frames, input and transport output.
 
@@ -457,7 +441,7 @@ seconds in its fractional refinement. These are nested elapsed observations
 with instrumentation overhead, not CPU percentages. The full-process results
 above establish the performance change. Search policy and the remaining
 transform, quantization and reconstruction work still require improvement;
-the complete-film HLS measurement has not been repeated for this change.
+the complete-film HLS measurement has not been repeated with this chroma kernel.
 
 Two fresh optimized FFmpeg/libx264 processes used the original `veryfast`
 configuration and one-thread restriction. Both complete transport outputs match
@@ -472,16 +456,13 @@ The ratio of the changed-Mediana and fresh FFmpeg CPU medians is 5.71x. The
 existing quality and bitrate differences still apply: the FFmpeg reference is
 smaller and has higher PSNR. The encoder CPU gap remains substantial.
 
-Validation: all 2,930 managed tests, 669 H.264 tests with hardware intrinsics
-disabled, 30 package checks, the strict package-only Native AOT suite and native
-CLI build passed. Release build, license headers and formatting also passed.
 Existing shared managed/native vectors verify every chroma fraction, scalar
 bilinear sampling, partial tiles, picture borders, extreme coordinates, output
 guards and the complete motion-search decisions.
 
 ## Complete forward blocks and prepared quantization
 
-The x64 forward transform now processes the complete 4x4 coefficient matrix in
+The x64 forward transform processes the complete 4x4 coefficient matrix in
 SSE2 registers. Two transposes and two vector transforms replace eight scalar
 line calls and repeated intermediate storage accesses. The input is fully read
 before output writes, including for overlapping spans. Dispatch uses
@@ -495,7 +476,7 @@ the block. Signed rounding, coefficient order and error behavior remain exact.
 
 The transform baseline is `fa73094`, with implementation `2093a6c`.
 The quantization baseline includes that transform, with implementation `3e9e092`.
-Each change was measured independently on all 1,441 frames with frozen native
+Each change was measured independently on all 1,441 frames with native
 consumers, the same raw input and the preceding one-core configuration.
 
 | Change and execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
@@ -509,11 +490,8 @@ These are separate paired comparisons on a shared host; their percentages must
 not be added to estimate a combined speedup. All eight transport outputs match
 the existing reference byte for byte, with EOF and zero retained media storage.
 The changes add no heap buffers and do not alter the encoded quality or size.
-No new complete-film HLS result is established by these stage measurements.
 
-Validation passed all 2,942 managed tests, 681 H.264 tests with hardware
-intrinsics disabled, 30 package checks, the strict package-only Native AOT
-suite, native CLI, Release build, formatting and license headers. Shared native
+Shared Native AOT
 and managed tests compare the transform with independent matrix multiplication
 over valid residuals, full integer endpoints, random coefficients, overlapping
 spans and output guards. Quantization checks every QP from 0 through 51, signed
@@ -556,7 +534,7 @@ elsewhere. Native x64 disassembly confirms `PSADBW` in both the fused fractional
 loop and the separate complete-block comparison. The change adds no heap
 storage or external dependency.
 
-Two paired complete 1,441-picture encodes used the same frozen inputs, CPU
+Two paired complete 1,441-picture encodes used the same inputs, CPU
 affinity and single-thread settings. The second pair reversed execution order.
 
 | Execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
@@ -570,10 +548,8 @@ first elapsed observation slightly worsens, and RSS changes in both directions.
 These observations do not establish a stable percentage improvement or a
 memory reduction. The previous quality and size differences remain unchanged.
 
-Validation passed all 2,944 managed tests, 683 H.264 tests with hardware
-intrinsics disabled, all 30 package checks, the strict package-only Native AOT
-suite and CLI, Release build, formatting and license headers. Shared managed
-and native checks cover all 65,536 byte pairs, mixed vector lanes, all fractional
+Shared managed
+and Native AOT checks cover all 65,536 byte pairs, mixed vector lanes, all fractional
 positions, scalar sample errors, rejection boundaries after every row, exact
 ties, untouched output suffixes and the 188 independent motion-search cases.
 
@@ -593,9 +569,7 @@ settings; both outputs match its independently decoded reference.
 | 2 | 12.470 | 12.624 | 110.44 |
 
 The current Mediana and FFmpeg CPU medians differ by 5.07x. This remains a
-substantial encoding gap with different rate-control models and output quality;
-the local change does not resolve it. There is no new decoder or complete-film
-HLS measurement in this comparison.
+substantial encoding gap, measured with different rate-control models and output quality.
 
 ## Shared source macroblocks
 
@@ -614,8 +588,8 @@ round-trips are absent. Residual coefficient storage and transform arithmetic
 remain unchanged. The measurements below cover the complete change, not an
 isolated effect of inlining.
 
-Both paired measurements process all 1,441 pictures using the same frozen
-Native AOT consumers, independent raw input and one-core settings.
+Both paired measurements process all 1,441 pictures using the same Native AOT consumers,
+independent raw input and one-core settings.
 
 | Execution order | Before CPU, s | After CPU, s | CPU reduction | Before elapsed, s | After elapsed, s | Before RSS, MiB | After RSS, MiB |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -627,9 +601,6 @@ reference, with 1,441 packets, EOF and zero retained media storage. CPU and
 elapsed time decrease in both execution orders. Peak RSS remains approximately
 51 MiB; the small differences do not establish a general memory reduction.
 
-Validation passed all 2,945 managed tests, 684 H.264 tests with hardware
-intrinsics disabled, all 30 package checks, the strict package-only Native AOT
-suite and CLI, Release build, formatting and root license-header checks.
 Independent matrix checks cover every source plane, dimensions from 1x1 through
 35x33, visible borders, cropped macroblocks, padded rows, nonzero plane offsets
 and distinct prediction strides. Input and output guards remain intact, and
@@ -640,7 +611,7 @@ The complete diagnostic encode takes 60.969 instrumented elapsed seconds:
 0.932 in source preparation, 26.238 in motion search, 10.281 in luma analysis,
 4.639 in chroma analysis, 11.122 in luma writing and 3.342 in chroma writing.
 Source preparation was previously included in the motion-search timer and is
-now measured separately; their costs must be considered together when comparing
+measured separately; their costs must be considered together when comparing
 the profiles. The diagnostic output remains identical. These elapsed timers
 include instrumentation and scheduling, overlap their enclosing stages and
 are not CPU percentages.
@@ -655,8 +626,8 @@ settings; both complete outputs match its independently decoded reference.
 
 The current CPU medians differ by 4.56x. FFmpeg timings also vary between
 measurement batches, so changes in this ratio must not be attributed entirely
-to Mediana. The paired 6.48-6.85% CPU reductions above measure this change
-against its frozen baseline. The reference quality and size differences remain;
+to Mediana. The paired 6.48-6.85% CPU reductions above measure source-block preparation
+against its baseline. The reference quality and size differences remain;
 this is not equal-quality throughput and the encoding CPU gap remains open.
 
 ## Byte-chunk bit writing
@@ -667,7 +638,7 @@ checkpoint restoration, overflow measurement and packet budgets are unchanged.
 The existing storage and public API are retained.
 
 The same complete 1,441-picture raw encoding ran in before/after and after/before
-order with frozen Native AOT binaries and unchanged settings. The baseline
+order with Native AOT binaries and unchanged settings. The baseline
 production code is `241476e`. Every output is byte-identical to the independently
 decoded MPEG-TS reference; every operation reaches EOF and releases media storage.
 
@@ -685,12 +656,10 @@ also match the independent reference. The ratio of median CPU observations is
 4.58x; the external run variation and different encoding quality still apply.
 The complete-film HLS comparison has not been repeated for this writer change.
 
-All 2947 managed checks, 686 H.264 checks with hardware intrinsics disabled,
-30 package checks, strict package-only Native AOT verification and the full native
-consumer passed. Shared bit-writing checks cover all eight initial alignments,
+Shared bit-writing checks cover all eight initial alignments,
 all widths from zero through 64, mixed fields, independent NAL packing and
 escaping, exact bit positions, budget overflow and restoration after storage
-growth. Release build, CLI Native AOT, formatting and license-header checks passed.
+growth.
 
 ## Current computation diagnostic
 

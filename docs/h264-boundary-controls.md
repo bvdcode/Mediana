@@ -38,7 +38,7 @@ The mask calculations pass 524,288 independent sample-coordinate topology cases,
 264,192 further topology cases and physical-reference, mutation and range
 checks in managed, software and Native AOT execution. The paired calculation
 adds 4,800 range/error cases, including partial writes and repeated-call
-allocation checks. Each also passes 729 H.264 tests in both managed modes.
+allocation checks.
 
 ## Rolling physical-reference window
 
@@ -51,11 +51,10 @@ media allocator; the typed reference arrays are separately bounded by width,
 five rows and reference-list count.
 
 The calculation passes 443,904 comparisons with the original scalar classifier
-in managed, hardware-disabled and strict Native AOT execution. These cover
+in managed, hardware-disabled and Native AOT execution. These cover
 physical-reference aliases, both prediction lists, row transitions, residual
 priority, extreme motion components and partial-error writes. Existing physical
-reference, mutation and range checks also pass, along with 729 H.264 tests in
-each managed mode.
+reference, mutation and range checks also pass.
 
 Four complete CABAC operations in before/after/after/before order preserve
 every output byte, timestamp, duration, EOF and released media allocation.

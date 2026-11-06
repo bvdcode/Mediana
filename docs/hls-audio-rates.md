@@ -115,7 +115,3 @@ picture error, complete audio decoding and independent segment checks.
 Cancellation was also exercised after real processing progress. The process
 returned exit code 130, and neither the final output directory nor its temporary
 directory remained.
-
-The complete solution has 2531 passing managed tests. Release build, formatting,
-license headers, strict Linux x64 Native AOT CLI and the complete native test
-runner pass without analyzer or AOT suppressions.

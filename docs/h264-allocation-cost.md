@@ -15,8 +15,7 @@ raw samples and writes the exact 78,332,832-byte MPEG-TS reference.
 
 Ordinary/profile/profile/ordinary operations run serially for each stage on
 logical CPU 2 of the same Linux x64 host, using SDK 10.0.402 and
-`DOTNET_PROCESSOR_COUNT=1`. No owned build, test or other media operation overlaps
-timing. Both versions use identical external process and thread observations.
+`DOTNET_PROCESSOR_COUNT=1`. Both versions use identical external process and thread observations.
 The table reports medians of two complete processes per version. Process CPU is
 user plus system time; RSS is process peak resident memory.
 
@@ -65,7 +64,6 @@ kernel. A pool would still require correct final-reference ownership, explicit
 idle-memory accounting and operation lifetime management.
 
 All eight complete operations match their independent output references, reach
-EOF and release all owned media storage. Product sources, fixtures and consumer
-hashes remain unchanged during measurement. The instrumented consumer publishes
+EOF and release all owned media storage. The instrumented consumer publishes
 with Native AOT and warnings treated as errors. Counters stay in the diagnostic
 copy; product buffer ownership and allocation behavior remain unchanged.

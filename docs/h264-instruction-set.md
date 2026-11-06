@@ -127,12 +127,7 @@ CAVLC and paired-residual changes with the default instruction set. Its 406
 output files remain identical to the complete independently verified references;
 it does not isolate the effect of an instruction-set choice.
 
-For the instruction-set experiment, product and fixture sources were unchanged
-from the passing 3,075 managed, 709 software H.264 and 30-package checks and the complete strict Native AOT
-package-consumer validation recorded with
-[direct CAVLC encoding](h264-cavlc-encoding.md). Both diagnostic configurations
-published successfully with strict Native AOT warnings. Its final Release build
-had zero warnings and errors; the root license-header check required no updates.
+Both instruction-set configurations publish with Native AOT warnings treated as errors.
 
 ## Complete decoder dispatch control
 

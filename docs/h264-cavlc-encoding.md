@@ -16,7 +16,7 @@ level codes are checked at each of seven suffix lengths and all eight initial
 bit alignments. They compare acceptance, every emitted bit, bit positions,
 rejection without output, complete RBSP termination and released media storage.
 The checks pass in managed execution, with hardware intrinsics disabled, and
-in a strict Linux x64 Native AOT consumer.
+in a Linux x64 Native AOT consumer.
 
 Earlier [direct-codeword variants](h264-encoder-work.md#direct-cavlc-level-experiment)
 did not establish a repeatable benefit at their source and build baseline.
@@ -31,12 +31,11 @@ bytes.
 
 ## Complete encoding measurements
 
-Frozen Linux x64 Native AOT consumers process all 1,441 pictures of the
+Linux x64 Native AOT consumers process all 1,441 pictures of the
 60.041667-second, 1280x720, 24 fps raw input described in the
 [stage comparison](h264-stage-performance.md). The baseline has product sources
 at `7a4f781`. Both versions use `OptimizationPreference=Speed`, the default
-instruction set, logical CPU 2 and `DOTNET_PROCESSOR_COUNT=1`. No owned build,
-test or other media operation overlaps timing. All observations are retained.
+instruction set, logical CPU 2 and `DOTNET_PROCESSOR_COUNT=1`.
 
 | Execution order | Before CPU, s | After CPU, s |
 | --- | ---: | ---: |
@@ -68,16 +67,4 @@ packets, with zero retained media storage. All eight MPEG-TS outputs contain
 78,332,832 bytes and have SHA256
 `d3090ee699cfdcc4330ec9815adaa1e7b08de1d95530e2e7af2e1596a399e543`.
 The identical bytes retain the independently verified samples, timing, quality
-and bitrate of the preceding reference. Source, fixture, input and executable
-hashes remain unchanged during measurement.
-
-This change does not establish a new FFmpeg ratio or complete-film HLS result.
-The remaining CPU and coding-efficiency gaps stay open.
-
-## Validation
-
-Release builds with zero warnings and errors. All 3,075 managed tests and 709
-H.264 tests with hardware intrinsics disabled pass. All 30 packages pass assembly,
-metadata and package-only dependency checks. The strict Linux x64 Native AOT
-package consumer passes its complete test run; the sample and CLI also publish
-with Native AOT. Formatting and license-header checks pass.
+and bitrate of the preceding reference. The remaining CPU and coding-efficiency gaps stay open.

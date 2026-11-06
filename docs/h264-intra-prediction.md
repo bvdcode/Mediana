@@ -38,18 +38,14 @@ flat picture checks every macroblock's mode flags and zero residual pattern,
 including omission of QP deltas and exact trailing bits; reconstruction remains
 128 in every Y/U/V sample.
 
-Seventeen complete sequences contain 1038 pictures and 2,762,184 visible YUV
-samples. They cover all-IDR input, temporal I/P, static content, translation,
-chroma motion, scene changes, cropped dimensions, non-square pixels, variable
-cadence, negative origins, frame-number rollover and fixed/rate-controlled
-QP0/18/26/38/51. Every sample matches FFmpeg 6.1.1's independent H.264 decoder
-exactly. A separate complete 18-picture CLI scaling reference is also independently
-decoded. Source pixels and source hashes remain unchanged.
-
-Managed and strict Linux x64 Native AOT test runners check the complete references,
-packet hashes, timing, HLS boundaries, rate budgets and resource ownership. The full
-managed suite passes 2544 tests; Release build, formatting, license headers and
-strict Native AOT CLI/test builds pass.
+Seventeen complete sequences contain 1038 pictures and 2,762,184 visible YUV samples.
+They cover all-IDR input, temporal I/P, static content, translation, chroma motion,
+scene changes, cropped dimensions, non-square pixels, variable cadence, negative
+origins, frame-number rollover and fixed/rate-controlled QP0/18/26/38/51. Every sample
+matches FFmpeg 6.1.1's independent H.264 decoder exactly. A separate complete 18-picture
+CLI scaling reference is also independently decoded. Managed and Linux x64 Native AOT
+test runners check the complete references, packet hashes, timing, HLS boundaries, rate
+budgets and resource ownership.
 
 ## Error and transport-size comparison
 

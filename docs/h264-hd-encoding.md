@@ -44,8 +44,8 @@ to the independently decoded original, weighted by the number of samples.
 
 Directional prediction reduced aggregate mean squared error by 2.63% at nearly
 the same transport size. Its observed CPU cost increased by 2.80%, and peak
-RSS increased by 0.96 MiB. This change is a small error/cost tradeoff on this
-source; it did not accelerate the complete operation. The directional prediction
+RSS increased by 0.96 MiB. Directional prediction trades CPU time for lower sample error on this
+source. The directional prediction
 run used 10.45 times FFmpeg's CPU and produced lower PSNR at a slightly
 larger transport size. These single-run observations do not establish general
 throughput, repeatability or perceptual quality.
@@ -231,7 +231,7 @@ with tiering disabled, attributes 17.75% of active encoding stack time exclusive
 to chroma interpolation. Block transforms account for 10.84%, inverse residual
 transforms for 9.45%, and forward quantization for 6.52%.
 
-Fractional chroma interpolation now extends a small source patch once per block
+Fractional chroma interpolation extends a small source patch once per block
 and evaluates eight output samples together using portable vector operations.
 It retains the single final rounding step specified in
 [H.264 clause 8.4.2.2.2, equation 8-270](https://www.itu.int/rec/dologin_pub.asp?id=T-REC-H.264-202108-S!!PDF-E&lang=e&type=items).
@@ -282,6 +282,7 @@ Current Y/U/V PSNR is 39.967/46.779/47.668 dB. The operation still uses 8.08 tim
 the CPU of the earlier libx264 veryfast run, whose aggregate PSNR is 49.213 dB.
 The packet target and x264 VBV remain different controls; these figures do not
 establish equivalent coding searches, perceptual quality or rate-control behavior.
+
 ## Source-block reading and residual preparation
 
 H.264 source blocks use a shared row reader for residual preparation, motion
@@ -323,8 +324,7 @@ consumer reaches EOF and releases all media storage.
 The source-block oracle covers every plane, five block sizes, negative and
 extreme coordinates, visible borders, odd dimensions, padded rows, destination
 guards and unchanged input bytes. Its transform check independently computes
-the coefficient matrix. The complete 2,644-test managed suite and strict Linux
-x64 Native AOT suite pass; 24 focused tests also pass with hardware intrinsics
+the coefficient matrix. All 24 focused tests pass with hardware intrinsics
 disabled.
 
 ## Fractional motion-search evaluation
@@ -354,7 +354,7 @@ measurement, without perceptual quality or equivalent FFmpeg settings establishe
 
 Both outputs pass exact packet timing, all 31 IDR boundaries, packet-rate
 capacity and level access-unit/VCL/NAL window checks. Canonical remuxing preserves
-every VCL byte. Independent decoding and the strict Native AOT consumer agree
+every VCL byte. Independent decoding and the Native AOT consumer agree
 on all 1,992,038,400 visible bytes per output, reach EOF and release media storage.
 
 The focused calibration independently evaluates the six-tap luma and bilinear

@@ -149,9 +149,10 @@ namespace Mediana.Documents.Pdf
         {
             int glyph = font.Glyphs.GetValueOrDefault(code, -1);
             if (glyph < 0) { _unsupported.Add("Unmapped PDF glyph encoding"); glyph = 0; }
-            Matrix3x2 scale = Matrix3x2.CreateScale(_state.FontSize * _state.HorizontalScale / font.Face.Units, _state.FontSize / font.Face.Units);
+            TrueTypeFont face = font.GlyphFaces?.GetValueOrDefault(code) ?? font.Face;
+            Matrix3x2 scale = Matrix3x2.CreateScale(_state.FontSize * _state.HorizontalScale / face.Units, _state.FontSize / face.Units);
             Matrix3x2 placement = scale * Matrix3x2.CreateTranslation(0, _state.Rise) * _text * _state.Transform;
-            VectorPath source = _textResources.BorrowOutline(font.Face, glyph);
+            VectorPath source = _textResources.BorrowOutline(face, glyph);
             _operations = checked(_operations + source.CommandCount + 1);
             if (_operations > storage.Budget.Options.MaximumOperations) { throw new InvalidDataException("PDF glyph geometry exceeds the page operation limit."); }
             VectorPath outline = source.Transform(placement);
