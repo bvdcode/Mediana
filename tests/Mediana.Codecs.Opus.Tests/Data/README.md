@@ -221,3 +221,13 @@ state is exact. Repeated full-frame reconstruction allocates no managed storage.
 This fixture ends before anti-collapse, denormalization and inverse transforms.
 
 SHA-256: `34ce6f07c8502d5b52c024f3e92edd56cac32f4423bc77a9a692d6a27b19566c`.
+
+`encoded-spectra.bin` adds 1,152 spectral frames from actual libopus 1.6.1
+encoding: all four CELT durations, mono/stereo, narrowband through fullband,
+constant and variable bitrate, three bitrate targets, tones, noise, impulses,
+chirps, equal and opposed stereo signals, and transitions to/from silence.
+Each group retains the reference decoder's complete state across twelve frames;
+a state snapshot records the spectrum without changing the subsequent decode.
+All frames pass the same exact entropy/seed/mask and coefficient comparisons.
+
+SHA-256: `79a62b29dbffcfbd704560cacddc297ae70d745153dd1145fe8a548ae41a0da2`.

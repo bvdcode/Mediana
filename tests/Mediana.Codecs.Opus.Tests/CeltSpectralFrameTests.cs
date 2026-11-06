@@ -13,6 +13,10 @@ namespace Mediana.Codecs.Opus.Tests
             Assert.Equal(1963, OpusSpectrumTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data")));
 
         [Fact]
+        public void EncodedSignalsAcrossBandwidthsAndSuccessiveFramesMatchTheIndependentDecoder() =>
+            Assert.Equal(1152, OpusSpectrumTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data"), "encoded-spectra.bin"));
+
+        [Fact]
         public void RepeatedFramesReuseAllSpectralStorage()
         {
             MediaBufferAllocator allocator = new(128 * 1024);

@@ -8,11 +8,11 @@ namespace Mediana.Tests
 {
     internal static class OpusSpectrumTestInput
     {
-        public static int Verify(string root)
+        public static int Verify(string root, string fileName = "spectral-frames.bin")
         {
             MediaBufferAllocator allocator = new(128 * 1024);
             using CeltPulseCodebook codebook = CeltPulseCodebook.Create(176, 128, allocator);
-            using BinaryReader reader = new(File.OpenRead(Path.Combine(root, "spectral-frames.bin")));
+            using BinaryReader reader = new(File.OpenRead(Path.Combine(root, fileName)));
             if (!reader.ReadBytes(8).AsSpan().SequenceEqual("OPUSSPC1"u8))
             {
                 throw new InvalidDataException("The CELT spectral-frame reference header is invalid.");
