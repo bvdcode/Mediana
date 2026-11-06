@@ -42,6 +42,25 @@ namespace Mediana.NativeTests
                     }
                     if (allocator.AllocatedBytes != 0) { throw new InvalidDataException("Raster decoding retained storage: " + name); }
                     verified++;
+                    if (pixels.ValueKind == JsonValueKind.Array)
+                    {
+                        int frameIndex = 0;
+                        await foreach (VideoFrame animationFrame in registry.DecodeFramesAsync(encoded, new(), allocator))
+                        {
+                            using (animationFrame)
+                            {
+                                byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, pixels[frameIndex++].GetString()!));
+                                int tolerance = entry.TryGetProperty("maximum_error", out JsonElement error) ? error.GetInt32() : 0;
+                                for (int index = 0; index < expected.Length; index++)
+                                {
+                                    if (Math.Abs(expected[index] - animationFrame.Data.Span[index]) > (index % 4 == 3 ? 0 : tolerance))
+                                    { throw new InvalidDataException("WebP sequence pixels differ: " + name); }
+                                }
+                            }
+                        }
+                        if (frameIndex != pixels.GetArrayLength() || allocator.AllocatedBytes != 0)
+                        { throw new InvalidDataException("WebP sequence count or ownership differs: " + name); }
+                    }
                 }
             }
             byte[] gif = await File.ReadAllBytesAsync(Path.Combine(root, "opaque.gif"));
