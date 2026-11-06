@@ -126,12 +126,33 @@ namespace Mediana.Documents.OpenXml
         /// <summary>Reads bounded XML with DTD and external entity resolution disabled.</summary>
         public XDocument ReadXml(string name, CancellationToken cancellationToken = default, int? maximumBytes = null)
         {
-            byte[] data = ReadPart(name, cancellationToken, maximumBytes);
-            XmlReaderSettings settings = new() { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _options.MaximumPartBytes };
-            using MemoryStream source = new(data, writable: false);
-            using XmlReader reader = XmlReader.Create(source, settings);
-            using BoundedXmlReader bounded = new(reader, _options.MaximumXmlDepth, ConsumeXmlElement, cancellationToken);
-            return XDocument.Load(bounded, LoadOptions.PreserveWhitespace);
+            using XmlReader reader = OpenXmlReader(name, cancellationToken, maximumBytes);
+            return XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        }
+
+        /// <summary>Opens bounded streaming XML. Dispose the reader before its package. Early disposal does not drain the part.
+        /// The declared part length is reserved against the cumulative read budget before decompression begins.</summary>
+        public XmlReader OpenXmlReader(string name, CancellationToken cancellationToken = default, int? maximumBytes = null)
+        {
+            ObjectDisposedException.ThrowIf(_archive is null, this);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!_parts.TryGetValue(name, out ZipArchiveEntry? part)) { throw new InvalidDataException("OPC part is missing: " + name); }
+            if (maximumBytes is <= 0) { throw new ArgumentOutOfRangeException(nameof(maximumBytes)); }
+            if (maximumBytes is int maximum && part.Length > maximum) { throw new InvalidDataException("OPC part exceeds the requested byte limit."); }
+            if (part.Length > _options.MaximumUncompressedBytes - _readBytes) { throw new InvalidDataException("OPC reads exceed MaximumUncompressedBytes."); }
+            _readBytes += part.Length;
+            OpenXmlPartStream stream = new(part.Open(), part.Length, cancellationToken);
+            bool completed = false;
+            try
+            {
+                XmlReaderSettings settings = new() { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null,
+                    MaxCharactersInDocument = _options.MaximumPartBytes, CloseInput = true };
+                XmlReader reader = XmlReader.Create(stream, settings);
+                BoundedXmlReader bounded = new(reader, _options.MaximumXmlDepth, ConsumeXmlElement, cancellationToken);
+                completed = true;
+                return bounded;
+            }
+            finally { if (!completed) { stream.Dispose(); } }
         }
 
         private void ConsumeXmlElement()
