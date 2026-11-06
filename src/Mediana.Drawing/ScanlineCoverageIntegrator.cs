@@ -14,13 +14,33 @@ namespace Mediana.Drawing
             int last = (int)Math.Clamp(Math.Ceiling(Math.Max(rightTop, rightBottom)), origin, origin + coverage.Length);
             int solidStart = (int)Math.Clamp(Math.Ceiling(Math.Max(leftTop, leftBottom)), first, last);
             int solidEnd = (int)Math.Clamp(Math.Floor(Math.Min(rightTop, rightBottom)), solidStart, last);
-            for (int x = first; x < solidStart; x++) { coverage[x - origin] += Area(x, leftTop, leftBottom, rightTop, rightBottom) * height; }
+            if (leftTop == leftBottom && rightTop == rightBottom)
+            {
+                for (int x = first; x < solidStart; x++)
+                {
+                    coverage[x - origin] += (float)(Math.Min(rightTop, x + 1) - Math.Max(leftTop, x)) * height;
+                }
+            }
+            else
+            {
+                for (int x = first; x < solidStart; x++) { coverage[x - origin] += Area(x, leftTop, leftBottom, rightTop, rightBottom) * height; }
+            }
             Span<float> interior = coverage.Slice(solidStart - origin, solidEnd - solidStart);
             Span<Vector<float>> vectors = MemoryMarshal.Cast<float, Vector<float>>(interior);
             Vector<float> increment = new(height);
             for (int i = 0; i < vectors.Length; i++) { vectors[i] += increment; }
             for (int i = vectors.Length * Vector<float>.Count; i < interior.Length; i++) { interior[i] += height; }
-            for (int x = solidEnd; x < last; x++) { coverage[x - origin] += Area(x, leftTop, leftBottom, rightTop, rightBottom) * height; }
+            if (leftTop == leftBottom && rightTop == rightBottom)
+            {
+                for (int x = solidEnd; x < last; x++)
+                {
+                    coverage[x - origin] += (float)(Math.Min(rightTop, x + 1) - Math.Max(leftTop, x)) * height;
+                }
+            }
+            else
+            {
+                for (int x = solidEnd; x < last; x++) { coverage[x - origin] += Area(x, leftTop, leftBottom, rightTop, rightBottom) * height; }
+            }
 
         }
 
