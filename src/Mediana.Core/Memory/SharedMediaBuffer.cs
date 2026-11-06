@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers;
+
 namespace Mediana.Core.Memory
 {
-    internal class SharedMediaBuffer(byte[] data, MediaBufferAllocator allocator)
+    internal class SharedMediaBuffer(Memory<byte> data, MediaBufferAllocator allocator, IMemoryOwner<byte>? owner = null)
     {
         private int references = 1;
-        public byte[] Data { get; } = data;
+        private readonly int capacity = owner?.Memory.Length ?? data.Length;
+        public Memory<byte> Data { get; } = data;
 
         public void Retain()
         {
@@ -27,7 +30,8 @@ namespace Mediana.Core.Memory
         {
             if (Interlocked.Decrement(ref references) == 0)
             {
-                allocator.Release(Data.Length);
+                try { owner?.Dispose(); }
+                finally { allocator.Release(capacity); }
             }
         }
     }

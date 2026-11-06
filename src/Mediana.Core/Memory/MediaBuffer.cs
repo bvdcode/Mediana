@@ -21,7 +21,7 @@ namespace Mediana.Core.Memory
             this.length = length;
         }
 
-        public ReadOnlyMemory<byte> Memory => GetStorage().Data.AsMemory(offset, length);
+        public ReadOnlyMemory<byte> Memory => GetStorage().Data.Slice(offset, length);
 
         /// <summary>Returns an independent lease over the same immutable storage.</summary>
         public MediaBuffer Retain() => Lease(GetStorage(), offset, length);
