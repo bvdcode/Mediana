@@ -14,7 +14,8 @@ namespace Mediana.Drawing
             ArgumentNullException.ThrowIfNull(path);
             ScanlineRasterizer.PaintCoverage(path, transform, rule, _target.Width, _target.Height,
                 (x, y, coverage) => Paint(x, y, color with { A = (byte)MathF.Round(color.A * coverage) }, blendMode,
-                    (byte)MathF.Round(255 * coverage)), cancellationToken);
+                    (byte)MathF.Round(255 * coverage)), cancellationToken,
+                (y, left, right) => PaintSpan(y, left, right, color, blendMode));
         }
     }
 }

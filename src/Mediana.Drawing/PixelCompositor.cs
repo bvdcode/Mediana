@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 
 namespace Mediana.Drawing
 {
-    internal static class PixelCompositor
+    internal static partial class PixelCompositor
     {
         internal static void Fill(Span<byte> pixels, Rgba32 color)
         {

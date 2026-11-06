@@ -14,7 +14,7 @@ namespace Mediana.Drawing
         private const int CoverageSamples = 8;
 
         internal static void PaintCoverage(VectorPath path, Matrix3x2 transform, FillRule rule, int width, int height,
-            Action<int, int, float> pixel, CancellationToken cancellationToken)
+            Action<int, int, float> pixel, CancellationToken cancellationToken, Action<int, int, int>? span = null)
         {
             ScanlineEdgeTable edges = new(path, transform, width, height, cancellationToken);
             if (edges.Bottom <= edges.Top || edges.Right <= edges.Left) { return; }
@@ -46,7 +46,13 @@ namespace Mediana.Drawing
 
                 for (int x = 0; x < coverage.Length; x++)
                 {
-                    if (coverage[x] > 0)
+                    if (span is not null && coverage[x] >= 1)
+                    {
+                        int start = x;
+                        while (x + 1 < coverage.Length && coverage[x + 1] >= 1) { x++; }
+                        span(y, start + edges.Left, x + edges.Left + 1);
+                    }
+                    else if (coverage[x] > 0)
                     {
                         pixel(x + edges.Left, y, Math.Min(1, coverage[x]));
                     }
@@ -96,9 +102,17 @@ namespace Mediana.Drawing
         {
             float left = Math.Clamp(start, origin, origin + coverage.Length);
             float right = Math.Clamp(end, origin, origin + coverage.Length);
-            for (int x = (int)MathF.Floor(left); x < MathF.Ceiling(right); x++)
+            int first = (int)MathF.Floor(left), last = (int)MathF.Ceiling(right);
+            if (last <= first) { return; }
+            coverage[first - origin] += (Math.Min(right, first + 1) - left) * height;
+            if (last - first > 1)
             {
-                coverage[x - origin] += (Math.Min(right, x + 1) - Math.Max(left, x)) * height;
+                Span<float> interior = coverage.Slice(first + 1 - origin, last - first - 2);
+                Span<Vector<float>> vectors = MemoryMarshal.Cast<float, Vector<float>>(interior);
+                Vector<float> increment = new(height);
+                for (int i = 0; i < vectors.Length; i++) { vectors[i] += increment; }
+                for (int i = vectors.Length * Vector<float>.Count; i < interior.Length; i++) { interior[i] += height; }
+                coverage[last - 1 - origin] += (right - (last - 1)) * height;
             }
         }
     }
