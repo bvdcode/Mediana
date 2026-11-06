@@ -123,6 +123,43 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public async Task FalseLaterSyncDeclarationFailsOnlyItsRequestWithoutPublishingBytes()
+        {
+            byte[] data = await Mp4TestData.ReadAsync("avc-segments.mp4");
+            Mp4TestData.SetUInt32(data, "stss", 20, 15);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(data);
+            await using Mp4FragmentHlsSession session = await Mp4FragmentHlsSession.OpenAsync(source, allocator, 0, options: Options());
+            Assert.Equal(14, session.Segments[1].Video.FirstSample);
+            long retained = allocator.AllocatedBytes;
+            using MemoryStream failed = new();
+            await Assert.ThrowsAsync<InvalidDataException>(() => session.WriteSegmentAsync(1, failed).AsTask());
+            Assert.Empty(failed.ToArray());
+            Assert.Equal(retained, allocator.AllocatedBytes);
+            using MemoryStream valid = new();
+            await session.WriteSegmentAsync(0, valid);
+            Assert.NotEmpty(valid.ToArray());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task PartialWriteOrFlushFailureDoesNotRetainWorkOrPreventRetry(bool flush)
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("avc-segments.mp4"));
+            await using Mp4FragmentHlsSession session = await Mp4FragmentHlsSession.OpenAsync(source, allocator, 0, 1, Options());
+            long retained = allocator.AllocatedBytes;
+            using MpegTsTestOutput failed = new() { FailOnFlush = flush, FailOnWrite = flush ? null : 2 };
+            await Assert.ThrowsAsync<IOException>(() => session.WriteSegmentAsync(1, failed).AsTask());
+            Assert.False(failed.WasDisposed);
+            Assert.Equal(retained, allocator.AllocatedBytes);
+            using MemoryStream output = new();
+            await session.WriteSegmentAsync(1, output);
+            Assert.NotEmpty(output.ToArray());
+        }
+
+        [Fact]
         public async Task InvalidSelectionReleasesReaderWithoutReadingMediaOrClosingSource()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);

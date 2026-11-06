@@ -58,6 +58,13 @@ generated fMP4 playlist to exactly the original video's YUV420 pixels and audio'
 Float32 PCM bytes. These checks cover stream copy; independent on-demand encoding
 is a separate operation.
 
+A Native AOT consumer also passes reverse and repeated segment requests. On a
+30-minute AVC/AAC MP4 (17,929,339 bytes), opening reads 586,471 bytes of index and
+configuration. Requesting segment 873 of 874 reads a further 19,444 bytes and writes
+a 20,022-byte fragment. The allocator retains 586,415 bytes for the session and zero
+after disposal. This checks cold I/O on a long timeline; it is not a throughput
+comparison with other implementations.
+
 Segment and initialization requirements follow
 [RFC 8216 section 3.3](https://www.rfc-editor.org/rfc/rfc8216.html#section-3.3)
 and the [ISO BMFF byte-stream format](https://www.w3.org/TR/mse-byte-stream-format-isobmff/).
