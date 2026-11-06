@@ -13,20 +13,7 @@ namespace Mediana.Formats.Audio
         public static OpusPacketInfo ReadTiming(ReadOnlySpan<byte> prefix)
         {
             if (prefix.IsEmpty) { throw new InvalidDataException("An Opus packet requires a TOC byte."); }
-            int configuration = prefix[0] >> 3;
-            int samples = configuration switch
-            {
-                >= 16 => 120 << (configuration & 3),
-                >= 12 => 480 << (configuration & 1),
-                _ => (configuration & 3) switch
-                {
-                    0 => 480,
-                    1 => 960,
-                    2 => 1920,
-                    3 => 2880,
-                    _ => throw new InvalidOperationException()
-                }
-            };
+            int samples = OpusPacketConfiguration.FromToc(prefix[0]).SamplesPerFrame;
             int frames = (prefix[0] & 3) switch
             {
                 0 => 1,

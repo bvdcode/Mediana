@@ -16,6 +16,7 @@
     <Compile Include="../Shared/OpusSpectrumTestInput.cs" Link="OpusSpectrumTestInput.cs" />
     <Compile Include="../Shared/OpusImdctTestInput.cs" Link="OpusImdctTestInput.cs" />
     <Compile Include="../Shared/OpusRestorationTestInput.cs" Link="OpusRestorationTestInput.cs" />
+    <Compile Include="../Shared/OpusConfigurationTestInput.cs" Link="OpusConfigurationTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />

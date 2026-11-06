@@ -228,9 +228,12 @@ constant and variable bitrate, three bitrate targets, tones, noise, impulses,
 chirps, equal and opposed stereo signals, and transitions to/from silence.
 Each group retains the reference decoder's complete state across twelve frames;
 a state snapshot records the spectrum without changing the subsequent decode.
-All frames pass the same exact entropy/seed/mask and coefficient comparisons.
+The coded channel count is read from each packet TOC independently of the configured
+output channel count; stereo streams include mono-coded frames. Mono prediction
+starts from the maximum energy of the two channel histories. All frames pass the
+same exact entropy/seed/mask and coefficient comparisons.
 
-SHA-256: `79a62b29dbffcfbd704560cacddc297ae70d745153dd1145fe8a548ae41a0da2`.
+SHA-256: `4afb3f6f81895ff2d7a3f955106c75c95c50bcf772da9894238424ebe5d8e31f`.
 
 `inverse-mdct.bin` records 128 inverse MDCT and overlap transforms from libopus
 1.6.1 for 120, 240, 480 and 960 coefficients, interleaved strides 1/2/4/8,
@@ -253,3 +256,14 @@ at and immediately below exponent -50. Repeated processing allocates no managed
 storage.
 
 SHA-256: `c4148226f356bde1e7d49d5369650cdf97c69e8e4ccc3d85e6150a40645315ab`.
+
+`packet-configurations.bin` records the coded channel count, frame duration at
+48 kHz and bandwidth for all 256 TOC bytes, evaluated with the libopus 1.6.1
+public packet functions. Separate mode-boundary tests cover SILK, hybrid and CELT
+selection, and packet packing bits do not change the coding configuration.
+
+The little-endian file begins with `OPUSTOC1` and a 32-bit case count. Each case
+contains the TOC byte followed by three 32-bit integers: coded channels, samples
+per frame and bandwidth (narrowband through fullband as values zero through four).
+
+SHA-256: `3901c777f70398c3f396156981acece497ebb5a53b61781f5bfe3f81025b7950`.
