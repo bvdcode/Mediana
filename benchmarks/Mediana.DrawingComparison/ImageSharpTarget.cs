@@ -16,6 +16,8 @@ namespace Mediana.DrawingComparison
     internal class ImageSharpTarget(DrawingCanvas context, FontFamily family, FontStyle style) : IDrawingTarget
     {
         private readonly Dictionary<float, TextOptions> measurementOptions = [];
+        public void PushClip(ComparisonPath path) { context.Save(new() { TextContrast = 0 }); context.Clip(Convert(path)); }
+        public void PopClip() => context.Restore();
         public void Clear(Rgba32 color) => context.Clear(new SolidBrush(ToColor(color)));
         public void Fill(ComparisonPath path, Rgba32 color, FillRule rule)
         {

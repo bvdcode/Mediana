@@ -28,6 +28,10 @@ namespace Mediana.DrawingComparison
                 case "table-full": Table(target, true); break;
                 case "bars": Bars(target); break;
                 case "curves": Curves(target); break;
+                case "clipped-curves":
+                    target.PushClip(new ComparisonPath().Rectangle(width / 8, height / 8, width * 3 / 4, height * 3 / 4));
+                    Curves(target); target.PopClip(); break;
+                case "transformed-curves": Curves(target, true); break;
                 case "strokes": Strokes(target); break;
                 case "alpha": Tiles(target); break;
                 default: throw new ArgumentOutOfRangeException(nameof(name));
@@ -86,7 +90,7 @@ namespace Mediana.DrawingComparison
             }
         }
 
-        private void Curves(IDrawingTarget target)
+        private void Curves(IDrawingTarget target, bool transformed = false)
         {
             int count = 30 * complexity;
             ComparisonPath path = new();
@@ -96,6 +100,20 @@ namespace Mediana.DrawingComparison
                 float w = width / 12f, h = height / (float)Math.Ceiling(count / 10f) * .4f;
                 path.Move(x, y).Cubic(new(x + w, y - h), new(x - w, y + h), new(x + w, y + h))
                     .Quadratic(new(x, y + h * 2), new(x, y)).Close();
+            }
+            if (transformed)
+            {
+                System.Numerics.Matrix3x2 matrix = System.Numerics.Matrix3x2.CreateRotation(.3f, new(width / 2f, height / 2f));
+                for (int i = 0; i < path.Commands.Count; i++)
+                {
+                    PathCommand command = path.Commands[i];
+                    path.Commands[i] = command with
+                    {
+                        First = System.Numerics.Vector2.Transform(command.First, matrix),
+                        Second = System.Numerics.Vector2.Transform(command.Second, matrix),
+                        Third = System.Numerics.Vector2.Transform(command.Third, matrix)
+                    };
+                }
             }
             target.Fill(path, new(90, 50, 220, 160), FillRule.EvenOdd);
         }

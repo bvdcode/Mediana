@@ -19,6 +19,8 @@ namespace Mediana.DrawingComparison
             text = new(new() { FontProgramResolver = _ => program });
             face = text.ResolveFont(new("Input"))!;
         }
+        public void PushClip(ComparisonPath path) { canvas.Save(); canvas.ClipPath(Convert(path), Matrix3x2.Identity); }
+        public void PopClip() => canvas.Restore();
         public void Clear(Rgba32 color) => canvas.Buffer.Clear(color);
         public void Fill(ComparisonPath path, Rgba32 color, FillRule rule) => canvas.FillPathAntialiased(Convert(path), color, Matrix3x2.Identity, rule);
         public void Stroke(ComparisonPath path, Rgba32 color, float width) => canvas.StrokePathAntialiased(Convert(path), color, new() { Width = width }, Matrix3x2.Identity);

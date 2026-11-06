@@ -7,6 +7,8 @@ namespace Mediana.DrawingComparison
 {
     internal interface IDrawingTarget
     {
+        void PushClip(ComparisonPath path);
+        void PopClip();
         void Clear(Rgba32 color);
         void Fill(ComparisonPath path, Rgba32 color, FillRule rule = FillRule.NonZero);
         void Stroke(ComparisonPath path, Rgba32 color, float width);

@@ -7,6 +7,8 @@ namespace Mediana.DrawingComparison
 {
     internal class ScaledDrawingTarget(IDrawingTarget target, int scale) : IDrawingTarget
     {
+        public void PushClip(ComparisonPath path) => target.PushClip(Scale(path));
+        public void PopClip() => target.PopClip();
         public void Clear(Rgba32 color) => target.Clear(color);
         public void Fill(ComparisonPath path, Rgba32 color, FillRule rule) => target.Fill(Scale(path), color, rule);
         public void Stroke(ComparisonPath path, Rgba32 color, float width) => target.Stroke(Scale(path), color, width * scale);

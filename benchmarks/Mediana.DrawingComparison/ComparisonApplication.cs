@@ -64,7 +64,7 @@ namespace Mediana.DrawingComparison
             int count = rounds * parallelism;
             ComparisonMeasurement result = new(args[0], scene.Name, width, height, scene.Scale, complexity, Path.GetFileName(args[5]), Convert.ToHexString(SHA256.HashData(font)),
                 Environment.ProcessorCount, parallelism, observed, count, elapsed.Elapsed.TotalSeconds, cold, coldBytes, fontTime, fontBytes,
-                elapsed.Elapsed.TotalMilliseconds / count, cpuTime / count, bytes / count, process.PeakWorkingSet64, process.WorkingSet64,
+                elapsed.Elapsed.TotalMilliseconds / count, cpuTime / count, bytes / count, bytes, process.PeakWorkingSet64, process.WorkingSet64,
                 GC.CollectionCount(0) - gen0, GC.CollectionCount(1) - gen1, GC.CollectionCount(2) - gen2);
             if (args[9] != "-")
             {
