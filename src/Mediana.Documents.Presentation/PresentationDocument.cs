@@ -11,7 +11,7 @@ namespace Mediana.Documents.Presentation
         private OpenXmlPackage? _package;
         private readonly bool _ownsPackage;
         private readonly Dictionary<string, PresentationPart> _sharedParts = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, XElement> _themes = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, PresentationPart> _themes = new(StringComparer.Ordinal);
         internal PresentationReaderOptions Options { get; }
         internal XElement Defaults { get; }
         public double Width { get; }
@@ -56,16 +56,17 @@ namespace Mediana.Documents.Presentation
             if (rootName != "sld") { _sharedParts.Add(name, result); }
             return result;
         }
-        internal XElement ReadTheme(string name, CancellationToken token)
+        internal PresentationPart ReadTheme(string name, CancellationToken token)
         {
             _ = Package;
             token.ThrowIfCancellationRequested();
-            if (_themes.TryGetValue(name, out XElement? cached)) { return cached; }
+            if (_themes.TryGetValue(name, out PresentationPart? cached)) { return cached; }
             XElement root = Package.ReadXml(name, token).Root ?? throw new InvalidDataException("Empty presentation theme.");
             if (root.Name.LocalName != "theme" || root.Name.Namespace != OpenXmlNamespaces.Drawing && root.Name.Namespace != OpenXmlNamespaces.StrictDrawing)
             { throw new InvalidDataException("Invalid presentation theme root."); }
-            _themes.Add(name, root);
-            return root;
+            PresentationPart result = new(name, root, Package.ReadRelationships(name, token));
+            _themes.Add(name, result);
+            return result;
         }
         internal void CheckSlide(int index)
         {

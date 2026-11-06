@@ -7,6 +7,7 @@ namespace Mediana.Documents.Presentation
 {
     internal class PresentationScene
     {
+        private readonly IReadOnlyList<PresentationPart> _parts;
         internal PresentationPart Slide { get; }
         internal PresentationPart? Layout { get; }
         internal PresentationPart? Master { get; }
@@ -18,14 +19,21 @@ namespace Mediana.Documents.Presentation
             Layout = Related(Slide, "slideLayout", "sldLayout");
             Master = Layout is null ? null : Related(Layout, "slideMaster", "sldMaster");
             OpenXmlRelationship? theme = Master?.Relationships.SingleOrDefault(item => OpenXmlNamespaces.IsOfficeRelationship(item.Type, "theme"));
-            XElement? themeRoot = theme is null ? null : document.ReadTheme(OpenXmlPackage.Resolve(Master!.Name, theme), token);
-            Theme = new(themeRoot, Master?.Root, Slide.Root);
+            PresentationPart? themePart = theme is null ? null : document.ReadTheme(OpenXmlPackage.Resolve(Master!.Name, theme), token);
+            Theme = new(themePart?.Root, Master?.Root, Slide.Root);
+            _parts = new[] { Slide, Layout, Master, themePart }.OfType<PresentationPart>().ToArray();
             Defaults = document.Defaults;
             PresentationPart? Related(PresentationPart source, string relationship, string root)
             {
                 OpenXmlRelationship? link = source.Relationships.SingleOrDefault(item => OpenXmlNamespaces.IsOfficeRelationship(item.Type, relationship));
                 return link is null ? null : document.ReadPart(OpenXmlPackage.Resolve(source.Name, link), root, token);
             }
+        }
+        internal PresentationPart SourceOf(XElement element)
+        {
+            XElement root = element.AncestorsAndSelf().Last();
+            return _parts.FirstOrDefault(part => ReferenceEquals(part.Root, root))
+                ?? throw new InvalidDataException("Presentation resource has no owning part.");
         }
         internal IReadOnlyList<XElement> ShapeChain(XElement shape)
         {
