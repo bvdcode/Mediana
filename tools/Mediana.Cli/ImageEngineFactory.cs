@@ -71,7 +71,8 @@ namespace Mediana.Cli
             .AddImageDecoder(new JpegImageDecoder(new()
             {
                 MaximumEncodedBytes = CommandImageResources.MaximumBufferLength,
-                MaximumPixels = CommandImageResources.MaximumRgbaPixels
+                MaximumPixels = CommandImageResources.MaximumRgbaPixels,
+                ChromaConflictPolicy = JpegChromaConflictPolicy.UseJfif
             }))
             .AddImageDecoder(CreateHeic(SampleAspectRatio.Square))
             .AddImageDecoder(CreateJpeg2000(SampleAspectRatio.Square))

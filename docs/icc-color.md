@@ -59,10 +59,10 @@ release. Managed checks also cover cancellation, concurrent use and explicit
 rejection of malformed or unsupported profiles. CLI and embedded-image checks use the same profile pipeline.
 
 Six RGB profiles extracted from real presentations matched LittleCMS: three
-matched every byte; the other three differed by at most one RGB level. First-slide
-previews improved from 8/14 to 12/14; all eight previously successful previews
-retained identical RGBA pixels. Remaining failures concern an unsupported
-presentation picture fill and conflicting JPEG chroma-position declarations.
+matched every byte; the other three differed by at most one RGB level. Alpha
+matched exactly. The references compare the same decoded image samples before
+presentation composition. Conflicting JPEG chroma-position declarations use the
+separate, explicit policy described in [JPEG decoding](jpeg.md).
 
 The matrix/TRC and curve model follows [ICC.1:2022, clauses 10.5, 10.18 and Annex F](https://www.color.org/specification/ICC.1-2022-05.pdf).
 The destination transfer and adaptation follow the [ICC interpretation of sRGB](https://registry.color.org/rgb-registry/files/sRGB.pdf).

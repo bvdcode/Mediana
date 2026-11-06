@@ -34,8 +34,8 @@ presentation formats are reported explicitly.
 ## Pixels and source interpretation
 
 Output is independent opaque RGBA32. The inverse DCT uses the mathematical
-separable transform, with a DC-only fast path. Subsampled components use centered
-bilinear reconstruction with edge extension according to JFIF sample positions.
+separable transform, with a DC-only fast path. Subsampled components use bilinear
+reconstruction with edge extension at the declared JFIF/Exif sample positions.
 YCbCr uses the full-range JFIF matrix. No gamma conversion is performed.
 Source primaries and transfer remain unspecified unless Exif identifies sRGB.
 The CLI uses its explicit RGB preview interpretation for missing labels and
@@ -82,8 +82,26 @@ is created. A sequential 35×19 4:2:0 image rotated to 19×35 needs exactly
 
 Exif declares square pixels. JFIF density or a caller's supplied aspect must
 agree. Exif `YCbCrPositioning` selects centered or co-sited reconstruction; absent
-positioning defaults to centered. Conflicting JFIF/Exif declarations fail.
+positioning defaults to centered. Conflicting JFIF/Exif chroma positions fail by
+default. Set `JpegDecodeOptions.ChromaConflictPolicy` to
+`JpegChromaConflictPolicy.UseJfif` to select centered JFIF positioning and report a
+warning through `ImageDecodeRequest.WarningHandler`. The CLI enables this policy
+for its common image registry, including JPEG images embedded in documents.
+Without a conflict, the declared Exif positioning remains in effect. Invalid
+Exif values and conflicts involving color or pixel aspect remain errors.
 Chroma reconstruction preserves the sampling interval at odd image edges.
+
+```csharp
+JpegImageDecoder jpeg = new(new JpegDecodeOptions
+{
+    ChromaConflictPolicy = JpegChromaConflictPolicy.UseJfif
+});
+```
+
+Managed and Native AOT checks compare conflicting 4:2:2 and 4:2:0 files against
+independent centered references, in both APP0/APP1 orders. They verify the strict
+default, unchanged co-sited files, pixel-limit propagation, combined warnings,
+and buffer release if the diagnostic handler stops decoding.
 
 Exif `ColorSpace=1` labels the reconstructed pixels as sRGB. Explicitly
 uncalibrated color produces `JpegExifColorDescription`, whose conversion fails
