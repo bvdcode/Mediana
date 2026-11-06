@@ -288,6 +288,8 @@ namespace Mediana.NativeTests
             await HlsPlanTestInput.VerifyAsync(root);
             await HlsSessionTestInput.VerifyAsync(root);
             await FragmentHlsTestInput.VerifyAsync(root);
+            await OnDemandHlsTestInput.VerifyAsync(root);
+            Console.WriteLine("PASS on-demand HLS encoding: independent reverse and repeated mid-GOP windows, exact reference pixels, clocks and allocation release.");
             await OggContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Ogg"));
             Console.WriteLine("PASS Ogg: independent Opus/Vorbis packets, metadata, reverse requests, seek preroll and borrowed source ownership.");
             Console.WriteLine("PASS indexed fMP4 HLS: initialization, reverse segment requests, repeated hashes and allocation release match.");
