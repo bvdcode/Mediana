@@ -108,10 +108,10 @@ namespace Mediana.Tests
         [InlineData(FillRule.EvenOdd)]
         public void RowPartitionsPreserveHorizontalStepsInsideThePixel(FillRule rule)
         {
-            using PixelBuffer pixels = new(64, 1);
+            using PixelBuffer pixels = new(256, 1);
             VectorPath path = new VectorPath().MoveTo(0, .75f).LineTo(0, 1).LineTo(20, 1)
                 .LineTo(20, 0).LineTo(10, 0).LineTo(10, .75f).Close();
-            for (int i = 0; i < 12; i++) { path.Rectangle(25 + i * 2, .1f, .75f, .8f); }
+            for (int i = 0; i < 20; i++) { path.Rectangle(25 + i * 10, .1f + i * .005f, .75f, .8f - i * .01f); }
             new RasterCanvas(pixels).FillPathAntialiased(path, new(23, 57, 139), Matrix3x2.Identity, rule);
             Assert.Equal(64, pixels[5, 0].A);
             Assert.Equal(255, pixels[15, 0].A);
