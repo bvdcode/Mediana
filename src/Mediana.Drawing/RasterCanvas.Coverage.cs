@@ -12,7 +12,7 @@ namespace Mediana.Drawing
             ColorBlendMode blendMode = ColorBlendMode.Normal, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(path);
-            ScanlineEdgeTable edges = new(path, transform, _target.Width, _target.Height, cancellationToken);
+            ScanlineEdgeTable edges = new(path, transform, _target.Width, _target.Height, cancellationToken, PathFlattener.AntialiasTolerance);
             FillCoverage(edges, color, rule, blendMode, cancellationToken);
         }
 

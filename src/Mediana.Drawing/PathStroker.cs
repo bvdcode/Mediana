@@ -10,13 +10,13 @@ namespace Mediana.Drawing
 {
     internal static class PathStroker
     {
-        internal static VectorPath Outline(VectorPath path, StrokeStyle style, Matrix3x2 transform, CancellationToken cancellationToken)
+        internal static VectorPath Outline(VectorPath path, StrokeStyle style, Matrix3x2 transform, CancellationToken cancellationToken, float tolerance = .2f)
         {
             float dashLength = Validate(style);
             float scale = Math.Max(new Vector2(transform.M11, transform.M12).Length(), new Vector2(transform.M21, transform.M22).Length());
             float radius = style.Width == 0 ? 0.5f / Math.Max(scale, 0.000001f) : style.Width / 2;
             VectorPath? outline = new VectorPath();
-            foreach (PathContour contour in PathFlattener.Flatten(path, Matrix3x2.Identity, 0.2f / Math.Max(scale, 0.000001f), cancellationToken))
+            foreach (PathContour contour in PathFlattener.Flatten(path, Matrix3x2.Identity, tolerance / Math.Max(scale, 0.000001f), cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (dashLength == 0)

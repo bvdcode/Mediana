@@ -11,7 +11,7 @@ namespace Mediana.Drawing
         internal int PointCount { get; }
         internal FlattenedPath(VectorPath path, Matrix3x2 transform, CancellationToken token)
         {
-            Contours = PathFlattener.Flatten(path, transform, cancellationToken: token);
+            Contours = PathFlattener.Flatten(path, transform, PathFlattener.AntialiasTolerance, token);
             foreach (PathContour contour in Contours) { PointCount += contour.Points.Count; }
         }
     }

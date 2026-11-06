@@ -9,9 +9,16 @@ namespace Mediana.Drawing
         private readonly FillRule rule = rule;
         private int position;
         private int winding;
-        private float start;
+        private ScanlineCrossing start;
 
         internal bool MoveNext(out float left, out float right)
+        {
+            bool result = MoveNextEdges(out ScanlineCrossing first, out ScanlineCrossing last);
+            left = (float)first.X; right = (float)last.X;
+            return result;
+        }
+
+        internal bool MoveNextEdges(out ScanlineCrossing left, out ScanlineCrossing right)
         {
             while (position < crossings.Length)
             {
@@ -19,10 +26,10 @@ namespace Mediana.Drawing
                 bool wasInside = Inside(winding);
                 winding += crossing.Winding;
                 bool isInside = Inside(winding);
-                if (!wasInside && isInside) { start = crossing.X; }
-                else if (wasInside && !isInside) { left = start; right = crossing.X; return true; }
+                if (!wasInside && isInside) { start = crossing; }
+                else if (wasInside && !isInside) { left = start; right = crossing; return true; }
             }
-            left = right = 0;
+            left = right = default;
             return false;
         }
 

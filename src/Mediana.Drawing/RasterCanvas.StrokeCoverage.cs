@@ -15,7 +15,7 @@ namespace Mediana.Drawing
         {
             ArgumentNullException.ThrowIfNull(path);
             ArgumentNullException.ThrowIfNull(style);
-            VectorPath outline = PathStroker.Outline(path, style, transform, cancellationToken);
+            VectorPath outline = PathStroker.Outline(path, style, transform, cancellationToken, PathFlattener.AntialiasTolerance);
             FillPathAntialiased(outline, color, transform, FillRule.NonZero, blendMode, cancellationToken);
         }
 
