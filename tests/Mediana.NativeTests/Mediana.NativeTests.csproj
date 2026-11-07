@@ -215,6 +215,9 @@
     <Compile Include="../Shared/IntraPictureFixture.cs" Link="IntraPictureFixture.cs" />
     <None Include="../Mediana.Tests/Data/Heif/*" Link="Data/Heif/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HeifReferenceTestInput.cs" Link="HeifReferenceTestInput.cs" />
+    <Compile Include="../Shared/HevcDecoderTestInput.cs" Link="HevcDecoderTestInput.cs" />
+    <Compile Include="../Shared/HevcSeekTestInput.cs" Link="HevcSeekTestInput.cs" />
+    <None Include="../Mediana.Codecs.Hevc.Tests/Data/*.yuv.gz;../Mediana.Codecs.Hevc.Tests/Data/*.mkv" Link="Data/Hevc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HevcSliceHeaderTestInput.cs" Link="HevcSliceHeaderTestInput.cs" />
     <Compile Include="../Shared/HevcPictureStorageTestInput.cs" Link="HevcPictureStorageTestInput.cs" />
     <Compile Include="../Shared/HevcWeightedPredictionTestInput.cs" Link="HevcWeightedPredictionTestInput.cs" />

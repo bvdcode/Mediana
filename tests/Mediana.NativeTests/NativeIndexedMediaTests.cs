@@ -27,6 +27,7 @@ namespace Mediana.NativeTests
             }
             Console.WriteLine("PASS Vorbis spectra: 49,152 codewords, both floors, all residues, 1,375 packets and nominal truncation match independent references.");
             Console.WriteLine("PASS public Vorbis PCM: 1,183 sequential packets, 128 transforms, sample clocks, overlap transitions and lease ownership match independent references.");
+            await NativeHevcTests.VerifyAsync();
             string hevcRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Hevc");
             foreach (string name in new[] { "main8", "main10", "weighted8", "weighted10" })
             {
