@@ -125,6 +125,28 @@ namespace Mediana.Containers.Avi.Tests
         }
 
         [Fact]
+        public async Task AudiovisualIntervalSeeksPcmAndVideoWithoutReadingThePrecedingPayload()
+        {
+            byte[] input = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "mjpeg-pcm.avi"));
+            await using AviTestSource source = new(input);
+            MediaEngine engine = new MediaEngineBuilder().AddVideoDecoder(new MjpegDecoderFactory())
+                .AddAudioDecoder(new PcmDecoderFactory()).AddContainerWriter(new MpegTsWriterFactory()).Build();
+            MediaBufferAllocator allocator = new(16 * 1024 * 1024, MemoryPool<byte>.Shared);
+            await using AviReader reader = await AviReader.OpenAsync(source, allocator);
+            long openedBytes = source.ReadBytes;
+            await using MediaProcessingSession operation = await engine.OpenProcessingAsync(reader,
+                [new VideoEncodingRequest(0, 0, new H264EncoderFactory(), new VideoPreparationOptions { RgbConversion = new() }),
+                 new AudioEncodingRequest(1, 1, new AacEncoderFactory())], allocator,
+                new() { Selection = new(new(1000, new(1, 1000)), new(1500, new(1, 1000))) });
+            using MemoryStream output = new();
+            await using IContainerWriter writer = new MpegTsWriterFactory().Create(output, operation.Streams, allocator);
+            MediaProcessingResult result = await operation.WriteAsync(writer);
+            Assert.Equal(4, result.Tracks[0].Frames);
+            Assert.Equal(24000, result.Tracks[1].SamplesPerChannel);
+            Assert.True(source.ReadBytes - openedBytes < input.Length / 2);
+        }
+
+        [Fact]
         public async Task MalformedExtentsIndexAddressesAndAllocationFailuresReleaseAllOwnedStorage()
         {
             byte[] valid = AviTestData.Build(AviIndexKind.Relative);
