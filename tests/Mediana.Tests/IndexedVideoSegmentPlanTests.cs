@@ -34,6 +34,9 @@ namespace Mediana.Tests
                 EncodedStreamInfo video = reader.Streams.First(stream => stream.Kind == MediaKind.Video);
                 using VideoSegmentPlan plan = VideoSegmentPlanner.Create(reader, video.StreamIndex, new(1, new(1, 10)), allocator);
                 Assert.NotEmpty(plan);
+                long retained = allocator.AllocatedBytes;
+                Assert.Equal(plan[0].Start.TimeBase, VideoSegmentPlanner.GetTimeBase(reader, video.StreamIndex));
+                Assert.Equal(retained, allocator.AllocatedBytes);
                 for (int index = 1; index < plan.Count; index++) { Assert.Equal(plan[index - 1].End, plan[index].Start); }
                 Assert.Empty(source.Reads);
             }
