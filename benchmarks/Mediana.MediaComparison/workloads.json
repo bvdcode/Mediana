@@ -8,19 +8,23 @@
       "tool": "mediana_heif",
       "arguments": [
         "{input}",
-        "{output}"
+        "{output}",
+        "nearest"
       ],
-      "environment": {}
+      "environment": {},
+      "output": "{output}"
     },
     "alternative": {
       "tool": "heif_reference",
       "arguments": [
         "{input}",
-        "{output}"
+        "{output}",
+        "nearest"
       ],
       "environment": {
         "LD_LIBRARY_PATH": "{heif_libraries}"
-      }
+      },
+      "output": "{output}"
     }
   },
   {
@@ -32,19 +36,23 @@
       "tool": "mediana_heif",
       "arguments": [
         "{input}",
-        "{output}"
+        "{output}",
+        "nearest"
       ],
-      "environment": {}
+      "environment": {},
+      "output": "{output}"
     },
     "alternative": {
       "tool": "heif_reference",
       "arguments": [
         "{input}",
-        "{output}"
+        "{output}",
+        "nearest"
       ],
       "environment": {
         "LD_LIBRARY_PATH": "{heif_libraries}"
-      }
+      },
+      "output": "{output}"
     }
   },
   {
@@ -62,7 +70,8 @@
         "Error",
         "--no-color"
       ],
-      "environment": {}
+      "environment": {},
+      "output": "{output}"
     },
     "alternative": {
       "tool": "ffmpeg",
@@ -84,7 +93,8 @@
         "2",
         "{output}"
       ],
-      "environment": {}
+      "environment": {},
+      "output": "{output}"
     }
   },
   {
@@ -102,7 +112,8 @@
         "Error",
         "--no-color"
       ],
-      "environment": {}
+      "environment": {},
+      "output": "{output}"
     },
     "alternative": {
       "tool": "ffmpeg",
@@ -124,7 +135,8 @@
         "2",
         "{output}"
       ],
-      "environment": {}
+      "environment": {},
+      "output": "{output}"
     }
   }
 ]

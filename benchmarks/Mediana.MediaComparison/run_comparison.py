@@ -19,7 +19,14 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
-from comparison_models import Command, Measurement, Workload, file_hash, load_workloads
+from comparison_models import (
+    Command,
+    Measurement,
+    Workload,
+    file_hash,
+    load_workloads,
+    output_fingerprint,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -74,13 +81,19 @@ def run_case(
     logs: Path,
     cpus: str,
     timeout: float,
-) -> Measurement:
+) -> tuple[Measurement, Path]:
     """Expand one manifest command, measure it and fingerprint its output."""
     prefix = f"{case.id}-{engine}-{repetition}"
     destination = output / (prefix + case.output_extension)
+    command_directory = output / engine
+    command_directory.mkdir(exist_ok=True)
     replacements = variables | {
         "input": str(Path(variables["inputs"]) / case.input),
         "output": str(destination),
+        "output_stem": str(destination.with_suffix("")),
+        "output_directory": str(command_directory),
+        "profile_uri": (command_directory / "profile").as_uri(),
+        "input_stem": Path(case.input).stem,
     }
     executable = replacements.get(command.tool, command.tool)
     arguments = ["taskset", "-c", cpus, executable] + [
@@ -100,12 +113,26 @@ def run_case(
     elapsed, cpu, rss, code, expired = measure(
         arguments, environment, logs / (prefix + ".log"), timeout
     )
-    if code == 0 and not destination.is_file():
+    produced = Path(command.output.format_map(replacements))
+    if code == 0 and not produced.is_file():
         raise FileNotFoundError("Successful command did not produce its output")
-    size = destination.stat().st_size if destination.is_file() else 0
-    checksum = file_hash(destination) if code == 0 else ""
-    return Measurement(
-        case.id, engine, repetition, elapsed, cpu, rss, code, expired, size, checksum
+    size, checksum = (0, "")
+    if code == 0:
+        size, checksum = output_fingerprint(produced)
+    return (
+        Measurement(
+            case.id,
+            engine,
+            repetition,
+            elapsed,
+            cpu,
+            rss,
+            code,
+            expired,
+            size,
+            checksum,
+        ),
+        produced,
     )
 
 
@@ -189,9 +216,10 @@ def main() -> None:
                 ) as directory:
                     pair = Path(directory)
                     succeeded = True
+                    products: dict[str, Path] = {}
                     for engine, command in engines:
                         LOGGER.info("%s %s repetition %d", case.id, engine, repetition)
-                        result = run_case(
+                        result, products[engine] = run_case(
                             case,
                             command,
                             engine,
@@ -211,21 +239,31 @@ def main() -> None:
                             [
                                 sys.executable,
                                 str(Path(__file__).with_name("validate_outputs.py")),
-                                str(
-                                    pair
-                                    / f"{case.id}-mediana-{repetition}{case.output_extension}"
-                                ),
-                                str(
-                                    pair
-                                    / f"{case.id}-alternative-{repetition}{case.output_extension}"
-                                ),
+                                str(products["mediana"]),
+                                str(products["alternative"]),
+                                "--source",
+                                str(args.inputs / case.input),
                             ],
-                            check=True,
+                            check=False,
                             capture_output=True,
                             text=True,
                             timeout=args.timeout,
                         )
-                        samples = json.loads(checked.stdout)
+                        if checked.returncode != 0:
+                            failed = True
+                            LOGGER.error("%s sample validation failed", case.id)
+                            (
+                                args.output / f"{case.id}-{repetition}-validation.log"
+                            ).write_text(checked.stderr, encoding="utf-8")
+                            samples = {
+                                "validation_succeeded": False,
+                                "exit_code": checked.returncode,
+                            }
+                        else:
+                            samples = {
+                                "validation_succeeded": True,
+                                **json.loads(checked.stdout),
+                            }
                         validation.write(
                             json.dumps(
                                 {"case": case.id, "repetition": repetition, **samples}

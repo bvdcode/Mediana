@@ -18,6 +18,7 @@ class Command:
     tool: str
     arguments: list[str]
     environment: dict[str, str]
+    output: str
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,30 @@ def file_hash(path: Path) -> str:
     """Hash a file with bounded working memory."""
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
+def output_fingerprint(path: Path) -> tuple[int, str]:
+    """Include each referenced segment when measuring a complete local HLS result."""
+    if path.suffix != ".m3u8":
+        return path.stat().st_size, file_hash(path)
+    playlist = path.read_text(encoding="utf-8")
+    lines = playlist.splitlines()
+    if "#EXT-X-ENDLIST" not in lines:
+        raise ValueError("Expected a finalized VOD playlist")
+    root = path.parent.resolve()
+    digest = hashlib.sha256(playlist.encode("utf-8"))
+    size = path.stat().st_size
+    segments = [line for line in lines if line and not line.startswith("#")]
+    if not segments or len(segments) != len(set(segments)):
+        raise ValueError("Expected distinct local VOD segments")
+    for name in segments:
+        segment = (root / name).resolve()
+        if not segment.is_relative_to(root) or segment.suffix != ".ts":
+            raise ValueError("Expected MPEG-TS segments within the output directory")
+        size += segment.stat().st_size
+        digest.update(name.encode("utf-8"))
+        digest.update(bytes.fromhex(file_hash(segment)))
+    return size, digest.hexdigest()
 
 
 def load_workloads(path: Path) -> list[Workload]:
