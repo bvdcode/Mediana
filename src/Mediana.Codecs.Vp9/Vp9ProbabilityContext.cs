@@ -6,27 +6,29 @@ namespace Mediana.Codecs.Vp9
     internal class Vp9ProbabilityContext
     {
         private readonly byte[] data = new byte[2051];
-        internal Span<byte> Coefficient => data.AsSpan(0, 1728);
-        internal Span<byte> Transform => data.AsSpan(1728, 24);
-        internal Span<byte> Partition => data.AsSpan(1752, 48);
-        internal Span<byte> Luma => data.AsSpan(1800, 36);
-        internal Span<byte> Chroma => data.AsSpan(1836, 90);
-        internal Span<byte> Skip => data.AsSpan(1926, 3);
-        internal Span<byte> IsInter => data.AsSpan(1929, 4);
-        internal Span<byte> CompoundMode => data.AsSpan(1933, 5);
-        internal Span<byte> CompoundReference => data.AsSpan(1938, 5);
-        internal Span<byte> SingleReference => data.AsSpan(1943, 10);
-        internal Span<byte> InterMode => data.AsSpan(1953, 21);
-        internal Span<byte> Interpolation => data.AsSpan(1974, 8);
-        internal Span<byte> MotionJoint => data.AsSpan(1982, 3);
-        internal Span<byte> MotionSign => data.AsSpan(1985, 2);
-        internal Span<byte> MotionClass => data.AsSpan(1987, 20);
-        internal Span<byte> MotionClassZeroBit => data.AsSpan(2007, 2);
-        internal Span<byte> MotionBits => data.AsSpan(2009, 20);
-        internal Span<byte> MotionClassZeroFraction => data.AsSpan(2029, 12);
-        internal Span<byte> MotionFraction => data.AsSpan(2041, 6);
-        internal Span<byte> MotionClassZeroHigh => data.AsSpan(2047, 2);
-        internal Span<byte> MotionHigh => data.AsSpan(2049, 2);
+        internal Span<byte> Coefficient => data.AsSpan(Vp9ProbabilityOffset.Coefficient, 1728);
+        internal Span<byte> Transform => data.AsSpan(Vp9ProbabilityOffset.Transform, 24);
+        internal Span<byte> Partition => data.AsSpan(Vp9ProbabilityOffset.Partition, 48);
+        internal Span<byte> Luma => data.AsSpan(Vp9ProbabilityOffset.Luma, 36);
+        internal Span<byte> Chroma => data.AsSpan(Vp9ProbabilityOffset.Chroma, 90);
+        internal Span<byte> Skip => data.AsSpan(Vp9ProbabilityOffset.Skip, 3);
+        internal Span<byte> IsInter => data.AsSpan(Vp9ProbabilityOffset.IsInter, 4);
+        internal Span<byte> CompoundMode => data.AsSpan(Vp9ProbabilityOffset.CompoundMode, 5);
+        internal Span<byte> CompoundReference => data.AsSpan(Vp9ProbabilityOffset.CompoundReference, 5);
+        internal Span<byte> SingleReference => data.AsSpan(Vp9ProbabilityOffset.SingleReference, 10);
+        internal Span<byte> InterMode => data.AsSpan(Vp9ProbabilityOffset.InterMode, 21);
+        internal Span<byte> Interpolation => data.AsSpan(Vp9ProbabilityOffset.Interpolation, 8);
+        internal Span<byte> MotionJoint => data.AsSpan(Vp9ProbabilityOffset.MotionJoint, 3);
+        internal Span<byte> MotionSign => data.AsSpan(Vp9ProbabilityOffset.MotionSign, 2);
+        internal Span<byte> MotionClass => data.AsSpan(Vp9ProbabilityOffset.MotionClass, 20);
+        internal Span<byte> MotionClassZeroBit => data.AsSpan(Vp9ProbabilityOffset.MotionClassZeroBit, 2);
+        internal Span<byte> MotionBits => data.AsSpan(Vp9ProbabilityOffset.MotionBits, 20);
+        internal Span<byte> MotionClassZeroFraction => data.AsSpan(Vp9ProbabilityOffset.MotionClassZeroFraction, 12);
+        internal Span<byte> MotionFraction => data.AsSpan(Vp9ProbabilityOffset.MotionFraction, 6);
+        internal Span<byte> MotionClassZeroHigh => data.AsSpan(Vp9ProbabilityOffset.MotionClassZeroHigh, 2);
+        internal Span<byte> MotionHigh => data.AsSpan(Vp9ProbabilityOffset.MotionHigh, 2);
+
+        internal Span<byte> Data => data;
 
         internal void Reset()
         {
@@ -51,6 +53,14 @@ namespace Mediana.Codecs.Vp9
             Vp9Tables.DefaultMotionFraction.CopyTo(MotionFraction);
             Vp9Tables.DefaultMotionClassZeroHigh.CopyTo(MotionClassZeroHigh);
             Vp9Tables.DefaultMotionHigh.CopyTo(MotionHigh);
+        }
+
+        internal void RestoreForAdaptation(Vp9ProbabilityContext source, bool intra)
+        {
+            if (!intra) { CopyFrom(source); return; }
+            source.data.AsSpan(0, Vp9ProbabilityOffset.Transform).CopyTo(data);
+            source.data.AsSpan(Vp9ProbabilityOffset.Partition, Vp9ProbabilityOffset.Skip - Vp9ProbabilityOffset.Partition).CopyTo(data.AsSpan(Vp9ProbabilityOffset.Partition));
+            source.data.AsSpan(Vp9ProbabilityOffset.IsInter).CopyTo(data.AsSpan(Vp9ProbabilityOffset.IsInter));
         }
 
         internal void CopyFrom(Vp9ProbabilityContext source) => source.data.CopyTo(data, 0);
