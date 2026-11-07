@@ -28,7 +28,13 @@ namespace Mediana
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
 
         /// <summary>Borrows and completes the writer on success. Failure leaves unfinished output for the caller to discard.</summary>
-        public async Task<MediaProcessingResult> WriteAsync(IContainerWriter writer, CancellationToken cancellationToken = default)
+        public Task<MediaProcessingResult> WriteAsync(IContainerWriter writer, CancellationToken cancellationToken = default) =>
+            WriteAsync(writer, null, cancellationToken);
+
+        /// <summary>Borrows the writer and observes each successfully written packet during the callback only.
+        /// Completes the writer on success. Failure or cancellation leaves unfinished output for the caller to discard.</summary>
+        public async Task<MediaProcessingResult> WriteAsync(IContainerWriter writer, Action<MediaPacket>? packetWritten,
+            CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(writer);
             Enter();
@@ -37,10 +43,16 @@ namespace Mediana
                 ObjectDisposedException.ThrowIf(disposed, this);
                 if (written) { throw new InvalidOperationException("The processing session has already been consumed."); }
                 written = true;
-                long packets = await MediaPacketMerge.WriteAsync(tracks, writer, cancellationToken).ConfigureAwait(false);
+                long packets = await MediaPacketMerge.WriteAsync(tracks, writer, packetWritten, cancellationToken).ConfigureAwait(false);
                 return new(packets, Array.AsReadOnly(tracks.Select(track => track.Result).ToArray()));
             }
             finally { Volatile.Write(ref busy, 0); }
+        }
+
+        internal MediaOperationProgress GetSingleTrackProgress(bool complete)
+        {
+            if (tracks.Length != 1) { throw new InvalidOperationException("Single-track progress requires exactly one selected track."); }
+            return tracks[0].GetProgress(complete);
         }
 
         public async ValueTask DisposeAsync()

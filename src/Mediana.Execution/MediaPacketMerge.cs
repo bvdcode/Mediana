@@ -12,8 +12,13 @@ namespace Mediana.Execution
     /// Success finalizes the writer; failure releases pending packets without finalizing it.</summary>
     public static class MediaPacketMerge
     {
+        public static Task<long> WriteAsync(IReadOnlyList<IEncodedPacketSource> sources, IContainerWriter writer,
+            CancellationToken cancellationToken = default) => WriteAsync(sources, writer, null, cancellationToken);
+
+        /// <summary>Invokes the observer after each successful packet write. The packet is borrowed only
+        /// for the callback; retain it explicitly to extend its lifetime. Cancellation aborts without completing the writer.</summary>
         public static async Task<long> WriteAsync(IReadOnlyList<IEncodedPacketSource> sources, IContainerWriter writer,
-            CancellationToken cancellationToken = default)
+            Action<MediaPacket>? packetWritten, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(sources);
             ArgumentNullException.ThrowIfNull(writer);
@@ -71,6 +76,8 @@ namespace Mediana.Execution
                     pending[selected] = null;
                     await writer.WritePacketAsync(output, cancellationToken).ConfigureAwait(false);
                     written = checked(written + 1);
+                    packetWritten?.Invoke(output);
+                    cancellationToken.ThrowIfCancellationRequested();
                 }
             }
             finally

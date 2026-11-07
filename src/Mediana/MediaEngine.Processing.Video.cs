@@ -36,9 +36,9 @@ namespace Mediana
             VideoPreparationSequence preparation = input.Resources.Own(new VideoPreparationSequence(first.Format, matrix, input.Allocator, request.Preparation));
             IMediaEncoder<VideoFrame> encoder = input.Resources.Own(request.Encoder.Create(preparation.OutputFormat, outputClock, input.Allocator, request.OutputStreamIndex));
             VideoFrame? opening = input.Resources.Own(first.Retain());
-            long frames = 0;
+            MediaInputProgress progress = new();
             MediaEncodeSource<VideoFrame> source = new(ReadPreparedAsync, encoder);
-            return new(source, () => new(stream.StreamIndex, encoder.Stream, frames, 0, 0, 0, null, null));
+            return new(source, () => new(stream.StreamIndex, encoder.Stream, progress.Frames, 0, 0, 0, null, null), progress);
 
             async ValueTask<VideoFrame?> ReadDecodedAsync(CancellationToken cancellationToken)
             {
@@ -51,9 +51,8 @@ namespace Mediana
                 using VideoFrame? frame = opening ?? await presentation.ReadFrameAsync(cancellationToken).ConfigureAwait(false);
                 opening = null;
                 if (frame is null) { return null; }
-                VideoFrame result = preparation.Apply(frame, cancellationToken);
-                frames = checked(frames + 1);
-                return result;
+                progress.Add(frame.Duration);
+                return preparation.Apply(frame, cancellationToken);
             }
         }
     }
