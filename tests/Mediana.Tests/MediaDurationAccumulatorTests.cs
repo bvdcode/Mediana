@@ -42,13 +42,27 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public void ChangedTimeBaseDoesNotGuessAConversionOrRestoreTheTotal()
+        public void ChangedTimeBasesAreSummedExactlyOnACommonClock()
         {
             MediaDurationAccumulator total = new();
             total.Add(new MediaDuration(1, new(1, 24)));
             total.Add(new MediaDuration(1, new(1, 25)));
-            Assert.Null(total.Duration);
+            Assert.Equal(new MediaDuration(49, new(1, 600)), total.Duration);
             total.Add(new MediaDuration(1, new(1, 24)));
+            Assert.Equal(new MediaDuration(74, new(1, 600)), total.Duration);
+        }
+
+        [Fact]
+        public void FractionalTailAndReducibleClocksKeepEveryKnownTick()
+        {
+            MediaDurationAccumulator total = new();
+            total.Add(new MediaDuration(83, new(1, 1000)));
+            total.Add(new MediaDuration(41_666_667, new(1, 1_000_000_000)));
+            Assert.Equal(new MediaDuration(124_666_667, new(1, 1_000_000_000)), total.Duration);
+            total.Add(new MediaDuration(2000, new(1, 2_000_000_000)));
+            Assert.Equal(new MediaDuration(124_667_667, new(1, 1_000_000_000)), total.Duration);
+            total.Add(null);
+            total.Add(new MediaDuration(1, new(1, 3)));
             Assert.Null(total.Duration);
         }
 

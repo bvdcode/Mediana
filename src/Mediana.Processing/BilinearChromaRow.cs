@@ -12,14 +12,20 @@ namespace Mediana.Processing
         private readonly ReadOnlySpan<TSample> top;
         private readonly ReadOnlySpan<TSample> bottom;
         private readonly double horizontalOffset;
+        private readonly int horizontalSubsampling;
         private readonly double verticalFraction;
 
         public BilinearChromaRow(VideoFrame frame, int plane, int lumaY, ChromaLocation location)
         {
-            (int x, int y) = ChromaSamplePosition.InHalfLumaSamples(location);
-            horizontalOffset = x / 2d;
+            VideoPlaneFormat format = frame.Format.PixelFormat.Planes[plane];
+            int x = 0, y = 0;
+            if (format.HorizontalSubsampling != 1 || format.VerticalSubsampling != 1)
+            { (x, y) = ChromaSamplePosition.InHalfLumaSamples(location); }
+            horizontalSubsampling = format.HorizontalSubsampling;
+            horizontalOffset = horizontalSubsampling == 1 ? 0 : x / 2d;
+            double verticalOffset = format.VerticalSubsampling == 1 ? 0 : y / 2d;
             int lastRow = frame.Planes[plane].Height - 1;
-            double position = Math.Clamp((lumaY - y / 2d) / 2, 0, lastRow);
+            double position = Math.Clamp((lumaY - verticalOffset) / format.VerticalSubsampling, 0, lastRow);
             int row = (int)position;
             verticalFraction = position - row;
             top = MemoryMarshal.Cast<byte, TSample>(frame.GetRow(plane, row));
@@ -28,7 +34,7 @@ namespace Mediana.Processing
 
         public double Sample(int lumaX)
         {
-            double position = Math.Clamp((lumaX - horizontalOffset) / 2, 0, top.Length - 1);
+            double position = Math.Clamp((lumaX - horizontalOffset) / horizontalSubsampling, 0, top.Length - 1);
             int left = (int)position;
             int right = Math.Min(left + 1, top.Length - 1);
             double fraction = position - left;

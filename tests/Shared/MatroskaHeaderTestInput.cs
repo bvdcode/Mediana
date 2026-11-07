@@ -14,7 +14,8 @@ namespace Mediana.Tests
         public static async Task VerifyDefaultsAndVersionsAsync()
         {
             MatroskaHeader defaults = await ReadAsync(Wrap(DocumentType));
-            Require(defaults == new MatroskaHeader(16, 1, 1, 1, 8));
+            Require(defaults == new MatroskaHeader(16, 1, 1, 1, 8, "matroska"));
+            Require((await ReadAsync(Wrap(Field(0x4282, "webm"u8)))).DocumentType == "webm");
             ushort[] identifiers = [0x4286, 0x42F7, 0x42F2, 0x42F3, 0x4287, 0x4285];
             byte[] empty = [.. DocumentType];
             foreach (ushort id in identifiers)
@@ -60,7 +61,7 @@ namespace Mediana.Tests
             await RejectAsync<NotSupportedException>(Wrap([.. DocumentType, .. Field(0x4286, [2]), .. Field(0x42F7, [2])]));
             await RejectAsync<NotSupportedException>(Wrap([.. DocumentType, .. Field(0x4287, [5]), .. Field(0x4285, [5])]));
             await RejectAsync<NotSupportedException>(Wrap([.. DocumentType, .. Field(0x4281, [])]));
-            await RejectAsync<NotSupportedException>(Wrap(Field(0x4282, "webm"u8)));
+            await RejectAsync<NotSupportedException>(Wrap(Field(0x4282, "unknown"u8)));
         }
 
         public static async Task VerifyCrcAsync()
@@ -145,7 +146,7 @@ namespace Mediana.Tests
             await using EbmlElementTestSource source = new(input) { MaximumRead = 3, ReadBoundary = 40 };
             MediaBufferAllocator allocator = new(35);
             MatroskaHeader header = await MatroskaHeaderReader.ReadAsync(source, allocator, 40);
-            Require(header == new MatroskaHeader(40, 1, 4, 2, 8));
+            Require(header == new MatroskaHeader(40, 1, 4, 2, 8, "matroska"));
             Require(allocator.AllocatedBytes == 0 && !source.IsDisposed);
         }
 

@@ -3,17 +3,19 @@
 
 using System.Runtime.InteropServices;
 
+using Mediana.Core.Memory;
+
 namespace Mediana.Codecs.Webp
 {
     internal static partial class WebpLosslessDecoder
     {
-        internal static void Decode(ReadOnlySpan<byte> encoded, Span<uint> pixels, int width, int height, WebpDecodeWorkspace workspace, CancellationToken token)
+        internal static void Decode(ReadOnlySpan<byte> encoded, Span<uint> pixels, int width, int height, MediaBufferWorkspace workspace, CancellationToken token)
         {
             if (encoded.Length < 5 || encoded[0] != 47) { throw new InvalidDataException("Invalid VP8L header."); }
             WebpBitReader input = new(encoded[5..]);
             DecodeImage(ref input, pixels, width, height, workspace, token);
         }
-        internal static void DecodeImage(ref WebpBitReader input, Span<uint> pixels, int width, int height, WebpDecodeWorkspace workspace, CancellationToken token)
+        internal static void DecodeImage(ref WebpBitReader input, Span<uint> pixels, int width, int height, MediaBufferWorkspace workspace, CancellationToken token)
         {
             int codedWidth = width, seen = 0;
             List<WebpLosslessTransform> transforms = new(4);
@@ -46,7 +48,7 @@ namespace Mediana.Codecs.Webp
             ReadImage(ref input, pixels[..checked(codedWidth * height)], codedWidth, height, true, workspace, token);
             for (int index = transforms.Count - 1; index >= 0; index--) { Inverse(pixels, height, transforms[index], token); }
         }
-        private static void ReadImage(ref WebpBitReader input, Span<uint> output, int width, int height, bool main, WebpDecodeWorkspace workspace, CancellationToken token)
+        private static void ReadImage(ref WebpBitReader input, Span<uint> output, int width, int height, bool main, MediaBufferWorkspace workspace, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             int cacheBits = 0;

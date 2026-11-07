@@ -16,6 +16,7 @@ namespace Mediana.Codecs.Jpeg
         private readonly bool[] lockedQuantization = new bool[4];
         private readonly JpegHuffmanTable?[] huffman = new JpegHuffmanTable[8];
         private JpegComponent[] components = [];
+        private WritableMediaBuffer? sampleStorage;
         private readonly JpegMetadata metadata = new();
         private int restartInterval;
         private byte frameMarker;
@@ -81,7 +82,7 @@ namespace Mediana.Codecs.Jpeg
                     {
                         foreach (JpegComponent component in components)
                         {
-                            component.Progression!.Reconstruct(component, GetQuantization(component), allocator, token);
+                            component.Progression!.Reconstruct(component, GetQuantization(component), token);
                         }
                     }
                     return;
@@ -163,10 +164,12 @@ namespace Mediana.Codecs.Jpeg
 
         internal void LockQuantization(JpegComponent component) => lockedQuantization[component.Quantization] = true;
 
-        internal JpegSampleLayout TakeSamples()
+        internal JpegSampleLayout TakeSamples(out MediaBuffer storage)
         {
             JpegSampleLayout result = new((Width + reduction - 1) / reduction, (Height + reduction - 1) / reduction,
                 MaximumHorizontal, MaximumVertical, components);
+            storage = (sampleStorage ?? throw new InvalidOperationException("The JPEG has no decoded sample storage.")).Publish();
+            sampleStorage = null;
             components = [];
             return result;
         }
@@ -175,9 +178,10 @@ namespace Mediana.Codecs.Jpeg
         {
             foreach (JpegComponent? component in components)
             {
-                component?.Samples?.Dispose();
                 component?.Progression?.Dispose();
             }
+            sampleStorage?.Dispose();
+            sampleStorage = null;
         }
 
         private void ReadFrame(byte marker, ReadOnlySpan<byte> segment, MediaBufferAllocator? allocator)
@@ -235,6 +239,7 @@ namespace Mediana.Codecs.Jpeg
             frameMarker = marker;
             int mcuColumns = (Width + MaximumHorizontal * 8 - 1) / (MaximumHorizontal * 8);
             int mcuRows = (Height + MaximumVertical * 8 - 1) / (MaximumVertical * 8);
+            int sampleBytes = 0;
             foreach (JpegComponent component in components)
             {
                 component.Width = (Width * component.Horizontal + MaximumHorizontal - 1) / MaximumHorizontal;
@@ -245,13 +250,20 @@ namespace Mediana.Codecs.Jpeg
                 component.SampleHeight = (component.Height + reduction - 1) / reduction;
                 component.SampleStride = component.Stride / reduction;
                 component.SamplePaddedHeight = component.PaddedHeight / reduction;
+                component.SampleOffset = sampleBytes;
+                sampleBytes = checked(sampleBytes + component.SampleStride * component.SamplePaddedHeight);
                 if (Progressive)
                 {
                     component.Progression = new(allocator, checked(component.Stride * component.PaddedHeight));
                 }
-                else if (allocator is not null)
+            }
+            if (allocator is not null)
+            {
+                sampleStorage = allocator.Allocate(sampleBytes);
+                foreach (JpegComponent component in components)
                 {
-                    component.Samples = allocator.Allocate(checked(component.SampleStride * component.SamplePaddedHeight));
+                    component.Samples = sampleStorage.Memory.Slice(component.SampleOffset,
+                        checked(component.SampleStride * component.SamplePaddedHeight));
                 }
             }
         }

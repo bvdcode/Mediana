@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />
     <ProjectReference Include="../Mediana.Formats/Mediana.Formats.csproj" />
     <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
     <InternalsVisibleTo Include="Mediana.Tests" />

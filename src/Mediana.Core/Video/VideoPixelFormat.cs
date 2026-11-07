@@ -23,9 +23,10 @@ namespace Mediana.Core.Video
         /// <summary>Red, green, blue and straight (unassociated) alpha bytes.</summary>
         public static VideoPixelFormat Rgba32 { get; } = new("rgba32", new VideoPlaneFormat(1, 1, 4));
         public static VideoPixelFormat Yuv420P8 { get; } =
-            new("yuv420p8", new VideoPlaneFormat(1, 1, 1), new VideoPlaneFormat(2, 2, 1), new VideoPlaneFormat(2, 2, 1));
+            new PlanarVideoPixelFormat("yuv420p8", PlanarColorModel.Yuv, 8, 2, 2);
         /// <summary>Planar Y/Cb/Cr with 4:2:0 subsampling. Samples occupy the low ten bits of native-endian unsigned 16-bit words.</summary>
         public static VideoPixelFormat Yuv420P10 { get; } =
-            new("yuv420p10", new VideoPlaneFormat(1, 1, 2), new VideoPlaneFormat(2, 2, 2), new VideoPlaneFormat(2, 2, 2));
+            new PlanarVideoPixelFormat("yuv420p10", PlanarColorModel.Yuv, 10, 2, 2);
+        public static VideoPixelFormat Yuv420P12 { get; } = new PlanarVideoPixelFormat("yuv420p12", PlanarColorModel.Yuv, 12, 2, 2);
     }
 }

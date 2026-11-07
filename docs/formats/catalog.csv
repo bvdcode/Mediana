@@ -1,15 +1,15 @@
 id,section,name,variant,kind,extensions,tier,specs,notes
-mp4-classic,Containers and packaging,MP4 / ISO BMFF,Non-fragmented files,container,.mp4 .m4a .m4v,A,iso-bmff,Current reader maps AVC/AAC/MP3; other codec mappings remain separate work.
+mp4-classic,Containers and packaging,MP4 / ISO BMFF,Non-fragmented files,container,.mp4 .m4a .m4v,A,iso-bmff,Current reader maps AVC/HEVC/MPEG-4 Visual/AAC/MP3; other codec mappings remain separate work.
 mp4-fragmented,Containers and packaging,MP4 / ISO BMFF,Fragmented files,container,.mp4 .m4s,A,iso-bmff,"Includes initialization segments, fragment timing and incremental input."
 mov,Containers and packaging,QuickTime,Movie files,container,.mov .qt,A,quicktime,Current MP4-family reader covers a subset; legacy QuickTime sample descriptions remain open.
 3gp,Containers and packaging,3GPP,3GP / 3G2 files,container,.3gp .3g2,B,iso-bmff;discovery,Validate their brands and track mappings independently of MP4.
-matroska-indexed,Containers and packaging,Matroska,Indexed file presentation,container,.mkv .mka .mks,A,matroska,"Current packet mappings are AVC/AAC/MP3, not all Matroska codecs."
+matroska-indexed,Containers and packaging,Matroska,Indexed file presentation,container,.mkv .mka .mks,A,matroska,Indexed AVC/HEVC/VP8/VP9/MJPEG/AAC/MP3 mappings; other codecs remain stored representations.
 matroska-live,Containers and packaging,Matroska,Live / unknown-size stream,container,.mkv,B,matroska,
 webm-file,Containers and packaging,WebM,File presentation,container,.webm,A,webm,Codec mappings and track constraints must conform to WebM.
 webm-live,Containers and packaging,WebM,Incremental / live presentation,container,.webm,B,webm,"Track metadata, unknown sizes and incremental clusters need separate fixtures."
 ogg,Containers and packaging,Ogg,Single and multiplexed logical streams,container,.ogg .oga .ogv .opus .spx,A,ogg,"Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate."
 ogg-chained,Containers and packaging,Ogg,Chained logical streams,container,.ogg .opus,B,ogg,Current reader keeps chained links separately selectable; selecting a link does not concatenate links.
-avi,Containers and packaging,AVI,RIFF AVI 1.0,container,.avi,B,riff,
+avi,Containers and packaging,AVI,RIFF AVI 1.0,container,.avi,B,riff,Indexed MJPEG/MPEG-4 Visual/PCM input; declared packed DivX/Xvid normalizes into complete VOPs. [API](../avi.md).
 avi-opendml,Containers and packaging,AVI,OpenDML / AVI 2.0,container,.avi,B,riff;discovery,
 asf,Containers and packaging,ASF,File and streaming structure,container,.asf .wmv .wma,B,asf,
 flv,Containers and packaging,FLV,Classic file structure,container,.flv,B,flv,
@@ -195,11 +195,11 @@ hevc-multiview,Video codecs and substantial profiles,H.265 / HEVC,Multiview / 3D
 vvc-main10,Video codecs and substantial profiles,H.266 / VVC,Main 10,video-codec,.h266 .vvc,B,h266,
 vvc-main444,Video codecs and substantial profiles,H.266 / VVC,Main 10 4:4:4,video-codec,.h266 .vvc,C,h266,
 vvc-multilayer,Video codecs and substantial profiles,H.266 / VVC,Multilayer and still-picture profiles,video-codec,.h266 .vvc,C,h266,Split the selected profiles before implementation.
-vp8,Video codecs and substantial profiles,VP8,Video bitstream,video-codec,.ivf,A,webm,WebP lossy image coding shares tools but has a separate file/alpha/animation contract.
-vp9-p0,Video codecs and substantial profiles,VP9,"Profile 0, 8-bit 4:2:0",video-codec,.ivf,A,webm,
-vp9-p1,Video codecs and substantial profiles,VP9,"Profile 1, 8-bit other sampling",video-codec,.ivf,B,webm,
-vp9-p2,Video codecs and substantial profiles,VP9,"Profile 2, 10/12-bit 4:2:0",video-codec,.ivf,A,webm,
-vp9-p3,Video codecs and substantial profiles,VP9,"Profile 3, 10/12-bit other sampling",video-codec,.ivf,B,webm,
+vp8,Video codecs and substantial profiles,VP8,Video bitstream,video-codec,.ivf,A,webm,Managed key/inter decoding shares VP8 kernels with WebP; WebM/Matroska mapping and direct coded packets are supported; IVF container parsing remains open.
+vp9-p0,Video codecs and substantial profiles,VP9,"Profile 0, 8-bit 4:2:0",video-codec,.ivf,A,webm,"Managed profile 0 video decoding, references, tiles and WebM/Matroska mapping; IVF framing remains separate. [API](../vp9.md)."
+vp9-p1,Video codecs and substantial profiles,VP9,"Profile 1, 8-bit other sampling",video-codec,.ivf,B,webm,Managed profile 1 decoding with native 4:2:2/4:4:0/4:4:4/GBR sampling. [API](../vp9.md).
+vp9-p2,Video codecs and substantial profiles,VP9,"Profile 2, 10/12-bit 4:2:0",video-codec,.ivf,A,webm,Managed profile 2 decoding with native 10/12-bit planes. [API](../vp9.md).
+vp9-p3,Video codecs and substantial profiles,VP9,"Profile 3, 10/12-bit other sampling",video-codec,.ivf,B,webm,Managed profile 3 decoding with native high precision and sampling. [API](../vp9.md).
 av1-main,Video codecs and substantial profiles,AV1,Main profile,video-codec,.obu .ivf,A,av1,
 av1-high,Video codecs and substantial profiles,AV1,High profile,video-codec,.obu .ivf,B,av1,
 av1-professional,Video codecs and substantial profiles,AV1,Professional profile,video-codec,.obu .ivf,B,av1,
@@ -208,12 +208,12 @@ av2,Video codecs and substantial profiles,AV2,Versioned AOM bitstream,video-code
 mpeg1-video,Video codecs and substantial profiles,MPEG-1 Video,ISO/IEC 11172-2,video-codec,.m1v .mpg,B,mpeg-video,
 mpeg2-main,Video codecs and substantial profiles,MPEG-2 Video,Simple/Main profiles,video-codec,.m2v .mpg,B,mpeg-video,
 mpeg2-high,Video codecs and substantial profiles,MPEG-2 Video,4:2:2 / High / scalable profiles,video-codec,.m2v,C,mpeg-video,
-mpeg4-simple,Video codecs and substantial profiles,MPEG-4 Visual,Simple profile,video-codec,.m4v,B,mpeg-video,
-mpeg4-asp,Video codecs and substantial profiles,MPEG-4 Visual,Advanced Simple profile,video-codec,.m4v,B,mpeg-video,Includes familiar DivX/Xvid-era interoperability; product names are not new standards.
+mpeg4-simple,Video codecs and substantial profiles,MPEG-4 Visual,Simple profile,video-codec,.m4v,B,mpeg-video,"Managed progressive I/P decoding, spatial prediction, resynchronization and AVI/MP4 mappings. [API](../mpeg4-visual.md)."
+mpeg4-asp,Video codecs and substantial profiles,MPEG-4 Visual,Advanced Simple profile,video-codec,.m4v,B,mpeg-video,"Managed progressive I/P/B and quarter-pixel motion; interlace, sprites and partitioned layers remain separate tools. [API](../mpeg4-visual.md)."
 h261,Video codecs and substantial profiles,H.261,Video coding,video-codec,.h261,C,itu-video,
 h263,Video codecs and substantial profiles,H.263,Baseline,video-codec,.h263,C,itu-video,
 h263-extensions,Video codecs and substantial profiles,H.263,Annex extensions / H.263+,video-codec,.h263,C,itu-video,
-theora,Video codecs and substantial profiles,Theora,Video coding,video-codec,.ogv,B,theora,
+theora,Video codecs and substantial profiles,Theora,Video coding,video-codec,.ogv,B,theora,"Managed Theora 3.2, native 4:2:0/4:2:2/4:4:4 planes and indexed Ogg mapping. [API](../theora.md)."
 vc1,Video codecs and substantial profiles,VC-1,Simple/Main/Advanced profiles,video-codec,,C,discovery,Select the SMPTE 421M revision and transport mappings before implementation.
 wmv-legacy,Video codecs and substantial profiles,Windows Media Video,Earlier WMV revisions,video-codec,,C,discovery,Split WMV1/WMV2 and concrete bitstream revisions when scoped.
 vp6,Video codecs and substantial profiles,VP6,Legacy web video,video-codec,,C,discovery,
@@ -377,7 +377,7 @@ ebu-stl,"Subtitles, captions and timed graphics",EBU STL,Broadcast subtitle exch
 hls-ts-vod,Streaming presentations and transport protocols,HLS,VOD MPEG-TS media playlists,streaming,.m3u8,A,hls,Current writer supports stream copy and supported AVC/AAC encoding; no general HLS reader.
 hls-master,Streaming presentations and transport protocols,HLS,Master playlists and rendition groups,streaming,.m3u8,A,hls,Current writer prepares supported video/audio variants and measured transport output.
 hls-live,Streaming presentations and transport protocols,HLS,Live/event playlists and discontinuities,streaming,.m3u8,A,hls,
-hls-fmp4,Streaming presentations and transport protocols,HLS,Fragmented MP4 segments,streaming,.m3u8 .m4s,A,hls;iso-bmff,
+hls-fmp4,Streaming presentations and transport protocols,HLS,Fragmented MP4 segments,streaming,.m3u8 .m4s,A,hls;iso-bmff,Indexed AVC/AAC copy and independently encoded AVC/AAC intervals. [API](../hls-on-demand.md).
 hls-lowlatency,Streaming presentations and transport protocols,HLS,Low-latency parts and blocking reload,streaming,.m3u8,B,hls,
 hls-encryption,Streaming presentations and transport protocols,HLS,Declared encryption and key handling,streaming,.m3u8,B,hls,Encryption is separate from codec support and external rights-management systems.
 dash-static,Streaming presentations and transport protocols,MPEG-DASH,Static MPD and segment addressing,streaming,.mpd,B,dash,

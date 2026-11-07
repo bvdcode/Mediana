@@ -21,6 +21,11 @@ source-color decoding and ICC-aware CLI preview have separate rows. Complete
 The mesh comparison explicitly uses warmed JIT operation means; other rows use
 fresh-process timings. Results describe the recorded source revisions.
 
+Additional complete-video decode reports cover [VP8](../vp8.md#complete-decode-performance),
+[VP9](../vp9.md#complete-decode-performance), [Theora](../theora.md#complete-decode-performance)
+and [MPEG-4 Visual](results/2026-11-07-mpeg4/README.md). These are separate
+source revisions and workloads from the register below.
+
 ## Workloads
 
 <!-- comparisons:start -->

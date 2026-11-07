@@ -1,0 +1,385 @@
+{
+  "operation": "Complete indexed AVI open, native YUV420 decode, per-picture SHA-256, framehash output and disposal",
+  "before_revision": "69b8b31",
+  "after_revision": "41308e7",
+  "comparison_driver_revision": "208a2e4",
+  "cpu": "Intel Core i5-12450H",
+  "affinity": "same logical CPU 2",
+  "decoder_threads": 1,
+  "sdk": "10.0.403",
+  "runtime": "10.0.14",
+  "reference": "FFmpeg 6.1.1-3ubuntu5",
+  "runtime_options": {
+    "DOTNET_TieredCompilation": "0",
+    "DOTNET_PROCESSOR_COUNT": "1"
+  },
+  "cache_conditions": "Fresh processes; operating-system file cache was not cleared; three alternating before/after pairs per input; one FFmpeg run after each pair",
+  "cpu_measurement": "Mediana operation process CPU delta; FFmpeg per-child wait4 user plus system CPU",
+  "memory_measurement": "Mediana PeakWorkingSet64; FFmpeg per-child wait4 maximum RSS; total managed allocation uses GC.GetTotalAllocatedBytes delta",
+  "input_generation": {
+    "base": "testsrc2, 24 pictures/s, native MPEG-4 encoder, one thread, quality4, GOP48, up to2Bpictures, four-vector motion",
+    "720p-10s": "1280x720,10 seconds",
+    "720p-60s": "1280x720,60 independent generated seconds",
+    "noise": "640x360,4 seconds, noise=alls=50:allf=t+u"
+  },
+  "assembly_sha256": {
+    "before_codec": "45611352188d9658bd1309a35dfad58d59678069a3bfd7c0d814425e90dbd873",
+    "after_codec": "ab0b002dead7274f45b691519b427efd04d752c367f5ab103eb0ef4f01715715"
+  },
+  "input_sha256": {
+    "720p-10s": "486128555654c936431dfbb26c7a52a6bdb94f624c6455d1db7496731350545b",
+    "720p-60s": "654d9b4b772ad36bb563b9b77a6011ed978fc7d7ca052e266f59c092f8b7e326",
+    "noise": "4fdc47adfd274f4e5b4aa5aa9a0c11891926384ccf2c45a490ca63b13d91a469"
+  },
+  "all_before_after_outputs_identical": true,
+  "measurements": [
+    {
+      "case": "720p-10s",
+      "mode": "before",
+      "repeat": 0,
+      "pictures": 240.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1314.258,
+      "cpu-ms": 1314.221,
+      "allocated-bytes": 10319248.0,
+      "peak-rss-bytes": 61612032.0
+    },
+    {
+      "case": "720p-10s",
+      "mode": "after",
+      "repeat": 0,
+      "pictures": 240.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1044.072,
+      "cpu-ms": 1044.022,
+      "allocated-bytes": 10323096.0,
+      "peak-rss-bytes": 61628416.0
+    },
+    {
+      "case": "720p-10s",
+      "mode": "ffmpeg",
+      "repeat": 0,
+      "cpu-ms": 1170.078,
+      "elapsed-ms": 1203.939156839624,
+      "peak-rss-bytes": 75214848
+    },
+    {
+      "case": "720p-10s",
+      "mode": "after",
+      "repeat": 1,
+      "pictures": 240.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1105.688,
+      "cpu-ms": 1105.57,
+      "allocated-bytes": 10322440.0,
+      "peak-rss-bytes": 61571072.0
+    },
+    {
+      "case": "720p-10s",
+      "mode": "before",
+      "repeat": 1,
+      "pictures": 240.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1148.778,
+      "cpu-ms": 1148.735,
+      "allocated-bytes": 10322232.0,
+      "peak-rss-bytes": 61480960.0
+    },
+    {
+      "case": "720p-10s",
+      "mode": "ffmpeg",
+      "repeat": 1,
+      "cpu-ms": 1117.923,
+      "elapsed-ms": 1122.042120900005,
+      "peak-rss-bytes": 74776576
+    },
+    {
+      "case": "720p-10s",
+      "mode": "before",
+      "repeat": 2,
+      "pictures": 240.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1126.008,
+      "cpu-ms": 1125.953,
+      "allocated-bytes": 12519464.0,
+      "peak-rss-bytes": 63168512.0
+    },
+    {
+      "case": "720p-10s",
+      "mode": "after",
+      "repeat": 2,
+      "pictures": 240.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1031.306,
+      "cpu-ms": 1031.231,
+      "allocated-bytes": 12520024.0,
+      "peak-rss-bytes": 63619072.0
+    },
+    {
+      "case": "720p-10s",
+      "mode": "ffmpeg",
+      "repeat": 2,
+      "cpu-ms": 1082.342,
+      "elapsed-ms": 1083.164568990469,
+      "peak-rss-bytes": 74788864
+    },
+    {
+      "case": "720p-60s",
+      "mode": "before",
+      "repeat": 0,
+      "pictures": 1440.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 6290.974,
+      "cpu-ms": 5620.576,
+      "allocated-bytes": 20497824.0,
+      "peak-rss-bytes": 69107712.0
+    },
+    {
+      "case": "720p-60s",
+      "mode": "after",
+      "repeat": 0,
+      "pictures": 1440.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 5431.576,
+      "cpu-ms": 4979.497,
+      "allocated-bytes": 20498008.0,
+      "peak-rss-bytes": 69341184.0
+    },
+    {
+      "case": "720p-60s",
+      "mode": "ffmpeg",
+      "repeat": 0,
+      "cpu-ms": 6867.63,
+      "elapsed-ms": 6868.62344504334,
+      "peak-rss-bytes": 74600448
+    },
+    {
+      "case": "720p-60s",
+      "mode": "after",
+      "repeat": 1,
+      "pictures": 1440.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 5153.237,
+      "cpu-ms": 5153.035,
+      "allocated-bytes": 20506688.0,
+      "peak-rss-bytes": 69283840.0
+    },
+    {
+      "case": "720p-60s",
+      "mode": "before",
+      "repeat": 1,
+      "pictures": 1440.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 5657.755,
+      "cpu-ms": 5657.52,
+      "allocated-bytes": 20518904.0,
+      "peak-rss-bytes": 68980736.0
+    },
+    {
+      "case": "720p-60s",
+      "mode": "ffmpeg",
+      "repeat": 1,
+      "cpu-ms": 6367.4220000000005,
+      "elapsed-ms": 6368.409754009917,
+      "peak-rss-bytes": 74600448
+    },
+    {
+      "case": "720p-60s",
+      "mode": "before",
+      "repeat": 2,
+      "pictures": 1440.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 6620.132,
+      "cpu-ms": 5588.87,
+      "allocated-bytes": 20509368.0,
+      "peak-rss-bytes": 69144576.0
+    },
+    {
+      "case": "720p-60s",
+      "mode": "after",
+      "repeat": 2,
+      "pictures": 1440.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 5292.993,
+      "cpu-ms": 5118.117,
+      "allocated-bytes": 20506696.0,
+      "peak-rss-bytes": 69021696.0
+    },
+    {
+      "case": "720p-60s",
+      "mode": "ffmpeg",
+      "repeat": 2,
+      "cpu-ms": 6524.835999999999,
+      "elapsed-ms": 6525.771497981623,
+      "peak-rss-bytes": 74989568
+    },
+    {
+      "case": "noise",
+      "mode": "before",
+      "repeat": 0,
+      "pictures": 96.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1054.915,
+      "cpu-ms": 1054.886,
+      "allocated-bytes": 3240600.0,
+      "peak-rss-bytes": 56303616.0
+    },
+    {
+      "case": "noise",
+      "mode": "after",
+      "repeat": 0,
+      "pictures": 96.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 915.374,
+      "cpu-ms": 915.339,
+      "allocated-bytes": 3502400.0,
+      "peak-rss-bytes": 57061376.0
+    },
+    {
+      "case": "noise",
+      "mode": "ffmpeg",
+      "repeat": 0,
+      "cpu-ms": 277.45599999999996,
+      "elapsed-ms": 278.1365120317787,
+      "peak-rss-bytes": 59469824
+    },
+    {
+      "case": "noise",
+      "mode": "after",
+      "repeat": 1,
+      "pictures": 96.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 883.019,
+      "cpu-ms": 883.004,
+      "allocated-bytes": 3503424.0,
+      "peak-rss-bytes": 57049088.0
+    },
+    {
+      "case": "noise",
+      "mode": "before",
+      "repeat": 1,
+      "pictures": 96.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1203.487,
+      "cpu-ms": 1202.985,
+      "allocated-bytes": 3240600.0,
+      "peak-rss-bytes": 56655872.0
+    },
+    {
+      "case": "noise",
+      "mode": "ffmpeg",
+      "repeat": 1,
+      "cpu-ms": 280.209,
+      "elapsed-ms": 281.15715994499624,
+      "peak-rss-bytes": 59863040
+    },
+    {
+      "case": "noise",
+      "mode": "before",
+      "repeat": 2,
+      "pictures": 96.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1078.816,
+      "cpu-ms": 1078.785,
+      "allocated-bytes": 4027928.0,
+      "peak-rss-bytes": 57176064.0
+    },
+    {
+      "case": "noise",
+      "mode": "after",
+      "repeat": 2,
+      "pictures": 96.0,
+      "retained_bytes": 0.0,
+      "elapsed-ms": 1076.78,
+      "cpu-ms": 1076.76,
+      "allocated-bytes": 3240232.0,
+      "peak-rss-bytes": 56815616.0
+    },
+    {
+      "case": "noise",
+      "mode": "ffmpeg",
+      "repeat": 2,
+      "cpu-ms": 305.643,
+      "elapsed-ms": 306.4159059431404,
+      "peak-rss-bytes": 59994112
+    }
+  ],
+  "quality_cases": [
+    {
+      "case": "720p-10s",
+      "frames": 240,
+      "width": 1280,
+      "height": 720,
+      "samples": 331776000,
+      "different_samples": 1297679,
+      "sum_squared_error": 1315737,
+      "max_absolute_error": 3,
+      "psnr_db": 72.1475624,
+      "worst_psnr_db": 69.94481837,
+      "worst_psnr_frame": 91,
+      "worst_maximum_frame": 37,
+      "retained_bytes": 0,
+      "input_sha256": "486128555654c936431dfbb26c7a52a6bdb94f624c6455d1db7496731350545b"
+    },
+    {
+      "case": "720p-60s",
+      "frames": 1440,
+      "width": 1280,
+      "height": 720,
+      "samples": 1990656000,
+      "different_samples": 7907629,
+      "sum_squared_error": 8022571,
+      "max_absolute_error": 3,
+      "psnr_db": 72.077630088,
+      "worst_psnr_db": 69.775017089,
+      "worst_psnr_frame": 475,
+      "worst_maximum_frame": 37,
+      "retained_bytes": 0,
+      "input_sha256": "654d9b4b772ad36bb563b9b77a6011ed978fc7d7ca052e266f59c092f8b7e326"
+    },
+    {
+      "case": "noise",
+      "frames": 96,
+      "width": 640,
+      "height": 360,
+      "samples": 33177600,
+      "different_samples": 970505,
+      "sum_squared_error": 997967,
+      "max_absolute_error": 13,
+      "psnr_db": 63.348091471,
+      "worst_psnr_db": 61.663102931,
+      "worst_psnr_frame": 43,
+      "worst_maximum_frame": 27,
+      "retained_bytes": 0,
+      "input_sha256": "4fdc47adfd274f4e5b4aa5aa9a0c11891926384ccf2c45a490ca63b13d91a469"
+    }
+  ],
+  "quality_noise_xvid": {
+    "version": "Xvid 1.3.7; Ubuntu libxvidcore4 2:1.3.7-1build1",
+    "source": "https://downloads.xvid.com/downloads/xvidcore-1.3.7.tar.gz",
+    "binary_sha256": "73585606bd646666fd85b5c34ce8df4d3e637d937812f5a51c45554795394124",
+    "method": "Native xvid_decore, one decoding thread, I420 output, no postprocessing. Original compressed VOP stream extracted without transcoding; complete displayed sequence, exact sample/frame counts and EOF verified.",
+    "original_mediana": {
+      "case": "noise",
+      "frames": 96,
+      "width": 640,
+      "height": 360,
+      "samples": 33177600,
+      "different_samples": 1065351,
+      "sum_squared_error": 1082339,
+      "max_absolute_error": 3,
+      "psnr_db": 62.9956202,
+      "worst_psnr_db": 61.618270316,
+      "worst_psnr_frame": 43,
+      "worst_maximum_frame": 24,
+      "retained_bytes": 0
+    },
+    "primary_sources": [
+      "https://github.com/FFmpeg/FFmpeg/blob/n7.1/libavcodec/mpegvideo_motion.c",
+      "https://github.com/FFmpeg/FFmpeg/blob/n7.1/libavcodec/mpegvideo.c",
+      "https://github.com/FFmpeg/FFmpeg/blob/n7.1/libavcodec/mpeg4videodec.c",
+      "Xvid 1.3.7 src/image/image.c: edge_set references ISO/IEC 14496-2 clause 7.6.4 and pads to macroblock dimensions; src/decoder.c validates vectors in the padded macroblock domain."
+    ],
+    "observation": "Complete noise sequence differs from FFmpeg by at most 13 sample levels and from independent Xvid by at most 3. Reference padding uses macroblock boundaries under ISO/IEC 14496-2 clause 7.6.4. Agreement with one decoder alone does not establish bit-exact conformance."
+  }
+}

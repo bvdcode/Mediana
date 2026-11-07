@@ -44,9 +44,7 @@ namespace Mediana
                 }
                 if (options.Request.PageIndex != 0)
                 { throw new NotSupportedException("Video input does not support document page selection."); }
-                video = options.StreamIndex is int index
-                    ? await OpenVideoAsync(replay, index, options.Media, cancellationToken).ConfigureAwait(false)
-                    : await OpenVideoAsync(replay, options.Media, cancellationToken).ConfigureAwait(false);
+                video = await OpenVideoAsync(replay, allocator, options.Media, options.StreamIndex, cancellationToken).ConfigureAwait(false);
                 if (options.Request.Time is MediaTimestamp start && start.Value != 0)
                 { await video.SeekAsync(start, cancellationToken).ConfigureAwait(false); }
                 VisualSession session = new VideoVisualSession(video, replay, options.Request.Time);

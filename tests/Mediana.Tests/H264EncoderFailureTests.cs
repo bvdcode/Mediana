@@ -110,18 +110,98 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Theory]
+        [InlineData(1, 200)]
+        [InlineData(200, 1)]
+        public void ShortDisplayExtentsArePreservedAtValidPictureCadence(int firstDuration, int lastDuration)
+        {
+            MediaBufferAllocator allocator = new(65536);
+            VideoFormat format = H264EncoderTests.Format(32, 32);
+            using VideoFrame input = H264EncoderTests.Frame(format, allocator, 0);
+            using VideoFrame first = input.WithTiming(new(0, new(1, 1000)), new(firstDuration, new(1, 1000)));
+            using VideoFrame last = input.WithTiming(new(200, new(1, 1000)), new(lastDuration, new(1, 1000)));
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
+            Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(first));
+            using MediaPacket initial = encoder.Receive().Value!;
+            Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(last));
+            using MediaPacket final = encoder.Receive().Value!;
+            Assert.Equal(first.Timestamp, initial.PresentationTime);
+            Assert.Equal(first.Timestamp, initial.DecodeTime);
+            Assert.Equal(first.Duration, initial.Duration);
+            Assert.Equal(last.Timestamp, final.PresentationTime);
+            Assert.Equal(last.Timestamp, final.DecodeTime);
+            Assert.Equal(last.Duration, final.Duration);
+            encoder.CompleteInput();
+            Assert.Equal(CodecOutputStatus.EndOfStream, encoder.Receive().Status);
+            initial.Dispose();
+            final.Dispose();
+            input.Dispose();
+            first.Dispose();
+            last.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(2, 2, 172, 1, true)]
+        [InlineData(2, 2, 173, 1, false)]
+        [InlineData(640, 576, 245760, 1440, true)]
+        [InlineData(640, 576, 245760, 1439, false)]
+        public void ConsecutivePicturesRespectTheLevelCadenceLimits(int width, int height, int ticksPerSecond,
+            int delta, bool accepted)
+        {
+            MediaBufferAllocator allocator = new(16 * 1024 * 1024);
+            VideoFormat format = H264EncoderTests.Format(width, height);
+            TimeBase clock = new(1, ticksPerSecond);
+            using VideoFrame input = H264EncoderTests.Frame(format, allocator, 0);
+            using VideoFrame first = input.WithTiming(new(0, clock), new(1, clock));
+            using VideoFrame next = input.WithTiming(new(delta, clock), new(1, clock));
+            using H264Encoder encoder = H264Encoder.Create(format, clock, allocator,
+                new() { KeyFrameInterval = TimeSpan.Zero });
+            Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(first));
+            using MediaPacket initial = encoder.Receive().Value!;
+            initial.Dispose();
+            if (accepted)
+            {
+                Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(next));
+                using MediaPacket packet = encoder.Receive().Value!;
+                Assert.Equal(next.Timestamp, packet.PresentationTime);
+            }
+            else
+            {
+                Assert.Throws<NotSupportedException>(() => encoder.TrySend(next));
+                Assert.Throws<InvalidOperationException>(() => encoder.Receive());
+            }
+            encoder.Reset();
+            Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(first));
+            using MediaPacket replay = encoder.Receive().Value!;
+            encoder.Dispose();
+            replay.Dispose();
+            input.Dispose();
+            first.Dispose();
+            next.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         [Fact]
-        public void SmallPicturesStillRespectTheLevelMaximumFrameRate()
+        public void LargeTimestampGapsAndClockNumeratorsPreserveCadenceValidation()
         {
             MediaBufferAllocator allocator = new(65536);
             VideoFormat format = H264EncoderTests.Format(2, 2);
+            TimeBase clock = new(int.MaxValue, int.MaxValue - 1);
             using VideoFrame input = H264EncoderTests.Frame(format, allocator, 0);
-            using WritableMediaBuffer storage = allocator.Allocate(input.Data.Length);
-            input.Data.Span.CopyTo(storage.Memory.Span);
-            using MediaBuffer buffer = storage.Publish();
-            using VideoFrame fast = new(format, buffer, input.Planes, input.Timestamp, new(1, new(1, 1000)));
-            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
-            Assert.Throws<NotSupportedException>(() => encoder.TrySend(fast));
+            using H264Encoder encoder = H264Encoder.Create(format, clock, allocator);
+            long[] timestamps = [long.MinValue, long.MaxValue - 1];
+            foreach (long timestamp in timestamps)
+            {
+                using VideoFrame frame = input.WithTiming(new(timestamp, clock), new(1, clock));
+                Assert.Equal(CodecInputStatus.Accepted, encoder.TrySend(frame));
+                using MediaPacket packet = encoder.Receive().Value!;
+                Assert.Equal(frame.Timestamp, packet.PresentationTime);
+                Assert.Equal(frame.Duration, packet.Duration);
+            }
+            encoder.Dispose();
+            input.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
         }
     }
 }

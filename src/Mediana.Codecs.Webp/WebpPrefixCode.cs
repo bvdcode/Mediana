@@ -3,6 +3,8 @@
 
 using System.Runtime.InteropServices;
 
+using Mediana.Core.Memory;
+
 namespace Mediana.Codecs.Webp
 {
     internal class WebpPrefixCode
@@ -10,7 +12,7 @@ namespace Mediana.Codecs.Webp
         private readonly Memory<byte> storage;
         private readonly int only = -1;
         private static ReadOnlySpan<int> LengthOrder => [17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        private WebpPrefixCode(ReadOnlySpan<byte> lengths, WebpDecodeWorkspace workspace)
+        private WebpPrefixCode(ReadOnlySpan<byte> lengths, MediaBufferWorkspace workspace)
         {
             storage = workspace.Allocate((48 + 256 + lengths.Length) * sizeof(int));
             Span<int> data = MemoryMarshal.Cast<byte, int>(storage.Span);
@@ -65,7 +67,7 @@ namespace Mediana.Codecs.Webp
             }
             throw new InvalidDataException("Invalid VP8L prefix symbol.");
         }
-        internal static WebpPrefixCode Read(ref WebpBitReader input, int alphabet, WebpDecodeWorkspace workspace)
+        internal static WebpPrefixCode Read(ref WebpBitReader input, int alphabet, MediaBufferWorkspace workspace)
         {
             Span<byte> lengths = stackalloc byte[alphabet]; lengths.Clear();
             if (input.Read(1) != 0)

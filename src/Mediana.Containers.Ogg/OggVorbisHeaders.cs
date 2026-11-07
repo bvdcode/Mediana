@@ -54,17 +54,7 @@ namespace Mediana.Containers.Ogg
                     break;
                 case 2:
                     setup = VorbisSetupInfo.Read(identification, packet.Data.Span, token);
-                    configuration = new byte[checked(1 + first.Length / 255 + 1 + comments.Length / 255 + 1 +
-                        first.Length + comments.Length + packet.Data.Length)];
-                    configuration[0] = 2;
-                    int position = 1;
-                    WriteLacing(first.Length, configuration, ref position);
-                    WriteLacing(comments.Length, configuration, ref position);
-                    first.CopyTo(configuration, position);
-                    position += first.Length;
-                    comments.CopyTo(configuration, position);
-                    position += comments.Length;
-                    packet.Data.CopyTo(configuration.AsMemory(position));
+                    configuration = XiphLacedHeaders.Write(first, comments, packet.Data.Span);
                     comments = [];
                     break;
                 default:
@@ -90,10 +80,5 @@ namespace Mediana.Containers.Ogg
                 new(CodecId, "ModeCount", setup!.ModeCount)]);
         }
 
-        private static void WriteLacing(int size, Span<byte> target, ref int position)
-        {
-            while (size >= 255) { target[position++] = 255; size -= 255; }
-            target[position++] = (byte)size;
-        }
     }
 }

@@ -5,8 +5,18 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/Vp8ContainerTestInput.cs" Link="Vp8ContainerTestInput.cs" />
+    <Compile Include="../Shared/VpxHlsTestInput.cs" Link="VpxHlsTestInput.cs" />
+    <Compile Include="../Shared/JpegSampleCursorTestInput.cs" Link="JpegSampleCursorTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />
+    <None Include="Data/Vp8/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Vp9.Tests/Data/*.webm" Link="Data/Vp9/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Vp9.Tests/Data/*.sha256" Link="Data/Vp9/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Data/Mjpeg/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageExifOrientationTestInput.cs" Link="ImageExifOrientationTestInput.cs" />
     <Compile Include="../Shared/MediaExportTestInput.cs" Link="MediaExportTestInput.cs" />
+    <Compile Include="../Shared/VideoTranscodeTestInput.cs" Link="VideoTranscodeTestInput.cs" />
+    <Compile Include="../Shared/YuvFramePreparationTestInput.cs" Link="YuvFramePreparationTestInput.cs" />
     <Compile Include="../Shared/DocumentPackageTestData.cs" Link="DocumentPackageTestData.cs" />
     <Compile Include="../Shared/PresentationTestData.cs" Link="PresentationTestData.cs" />
     <None Include="../Mediana.Containers.Ogg.Tests/Data/*.ogg" Link="Data/Ogg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

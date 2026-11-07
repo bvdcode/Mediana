@@ -8,6 +8,7 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Execution;
+using Mediana.Processing;
 
 namespace Mediana.Streaming.Hls
 {
@@ -46,6 +47,7 @@ namespace Mediana.Streaming.Hls
             VideoFrame? current = input.Current;
             try
             {
+                using VideoPreparationSequence preparation = new(current.Format, stream.DisplayMatrix!.Value, allocator, options.FramePreparation);
                 if (options.SeparateAudio)
                 {
                     for (int profile = 0; profile < audio!.ProfileCount; profile++)
@@ -57,7 +59,7 @@ namespace Mediana.Streaming.Hls
                 for (int index = 0; index < profiles.Length; index++)
                 {
                     HlsVideoProfile profile = profiles[index];
-                    HlsVideoRendition rendition = HlsVideoRendition.Create(current.Format, stream,
+                    HlsVideoRendition rendition = HlsVideoRendition.Create(preparation.OutputFormat, stream,
                         options.SeparateAudio ? null : audio?.GetStream(index), allocator, profile.MaximumWidth,
                         profile.EncoderOptions, options.TargetDuration, output);
                     video.Add(rendition);
@@ -75,10 +77,11 @@ namespace Mediana.Streaming.Hls
                     {
                         current = null;
                         cancellationToken.ThrowIfCancellationRequested();
+                        using VideoFrame prepared = preparation.Apply(frame, cancellationToken);
                         if (audio is not null) { await audio.WriteBeforeAsync(frame.Timestamp, destinations, cancellationToken).ConfigureAwait(false); }
                         foreach (HlsVideoRendition rendition in video)
                         {
-                            await rendition.WriteAsync(frame, cancellationToken).ConfigureAwait(false);
+                            await rendition.WriteAsync(prepared, cancellationToken).ConfigureAwait(false);
                         }
                         count = checked(count + 1);
                         processed.Add(frame.Duration);
@@ -108,7 +111,7 @@ namespace Mediana.Streaming.Hls
         private static void Validate(EncodedStreamInfo stream, HlsRenditionOptions options, HlsVideoProfile[] profiles,
             int[] audioProfiles, HlsAudioSource? audio)
         {
-            if (stream.DisplayMatrix != VideoDisplayMatrix.Identity) { throw new NotSupportedException("Video encoding currently requires an identity display transform."); }
+            if (stream.DisplayMatrix is null) { throw new NotSupportedException("Video encoding requires a known source display transform."); }
             options.TargetDuration.TimeBase.Validate();
             if (options.TargetDuration.Value <= 0 || profiles.Length == 0
                 || profiles.Any(profile => profile is null || profile.MaximumWidth < 2 || profile.EncoderOptions is null))

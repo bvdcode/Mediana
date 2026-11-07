@@ -10,6 +10,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync(string root, string h264Root)
         {
+            YuvFramePreparationTestInput.Verify();
+            Console.WriteLine("PASS YUV preparation: orthogonal plane orientation, inverted pixel aspect and rounded precision conversion match independent samples.");
             H264PictureReuseTestInput.Verify(false);
             H264PictureReuseTestInput.Verify(true);
             await H264BaselineEncodingTestInput.VerifyAsync(h264Root, false);

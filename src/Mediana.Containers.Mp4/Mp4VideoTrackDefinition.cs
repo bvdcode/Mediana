@@ -2,22 +2,20 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
-using Mediana.Core.Timing;
 using Mediana.Core.Video;
+using Mediana.Core.Timing;
 using Mediana.Formats;
 using Mediana.Formats.Video;
 
 namespace Mediana.Containers.Mp4
 {
     /// <summary>An AVC or HEVC video track for newly encoded ISO BMFF fragments.</summary>
-    public class Mp4VideoTrackDefinition
+    public class Mp4VideoTrackDefinition : Mp4TrackDefinition
     {
-        public Mp4VideoTrackDefinition(EncodedStreamInfo stream, VideoFormat format, uint trackId = 1)
+        public Mp4VideoTrackDefinition(EncodedStreamInfo stream, VideoFormat format, uint trackId = 1, long timestampOffset = 0, MediaTimestamp? presentationEnd = null)
+            : base(stream, trackId, timestampOffset, presentationEnd)
         {
-            ArgumentNullException.ThrowIfNull(stream);
             ArgumentNullException.ThrowIfNull(format);
-            ArgumentOutOfRangeException.ThrowIfZero(trackId);
-            ArgumentOutOfRangeException.ThrowIfEqual(trackId, uint.MaxValue);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(format.Width, ushort.MaxValue);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(format.Height, ushort.MaxValue);
             if (stream.Kind != MediaKind.Video || stream.DisplayMatrix is null)
@@ -45,20 +43,55 @@ namespace Mediana.Containers.Mp4
                 default:
                     throw new NotSupportedException("Fragmented video writing requires AVC or HEVC access units.");
             }
-            Stream = stream;
             Format = format;
-            TrackId = trackId;
-            TimeBase = new(1, stream.TimeBase.Denominator);
             SampleAspectRatio = stream.AspectRatioDescription is VideoAspectRatioDescription aspect
                 ? aspect.Resolve(format.SampleAspectRatio) : format.SampleAspectRatio;
         }
 
-        public EncodedStreamInfo Stream { get; }
         public VideoFormat Format { get; }
-        public uint TrackId { get; }
-        public TimeBase TimeBase { get; }
         public SampleAspectRatio? SampleAspectRatio { get; }
         internal string SampleEntry { get; }
         internal string ConfigurationBox { get; }
+
+        internal override void WritePresentationSize(Mp4BoxWriter writer)
+        {
+            double width = Format.Width;
+            if (SampleAspectRatio is SampleAspectRatio aspect) { width = width * aspect.Numerator / aspect.Denominator; }
+            writer.UInt32(checked((uint)Math.Round(width * 65536, MidpointRounding.ToEven)));
+            writer.UInt32(checked((uint)Format.Height << 16));
+        }
+
+        internal override void WriteMediaHeader(Mp4BoxWriter writer)
+        {
+            int vmhd = writer.Full("vmhd", 1);
+            writer.Zeros(8);
+            writer.End(vmhd);
+        }
+
+        internal override void WriteSampleEntry(Mp4BoxWriter writer)
+        {
+            int sample = writer.Begin(SampleEntry);
+            writer.Zeros(6);
+            writer.UInt16(1);
+            writer.Zeros(16);
+            writer.UInt16((ushort)Format.Width);
+            writer.UInt16((ushort)Format.Height);
+            writer.UInt32(72 << 16);
+            writer.UInt32(72 << 16);
+            writer.UInt32(0);
+            writer.UInt16(1);
+            writer.Zeros(32);
+            writer.UInt16(24);
+            writer.UInt16(ushort.MaxValue);
+            writer.Box(ConfigurationBox, Stream.Configuration.Span);
+            if (SampleAspectRatio is SampleAspectRatio aspect)
+            {
+                int pasp = writer.Begin("pasp");
+                writer.UInt32((uint)aspect.Numerator);
+                writer.UInt32((uint)aspect.Denominator);
+                writer.End(pasp);
+            }
+            writer.End(sample);
+        }
     }
 }

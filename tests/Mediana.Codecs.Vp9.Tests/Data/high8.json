@@ -1,0 +1,100 @@
+{
+    "frames": [
+        {
+            "key_frame": 1,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 1,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        },
+        {
+            "key_frame": 0,
+            "width": 96,
+            "height": 65,
+            "pix_fmt": "yuv444p"
+        }
+    ]
+}

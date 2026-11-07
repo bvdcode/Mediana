@@ -11,7 +11,7 @@ using Mediana.Formats.Audio;
 namespace Mediana.Codecs.Pcm
 {
     /// <summary>Decodes little-endian PCM with a WAVEFORMATEX or WAVEFORMATEXTENSIBLE configuration.</summary>
-    public class PcmDecoderFactory : IAudioDecoderFactory
+    public class PcmDecoderFactory : IAudioDecoderFactory, IRandomAccessDecoderFactory
     {
         private readonly int maxSamplesPerFrame;
 
@@ -52,6 +52,15 @@ namespace Mediana.Codecs.Pcm
             PcmConfiguration configuration = ReadConfiguration(stream.Configuration.Span, out reason)
                 ?? throw new NotSupportedException(reason);
             return new PcmDecoder(stream.StreamIndex, configuration, allocator, maxSamplesPerFrame);
+        }
+
+        public IRandomAccessInspector CreateRandomAccessInspector(EncodedStreamInfo stream)
+        {
+            string? reason = GetUnsupportedReason(stream);
+            if (reason is not null) { throw new NotSupportedException(reason); }
+            PcmConfiguration configuration = ReadConfiguration(stream.Configuration.Span, out reason)
+                ?? throw new NotSupportedException(reason);
+            return new PcmRandomAccessInspector(stream.StreamIndex, configuration.BlockAlignment);
         }
 
         protected virtual PcmConfiguration? ReadConfiguration(ReadOnlySpan<byte> bytes, out string? unsupportedReason) =>

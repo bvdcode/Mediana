@@ -5,7 +5,7 @@ Its media implementation is written in C#, with no FFmpeg, external media proces
 native media libraries, or third-party runtime packages.
 
 The current implementation is experimental. It reads metadata and compressed packets from
-non-fragmented MP4/MOV/M4A files containing AVC, HEVC, AAC or MP3 tracks. The MP4 reader also
+non-fragmented MP4/MOV/M4A files containing AVC, HEVC, MPEG-4 Visual, AAC or MP3 tracks. The MP4 reader also
 exposes movie-level iTunes/indexed metadata and original encoded cover art. The H.264 source module
 connects CAVLC and CABAC I/P/B decoding to public video sessions and returns cropped YUV frames.
 The HEVC module decodes Main/Main10 I/P/B pictures to native eight/ten-bit YUV, including indexed seek in MP4 and Matroska.
@@ -35,6 +35,9 @@ Experimental fixed-QP H.264 I/P encoding and YUV downscaling are available.
 Experimental AAC-LC audio encoding to MPEG-TS selects long/short windows for
 transients; perceptual allocation remains open. HLS variants can copy or encode audio.
 
+[Indexed audiovisual operations, codec coverage and measured costs](docs/media-capabilities.md)
+describe the common library pipeline and current verification.
+
 ## Components
 
 | Project | Current responsibility |
@@ -60,13 +63,14 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
-| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AAC/MP3 packet mapping](docs/matroska-ebml.md) |
-| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AAC/MP3 packet reading |
+| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/VP8/VP9/AAC/MP3 packet mapping](docs/matroska-ebml.md) |
+| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/MPEG-4 Visual/AAC/MP3 packet reading |
+| `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
-| `Mediana.Containers.Ogg` | Ogg Opus/Vorbis packets, comments, granule clocks and indexed seek ([API](docs/ogg-reading.md)) |
+| `Mediana.Containers.Ogg` | Ogg Theora/Opus/Vorbis packets, comments, granule clocks and indexed seek ([API](docs/ogg-reading.md)) |
 | `Mediana.Codecs.Opus` | Managed SILK/CELT/hybrid PCM, multistream, gain and seek priming ([API](docs/opus-decoding.md)) |
 | `Mediana.Codecs.Vorbis` | Managed Vorbis I PCM, all floors/residues, multichannel coupling and indexed seek ([API](docs/vorbis-decoding.md)) |
 | `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo |
@@ -75,6 +79,10 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
+| `Mediana.Codecs.Mpeg4Visual` | Managed MPEG-4 Part 2 I/P/B video, half/quarter-pixel motion and indexed AVI/MP4 seeking ([API](docs/mpeg4-visual.md)) |
+| `Mediana.Codecs.Vp8` | Managed VP8 video, planar references and indexed WebM seeking ([API](docs/vp8.md)) |
+| `Mediana.Codecs.Theora` | Managed Theora video, native planar sampling and indexed Ogg seeking ([API](docs/theora.md)) |
+| `Mediana.Codecs.Vp9` | Managed VP9 profiles 0–3, native planar precision, scaled references and indexed WebM seeking ([API](docs/vp9.md)) |
 | `Mediana.Codecs.Hevc` | Managed Main/Main10 I/P/B decoding, native ten-bit frames and indexed seeking ([API](docs/hevc-decoding.md)) |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |

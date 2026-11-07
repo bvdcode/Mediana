@@ -17,6 +17,9 @@ namespace Mediana.Tests
         public static uint UInt32(ReadOnlyMemory<byte> data, int offset) => BinaryPrimitives.ReadUInt32BigEndian(data.Span[offset..]);
         public static ulong UInt64(ReadOnlyMemory<byte> data, int offset) => BinaryPrimitives.ReadUInt64BigEndian(data.Span[offset..]);
 
+        public static IReadOnlyList<ReadOnlyMemory<byte>> GetAll(ReadOnlyMemory<byte> data, string type) =>
+            Read(data).Where(box => box.Type == type).Select(box => box.Data).ToArray();
+
         private static List<(string Type, ReadOnlyMemory<byte> Data)> Read(ReadOnlyMemory<byte> data)
         {
             List<(string Type, ReadOnlyMemory<byte> Data)> boxes = [];

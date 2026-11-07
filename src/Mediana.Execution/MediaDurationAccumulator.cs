@@ -5,8 +5,8 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Execution
 {
-    /// <summary>Sums input durations in one time base. A missing duration or a change of time base
-    /// makes the total unknown for the remainder of the operation. Overflow throws.</summary>
+    /// <summary>Sums known input durations exactly, deriving a common clock when needed.
+    /// A missing duration makes the total unknown for the remainder of the operation. Overflow throws.</summary>
     public class MediaDurationAccumulator
     {
         private MediaDuration? duration;
@@ -30,13 +30,18 @@ namespace Mediana.Execution
             {
                 duration = span;
             }
-            else if (previous.TimeBase != span.TimeBase)
+            else if (previous.TimeBase == span.TimeBase)
             {
-                unknown = true;
+                duration = new(checked(previous.Value + span.Value), previous.TimeBase);
             }
             else
             {
-                duration = new(checked(previous.Value + span.Value), previous.TimeBase);
+                MediaTimestamp left = new MediaTimestamp(previous.Value, previous.TimeBase).ReduceClock();
+                MediaTimestamp right = new MediaTimestamp(span.Value, span.TimeBase).ReduceClock();
+                TimeBase clock = TimeBase.Common(left.TimeBase, right.TimeBase);
+                long ticks = checked(left.Rescale(clock, TimestampRounding.TowardZero).Value +
+                    right.Rescale(clock, TimestampRounding.TowardZero).Value);
+                duration = new(ticks, clock);
             }
         }
     }

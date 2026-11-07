@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core.Memory;
+
 namespace Mediana.Codecs.Jpeg
 {
     /// <summary>Owned native JPEG component samples, independent of encoded input and presentation metadata.</summary>
     public class JpegImage : IDisposable
     {
         private readonly JpegSampleLayout samples;
+        private readonly MediaBuffer storage;
         private bool disposed;
 
         internal JpegImage(JpegDocument image)
@@ -15,7 +18,7 @@ namespace Mediana.Codecs.Jpeg
             Warnings = image.Warnings;
             EncodedWidth = image.Width;
             EncodedHeight = image.Height;
-            samples = image.TakeSamples();
+            samples = image.TakeSamples(out storage);
         }
 
         /// <summary>Nonfatal decoding diagnostics.</summary>
@@ -29,6 +32,17 @@ namespace Mediana.Codecs.Jpeg
         public int EncodedHeight { get; }
         /// <summary>Original APP14 transform code: 0 (none), 1 (YCbCr), 2 (YCCK), or null when absent.</summary>
         public int? AdobeColorTransform { get; }
+
+        internal JpegColorSpace GetComponentColorSpace() => AdobeColorTransform switch
+        {
+            0 => JpegColorSpace.Rgb,
+            1 => JpegColorSpace.YCbCr,
+            null when samples.Components.Count == 3 && samples.Components[0].Id == (byte)'R' &&
+                samples.Components[1].Id == (byte)'G' && samples.Components[2].Id == (byte)'B' => JpegColorSpace.Rgb,
+            null => JpegColorSpace.YCbCr,
+            2 => throw new NotSupportedException("JPEG YCCK components cannot be decoded as RGB or YCbCr."),
+            _ => throw new InvalidDataException("The JPEG Adobe component transform is invalid.")
+        };
 
         /// <summary>Writes straight RGBA8 into caller-owned storage using the explicit component interpretation.
         /// Grayscale ignores the three-component interpretation. Writes exactly Width*Height*4 bytes and
@@ -53,9 +67,9 @@ namespace Mediana.Codecs.Jpeg
                 disposed = true;
                 foreach (JpegComponent component in samples.Components)
                 {
-                    component.Samples?.Dispose();
                     component.Progression?.Dispose();
                 }
+                storage.Dispose();
             }
         }
     }

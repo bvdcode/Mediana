@@ -8,10 +8,10 @@ namespace Mediana.Containers.Mp4
 {
     internal class Mp4PacketFragmentTrack : Mp4FragmentTrack
     {
-        private readonly Mp4VideoTrackDefinition track;
+        private readonly Mp4TrackDefinition track;
         private readonly IReadOnlyList<MediaPacket> packets;
 
-        public Mp4PacketFragmentTrack(Mp4VideoTrackDefinition track, IReadOnlyList<MediaPacket> packets, CancellationToken token)
+        public Mp4PacketFragmentTrack(Mp4TrackDefinition track, IReadOnlyList<MediaPacket> packets, CancellationToken token)
         {
             this.track = track;
             this.packets = packets;
@@ -21,7 +21,8 @@ namespace Mediana.Containers.Mp4
             {
                 token.ThrowIfCancellationRequested();
                 MediaPacket packet = packets[index] ?? throw new ArgumentException("Fragment packets cannot be null.", nameof(packets));
-                if (packet.StreamIndex != track.Stream.StreamIndex || packet.Data.IsEmpty || packet.IsKeyFrame is null)
+                if (packet.StreamIndex != track.Stream.StreamIndex || packet.Data.IsEmpty ||
+                    (track.Stream.Kind == MediaKind.Video && packet.IsKeyFrame is null))
                 {
                     throw new InvalidDataException("A fragmented packet requires the declared stream, data and a sync indication.");
                 }
@@ -46,11 +47,18 @@ namespace Mediana.Containers.Mp4
             MediaDuration duration = packet.Duration ?? throw new InvalidDataException("A fragment packet requires a duration.");
             long ticks = Exact(new(duration.Value, duration.TimeBase));
             if (ticks <= 0 || ticks > uint.MaxValue) { throw new InvalidDataException("A fragment sample duration exceeds its unsigned 32-bit range."); }
-            long presentation = Exact(packet.PresentationTime ?? throw new InvalidDataException("A fragment packet requires a presentation timestamp."));
-            return new((uint)ticks, packet.Data.Length, packet.IsKeyFrame!.Value, checked(presentation - Decode(packet)));
+            long presentation = checked(Exact(packet.PresentationTime ?? throw new InvalidDataException("A fragment packet requires a presentation timestamp.")) + track.TimestampOffset);
+            bool sync = track.Stream.Kind switch
+            {
+                MediaKind.Audio => true,
+                MediaKind.Video => packet.IsKeyFrame!.Value,
+                MediaKind.Data => throw new NotSupportedException("Data fragments require their own sample declaration."),
+                _ => throw new ArgumentOutOfRangeException(nameof(track))
+            };
+            return new((uint)ticks, packet.Data.Length, sync, checked(presentation - Decode(packet)));
         }
 
-        private long Decode(MediaPacket packet) => Exact(packet.DecodeTime ?? throw new InvalidDataException("A fragment packet requires a decode timestamp."));
+        private long Decode(MediaPacket packet) => checked(Exact(packet.DecodeTime ?? throw new InvalidDataException("A fragment packet requires a decode timestamp.")) + track.TimestampOffset);
 
         private long Exact(MediaTimestamp timestamp)
         {

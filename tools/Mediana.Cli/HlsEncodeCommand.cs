@@ -33,6 +33,7 @@ namespace Mediana.Cli
             } : null;
             HlsRenditionOptions options = new()
             {
+                FramePreparation = new() { RgbConversion = new() },
                 VideoProfiles = widths.Select((width, index) => new HlsVideoProfile(width,
                     new H264EncoderOptions { Quantizer = qp, RateControl = videoRates?[index] })).ToArray(),
                 TargetDuration = new(targetMilliseconds, new(1, 1000)),

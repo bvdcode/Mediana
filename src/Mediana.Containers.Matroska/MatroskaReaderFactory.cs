@@ -19,7 +19,7 @@ namespace Mediana.Containers.Matroska
         public string ImplementationId => "matroska.managed";
         public int ProbeLength => 4;
         private static ReadOnlySpan<byte> Signature => [0x1A, 0x45, 0xDF, 0xA3];
-        /// <summary>Recognizes the EBML signature. Opening validates the complete document header and Matroska DocType.</summary>
+        /// <summary>Recognizes the EBML signature. Opening validates the complete document header and Matroska or WebM DocType.</summary>
         public bool CanRead(ReadOnlySpan<byte> prefix) => prefix.StartsWith(Signature);
 
         public async ValueTask<IContainerReader> OpenAsync(IByteSource source, MediaBufferAllocator allocator,

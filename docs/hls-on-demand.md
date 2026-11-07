@@ -95,9 +95,12 @@ fails before any bytes are published. A boundary can fall between source IDRs.
 Window clocks need not equal the track clock. Frame timing must be exactly
 representable in the output track's time base.
 
-The current encoding session produces one AVC video track at the decoded input
-dimensions and preserves the source display matrix. The supplied video format must
-match the decoder's output, including color interpretation and sample aspect ratio.
+The encoding session uses `MediaEngine.OpenProcessingAsync`, with the same codec
+selection, indexed seeking, frame preparation and packet merge as file operations.
+`VideoPreparationOptions` applies orientation, explicit pixel precision and maximum
+dimensions before encoding. The supplied input video format must match the decoder's
+output, including color interpretation and sample aspect ratio. Output pixels are
+already oriented and the output display matrix is identity.
 The reader and allocator remain borrowed; operations on either the session or its
 reader must not overlap. Requests can be repeated after cancellation or an output
 failure. Failed output is discarded by the caller.
@@ -109,6 +112,105 @@ without copying packet payloads. Buffer allocations use the supplied allocator.
 fragments separately from HLS. Its `avc3`/`hev1` sample entries permit parameter sets
 in samples; decoder configuration is also included in initialization. It requires
 explicit PTS, DTS, positive durations, sync indications and contiguous decode times.
+
+### Original AAC audio
+
+Set `copyAudioStreamIndex` to include a selected AAC-LC track in the same fMP4
+initialization and requested fragments. The reader must expose indexed packet clocks.
+Use the reader's linear movie timeline when source edit lists describe codec delay
+or track offsets. Session creation and initialization perform no media payload reads.
+
+Audio access units belong to the video window containing their original presentation
+start, so adjacent requests carry every packet once. Their duration may cross the
+video boundary; timestamps and compressed payload are preserved. The first window
+can include up to two preceding packets for initial AAC overlap recovery. An explicit
+MP4 timestamp offset and initialization edit preserve any negative preroll times.
+Subsequent requests need no prior request or encoded-segment state. This mode copies
+AAC and does not restart an audio encoder. The audiovisual playlist omits the
+independent-segments claim because audio decoder overlap can cross segment boundaries.
+
+Managed tests verify every copied audio payload and clock against the original
+MP4, reverse/repeated cold requests, bounded source reads and released storage.
+Independent FFmpeg playback of a 12-segment playlist decodes all 60 scaled pictures;
+its complete decoded audio is byte-identical to decoding the original AAC source.
+Native AOT also exercises repeated audiovisual requests using this shared operation.
+
+### Encoding AAC audio
+
+Supply `audioEncoding` instead of `copyAudioStreamIndex` to decode and encode the
+selected audio alongside each requested video window:
+
+```csharp
+HlsAacEncoding audio = new(
+    audioStreamIndex, audioDecoderFactory, decodedAudioFormat, audioPresentation,
+    new AacEncoderOptions { BitRate = 128000 }, channels: 2);
+
+await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(
+    reader, videoStreamIndex, videoDecoderFactory, decodedVideoFormat,
+    new MediaDuration(2, new TimeBase(1, 1)), allocator,
+    preparation: new VideoPreparationOptions { MaximumWidth = 1280 },
+    audioEncoding: audio);
+```
+
+The caller declares the decoder's PCM format and exact audible source bounds.
+Container presentation edits still restrict decoded samples. Channel preparation
+uses the same Float32 conversion and explicit mono/stereo downmix as file encoding.
+The source decoder must support indexed restart or bounded container preroll.
+Creation validates these capabilities without reading source packets.
+
+AAC access units use one global 1024-sample grid anchored at the declared source
+origin. Each video window owns packets whose presentation starts lie within it;
+the source's initial priming packet belongs only to its opening window. Requests
+decode at most four preceding encoder blocks and two following blocks, in addition
+to the source decoder's own preroll. The fractional per-frame bitrate budget is
+reconstructed arithmetically from the grid offset. No earlier interval is encoded
+and no saved encoder checkpoint or preceding request is needed.
+
+`AacEncodingInterval` and `AacIntervalEncoderFactory` expose this mechanism outside
+HLS. Pass the plan's `Input` and `Output` as `AudioEncodingRequest.selection` and
+`packetSelection`. The request and shared processing engine retain no AAC-specific
+branch. Empty packet intervals need no audio encoding request.
+
+Bounded transient analysis uses the previous and current PCM blocks. Independently
+encoded windows match continuous encoding byte for byte for identical PCM, including
+transient transitions, fractional clocks, mono/stereo, 8/22.05/44.1/48 kHz and a
+partial final frame. Compressed sources with perceptual noise substitution can
+synthesize a different valid noise phase after seeking. Those sources are checked
+for repeated-request determinism, unchanged packet clocks, complete packet ownership
+and decoded signal quality rather than identical continuous-encode payloads.
+
+The initialization contains an explicit finite presentation endpoint and a priming
+offset. Its movie and track header durations remain zero as required for HLS fMP4.
+Raw AAC decoding still returns complete 1024-sample frames; the consumer applies
+the declared presentation endpoint when excluding tail padding. FFmpeg raw PCM
+export includes the same final 512 padded samples for both the generated 12-second
+source and the encoded HLS output. Those samples are excluded from audible-range
+quality measurements.
+
+Independent FFmpeg decoding of all 12 reverse-generated audiovisual segments yields
+60 pictures and 576,512 raw mono samples. Over the declared 576,000 audible samples,
+SNR against FFmpeg decoding of the source is 70.13 dB; 2048-sample neighborhoods
+around the eleven joins measure 74.05–77.00 dB. The playlist omits the independent
+segments claim because AAC overlap can span adjacent segments.
+
+The `hls` command in `Mediana.ProcessingBenchmarks` measures opening/index reads,
+requested-interval reads, complete encoding/muxing, elapsed/CPU time, peak RSS and
+managed allocations. On the generated 30-minute AVC/AAC source (17,929,339 bytes),
+opening reads 586,471 bytes and requesting second 1799 reads another 11,255 bytes.
+One cold-process observation, including runtime compilation, is 781 ms elapsed,
+761 ms CPU, 50.5 MiB peak RSS and 3.07 MiB managed allocations. The reader retains
+1 MiB of pooled index storage; disposal releases the complete allocator budget.
+This is a cold-I/O/ownership check, not a codec throughput comparison.
+
+A separate before/after check encodes ten continuous minutes from a generated
+30-minute 96×80, 6 fps AVC/AAC source to 32×26 AVC and mono AAC. Three alternating
+pinned-CPU trials include indexing, decoding, preparation, both encoders, MPEG-TS
+writing and disposal. All six 16,836,152-byte outputs have the same SHA-256
+`554858b1b754fa92036af6d459e40b2d3e9eb6a4b76892a56495061f7b5a6fc2`.
+Before/after median CPU is 30.034/30.293 seconds, elapsed time 30.755/32.098 seconds,
+peak RSS 54.69/55.12 MiB and total managed allocation 187.89/188.01 MiB.
+Bounded analysis adds no material allocation growth; these observations show about
+0.9% more complete-operation CPU, rather than a throughput improvement.
 
 All 60 independently decoded output pictures from a 12-second AVC source match
 reference YUV pixels. Managed checks also compare the encoded packets with sequential

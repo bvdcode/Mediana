@@ -58,7 +58,6 @@ namespace Mediana.Tests
         [InlineData("avc-multislice-cabac.mp4", true, "1", 2)]
         [InlineData("avc-multislice-cabac.mp4", true, "", 2)]
         [InlineData("avc-multislice-cabac.mp4", false, "48", 3)]
-        [InlineData("avc-weighted-rotated.mp4", true, "48", 3)]
         public async Task UnsupportedOrDuplicateVariantsPublishNoDirectory(string name, bool videoOnly, string widths, int expected)
         {
             string output = Path.Combine(directory, "hls");
@@ -75,6 +74,30 @@ namespace Mediana.Tests
             (int code, _, _) = await CliTests.RunAsync(arguments.ToArray());
             Assert.Equal(expected, code);
             Assert.Empty(Directory.GetFileSystemEntries(directory));
+        }
+
+        [Fact]
+        public async Task RotatedVideoPublishesACompleteIndependentVariant()
+        {
+            string output = Path.Combine(directory, "hls");
+            (int code, _, _) = await CliTests.RunAsync(["hls", "encode", Data("avc-weighted-rotated.mp4"), output,
+                "--video-only", "--widths", "48"]);
+            Assert.Equal(0, code);
+            string master = await File.ReadAllTextAsync(Path.Combine(output, "index.m3u8"));
+            Assert.Contains("variant-48/index.m3u8", master);
+            string variant = Path.Combine(output, "variant-48");
+            string media = await File.ReadAllTextAsync(Path.Combine(variant, "index.m3u8"));
+            Assert.Contains("#EXT-X-INDEPENDENT-SEGMENTS\n", media);
+            Assert.Contains("#EXT-X-ENDLIST\n", media);
+            string[] segments = Directory.GetFiles(variant, "*.ts");
+            Assert.NotEmpty(segments);
+            foreach (string segment in segments)
+            {
+                byte[] transport = await File.ReadAllBytesAsync(segment);
+                Assert.NotEmpty(transport);
+                Assert.Equal(0, transport.Length % 188);
+                for (int offset = 0; offset < transport.Length; offset += 188) { Assert.Equal(0x47, transport[offset]); }
+            }
         }
 
         [Fact]

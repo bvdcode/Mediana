@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/Mpeg4TestInput.cs" Link="Mpeg4TestInput.cs" />
+    <Compile Include="../Shared/Mpeg4ContainerTestInput.cs" Link="Mpeg4ContainerTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Avi/Mediana.Containers.Avi.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.MpegTs/Mediana.Containers.MpegTs.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Mpeg4Visual/Mediana.Codecs.Mpeg4Visual.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <Using Include="Xunit" />
+    <None Include="Data/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

@@ -14,12 +14,29 @@ namespace Mediana
     {
         /// <summary>Opens encoded packets using registered container probes, without creating a decoder.
         /// Borrows the source. Sequential probing is replayed; random access preserves the caller's cursor.</summary>
-        public async ValueTask<ContainerSession> OpenContainerAsync(IByteSource source,
+        public ValueTask<ContainerSession> OpenContainerAsync(IByteSource source,
             MediaOpenOptions? options = null, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(source);
             options ??= new MediaOpenOptions();
             options.Validate();
+            return OpenContainerCoreAsync(source, new(options.BufferBudgetBytes), options, cancellationToken);
+        }
+
+        /// <summary>Opens a container using a scope of the caller's allocator for probing, index and packet storage.
+        /// Borrows source and allocator; the input budget also counts against the caller's shared budget.</summary>
+        public ValueTask<ContainerSession> OpenContainerAsync(IByteSource source, MediaBufferAllocator allocator,
+            MediaOpenOptions options, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(allocator);
+            ArgumentNullException.ThrowIfNull(options);
+            options.Validate();
+            return OpenContainerCoreAsync(source, allocator.CreateScope(options.BufferBudgetBytes), options, cancellationToken);
+        }
+
+        private async ValueTask<ContainerSession> OpenContainerCoreAsync(IByteSource source, MediaBufferAllocator allocator,
+            MediaOpenOptions options, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(source);
             cancellationToken.ThrowIfCancellationRequested();
             if (containers.Length == 0)
             {
@@ -30,7 +47,6 @@ namespace Mediana
             {
                 throw new NotSupportedException("Registered container probing exceeds the configured probe limit.");
             }
-            MediaBufferAllocator allocator = new(options.BufferBudgetBytes);
             using WritableMediaBuffer writable = allocator.Allocate(probeLength);
             int read = await MediaInputProbe.ReadAsync(source, writable.Memory, cancellationToken).ConfigureAwait(false);
             IContainerReaderFactory factory = SelectContainer(writable.Memory.Span[..read]);

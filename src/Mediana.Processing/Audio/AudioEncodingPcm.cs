@@ -25,7 +25,11 @@ namespace Mediana.Processing.Audio
             {
                 throw new NotSupportedException("Encoding preparation requires mono or stereo; select one or two output channels to downmix explicitly.");
             }
+            OutputFormat = mixer?.OutputFormat ?? new(input.SampleRate, AudioSampleFormat.Float32,
+                AudioStorageLayout.Interleaved, input.Channels.ToArray());
         }
+
+        public AudioFormat OutputFormat { get; }
 
         public AudioFrame Apply(AudioFrame input, MediaBufferAllocator allocator, CancellationToken token)
         {

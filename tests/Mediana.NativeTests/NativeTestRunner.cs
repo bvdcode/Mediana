@@ -246,6 +246,7 @@ namespace Mediana.NativeTests
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
             string h264Root = Path.Combine(AppContext.BaseDirectory, "Data", "H264");
             await NativeVideoEncodingTests.RunAsync(root, h264Root);
+            await NativeMediaProcessingTests.RunAsync(root);
             await H264CabacBidirectionalTestInput.VerifyAsync(h264Root, root);
             await VideoSeekTestInput.VerifyAsync(root, "avc-multislice-cavlc", 18, 96, 80, 6);
             await VideoSeekTestInput.VerifyAsync(root, "avc-multislice-cabac", 18, 96, 80, 6);

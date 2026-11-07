@@ -27,6 +27,39 @@ namespace Mediana.NativeTests
             }
             Console.WriteLine("PASS Vorbis spectra: 49,152 codewords, both floors, all residues, 1,375 packets and nominal truncation match independent references.");
             Console.WriteLine("PASS public Vorbis PCM: 1,183 sequential packets, 128 transforms, sample clocks, overlap transitions and lease ownership match independent references.");
+            await Vp8ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Vp8"));
+            Console.WriteLine("PASS VP8 video: exact WebM pictures, hidden references, repeated indexed seeks, AVC encoding and pooled buffer release.");
+            await VideoTranscodeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS video convenience: adaptive VP9, exact 1/101 ms movie tails, rate control, input progress and output match common processing.");
+            await VpxHlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS WebM HLS: cold and repeated VP8/VP9 tail windows, hidden references, exact clocks and sample counts, payload-free planning and released buffers.");
+            foreach (string visualName in new[] { "bframes", "fractional", "quarter" })
+            {
+                Mediana.Core.Timing.TimeBase cadence = visualName switch
+                {
+                    "fractional" => new(1001, 30000),
+                    "bframes" or "quarter" => new(1, 12),
+                    _ => throw new InvalidDataException("Unknown MPEG-4 Visual reference cadence.")
+                };
+                foreach (string extension in new[] { "avi", "mp4" })
+                {
+                    await Mpeg4ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mpeg4Visual"), visualName, extension, cadence);
+                }
+            }
+            await Mpeg4ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mpeg4Visual"), "xvid", "avi", new(1, 12));
+            Console.WriteLine("PASS MPEG-4 Visual: complete I/P/B sequences, exact clocks, reverse indexed seeks, previews and AVC intervals.");
+            foreach (string name in new[] { "main420", "chroma422", "chroma444", "motion", "noise", "odd420", "duplicate", "fractional", "av" })
+            { await TheoraContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Theora"), name); }
+            Console.WriteLine("PASS Theora video: exact native planes, fractional clocks, Ogg/Vorbis multiplexing, indexed seeks, previews, AVC encoding and pooled buffer release.");
+            string vp9Root = Path.Combine(AppContext.BaseDirectory, "Data", "Vp9");
+            foreach (string name in new[] { "main8", "main10", "main12", "high8", "high12", "chroma422", "chroma440", "rgb", "lossless", "resilient", "tiles", "altref", "adaptive", "resize" })
+            { await Vp9ContainerTestInput.VerifyAsync(vp9Root, name); }
+            foreach (string name in new[] { "main8", "main10", "high8", "high12", "lossless", "resilient", "tiles", "altref" })
+            {
+                await Vp9KeyPictureTestInput.VerifyAsync(vp9Root, name, false);
+                await Vp9KeyPictureTestInput.VerifyAsync(vp9Root, name, true);
+            }
+            Console.WriteLine("PASS VP9 key pictures: profiles 0-3, 8/10/12-bit samples, lossless, tiles and filtered pixels match independent references.");
             await NativeHevcTests.VerifyAsync();
             string hevcRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Hevc");
             foreach (string name in new[] { "main8", "main10", "weighted8", "weighted10" })

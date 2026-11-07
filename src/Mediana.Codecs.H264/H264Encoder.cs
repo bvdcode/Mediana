@@ -22,6 +22,7 @@ namespace Mediana.Codecs.H264
         private readonly H264LevelBudget levelBudget;
         private readonly H264RateController? rateController;
         private MediaPacket? pending;
+        private MediaTimestamp? previousTimestamp;
         private MediaTimestamp? previousEnd;
         private MediaTimestamp? lastKeyFrame;
         private H264Picture? reference;
@@ -99,6 +100,7 @@ namespace Mediana.Codecs.H264
                 levelBudget.Commit(timestamp.Value, keyFrame, encoded.Data.Memory.Length);
                 pending = new MediaPacket(Stream.StreamIndex, encoded.Data, timestamp, timestamp, input.Duration, isKeyFrame: keyFrame);
                 rateController?.Commit(timestamp, encoded.Quantizer, encoded.Data.Memory.Length, keyFrame);
+                previousTimestamp = timestamp;
                 previousEnd = endTime;
                 frameNumber = number;
                 if (keyFrame)
@@ -169,6 +171,7 @@ namespace Mediana.Codecs.H264
                 ObjectDisposedException.ThrowIf(disposed, this);
                 ReleasePending();
                 ReleasePictures();
+                previousTimestamp = null;
                 previousEnd = null;
                 lastKeyFrame = null;
                 frameNumber = 0;
@@ -218,13 +221,20 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("H.264 input durations must be exact in the stream clock.");
             }
-            Int128 numerator = (Int128)duration.Value * duration.TimeBase.Numerator;
-            int macroblocks = sequence.WidthInMbs * sequence.HeightInMapUnits;
-            if (duration.Value == 0 || (Int128)macroblocks * duration.TimeBase.Denominator >
-                numerator * H264EncoderConfiguration.MaximumMacroblocksPerSecond ||
-                duration.TimeBase.Denominator > numerator * H264EncoderConfiguration.MaximumFramesPerSecond)
+            if (duration.Value == 0)
             {
-                throw new NotSupportedException("The H.264 frame rate exceeds Baseline level 4.1.");
+                throw new NotSupportedException("H.264 encoding requires positive input frame durations.");
+            }
+            if (previousTimestamp is MediaTimestamp previous)
+            {
+                Int128 elapsed = ((Int128)exact.Value - previous.Value) * Stream.TimeBase.Numerator;
+                int macroblocks = sequence.WidthInMbs * sequence.HeightInMapUnits;
+                if ((Int128)macroblocks * Stream.TimeBase.Denominator >
+                    elapsed * H264EncoderConfiguration.MaximumMacroblocksPerSecond ||
+                    Stream.TimeBase.Denominator > elapsed * H264EncoderConfiguration.MaximumFramesPerSecond)
+                {
+                    throw new NotSupportedException("The H.264 frame rate exceeds Baseline level 4.1.");
+                }
             }
             return exact;
         }
@@ -245,6 +255,7 @@ namespace Mediana.Codecs.H264
                 faulted = true;
                 ReleasePending();
                 ReleasePictures();
+                previousTimestamp = null;
             }
             Volatile.Write(ref busy, 0);
         }
@@ -279,6 +290,7 @@ namespace Mediana.Codecs.H264
                 disposed = true;
                 ReleasePending();
                 ReleasePictures();
+                previousTimestamp = null;
             }
             finally
             {

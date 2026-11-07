@@ -26,9 +26,8 @@ namespace Mediana.Tests
             {
                 VideoFormat format = new(64, 48, VideoPixelFormat.Yuv420P8,
                     new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709, ColorRange.Limited, ChromaLocation.Left), new(1, 1));
-                HlsVideoWindow[] windows = Enumerable.Range(0, 12)
-                    .Select(number => new HlsVideoWindow(number, new(number, new(1, 1)), new(1, new(1, 1)))).ToArray();
-                await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(reader, 0, new H264DecoderFactory(), format, windows, allocator);
+                await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(reader, 0, new H264DecoderFactory(), format,
+                    new MediaDuration(1, new(1, 1)), allocator);
                 long retained = allocator.AllocatedBytes;
                 foreach (int number in Enumerable.Range(0, 12).Reverse().Append(11))
                 {
@@ -53,7 +52,8 @@ namespace Mediana.Tests
             ReadOnlyMemory<byte> moof = Box(fragment, "moof"), traf = Box(moof, "traf");
             ReadOnlyMemory<byte> run = Box(traf, "trun"), data = Box(fragment, "mdat");
             long dts = checked((long)BinaryPrimitives.ReadUInt64BigEndian(Box(traf, "tfdt").Span[4..]));
-            if (run.Span[0] != 0 || BinaryPrimitives.ReadUInt32BigEndian(run.Span[4..]) != 5 || dts != number * 10240L)
+            if (run.Span[0] != 0 || BinaryPrimitives.ReadUInt32BigEndian(run.Span[4..]) != 5 ||
+                new MediaTimestamp(dts, stream.TimeBase) != new MediaTimestamp(number, new(1, 1)))
             {
                 throw new InvalidDataException("The independent fragment changed its decode start, sample count or composition format.");
             }
@@ -67,7 +67,8 @@ namespace Mediana.Tests
                 int bytes = checked((int)BinaryPrimitives.ReadUInt32BigEndian(entry[4..]));
                 uint flags = BinaryPrimitives.ReadUInt32BigEndian(entry[8..]);
                 uint composition = BinaryPrimitives.ReadUInt32BigEndian(entry[12..]);
-                if (duration != 2048 || composition != 0 || flags != (sample == 0 ? 0x02000000U : 0x01010000U))
+                if (new MediaTimestamp(duration, stream.TimeBase) != new MediaTimestamp(1, new(1, 5)) ||
+                    composition != 0 || flags != (sample == 0 ? 0x02000000U : 0x01010000U))
                 {
                     throw new InvalidDataException("The independent fragment changed its sample timing or restart declaration.");
                 }
@@ -107,7 +108,7 @@ namespace Mediana.Tests
             }
         }
 
-        private static ReadOnlyMemory<byte> Box(ReadOnlyMemory<byte> bytes, ReadOnlySpan<char> type)
+        internal static ReadOnlyMemory<byte> Box(ReadOnlyMemory<byte> bytes, ReadOnlySpan<char> type)
         {
             int at = 0;
             while (at < bytes.Length)

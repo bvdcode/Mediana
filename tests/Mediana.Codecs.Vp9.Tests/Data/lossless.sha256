@@ -1,0 +1,26 @@
+#format: frame checksums
+#version: 2
+#hash: SHA256
+#software: Lavf60.16.100
+#tb 0: 1/8
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 96x65
+#sar 0: 0/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,     9408, 2cd81a0b92ec1dddaf346c0d11de118eeac06fbce650bcb1a42d8bdbe9f3b75a
+0,          1,          1,        1,     9408, 6b5377a97d07896257d4e9cd947d09377e1c3adc01cd193808c9df59faa13f05
+0,          2,          2,        1,     9408, d7fd189a7dd072d2e5d6fb0cf43500dfbf158b9ba5386d305ec92d4df38d11dc
+0,          3,          3,        1,     9408, 1bcc368b3942b2b757c1f9373e35aabe1fe74552bffb997381eaf366abd97f3b
+0,          4,          4,        1,     9408, a9970f1e86e2a20d63658e5c5916efede4685c17d2c00efbb2ef0cf6ef85fa6b
+0,          5,          5,        1,     9408, 9fba0d4a3dfee4072afc5e2954e4b1095aad27cc6980761ba8f8260bf4003761
+0,          6,          6,        1,     9408, 94f70679a123b98dd56a09fef356a8106c1d6ea311c61ac4e23820afe3ff359a
+0,          7,          7,        1,     9408, 21823f5ecfaeb77a43c41812a176ce870f48515ddbfdbd02f4f1f6b83a47ff79
+0,          8,          8,        1,     9408, 6f0e62d338a59d250586a06fa9c591ba3ba8e4cf48a41a1035ae2863b8817d18
+0,          9,          9,        1,     9408, ef03e1c1ed8c708872f7aae1a698115bd0a973a83883a4e5e5eceb20d0aaadad
+0,         10,         10,        1,     9408, 85cb64fa640701f1d05004db27f65d649c366a90ed55cb17d9c56798c3b4f6de
+0,         11,         11,        1,     9408, 4edab7526c70d2275acdfe0b81082382d281d3bc5aee254461152f28a2fcac8e
+0,         12,         12,        1,     9408, 75f027076c210322e452c57d3bec633e2088404ab54d205ba752142eabbedc9f
+0,         13,         13,        1,     9408, 0b668b6c40b0a0d0b200a4cc2523a71ada9a646722d6fe04c7ca79fbd0297e03
+0,         14,         14,        1,     9408, 97f72c89b2c77a51ee2b00cb06abed804ad1b421b073d73d79bd78e12c64e979
+0,         15,         15,        1,     9408, f8e2693b84329ac1e9fc308e7a5a597b5dca85440a69291cde0697e4f53f016a

@@ -12,7 +12,8 @@ namespace Mediana.Tests
             int payload = Mp4TestData.PayloadOffset(data, "elst");
             int start = payload - 8;
             int oldSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(start));
-            Assert.True(Mp4TestData.PayloadOffset(data, "moov") > Mp4TestData.PayloadOffset(data, "mdat"));
+            if (Mp4TestData.PayloadOffset(data, "moov") <= Mp4TestData.PayloadOffset(data, "mdat"))
+            { throw new InvalidDataException("The fixture requires movie metadata after its media data."); }
             int entrySize = wide ? 20 : 12;
             byte[] replacement = new byte[16 + entrySize * edits.Length];
             BinaryPrimitives.WriteUInt32BigEndian(replacement, (uint)replacement.Length);

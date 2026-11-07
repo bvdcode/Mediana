@@ -1,0 +1,34 @@
+# VP9 bitstream corpus
+
+These streams were independently encoded with libvpx-vp9. The adjacent JSON files record FFmpeg frame metadata. IVF is a packet fixture format, not a supported Mediana container.
+
+| Stream | Profile | Precision | Sampling | Additional coverage |
+| --- | --- | --- | --- | --- |
+| main8 | 0 | 8 bits | 4:2:0 | Key and inter frames, odd height |
+| main10 | 2 | 10 bits | 4:2:0 | High precision |
+| high8 | 1 | 8 bits | 4:4:4 | Unsubsampled chroma |
+| high12 | 3 | 12 bits | 4:4:4 | High precision |
+| lossless | 0 | 8 bits | 4:2:0 | Lossless quantization |
+| resilient | 0 | 8 bits | 4:2:0 | Error resilient coding |
+| tiles | 0 | 8 bits | 4:2:0 | Two tile columns and two tile rows |
+| altref | 0 | 8 bits | 4:2:0 | Two-pass encoding, hidden reference pictures, superframes |
+
+The first seven streams use the FFmpeg test source at 8 frames/s for two seconds, normally 96 × 65 pixels; the tiled stream is 512 × 130. The alternate-reference stream uses testsrc2 at 128 × 80, 12 frames/s for four seconds, a 48-picture key-frame interval, a 25-picture lookahead and a 150 kbit/s target.
+
+Header tests cover visible frame dimensions, profile, sample precision, sampling, reference geometry, coding flags, superframe bounds and truncated headers. Pixel reconstruction is checked separately with the complete-sequence references.
+
+`boolean.bin` was produced by the libvpx arithmetic writer for 4096 decisions. Decision `i` has probability `(i * 73 + (i >> 3) * 19) & 255` and value `((i * 1103515245 + 12345) >> 16) & 1`, using 64-bit arithmetic. The writer inserts the required zero marker and final padding. This vector covers probabilities 0 through 255 and is decoded without an encoder dependency.
+
+`transform-1d.bin` and `transform-2d.bin` record independent integer transform outputs from libvpx revision `2a406e82885f1560e52fac4e484553526fe2c60e`. The 448 one-dimensional cases cover DCT4/8/16/32 and ADST4/8/16, impulses at each available position, zero blocks and signed pseudo-random input. The 336 two-dimensional cases cover every legal transform type and size, 8/10/12-bit reconstruction and the lossless 4 × 4 Walsh transform. Each case stores its input and expected output; native code is not needed to run the tests.
+
+The `*-opening.yuv` files contain unfiltered opening key pictures from libvpx with `VP9_SET_SKIP_LOOP_FILTER` enabled. The `*-opening-filtered.yuv` files contain normal FFmpeg native VP9 reconstruction. These references retain native precision and sampling; the tests compare every visible sample and check release of pooled working and output storage. These files cover key picture reconstruction before and after filtering.
+
+`prediction.bin` contains 600 independent cases covering all ten intra prediction modes, 4/8/16/32-sample blocks, sample precision 8/10/12 and left/top/top-right availability. `filter.bin` contains 1152 independent cases covering the 4/8/16-sample filter kernels, flat and non-flat regions, threshold rejection and precision-dependent rounding. These kernel fixtures use the same libvpx revision as the transform fixtures.
+
+`motion.bin` contains 4096 vectors encoded by libvpx, including all motion classes, zero components, signs, fractional components, large prediction vectors and both high-precision modes. It also records independently adapted motion probabilities. `coefficient-adaptation.bin` records 2304 coefficient-context updates across intra/inter and previous-keyframe cases. `interpolation.bin` contains 768 independent eight-tap predictions covering all four filters, 8/10/12-bit precision, fractional offsets, scaled sampling and frame-edge extension.
+
+The `.sha256` files record FFmpeg SHA-256 hashes of every visible native-format picture. Complete-sequence tests include reference refresh, sub-block motion, compound prediction, hidden frames and context state. Additional streams cover 4:2:2 and 4:4:0 chroma, planar RGB, 12-bit 4:2:0, and `adaptive`, which disables frame-parallel coding to exercise between-picture probability adaptation. These streams use 96 × 65 testsrc at 8 frames/s for one second, except `adaptive` (112 × 80 testsrc2, 12 frames/s, two seconds). Tests verify release of all pooled picture and metadata storage after each sequence. IVF remains a test fixture format.
+
+`resize` was independently encoded with the same libvpx revision, changing internal scale between 128 × 96 and 64 × 48 every four pictures without keyframe refresh. Its hashes use libvpx's native changing frame dimensions, bypassing FFmpeg's fixed-size output scaling. The sequence checks scaled reference prediction, changing geometry and metadata storage across 20 pictures.
+
+The `.webm` files carry the same independently encoded packets through the shared Matroska reader. Integration checks whole-file reconstruction, previews, repeated indexed seeks and full AVC encoding with common planar preparation. Output frame counts must match the independent references, and the allocator must return to zero after each operation.

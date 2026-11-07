@@ -34,8 +34,9 @@ namespace Mediana.Containers.Matroska
                     options.MaxTotalCodecConfigurationBytes, cancellationToken).ConfigureAwait(false);
                 IReadOnlyList<MatroskaTrackInfo> descriptions = Array.AsReadOnly(tracks.Select((track, stream) =>
                     new MatroskaTrackInfo(track, configurations[stream].Stream)).ToArray());
-                ContainerInfo commonInfo = CreateInfo(metadata, descriptions, index);
+                ContainerInfo commonInfo = CreateInfo(metadata, descriptions, index, header.DocumentType);
                 packets = new(source, allocator, index, tracks, configurations, info.TimestampScale, options.IndexOptions);
+                await packets.InitializePresentationAsync(options.IndexOptions, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 MatroskaAttachmentSource attachmentSource = new(source, allocator, attachments, options.MaxAttachmentBytes);
                 MatroskaReader reader = new(index, packets, info, descriptions, commonInfo, attachmentSource);
@@ -151,7 +152,7 @@ namespace Mediana.Containers.Matroska
         }
 
         private static ContainerInfo CreateInfo(MatroskaSegmentMetadata metadata, IReadOnlyList<MatroskaTrackInfo> tracks,
-            MatroskaPacketIndex index)
+            MatroskaPacketIndex index, string documentType)
         {
             MatroskaSegmentInfo info = metadata.Info;
             MediaDuration? declared = info.Duration is double ticks ? MatroskaTrackClock.GetSegmentDuration(ticks, info.TimestampScale) : null;
@@ -174,7 +175,7 @@ namespace Mediana.Containers.Matroska
                     packetIndex: new(count, index.GetPayloadBytes(stream), duration),
                     language: track.Labels.LanguageBcp47 ?? track.Labels.Language);
             }
-            return new("matroska", declared, metadata.Tags, streams, dates);
+            return new(documentType, declared, metadata.Tags, streams, dates);
         }
     }
 }

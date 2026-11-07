@@ -1,32 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Formats.Video;
+
 namespace Mediana.Containers.Mp4
 {
     internal static class Mp4ElementaryStreamDescriptor
     {
         public static (string CodecId, ReadOnlyMemory<byte> Configuration) ReadAudioConfiguration(ReadOnlyMemory<byte> data)
         {
-            Mp4Binary.FullBox(data.Span);
-            ReadOnlyMemory<byte> elementary = Find(data[4..], 3);
-            Mp4Binary.Range(elementary.Span, 0, 3);
-            int offset = 3;
-            byte flags = elementary.Span[2];
-            if ((flags & 0x80) != 0)
-            {
-                offset += 2;
-            }
-            if ((flags & 0x40) != 0)
-            {
-                offset += 1 + Mp4Binary.Range(elementary.Span, offset, 1)[0];
-            }
-            if ((flags & 0x20) != 0)
-            {
-                offset += 2;
-            }
-            Mp4Binary.Range(elementary.Span, 0, offset);
-            ReadOnlyMemory<byte> decoder = Find(elementary[offset..], 4);
-            Mp4Binary.Range(decoder.Span, 0, 13);
+            ReadOnlyMemory<byte> decoder = ReadDecoderDescriptor(data);
             if ((decoder.Span[1] >> 2) != 5)
             {
                 throw new NotSupportedException("The MP4 elementary stream descriptor is not audio.");
@@ -57,6 +40,43 @@ namespace Mediana.Containers.Mp4
                 throw new NotSupportedException($"MPEG-4 audio object type {objectType} is not supported.");
             }
             return ("aac", configuration);
+        }
+
+        public static ReadOnlyMemory<byte> ReadVisualConfiguration(ReadOnlyMemory<byte> data)
+        {
+            ReadOnlyMemory<byte> decoder = ReadDecoderDescriptor(data);
+            if (decoder.Span[0] != 0x20 || (decoder.Span[1] >> 2) != 4)
+            {
+                throw new NotSupportedException("The MP4 elementary stream descriptor is not MPEG-4 Visual.");
+            }
+            ReadOnlyMemory<byte> configuration = Find(decoder[13..], 5);
+            _ = Mpeg4VisualConfiguration.Read(configuration.Span);
+            return configuration;
+        }
+
+        private static ReadOnlyMemory<byte> ReadDecoderDescriptor(ReadOnlyMemory<byte> data)
+        {
+            Mp4Binary.FullBox(data.Span);
+            ReadOnlyMemory<byte> elementary = Find(data[4..], 3);
+            Mp4Binary.Range(elementary.Span, 0, 3);
+            int offset = 3;
+            byte flags = elementary.Span[2];
+            if ((flags & 0x80) != 0)
+            {
+                offset += 2;
+            }
+            if ((flags & 0x40) != 0)
+            {
+                offset += 1 + Mp4Binary.Range(elementary.Span, offset, 1)[0];
+            }
+            if ((flags & 0x20) != 0)
+            {
+                offset += 2;
+            }
+            Mp4Binary.Range(elementary.Span, 0, offset);
+            ReadOnlyMemory<byte> decoder = Find(elementary[offset..], 4);
+            Mp4Binary.Range(decoder.Span, 0, 13);
+            return decoder;
         }
 
         private static ReadOnlyMemory<byte> Find(ReadOnlyMemory<byte> data, byte expectedTag) =>

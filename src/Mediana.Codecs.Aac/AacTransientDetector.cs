@@ -15,6 +15,17 @@ namespace Mediana.Codecs.Aac
         private double previousMedium;
         private double previousCoarse;
 
+        public static bool AnalyzeWindow(ReadOnlySpan<double> samples, CancellationToken token)
+        {
+            if (samples.Length != 2048)
+            {
+                throw new ArgumentException("AAC bounded transient analysis requires the previous and current PCM blocks.", nameof(samples));
+            }
+            AacTransientDetector detector = default;
+            detector.Analyze(samples[..1024], token);
+            return detector.Analyze(samples[1024..], token);
+        }
+
         public bool Analyze(ReadOnlySpan<double> samples, CancellationToken token)
         {
             if (samples.Length != 1024)

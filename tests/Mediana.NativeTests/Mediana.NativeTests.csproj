@@ -9,8 +9,26 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/Mpeg4TestInput.cs" Link="Mpeg4TestInput.cs" />
+    <Compile Include="../Shared/Mpeg4ContainerTestInput.cs" Link="Mpeg4ContainerTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Mpeg4Visual/Mediana.Codecs.Mpeg4Visual.csproj" />
+    <None Include="../Mediana.Codecs.Mpeg4Visual.Tests/Data/*" Link="Data/Mpeg4Visual/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/TheoraContainerTestInput.cs" Link="TheoraContainerTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Theora/Mediana.Codecs.Theora.csproj" />
+    <None Include="../Mediana.Codecs.Theora.Tests/Data/*" Link="Data/Theora/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Vp9ContainerTestInput.cs" Link="Vp9ContainerTestInput.cs" />
+    <Compile Include="../Shared/Vp9KeyPictureTestInput.cs" Link="Vp9KeyPictureTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Vp9/Mediana.Codecs.Vp9.csproj" />
+    <None Include="../Mediana.Codecs.Vp9.Tests/Data/*" Link="Data/Vp9/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/JpegSampleCursorTestInput.cs" Link="JpegSampleCursorTestInput.cs" />
+    <None Include="../Mediana.Containers.Avi.Tests/Data/*.avi" Link="Data/Avi/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mjpeg/*" Link="Data/Mjpeg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageExifOrientationTestInput.cs" Link="ImageExifOrientationTestInput.cs" />
     <Compile Include="../Shared/MediaExportTestInput.cs" Link="MediaExportTestInput.cs" />
+    <Compile Include="../Shared/VideoTranscodeTestInput.cs" Link="VideoTranscodeTestInput.cs" />
+    <Compile Include="../Mediana.Tests/Mp4TestData.cs" Link="Mp4TestData.cs" />
+    <Compile Include="../Mediana.Tests/Mp4EditTestData.cs" Link="Mp4EditTestData.cs" />
+    <Compile Include="../Shared/YuvFramePreparationTestInput.cs" Link="YuvFramePreparationTestInput.cs" />
     <Compile Include="../Shared/IccColorTestInput.cs" Link="IccColorTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Icc/*" Link="Data/Icc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/DocumentPackageTestData.cs" Link="DocumentPackageTestData.cs" />
@@ -22,6 +40,11 @@
     <Compile Include="../Shared/PresentationImageFillTestInput.cs" Link="PresentationImageFillTestInput.cs" />
     <Compile Include="../Shared/PdfTextTestData.cs" Link="PdfTextTestData.cs" />
     <Compile Include="../Shared/DocumentReadersTestInput.cs" Link="DocumentReadersTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Vp8/*.webm" Link="Data/Vp8/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Vp8/*.yuv" Link="Data/Vp8/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Vp8ContainerTestInput.cs" Link="Vp8ContainerTestInput.cs" />
+    <Compile Include="../Shared/VpxHlsTestInput.cs" Link="VpxHlsTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Presentation/Mediana.Documents.Presentation.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Xls/Mediana.Documents.Xls.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Xlsx/Mediana.Documents.Xlsx.csproj" />
@@ -117,6 +140,7 @@
     <Compile Include="../Shared/EbmlElementTestSource.cs" Link="EbmlElementTestSource.cs" />
     <Compile Include="../Shared/EbmlElementTestInput.cs" Link="EbmlElementTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Avi/Mediana.Containers.Avi.csproj" />
     <Compile Include="../Shared/EbmlValueTestInput.cs" Link="EbmlValueTestInput.cs" />
     <Compile Include="../Shared/H264DcResidualTestInput.cs" Link="H264DcResidualTestInput.cs" />
     <Compile Include="../Shared/H264ZeroResidualTestInput.cs" Link="H264ZeroResidualTestInput.cs" />
@@ -340,6 +364,7 @@
     <Compile Include="../Shared/FragmentHlsTestInput.cs" Link="FragmentHlsTestInput.cs" />
     <Compile Include="../Shared/OnDemandHlsTestInput.cs" Link="OnDemandHlsTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Mp4/hls-on-demand.mp4;../Mediana.Tests/Data/Mp4/hls-on-demand.encoded-segments.yuv" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-aac-on-demand.mp4" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Ogg/OggContainerTestInput.cs" Link="OggContainerTestInput.cs" />
     <Compile Include="../Shared/OpusRangeTestInput.cs" Link="OpusRangeTestInput.cs" />
     <Compile Include="../Shared/OpusPulseTestInput.cs" Link="OpusPulseTestInput.cs" />

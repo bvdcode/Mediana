@@ -4,5 +4,5 @@
 namespace Mediana.Containers.Matroska
 {
     internal readonly record struct MatroskaHeader(long BodyOffset, ulong EbmlVersion,
-        ulong DocumentVersion, ulong DocumentReadVersion, int MaximumSizeWidth);
+        ulong DocumentVersion, ulong DocumentReadVersion, int MaximumSizeWidth, string DocumentType);
 }

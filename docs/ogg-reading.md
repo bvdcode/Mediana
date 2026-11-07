@@ -1,6 +1,6 @@
 # Ogg reading
 
-`OggReaderFactory` registers Ogg Opus and Vorbis in the container pipeline.
+`OggReaderFactory` registers Ogg Theora, Opus and Vorbis in the container pipeline.
 `OggReader.OpenAsync` supplies independent and sequential packet access, stream
 configurations, native properties, UTF-8 comment tags and granule-based duration.
 It borrows an immutable random-access source and preserves its sequential cursor.
@@ -8,7 +8,7 @@ Calls on a reader must not overlap. Encoded packet leases may outlive the reader
 
 Opening scans the complete file and verifies page checksums by default. It retains
 codec headers and an allocator-backed packet index, without retaining compressed
-audio. A single verified page is cached for packet reads. Packet assembly handles
+media. A single verified page is cached for packet reads. Packet assembly handles
 continuations across pages, interleaving and empty packets. Failures during indexed
 reads preserve cursors and can be retried; failed opening releases its index.
 
@@ -21,16 +21,23 @@ durations remain available for multiplexed and chained sources.
 Opus retains its 48 kHz media clock, pre-skip, output gain, input sample-rate
 declaration and channel mapping. Vorbis configuration uses Xiph lacing for its three
 headers. Setup inspection reads codebook structure, floors, residues, mappings and
-packet block modes without expanding spectral vector tables. Neither container parser
-decodes audio. Register `OpusDecoderFactory` or `VorbisDecoderFactory` for managed
+packet block modes without expanding spectral vector tables. Container indexing does not decode audio or video. Register `OpusDecoderFactory` or `VorbisDecoderFactory` for managed
 PCM decoding; see [Opus decoding](opus-decoding.md) and
-[Vorbis decoding](vorbis-decoding.md). Unsupported logical-stream codecs fail explicitly.
+[Vorbis decoding](vorbis-decoding.md). Register `TheoraDecoderFactory` for managed planar video; see
+[Theora decoding](theora.md). Unsupported logical-stream codecs fail explicitly.
 
-`FindSeekPoint` searches the retained packet index without source reads.
+Theora retains the frame clock, crop, sampling, pixel aspect ratio, color-space
+identifier, bitrate and quality hints. Revision-zero granules locate the beginning
+of a frame and revision-one granules locate its end. Both expose the same packet
+presentation intervals, including a representable nonzero origin.
+
+`FindSeekPoint` searches the retained packet index without source reads and
+returns a preceding Theora keyframe when the selected stream is video.
 `GetPrerollStart` combines requested history with at least 80 ms for Opus and one
-preceding packet for Vorbis. Raw packet durations retain coded samples;
+preceding packet for Vorbis, and the preceding keyframe for Theora. Raw packet durations retain coded samples;
 `GetPresentationDuration` accounts for final granule trimming and Vorbis's first
-overlap packet. Opus pre-skip remains a separate beginning-of-stream declaration.
+overlap packet. `GetPacketTiming` exposes original indexed clocks for every stream
+without payload reads. Opus pre-skip remains a separate beginning-of-stream declaration.
 
 `OggPacketReader` is the forward-only framing API for sequential sources. It
 provides packets and page granules without interpreting codec syntax. Single-page

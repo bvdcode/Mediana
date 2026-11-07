@@ -12,7 +12,7 @@ namespace Mediana.Containers.Mp4
     /// <summary>Reads non-fragmented, self-contained MP4/MOV tracks in decode order.
     /// Packet timestamps use the selected timeline; every encoded sample is retained.
     /// Borrows the source. Each packet belongs to its caller.</summary>
-    public partial class Mp4Reader : IIndexedPresentationTimingReader, IIndexedPrerollReader
+    public partial class Mp4Reader : IIndexedPresentationTimingReader, IIndexedPrerollReader, IIndexedPacketTimingReader, IContainerPresentationReader
     {
         private readonly IRandomAccessByteSource source;
         private readonly MediaBufferAllocator allocator;
