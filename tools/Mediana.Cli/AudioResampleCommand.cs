@@ -19,40 +19,16 @@ namespace Mediana.Cli
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
                 new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes }, cancellationToken: cancellationToken);
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
-            AudioChannelMixer? mixer = null;
-            async ValueTask<AudioFrame?> ReadMixedAsync(CancellationToken cancellationToken)
-            {
-                using AudioFrame? input = await session.ReadFrameAsync(cancellationToken);
-                if (input is null)
-                {
-                    return null;
-                }
-                mixer ??= new AudioChannelMixer(input.Format, ["mono"], gains);
-                return mixer.Apply(input, allocator, cancellationToken);
-            }
-            await using AudioResampler resampler = new(ReadMixedAsync, sampleRate, allocator);
-            long samples = 0;
+            await using MonoAudioReader reader = new(session.ReadFrameAsync, gains, sampleRate, allocator, AudioSampleFormat.Signed16);
+            PcmStreamWriteResult? result = null;
             await outputFile.WriteAsync(async output =>
             {
-                while (true)
-                {
-                    using AudioFrame? frame = await resampler.ReadFrameAsync(cancellationToken);
-                    if (frame is null)
-                    {
-                        break;
-                    }
-                    using AudioFrame pcm = AudioSampleConverter.Apply(frame, AudioSampleFormat.Signed16, AudioStorageLayout.Interleaved, allocator, cancellationToken: cancellationToken);
-                    await PcmStreamWriter.WriteLittleEndianAsync(output, pcm, allocator, cancellationToken);
-                    samples = checked(samples + frame.SamplesPerChannel);
-                }
-            }, cancellationToken: cancellationToken);
-            await resampler.DisposeAsync();
+                result = await PcmStreamWriter.WriteFramesAsync(reader.ReadFrameAsync, output, allocator, PcmByteOrder.LittleEndian, cancellationToken);
+            }, cancellationToken);
+            await reader.DisposeAsync();
             await session.DisposeAsync();
-            if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0)
-            {
-                throw new InvalidOperationException("Audio processing buffers were not released.");
-            }
-            await Console.Out.WriteLineAsync($"Mono PCM16LE: {samples} samples; {sampleRate} Hz. Live buffer bytes: 0.");
+            if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0) { throw new InvalidOperationException("Audio processing buffers were not released."); }
+            await Console.Out.WriteLineAsync($"Mono PCM16LE: {result!.SamplesPerChannel} samples; {sampleRate} Hz. Live buffer bytes: 0.");
             return 0;
         }
     }

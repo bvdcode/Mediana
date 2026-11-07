@@ -12,14 +12,15 @@ namespace Mediana.Cli
 {
     internal static class AudioEngineFactory
     {
-        public static MediaEngine Create() => ContainerEngineFactory.CreateBuilder()
+        public static MediaEngine Create() => CreateBuilder().Build();
+
+        public static MediaEngineBuilder CreateBuilder() => ContainerEngineFactory.CreateBuilder()
             .AddAudioDecoder(new FlacDecoderFactory())
             .AddAudioDecoder(new PcmDecoderFactory())
             .AddAudioDecoder(new AiffPcmDecoderFactory())
             .AddAudioDecoder(new AacDecoderFactory())
             .AddAudioDecoder(new Mp3DecoderFactory())
             .AddAudioDecoder(new OpusDecoderFactory())
-            .AddAudioDecoder(new VorbisDecoderFactory())
-            .Build();
+            .AddAudioDecoder(new VorbisDecoderFactory());
     }
 }
