@@ -33,7 +33,7 @@ namespace Mediana
             using VideoFrame first = await presentation.ReadFrameAsync(token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("The selected video interval contains no frames.");
             VideoDisplayMatrix matrix = stream.DisplayMatrix ?? throw new NotSupportedException("Video encoding requires a declared display transform.");
-            VideoPreparation preparation = input.Resources.Own(new VideoPreparation(first.Format, matrix, input.Allocator, request.Preparation));
+            VideoPreparationSequence preparation = input.Resources.Own(new VideoPreparationSequence(first.Format, matrix, input.Allocator, request.Preparation));
             IMediaEncoder<VideoFrame> encoder = input.Resources.Own(request.Encoder.Create(preparation.OutputFormat, outputClock, input.Allocator, request.OutputStreamIndex));
             VideoFrame? opening = input.Resources.Own(first.Retain());
             long frames = 0;

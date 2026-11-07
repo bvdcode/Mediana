@@ -47,7 +47,7 @@ namespace Mediana.Streaming.Hls
             VideoFrame? current = input.Current;
             try
             {
-                using VideoPreparation preparation = new(current.Format, stream.DisplayMatrix!.Value, allocator, options.FramePreparation);
+                using VideoPreparationSequence preparation = new(current.Format, stream.DisplayMatrix!.Value, allocator, options.FramePreparation);
                 if (options.SeparateAudio)
                 {
                     for (int profile = 0; profile < audio!.ProfileCount; profile++)

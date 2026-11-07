@@ -4,6 +4,8 @@
 using System.Buffers;
 using System.Security.Cryptography;
 using Mediana.Codecs.Vp9;
+using Mediana.Codecs.H264;
+using Mediana.Containers.MpegTs;
 using Mediana.Containers.Matroska;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -18,7 +20,7 @@ namespace Mediana.Tests
         internal static async Task VerifyAsync(string root, string name)
         {
             string[] expected = (await File.ReadAllLinesAsync(Path.Combine(root, name + ".sha256"))).Where(line => !line.StartsWith('#')).Select(line => line.Split(',')[^1].Trim().ToUpperInvariant()).ToArray();
-            MediaEngine engine = new MediaEngineBuilder().AddContainer(new MatroskaReaderFactory()).AddVideoDecoder(new Vp9DecoderFactory()).Build();
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(new MatroskaReaderFactory()).AddVideoDecoder(new Vp9DecoderFactory()).AddVideoDecoder(new H264DecoderFactory()).AddContainerWriter(new MpegTsWriterFactory()).Build();
             MediaBufferAllocator allocator = new(128 * 1024 * 1024, MemoryPool<byte>.Shared);
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, name + ".webm")));
             using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -49,6 +51,12 @@ namespace Mediana.Tests
                     { throw new InvalidDataException("VP9 indexed seek changed reconstructed pixels."); }
                 }
             }
+            using MemoryStream output = new();
+            MediaProcessingResult encoded = await engine.ProcessAsync(source, output, "mpegts",
+                [new VideoEncodingRequest(0, 0, new H264EncoderFactory(), new VideoPreparationOptions
+                    { OutputPixelFormat = VideoPixelFormat.Yuv420P8, MaximumWidth = 32, RgbConversion = new() })], allocator);
+            if (encoded.Tracks[0].Frames != expected.Length || output.Length == 0)
+            { throw new InvalidDataException("VP9 to AVC encoding changed the picture count."); }
             if (allocator.AllocatedBytes != 0) { throw new InvalidDataException("VP9 session retained frame or reference storage."); }
         }
 
