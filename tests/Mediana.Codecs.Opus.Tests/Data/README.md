@@ -568,3 +568,15 @@ packet count. Packets record 32-bit encoded length (zero for loss), bytes,
 The decompressed header is `OPUSREC1` followed by a 32-bit stream count.
 
 SHA-256: `e7517e3d76ecaafe108e85bfd26dc64490a52e4fb1e404d81d8bf730b3a744b9`.
+
+`celt-prediction.bin` records 128 mono/stereo histories from libopus 1.6.1.
+Noise, periodic mixtures, transients, impulses, silence and very small signals
+exercise the two-stage pitch search, 24-tap windowed LPC analysis, residual
+filtering and synthesis. Pitch lags match exactly; float values use a relative
+comparison of 1e-5 with a unit floor. The file starts with `OPUSCLP1`, a 32-bit
+case count and 120 float32 analysis-window coefficients. Each case records a
+32-bit channel count, 2,048 float32 samples per channel and a 32-bit pitch lag.
+Per-channel data then contains 25 autocorrelations, 24 LPC coefficients,
+512 residuals and 512 reconstructed samples, all little-endian float32.
+
+SHA-256: `a01061720d5b35701fa4335d078f0fa33a8b1cf349abe0c7dbc3f72a43339937`.

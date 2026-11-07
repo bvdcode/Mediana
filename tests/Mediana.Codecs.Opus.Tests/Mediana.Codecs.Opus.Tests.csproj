@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/OpusCeltPredictionTestInput.cs" Link="OpusCeltPredictionTestInput.cs" />
     <Compile Include="../Shared/OpusRangeTestInput.cs" Link="OpusRangeTestInput.cs" />
     <Compile Include="../Shared/OpusPulseTestInput.cs" Link="OpusPulseTestInput.cs" />
     <Compile Include="../Shared/OpusLaplaceTestInput.cs" Link="OpusLaplaceTestInput.cs" />
