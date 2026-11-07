@@ -13,7 +13,7 @@ namespace Mediana.Processing
         private static readonly VideoColorInfo SrgbColor = new(ColorPrimaries.Bt709, TransferFunction.Srgb,
             MatrixCoefficients.Rgb, ColorRange.Full, ChromaLocation.Unspecified);
 
-        /// <summary>Converts supported SDR YUV420P8/YUV420P10 or straight RGBA32 to full-range straight sRGB RGBA32.
+        /// <summary>Converts SDR planar integer YUV/GBR or straight RGBA32 to full-range straight sRGB RGBA32.
         /// Uses supported ICC v2/v4 matrix/TRC profiles or known source color parameters.
         /// Borrows input; returns an independently disposable frame.
         /// Unchanged tightly packed sRGB storage retains its original allocation budget without copying.
@@ -42,30 +42,36 @@ namespace Mediana.Processing
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
             SdrRgbTransform transform = new(sourceColor.Primaries, sourceColor.Transfer);
-            bool tenBit = ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Yuv420P10);
-            bool yuv = tenBit || ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Yuv420P8);
+            PlanarVideoPixelFormat? planar = input.Format.PixelFormat as PlanarVideoPixelFormat;
+            bool yuv = planar?.ColorModel == PlanarColorModel.Yuv;
+            bool gbr = planar?.ColorModel == PlanarColorModel.Gbr;
             YuvRgbMatrix matrix = default;
             if (yuv)
             {
-                matrix = YuvRgbMatrix.Create(sourceColor.Matrix, sourceColor.Range, tenBit ? 10 : 8);
+                matrix = YuvRgbMatrix.Create(sourceColor.Matrix, sourceColor.Range, planar!.BitDepth);
             }
-            else if (!ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32) || sourceColor.Matrix != MatrixCoefficients.Rgb ||
+            else if ((!gbr && !ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32)) || sourceColor.Matrix != MatrixCoefficients.Rgb ||
                 sourceColor.Range != ColorRange.Full || sourceColor.ChromaLocation != ChromaLocation.Unspecified)
             {
                 throw new NotSupportedException("RGB conversion requires full-range straight RGBA32 with an RGB matrix and no chroma subsampling.");
             }
-            if (!yuv && CanRetain(input, sourceColor, map, aspectRatio))
+            if (!yuv && !gbr && CanRetain(input, sourceColor, map, aspectRatio))
             {
                 return input.Retain();
             }
-            if (!yuv)
+            if (!yuv && !gbr)
             {
                 return ApplyRgba(input, map, aspectRatio, allocator, transform, cancellationToken);
             }
             VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio);
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
-            if (tenBit) { RenderYuv<ushort>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
+            if (gbr)
+            {
+                if (planar!.BitDepth > 8) { RenderGbr<ushort>(input, writable.Span, map, planar.BitDepth, transform, cancellationToken); }
+                else { RenderGbr<byte>(input, writable.Span, map, planar.BitDepth, transform, cancellationToken); }
+            }
+            else if (planar!.BitDepth > 8) { RenderYuv<ushort>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
             else { RenderYuv<byte>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();

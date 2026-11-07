@@ -25,12 +25,9 @@ namespace Mediana.Processing
                     MatrixCoefficients.YCgCoRo => throw new NotSupportedException("This YCbCr matrix is unspecified or not supported."),
                 _ => throw new ArgumentOutOfRangeException(nameof(matrix))
             };
-            int scale = bitDepth switch
-            {
-                8 => 1,
-                10 => 4,
-                _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
-            };
+            ArgumentOutOfRangeException.ThrowIfLessThan(bitDepth, 8);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(bitDepth, 16);
+            int scale = 1 << (bitDepth - 8);
             return range switch
             {
                 ColorRange.Limited => new(red, blue, 16 * scale, 219 * scale, 224 * scale, 128 * scale),
