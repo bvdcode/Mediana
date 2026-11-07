@@ -33,6 +33,15 @@ class PerformanceCatalogTests(unittest.TestCase):
                 / "measurements.jsonl"
             )
             records = [json.loads(line) for line in raw.read_text().splitlines()]
+            comparisons = [
+                json.loads(line)
+                for line in raw.with_name("validation.jsonl").read_text().splitlines()
+            ]
+            checked = [row for row in comparisons if row["case"] == result.case]
+            self.assertEqual({row["repetition"] for row in checked}, {1, 2, 3})
+            self.assertTrue(
+                all(row.get("validation_succeeded") is not False for row in checked)
+            )
             for engine in ("alternative", "mediana"):
                 selected = [
                     row
