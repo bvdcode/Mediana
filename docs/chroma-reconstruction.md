@@ -78,3 +78,56 @@ Sample position, edge treatment, component precision and output color processing
 must also agree before timing results establish an advantage at equal quality.
 In particular, libheif 1.23.2's bilinear implementation assumes centered samples;
 its output is not an interchangeable reference for every HEVC sample position.
+
+## Whole-file measurements
+
+The [raw runs and output hashes](chroma-reconstruction-results.json) and
+[median table](chroma-reconstruction-results.csv) compare `92dc2f3` with phase-table
+reuse in `f441f05`. Both builds use Release Native AOT, .NET SDK 10.0.403 and an
+Intel Core i5-12450H. Each mode runs in three fresh processes on logical CPUs 2
+and 4 with `DOTNET_PROCESSOR_COUNT=2`; execution order reverses on alternating
+repetitions. Input cache is warm and output is written to tmpfs. Timing includes
+startup, complete HEIC decoding, full source-color RGBA8 output and process exit.
+ICC conversion and PNG compression are outside these measurements.
+
+Final Mediana medians:
+
+| Image | Filter | Elapsed, s | Total CPU, s | Peak RSS, MiB |
+| --- | --- | ---: | ---: | ---: |
+| 4000×3000 | Nearest | 0.996 | 1.078 | 65.1 |
+| 4000×3000 | Bilinear | 1.117 | 1.201 | 65.4 |
+| 4000×3000 | Bicubic | 1.226 | 1.226 | 65.4 |
+| 4000×3000 | Lanczos3 | 1.275 | 1.395 | 65.4 |
+| 16320×12240 | Nearest | 9.734 | 10.481 | 834.3 |
+| 16320×12240 | Bilinear | 11.159 | 12.340 | 831.6 |
+| 16320×12240 | Bicubic | 11.946 | 13.062 | 834.5 |
+| 16320×12240 | Lanczos3 | 13.225 | 14.577 | 832.7 |
+
+These runs share a development host without exclusive CPU or frequency control.
+The unchanged nearest path also changes timing between the before/after stages;
+the timings do not isolate a CPU speedup caused by phase-table reuse. Peak RSS
+is process memory, not total managed allocation, and small RSS differences do
+not establish a memory ordering between kernels.
+
+Allocation for one reusable 256×256-to-512×512 plane plan, measured over 100
+constructions after warm-up, changes deterministically:
+
+| Filter | Before, bytes | After, bytes |
+| --- | ---: | ---: |
+| Nearest | 8416 | 4336 |
+| Bilinear | 12512 | 4352 |
+| Bicubic | 20704 | 4384 |
+| Lanczos3 | 28896 | 4416 |
+
+These counts cover plan objects and arrays, not decoded image storage. HEIC's
+optimized nearest path does not construct a plan. Row processing allocates zero
+additional managed buffers when supplied with its caller-owned workspace.
+
+All eight complete Mediana outputs, covering both photographs and all four
+filters, retain exactly the same SHA-256 before and after phase-table reuse.
+Nearest output differs from libheif/libde265 by at most one RGBA code value on
+both complete photographs, with RGBA RMS errors of 0.139705 and 0.131672. The
+paired native nearest baseline remains faster: CPU medians are 0.579 s and
+5.527 s. Bilinear equivalence to that native version is not established because
+sample-location and edge behavior differ; those results are not presented as
+an equal-quality speed comparison.
