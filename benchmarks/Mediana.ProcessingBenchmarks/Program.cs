@@ -5,6 +5,6 @@ namespace Mediana.ProcessingBenchmarks
 {
     internal static class Program
     {
-        private static void Main() => ScalingBenchmark.Run();
+        private static Task Main(string[] args) => ProcessingBenchmarkApplication.RunAsync(args);
     }
 }
