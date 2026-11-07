@@ -6,9 +6,9 @@ using Mediana.Core.Video;
 namespace Mediana.Processing
 {
     internal readonly record struct YuvRgbMatrix(double RedWeight, double BlueWeight, double LumaOffset,
-        double LumaScale, double ChromaScale)
+        double LumaScale, double ChromaScale, double ChromaOffset)
     {
-        public static YuvRgbMatrix Create(MatrixCoefficients matrix, ColorRange range)
+        public static YuvRgbMatrix Create(MatrixCoefficients matrix, ColorRange range, int bitDepth = 8)
         {
             // Rec. ITU-T H.264, Table E-5 and equations E-35 through E-40.
             (double red, double blue) = matrix switch
@@ -25,10 +25,16 @@ namespace Mediana.Processing
                     MatrixCoefficients.YCgCoRo => throw new NotSupportedException("This YCbCr matrix is unspecified or not supported."),
                 _ => throw new ArgumentOutOfRangeException(nameof(matrix))
             };
+            int scale = bitDepth switch
+            {
+                8 => 1,
+                10 => 4,
+                _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
+            };
             return range switch
             {
-                ColorRange.Limited => new(red, blue, 16, 219, 224),
-                ColorRange.Full => new(red, blue, 0, 255, 255),
+                ColorRange.Limited => new(red, blue, 16 * scale, 219 * scale, 224 * scale, 128 * scale),
+                ColorRange.Full => new(red, blue, 0, (1 << bitDepth) - 1, (1 << bitDepth) - 1, 128 * scale),
                 ColorRange.Unspecified => throw new NotSupportedException("YCbCr conversion requires an explicit color range."),
                 _ => throw new ArgumentOutOfRangeException(nameof(range))
             };
@@ -37,8 +43,8 @@ namespace Mediana.Processing
         public (double Red, double Green, double Blue) Convert(double luma, double cb, double cr)
         {
             double y = (luma - LumaOffset) / LumaScale;
-            double blueDifference = (cb - 128) / ChromaScale;
-            double redDifference = (cr - 128) / ChromaScale;
+            double blueDifference = (cb - ChromaOffset) / ChromaScale;
+            double redDifference = (cr - ChromaOffset) / ChromaScale;
             double greenWeight = 1 - RedWeight - BlueWeight;
             double red = y + 2 * (1 - RedWeight) * redDifference;
             double blue = y + 2 * (1 - BlueWeight) * blueDifference;
