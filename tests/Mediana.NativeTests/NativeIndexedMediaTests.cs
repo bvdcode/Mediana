@@ -29,6 +29,13 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS public Vorbis PCM: 1,183 sequential packets, 128 transforms, sample clocks, overlap transitions and lease ownership match independent references.");
             await Vp8ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Vp8"));
             Console.WriteLine("PASS VP8 video: exact WebM pictures, hidden references, repeated indexed seeks, AVC encoding and pooled buffer release.");
+            string vp9Root = Path.Combine(AppContext.BaseDirectory, "Data", "Vp9");
+            foreach (string name in new[] { "main8", "main10", "high8", "high12", "lossless", "resilient", "tiles", "altref" })
+            {
+                await Vp9KeyPictureTestInput.VerifyAsync(vp9Root, name, false);
+                await Vp9KeyPictureTestInput.VerifyAsync(vp9Root, name, true);
+            }
+            Console.WriteLine("PASS VP9 key pictures: profiles 0-3, 8/10/12-bit samples, lossless, tiles and filtered pixels match independent references.");
             await NativeHevcTests.VerifyAsync();
             string hevcRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Hevc");
             foreach (string name in new[] { "main8", "main10", "weighted8", "weighted10" })
