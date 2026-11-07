@@ -10,6 +10,9 @@ namespace Mediana.Codecs.Jpeg
         public int MaximumPixels { get; init; } = 16 * 1024 * 1024;
         public int MaximumMarkers { get; init; } = 100_000;
         public JpegChromaConflictPolicy ChromaConflictPolicy { get; init; }
+        /// <summary>Allows byte-aligned Exif directories and rational values that violate TIFF word alignment.
+        /// Bounds, tag types, counts and values remain validated. Decoding reports a warning through ImageDecodeRequest.</summary>
+        public bool AllowUnalignedExifOffsets { get; init; }
 
         internal void Validate()
         {

@@ -16,6 +16,8 @@ namespace Mediana.Tests
         public Task OrientedOutputUsesOneExactAllocationAndComponentsRemainUnoriented() => JpegExifTestInput.VerifyOwnershipAsync(Root);
         [Fact]
         public Task ExplicitJfifConflictPolicyPreservesReferencePixelsAndWarnings() => JpegExifTestInput.VerifyChromaConflictAsync(Root);
+        [Fact]
+        public Task UnalignedOffsetsRequireExplicitPermissionAndPreservePixelsBoundsAndWarnings() => JpegExifTestInput.VerifyUnalignedOffsetsAsync(Root);
 
         [Theory]
         [InlineData(-1)]

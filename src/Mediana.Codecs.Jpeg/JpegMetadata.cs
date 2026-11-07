@@ -24,10 +24,11 @@ namespace Mediana.Codecs.Jpeg
         internal OrthogonalTransform Orientation { get; private set; } = OrthogonalTransform.Identity;
         internal bool Centered { get; private set; } = true;
         internal bool UsedJfifChromaPosition { get; private set; }
+        internal bool HasUnalignedExifOffsets { get; private set; }
         internal bool IsSrgb => exifColorSpace == 1;
         internal bool Uncalibrated => exifColorSpace == 65535;
 
-        internal void Read(byte marker, ReadOnlyMemory<byte> data, CancellationToken token)
+        internal void Read(byte marker, ReadOnlyMemory<byte> data, bool allowUnalignedExifOffsets, CancellationToken token)
         {
             ReadOnlySpan<byte> segment = data.Span;
             if (marker == 224 && segment.StartsWith("JFIF\0"u8))
@@ -70,13 +71,14 @@ namespace Mediana.Codecs.Jpeg
             else if (marker == 225 && segment.StartsWith("Exif\0\0"u8))
             {
                 if (exif) { throw new InvalidDataException("JPEG Exif metadata is duplicated."); }
-                JpegExif metadata = new(segment[6..], token);
+                JpegExif metadata = new(segment[6..], allowUnalignedExifOffsets, token);
                 metadata.Read();
                 exif = true;
                 Orientation = metadata.Orientation;
                 Centered = metadata.Centered;
                 exifColorSpace = metadata.ColorSpace;
                 exifCustomColor = metadata.CustomColor;
+                HasUnalignedExifOffsets = metadata.HasUnalignedOffsets;
             }
             else if (marker == 232 && segment.StartsWith("SPIFF\0"u8))
             {

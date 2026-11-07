@@ -3,10 +3,11 @@
 
 using System.Buffers.Binary;
 using Mediana.Core.Video;
+using Mediana.Formats.Metadata;
 
 namespace Mediana.Codecs.Jpeg
 {
-    internal ref struct JpegExif(ReadOnlySpan<byte> data, CancellationToken token)
+    internal ref struct JpegExif(ReadOnlySpan<byte> data, bool allowUnalignedOffsets, CancellationToken token)
     {
         private readonly ReadOnlySpan<byte> bytes = data;
         private bool little;
@@ -18,6 +19,7 @@ namespace Mediana.Codecs.Jpeg
         internal bool Centered { get; private set; } = true;
         internal ushort? ColorSpace { get; private set; }
         internal bool CustomColor { get; private set; }
+        internal bool HasUnalignedOffsets { get; private set; }
 
         internal void Read()
         {
@@ -47,8 +49,7 @@ namespace Mediana.Codecs.Jpeg
 
         private void ReadDirectory(uint offset, bool color)
         {
-            if (offset < 8 || (offset & 1) != 0) { throw new InvalidDataException("Invalid JPEG Exif directory offset."); }
-            int start = Position(offset, 2);
+            int start = Offset(offset, 2, "directory");
             int count = Short(start);
             Position(offset, checked(2 + count * 12 + 4));
             int previous = -1;
@@ -77,7 +78,7 @@ namespace Mediana.Codecs.Jpeg
                 {
                     switch (tag)
                     {
-                        case 274: Orientation = ReadOrientation(Scalar(entry, 3)); break;
+                        case 274: Orientation = ExifOrientation.ToTransform(Scalar(entry, 3)); break;
                         case 282: xResolution = Rational(entry); break;
                         case 283: yResolution = Rational(entry); break;
                         case 531:
@@ -115,8 +116,7 @@ namespace Mediana.Codecs.Jpeg
         {
             if (Short(entry + 2) != 5 || Long(entry + 4) != 1) { throw new InvalidDataException("Invalid JPEG Exif rational type or count."); }
             uint offset = Long(entry + 8);
-            if (offset < 8 || (offset & 1) != 0) { throw new InvalidDataException("Invalid JPEG Exif rational offset."); }
-            int position = Position(offset, 8);
+            int position = Offset(offset, 8, "rational");
             uint numerator = Long(position), denominator = Long(position + 4);
             if (numerator == 0 || denominator == 0) { throw new InvalidDataException("Invalid JPEG Exif rational value."); }
             return ((ulong)numerator << 32) | denominator;
@@ -128,20 +128,19 @@ namespace Mediana.Codecs.Jpeg
             return (int)offset;
         }
 
+        private int Offset(uint offset, int length, string kind)
+        {
+            if (offset < 8) { throw new InvalidDataException($"JPEG Exif {kind} overlaps the TIFF header."); }
+            int position = Position(offset, length);
+            if ((offset & 1) != 0)
+            {
+                if (!allowUnalignedOffsets) { throw new InvalidDataException($"JPEG Exif {kind} offset {offset} is not word-aligned."); }
+                HasUnalignedOffsets = true;
+            }
+            return position;
+        }
+
         private ushort Short(int offset) => little ? BinaryPrimitives.ReadUInt16LittleEndian(bytes[offset..]) : BinaryPrimitives.ReadUInt16BigEndian(bytes[offset..]);
         private uint Long(int offset) => little ? BinaryPrimitives.ReadUInt32LittleEndian(bytes[offset..]) : BinaryPrimitives.ReadUInt32BigEndian(bytes[offset..]);
-
-        private static OrthogonalTransform ReadOrientation(int value) => OrthogonalTransform.FromMatrix(value switch
-        {
-            1 => VideoDisplayMatrix.Identity,
-            2 => new(-1, 0, 0, 0, 1, 0, 0, 0, 1),
-            3 => new(-1, 0, 0, 0, -1, 0, 0, 0, 1),
-            4 => new(1, 0, 0, 0, -1, 0, 0, 0, 1),
-            5 => new(0, 1, 0, 1, 0, 0, 0, 0, 1),
-            6 => new(0, 1, 0, -1, 0, 0, 0, 0, 1),
-            7 => new(0, -1, 0, -1, 0, 0, 0, 0, 1),
-            8 => new(0, -1, 0, 1, 0, 0, 0, 0, 1),
-            _ => throw new InvalidDataException("Reserved JPEG Exif orientation.")
-        });
     }
 }

@@ -13,6 +13,78 @@ namespace Mediana.Tests
     internal static class JpegExifTestInput
     {
         internal const string ChromaConflictWarning = "JPEG JFIF and Exif chroma positions conflict; using centered JFIF chroma positioning.";
+        internal const string UnalignedWarning = "JPEG Exif contains unaligned offsets; reading values at their declared byte positions.";
+
+        internal static async Task<byte[]> UnalignedAsync(string root) => Unalign(
+            await File.ReadAllBytesAsync(Path.Combine(root, "sequential-II-6.jpg")), 34665);
+
+        internal static async Task VerifyUnalignedOffsetsAsync(string root)
+        {
+            byte[] aligned = await File.ReadAllBytesAsync(Path.Combine(root, "sequential-II-6.jpg"));
+            JpegDecodeOptions options = new() { AllowUnalignedExifOffsets = true };
+            JpegImageDecoder decoder = new(options);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using (VideoFrame expected = await new JpegImageDecoder().DecodeAsync(aligned, new(), allocator))
+            {
+                foreach (ushort tag in new ushort[] { 34665, 282 })
+                {
+                    byte[] input = Unalign(aligned, tag);
+                    await RejectAsync<InvalidDataException>(input);
+                    bool rejected = false;
+                    try { await new JpegImageDecoder().ReadInfoAsync(input); }
+                    catch (InvalidDataException) { rejected = true; }
+                    Require(rejected);
+                    Core.Metadata.ImageInfo info = await decoder.ReadInfoAsync(input);
+                    Require(info.Metadata.Properties.Single(property => property.Name == "warnings").Values.Single().AsText() == UnalignedWarning);
+                    List<string> warnings = [];
+                    using (VideoFrame actual = await decoder.DecodeAsync(input,
+                        new() { MaximumPixels = 35 * 19, WarningHandler = warnings.Add }, allocator))
+                    {
+                        Require(actual.Data.Span.SequenceEqual(expected.Data.Span));
+                        Require(info.Width == actual.Format.Width && info.Height == actual.Format.Height);
+                        Require(warnings.Count == 1 && warnings[0] == UnalignedWarning);
+                    }
+                    byte[] invalid = Metadata(input);
+                    BinaryPrimitives.WriteUInt32LittleEndian(invalid.AsSpan(Field(invalid, tag) + 8), uint.MaxValue);
+                    await RejectAsync<InvalidDataException>(ReplaceMetadata(input, invalid), options: options);
+                    invalid = Metadata(input);
+                    BinaryPrimitives.WriteUInt32LittleEndian(invalid.AsSpan(Field(invalid, tag) + 8), 3);
+                    await RejectAsync<InvalidDataException>(ReplaceMetadata(input, invalid), options: options);
+                }
+                List<string> unchanged = [];
+                using VideoFrame normal = await decoder.DecodeAsync(aligned, new() { WarningHandler = unchanged.Add }, allocator);
+                Require(unchanged.Count == 0 && normal.Data.Span.SequenceEqual(expected.Data.Span));
+            }
+            Require(allocator.AllocatedBytes == 0);
+            byte[] odd = Unalign(aligned, 34665);
+            bool stopped = false;
+            try
+            {
+                using VideoFrame frame = await decoder.DecodeAsync(odd,
+                    new() { WarningHandler = _ => throw new InvalidOperationException("Diagnostic consumer stopped.") }, allocator);
+            }
+            catch (InvalidOperationException error) when (error.Message == "Diagnostic consumer stopped.") { stopped = true; }
+            Require(stopped && allocator.AllocatedBytes == 0);
+        }
+
+        private static byte[] Unalign(byte[] input, ushort tag)
+        {
+            byte[] tiff = Metadata(input);
+            int pointer = Field(tiff, tag) + 8;
+            int original = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(tiff.AsSpan(pointer)));
+            int length = tag switch
+            {
+                34665 => 2 + BinaryPrimitives.ReadUInt16LittleEndian(tiff.AsSpan(original)) * 12 + 4,
+                282 => 8,
+                _ => throw new ArgumentOutOfRangeException(nameof(tag))
+            };
+            int offset = tiff.Length | 1;
+            byte[] changed = new byte[offset + length];
+            tiff.CopyTo(changed, 0);
+            tiff.AsSpan(original, length).CopyTo(changed.AsSpan(offset));
+            BinaryPrimitives.WriteUInt32LittleEndian(changed.AsSpan(pointer), (uint)offset);
+            return ReplaceMetadata(input, changed);
+        }
 
         internal static async Task<byte[]> ChromaConflictAsync(string root) => WithJfif(
             await File.ReadAllBytesAsync(Path.Combine(root, "cosited-s2.jpg")), true);
