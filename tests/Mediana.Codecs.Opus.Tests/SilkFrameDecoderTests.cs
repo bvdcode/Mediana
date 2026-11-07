@@ -22,7 +22,7 @@ namespace Mediana.Codecs.Opus.Tests
             OpusPacketInfo.ReadFrames(packet, frames);
             OpusPacketConfiguration configuration = OpusPacketConfiguration.FromToc(packet[0]);
             ReadOnlySpan<byte> payload = packet.AsSpan()[frames[0]];
-            MediaBufferAllocator allocator = new(32 * 1024);
+            MediaBufferAllocator allocator = new(64 * 1024);
             using SilkFrameDecoder decoder = new(8000, 1, allocator);
             using SilkFrameDecoder fresh = new(8000, 1, allocator);
             Span<float> output = stackalloc float[480], expected = stackalloc float[480];
@@ -58,7 +58,7 @@ namespace Mediana.Codecs.Opus.Tests
             OpusPacketInfo.ReadFrames(packet, frames);
             OpusPacketConfiguration configuration = OpusPacketConfiguration.FromToc(packet[0]);
             byte[] payload = packet.AsSpan()[frames[0]].ToArray();
-            MediaBufferAllocator allocator = new(16 * 1024);
+            MediaBufferAllocator allocator = new(32 * 1024);
             using SilkFrameDecoder decoder = new(8000, 1, allocator);
             float[] output = new float[480]; Array.Fill(output, float.NaN);
             Assert.Throws<OperationCanceledException>(() => decoder.Decode(payload, configuration, output, new(true)));
@@ -66,6 +66,23 @@ namespace Mediana.Codecs.Opus.Tests
             Assert.Equal(0u, decoder.FinalRange);
             Assert.Equal(480, decoder.Decode(payload, configuration, output));
             Assert.Equal(1296506624u, decoder.FinalRange);
+        }
+
+        [Fact]
+        public void BandwidthChangesReuseTheReservedWorkspace()
+        {
+            MediaBufferAllocator allocator = new(32 * 1024);
+            using SilkFrameDecoder decoder = new(8000, 2, allocator);
+            decoder.SetSampleRate(16000); decoder.SetSampleRate(12000); decoder.SetSampleRate(8000);
+            long before = GC.GetAllocatedBytesForCurrentThread(), budget = allocator.AllocatedBytes;
+            for (int at = 0; at < 1000; at++)
+            {
+                decoder.SetSampleRate(16000); decoder.SetSampleRate(12000); decoder.SetSampleRate(8000);
+            }
+            Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+            Assert.Equal(budget, allocator.AllocatedBytes);
+            Assert.Equal(8000, decoder.SampleRate);
+            decoder.Dispose(); Assert.Equal(0, allocator.AllocatedBytes);
         }
 
         private static byte[] ReadFirstPacket()

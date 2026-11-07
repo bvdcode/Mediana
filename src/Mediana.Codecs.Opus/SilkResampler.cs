@@ -14,20 +14,27 @@ namespace Mediana.Codecs.Opus
         private const int DelayCapacity = 16;
         private const int WorkspaceOffset = AllpassHistoryBytes + DelayCapacity * sizeof(short);
         private readonly WritableMediaBuffer storage;
-        private readonly int rateKhz, inputDelay, batchSamples, incrementQ16;
+        private int rateKhz, inputDelay, batchSamples, incrementQ16;
 
         public SilkResampler(int sampleRate, MediaBufferAllocator allocator)
         {
             ArgumentNullException.ThrowIfNull(allocator);
+            SilkFrameMode maximum = new(SilkFrameMode.MaximumSampleRate, 2);
+            _ = new SilkFrameMode(sampleRate, 4);
+            storage = allocator.Allocate(WorkspaceOffset + (2 * maximum.FrameSamples + FilterHistory) * sizeof(short));
+            SetSampleRate(sampleRate);
+        }
+
+        public int SampleRate { get; private set; }
+
+        public void SetSampleRate(int sampleRate)
+        {
             SilkFrameMode mode = new(sampleRate, 4);
             SampleRate = sampleRate; rateKhz = mode.RateKhz; batchSamples = rateKhz * 10;
             inputDelay = rateKhz switch { 8 => 0, 12 => 4, 16 => 7, _ => throw new ArgumentOutOfRangeException(nameof(sampleRate)) };
             incrementQ16 = (int)(((long)sampleRate * 2 * 65536 + 47999) / 48000);
-            storage = allocator.Allocate(WorkspaceOffset + (2 * batchSamples + FilterHistory) * sizeof(short));
             Reset();
         }
-
-        public int SampleRate { get; }
         private Span<int> AllpassHistory => MemoryMarshal.Cast<byte, int>(storage.Span[..AllpassHistoryBytes]);
         private Span<short> Delay => MemoryMarshal.Cast<byte, short>(storage.Span.Slice(AllpassHistoryBytes, DelayCapacity * sizeof(short)));
         private Span<short> Workspace => MemoryMarshal.Cast<byte, short>(storage.Span[WorkspaceOffset..]);

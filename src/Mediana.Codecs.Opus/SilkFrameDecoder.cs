@@ -15,14 +15,14 @@ namespace Mediana.Codecs.Opus
         private readonly WritableMediaBuffer storage;
         private readonly int planeSamples;
         private int previousChannels;
-        private bool previousMidOnly, disposed, faulted;
+        private bool previousMidOnly, sampleRateChanged, disposed, faulted;
 
         public SilkFrameDecoder(int sampleRate, int outputChannels, MediaBufferAllocator allocator)
         {
             ArgumentNullException.ThrowIfNull(allocator);
             if (outputChannels is not (1 or 2)) { throw new ArgumentOutOfRangeException(nameof(outputChannels)); }
-            SilkFrameMode mode = new(sampleRate, 4);
-            SampleRate = sampleRate; OutputChannels = outputChannels; planeSamples = mode.FrameSamples;
+            _ = new SilkFrameMode(sampleRate, 4);
+            SampleRate = sampleRate; OutputChannels = outputChannels; planeSamples = SilkFrameMode.MaximumFrameSamples;
             SilkChannelDecoder createdMid = new(sampleRate, allocator);
             SilkChannelDecoder? createdSide = null;
             SilkResampler? createdLeft = null, createdRight = null;
@@ -40,7 +40,7 @@ namespace Mediana.Codecs.Opus
             }
         }
 
-        public int SampleRate { get; }
+        public int SampleRate { get; private set; }
         public int OutputChannels { get; }
         public uint FinalRange { get; private set; }
 
@@ -123,7 +123,8 @@ namespace Mediana.Codecs.Opus
         private void DecodeBlock(ref OpusRangeDecoder range, SilkFrameMode mode, int channels, int index,
             SilkPayloadHeader header, Span<float> output)
         {
-            bool collapsing = previousChannels == 2 && channels == 1;
+            bool collapsing = previousChannels == 2 && channels == 1 && !sampleRateChanged;
+            sampleRateChanged = false;
             if (OutputChannels == 2 && channels == 2 && previousChannels < 2)
             {
                 stereo.Prediction = default; stereo.SidePrevious1 = stereo.SidePrevious2 = 0;
@@ -163,11 +164,20 @@ namespace Mediana.Codecs.Opus
             previousChannels = channels; previousMidOnly = midOnly;
         }
 
+        public void SetSampleRate(int sampleRate)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (sampleRate == SampleRate) { return; }
+            mid.SetSampleRate(sampleRate); side.SetSampleRate(sampleRate);
+            leftResampler.SetSampleRate(sampleRate); rightResampler.SetSampleRate(sampleRate);
+            SampleRate = sampleRate; sampleRateChanged = true;
+        }
+
         public void Reset()
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             mid.Reset(); side.Reset(); leftResampler.Reset(); rightResampler.Reset(); stereo.Reset();
-            storage.Span.Clear(); previousChannels = 0; previousMidOnly = false; FinalRange = 0; faulted = false;
+            storage.Span.Clear(); previousChannels = 0; previousMidOnly = false; sampleRateChanged = false; FinalRange = 0; faulted = false;
         }
 
         public void Dispose()

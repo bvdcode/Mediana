@@ -5,6 +5,9 @@ namespace Mediana.Codecs.Opus
 {
     internal readonly record struct SilkFrameMode
     {
+        public const int MaximumSampleRate = 16000;
+        public const int MaximumFrameSamples = 320;
+
         public SilkFrameMode(int sampleRate, int subframes)
         {
             if (sampleRate is not (8000 or 12000 or 16000)) { throw new ArgumentOutOfRangeException(nameof(sampleRate)); }

@@ -44,6 +44,11 @@ namespace Mediana.Codecs.Opus
             synthesis.Reset(); entropyHistory = default; previousGainIndex = 10; firstFrame = true;
         }
 
+        public void SetSampleRate(int sampleRate)
+        {
+            synthesis.SetSampleRate(sampleRate); previousGainIndex = 10; firstFrame = true;
+        }
+
         public void ResetPrediction()
         {
             synthesis.ClearPrediction(); previousGainIndex = 10; firstFrame = true;
