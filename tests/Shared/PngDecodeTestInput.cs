@@ -127,7 +127,7 @@ namespace Mediana.Tests
             await RejectAsync<InvalidDataException>(wrongCrc);
             await RejectAsync<NotSupportedException>(Image([0, 1, 2, 3, 4], Chunk("ABCD", [])));
             await RejectAsync<NotSupportedException>(Image([0, 1, 2, 3, 4], Chunk("acTL", [0, 0, 0, 1, 0, 0, 0, 0])));
-            await RejectAsync<NotSupportedException>(Image([0, 1, 2, 3, 4], Chunk("eXIf", [1])));
+            await RejectAsync<InvalidDataException>(Image([0, 1, 2, 3, 4], Chunk("eXIf", [1])));
             byte[] valid = File(header, Chunk("IDAT", compressed.AsSpan(0, 1)), Chunk("IDAT", []),
                 Chunk("IDAT", [.. compressed.AsSpan(1), 1, 2, 3]), Chunk("abca", []), end);
             MediaBufferAllocator allocator = new(65536);

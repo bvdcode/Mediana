@@ -40,12 +40,12 @@ namespace Mediana.Codecs.Png
             }
         }
 
-        public static void Expand(PngImageData image, ReadOnlySpan<byte> row, Span<byte> output, int width, int step,
+        public static void Expand(PngImageData image, ReadOnlySpan<byte> row, Span<byte> output, int offset, int width, int step,
             CancellationToken token)
         {
             if (image.ColorType == 6 && image.Depth == 8 && step == 1)
             {
-                row.CopyTo(output);
+                row.CopyTo(output[offset..]);
                 return;
             }
             int bit = 0;
@@ -56,7 +56,7 @@ namespace Mediana.Codecs.Png
                 {
                     token.ThrowIfCancellationRequested();
                 }
-                Span<byte> pixel = output.Slice(x * step * 4, 4);
+                Span<byte> pixel = output.Slice(offset + x * step * 4, 4);
                 int first = ReadSample(row, image.Depth, ref bit);
                 switch (image.ColorType)
                 {

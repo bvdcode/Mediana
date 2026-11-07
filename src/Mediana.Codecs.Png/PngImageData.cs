@@ -22,6 +22,7 @@ namespace Mediana.Codecs.Png
         public bool Animated { get; set; }
         public bool HasExif { get; set; }
         public ReadOnlyMemory<byte> Exif { get; set; }
+        public OrthogonalTransform Orientation { get; set; } = OrthogonalTransform.Identity;
         public int Channels => ColorType switch
         {
             0 or 3 => 1,

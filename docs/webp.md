@@ -13,6 +13,15 @@ and [VP8 decoding specification](https://www.rfc-editor.org/rfc/rfc6386).
 container, frame and EXIF/GPS/ICC/XMP metadata without decoding samples. See
 [raster decoding, selection and ownership](raster-decoding.md).
 
+Decoding applies all eight primary Exif orientations after animation composition;
+disposal rectangles and blending stay in the encoded canvas coordinates. Probe
+dimensions describe the oriented canvas, while `webp.stored_dimensions` and the
+Exif tree retain the original declarations. Color, alpha, timestamps and frame
+durations survive the transform. For an oriented still, the allocator accounts
+for the decoded canvas and one oriented output during publication. Animation
+orientation is fused into the independent frame copy already required for each
+snapshot. Identity still images continue to transfer their decoded storage.
+
 ## Still images
 
 Input is a borrowed `VideoFrame` with straight RGBA32 pixels, full-range sRGB

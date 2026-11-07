@@ -14,7 +14,7 @@ namespace Mediana.Codecs.Png
             List<MediaProperty> properties = [new("media", "codec", "png"), new("png", "bit_depth", image.Depth),
                 new("png", "color_type", image.ColorType), new("png", "components", image.Channels),
                 new("png", "adam7_interlaced", image.Interlaced), new("png", "has_animation", image.Animated),
-                new("png", "has_exif", image.HasExif)];
+                new("png", "has_exif", image.HasExif), new("png", "stored_dimensions", image.Width, image.Height)];
             if (!image.Palette.IsEmpty) { properties.Add(new("png", "palette_entries", image.Palette.Length / 3)); }
             if (!image.Transparency.IsEmpty) { properties.Add(new("png", "transparency", MediaPropertyValue.FromBytes(image.Transparency.Span))); }
             if (image.Aspect is SampleAspectRatio aspect)

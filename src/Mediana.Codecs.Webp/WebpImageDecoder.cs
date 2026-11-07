@@ -10,7 +10,8 @@ using Mediana.Core.Video;
 namespace Mediana.Codecs.Webp
 {
     /// <summary>Decodes WebP images and one animation cycle to independently owned straight RGBA8 frames.
-    /// Encoded data is borrowed. Decoded pixels and entropy workspace share the caller's allocator.</summary>
+    /// Exif orientation is applied to each composited canvas. Encoded data is borrowed.
+    /// Decoded pixels and entropy workspace share the caller's allocator.</summary>
     public class WebpImageDecoder : ISynchronousImageDecoder, IImageSequenceDecoder, IImageInfoReader
     {
         public string ImplementationId => "webp.managed.image";
@@ -33,7 +34,7 @@ namespace Mediana.Codecs.Webp
             foreach (WebpDecodedFrame frame in document.Frames)
             {
                 canvas.Draw(frame, cancellationToken);
-                if (time == 0 || time < start + frame.Duration) { return canvas.Frame(start, frame.Duration, true); }
+                if (time == 0 || time < start + frame.Duration) { return canvas.Frame(start, frame.Duration, true, cancellationToken); }
                 start += frame.Duration;
             }
             throw new InvalidDataException("WebP has no frame at the selected time.");
@@ -52,7 +53,7 @@ namespace Mediana.Codecs.Webp
                 canvas.Draw(frame, cancellationToken);
                 if (time == 0 || time < start + frame.Duration)
                 {
-                    await Task.Yield(); yield return canvas.Frame(start, frame.Duration, false);
+                    await Task.Yield(); yield return canvas.Frame(start, frame.Duration, false, cancellationToken);
                 }
                 start += frame.Duration;
             }

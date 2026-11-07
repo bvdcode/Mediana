@@ -12,8 +12,8 @@ namespace Mediana.Codecs.Png
     /// <summary>Decodes static PNG to straight RGBA32. All standard color types, sample depths, filters and Adam7 passes
     /// are supported. Sample precision is scaled to 8 bits with nearest rounding; no color transform is applied.
     /// Borrows encoded data only during the call. The allocator accounts for the output, two filter scanlines,
-    /// and one expanded scanline when reduction is enabled;
-    /// BCL zlib workspace and bounded chunk metadata are separate. ICC/gamma conversion, Exif and animation are unsupported.</summary>
+    /// and one expanded scanline when reduction is enabled; Exif orientation is applied directly to the output.
+    /// BCL zlib workspace and bounded chunk metadata are separate. ICC/gamma conversion and animation are unsupported.</summary>
     public class PngImageDecoder : ISynchronousImageDecoder, IImageInfoReader
     {
         private readonly PngDecodeOptions options;
@@ -32,7 +32,8 @@ namespace Mediana.Codecs.Png
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {
             PngImageData image = PngImageParser.Read(encoded, options, cancellationToken);
-            return ValueTask.FromResult(new ImageInfo("png", image.Width, image.Height, ImageDimensionUnit.Pixels,
+            bool swap = image.Orientation.SwapsAxes;
+            return ValueTask.FromResult(new ImageInfo("png", swap ? image.Height : image.Width, swap ? image.Width : image.Height, ImageDimensionUnit.Pixels,
                 metadata: PngImageMetadata.Read(image, cancellationToken)));
         }
 
@@ -55,13 +56,18 @@ namespace Mediana.Codecs.Png
             int factor = options.ReductionFactor;
             if (request.PreferredWidth is not null || request.PreferredHeight is not null)
             {
-                double horizontal = request.PreferredWidth is int preferredWidth ? image.Width / (double)preferredWidth : double.PositiveInfinity;
-                double vertical = request.PreferredHeight is int preferredHeight ? image.Height / (double)preferredHeight : double.PositiveInfinity;
+                int displayWidth = image.Orientation.SwapsAxes ? image.Height : image.Width;
+                int displayHeight = image.Orientation.SwapsAxes ? image.Width : image.Height;
+                double horizontal = request.PreferredWidth is int preferredWidth ? displayWidth / (double)preferredWidth : double.PositiveInfinity;
+                double vertical = request.PreferredHeight is int preferredHeight ? displayHeight / (double)preferredHeight : double.PositiveInfinity;
                 factor = Math.Max(factor, (int)Math.Clamp(Math.Floor(Math.Min(horizontal, vertical)), 1, 256));
             }
             int width = (image.Width - 1) / factor + 1, height = (image.Height - 1) / factor + 1;
-            VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, image.Color,
-                ReducedAspect(image, width, height), image.ColorDescription);
+            SampleAspectRatio? aspect = ReducedAspect(image, width, height);
+            bool swap = image.Orientation.SwapsAxes;
+            if (swap && aspect is SampleAspectRatio ratio) { aspect = new(ratio.Denominator, ratio.Numerator); }
+            VideoFormat format = new(swap ? height : width, swap ? width : height, VideoPixelFormat.Rgba32, image.Color,
+                aspect, image.ColorDescription);
             long rowBytes = ((long)image.Width * image.Channels * image.Depth + 7) / 8;
             if (rowBytes > int.MaxValue / 2)
             {
@@ -102,9 +108,9 @@ namespace Mediana.Codecs.Png
         private PngImageData Read(ReadOnlyMemory<byte> encoded, CancellationToken token)
         {
             PngImageData image = PngImageParser.Read(encoded, options, token);
-            if (image.Animated || image.HasExif)
+            if (image.Animated)
             {
-                throw new NotSupportedException("PNG animation and Exif presentation transforms are not supported.");
+                throw new NotSupportedException("PNG animation is not supported.");
             }
             return image;
         }
@@ -121,6 +127,10 @@ namespace Mediana.Codecs.Png
             int stride = Math.Max(1, (image.Channels * image.Depth + 7) / 8);
             Span<byte> previous = rows.Slice(0, rowBytes);
             Span<byte> current = rows.Slice(capacity, rowBytes);
+            int outputHeight = (image.Height - 1) / factor + 1;
+            OrthogonalTransform inverse = image.Orientation.Inverse;
+            int stridePixels = image.Orientation.SwapsAxes ? outputHeight : outputWidth;
+            int displayHeight = image.Orientation.SwapsAxes ? outputWidth : outputHeight;
             previous.Clear();
             for (int y = startY; y < image.Height; y += stepY)
             {
@@ -134,17 +144,22 @@ namespace Mediana.Codecs.Png
                 PngScanline.Unfilter(filter, current, previous, stride, token);
                 if (factor == 1)
                 {
-                    PngScanline.Expand(image, current, pixels[((y * image.Width + startX) * 4)..], width, stepX, token);
+                    int targetX = inverse.SourceX(startX, y, stridePixels);
+                    int targetY = inverse.SourceY(startX, y, displayHeight);
+                    int step = stepX * (inverse.A + inverse.C * stridePixels);
+                    PngScanline.Expand(image, current, pixels, (targetY * stridePixels + targetX) * 4, width, step, token);
                 }
                 else
                 {
-                    PngScanline.Expand(image, current, samples, width, 1, token);
+                    PngScanline.Expand(image, current, samples, 0, width, 1, token);
                     for (int column = 0; y % factor == 0 && column < width; column++)
                     {
                         int x = startX + column * stepX;
                         if (x % factor == 0)
                         {
-                            samples.Slice(column * 4, 4).CopyTo(pixels.Slice(((y / factor) * outputWidth + x / factor) * 4, 4));
+                            int targetX = inverse.SourceX(x / factor, y / factor, stridePixels);
+                            int targetY = inverse.SourceY(x / factor, y / factor, displayHeight);
+                            samples.Slice(column * 4, 4).CopyTo(pixels.Slice((targetY * stridePixels + targetX) * 4, 4));
                         }
                     }
                 }

@@ -17,6 +17,7 @@ namespace Mediana.Core.Video
         public int D { get; }
         public static OrthogonalTransform Identity { get; } = new(1, 0, 0, 1);
         public bool SwapsAxes => A == 0;
+        public OrthogonalTransform Inverse => new(A, C, B, D);
 
         public static OrthogonalTransform FromMatrix(VideoDisplayMatrix matrix)
         {

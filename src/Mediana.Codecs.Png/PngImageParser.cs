@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using Mediana.Formats;
+using Mediana.Formats.Metadata;
 
 namespace Mediana.Codecs.Png
 {
@@ -112,6 +113,7 @@ namespace Mediana.Codecs.Png
                                 throw new InvalidDataException("Invalid PNG end or trailing file data.");
                             }
                             colors.Apply(image);
+                            if (image.HasExif) { image.Orientation = ExifOrientation.Read(image.Exif, token); }
                             return image;
                         default:
                             if ((type[0] & 32) == 0)
