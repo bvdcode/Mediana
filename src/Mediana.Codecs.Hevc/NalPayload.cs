@@ -29,6 +29,7 @@ namespace Mediana.Codecs.Hevc
             }
             this.encoded = encoded;
             Type = (header >> 9) & 63;
+            TemporalId = (header & 7) - 1;
             byte[] rbsp = new byte[encoded.Length];
             int target = 0;
             int zeros = 0;
@@ -54,6 +55,7 @@ namespace Mediana.Codecs.Hevc
         }
 
         public int Type { get; }
+        public int TemporalId { get; }
         public ArraySegment<byte> Bytes { get; }
 
         public ArraySegment<byte>[] Substreams(int rbspOffset, int[] encodedLengths)

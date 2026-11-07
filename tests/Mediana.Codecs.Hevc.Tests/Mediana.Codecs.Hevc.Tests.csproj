@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/HevcSliceHeaderTestInput.cs" Link="HevcSliceHeaderTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Hevc/Mediana.Codecs.Hevc.csproj" />
     <ProjectReference Include="../../src/Mediana.Formats/Mediana.Formats.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />

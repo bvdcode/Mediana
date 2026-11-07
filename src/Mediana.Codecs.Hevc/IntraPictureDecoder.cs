@@ -12,6 +12,10 @@ namespace Mediana.Codecs.Hevc
     {
         public async Task<DecodedPicture> DecodeAsync(int workerCount, CancellationToken cancellationToken)
         {
+            if (slice.Type != HevcSliceType.I)
+            {
+                throw new UnsupportedHevcFeatureException("inter prediction in an intra-picture decoder");
+            }
             if (workerCount < 1)
             {
                 throw new ArgumentOutOfRangeException(nameof(workerCount), workerCount, "A picture requires at least one decoding worker.");

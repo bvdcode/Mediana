@@ -46,6 +46,8 @@ namespace Mediana.Codecs.Hevc
         public int Log2Ctb { get; private set; }
         public int Log2MinTransform { get; private set; }
         public int Log2MaxTransform { get; private set; }
+        public int MaxTransformDepthInter { get; private set; }
+        public bool AsymmetricMotionPartitions { get; private set; }
         public int MaxTransformDepthIntra { get; private set; }
         public int MaximumDecodedPictures { get; private set; }
         public int MaximumReorderPictures { get; private set; }
@@ -97,7 +99,7 @@ namespace Mediana.Codecs.Hevc
             {
                 sps.Scaling = reader.ReadFlag() ? ScalingLists.Read(reader) : ScalingLists.Default;
             }
-            reader.ReadFlag();
+            sps.AsymmetricMotionPartitions = reader.ReadFlag();
             sps.SaoEnabled = reader.ReadFlag();
             if (reader.ReadFlag())
             {
@@ -154,7 +156,7 @@ namespace Mediana.Codecs.Hevc
 
             int maxTransform = System.Math.Min(Log2Ctb, 5);
             Log2MaxTransform = Log2MinTransform + HevcSyntax.Ue(reader, maxTransform - Log2MinTransform, "log2_diff_max_min_luma_transform_block_size");
-            HevcSyntax.Ue(reader, Log2Ctb - Log2MinTransform, "max_transform_hierarchy_depth_inter");
+            MaxTransformDepthInter = HevcSyntax.Ue(reader, Log2Ctb - Log2MinTransform, "max_transform_hierarchy_depth_inter");
             MaxTransformDepthIntra = HevcSyntax.Ue(reader, Log2Ctb - Log2MinTransform, "max_transform_hierarchy_depth_intra");
             int minimum = 1 << Log2MinCodingBlock;
             if (((Width % minimum) != 0) || ((Height % minimum) != 0))

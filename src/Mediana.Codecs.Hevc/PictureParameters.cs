@@ -14,6 +14,14 @@ namespace Mediana.Codecs.Hevc
         public bool OutputFlagPresent { get; private set; }
         public int ExtraHeaderBits { get; private set; }
         public bool SignDataHiding { get; private set; }
+        public bool CabacInitPresent { get; private set; }
+        public int DefaultReferences0 { get; private set; }
+        public int DefaultReferences1 { get; private set; }
+        public bool ConstrainedIntraPrediction { get; private set; }
+        public bool WeightedPrediction { get; private set; }
+        public bool WeightedBiprediction { get; private set; }
+        public bool ListModificationPresent { get; private set; }
+        public int Log2ParallelMergeLevel { get; private set; }
         public int InitialQp { get; private set; }
         public bool TransformSkip { get; private set; }
         public bool CuQpDelta { get; private set; }
@@ -46,11 +54,11 @@ namespace Mediana.Codecs.Hevc
             pps.OutputFlagPresent = reader.ReadFlag();
             pps.ExtraHeaderBits = reader.Read(3);
             pps.SignDataHiding = reader.ReadFlag();
-            reader.ReadFlag();
-            HevcSyntax.Ue(reader, 14, "num_ref_idx_l0_default_active_minus1");
-            HevcSyntax.Ue(reader, 14, "num_ref_idx_l1_default_active_minus1");
+            pps.CabacInitPresent = reader.ReadFlag();
+            pps.DefaultReferences0 = HevcSyntax.Ue(reader, 14, "num_ref_idx_l0_default_active_minus1") + 1;
+            pps.DefaultReferences1 = HevcSyntax.Ue(reader, 14, "num_ref_idx_l1_default_active_minus1") + 1;
             pps.InitialQp = 26 + HevcSyntax.Se(reader, -26 - (6 * (sequence.BitDepth - 8)), 25, "init_qp_minus26");
-            reader.ReadFlag();
+            pps.ConstrainedIntraPrediction = reader.ReadFlag();
             pps.TransformSkip = reader.ReadFlag();
             pps.CuQpDelta = reader.ReadFlag();
             if (pps.CuQpDelta)
@@ -60,8 +68,8 @@ namespace Mediana.Codecs.Hevc
             pps.CbQpOffset = HevcSyntax.Se(reader, -12, 12, "pps_cb_qp_offset");
             pps.CrQpOffset = HevcSyntax.Se(reader, -12, 12, "pps_cr_qp_offset");
             pps.SliceChromaQpOffsets = reader.ReadFlag();
-            reader.ReadFlag();
-            reader.ReadFlag();
+            pps.WeightedPrediction = reader.ReadFlag();
+            pps.WeightedBiprediction = reader.ReadFlag();
             pps.TransquantBypass = reader.ReadFlag();
             if (reader.ReadFlag())
             {
@@ -84,8 +92,8 @@ namespace Mediana.Codecs.Hevc
             {
                 pps.Scaling = ScalingLists.Read(reader);
             }
-            reader.ReadFlag();
-            HevcSyntax.Ue(reader, sequence.Log2Ctb - 2, "log2_parallel_merge_level_minus2");
+            pps.ListModificationPresent = reader.ReadFlag();
+            pps.Log2ParallelMergeLevel = HevcSyntax.Ue(reader, sequence.Log2Ctb - 2, "log2_parallel_merge_level_minus2") + 2;
             pps.HeaderExtension = reader.ReadFlag();
             if (reader.ReadFlag() && (reader.Read(8) != 0))
             {

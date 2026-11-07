@@ -8,10 +8,34 @@ using System.IO;
 namespace Mediana.Codecs.Hevc
 {
     /// <summary>
-    /// Describes an independent intra random-access slice and positions its reader at the CABAC payload.
+    /// Describes an independent HEVC slice and positions its reader at the CABAC payload.
     /// </summary>
     internal class HevcSliceHeader
     {
+        public HevcSliceType Type { get; private set; }
+        public int NalType { get; private set; }
+        public int TemporalId { get; private set; }
+        public bool NoOutputOfPriorPictures { get; private set; }
+        public bool PictureOutput { get; private set; } = true;
+        public bool TemporalMvp { get; private set; }
+        public int ActiveReferences0 { get; private set; }
+        public int ActiveReferences1 { get; private set; }
+        public IReadOnlyList<int> List0Entries { get; private set; } = Array.Empty<int>();
+        public IReadOnlyList<int> List1Entries { get; private set; } = Array.Empty<int>();
+        public bool MvdList1Zero { get; private set; }
+        public bool CabacInit { get; private set; }
+        public bool CollocatedFromList0 { get; private set; } = true;
+        public int CollocatedReference { get; private set; }
+        public int MaximumMergeCandidates { get; private set; }
+        public HevcPredictionWeights? Weights { get; private set; }
+        public int EntropyDataOffset { get; private set; }
+        public int CabacInitializationType => Type switch
+        {
+            HevcSliceType.I => 0,
+            HevcSliceType.P => CabacInit ? 2 : 1,
+            HevcSliceType.B => CabacInit ? 1 : 2,
+            _ => throw new InvalidDataException("Invalid HEVC slice type.")
+        };
         public PictureParameters Picture { get; private set; } = null!;
         public BitReader Reader { get; private set; } = null!;
         public IReadOnlyList<ArraySegment<byte>> RowSubstreams { get; private set; } = Array.Empty<ArraySegment<byte>>();
@@ -31,14 +55,14 @@ namespace Mediana.Codecs.Hevc
 
         public static HevcSliceHeader Read(NalPayload nal, IReadOnlyDictionary<int, PictureParameters> pictures)
         {
-            if ((nal.Type < 16) || (nal.Type > 21))
+            if (nal.Type is not (>= 0 and <= 9 or >= 16 and <= 21))
             {
-                throw new UnsupportedHevcFeatureException("HEVC pictures other than intra random access");
+                throw new UnsupportedHevcFeatureException("reserved or non-slice HEVC NAL units");
             }
             BitReader reader = new BitReader(nal.Bytes);
             reader.SkipBits(16);
             bool first = reader.ReadFlag();
-            reader.ReadFlag();
+            bool noPrior = nal.Type is >= 16 and <= 21 && reader.ReadFlag();
             int id = HevcSyntax.Ue(reader, 63, "slice_pic_parameter_set_id");
             if (!pictures.TryGetValue(id, out PictureParameters? picture))
             {
@@ -51,6 +75,9 @@ namespace Mediana.Codecs.Hevc
             HevcSliceHeader slice = new HevcSliceHeader
             {
                 Picture = picture,
+                NalType = nal.Type,
+                TemporalId = nal.TemporalId,
+                NoOutputOfPriorPictures = noPrior,
                 Reader = reader,
                 StartCtbAddress = start,
                 EndCtbAddress = count,
@@ -60,6 +87,7 @@ namespace Mediana.Codecs.Hevc
                 TcOffset = picture.TcOffset
             };
             slice.ReadPictureInformation(nal.Type);
+            slice.ReadInterInformation();
             slice.ReadQuantization();
             slice.ReadFilters();
             slice.ReadEntryPoints(nal, rows);
@@ -101,21 +129,19 @@ namespace Mediana.Codecs.Hevc
                 }
             }
 
-            if (HevcSyntax.Ue(reader, 2, "slice_type") != 2)
+            Type = (HevcSliceType)HevcSyntax.Ue(reader, 2, "slice_type");
+            if (nalType is >= 16 and <= 21 && Type != HevcSliceType.I)
             {
-                throw new UnsupportedHevcFeatureException("HEVC inter prediction");
+                throw new InvalidDataException("An HEVC random-access slice must use intra prediction.");
             }
-            if (picture.OutputFlagPresent && !reader.ReadFlag())
-            {
-                throw new UnsupportedHevcFeatureException("HEVC picture output suppression");
-            }
+            if (picture.OutputFlagPresent) { PictureOutput = reader.ReadFlag(); }
             if ((nalType != 19) && (nalType != 20))
             {
                 References = picture.Sequence.ReferencePictures.ReadSlice(reader);
                 this.PictureOrderCount = References.PictureOrderCountLsb;
                 if (picture.Sequence.TemporalMvpEnabled)
                 {
-                    reader.ReadFlag();
+                    TemporalMvp = reader.ReadFlag();
                 }
             }
             if (picture.Sequence.SaoEnabled)
@@ -126,6 +152,53 @@ namespace Mediana.Codecs.Hevc
                     this.SaoChroma = reader.ReadFlag();
                 }
             }
+        }
+
+        private void ReadInterInformation()
+        {
+            if (Type == HevcSliceType.I) { return; }
+            if (References.UsedCount == 0) { throw new InvalidDataException("An HEVC inter slice has no current reference pictures."); }
+            ActiveReferences0 = Picture.DefaultReferences0;
+            ActiveReferences1 = Type == HevcSliceType.B ? Picture.DefaultReferences1 : 0;
+            if (Reader.ReadFlag())
+            {
+                ActiveReferences0 = HevcSyntax.Ue(Reader, 14, "num_ref_idx_l0_active_minus1") + 1;
+                if (Type == HevcSliceType.B) { ActiveReferences1 = HevcSyntax.Ue(Reader, 14, "num_ref_idx_l1_active_minus1") + 1; }
+            }
+            if (Picture.ListModificationPresent && References.UsedCount > 1)
+            {
+                List0Entries = ReadListModification(ActiveReferences0);
+                if (Type == HevcSliceType.B) { List1Entries = ReadListModification(ActiveReferences1); }
+            }
+            if (Type == HevcSliceType.B) { MvdList1Zero = Reader.ReadFlag(); }
+            if (Picture.CabacInitPresent) { CabacInit = Reader.ReadFlag(); }
+            if (TemporalMvp)
+            {
+                if (Type == HevcSliceType.B) { CollocatedFromList0 = Reader.ReadFlag(); }
+                int count = CollocatedFromList0 ? ActiveReferences0 : ActiveReferences1;
+                if (count > 1) { CollocatedReference = HevcSyntax.Ue(Reader, count - 1, "collocated_ref_idx"); }
+            }
+            if ((Picture.WeightedPrediction && Type == HevcSliceType.P) ||
+                (Picture.WeightedBiprediction && Type == HevcSliceType.B))
+            {
+                Weights = HevcPredictionWeights.Read(Reader, Picture.Sequence.ChromaFormat != 0, ActiveReferences0, ActiveReferences1);
+            }
+            MaximumMergeCandidates = 5 - HevcSyntax.Ue(Reader, 4, "five_minus_max_num_merge_cand");
+        }
+
+        private IReadOnlyList<int> ReadListModification(int count)
+        {
+            if (!Reader.ReadFlag()) { return Array.Empty<int>(); }
+            int bits = 0;
+            for (int value = References.UsedCount - 1; value > 0; value >>= 1) { bits++; }
+            int[] entries = new int[count];
+            for (int i = 0; i < count; i++)
+            {
+                int entry = Reader.Read(bits);
+                if (entry >= References.UsedCount) { throw new InvalidDataException("An HEVC reference list entry exceeds its current pictures."); }
+                entries[i] = entry;
+            }
+            return Array.AsReadOnly(entries);
         }
 
         private void ReadQuantization()
@@ -199,6 +272,7 @@ namespace Mediana.Codecs.Hevc
             }
 
             HevcSyntax.Alignment(reader);
+            EntropyDataOffset = checked((int)(reader.GetBitPosition() / 8));
             if (picture.EntropyCodingSync)
             {
                 this.RowSubstreams = nal.Substreams(checked((int)(reader.GetBitPosition() / 8)), entryLengths);
