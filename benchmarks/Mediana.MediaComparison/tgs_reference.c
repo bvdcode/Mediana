@@ -10,7 +10,10 @@
 #include <zlib.h>
 
 int main(int argc, char **argv) {
-    if (argc != 3) { fprintf(stderr, "Expected input TGS and output RGBA.\n"); return 2; }
+    if (argc != 4) { fprintf(stderr, "Expected input TGS, output RGBA and frame count.\n"); return 2; }
+    char *end = NULL;
+    unsigned long requested_frames = strtoul(argv[3], &end, 10);
+    if (*end || !requested_frames) { fprintf(stderr, "Invalid frame count.\n"); return 2; }
     gzFile input = gzopen(argv[1], "rb");
     if (!input) { fprintf(stderr, "Cannot open animation.\n"); return 1; }
     const size_t limit = 32 * 1024 * 1024;
@@ -30,7 +33,8 @@ int main(int argc, char **argv) {
     size_t width = 0, height = 0;
     lottie_animation_get_size(animation, &width, &height);
     size_t frames = lottie_animation_get_totalframe(animation);
-    if (!width || !height || width > 4096 || height > 4096 || !frames) { fprintf(stderr, "Invalid animation dimensions.\n"); return 1; }
+    if (!width || !height || width > 4096 || height > 4096 || requested_frames > frames) { fprintf(stderr, "Invalid animation dimensions or frame range.\n"); return 1; }
+    frames = requested_frames;
     size_t pixels = width * height;
     uint32_t *surface = calloc(pixels, sizeof(uint32_t));
     uint8_t *rgba = malloc(pixels * 4);

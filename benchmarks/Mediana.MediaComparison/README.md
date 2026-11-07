@@ -5,7 +5,7 @@ order, records elapsed time, process CPU time and peak RSS, and validates every
 decoded sample outside the measured interval. See the
 [workload registry and measurements](../../docs/performance/README.md).
 
-The runner uses Python 3.12+, NumPy for the separate validation process, `taskset`,
+The runner uses Python 3.12+, NumPy and Pillow for separate validation, `taskset`,
 FFmpeg, and optional libheif **1.23.2** development headers/library. None of these
 reference tools are dependencies of the Mediana packages or CLI.
 
@@ -62,7 +62,10 @@ revision and repetition count. `measurements.jsonl` preserves each process resul
 including failures/timeouts. `validation.jsonl` records decoded sample counts,
 maximum absolute error and RMSE. File hashes include headers; PCM validation
 excludes WAVE metadata. Numerical validation runs in a separate process, keeping
-its imports and buffers out of subsequent measured children.
+its imports and buffers out of subsequent measured children. Every repeat hashes
+the complete output. A byte-identical pair reuses its first full sample comparison
+within the same case and immutable input; changed output requires a new comparison.
+The validation record identifies the source repetition and method.
 
 CPU is Linux `wait4` user + system time for the specific child; peak RSS is its
 resident high-water mark, converted from KiB to bytes. It includes runtime/native
@@ -74,3 +77,48 @@ These workloads have no child-process execution inside the measured tools. An
 alternative that starts workers as separate processes requires process-tree
 accounting before using this runner. Invalid outputs retain their measurements;
 successful process exit alone does not establish conformance or visual equality.
+
+## Additional operations
+
+`Operations` is a Native AOT consumer of public video, Ogg, spreadsheet and
+animation APIs. It drains complete streams and releases owned frames. Video
+output contains SHA-256 of every visible YUV plane, with its presentation clock;
+this measures **decoding plus hashing**, rather than decoder work alone. WebP and
+TGS output contains every composited straight RGBA frame. Spreadsheet output
+contains every numeric value as little-endian binary64, including stored formula
+results; both readers buffer a row before asynchronous output.
+
+```sh
+dotnet publish benchmarks/Mediana.MediaComparison/Operations -c Release -r linux-x64 -o artifacts/comparison/operations
+dotnet build benchmarks/Mediana.MediaComparison/SpreadsheetReference -c Release
+cc -std=c11 -O2 -Wall -Wextra -Werror benchmarks/Mediana.MediaComparison/webp_animation_reference.c \
+  $(pkg-config --cflags --libs libwebpdemux) -o artifacts/comparison/webp-animation-reference
+cc -std=c11 -O2 -Wall -Wextra -Werror benchmarks/Mediana.MediaComparison/tgs_reference.c \
+  $(pkg-config --cflags --libs rlottie) -lz -o artifacts/comparison/tgs-reference
+```
+
+`SpreadsheetReference` uses ExcelDataReader 3.9.0 under .NET 10 JIT. The C
+references use libwebp's complete-canvas animation decoder and rlottie's
+synchronous renderer. The latter converts premultiplied ARGB to straight RGBA
+before writing. Reference packages are confined to the comparison projects.
+
+`workloads-images.json`, `workloads-extra.json`, `workloads-video.json` and
+`workloads-copy.json` contain explicit commands for additional series. Supply
+their executable variables through `--variable`. `Command.output` identifies the
+actual product filename; the runner keeps it in place so relative HLS segment
+references remain valid. HLS byte counts and fingerprints include every segment,
+and a finalized VOD playlist is required. Use `soffice.bin` directly, with a fresh
+`UserInstallation` profile per invocation, for LibreOffice comparisons.
+
+Image validation converts declared ICC profiles to sRGB outside timing. Encoding
+comparisons also measure decoded error against the common source image. Transport
+validation decodes every picture against the original by frame order, checks
+access-unit counts and records source PSNR in dB. Copied AAC is fingerprinted with
+canonical ADTS headers. Frame-order PSNR does not establish timestamp equality.
+
+Input preparation is separate from timing. Install `requirements-inputs.txt` for
+the authored Office fixtures. `prepare_images.py` creates photograph variants,
+a dense MMR page and a vector scene; `prepare_documents.py` creates fixed-geometry
+DOCX/PPTX and a 400,000-cell XLSX with 80,000 cached formulas.
+`prepare_webp_animation.py` encodes complete reference RGBA frames. Input geometry,
+reference versions, preparation options and hashes belong in each result report.

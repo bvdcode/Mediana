@@ -1,0 +1,550 @@
+[
+  {
+    "id": "jpeg-photo",
+    "input": "photo-baseline.jpg",
+    "output_extension": ".png",
+    "description": "Complete JPEG/WebP decode and RGBA8 PNG export; native libjpeg-turbo/libwebp via Pillow, bilinear chroma reconstruction",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "python3",
+      "arguments": [
+        "benchmarks/Mediana.MediaComparison/pillow_reference.py",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "jpeg-photo-progressive",
+    "input": "photo-progressive.jpg",
+    "output_extension": ".png",
+    "description": "Complete JPEG/WebP decode and RGBA8 PNG export; native libjpeg-turbo/libwebp via Pillow, bilinear chroma reconstruction",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "python3",
+      "arguments": [
+        "benchmarks/Mediana.MediaComparison/pillow_reference.py",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "webp-still",
+    "input": "photo-lossy.webp",
+    "output_extension": ".png",
+    "description": "Complete JPEG/WebP decode and RGBA8 PNG export; native libjpeg-turbo/libwebp via Pillow, bilinear chroma reconstruction",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "python3",
+      "arguments": [
+        "benchmarks/Mediana.MediaComparison/pillow_reference.py",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "webp-still-lossless",
+    "input": "photo-alpha-lossless.webp",
+    "output_extension": ".png",
+    "description": "Complete JPEG/WebP decode and RGBA8 PNG export; native libjpeg-turbo/libwebp via Pillow, bilinear chroma reconstruction",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "python3",
+      "arguments": [
+        "benchmarks/Mediana.MediaComparison/pillow_reference.py",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "flac-track",
+    "input": "soundtrack.flac",
+    "output_extension": ".wav",
+    "description": "Complete 596-second real stereo film soundtrack, PCM16 WAVE",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-map",
+        "0:a:0",
+        "-vn",
+        "-c:a",
+        "pcm_s16le",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "aac-multichannel",
+    "input": "soundtrack.m4a",
+    "output_extension": ".wav",
+    "description": "Complete real 596-second AAC-LC 5.1 film soundtrack in MP4/M4A to PCM16 WAVE",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-map",
+        "0:a:0",
+        "-vn",
+        "-c:a",
+        "pcm_s16le",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "audio-resample",
+    "input": "long-session.mp3",
+    "output_extension": ".pcm",
+    "description": "Complete 2460.096-second stereo MP3 to mono PCM16LE, 48 kHz to 16 kHz",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "audio",
+        "resample",
+        "{input}",
+        "{output}",
+        "--sample-rate",
+        "16000",
+        "--log-level",
+        "Error",
+        "--no-color",
+        "--gains",
+        "0.5",
+        "0.5"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-af",
+        "pan=mono|c0=0.5*c0+0.5*c1,aresample=16000",
+        "-c:a",
+        "pcm_s16le",
+        "-threads",
+        "2",
+        "-f",
+        "s16le",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "spreadsheet-read",
+    "input": "numeric-workbook.xlsx",
+    "output_extension": ".bin",
+    "description": "Read every stored value of a 20,000-row by 20-column numeric XLSX workbook, including 80,000 cached formulas, to LE binary64",
+    "mediana": {
+      "tool": "mediana_operations",
+      "arguments": [
+        "xlsx",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "dotnet",
+      "arguments": [
+        "{spreadsheet_reference}",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "tgs-animation",
+    "input": "sticker.tgs",
+    "output_extension": ".rgba",
+    "description": "All 180 frames of a 512-square real sticker with 44 layers, trims and translucent groups; RGBA8, supersampling 1",
+    "mediana": {
+      "tool": "mediana_operations",
+      "arguments": [
+        "tgs",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "tgs_reference",
+      "arguments": [
+        "{input}",
+        "{output}",
+        "180"
+      ],
+      "environment": {
+        "LD_LIBRARY_PATH": "{rlottie_libraries}"
+      },
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "word-page",
+    "input": "report-page.docx",
+    "output_extension": ".png",
+    "description": "Authored fixed-font document; first page/slide at 96 DPI",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "lo_binary",
+      "arguments": [
+        "-env:UserInstallation={profile_uri}",
+        "--headless",
+        "--convert-to",
+        "png:writer_png_Export:{{\"PixelWidth\":{{\"type\":\"long\",\"value\":816}},\"PixelHeight\":{{\"type\":\"long\",\"value\":1056}},\"PageNumber\":{{\"type\":\"long\",\"value\":1}}}}",
+        "--outdir",
+        "{output_directory}",
+        "{input}"
+      ],
+      "environment": {
+        "SAL_USE_VCLPLUGIN": "svp"
+      },
+      "output": "{output_directory}/{input_stem}.png"
+    }
+  },
+  {
+    "id": "presentation-slide",
+    "input": "media-slide.pptx",
+    "output_extension": ".png",
+    "description": "Authored fixed-font document; first page/slide at 96 DPI",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "lo_binary",
+      "arguments": [
+        "-env:UserInstallation={profile_uri}",
+        "--headless",
+        "--convert-to",
+        "png:impress_png_Export:{{\"PixelWidth\":{{\"type\":\"long\",\"value\":960}},\"PixelHeight\":{{\"type\":\"long\",\"value\":540}},\"PageNumber\":{{\"type\":\"long\",\"value\":1}}}}",
+        "--outdir",
+        "{output_directory}",
+        "{input}"
+      ],
+      "environment": {
+        "SAL_USE_VCLPLUGIN": "svp"
+      },
+      "output": "{output_directory}/{input_stem}.png"
+    }
+  },
+  {
+    "id": "webp-encode",
+    "input": "large-alpha.png",
+    "output_extension": ".webp",
+    "description": "Full-size photograph with alpha, Lossless WebP encoding; PNG load and output write included",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color",
+        "--image-compression",
+        "Lossless"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "cwebp",
+      "arguments": [
+        "-quiet",
+        "-mt",
+        "-exact",
+        "-lossless",
+        "-q",
+        "75",
+        "{input}",
+        "-o",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "webp-encode-lossy",
+    "input": "large-alpha.png",
+    "output_extension": ".webp",
+    "description": "Full-size photograph with alpha, Lossy WebP encoding; PNG load and output write included",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color",
+        "--image-compression",
+        "Lossy",
+        "--quality",
+        "75"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "cwebp",
+      "arguments": [
+        "-quiet",
+        "-mt",
+        "-exact",
+        "-q",
+        "75",
+        "{input}",
+        "-o",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "webp-animation",
+    "input": "sticker.webp",
+    "output_extension": ".rgba",
+    "description": "Complete lossless animation cycle derived from the 44-layer 512-square sticker; every composited RGBA8 frame",
+    "mediana": {
+      "tool": "mediana_operations",
+      "arguments": [
+        "webp",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "webp_animation_reference",
+      "arguments": [
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "ogg-index",
+    "input": "soundtrack-30m.opus",
+    "output_extension": ".bin",
+    "description": "Read the complete 1800-second Ogg Opus file and extract all encoded access-unit payload bytes",
+    "mediana": {
+      "tool": "mediana_operations",
+      "arguments": [
+        "ogg",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-i",
+        "{input}",
+        "-map",
+        "0:a:0",
+        "-c:a",
+        "copy",
+        "-f",
+        "data",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "heic-preview",
+    "input": "photo-12mp.heic",
+    "output_extension": ".png",
+    "description": "heic-preview",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "heif_convert",
+      "arguments": [
+        "--quiet",
+        "-C",
+        "nearest-neighbor",
+        "--codec-threads",
+        "2",
+        "--tile-threads",
+        "2",
+        "--png-compression-level",
+        "6",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {
+        "LD_LIBRARY_PATH": "{heif_libraries}"
+      },
+      "output": "{output}"
+    }
+  }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "avc-decode-30m",
+    "input": "video-30m.mp4",
+    "description": "Every native YUV420P8 frame, including SHA-256 and presentation timing, for complete 1800-second 720p24 AVC stream",
+    "output_extension": ".framehash",
+    "mediana": {
+      "environment": {},
+      "output": "{output}",
+      "tool": "mediana_operations",
+      "arguments": [
+        "video",
+        "{input}",
+        "{output}"
+      ]
+    },
+    "alternative": {
+      "environment": {},
+      "output": "{output}",
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-map",
+        "0:v:0",
+        "-an",
+        "-pix_fmt",
+        "yuv420p",
+        "-fps_mode",
+        "passthrough",
+        "-threads",
+        "2",
+        "-f",
+        "framehash",
+        "-hash",
+        "sha256",
+        "{output}"
+      ]
+    }
+  }
+]
