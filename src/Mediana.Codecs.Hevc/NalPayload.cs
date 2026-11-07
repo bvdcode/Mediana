@@ -55,6 +55,7 @@ namespace Mediana.Codecs.Hevc
         }
 
         public int Type { get; }
+        public ReadOnlyMemory<byte> Encoded => encoded;
         public int TemporalId { get; }
         public ArraySegment<byte> Bytes { get; }
 

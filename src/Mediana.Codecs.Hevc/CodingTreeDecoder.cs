@@ -25,7 +25,7 @@ namespace Mediana.Codecs.Hevc
             bool last = endsSlice || (((x + ctbSize) >= sequence.Width) && ((y + ctbSize) >= sequence.Height));
             if (reader.Termination() != last)
             {
-                throw new InvalidDataException("Unexpected HEVC slice termination.");
+                throw new InvalidDataException($"Unexpected HEVC slice termination at {x},{y}, POC {slice.PictureOrderCount}, slice CTBs {slice.StartCtbAddress}..{slice.EndCtbAddress}.");
             }
             if (slice.Picture.EntropyCodingSync && !last && ((x + ctbSize) >= sequence.Width) && !reader.Termination())
             {

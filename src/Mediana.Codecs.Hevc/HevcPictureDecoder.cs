@@ -24,18 +24,9 @@ namespace Mediana.Codecs.Hevc
         public HevcReferencePicture Decode(IReadOnlyList<HevcSliceHeader> slices, HevcReferenceSet references, int order, CancellationToken cancellationToken)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            if (slices.Count == 0) { throw new InvalidDataException("HEVC access unit has no picture slices."); }
+            PicturePartitions partitions = HevcSliceHeaders.Partition(slices);
             HevcSliceHeader first = slices[0];
-            foreach (HevcSliceHeader slice in slices)
-            {
-                if (!ReferenceEquals(slice.Picture.Sequence, first.Picture.Sequence) || slice.PictureOrderCount != first.PictureOrderCount ||
-                    slice.NalType != first.NalType || slice.TemporalId != first.TemporalId || slice.PictureOutput != first.PictureOutput ||
-                    !slice.References.ShortTerm.Pictures.SequenceEqual(first.References.ShortTerm.Pictures) ||
-                    !slice.References.LongTerm.SequenceEqual(first.References.LongTerm))
-                { throw new InvalidDataException("Inconsistent HEVC slices in one picture."); }
-            }
             SequenceParameters sequence = first.Picture.Sequence;
-            PicturePartitions partitions = new(slices);
             DecodedPicture picture = new(sequence, allocator);
             bool completed = false;
             try

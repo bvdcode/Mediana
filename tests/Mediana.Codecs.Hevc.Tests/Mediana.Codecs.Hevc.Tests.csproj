@@ -4,6 +4,9 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/HevcSeekTestInput.cs" Link="HevcSeekTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
+    <Compile Include="../Shared/HevcDecoderTestInput.cs" Link="HevcDecoderTestInput.cs" />
     <Compile Include="../Shared/HevcPictureTestInput.cs" Link="HevcPictureTestInput.cs" />
     <Compile Include="../Shared/HevcMotionCompensationTestInput.cs" Link="HevcMotionCompensationTestInput.cs" />
     <Compile Include="../Shared/HevcWeightedPredictionTestInput.cs" Link="HevcWeightedPredictionTestInput.cs" />

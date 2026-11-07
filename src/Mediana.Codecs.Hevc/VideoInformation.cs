@@ -2,6 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.IO;
+using Mediana.Core.Video;
+using Mediana.Formats.Video;
 
 namespace Mediana.Codecs.Hevc
 {
@@ -17,11 +19,13 @@ namespace Mediana.Codecs.Hevc
         public int MatrixCoefficients { get; private set; } = 2;
         public bool FullRange { get; private set; }
         public int ChromaLocation { get; private set; }
+        public int BottomChromaLocation { get; private set; }
+        public SampleAspectRatio? AspectRatio { get; private set; }
 
         public static VideoInformation Read(BitReader reader, int maxSubLayer)
         {
             VideoInformation information = new VideoInformation();
-            ReadAspectRatio(reader);
+            information.AspectRatio = ReadAspectRatio(reader);
 
             if (reader.ReadFlag())
             {
@@ -42,7 +46,7 @@ namespace Mediana.Codecs.Hevc
             if (reader.ReadFlag())
             {
                 information.ChromaLocation = HevcSyntax.Ue(reader, 5, "chroma_sample_loc_type_top_field");
-                HevcSyntax.Ue(reader, 5, "chroma_sample_loc_type_bottom_field");
+                information.BottomChromaLocation = HevcSyntax.Ue(reader, 5, "chroma_sample_loc_type_bottom_field");
             }
 
             reader.ReadFlag();
@@ -88,7 +92,7 @@ namespace Mediana.Codecs.Hevc
             return information;
         }
 
-        private static void ReadAspectRatio(BitReader reader)
+        private static SampleAspectRatio? ReadAspectRatio(BitReader reader)
         {
             if (reader.ReadFlag())
             {
@@ -101,8 +105,11 @@ namespace Mediana.Codecs.Hevc
                     {
                         throw new InvalidDataException("Extended sample aspect ratio components must be nonzero.");
                     }
+                    return new(sampleAspectRatioWidth, sampleAspectRatioHeight);
                 }
+                return SampleAspectRatioCode.Get(aspectRatioIdc);
             }
+            return null;
         }
     }
 }
