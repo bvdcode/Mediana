@@ -14,10 +14,11 @@ namespace Mediana.Execution
     /// <summary>Plans presentation-aligned encoding intervals from complete indexed video access units.
     /// Sorts clock metadata in allocator-owned workspace without reading compressed payload or decoding frames.
     /// Cuts follow target multiples from the first presentation timestamp, avoiding cumulative rounding drift.
-    /// Every returned interval contains whole presentation units; compressed stream copy needs separate restart validation.</summary>
+    /// Every returned interval contains whole presentation units; compressed stream copy needs separate restart validation.
+    /// Readers without IIndexedVideoPresentationReader must expose exactly one displayed unit per indexed packet.</summary>
     public static class VideoSegmentPlanner
     {
-        /// <summary>Derives an exact clock from actual indexed timestamps and final presentation duration.
+        /// <summary>Derives an exact clock from actual indexed timestamps and known presentation durations.
         /// Uses constant workspace without sorting, allocating a frame index or reading media payload.</summary>
         public static TimeBase GetTimeBase(IIndexedPacketTimingReader reader, int streamIndex,
             CancellationToken cancellationToken = default)
@@ -28,18 +29,19 @@ namespace Mediana.Execution
                 ?? throw new ArgumentOutOfRangeException(nameof(streamIndex));
             if (stream.Kind != MediaKind.Video || stream.Format.Boundary != EncodedPacketBoundary.AccessUnit)
             { throw new NotSupportedException("Video clock planning requires indexed complete video access units."); }
-            long count = reader.GetPacketCount(streamIndex);
+            long count = UnitCount(reader, streamIndex);
             if (count <= 0) { throw new InvalidDataException("The video stream contains no indexed presentation units."); }
             TimeBase clock = new(1, 1);
             VideoPresentationUnit? last = null;
             for (long index = 0; index < count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ContainerPacketTiming timing = reader.GetPacketTiming(streamIndex, index, cancellationToken);
-                MediaTimestamp pts = timing.PresentationTime
-                    ?? throw new NotSupportedException("Video clock planning requires every indexed presentation timestamp.");
+                VideoPresentationUnit unit = Unit(reader, streamIndex, index, cancellationToken);
+                MediaTimestamp pts = unit.Start;
                 clock = TimeBase.Common(clock, pts.ReduceClock().TimeBase);
-                if (last is null || pts.CompareTo(last.Value.Start) > 0) { last = new(pts, timing.Duration, index); }
+                if (unit.Duration is MediaDuration extent)
+                { clock = TimeBase.Common(clock, new MediaTimestamp(extent.Value, extent.TimeBase).ReduceClock().TimeBase); }
+                if (last is null || pts.CompareTo(last.Value.Start) > 0) { last = unit; }
             }
             MediaDuration duration = FinalDuration(reader, streamIndex, last!.Value, cancellationToken);
             return TimeBase.Common(clock, new MediaTimestamp(duration.Value, duration.TimeBase).ReduceClock().TimeBase);
@@ -59,7 +61,7 @@ namespace Mediana.Execution
             {
                 throw new NotSupportedException("Video interval planning requires indexed complete video access units.");
             }
-            long packetCount = reader.GetPacketCount(streamIndex);
+            long packetCount = UnitCount(reader, streamIndex);
             if (packetCount <= 0) { throw new InvalidDataException("The video stream contains no indexed presentation units."); }
             int unitBytes = Unsafe.SizeOf<VideoPresentationUnit>();
             if (packetCount > int.MaxValue / unitBytes)
@@ -72,11 +74,12 @@ namespace Mediana.Execution
             for (int index = 0; index < units.Length; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ContainerPacketTiming timing = reader.GetPacketTiming(streamIndex, index, cancellationToken);
-                MediaTimestamp pts = timing.PresentationTime
-                    ?? throw new NotSupportedException("Video interval planning requires every indexed presentation timestamp.");
+                VideoPresentationUnit unit = Unit(reader, streamIndex, index, cancellationToken);
+                MediaTimestamp pts = unit.Start;
                 clock = TimeBase.Common(clock, pts.ReduceClock().TimeBase);
-                units[index] = new(pts, timing.Duration, index);
+                if (unit.Duration is MediaDuration extent)
+                { clock = TimeBase.Common(clock, new MediaTimestamp(extent.Value, extent.TimeBase).ReduceClock().TimeBase); }
+                units[index] = unit;
             }
             units.Sort(static (left, right) => left.Start.CompareTo(right.Start));
             cancellationToken.ThrowIfCancellationRequested();
@@ -140,11 +143,31 @@ namespace Mediana.Execution
         private static MediaDuration FinalDuration(IIndexedPacketTimingReader reader, int streamIndex,
             VideoPresentationUnit last, CancellationToken token)
         {
-            MediaDuration duration = (reader is IIndexedPresentationTimingReader presentation
+            MediaDuration duration = (reader is not IIndexedVideoPresentationReader && reader is IIndexedPresentationTimingReader presentation
                 ? presentation.GetPresentationDuration(streamIndex, last.PacketIndex, token) : last.Duration)
                 ?? throw new NotSupportedException("The final video presentation interval is unknown.");
             if (duration.Value == 0) { throw new InvalidDataException("The final video presentation interval must be positive."); }
             return duration;
+        }
+
+        private static long UnitCount(IIndexedPacketTimingReader reader, int streamIndex) =>
+            reader is IIndexedVideoPresentationReader presentation ? presentation.GetPresentationUnitCount(streamIndex)
+                : reader.GetPacketCount(streamIndex);
+
+        private static VideoPresentationUnit Unit(IIndexedPacketTimingReader reader, int streamIndex, long index,
+            CancellationToken token)
+        {
+            if (reader is IIndexedVideoPresentationReader presentation)
+            {
+                ContainerVideoPresentationUnit unit = presentation.GetPresentationUnit(streamIndex, index, token);
+                if (unit.PacketIndex < 0 || unit.PacketIndex >= reader.GetPacketCount(streamIndex) || unit.OutputOrdinal < 0)
+                { throw new InvalidDataException("The video presentation index refers to an invalid coded packet or output ordinal."); }
+                return new(unit.PresentationTime ?? throw new NotSupportedException("Video planning requires every indexed presentation timestamp."),
+                    unit.Duration, unit.PacketIndex);
+            }
+            ContainerPacketTiming timing = reader.GetPacketTiming(streamIndex, index, token);
+            return new(timing.PresentationTime ?? throw new NotSupportedException("Video planning requires every indexed presentation timestamp."),
+                reader is IIndexedPresentationTimingReader durations ? durations.GetPresentationDuration(streamIndex, index, token) : timing.Duration, index);
         }
     }
 }
