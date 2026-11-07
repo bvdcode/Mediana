@@ -16,8 +16,16 @@ namespace Mediana.Execution
         public static async ValueTask<IndexedPacketRange> CreateAsync(IIndexedPacketTimingReader reader, int streamIndex,
             MediaTimeRange selection, IRandomAccessInspector? inspector = null, MediaReadBudget? budget = null,
             CancellationToken cancellationToken = default)
+            => await CreateAsync(reader, streamIndex, selection, PacketCopyAlignment.Exact, inspector, budget, cancellationToken).ConfigureAwait(false);
+
+        /// <summary>PresentationStarts assigns every packet to the half-open interval containing its presentation start.
+        /// Audio packets may cross the selected end. Video still requires independent decode boundaries.</summary>
+        public static async ValueTask<IndexedPacketRange> CreateAsync(IIndexedPacketTimingReader reader, int streamIndex,
+            MediaTimeRange selection, PacketCopyAlignment alignment, IRandomAccessInspector? inspector = null,
+            MediaReadBudget? budget = null, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(reader);
+            if (!Enum.IsDefined(alignment)) { throw new ArgumentOutOfRangeException(nameof(alignment)); }
             selection.Start.TimeBase.Validate();
             selection.End.TimeBase.Validate();
             cancellationToken.ThrowIfCancellationRequested();
@@ -45,22 +53,37 @@ namespace Mediana.Execution
                 if (earliest is null || pts.CompareTo(earliest.Value) < 0) { earliest = pts; }
                 if (latest is null || pts.CompareTo(latest.Value) > 0) { latest = pts; finalPresentationPacket = index; }
             }
-            if (first < 0 || earliest != selection.Start)
-            { throw new NotSupportedException("Compressed copy requires a nonempty interval starting on a packet boundary."); }
-            ContainerPacketTiming final = reader.GetPacketTiming(streamIndex, finalPresentationPacket, cancellationToken);
-            MediaDuration duration = (reader is IIndexedPresentationTimingReader presentation
-                ? presentation.GetPresentationDuration(streamIndex, finalPresentationPacket, cancellationToken) : final.Duration)
-                ?? throw new NotSupportedException("Compressed copy requires a known final presentation duration.");
-            TimeBase clock = TimeBase.Common(latest!.Value.ReduceClock().TimeBase,
-                new MediaTimestamp(duration.Value, duration.TimeBase).ReduceClock().TimeBase);
-            MediaTimestamp end = new(checked(latest.Value.Rescale(clock, TimestampRounding.TowardZero).Value +
-                new MediaTimestamp(duration.Value, duration.TimeBase).Rescale(clock, TimestampRounding.TowardZero).Value), clock);
-            if (end != selection.End) { throw new NotSupportedException("Compressed copy requires an exact final packet boundary."); }
+            switch (alignment)
+            {
+                case PacketCopyAlignment.Exact:
+                    if (first < 0 || earliest != selection.Start)
+                    { throw new NotSupportedException("Compressed copy requires a nonempty interval starting on a packet boundary."); }
+                    ContainerPacketTiming final = reader.GetPacketTiming(streamIndex, finalPresentationPacket, cancellationToken);
+                    MediaDuration duration = (reader is IIndexedPresentationTimingReader presentation
+                        ? presentation.GetPresentationDuration(streamIndex, finalPresentationPacket, cancellationToken) : final.Duration)
+                        ?? throw new NotSupportedException("Compressed copy requires a known final presentation duration.");
+                    TimeBase clock = TimeBase.Common(latest!.Value.ReduceClock().TimeBase,
+                        new MediaTimestamp(duration.Value, duration.TimeBase).ReduceClock().TimeBase);
+                    MediaTimestamp end = new(checked(latest.Value.Rescale(clock, TimestampRounding.TowardZero).Value +
+                        new MediaTimestamp(duration.Value, duration.TimeBase).Rescale(clock, TimestampRounding.TowardZero).Value), clock);
+                    if (end != selection.End) { throw new NotSupportedException("Compressed copy requires an exact final packet boundary."); }
+                    break;
+                case PacketCopyAlignment.PresentationStarts:
+                    if (first < 0) { return new(count, 0); }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(alignment));
+            }
             if (stream.Kind == MediaKind.Video)
             {
                 ArgumentNullException.ThrowIfNull(inspector);
-                await VerifyRestartAsync(first, selection.Start).ConfigureAwait(false);
-                if (last + 1 < count) { await VerifyRestartAsync(last + 1, selection.End).ConfigureAwait(false); }
+                await VerifyRestartAsync(first, earliest!.Value).ConfigureAwait(false);
+                if (last + 1 < count)
+                {
+                    MediaTimestamp boundary = reader.GetPacketTiming(streamIndex, last + 1, cancellationToken).PresentationTime
+                        ?? throw new NotSupportedException("Video copy requires known next access-point timing.");
+                    await VerifyRestartAsync(last + 1, boundary).ConfigureAwait(false);
+                }
             }
             return new(first, checked(last - first + 1));
 

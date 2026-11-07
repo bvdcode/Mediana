@@ -85,5 +85,28 @@ namespace Mediana.Tests
             await Assert.ThrowsAsync<InvalidOperationException>(async () => { using MediaPacket? packet = await second.ReadPacketAsync(); });
             Assert.Equal(3, shared.PacketReads);
         }
+
+        [Fact]
+        public async Task FractionalWindowsOwnEveryAudioPacketExactlyOnceWithoutPayloadReads()
+        {
+            MediaBufferAllocator allocator = new(4 * 1024 * 1024);
+            await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("avc-aac.mp4"));
+            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            source.Reads.Clear();
+            long count = reader.GetPacketCount(1);
+            long next = 0;
+            for (int window = 0; window < 6; window++)
+            {
+                IndexedPacketRange range = await IndexedCopyPlanner.CreateAsync(reader, 1,
+                    new(new(window * 333, new(1, 1000)), new((window + 1) * 333, new(1, 1000))), PacketCopyAlignment.PresentationStarts);
+                Assert.Equal(next, range.FirstPacket);
+                next += range.PacketCount;
+            }
+            Assert.Equal(count, next);
+            IndexedPacketRange empty = await IndexedCopyPlanner.CreateAsync(reader, 1,
+                new(new(4, new(1, 1)), new(5, new(1, 1))), PacketCopyAlignment.PresentationStarts);
+            Assert.Equal(0, empty.PacketCount);
+            Assert.Empty(source.Reads);
+        }
     }
 }

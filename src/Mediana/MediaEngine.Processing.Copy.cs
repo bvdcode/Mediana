@@ -15,7 +15,7 @@ namespace Mediana
         {
             EncodedStreamInfo stream = input.Select(request.InputStreamIndex);
             IndexedPacketRange range = new(0, input.Reader.GetPacketCount(stream.StreamIndex));
-            if (input.Selection is MediaTimeRange selection)
+            if ((request.Selection ?? input.Selection) is MediaTimeRange selection)
             {
                 if (input.Reader is not IIndexedPacketTimingReader timing)
                 { throw new NotSupportedException("Interval copy requires indexed packet clocks."); }
@@ -26,7 +26,8 @@ namespace Mediana
                     inspector = (factory as IRandomAccessDecoderFactory)?.CreateRandomAccessInspector(stream)
                         ?? throw new NotSupportedException("Video interval copy requires codec restart inspection.");
                 }
-                range = await IndexedCopyPlanner.CreateAsync(timing, stream.StreamIndex, selection, inspector, input.Budget, token).ConfigureAwait(false);
+                range = await IndexedCopyPlanner.CreateAsync(timing, stream.StreamIndex, selection, request.Alignment,
+                    inspector, input.Budget, token).ConfigureAwait(false);
             }
             IndexedCopySource source = new(input.Reader, stream.StreamIndex, request.OutputStreamIndex, range.FirstPacket, range.PacketCount, input.Budget);
             return new(source, () => new(stream.StreamIndex, source.Stream, 0, 0, 0, 0, null, null));

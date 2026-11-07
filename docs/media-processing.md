@@ -53,6 +53,12 @@ Compressed interval copy requires exact packet boundaries and a contiguous range
 in decode order. Video boundaries additionally require codec-inspected independent
 access packets at the beginning and the next boundary, unless the interval reaches
 EOF. Misaligned copy requests fail without enlarging the range or re-encoding it.
+`PacketCopyAlignment.PresentationStarts` explicitly assigns each compressed packet
+to the interval containing its presentation start. Adjacent intervals then own
+each audio packet once, including packets that cross a boundary. Empty packet
+selections are allowed. Video still requires independent decode boundaries.
+`PacketCopyRequest.Selection` can set an explicit per-track interval instead of
+the operation interval, for example to include initial audio preroll.
 Whole-track copy retains every encoded sample; container edit trimming is an
 encoding operation and is not silently applied to compressed packets.
 
@@ -86,6 +92,33 @@ Sequential-only demuxers are supported by the existing decoding APIs. Independen
 multi-track processing currently requires indexed packets. Independent audiovisual
 HLS encoding, including continuous audio packet grids across adjacent requests,
 is not yet supplied by this operation.
+
+## Encoded MP4 fragments
+
+`Mp4EncodedFragmentWriter` writes shared AVC/HEVC video and AAC-LC audio initialization
+and media fragments. `Mp4VideoTrackDefinition` and `Mp4AudioTrackDefinition` carry
+separate stream and MP4 track identities. `Mp4EncodedFragmentPacketWriter` implements
+the same container-writer contract consumed by `MediaProcessingSession`; it retains
+only the current fragment's compressed packet leases until completion/disposal.
+Packets are grouped by track in `mdat`, with matching relative `trun` offsets.
+Empty audio selections omit that fragment's audio `traf` while retaining its
+initialization declaration.
+
+An explicit track `TimestampOffset`, measured on its unit-numerator MP4 clock,
+permits negative codec preroll in the input packets. Stored decode and presentation
+times receive that offset; a unit-rate initialization edit maps presentation back.
+No input packet or payload is changed. For example, 1024 priming samples at 48 kHz
+use an offset of 1024 on a 1/48000 track clock. The zero-duration initialization
+edit describes a continuing fragmented presentation, as defined by ISO BMFF and
+the [MSE ISO BMFF initialization requirements](https://www.w3.org/TR/mse-byte-stream-format-isobmff/#iso-init-segments).
+The AAC sample entry currently accepts indexed sample rates through 64 kHz;
+88.2/96 kHz sample entries require an additional representation.
+
+Independent FFmpeg verification of an encoded AVC/AAC fragment recognizes both
+tracks, applies the initial AAC skip of 1024 samples, and decodes exactly 76,800
+audio samples from 76 access units. Packet and initialization tests cover shared
+headers, signed composition offsets, explicit preroll, ownership and failure before
+header publication for invalid timing.
 
 ## Verification
 
