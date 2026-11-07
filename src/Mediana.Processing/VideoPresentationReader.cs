@@ -14,18 +14,23 @@ namespace Mediana.Processing
     {
         private readonly Func<CancellationToken, ValueTask<VideoFrame?>> read;
         private readonly MediaTimeRange? selection;
+        private readonly VideoIntervalAlignment alignment;
+        private MediaTimestamp? previousEnd;
         private VideoFrame? pending;
         private bool ended;
         private bool disposed;
         private bool faulted;
         private int busy;
 
-        public VideoPresentationReader(Func<CancellationToken, ValueTask<VideoFrame?>> read, MediaTimeRange? selection = null)
+        public VideoPresentationReader(Func<CancellationToken, ValueTask<VideoFrame?>> read, MediaTimeRange? selection = null,
+            VideoIntervalAlignment alignment = VideoIntervalAlignment.ClipDisplayDuration)
         {
             ArgumentNullException.ThrowIfNull(read);
+            if (!Enum.IsDefined(alignment)) { throw new ArgumentOutOfRangeException(nameof(alignment)); }
             if (selection is MediaTimeRange range) { range.Start.TimeBase.Validate(); range.End.TimeBase.Validate(); }
             this.read = read;
             this.selection = selection;
+            this.alignment = alignment;
         }
 
         public async ValueTask<VideoFrame?> ReadFrameAsync(CancellationToken cancellationToken = default)
@@ -59,7 +64,8 @@ namespace Mediana.Processing
                 pending = null;
                 token.ThrowIfCancellationRequested();
                 MediaTimestamp start = current.Timestamp ?? throw new NotSupportedException("Video presentation requires known timestamps.");
-                if (selection is MediaTimeRange limit && start.CompareTo(limit.End) >= 0) { ended = true; return null; }
+                if (selection is MediaTimeRange limit && start.CompareTo(limit.End) >= 0)
+                { ValidateCompletion(); ended = true; return null; }
                 MediaDuration duration = current.Duration ?? throw new NotSupportedException("Video presentation requires known durations.");
                 if (duration.Value == 0) { throw new InvalidDataException("Video presentation durations must be positive."); }
                 TimeBase clock = TimeBase.Common(start.ReduceClock().TimeBase, new MediaTimestamp(duration.Value, duration.TimeBase).ReduceClock().TimeBase);
@@ -76,14 +82,37 @@ namespace Mediana.Processing
                 else { ended = true; }
                 if (selection is MediaTimeRange range)
                 {
-                    if (range.End.CompareTo(end) < 0) { end = range.End; }
                     if (start.CompareTo(range.Start) < 0) { continue; }
+                    switch (alignment)
+                    {
+                        case VideoIntervalAlignment.ClipDisplayDuration:
+                            if (range.End.CompareTo(end) < 0) { end = range.End; }
+                            break;
+                        case VideoIntervalAlignment.CompleteFrames:
+                            if (start != (previousEnd ?? range.Start))
+                            { throw new InvalidDataException("The selected video interval must begin on a frame boundary and contain contiguous frames."); }
+                            if (end.CompareTo(range.End) > 0)
+                            { throw new NotSupportedException("The selected interval must end on a complete video frame boundary."); }
+                            if (ended && end != range.End)
+                            { throw new InvalidDataException("The source ended before the complete video interval."); }
+                            previousEnd = end;
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(alignment));
+                    }
                 }
                 MediaTimeRange interval = new(start.ReduceClock(), end.ReduceClock());
                 return current.WithTiming(start, interval.Duration);
             }
+            ValidateCompletion();
             ended = true;
             return null;
+        }
+
+        private void ValidateCompletion()
+        {
+            if (alignment == VideoIntervalAlignment.CompleteFrames && selection is MediaTimeRange range && previousEnd != range.End)
+            { throw new InvalidDataException("The source does not fill the complete video interval."); }
         }
 
         public ValueTask DisposeAsync()

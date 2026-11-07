@@ -69,6 +69,47 @@ namespace Mediana.Tests
             await Assert.ThrowsAsync<InvalidOperationException>(async () => { using VideoFrame? frame = await reader.ReadFrameAsync(); });
         }
 
+        [Theory]
+        [InlineData(0, 120, true)]
+        [InlineData(1, 120, false)]
+        [InlineData(0, 119, false)]
+        [InlineData(0, 121, false)]
+        public async Task CompleteFrameIntervalsRejectPartialBoundariesAndEarlyEnd(int start, int end, bool valid)
+        {
+            MediaBufferAllocator allocator = new(8);
+            int position = 0;
+            ValueTask<VideoFrame?> ReadAsync(CancellationToken token)
+            {
+                token.ThrowIfCancellationRequested();
+                return ValueTask.FromResult(position == 3 ? null : Create(allocator, position++ * 40, 40));
+            }
+            await using VideoPresentationReader reader = new(ReadAsync, new(new(start, new(1, 1000)), new(end, new(1, 1000))), VideoIntervalAlignment.CompleteFrames);
+            async Task DrainAsync()
+            {
+                while (true) { using VideoFrame? frame = await reader.ReadFrameAsync(); if (frame is null) { break; } }
+            }
+            if (valid) { await DrainAsync(); }
+            else if (start != 0 || end > 120) { await Assert.ThrowsAsync<InvalidDataException>(DrainAsync); }
+            else { await Assert.ThrowsAsync<NotSupportedException>(DrainAsync); }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(40)]
+        [InlineData(80)]
+        public async Task CompleteFrameIntervalsRejectGapsEvenWhenNextFrameStartsAtSelectedEnd(int end)
+        {
+            MediaBufferAllocator allocator = new(8);
+            int position = 0;
+            ValueTask<VideoFrame?> ReadAsync(CancellationToken token) =>
+                ValueTask.FromResult<VideoFrame?>(position == 3 ? null : Create(allocator, position++ * 40, 20));
+            await using VideoPresentationReader reader = new(ReadAsync,
+                new(new(0, new(1, 1000)), new(end, new(1, 1000))), VideoIntervalAlignment.CompleteFrames);
+            using (VideoFrame frame = (await reader.ReadFrameAsync())!) { Assert.NotNull(frame); }
+            await Assert.ThrowsAsync<InvalidDataException>(async () => { using VideoFrame? frame = await reader.ReadFrameAsync(); });
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         private static VideoFrame Create(MediaBufferAllocator allocator, long time, long? duration)
         {
             VideoFormat format = new(1, 1, VideoPixelFormat.Rgba32);
