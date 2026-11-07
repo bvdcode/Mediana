@@ -29,5 +29,5 @@ tgs-animation,tgs;lottie-json,render,All 180 frames of a 512-square 44-layer sti
 word-page,docx-transitional,render,First Letter page; paragraphs/table/photo/footer using installed DejaVu Sans at 96 DPI,LibreOfficeDev 26.8 alpha0,ordinary,
 presentation-slide,pptx-transitional,render,960x540 slide; inherited title layout plus photo and themed chart shapes,LibreOfficeDev 26.8 alpha0,ordinary,
 spreadsheet-read,xlsx-transitional,read,All 400000 numeric XLSX cells including 80000 cached formulas; LE binary64 export,ExcelDataReader 3.9.0 / .NET 10 JIT,heavy,
-mesh-preview,3mf-core;3mf-production,render,Complete dog.3mf assembly to 512-square RGBA; warmed JIT operation mean and lifetime RSS,Render.NET,heavy,../mesh-performance.md
+mesh-preview,3mf-core,render,Complete 28-mesh dog.3mf model to 512-square RGBA; warmed JIT operation mean and lifetime RSS,Render.NET,heavy,../mesh-performance.md
 ogg-index,ogg,read,Complete 1800-second Ogg Opus scan and all encoded payload bytes,FFmpeg,heavy,

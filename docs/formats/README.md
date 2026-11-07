@@ -532,7 +532,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `off` | OFF — Object File Format mesh variants | .off .coff .noff | R □ · V □ · W □ | C | [discovery](sources.md#discovery) | — |
 | `3mf-core` | 3MF — Core meshes, objects and build items | .3mf | R ◐ · V ◐ · W □ | B | Geometry, root build, components, transforms and units implemented; material and texture interpretation remains separate. [3mf](sources.md#3mf) | [mesh-preview](../performance/README.md#mesh-preview) |
 | `3mf-materials` | 3MF — Materials/properties and textures | .3mf | R □ · V □ · W □ | B | [3mf](sources.md#3mf) | — |
-| `3mf-production` | 3MF — Production Extension model-part references and assemblies | .3mf | R ◐ · V ◐ · W □ | C | Cross-part component geometry implemented; other Production features require separate evidence. [3mf](sources.md#3mf) | [mesh-preview](../performance/README.md#mesh-preview) |
+| `3mf-production` | 3MF — Production Extension model-part references and assemblies | .3mf | R ◐ · V ◐ · W □ | C | Cross-part component geometry implemented; other Production features require separate evidence. [3mf](sources.md#3mf) | — |
 | `amf` | AMF — Additive manufacturing XML | .amf | R □ · V □ · W □ | C | [discovery](sources.md#discovery) | — |
 | `3ds` | 3D Studio — Legacy chunked scenes | .3ds | R □ · V □ · W □ | C | [discovery](sources.md#discovery) | — |
 | `lwo` | LightWave Object — LWO2 / related revisions | .lwo | R □ · V □ · W □ | C | [discovery](sources.md#discovery) | — |
