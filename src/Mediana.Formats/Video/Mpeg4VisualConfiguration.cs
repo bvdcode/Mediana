@@ -79,7 +79,7 @@ namespace Mediana.Formats.Video
             if (bits.Flag())
             {
                 result.FixedTimeIncrement = bits.Read(result.TimeIncrementBits);
-                if (result.FixedTimeIncrement == 0 || result.FixedTimeIncrement >= result.TimeIncrementResolution) { throw new InvalidDataException("The MPEG-4 Visual fixed increment is invalid."); }
+                if (result.FixedTimeIncrement == 0) { throw new InvalidDataException("The MPEG-4 Visual fixed increment is invalid."); }
             }
             bits.Marker(); result.Width = bits.Read(13); bits.Marker(); result.Height = bits.Read(13); bits.Marker();
             if (result.Width == 0 || result.Height == 0) { throw new InvalidDataException("The MPEG-4 Visual dimensions must be positive."); }
