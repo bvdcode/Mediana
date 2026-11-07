@@ -10,7 +10,7 @@ namespace Mediana.Codecs.Mpeg4Visual
         {
             int fx = mx & 3, fy = my & 3, dx = mx >> 2, dy = my >> 2, round = rounding ? 0 : 1;
             if (fx == 0 && fy == 0)
-            { PredictHalf(target, reference, width, height, x, y, size, size, dx * 2, dy * 2, rounding, average); return; }
+            { Mpeg4MotionCompensation.PredictHalf(target, reference, width, height, x, y, size, size, dx * 2, dy * 2, rounding, average); return; }
             Span<byte> horizontal = stackalloc byte[17 * 16];
             int rows = fy == 0 ? size : size + 1;
             ReadOnlySpan<int> filter = [-1,3,-6,20,20,-6,3,-1];

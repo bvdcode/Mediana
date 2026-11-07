@@ -1,24 +1,25 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
 using Mediana.Formats.Video;
 
 namespace Mediana.Codecs.Mpeg4Visual
 {
     internal partial class Mpeg4PictureDecoder
     {
-        private static void ReadResidual(ref Mpeg4VisualBitReader bits, scoped Span<int> coefficients, bool intra, int start, scoped ReadOnlySpan<byte> scan)
+        private static ulong ReadResidual(ref Mpeg4VisualBitReader bits, scoped Span<int> coefficients, bool intra, int start, scoped ReadOnlySpan<byte> scan)
         {
-            int position = start;
+            int position = start; ulong nonzero = 0;
             while (true)
             {
                 int item = Mpeg4Codebooks.Coefficient(ref bits, intra); position += (item >> 16) & 255;
                 if (position >= 64) { throw new InvalidDataException("An MPEG-4 Visual coefficient run exceeds its block."); }
-                coefficients[scan[position++]] = (short)item;
-                if ((item >> 24) != 0) { return; }
+                int index = scan[position++]; coefficients[index] = (short)item; nonzero |= 1UL << index;
+                if ((item >> 24) != 0) { return nonzero; }
             }
         }
-        private void ReadIntra(ref Mpeg4VisualBitReader bits, scoped Span<int> coefficients, int mb, int block, int quantizer,
+        private ulong ReadIntra(ref Mpeg4VisualBitReader bits, scoped Span<int> coefficients, int mb, int block, int quantizer,
             bool acPrediction, int cbp, Mpeg4VopHeader header, int bound)
         {
             int scaler = DcScale(quantizer, block < 4), start = 0;
@@ -44,8 +45,9 @@ namespace Mediana.Codecs.Mpeg4Visual
             bool vertical = Math.Abs(leftDc - diagonalDc) < Math.Abs(diagonalDc - topDc);
             ReadOnlySpan<byte> scan = header.AlternateScan ? Mpeg4Scan.Vertical : !acPrediction ? Mpeg4Scan.Zigzag
                 : vertical ? Mpeg4Scan.Horizontal : Mpeg4Scan.Vertical;
-            if ((cbp & (1 << (5 - block))) != 0) { ReadResidual(ref bits, coefficients, true, start, scan); }
+            ulong nonzero = (cbp & (1 << (5 - block))) != 0 ? ReadResidual(ref bits, coefficients, true, start, scan) : 0;
             coefficients[0] += RoundDivide(vertical ? topDc : leftDc, scaler);
+            nonzero = CoefficientMask(nonzero, 0, coefficients[0]);
             int neighbor = vertical ? top : left;
             if (acPrediction && neighbor >= 0)
             {
@@ -53,13 +55,16 @@ namespace Mediana.Codecs.Mpeg4Visual
                 for (int i = 1; i < 8; i++)
                 {
                     int ac = predictions[neighbor * 16 + (vertical ? i : i + 7)];
-                    coefficients[vertical ? i : i * 8] += RoundDivide(ac * q, quantizer);
+                    int position = vertical ? i : i * 8;
+                    coefficients[position] += RoundDivide(ac * q, quantizer);
+                    nonzero = CoefficientMask(nonzero, position, coefficients[position]);
                 }
             }
             predictions[index * 16] = Math.Clamp(coefficients[0] * scaler, -2048, 2047);
             predictions[index * 16 + 15] = quantizer;
             for (int i = 1; i < 8; i++)
             { predictions[index * 16 + i] = coefficients[i]; predictions[index * 16 + i + 7] = coefficients[i * 8]; }
+            return nonzero;
         }
         private bool NeighborAvailable(int plane, int x, int y, int bound)
         {
@@ -77,21 +82,26 @@ namespace Mediana.Codecs.Mpeg4Visual
             if (quantizer < 9) { return quantizer * 2; }
             return quantizer < 25 ? quantizer + 8 : quantizer * 2 - 16;
         }
-        private void Dequantize(scoped Span<int> coefficients, int quantizer, bool intra, int dcScale)
+        private static ulong CoefficientMask(ulong mask, int index, int value) =>
+            value == 0 ? mask & ~(1UL << index) : mask | (1UL << index);
+        private ulong Dequantize(scoped Span<int> coefficients, int quantizer, bool intra, int dcScale, ulong nonzero)
         {
-            int sum = 0, start = 0;
-            if (intra) { coefficients[0] = Math.Clamp(coefficients[0] * dcScale, -2048, 2047); start = 1; }
+            int sum = 0; ulong remaining = nonzero;
+            if (intra) { coefficients[0] = Math.Clamp(coefficients[0] * dcScale, -2048, 2047); remaining &= ~1UL; }
             ReadOnlySpan<byte> matrix = intra ? config.IntraMatrix.Span : config.InterMatrix.Span;
-            for (int i = start; i < 64; i++)
+            while (remaining != 0)
             {
+                int i = BitOperations.TrailingZeroCount(remaining); remaining &= remaining - 1;
                 int value = coefficients[i], magnitude = Math.Abs(value);
-                if (magnitude == 0) { continue; }
                 if (config.MpegQuantization)
                 { magnitude = intra ? magnitude * matrix[i] * quantizer / 8 : (magnitude * 2 + 1) * matrix[i] * quantizer / 16; }
                 else { magnitude = magnitude * quantizer * 2 + ((quantizer - 1) | 1); }
                 coefficients[i] = Math.Clamp(value < 0 ? -magnitude : magnitude, -2048, 2047); sum ^= coefficients[i];
+                nonzero = CoefficientMask(nonzero, i, coefficients[i]);
             }
-            if (config.MpegQuantization && !intra && (sum & 1) == 0) { coefficients[63] ^= 1; }
+            if (config.MpegQuantization && !intra && (sum & 1) == 0)
+            { coefficients[63] ^= 1; nonzero = CoefficientMask(nonzero, 63, coefficients[63]); }
+            return nonzero;
         }
         private void ReadResynchronization(ref Mpeg4VisualBitReader bits, Mpeg4VopHeader header, int mb, ref int quantizer, ref int bound)
         {

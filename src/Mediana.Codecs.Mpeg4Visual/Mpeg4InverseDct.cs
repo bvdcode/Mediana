@@ -7,9 +7,13 @@ namespace Mediana.Codecs.Mpeg4Visual
     {
         internal static void Write(ReadOnlySpan<int> coefficients, Span<byte> target, int stride, bool intra)
         {
-            bool dcOnly = true;
-            for (int i = 1; i < 64; i++) { if (coefficients[i] != 0) { dcOnly = false; break; } }
-            if (dcOnly)
+            ulong nonzero = 0;
+            for (int i = 0; i < 64; i++) { if (coefficients[i] != 0) { nonzero |= 1UL << i; } }
+            Write(coefficients, target, stride, intra, nonzero);
+        }
+        internal static void Write(ReadOnlySpan<int> coefficients, Span<byte> target, int stride, bool intra, ulong nonzero)
+        {
+            if ((nonzero & ~1UL) == 0)
             {
                 int dc = (coefficients[0] + 4) >> 3;
                 if (intra)
@@ -21,8 +25,15 @@ namespace Mediana.Codecs.Mpeg4Visual
             Span<long> rows = stackalloc long[64], input = stackalloc long[8], column = stackalloc long[8];
             for (int y = 0; y < 8; y++)
             {
-                for (int x = 0; x < 8; x++) { input[x] = coefficients[y * 8 + x]; }
-                Transform(input, rows.Slice(y * 8, 8));
+                ulong row = (nonzero >> (y * 8)) & 255;
+                Span<long> output = rows.Slice(y * 8, 8);
+                if (row == 0) { output.Clear(); }
+                else if (row == 1) { output.Fill(coefficients[y * 8] * 11585L); }
+                else
+                {
+                    for (int x = 0; x < 8; x++) { input[x] = coefficients[y * 8 + x]; }
+                    Transform(input, output);
+                }
             }
             for (int x = 0; x < 8; x++)
             {

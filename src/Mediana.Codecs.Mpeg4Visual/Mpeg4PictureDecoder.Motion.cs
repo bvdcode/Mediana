@@ -57,7 +57,7 @@ namespace Mediana.Codecs.Mpeg4Visual
             {
                 int bx = x + (block & 1) * 8, by = y + (block >> 1) * 8, size = four ? 8 : 16;
                 if (config.QuarterPel) { PredictQuarter(target, reference, Width, Height, bx, by, size, motion[block * 2], motion[block * 2 + 1], rounding, average); }
-                else { PredictHalf(target, reference, Width, Height, bx, by, size, size, motion[block * 2], motion[block * 2 + 1], rounding, average); }
+                else { Mpeg4MotionCompensation.PredictHalf(target, reference, Width, Height, bx, by, size, size, motion[block * 2], motion[block * 2 + 1], rounding, average); }
             }
             for (int plane = 1; plane < 3; plane++)
             {
@@ -75,33 +75,7 @@ namespace Mediana.Codecs.Mpeg4Visual
                     mx = (vx >> 1) | (vx & 1); my = (vy >> 1) | (vy & 1);
                 }
                 int offset = lumaSize + (plane - 1) * (lumaSize / 4);
-                PredictHalf(target[offset..], reference[offset..], Width / 2, Height / 2, x / 2, y / 2, 8, 8, mx, my, rounding, average);
-            }
-        }
-        private static void PredictHalf(Span<byte> target, ReadOnlySpan<byte> reference, int width, int height,
-            int x, int y, int blockWidth, int blockHeight, int mx, int my, bool rounding, bool average)
-        {
-            int dx = mx >> 1, dy = my >> 1, fx = mx & 1, fy = my & 1, round = rounding ? 0 : 1;
-            bool interior = x + dx >= 0 && y + dy >= 0 && x + dx + blockWidth + fx <= width && y + dy + blockHeight + fy <= height;
-            if (interior && fx == 0 && fy == 0 && !average)
-            {
-                for (int row = 0; row < blockHeight; row++) { reference.Slice((y + dy + row) * width + x + dx, blockWidth).CopyTo(target.Slice((y + row) * width + x, blockWidth)); }
-                return;
-            }
-            for (int row = 0; row < blockHeight; row++)
-            {
-                int ry = Math.Clamp(y + dy + row, 0, height - 1), ry1 = Math.Clamp(y + dy + row + fy, 0, height - 1);
-                for (int column = 0; column < blockWidth; column++)
-                {
-                    int rx = Math.Clamp(x + dx + column, 0, width - 1), rx1 = Math.Clamp(x + dx + column + fx, 0, width - 1);
-                    int value;
-                    if (fx == 0 && fy == 0) { value = reference[ry * width + rx]; }
-                    else if (fy == 0) { value = (reference[ry * width + rx] + reference[ry * width + rx1] + round) >> 1; }
-                    else if (fx == 0) { value = (reference[ry * width + rx] + reference[ry1 * width + rx] + round) >> 1; }
-                    else { value = (reference[ry * width + rx] + reference[ry * width + rx1] + reference[ry1 * width + rx] + reference[ry1 * width + rx1] + round + 1) >> 2; }
-                    int at = (y + row) * width + x + column;
-                    target[at] = (byte)(average ? (target[at] + value + 1) >> 1 : value);
-                }
+                Mpeg4MotionCompensation.PredictHalf(target[offset..], reference[offset..], Width / 2, Height / 2, x / 2, y / 2, 8, 8, mx, my, rounding, average);
             }
         }
     }

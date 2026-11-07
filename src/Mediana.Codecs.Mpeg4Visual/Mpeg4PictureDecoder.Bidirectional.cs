@@ -62,9 +62,9 @@ namespace Mediana.Codecs.Mpeg4Visual
                 for (int block = 0; block < 6; block++)
                 {
                     if ((cbp & (1 << (5 - block))) == 0) { continue; }
-                    coefficients.Clear(); ReadResidual(ref bits, coefficients, false, 0, header.AlternateScan ? Mpeg4Scan.Vertical : Mpeg4Scan.Zigzag);
-                    Dequantize(coefficients, quantizer, false, 0); (int offset, int stride) = BlockAddress(mb, block);
-                    Mpeg4InverseDct.Write(coefficients, picture[offset..], stride, false);
+                    coefficients.Clear(); ulong nonzero = ReadResidual(ref bits, coefficients, false, 0, header.AlternateScan ? Mpeg4Scan.Vertical : Mpeg4Scan.Zigzag);
+                    nonzero = Dequantize(coefficients, quantizer, false, 0, nonzero); (int offset, int stride) = BlockAddress(mb, block);
+                    Mpeg4InverseDct.Write(coefficients, picture[offset..], stride, false, nonzero);
                 }
             }
         }

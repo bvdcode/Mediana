@@ -98,14 +98,14 @@ namespace Mediana.Codecs.Mpeg4Visual
                 if (mode is not 3 and not 4) { Predict(picture, future!.Memory.Span, mb, Motion.Slice(mb * 10, 8), mode == 2, header.Rounding, false); }
                 for (int block = 0; block < 6; block++)
                 {
-                    coefficients.Clear(); bool intra = mode is 3 or 4;
-                    if (intra) { ReadIntra(ref bits, coefficients, mb, block, quantizer, acPrediction, cbp, header, bound); }
-                    else if ((cbp & (1 << (5 - block))) != 0) { ReadResidual(ref bits, coefficients, false, 0, header.AlternateScan ? Mpeg4Scan.Vertical : Mpeg4Scan.Zigzag); }
+                    coefficients.Clear(); bool intra = mode is 3 or 4; ulong nonzero = 0;
+                    if (intra) { nonzero = ReadIntra(ref bits, coefficients, mb, block, quantizer, acPrediction, cbp, header, bound); }
+                    else if ((cbp & (1 << (5 - block))) != 0) { nonzero = ReadResidual(ref bits, coefficients, false, 0, header.AlternateScan ? Mpeg4Scan.Vertical : Mpeg4Scan.Zigzag); }
                     if (intra || (cbp & (1 << (5 - block))) != 0)
                     {
-                        Dequantize(coefficients, quantizer, intra, DcScale(quantizer, block < 4));
+                        nonzero = Dequantize(coefficients, quantizer, intra, DcScale(quantizer, block < 4), nonzero);
                         (int offset, int stride) = BlockAddress(mb, block);
-                        Mpeg4InverseDct.Write(coefficients, picture[offset..], stride, intra);
+                        Mpeg4InverseDct.Write(coefficients, picture[offset..], stride, intra, nonzero);
                     }
                 }
             }
