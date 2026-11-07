@@ -4,6 +4,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/HevcPictureTestInput.cs" Link="HevcPictureTestInput.cs" />
     <Compile Include="../Shared/HevcMotionCompensationTestInput.cs" Link="HevcMotionCompensationTestInput.cs" />
     <Compile Include="../Shared/HevcWeightedPredictionTestInput.cs" Link="HevcWeightedPredictionTestInput.cs" />
     <Compile Include="../Shared/HevcPictureStorageTestInput.cs" Link="HevcPictureStorageTestInput.cs" />

@@ -23,3 +23,10 @@ SHA-256: `301c1310cdb81c0427170ceb546f898f0ed0c5ee5f5c4be3e5e2d4e427fa8ea6`.
 `motion.bin.gz` contains 768 HM-18.0 complete motion compensation cases cover both bit depths, both reference lists separately and together, default and explicit weights, fractional and extreme signed motion, rectangular blocks, chroma subsampling and border extension. Header `HEVCMCP1`, case count, then twelve signed 32-bit fields (depth, destination x/y, block width/height, both motion x/y vectors, direction, explicit-weight flag, denominator), six weight/offset pairs, and three component records. Each component stores two unsigned 16-bit 64x48 luma or 32x24 chroma source planes followed by signed 32-bit predicted block samples. Direction 0/1 selects one list; 2 selects both. Fields are little endian.
 
 SHA-256: `5f17fe18efb247c4963d445a6cbf30647ece728eefad6d3e6b62afc674d32e78`.
+
+The four `.yuv.gz` files contain complete FFmpeg-decoded display-order Y, Cb, Cr planes from their matching videos, without filtering or resizing. Main uses byte samples; Main10 uses little-endian unsigned 16-bit samples. Tests compare every visible sample of all 72 pictures, including P/B prediction, weighted prediction, WPP, deblocking and SAO.
+
+- `main8.yuv.gz` SHA-256: `0dded5a3bd5259a941f8a09295596ab26e837425138aaf8b131277ba7ade592e`.
+- `main10.yuv.gz` SHA-256: `33271445002c0cfc413b821b97fd95d9349df085b2eeb920efe83fdb44f28f6c`.
+- `weighted8.yuv.gz` SHA-256: `c8d131cd95306f3c04ff1d5b1a0f4dda5b28de7631baeabe0ea2f072931aa122`.
+- `weighted10.yuv.gz` SHA-256: `2b6b11b18beed22700cbbc7dcd346ad9280628417ca3bc0284b74fa61c3d694b`.
