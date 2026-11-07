@@ -15,7 +15,7 @@ namespace Mediana.Codecs.Aac
     /// <summary>Encodes contiguous mono/stereo interleaved Float32 PCM as AAC-LC raw access units.
     /// Selects long/short sine windows with one PCM block of lookahead and a shared per-frame bit ceiling, without a reservoir.
     /// Retains at most one input lease; returned packets belong to the caller. Calls must not overlap.</summary>
-    public partial class AacEncoder : IMediaEncoder<AudioFrame>
+    public partial class AacEncoder : IMediaEncoder<AudioFrame>, IAudioEncoderTiming
     {
         private const int FrameSamples = 1024;
         private readonly AudioFormat format;
