@@ -3,9 +3,9 @@
 
 namespace Mediana.Codecs.Webp
 {
-    internal static partial class Vp8ImageDecoder
+    internal static class Vp8RgbaConversion
     {
-        private static void ToRgba(ReadOnlySpan<byte> yPlane, ReadOnlySpan<byte> uPlane, ReadOnlySpan<byte> vPlane, int stride, int width, int height, Span<byte> output, CancellationToken token)
+        internal static void Apply(ReadOnlySpan<byte> yPlane, ReadOnlySpan<byte> uPlane, ReadOnlySpan<byte> vPlane, int stride, int width, int height, Span<byte> output, CancellationToken token)
         {
             for (int y = 0; y < height; y++)
             {
@@ -25,6 +25,7 @@ namespace Mediana.Codecs.Webp
                 }
             }
         }
+        private static byte Byte(int value) => (byte)Math.Clamp(value, 0, 255);
         private static int Chroma(ReadOnlySpan<byte> data, int stride, int x0, int x1, int y0, int y1, int wx, int wy)
             => (data[y0 * stride + x0] * (4 - wx) * (4 - wy) + data[y0 * stride + x1] * wx * (4 - wy)
                 + data[y1 * stride + x0] * (4 - wx) * wy + data[y1 * stride + x1] * wx * wy + 8) >> 4;

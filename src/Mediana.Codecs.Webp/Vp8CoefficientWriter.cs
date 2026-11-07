@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Codecs.Vp8;
+
 namespace Mediana.Codecs.Webp
 {
     internal static class Vp8CoefficientWriter

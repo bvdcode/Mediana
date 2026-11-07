@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.Webp
+using Mediana.Core.Memory;
+
+namespace Mediana.Codecs.Vp8
 {
     internal static partial class Vp8ImageDecoder
     {
@@ -10,12 +12,12 @@ namespace Mediana.Codecs.Webp
         private static ReadOnlySpan<byte> LumaProbabilities => [145, 156, 163, 128];
         private static ReadOnlySpan<sbyte> ChromaTree => [0, 2, -1, 4, -2, -3];
         private static ReadOnlySpan<byte> ChromaProbabilities => [142, 114, 183];
-        internal static void Decode(ReadOnlyMemory<byte> encoded, Span<byte> output, int width, int height, WebpDecodeWorkspace workspace, CancellationToken token)
+        internal static void Decode(ReadOnlyMemory<byte> encoded, Span<byte> planes, int width, int height, MediaBufferWorkspace workspace, CancellationToken token)
         {
             Vp8FrameHeader header = new(encoded, token);
             int columns = (width + 15) / 16, rows = (height + 15) / 16, stride = checked(columns * 16), paddedHeight = checked(rows * 16);
             int yLength = checked(stride * paddedHeight), uvLength = yLength / 4;
-            Span<byte> planes = workspace.Allocate(checked(yLength + 2 * uvLength)).Span;
+            if (planes.Length != checked(yLength + 2 * uvLength)) { throw new ArgumentException("VP8 reconstruction requires complete padded YUV planes.", nameof(planes)); }
             Span<byte> yPlane = planes[..yLength], uPlane = planes.Slice(yLength, uvLength), vPlane = planes[(yLength + uvLength)..];
             Span<byte> aboveModes = workspace.Allocate(columns * 4).Span, aboveContexts = workspace.Allocate(columns * 9).Span;
             Span<byte> filters = workspace.Allocate(checked(columns * rows * 2)).Span;
@@ -112,7 +114,6 @@ namespace Mediana.Codecs.Webp
                 }
             }
             Filter(yPlane, uPlane, vPlane, stride, columns, rows, filters, header, token);
-            ToRgba(yPlane, uPlane, vPlane, stride, width, height, output, token);
         }
         private static byte Neighbors(ReadOnlySpan<byte> pixels, int stride, int x, int y, int size, Span<byte> top, Span<byte> left)
         {

@@ -4,6 +4,8 @@
 using Mediana.Codecs.Webp;
 using Mediana.Core.Memory;
 
+using Mediana.Codecs.Vp8;
+
 namespace Mediana.Tests
 {
     public class Vp8IntraPredictionTests
@@ -42,7 +44,7 @@ namespace Mediana.Tests
             {
                 for (int left = 0; left < 10; left++)
                 {
-                    for (int mode = 0; mode < 10; mode++) { Vp8IntraPrediction.Write(writer, (Vp8IntraMode)mode, above, left); }
+                    for (int mode = 0; mode < 10; mode++) { Vp8IntraModeEncoder.Write(writer, (Vp8IntraMode)mode, above, left); }
                 }
             }
             writer.Finish();

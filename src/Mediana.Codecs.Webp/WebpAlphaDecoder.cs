@@ -3,11 +3,13 @@
 
 using System.Runtime.InteropServices;
 
+using Mediana.Core.Memory;
+
 namespace Mediana.Codecs.Webp
 {
     internal static class WebpAlphaDecoder
     {
-        internal static void Decode(ReadOnlySpan<byte> encoded, Span<byte> pixels, int width, int height, WebpDecodeWorkspace workspace, CancellationToken token)
+        internal static void Decode(ReadOnlySpan<byte> encoded, Span<byte> pixels, int width, int height, MediaBufferWorkspace workspace, CancellationToken token)
         {
             if (encoded.Length == 0 || (encoded[0] & 0xc0) != 0 || ((encoded[0] >> 4) & 3) > 1 || (encoded[0] & 3) > 1)
             { throw new InvalidDataException("Invalid WebP alpha header."); }

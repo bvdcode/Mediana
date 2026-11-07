@@ -6,6 +6,8 @@ using System.Runtime.InteropServices;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 
+using Mediana.Codecs.Vp8;
+
 namespace Mediana.Codecs.Webp
 {
     internal class WebpCanvas : IDisposable
@@ -38,7 +40,7 @@ namespace Mediana.Codecs.Webp
             Span<byte> decoded = block is null ? canvas.Memory.Span : block.Memory.Span;
             if (frame.Lossless)
             {
-                using WebpDecodeWorkspace workspace = new(allocator);
+                using MediaBufferWorkspace workspace = new(allocator);
                 Span<uint> pixels = MemoryMarshal.Cast<byte, uint>(decoded);
                 WebpLosslessDecoder.Decode(frame.Image.Span, pixels, frame.Width, frame.Height, workspace, token);
                 for (int row = 0; row < frame.Height; row++)
@@ -54,8 +56,13 @@ namespace Mediana.Codecs.Webp
             }
             else
             {
-                using WebpDecodeWorkspace workspace = new(allocator);
-                Vp8ImageDecoder.Decode(frame.Image, decoded, frame.Width, frame.Height, workspace, token);
+                using MediaBufferWorkspace workspace = new(allocator);
+                int stride = checked((frame.Width + 15) & ~15);
+                int yLength = checked(stride * ((frame.Height + 15) & ~15));
+                Span<byte> planes = workspace.Allocate(checked(yLength + yLength / 2)).Span;
+                Vp8ImageDecoder.Decode(frame.Image, planes, frame.Width, frame.Height, workspace, token);
+                Vp8RgbaConversion.Apply(planes[..yLength], planes.Slice(yLength, yLength / 4), planes[(yLength + yLength / 4)..],
+                    stride, frame.Width, frame.Height, decoded, token);
                 if (!frame.Alpha.IsEmpty) { WebpAlphaDecoder.Decode(frame.Alpha.Span, decoded, frame.Width, frame.Height, workspace, token); }
             }
             if (block is null) { return; }

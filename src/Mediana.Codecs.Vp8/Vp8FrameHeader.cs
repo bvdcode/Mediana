@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-namespace Mediana.Codecs.Webp
+namespace Mediana.Codecs.Vp8
 {
     internal class Vp8FrameHeader
     {
@@ -62,7 +62,7 @@ namespace Mediana.Codecs.Webp
             Tokens = new Vp8BooleanReader[partitions];
             for (int index = 0; index < partitions; index++)
             {
-                int size = index == partitions - 1 ? encoded.Length - cursor : WebpDocument.Read24(encoded.Span[(offset + index * 3)..]);
+                int size = index == partitions - 1 ? encoded.Length - cursor : encoded.Span[offset + index * 3] | encoded.Span[offset + index * 3 + 1] << 8 | encoded.Span[offset + index * 3 + 2] << 16;
                 if (size > encoded.Length - cursor) { throw new InvalidDataException("VP8 token partition exceeds its input."); }
                 Tokens[index] = new(encoded.Slice(cursor, size)); cursor += size;
             }

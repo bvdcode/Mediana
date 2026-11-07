@@ -5,6 +5,8 @@ using System.Buffers.Binary;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 
+using Mediana.Codecs.Vp8;
+
 namespace Mediana.Codecs.Webp
 {
     internal class Vp8LossyImage : IWebpImagePayload
@@ -75,8 +77,8 @@ namespace Mediana.Codecs.Webp
                     {
                         if (plane == 1)
                         {
-                            Vp8ChromaMode chromaMode = Vp8ChromaPrediction.Select(source[256..], reconstruction, x / 2, y == 0, chromaPrediction);
-                            Vp8ChromaPrediction.Write(modes, chromaMode);
+                            Vp8ChromaMode chromaMode = Vp8ChromaModeEncoder.Select(source[256..], reconstruction, x / 2, y == 0, chromaPrediction);
+                            Vp8ChromaModeEncoder.Write(modes, chromaMode);
                         }
                         int columns = plane == 0 ? 4 : 2;
                         int sourceStride = columns * 4;
@@ -94,8 +96,8 @@ namespace Mediana.Codecs.Webp
                                 if (plane == 0)
                                 {
                                     byte corner = reconstruction.LumaNeighbors(px, py, y == 0, top, leftPixels);
-                                    Vp8IntraMode mode = Vp8IntraPrediction.Select(source, offset, sourceStride, top, leftPixels, corner, prediction);
-                                    Vp8IntraPrediction.Write(modes, mode, reconstruction.AboveModes[px / 4], reconstruction.LeftModes[row]);
+                                    Vp8IntraMode mode = Vp8IntraModeEncoder.Select(source, offset, sourceStride, top, leftPixels, corner, prediction);
+                                    Vp8IntraModeEncoder.Write(modes, mode, reconstruction.AboveModes[px / 4], reconstruction.LeftModes[row]);
                                     reconstruction.AboveModes[px / 4] = (byte)mode;
                                     reconstruction.LeftModes[row] = (byte)mode;
                                 }
