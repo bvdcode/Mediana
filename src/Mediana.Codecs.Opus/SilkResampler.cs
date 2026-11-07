@@ -66,6 +66,12 @@ namespace Mediana.Codecs.Opus
         }
 
         public void Reset() => storage.Span.Clear();
+        public void CopyFrom(SilkResampler source)
+        {
+            ArgumentNullException.ThrowIfNull(source);
+            if (source.SampleRate != SampleRate) { throw new ArgumentException("SILK resampling states have different input rates.", nameof(source)); }
+            source.storage.Span.CopyTo(storage.Span);
+        }
         public void Dispose() => storage.Dispose();
     }
 }

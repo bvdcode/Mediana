@@ -10,21 +10,24 @@ namespace Mediana.Codecs.Opus
     {
         private const int LpcHistoryLength = 16;
         private readonly WritableMediaBuffer storage;
-        private readonly int whitenedOffset, lpcOffset, ltpOffset, excitationOffset, workingOffset, residualOffset;
+        private readonly int whitenedOffset, lpcOffset, ltpOffset, excitationOffset, workingOffset, residualOffset, lsfOffset;
         private readonly int subframeSamples;
+        private readonly int lpcOrder;
 
         public SilkSynthesisState(int sampleRate, MediaBufferAllocator allocator)
         {
             ArgumentNullException.ThrowIfNull(allocator);
             SilkFrameMode mode = new(sampleRate, 4);
             SampleRate = sampleRate; HistorySamples = mode.FrameSamples; subframeSamples = mode.SamplesPerSubframe;
+            lpcOrder = mode.LpcOrder;
             whitenedOffset = 2 * HistorySamples * sizeof(short);
             lpcOffset = whitenedOffset + HistorySamples * sizeof(short);
             ltpOffset = lpcOffset + LpcHistoryLength * sizeof(int);
             excitationOffset = ltpOffset + 2 * HistorySamples * sizeof(int);
             workingOffset = excitationOffset + HistorySamples * sizeof(int);
             residualOffset = workingOffset + (LpcHistoryLength + subframeSamples) * sizeof(int);
-            storage = allocator.Allocate(residualOffset + subframeSamples * sizeof(int));
+            lsfOffset = residualOffset + subframeSamples * sizeof(int);
+            storage = allocator.Allocate(lsfOffset + lpcOrder * sizeof(short));
             Reset();
         }
 
@@ -38,6 +41,7 @@ namespace Mediana.Codecs.Opus
         public Span<int> Excitation => Integers(excitationOffset, HistorySamples);
         public Span<int> LpcWorking => Integers(workingOffset, LpcHistoryLength + subframeSamples);
         public Span<int> Residual => Integers(residualOffset, subframeSamples);
+        public Span<short> PreviousLsf => MemoryMarshal.Cast<byte, short>(storage.Span.Slice(lsfOffset, lpcOrder * sizeof(short)));
 
         private Span<int> Integers(int offset, int count) => MemoryMarshal.Cast<byte, int>(storage.Span.Slice(offset, count * sizeof(int)));
 
@@ -45,6 +49,11 @@ namespace Mediana.Codecs.Opus
         {
             storage.Span.Clear();
             PreviousGainQ16 = 65536;
+        }
+
+        public void ClearPrediction()
+        {
+            OutputHistory.Clear(); LpcHistory.Clear();
         }
 
         public void Dispose() => storage.Dispose();

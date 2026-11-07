@@ -452,3 +452,24 @@ signed 16-bit input and output samples. Output length follows the rate ratio;
 a zero frame index starts a new stream.
 
 SHA-256: `d8012e62ae05ca8c3a61558b829ecbaaa12ff1828cccf1493eb3f3f62ef7bc92`.
+
+`decoded-silk.bin.gz` records 192 streams and 3,072 packets independently
+encoded and decoded with libopus 1.6.1. All three SILK bandwidths, all four
+frame durations, mono/stereo input and output, FEC and coded-channel changes
+are included. Signals include silence, voiced tones, noise, impulses and
+chirps. Every decoded sample and final entropy range match exactly. Valid
+arithmetic-coder termination includes packets whose reported whole-bit upper
+bound exceeds their byte length. Bandwidth stays constant within each stream;
+combined SILK/CELT transitions are outside this corpus.
+
+The gzip member contains little-endian `OPUSSLP1` and a 32-bit stream count.
+Each stream stores 32-bit internal rate, output channels and packet count.
+Packets contain a 32-bit byte length, complete Opus packet, 32-bit expected
+sample count and final range, then interleaved signed 16-bit reference PCM.
+The source decoder's floating output is exactly representable as PCM16 for
+every recorded sample. Tests compare its Float32 representation without
+quantization tolerance. Repeated decoding allocates no managed storage;
+budget exhaustion releases every previously allocated lease, and reset and
+precancellation preserve the required state/output contracts.
+
+SHA-256: `1c902e15b3d6c7a56c4b1bd7570d2eea93583e3044c79e4b4fba9202cf161759`.
