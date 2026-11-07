@@ -202,6 +202,16 @@ One cold-process observation, including runtime compilation, is 781 ms elapsed,
 1 MiB of pooled index storage; disposal releases the complete allocator budget.
 This is a cold-I/O/ownership check, not a codec throughput comparison.
 
+A separate before/after check encodes ten continuous minutes from a generated
+30-minute 96×80, 6 fps AVC/AAC source to 32×26 AVC and mono AAC. Three alternating
+pinned-CPU trials include indexing, decoding, preparation, both encoders, MPEG-TS
+writing and disposal. All six 16,836,152-byte outputs have the same SHA-256
+`554858b1b754fa92036af6d459e40b2d3e9eb6a4b76892a56495061f7b5a6fc2`.
+Before/after median CPU is 30.034/30.293 seconds, elapsed time 30.755/32.098 seconds,
+peak RSS 54.69/55.12 MiB and total managed allocation 187.89/188.01 MiB.
+Bounded analysis adds no material allocation growth; these observations show about
+0.9% more complete-operation CPU, rather than a throughput improvement.
+
 All 60 independently decoded output pictures from a 12-second AVC source match
 reference YUV pixels. Managed checks also compare the encoded packets with sequential
 source decoding, including mid-GOP windows, reverse and repeated requests, clocks,
