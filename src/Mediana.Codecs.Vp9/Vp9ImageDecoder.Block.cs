@@ -75,7 +75,7 @@ namespace Mediana.Codecs.Vp9
 
         private void Residual(ref Vp9BooleanReader bits, int row, int column, ref Vp9BlockInfo block, int chromaMode)
         {
-            Span<int> coefficients = stackalloc int[1024]; int totalNonzero = 0; int depth = header.Geometry.BitDepth;
+            Span<int> coefficients = coefficientWorkspace; int totalNonzero = 0; int depth = header.Geometry.BitDepth;
             for (int plane = 0; plane < 3; plane++)
             {
                 int sx = plane == 0 ? 0 : subX, sy = plane == 0 ? 0 : subY, planeStride = stride >> sx;

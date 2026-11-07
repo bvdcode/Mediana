@@ -60,7 +60,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
-| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AAC/MP3 packet mapping](docs/matroska-ebml.md) |
+| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/VP8/VP9/AAC/MP3 packet mapping](docs/matroska-ebml.md) |
 | `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AAC/MP3 packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
@@ -75,6 +75,8 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
+| `Mediana.Codecs.Vp8` | Managed VP8 video, planar references and indexed WebM seeking ([API](docs/vp8.md)) |
+| `Mediana.Codecs.Vp9` | Managed VP9 profiles 0–3, native planar precision, scaled references and indexed WebM seeking ([API](docs/vp9.md)) |
 | `Mediana.Codecs.Hevc` | Managed Main/Main10 I/P/B decoding, native ten-bit frames and indexed seeking ([API](docs/hevc-decoding.md)) |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |

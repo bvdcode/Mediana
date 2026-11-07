@@ -21,6 +21,7 @@ namespace Mediana.Codecs.Vp9
         private readonly bool usePreviousMotion;
         private readonly Vp9SymbolCounts symbols;
         private readonly Span<T> predictionWorkspace;
+        private readonly Span<int> coefficientWorkspace;
         private readonly Span<byte> aboveSegment, leftSegment;
         private readonly Span<Vp9BlockInfo> blocks;
         private readonly Span<byte> abovePartition, leftPartition, aboveNonzero, leftNonzero;
@@ -39,6 +40,7 @@ namespace Mediana.Codecs.Vp9
             stride = header.SuperblockColumns * 64; height = header.SuperblockRows * 64; miStride = stride / 8;
             subX = header.Geometry.SubsamplingX ? 1 : 0; subY = header.Geometry.SubsamplingY ? 1 : 0;
             yLength = checked(stride * height); uvLength = yLength >> (subX + subY);
+            coefficientWorkspace = MemoryMarshal.Cast<byte, int>(workspace.Allocate(1024 * sizeof(int)).Span);
             pixels = MemoryMarshal.Cast<byte, T>(output)[..checked(yLength + 2 * uvLength)];
             blocks = blockStorage.IsEmpty ? MemoryMarshal.Cast<byte, Vp9BlockInfo>(workspace.Allocate(checked(miStride * (height / 8) * Unsafe.SizeOf<Vp9BlockInfo>())).Span) : blockStorage;
             blocks.Clear();

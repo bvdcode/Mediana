@@ -40,7 +40,7 @@ namespace Mediana.Codecs.Vp9
                             int sub = pass == 0 ? sx : sy, length = 64 >> (pass == 0 ? sy : sx);
                             for (int edge = 0; edge < (16 >> sub); edge++)
                             {
-                                for (int i = 0; i < length; i++)
+                                for (int i = 0; i < length; i += 4)
                                 {
                                     int x = column * 8 + ((pass == 0 ? edge * 4 : i) << sx);
                                     int y = row * 8 + ((pass == 0 ? i : edge * 4) << sy);
@@ -66,8 +66,9 @@ namespace Mediana.Codecs.Vp9
                                         pass == 1 && sy == 1 && (y >> 3) == header.MiRows - 1)) { filterSize = 1; }
                                     int sharpness = header.FilterSharpness, shift = sharpness > 4 ? 2 : sharpness > 0 ? 1 : 0;
                                     int limit = sharpness > 0 ? Math.Clamp(level >> shift, 1, 9 - sharpness) : Math.Max(1, level);
-                                    Vp9LoopFilter.Apply(samples, (y >> sy) * planeStride + (x >> sx), pass == 0 ? 1 : planeStride,
-                                        filterSize, level, limit, header.Geometry.BitDepth);
+                                    int start = (y >> sy) * planeStride + (x >> sx), along = pass == 0 ? planeStride : 1;
+                                    for (int line = 0; line < 4; line++)
+                                    { Vp9LoopFilter.Apply(samples, start + line * along, pass == 0 ? 1 : planeStride, filterSize, level, limit, header.Geometry.BitDepth); }
                                 }
                             }
                         }
