@@ -16,7 +16,8 @@ namespace Mediana.Codecs.Vp9
         internal bool RefreshContext { get; private set; }
         internal bool HighPrecisionMotion { get; private set; }
         internal int ResetContext { get; private set; }
-        internal int Context { get; private set; }
+        internal int SelectedContext { get; private set; }
+        internal int Context => IsIntra || ErrorResilient ? 0 : SelectedContext;
         internal int RefreshReferences { get; private set; }
         internal int InterpolationFilter { get; private set; }
         internal int CompressedOffset { get; private set; }
@@ -97,8 +98,8 @@ namespace Mediana.Codecs.Vp9
             Geometry = geometry;
             if (!ErrorResilient) { RefreshContext = bits.Flag(); ParallelDecoding = bits.Flag(); }
             else { ParallelDecoding = true; }
-            Context = bits.Read(2);
-            if (IsIntra || ErrorResilient) { state.ResetIndependence(); }
+            SelectedContext = bits.Read(2);
+            if (IsIntra || ErrorResilient) { state.ResetIndependence(); Array.Clear(SignBias); }
             ReadFilter(ref bits, state); ReadQuantizers(ref bits); ReadSegmentation(ref bits, state); ReadTiles(ref bits);
             CompressedLength = bits.Read(16);
         }
