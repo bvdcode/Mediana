@@ -8,7 +8,7 @@ namespace Mediana.Processing
 {
     public static class SrgbPreview
     {
-        /// <summary>Fits supported SDR YUV420P8/YUV420P10 or straight RGBA32 to a square-pixel sRGB preview in one pass.
+        /// <summary>Fits SDR planar integer YUV/GBR or straight RGBA32 to a square-pixel sRGB preview in one pass.
         /// Uses the same nearest-neighbor grid as DisplayResize after SrgbConverter, including SAR and exact
         /// orthogonal rotation/reflection. Converts only selected pixels without a full-size RGB buffer.
         /// Requires a supported ICC profile or known color labels, and a known sample aspect ratio. Borrows input; returns an independent owned frame.</summary>

@@ -9,6 +9,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/Vp9ContainerTestInput.cs" Link="Vp9ContainerTestInput.cs" />
     <Compile Include="../Shared/Vp9KeyPictureTestInput.cs" Link="Vp9KeyPictureTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Vp9/Mediana.Codecs.Vp9.csproj" />
     <None Include="../Mediana.Codecs.Vp9.Tests/Data/*" Link="Data/Vp9/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

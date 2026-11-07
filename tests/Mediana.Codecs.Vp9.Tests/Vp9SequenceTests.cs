@@ -12,6 +12,7 @@ namespace Mediana.Codecs.Vp9.Tests
     {
         [Theory]
         [InlineData("main8")]
+        [InlineData("resize")]
         [InlineData("adaptive")]
         [InlineData("chroma422")]
         [InlineData("chroma440")]

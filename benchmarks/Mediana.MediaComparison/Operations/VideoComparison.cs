@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using Mediana.Codecs.H264;
 using Mediana.Codecs.Jpeg;
 using Mediana.Codecs.Vp8;
+using Mediana.Codecs.Vp9;
 using Mediana.Containers.Avi;
 using Mediana.Containers.Matroska;
 using Mediana.Containers.Mp4;
@@ -29,7 +30,7 @@ namespace Mediana.OperationComparison
             MediaEngine engine = new MediaEngineBuilder()
                 .AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
                 .AddContainer(new AviReaderFactory()).AddContainer(new MatroskaReaderFactory())
-                .AddVideoDecoder(new Vp8DecoderFactory()).AddVideoDecoder(new MjpegDecoderFactory()).AddVideoDecoder(new H264DecoderFactory()).Build();
+                .AddVideoDecoder(new Vp8DecoderFactory()).AddVideoDecoder(new Vp9DecoderFactory()).AddVideoDecoder(new MjpegDecoderFactory()).AddVideoDecoder(new H264DecoderFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             MediaBufferAllocator allocator = pooled ? new(64 * 1024 * 1024, MemoryPool<byte>.Shared) : new(64 * 1024 * 1024);
             await using VideoSession session = await engine.OpenVideoAsync(source, allocator, new(), 0);

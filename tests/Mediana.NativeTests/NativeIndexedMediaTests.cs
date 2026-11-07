@@ -30,6 +30,8 @@ namespace Mediana.NativeTests
             await Vp8ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Vp8"));
             Console.WriteLine("PASS VP8 video: exact WebM pictures, hidden references, repeated indexed seeks, AVC encoding and pooled buffer release.");
             string vp9Root = Path.Combine(AppContext.BaseDirectory, "Data", "Vp9");
+            foreach (string name in new[] { "main8", "main10", "main12", "high8", "high12", "chroma422", "chroma440", "rgb", "lossless", "resilient", "tiles", "altref", "adaptive", "resize" })
+            { await Vp9ContainerTestInput.VerifyAsync(vp9Root, name); }
             foreach (string name in new[] { "main8", "main10", "high8", "high12", "lossless", "resilient", "tiles", "altref" })
             {
                 await Vp9KeyPictureTestInput.VerifyAsync(vp9Root, name, false);

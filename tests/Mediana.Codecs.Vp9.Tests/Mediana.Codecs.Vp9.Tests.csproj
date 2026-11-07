@@ -5,7 +5,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/Vp9KeyPictureTestInput.cs" Link="Vp9KeyPictureTestInput.cs" />
+    <Compile Include="../Shared/Vp9ContainerTestInput.cs" Link="Vp9ContainerTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Vp9/Mediana.Codecs.Vp9.csproj" />
+    <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />

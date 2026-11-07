@@ -10,6 +10,7 @@ namespace Mediana.Formats
     {
         public static EncodedStreamFormat Avc { get; } = new("avc.decoder-configuration-record", "avc.length-prefixed", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Hevc { get; } = new("hevc.decoder-configuration-record", "hevc.length-prefixed", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat Vp9 { get; } = new("none", "vp9.access-unit", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Vp8 { get; } = new("none", "vp8.complete-frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mjpeg { get; } = new("none", "jpeg.complete-picture", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Aac { get; } = new("aac.audio-specific-config", "aac.raw-data-block", EncodedPacketBoundary.AccessUnit);
