@@ -3,6 +3,7 @@
 
 #include <libheif/heif.h>
 #include <stdio.h>
+#include <string.h>
 
 static int check(struct heif_error error)
 {
@@ -15,8 +16,18 @@ static int check(struct heif_error error)
 
 int main(int argc, char** argv)
 {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: heif-reference input.heic output.rgba\n");
+    if (argc != 3 && argc != 4) {
+        fprintf(stderr, "Usage: heif-reference input.heic output.rgba [nearest|bilinear]\n");
+        return 1;
+    }
+    const char* filter = argc == 4 ? argv[3] : "bilinear";
+    enum heif_chroma_upsampling_algorithm upsampling;
+    if (strcmp(filter, "nearest") == 0) {
+        upsampling = heif_chroma_upsampling_nearest_neighbor;
+    } else if (strcmp(filter, "bilinear") == 0) {
+        upsampling = heif_chroma_upsampling_bilinear;
+    } else {
+        fprintf(stderr, "Supported chroma filters: nearest, bilinear.\n");
         return 1;
     }
     int result = 1;
@@ -35,7 +46,7 @@ int main(int argc, char** argv)
     options->num_codec_threads = 2;
     options->output_image_nclx_profile_passthrough = 1;
     options->color_conversion_options.preferred_chroma_upsampling_algorithm =
-        heif_chroma_upsampling_nearest_neighbor;
+        upsampling;
     options->color_conversion_options.only_use_preferred_chroma_algorithm = 1;
     if (!check(heif_context_read_from_file(context, argv[1], NULL)) ||
         !check(heif_context_get_primary_image_handle(context, &handle)) ||
@@ -66,8 +77,8 @@ int main(int argc, char** argv)
         goto cleanup;
     }
     output = NULL;
-    printf("%dx%d; source-color RGBA8; libheif %s\n", width, height,
-           heif_get_version());
+    printf("%dx%d; source-color RGBA8; chroma %s; libheif %s\n", width, height,
+           filter, heif_get_version());
     result = 0;
 
 cleanup:

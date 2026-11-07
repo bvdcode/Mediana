@@ -36,6 +36,8 @@ and native 8/10-bit components before RGB conversion. Row workspace is bounded
 by component width; no full-resolution intermediate chroma planes are created.
 The 42 original RGBA hashes explicitly select nearest-neighbor. All four modes
 also exercise the image geometry, alpha and ICC ownership checks.
+See [chroma reconstruction](chroma-reconstruction.md) for kernels, sample positions,
+memory behavior and comparison conditions.
 
 Returned pixels use straight alpha. Ordered container transformations and alpha
 composition are already applied. RGB retains the signalled CICP primaries and
