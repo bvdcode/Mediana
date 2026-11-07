@@ -5,7 +5,7 @@ using Mediana.Core.Video;
 
 namespace Mediana.Processing
 {
-    internal readonly struct SdrRgbTransform
+    internal readonly struct SdrRgbTransform : IRgbaPixelTransform
     {
         private readonly RgbMatrix matrix;
         private readonly TransferFunction transfer;
@@ -16,6 +16,9 @@ namespace Mediana.Processing
             SdrTransfer.Decode(0, transfer);
             this.transfer = transfer;
         }
+
+        public void WritePixel(Span<byte> destination, ReadOnlySpan<byte> source) =>
+            Write(destination, source[0] / 255.0, source[1] / 255.0, source[2] / 255.0, source[3]);
 
         public void Write(Span<byte> destination, double red, double green, double blue, byte alpha)
         {

@@ -11,6 +11,17 @@ namespace Mediana.Processing
         private const double WhiteY = 0.3290;
         private static readonly RgbMatrix XyzToSrgb = ToXyz(0.640, 0.330, 0.300, 0.600, 0.150, 0.060).Inverse();
 
+        internal static RgbMatrix PcsD50ToSrgb { get; } = AdaptPcsD50();
+
+        private static RgbMatrix AdaptPcsD50()
+        {
+            // ICC.1 Annex E: Bradford adaptation from PCS D50 to the sRGB D65 white.
+            RgbMatrix bradford = new(0.8951, 0.2664, -0.1614, -0.7502, 1.7135, 0.0367, 0.0389, -0.0685, 1.0296);
+            (double sx, double sy, double sz) = bradford.Transform(0.9642, 1, 0.8249);
+            (double dx, double dy, double dz) = bradford.Transform(WhiteX / WhiteY, 1, (1 - WhiteX - WhiteY) / WhiteY);
+            return XyzToSrgb.Multiply(bradford.Inverse().ScaleColumns(dx / sx, dy / sy, dz / sz).Multiply(bradford));
+        }
+
         public static RgbMatrix ToSrgb(ColorPrimaries primaries)
         {
             // Rec. ITU-T H.264, Table E-3. These primaries share the D65 white point.

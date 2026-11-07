@@ -1,0 +1,62 @@
+[
+  {
+    "name": "linear-v2",
+    "width": 289,
+    "height": 17,
+    "maximum_error": 2
+  },
+  {
+    "name": "gamma22-v2",
+    "width": 289,
+    "height": 17,
+    "maximum_error": 2
+  },
+  {
+    "name": "sampled-v2",
+    "width": 289,
+    "height": 17,
+    "maximum_error": 2
+  },
+  {
+    "name": "parametric-0-v4",
+    "width": 289,
+    "height": 17,
+    "maximum_error": 2
+  },
+  {
+    "name": "parametric-1-v4",
+    "width": 289,
+    "height": 17,
+    "maximum_error": 2
+  },
+  {
+    "name": "parametric-2-v4",
+    "width": 289,
+    "height": 17,
+    "maximum_error": 2
+  },
+  {
+    "name": "parametric-3-v4",
+    "width": 289,
+    "height": 17,
+    "maximum_error": 2
+  },
+  {
+    "name": "parametric-4-v4",
+    "width": 289,
+    "height": 17,
+    "maximum_error": 2
+  },
+  {
+    "name": "distinct-trc-p3-v4",
+    "width": 289,
+    "height": 17,
+    "maximum_error": 2
+  },
+  {
+    "name": "gray-gamma22-v4",
+    "width": 256,
+    "height": 1,
+    "maximum_error": 2
+  }
+]

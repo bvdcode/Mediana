@@ -29,11 +29,26 @@ monochrome and 4:2:0/4:2:2/4:4:4, independent slices, wavefront coding, scaling
 lists, deblocking and SAO. This module does not expose a general HEVC video
 session or encode HEIC files.
 
+Chroma reconstruction defaults to bilinear. `HeicDecodeOptions.ChromaFilter`
+selects nearest-neighbor, bilinear, Catmull-Rom bicubic or Lanczos3. Filtering
+uses the shared `Mediana.Processing.ChromaUpsampler`, the HEVC sample location
+and native 8/10-bit components before RGB conversion. Row workspace is bounded
+by component width; no full-resolution intermediate chroma planes are created.
+The 42 original RGBA hashes explicitly select nearest-neighbor. All four modes
+also exercise the image geometry, alpha and ICC ownership checks.
+See [chroma reconstruction](chroma-reconstruction.md) for kernels, sample positions,
+memory behavior and comparison conditions.
+
 Returned pixels use straight alpha. Ordered container transformations and alpha
 composition are already applied. RGB retains the signalled CICP primaries and
 transfer function; embedded ICC bytes are retained in `ColorInformation`.
-RGB is not implicitly sRGB. `RgbaImage.ToVideoFrame` copies pixels into a Mediana buffer while preserving CICP color interpretation and requiring an explicit pixel aspect ratio; it rejects ICC-profiled images. ICC transforms, HDR tone mapping, fractional clean
-aperture, pixel-aspect correction, HEVC inter prediction, tiles, dependent
+RGB is not implicitly sRGB. `RgbaImage.ToVideoFrame` copies pixels into a Mediana
+buffer while retaining CICP labels and the owned ICC description. The registered
+decoder writes directly into its output frame. Both APIs require an explicit
+pixel aspect ratio and preserve `prof`/`rICC` identity, including profiles inherited
+through derived images. Use the common [ICC color conversion](icc-color.md)
+before encoding these samples as sRGB; CLI PNG conversion applies it automatically.
+HDR tone mapping, fractional clean aperture, pixel-aspect correction, HEVC inter prediction, tiles, dependent
 slices, 12-bit/multilayer coding and protected/external items are unsupported.
 
 `HeicImageDecoder.ReadInfoAsync` reads the primary image's display dimensions,
@@ -65,4 +80,7 @@ Tests verify complete RGBA hashes and visible dimensions for 42 independent
 synthetic HEIC references. Three additional 8/10-bit/monochrome wavefront
 streams match independent plane hashes with one and four workers. Further checks
 cover input ownership, concurrent results, item selection, malformed input,
-limits and cancellation. This coverage does not establish full format conformance.
+limits and cancellation. Six additional ICC fixtures cover copied and direct
+frames, RGB/gray, v2/v4 profiles, grids, identity inheritance, rotation, alpha and
+CLI PNG export. The same ownership and conversion checks run with Native AOT.
+This coverage does not establish full format conformance.

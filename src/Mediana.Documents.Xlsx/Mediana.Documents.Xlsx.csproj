@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Mediana.Documents.Spreadsheets/Mediana.Documents.Spreadsheets.csproj" />
+    <ProjectReference Include="../Mediana.Documents.OpenXml/Mediana.Documents.OpenXml.csproj" />
+  </ItemGroup>
+</Project>

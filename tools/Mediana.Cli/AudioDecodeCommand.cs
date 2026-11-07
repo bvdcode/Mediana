@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Audio;
+using Mediana.Core.Memory;
 using Mediana.IO;
 
 namespace Mediana.Cli
@@ -13,43 +14,20 @@ namespace Mediana.Cli
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex, cancellationToken: cancellationToken);
-            long samples = 0;
-            AudioFormat? format = null;
+            MediaBufferAllocator allocator = new(long.MaxValue);
+            PcmStreamWriteResult? result = null;
             await outputFile.WriteAsync(async output =>
             {
-                while (true)
-                {
-                    using AudioFrame? frame = await session.ReadFrameAsync(cancellationToken);
-                    if (frame is null)
-                    {
-                        break;
-                    }
-                    if (format is not null && (format.SampleRate != frame.Format.SampleRate
-                        || format.SampleFormat != frame.Format.SampleFormat || !format.Channels.SequenceEqual(frame.Format.Channels)
-                        || format.Layout != frame.Format.Layout))
-                    {
-                        throw new NotSupportedException("The raw PCM output requires one stable audio format.");
-                    }
-                    format = frame.Format;
-                    if (format.Layout != AudioStorageLayout.Interleaved)
-                    {
-                        throw new NotSupportedException("The raw PCM output requires interleaved samples.");
-                    }
-                    await output.WriteAsync(frame.GetPlane(0), cancellationToken);
-                    samples = checked(samples + frame.SamplesPerChannel);
-                }
-            }, cancellationToken: cancellationToken);
+                result = await PcmStreamWriter.WriteFramesAsync(session.ReadFrameAsync, output, allocator, cancellationToken: cancellationToken);
+            }, cancellationToken);
             await session.DisposeAsync();
-            if (session.AllocatedBufferBytes != 0)
-            {
-                throw new InvalidOperationException("Audio buffers were not released.");
-            }
-            if (format is null)
+            if (allocator.AllocatedBytes != 0 || session.AllocatedBufferBytes != 0) { throw new InvalidOperationException("Audio buffers were not released."); }
+            if (result!.Format is not AudioFormat format)
             {
                 await Console.Out.WriteLineAsync("PCM output: no samples. Live buffer bytes: 0.");
                 return 0;
             }
-            await Console.Out.WriteLineAsync($"PCM output: {samples} samples per channel; {format.SampleRate} Hz; {format.SampleFormat}; "
+            await Console.Out.WriteLineAsync($"PCM output: {result.SamplesPerChannel} samples per channel; {format.SampleRate} Hz; {format.SampleFormat}; "
                 + $"{string.Join(", ", format.Channels)}; native-endian interleaved. Live buffer bytes: 0.");
             return 0;
         }

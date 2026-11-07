@@ -13,6 +13,8 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await NativeRasterTests.RunAsync();
+            await NativeMediaExportTests.RunAsync();
             NativeCoreMemoryTests.Run();
             NativeDrawingCoverageTests.Run();
             await NativeWordTests.RunAsync();
@@ -286,6 +288,7 @@ namespace Mediana.NativeTests
             await HlsRenditionTestInput.VerifySeparateAudioAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
             await HlsPlanTestInput.VerifyAsync(root);
             await HlsSessionTestInput.VerifyAsync(root);
+            await NativeIndexedMediaTests.VerifyAsync(root);
             Console.WriteLine("PASS MP4 HLS session: exact AVC/AAC windows, VOD playlist, segments requested as 2, 0, 1, 2, all compressed packets and continuous transport state match.");
             await MpegTsSegmentTestInput.VerifyAsync(root);
             Console.WriteLine("PASS MPEG-TS segments: all 36 AVC and 339 AAC packets, clocks and counters match; restored segments in order 2, 0, 1, 2 equal continuous output byte for byte.");

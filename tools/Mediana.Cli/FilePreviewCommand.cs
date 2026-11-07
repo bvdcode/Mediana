@@ -12,30 +12,15 @@ namespace Mediana.Cli
     {
         public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? stream, long milliseconds, int page, ILogger logger, IImageEncoder encoder, CancellationToken token)
         {
-            MediaEngine images = ImageEngineFactory.Create();
-            byte[] probe = new byte[images.ImageProbeLength];
-            await using FileStream file = File.OpenRead(input);
-            int length = await file.ReadAtLeastAsync(probe, probe.Length, throwOnEndOfStream: false, cancellationToken: token);
-            if (images.RecognizeImage(probe.AsSpan(0, length), file.Length) is not null)
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
+            VisualOpenOptions options = new()
             {
-                if (stream is not null)
-                {
-                    throw new NotSupportedException("Image, document and animation previews do not select container streams.");
-                }
-                file.Position = 0;
-                await using RandomAccessStreamByteSource source = new(file, leaveOpen: true);
-                ImageDecodeRequest request = new()
-                {
-                    PageIndex = page - 1,
-                    Time = new MediaTimestamp(milliseconds, new TimeBase(1, 1000))
-                };
-                return await ImagePreviewCommand.RunAsync(images, source, outputFile, logger, encoder, request, token);
-            }
-            if (page != 1)
-            {
-                throw new NotSupportedException("Video preview does not support document page selection.");
-            }
-            return await VideoPreviewCommand.RunAsync(input, outputFile, stream, milliseconds, int.MaxValue, int.MaxValue, logger, encoder, token);
+                StreamIndex = stream,
+                Images = CommandImageResources.OpenOptions,
+                Request = new() { PageIndex = page - 1, Time = new MediaTimestamp(milliseconds, new TimeBase(1, 1000)) }
+            };
+            return await ImagePreviewCommand.RunAsync(ImageEngineFactory.CreateVisual(), source, outputFile, logger, encoder,
+                options.Request, token, options);
         }
     }
 }

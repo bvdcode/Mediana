@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Codecs.Jpeg;
+using Mediana.Codecs.Png;
+using Mediana.Core.Memory;
 using Mediana.Core.Video;
+using Mediana.Cli;
+using Mediana.IO;
+using Mediana.Processing;
 
 namespace Mediana.Tests
 {
@@ -79,6 +85,34 @@ namespace Mediana.Tests
             Assert.Equal(arithmetic ? 3 : 4, code);
             Assert.Equal(original, await File.ReadAllBytesAsync(output));
             Assert.Equal(2, Directory.GetFiles(directory).Length);
+        }
+
+        [Fact]
+        public async Task ConflictingJpegUsesJfifWithAWarningAndPublishesReferencePixels()
+        {
+            string root = Path.Combine(AppContext.BaseDirectory, "Data", "JpegExif");
+            byte[] encoded = await JpegExifTestInput.ChromaConflictAsync(root);
+            string input = Path.Combine(directory, "image.data"), output = Path.Combine(directory, "image.png");
+            await File.WriteAllBytesAsync(input, encoded);
+            (int code, _, string error) = await CliTests.RunAsync(["-i", input, output]);
+            Assert.True(code == 0, error);
+            string diagnosticOutput = Path.Combine(directory, "diagnostic.png");
+            ProgressTestContext logger = new();
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
+            int diagnosticCode = await ImagePreviewCommand.RunAsync(ImageEngineFactory.Create(), source,
+                new CommandOutputFile(diagnosticOutput, false), logger, new PngImageEncoder());
+            Assert.Equal(0, diagnosticCode);
+            Assert.Single(logger.Messages, line => line == JpegExifTestInput.ChromaConflictWarning);
+            Assert.Equal(await File.ReadAllBytesAsync(output), await File.ReadAllBytesAsync(diagnosticOutput));
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            JpegImageDecoder decoder = new(new() { ChromaConflictPolicy = JpegChromaConflictPolicy.UseJfif });
+            using (VideoFrame raw = await decoder.DecodeAsync(encoded, new(), allocator))
+            using (VideoFrame expected = SrgbConverter.Apply(raw, allocator))
+            using (VideoFrame actual = await new PngImageDecoder().DecodeAsync(await File.ReadAllBytesAsync(output), new(), allocator))
+            {
+                Assert.Equal(expected.Data.ToArray(), actual.Data.ToArray());
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
         }
 
         public void Dispose() => Directory.Delete(directory, recursive: true);

@@ -7,12 +7,13 @@ using System.IO;
 using System.Security.Cryptography;
 using Mediana.Images.Heif;
 using Mediana.Images.Heif.Hevc;
+using Mediana.Codecs.Hevc;
 
 namespace Mediana.Tests
 {
     internal static class IntraPictureFixture
     {
-        public static async Task<IntraSliceHeader> ReadSliceAsync(string file)
+        public static async Task<HevcSliceHeader> ReadSliceAsync(string file)
         {
             byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif", file));
             Dictionary<int, SequenceParameters> sequences = new Dictionary<int, SequenceParameters>();
@@ -22,7 +23,7 @@ namespace Mediana.Tests
                 switch (nal.Type)
                 {
                     case 33:
-                        SequenceParameters sps = SequenceParameters.Read(nal, HeicDecodeOptions.Default);
+                        SequenceParameters sps = SequenceParameters.Read(nal, HeicDecodeOptions.Default.MaxPixels);
                         sequences.Add(sps.Id, sps);
                         break;
                     case 34:
@@ -35,7 +36,7 @@ namespace Mediana.Tests
                         break;
                     case 19:
                     case 20:
-                        return IntraSliceHeader.Read(nal, pictures);
+                        return HevcSliceHeader.Read(nal, pictures);
                 }
             }
             throw new InvalidDataException("The picture fixture has no IDR slice.");

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Shared/HevcSeekTestInput.cs" Link="HevcSeekTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
+    <Compile Include="../Shared/HevcDecoderTestInput.cs" Link="HevcDecoderTestInput.cs" />
+    <Compile Include="../Shared/HevcPictureTestInput.cs" Link="HevcPictureTestInput.cs" />
+    <Compile Include="../Shared/HevcMotionCompensationTestInput.cs" Link="HevcMotionCompensationTestInput.cs" />
+    <Compile Include="../Shared/HevcWeightedPredictionTestInput.cs" Link="HevcWeightedPredictionTestInput.cs" />
+    <Compile Include="../Shared/HevcPictureStorageTestInput.cs" Link="HevcPictureStorageTestInput.cs" />
+    <Compile Include="../Shared/HevcInterpolationTestInput.cs" Link="HevcInterpolationTestInput.cs" />
+    <Compile Include="../Shared/HevcCabacTestInput.cs" Link="HevcCabacTestInput.cs" />
+    <Compile Include="../Shared/HevcSliceHeaderTestInput.cs" Link="HevcSliceHeaderTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Hevc/Mediana.Codecs.Hevc.csproj" />
+    <ProjectReference Include="../../src/Mediana.Formats/Mediana.Formats.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <Using Include="Xunit" />
+    <None Include="Data/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

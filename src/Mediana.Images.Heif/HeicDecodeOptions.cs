@@ -2,11 +2,12 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using Mediana.Core.Video;
 
 namespace Mediana.Images.Heif
 {
     /// <summary>
-    /// Defines immutable resource limits for input files, image dimensions and item relationships.
+    /// Defines immutable resource limits and chroma reconstruction settings.
     /// </summary>
     public class HeicDecodeOptions
     {
@@ -25,6 +26,13 @@ namespace Mediana.Images.Heif
         /// <exception cref="ArgumentOutOfRangeException">A resource limit is invalid.</exception>
         public HeicDecodeOptions(int maxInputBytes = 64 * 1024 * 1024, int maxPixels = int.MaxValue / 4,
             int maxItems = 1024, int maxDerivationDepth = 16)
+            : this(ChromaUpsamplingFilter.Bilinear, maxInputBytes, maxPixels, maxItems, maxDerivationDepth)
+        {
+        }
+
+        /// <summary>Initializes explicit chroma reconstruction and resource limits.</summary>
+        public HeicDecodeOptions(ChromaUpsamplingFilter chromaFilter, int maxInputBytes = 64 * 1024 * 1024,
+            int maxPixels = int.MaxValue / 4, int maxItems = 1024, int maxDerivationDepth = 16)
         {
             if (maxInputBytes < 32)
             {
@@ -46,10 +54,18 @@ namespace Mediana.Images.Heif
                 throw new ArgumentOutOfRangeException(nameof(maxDerivationDepth), maxDerivationDepth, "The image derivation depth limit must be positive.");
             }
 
+            _ = chromaFilter switch
+            {
+                ChromaUpsamplingFilter.NearestNeighbor or ChromaUpsamplingFilter.Bilinear or
+                ChromaUpsamplingFilter.Bicubic or ChromaUpsamplingFilter.Lanczos3 => true,
+                _ => throw new ArgumentOutOfRangeException(nameof(chromaFilter))
+            };
+
             MaxInputBytes = maxInputBytes;
             MaxPixels = maxPixels;
             MaxItems = maxItems;
             MaxDerivationDepth = maxDerivationDepth;
+            ChromaFilter = chromaFilter;
         }
 
         /// <summary>
@@ -71,5 +87,8 @@ namespace Mediana.Images.Heif
         /// Gets the maximum nesting depth of derived images.
         /// </summary>
         public int MaxDerivationDepth { get; }
+
+        /// <summary>Gets the explicit chroma reconstruction kernel; the default is bilinear.</summary>
+        public ChromaUpsamplingFilter ChromaFilter { get; }
     }
 }

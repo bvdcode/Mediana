@@ -15,9 +15,21 @@ namespace Mediana.Core.Video
             CancellationToken cancellationToken = default, MediaTimestamp? timestamp = null, MediaDuration? duration = null)
         {
             ArgumentNullException.ThrowIfNull(color);
+            return CopyFrom(pixels, new VideoFormat(width, height, VideoPixelFormat.Rgba32, color, sampleAspectRatio),
+                allocator, cancellationToken, timestamp, duration);
+        }
+
+        /// <summary>Copies tight RGBA rows, retaining the format's color description and presentation metadata.</summary>
+        public static VideoFrame CopyFrom(ReadOnlySpan<byte> pixels, VideoFormat format, MediaBufferAllocator allocator,
+            CancellationToken cancellationToken = default, MediaTimestamp? timestamp = null, MediaDuration? duration = null)
+        {
+            ArgumentNullException.ThrowIfNull(format);
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
-            VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, color, sampleAspectRatio);
+            if (format.PixelFormat != VideoPixelFormat.Rgba32)
+            {
+                throw new ArgumentException("RGBA import requires an RGBA32 format.", nameof(format));
+            }
             PlaneLayout[] layout = format.CreateTightLayout();
             int length = checked((int)layout[0].EndOffset);
             if (pixels.Length != length)

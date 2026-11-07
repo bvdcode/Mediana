@@ -7,6 +7,7 @@ using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using System.Runtime.InteropServices;
 using Mediana.Images.Heif.Hevc;
+using Mediana.Codecs.Hevc;
 
 namespace Mediana.Tests
 {
@@ -22,7 +23,7 @@ namespace Mediana.Tests
         public async Task ParallelWavefrontSamplesAndCancellationAreCorrect()
         {
             await HeifReferenceTestInput.VerifyWavefrontAsync();
-            IntraSliceHeader slice = await IntraPictureFixture.ReadSliceAsync("wpp-8bit.hevc");
+            HevcSliceHeader slice = await IntraPictureFixture.ReadSliceAsync("wpp-8bit.hevc");
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                 await new IntraPictureDecoder(slice).DecodeAsync(4, new CancellationToken(true)).WaitAsync(TimeSpan.FromSeconds(10)));
         }
@@ -36,6 +37,17 @@ namespace Mediana.Tests
         [Fact]
         public async Task RegisteredFramesRemainIndependentAfterInputAndWorkspaceReuse() =>
             await HeifFrameOwnershipTestInput.VerifyAsync(Root);
+
+        [Theory]
+        [InlineData(ChromaUpsamplingFilter.NearestNeighbor)]
+        [InlineData(ChromaUpsamplingFilter.Bilinear)]
+        [InlineData(ChromaUpsamplingFilter.Bicubic)]
+        [InlineData(ChromaUpsamplingFilter.Lanczos3)]
+        public Task IccProfilesSurviveCopiedAndDirectFramesAndUseCommonConversion(ChromaUpsamplingFilter filter) =>
+            HeifFrameOwnershipTestInput.VerifyIccAsync(Root, Path.Combine(AppContext.BaseDirectory, "Data", "Icc"), filter);
+
+        [Fact]
+        public Task AllFiltersPreserveVisibleGeometryAndAlpha() => HeifReferenceTestInput.VerifyFiltersAsync(Root);
 
         [Fact]
         public async Task OutputBudgetIsReservedBeforePictureDecodingAndReleasedOnFailure()
@@ -58,7 +70,11 @@ namespace Mediana.Tests
             int nclx = profiled.AsSpan().IndexOf("nclx"u8);
             Assert.True(nclx >= 0);
             "prof"u8.CopyTo(profiled.AsSpan(nclx, 4));
-            await Assert.ThrowsAsync<NotSupportedException>(async () => await decoder.DecodeAsync(profiled, new(), output));
+            using (VideoFrame frame = await decoder.DecodeAsync(profiled, new(), output))
+            {
+                Assert.IsType<IccColorDescription>(frame.Format.ColorDescription);
+                Assert.Throws<InvalidDataException>(() => Processing.SrgbConverter.Apply(frame, output));
+            }
             Assert.Equal(0, output.AllocatedBytes);
         }
 

@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using Mediana.Codecs.Hevc;
 
 namespace Mediana.Images.Heif.Hevc
 {

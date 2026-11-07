@@ -1,0 +1,169 @@
+{
+  "revision": "a3c5dbf6e253c3b1e5433922cbc2dfc644ddee69",
+  "mediana_sha256": "a316846e6d0875e9fc6185b129cab0adcde01cf9471b00f97ed3d72dc7509687",
+  "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "cpus": [
+    2,
+    4
+  ],
+  "repeats": 3,
+  "scope": "fresh process, complete command, warm filesystem cache",
+  "output_storage": "temporary decoded pair, validation and removal outside timing",
+  "manifest": [
+    {
+      "id": "heic-photo-12mp",
+      "input": "photo-12mp.heic",
+      "output_extension": ".rgba",
+      "description": "Real 4000x3000 HEIC photograph, primary image decode to source-color RGBA8; no ICC transform or PNG encoder",
+      "mediana": {
+        "tool": "mediana_heif",
+        "arguments": [
+          "{input}",
+          "{output}"
+        ],
+        "environment": {}
+      },
+      "alternative": {
+        "tool": "heif_reference",
+        "arguments": [
+          "{input}",
+          "{output}"
+        ],
+        "environment": {
+          "LD_LIBRARY_PATH": "{heif_libraries}"
+        }
+      }
+    },
+    {
+      "id": "heic-photo-200mp",
+      "input": "photo-200mp.heic",
+      "output_extension": ".rgba",
+      "description": "Real 16320x12240 tiled HEIC photograph, primary image decode to source-color RGBA8; no ICC transform or PNG encoder",
+      "mediana": {
+        "tool": "mediana_heif",
+        "arguments": [
+          "{input}",
+          "{output}"
+        ],
+        "environment": {}
+      },
+      "alternative": {
+        "tool": "heif_reference",
+        "arguments": [
+          "{input}",
+          "{output}"
+        ],
+        "environment": {
+          "LD_LIBRARY_PATH": "{heif_libraries}"
+        }
+      }
+    },
+    {
+      "id": "flac-sustained",
+      "input": "stress-10m.flac",
+      "output_extension": ".wav",
+      "description": "Complete 600-second 48 kHz stereo synthetic FLAC stress stream to PCM16 WAVE",
+      "mediana": {
+        "tool": "mediana",
+        "arguments": [
+          "-i",
+          "{input}",
+          "{output}",
+          "--log-level",
+          "Error",
+          "--no-color"
+        ],
+        "environment": {}
+      },
+      "alternative": {
+        "tool": "ffmpeg",
+        "arguments": [
+          "-nostdin",
+          "-v",
+          "error",
+          "-xerror",
+          "-threads",
+          "2",
+          "-i",
+          "{input}",
+          "-map",
+          "0:a:0",
+          "-vn",
+          "-c:a",
+          "pcm_s16le",
+          "-threads",
+          "2",
+          "{output}"
+        ],
+        "environment": {}
+      }
+    },
+    {
+      "id": "mp3-long",
+      "input": "recording-long.mp3",
+      "output_extension": ".wav",
+      "description": "Complete 2460.096-second 48 kHz stereo MP3 stress stream to PCM16 WAVE; provenance is not a real call recording",
+      "mediana": {
+        "tool": "mediana",
+        "arguments": [
+          "-i",
+          "{input}",
+          "{output}",
+          "--log-level",
+          "Error",
+          "--no-color"
+        ],
+        "environment": {}
+      },
+      "alternative": {
+        "tool": "ffmpeg",
+        "arguments": [
+          "-nostdin",
+          "-v",
+          "error",
+          "-xerror",
+          "-threads",
+          "2",
+          "-i",
+          "{input}",
+          "-map",
+          "0:a:0",
+          "-vn",
+          "-c:a",
+          "pcm_s16le",
+          "-threads",
+          "2",
+          "{output}"
+        ],
+        "environment": {}
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "case": "heic-photo-12mp",
+      "filename": "photo-12mp.heic",
+      "bytes": 3893580,
+      "sha256": "74621a8ea1cb5a6f4ed3c06f31c87dea455371611764ef181ed290ac48ed77b8"
+    },
+    {
+      "case": "heic-photo-200mp",
+      "filename": "photo-200mp.heic",
+      "bytes": 19301797,
+      "sha256": "3389ceeeb26f160093e27fbb45b9fd2d781e8e65fe624e6083d7fffe3ffed490"
+    },
+    {
+      "case": "flac-sustained",
+      "filename": "stress-10m.flac",
+      "bytes": 16373769,
+      "sha256": "d0879a41eb119b2e8aaf22aa4f24f79c3620e1dbdde0100e48be48f82659201d"
+    },
+    {
+      "case": "mp3-long",
+      "filename": "recording-long.mp3",
+      "bytes": 59042304,
+      "sha256": "7e55bfa17e0bf5b88754fe9bc7bf3a8fa67a40c52376d0e283339abe8098b6b3"
+    }
+  ]
+}

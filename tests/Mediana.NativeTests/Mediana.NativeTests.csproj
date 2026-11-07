@@ -9,6 +9,25 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/MediaExportTestInput.cs" Link="MediaExportTestInput.cs" />
+    <Compile Include="../Shared/IccColorTestInput.cs" Link="IccColorTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Icc/*" Link="Data/Icc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/DocumentPackageTestData.cs" Link="DocumentPackageTestData.cs" />
+    <Compile Include="../Shared/XlsxWorkbookTestData.cs" Link="XlsxWorkbookTestData.cs" />
+    <Compile Include="../Shared/XlsWorkbookTestData.cs" Link="XlsWorkbookTestData.cs" />
+    <Compile Include="../Shared/PresentationTestData.cs" Link="PresentationTestData.cs" />
+    <Compile Include="../Shared/PresentationFillLocation.cs" Link="PresentationFillLocation.cs" />
+    <Compile Include="../Shared/PresentationImageFillTestData.cs" Link="PresentationImageFillTestData.cs" />
+    <Compile Include="../Shared/PresentationImageFillTestInput.cs" Link="PresentationImageFillTestInput.cs" />
+    <Compile Include="../Shared/PdfTextTestData.cs" Link="PdfTextTestData.cs" />
+    <Compile Include="../Shared/DocumentReadersTestInput.cs" Link="DocumentReadersTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Documents.Presentation/Mediana.Documents.Presentation.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Xls/Mediana.Documents.Xls.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Xlsx/Mediana.Documents.Xlsx.csproj" />
+    <None Include="../Mediana.Codecs.Raster.Tests/Data/*" Link="Data/Raster/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Bmp/Mediana.Codecs.Bmp.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Gif/Mediana.Codecs.Gif.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Tiff/Mediana.Codecs.Tiff.csproj" />
     <Compile Include="../Shared/SymbolFontTestInput.cs" Link="SymbolFontTestInput.cs" />
     <Compile Include="../Shared/PcmStorageTestInput.cs" Link="PcmStorageTestInput.cs" />
     <Compile Include="../Shared/HlsRenditionTestInput.cs" Link="HlsRenditionTestInput.cs" />
@@ -197,6 +216,18 @@
     <Compile Include="../Shared/IntraPictureFixture.cs" Link="IntraPictureFixture.cs" />
     <None Include="../Mediana.Tests/Data/Heif/*" Link="Data/Heif/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HeifReferenceTestInput.cs" Link="HeifReferenceTestInput.cs" />
+    <Compile Include="../Shared/HevcDecoderTestInput.cs" Link="HevcDecoderTestInput.cs" />
+    <Compile Include="../Shared/HevcSeekTestInput.cs" Link="HevcSeekTestInput.cs" />
+    <None Include="../Mediana.Codecs.Hevc.Tests/Data/*.yuv.gz;../Mediana.Codecs.Hevc.Tests/Data/*.mkv" Link="Data/Hevc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/HevcSliceHeaderTestInput.cs" Link="HevcSliceHeaderTestInput.cs" />
+    <Compile Include="../Shared/HevcPictureStorageTestInput.cs" Link="HevcPictureStorageTestInput.cs" />
+    <Compile Include="../Shared/HevcWeightedPredictionTestInput.cs" Link="HevcWeightedPredictionTestInput.cs" />
+    <Compile Include="../Shared/HevcMotionCompensationTestInput.cs" Link="HevcMotionCompensationTestInput.cs" />
+    <Compile Include="../Shared/HevcCabacTestInput.cs" Link="HevcCabacTestInput.cs" />
+    <Compile Include="../Shared/HevcInterpolationTestInput.cs" Link="HevcInterpolationTestInput.cs" />
+    <None Include="../Mediana.Codecs.Hevc.Tests/Data/*.mp4" Link="Data/Hevc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Hevc.Tests/Data/*.headers.json" Link="Data/Hevc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Hevc.Tests/Data/*.bin.gz" Link="Data/Hevc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HeifMetadataTestInput.cs" Link="HeifMetadataTestInput.cs" />
     <Compile Include="../Shared/HeifFrameOwnershipTestInput.cs" Link="HeifFrameOwnershipTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />
@@ -305,6 +336,54 @@
     <Compile Include="../Shared/Mp4SampleAccessTestInput.cs" Link="Mp4SampleAccessTestInput.cs" />
     <Compile Include="../Shared/HlsPlanTestInput.cs" Link="HlsPlanTestInput.cs" />
     <Compile Include="../Shared/HlsSessionTestInput.cs" Link="HlsSessionTestInput.cs" />
+    <Compile Include="../Shared/FragmentHlsTestInput.cs" Link="FragmentHlsTestInput.cs" />
+    <Compile Include="../Shared/OnDemandHlsTestInput.cs" Link="OnDemandHlsTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Mp4/hls-on-demand.mp4;../Mediana.Tests/Data/Mp4/hls-on-demand.encoded-segments.yuv" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Ogg/OggContainerTestInput.cs" Link="OggContainerTestInput.cs" />
+    <Compile Include="../Shared/OpusRangeTestInput.cs" Link="OpusRangeTestInput.cs" />
+    <Compile Include="../Shared/OpusPulseTestInput.cs" Link="OpusPulseTestInput.cs" />
+    <Compile Include="../Shared/OpusLaplaceTestInput.cs" Link="OpusLaplaceTestInput.cs" />
+    <Compile Include="../Shared/OpusEnergyTestInput.cs" Link="OpusEnergyTestInput.cs" />
+    <Compile Include="../Shared/OpusAllocationTestInput.cs" Link="OpusAllocationTestInput.cs" />
+    <Compile Include="../Shared/OpusFrameSyntaxTestInput.cs" Link="OpusFrameSyntaxTestInput.cs" />
+    <Compile Include="../Shared/OpusVectorTestInput.cs" Link="OpusVectorTestInput.cs" />
+    <Compile Include="../Shared/OpusSplitTestInput.cs" Link="OpusSplitTestInput.cs" />
+    <Compile Include="../Shared/OpusSpectralTestInput.cs" Link="OpusSpectralTestInput.cs" />
+    <Compile Include="../Shared/OpusSpectrumTestInput.cs" Link="OpusSpectrumTestInput.cs" />
+    <Compile Include="../Shared/OpusImdctTestInput.cs" Link="OpusImdctTestInput.cs" />
+    <Compile Include="../Shared/OpusRestorationTestInput.cs" Link="OpusRestorationTestInput.cs" />
+    <Compile Include="../Shared/OpusConfigurationTestInput.cs" Link="OpusConfigurationTestInput.cs" />
+    <Compile Include="../Shared/OpusSynthesisTestInput.cs" Link="OpusSynthesisTestInput.cs" />
+    <Compile Include="../Shared/OpusCeltPcmTestInput.cs" Link="OpusCeltPcmTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkPulseTestInput.cs" Link="OpusSilkPulseTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkControlsTestInput.cs" Link="OpusSilkControlsTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkNlsfTestInput.cs" Link="OpusSilkNlsfTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkLpcTestInput.cs" Link="OpusSilkLpcTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkIndicesTestInput.cs" Link="OpusSilkIndicesTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkParametersTestInput.cs" Link="OpusSilkParametersTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkFixedTestInput.cs" Link="OpusSilkFixedTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkSynthesisTestInput.cs" Link="OpusSilkSynthesisTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkStereoTestInput.cs" Link="OpusSilkStereoTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkResamplerTestInput.cs" Link="OpusSilkResamplerTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkPcmTestInput.cs" Link="OpusSilkPcmTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkSignalTestInput.cs" Link="OpusSilkSignalTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkConcealmentTestInput.cs" Link="OpusSilkConcealmentTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkNoiseTestInput.cs" Link="OpusSilkNoiseTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkRecoveryTestInput.cs" Link="OpusSilkRecoveryTestInput.cs" />
+    <Compile Include="../Shared/OpusCeltPredictionTestInput.cs" Link="OpusCeltPredictionTestInput.cs" />
+    <Compile Include="../Shared/OpusRecoveryTestInput.cs" Link="OpusRecoveryTestInput.cs" />
+    <Compile Include="../Shared/OpusMultistreamTestInput.cs" Link="OpusMultistreamTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Vorbis/Mediana.Codecs.Vorbis.csproj" />
+    <Compile Include="../Shared/VorbisCodebookTestInput.cs" Link="VorbisCodebookTestInput.cs" />
+    <Compile Include="../Shared/VorbisSpectrumTestInput.cs" Link="VorbisSpectrumTestInput.cs" />
+    <Compile Include="../Shared/VorbisImdctTestInput.cs" Link="VorbisImdctTestInput.cs" />
+    <Compile Include="../Shared/VorbisPcmTestInput.cs" Link="VorbisPcmTestInput.cs" />
+    <None Include="../Mediana.Codecs.Vorbis.Tests/Data/*.bin.gz" Link="Data/Vorbis/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Opus.Tests/Data/*.bin" Link="Data/Opus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Opus.Tests/Data/*.bin.gz" Link="Data/Opus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="../../src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />
+    <None Include="../Mediana.Containers.Ogg.Tests/Data/*" Link="Data/Ogg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/H264MultiSliceTestInput.cs" Link="H264MultiSliceTestInput.cs" />
     <Compile Include="../Shared/VideoSeekTestInput.cs" Link="VideoSeekTestInput.cs" />

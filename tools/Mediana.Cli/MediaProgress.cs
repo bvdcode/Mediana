@@ -12,10 +12,21 @@ namespace Mediana.Cli
     internal class MediaProgress(ILogger logger, TimeProvider clock, MediaDuration? totalDuration = null)
     {
         private static readonly TimeSpan Interval = TimeSpan.FromSeconds(1);
-        private readonly MediaTimeEstimator estimator = new(totalDuration);
+        private MediaTimeEstimator estimator = new(totalDuration);
+        private MediaDuration? declaredDuration = totalDuration;
         private readonly long started = clock.GetTimestamp();
         private TimeSpan lastReport;
         private bool reported;
+
+        public void Report(MediaOutputProgress update)
+        {
+            if (update.TotalDuration is MediaDuration total && declaredDuration != total)
+            {
+                declaredDuration = total;
+                estimator = new(total);
+            }
+            Report(update.ProcessedDuration, update.BytesWritten, update.IsComplete);
+        }
 
         public void Report(MediaDuration? processed, long outputBytes, bool completed = false)
         {

@@ -1,0 +1,436 @@
+[
+  {
+    "id": "jpeg-photo",
+    "input": "photo-baseline.jpg",
+    "output_extension": ".png",
+    "description": "jpeg-photo",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-frames:v",
+        "1",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "jpeg-photo-progressive",
+    "input": "photo-progressive.jpg",
+    "output_extension": ".png",
+    "description": "jpeg-photo-progressive",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-frames:v",
+        "1",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "png-large",
+    "input": "large-alpha.png",
+    "output_extension": ".png",
+    "description": "png-large",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-frames:v",
+        "1",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "webp-still",
+    "input": "photo-lossy.webp",
+    "output_extension": ".png",
+    "description": "webp-still",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-frames:v",
+        "1",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "webp-still-lossless",
+    "input": "photo-alpha-lossless.webp",
+    "output_extension": ".png",
+    "description": "webp-still-lossless",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-frames:v",
+        "1",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "raster-pages",
+    "input": "photo-lzw.tiff",
+    "output_extension": ".png",
+    "description": "raster-pages",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-frames:v",
+        "1",
+        "-threads",
+        "2",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "jp2-scan",
+    "input": "photo-tiled.jp2",
+    "output_extension": ".png",
+    "description": "jp2-scan",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "opj_decompress",
+      "arguments": [
+        "-i",
+        "{input}",
+        "-o",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "jbig2-scan",
+    "input": "scan-mmr.jb2",
+    "output_extension": ".png",
+    "description": "jbig2-scan",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "jbig2dec",
+      "arguments": [
+        "-q",
+        "-o",
+        "{output}",
+        "{input}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "svg-scene",
+    "input": "vector-scene.svg",
+    "output_extension": ".png",
+    "description": "svg-scene",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "rsvg_convert",
+      "arguments": [
+        "--output",
+        "{output}",
+        "{input}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "pdf-page",
+    "input": "vector-page.pdf",
+    "output_extension": ".png",
+    "description": "pdf-page",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "pdftoppm",
+      "arguments": [
+        "-f",
+        "1",
+        "-l",
+        "1",
+        "-singlefile",
+        "-r",
+        "96",
+        "-png",
+        "{input}",
+        "{output_stem}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "pdf-scan",
+    "input": "scan-page.pdf",
+    "output_extension": ".png",
+    "description": "pdf-scan",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "pdftoppm",
+      "arguments": [
+        "-f",
+        "1",
+        "-l",
+        "1",
+        "-singlefile",
+        "-r",
+        "96",
+        "-png",
+        "{input}",
+        "{output_stem}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "heic-preview",
+    "input": "photo-12mp.heic",
+    "output_extension": ".png",
+    "description": "heic-preview",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "heif_convert",
+      "arguments": [
+        "--quiet",
+        "-C",
+        "nearest-neighbor",
+        "--codec-threads",
+        "2",
+        "--tile-threads",
+        "2",
+        "--png-compression-level",
+        "6",
+        "{input}",
+        "{output}"
+      ],
+      "environment": {
+        "LD_LIBRARY_PATH": "{heif_libraries}"
+      },
+      "output": "{output}"
+    }
+  }
+]

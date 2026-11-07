@@ -8,7 +8,7 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Streaming.Hls
 {
-    /// <summary>An immutable video boundary plan from MP4 metadata and inspected AVC IDR headers.
+    /// <summary>An immutable video boundary plan from MP4 metadata, with optional AVC IDR inspection.
     /// Preserves reader cursors. Does not reconstruct pictures, mux segments or calculate audio coverage.</summary>
     public class Mp4AvcSegmentPlan
     {
@@ -21,8 +21,18 @@ namespace Mediana.Streaming.Hls
         public EncodedStreamInfo VideoStream { get; }
         public IReadOnlyList<Mp4AvcSegment> Segments { get; }
 
-        public static async ValueTask<Mp4AvcSegmentPlan> CreateAsync(Mp4Reader reader, int videoStreamIndex,
+        public static ValueTask<Mp4AvcSegmentPlan> CreateAsync(Mp4Reader reader, int videoStreamIndex,
             HlsPlanningOptions? options = null, CancellationToken cancellationToken = default)
+            => CreateCoreAsync(reader, videoStreamIndex, options, true, cancellationToken);
+
+        /// <summary>Plans from container sync declarations without reading encoded payloads.
+        /// Each requested segment must validate its opening random-access packet before publication.</summary>
+        public static ValueTask<Mp4AvcSegmentPlan> CreateFromIndexAsync(Mp4Reader reader, int videoStreamIndex,
+            HlsPlanningOptions? options = null, CancellationToken cancellationToken = default)
+            => CreateCoreAsync(reader, videoStreamIndex, options, false, cancellationToken);
+
+        private static async ValueTask<Mp4AvcSegmentPlan> CreateCoreAsync(Mp4Reader reader, int videoStreamIndex,
+            HlsPlanningOptions? options, bool inspectPackets, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentOutOfRangeException.ThrowIfNegative(videoStreamIndex);
@@ -54,8 +64,8 @@ namespace Mediana.Streaming.Hls
                 {
                     throw new NotSupportedException("AVC segment planning requires positive sample durations and increasing decode timestamps.");
                 }
-                bool idr = false;
-                if (sample == 0 || info.IsSync)
+                bool idr = info.IsSync;
+                if (inspectPackets && (sample == 0 || info.IsSync))
                 {
                     using MediaPacket packet = await reader.ReadPacketAtAsync(videoStreamIndex, sample, cancellationToken).ConfigureAwait(false);
                     idr = inspector.IsIdr(packet, cancellationToken);

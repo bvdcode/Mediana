@@ -8,15 +8,29 @@ namespace Mediana.Processing
 {
     public static class SrgbPreview
     {
-        /// <summary>Fits supported SDR YUV420P8 or straight RGBA32 to a square-pixel sRGB preview in one pass.
+        /// <summary>Fits supported SDR YUV420P8/YUV420P10 or straight RGBA32 to a square-pixel sRGB preview in one pass.
         /// Uses the same nearest-neighbor grid as DisplayResize after SrgbConverter, including SAR and exact
         /// orthogonal rotation/reflection. Converts only selected pixels without a full-size RGB buffer.
-        /// Requires known color and sample aspect ratio. Borrows input; returns an independent owned frame.</summary>
+        /// Requires a supported ICC profile or known color labels, and a known sample aspect ratio. Borrows input; returns an independent owned frame.</summary>
         public static VideoFrame Fit(VideoFrame input, VideoDisplayMatrix displayMatrix, int maximumWidth, int maximumHeight,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
+            return FitWithColorPolicy(input, null, displayMatrix, maximumWidth, maximumHeight, allocator, cancellationToken);
+        }
+
+        /// <summary>Fits a preview using an embedded ICC transform, or the supplied policy for color labels.</summary>
+        public static VideoFrame FitWithColorPolicy(VideoFrame input, Func<VideoFormat, VideoColorInfo>? colorResolver,
+            VideoDisplayMatrix displayMatrix, int maximumWidth, int maximumHeight,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
+        {
             ArgumentNullException.ThrowIfNull(input);
-            return Fit(input, input.Format.GetColorInterpretation(), displayMatrix, maximumWidth, maximumHeight, allocator, cancellationToken);
+            ArgumentNullException.ThrowIfNull(allocator);
+            cancellationToken.ThrowIfCancellationRequested();
+            SampleAspectRatio aspectRatio = input.Format.SampleAspectRatio
+                ?? throw new NotSupportedException("A preview requires a known sample aspect ratio.");
+            OrthogonalTransform orientation = OrthogonalTransform.FromMatrix(displayMatrix);
+            NearestNeighborMap map = NearestNeighborMap.Fit(input.Format, aspectRatio, orientation, maximumWidth, maximumHeight);
+            return SrgbConverter.ApplyWithColorPolicy(input, colorResolver, map, SampleAspectRatio.Square, allocator, cancellationToken);
         }
 
         /// <summary>Fits a preview using an explicit source color interpretation without changing frame metadata.</summary>

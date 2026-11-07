@@ -65,7 +65,7 @@ namespace Mediana.Tests
                     };
                     color.CopyTo(pixels.Span.Slice(offset, 4));
                 }
-                return Task.FromResult(new RgbaImage(3, 2, pixels, new ImageColorInformation(1, 13, ReadOnlyMemory<byte>.Empty)));
+                return Task.FromResult(new RgbaImage(3, 2, pixels, new ImageColorInformation(1, 13)));
             }
         }
     }

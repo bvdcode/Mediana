@@ -9,6 +9,8 @@ namespace Mediana.NativeTests
     {
         internal static async Task RunAsync()
         {
+            await DocumentReadersTestInput.VerifyAsync();
+            await PresentationImageFillTestInput.VerifyAsync();
             OpenXmlPackageTestInput.Verify();
             WordTestInput.Verify();
             await WordRenderTestInput.VerifyAsync();

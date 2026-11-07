@@ -5,7 +5,7 @@ using System.Numerics;
 namespace Mediana.Documents.Pdf
 {
     /// <summary>Owns PDF parsing state. Detached pages and their image pixels survive disposal.</summary>
-    public class PdfDocument : IDisposable
+    public partial class PdfDocument : IDisposable, IDocumentTextSource
     {
         private PdfStorage? _storage;
         private readonly PdfOptionalContent _optionalContent;

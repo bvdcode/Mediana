@@ -10,14 +10,24 @@ namespace Mediana.Streaming.Hls
     internal static class HlsVodPlaylist
     {
         public static string Create<T>(IReadOnlyList<T> segments, Func<T, MediaDuration> durationOf,
-            Func<int, string> segmentUri, int maximumUriCharacters, bool independent = false, long? targetDurationSeconds = null)
+            Func<int, string> segmentUri, int maximumUriCharacters, bool independent = false, long? targetDurationSeconds = null,
+            string? initializationUri = null)
         {
             ArgumentNullException.ThrowIfNull(segmentUri);
             long target = GetTargetDuration(segments, durationOf, targetDurationSeconds);
             StringBuilder text = new();
-            text.Append("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:");
+            text.Append(initializationUri is null ? "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:" :
+                "#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-TARGETDURATION:");
             text.Append(target.ToString(CultureInfo.InvariantCulture));
             text.Append("\n#EXT-X-MEDIA-SEQUENCE:0\n#EXT-X-PLAYLIST-TYPE:VOD\n");
+            if (initializationUri is not null)
+            {
+                HlsUri.Validate(initializationUri, maximumUriCharacters);
+                if (initializationUri.Contains('"')) { throw new ArgumentException("An initialization URI cannot contain a quote.", nameof(initializationUri)); }
+                text.Append("#EXT-X-MAP:URI=\"");
+                text.Append(initializationUri);
+                text.Append("\"\n");
+            }
             if (independent)
             {
                 text.Append("#EXT-X-INDEPENDENT-SEGMENTS\n");

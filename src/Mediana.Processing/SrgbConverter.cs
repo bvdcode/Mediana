@@ -1,26 +1,28 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+using System.Runtime.InteropServices;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 
 namespace Mediana.Processing
 {
-    public static class SrgbConverter
+    public static partial class SrgbConverter
     {
         private static readonly VideoColorInfo SrgbColor = new(ColorPrimaries.Bt709, TransferFunction.Srgb,
             MatrixCoefficients.Rgb, ColorRange.Full, ChromaLocation.Unspecified);
 
-        /// <summary>Converts supported SDR YUV420P8 or straight RGBA32 to full-range straight sRGB RGBA32.
-        /// Requires known source color parameters. Borrows input; returns an independently disposable frame.
+        /// <summary>Converts supported SDR YUV420P8/YUV420P10 or straight RGBA32 to full-range straight sRGB RGBA32.
+        /// Uses supported ICC v2/v4 matrix/TRC profiles or known source color parameters.
+        /// Borrows input; returns an independently disposable frame.
         /// Unchanged tightly packed sRGB storage retains its original allocation budget without copying.
         /// Clips nominal source RGB before display transfer and target RGB to the sRGB gamut.
         /// BT.709 and SMPTE 240M use an ideal BT.1886 reference display. Does not perform HDR tone mapping.</summary>
         public static VideoFrame Apply(VideoFrame input, MediaBufferAllocator allocator,
             CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(input);
-            return Apply(input, input.Format.GetColorInterpretation(), allocator, cancellationToken);
+            return ApplyWithColorPolicy(input, null, allocator, cancellationToken);
         }
 
         /// <summary>Uses the explicitly supplied source color interpretation in place of the frame metadata.</summary>
@@ -40,11 +42,12 @@ namespace Mediana.Processing
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
             SdrRgbTransform transform = new(sourceColor.Primaries, sourceColor.Transfer);
-            bool yuv = ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Yuv420P8);
+            bool tenBit = ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Yuv420P10);
+            bool yuv = tenBit || ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Yuv420P8);
             YuvRgbMatrix matrix = default;
             if (yuv)
             {
-                matrix = YuvRgbMatrix.Create(sourceColor.Matrix, sourceColor.Range);
+                matrix = YuvRgbMatrix.Create(sourceColor.Matrix, sourceColor.Range, tenBit ? 10 : 8);
             }
             else if (!ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32) || sourceColor.Matrix != MatrixCoefficients.Rgb ||
                 sourceColor.Range != ColorRange.Full || sourceColor.ChromaLocation != ChromaLocation.Unspecified)
@@ -55,17 +58,15 @@ namespace Mediana.Processing
             {
                 return input.Retain();
             }
+            if (!yuv)
+            {
+                return ApplyRgba(input, map, aspectRatio, allocator, transform, cancellationToken);
+            }
             VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio);
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
-            if (yuv)
-            {
-                RenderYuv(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken);
-            }
-            else
-            {
-                RenderRgba(input, writable.Memory.Span, map, transform, cancellationToken);
-            }
+            if (tenBit) { RenderYuv<ushort>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
+            else { RenderYuv<byte>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration);
@@ -81,13 +82,13 @@ namespace Mediana.Processing
                 && plane.Offset == 0 && plane.Stride == rowBytes && input.Data.Length == (long)rowBytes * input.Format.Height;
         }
 
-        private static void RenderYuv(VideoFrame input, Span<byte> output, NearestNeighborMap map, YuvRgbMatrix matrix,
-            ChromaLocation location, SdrRgbTransform transform, CancellationToken cancellationToken)
+        private static void RenderYuv<TSample>(VideoFrame input, Span<byte> output, NearestNeighborMap map, YuvRgbMatrix matrix,
+            ChromaLocation location, SdrRgbTransform transform, CancellationToken cancellationToken) where TSample : unmanaged, IBinaryInteger<TSample>
         {
             int cachedRow = -1;
-            ReadOnlySpan<byte> luma = default;
-            BilinearChromaRow cb = default;
-            BilinearChromaRow cr = default;
+            ReadOnlySpan<TSample> luma = default;
+            BilinearChromaRow<TSample> cb = default;
+            BilinearChromaRow<TSample> cr = default;
             for (int y = 0; y < map.OutputHeight; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -102,19 +103,19 @@ namespace Mediana.Processing
                     int sourceY = map.SourceY(x, y);
                     if (sourceY != cachedRow)
                     {
-                        luma = input.GetRow(0, sourceY);
+                        luma = MemoryMarshal.Cast<byte, TSample>(input.GetRow(0, sourceY));
                         cb = new(input, 1, sourceY, location);
                         cr = new(input, 2, sourceY, location);
                         cachedRow = sourceY;
                     }
-                    (double red, double green, double blue) = matrix.Convert(luma[sourceX], cb.Sample(sourceX), cr.Sample(sourceX));
+                    (double red, double green, double blue) = matrix.Convert(double.CreateChecked(luma[sourceX]), cb.Sample(sourceX), cr.Sample(sourceX));
                     transform.Write(row.Slice(x * 4, 4), red, green, blue, 255);
                 }
             }
         }
 
-        private static void RenderRgba(VideoFrame input, Span<byte> output, NearestNeighborMap map, SdrRgbTransform transform,
-            CancellationToken cancellationToken)
+        private static void RenderRgba<TTransform>(VideoFrame input, Span<byte> output, NearestNeighborMap map, TTransform transform,
+            CancellationToken cancellationToken) where TTransform : IRgbaPixelTransform
         {
             int cachedRow = -1;
             ReadOnlySpan<byte> source = default;
@@ -135,7 +136,7 @@ namespace Mediana.Processing
                         cachedRow = sourceY;
                     }
                     ReadOnlySpan<byte> pixel = source.Slice(map.SourceX(x, y) * 4, 4);
-                    transform.Write(row.Slice(x * 4, 4), pixel[0] / 255.0, pixel[1] / 255.0, pixel[2] / 255.0, pixel[3]);
+                    transform.WritePixel(row.Slice(x * 4, 4), pixel);
                 }
             }
         }

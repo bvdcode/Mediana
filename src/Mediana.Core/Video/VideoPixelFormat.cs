@@ -24,5 +24,8 @@ namespace Mediana.Core.Video
         public static VideoPixelFormat Rgba32 { get; } = new("rgba32", new VideoPlaneFormat(1, 1, 4));
         public static VideoPixelFormat Yuv420P8 { get; } =
             new("yuv420p8", new VideoPlaneFormat(1, 1, 1), new VideoPlaneFormat(2, 2, 1), new VideoPlaneFormat(2, 2, 1));
+        /// <summary>Planar Y/Cb/Cr with 4:2:0 subsampling. Samples occupy the low ten bits of native-endian unsigned 16-bit words.</summary>
+        public static VideoPixelFormat Yuv420P10 { get; } =
+            new("yuv420p10", new VideoPlaneFormat(1, 1, 2), new VideoPlaneFormat(2, 2, 2), new VideoPlaneFormat(2, 2, 2));
     }
 }

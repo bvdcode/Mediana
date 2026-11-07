@@ -1,0 +1,1366 @@
+{
+  "images": {
+    "revision": "8ce822571594336e78f850578be875079e2490f0",
+    "mediana_sha256": "3841aa738eb4600e75ef8b383dce5205741a3ce145ac05a610c3af44084903ed",
+    "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpus": [
+      2,
+      4
+    ],
+    "repeats": 3,
+    "scope": "fresh process, complete command, warm filesystem cache",
+    "output_storage": "temporary decoded pair, validation and removal outside timing",
+    "manifest": [
+      {
+        "id": "svg-scene",
+        "input": "vector-scene.svg",
+        "output_extension": ".png",
+        "description": "svg-scene",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "rsvg_convert",
+          "arguments": [
+            "--output",
+            "{output}",
+            "{input}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "case": "svg-scene",
+        "filename": "vector-scene.svg",
+        "bytes": 18572,
+        "sha256": "2395a0041fffeed1afae50f3afbc3762a4f36e9bd2c69174bbc6c2892aeb968d"
+      }
+    ]
+  },
+  "extra": {
+    "revision": "8ce822571594336e78f850578be875079e2490f0",
+    "mediana_sha256": "3841aa738eb4600e75ef8b383dce5205741a3ce145ac05a610c3af44084903ed",
+    "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpus": [
+      2,
+      4
+    ],
+    "repeats": 3,
+    "scope": "fresh process, complete command, warm filesystem cache",
+    "output_storage": "temporary decoded pair, validation and removal outside timing",
+    "manifest": [
+      {
+        "id": "flac-track",
+        "input": "soundtrack.flac",
+        "output_extension": ".wav",
+        "description": "Complete 596-second real stereo film soundtrack, PCM16 WAVE",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-threads",
+            "2",
+            "-i",
+            "{input}",
+            "-map",
+            "0:a:0",
+            "-vn",
+            "-c:a",
+            "pcm_s16le",
+            "-threads",
+            "2",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "aac-multichannel",
+        "input": "soundtrack.m4a",
+        "output_extension": ".wav",
+        "description": "Complete real 596-second AAC-LC 5.1 film soundtrack in MP4/M4A to PCM16 WAVE",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-threads",
+            "2",
+            "-i",
+            "{input}",
+            "-map",
+            "0:a:0",
+            "-vn",
+            "-c:a",
+            "pcm_s16le",
+            "-threads",
+            "2",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "audio-resample",
+        "input": "long-session.mp3",
+        "output_extension": ".pcm",
+        "description": "Complete 2460.096-second stereo MP3 to mono PCM16LE, 48 kHz to 16 kHz",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "audio",
+            "resample",
+            "{input}",
+            "{output}",
+            "--sample-rate",
+            "16000",
+            "--log-level",
+            "Error",
+            "--no-color",
+            "--gains",
+            "0.5",
+            "0.5"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-threads",
+            "2",
+            "-i",
+            "{input}",
+            "-af",
+            "pan=mono|c0=0.5*c0+0.5*c1,aresample=16000",
+            "-c:a",
+            "pcm_s16le",
+            "-threads",
+            "2",
+            "-f",
+            "s16le",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "heic-preview",
+        "input": "photo-12mp.heic",
+        "output_extension": ".png",
+        "description": "heic-preview",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "heif_convert",
+          "arguments": [
+            "--quiet",
+            "-C",
+            "nearest-neighbor",
+            "--codec-threads",
+            "2",
+            "--tile-threads",
+            "2",
+            "--png-compression-level",
+            "6",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {
+            "LD_LIBRARY_PATH": "{heif_libraries}"
+          },
+          "output": "{output}"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "case": "flac-track",
+        "filename": "soundtrack.flac",
+        "bytes": 36876830,
+        "sha256": "53f1fbdf38c0d27f9186b14ca119cd722751dbd1b6b6fee2318b9d3f68dfd125"
+      },
+      {
+        "case": "aac-multichannel",
+        "filename": "soundtrack.m4a",
+        "bytes": 32741003,
+        "sha256": "e3bbae1c0702a72a254aac495ade004a11bec22cc9d3bd1b7979e90de4d40477"
+      },
+      {
+        "case": "audio-resample",
+        "filename": "long-session.mp3",
+        "bytes": 59042304,
+        "sha256": "7e55bfa17e0bf5b88754fe9bc7bf3a8fa67a40c52376d0e283339abe8098b6b3"
+      },
+      {
+        "case": "heic-preview",
+        "filename": "photo-12mp.heic",
+        "bytes": 3893580,
+        "sha256": "74621a8ea1cb5a6f4ed3c06f31c87dea455371611764ef181ed290ac48ed77b8"
+      }
+    ]
+  },
+  "resident-images": {
+    "revision": "8ce822571594336e78f850578be875079e2490f0",
+    "mediana_sha256": "3841aa738eb4600e75ef8b383dce5205741a3ce145ac05a610c3af44084903ed",
+    "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpus": [
+      2,
+      4
+    ],
+    "repeats": 3,
+    "scope": "fresh process, complete command, warm filesystem cache",
+    "output_storage": "temporary decoded pair, validation and removal outside timing",
+    "resource_accounting": {
+      "cpu": "wait4 user + system, including GNU time and waited descendants",
+      "peak_rss": "GNU time child ru_maxrss, KiB converted to bytes",
+      "resource_timer_sha256": "3b11dec50514a8473e9f6efa7a34d584d0657538c09988f61b72d38ad4991a10"
+    },
+    "manifest": [
+      {
+        "id": "jbig2-scan",
+        "input": "scan-mmr.jb2",
+        "output_extension": ".png",
+        "description": "jbig2-scan",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "jbig2dec",
+          "arguments": [
+            "-q",
+            "-o",
+            "{output}",
+            "{input}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "pdf-page",
+        "input": "vector-page.pdf",
+        "output_extension": ".png",
+        "description": "pdf-page",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "pdftoppm",
+          "arguments": [
+            "-f",
+            "1",
+            "-l",
+            "1",
+            "-singlefile",
+            "-r",
+            "96",
+            "-png",
+            "{input}",
+            "{output_stem}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "case": "jbig2-scan",
+        "filename": "scan-mmr.jb2",
+        "bytes": 71709,
+        "sha256": "b7020011b01aae814faf677b60e4c634f56171f42d1238c58c2dbd04cf4da27c"
+      },
+      {
+        "case": "pdf-page",
+        "filename": "vector-page.pdf",
+        "bytes": 19939,
+        "sha256": "7b3a61a2852b75a8f14644a1a45c72736aec304f331dda0baf6641c8a7f54f9e"
+      }
+    ]
+  },
+  "resident-extra": {
+    "revision": "8ce822571594336e78f850578be875079e2490f0",
+    "mediana_sha256": "3841aa738eb4600e75ef8b383dce5205741a3ce145ac05a610c3af44084903ed",
+    "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpus": [
+      2,
+      4
+    ],
+    "repeats": 3,
+    "scope": "fresh process, complete command, warm filesystem cache",
+    "output_storage": "temporary decoded pair, validation and removal outside timing",
+    "resource_accounting": {
+      "cpu": "wait4 user + system, including GNU time and waited descendants",
+      "peak_rss": "GNU time child ru_maxrss, KiB converted to bytes",
+      "resource_timer_sha256": "3b11dec50514a8473e9f6efa7a34d584d0657538c09988f61b72d38ad4991a10"
+    },
+    "manifest": [
+      {
+        "id": "spreadsheet-read",
+        "input": "numeric-workbook.xlsx",
+        "output_extension": ".bin",
+        "description": "Read every stored value of a 20,000-row by 20-column numeric XLSX workbook, including 80,000 cached formulas, to LE binary64",
+        "mediana": {
+          "tool": "mediana_operations",
+          "arguments": [
+            "xlsx",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "dotnet",
+          "arguments": [
+            "{spreadsheet_reference}",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "tgs-animation",
+        "input": "sticker.tgs",
+        "output_extension": ".rgba",
+        "description": "All 180 frames of a 512-square real sticker with 44 layers, trims and translucent groups; RGBA8, supersampling 1",
+        "mediana": {
+          "tool": "mediana_operations",
+          "arguments": [
+            "tgs",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "tgs_reference",
+          "arguments": [
+            "{input}",
+            "{output}",
+            "180"
+          ],
+          "environment": {
+            "LD_LIBRARY_PATH": "{rlottie_libraries}"
+          },
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "webp-animation",
+        "input": "sticker.webp",
+        "output_extension": ".rgba",
+        "description": "Complete lossless animation cycle derived from the 44-layer 512-square sticker; every composited RGBA8 frame",
+        "mediana": {
+          "tool": "mediana_operations",
+          "arguments": [
+            "webp",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "webp_animation_reference",
+          "arguments": [
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "ogg-index",
+        "input": "soundtrack-30m.opus",
+        "output_extension": ".bin",
+        "description": "Read the complete 1800-second Ogg Opus file and extract all encoded access-unit payload bytes",
+        "mediana": {
+          "tool": "mediana_operations",
+          "arguments": [
+            "ogg",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-i",
+            "{input}",
+            "-map",
+            "0:a:0",
+            "-c:a",
+            "copy",
+            "-f",
+            "data",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "case": "spreadsheet-read",
+        "filename": "numeric-workbook.xlsx",
+        "bytes": 1377634,
+        "sha256": "e79874affe8f52e992851c489091b367e4be22e7c0b1e355175ced41d6dd6f71"
+      },
+      {
+        "case": "tgs-animation",
+        "filename": "sticker.tgs",
+        "bytes": 5722,
+        "sha256": "84bfe4c74a39595a0d6d1c3bfd8cd61bf794a52d38cb3ebd88f04904c012363b"
+      },
+      {
+        "case": "webp-animation",
+        "filename": "sticker.webp",
+        "bytes": 924082,
+        "sha256": "39cdfd2565179270ac10fb06ebefb9ea241d9b19b60932116c5a99de3b66c874"
+      },
+      {
+        "case": "ogg-index",
+        "filename": "soundtrack-30m.opus",
+        "bytes": 14530149,
+        "sha256": "0c26d069a25b7024f07c844147c22950bb3917fb74a6ce32424b320fd628760d"
+      }
+    ]
+  },
+  "photo-images": {
+    "revision": "8ce822571594336e78f850578be875079e2490f0",
+    "mediana_sha256": "3841aa738eb4600e75ef8b383dce5205741a3ce145ac05a610c3af44084903ed",
+    "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpus": [
+      2,
+      4
+    ],
+    "repeats": 3,
+    "scope": "fresh process, complete command, warm filesystem cache",
+    "output_storage": "temporary decoded pair, validation and removal outside timing",
+    "resource_accounting": {
+      "cpu": "wait4 user + system, including GNU time and waited descendants",
+      "peak_rss": "GNU time child ru_maxrss, KiB converted to bytes",
+      "resource_timer_sha256": "3b11dec50514a8473e9f6efa7a34d584d0657538c09988f61b72d38ad4991a10"
+    },
+    "manifest": [
+      {
+        "id": "png-large",
+        "input": "large-alpha.png",
+        "output_extension": ".png",
+        "description": "png-large",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-threads",
+            "2",
+            "-i",
+            "{input}",
+            "-frames:v",
+            "1",
+            "-threads",
+            "2",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "raster-pages",
+        "input": "photo-lzw.tiff",
+        "output_extension": ".png",
+        "description": "raster-pages",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-threads",
+            "2",
+            "-i",
+            "{input}",
+            "-frames:v",
+            "1",
+            "-threads",
+            "2",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "jp2-scan",
+        "input": "photo-tiled.jp2",
+        "output_extension": ".png",
+        "description": "jp2-scan",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "opj_decompress",
+          "arguments": [
+            "-i",
+            "{input}",
+            "-o",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "pdf-scan",
+        "input": "scan-page.pdf",
+        "output_extension": ".png",
+        "description": "pdf-scan",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "pdftoppm",
+          "arguments": [
+            "-f",
+            "1",
+            "-l",
+            "1",
+            "-singlefile",
+            "-r",
+            "96",
+            "-png",
+            "{input}",
+            "{output_stem}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "case": "png-large",
+        "filename": "large-alpha.png",
+        "bytes": 11551937,
+        "sha256": "dcada30ef2dc0a75ada42e0d41f82519d8ad51d1561788fb9c69c9d39e7383a1"
+      },
+      {
+        "case": "raster-pages",
+        "filename": "photo-lzw.tiff",
+        "bytes": 16265946,
+        "sha256": "ec086e0f04b9d84bb710ca85b3892f441ec839024ba9eb7e3bf3cd52824b3b98"
+      },
+      {
+        "case": "jp2-scan",
+        "filename": "photo-tiled.jp2",
+        "bytes": 7623701,
+        "sha256": "da43653a6ed551ca7cccb2e82d64c25111c43c4dbf14e56ffbb28c24283c0858"
+      },
+      {
+        "case": "pdf-scan",
+        "filename": "scan-page.pdf",
+        "bytes": 2518736,
+        "sha256": "a304487eac3be66d3e0de11d138dd4afa081f9238dc389224d592ff77f11e004"
+      }
+    ]
+  },
+  "photo-extra": {
+    "revision": "8ce822571594336e78f850578be875079e2490f0",
+    "mediana_sha256": "3841aa738eb4600e75ef8b383dce5205741a3ce145ac05a610c3af44084903ed",
+    "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpus": [
+      2,
+      4
+    ],
+    "repeats": 3,
+    "scope": "fresh process, complete command, warm filesystem cache",
+    "output_storage": "temporary decoded pair, validation and removal outside timing",
+    "resource_accounting": {
+      "cpu": "wait4 user + system, including GNU time and waited descendants",
+      "peak_rss": "GNU time child ru_maxrss, KiB converted to bytes",
+      "resource_timer_sha256": "3b11dec50514a8473e9f6efa7a34d584d0657538c09988f61b72d38ad4991a10"
+    },
+    "manifest": [
+      {
+        "id": "jpeg-photo",
+        "input": "photo-baseline.jpg",
+        "output_extension": ".png",
+        "description": "Complete JPEG/WebP decode and RGBA8 PNG export; native libjpeg-turbo/libwebp via Pillow, bilinear chroma reconstruction",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "python3",
+          "arguments": [
+            "benchmarks/Mediana.MediaComparison/pillow_reference.py",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "jpeg-photo-progressive",
+        "input": "photo-progressive.jpg",
+        "output_extension": ".png",
+        "description": "Complete JPEG/WebP decode and RGBA8 PNG export; native libjpeg-turbo/libwebp via Pillow, bilinear chroma reconstruction",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "python3",
+          "arguments": [
+            "benchmarks/Mediana.MediaComparison/pillow_reference.py",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "webp-still",
+        "input": "photo-lossy.webp",
+        "output_extension": ".png",
+        "description": "Complete JPEG/WebP decode and RGBA8 PNG export; native libjpeg-turbo/libwebp via Pillow, bilinear chroma reconstruction",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "python3",
+          "arguments": [
+            "benchmarks/Mediana.MediaComparison/pillow_reference.py",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "webp-still-lossless",
+        "input": "photo-alpha-lossless.webp",
+        "output_extension": ".png",
+        "description": "Complete JPEG/WebP decode and RGBA8 PNG export; native libjpeg-turbo/libwebp via Pillow, bilinear chroma reconstruction",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "python3",
+          "arguments": [
+            "benchmarks/Mediana.MediaComparison/pillow_reference.py",
+            "{input}",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "word-page",
+        "input": "report-page.docx",
+        "output_extension": ".png",
+        "description": "Authored fixed-font document; first page/slide at 96 DPI",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "lo_binary",
+          "arguments": [
+            "-env:UserInstallation={profile_uri}",
+            "--headless",
+            "--convert-to",
+            "png:writer_png_Export:{{\"PixelWidth\":{{\"type\":\"long\",\"value\":815}},\"PixelHeight\":{{\"type\":\"long\",\"value\":1055}},\"PageNumber\":{{\"type\":\"long\",\"value\":1}}}}",
+            "--outdir",
+            "{output_directory}",
+            "{input}"
+          ],
+          "environment": {
+            "SAL_USE_VCLPLUGIN": "svp"
+          },
+          "output": "{output_directory}/{input_stem}.png"
+        }
+      },
+      {
+        "id": "presentation-slide",
+        "input": "media-slide.pptx",
+        "output_extension": ".png",
+        "description": "Authored fixed-font document; first page/slide at 96 DPI",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "lo_binary",
+          "arguments": [
+            "-env:UserInstallation={profile_uri}",
+            "--headless",
+            "--convert-to",
+            "png:impress_png_Export:{{\"PixelWidth\":{{\"type\":\"long\",\"value\":960}},\"PixelHeight\":{{\"type\":\"long\",\"value\":540}},\"PageNumber\":{{\"type\":\"long\",\"value\":1}}}}",
+            "--outdir",
+            "{output_directory}",
+            "{input}"
+          ],
+          "environment": {
+            "SAL_USE_VCLPLUGIN": "svp"
+          },
+          "output": "{output_directory}/{input_stem}.png"
+        }
+      },
+      {
+        "id": "webp-encode",
+        "input": "large-alpha.png",
+        "output_extension": ".webp",
+        "description": "Full-size photograph with alpha, Lossless WebP encoding; PNG load and output write included",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color",
+            "--image-compression",
+            "Lossless"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "cwebp",
+          "arguments": [
+            "-quiet",
+            "-mt",
+            "-exact",
+            "-lossless",
+            "-q",
+            "75",
+            "{input}",
+            "-o",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "webp-encode-lossy",
+        "input": "large-alpha.png",
+        "output_extension": ".webp",
+        "description": "Full-size photograph with alpha, Lossy WebP encoding; PNG load and output write included",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color",
+            "--image-compression",
+            "Lossy",
+            "--quality",
+            "75"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "cwebp",
+          "arguments": [
+            "-quiet",
+            "-mt",
+            "-exact",
+            "-q",
+            "75",
+            "{input}",
+            "-o",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "case": "jpeg-photo",
+        "filename": "photo-baseline.jpg",
+        "bytes": 2510777,
+        "sha256": "b6b3b4ddd257c21cf55a8f9f513314186a1ff9d78e235165824cc4e65a9b47c9"
+      },
+      {
+        "case": "jpeg-photo-progressive",
+        "filename": "photo-progressive.jpg",
+        "bytes": 2266002,
+        "sha256": "a2405016e2e151134b090eea489d20391d81a1f02f7f2c5ffab30bd1aa55e9ae"
+      },
+      {
+        "case": "webp-still",
+        "filename": "photo-lossy.webp",
+        "bytes": 1098782,
+        "sha256": "0bf22e95f8c5123be3a71dfee225658ce11e6de1aef494b38b8e8ccd7651bea1"
+      },
+      {
+        "case": "webp-still-lossless",
+        "filename": "photo-alpha-lossless.webp",
+        "bytes": 7694248,
+        "sha256": "15f92acb18c39c188f424c9554aac7d2a35d54c5e69b2288ae818e1761f090c7"
+      },
+      {
+        "case": "word-page",
+        "filename": "report-page.docx",
+        "bytes": 2544934,
+        "sha256": "67d7ffd322ef138a6e13a4aefbc59a05d63dc276ea55bbf00109df90c019abc0"
+      },
+      {
+        "case": "presentation-slide",
+        "filename": "media-slide.pptx",
+        "bytes": 2536027,
+        "sha256": "aa98e8bfce9bae95a857272887a1b07e5ccb132bbe6cb6ebf17aeb448e5c1180"
+      },
+      {
+        "case": "webp-encode",
+        "filename": "large-alpha.png",
+        "bytes": 11551937,
+        "sha256": "dcada30ef2dc0a75ada42e0d41f82519d8ad51d1561788fb9c69c9d39e7383a1"
+      },
+      {
+        "case": "webp-encode-lossy",
+        "filename": "large-alpha.png",
+        "bytes": 11551937,
+        "sha256": "dcada30ef2dc0a75ada42e0d41f82519d8ad51d1561788fb9c69c9d39e7383a1"
+      }
+    ]
+  },
+  "video": {
+    "revision": "8ce822571594336e78f850578be875079e2490f0",
+    "mediana_sha256": "3841aa738eb4600e75ef8b383dce5205741a3ce145ac05a610c3af44084903ed",
+    "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpus": [
+      2,
+      4
+    ],
+    "repeats": 3,
+    "scope": "fresh process, complete command, warm filesystem cache",
+    "output_storage": "temporary decoded pair, validation and removal outside timing",
+    "manifest": [
+      {
+        "id": "avc-decode-30m",
+        "input": "video-30m.mp4",
+        "description": "Every native YUV420P8 frame, including SHA-256 and presentation timing, for complete 1800-second 720p24 AVC stream",
+        "output_extension": ".framehash",
+        "mediana": {
+          "environment": {},
+          "output": "{output}",
+          "tool": "mediana_operations",
+          "arguments": [
+            "video",
+            "{input}",
+            "{output}"
+          ]
+        },
+        "alternative": {
+          "environment": {},
+          "output": "{output}",
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-threads",
+            "2",
+            "-i",
+            "{input}",
+            "-map",
+            "0:v:0",
+            "-an",
+            "-pix_fmt",
+            "yuv420p",
+            "-fps_mode",
+            "passthrough",
+            "-threads",
+            "2",
+            "-f",
+            "framehash",
+            "-hash",
+            "sha256",
+            "{output}"
+          ]
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "case": "avc-decode-30m",
+        "filename": "video-30m.mp4",
+        "bytes": 1259053613,
+        "sha256": "021c5abf6d64e821a5eca3898fc5c556f261b1220d9a64644f91cfc244df8313"
+      }
+    ]
+  },
+  "copy": {
+    "revision": "8ce822571594336e78f850578be875079e2490f0",
+    "mediana_sha256": "3841aa738eb4600e75ef8b383dce5205741a3ce145ac05a610c3af44084903ed",
+    "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpus": [
+      2,
+      4
+    ],
+    "repeats": 3,
+    "scope": "fresh process, complete command, warm filesystem cache",
+    "output_storage": "temporary decoded pair, validation and removal outside timing",
+    "manifest": [
+      {
+        "id": "remux-hls",
+        "input": "video-30m.mp4",
+        "output_extension": ".ts",
+        "description": "Complete 1800-second AVC/AAC stream copy to MPEG-TS; no video or audio re-encoding",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output}"
+        },
+        "alternative": {
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-copyts",
+            "-threads",
+            "2",
+            "-i",
+            "{input}",
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0",
+            "-c",
+            "copy",
+            "-mpegts_copyts",
+            "1",
+            "-output_ts_offset",
+            "1",
+            "-muxdelay",
+            "0",
+            "-f",
+            "mpegts",
+            "{output}"
+          ],
+          "environment": {},
+          "output": "{output}"
+        }
+      },
+      {
+        "id": "hls-segment-30m",
+        "input": "video-30m.mp4",
+        "output_extension": ".m3u8",
+        "description": "Complete 1800-second AVC/AAC VOD segmentation with 6-second target; no re-encoding",
+        "mediana": {
+          "tool": "mediana",
+          "arguments": [
+            "hls",
+            "create",
+            "{input}",
+            "{output_directory}/hls",
+            "--video-stream",
+            "0",
+            "--audio-stream",
+            "1",
+            "--segment-ms",
+            "6000",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ],
+          "environment": {},
+          "output": "{output_directory}/hls/index.m3u8"
+        },
+        "alternative": {
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-copyts",
+            "-threads",
+            "2",
+            "-i",
+            "{input}",
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0",
+            "-c",
+            "copy",
+            "-f",
+            "hls",
+            "-hls_time",
+            "6",
+            "-hls_playlist_type",
+            "vod",
+            "-hls_segment_filename",
+            "{output_directory}/segment-%05d.ts",
+            "{output_directory}/index.m3u8"
+          ],
+          "environment": {},
+          "output": "{output_directory}/index.m3u8"
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "case": "remux-hls",
+        "filename": "video-30m.mp4",
+        "bytes": 1259053613,
+        "sha256": "021c5abf6d64e821a5eca3898fc5c556f261b1220d9a64644f91cfc244df8313"
+      },
+      {
+        "case": "hls-segment-30m",
+        "filename": "video-30m.mp4",
+        "bytes": 1259053613,
+        "sha256": "021c5abf6d64e821a5eca3898fc5c556f261b1220d9a64644f91cfc244df8313"
+      }
+    ]
+  },
+  "transcode": {
+    "revision": "8ce822571594336e78f850578be875079e2490f0",
+    "mediana_sha256": "3841aa738eb4600e75ef8b383dce5205741a3ce145ac05a610c3af44084903ed",
+    "system": "Linux-6.8.0-147-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpus": [
+      2,
+      4
+    ],
+    "repeats": 3,
+    "scope": "fresh process, complete command, warm filesystem cache",
+    "output_storage": "temporary decoded pair, validation and removal outside timing",
+    "manifest": [
+      {
+        "id": "avc-transcode-30m",
+        "input": "video-30m.mp4",
+        "output_extension": ".ts",
+        "description": "Full 1800-second 1280x720p24 software transcode, video only: constrained baseline, 10 Mbit/s target, 20 Mbit buffer; decoded source PSNR recorded separately; quality is not assumed equal",
+        "mediana": {
+          "environment": {},
+          "output": "{output}",
+          "tool": "mediana",
+          "arguments": [
+            "-i",
+            "{input}",
+            "{output}",
+            "--video-codec",
+            "H264",
+            "--video-only",
+            "--qp",
+            "26",
+            "--video-bit-rate",
+            "10000000",
+            "--video-buffer-ms",
+            "2000",
+            "--log-level",
+            "Error",
+            "--no-color"
+          ]
+        },
+        "alternative": {
+          "environment": {},
+          "output": "{output}",
+          "tool": "ffmpeg",
+          "arguments": [
+            "-nostdin",
+            "-v",
+            "error",
+            "-xerror",
+            "-threads",
+            "2",
+            "-i",
+            "{input}",
+            "-map",
+            "0:v:0",
+            "-an",
+            "-c:v",
+            "libx264",
+            "-threads",
+            "2",
+            "-preset",
+            "veryfast",
+            "-profile:v",
+            "baseline",
+            "-level:v",
+            "4.1",
+            "-pix_fmt",
+            "yuv420p",
+            "-b:v",
+            "10000000",
+            "-maxrate",
+            "10000000",
+            "-bufsize",
+            "20000000",
+            "-g",
+            "48",
+            "-keyint_min",
+            "48",
+            "-sc_threshold",
+            "0",
+            "-fps_mode",
+            "passthrough",
+            "-mpegts_copyts",
+            "1",
+            "-output_ts_offset",
+            "1",
+            "-muxdelay",
+            "0",
+            "-f",
+            "mpegts",
+            "{output}"
+          ]
+        }
+      }
+    ],
+    "inputs": [
+      {
+        "case": "avc-transcode-30m",
+        "filename": "video-30m.mp4",
+        "bytes": 1259053613,
+        "sha256": "021c5abf6d64e821a5eca3898fc5c556f261b1220d9a64644f91cfc244df8313"
+      }
+    ]
+  },
+  "mesh": {
+    "source_report": "../../../mesh-performance.md",
+    "measurements": "../../../mesh-performance.csv",
+    "scope": "three fresh JIT processes per engine; warm-up plus three operations per process; mean operation time, lifetime RSS",
+    "input": {
+      "filename": "dog.3mf",
+      "sha256": "6bf89d150866041766f3b7da3776470960ca63855ffdf968aa6f8978b7511f4b"
+    }
+  }
+}

@@ -17,14 +17,14 @@ namespace Mediana.Tests
     internal static class ImageEngineTestInput
     {
         public static SampleAspectRatio Aspect { get; } = new(3, 2);
-        public static MediaEngine CreateEngine() => new MediaEngineBuilder()
-            .AddImageDecoder(new HeicImageDecoder(Aspect))
+        public static MediaEngine CreateEngine(ChromaUpsamplingFilter filter = ChromaUpsamplingFilter.Bilinear) => new MediaEngineBuilder()
+            .AddImageDecoder(new HeicImageDecoder(Aspect, new(filter)))
             .AddImageDecoder(new Jpeg2000ImageDecoder(Aspect))
             .AddImageDecoder(new Jbig2ImageDecoder(Aspect)).Build();
 
         public static async Task VerifyAsync(string root)
         {
-            MediaEngine engine = CreateEngine();
+            MediaEngine engine = CreateEngine(ChromaUpsamplingFilter.NearestNeighbor);
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (JsonDocument references = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "Heif", "manifest.json"))))
             {

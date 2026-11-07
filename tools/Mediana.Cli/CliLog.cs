@@ -2,7 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Microsoft.Extensions.Logging;
-using Mediana.Core.Video;
 
 namespace Mediana.Cli
 {
@@ -10,10 +9,6 @@ namespace Mediana.Cli
     {
         [LoggerMessage(9, LogLevel.Information, "size={OutputMebibytes:F2} MiB")]
         public static partial void OutputProgress(ILogger logger, double outputMebibytes);
-
-        [LoggerMessage(8, LogLevel.Warning, "Missing source color metadata ({MissingFields}); preview uses primaries {Primaries}, transfer {Transfer}, matrix {Matrix}. Declared values were preserved.")]
-        public static partial void PreviewColorAssumed(ILogger logger, string missingFields, ColorPrimaries primaries,
-            TransferFunction transfer, MatrixCoefficients matrix);
 
         [LoggerMessage(1, LogLevel.Information, "Starting {Operation}.")]
         public static partial void Starting(ILogger logger, string operation);

@@ -1,0 +1,93 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
+using Mediana.Tests;
+
+namespace Mediana.NativeTests
+{
+    internal static class NativeIndexedMediaTests
+    {
+        public static async Task VerifyAsync(string root)
+        {
+            await FragmentHlsTestInput.VerifyAsync(root);
+            await OnDemandHlsTestInput.VerifyAsync(root);
+            await OggContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Ogg"));
+            if (OpusRangeTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data", "Opus")) != 65071)
+            {
+                throw new InvalidDataException("The Opus entropy reference operation count differs.");
+            }
+            Console.WriteLine("PASS Opus entropy: 65,071 independent symbols, final ranges and whole/fractional bit budgets match.");
+            string vorbisRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Vorbis");
+            if (VorbisCodebookTestInput.Verify(vorbisRoot) != 49152 ||
+                VorbisSpectrumTestInput.Verify(vorbisRoot) != 1183 ||
+                VorbisSpectrumTestInput.Verify(vorbisRoot, "synthetic-spectrum.bin.gz") != 192 ||
+                VorbisImdctTestInput.Verify(vorbisRoot) != 128 || VorbisPcmTestInput.Verify(vorbisRoot) != 1183)
+            {
+                throw new InvalidDataException("The Vorbis reference case count differs.");
+            }
+            Console.WriteLine("PASS Vorbis spectra: 49,152 codewords, both floors, all residues, 1,375 packets and nominal truncation match independent references.");
+            Console.WriteLine("PASS public Vorbis PCM: 1,183 sequential packets, 128 transforms, sample clocks, overlap transitions and lease ownership match independent references.");
+            await NativeHevcTests.VerifyAsync();
+            string hevcRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Hevc");
+            foreach (string name in new[] { "main8", "main10", "weighted8", "weighted10" })
+            {
+                int expected = name.StartsWith("weighted", StringComparison.Ordinal) ? 24 : 12;
+                if (await HevcSliceHeaderTestInput.VerifyAsync(hevcRoot, name) != expected)
+                {
+                    throw new InvalidDataException("The HEVC slice reference count differs.");
+                }
+            }
+            if (HevcCabacTestInput.Verify(hevcRoot) != 129888 || HevcInterpolationTestInput.Verify(hevcRoot) != 1280)
+            {
+                throw new InvalidDataException("The HEVC arithmetic or interpolation reference count differs.");
+            }
+            Console.WriteLine("PASS HEVC primitives: 72 I/P/B headers, Main/Main10 weights, 129,888 arithmetic bins, WPP snapshots and 1,280 exact fractional predictions.");
+            if (HevcWeightedPredictionTestInput.Verify(hevcRoot) != 2592 ||
+                await HevcMotionCompensationTestInput.VerifyAsync(hevcRoot) != 768)
+            {
+                throw new InvalidDataException("The HEVC motion reference count differs.");
+            }
+            await HevcPictureStorageTestInput.VerifyAsync(hevcRoot, "main8");
+            await HevcPictureStorageTestInput.VerifyAsync(hevcRoot, "main10");
+            Console.WriteLine("PASS HEVC motion: 2,592 weighted predictions, 768 Main/Main10 complete motion blocks and shared reference/output pixel ownership.");
+            string opusRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Opus");
+            if (OpusPulseTestInput.Verify(opusRoot) != 13574 || OpusLaplaceTestInput.Verify(opusRoot) != 5257 ||
+                OpusEnergyTestInput.Verify(opusRoot) != 768 || OpusAllocationTestInput.Verify(opusRoot) != 4096 ||
+                OpusFrameSyntaxTestInput.Verify(opusRoot) != 1024 || OpusVectorTestInput.Verify(opusRoot) != 3793 ||
+                OpusVectorTestInput.Verify(opusRoot, "normalized-vectors-16.bin") != 1864 ||
+                OpusSplitTestInput.Verify(opusRoot) != 8105 || OpusSpectralTestInput.VerifyPartitions(opusRoot) != 7682 ||
+                OpusSpectralTestInput.VerifyBands(opusRoot) != 7782 || OpusSpectralTestInput.VerifyStereoBands(opusRoot) != 7708 ||
+                OpusSpectrumTestInput.Verify(opusRoot) != 1963 || OpusSpectrumTestInput.Verify(opusRoot, "encoded-spectra.bin") != 1152 ||
+                OpusImdctTestInput.Verify(opusRoot) != 128 || OpusRestorationTestInput.Verify(opusRoot) != 512 ||
+                OpusConfigurationTestInput.Verify(opusRoot) != 256 || OpusSynthesisTestInput.Verify(opusRoot) != 128 ||
+                OpusCeltPcmTestInput.Verify(opusRoot) != 2448 || OpusSilkPulseTestInput.Verify(opusRoot) != 2880 ||
+                OpusSilkControlsTestInput.Verify(opusRoot) != 1536 || OpusSilkNlsfTestInput.Verify(opusRoot) != 5888 ||
+                OpusSilkLpcTestInput.Verify(opusRoot) != 6144 || OpusSilkIndicesTestInput.Verify(opusRoot) != 3456 ||
+                OpusSilkParametersTestInput.Verify(opusRoot) != 2304 || OpusSilkFixedTestInput.Verify(opusRoot) != 12288 ||
+                OpusSilkSynthesisTestInput.Verify(opusRoot) != 768 || OpusSilkStereoTestInput.Verify(opusRoot) != 1536 ||
+                OpusSilkResamplerTestInput.Verify(opusRoot) != 768 || OpusSilkPcmTestInput.Verify(opusRoot) != 3072 ||
+                OpusCeltPcmTestInput.Verify(opusRoot, "decoded-hybrid.bin") != 576 ||
+                OpusCeltPcmTestInput.Verify(opusRoot, "decoded-transitions.bin") != 768 ||
+                OpusMultistreamTestInput.Verify(opusRoot) != 144 ||
+                OpusSilkSignalTestInput.Verify(opusRoot) != 4096 || OpusSilkConcealmentTestInput.Verify(opusRoot) != 288 ||
+                OpusSilkNoiseTestInput.Verify(opusRoot) != 192 || OpusCeltPredictionTestInput.Verify(opusRoot) != 128 ||
+                OpusSilkRecoveryTestInput.Verify(opusRoot) != 4608 ||
+                OpusSilkRecoveryTestInput.Verify(opusRoot, "decoded-hybrid-silk-recovery.bin.gz") != 1536 ||
+                OpusRecoveryTestInput.Verify(opusRoot, "decoded-silk-recovery.bin.gz") != 4608 ||
+                OpusRecoveryTestInput.Verify(opusRoot, "decoded-celt-recovery.bin.gz") != 6144 ||
+                OpusRecoveryTestInput.Verify(opusRoot, "decoded-hybrid-recovery.bin.gz") != 1536 ||
+                OpusRecoveryTestInput.Verify(opusRoot, "decoded-unprimed-transitions.bin.gz") != 1024)
+            {
+                throw new InvalidDataException("The Opus reference case count differs.");
+            }
+            Console.WriteLine("PASS CELT: spectral stages, transforms, filtering and 2,448 sequential PCM frames match independent references.");
+            Console.WriteLine("PASS Opus recovery: 13,312 public packets, DTX, long losses, mode transitions, PCM, timestamps and lease ownership.");
+            Console.WriteLine("PASS public Opus multistream: 144 packets, one through eight channels, self-delimited framing and mapped PCM match independent references.");
+            Console.WriteLine("PASS Opus hybrid and transitions: 1,344 sequential frames, shared entropy, bandwidth changes and redundancy match independent PCM.");
+            Console.WriteLine("PASS SILK synthesis: frame controls, pulses, LSF/LPC, pitch rewhitening, PCM and retained histories match independent references.");
+            Console.WriteLine("PASS on-demand HLS encoding: independent reverse and repeated mid-GOP windows, exact reference pixels, clocks and allocation release.");
+            Console.WriteLine("PASS Ogg: independent Opus/Vorbis packets, metadata, reverse requests, seek preroll and borrowed source ownership.");
+            Console.WriteLine("PASS indexed fMP4 HLS: initialization, reverse segment requests, repeated hashes and allocation release match.");
+        }
+    }
+}

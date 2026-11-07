@@ -67,6 +67,7 @@ namespace Mediana.Tests
             Assert.True(copy.Values[4].AsBoolean());
             Assert.Equal(0.125, copy.Values[5].AsNumber());
             Assert.Throws<InvalidOperationException>(() => copy.Values[0].AsNumber());
+            Assert.Equal((0L, 0L), MediaPropertyValue.FromRational(0, 0).AsRational());
             Assert.Throws<ArgumentOutOfRangeException>(() => MediaPropertyValue.FromRational(1, 0));
             Assert.Throws<ArgumentException>(() => new MediaProperty("example", "undefined", default(MediaPropertyValue)));
         }

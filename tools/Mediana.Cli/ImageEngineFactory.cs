@@ -2,12 +2,17 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Mediana.Codecs.Bmp;
+using Mediana.Codecs.Gif;
+using Mediana.Codecs.Tiff;
+using Mediana.Codecs.Webp;
 using Mediana.Codecs.Jbig2;
 using Mediana.Codecs.Jpeg;
 using Mediana.Codecs.Jpeg2000;
 using Mediana.Codecs.Png;
 using Mediana.Core.Video;
 using Mediana.Documents.Pdf;
+using Mediana.Documents.Presentation;
 using Mediana.Documents.Word;
 using Mediana.Documents.OpenXml;
 using Mediana.Images.Heif;
@@ -21,6 +26,8 @@ namespace Mediana.Cli
     internal static class ImageEngineFactory
     {
         private const int MaximumDocumentPreviewDimension = 1200;
+
+        public static MediaEngine CreateVisual() => AddDecoders(ContainerEngineFactory.CreateVideoBuilder(Mediana.Containers.Mp4.Mp4TimestampMode.LinearMovie)).Build();
 
         public static MediaEngine Create() => AddDecoders(new MediaEngineBuilder()).Build();
 
@@ -38,6 +45,11 @@ namespace Mediana.Cli
                 MaximumWidth = MaximumDocumentPreviewDimension, MaximumHeight = MaximumDocumentPreviewDimension,
                 MaximumSamples = CommandImageResources.MaximumRgbaPixels, MaximumImagePixels = CommandImageResources.MaximumRgbaPixels,
                 ImageColorResolver = SdrPreviewColorPolicy.Resolve
+            }), new PresentationPageDecoder(new() { Package = CommandImageResources.PackageOptions }, new()
+            {
+                MaximumWidth = MaximumDocumentPreviewDimension, MaximumHeight = MaximumDocumentPreviewDimension,
+                MaximumSamples = CommandImageResources.MaximumRgbaPixels, MaximumImagePixels = CommandImageResources.MaximumRgbaPixels,
+                ImageColorResolver = SdrPreviewColorPolicy.Resolve
             }), new ThreeMfPageDecoder()], CommandImageResources.PackageOptions))
             .AddImageDecoder(new PdfImageDecoder(CommandImageResources.PdfReaderOptions, CommandImageResources.PdfRenderOptions with
             {
@@ -48,6 +60,11 @@ namespace Mediana.Cli
 
         internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
             .UseResources(CommandTextResources.Shared)
+            .AddImageDecoder(new BmpImageDecoder())
+            .AddImageDecoder(new IcoImageDecoder())
+            .AddImageDecoder(new GifImageDecoder())
+            .AddImageDecoder(new TiffImageDecoder())
+            .AddImageDecoder(new WebpImageDecoder())
             .AddImageDecoder(new PngImageDecoder(new()
             {
                 MaximumEncodedBytes = CommandImageResources.MaximumBufferLength,
@@ -56,7 +73,8 @@ namespace Mediana.Cli
             .AddImageDecoder(new JpegImageDecoder(new()
             {
                 MaximumEncodedBytes = CommandImageResources.MaximumBufferLength,
-                MaximumPixels = CommandImageResources.MaximumRgbaPixels
+                MaximumPixels = CommandImageResources.MaximumRgbaPixels,
+                ChromaConflictPolicy = JpegChromaConflictPolicy.UseJfif
             }))
             .AddImageDecoder(CreateHeic(SampleAspectRatio.Square))
             .AddImageDecoder(CreateJpeg2000(SampleAspectRatio.Square))

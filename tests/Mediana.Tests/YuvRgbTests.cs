@@ -62,11 +62,11 @@ namespace Mediana.Tests
             using MediaBuffer buffer = writable.Publish();
             using VideoFrame frame = new(new VideoFormat(4, 4, VideoPixelFormat.Yuv420P8), buffer,
                 [new PlaneLayout(0, 6, 4, 4), new PlaneLayout(24, 5, 2, 2), new PlaneLayout(40, 4, 2, 2)]);
-            BilinearChromaRow middle = new(frame, 1, 1, location);
+            BilinearChromaRow<byte> middle = new(frame, 1, 1, location);
             Assert.Equal(expected, middle.Sample(1));
-            BilinearChromaRow first = new(frame, 1, 0, location);
+            BilinearChromaRow<byte> first = new(frame, 1, 0, location);
             Assert.Equal(0, first.Sample(0));
-            BilinearChromaRow last = new(frame, 1, 3, location);
+            BilinearChromaRow<byte> last = new(frame, 1, 3, location);
             Assert.Equal(240, last.Sample(3));
         }
     }

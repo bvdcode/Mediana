@@ -1,0 +1,33 @@
+id,format_ids,operation,workload,alternative,track,report
+heic-photo-12mp,heif-wrapper;heic-main,decode,12 MP real photograph to source-color RGBA8 (no ICC transform); nearest-neighbor chroma,libheif + libde265,ordinary,
+heic-photo-200mp,heif-wrapper;heic-main,decode,199.76 MP real tiled photograph to source-color RGBA8 (no ICC transform); nearest-neighbor chroma,libheif + libde265,heavy,
+heic-preview,heif-wrapper;heic-main,decode,Real ICC-profiled photograph to full-size PNG,libheif + libde265 / heif-convert,ordinary,results/2026-11-06/README.md
+jpeg-photo,jpeg-baseline,decode,2560-square baseline JPEG photograph to PNG,libjpeg-turbo 3.1.4.1 / Pillow,ordinary,
+jpeg-photo-progressive,jpeg-progressive,decode,2560-square progressive JPEG photograph to PNG,libjpeg-turbo 3.1.4.1 / Pillow,ordinary,
+png-large,png-alpha,decode,2560-square noninterlaced RGBA photograph to PNG,FFmpeg,heavy,
+webp-still,webp-lossy,decode,2560-square lossy VP8 photograph to PNG,libwebp 1.6.0 / Pillow,ordinary,
+webp-still-lossless,webp-lossless;webp-extended,decode,2560-square lossless VP8L photograph with alpha to PNG,libwebp 1.6.0 / Pillow,ordinary,
+webp-animation,webp-animation,decode,All 177 composited frames of a 512-square lossless animation,libwebp 1.3.2,heavy,
+webp-encode,webp-lossless,encode,2560-square photograph with alpha to lossless WebP,libwebp 1.3.2 / cwebp,ordinary,../../benchmarks/Mediana.WebpBenchmarks/README.md
+webp-encode-lossy,webp-lossy;webp-extended,encode,2560-square photograph with alpha to lossy WebP; quality setting 75; source error and size measured,libwebp 1.3.2 / cwebp,ordinary,
+raster-pages,tiff-lzw,decode,Complete single-page 2560-square RGB LZW TIFF to PNG,FFmpeg,ordinary,
+jp2-scan,jp2-wrapper;j2k-reversible,decode,2560-square 8-bit reversible JP2 photograph with 512-square tiles,OpenJPEG 2.5.0,heavy,
+jbig2-scan,jbig2-sequential,decode,Complete 2048x3072 monochrome MMR text/rule page,jbig2dec 0.20,heavy,
+flac-track,flac-native;flac-codec,decode,Complete 596-second stereo film soundtrack to PCM16 WAVE,FFmpeg,ordinary,
+flac-sustained,flac-native;flac-codec,decode,Complete 10-minute stereo stress stream to PCM16 WAVE,FFmpeg,heavy,
+mp3-long,mp3-file;mp3-mpeg1,decode,Complete 2460.096-second 48 kHz stereo MP3 stress input to PCM16 WAVE,FFmpeg,heavy,
+aac-multichannel,mp4-classic;aac-lc,decode,Complete 596-second AAC-LC 5.1 soundtrack in M4A to PCM16 WAVE,FFmpeg,heavy,
+audio-resample,pcm-s16;mp3-mpeg1,process,Complete 2460.096-second stereo MP3; mono downmix and 48-to-16 kHz resampling,FFmpeg / libswresample,heavy,
+avc-decode-30m,mp4-classic;avc-main,decode,All 43201 frames of a 30-minute 720p video; native YUV decoding plus per-frame SHA-256,FFmpeg,heavy,
+avc-transcode-30m,avc-constrained-baseline;mpeg-ts,encode,Complete 30-minute 720p24 video-only transcode; 10 Mbit/s target; source PSNR and size measured,FFmpeg / libx264,heavy,../h264-hd-encoding.md
+remux-hls,mp4-classic;mpeg-ts,write,Complete 30-minute AVC/AAC MP4 to MPEG-TS stream copy,FFmpeg,heavy,
+hls-segment-30m,hls-ts-vod;mpeg-ts,write,Complete 30-minute AVC/AAC VOD segmentation; playlist and every MPEG-TS segment,FFmpeg,heavy,
+pdf-page,pdf-1,render,Letter page with Core14 text and 540 vector rectangles at 96 DPI,Poppler 26.05.0,ordinary,
+pdf-scan,pdf-1;jpeg-baseline,render,Letter page containing a 2560-square JPEG and grayscale soft mask at 96 DPI,Poppler 26.05.0,heavy,
+svg-scene,svg-static,render,2560-square scene; 180 gradient circles plus clipping and Gaussian blur,librsvg 2.58.0,heavy,
+tgs-animation,tgs;lottie-json,render,All 180 frames of a 512-square 44-layer sticker; supersampling 1,rlottie ea06d2f,heavy,
+word-page,docx-transitional,render,First Letter page; paragraphs/table/photo/footer using installed DejaVu Sans at 96 DPI,LibreOfficeDev 26.8 alpha0,ordinary,
+presentation-slide,pptx-transitional,render,960x540 slide; inherited title layout plus photo and themed chart shapes,LibreOfficeDev 26.8 alpha0,ordinary,
+spreadsheet-read,xlsx-transitional,read,All 400000 numeric XLSX cells including 80000 cached formulas; LE binary64 export,ExcelDataReader 3.9.0 / .NET 10 JIT,heavy,
+mesh-preview,3mf-core,render,Complete 28-mesh dog.3mf model to 512-square RGBA; warmed JIT operation mean and lifetime RSS,Render.NET,heavy,../mesh-performance.md
+ogg-index,ogg,read,Complete 1800-second Ogg Opus scan and all encoded payload bytes,FFmpeg,heavy,

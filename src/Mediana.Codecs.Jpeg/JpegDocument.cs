@@ -17,11 +17,6 @@ namespace Mediana.Codecs.Jpeg
         private readonly JpegHuffmanTable?[] huffman = new JpegHuffmanTable[8];
         private JpegComponent[] components = [];
         private readonly JpegMetadata metadata = new();
-        private static readonly IReadOnlyList<string> RestartWarnings = Array.AsReadOnly(new[]
-        {
-            "Ignored a redundant final JPEG restart marker immediately before EOI."
-        });
-        private bool recoveredRestart;
         private int restartInterval;
         private byte frameMarker;
         internal int Width { get; private set; }
@@ -31,7 +26,9 @@ namespace Mediana.Codecs.Jpeg
         internal IReadOnlyList<JpegComponent> Components => components;
         internal JpegMetadata Metadata => metadata;
         internal bool Progressive => frameMarker == 194;
-        internal IReadOnlyList<string> Warnings => recoveredRestart ? RestartWarnings : Array.Empty<string>();
+        internal IReadOnlyList<string> Warnings { get; private set; } = Array.Empty<string>();
+
+        private void AddWarning(string warning) => Warnings = Array.AsReadOnly<string>([.. Warnings, warning]);
 
         internal void RecoverFinalRestart(int expected)
         {
@@ -40,7 +37,7 @@ namespace Mediana.Codecs.Jpeg
                 && remaining[2] == 255 && remaining[3] == 217)
             {
                 reader.NextMarker();
-                recoveredRestart = true;
+                AddWarning("Ignored a redundant final JPEG restart marker immediately before EOI.");
             }
         }
 
@@ -70,7 +67,11 @@ namespace Mediana.Codecs.Jpeg
                     }
                     if (!componentSamples)
                     {
-                        metadata.Validate(components, sourceColorSpace, sampleAspectRatio, allocator is not null);
+                        metadata.Validate(components, sourceColorSpace, sampleAspectRatio, allocator is not null, options.ChromaConflictPolicy);
+                        if (metadata.UsedJfifChromaPosition)
+                        {
+                            AddWarning("JPEG JFIF and Exif chroma positions conflict; using centered JFIF chroma positioning.");
+                        }
                     }
                     if (Progressive && allocator is not null)
                     {
@@ -112,7 +113,7 @@ namespace Mediana.Codecs.Jpeg
                     case >= 224 and <= 239:
                         if (!componentSamples || marker == 238)
                         {
-                            metadata.Read(marker, segment, token);
+                            metadata.Read(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);
                             if (allocator is null)
                             {
                                 metadata.Inspect(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);

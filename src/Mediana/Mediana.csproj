@@ -5,5 +5,6 @@
     <ProjectReference Include="../Mediana.Containers/Mediana.Containers.csproj" />
     <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
     <ProjectReference Include="../Mediana.Execution/Mediana.Execution.csproj" />
+    <ProjectReference Include="../Mediana.Processing/Mediana.Processing.csproj" />
   </ItemGroup>
 </Project>

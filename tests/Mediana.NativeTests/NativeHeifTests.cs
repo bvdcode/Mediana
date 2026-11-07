@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Tests;
+using Mediana.Core.Video;
 
 namespace Mediana.NativeTests
 {
@@ -12,7 +13,14 @@ namespace Mediana.NativeTests
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Heif");
             await HeifReferenceTestInput.VerifyWavefrontAsync();
             await HeifReferenceTestInput.VerifyAllAsync(root);
+            await HeifReferenceTestInput.VerifyChromaAsync(root);
+            await HeifReferenceTestInput.VerifyFiltersAsync(root);
             await HeifFrameOwnershipTestInput.VerifyAsync(root);
+            foreach (ChromaUpsamplingFilter filter in new[] { ChromaUpsamplingFilter.NearestNeighbor,
+                ChromaUpsamplingFilter.Bilinear, ChromaUpsamplingFilter.Bicubic, ChromaUpsamplingFilter.Lanczos3 })
+            {
+                await HeifFrameOwnershipTestInput.VerifyIccAsync(root, Path.Combine(AppContext.BaseDirectory, "Data", "Icc"), filter);
+            }
             await HeifMetadataTestInput.VerifyAsync(root);
             ExifMetadataTestInput.Verify();
             await HeifExifTestInput.VerifyAsync(root);

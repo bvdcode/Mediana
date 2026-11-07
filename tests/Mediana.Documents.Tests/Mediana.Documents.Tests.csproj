@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <ProjectReference Include="../../src/Mediana.Documents.Presentation/Mediana.Documents.Presentation.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Xls/Mediana.Documents.Xls.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Xlsx/Mediana.Documents.Xlsx.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Word/Mediana.Documents.Word.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Pdf/Mediana.Documents.Pdf.csproj" />
+    <Compile Include="../Shared/DocumentPackageTestData.cs" Link="DocumentPackageTestData.cs" />
+    <Compile Include="../Shared/XlsxWorkbookTestData.cs" Link="XlsxWorkbookTestData.cs" />
+    <Compile Include="../Shared/XlsWorkbookTestData.cs" Link="XlsWorkbookTestData.cs" />
+    <Compile Include="../Shared/PresentationTestData.cs" Link="PresentationTestData.cs" />
+    <Compile Include="../Shared/PresentationFillLocation.cs" Link="PresentationFillLocation.cs" />
+    <Compile Include="../Shared/PresentationImageFillTestData.cs" Link="PresentationImageFillTestData.cs" />
+    <Compile Include="../Shared/PresentationImageFillTestInput.cs" Link="PresentationImageFillTestInput.cs" />
+    <Compile Include="../Shared/PdfTextTestData.cs" Link="PdfTextTestData.cs" />
+    <Compile Include="../Shared/DocumentReadersTestInput.cs" Link="DocumentReadersTestInput.cs" />
+    <Compile Include="../Shared/WordTestInput.cs" Link="WordTestInput.cs" />
+    <Compile Include="../Shared/EmbeddedTestImageDecoder.cs" Link="EmbeddedTestImageDecoder.cs" />
+  </ItemGroup>
+</Project>

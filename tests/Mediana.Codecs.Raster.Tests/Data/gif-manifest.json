@@ -1,0 +1,114 @@
+[
+  {
+    "file": "opaque.gif",
+    "pixels": "opaque-0.rgba",
+    "page": 0,
+    "duration": 40,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "opaque.gif",
+    "pixels": "opaque-1.rgba",
+    "page": 1,
+    "duration": 70,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "opaque.gif",
+    "pixels": "opaque-2.rgba",
+    "page": 2,
+    "duration": 90,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "opaque.gif",
+    "pixels": "opaque-3.rgba",
+    "page": 3,
+    "duration": 120,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "transparent.gif",
+    "pixels": "transparent-0.rgba",
+    "page": 0,
+    "duration": 40,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "transparent.gif",
+    "pixels": "transparent-1.rgba",
+    "page": 1,
+    "duration": 70,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "transparent.gif",
+    "pixels": "transparent-2.rgba",
+    "page": 2,
+    "duration": 90,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "transparent.gif",
+    "pixels": "transparent-3.rgba",
+    "page": 3,
+    "duration": 120,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "retain.gif",
+    "pixels": "retain-0.rgba",
+    "page": 0,
+    "duration": 40,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "retain.gif",
+    "pixels": "retain-1.rgba",
+    "page": 1,
+    "duration": 70,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "retain.gif",
+    "pixels": "retain-2.rgba",
+    "page": 2,
+    "duration": 90,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "retain.gif",
+    "pixels": "retain-3.rgba",
+    "page": 3,
+    "duration": 120,
+    "width": 37,
+    "height": 29
+  },
+  {
+    "file": "large-lzw-False.gif",
+    "pixels": "large-lzw-False.rgba",
+    "page": 0,
+    "duration": 0,
+    "width": 129,
+    "height": 97
+  },
+  {
+    "file": "large-lzw-True.gif",
+    "pixels": "large-lzw-True.rgba",
+    "page": 0,
+    "duration": 0,
+    "width": 129,
+    "height": 97
+  }
+]

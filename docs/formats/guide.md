@@ -136,6 +136,15 @@ Container round trips must preserve the promised packets, timing and metadata.
 
 ## CPU, memory and AOT
 
+The [performance register](../performance/README.md) maps format rows to ordinary
+and heavy whole-operation workloads, named alternatives and measured elapsed /
+CPU / peak RSS columns. Its links appear at the end of each applicable format
+row. Keep numerical results there: a 200 MP photograph, a long audio stream and
+a 30-minute video are different experiments, even when they share one container.
+`docs/performance/cases.csv` defines cases and `results.csv` holds measured
+medians with their detailed evidence. The catalog generator checks and updates
+both tables. An empty comparison cell is an open measurement, not zero cost.
+
 Measure useful complete operations, including demux, decode, processing, encode
 and finalization where those are part of the task. Also keep isolated codec/kernel
 measurements to locate costs. Do not substitute one extracted frame for a complete

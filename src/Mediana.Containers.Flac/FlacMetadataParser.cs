@@ -14,30 +14,14 @@ namespace Mediana.Containers.Flac
         public static string ReadComments(ReadOnlySpan<byte> data, List<FlacComment> comments, FlacReadOptions options,
             FlacConfiguration configuration, CancellationToken cancellationToken)
         {
-            FlacMetadataCursor cursor = new(data, options.MaxTextBytes);
-            string vendor = cursor.ReadText(littleEndian: true);
-            uint count = cursor.ReadUInt32(littleEndian: true);
-            if (count > options.MaxComments)
-            {
-                throw new NotSupportedException("The FLAC comment count exceeds its configured limit.");
-            }
-            if (count > cursor.Remaining / sizeof(uint))
-            {
-                throw new InvalidDataException("The FLAC comment count exceeds its metadata block.");
-            }
-            for (uint index = 0; index < count; index++)
+            VorbisCommentReader cursor = new(data, options.MaxTextBytes, options.MaxComments);
+            while (cursor.TryRead(out VorbisComment field, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                string field = cursor.ReadText(littleEndian: true);
-                int separator = field.IndexOf('=');
-                if (separator <= 0 || field.AsSpan(0, separator).ContainsAnyExceptInRange(' ', '~'))
-                {
-                    throw new InvalidDataException("A FLAC comment requires a printable ASCII name followed by '='.");
-                }
-                string name = field[..separator];
+                string name = field.Name;
                 if (name.Equals("WAVEFORMATEXTENSIBLE_CHANNEL_MASK", StringComparison.OrdinalIgnoreCase))
                 {
-                    ReadOnlySpan<char> value = field.AsSpan(separator + 1);
+                    ReadOnlySpan<char> value = field.Value.AsSpan();
                     if (!value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
                         || !uint.TryParse(value[2..], NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture, out uint mask))
                     {
@@ -48,10 +32,13 @@ namespace Mediana.Containers.Flac
                         throw new NotSupportedException("Custom FLAC channel masks are not supported.");
                     }
                 }
-                comments.Add(new FlacComment(name, field[(separator + 1)..]));
+                comments.Add(new FlacComment(name, field.Value));
             }
-            cursor.RequireEnd();
-            return vendor;
+            if (cursor.ConsumedBytes != data.Length)
+            {
+                throw new InvalidDataException("The FLAC comment block contains unexpected trailing bytes.");
+            }
+            return cursor.Vendor;
         }
 
         public static FlacPictureInfo ReadPicture(ReadOnlySpan<byte> data, FlacReadOptions options, out int offset)

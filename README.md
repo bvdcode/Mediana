@@ -5,9 +5,10 @@ Its media implementation is written in C#, with no FFmpeg, external media proces
 native media libraries, or third-party runtime packages.
 
 The current implementation is experimental. It reads metadata and compressed packets from
-non-fragmented MP4/MOV/M4A files containing AVC, AAC or MP3 tracks. The MP4 reader also
+non-fragmented MP4/MOV/M4A files containing AVC, HEVC, AAC or MP3 tracks. The MP4 reader also
 exposes movie-level iTunes/indexed metadata and original encoded cover art. The H.264 source module
-connects limited CAVLC and CABAC I/P/B decoding to public video sessions and returns cropped YUV frames.
+connects CAVLC and CABAC I/P/B decoding to public video sessions and returns cropped YUV frames.
+The HEVC module decodes Main/Main10 I/P/B pictures to native eight/ten-bit YUV, including indexed seek in MP4 and Matroska.
 The sample can extract a supported video frame, convert SDR color to sRGB, correct
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC/MP3 access units without decoding.
@@ -22,6 +23,10 @@ An experimental PDF module reads page geometry, renders supported vector/text/im
 content and exposes decoded image XObjects. See [PDF support and limits](docs/pdf.md).
 Word documents can be paginated and rendered directly to PNG from the library or
 CLI. See [Word rendering and public API](docs/word-rendering.md).
+PowerPoint slides render directly through Drawing. Independent XLS and XLSX readers
+expose typed rows and cached formula results. PDF, DOCX, PPTX and spreadsheets share
+a lazy Unicode text API with structural paths and cancellation.
+See [document reading, rendering and text APIs](docs/documents.md).
 Word previews include [Fluent color emoji](docs/emoji.md); library callers can
 enable the optional resource module through the same public API.
 STL, OBJ and 3MF models can be loaded and rendered to PNG with configurable
@@ -36,6 +41,11 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | --- | --- |
 | `Mediana.Models.Mesh` | STL/OBJ/3MF geometry, assembly selection and managed 3D previews ([API](docs/mesh.md)) |
 | `Mediana.Documents.OpenXml` | Bounded OPC packages, relationships and content-type document/model preview routing |
+| `Mediana.Documents` | Lazy Unicode text blocks, structural paths, part selection and output budgets |
+| `Mediana.Documents.Spreadsheets` | Typed sheets, rows, cells, date systems and cached formula contracts |
+| `Mediana.Documents.Xlsx` | Sequential SpreadsheetML reading through bounded OPC streams |
+| `Mediana.Documents.Xls` | Independent CFB/BIFF8 workbook reader with typed cells and cached formula results |
+| `Mediana.Documents.Presentation` | PresentationML slide reading, direct Drawing rasterization and text extraction ([API](docs/documents.md)) |
 | `Mediana.Documents.Word` | DOCX styles, pagination and direct page rasterization ([API](docs/word-rendering.md)) |
 | `Mediana.Documents.Pdf` | PDF page geometry, managed parsing/rendering and decoded image extraction |
 | `Mediana.Drawing` | Managed 2D paths, shared scenes/effects, font outlines, clipping, compositing and RGBA surfaces |
@@ -50,21 +60,28 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
-| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/AAC/MP3 packet mapping](docs/matroska-ebml.md) |
-| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC/MP3 packet reading |
+| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AAC/MP3 packet mapping](docs/matroska-ebml.md) |
+| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AAC/MP3 packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
+| `Mediana.Containers.Ogg` | Ogg Opus/Vorbis packets, comments, granule clocks and indexed seek ([API](docs/ogg-reading.md)) |
+| `Mediana.Codecs.Opus` | Managed SILK/CELT/hybrid PCM, multistream, gain and seek priming ([API](docs/opus-decoding.md)) |
+| `Mediana.Codecs.Vorbis` | Managed Vorbis I PCM, all floors/residues, multichannel coupling and indexed seek ([API](docs/vorbis-decoding.md)) |
 | `Mediana.Codecs.Mp3` | MPEG-1/2/2.5 Layer III to float32 PCM, all standard rates, mono/stereo and joint stereo |
 | `Mediana.Containers.MpegTs` | Experimental single-program AVC/AAC/MP3 transport-stream writer |
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder/encoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
+| `Mediana.Codecs.Hevc` | Managed Main/Main10 I/P/B decoding, native ten-bit frames and indexed seeking ([API](docs/hevc-decoding.md)) |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
-| `Mediana.Codecs.Webp` | Managed VP8/VP8L encoding, exact alpha, ICC/EXIF/XMP and streamed WebP animation ([API](docs/webp.md)) |
+| `Mediana.Codecs.Bmp` | BMP palettes, bitfields and RLE; ICO/CUR PNG/DIB entries with alpha ([API](docs/raster-decoding.md)) |
+| `Mediana.Codecs.Gif` | GIF LZW, interlace, transparency, disposal and timed animation ([API](docs/raster-decoding.md)) |
+| `Mediana.Codecs.Tiff` | TIFF/BigTIFF strips, tiles, pages and compression; TIFF-based RAW metadata ([API](docs/raster-decoding.md)) |
+| `Mediana.Codecs.Webp` | VP8/VP8L decoding/encoding, alpha, ICC/EXIF/XMP and WebP animation ([API](docs/webp.md)) |
 | `Mediana.Processing` | SDR conversion to sRGB, preview geometry, PCM conversion, channel matrices, sinc resampling and pull-driven waveform RMS/peak |
 | `Mediana.Streaming.Hls` | MP4 stream-copy HLS, streaming AVC variants, continuous AAC/MP3 audio playlists and measured transport output |
 | `Mediana.Execution` | Pull-driven decoding, shared A/V demux, encoding/remux operations, delayed output and cancellation |
@@ -287,6 +304,8 @@ Ctrl+C cancels processing and removes incomplete output. Existing destinations
 are never replaced. Exit codes are 0 for success, 1 for an unexpected failure,
 2 for invalid arguments, 3 for an unsupported operation or format feature,
 4 for invalid media data, 5 for file access errors, and 130 for cancellation.
+
+Reusable client operations are described in [Media operations](docs/media-operations.md).
 
 ## Build and run
 

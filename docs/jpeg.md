@@ -34,8 +34,8 @@ presentation formats are reported explicitly.
 ## Pixels and source interpretation
 
 Output is independent opaque RGBA32. The inverse DCT uses the mathematical
-separable transform, with a DC-only fast path. Subsampled components use centered
-bilinear reconstruction with edge extension according to JFIF sample positions.
+separable transform, with a DC-only fast path. Subsampled components use bilinear
+reconstruction with edge extension at the declared JFIF/Exif sample positions.
 YCbCr uses the full-range JFIF matrix. No gamma conversion is performed.
 Source primaries and transfer remain unspecified unless Exif identifies sRGB.
 The CLI uses its explicit RGB preview interpretation for missing labels and
@@ -58,10 +58,11 @@ declaration or explicit aspect, it remains unknown. Header probing can report
 dimensions without resolving an absent color interpretation; this is not proof
 that entropy data or color conversion will decode successfully.
 
-Numbered ICC parts are checked for consistency and completeness. The decoder
-retains ICC presence in `JpegColorDescription`, without assembling or retaining
-the profile. Converting that description is explicitly unsupported; the CLI
-does not replace a declared ICC profile with its missing-label policy.
+Numbered ICC parts are checked for consistency and completeness, then assembled
+in order into one owned `IccColorDescription`. The frame retains the original
+profile after input memory is released. Common sRGB processing applies supported
+ICC v2/v4 RGB and gray matrix/TRC profiles; the CLI never replaces the profile
+with its missing-label policy. See [ICC conversion](icc-color.md).
 
 ## Exif presentation
 
@@ -81,15 +82,34 @@ is created. A sequential 35×19 4:2:0 image rotated to 19×35 needs exactly
 
 Exif declares square pixels. JFIF density or a caller's supplied aspect must
 agree. Exif `YCbCrPositioning` selects centered or co-sited reconstruction; absent
-positioning defaults to centered. Conflicting JFIF/Exif declarations fail.
+positioning defaults to centered. Conflicting JFIF/Exif chroma positions fail by
+default. Set `JpegDecodeOptions.ChromaConflictPolicy` to
+`JpegChromaConflictPolicy.UseJfif` to select centered JFIF positioning and report a
+warning through `ImageDecodeRequest.WarningHandler`. The CLI enables this policy
+for its common image registry, including JPEG images embedded in documents.
+Without a conflict, the declared Exif positioning remains in effect. Invalid
+Exif values and conflicts involving color or pixel aspect remain errors.
 Chroma reconstruction preserves the sampling interval at odd image edges.
+
+```csharp
+JpegImageDecoder jpeg = new(new JpegDecodeOptions
+{
+    ChromaConflictPolicy = JpegChromaConflictPolicy.UseJfif
+});
+```
+
+Managed and Native AOT checks compare conflicting 4:2:2 and 4:2:0 files against
+independent centered references, in both APP0/APP1 orders. They verify the strict
+default, unchanged co-sited files, pixel-limit propagation, combined warnings,
+and buffer release if the diagnostic handler stops decoding.
 
 Exif `ColorSpace=1` labels the reconstructed pixels as sRGB. Explicitly
 uncalibrated color produces `JpegExifColorDescription`, whose conversion fails
 until calibrated interpretation is supported. Custom Exif transfer functions,
 chromaticities, gamma, YCbCr coefficients and reference levels are unsupported.
-An ICC profile retains its existing precedence and unsupported conversion.
-Neither uncalibrated nor ICC declarations use the CLI missing-label policy.
+An ICC profile takes precedence over Exif color labels and custom colorimetry.
+Supported ICC transforms use the common sRGB converter. Uncalibrated declarations
+and unsupported ICC models do not use the CLI missing-label policy.
 
 These semantics follow CIPA DC-008-2026 (Exif 3.1), clauses 4.4.2–4.4.3,
 4.6.2, 4.6.5.1.6, 4.6.5.1.8–9, 4.6.5.1.13 and 4.6.6.2, available from
@@ -215,7 +235,7 @@ decoded color component differs from the independent reference by at most three
 8-bit codes, with exact opaque alpha. Ten native probes include progressive,
 unlabelled and Adobe RGB headers. Four failures preserve an approved existing
 destination: truncated input, unresolved component color, arithmetic coding and
-an embedded ICC profile requiring an unavailable transform.
+a malformed embedded ICC profile.
 
 An additional complete native conversion checks progressive 16-bit quantization,
 quantization/Huffman destination three and signed DC refinement. The AC table is
@@ -237,7 +257,7 @@ PNG encoding, logging and I/O. Peak RSS includes runtime and collection behavior
 it is separate from the exact live media-buffer budget.
 
 Arithmetic/lossless/hierarchical JPEG, 12-bit samples, DNL,
-CMYK/YCCK, custom Exif colorimetry, SPIFF and ICC conversion are not
+CMYK/YCCK, custom Exif colorimetry without ICC, SPIFF and ICC LUT conversion are not
 implemented. These encodings are rejected explicitly by standalone decoding.
 PDF `DCTDecode` integration uses the container component API described above.
 

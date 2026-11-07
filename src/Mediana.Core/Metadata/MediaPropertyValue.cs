@@ -47,9 +47,10 @@ namespace Mediana.Core.Metadata
             return new(MediaPropertyValueKind.Number, number: value);
         }
 
+        /// <summary>Preserves the encoded fraction. The 0/0 pair denotes unknown metadata, including DNG lens apertures.</summary>
         public static MediaPropertyValue FromRational(long numerator, long denominator)
         {
-            ArgumentOutOfRangeException.ThrowIfZero(denominator);
+            if (denominator == 0 && numerator != 0) { throw new ArgumentOutOfRangeException(nameof(denominator)); }
             return new(MediaPropertyValueKind.Rational, integer: numerator, denominator: denominator);
         }
 

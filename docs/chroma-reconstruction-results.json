@@ -1,0 +1,660 @@
+{
+  "before_revision": "92dc2f3",
+  "after_revision": "f441f05",
+  "mode": "Release Native AOT",
+  "sdk": "10.0.403",
+  "cpu": "Intel Core i5-12450H",
+  "logical_cpus": [
+    2,
+    4
+  ],
+  "dotnet_processor_count": 2,
+  "output": "tmpfs source-color RGBA8; no ICC or PNG encoding",
+  "reference": "libheif 1.23.2 + libde265 1.1.1, explicit nearest chroma, codec/tile threads 2",
+  "shared_host": true,
+  "complete_output_sha256_before": {
+    "12mp-bicubic-mediana.rgba": "b6b460a0dec7c0f4c847944cca2b2349858d0ac1c77f8316ba29a82c9e9851e9",
+    "12mp-bilinear-mediana.rgba": "ba18f9aee3a6793edf7b571da1654a5289ca6324d0d62f7a5f093ab1ef4d429e",
+    "12mp-lanczos3-mediana.rgba": "090fa94fc528c2920bf65d1bd02757ec4bd54cdd2a98d4242f631a0e71b11e1d",
+    "12mp-nearest-mediana.rgba": "cd66c3b43e6a8d1f0319aae29ec30ef38b85db54c84855eb1e09d5ed5181f705",
+    "200mp-bicubic-mediana.rgba": "f24c8873c6fcc1e2aa353be1d774232ad40d30ae60cc76033d325a16e5d00a3c",
+    "200mp-bilinear-mediana.rgba": "cdbe9ed08b47121c8d0c5da583ab2104ba2508de609ae82813e2eab0e674d662",
+    "200mp-lanczos3-mediana.rgba": "7f03c25ef978f319ef2eade0fca591764f5c11f1adcd25c1cc36c31cb7e3150e",
+    "200mp-nearest-mediana.rgba": "6e92d035f8c45558a7ba59d5b3f55b66e7afd17b554da89105fecb5f6c213397"
+  },
+  "complete_output_sha256_after": {
+    "12mp-bicubic-mediana.rgba": "b6b460a0dec7c0f4c847944cca2b2349858d0ac1c77f8316ba29a82c9e9851e9",
+    "12mp-bilinear-mediana.rgba": "ba18f9aee3a6793edf7b571da1654a5289ca6324d0d62f7a5f093ab1ef4d429e",
+    "12mp-lanczos3-mediana.rgba": "090fa94fc528c2920bf65d1bd02757ec4bd54cdd2a98d4242f631a0e71b11e1d",
+    "12mp-nearest-mediana.rgba": "cd66c3b43e6a8d1f0319aae29ec30ef38b85db54c84855eb1e09d5ed5181f705",
+    "200mp-bicubic-mediana.rgba": "f24c8873c6fcc1e2aa353be1d774232ad40d30ae60cc76033d325a16e5d00a3c",
+    "200mp-bilinear-mediana.rgba": "cdbe9ed08b47121c8d0c5da583ab2104ba2508de609ae82813e2eab0e674d662",
+    "200mp-lanczos3-mediana.rgba": "7f03c25ef978f319ef2eade0fca591764f5c11f1adcd25c1cc36c31cb7e3150e",
+    "200mp-nearest-mediana.rgba": "6e92d035f8c45558a7ba59d5b3f55b66e7afd17b554da89105fecb5f6c213397"
+  },
+  "before": [
+    {
+      "case": "12mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 1.0351982628926635,
+      "cpu": 1.1560789999999999,
+      "rss": 68157440,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 0.9270631258841604,
+      "cpu": 1.225463,
+      "rss": 68681728,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 0.9924728618934751,
+      "cpu": 1.2758099999999999,
+      "rss": 69074944,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 1.3021788189653307,
+      "cpu": 1.372057,
+      "rss": 69992448,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 0,
+      "engine": "libheif",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 0.5279147799592465,
+      "cpu": 0.574943,
+      "rss": 76713984,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 1,
+      "engine": "libheif",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 0.6009006260428578,
+      "cpu": 0.5990949999999999,
+      "rss": 76816384,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 1.2336272560060024,
+      "cpu": 1.734146,
+      "rss": 69861376,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 1.1831900018732995,
+      "cpu": 1.440391,
+      "rss": 69468160,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 1.0751369202043861,
+      "cpu": 1.259459,
+      "rss": 68943872,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 0.8247522271703929,
+      "cpu": 1.097912,
+      "rss": 68288512,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 0.9162300799507648,
+      "cpu": 1.098434,
+      "rss": 68288512,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 0.9081298501696438,
+      "cpu": 1.2322359999999999,
+      "rss": 68943872,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 0.9554749021772295,
+      "cpu": 1.269851,
+      "rss": 69599232,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 1.4466671389527619,
+      "cpu": 1.459212,
+      "rss": 69730304,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 2,
+      "engine": "libheif",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 0.5736197840888053,
+      "cpu": 0.5790449999999999,
+      "rss": 76496896,
+      "bytes": 48000000
+    },
+    {
+      "case": "200mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 9.070252816891298,
+      "cpu": 11.126317,
+      "rss": 872914944,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 9.799255613004789,
+      "cpu": 12.950651,
+      "rss": 873082880,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 10.88031111098826,
+      "cpu": 13.747435000000001,
+      "rss": 872144896,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 12.673819039948285,
+      "cpu": 15.779375,
+      "rss": 878665728,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 0,
+      "engine": "libheif",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 6.022303210804239,
+      "cpu": 5.657833,
+      "rss": 1126789120,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 1,
+      "engine": "libheif",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 5.652469048043713,
+      "cpu": 5.527413,
+      "rss": 1127047168,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 14.340252012945712,
+      "cpu": 15.499546,
+      "rss": 873410560,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 12.479926740983501,
+      "cpu": 13.877908,
+      "rss": 874917888,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 13.250368996988982,
+      "cpu": 14.290137,
+      "rss": 874643456,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 10.443163356045261,
+      "cpu": 11.178098,
+      "rss": 872902656,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 10.086050344165415,
+      "cpu": 11.059744,
+      "rss": 872914944,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 12.129577101906762,
+      "cpu": 12.808421,
+      "rss": 874467328,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 14.425467377062887,
+      "cpu": 15.962229,
+      "rss": 875061248,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 13.066402235999703,
+      "cpu": 14.624065000000002,
+      "rss": 873132032,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 2,
+      "engine": "libheif",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 5.116745080100372,
+      "cpu": 5.06903,
+      "rss": 1126662144,
+      "bytes": 799027200
+    }
+  ],
+  "after": [
+    {
+      "case": "12mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 1.069209281122312,
+      "cpu": 1.113051,
+      "rss": 68157440,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 1.1689653669018298,
+      "cpu": 1.200736,
+      "rss": 68419584,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 1.2509236040059477,
+      "cpu": 1.219005,
+      "rss": 68681728,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 1.2745357169769704,
+      "cpu": 1.296875,
+      "rss": 68681728,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 1.2206306199077517,
+      "cpu": 1.394787,
+      "rss": 66977792,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 1.226498207077384,
+      "cpu": 1.2262140000000001,
+      "rss": 68550656,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 0.992648690007627,
+      "cpu": 1.1995369999999999,
+      "rss": 68681728,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 0.995738685131073,
+      "cpu": 1.077642,
+      "rss": 68288512,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 0.93350709695369,
+      "cpu": 1.059256,
+      "rss": 68550656,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 1.1171439599711448,
+      "cpu": 1.251291,
+      "rss": 68550656,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 1.1125409649685025,
+      "cpu": 1.4086850000000002,
+      "rss": 68550656,
+      "bytes": 48000000
+    },
+    {
+      "case": "12mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 1.419067090144381,
+      "cpu": 1.451371,
+      "rss": 68550656,
+      "bytes": 48000000
+    },
+    {
+      "case": "200mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 9.75049826898612,
+      "cpu": 10.481247999999999,
+      "rss": 872964096,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 11.159431791864336,
+      "cpu": 13.128783,
+      "rss": 875167744,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 11.436545888893306,
+      "cpu": 12.959343,
+      "rss": 876851200,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 0,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 13.459095380967483,
+      "cpu": 14.576708,
+      "rss": 873025536,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 13.225268343929201,
+      "cpu": 14.668633999999999,
+      "rss": 875327488,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 11.945645541884005,
+      "cpu": 13.062064,
+      "rss": 874889216,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 11.575896785128862,
+      "cpu": 12.339678000000001,
+      "rss": 872030208,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 1,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 9.734127136180177,
+      "cpu": 10.615205,
+      "rss": 874795008,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "nearest",
+      "exit": 0,
+      "elapsed": 9.503258509095758,
+      "cpu": 10.230022,
+      "rss": 875077632,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "bilinear",
+      "exit": 0,
+      "elapsed": 10.081150938989595,
+      "cpu": 12.020086,
+      "rss": 871878656,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "bicubic",
+      "exit": 0,
+      "elapsed": 12.238401813898236,
+      "cpu": 13.083608,
+      "rss": 875065344,
+      "bytes": 799027200
+    },
+    {
+      "case": "200mp",
+      "repeat": 2,
+      "engine": "mediana",
+      "mode": "lanczos3",
+      "exit": 0,
+      "elapsed": 13.049379865871742,
+      "cpu": 14.366971,
+      "rss": 873127936,
+      "bytes": 799027200
+    }
+  ],
+  "plan_allocation": {
+    "source_width": 256,
+    "source_height": 256,
+    "horizontal_factor": 2,
+    "vertical_factor": 2,
+    "warmup": 10,
+    "repetitions": 100,
+    "metric": "GC.GetAllocatedBytesForCurrentThread, bytes per construction",
+    "filters": {
+      "NearestNeighbor": {
+        "before_bytes": 8416,
+        "after_bytes": 4336
+      },
+      "Bilinear": {
+        "before_bytes": 12512,
+        "after_bytes": 4352
+      },
+      "Bicubic": {
+        "before_bytes": 20704,
+        "after_bytes": 4384
+      },
+      "Lanczos3": {
+        "before_bytes": 28896,
+        "after_bytes": 4416
+      }
+    }
+  }
+}

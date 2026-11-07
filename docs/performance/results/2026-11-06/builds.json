@@ -1,0 +1,27 @@
+{
+  "product_revision": "a3c5dbf6e253c3b1e5433922cbc2dfc644ddee69",
+  "sdk": "10.0.403",
+  "runtime": "10.0.14",
+  "mode": "Release Native AOT",
+  "ffmpeg_version": "6.1.1-3ubuntu5",
+  "libheif_version": "1.23.2",
+  "libde265_version": "1.1.1",
+  "output_filesystem": "tmpfs",
+  "fingerprints": {
+    "Mediana.Cli": "a316846e6d0875e9fc6185b129cab0adcde01cf9471b00f97ed3d72dc7509687",
+    "Mediana.HeifComparison": "dc175f057b2738868ea1c9713a182c535c186720ceccffa4ff07b7dfaee14e26",
+    "heif-reference": "90aa89572bb7470a6c79db762b9e83d62898cbc8eb7019fd382b9d9f080feafa",
+    "ffmpeg": "ed16af623947494a72e284b6eb8ff225f2da22b38b5d5069c2fd4b4ba3384e41",
+    "libheif.so.1": "0729736eef28819b93cf233ff625ee96ae915216a46105f48bf3799ca76e0a70",
+    "libde265.so.0": "1c9e4d683e22ab39665ad774e084b31c9f8a89bcd7136720e212bf6c66cf76b1"
+  },
+  "comparison_source_revision": "e48a0f2",
+  "reference_options": {
+    "decoder": "libde265",
+    "strict_decoding": true,
+    "chroma_upsampling": "nearest_neighbor",
+    "source_nclx_passthrough": true,
+    "codec_threads": 2,
+    "tile_threads": 2
+  }
+}

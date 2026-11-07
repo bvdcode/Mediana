@@ -3,12 +3,13 @@
 
 namespace Mediana.Codecs.Jpeg
 {
-    /// <summary>Limits checked before JPEG sample allocation and while reading marker segments.</summary>
+    /// <summary>JPEG resource limits and explicit metadata conflict handling.</summary>
     public class JpegDecodeOptions
     {
         public int MaximumEncodedBytes { get; init; } = 64 * 1024 * 1024;
         public int MaximumPixels { get; init; } = 16 * 1024 * 1024;
         public int MaximumMarkers { get; init; } = 100_000;
+        public JpegChromaConflictPolicy ChromaConflictPolicy { get; init; }
 
         internal void Validate()
         {
@@ -16,6 +17,14 @@ namespace Mediana.Codecs.Jpeg
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumPixels);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(MaximumPixels, int.MaxValue / 4);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumMarkers);
+            switch (ChromaConflictPolicy)
+            {
+                case JpegChromaConflictPolicy.Reject:
+                case JpegChromaConflictPolicy.UseJfif:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(ChromaConflictPolicy));
+            }
         }
     }
 }

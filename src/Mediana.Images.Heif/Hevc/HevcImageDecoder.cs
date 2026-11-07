@@ -3,6 +3,8 @@
 
 using System;
 
+using Mediana.Codecs.Hevc;
+
 namespace Mediana.Images.Heif.Hevc
 {
     /// <summary>

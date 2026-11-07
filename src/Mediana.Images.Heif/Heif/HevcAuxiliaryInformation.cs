@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using Mediana.Images.Heif.Binary;
 using Mediana.Images.Heif.Hevc;
+using Mediana.Codecs.Hevc;
 
 namespace Mediana.Images.Heif.Container
 {

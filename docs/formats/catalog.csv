@@ -7,8 +7,8 @@ matroska-indexed,Containers and packaging,Matroska,Indexed file presentation,con
 matroska-live,Containers and packaging,Matroska,Live / unknown-size stream,container,.mkv,B,matroska,
 webm-file,Containers and packaging,WebM,File presentation,container,.webm,A,webm,Codec mappings and track constraints must conform to WebM.
 webm-live,Containers and packaging,WebM,Incremental / live presentation,container,.webm,B,webm,"Track metadata, unknown sizes and incremental clusters need separate fixtures."
-ogg,Containers and packaging,Ogg,Single and multiplexed logical streams,container,.ogg .oga .ogv .opus .spx,A,ogg,"Codec-specific headers, granules and chaining are not interchangeable."
-ogg-chained,Containers and packaging,Ogg,Chained logical streams,container,.ogg .opus,B,ogg,
+ogg,Containers and packaging,Ogg,Single and multiplexed logical streams,container,.ogg .oga .ogv .opus .spx,A,ogg,"Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate."
+ogg-chained,Containers and packaging,Ogg,Chained logical streams,container,.ogg .opus,B,ogg,Current reader keeps chained links separately selectable; selecting a link does not concatenate links.
 avi,Containers and packaging,AVI,RIFF AVI 1.0,container,.avi,B,riff,
 avi-opendml,Containers and packaging,AVI,OpenDML / AVI 2.0,container,.avi,B,riff;discovery,
 asf,Containers and packaging,ASF,File and streaming structure,container,.asf .wmv .wma,B,asf,
@@ -87,8 +87,8 @@ png-indexed,Web images and modern still-image coding,PNG,"Indexed color, 1/2/4/8
 png-alpha,Web images and modern still-image coding,PNG,"Grayscale/truecolor with alpha, 8/16-bit",image-codec,.png,A,png,Current encoder emits noninterlaced straight-alpha RGBA8 sRGB only.
 png-adam7,Web images and modern still-image coding,PNG,Adam7 interlace,image-codec,.png,A,png,
 apng,Web images and modern still-image coding,APNG,Animated PNG with frame disposal/blending,image-codec,.png .apng,A,png,
-webp-lossy,Web images and modern still-image coding,WebP,Lossy VP8 image,image-codec,.webp,A,webp,"Managed VP8 keyframe encoding with quality 0-100 and lossless alpha; decoding remains open."
-webp-lossless,Web images and modern still-image coding,WebP,Lossless VP8L image,image-codec,.webp,A,webp,"Current encoder preserves straight RGBA8 sRGB exactly, including transparent RGB; decoding remains open."
+webp-lossy,Web images and modern still-image coding,WebP,Lossy VP8 image,image-codec,.webp,A,webp,Managed VP8 keyframe encoding with quality 0-100 and lossless alpha; keyframe decoding includes segmentation and deblocking.
+webp-lossless,Web images and modern still-image coding,WebP,Lossless VP8L image,image-codec,.webp,A,webp,"VP8L encoding and decoding preserve straight RGBA8 exactly, including transparent RGB."
 webp-extended,Web images and modern still-image coding,WebP,"Extended RIFF, alpha and metadata",image-codec,.webp,A,webp,"VP8X canvas flags, raw or lossless-compressed ALPH and unchanged ICC/EXIF/XMP payloads."
 webp-animation,Web images and modern still-image coding,WebP,Animated extended WebP,image-codec,.webp,A,webp,"Incremental VP8/VP8L or mixed frames, partial rectangles, blending, disposal, background, loop count and metadata; CLI exports TGS/video sequences."
 avif-still,Web images and modern still-image coding,AVIF,"Still image, Baseline/Advanced profiles",image-codec,.avif,A,avif;av1,Split profile/precision coverage as AV1 implementation grows.
@@ -185,8 +185,8 @@ avc-interlaced,Video codecs and substantial profiles,H.264 / AVC,Field pictures 
 avc-svc,Video codecs and substantial profiles,H.264 / AVC,Scalable extension profiles,video-codec,.h264,C,h264,
 avc-mvc,Video codecs and substantial profiles,H.264 / AVC,Multiview / stereo extension profiles,video-codec,.h264,C,h264,
 avc-3d,Video codecs and substantial profiles,H.264 / AVC,Depth and 3D extensions,video-codec,.h264,C,h264,
-hevc-main,Video codecs and substantial profiles,H.265 / HEVC,"Main, 8-bit 4:2:0 video",video-codec,.h265 .hevc,A,h265,HEIC intra reconstruction does not close general I/P/B video decoding.
-hevc-main10,Video codecs and substantial profiles,H.265 / HEVC,Main 10,video-codec,.h265 .hevc,A,h265,
+hevc-main,Video codecs and substantial profiles,H.265 / HEVC,"Main, 8-bit 4:2:0 video",video-codec,.h265 .hevc,A,h265,"Current module parses configuration, picture order and reference state; it does not yet reconstruct general HEVC video frames."
+hevc-main10,Video codecs and substantial profiles,H.265 / HEVC,Main 10,video-codec,.h265 .hevc,A,h265,Current module parses Main10 configuration and reference state; intra HEIC decoding does not close general Main10 video decoding.
 hevc-main-still,Video codecs and substantial profiles,H.265 / HEVC,Main Still Picture,video-codec,.h265 .hevc,B,h265,Current HEIC intra path provides a subset; standalone video-codec integration remains open.
 hevc-rext,Video codecs and substantial profiles,H.265 / HEVC,Range extensions / 12-bit / 4:2:2 / 4:4:4,video-codec,.h265 .hevc,B,h265,Split concrete RExt profiles when selecting implementation work.
 hevc-scc,Video codecs and substantial profiles,H.265 / HEVC,Screen-content extensions,video-codec,.h265 .hevc,B,h265,
@@ -266,10 +266,10 @@ mpeg-surround,Audio coding and sample representations,MPEG Surround,Spatial audi
 mpegh-audio,Audio coding and sample representations,MPEG-H 3D Audio,Channel/object/scene-based audio,audio-codec,,C,mpeg-audio,
 flac-codec,Audio coding and sample representations,FLAC,Lossless sample coding,audio-codec,.flac,A,flac,"Current decoder has fixed/LPC prediction, Rice residuals, stereo decorrelation and CRC checks."
 alac,Audio coding and sample representations,Apple Lossless,ALAC sample coding,audio-codec,,A,alac,
-opus-silk,Audio coding and sample representations,Opus,SILK speech mode,audio-codec,,A,opus,
-opus-celt,Audio coding and sample representations,Opus,CELT transform mode,audio-codec,,A,opus,
-opus-hybrid,Audio coding and sample representations,Opus,Hybrid and mode transitions,audio-codec,,A,opus,
-opus-multistream,Audio coding and sample representations,Opus,Multistream and channel mappings,audio-codec,,B,opus,Ambisonics mappings need their own declared scope and reference fixtures.
+opus-silk,Audio coding and sample representations,Opus,SILK speech mode,audio-codec,,A,opus,"Public managed decoder covers SILK speech, DTX and mode transitions with independent PCM references; explicit loss/FEC APIs remain separate."
+opus-celt,Audio coding and sample representations,Opus,CELT transform mode,audio-codec,,A,opus,"Public managed 48 kHz Float32 decoding covers CELT, transitions and retained-state recovery with independent libopus references."
+opus-hybrid,Audio coding and sample representations,Opus,Hybrid and mode transitions,audio-codec,,A,opus,"Public managed decoder reconstructs hybrid frames and mode transitions, including redundancy and missing transition intervals; independent references cover the implemented scope."
+opus-multistream,Audio coding and sample representations,Opus,Multistream and channel mappings,audio-codec,,B,opus,"Public decoder supports channel mapping families 0, 1 and 255, including duplicate/silent channels; other families and ambisonics remain separate."
 vorbis,Audio coding and sample representations,Vorbis,Vorbis I mono/stereo/multichannel,audio-codec,,A,vorbis,
 speex-nb,Audio coding and sample representations,Speex,Narrowband,audio-codec,,B,speex,
 speex-wb,Audio coding and sample representations,Speex,Wideband / ultra-wideband,audio-codec,,B,speex,
@@ -320,18 +320,18 @@ docx-transitional,"Documents, spreadsheets and presentations",WordprocessingML,O
 docx-strict,"Documents, spreadsheets and presentations",WordprocessingML,OOXML Strict documents,document,.docx,B,office,Reader accepts Strict namespaces; independent Strict document rendering coverage remains open.
 docm,"Documents, spreadsheets and presentations",WordprocessingML,"Macro-enabled package, static document content",document,.docm .dotm,B,office,Macro execution is not part of static rendering.
 dotx,"Documents, spreadsheets and presentations",WordprocessingML,Templates,document,.dotx,B,office,
-xlsx-transitional,"Documents, spreadsheets and presentations",SpreadsheetML,OOXML Transitional workbooks,document,.xlsx,A,office,"Cell parsing, formula evaluation and styled print/page rendering are distinct capabilities."
-xlsx-strict,"Documents, spreadsheets and presentations",SpreadsheetML,OOXML Strict workbooks,document,.xlsx,B,office,
+xlsx-transitional,"Documents, spreadsheets and presentations",SpreadsheetML,OOXML Transitional workbooks,document,.xlsx,A,office,Current streaming workbook reader exposes cell data and cached formula values; styled page rendering and formula evaluation remain open.
+xlsx-strict,"Documents, spreadsheets and presentations",SpreadsheetML,OOXML Strict workbooks,document,.xlsx,B,office,Reader recognizes Strict SpreadsheetML namespaces; dedicated Strict corpus coverage and page rendering remain open.
 xlsm,"Documents, spreadsheets and presentations",SpreadsheetML,"Macro-enabled workbook, static content",document,.xlsm .xltm,B,office,Macro execution is separate from workbook rendering.
 xlsb,"Documents, spreadsheets and presentations",Excel binary workbook,BIFF12 in OPC package,document,.xlsb,B,office,
 xltx,"Documents, spreadsheets and presentations",SpreadsheetML,Workbook templates,document,.xltx,B,office,
-pptx-transitional,"Documents, spreadsheets and presentations",PresentationML,OOXML Transitional presentations,document,.pptx,A,office,"Theme/layout/master inheritance, shapes, text, charts and media need separate fixtures."
-pptx-strict,"Documents, spreadsheets and presentations",PresentationML,OOXML Strict presentations,document,.pptx,B,office,
+pptx-transitional,"Documents, spreadsheets and presentations",PresentationML,OOXML Transitional presentations,document,.pptx,A,office,"Current static slide reader/renderer covers supported masters, themes, text, shapes and pictures; complete layout and animation remain open."
+pptx-strict,"Documents, spreadsheets and presentations",PresentationML,OOXML Strict presentations,document,.pptx,B,office,Current reader/renderer recognizes Strict namespaces; dedicated Strict corpus coverage remains open.
 pptm,"Documents, spreadsheets and presentations",PresentationML,"Macro-enabled presentation, static content",document,.pptm .potm,B,office,
 potx,"Documents, spreadsheets and presentations",PresentationML,Templates and slideshow packages,document,.potx .ppsx,B,office,
 pptx-animation,"Documents, spreadsheets and presentations",PresentationML,Slide transitions and animation timing,document,.pptx,B,office,Static slide rendering does not close timed presentation rendering.
 doc-binary,"Documents, spreadsheets and presentations",Word binary,Legacy DOC revisions,document,.doc .dot,B,office,
-xls-binary,"Documents, spreadsheets and presentations",Excel binary,BIFF5 / BIFF8 workbooks,document,.xls .xlt,B,office,
+xls-binary,"Documents, spreadsheets and presentations",Excel binary,BIFF5 / BIFF8 workbooks,document,.xls .xlt,B,office,Current reader covers a bounded OLE/BIFF8 workbook subset; earlier BIFF revisions and styled rendering remain open.
 ppt-binary,"Documents, spreadsheets and presentations",PowerPoint binary,Legacy presentation revisions,document,.ppt .pps .pot,B,office,
 rtf,"Documents, spreadsheets and presentations",Rich Text Format,Formatted text and embedded resources,document,.rtf,B,office;discovery,
 odt,"Documents, spreadsheets and presentations",OpenDocument Text,ODF text documents,document,.odt .ott .fodt,B,odf,

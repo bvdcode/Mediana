@@ -11,11 +11,13 @@ namespace Mediana.Cli
 {
     internal static class MediaProbeCommand
     {
-        public static async Task<int> RunAsync(string input, TextWriter output, CancellationToken cancellationToken)
+        public static async Task<int> RunAsync(string input, TextWriter output, CancellationToken cancellationToken, string? requiredFormat = null)
         {
             MediaEngine engine = MetadataEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             MediaInfo info = await engine.ProbeAsync(source, CommandImageResources.ProbeOptions, cancellationToken);
+            if (requiredFormat is not null && info.Container?.FormatId != requiredFormat)
+            { throw new NotSupportedException($"The selected command requires {requiredFormat} input."); }
             if (source.Length is long length)
             {
                 await output.WriteLineAsync($"Encoded size: {length} bytes.");

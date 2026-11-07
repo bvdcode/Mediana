@@ -1,0 +1,109 @@
+[
+  {
+    "id": "remux-hls",
+    "input": "video-30m.mp4",
+    "output_extension": ".ts",
+    "description": "Complete 1800-second AVC/AAC stream copy to MPEG-TS; no video or audio re-encoding",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "-i",
+        "{input}",
+        "{output}",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output}"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-copyts",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a:0",
+        "-c",
+        "copy",
+        "-mpegts_copyts",
+        "1",
+        "-output_ts_offset",
+        "1",
+        "-muxdelay",
+        "0",
+        "-f",
+        "mpegts",
+        "{output}"
+      ],
+      "environment": {},
+      "output": "{output}"
+    }
+  },
+  {
+    "id": "hls-segment-30m",
+    "input": "video-30m.mp4",
+    "output_extension": ".m3u8",
+    "description": "Complete 1800-second AVC/AAC VOD segmentation with 6-second target; no re-encoding",
+    "mediana": {
+      "tool": "mediana",
+      "arguments": [
+        "hls",
+        "create",
+        "{input}",
+        "{output_directory}/hls",
+        "--video-stream",
+        "0",
+        "--audio-stream",
+        "1",
+        "--segment-ms",
+        "6000",
+        "--log-level",
+        "Error",
+        "--no-color"
+      ],
+      "environment": {},
+      "output": "{output_directory}/hls/index.m3u8"
+    },
+    "alternative": {
+      "tool": "ffmpeg",
+      "arguments": [
+        "-nostdin",
+        "-v",
+        "error",
+        "-xerror",
+        "-copyts",
+        "-threads",
+        "2",
+        "-i",
+        "{input}",
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a:0",
+        "-c",
+        "copy",
+        "-f",
+        "hls",
+        "-hls_time",
+        "6",
+        "-hls_playlist_type",
+        "vod",
+        "-hls_segment_filename",
+        "{output_directory}/segment-%05d.ts",
+        "{output_directory}/index.m3u8"
+      ],
+      "environment": {},
+      "output": "{output_directory}/index.m3u8"
+    }
+  }
+]

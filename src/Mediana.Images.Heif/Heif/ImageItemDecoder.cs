@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Mediana.Images.Heif.Hevc;
+using Mediana.Codecs.Hevc;
+using Mediana.Core.Video;
 
 namespace Mediana.Images.Heif.Container
 {
@@ -16,7 +18,7 @@ namespace Mediana.Images.Heif.Container
         public async Task<RgbaImage> DecodeAsync(uint id)
         {
             using PixelBufferScope buffers = new PixelBufferScope(false);
-            return await DecodeAsync(id, false, null, ReadOnlyMemory<byte>.Empty, null, null, true, buffers);
+            return await DecodeAsync(id, false, null, null, null, null, true, buffers);
         }
 
         public async Task<RgbaImage> DecodeToAsync(uint id, Memory<byte> destination)
@@ -26,7 +28,7 @@ namespace Mediana.Images.Heif.Container
                 throw new ArgumentException("A complete pixel destination is required.", nameof(destination));
             }
             using PixelBufferScope buffers = new PixelBufferScope(true);
-            RgbaImage image = await DecodeAsync(id, false, null, ReadOnlyMemory<byte>.Empty, null, null, true, buffers, destination);
+            RgbaImage image = await DecodeAsync(id, false, null, null, null, null, true, buffers, destination);
             if (!image.Pixels.Equals((ReadOnlyMemory<byte>)destination))
             {
                 throw new InvalidOperationException("Image decoding did not use the supplied pixel destination.");
@@ -34,7 +36,7 @@ namespace Mediana.Images.Heif.Container
             return image;
         }
 
-        private async Task<RgbaImage> DecodeAsync(uint id, bool alpha, ColorEncoding? inheritedColor, ReadOnlyMemory<byte> inheritedIcc,
+        private async Task<RgbaImage> DecodeAsync(uint id, bool alpha, ColorEncoding? inheritedColor, IccColorDescription? inheritedIcc,
             AlphaChannelInformation? inheritedAlpha, ImageDecodePath? ancestors, bool parallel, PixelBufferScope buffers, Memory<byte> destination = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -46,7 +48,7 @@ namespace Mediana.Images.Heif.Container
             }
 
             ColorEncoding? color = properties.Color ?? inheritedColor;
-            ReadOnlyMemory<byte> icc = properties.IccProfile.IsEmpty ? inheritedIcc : properties.IccProfile;
+            IccColorDescription? icc = properties.IccDescription ?? inheritedIcc;
             AlphaChannelInformation? alphaInformation = properties.AlphaInformation ?? inheritedAlpha;
             int expectedWidth = properties.Width;
             int expectedHeight = properties.Height;
@@ -98,7 +100,7 @@ namespace Mediana.Images.Heif.Container
         }
 
         private async Task<RgbaImage> DecodeCodedAsync(HeifItem item, ImageProperties properties, ImageCrop crop, ColorEncoding? color,
-            ReadOnlyMemory<byte> icc, bool alpha, bool parallel, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation, Memory<byte> destination)
+            IccColorDescription? icc, bool alpha, bool parallel, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation, Memory<byte> destination)
         {
             DecoderConfiguration configuration = properties.Configuration ?? throw new InvalidDataException("HEVC image configuration is missing.");
             using DecodedPicture picture = await HevcImageDecoder.DecodeAsync(configuration, container.ReadData(item.Id), options,
@@ -111,7 +113,8 @@ namespace Mediana.Images.Heif.Container
             {
                 throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
             }
-            return PictureRenderer.Render(picture, crop, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers, alphaInformation, destination);
+            return PictureRenderer.Render(picture, crop, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers,
+                options.ChromaFilter, cancellationToken, alphaInformation, destination);
         }
 
         private async Task<RgbaImage> ApplyAlphaAsync(HeifItem item, RgbaImage color, ImageDecodePath path, bool parallel)
@@ -152,7 +155,7 @@ namespace Mediana.Images.Heif.Container
             }
 
             using PixelBufferScope alphaBuffers = new PixelBufferScope(true);
-            RgbaImage alpha = await DecodeAsync(alphaId.Value, true, null, ReadOnlyMemory<byte>.Empty, null, path, parallel, alphaBuffers);
+            RgbaImage alpha = await DecodeAsync(alphaId.Value, true, null, null, null, path, parallel, alphaBuffers);
             if ((alpha.Width != color.Width) || (alpha.Height != color.Height))
             {
                 throw new InvalidDataException("Alpha image dimensions disagree with the master image.");

@@ -37,7 +37,12 @@ namespace Mediana.Tests
             "prof"u8.CopyTo(heic.AsSpan(nclx, 4));
             RgbaImage rgba = await HeicDocument.Load(heic).DecodePrimaryAsync();
             Assert.False(rgba.ColorInformation.IccProfile.IsEmpty);
-            Assert.Throws<NotSupportedException>(() => rgba.ToVideoFrame(allocator, SampleAspectRatio.Square));
+            using (VideoFrame frame = rgba.ToVideoFrame(allocator, SampleAspectRatio.Square))
+            {
+                Assert.IsType<IccColorDescription>(frame.Format.ColorDescription);
+                Assert.Throws<NotSupportedException>(() => frame.Format.GetColorInterpretation());
+                Assert.Throws<InvalidDataException>(() => Processing.SrgbConverter.Apply(frame, allocator));
+            }
             byte[] destination = new byte[raw.Width * raw.Height * 4];
             Array.Fill(destination, (byte)0xa5);
             Assert.Throws<NotSupportedException>(() => raw.WriteRgbaTo(destination));
