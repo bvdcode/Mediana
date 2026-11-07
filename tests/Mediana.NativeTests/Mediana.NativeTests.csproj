@@ -215,6 +215,12 @@
     <Compile Include="../Shared/IntraPictureFixture.cs" Link="IntraPictureFixture.cs" />
     <None Include="../Mediana.Tests/Data/Heif/*" Link="Data/Heif/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HeifReferenceTestInput.cs" Link="HeifReferenceTestInput.cs" />
+    <Compile Include="../Shared/HevcSliceHeaderTestInput.cs" Link="HevcSliceHeaderTestInput.cs" />
+    <Compile Include="../Shared/HevcCabacTestInput.cs" Link="HevcCabacTestInput.cs" />
+    <Compile Include="../Shared/HevcInterpolationTestInput.cs" Link="HevcInterpolationTestInput.cs" />
+    <None Include="../Mediana.Codecs.Hevc.Tests/Data/*.mp4" Link="Data/Hevc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Hevc.Tests/Data/*.headers.json" Link="Data/Hevc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Hevc.Tests/Data/*.bin.gz" Link="Data/Hevc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HeifMetadataTestInput.cs" Link="HeifMetadataTestInput.cs" />
     <Compile Include="../Shared/HeifFrameOwnershipTestInput.cs" Link="HeifFrameOwnershipTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Images.Heif/Mediana.Images.Heif.csproj" />

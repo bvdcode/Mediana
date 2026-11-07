@@ -27,6 +27,20 @@ namespace Mediana.NativeTests
             }
             Console.WriteLine("PASS Vorbis spectra: 49,152 codewords, both floors, all residues, 1,375 packets and nominal truncation match independent references.");
             Console.WriteLine("PASS public Vorbis PCM: 1,183 sequential packets, 128 transforms, sample clocks, overlap transitions and lease ownership match independent references.");
+            string hevcRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Hevc");
+            foreach (string name in new[] { "main8", "main10", "weighted8", "weighted10" })
+            {
+                int expected = name.StartsWith("weighted", StringComparison.Ordinal) ? 24 : 12;
+                if (await HevcSliceHeaderTestInput.VerifyAsync(hevcRoot, name) != expected)
+                {
+                    throw new InvalidDataException("The HEVC slice reference count differs.");
+                }
+            }
+            if (HevcCabacTestInput.Verify(hevcRoot) != 129888 || HevcInterpolationTestInput.Verify(hevcRoot) != 1280)
+            {
+                throw new InvalidDataException("The HEVC arithmetic or interpolation reference count differs.");
+            }
+            Console.WriteLine("PASS HEVC primitives: 72 I/P/B headers, Main/Main10 weights, 129,888 arithmetic bins, WPP snapshots and 1,280 exact fractional predictions.");
             string opusRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Opus");
             if (OpusPulseTestInput.Verify(opusRoot) != 13574 || OpusLaplaceTestInput.Verify(opusRoot) != 5257 ||
                 OpusEnergyTestInput.Verify(opusRoot) != 768 || OpusAllocationTestInput.Verify(opusRoot) != 4096 ||
