@@ -25,7 +25,7 @@ audio uses the Native AOT CLI. The native HEIF reference is a
   for both engines and one pair is removed after sample validation. This tests
   decode/output throughput; it does not establish SSD write performance.
 - Elapsed covers startup, complete input loading/decoding, complete output write,
-  finalization and process exit. CPU is user + system time of that process.
+  finalization and process exit.
   Peak RSS includes runtime and all resident process memory. Hashing and sample
   validation are outside timing; numerical validation runs in another process.
 - This is a shared development host without exclusive CPU/frequency control.
@@ -33,7 +33,7 @@ audio uses the Native AOT CLI. The native HEIF reference is a
 
 ## Results and correctness
 
-See the [summary table](../../README.md#workloads) for elapsed / CPU / peak RSS.
+See the [summary table](../../README.md#workloads) for time and peak memory.
 Individual runs are retained in [measurements.jsonl](measurements.jsonl),
 input hashes and exact command templates in [metadata.json](metadata.json),
 executable/library fingerprints in [builds.json](builds.json), and every decoded
@@ -59,16 +59,16 @@ the decoder measurements do not count as a passing end-to-end PNG conversion.
 
 ## Individual-run ranges
 
-| Case | Engine | Elapsed range (s) | CPU range (s) | Peak RSS range (MiB) |
-| --- | --- | ---: | ---: | ---: |
-| heic-photo-12mp | alternative | 0.369–0.396 | 0.569–0.617 | 73.2–73.7 |
-| heic-photo-12mp | mediana | 0.572–0.643 | 1.076–1.196 | 65.0–65.2 |
-| heic-photo-200mp | alternative | 3.420–4.038 | 5.586–6.417 | 1074.7–1075.2 |
-| heic-photo-200mp | mediana | 5.595–5.759 | 10.876–11.231 | 832.3–835.2 |
-| flac-sustained | alternative | 0.596–0.723 | 0.699–0.724 | 51.9–52.0 |
-| flac-sustained | mediana | 1.570–1.581 | 1.628–1.648 | 26.5–26.8 |
-| mp3-long | alternative | 2.539–2.696 | 2.892–2.979 | 52.0–52.3 |
-| mp3-long | mediana | 7.072–7.248 | 8.257–8.688 | 26.6–27.0 |
+| Case | Engine | Time range | Memory range |
+| --- | --- | ---: | ---: |
+| heic-photo-12mp | alternative | 369ms–396ms | 77Mb–77Mb |
+| heic-photo-12mp | mediana | 572ms–643ms | 68Mb–68Mb |
+| heic-photo-200mp | alternative | 3420ms–4038ms | 1127Mb–1127Mb |
+| heic-photo-200mp | mediana | 5595ms–5759ms | 873Mb–876Mb |
+| flac-sustained | alternative | 596ms–723ms | 54Mb–54Mb |
+| flac-sustained | mediana | 1570ms–1581ms | 28Mb–28Mb |
+| mp3-long | alternative | 2539ms–2696ms | 55Mb–55Mb |
+| mp3-long | mediana | 7072ms–7248ms | 28Mb–28Mb |
 
 ## Input identity
 

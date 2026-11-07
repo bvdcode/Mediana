@@ -1,60 +1,60 @@
 # Individual-run medians and ranges
 
-| Case | Engine | Elapsed median [range] | CPU median [range] | Peak RSS median [range] | Output bytes |
-| --- | --- | --- | --- | --- | ---: |
-| aac-multichannel | alternative | 1.130 [1.080–1.138] s | 1.210 [1.187–1.225] s | 54.855 [54.617–54.961] MiB | 343572582 |
-| aac-multichannel | mediana | 4.062 [3.986–4.086] s | 4.352 [4.314–4.416] s | 27.750 [27.500–27.750] MiB | 343572548 |
-| audio-resample | alternative | 2.774 [2.740–2.779] s | 3.102 [3.082–3.128] s | 52.617 [52.609–52.750] MiB | 78723072 |
-| audio-resample | mediana | 27.598 [27.494–27.932] s | 29.675 [29.672–29.922] s | 30.375 [30.125–30.500] MiB | 78723072 |
-| avc-decode-30m | alternative | 214.144 [160.848–214.963] s | 232.315 [229.483–239.448] s | 98.312 [96.879–98.898] MiB | 4838731 |
-| avc-decode-30m | mediana | 411.946 [407.951–471.597] s | 415.131 [411.031–459.198] s | 97.750 [83.160–99.355] MiB | 4378734 |
-| avc-transcode-30m | alternative | 249.075 [242.390–263.521] s | 448.349 [438.767–460.369] s | 136.496 [133.215–136.785] MiB | 2276212256–2276254932 |
-| avc-transcode-30m | mediana | 1340.327 [1339.698–1393.627] s | 1345.048 [1343.158–1397.704] s | 149.477 [147.812–151.594] MiB | 2319701168 |
-| flac-track | alternative | 587.115 [573.673–624.854] ms | 688.746 [684.620–725.538] ms | 51.859 [51.723–51.992] MiB | 114524258 |
-| flac-track | mediana | 2.510 [2.406–2.870] s | 2.610 [2.527–2.939] s | 26.750 [26.750–27.000] MiB | 114524204 |
-| heic-preview | alternative | 2.507 [2.492–2.516] s | 2.724 [2.704–2.739] s | 62.125 [62.090–62.652] MiB | 17525994 |
-| heic-preview | mediana | 1.509 [1.486–1.538] s | 2.021 [1.976–2.066] s | 125.000 [124.875–125.250] MiB | 20958800 |
-| hls-segment-30m | alternative | 1.481 [1.437–1.700] s | 2.004 [1.952–2.277] s | 91.344 [88.566–92.867] MiB | 1296268545 |
-| hls-segment-30m | mediana | 3.365 [3.183–3.927] s | 4.446 [4.380–4.575] s | 50.422 [36.297–62.914] MiB | 1315277487 |
-| jbig2-scan | alternative | 12.031 [11.317–12.304] ms | 11.087 [10.939–11.986] ms | 3.750 [3.625–3.750] MiB | 10285 |
-| jbig2-scan | mediana | 139.004 [136.558–140.789] ms | 139.491 [136.670–141.050] ms | 45.625 [45.625–46.000] MiB | 290534 |
-| jp2-scan | alternative | 5.133 [5.054–5.151] s | 5.133 [5.054–5.151] s | 85.559 [85.328–85.559] MiB | 10292850 |
-| jp2-scan | mediana | 5.599 [5.543–5.617] s | 5.604 [5.551–5.619] s | 334.125 [322.332–334.375] MiB | 12306918 |
-| jpeg-photo | alternative | 1.529 [1.500–1.809] s | 1.527 [1.499–1.809] s | 69.238 [69.234–69.609] MiB | 11285382 |
-| jpeg-photo | mediana | 1.542 [1.534–1.703] s | 1.546 [1.542–1.703] s | 84.125 [83.500–84.250] MiB | 12206571 |
-| jpeg-photo-progressive | alternative | 1.577 [1.548–1.910] s | 1.577 [1.547–1.898] s | 69.406 [69.277–69.527] MiB | 11285382 |
-| jpeg-photo-progressive | mediana | 1.622 [1.574–2.340] s | 1.620 [1.580–2.340] s | 121.625 [121.500–121.625] MiB | 12206571 |
-| mesh-preview | alternative | 345.871 [331.368–511.223] ms | 413.993 [400.811–604.718] ms | 181.168 [167.785–195.055] MiB | 1048576 |
-| mesh-preview | mediana | 382.869 [307.753–411.627] ms | 468.262 [381.750–481.036] ms | 221.465 [218.641–222.375] MiB | 1048576 |
-| ogg-index | alternative | 413.163 [380.992–424.977] ms | 610.854 [580.707–628.545] ms | 51.234 [50.824–51.398] MiB | 14387962 |
-| ogg-index | mediana | 172.371 [163.909–188.538] ms | 238.494 [178.469–244.027] ms | 19.875 [19.875–19.875] MiB | 14387962 |
-| pdf-page | alternative | 48.054 [47.962–53.206] ms | 47.796 [47.714–50.179] ms | 15.520 [15.371–15.621] MiB | 12485 |
-| pdf-page | mediana | 76.408 [74.618–77.134] ms | 82.663 [74.972–83.213] ms | 102.250 [101.750–102.375] MiB | 28087 |
-| pdf-scan | alternative | 423.723 [420.985–472.165] ms | 423.434 [418.988–471.144] ms | 15.453 [15.453–15.457] MiB | 748176 |
-| pdf-scan | mediana | 905.530 [874.125–980.393] ms | 913.806 [883.174–985.412] ms | 158.668 [158.348–164.281] MiB | 905122 |
-| png-large | alternative | 1.028 [1.008–1.074] s | 1.027 [1.007–1.073] s | 123.773 [123.645–123.895] MiB | 12649022 |
-| png-large | mediana | 1.291 [1.253–1.590] s | 1.298 [1.261–1.298] s | 83.500 [83.012–83.750] MiB | 12649896 |
-| presentation-slide | alternative | 463.823 [457.906–474.053] ms | 466.337 [456.556–472.429] ms | 193.680 [193.559–193.801] MiB | 257965 |
-| presentation-slide | mediana | 1.283 [1.222–1.298] s | 1.282 [1.232–1.303] s | 162.258 [150.195–162.500] MiB | 357028 |
-| raster-pages | alternative | 615.314 [608.579–620.099] ms | 614.509 [604.722–616.454] ms | 115.109 [114.734–115.238] MiB | 11839389 |
-| raster-pages | mediana | 712.586 [613.066–732.636] ms | 622.336 [618.641–715.873] ms | 69.125 [67.707–69.133] MiB | 12306918 |
-| remux-hls | alternative | 1.208 [1.100–1.334] s | 1.740 [1.637–1.890] s | 61.879 [61.875–61.984] MiB | 1306795896 |
-| remux-hls | mediana | 1.812 [1.786–2.133] s | 2.584 [2.544–2.648] s | 35.484 [35.086–42.285] MiB | 1315269620 |
-| spreadsheet-read | alternative | 519.875 [507.298–628.499] ms | 524.898 [513.127–553.154] ms | 47.914 [47.699–48.000] MiB | 3200000 |
-| spreadsheet-read | mediana | 355.153 [352.632–378.278] ms | 356.783 [354.688–382.016] ms | 18.625 [18.500–18.750] MiB | 3200000 |
-| svg-scene | alternative | 1.615 [1.585–1.668] s | 1.493 [1.489–1.619] s | 171.246 [170.238–171.430] MiB | 771322 |
-| svg-scene | mediana | 31.414 [31.246–34.624] s | 31.727 [31.680–34.910] s | 866.355 [865.949–890.188] MiB | 849147 |
-| tgs-animation | alternative | 458.695 [458.373–463.493] ms | 480.445 [477.875–482.346] ms | 9.250 [9.250–9.500] MiB | 188743680 |
-| tgs-animation | mediana | 6.337 [5.986–6.532] s | 6.343 [5.995–6.541] s | 37.355 [36.098–37.414] MiB | 188743680 |
-| webp-animation | alternative | 86.492 [82.855–88.339] ms | 85.659 [81.587–88.021] ms | 6.645 [6.570–6.645] MiB | 185597952 |
-| webp-animation | mediana | 203.103 [198.157–257.804] ms | 241.321 [239.099–273.234] ms | 24.938 [21.727–56.430] MiB | 185597952 |
-| webp-encode | alternative | 3.509 [3.417–4.607] s | 3.508 [3.416–4.606] s | 202.152 [202.152–202.402] MiB | 7703882 |
-| webp-encode | mediana | 1.230 [1.224–1.383] s | 1.231 [1.226–1.382] s | 139.625 [139.500–139.875] MiB | 8962318 |
-| webp-encode-lossy | alternative | 771.838 [668.124–995.361] ms | 758.117 [729.629–1116.598] ms | 138.160 [137.797–138.168] MiB | 1101804 |
-| webp-encode-lossy | mediana | 1.364 [1.355–1.974] s | 1.365 [1.350–1.968] s | 111.250 [111.000–111.750] MiB | 1505268 |
-| webp-still | alternative | 1.411 [1.317–1.554] s | 1.317 [1.294–1.553] s | 120.891 [120.828–120.949] MiB | 10084386 |
-| webp-still | mediana | 585.528 [578.663–710.050] ms | 591.468 [583.234–712.178] ms | 57.625 [57.625–57.766] MiB | 10193644 |
-| webp-still-lossless | alternative | 1.637 [1.584–1.812] s | 1.633 [1.580–1.812] s | 134.895 [134.656–134.934] MiB | 11536738 |
-| webp-still-lossless | mediana | 647.515 [614.103–746.621] ms | 651.413 [620.755–750.618] ms | 54.875 [54.750–55.375] MiB | 12630943 |
-| word-page | alternative | 435.773 [345.981–2605.759] ms | 352.564 [351.591–386.494] ms | 229.586 [229.539–229.723] MiB | 177676 |
-| word-page | mediana | 1.245 [1.215–1.263] s | 1.242 [1.213–1.265] s | 160.375 [160.270–172.012] MiB | 138490 |
+| Case | Engine | Time median [range] | Memory median [range] | Output bytes |
+| --- | --- | --- | --- | ---: |
+| aac-multichannel | alternative | 1130ms [1080ms–1138ms] | 58Mb [57Mb–58Mb] | 343572582 |
+| aac-multichannel | mediana | 4062ms [3986ms–4086ms] | 29Mb [29Mb–29Mb] | 343572548 |
+| audio-resample | alternative | 2774ms [2740ms–2779ms] | 55Mb [55Mb–55Mb] | 78723072 |
+| audio-resample | mediana | 27598ms [27494ms–27932ms] | 32Mb [32Mb–32Mb] | 78723072 |
+| avc-decode-30m | alternative | 214144ms [160848ms–214963ms] | 103Mb [102Mb–104Mb] | 4838731 |
+| avc-decode-30m | mediana | 411946ms [407951ms–471597ms] | 102Mb [87Mb–104Mb] | 4378734 |
+| avc-transcode-30m | alternative | 249075ms [242390ms–263521ms] | 143Mb [140Mb–143Mb] | 2276212256–2276254932 |
+| avc-transcode-30m | mediana | 1340327ms [1339698ms–1393627ms] | 157Mb [155Mb–159Mb] | 2319701168 |
+| flac-track | alternative | 587ms [574ms–625ms] | 54Mb [54Mb–55Mb] | 114524258 |
+| flac-track | mediana | 2510ms [2406ms–2870ms] | 28Mb [28Mb–28Mb] | 114524204 |
+| heic-preview | alternative | 2507ms [2492ms–2516ms] | 65Mb [65Mb–66Mb] | 17525994 |
+| heic-preview | mediana | 1509ms [1486ms–1538ms] | 131Mb [131Mb–131Mb] | 20958800 |
+| hls-segment-30m | alternative | 1481ms [1437ms–1700ms] | 96Mb [93Mb–97Mb] | 1296268545 |
+| hls-segment-30m | mediana | 3365ms [3183ms–3927ms] | 53Mb [38Mb–66Mb] | 1315277487 |
+| jbig2-scan | alternative | 12ms [11ms–12ms] | 4Mb [4Mb–4Mb] | 10285 |
+| jbig2-scan | mediana | 139ms [137ms–141ms] | 48Mb [48Mb–48Mb] | 290534 |
+| jp2-scan | alternative | 5133ms [5054ms–5151ms] | 90Mb [89Mb–90Mb] | 10292850 |
+| jp2-scan | mediana | 5599ms [5543ms–5617ms] | 350Mb [338Mb–351Mb] | 12306918 |
+| jpeg-photo | alternative | 1529ms [1500ms–1809ms] | 73Mb [73Mb–73Mb] | 11285382 |
+| jpeg-photo | mediana | 1542ms [1534ms–1703ms] | 88Mb [88Mb–88Mb] | 12206571 |
+| jpeg-photo-progressive | alternative | 1577ms [1548ms–1910ms] | 73Mb [73Mb–73Mb] | 11285382 |
+| jpeg-photo-progressive | mediana | 1622ms [1574ms–2340ms] | 128Mb [127Mb–128Mb] | 12206571 |
+| mesh-preview | alternative | 346ms [331ms–511ms] | 190Mb [176Mb–205Mb] | 1048576 |
+| mesh-preview | mediana | 383ms [308ms–412ms] | 232Mb [229Mb–233Mb] | 1048576 |
+| ogg-index | alternative | 413ms [381ms–425ms] | 54Mb [53Mb–54Mb] | 14387962 |
+| ogg-index | mediana | 172ms [164ms–189ms] | 21Mb [21Mb–21Mb] | 14387962 |
+| pdf-page | alternative | 48ms [48ms–53ms] | 16Mb [16Mb–16Mb] | 12485 |
+| pdf-page | mediana | 76ms [75ms–77ms] | 107Mb [107Mb–107Mb] | 28087 |
+| pdf-scan | alternative | 424ms [421ms–472ms] | 16Mb [16Mb–16Mb] | 748176 |
+| pdf-scan | mediana | 906ms [874ms–980ms] | 166Mb [166Mb–172Mb] | 905122 |
+| png-large | alternative | 1028ms [1008ms–1074ms] | 130Mb [130Mb–130Mb] | 12649022 |
+| png-large | mediana | 1291ms [1253ms–1590ms] | 88Mb [87Mb–88Mb] | 12649896 |
+| presentation-slide | alternative | 464ms [458ms–474ms] | 203Mb [203Mb–203Mb] | 257965 |
+| presentation-slide | mediana | 1283ms [1222ms–1298ms] | 170Mb [157Mb–170Mb] | 357028 |
+| raster-pages | alternative | 615ms [609ms–620ms] | 121Mb [120Mb–121Mb] | 11839389 |
+| raster-pages | mediana | 713ms [613ms–733ms] | 72Mb [71Mb–72Mb] | 12306918 |
+| remux-hls | alternative | 1208ms [1100ms–1334ms] | 65Mb [65Mb–65Mb] | 1306795896 |
+| remux-hls | mediana | 1812ms [1786ms–2133ms] | 37Mb [37Mb–44Mb] | 1315269620 |
+| spreadsheet-read | alternative | 520ms [507ms–628ms] | 50Mb [50Mb–50Mb] | 3200000 |
+| spreadsheet-read | mediana | 355ms [353ms–378ms] | 20Mb [19Mb–20Mb] | 3200000 |
+| svg-scene | alternative | 1615ms [1585ms–1668ms] | 180Mb [179Mb–180Mb] | 771322 |
+| svg-scene | mediana | 31414ms [31246ms–34624ms] | 908Mb [908Mb–933Mb] | 849147 |
+| tgs-animation | alternative | 459ms [458ms–463ms] | 10Mb [10Mb–10Mb] | 188743680 |
+| tgs-animation | mediana | 6337ms [5986ms–6532ms] | 39Mb [38Mb–39Mb] | 188743680 |
+| webp-animation | alternative | 86ms [83ms–88ms] | 7Mb [7Mb–7Mb] | 185597952 |
+| webp-animation | mediana | 203ms [198ms–258ms] | 26Mb [23Mb–59Mb] | 185597952 |
+| webp-encode | alternative | 3509ms [3417ms–4607ms] | 212Mb [212Mb–212Mb] | 7703882 |
+| webp-encode | mediana | 1230ms [1224ms–1383ms] | 146Mb [146Mb–147Mb] | 8962318 |
+| webp-encode-lossy | alternative | 772ms [668ms–995ms] | 145Mb [144Mb–145Mb] | 1101804 |
+| webp-encode-lossy | mediana | 1364ms [1355ms–1974ms] | 117Mb [116Mb–117Mb] | 1505268 |
+| webp-still | alternative | 1411ms [1317ms–1554ms] | 127Mb [127Mb–127Mb] | 10084386 |
+| webp-still | mediana | 586ms [579ms–710ms] | 60Mb [60Mb–61Mb] | 10193644 |
+| webp-still-lossless | alternative | 1637ms [1584ms–1812ms] | 141Mb [141Mb–141Mb] | 11536738 |
+| webp-still-lossless | mediana | 648ms [614ms–747ms] | 58Mb [57Mb–58Mb] | 12630943 |
+| word-page | alternative | 436ms [346ms–2606ms] | 241Mb [241Mb–241Mb] | 177676 |
+| word-page | mediana | 1245ms [1215ms–1263ms] | 168Mb [168Mb–180Mb] | 138490 |

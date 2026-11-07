@@ -101,18 +101,15 @@ def escape(value: str) -> str:
 
 
 def duration(seconds: float) -> str:
-    """Show each duration with an explicit unit at a readable scale."""
-    if seconds < 1:
-        return f"{seconds * 1000:.1f} ms"
-    return f"{seconds:.3f} s"
+    """Show elapsed time in whole milliseconds."""
+    return f"{seconds * 1000:.0f}ms"
 
 
-def metrics(result: Result, engine: str) -> str:
-    """Label elapsed time, total processor time and peak resident memory."""
+def metrics(result: Result, engine: str) -> tuple[str, str]:
+    """Show elapsed time and peak memory as compact table cells."""
     elapsed = float(getattr(result, f"{engine}_elapsed_seconds"))
-    cpu = float(getattr(result, f"{engine}_cpu_seconds"))
-    memory = float(getattr(result, f"{engine}_peak_rss_bytes")) / (1024 * 1024)
-    return f"{duration(elapsed)} / CPU {duration(cpu)} / RSS {memory:.1f} MiB"
+    memory = float(getattr(result, f"{engine}_peak_rss_bytes")) / 1_000_000
+    return duration(elapsed), f"{memory:.0f}Mb"
 
 
 def render_performance(
@@ -128,19 +125,19 @@ def render_performance(
     lines = [
         (
             "| Case | Operation / representative workload | Track | Alternative | "
-            "Alternative: elapsed / CPU (ms or s) / peak RSS (MiB) | "
-            "Mediana: elapsed / CPU (ms or s) / peak RSS (MiB) | Evidence |"
+            "Alternative time | Alternative memory | "
+            "Mediana time | Mediana memory | Evidence |"
         ),
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for item in cases:
         result = results.get(item.id)
         if result is not None:
-            reference = metrics(result, "alternative")
-            mediana = metrics(result, "mediana")
+            reference_time, reference_memory = metrics(result, "alternative")
+            mediana_time, mediana_memory = metrics(result, "mediana")
             evidence = f"[Measured subset]({result.report}); {result.quality}"
         else:
-            reference = mediana = "—"
+            reference_time = reference_memory = mediana_time = mediana_memory = "—"
             evidence = (
                 f"[Related measurements]({item.report}); target run open"
                 if item.report
@@ -151,8 +148,10 @@ def render_performance(
             f"{item.operation}: {item.workload}",
             item.track,
             item.alternative,
-            reference,
-            mediana,
+            reference_time,
+            reference_memory,
+            mediana_time,
+            mediana_memory,
             evidence,
         ]
         lines.append("| " + " | ".join(escape(value) for value in values) + " |")

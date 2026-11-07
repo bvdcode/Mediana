@@ -30,12 +30,11 @@ counts. No GPU or hardware codec path is selected.
 Each fresh-process workload has three alternating pairs. The shared host has no
 exclusive frequency or CPU control; ranges describe observed variation. Elapsed
 includes startup, all requested input processing, output writing, finalization and
-process exit. CPU is Linux `wait4` user + system time, including waited-for
-descendants; RSS is an individual process resident high-water mark, including
+process exit. RSS is an individual process resident high-water mark, including
 native/runtime memory. It does not sum simultaneous child-process memory.
 The photograph series and small-process comparisons capture child RSS through
-GNU time 1.9, excluding Python memory inherited before executable startup. CPU
-includes that native launcher's work. Earlier series use `wait4` RSS directly;
+GNU time 1.9, excluding Python memory inherited before executable startup.
+Earlier series use `wait4` RSS directly;
 their selected process peaks exceed its observed launch-memory floor of about
 20 MiB. The metadata identifies the resource timer where used.
 Both engines write decoded
@@ -45,7 +44,7 @@ is warm; hashing and quality comparisons are outside timing.
 The mesh row is explicitly different: it imports the existing
 [three-process JIT study](../../../mesh-performance.md), selecting the complete
 28-mesh `dog.3mf` model. Each process warms up and then measures three operations;
-elapsed and CPU are the mean per operation, while RSS is the lifetime peak.
+elapsed is the mean per operation, while RSS is the lifetime peak.
 It is not a fresh single-command Native AOT timing. All six models in that source
 study have matching RGBA bytes. This selected file does not exercise Production
 Extension cross-part components or establish material/texture interpretation.
@@ -225,7 +224,7 @@ a smaller or less accurate output does not establish a faster equivalent encoder
   0.238809; lossy VP8 decoding has maximum error 1 and RMSE 0.059419. PNG,
   lossless WebP, LZW TIFF and reversible tiled JP2 match every RGBA byte.
 - Both lossless WebP encoders reproduce every source component. Mediana takes
-  1.230 s versus 3.509 s, but produces 8,962,318 bytes versus 7,703,882 bytes.
+  1230ms versus 3509ms, but produces 8,962,318 bytes versus 7,703,882 bytes.
   For lossy quality setting 75, source RGBA RMSE is 4.361002 versus 4.753252;
   sizes are 1,505,268 versus 1,101,804 bytes. Equal quality-setting numbers do
   not establish matched quality or compression efficiency.
@@ -236,13 +235,12 @@ a smaller or less accurate output does not establish a faster equivalent encoder
   Visual inspection shows missing Word table borders, taller table rows, a
   displaced photograph and lighter text. The slide has extra white dot markers
   inside otherwise empty chart rectangles; title strokes and chart shadows differ.
-- Complete AVC transcoding takes a median 1340.327 s versus 249.075 s: 5.38 times
-  the elapsed time and 3.00 times the total CPU time. Peak RSS is 149.477 MiB
-  versus 136.496 MiB. Mediana's output is about 2% larger, with source PSNR
+- Complete AVC transcoding takes a median 1340327ms versus 249075ms: 5.38 times
+  the elapsed time. Peak memory is 157Mb versus 143Mb. Mediana's output is about 2% larger, with source PSNR
   45.34 dB versus 48.89 dB. This configuration has a speed and compression
   efficiency gap; it does not show a memory advantage.
 
-The largest CPU gaps in this selection include the SVG effects scene, complete
+The largest time gaps in this selection include the SVG effects scene, complete
 TGS animation, long audio resampling and AVC encoding. AAC accuracy and document
 layout differences require correctness work alongside performance work. These
 measurements identify affected operations; they do not establish a profiled cause.

@@ -92,20 +92,20 @@ ICC conversion and PNG compression are outside these measurements.
 
 Final Mediana medians:
 
-| Image | Filter | Elapsed, s | Total CPU, s | Peak RSS, MiB |
-| --- | --- | ---: | ---: | ---: |
-| 4000×3000 | Nearest | 0.996 | 1.078 | 65.1 |
-| 4000×3000 | Bilinear | 1.117 | 1.201 | 65.4 |
-| 4000×3000 | Bicubic | 1.226 | 1.226 | 65.4 |
-| 4000×3000 | Lanczos3 | 1.275 | 1.395 | 65.4 |
-| 16320×12240 | Nearest | 9.734 | 10.481 | 834.3 |
-| 16320×12240 | Bilinear | 11.159 | 12.340 | 831.6 |
-| 16320×12240 | Bicubic | 11.946 | 13.062 | 834.5 |
-| 16320×12240 | Lanczos3 | 13.225 | 14.577 | 832.7 |
+| Image | Filter | Time | Memory |
+| --- | --- | ---: | ---: |
+| 4000×3000 | Nearest | 996ms | 68Mb |
+| 4000×3000 | Bilinear | 1117ms | 69Mb |
+| 4000×3000 | Bicubic | 1226ms | 69Mb |
+| 4000×3000 | Lanczos3 | 1275ms | 69Mb |
+| 16320×12240 | Nearest | 9734ms | 875Mb |
+| 16320×12240 | Bilinear | 11159ms | 872Mb |
+| 16320×12240 | Bicubic | 11946ms | 875Mb |
+| 16320×12240 | Lanczos3 | 13225ms | 873Mb |
 
 These runs share a development host without exclusive CPU or frequency control.
 The unchanged nearest path also changes timing between the before/after stages;
-the timings do not isolate a CPU speedup caused by phase-table reuse. Peak RSS
+the timings do not isolate a speedup caused by phase-table reuse. Peak RSS
 is process memory, not total managed allocation, and small RSS differences do
 not establish a memory ordering between kernels.
 
@@ -127,7 +127,6 @@ All eight complete Mediana outputs, covering both photographs and all four
 filters, retain exactly the same SHA-256 before and after phase-table reuse.
 Nearest output differs from libheif/libde265 by at most one RGBA code value on
 both complete photographs, with RGBA RMS errors of 0.139705 and 0.131672. The
-paired native nearest baseline remains faster: CPU medians are 0.579 s and
-5.527 s. Bilinear equivalence to that native version is not established because
-sample-location and edge behavior differ; those results are not presented as
-an equal-quality speed comparison.
+paired native nearest baseline remains faster. Bilinear equivalence to that native
+version is not established because sample-location and edge behavior differ;
+those results are not presented as an equal-quality speed comparison.
