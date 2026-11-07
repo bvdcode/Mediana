@@ -60,7 +60,7 @@ namespace Mediana
             ValidateDestination(destination);
             ArgumentNullException.ThrowIfNull(allocator);
             options ??= new();
-            await using ContainerSession container = await OpenContainerAsync(source, options.Input, cancellationToken).ConfigureAwait(false);
+            await using ContainerSession container = await OpenContainerAsync(source, allocator, options.Input, cancellationToken).ConfigureAwait(false);
             if (container.Reader is not IIndexedContainerReader indexed)
             { throw new NotSupportedException("Independent track processing requires an indexed container reader."); }
             await using MediaProcessingSession session = await OpenProcessingAsync(indexed, tracks, allocator, options, cancellationToken).ConfigureAwait(false);
