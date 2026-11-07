@@ -3,6 +3,7 @@
 
 using Mediana.Core;
 using Mediana.Core.Video;
+using Mediana.Core.Timing;
 using Mediana.Formats;
 using Mediana.Formats.Video;
 
@@ -11,8 +12,8 @@ namespace Mediana.Containers.Mp4
     /// <summary>An AVC or HEVC video track for newly encoded ISO BMFF fragments.</summary>
     public class Mp4VideoTrackDefinition : Mp4TrackDefinition
     {
-        public Mp4VideoTrackDefinition(EncodedStreamInfo stream, VideoFormat format, uint trackId = 1, long timestampOffset = 0)
-            : base(stream, trackId, timestampOffset)
+        public Mp4VideoTrackDefinition(EncodedStreamInfo stream, VideoFormat format, uint trackId = 1, long timestampOffset = 0, MediaTimestamp? presentationEnd = null)
+            : base(stream, trackId, timestampOffset, presentationEnd)
         {
             ArgumentNullException.ThrowIfNull(format);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(format.Width, ushort.MaxValue);

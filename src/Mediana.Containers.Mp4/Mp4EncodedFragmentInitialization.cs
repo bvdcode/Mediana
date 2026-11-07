@@ -4,6 +4,7 @@
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
+using Mediana.Core.Timing;
 
 namespace Mediana.Containers.Mp4
 {
@@ -22,11 +23,17 @@ namespace Mediana.Containers.Mp4
 
         private static void Build(Mp4BoxWriter writer, IReadOnlyList<Mp4TrackDefinition> tracks)
         {
+            TimeBase movieClock = new(1, 1000);
+            foreach (Mp4TrackDefinition track in tracks)
+            {
+                if (track.PresentationEnd is MediaTimestamp end)
+                { movieClock = TimeBase.Common(movieClock, end.ReduceClock().TimeBase); }
+            }
             writer.Box("ftyp", "iso6\0\0\0\0iso6isommp41"u8);
             int moov = writer.Begin("moov");
             int mvhd = writer.Full("mvhd");
             writer.Zeros(8);
-            writer.UInt32(1000);
+            writer.UInt32((uint)movieClock.Denominator);
             writer.UInt32(0);
             writer.UInt32(1 << 16);
             writer.UInt16(1 << 8);
@@ -35,7 +42,7 @@ namespace Mediana.Containers.Mp4
             writer.Zeros(24);
             writer.UInt32(tracks.Max(track => track.TrackId) + 1);
             writer.End(mvhd);
-            foreach (Mp4TrackDefinition track in tracks) { WriteTrack(writer, track); }
+            foreach (Mp4TrackDefinition track in tracks) { WriteTrack(writer, track, movieClock); }
             int mvex = writer.Begin("mvex");
             foreach (Mp4TrackDefinition track in tracks)
             {
@@ -49,7 +56,7 @@ namespace Mediana.Containers.Mp4
             writer.End(moov);
         }
 
-        private static void WriteTrack(Mp4BoxWriter writer, Mp4TrackDefinition track)
+        private static void WriteTrack(Mp4BoxWriter writer, Mp4TrackDefinition track, TimeBase movieClock)
         {
             int trak = writer.Begin("trak"), tkhd = writer.Full("tkhd", 7);
             writer.Zeros(8);
@@ -66,11 +73,11 @@ namespace Mediana.Containers.Mp4
             Matrix(writer, track.Stream.DisplayMatrix ?? VideoDisplayMatrix.Identity);
             track.WritePresentationSize(writer);
             writer.End(tkhd);
-            if (track.TimestampOffset != 0)
+            if (track.TimestampOffset != 0 || track.PresentationEnd is not null)
             {
                 int edts = writer.Begin("edts"), elst = writer.Full("elst", 0x01000000);
                 writer.UInt32(1);
-                writer.UInt64(0);
+                writer.UInt64(track.PresentationEnd is MediaTimestamp end ? checked((ulong)end.Rescale(movieClock, TimestampRounding.TowardZero).Value) : 0);
                 writer.UInt64((ulong)track.TimestampOffset);
                 writer.UInt32(1 << 16);
                 writer.End(elst);

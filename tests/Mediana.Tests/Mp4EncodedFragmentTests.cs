@@ -16,6 +16,28 @@ namespace Mediana.Tests
     public class Mp4EncodedFragmentTests
     {
         [Fact]
+        public async Task FinitePresentationEditPreservesExactTailAndZeroFragmentHeaderDurations()
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            EncodedStreamInfo stream = new(7, MediaKind.Audio, "aac", StreamFormats.Aac, new(1, 44100), AacConfiguration.Create(44100, 1).ToAudioSpecificConfig());
+            MediaTimestamp end = new(65777, new(1, 44100));
+            Mp4AudioTrackDefinition definition = new(stream, 13, 1024, end);
+            using MemoryStream output = new();
+            await Mp4EncodedFragmentWriter.WriteInitializationAsync([definition], output, allocator);
+            ReadOnlyMemory<byte> bytes = output.ToArray();
+            ReadOnlyMemory<byte> movie = Mp4TestBoxes.Get(bytes, "moov", "mvhd");
+            Assert.Equal(0u, Mp4TestBoxes.UInt32(movie, 16));
+            ReadOnlyMemory<byte> track = Mp4TestBoxes.Get(bytes, "moov", "trak");
+            Assert.Equal(0u, Mp4TestBoxes.UInt32(Mp4TestBoxes.Get(track, "tkhd"), 20));
+            ReadOnlyMemory<byte> edit = Mp4TestBoxes.Get(track, "edts", "elst");
+            Assert.Equal(1u, Mp4TestBoxes.UInt32(edit, 4));
+            Assert.Equal(1024ul, Mp4TestBoxes.UInt64(edit, 16));
+            Assert.Equal(end, new MediaTimestamp((long)Mp4TestBoxes.UInt64(edit, 8), new(1, (int)Mp4TestBoxes.UInt32(movie, 12))));
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.Throws<ArgumentOutOfRangeException>(() => new Mp4AudioTrackDefinition(stream, 13, presentationEnd: new(0, new(1, 1))));
+        }
+
+        [Fact]
         public async Task AudioAndVideoInitializationPublishesExplicitOffsetAndAllTrackDescriptions()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);

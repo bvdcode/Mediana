@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
+using Mediana.Core.Timing;
 using Mediana.Formats;
 using Mediana.Formats.Audio;
 
@@ -10,8 +11,8 @@ namespace Mediana.Containers.Mp4
     /// <summary>Describes AAC-LC access units in fragmented MP4, including their explicit presentation offset.</summary>
     public class Mp4AudioTrackDefinition : Mp4TrackDefinition
     {
-        public Mp4AudioTrackDefinition(EncodedStreamInfo stream, uint trackId, long timestampOffset = 0)
-            : base(stream, trackId, timestampOffset)
+        public Mp4AudioTrackDefinition(EncodedStreamInfo stream, uint trackId, long timestampOffset = 0, MediaTimestamp? presentationEnd = null)
+            : base(stream, trackId, timestampOffset, presentationEnd)
         {
             if (stream.Kind != MediaKind.Audio || stream.CodecId != AacConfiguration.CodecId)
             { throw new NotSupportedException("Fragmented audio writing requires AAC-LC access units."); }
