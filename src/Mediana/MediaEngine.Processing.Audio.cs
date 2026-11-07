@@ -14,6 +14,7 @@ namespace Mediana
     {
         internal async ValueTask<ProcessedMediaTrack> OpenAudioTrackAsync(AudioEncodingRequest request, MediaTrackInput input, CancellationToken token)
         {
+            if (request.Selection is MediaTimeRange overrideSelection) { input = input.WithSelection(overrideSelection); }
             EncodedStreamInfo stream = input.Select(request.InputStreamIndex, MediaKind.Audio);
             MediaDecodePipeline<AudioFrame> pipeline = CreateProcessingDecoder(stream, audioDecoders, input);
             if (input.Selection is MediaTimeRange requested) { await pipeline.SeekAsync(requested.Start, token).ConfigureAwait(false); }
@@ -33,7 +34,8 @@ namespace Mediana
             IMediaEncoder<AudioFrame> encoder = input.Resources.Own(request.Encoder.Create(opening.Format, clock, input.Allocator, request.OutputStreamIndex));
             long frames = 0;
             long samples = 0;
-            MediaEncodeSource<AudioFrame> source = new(ReadPreparedAsync, encoder);
+            IEncodedPacketSource source = new MediaEncodeSource<AudioFrame>(ReadPreparedAsync, encoder);
+            if (request.PacketSelection is MediaTimeRange packetSelection) { source = new PresentationPacketWindow(source, packetSelection); }
             return new(source, () => new(stream.StreamIndex, encoder.Stream, frames, samples, 0, 0,
                 (encoder as IAudioEncoderTiming)?.PrimingSamples, (encoder as IAudioEncoderTiming)?.PaddingSamples));
 

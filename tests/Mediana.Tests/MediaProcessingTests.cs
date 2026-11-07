@@ -17,6 +17,32 @@ namespace Mediana.Tests
 {
     public class MediaProcessingTests
     {
+        [Fact]
+        public async Task AudioWarmupAndEncodedPacketSelectionUseIndependentIntervalsOnTheSameClock()
+        {
+            MediaBufferAllocator allocator = new(8 * 1024 * 1024);
+            await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("avc-aac.mp4"));
+            await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator, new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
+            {
+                long baseline = allocator.AllocatedBytes;
+                MediaTimeRange input = new(new(100, new(1, 1000)), new(900, new(1, 1000)));
+                MediaTimeRange output = new(new(300, new(1, 1000)), new(500, new(1, 1000)));
+                await using (MediaProcessingSession session = await Engine().OpenProcessingAsync(reader,
+                    [new AudioEncodingRequest(1, 13, new AacEncoderFactory(), selection: input, packetSelection: output)],
+                    allocator, new() { Selection = output }))
+                {
+                    await using ProcessingPacketWriter writer = new();
+                    MediaProcessingResult result = await session.WriteAsync(writer);
+                    Assert.Equal(9, result.Packets);
+                    Assert.Equal(new MediaTimestamp(15040, new(1, 48000)), writer.Packets[0].Pts);
+                    Assert.All(writer.Packets, packet => Assert.True(packet.Pts!.Value.CompareTo(output.Start) >= 0 && packet.Pts.Value.CompareTo(output.End) < 0));
+                    Assert.InRange(result.Tracks[0].SamplesPerChannel, 20000, 38399);
+                }
+                Assert.Equal(baseline, allocator.AllocatedBytes);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]

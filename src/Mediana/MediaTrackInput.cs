@@ -18,6 +18,8 @@ namespace Mediana
         public MediaTrackResources Resources { get; } = resources;
         public MediaTimeRange? Selection { get; } = selection;
 
+        public MediaTrackInput WithSelection(MediaTimeRange value) => new(Reader, Allocator, Budget, Resources, value);
+
         public EncodedStreamInfo Select(int index, MediaKind? kind = null)
         {
             EncodedStreamInfo stream = Reader.Streams.SingleOrDefault(item => item.StreamIndex == index)
