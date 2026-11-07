@@ -8,36 +8,40 @@ namespace Mediana.Codecs.Theora
         private static void ReadCoefficients(ref TheoraBitReader reader, TheoraLayout layout, TheoraSetup setup,
             TheoraFrameState state, CancellationToken token)
         {
-            int eobs = 0, luma = 0, chroma = 0, active = state.CodedCount;
+            int eobs = 0, luma = 0, chroma = 0, active = state.CodedCount, pending = state.CodedCount;
             for (int ti = 0; ti < 64; ti++)
             {
                 token.ThrowIfCancellationRequested();
                 if (ti is 0 or 1) { luma = reader.Read(4); chroma = reader.Read(4); }
                 int group = ti switch { 0 => 0, <= 5 => 1, <= 14 => 2, <= 27 => 3, _ => 4 };
-                for (int i = 0; i < state.CodedCount; i++)
+                int next = 0;
+                for (int i = 0; i < pending; i++)
                 {
                     int block = state.CodedBlocks[i];
-                    if (state.TokenIndices[block] != ti) { continue; }
-                    state.CoefficientCounts[block] = (byte)ti;
-                    if (eobs == 0)
+                    if (state.TokenIndices[block] == ti)
                     {
-                        int symbol = setup.Huffman[group * 16 + (block < layout.LumaBlocks ? luma : chroma)].Decode(ref reader);
-                        if (symbol < 7)
+                        state.CoefficientCounts[block] = (byte)ti;
+                        if (eobs == 0)
                         {
+                            int symbol = setup.Huffman[group * 16 + (block < layout.LumaBlocks ? luma : chroma)].Decode(ref reader);
+                            if (symbol >= 7)
+                            {
+                                ReadCoefficient(ref reader, symbol, block, ti, state);
+                                if (state.TokenIndices[block] == 64) { active--; }
+                                else { state.CodedBlocks[next++] = block; }
+                                continue;
+                            }
                             eobs = symbol switch
                             { 0 => 1, 1 => 2, 2 => 3, 3 => 4 + reader.Read(2), 4 => 8 + reader.Read(3), 5 => 16 + reader.Read(4), 6 => reader.Read(12), _ => throw new InvalidDataException() };
                             if (symbol == 6 && eobs == 0) { eobs = active; }
                             if (eobs > active) { throw new InvalidDataException("A Theora EOB run exceeds its remaining coded blocks."); }
                         }
-                        else
-                        {
-                            ReadCoefficient(ref reader, symbol, block, ti, state);
-                            if (state.TokenIndices[block] == 64) { active--; }
-                            continue;
-                        }
+                        eobs--; active--; state.TokenIndices[block] = 64;
                     }
-                    eobs--; active--; state.TokenIndices[block] = 64;
+                    else { state.CodedBlocks[next++] = block; }
                 }
+                pending = next;
+                if (ti >= 1 && pending == 0) { break; }
             }
             if (eobs != 0 || active != 0) { throw new InvalidDataException("The Theora coefficients do not terminate within their frame."); }
         }
