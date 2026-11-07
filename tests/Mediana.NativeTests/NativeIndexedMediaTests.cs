@@ -31,7 +31,8 @@ namespace Mediana.NativeTests
                 OpusSilkControlsTestInput.Verify(opusRoot) != 1536 || OpusSilkNlsfTestInput.Verify(opusRoot) != 5888 ||
                 OpusSilkLpcTestInput.Verify(opusRoot) != 6144 || OpusSilkIndicesTestInput.Verify(opusRoot) != 3456 ||
                 OpusSilkParametersTestInput.Verify(opusRoot) != 2304 || OpusSilkFixedTestInput.Verify(opusRoot) != 12288 ||
-                OpusSilkSynthesisTestInput.Verify(opusRoot) != 768)
+                OpusSilkSynthesisTestInput.Verify(opusRoot) != 768 || OpusSilkStereoTestInput.Verify(opusRoot) != 1536 ||
+                OpusSilkResamplerTestInput.Verify(opusRoot) != 768 || OpusSilkPcmTestInput.Verify(opusRoot) != 3072)
             {
                 throw new InvalidDataException("The Opus reference case count differs.");
             }
