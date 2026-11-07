@@ -63,9 +63,11 @@ namespace Mediana.Codecs.Raster.Tests
                         int mismatch = -1; bool lossy = entry.TryGetProperty("lossy", out JsonElement lossyValue) && lossyValue.GetBoolean();
                         int maximum = 0; long squares = 0;
                         for (int byteIndex = 0; byteIndex < expected.Length; byteIndex++)
-                        { int error = Math.Abs(expected[byteIndex] - frame.Data.Span[byteIndex]);
+                        {
+                            int error = Math.Abs(expected[byteIndex] - frame.Data.Span[byteIndex]);
                             maximum = Math.Max(maximum, error); squares += error * error;
-                            if (error > (lossy && byteIndex % 4 != 3 ? 4 : 0) && mismatch < 0) { mismatch = byteIndex; } }
+                            if (error > (lossy && byteIndex % 4 != 3 ? 4 : 0) && mismatch < 0) { mismatch = byteIndex; }
+                        }
                         Assert.True(mismatch < 0, $"{name}, frame {index - 1}, byte {mismatch}: expected {(mismatch < 0 ? 0 : expected[mismatch])}, actual {(mismatch < 0 ? 0 : frame.Data.Span[mismatch])}; max={maximum}, rms={Math.Sqrt((double)squares / expected.Length)}.");
                     }
                 }

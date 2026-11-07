@@ -28,7 +28,10 @@ namespace Mediana.Cli
             {
                 result = await engine.TranscodeVideoAsync(source, destination, "h264", "mpegts", allocator, new()
                 {
-                    StreamIndex = streamIndex, MaximumWidth = maximumWidth, MaximumHeight = maximumHeight, OmitAudio = videoOnly
+                    StreamIndex = streamIndex,
+                    MaximumWidth = maximumWidth,
+                    MaximumHeight = maximumHeight,
+                    OmitAudio = videoOnly
                 }, progress.Report, cancellationToken);
             }, cancellationToken);
             if (allocator.AllocatedBytes != 0) { throw new InvalidOperationException("Video encoding buffers were not released."); }

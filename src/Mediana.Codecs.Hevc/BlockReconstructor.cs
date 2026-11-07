@@ -35,7 +35,7 @@ namespace Mediana.Codecs.Hevc
                     top[i + 1] = Neighbour(plane, x + i, y - 1, x, y, component);
                     left[i + 1] = Neighbour(plane, x - 1, y + i, x, y, component);
                 }
-    
+
                 IntraReferenceSamples.Substitute(top, left, size, depth);
                 IntraPredictor.Predict(top, left, prediction, size, mode, depth, component == 0, parameters.Sequence.StrongIntraSmoothing, parameters.Sequence.ChromaFormat == 3);
             }

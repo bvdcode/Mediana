@@ -22,7 +22,8 @@ namespace Mediana.Cli
             {
                 Input = new()
                 {
-                    StreamIndex = stream, Images = CommandImageResources.OpenOptions,
+                    StreamIndex = stream,
+                    Images = CommandImageResources.OpenOptions,
                     Request = new() { Time = new MediaTimestamp(milliseconds, new(1, 1000)) }
                 },
                 ColorResolver = SdrPreviewColorPolicy.Resolve,

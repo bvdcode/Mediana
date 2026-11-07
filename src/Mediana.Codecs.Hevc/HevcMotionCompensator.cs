@@ -101,9 +101,11 @@ namespace Mediana.Codecs.Hevc
             SamplePlane source = Plane(reference.Picture, component);
             switch (sequence.BitDepth)
             {
-                case 8: HevcInterpolation.Predict<byte, ByteSampleFormat>(source.ReadByteView, sourceX, sourceY, fractionX, fractionY,
+                case 8:
+                    HevcInterpolation.Predict<byte, ByteSampleFormat>(source.ReadByteView, sourceX, sourceY, fractionX, fractionY,
                     chroma, 8, width, height, output, working); break;
-                case 10: HevcInterpolation.Predict<ushort, WordSampleFormat>(source.ReadWordView, sourceX, sourceY, fractionX, fractionY,
+                case 10:
+                    HevcInterpolation.Predict<ushort, WordSampleFormat>(source.ReadWordView, sourceX, sourceY, fractionX, fractionY,
                     chroma, 10, width, height, output, working); break;
                 default: throw new InvalidOperationException("Unsupported HEVC reference precision.");
             }

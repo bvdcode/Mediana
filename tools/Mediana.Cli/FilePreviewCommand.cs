@@ -15,7 +15,8 @@ namespace Mediana.Cli
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             VisualOpenOptions options = new()
             {
-                StreamIndex = stream, Images = CommandImageResources.OpenOptions,
+                StreamIndex = stream,
+                Images = CommandImageResources.OpenOptions,
                 Request = new() { PageIndex = page - 1, Time = new MediaTimestamp(milliseconds, new TimeBase(1, 1000)) }
             };
             return await ImagePreviewCommand.RunAsync(ImageEngineFactory.CreateVisual(), source, outputFile, logger, encoder,

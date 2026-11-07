@@ -129,8 +129,14 @@ namespace Mediana.Codecs.Tiff
         }
         internal (int X, int Y) Position(int x, int y) => Orientation switch
         {
-            1 => (x, y), 2 => (Width - x - 1, y), 3 => (Width - x - 1, Height - y - 1), 4 => (x, Height - y - 1),
-            5 => (y, x), 6 => (Height - y - 1, x), 7 => (Height - y - 1, Width - x - 1), 8 => (y, Width - x - 1),
+            1 => (x, y),
+            2 => (Width - x - 1, y),
+            3 => (Width - x - 1, Height - y - 1),
+            4 => (x, Height - y - 1),
+            5 => (y, x),
+            6 => (Height - y - 1, x),
+            7 => (Height - y - 1, Width - x - 1),
+            8 => (y, Width - x - 1),
             _ => throw new InvalidDataException("Invalid TIFF orientation.")
         };
         private ushort Read16(ReadOnlySpan<byte> value) => LittleEndian ? BinaryPrimitives.ReadUInt16LittleEndian(value) : BinaryPrimitives.ReadUInt16BigEndian(value);

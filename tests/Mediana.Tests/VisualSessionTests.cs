@@ -108,7 +108,8 @@ namespace Mediana.Tests
             VisualExportResult result = await engine.ExportPreviewAsync(source, output, new PngImageEncoder(), allocator, new()
             {
                 Input = new() { Request = new() { Time = new MediaTimestamp(0, new TimeBase(1, 1000)) } },
-                ColorResolver = SdrPreviewColorPolicy.Resolve, WarningHandler = warnings.Add
+                ColorResolver = SdrPreviewColorPolicy.Resolve,
+                WarningHandler = warnings.Add
             });
             Assert.Equal(1, result.Frames); Assert.NotNull(result.FirstTimestamp); Assert.Single(warnings);
             Assert.Contains("primaries", warnings[0], StringComparison.Ordinal); Assert.Equal(0, allocator.AllocatedBytes);

@@ -145,8 +145,13 @@ namespace Mediana.Documents.OpenXml
             bool completed = false;
             try
             {
-                XmlReaderSettings settings = new() { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null,
-                    MaxCharactersInDocument = _options.MaximumPartBytes, CloseInput = true };
+                XmlReaderSettings settings = new()
+                {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    XmlResolver = null,
+                    MaxCharactersInDocument = _options.MaximumPartBytes,
+                    CloseInput = true
+                };
                 XmlReader reader = XmlReader.Create(stream, settings);
                 BoundedXmlReader bounded = new(reader, _options.MaximumXmlDepth, ConsumeXmlElement, cancellationToken);
                 completed = true;

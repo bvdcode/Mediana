@@ -26,7 +26,9 @@ namespace Mediana.Codecs.Tiff
             }
             JpegImageDecoder decoder = new(new() { MaximumPixels = Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength }, sourceColorSpace: samples.Photometric switch
             {
-                2 => JpegColorSpace.Rgb, 6 => JpegColorSpace.YCbCr, 0 or 1 => null,
+                2 => JpegColorSpace.Rgb,
+                6 => JpegColorSpace.YCbCr,
+                0 or 1 => null,
                 _ => throw new NotSupportedException("Unsupported TIFF JPEG photometric interpretation.")
             });
             using VideoFrame frame = decoder.Decode(encoded, new(), allocator, token);

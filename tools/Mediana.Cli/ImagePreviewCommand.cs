@@ -32,7 +32,8 @@ namespace Mediana.Cli
             VisualExportOptions options = new()
             {
                 Input = input ?? new() { Images = CommandImageResources.OpenOptions, Request = request ?? new() },
-                MaximumWidth = maximumWidth, MaximumHeight = maximumHeight,
+                MaximumWidth = maximumWidth,
+                MaximumHeight = maximumHeight,
                 ColorResolver = SdrPreviewColorPolicy.Resolve,
                 WarningHandler = message => logger.LogWarning("{Warning}", message)
             };
