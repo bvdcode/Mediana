@@ -4,6 +4,7 @@
 using Mediana.Codecs;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
+using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -19,6 +20,24 @@ namespace Mediana.Tests
         [Fact]
         public async Task EveryIndependentlyRestartedSegmentMatchesReferencePixelsAndClocks() =>
             await OnDemandHlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
+
+        [Fact]
+        public async Task SourceStreamIdentityDoesNotDependOnItsPositionInTheStreamList()
+        {
+            MediaBufferAllocator allocator = new(4 * 1024 * 1024);
+            await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("hls-on-demand.mp4"));
+            await using Mp4Reader original = await Mp4Reader.OpenAsync(source, allocator);
+            EncodedStreamInfo first = original.Streams[0];
+            EncodedStreamInfo input = new(7, first.Kind, first.CodecId, first.Format, first.TimeBase,
+                first.Configuration.Span, first.DisplayMatrix);
+            VideoTimingTestReader reader = new(Enumerable.Range(0, 5).Select(index => new ContainerPacketTiming(
+                new(index, new(1, 5)), null, new(1, new(1, 5)), true)).ToArray(), first.TimeBase, input);
+            await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(reader, 7, new H264DecoderFactory(), Format(),
+                new MediaDuration(1, new(1, 1)), allocator);
+            Assert.Single(session.Windows);
+            Assert.Equal(0, reader.PacketReads);
+            Assert.Equal(new TimeBase(1, 5), session.Stream.TimeBase);
+        }
 
         [Fact]
         public async Task ColdRequestsReadOnlyTheRequestedGopAndEncodeExactlyItsFramesInAnyOrder()
@@ -52,7 +71,8 @@ namespace Mediana.Tests
                     Assert.All(source.Reads, read => Assert.True(read.Offset >= opening.Offset));
                     ReadOnlyMemory<byte> run = Mp4TestBoxes.Get(fragment.ToArray(), "moof", "traf", "trun");
                     Assert.Equal(5u, Mp4TestBoxes.UInt32(run, 4));
-                    Assert.Equal((ulong)number * 10240, Mp4TestBoxes.UInt64(Mp4TestBoxes.Get(fragment.ToArray(), "moof", "traf", "tfdt"), 4));
+                    Assert.Equal(new MediaTimestamp(number, new(1, 1)), new MediaTimestamp(
+                        (long)Mp4TestBoxes.UInt64(Mp4TestBoxes.Get(fragment.ToArray(), "moof", "traf", "tfdt"), 4), session.Stream.TimeBase));
                     List<byte[]> expected = await EncodeSequentialWindowAsync(input, number, allocator);
                     ReadOnlyMemory<byte> payload = Mp4TestBoxes.Get(fragment.ToArray(), "mdat");
                     int offset = 0;
@@ -184,7 +204,7 @@ namespace Mediana.Tests
 
         private static AvcHlsTranscodeSession Create(Mp4Reader reader, MediaBufferAllocator allocator) =>
             AvcHlsTranscodeSession.Create(reader, 0, new H264DecoderFactory(), Format(),
-                Enumerable.Range(0, 12).Select(number => new HlsVideoWindow(number, new(number, new(1, 1)), new(1, new(1, 1)))).ToArray(), allocator);
+                new MediaDuration(1, new(1, 1)), allocator);
 
         private static VideoFormat Format() => new(64, 48, VideoPixelFormat.Yuv420P8,
             new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709, ColorRange.Limited, ChromaLocation.Left), new(1, 1));

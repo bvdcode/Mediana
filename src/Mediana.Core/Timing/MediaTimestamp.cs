@@ -16,6 +16,18 @@ namespace Mediana.Core.Timing
         public long Value { get; }
         public TimeBase TimeBase { get; }
 
+        /// <summary>Removes clock denominator factors already contained in this timestamp's value.
+        /// Preserves the exact time while avoiding unnecessary clock precision in interval arithmetic.</summary>
+        public MediaTimestamp ReduceClock()
+        {
+            TimeBase.Validate();
+            Int128 a = Int128.Abs((Int128)Value);
+            Int128 b = TimeBase.Denominator;
+            while (b != 0) { (a, b) = (b, a % b); }
+            long divisor = (long)a;
+            return new(Value / divisor, new(TimeBase.Numerator, TimeBase.Denominator / (int)divisor));
+        }
+
         public MediaTimestamp Rescale(TimeBase target, TimestampRounding rounding)
         {
             TimeBase.Validate();

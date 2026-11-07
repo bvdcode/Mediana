@@ -26,7 +26,7 @@ namespace Mediana.Streaming.Hls
         private readonly MediaBufferAllocator allocator;
         private readonly H264EncoderOptions options;
         private readonly VideoPreparationOptions preparationOptions;
-        private readonly int sourceStreamIndex;
+        private readonly EncodedStreamInfo inputStream;
         private readonly Mp4VideoTrackDefinition track;
         private bool disposed;
         private int busy;
@@ -34,7 +34,7 @@ namespace Mediana.Streaming.Hls
         private AvcHlsTranscodeSession(IIndexedContainerReader reader, IVideoDecoderFactory decoderFactory,
             IRandomAccessDecoderFactory restartFactory, VideoFormat format, MediaBufferAllocator allocator,
             H264EncoderOptions options, VideoPreparationOptions preparationOptions,
-            int sourceStreamIndex, HlsVideoWindow[] windows, Mp4VideoTrackDefinition track)
+            EncodedStreamInfo inputStream, HlsVideoWindow[] windows, Mp4VideoTrackDefinition track)
         {
             this.reader = reader;
             this.decoderFactory = decoderFactory;
@@ -43,7 +43,7 @@ namespace Mediana.Streaming.Hls
             this.allocator = allocator;
             this.options = options;
             this.preparationOptions = preparationOptions;
-            this.sourceStreamIndex = sourceStreamIndex;
+            this.inputStream = inputStream;
             this.track = track;
             Windows = Array.AsReadOnly(windows);
         }
@@ -57,31 +57,54 @@ namespace Mediana.Streaming.Hls
             IVideoDecoderFactory decoderFactory, VideoFormat format, IReadOnlyList<HlsVideoWindow> windows,
             MediaBufferAllocator allocator, H264EncoderOptions? options = null, VideoPreparationOptions? preparation = null)
         {
+            ArgumentNullException.ThrowIfNull(windows);
+            return CreateCore(reader, sourceStreamIndex, decoderFactory, format, windows.ToArray(), allocator, options, preparation, null);
+        }
+
+        /// <summary>Plans whole-video windows from indexed presentation clocks, without a decoding or encoding pass.
+        /// Uses the same generic planner exposed by container sessions; target multiples align to actual presentation units.</summary>
+        public static AvcHlsTranscodeSession Create(IIndexedPacketTimingReader reader, int sourceStreamIndex,
+            IVideoDecoderFactory decoderFactory, VideoFormat format, MediaDuration targetDuration,
+            MediaBufferAllocator allocator, H264EncoderOptions? options = null, VideoPreparationOptions? preparation = null)
+        {
+            using VideoSegmentPlan plan = VideoSegmentPlanner.Create(reader, sourceStreamIndex, targetDuration, allocator);
+            HlsVideoWindow[] windows = new HlsVideoWindow[plan.Count];
+            for (int index = 0; index < windows.Length; index++)
+            {
+                MediaTimeRange interval = plan[index];
+                windows[index] = new(index, interval.Start, interval.Duration);
+            }
+            return CreateCore(reader, sourceStreamIndex, decoderFactory, format, windows, allocator, options, preparation, plan[0].Start.TimeBase);
+        }
+
+        private static AvcHlsTranscodeSession CreateCore(IIndexedContainerReader reader, int sourceStreamIndex,
+            IVideoDecoderFactory decoderFactory, VideoFormat format, HlsVideoWindow[] windows,
+            MediaBufferAllocator allocator, H264EncoderOptions? options, VideoPreparationOptions? preparation, TimeBase? outputClock)
+        {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentNullException.ThrowIfNull(decoderFactory);
             ArgumentNullException.ThrowIfNull(format);
             ArgumentNullException.ThrowIfNull(windows);
             ArgumentNullException.ThrowIfNull(allocator);
             ArgumentOutOfRangeException.ThrowIfNegative(sourceStreamIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(sourceStreamIndex, reader.Streams.Count);
-            EncodedStreamInfo source = reader.Streams[sourceStreamIndex];
+            EncodedStreamInfo source = reader.Streams.SingleOrDefault(stream => stream.StreamIndex == sourceStreamIndex)
+                ?? throw new ArgumentOutOfRangeException(nameof(sourceStreamIndex));
             if (source.DisplayMatrix is null) { throw new NotSupportedException("On-demand video encoding requires an explicit source display transform."); }
             if (decoderFactory.GetUnsupportedReason(source) is string reason) { throw new NotSupportedException(reason); }
             if (decoderFactory is not IRandomAccessDecoderFactory restart)
             {
                 throw new NotSupportedException("On-demand video encoding requires decoder restart inspection.");
             }
-            HlsVideoWindow[] snapshot = windows.ToArray();
-            ValidateWindows(snapshot);
+            ValidateWindows(windows);
             options ??= new();
             preparation = preparation is null ? new() : preparation with { };
             using VideoPreparation prepared = new(format, source.DisplayMatrix.Value, allocator, preparation);
-            using H264Encoder encoder = H264Encoder.Create(prepared.OutputFormat, source.TimeBase, allocator, options);
+            using H264Encoder encoder = H264Encoder.Create(prepared.OutputFormat, outputClock ?? source.TimeBase, allocator, options);
             EncodedStreamInfo encoded = encoder.Stream;
             EncodedStreamInfo output = new(encoded.StreamIndex, encoded.Kind, encoded.CodecId, encoded.Format,
                 encoded.TimeBase, encoded.Configuration.Span, VideoDisplayMatrix.Identity);
             Mp4VideoTrackDefinition track = new(output, prepared.OutputFormat);
-            return new(reader, decoderFactory, restart, format, allocator, options, preparation, sourceStreamIndex, snapshot, track);
+            return new(reader, decoderFactory, restart, format, allocator, options, preparation, source, windows, track);
         }
 
         public string CreateVodPlaylist(string initializationUri, Func<int, string> segmentUri,
@@ -122,8 +145,8 @@ namespace Mediana.Streaming.Hls
                 using MediaDecodePipeline<VideoFrame> decoding = CreateDecoder();
                 await decoding.SeekAsync(window.Start, cancellationToken).ConfigureAwait(false);
                 await using VideoTrimmer selected = new(decoding.ReadAsync, window.Start, window.End);
-                using VideoPreparation preparation = new(format, reader.Streams[sourceStreamIndex].DisplayMatrix!.Value, allocator, preparationOptions);
-                using H264Encoder encoder = H264Encoder.Create(preparation.OutputFormat, reader.Streams[sourceStreamIndex].TimeBase, allocator, options);
+                using VideoPreparation preparation = new(format, inputStream.DisplayMatrix!.Value, allocator, preparationOptions);
+                using H264Encoder encoder = H264Encoder.Create(preparation.OutputFormat, track.TimeBase, allocator, options);
                 if (!encoder.Stream.Configuration.Span.SequenceEqual(Stream.Configuration.Span))
                 {
                     throw new InvalidOperationException("The AVC encoder configuration changed between segment requests.");
@@ -161,13 +184,13 @@ namespace Mediana.Streaming.Hls
 
         private MediaDecodePipeline<VideoFrame> CreateDecoder()
         {
-            EncodedStreamInfo stream = reader.Streams[sourceStreamIndex];
+            EncodedStreamInfo stream = inputStream;
             IRandomAccessInspector inspector = restartFactory.CreateRandomAccessInspector(stream);
             IMediaCodec<MediaPacket, VideoFrame> decoder = decoderFactory.Create(stream, allocator);
             bool created = false;
             try
             {
-                MediaDecodePipeline<VideoFrame> result = new(reader, decoder, sourceStreamIndex, randomAccessInspector: inspector);
+                MediaDecodePipeline<VideoFrame> result = new(reader, decoder, stream.StreamIndex, randomAccessInspector: inspector);
                 created = true;
                 return result;
             }

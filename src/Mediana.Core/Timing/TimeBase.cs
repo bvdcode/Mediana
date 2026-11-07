@@ -24,6 +24,25 @@ namespace Mediana.Core.Timing
         public int Denominator { get; }
         public static TimeBase TimeSpanTicks { get; } = new(1, (int)TimeSpan.TicksPerSecond);
 
+        /// <summary>Returns a unit-numerator clock that represents every supplied tick exactly.
+        /// Fails when their least common denominator exceeds the supported signed 32-bit clock range.</summary>
+        public static TimeBase Common(params ReadOnlySpan<TimeBase> clocks)
+        {
+            if (clocks.IsEmpty) { throw new ArgumentException("Supply at least one media clock.", nameof(clocks)); }
+            int denominator = 1;
+            foreach (TimeBase clock in clocks)
+            {
+                clock.Validate();
+                int a = denominator;
+                int b = clock.Denominator;
+                while (b != 0) { (a, b) = (b, a % b); }
+                long combined = (long)(denominator / a) * clock.Denominator;
+                if (combined > int.MaxValue) { throw new NotSupportedException("The exact common media clock exceeds its signed 32-bit denominator."); }
+                denominator = (int)combined;
+            }
+            return new(1, denominator);
+        }
+
         public void Validate()
         {
             if (Numerator <= 0 || Denominator <= 0)
