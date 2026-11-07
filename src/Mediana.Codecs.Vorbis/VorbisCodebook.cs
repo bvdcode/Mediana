@@ -28,6 +28,7 @@ namespace Mediana.Codecs.Vorbis
             valueCount = values.Length;
             int used = 0;
             foreach (byte length in lengths) { if (length != 0) { used++; } }
+            UsedEntries = used;
             valuesOffset = checked((PrefixEntries + 2 * (used + 33)) * sizeof(int));
             storage = allocator.Allocate(checked(valuesOffset + values.Length * sizeof(ushort)));
             bool success = false;
@@ -42,10 +43,12 @@ namespace Mediana.Codecs.Vorbis
 
         public int Dimensions { get; }
         public int Entries { get; }
+        public int UsedEntries { get; }
         public bool HasVectors => lookupType != 0;
 
         public bool TryDecode(ref VorbisBitReader reader, out int entry)
         {
+            if (UsedEntries == 0) { entry = 0; return false; }
             ReadOnlySpan<int> all = MemoryMarshal.Cast<byte, int>(storage.Span[..valuesOffset]);
             ReadOnlySpan<int> tree = all[PrefixEntries..];
             int node = 1;

@@ -36,7 +36,7 @@ namespace Mediana.Tests
                 for (int symbol = 0; symbol < symbols; symbol++) { expected[symbol] = input.ReadInt32(); }
                 float[] values = lookup == 0 ? [] : new float[entries * dimensions];
                 for (int value = 0; value < values.Length; value++) { values[value] = input.ReadSingle(); }
-                using (VorbisSetupCapture capture = new(allocator))
+                using (VorbisSetupCapture capture = new(info, allocator))
                 {
                     VorbisSetupInfo.ReadForDecoding(info, setup, capture);
                     if (capture.Books.Count != 1) { throw new InvalidDataException("The reference must declare one Vorbis codebook."); }

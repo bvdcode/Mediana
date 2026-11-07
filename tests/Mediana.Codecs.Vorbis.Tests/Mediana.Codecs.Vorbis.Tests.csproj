@@ -5,6 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/VorbisCodebookTestInput.cs" Link="VorbisCodebookTestInput.cs" />
+    <Compile Include="../Shared/VorbisSpectrumTestInput.cs" Link="VorbisSpectrumTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Vorbis/Mediana.Codecs.Vorbis.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
