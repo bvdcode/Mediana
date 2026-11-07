@@ -4,6 +4,7 @@
 using System.Buffers.Binary;
 using System.Buffers;
 using ExcelDataReader;
+using System.Text;
 
 namespace Mediana.SpreadsheetReference
 {
@@ -13,6 +14,7 @@ namespace Mediana.SpreadsheetReference
         {
             if (arguments.Length != 2) { throw new ArgumentException("Expected input workbook and new binary output."); }
             byte[] encoded = await File.ReadAllBytesAsync(arguments[0]);
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             using MemoryStream input = new(encoded, writable: false);
             using IExcelDataReader reader = ExcelReaderFactory.CreateOpenXmlReader(input);
             await using FileStream output = new(arguments[1], FileMode.CreateNew, FileAccess.Write, FileShare.Read, 65536, FileOptions.Asynchronous);

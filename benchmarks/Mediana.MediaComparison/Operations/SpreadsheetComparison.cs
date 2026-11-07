@@ -13,7 +13,8 @@ namespace Mediana.OperationComparison
         internal static async Task RunAsync(string input, string destination)
         {
             byte[] encoded = await File.ReadAllBytesAsync(input);
-            using SpreadsheetWorkbook workbook = XlsxReader.Open(encoded);
+            XlsxReaderOptions options = new() { Package = new() { MaximumXmlElements = 2_000_000 } };
+            using SpreadsheetWorkbook workbook = XlsxReader.Open(encoded, options);
             await using FileStream output = new(destination, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 65536, FileOptions.Asynchronous);
             ArrayBufferWriter<byte> buffer = new();
             long count = 0;
