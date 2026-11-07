@@ -21,8 +21,9 @@ durations remain available for multiplexed and chained sources.
 Opus retains its 48 kHz media clock, pre-skip, output gain, input sample-rate
 declaration and channel mapping. Vorbis configuration uses Xiph lacing for its three
 headers. Setup inspection reads codebook structure, floors, residues, mappings and
-packet block modes without expanding spectral vector tables. Neither parser
-decodes audio. Unsupported logical-stream codecs fail explicitly.
+packet block modes without expanding spectral vector tables. Neither container parser
+decodes audio. Register `OpusDecoderFactory` for managed PCM decoding; see
+[Opus decoding](opus-decoding.md). Unsupported logical-stream codecs fail explicitly.
 
 `FindSeekPoint` searches the retained packet index without source reads.
 `GetPrerollStart` combines requested history with at least 80 ms for Opus and one
