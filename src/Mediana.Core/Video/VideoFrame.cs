@@ -57,6 +57,9 @@ namespace Mediana.Core.Video
         public VideoFrame Retain() => new(Format, buffer, Planes, Timestamp, Duration);
         /// <summary>Returns an independent lease over the same pixels with explicitly replaced timing. Does not copy pixel storage.</summary>
         public VideoFrame WithTiming(MediaTimestamp? timestamp, MediaDuration? duration) => new(Format, buffer, Planes, timestamp, duration);
+        /// <summary>Returns an independent lease with an explicitly replaced format and unchanged timing/pixels.
+        /// The replacement must describe the existing plane geometry; no sample conversion is performed.</summary>
+        public VideoFrame WithFormat(VideoFormat format) => new(format, buffer, Planes, Timestamp, Duration);
         public void Dispose() => buffer.Dispose();
     }
 }

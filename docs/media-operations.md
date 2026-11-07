@@ -64,10 +64,28 @@ extract a decoded image from the selected page through the same image export pat
 
 `TranscodeVideoAsync` uses registered decoder, video encoder and container writer factories.
 It accepts optional output dimensions and requires explicit `OmitAudio` for an input that
-contains audio. Display transforms are currently required to be identity. `TranscodeAudioAsync`
+contains audio. Declared orthogonal rotation and reflection are applied to planar samples;
+SAR is inverted when axes swap. `TranscodeAudioAsync`
 prepares mono/stereo interleaved Float32 for a registered audio encoder and muxer. Its result
 includes priming/padding when the encoder implements `IAudioEncoderTiming`. `RemuxAsync`
 copies selected compressed streams and lets the registered writer validate compatibility.
+
+`VideoPreparation` in `Mediana.Processing` shares native-YUV preparation between file
+encoding, complete HLS rendition packages and independently requested AVC HLS windows.
+Its options select storage bounds and an optional output pixel format. By default decoded
+precision is preserved. Selecting `VideoPixelFormat.Yuv420P8` explicitly permits rounded,
+saturating reduction of ten-bit samples. This operation preserves transfer functions and
+color primaries and performs no HDR tone mapping. Dimension changes use the exact area
+filter and preserve display aspect through SAR. Oriented chroma is bilinearly resited to
+center using its declared source location. Unknown chroma siting is rejected when orientation
+needs it. Identity operations share the input pixels; transformations allocate planar output
+directly without an RGB intermediate. Current area scaling requires even-sized eight-bit 4:2:0.
+
+`AvcHlsTranscodeSession.Create` accepts the same `VideoPreparationOptions` after encoder
+options. Configuration and initialization do not read source media payloads. Each segment
+request creates fresh preparation/codec state, seeks to decoder preroll and processes only
+the selected frame-aligned interval. `HlsRenditionOptions.FramePreparation` applies one shared
+stage before frames fan out to the rendition-specific resizers.
 
 `ExportPcmAsync` accepts an `IAudioFrameWriterFactory`, such as `WavePcmWriterFactory` from
 `Mediana.Containers.Wave`. It converts sample representation without changing sample rate

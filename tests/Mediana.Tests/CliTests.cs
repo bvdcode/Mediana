@@ -5,6 +5,11 @@ using System.Globalization;
 using System.Buffers.Binary;
 using System.Text;
 using Mediana.Cli;
+using Mediana.Codecs.H264;
+using Mediana.Containers.Mp4;
+using Mediana.Containers.MpegTs;
+using Mediana.Core.Memory;
+using Mediana.IO;
 
 namespace Mediana.Tests
 {
@@ -300,9 +305,8 @@ namespace Mediana.Tests
 
         [Theory]
         [InlineData("avc-aac.mp4", false, 26, 3)]
-        [InlineData("avc-weighted-rotated.mp4", true, 26, 3)]
         [InlineData("avc-aac.mp4", true, 52, 2)]
-        public async Task UnsupportedEncodingOptionsOrDisplayTransformsPublishNothing(string input, bool videoOnly, int qp, int expected)
+        public async Task UnsupportedEncodingOptionsPublishNothing(string input, bool videoOnly, int qp, int expected)
         {
             string output = Path.Combine(directory, "encoded.ts");
             List<string> arguments = ["-i", Data("Mp4", input), output, "--video-codec", "H264", "--qp", qp.ToString(CultureInfo.InvariantCulture)];
@@ -313,6 +317,25 @@ namespace Mediana.Tests
             (int code, _, _) = await RunAsync(arguments.ToArray());
             Assert.Equal(expected, code);
             Assert.Empty(Directory.GetFiles(directory));
+        }
+
+        [Fact]
+        public async Task RotatedVideoUsesTheSamePreparedOutputAsThePublicLibraryOperation()
+        {
+            string input = Data("Mp4", "avc-weighted-rotated.mp4");
+            string output = Path.Combine(directory, "rotated.ts");
+            (int code, _, _) = await RunAsync(["-i", input, output, "--video-codec", "H264", "--video-only"]);
+            Assert.Equal(0, code);
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
+                .AddVideoDecoder(new H264DecoderFactory()).AddVideoEncoder(new H264EncoderFactory())
+                .AddContainerWriter(new MpegTsWriterFactory()).Build();
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
+            using MemoryStream expected = new();
+            MediaBufferAllocator allocator = new(4 * 1024 * 1024);
+            await engine.TranscodeVideoAsync(source, expected, "h264", "mpegts", allocator, new() { OmitAudio = true });
+            Assert.NotEmpty(expected.ToArray());
+            Assert.Equal(expected.ToArray(), await File.ReadAllBytesAsync(output));
+            Assert.Equal(0, allocator.AllocatedBytes);
         }
 
         internal static async Task<(int Code, string Output, string Error)> RunAsync(string[] arguments, CancellationToken token = default)

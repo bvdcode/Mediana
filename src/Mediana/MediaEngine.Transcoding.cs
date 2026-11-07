@@ -18,7 +18,8 @@ namespace Mediana
     {
         /// <summary>Decodes, optionally resizes and encodes one video stream using registered codec and muxer factories.
         /// Borrows source, destination and output allocator. Decoding uses the input options' budget.
-        /// Does not discard audio implicitly or apply display transforms. Failed output must be discarded.</summary>
+        /// Applies declared display orientation and configured planar preparation without discarding audio implicitly.
+        /// Failed output must be discarded.</summary>
         public async Task<MediaOperationProgress> TranscodeVideoAsync(IByteSource source, Stream destination,
             string codecId, string containerFormatId, MediaBufferAllocator allocator, VideoTranscodeOptions? options = null,
             Action<MediaOutputProgress>? progress = null, CancellationToken cancellationToken = default)
@@ -31,14 +32,12 @@ namespace Mediana
             if (!options.OmitAudio && container.Streams.Any(stream => stream.Kind == MediaKind.Audio))
             { throw new NotSupportedException("The input contains audio. Video-only encoding requires explicitly omitting audio tracks."); }
             await using VideoSession session = OpenVideo(container, options.StreamIndex, cancellationToken);
-            if (session.Stream.DisplayMatrix != VideoDisplayMatrix.Identity)
-            { throw new NotSupportedException("Video encoding requires an identity display transform."); }
+            VideoDisplayMatrix matrix = session.Stream.DisplayMatrix
+                ?? throw new NotSupportedException("Video encoding requires a known source display transform.");
             using VideoFrame first = await session.ReadFrameAsync(cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidDataException("The input contains no decoded video frames.");
-            using Yuv420AreaResizer? resizer = options.MaximumWidth is not null || options.MaximumHeight is not null
-                ? Yuv420AreaResizer.CreateFit(first.Format, options.MaximumWidth ?? first.Format.Width,
-                    options.MaximumHeight ?? first.Format.Height, allocator, cancellationToken) : null;
-            using IMediaEncoder<VideoFrame> encoder = CreateVideoEncoder(codecId, resizer?.OutputFormat ?? first.Format, session.Stream.TimeBase, allocator);
+            using VideoPreparation preparation = new(first.Format, matrix, allocator, options);
+            using IMediaEncoder<VideoFrame> encoder = CreateVideoEncoder(codecId, preparation.OutputFormat, session.Stream.TimeBase, allocator);
             using CountingWriteStream output = new(destination);
             await using IContainerWriter writer = CreateContainerWriter(containerFormatId, output, [encoder.Stream], allocator);
             bool opening = true;
@@ -50,7 +49,7 @@ namespace Mediana
             {
                 using VideoFrame? frame = opening ? first.Retain() : await session.ReadFrameAsync(token).ConfigureAwait(false);
                 if (opening) { opening = false; first.Dispose(); }
-                return frame is null ? null : resizer is null ? frame.Retain() : resizer.ResizeOrRetain(frame, token);
+                return frame is null ? null : preparation.Apply(frame, token);
             }
         }
 

@@ -25,6 +25,7 @@ namespace Mediana.Streaming.Hls
         private readonly VideoFormat format;
         private readonly MediaBufferAllocator allocator;
         private readonly H264EncoderOptions options;
+        private readonly VideoPreparationOptions preparationOptions;
         private readonly int sourceStreamIndex;
         private readonly Mp4VideoTrackDefinition track;
         private bool disposed;
@@ -32,7 +33,8 @@ namespace Mediana.Streaming.Hls
 
         private AvcHlsTranscodeSession(IIndexedContainerReader reader, IVideoDecoderFactory decoderFactory,
             IRandomAccessDecoderFactory restartFactory, VideoFormat format, MediaBufferAllocator allocator,
-            H264EncoderOptions options, int sourceStreamIndex, HlsVideoWindow[] windows, Mp4VideoTrackDefinition track)
+            H264EncoderOptions options, VideoPreparationOptions preparationOptions,
+            int sourceStreamIndex, HlsVideoWindow[] windows, Mp4VideoTrackDefinition track)
         {
             this.reader = reader;
             this.decoderFactory = decoderFactory;
@@ -40,6 +42,7 @@ namespace Mediana.Streaming.Hls
             this.format = format;
             this.allocator = allocator;
             this.options = options;
+            this.preparationOptions = preparationOptions;
             this.sourceStreamIndex = sourceStreamIndex;
             this.track = track;
             Windows = Array.AsReadOnly(windows);
@@ -52,7 +55,7 @@ namespace Mediana.Streaming.Hls
         /// The caller supplies indexed, contiguous, frame-aligned windows and the decoder's input format.</summary>
         public static AvcHlsTranscodeSession Create(IIndexedContainerReader reader, int sourceStreamIndex,
             IVideoDecoderFactory decoderFactory, VideoFormat format, IReadOnlyList<HlsVideoWindow> windows,
-            MediaBufferAllocator allocator, H264EncoderOptions? options = null)
+            MediaBufferAllocator allocator, H264EncoderOptions? options = null, VideoPreparationOptions? preparation = null)
         {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentNullException.ThrowIfNull(decoderFactory);
@@ -71,12 +74,14 @@ namespace Mediana.Streaming.Hls
             HlsVideoWindow[] snapshot = windows.ToArray();
             ValidateWindows(snapshot);
             options ??= new();
-            using H264Encoder encoder = H264Encoder.Create(format, source.TimeBase, allocator, options);
+            preparation = preparation is null ? new() : preparation with { };
+            using VideoPreparation prepared = new(format, source.DisplayMatrix.Value, allocator, preparation);
+            using H264Encoder encoder = H264Encoder.Create(prepared.OutputFormat, source.TimeBase, allocator, options);
             EncodedStreamInfo encoded = encoder.Stream;
             EncodedStreamInfo output = new(encoded.StreamIndex, encoded.Kind, encoded.CodecId, encoded.Format,
-                encoded.TimeBase, encoded.Configuration.Span, source.DisplayMatrix);
-            Mp4VideoTrackDefinition track = new(output, format);
-            return new(reader, decoderFactory, restart, format, allocator, options, sourceStreamIndex, snapshot, track);
+                encoded.TimeBase, encoded.Configuration.Span, VideoDisplayMatrix.Identity);
+            Mp4VideoTrackDefinition track = new(output, prepared.OutputFormat);
+            return new(reader, decoderFactory, restart, format, allocator, options, preparation, sourceStreamIndex, snapshot, track);
         }
 
         public string CreateVodPlaylist(string initializationUri, Func<int, string> segmentUri,
@@ -117,7 +122,8 @@ namespace Mediana.Streaming.Hls
                 using MediaDecodePipeline<VideoFrame> decoding = CreateDecoder();
                 await decoding.SeekAsync(window.Start, cancellationToken).ConfigureAwait(false);
                 await using VideoTrimmer selected = new(decoding.ReadAsync, window.Start, window.End);
-                using H264Encoder encoder = H264Encoder.Create(format, reader.Streams[sourceStreamIndex].TimeBase, allocator, options);
+                using VideoPreparation preparation = new(format, reader.Streams[sourceStreamIndex].DisplayMatrix!.Value, allocator, preparationOptions);
+                using H264Encoder encoder = H264Encoder.Create(preparation.OutputFormat, reader.Streams[sourceStreamIndex].TimeBase, allocator, options);
                 if (!encoder.Stream.Configuration.Span.SequenceEqual(Stream.Configuration.Span))
                 {
                     throw new InvalidOperationException("The AVC encoder configuration changed between segment requests.");
@@ -136,7 +142,8 @@ namespace Mediana.Streaming.Hls
                     MediaTimestamp ticks = Exact(length, end.TimeBase);
                     end = new(checked(end.Value + ticks.Value), end.TimeBase);
                     if (end.CompareTo(limit) > 0) { throw new NotSupportedException("The HLS window end must coincide with a video frame boundary."); }
-                    await encoding.WriteAsync(frame, cancellationToken).ConfigureAwait(false);
+                    using VideoFrame prepared = preparation.Apply(frame, cancellationToken);
+                    await encoding.WriteAsync(prepared, cancellationToken).ConfigureAwait(false);
                 }
                 await encoding.CompleteInputAsync(cancellationToken).ConfigureAwait(false);
                 await output.CompleteAsync(cancellationToken).ConfigureAwait(false);
