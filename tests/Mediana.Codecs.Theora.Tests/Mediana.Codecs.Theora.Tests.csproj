@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><IsPackable>false</IsPackable><IsTestProject>true</IsTestProject></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Theora/Mediana.Codecs.Theora.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <Using Include="Xunit" />
+    <None Include="Data/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
