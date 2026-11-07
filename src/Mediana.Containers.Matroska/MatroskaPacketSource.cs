@@ -141,6 +141,19 @@ namespace Mediana.Containers.Matroska
             return new(block.StreamIndex, payload, timing.PresentationTime, duration: timing.Duration, isKeyFrame: timing.IsKeyFrame);
         }
 
+        public ContainerPacketTiming GetPacketTiming(int streamIndex, long packetIndex, CancellationToken token)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                token.ThrowIfCancellationRequested();
+                MatroskaPacketTiming timing = GetTiming(index.Locate(streamIndex, packetIndex));
+                return new(timing.PresentationTime, null, timing.Duration, timing.IsKeyFrame);
+            }
+            finally { Volatile.Write(ref busy, 0); }
+        }
+
         public ContainerSeekPoint? FindSeekPoint(int streamIndex, MediaTimestamp target, long beforePacketIndex,
             CancellationToken token = default)
         {

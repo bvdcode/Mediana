@@ -10,7 +10,7 @@ namespace Mediana.Containers.Matroska
     /// <summary>Indexes one known-length Matroska Segment. Borrows its random-access source.
     /// Packets follow stored Block order, with exact rounded PTS and no inferred DTS.
     /// Returned packets and metadata survive reader disposal. Operations and disposal cannot overlap.</summary>
-    public partial class MatroskaReader : IIndexedContainerReader, IContainerAttachmentReader
+    public partial class MatroskaReader : IIndexedPacketTimingReader, IContainerAttachmentReader
     {
         private readonly MatroskaPacketIndex index;
         private readonly MatroskaPacketSource packets;
@@ -78,6 +78,17 @@ namespace Mediana.Containers.Matroska
             {
                 Volatile.Write(ref busy, 0);
             }
+        }
+
+        public ContainerPacketTiming GetPacketTiming(int streamIndex, long packetIndex, CancellationToken cancellationToken = default)
+        {
+            Enter();
+            try
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                return packets.GetPacketTiming(streamIndex, packetIndex, cancellationToken);
+            }
+            finally { Volatile.Write(ref busy, 0); }
         }
 
         public ContainerSeekPoint? FindSeekPoint(int streamIndex, MediaTimestamp target, long beforePacketIndex,
