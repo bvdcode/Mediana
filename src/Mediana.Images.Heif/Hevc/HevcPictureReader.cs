@@ -72,6 +72,10 @@ namespace Mediana.Images.Heif.Hevc
         private void AddSlice(NalPayload unit)
         {
             HevcSliceHeader header = HevcSliceHeader.Read(unit, pictures);
+            if (!header.PictureOutput)
+            {
+                throw new UnsupportedHeicFeatureException("a suppressed HEVC output picture in an image item");
+            }
             if (slices.Count == 0)
             {
                 if (header.StartCtbAddress != 0)

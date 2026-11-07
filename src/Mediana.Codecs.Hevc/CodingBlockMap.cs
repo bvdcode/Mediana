@@ -77,7 +77,31 @@ namespace Mediana.Codecs.Hevc
         public int Depth(int x, int y)
         {
             ThrowIfDisposed();
-            return Inside(x, y) && (depths[Index(x, y)] != byte.MaxValue) ? depths[Index(x, y)] : -1;
+            return Inside(x, y) && (depths[Index(x, y)] != byte.MaxValue) ? depths[Index(x, y)] & 15 : -1;
+        }
+
+        public bool IsIntra(int x, int y)
+        {
+            ThrowIfDisposed();
+            return Inside(x, y) && depths[Index(x, y)] != byte.MaxValue && (depths[Index(x, y)] & 128) == 0;
+        }
+
+        public bool IsSkipped(int x, int y)
+        {
+            ThrowIfDisposed();
+            return Inside(x, y) && depths[Index(x, y)] != byte.MaxValue && (depths[Index(x, y)] & 64) != 0;
+        }
+
+        public bool HasLumaResidual(int x, int y)
+        {
+            ThrowIfDisposed();
+            return (boundaries[Index(x, y)] & 16) != 0;
+        }
+
+        public bool TransformBoundary(int x, int y, bool vertical)
+        {
+            ThrowIfDisposed();
+            return (boundaries[Index(x, y)] & (vertical ? 4 : 8)) != 0;
         }
 
         public int Qp(int x, int y)
@@ -124,6 +148,34 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
+        public void SetInter(int x, int y, int size, bool skipped)
+        {
+            ThrowIfDisposed();
+            byte flags = (byte)(128 | (skipped ? 64 : 0));
+            for (int row = y / 4; row < (y + size) / 4; row++)
+            {
+                Span<byte> cells = depths.AsSpan(row * Width + x / 4, size / 4);
+                for (int column = 0; column < cells.Length; column++) { cells[column] |= flags; }
+            }
+        }
+
+        public void MarkLumaResidual(int x, int y, int size)
+        {
+            ThrowIfDisposed();
+            for (int row = y / 4; row < (y + size) / 4; row++)
+            {
+                Span<byte> cells = boundaries.AsSpan(row * Width + x / 4, size / 4);
+                for (int column = 0; column < cells.Length; column++) { cells[column] |= 16; }
+            }
+        }
+
+        public void MarkPrediction(int x, int y, int width, int height)
+        {
+            ThrowIfDisposed();
+            for (int i = 0; i < height; i += 4) { boundaries[Index(x, y + i)] |= 1; }
+            for (int i = 0; i < width; i += 4) { boundaries[Index(x + i, y)] |= 2; }
+        }
+
         public void SetQp(int x, int y, int width, int height, int qp)
         {
             ThrowIfDisposed();
@@ -143,8 +195,8 @@ namespace Mediana.Codecs.Hevc
             ThrowIfDisposed();
             for (int i = 0; i < size; i += 4)
             {
-                boundaries[Index(x, y + i)] |= 1;
-                boundaries[Index(x + i, y)] |= 2;
+                boundaries[Index(x, y + i)] |= 5;
+                boundaries[Index(x + i, y)] |= 10;
             }
         }
 

@@ -177,9 +177,44 @@ namespace Mediana.Codecs.Hevc
                 default:
                     throw new InvalidOperationException("Unsupported component sample depth.");
             }
-            for (int row = y / 4; row < ((y + size) / 4); row++)
+            MarkAvailable(x, y, size, size);
+        }
+
+        public void MarkAvailable(int x, int y, int width, int height)
+        {
+            ThrowIfDisposed(); ThrowIfFrozen();
+            if (x < 0 || y < 0 || width <= 0 || height <= 0 || x > Width - width || y > Height - height ||
+                ((x | y | width | height) & 3) != 0) { throw new ArgumentOutOfRangeException(nameof(width)); }
+            for (int row = y / 4; row < ((y + height) / 4); row++)
             {
-                available.AsSpan((row * (Width / 4)) + (x / 4), size / 4).Fill(true);
+                available.AsSpan((row * (Width / 4)) + (x / 4), width / 4).Fill(true);
+            }
+        }
+
+        public void AddResidual(int x, int y, int size, ReadOnlySpan<int> residual)
+        {
+            ThrowIfDisposed();
+            switch (BitDepth)
+            {
+                case 8: AddResidual<byte, ByteSampleFormat>(ByteView, x, y, size, residual); break;
+                case 10: AddResidual<ushort, WordSampleFormat>(WordView, x, y, size, residual); break;
+                default: throw new InvalidOperationException("Unsupported component sample depth.");
+            }
+            MarkAvailable(x, y, size, size);
+        }
+
+        private void AddResidual<TSample, TFormat>(SamplePlaneView<TSample> plane, int x, int y, int size, ReadOnlySpan<int> residual)
+            where TSample : unmanaged where TFormat : struct, ISampleFormat<TSample>
+        {
+            int maximum = (1 << BitDepth) - 1;
+            for (int row = 0; row < size; row++)
+            {
+                Span<TSample> output = plane.Row(y + row).Slice(x, size);
+                for (int column = 0; column < size; column++)
+                {
+                    int sample = Math.Clamp(default(TFormat).Read(output[column]) + residual[row * size + column], 0, maximum);
+                    output[column] = default(TFormat).Write(sample);
+                }
             }
         }
 

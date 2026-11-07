@@ -63,7 +63,7 @@ namespace Mediana.Codecs.Hevc
                         QuantizationGroup quantization = new QuantizationGroup(slice, reader, blocks);
                         IntraCodingTreeDecoder tree = new IntraCodingTreeDecoder(slice, reader, blocks, quantization);
                         ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding, sequence.ChromaFormat == 3);
-                        BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace);
+                        BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace, blocks);
                         for (int column = 0; column < columns; column++)
                         {
                             cancellation.Token.ThrowIfCancellationRequested();

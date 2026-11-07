@@ -81,7 +81,7 @@ namespace Mediana.Codecs.Hevc
             IntraCodingTreeDecoder tree = new IntraCodingTreeDecoder(slice, reader, blocks, quantization);
             ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding, sequence.ChromaFormat == 3);
             using ReconstructionWorkspace workspace = new ReconstructionWorkspace();
-            BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace, partitions);
+            BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace, blocks, partitions);
             int ctbSize = 1 << sequence.Log2Ctb;
             int columns = ((sequence.Width + ctbSize) - 1) / ctbSize;
             int firstRow = slice.StartCtbAddress / columns;
