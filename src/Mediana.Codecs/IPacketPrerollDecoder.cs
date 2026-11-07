@@ -12,7 +12,8 @@ namespace Mediana.Codecs
 
         /// <summary>Resets codec state and suppresses output belonging to exactly this many leading encoded packets.
         /// The caller combines codec and container requirements. Fewer packets are allowed only at the original
-        /// stream beginning; ordinary startup priming is preserved. Retained output remains owned by its caller.</summary>
-        void ResetForPreroll(long packetCount);
+        /// stream beginning; ordinary startup priming is preserved. Retained output remains owned by its caller. startsAtStreamBeginning identifies the original
+        /// first packet so codec priming is applied only there, independently of timestamp origin.</summary>
+        void ResetForPreroll(long packetCount, bool startsAtStreamBeginning);
     }
 }

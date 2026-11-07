@@ -39,7 +39,7 @@ namespace Mediana.Execution
                 throw new InvalidDataException("The preroll packet differs from its container index.");
             }
             cancellationToken.ThrowIfCancellationRequested();
-            preroll.ResetForPreroll(output.PacketIndex - start.PacketIndex);
+            preroll.ResetForPreroll(output.PacketIndex - start.PacketIndex, start.PacketIndex == 0);
             pendingPacket?.Dispose();
             pendingPacket = null;
             pendingPacket = packet.Retain();

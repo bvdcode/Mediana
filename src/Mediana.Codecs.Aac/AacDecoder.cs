@@ -29,7 +29,7 @@ namespace Mediana.Codecs.Aac
 
         public int RequiredPrerollPackets => 1;
 
-        public void ResetForPreroll(long packetCount)
+        public void ResetForPreroll(long packetCount, bool startsAtStreamBeginning)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(packetCount);
             Reset();

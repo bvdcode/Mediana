@@ -34,14 +34,14 @@ namespace Mediana.Tests
                 decoder.TrySend(packet);
                 using AudioFrame reference = decoder.Receive().Value;
                 expected = reference.GetPlane(0).ToArray();
-                preroll.ResetForPreroll(count);
+                preroll.ResetForPreroll(count, true);
                 for (int index = 0; index < count; index++)
                 {
                     Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(packet));
                     Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
                 }
                 decoder.TrySend(packet);
-                Assert.Throws<ArgumentOutOfRangeException>(() => preroll.ResetForPreroll(-1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => preroll.ResetForPreroll(-1, false));
                 using AudioFrame output = decoder.Receive().Value;
                 Assert.Equal(expected, output.GetPlane(0).ToArray());
                 decoder.Dispose();
@@ -59,7 +59,7 @@ namespace Mediana.Tests
             using MediaPacket packet = Packet(allocator);
             using IMediaCodec<MediaPacket, AudioFrame> decoder = Decoder(allocator);
             IPacketPrerollDecoder preroll = (IPacketPrerollDecoder)decoder;
-            preroll.ResetForPreroll(long.MaxValue);
+            preroll.ResetForPreroll(long.MaxValue, false);
             decoder.TrySend(packet);
             Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
             Assert.Throws<InvalidDataException>(() => decoder.CompleteInput());
