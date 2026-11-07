@@ -580,3 +580,35 @@ Per-channel data then contains 25 autocorrelations, 24 LPC coefficients,
 512 residuals and 512 reconstructed samples, all little-endian float32.
 
 SHA-256: `a01061720d5b35701fa4335d078f0fa33a8b1cf349abe0c7dbc3f72a43339937`.
+
+`celt-concealment.bin`
+
+Six paired-loss states from an independently decoded narrowband CELT stream
+record pitch, 24 LPC coefficients, 2,048 history samples and 120 overlap samples
+before and after reconstruction. Folded overlap is checked independently before
+the following transform. The header is `OPUSPLP1` and a 32-bit case count.
+Cases contain a 32-bit frame size, period, float32 gain, 32-bit tapset/pitch/
+previous-periodic flag, 2,168 float32 input samples and 24 LPC coefficients,
+then the corresponding output samples/coefficients, 32-bit resulting pitch
+and 60 float32 folded-overlap values.
+
+SHA-256: `f77eaa5a458c88969536c419dcfa0f6f2f9e1290251c9a77e5c5c6cfe0dde61f`.
+
+`decoded-celt-recovery.bin.gz`
+
+64 libopus 1.6.1 streams contain 6,144 CELT packets across all bandwidths,
+frame sizes, coded channel changes and mono/stereo outputs. Received speech,
+short loss bursts, up to 50 consecutive lost packets, DTX and resumption
+exercise pitch-based reconstruction, noise synthesis and safe energy prediction.
+The decompressed header is `OPUSCRC1` and a 32-bit stream count. Streams contain
+32-bit bandwidth/output channels/packet count; packets contain a 32-bit length,
+encoded bytes (zero length for loss), 32-bit sample count/final range and
+interleaved float32 PCM.
+
+Recovery comparisons require at least 40 dB signal-to-error ratio per complete
+stream and peak error below 0.02 times the larger of one and the reference peak.
+Loss reconstruction is non-normative and is sensitive to rounding in retained
+histories and LPC analysis. Scalar and SIMD libopus builds also differ on this
+corpus. The stricter ordinary-frame comparisons remain unchanged.
+
+SHA-256: `5a14c7c3b19c54eddce8fe4459a69f7ef3771480f1274e1cfdfbd2519054f07c`.

@@ -16,11 +16,13 @@ namespace Mediana.Codecs.Opus
         private const int ScratchOffset = SpectrumOffset + 2 * MaximumSamples;
         private const int TransformOffset = ScratchOffset + 2 * MaximumSamples;
         private const int SignalOffset = TransformOffset + MaximumSamples;
-        private const int SignalStride = CeltPitchPostfilter.HistorySamples + MaximumSamples + CeltTransformPlan.Overlap / 2;
+        private const int History = CeltPitchSearch.HistorySamples;
+        private const int SignalStride = History + MaximumSamples + CeltTransformPlan.Overlap;
         private readonly CeltTransformPlan plan;
         private readonly CeltPulseCodebook codebook;
         private readonly WritableMediaBuffer storage;
         private readonly bool disableInversion;
+        private readonly CeltRecoveryState recovery;
         private CeltPostFilterParameters oldFilter, currentFilter;
         private uint seed;
         private bool disposed, faulted;
@@ -37,7 +39,9 @@ namespace Mediana.Codecs.Opus
             this.plan = plan; this.codebook = codebook; this.disableInversion = disableInversion;
             OutputChannels = outputChannels;
             storage = allocator.Allocate((SignalOffset + SignalStride * outputChannels) * sizeof(float));
-            Reset();
+            bool succeeded = false;
+            try { recovery = new(allocator); Reset(); succeeded = true; }
+            finally { if (!succeeded) { storage.Dispose(); } }
         }
 
         public int OutputChannels { get; }
@@ -65,6 +69,7 @@ namespace Mediana.Codecs.Opus
             bool succeeded = false;
             try
             {
+                if (recovery.LostDuration == 0) { recovery.SkipPitch = false; }
                 Span<float> energies = Values[..EnergyCount];
                 if (mode.Channels == 1)
                 {
@@ -76,7 +81,8 @@ namespace Mediana.Codecs.Opus
                 Span<int> resolutions = stackalloc int[21], boosts = stackalloc int[21], shape = stackalloc int[21], fine = stackalloc int[21];
                 Span<byte> priorities = stackalloc byte[21], masks = stackalloc byte[42];
                 resolutions.Clear(); boosts.Clear(); shape.Clear(); fine.Clear(); priorities.Clear();
-                CeltFrameSyntax syntax = CeltFrameSyntaxReader.Read(ref range, mode, energies, resolutions, boosts, new(shape, fine, priorities));
+                CeltFrameSyntax syntax = CeltFrameSyntaxReader.Read(ref range, mode, energies, resolutions, boosts, new(shape, fine, priorities),
+                    new(Values.Slice(EnergyCount, EnergyCount), Values.Slice(2 * EnergyCount, EnergyCount), recovery.LostDuration));
                 Span<float> coefficients = Values.Slice(SpectrumOffset, samples * mode.Channels);
                 Span<float> scratch = Values.Slice(ScratchOffset, 2 * MaximumSamples);
                 CeltSpectralBuffers buffers = new(coefficients, scratch, masks);
@@ -94,16 +100,18 @@ namespace Mediana.Codecs.Opus
                 cancellationToken.ThrowIfCancellationRequested();
                 CeltBandDenormalizer.Apply(mode, coefficients, energies, scratch, syntax.Flags.IsSilent);
                 Span<float> signal = Values[SignalOffset..];
+                if (recovery.FoldOverlap) { CeltConcealment.Fold(signal, OutputChannels, SignalStride, currentFilter, plan.Window); }
                 CeltSynthesis.Apply(plan, mode, syntax.Flags.IsTransient, OutputChannels, scratch,
-                    signal[CeltPitchPostfilter.HistorySamples..], SignalStride, Values.Slice(TransformOffset, MaximumSamples));
+                    signal[History..], SignalStride, Values.Slice(TransformOffset, MaximumSamples));
                 Filter(signal, samples, syntax.Flags.PostFilter);
-                CeltDeemphasis.Apply(signal[CeltPitchPostfilter.HistorySamples..], samples, OutputChannels, SignalStride,
+                CeltDeemphasis.Apply(signal[History..], samples, OutputChannels, SignalStride,
                     output, Values.Slice(DeemphasisOffset, 2), accumulate);
                 UpdateEnergyHistory(mode, syntax.Flags.IsTransient);
+                recovery.Receive(mode, energies);
                 for (int channel = 0; channel < OutputChannels; channel++)
                 {
                     Span<float> values = signal.Slice(channel * SignalStride, SignalStride);
-                    values.Slice(samples, CeltPitchPostfilter.HistorySamples + CeltTransformPlan.Overlap / 2).CopyTo(values);
+                    values.Slice(samples, History + CeltTransformPlan.Overlap / 2).CopyTo(values);
                 }
                 seed = range.Range;
                 succeeded = true;
@@ -115,16 +123,54 @@ namespace Mediana.Codecs.Opus
             }
         }
 
+        public int Conceal(CeltBandMode mode, Span<float> output, bool accumulate = false, CancellationToken cancellationToken = default)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (faulted) { throw new InvalidOperationException("Reset the CELT decoder after a failed frame."); }
+            if (mode.Channels is not (1 or 2)) { throw new ArgumentException("The CELT band mode is uninitialized.", nameof(mode)); }
+            int samples = CeltBandTables.ShortTransformSize << mode.FrameShift;
+            ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, samples * OutputChannels, nameof(output));
+            cancellationToken.ThrowIfCancellationRequested();
+            bool succeeded = false;
+            try
+            {
+                Span<float> signal = Values[SignalOffset..];
+                if (recovery.LostDuration >= 40 || mode.FirstBand != 0 || recovery.SkipPitch)
+                {
+                    CeltBandMode noiseMode = new(OutputChannels, mode.FrameShift, mode.FirstBand, mode.EndBand);
+                    Span<float> coefficients = Values.Slice(SpectrumOffset, samples * OutputChannels);
+                    Span<float> frequency = Values.Slice(ScratchOffset, 2 * MaximumSamples);
+                    CeltConcealment.Noise(recovery, noiseMode, Values[..EnergyCount], coefficients, ref seed);
+                    if (recovery.FoldOverlap) { CeltConcealment.Fold(signal, OutputChannels, SignalStride, currentFilter, plan.Window); }
+                    CeltBandDenormalizer.Apply(noiseMode, coefficients, Values[..EnergyCount], frequency, false);
+                    CeltSynthesis.Apply(plan, noiseMode, false, OutputChannels, frequency,
+                        signal[History..], SignalStride, Values.Slice(TransformOffset, MaximumSamples));
+                    Filter(signal, samples, currentFilter); oldFilter = currentFilter; recovery.FoldOverlap = false;
+                }
+                else { CeltConcealment.Periodic(recovery, signal, OutputChannels, SignalStride, samples, plan.Window); }
+                CeltDeemphasis.Apply(signal[History..], samples, OutputChannels, SignalStride,
+                    output, Values.Slice(DeemphasisOffset, 2), accumulate);
+                for (int channel = 0; channel < OutputChannels; channel++)
+                {
+                    Span<float> plane = signal.Slice(channel * SignalStride, SignalStride);
+                    plane.Slice(samples, History + CeltTransformPlan.Overlap).CopyTo(plane);
+                }
+                recovery.LostDuration = Math.Min(10000, recovery.LostDuration + (1 << mode.FrameShift));
+                succeeded = true; return samples;
+            }
+            finally { if (!succeeded) { faulted = true; } }
+        }
+
         private void Filter(Span<float> signal, int samples, CeltPostFilterParameters next)
         {
             for (int channel = 0; channel < OutputChannels; channel++)
             {
                 Span<float> values = signal.Slice(channel * SignalStride, SignalStride);
-                CeltPitchPostfilter.Apply(values, CeltPitchPostfilter.HistorySamples, CeltBandTables.ShortTransformSize,
+                CeltPitchPostfilter.Apply(values, History, CeltBandTables.ShortTransformSize,
                     oldFilter, currentFilter, plan.Window);
                 if (samples > CeltBandTables.ShortTransformSize)
                 {
-                    CeltPitchPostfilter.Apply(values, CeltPitchPostfilter.HistorySamples + CeltBandTables.ShortTransformSize,
+                    CeltPitchPostfilter.Apply(values, History + CeltBandTables.ShortTransformSize,
                         samples - CeltBandTables.ShortTransformSize, currentFilter, next, plan.Window);
                 }
             }
@@ -157,7 +203,7 @@ namespace Mediana.Codecs.Opus
         public void Reset()
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            Values.Clear();
+            Values.Clear(); recovery.Reset();
             Values.Slice(EnergyCount, 2 * EnergyCount).Fill(-28);
             seed = 0; oldFilter = default; currentFilter = default; faulted = false;
         }
@@ -166,7 +212,7 @@ namespace Mediana.Codecs.Opus
         {
             if (disposed) { return; }
             disposed = true;
-            storage.Dispose();
+            recovery.Dispose(); storage.Dispose();
         }
     }
 }

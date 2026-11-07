@@ -49,6 +49,21 @@ namespace Mediana.Codecs.Opus
             }
         }
 
+        public static void Remove(ReadOnlySpan<float> signal, int start, Span<float> output, CeltPostFilterParameters parameters)
+        {
+            Validate(parameters);
+            int period = Math.Max(MinimumPeriod, parameters.Period);
+            (float center, float near, float far) = Taps(parameters);
+            center = -center; near = -near; far = -far;
+            for (int at = 0; at < output.Length; at++)
+            {
+                int index = start + at;
+                output[at] = signal[index] + center * signal[index - period]
+                    + near * (signal[index - period + 1] + signal[index - period - 1])
+                    + far * (signal[index - period + 2] + signal[index - period - 2]);
+            }
+        }
+
         private static (float Center, float Near, float Far) Taps(CeltPostFilterParameters parameters)
         {
             (float center, float near, float far) = parameters.Tapset switch
