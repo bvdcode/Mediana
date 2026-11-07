@@ -1,25 +1,26 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
 
 namespace Mediana.Containers.Mp4
 {
-    internal static class Mp4VideoFragmentInitialization
+    internal static class Mp4EncodedFragmentInitialization
     {
-        public static MediaBuffer Create(Mp4VideoTrackDefinition track, MediaBufferAllocator allocator, CancellationToken token)
+        public static MediaBuffer Create(IReadOnlyList<Mp4TrackDefinition> tracks, MediaBufferAllocator allocator, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             Mp4BoxWriter measure = new(default);
-            Build(measure, track);
+            Build(measure, tracks);
             using WritableMediaBuffer storage = allocator.Allocate(measure.Position);
-            Build(new(storage.Memory), track);
+            Build(new(storage.Memory), tracks);
             token.ThrowIfCancellationRequested();
             return storage.Publish();
         }
 
-        private static void Build(Mp4BoxWriter writer, Mp4VideoTrackDefinition track)
+        private static void Build(Mp4BoxWriter writer, IReadOnlyList<Mp4TrackDefinition> tracks)
         {
             writer.Box("ftyp", "iso6\0\0\0\0iso6isommp41"u8);
             int moov = writer.Begin("moov");
@@ -32,18 +33,49 @@ namespace Mediana.Containers.Mp4
             writer.Zeros(10);
             Matrix(writer, VideoDisplayMatrix.Identity);
             writer.Zeros(24);
-            writer.UInt32(track.TrackId + 1);
+            writer.UInt32(tracks.Max(track => track.TrackId) + 1);
             writer.End(mvhd);
+            foreach (Mp4TrackDefinition track in tracks) { WriteTrack(writer, track); }
+            int mvex = writer.Begin("mvex");
+            foreach (Mp4TrackDefinition track in tracks)
+            {
+                int trex = writer.Full("trex");
+                writer.UInt32(track.TrackId);
+                writer.UInt32(1);
+                writer.Zeros(12);
+                writer.End(trex);
+            }
+            writer.End(mvex);
+            writer.End(moov);
+        }
+
+        private static void WriteTrack(Mp4BoxWriter writer, Mp4TrackDefinition track)
+        {
             int trak = writer.Begin("trak"), tkhd = writer.Full("tkhd", 7);
             writer.Zeros(8);
             writer.UInt32(track.TrackId);
-            writer.Zeros(24);
-            Matrix(writer, track.Stream.DisplayMatrix!.Value);
-            double width = track.Format.Width;
-            if (track.SampleAspectRatio is SampleAspectRatio aspect) { width = width * aspect.Numerator / aspect.Denominator; }
-            writer.UInt32(checked((uint)Math.Round(width * 65536, MidpointRounding.ToEven)));
-            writer.UInt32(checked((uint)track.Format.Height << 16));
+            writer.Zeros(20);
+            writer.UInt16(track.Stream.Kind switch
+            {
+                MediaKind.Audio => 256,
+                MediaKind.Video => 0,
+                MediaKind.Data => throw new NotSupportedException("Data tracks require their own header declaration."),
+                _ => throw new ArgumentOutOfRangeException(nameof(track))
+            });
+            writer.Zeros(2);
+            Matrix(writer, track.Stream.DisplayMatrix ?? VideoDisplayMatrix.Identity);
+            track.WritePresentationSize(writer);
             writer.End(tkhd);
+            if (track.TimestampOffset != 0)
+            {
+                int edts = writer.Begin("edts"), elst = writer.Full("elst", 0x01000000);
+                writer.UInt32(1);
+                writer.UInt64(0);
+                writer.UInt64((ulong)track.TimestampOffset);
+                writer.UInt32(1 << 16);
+                writer.End(elst);
+                writer.End(edts);
+            }
             int mdia = writer.Begin("mdia"), mdhd = writer.Full("mdhd");
             writer.Zeros(8);
             writer.UInt32((uint)track.TimeBase.Denominator);
@@ -53,27 +85,33 @@ namespace Mediana.Containers.Mp4
             writer.End(mdhd);
             int hdlr = writer.Full("hdlr");
             writer.UInt32(0);
-            writer.Bytes("vide"u8);
-            writer.Zeros(12);
-            writer.Bytes("VideoHandler\0"u8);
+            switch (track.Stream.Kind)
+            {
+                case MediaKind.Video:
+                    writer.Bytes("vide"u8);
+                    writer.Zeros(12);
+                    writer.Bytes("VideoHandler\0"u8);
+                    break;
+                case MediaKind.Audio:
+                    writer.Bytes("soun"u8);
+                    writer.Zeros(12);
+                    writer.Bytes("SoundHandler\0"u8);
+                    break;
+                case MediaKind.Data:
+                    throw new NotSupportedException("Data tracks require their own handler declaration.");
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(track));
+            }
             writer.End(hdlr);
             WriteMediaInfo(writer, track);
             writer.End(mdia);
             writer.End(trak);
-            int mvex = writer.Begin("mvex"), trex = writer.Full("trex");
-            writer.UInt32(track.TrackId);
-            writer.UInt32(1);
-            writer.Zeros(12);
-            writer.End(trex);
-            writer.End(mvex);
-            writer.End(moov);
         }
 
-        private static void WriteMediaInfo(Mp4BoxWriter writer, Mp4VideoTrackDefinition track)
+        private static void WriteMediaInfo(Mp4BoxWriter writer, Mp4TrackDefinition track)
         {
-            int minf = writer.Begin("minf"), vmhd = writer.Full("vmhd", 1);
-            writer.Zeros(8);
-            writer.End(vmhd);
+            int minf = writer.Begin("minf");
+            track.WriteMediaHeader(writer);
             int dinf = writer.Begin("dinf"), dref = writer.Full("dref");
             writer.UInt32(1);
             writer.End(writer.Full("url ", 1));
@@ -81,28 +119,7 @@ namespace Mediana.Containers.Mp4
             writer.End(dinf);
             int stbl = writer.Begin("stbl"), stsd = writer.Full("stsd");
             writer.UInt32(1);
-            int sample = writer.Begin(track.SampleEntry);
-            writer.Zeros(6);
-            writer.UInt16(1);
-            writer.Zeros(16);
-            writer.UInt16((ushort)track.Format.Width);
-            writer.UInt16((ushort)track.Format.Height);
-            writer.UInt32(72 << 16);
-            writer.UInt32(72 << 16);
-            writer.UInt32(0);
-            writer.UInt16(1);
-            writer.Zeros(32);
-            writer.UInt16(24);
-            writer.UInt16(ushort.MaxValue);
-            writer.Box(track.ConfigurationBox, track.Stream.Configuration.Span);
-            if (track.SampleAspectRatio is SampleAspectRatio aspect)
-            {
-                int pasp = writer.Begin("pasp");
-                writer.UInt32((uint)aspect.Numerator);
-                writer.UInt32((uint)aspect.Denominator);
-                writer.End(pasp);
-            }
-            writer.End(sample);
+            track.WriteSampleEntry(writer);
             writer.End(stsd);
             foreach (string type in new[] { "stts", "stsc", "stsz", "stco" })
             {
