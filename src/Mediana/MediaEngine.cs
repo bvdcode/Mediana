@@ -75,11 +75,14 @@ namespace Mediana
             new(await OpenCoreAsync(source, null, MediaKind.Audio, audioDecoders, options, cancellationToken).ConfigureAwait(false));
 
         private async ValueTask<MediaDecodeSession<TFrame>> OpenCoreAsync<TFrame>(IByteSource source, int? streamIndex,
-            MediaKind kind, IReadOnlyList<IDecoderFactory<TFrame>> factories, MediaOpenOptions? options, CancellationToken cancellationToken)
+            MediaKind kind, IReadOnlyList<IDecoderFactory<TFrame>> factories, MediaOpenOptions? options, CancellationToken cancellationToken,
+            MediaBufferAllocator? allocator = null)
             where TFrame : class, IDisposable
         {
             if (streamIndex is < 0) { throw new ArgumentOutOfRangeException(nameof(streamIndex)); }
-            ContainerSession container = await OpenContainerAsync(source, options, cancellationToken).ConfigureAwait(false);
+            ContainerSession container;
+            if (allocator is null) { container = await OpenContainerAsync(source, options, cancellationToken).ConfigureAwait(false); }
+            else { container = await OpenContainerAsync(source, allocator, options ?? new(), cancellationToken).ConfigureAwait(false); }
             bool transferred = false;
             try
             {

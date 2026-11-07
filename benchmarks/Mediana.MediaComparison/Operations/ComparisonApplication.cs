@@ -14,6 +14,7 @@ namespace Mediana.OperationComparison
             return arguments[0] switch
             {
                 "video" => VideoComparison.RunAsync(arguments[1], arguments[2]),
+                "video-pooled" => VideoComparison.RunAsync(arguments[1], arguments[2], true),
                 "ogg" => PacketComparison.RunAsync(arguments[1], arguments[2]),
                 "xlsx" => SpreadsheetComparison.RunAsync(arguments[1], arguments[2]),
                 "webp" => AnimationComparison.DecodeWebpAsync(arguments[1], arguments[2]),
