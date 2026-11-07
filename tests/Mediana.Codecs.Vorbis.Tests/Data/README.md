@@ -15,3 +15,7 @@ SHA-256 `synthetic-spectrum.bin.gz`: `3c6940857aaa0b1ce7ff4fff4ae1fb272d773acc8b
 `inverse-mdct.bin.gz` contains 128 independent Xiph inverse transforms: all block sizes 64–8192, impulses, tones, noise, cancellation patterns and amplitude scales. Decompressed `VORMDCT1` is followed by a 32-bit case count; each case stores a 32-bit block size, its half-size float spectrum and full-size float output. All fields use little endian.
 
 SHA-256: `3bab0493ed8151d13c3298d62ae5819006d2b64145651d14503bd1720e3bd2eb`.
+
+`ogg-stereo.f32le` contains the continuous interleaved stereo float PCM from `vorbis-stereo.ogg`, decoded with Xiph libvorbisfile 1.3.7: 60,417 samples per channel at 44,100 Hz. The integration tests verify whole-stream output, final granule trimming and repeated forward/reverse indexed seeks.
+
+SHA-256: `ba5d753b32e371948254ab74621d781f00386a12510aa4f9afef6fa420df6447`.
