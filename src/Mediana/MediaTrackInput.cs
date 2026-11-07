@@ -9,16 +9,17 @@ using Mediana.Execution;
 
 namespace Mediana
 {
-    internal class MediaTrackInput(IIndexedContainerReader reader, MediaBufferAllocator allocator,
+    internal class MediaTrackInput(IIndexedContainerReader reader, MediaBufferAllocator allocator, MediaBufferAllocator inputAllocator,
         MediaReadBudget budget, MediaTrackResources resources, MediaTimeRange? selection)
     {
         public IIndexedContainerReader Reader { get; } = reader;
         public MediaBufferAllocator Allocator { get; } = allocator;
+        public MediaBufferAllocator InputAllocator { get; } = inputAllocator;
         public MediaReadBudget Budget { get; } = budget;
         public MediaTrackResources Resources { get; } = resources;
         public MediaTimeRange? Selection { get; } = selection;
 
-        public MediaTrackInput WithSelection(MediaTimeRange value) => new(Reader, Allocator, Budget, Resources, value);
+        public MediaTrackInput WithSelection(MediaTimeRange value) => new(Reader, Allocator, InputAllocator, Budget, Resources, value);
 
         public EncodedStreamInfo Select(int index, MediaKind? kind = null)
         {

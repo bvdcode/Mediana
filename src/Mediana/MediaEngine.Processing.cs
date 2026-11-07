@@ -12,10 +12,16 @@ namespace Mediana
     {
         /// <summary>Prepares independently indexed track copies/encoders for a whole input or selected presentation interval.
         /// Borrows reader and allocator. Uses the reader's declared timeline without implicit timestamp rebasing.
-        /// Factories carry codec settings; compressed copies preserve encoded samples and do not apply container edits.</summary>
-        public async ValueTask<MediaProcessingSession> OpenProcessingAsync(IIndexedContainerReader reader,
+        /// Factories carry codec settings; compressed copies preserve encoded samples and do not apply container edits.
+        /// Decoder storage respects the configured local input budget; preparation and encoding use the output allocator.</summary>
+        public ValueTask<MediaProcessingSession> OpenProcessingAsync(IIndexedContainerReader reader,
             IReadOnlyList<MediaTrackRequest> tracks, MediaBufferAllocator allocator,
-            MediaProcessingOptions? options = null, CancellationToken cancellationToken = default)
+            MediaProcessingOptions? options = null, CancellationToken cancellationToken = default) =>
+            OpenProcessingCoreAsync(reader, tracks, allocator, null, options, cancellationToken);
+
+        private async ValueTask<MediaProcessingSession> OpenProcessingCoreAsync(IIndexedContainerReader reader,
+            IReadOnlyList<MediaTrackRequest> tracks, MediaBufferAllocator allocator, MediaBufferAllocator? inputAllocator,
+            MediaProcessingOptions? options, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentNullException.ThrowIfNull(tracks);
@@ -34,7 +40,8 @@ namespace Mediana
             try
             {
                 MediaReadBudget budget = new(options.Input.MaxPacketReads, options.Input.MaxFrameReads);
-                MediaTrackInput input = new(reader, allocator, budget, resources, options.Selection);
+                MediaTrackInput input = new(reader, allocator, inputAllocator ?? allocator.CreateScope(options.Input.BufferBudgetBytes),
+                    budget, resources, options.Selection);
                 foreach (MediaTrackRequest track in selected) { _ = input.Select(track.InputStreamIndex); }
                 ProcessedMediaTrack[] sources = new ProcessedMediaTrack[selected.Length];
                 for (int index = 0; index < selected.Length; index++)
@@ -63,7 +70,7 @@ namespace Mediana
             await using ContainerSession container = await OpenContainerAsync(source, allocator, options.Input, cancellationToken).ConfigureAwait(false);
             if (container.Reader is not IIndexedContainerReader indexed)
             { throw new NotSupportedException("Independent track processing requires an indexed container reader."); }
-            await using MediaProcessingSession session = await OpenProcessingAsync(indexed, tracks, allocator, options, cancellationToken).ConfigureAwait(false);
+            await using MediaProcessingSession session = await OpenProcessingCoreAsync(indexed, tracks, allocator, container.Allocator, options, cancellationToken).ConfigureAwait(false);
             await using IContainerWriter writer = CreateContainerWriter(containerFormatId, destination, session.Streams, allocator);
             return await session.WriteAsync(writer, cancellationToken).ConfigureAwait(false);
         }

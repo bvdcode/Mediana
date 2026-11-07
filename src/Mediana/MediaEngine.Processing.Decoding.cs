@@ -13,7 +13,7 @@ namespace Mediana
             IReadOnlyList<IDecoderFactory<TFrame>> factories, MediaTrackInput input) where TFrame : class, IDisposable
         {
             IDecoderFactory<TFrame> factory = SelectDecoder(stream, factories);
-            IMediaCodec<MediaPacket, TFrame> decoder = factory.Create(stream, input.Allocator);
+            IMediaCodec<MediaPacket, TFrame> decoder = factory.Create(stream, input.InputAllocator);
             bool owned = false;
             try
             {
