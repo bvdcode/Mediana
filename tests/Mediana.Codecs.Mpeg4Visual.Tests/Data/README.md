@@ -47,3 +47,12 @@ header change. The regression checks the entire output and exact 0, 1, 2 second
 presentation clock. A fixed picture period is distinct from a VOP's fractional
 within-second time increment; its ratio to the resolution defines cadence.
 See [ARIB STD-B24, Volume 1, Annex F, Note 2](https://www.arib.or.jp/english/html/overview/doc/6-STD-B24v5_2-1p3-E1.pdf).
+
+The `xvid.avi` fixture retains the original DivX packed transport declaration.
+Its 24 AVI transport ticks contain 22 coded pictures, two initial empty chunks
+and uncoded transport placeholders. Decoding the original AVI with FFmpeg
+produces exactly the existing 22-picture `xvid.yuv` reference. The reader splits
+multiple VOPs within a chunk, retains original chunk validation extents and
+physical decode clocks, and exposes separate exact presentation durations.
+Unlike ordinary AVI, opening packed AVI structurally scans reference chunks
+to locate VOP boundaries with bounded scratch; it retains only index entries.

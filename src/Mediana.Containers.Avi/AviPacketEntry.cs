@@ -3,5 +3,5 @@
 
 namespace Mediana.Containers.Avi
 {
-    internal readonly record struct AviPacketEntry(long Offset, long Time, long Duration, int Length, uint ChunkId, bool KeyFrame, long? PresentationTime = null);
+    internal readonly record struct AviPacketEntry(long Offset, long Time, long Duration, int Length, uint ChunkId, bool KeyFrame, long ChunkDataOffset, int ChunkLength, long? PresentationTime = null, long? PresentationDuration = null);
 }

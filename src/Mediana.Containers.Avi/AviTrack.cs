@@ -22,7 +22,7 @@ namespace Mediana.Containers.Avi
         public long Time { get; private set; } = start;
         public long PayloadBytes { get; private set; }
         public long Cursor { get; set; }
-        public AviPacketIndex Packets { get; } = packets;
+        public AviPacketIndex Packets { get; private set; } = packets;
         public AviChunk? Index { get; set; }
 
         public void Add(long offset, uint size, uint chunkId, bool keyFrame, bool noTime)
@@ -48,7 +48,7 @@ namespace Mediana.Containers.Avi
                 {
                     throw new NotSupportedException("A Motion JPEG AVI packet must contain one complete picture.");
                 }
-                Packets.Add(new(offset, Time, duration, (int)size, chunkId, keyFrame));
+                Packets.Add(new(offset, Time, duration, (int)size, chunkId, keyFrame, offset, (int)size));
                 PayloadBytes = checked(PayloadBytes + size);
             }
             else if (Stream.Kind == MediaKind.Video && Packets.Count != 0 && duration != 0)
@@ -56,6 +56,13 @@ namespace Mediana.Containers.Avi
                 Packets.ExtendLastDuration(duration);
             }
             Time = checked(Time + duration);
+        }
+
+        public void SetPackets(AviPacketIndex replacement)
+        {
+            long payload = 0;
+            for (long index = 0; index < replacement.Count; index++) { payload = checked(payload + replacement[index].Length); }
+            Packets.Dispose(); Packets = replacement; PayloadBytes = payload;
         }
 
         public void Dispose() => Packets.Dispose();

@@ -20,6 +20,7 @@ namespace Mediana.Codecs.Mpeg4Visual.Tests
         [InlineData("fractional", "avi", 1001, 30000)]
         [InlineData("fractional", "mp4", 1001, 30000)]
         [InlineData("quarter", "avi", 1, 12)]
+        [InlineData("xvid", "avi", 1, 12)]
         [InlineData("quarter", "mp4", 1, 12)]
         public Task SharedApiDecodesEveryPictureSeeksBackwardPreviewsAndEncodesWholeAndInterval(
             string name, string extension, int numerator, int denominator) =>

@@ -5,7 +5,7 @@ using Mediana.IO;
 
 namespace Mediana.Containers.Avi.Tests
 {
-    internal class AviTestSource(byte[] bytes, int maximumRead = int.MaxValue) : IRandomAccessByteSource
+    internal class AviTestSource(byte[] bytes, int maximumRead = int.MaxValue, Action<long>? afterRead = null) : IRandomAccessByteSource
     {
         public long? Length => bytes.Length;
         public long ReadBytes { get; private set; }
@@ -19,6 +19,7 @@ namespace Mediana.Containers.Avi.Tests
             int count = (int)Math.Min(Math.Min(destination.Length, maximumRead), bytes.Length - offset);
             bytes.AsMemory((int)offset, count).CopyTo(destination);
             ReadBytes += count;
+            afterRead?.Invoke(ReadBytes);
             return ValueTask.FromResult(count);
         }
 

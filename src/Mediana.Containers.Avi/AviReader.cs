@@ -11,7 +11,7 @@ namespace Mediana.Containers.Avi
 {
     /// <summary>Indexed RIFF/AVI and OpenDML reader. Borrows the source and allocator.
     /// Packet access validates the addressed chunk before publishing its payload.</summary>
-    public partial class AviReader : IIndexedPacketTimingReader
+    public partial class AviReader : IIndexedPacketTimingReader, IIndexedPresentationTimingReader
     {
         private const uint Riff = 0x46464952;
         private const uint List = 0x5453494c;
@@ -75,6 +75,15 @@ namespace Mediana.Containers.Avi
             MediaTimestamp? presentation = entry.PresentationTime is long ticks ? new(ticks, track.PresentationClock) : null;
             if (track.Stream.Kind == MediaKind.Audio || track.Stream.CodecId == "mjpeg") { presentation = time; }
             return new(presentation, time, new(entry.Duration, track.Stream.TimeBase), entry.KeyFrame);
+        }
+
+        public MediaDuration? GetPresentationDuration(int streamIndex, long packetIndex, CancellationToken cancellationToken = default)
+        {
+            EnsureReadable(); cancellationToken.ThrowIfCancellationRequested();
+            AviTrack track = Track(streamIndex); AviPacketEntry entry = track.Packets[packetIndex];
+            if (entry.PresentationTime is not null)
+            { return entry.PresentationDuration is long ticks ? new(ticks, track.PresentationClock) : null; }
+            return new(entry.Duration, track.Stream.TimeBase);
         }
 
         public ContainerSeekPoint? FindSeekPoint(int streamIndex, MediaTimestamp target, long beforePacketIndex,
@@ -169,11 +178,13 @@ namespace Mediana.Containers.Avi
         private async ValueTask<MediaPacket> ReadPacketCoreAsync(AviTrack track, long packetIndex, CancellationToken cancellationToken)
         {
             AviPacketEntry entry = track.Packets[packetIndex];
-            AviChunk chunk = await ReadChunkAsync(entry.Offset - 8, sourceLength, cancellationToken).ConfigureAwait(false);
-            if (chunk.Id != entry.ChunkId || chunk.Length != entry.Length)
+            AviChunk chunk = await ReadChunkAsync(entry.ChunkDataOffset - 8, sourceLength, cancellationToken).ConfigureAwait(false);
+            if (chunk.Id != entry.ChunkId || chunk.Length != entry.ChunkLength)
             {
                 throw new InvalidDataException("The AVI packet index disagrees with its data chunk.");
             }
+            if (entry.Offset < chunk.Data || entry.Offset > chunk.End || entry.Length <= 0 || entry.Length > chunk.End - entry.Offset)
+            { throw new InvalidDataException("The AVI access unit exceeds its indexed data chunk."); }
             using WritableMediaBuffer storage = allocator.Allocate(entry.Length);
             await source.ReadExactlyAtAsync(entry.Offset, storage.Memory, cancellationToken).ConfigureAwait(false);
             using MediaBuffer buffer = storage.Publish();

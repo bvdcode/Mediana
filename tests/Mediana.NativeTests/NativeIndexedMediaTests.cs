@@ -42,6 +42,7 @@ namespace Mediana.NativeTests
                     await Mpeg4ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mpeg4Visual"), visualName, extension, cadence);
                 }
             }
+            await Mpeg4ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mpeg4Visual"), "xvid", "avi", new(1, 12));
             Console.WriteLine("PASS MPEG-4 Visual: complete I/P/B sequences, exact clocks, reverse indexed seeks, previews and AVC intervals.");
             foreach (string name in new[] { "main420", "chroma422", "chroma444", "motion", "noise", "odd420", "duplicate", "fractional", "av" })
             { await TheoraContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Theora"), name); }
