@@ -305,6 +305,8 @@ are never replaced. Exit codes are 0 for success, 1 for an unexpected failure,
 2 for invalid arguments, 3 for an unsupported operation or format feature,
 4 for invalid media data, 5 for file access errors, and 130 for cancellation.
 
+Reusable client operations are described in [Media operations](docs/media-operations.md).
+
 ## Build and run
 
 Install a .NET 10 SDK. The repository accepts newer .NET 10 feature bands.
