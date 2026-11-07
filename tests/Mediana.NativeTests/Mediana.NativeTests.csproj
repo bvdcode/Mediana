@@ -26,6 +26,10 @@
     <Compile Include="../Shared/PresentationImageFillTestInput.cs" Link="PresentationImageFillTestInput.cs" />
     <Compile Include="../Shared/PdfTextTestData.cs" Link="PdfTextTestData.cs" />
     <Compile Include="../Shared/DocumentReadersTestInput.cs" Link="DocumentReadersTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Vp8/*.webm" Link="Data/Vp8/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Vp8/*.yuv" Link="Data/Vp8/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Vp8ContainerTestInput.cs" Link="Vp8ContainerTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Presentation/Mediana.Documents.Presentation.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Xls/Mediana.Documents.Xls.csproj" />
     <ProjectReference Include="../../src/Mediana.Documents.Xlsx/Mediana.Documents.Xlsx.csproj" />

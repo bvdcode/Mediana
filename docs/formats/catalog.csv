@@ -3,7 +3,7 @@ mp4-classic,Containers and packaging,MP4 / ISO BMFF,Non-fragmented files,contain
 mp4-fragmented,Containers and packaging,MP4 / ISO BMFF,Fragmented files,container,.mp4 .m4s,A,iso-bmff,"Includes initialization segments, fragment timing and incremental input."
 mov,Containers and packaging,QuickTime,Movie files,container,.mov .qt,A,quicktime,Current MP4-family reader covers a subset; legacy QuickTime sample descriptions remain open.
 3gp,Containers and packaging,3GPP,3GP / 3G2 files,container,.3gp .3g2,B,iso-bmff;discovery,Validate their brands and track mappings independently of MP4.
-matroska-indexed,Containers and packaging,Matroska,Indexed file presentation,container,.mkv .mka .mks,A,matroska,"Current packet mappings are AVC/AAC/MP3, not all Matroska codecs."
+matroska-indexed,Containers and packaging,Matroska,Indexed file presentation,container,.mkv .mka .mks,A,matroska,"Indexed AVC/HEVC/VP8/MJPEG/AAC/MP3 mappings; other codecs remain stored representations."
 matroska-live,Containers and packaging,Matroska,Live / unknown-size stream,container,.mkv,B,matroska,
 webm-file,Containers and packaging,WebM,File presentation,container,.webm,A,webm,Codec mappings and track constraints must conform to WebM.
 webm-live,Containers and packaging,WebM,Incremental / live presentation,container,.webm,B,webm,"Track metadata, unknown sizes and incremental clusters need separate fixtures."
@@ -195,7 +195,7 @@ hevc-multiview,Video codecs and substantial profiles,H.265 / HEVC,Multiview / 3D
 vvc-main10,Video codecs and substantial profiles,H.266 / VVC,Main 10,video-codec,.h266 .vvc,B,h266,
 vvc-main444,Video codecs and substantial profiles,H.266 / VVC,Main 10 4:4:4,video-codec,.h266 .vvc,C,h266,
 vvc-multilayer,Video codecs and substantial profiles,H.266 / VVC,Multilayer and still-picture profiles,video-codec,.h266 .vvc,C,h266,Split the selected profiles before implementation.
-vp8,Video codecs and substantial profiles,VP8,Video bitstream,video-codec,.ivf,A,webm,WebP lossy image coding shares tools but has a separate file/alpha/animation contract.
+vp8,Video codecs and substantial profiles,VP8,Video bitstream,video-codec,.ivf,A,webm,Managed key/inter decoding shares VP8 kernels with WebP; WebM/Matroska mapping and direct coded packets are supported; IVF container parsing remains open.
 vp9-p0,Video codecs and substantial profiles,VP9,"Profile 0, 8-bit 4:2:0",video-codec,.ivf,A,webm,
 vp9-p1,Video codecs and substantial profiles,VP9,"Profile 1, 8-bit other sampling",video-codec,.ivf,B,webm,
 vp9-p2,Video codecs and substantial profiles,VP9,"Profile 2, 10/12-bit 4:2:0",video-codec,.ivf,A,webm,

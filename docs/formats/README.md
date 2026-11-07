@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 105 variants · 135 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 107 variants · 137 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -23,14 +23,14 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | Group | Implemented variants | Target variants | Implemented operations | Target operations |
 | --- | ---: | ---: | ---: | ---: |
-| [Containers and packaging](#containers-and-packaging) | 16 | 44 | 18 | 88 |
+| [Containers and packaging](#containers-and-packaging) | 17 | 44 | 19 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 6 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 13 | 35 | 13 | 64 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 5 | 62 | 6 | 124 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 6 | 62 | 7 | 124 |
 | [Audio coding and sample representations](#audio-coding-and-sample-representations) | 16 | 63 | 22 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
@@ -51,9 +51,9 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `mp4-fragmented` | MP4 / ISO BMFF — Fragmented files | .mp4 .m4s | R □ · W □ | A | Includes initialization segments, fragment timing and incremental input. [iso-bmff](sources.md#iso-bmff) | — |
 | `mov` | QuickTime — Movie files | .mov .qt | R ◐ · W □ | A | Current MP4-family reader covers a subset; legacy QuickTime sample descriptions remain open. [quicktime](sources.md#quicktime) | — |
 | `3gp` | 3GPP — 3GP / 3G2 files | .3gp .3g2 | R □ · W □ | B | Validate their brands and track mappings independently of MP4. [iso-bmff](sources.md#iso-bmff), [discovery](sources.md#discovery) | — |
-| `matroska-indexed` | Matroska — Indexed file presentation | .mkv .mka .mks | R ◐ · W □ | A | Current packet mappings are AVC/AAC/MP3, not all Matroska codecs. [matroska](sources.md#matroska) | — |
+| `matroska-indexed` | Matroska — Indexed file presentation | .mkv .mka .mks | R ◐ · W □ | A | Indexed AVC/HEVC/VP8/MJPEG/AAC/MP3 mappings; other codecs remain stored representations. [matroska](sources.md#matroska) | — |
 | `matroska-live` | Matroska — Live / unknown-size stream | .mkv | R □ · W □ | B | [matroska](sources.md#matroska) | — |
-| `webm-file` | WebM — File presentation | .webm | R □ · W □ | A | Codec mappings and track constraints must conform to WebM. [webm](sources.md#webm) | — |
+| `webm-file` | WebM — File presentation | .webm | R ◐ · W □ | A | Codec mappings and track constraints must conform to WebM. [webm](sources.md#webm) | — |
 | `webm-live` | WebM — Incremental / live presentation | .webm | R □ · W □ | B | Track metadata, unknown sizes and incremental clusters need separate fixtures. [webm](sources.md#webm) | — |
 | `ogg` | Ogg — Single and multiplexed logical streams | .ogg .oga .ogv .opus .spx | R ◐ · W □ | A | Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate. [ogg](sources.md#ogg) | [ogg-index](../performance/README.md#ogg-index) |
 | `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R ◐ · W □ | B | Current reader keeps chained links separately selectable; selecting a link does not concatenate links. [ogg](sources.md#ogg) | — |
@@ -278,7 +278,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `vvc-main10` | H.266 / VVC — Main 10 | .h266 .vvc | D □ · E □ | B | [h266](sources.md#h266) | — |
 | `vvc-main444` | H.266 / VVC — Main 10 4:4:4 | .h266 .vvc | D □ · E □ | C | [h266](sources.md#h266) | — |
 | `vvc-multilayer` | H.266 / VVC — Multilayer and still-picture profiles | .h266 .vvc | D □ · E □ | C | Split the selected profiles before implementation. [h266](sources.md#h266) | — |
-| `vp8` | VP8 — Video bitstream | .ivf | D □ · E □ | A | WebP lossy image coding shares tools but has a separate file/alpha/animation contract. [webm](sources.md#webm) | — |
+| `vp8` | VP8 — Video bitstream | .ivf | D ◐ · E □ | A | Managed key/inter decoding shares VP8 kernels with WebP; WebM/Matroska mapping and direct coded packets are supported; IVF container parsing remains open. [webm](sources.md#webm) | — |
 | `vp9-p0` | VP9 — Profile 0, 8-bit 4:2:0 | .ivf | D □ · E □ | A | [webm](sources.md#webm) | — |
 | `vp9-p1` | VP9 — Profile 1, 8-bit other sampling | .ivf | D □ · E □ | B | [webm](sources.md#webm) | — |
 | `vp9-p2` | VP9 — Profile 2, 10/12-bit 4:2:0 | .ivf | D □ · E □ | A | [webm](sources.md#webm) | — |

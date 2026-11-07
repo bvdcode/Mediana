@@ -73,15 +73,15 @@ namespace Mediana.Containers.Matroska
             {
                 throw new InvalidDataException("The Matroska EBML document header is incomplete or invalid.");
             }
-            if (documentType != "matroska")
+            if (documentType is not ("matroska" or "webm"))
             {
-                throw new NotSupportedException("The EBML document type is not Matroska.");
+                throw new NotSupportedException("The EBML document type is neither Matroska nor WebM.");
             }
             if (ebmlReadVersion > 1 || documentReadVersion > 4)
             {
                 throw new NotSupportedException("The document requires a newer EBML or Matroska reader version.");
             }
-            return new(bodyOffset, ebmlVersion, documentVersion, documentReadVersion, (int)maximumSizeWidth);
+            return new(bodyOffset, ebmlVersion, documentVersion, documentReadVersion, (int)maximumSizeWidth, documentType);
         }
     }
 }

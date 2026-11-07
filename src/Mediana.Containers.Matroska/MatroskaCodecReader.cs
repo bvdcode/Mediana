@@ -44,7 +44,7 @@ namespace Mediana.Containers.Matroska
                 bool native = format == MatroskaStreamFormats.StoredFrames;
                 bool mpegHeader = !native && codecId == Mp3FrameHeader.CodecId;
                 int configurationBytes = mpegHeader ? Mp3FrameHeader.HeaderBytes :
-                    GetConfigurationSize(track.CodecPrivate, source.Length, required: !native && codecId != "mjpeg");
+                    GetConfigurationSize(track.CodecPrivate, source.Length, required: !native && format.ConfigurationSyntax != "none");
                 if (configurationBytes > maximumConfigurationBytes || configurationBytes > maximumTotalConfigurationBytes - totalBytes)
                 {
                     throw new NotSupportedException("Matroska codec configurations exceed the configured byte limits.");
@@ -87,6 +87,7 @@ namespace Mediana.Containers.Matroska
                             HevcDecoderConfiguration.Read(bytes.Memory);
                             break;
                         case "mjpeg":
+                        case "vp8":
                             break;
                         case Mp3FrameHeader.CodecId:
                             duration = new(mp3!.SamplesPerFrame, new TimeBase(1, mp3.SampleRate));
@@ -118,7 +119,7 @@ namespace Mediana.Containers.Matroska
                 17 => MediaKind.Subtitle,
                 _ => MediaKind.Data
             };
-            if (((track.CodecId is "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_MJPEG") && track.Type != 1) ||
+            if (((track.CodecId is "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_MJPEG" or "V_VP8") && track.Type != 1) ||
                 ((track.CodecId is "A_AAC" or "A_MPEG/L3") && track.Type != 2))
             {
                 throw new InvalidDataException("The Matroska codec and track type disagree.");
@@ -135,12 +136,15 @@ namespace Mediana.Containers.Matroska
                 (1, "V_MPEGH/ISO/HEVC") when MatroskaVideoMapping.TryGetAspectRatio(track.Video!, out VideoAspectRatioDescription? aspect) =>
                     (kind, HevcDecoderConfiguration.CodecId, StreamFormats.Hevc, aspect),
                 (1, "V_MPEGH/ISO/HEVC") => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null),
+                (1, "V_VP8") when MatroskaVideoMapping.TryGetAspectRatio(track.Video!, out VideoAspectRatioDescription? aspect) =>
+                    (kind, "vp8", StreamFormats.Vp8, aspect),
+                (1, "V_VP8") => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null),
                 (1, "V_MJPEG") when MatroskaVideoMapping.TryGetAspectRatio(track.Video!, out VideoAspectRatioDescription? aspect, requireYuv420: false) =>
                     (kind, "mjpeg", StreamFormats.Mjpeg, aspect),
                 (1, "V_MJPEG") => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null),
                 (2, "A_AAC") => (kind, AacConfiguration.CodecId, StreamFormats.Aac, null),
                 (2, "A_MPEG/L3") => (kind, Mp3FrameHeader.CodecId, StreamFormats.Mp3, null),
-                (_, "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_MJPEG" or "A_AAC" or "A_MPEG/L3") =>
+                (_, "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_MJPEG" or "V_VP8" or "A_AAC" or "A_MPEG/L3") =>
                     throw new InvalidDataException("The Matroska codec and track type disagree."),
                 _ => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null)
             };

@@ -135,6 +135,9 @@ namespace Mediana.Tests
             Assert.Equal(ColorRange.Full, frame.Format.GetColorInterpretation().Range);
         }
 
+        [Fact]
+        public Task WebmUsesTheSharedPipelineForDecodingRepeatedSeekAndAvcEncoding() => Vp8ContainerTestInput.VerifyAsync(Root);
+
         private static string Root => Path.Combine(AppContext.BaseDirectory, "Data", "Vp8");
         private static EncodedStreamInfo Stream() => new(0, MediaKind.Video, "vp8", StreamFormats.Vp8, new(1, 12));
         private static MediaPacket FirstPacket(byte[] ivf) => Packet(ivf.AsSpan(44, checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(32)))));

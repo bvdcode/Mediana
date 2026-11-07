@@ -52,7 +52,7 @@ namespace Mediana.Tests
                 Require(!factory.CanRead(signature.AsSpan(0, count)));
             }
             Require(factory.CanRead(signature) && !factory.CanRead("RIFF"u8));
-            await RejectOpenAsync<NotSupportedException>([.. Field(0x1A45DFA3, Field(0x4282, "webm"u8)),
+            await RejectOpenAsync<NotSupportedException>([.. Field(0x1A45DFA3, Field(0x4282, "unknown"u8)),
                 .. Field(0x18538067, [])]);
             byte[] bytes = Document(Field(0x1549A966, InfoFields), Tracks);
             MediaBufferAllocator allocator = new(131072);

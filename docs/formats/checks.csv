@@ -11,7 +11,7 @@ matroska-indexed,read,partial,partial,partial,planned,planned,planned,../matrosk
 matroska-indexed,write,planned,planned,planned,planned,planned,planned,
 matroska-live,read,planned,planned,planned,planned,planned,planned,
 matroska-live,write,planned,planned,planned,planned,planned,planned,
-webm-file,read,planned,planned,planned,planned,planned,planned,
+webm-file,read,partial,partial,partial,planned,planned,partial,../vp8.md;../../tests/Mediana.Tests/Data/Vp8/README.md
 webm-file,write,planned,planned,planned,planned,planned,planned,
 webm-live,read,planned,planned,planned,planned,planned,planned,
 webm-live,write,planned,planned,planned,planned,planned,planned,
@@ -385,7 +385,7 @@ vvc-main444,decode,planned,planned,planned,planned,planned,planned,
 vvc-main444,encode,planned,planned,planned,planned,planned,planned,
 vvc-multilayer,decode,planned,planned,planned,planned,planned,planned,
 vvc-multilayer,encode,planned,planned,planned,planned,planned,planned,
-vp8,decode,planned,planned,planned,planned,planned,planned,
+vp8,decode,partial,partial,partial,planned,planned,partial,../vp8.md;../../tests/Mediana.Tests/Data/Vp8/README.md
 vp8,encode,planned,planned,planned,planned,planned,planned,
 vp9-p0,decode,planned,planned,planned,planned,planned,planned,
 vp9-p0,encode,planned,planned,planned,planned,planned,planned,
