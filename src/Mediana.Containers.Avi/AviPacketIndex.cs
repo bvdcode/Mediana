@@ -29,8 +29,15 @@ namespace Mediana.Containers.Avi
         {
             AviPacketEntry entry = this[Count - 1];
             entry = entry with { Duration = checked(entry.Duration + duration) };
-            MemoryMarshal.Write(pages[checked((int)((Count - 1) / EntriesPerPage))].Span
-                .Slice((int)((Count - 1) % EntriesPerPage) * EntryBytes, EntryBytes), in entry);
+            Replace(Count - 1, entry);
+        }
+
+        public void Replace(long index, AviPacketEntry entry)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
+            MemoryMarshal.Write(pages[checked((int)(index / EntriesPerPage))].Span
+                .Slice((int)(index % EntriesPerPage) * EntryBytes, EntryBytes), in entry);
         }
 
         public void Add(AviPacketEntry entry)

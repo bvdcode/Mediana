@@ -7,6 +7,8 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
 
+using Mediana.Tests;
+
 namespace Mediana.Codecs.Mpeg4Visual.Tests
 {
     public class CodecTests

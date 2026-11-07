@@ -27,3 +27,13 @@ and odd 97×81 geometry. The `xvid` sequence uses the independent libxvid encode
 at 128×96 with quarter-pixel motion and B pictures. It is demultiplexed from AVI
 and normalized with `mpeg4_unpack_bframes` before raw-stream reference decoding;
 22 coded pictures are retained. Raw-stream tests contain complete individual VOPs.
+
+The `bframes`, `fractional` and `quarter` sequences also have independently muxed
+AVI and MP4 variants. Their complete decoded YUV references equal the corresponding
+raw-stream references byte for byte. MP4 `.frames.json` files contain FFprobe
+presentation times, durations and the rational clock after movie edits. AVI lacks
+an explicit PTS table: its reader reconstructs the VOP presentation clock relative
+to the first picture and retains the separate AVI chunk decode clock. It reads
+picture-header prefixes to build that index without decoding or retaining the
+complete compressed movie. Every display position is tested in reverse order,
+including open-GOP leading B pictures discarded at random access.

@@ -15,6 +15,7 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <Using Include="Xunit" />
+    <None Include="../Mediana.Codecs.Mpeg4Visual.Tests/Data/*.avi" Link="Data/Mpeg4Visual/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Data/**/*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -72,7 +72,7 @@ namespace Mediana.Containers.Avi
             AviTrack track = Track(streamIndex);
             AviPacketEntry entry = track.Packets[packetIndex];
             MediaTimestamp time = new(entry.Time, track.Stream.TimeBase);
-            MediaTimestamp? presentation = null;
+            MediaTimestamp? presentation = entry.PresentationTime is long ticks ? new(ticks, track.PresentationClock) : null;
             if (track.Stream.Kind == MediaKind.Audio || track.Stream.CodecId == "mjpeg") { presentation = time; }
             return new(presentation, time, new(entry.Duration, track.Stream.TimeBase), entry.KeyFrame);
         }
@@ -94,17 +94,37 @@ namespace Mediana.Containers.Avi
                 if (new MediaTimestamp(track.Packets[middle].Time, track.Stream.TimeBase).CompareTo(target) <= 0) { low = middle + 1; }
                 else { high = middle; }
             }
+            ContainerSeekPoint? result = null;
             for (long index = low - 1; index >= 0; index--)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (track.Packets[index].KeyFrame) { return new(streamIndex, index, new(track.Packets[index].Time, track.Stream.TimeBase)); }
+                AviPacketEntry entry = track.Packets[index];
+                MediaTimestamp presentation = PresentationTime(track, entry);
+                if (entry.KeyFrame && presentation.CompareTo(target) <= 0)
+                {
+                    result = new(streamIndex, index, presentation);
+                    break;
+                }
             }
-            if (beforePacketIndex != 0 && low == 0)
+            for (long index = low; index < beforePacketIndex; index++)
             {
-                return new(streamIndex, 0, new(track.Packets[0].Time, track.Stream.TimeBase));
+                cancellationToken.ThrowIfCancellationRequested();
+                AviPacketEntry entry = track.Packets[index];
+                if (!entry.KeyFrame) { continue; }
+                MediaTimestamp presentation = PresentationTime(track, entry);
+                if (presentation.CompareTo(target) > 0) { break; }
+                result = new(streamIndex, index, presentation);
             }
-            return null;
+            if (result is null && beforePacketIndex != 0 && track.Packets[0].KeyFrame &&
+                PresentationTime(track, track.Packets[0]).CompareTo(target) > 0)
+            {
+                return new(streamIndex, 0, PresentationTime(track, track.Packets[0]));
+            }
+            return result;
         }
+
+        private static MediaTimestamp PresentationTime(AviTrack track, AviPacketEntry entry) =>
+            entry.PresentationTime is long ticks ? new(ticks, track.PresentationClock) : new(entry.Time, track.Stream.TimeBase);
 
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
         {

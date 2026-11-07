@@ -29,7 +29,7 @@ namespace Mediana.Containers.Mp4
             }
             return (kind, entry.Type) switch
             {
-                (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1") => ParseVideo(entry, budget, quickTime),
+                (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1" or "mp4v") => ParseVideo(entry, budget, quickTime),
                 (MediaKind.Audio, "mp4a") => ParseAudio(entry, budget),
                 (MediaKind.Data, "tmcd") => ParseTimecode(entry),
                 _ => throw new NotSupportedException($"MP4 sample entry '{entry.Type}' is not supported.")
@@ -63,6 +63,9 @@ namespace Mediana.Containers.Mp4
         {
             switch (sampleType)
             {
+                case "mp4v":
+                    ReadOnlyMemory<byte> visual = Mp4ElementaryStreamDescriptor.ReadVisualConfiguration(children.Required("esds").Payload);
+                    return (Mpeg4VisualConfiguration.CodecId, StreamFormats.Mpeg4Visual, visual);
                 case "avc1":
                 case "avc3":
                     ReadOnlyMemory<byte> avc = children.Required("avcC").Payload;

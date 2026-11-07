@@ -3,12 +3,19 @@
 
 using Mediana.Core;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 
 namespace Mediana.Containers.Avi
 {
     internal class AviTrack(EncodedStreamInfo stream, uint sampleSize, uint start, uint length, AviPacketIndex packets) : IDisposable
     {
-        public EncodedStreamInfo Stream { get; } = stream;
+        public EncodedStreamInfo Stream { get; private set; } = stream;
+        public TimeBase PresentationClock { get; set; } = stream.TimeBase;
+        public void SetConfiguration(ReadOnlySpan<byte> configuration)
+        {
+            Stream = new(Stream.StreamIndex, Stream.Kind, Stream.CodecId, Stream.Format, Stream.TimeBase, configuration,
+                Stream.DisplayMatrix, Stream.CodedDuration, Stream.ColorDescription, Stream.AspectRatioDescription);
+        }
         public uint SampleSize { get; } = sampleSize;
         public long Start { get; } = start;
         public long DeclaredLength { get; } = length;

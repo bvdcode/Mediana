@@ -8,7 +8,7 @@ using Mediana.Core.Video;
 using Mediana.Formats;
 using Mediana.Formats.Video;
 
-namespace Mediana.Codecs.Mpeg4Visual.Tests
+namespace Mediana.Tests
 {
     internal static class Mpeg4TestInput
     {

@@ -9,6 +9,7 @@ using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Formats;
 using Mediana.Formats.Audio;
+using Mediana.Formats.Video;
 using Mediana.IO;
 
 namespace Mediana.Containers.Avi
@@ -84,6 +85,7 @@ namespace Mediana.Containers.Avi
             List<ContainerStreamInfo> metadata = new(tracks.Count);
             foreach (AviTrack track in tracks)
             {
+                if (track.Stream.CodecId == Mpeg4VisualConfiguration.CodecId) { await ReadVisualClocksAsync(track, cancellationToken).ConfigureAwait(false); }
                 TimeBase clock = track.Stream.TimeBase;
                 streams.Add(track.Stream);
                 FrameRate? rate = null;
@@ -189,6 +191,11 @@ namespace Mediana.Containers.Avi
                     {
                         return new(streamIndex, MediaKind.Video, "mjpeg", StreamFormats.Mjpeg, clock,
                             displayMatrix: VideoDisplayMatrix.Identity, codedDuration: duration);
+                    }
+                    if (compression is 0x34504d46 or 0x58564944 or 0x30355844 or 0x44495658 or 0x5634504d or 0x7634706d or 0x32564933)
+                    {
+                        return new(streamIndex, MediaKind.Video, Mpeg4VisualConfiguration.CodecId, StreamFormats.Mpeg4Visual, clock,
+                            format[checked((int)BinaryPrimitives.ReadUInt32LittleEndian(format))..], VideoDisplayMatrix.Identity, duration);
                     }
                     return new(streamIndex, MediaKind.Video, NativeId(compression), NativeFormat, clock, format, codedDuration: duration);
                 case 0x73647561:

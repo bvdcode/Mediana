@@ -43,7 +43,7 @@ namespace Mediana.Codecs.Mpeg4Visual.Tests
                     }
                     scanned = positions[i];
                     int end = i + 1 < positions.Count ? positions[i + 1] - 4 : data.Length;
-                    using MediaBuffer picture = decoder.Decode(data.AsSpan(positions[i], end - positions[i]), out Mpeg4VopHeader header, default);
+                    using MediaBuffer picture = decoder.Decode(data.AsSpan(positions[i], end - positions[i]), out Mpeg4VopHeader header, default) ?? throw new InvalidDataException("Unexpected leading picture in a complete sequence.");
                     if (!header.IsCoded) { continue; }
                     byte[] cropped = new byte[frameBytes]; int cropAt = 0;
                     for (int plane = 0; plane < 3; plane++)

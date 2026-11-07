@@ -39,7 +39,7 @@ namespace Mediana.Codecs.Mpeg4Visual
             finally { if (!success) { Dispose(); } }
         }
         internal void ReadGroup(ReadOnlySpan<byte> data) => clock.ReadGroup(data);
-        internal MediaBuffer Decode(ReadOnlySpan<byte> payload, out Mpeg4VopHeader header, CancellationToken token)
+        internal MediaBuffer? Decode(ReadOnlySpan<byte> payload, out Mpeg4VopHeader header, CancellationToken token)
         {
             Mpeg4VisualBitReader bits = new(payload); header = Mpeg4VopHeader.Read(ref bits, config);
             long pictureTime = clock.Read(header, config);
@@ -47,7 +47,11 @@ namespace Mediana.Codecs.Mpeg4Visual
             if (!header.IsCoded)
             { return future?.Retain() ?? throw new InvalidDataException("An uncoded MPEG-4 Visual picture has no preceding reference."); }
             if (header.Type != Mpeg4VopType.Intra && future is null) { throw new InvalidDataException("MPEG-4 Visual decoding must start with an intra picture."); }
-            if (header.Type == Mpeg4VopType.Bidirectional && previous is null) { throw new InvalidDataException("The MPEG-4 Visual B picture has no past reference."); }
+            if (header.Type == Mpeg4VopType.Bidirectional && previous is null)
+            {
+                if (pictureTime < clock.LastReferenceTime) { return null; }
+                throw new InvalidDataException("The MPEG-4 Visual B picture has no past reference.");
+            }
             if (config.Interlaced) { throw new NotSupportedException("Interlaced MPEG-4 Visual pictures are not supported."); }
             if (header.Type != Mpeg4VopType.Bidirectional) { Predictions.Clear(); Motion.Clear(); }
             using WritableMediaBuffer picture = allocator.Allocate(checked(lumaSize + lumaSize / 2));

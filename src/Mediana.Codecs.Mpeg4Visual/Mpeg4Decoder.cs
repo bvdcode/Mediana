@@ -49,8 +49,8 @@ namespace Mediana.Codecs.Mpeg4Visual
                 EnsurePictures();
                 for (int at = Mpeg4VisualStartCodes.Find(data); at >= 0 && at < picture; at = Mpeg4VisualStartCodes.Find(data, at + 4))
                 { if (data[at + 3] == 0xb3) { pictures!.ReadGroup(data[(at + 4)..]); } }
-                using MediaBuffer pixels = pictures!.Decode(data[(picture + 4)..], out Mpeg4VopHeader header, cancellationToken);
-                if (header.IsCoded)
+                using MediaBuffer? pixels = pictures!.Decode(data[(picture + 4)..], out Mpeg4VopHeader header, cancellationToken);
+                if (header.IsCoded && pixels is not null)
                 {
                     MediaTimestamp timestamp = packet.PresentationTime ?? new(pictures.PictureTime, new(1, configuration.TimeIncrementResolution));
                     VideoFrame frame = new(format!, pixels, planes!, timestamp, packet.Duration); bool queued = false;
