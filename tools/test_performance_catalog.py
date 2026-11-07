@@ -42,6 +42,29 @@ class PerformanceCatalogTests(unittest.TestCase):
             self.assertTrue(
                 all(row.get("validation_succeeded") is not False for row in checked)
             )
+            for comparison in checked:
+                origin = comparison.get("source_validation_repetition")
+                if origin is None:
+                    continue
+                if origin == comparison["repetition"]:
+                    self.assertEqual(
+                        comparison["validation_method"], "complete output comparison"
+                    )
+                    continue
+                self.assertLess(origin, comparison["repetition"])
+                source = next(row for row in checked if row["repetition"] == origin)
+                self.assertEqual(
+                    source["validation_method"], "complete output comparison"
+                )
+                for engine in ("alternative", "mediana"):
+                    fingerprints = {
+                        row["output_sha256"]
+                        for row in records
+                        if row["case"] == result.case
+                        and row["engine"] == engine
+                        and row["repetition"] in (origin, comparison["repetition"])
+                    }
+                    self.assertEqual(len(fingerprints), 1)
             for engine in ("alternative", "mediana"):
                 selected = [
                     row
@@ -55,7 +78,8 @@ class PerformanceCatalogTests(unittest.TestCase):
                         for row in selected
                     )
                 )
-                self.assertEqual(len({row["output_sha256"] for row in selected}), 1)
+                for row in selected:
+                    self.assertRegex(row["output_sha256"], r"^[0-9a-f]{64}$")
                 for metric in ("elapsed_seconds", "cpu_seconds", "peak_rss_bytes"):
                     self.assertEqual(
                         float(getattr(result, f"{engine}_{metric}")),
