@@ -76,7 +76,7 @@ namespace Mediana.Codecs.Hevc
         private void DecodeSequential(HevcSliceHeader slice, DecodedPicture picture, CodingBlockMap blocks, SaoFilter sao, CancellationToken cancellationToken)
         {
             SequenceParameters sequence = slice.Picture.Sequence;
-            IntraCabacReader reader = new IntraCabacReader(slice.Reader, slice.Qp);
+            HevcCabacReader reader = new HevcCabacReader(slice.Reader, slice.Qp);
             QuantizationGroup quantization = new QuantizationGroup(slice, reader, blocks);
             IntraCodingTreeDecoder tree = new IntraCodingTreeDecoder(slice, reader, blocks, quantization);
             ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding, sequence.ChromaFormat == 3);

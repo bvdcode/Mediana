@@ -49,7 +49,7 @@ namespace Mediana.Codecs.Hevc
             parameters = enabled ? new SaoParameters[checked(columns * rows * components)] : Array.Empty<SaoParameters>();
         }
 
-        public void ReadCtb(int x, int y, IntraCabacReader reader)
+        public void ReadCtb(int x, int y, HevcCabacReader reader)
         {
             if (!enabled)
             {
@@ -208,7 +208,7 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
-        private int ReadMerge(int x, int y, int current, int ctb, IntraCabacReader reader)
+        private int ReadMerge(int x, int y, int current, int ctb, HevcCabacReader reader)
         {
             int previous = -1;
             if ((x > 0) && (partitions is null || partitions.SameSlice((x - 1) * ctb, y * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))

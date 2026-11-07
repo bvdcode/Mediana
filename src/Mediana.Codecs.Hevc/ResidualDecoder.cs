@@ -15,7 +15,7 @@ namespace Mediana.Codecs.Hevc
     /// coefficients[y * (1 &lt;&lt; log2Size) + x]. Quantized levels are signed 16-bit values;
     /// malformed magnitudes are rejected before dequantization. Contexts remain slice-local.
     /// </remarks>
-    internal class ResidualDecoder(IntraCabacReader reader, bool transformSkipEnabled, bool signDataHiding, bool fullResolutionChroma = false)
+    internal class ResidualDecoder(HevcCabacReader reader, bool transformSkipEnabled, bool signDataHiding, bool fullResolutionChroma = false)
     {
         private const uint InitialGroupLevels = 0x55555555;
 

@@ -30,7 +30,7 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
-        public static SaoParameters Read(IntraCabacReader reader, int component, int depth, SaoParameters chroma)
+        public static SaoParameters Read(HevcCabacReader reader, int component, int depth, SaoParameters chroma)
         {
             int type = component == 2 ? chroma.Type : reader.Read(CabacElement.SaoType) ? 1 + reader.Bits(1) : 0;
             if (type == 0)

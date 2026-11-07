@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace Mediana.Codecs.Hevc
 {
-    internal class IntraModeDecoder(IntraCabacReader reader, CodingBlockMap blocks, int log2Ctb)
+    internal class IntraModeDecoder(HevcCabacReader reader, CodingBlockMap blocks, int log2Ctb)
     {
         private static readonly byte[] HorizontalSubsamplingModes =
         {

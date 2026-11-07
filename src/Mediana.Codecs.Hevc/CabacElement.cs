@@ -22,6 +22,15 @@ namespace Mediana.Codecs.Hevc
         GreaterOne,
         GreaterTwo,
         SaoMerge,
-        SaoType
+        SaoType,
+        Skip,
+        PredictionMode,
+        RootCbf,
+        Merge,
+        MergeIndex,
+        InterDirection,
+        ReferenceIndex,
+        MotionPredictor,
+        MotionDifference
     }
 }
