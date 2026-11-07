@@ -30,3 +30,30 @@ The four `.yuv.gz` files contain complete FFmpeg-decoded display-order Y, Cb, Cr
 - `main10.yuv.gz` SHA-256: `33271445002c0cfc413b821b97fd95d9349df085b2eeb920efe83fdb44f28f6c`.
 - `weighted8.yuv.gz` SHA-256: `c8d131cd95306f3c04ff1d5b1a0f4dda5b28de7631baeabe0ea2f072931aa122`.
 - `weighted10.yuv.gz` SHA-256: `2b6b11b18beed22700cbbc7dcd346ad9280628417ca3bc0284b74fa61c3d694b`.
+
+The additional public-decoder sequences contain 136 pictures. `gop8` and `gop10`
+use 188x126 visible samples, twelve-frame open GOPs, three B pictures, four
+references and AMP/rectangular prediction; `gop8` declares SAR 4:3. Both use
+`testsrc2` at 12 fps for four seconds, medium preset, `keyint=12:min-keyint=12:
+scenecut=0:open-gop=1:bframes=3:ref=4:amp=1:rect=1:wpp=1:pools=none:
+frame-threads=1`. `slices8` uses 256x256, 6 fps, two seconds, medium preset and
+`pools=1:frame-threads=1:slices=2:wpp=1:keyint=6:min-keyint=6:scenecut=0:
+open-gop=0:bframes=2`. Each picture has two independent slices. `predictive10`
+uses 98x66, 10 fps, two seconds, ultrafast preset, `keyint=10:min-keyint=10:
+scenecut=0:bframes=0:ctu=32:wpp=0:ref=1:pools=none:frame-threads=1`. `intra8`
+uses 98x66, 4 fps, two seconds, medium preset and `keyint=1:ctu=32:wpp=0:
+pools=none:frame-threads=1`. All five declare BT.709 primaries, transfer and matrix.
+The matching compressed raw YUV references retain the same byte/word representation
+as the first four sequences. Public tests compare all 208 pictures, source timing,
+display reordering, independent output leases and repeated seeks.
+
+- `gop8.mp4` SHA-256: `0f3aa8137475313ca888beb1ae7457c5fcc93b88a2831dfe851bad4cf984144f`.
+- `gop8.yuv.gz` SHA-256: `4a0bb04696b33138064e9793884dc33e64655937e16b74323285e2ff9f06a39f`.
+- `gop10.mp4` SHA-256: `e1b670c2ccf8c42e10984dbe8df5112c1a61f42f1a16834aeebf2cc951ec10cc`.
+- `gop10.yuv.gz` SHA-256: `8f01f034c53116aa7e46b1ed4bb9e813797d4356a458f73a794823e114f02e8a`.
+- `slices8.mp4` SHA-256: `15fa16aa6ed31f4c9a3518c8df366025cf3cdc83cc052a7fae57ecff359ca037`.
+- `slices8.yuv.gz` SHA-256: `513fac093964acedc4c433df63736c779669a6d34cc1bf61617c16c0a985404d`.
+- `predictive10.mp4` SHA-256: `2a576d64c3f120ed27344b2cce54e6019bf2ef9525f48b691c2d05472eb54f35`.
+- `predictive10.yuv.gz` SHA-256: `64fdb0bad38e0a53364adf5869ddafbf45b94be599f1c2c747622b083477a614`.
+- `intra8.mp4` SHA-256: `79997129ee3ad3321af270c280d3547222ed7109b66431dedd56912c6bb0a0ed`.
+- `intra8.yuv.gz` SHA-256: `3da6fdad94f7823315dbc8befadd05863793619aed3cc67cf3c0b5da8fdd7d0c`.

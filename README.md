@@ -5,9 +5,10 @@ Its media implementation is written in C#, with no FFmpeg, external media proces
 native media libraries, or third-party runtime packages.
 
 The current implementation is experimental. It reads metadata and compressed packets from
-non-fragmented MP4/MOV/M4A files containing AVC, AAC or MP3 tracks. The MP4 reader also
+non-fragmented MP4/MOV/M4A files containing AVC, HEVC, AAC or MP3 tracks. The MP4 reader also
 exposes movie-level iTunes/indexed metadata and original encoded cover art. The H.264 source module
-connects limited CAVLC and CABAC I/P/B decoding to public video sessions and returns cropped YUV frames.
+connects CAVLC and CABAC I/P/B decoding to public video sessions and returns cropped YUV frames.
+The HEVC module decodes Main/Main10 I/P/B pictures to native eight/ten-bit YUV, including indexed seek in MP4 and Matroska.
 The sample can extract a supported video frame, convert SDR color to sRGB, correct
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC/MP3 access units without decoding.
@@ -59,8 +60,8 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
-| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/AAC/MP3 packet mapping](docs/matroska-ebml.md) |
-| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/AAC/MP3 packet reading |
+| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AAC/MP3 packet mapping](docs/matroska-ebml.md) |
+| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AAC/MP3 packet reading |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
@@ -74,6 +75,7 @@ transients; perceptual allocation remains open. HLS variants can copy or encode 
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
+| `Mediana.Codecs.Hevc` | Managed Main/Main10 I/P/B decoding, native ten-bit frames and indexed seeking ([API](docs/hevc-decoding.md)) |
 | `Mediana.Codecs.H264` | Experimental AVC CAVLC/CABAC I/P/B decoding and fixed-QP Baseline I/P encoding |
 | `Mediana.Codecs.Png` | Static PNG decoding to RGBA32 and sRGB encoding to owned buffers or bounded asynchronous streams ([API](docs/png.md)) |
 | `Mediana.Codecs.Bmp` | BMP palettes, bitfields and RLE; ICO/CUR PNG/DIB entries with alpha ([API](docs/raster-decoding.md)) |
