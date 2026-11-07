@@ -46,12 +46,19 @@ namespace Mediana.Codecs.Opus
 
         public int Decode(ReadOnlySpan<byte> frame, CeltBandMode mode, Span<float> output, CancellationToken cancellationToken = default)
         {
+            if (mode.FirstBand != 0) { throw new NotSupportedException("A standalone CELT frame must start at band zero."); }
+            if (frame.Length <= 1) { throw new NotSupportedException("A missing CELT frame requires packet-loss reconstruction."); }
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(frame.Length, 1275, nameof(frame));
+            OpusRangeDecoder range = new(frame);
+            return DecodeLayer(ref range, mode, output, false, cancellationToken);
+        }
+
+        public int DecodeLayer(ref OpusRangeDecoder range, CeltBandMode mode, Span<float> output, bool accumulate,
+            CancellationToken cancellationToken = default)
+        {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (faulted) { throw new InvalidOperationException("Reset the CELT decoder after a failed frame."); }
             if (mode.Channels is not (1 or 2)) { throw new ArgumentException("The CELT band mode is uninitialized.", nameof(mode)); }
-            if (mode.FirstBand != 0) { throw new NotSupportedException("A hybrid CELT layer requires the shared SILK entropy state."); }
-            if (frame.Length <= 1) { throw new NotSupportedException("A missing CELT frame requires packet-loss reconstruction."); }
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(frame.Length, 1275, nameof(frame));
             int samples = CeltBandTables.ShortTransformSize << mode.FrameShift;
             ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, samples * OutputChannels, nameof(output));
             cancellationToken.ThrowIfCancellationRequested();
@@ -69,7 +76,6 @@ namespace Mediana.Codecs.Opus
                 Span<int> resolutions = stackalloc int[21], boosts = stackalloc int[21], shape = stackalloc int[21], fine = stackalloc int[21];
                 Span<byte> priorities = stackalloc byte[21], masks = stackalloc byte[42];
                 resolutions.Clear(); boosts.Clear(); shape.Clear(); fine.Clear(); priorities.Clear();
-                OpusRangeDecoder range = new(frame);
                 CeltFrameSyntax syntax = CeltFrameSyntaxReader.Read(ref range, mode, energies, resolutions, boosts, new(shape, fine, priorities));
                 Span<float> coefficients = Values.Slice(SpectrumOffset, samples * mode.Channels);
                 Span<float> scratch = Values.Slice(ScratchOffset, 2 * MaximumSamples);
@@ -92,7 +98,7 @@ namespace Mediana.Codecs.Opus
                     signal[CeltPitchPostfilter.HistorySamples..], SignalStride, Values.Slice(TransformOffset, MaximumSamples));
                 Filter(signal, samples, syntax.Flags.PostFilter);
                 CeltDeemphasis.Apply(signal[CeltPitchPostfilter.HistorySamples..], samples, OutputChannels, SignalStride,
-                    output, Values.Slice(DeemphasisOffset, 2));
+                    output, Values.Slice(DeemphasisOffset, 2), accumulate);
                 UpdateEnergyHistory(mode, syntax.Flags.IsTransient);
                 for (int channel = 0; channel < OutputChannels; channel++)
                 {
@@ -139,6 +145,9 @@ namespace Mediana.Codecs.Opus
             for (int channel = 0; channel < 2; channel++)
             {
                 int end = channel * CeltBandTables.BandCount;
+                energies.Slice(end, mode.FirstBand).Clear();
+                previous.Slice(end, mode.FirstBand).Fill(-28);
+                previous2.Slice(end, mode.FirstBand).Fill(-28);
                 energies.Slice(end + mode.EndBand, CeltBandTables.BandCount - mode.EndBand).Clear();
                 previous.Slice(end + mode.EndBand, CeltBandTables.BandCount - mode.EndBand).Fill(-28);
                 previous2.Slice(end + mode.EndBand, CeltBandTables.BandCount - mode.EndBand).Fill(-28);

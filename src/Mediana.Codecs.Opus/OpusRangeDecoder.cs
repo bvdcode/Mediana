@@ -9,7 +9,7 @@ namespace Mediana.Codecs.Opus
     /// Range normalization uses the required zero extension; raw bits may overlap its lookahead.</summary>
     internal ref struct OpusRangeDecoder
     {
-        private readonly ReadOnlySpan<byte> frame;
+        private ReadOnlySpan<byte> frame;
         private uint range;
         private uint value;
         private int front;
@@ -32,6 +32,14 @@ namespace Mediana.Codecs.Opus
 
         public readonly uint Range => range;
         public readonly int FrameBitCount => checked(frame.Length * 8);
+
+        public void LimitFrameLength(int length)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(length, frame.Length);
+            if (back != 0) { throw new InvalidOperationException("The Opus frame length cannot change after raw-bit decoding."); }
+            frame = frame[..length];
+        }
         public void AccountForSilence() => totalBits = checked(totalBits + FrameBitCount - BitsUsed);
         public readonly int BitsUsed => totalBits - ILog(range);
 

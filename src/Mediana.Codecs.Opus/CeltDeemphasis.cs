@@ -10,7 +10,7 @@ namespace Mediana.Codecs.Opus
         private const float Bias = 1e-30f;
 
         public static void Apply(ReadOnlySpan<float> planar, int samples, int channels, int stride,
-            Span<float> output, Span<float> memory)
+            Span<float> output, Span<float> memory, bool accumulate = false)
         {
             if (channels is not (1 or 2)) { throw new ArgumentOutOfRangeException(nameof(channels)); }
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(samples);
@@ -30,7 +30,9 @@ namespace Mediana.Codecs.Opus
                 {
                     float sample = input[at] + Bias + previous;
                     previous = Coefficient * sample;
-                    output[at * channels + channel] = sample * Scale;
+                    int index = at * channels + channel;
+                    if (accumulate) { output[index] += sample * Scale; }
+                    else { output[index] = sample * Scale; }
                 }
                 memory[channel] = previous;
             }

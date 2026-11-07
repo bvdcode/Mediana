@@ -59,10 +59,26 @@ namespace Mediana.Codecs.Opus
                 _ => throw new ArgumentOutOfRangeException(nameof(configuration))
             };
             if (rate != SampleRate) { throw new ArgumentException("The SILK frame has a different internal sample rate.", nameof(configuration)); }
-            int samples = configuration.SamplesPerFrame;
-            ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, samples * OutputChannels, nameof(output));
             if (frame.Length <= 1) { throw new NotSupportedException("A missing SILK frame requires packet-loss reconstruction."); }
             ArgumentOutOfRangeException.ThrowIfGreaterThan(frame.Length, 1275, nameof(frame));
+            OpusRangeDecoder range = new(frame);
+            int samples = DecodeLayer(ref range, configuration.CodedChannelCount, configuration.SamplesPerFrame, output, cancellationToken);
+            if (range.BitsUsed + 17 <= range.FrameBitCount)
+            {
+                faulted = true;
+                throw new NotSupportedException("A SILK frame with CELT transition redundancy requires the combined Opus decoder.");
+            }
+            return samples;
+        }
+
+        public int DecodeLayer(ref OpusRangeDecoder range, int channels, int samples, Span<float> output,
+            CancellationToken cancellationToken = default)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (faulted) { throw new InvalidOperationException("Reset the SILK decoder after a failed frame."); }
+            if (channels is not (1 or 2)) { throw new ArgumentOutOfRangeException(nameof(channels)); }
+            if (samples is not (480 or 960 or 1920 or 2880)) { throw new ArgumentOutOfRangeException(nameof(samples)); }
+            ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, samples * OutputChannels, nameof(output));
             cancellationToken.ThrowIfCancellationRequested();
             bool succeeded = false;
             try
@@ -70,8 +86,6 @@ namespace Mediana.Codecs.Opus
                 int frames = (samples + 959) / 960, subframes = 4;
                 if (samples == 480) { subframes = 2; }
                 SilkFrameMode mode = new(SampleRate, subframes);
-                OpusRangeDecoder range = new(frame);
-                int channels = configuration.CodedChannelCount;
                 if (channels > previousChannels) { side.Reset(); }
                 SilkPayloadHeader header = SilkPayloadHeader.Read(ref range, channels, frames);
                 SkipRedundancy(ref range, mode, channels, frames, header);
@@ -79,10 +93,6 @@ namespace Mediana.Codecs.Opus
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     DecodeBlock(ref range, mode, channels, index, header, output.Slice(index * 960 * OutputChannels));
-                }
-                if (range.BitsUsed + 17 <= range.FrameBitCount)
-                {
-                    throw new NotSupportedException("A SILK frame with CELT transition redundancy requires the combined Opus decoder.");
                 }
                 FinalRange = range.Range; succeeded = true;
                 return samples;
