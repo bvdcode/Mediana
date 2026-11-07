@@ -21,7 +21,8 @@ namespace Mediana.Codecs.Jpeg
         internal int SampleStride { get; set; }
         internal int SamplePaddedHeight { get; set; }
         internal bool Decoded { get; set; }
-        internal WritableMediaBuffer? Samples { get; set; }
+        internal int SampleOffset { get; set; }
+        internal Memory<byte> Samples { get; set; }
         internal JpegProgression? Progression { get; set; }
     }
 }

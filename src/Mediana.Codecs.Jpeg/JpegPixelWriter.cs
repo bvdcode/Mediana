@@ -85,7 +85,7 @@ namespace Mediana.Codecs.Jpeg
 
         private static int Sample(in JpegSampleLayout image, JpegComponent component, int x, int y, int phaseX, int phaseY)
         {
-            ReadOnlySpan<byte> samples = component.Samples!.Memory.Span;
+            ReadOnlySpan<byte> samples = component.Samples.Span;
             if (component.Horizontal == image.MaximumHorizontal && component.Vertical == image.MaximumVertical)
             {
                 return samples[y * component.SampleStride + x];

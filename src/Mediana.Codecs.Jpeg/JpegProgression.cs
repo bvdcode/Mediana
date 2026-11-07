@@ -43,16 +43,15 @@ namespace Mediana.Codecs.Jpeg
         internal Span<int> Block(int x, int y, int stride) =>
             MemoryMarshal.Cast<byte, int>(coefficients!.Memory.Span).Slice((y * (stride / 8) + x) * 64, 64);
 
-        internal void Reconstruct(JpegComponent component, int[] quantization, MediaBufferAllocator allocator, CancellationToken token)
+        internal void Reconstruct(JpegComponent component, int[] quantization, CancellationToken token)
         {
-            component.Samples = allocator.Allocate(checked(component.SampleStride * component.SamplePaddedHeight));
             for (int y = 0; y < component.PaddedHeight / 8; y++)
             {
                 token.ThrowIfCancellationRequested();
                 for (int x = 0; x < component.Stride / 8; x++)
                 {
                     int size = 8 / component.Reduction;
-                    Span<byte> output = component.Samples.Memory.Span[(y * size * component.SampleStride + x * size)..];
+                    Span<byte> output = component.Samples.Span[(y * size * component.SampleStride + x * size)..];
                     JpegReducedTransform.Write(Block(x, y, component.Stride), quantization, output, component.SampleStride, component.Reduction);
                 }
             }

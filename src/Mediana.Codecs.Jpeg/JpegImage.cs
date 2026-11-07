@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core.Memory;
+
 namespace Mediana.Codecs.Jpeg
 {
     /// <summary>Owned native JPEG component samples, independent of encoded input and presentation metadata.</summary>
     public class JpegImage : IDisposable
     {
         private readonly JpegSampleLayout samples;
+        private readonly MediaBuffer storage;
         private bool disposed;
 
         internal JpegImage(JpegDocument image)
@@ -15,7 +18,7 @@ namespace Mediana.Codecs.Jpeg
             Warnings = image.Warnings;
             EncodedWidth = image.Width;
             EncodedHeight = image.Height;
-            samples = image.TakeSamples();
+            samples = image.TakeSamples(out storage);
         }
 
         /// <summary>Nonfatal decoding diagnostics.</summary>
@@ -53,9 +56,9 @@ namespace Mediana.Codecs.Jpeg
                 disposed = true;
                 foreach (JpegComponent component in samples.Components)
                 {
-                    component.Samples?.Dispose();
                     component.Progression?.Dispose();
                 }
+                storage.Dispose();
             }
         }
     }

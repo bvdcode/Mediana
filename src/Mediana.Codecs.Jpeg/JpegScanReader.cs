@@ -164,7 +164,7 @@ namespace Mediana.Codecs.Jpeg
                                 coefficients.Clear();
                                 JpegSequentialBlock.Decode(ref bits, dc!, ac!, ref predictors[i], coefficients);
                                 int size = 8 / component.Reduction;
-                                Span<byte> output = component.Samples!.Memory.Span[(blockY * size * component.SampleStride + blockX * size)..];
+                                Span<byte> output = component.Samples.Span[(blockY * size * component.SampleStride + blockX * size)..];
                                 JpegReducedTransform.Write(coefficients, quantization, output, component.SampleStride, component.Reduction);
                             }
                         }
