@@ -36,7 +36,7 @@ namespace Mediana.Tests
                 bool disableInversion = reader.ReadInt32() != 0;
                 int count = reader.ReadInt32();
                 if (disableInversion != (channels == 1)) { throw new InvalidDataException("The Opus reference phase inversion differs from its channel mapping."); }
-                using (OpusFrameDecoder decoder = new(plan, codebook, allocator, channels))
+                using (OpusFrameDecoder decoder = new(plan, codebook, allocator, channels, disableInversion))
                 {
                     for (int frame = 0; frame < count; frame++)
                     {

@@ -18,11 +18,11 @@ namespace Mediana.Codecs.Opus
         private OpusCodingMode? previousMode;
         private bool previousRedundancy, disposed, faulted;
 
-        public OpusFrameDecoder(CeltTransformPlan plan, CeltPulseCodebook codebook, MediaBufferAllocator allocator, int channels)
+        public OpusFrameDecoder(CeltTransformPlan plan, CeltPulseCodebook codebook, MediaBufferAllocator allocator, int channels, bool disableInversion)
         {
             ArgumentNullException.ThrowIfNull(plan); ArgumentNullException.ThrowIfNull(allocator);
             this.plan = plan; this.allocator = allocator; Channels = channels;
-            CeltFrameDecoder created = new(plan, codebook, allocator, channels, channels == 1);
+            CeltFrameDecoder created = new(plan, codebook, allocator, channels, disableInversion);
             bool succeeded = false;
             try
             {

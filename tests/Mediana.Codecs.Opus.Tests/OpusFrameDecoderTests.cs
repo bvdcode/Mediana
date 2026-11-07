@@ -28,7 +28,7 @@ namespace Mediana.Codecs.Opus.Tests
             using CeltTransformPlan plan = CeltTransformPlan.Create(allocator);
             using CeltPulseCodebook codebook = CeltPulseCodebook.Create(176, 128, allocator);
             long tables = allocator.AllocatedBytes;
-            using OpusFrameDecoder decoder = new(plan, codebook, allocator, 1);
+            using OpusFrameDecoder decoder = new(plan, codebook, allocator, 1, true);
             Span<float> output = stackalloc float[960], initial = stackalloc float[960];
             int samples = decoder.Decode(frame, configuration, initial);
             uint initialRange = decoder.FinalRange;
@@ -53,7 +53,7 @@ namespace Mediana.Codecs.Opus.Tests
             MediaBufferAllocator allocator = new(256 * 1024);
             using CeltTransformPlan plan = CeltTransformPlan.Create(allocator);
             using CeltPulseCodebook codebook = CeltPulseCodebook.Create(176, 128, allocator);
-            using OpusFrameDecoder decoder = new(plan, codebook, allocator, 1);
+            using OpusFrameDecoder decoder = new(plan, codebook, allocator, 1, true);
             float[] output = new float[960]; Array.Fill(output, float.NaN);
             Assert.Throws<OperationCanceledException>(() => decoder.Decode(frame, configuration, output, new(true)));
             Assert.All(output, value => Assert.True(float.IsNaN(value)));

@@ -494,3 +494,29 @@ Both files use the `decoded-celt.bin` layout, with magic `OPUSHYB1` and
 decoded-hybrid.bin SHA-256: `20c8cd4bfbaadc75a52efaebe56b7b9e2a88ed6380401e6cda86ed30930b9d7b`.
 
 decoded-transitions.bin SHA-256: `77f011ba1ed4bf35ae084f8570a3fdb17135625f2f85abd4c4fcc66256a7dfe0`.
+
+`decoded-multistream.bin` records 12 libopus 1.6.1 streams and 144 packets.
+The standard one-through-eight-channel Vorbis layouts and discrete mappings
+include duplicated, unreferenced and silent channels. Packets vary from 2.5 to
+60 ms, including multiple CELT frames and self-delimited substreams. The public
+factory's complete mapped float32 PCM uses the `decoded-celt.bin` tolerance.
+Each stream's header records output channels, family, stream/coupled counts,
+channel map and packet count. Packets record length, encoded bytes, sample count
+and interleaved float32 PCM. The file starts with `OPUSMST1` and a stream count;
+scalar fields are little-endian 32-bit integers, channel maps are bytes.
+
+`ogg-stereo.f32le` is libopus 1.6.1 float32 output for the Ogg container corpus,
+with 312 leading samples and final granule padding removed. It contains 65,760
+stereo samples per channel. `ogg-seek.bin` records five independent decoder
+restarts, each using exactly four preceding 20 ms packets, clamped at the
+original beginning. It starts with `OPUSSEK1` and a 32-bit count; entries record
+32-bit output packet, first preroll packet, presentation sample and sample count,
+followed by interleaved float32 PCM. Reverse and repeated public seeks compare
+timestamps, sample counts and PCM with this equally primed independent decoder.
+The beginning applies pre-skip; midstream restarts do not.
+
+decoded-multistream.bin SHA-256: `69d7757398a96b1376d45e8117fcdef7d9a600f640f5c4405c8aae4aba60efb3`.
+
+ogg-stereo.f32le SHA-256: `29a251245580a03c8f1bef08c1f105ba1f2b5e5edf9eef406b3892ad837d56d9`.
+
+ogg-seek.bin SHA-256: `c5761a62315f4c760f9304bc7f5f97bbe20026b9d7d6dd2c9e5509f15bab337b`.

@@ -6,6 +6,9 @@ namespace Mediana.Formats.Audio
     /// <summary>Single-stream Opus framing, without entropy decoding. Durations use the 48 kHz media clock.</summary>
     public readonly record struct OpusPacketInfo(int FrameCount, int SamplesPerFrame)
     {
+        public const int MaximumFrameSamples = 2880;
+        public const int MaximumPacketSamples = 5760;
+
         public int SampleCount => FrameCount * SamplesPerFrame;
 
         /// <summary>Reads timing from the TOC and frame-count prefix. Does not validate payload lengths
@@ -21,7 +24,7 @@ namespace Mediana.Formats.Audio
                 3 => prefix.Length >= 2 ? prefix[1] & 63 : throw new InvalidDataException("The Opus frame-count byte is missing."),
                 _ => throw new InvalidOperationException()
             };
-            if (frames == 0 || frames * samples > 5760)
+            if (frames == 0 || frames * samples > MaximumPacketSamples)
             {
                 throw new InvalidDataException("An Opus packet must contain between one frame and 120 milliseconds of audio.");
             }
