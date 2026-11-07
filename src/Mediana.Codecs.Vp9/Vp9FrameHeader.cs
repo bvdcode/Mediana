@@ -82,13 +82,15 @@ namespace Mediana.Codecs.Vp9
                     }
                     if (!found) { geometry = ReadDimensions(ref bits, geometry); }
                     geometry = ReadRender(ref bits, geometry);
+                    bool validScale = false;
                     for (int i = 0; i < 3; i++)
                     {
                         Vp9PictureGeometry reference = state.Reference(ReferenceIndices[i]);
-                        if (!SameSampling(geometry, reference) || geometry.Width * 2 < reference.Width || geometry.Height * 2 < reference.Height ||
-                            geometry.Width > reference.Width * 16 || geometry.Height > reference.Height * 16)
-                        { throw new InvalidDataException("VP9 reference geometry or sampling is outside the permitted scaling range."); }
+                        if (!SameSampling(geometry, reference)) { throw new InvalidDataException("VP9 references disagree on precision, color or sampling."); }
+                        validScale |= geometry.Width * 2 >= reference.Width && geometry.Height * 2 >= reference.Height &&
+                            geometry.Width <= reference.Width * 16 && geometry.Height <= reference.Height * 16;
                     }
+                    if (!validScale) { throw new InvalidDataException("No VP9 reference is within the permitted scaling range."); }
                     HighPrecisionMotion = bits.Flag(); InterpolationFilter = bits.Flag() ? 4 : bits.Read(2) switch
                     {
                         0 => 1, 1 => 0, 2 => 2, 3 => 3, _ => throw new InvalidDataException("Invalid VP9 interpolation filter.")

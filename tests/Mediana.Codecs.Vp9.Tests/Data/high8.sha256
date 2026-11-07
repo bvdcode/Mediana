@@ -1,0 +1,26 @@
+#format: frame checksums
+#version: 2
+#hash: SHA256
+#software: Lavf60.16.100
+#tb 0: 1/8
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 96x65
+#sar 0: 0/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,    18720, b89099bfb7c1333376071f897ac30277d2746d3c99f3ccc7d255b38e21e6c35e
+0,          1,          1,        1,    18720, 31fe0f04519cb2dc1b8d99984dc88f5425b43aeb8d31e5f1fc8d4f65a9daaf3d
+0,          2,          2,        1,    18720, 73e75506b05a7ce8ce73b9b4a52090c68dbbe648b7fbb54ee15dfd3396a87d42
+0,          3,          3,        1,    18720, 99a626e16896073e310b60a0468f56d98f6468249700d4aaf9efb4e6e7b3c692
+0,          4,          4,        1,    18720, 23a964eefd9515a187ac06938b7bb58f07155d6c3f171c22394b4d84d99b00fd
+0,          5,          5,        1,    18720, 5d26dc43d8ab0a6b939ad2385e166ea0902f4719ef31652458d58703e8406805
+0,          6,          6,        1,    18720, 448eaba883b562085925de9ac16bf81348b5fae320f9fddaa5cfb606f7b1f210
+0,          7,          7,        1,    18720, d57a85ee615515cc4c9844c5fba9d80bbf89bb5e6de41fba05fc5aabdff1595c
+0,          8,          8,        1,    18720, 712b08385671c5cd567783002835f9754f090f532ccee80dc60e8d777b966430
+0,          9,          9,        1,    18720, d973c2d213fa45d3b648c7462e3c28acc46ae3ed2df92c49b7454493bc819a30
+0,         10,         10,        1,    18720, db196d0507362818a4b2031402b5acd4e79f9eab28eaa55ff8ce7a837ab2c8f7
+0,         11,         11,        1,    18720, f26724cc1acfb2b636f74f77b0a48a8856df659cdf504b1798e75c3615769820
+0,         12,         12,        1,    18720, 3cb0c6579f315e46bcdf53a00baa1b5c5083429beb1038cf213d8b2c86032060
+0,         13,         13,        1,    18720, 98c32e79153ac95e1c05b2f2fa66da81e5332dcf40f93e637cbe5bdb4346abf5
+0,         14,         14,        1,    18720, ea0e14e29ed3c089a4cc4a36d0ed2f47dc9f8c1e25ba57bb940b83c143a5dd80
+0,         15,         15,        1,    18720, 6dea623e93ff3384420b6bde5e71e0344477682bc15f2ff2f897e884ca3ab25c

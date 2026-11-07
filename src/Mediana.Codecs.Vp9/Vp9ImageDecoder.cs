@@ -16,6 +16,12 @@ namespace Mediana.Codecs.Vp9
         private readonly Vp9ProbabilityContext probabilities;
         private readonly Vp9CoefficientCounts? counts;
         private readonly Span<T> pixels;
+        private readonly Vp9ReferencePictures? references;
+        private readonly ReadOnlySpan<Vp9BlockInfo> previous;
+        private readonly bool usePreviousMotion;
+        private readonly Vp9SymbolCounts symbols;
+        private readonly Span<T> predictionWorkspace;
+        private readonly Span<byte> aboveSegment, leftSegment;
         private readonly Span<Vp9BlockInfo> blocks;
         private readonly Span<byte> abovePartition, leftPartition, aboveNonzero, leftNonzero;
         private readonly int stride, height, yLength, uvLength, subX, subY, miStride;
@@ -24,32 +30,35 @@ namespace Mediana.Codecs.Vp9
 
         internal Vp9ImageDecoder(Vp9FrameHeader header, Vp9HeaderState state, Vp9CompressedHeader compressed,
             Vp9ProbabilityContext probabilities, Span<byte> output, MediaBufferWorkspace workspace,
-            Vp9CoefficientCounts? counts, CancellationToken cancellationToken)
+            Vp9CoefficientCounts? counts, CancellationToken cancellationToken, Vp9SymbolCounts? symbols = null,
+            Vp9ReferencePictures? references = null, ReadOnlySpan<Vp9BlockInfo> previous = default, Span<Vp9BlockInfo> blockStorage = default, bool usePreviousMotion = false)
         {
             this.header = header; this.state = state; this.compressed = compressed; this.probabilities = probabilities;
-            this.counts = counts; this.cancellationToken = cancellationToken;
+            this.counts = counts; this.cancellationToken = cancellationToken; this.references = references; this.previous = previous;
+            this.symbols = symbols ?? new(); this.usePreviousMotion = usePreviousMotion;
             stride = header.SuperblockColumns * 64; height = header.SuperblockRows * 64; miStride = stride / 8;
             subX = header.Geometry.SubsamplingX ? 1 : 0; subY = header.Geometry.SubsamplingY ? 1 : 0;
             yLength = checked(stride * height); uvLength = yLength >> (subX + subY);
             pixels = MemoryMarshal.Cast<byte, T>(output)[..checked(yLength + 2 * uvLength)];
-            blocks = MemoryMarshal.Cast<byte, Vp9BlockInfo>(workspace.Allocate(checked(miStride * (height / 8) * Unsafe.SizeOf<Vp9BlockInfo>())).Span);
+            blocks = blockStorage.IsEmpty ? MemoryMarshal.Cast<byte, Vp9BlockInfo>(workspace.Allocate(checked(miStride * (height / 8) * Unsafe.SizeOf<Vp9BlockInfo>())).Span) : blockStorage;
             blocks.Clear();
             abovePartition = workspace.Allocate(miStride).Span; abovePartition.Clear();
             leftPartition = workspace.Allocate(8).Span;
             aboveNonzero = workspace.Allocate(checked(miStride * 2 * 3)).Span; aboveNonzero.Clear();
             leftNonzero = workspace.Allocate(16 * 3).Span;
+            aboveSegment = workspace.Allocate(miStride).Span; aboveSegment.Clear(); leftSegment = workspace.Allocate(8).Span;
+            predictionWorkspace = header.IsIntra ? default : MemoryMarshal.Cast<byte, T>(workspace.Allocate(checked(Vp9InterPrediction.WorkspaceLength(64, 64, 32) * Unsafe.SizeOf<T>())).Span);
         }
 
         internal void Decode(ReadOnlyMemory<byte> encoded)
         {
-            if (!header.IsIntra) { throw new NotSupportedException("VP9 inter picture reconstruction is not available."); }
             Vp9TileReader tiles = new(encoded, header);
             while (tiles.MoveNext())
             {
                 tile = tiles.Current; Vp9BooleanReader bits = new(tile.Encoded.Span);
                 for (int row = tile.RowStart; row < tile.RowEnd; row += 8)
                 {
-                    cancellationToken.ThrowIfCancellationRequested(); leftPartition.Clear(); leftNonzero.Clear();
+                    cancellationToken.ThrowIfCancellationRequested(); leftPartition.Clear(); leftNonzero.Clear(); leftSegment.Clear();
                     for (int column = tile.ColumnStart; column < tile.ColumnEnd; column += 8) { Partition(ref bits, row, column, 3); }
                 }
                 bits.Finish();
@@ -64,13 +73,20 @@ namespace Mediana.Codecs.Vp9
             for (int i = 0; i < extent; i++) { above |= abovePartition[column + i]; left |= leftPartition[(row + i) & 7]; }
             int mask = 1 << (3 - logMi);
             context += (above & mask) != 0 ? 1 : 0; context += (left & mask) != 0 ? 2 : 0;
-            ReadOnlySpan<byte> p = Vp9Tables.KeyPartition.Slice(context * 3, 3);
+            ReadOnlySpan<byte> p = header.IsIntra ? Vp9Tables.KeyPartition.Slice(context * 3, 3) : probabilities.Partition.Slice(context * 3, 3);
             bool hasRows = row + half < header.MiRows, hasColumns = column + half < header.MiColumns;
             int partition;
             if (hasRows && hasColumns) { partition = bits.Tree(PartitionTree, p); }
             else if (hasColumns) { partition = bits.Read(p[1]) ? 3 : 1; }
             else if (hasRows) { partition = bits.Read(p[2]) ? 3 : 2; }
             else { partition = 3; }
+            if (!header.IsIntra)
+            {
+                int offset = Vp9ProbabilityOffset.Partition + context * 3;
+                symbols.Record(offset, partition != 0);
+                if (partition != 0) { symbols.Record(offset + 1, partition != 1); }
+                if (partition > 1) { symbols.Record(offset + 2, partition == 3); }
+            }
             int square = (logMi + 1) * 3;
             int size = partition switch { 0 => square, 1 => square - 1, 2 => square - 2, 3 => square - 3, _ => throw new InvalidDataException("Invalid VP9 partition.") };
             if (size < 3 || partition == 0) { Block(ref bits, row, column, size); }

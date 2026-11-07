@@ -1,0 +1,26 @@
+#format: frame checksums
+#version: 2
+#hash: SHA256
+#software: Lavf60.16.100
+#tb 0: 1/8
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 96x65
+#sar 0: 0/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,     9408, 09ea832705a4efebe76dc642d72d6b2fb7d40129e993a585a6a5fc73049f1139
+0,          1,          1,        1,     9408, bb5bb71a5ed48c77a571979461cdd52e82bf63957a35dff5aa0f21f29c168ebe
+0,          2,          2,        1,     9408, 40db7ba599ddbf6b1504cfa93b379214e6a038e4a80676dafe696cd7edb3d82a
+0,          3,          3,        1,     9408, e0a5fa9f2846c754f4e18e2089170230952aded637a0f957eccd6ceb1e824462
+0,          4,          4,        1,     9408, e0ea925aba60de54b8fa0c29a9687c93b9b54d0f3b20d94d14e0741774f0b816
+0,          5,          5,        1,     9408, 3dabb19a552133d8191fbe9a4625ea6d1e691c117f22eecf4daec49c0cb2c139
+0,          6,          6,        1,     9408, ed1252c806d788aee487883628bfc205f4fd955696650bc943d70e6ae9c2c0dc
+0,          7,          7,        1,     9408, 4729aedea1172048960887729ad8c7a9a927e6d222ea1dbc3f92f86d3f223cb7
+0,          8,          8,        1,     9408, c97b600d5da5d4952359e572e790ab839a757aa90352d0dd08b97e75f5dc3cf5
+0,          9,          9,        1,     9408, bdc54350dfa176a6d74e7e270d75bb7a2e2ce16e01033c07cf81f1631bce1afd
+0,         10,         10,        1,     9408, 5bdcef148585feb99186caa6e94647c05f20960d6134b19d84bbd768276f8f04
+0,         11,         11,        1,     9408, 262329725e77c6722f7366b822da542344433b35b46cf6916672c448774ce0f7
+0,         12,         12,        1,     9408, c2623314db5cccb7494703062becba7174184ad7ffd6986c26c32726cdab10b4
+0,         13,         13,        1,     9408, c29b6f717fe4db4e81e91daa2131243629abb9e911f3965c24e96ad1f5b43458
+0,         14,         14,        1,     9408, 0581b291a2f7be1234683ffc06f90e5b3407400a20dffa705631121e8cddeffb
+0,         15,         15,        1,     9408, 7f330bdaec032e89298b17c2235530240fd9c0bc232a1ea8c500cea98508d2a9

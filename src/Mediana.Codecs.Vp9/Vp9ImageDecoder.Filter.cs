@@ -10,14 +10,20 @@ namespace Mediana.Codecs.Vp9
         internal void Filter()
         {
             if (header.FilterLevel == 0) { return; }
-            Span<int> levels = stackalloc int[8];
+            Span<int> levels = stackalloc int[8 * 8];
             for (int segment = 0; segment < 8; segment++)
             {
                 int level = header.FilterLevel;
                 if (header.Segmentation && state.SegmentEnabled[segment * 4 + 1])
                 { level = Math.Clamp(state.AbsoluteSegments ? state.SegmentFeatures[segment * 4 + 1] : level + state.SegmentFeatures[segment * 4 + 1], 0, 63); }
-                if (header.FilterDeltas) { level = Math.Clamp(level + (state.ReferenceDeltas[0] << (header.FilterLevel >> 5)), 0, 63); }
-                levels[segment] = level;
+                for (int reference = 0; reference < 4; reference++)
+                {
+                    for (int mode = 0; mode < 2; mode++)
+                    {
+                        int delta = reference == 0 ? state.ReferenceDeltas[0] : state.ReferenceDeltas[reference] + state.ModeDeltas[mode];
+                        levels[segment * 8 + reference * 2 + mode] = header.FilterDeltas ? Math.Clamp(level + (delta << (header.FilterLevel >> 5)), 0, 63) : level;
+                    }
+                }
             }
             for (int row = 0; row < header.MiRows; row += 8)
             {
@@ -41,7 +47,7 @@ namespace Mediana.Codecs.Vp9
                                     if (x >= header.MiColumns * 8 || y >= header.MiRows * 8 || (pass == 0 ? x == 0 : y == 0)) { continue; }
                                     int loopColumn = ((x >> 3) >> sx) << sx, loopRow = ((y >> 3) >> sy) << sy;
                                     Vp9BlockInfo block = blocks[loopRow * miStride + loopColumn];
-                                    int level = levels[block.Segment]; if (level == 0) { continue; }
+                                    int level = levels[block.Segment * 8 + block.ReferenceZero * 2 + (block.Mode is 10 or 11 or 13 ? 1 : 0)]; if (level == 0) { continue; }
                                     int transform = block.Transform;
                                     if (plane > 0)
                                     {
@@ -51,7 +57,7 @@ namespace Mediana.Codecs.Vp9
                                     int size = sub == 0 ? block.Size : Math.Max(6, (int)block.Size);
                                     int predictionExtent = pass == 0 ? Math.Max(8, (int)Widths[size]) : Math.Max(8, (int)Heights[size]);
                                     bool blockEdge = (pass == 0 ? x : y) % predictionExtent == 0;
-                                    bool transformEdge = (edge & ((1 << transform) - 1)) == 0;
+                                    bool transformEdge = (!block.Inter || !block.Skip) && (edge & ((1 << transform) - 1)) == 0;
                                     if (pass == 1 && sx == 1 && (header.MiColumns & 1) != 0 && (edge & 1) != 0 && x + 8 >= header.MiColumns * 8)
                                     { transformEdge = false; }
                                     if (!blockEdge && !transformEdge) { continue; }

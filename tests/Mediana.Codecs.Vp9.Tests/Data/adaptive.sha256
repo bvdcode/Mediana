@@ -1,0 +1,34 @@
+#format: frame checksums
+#version: 2
+#hash: SHA256
+#software: Lavf60.16.100
+#tb 0: 1/12
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 112x80
+#sar 0: 0/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,    13440, fcf5888c7d9157ef9acf7714e7b5937a9fa036070f6ee2a7521510f1a6b037cd
+0,          1,          1,        1,    13440, 3f649bba3f9b6a9e3cdbb4ec2e3c0f437a9a41253dff2485b579c0fc29faa1ab
+0,          2,          2,        1,    13440, 7127b4d7b333dcc7b79468c4bd26baeecd776601451672ec0187fa2cb605098d
+0,          3,          3,        1,    13440, 89b3ebb4095ff4779e7eabf4acf2d1ef8213c3ec6ebd62e84dd62504158a597e
+0,          4,          4,        1,    13440, da57eba76549d9f8943976f5027a8a473a04beb05daa3f19242e615df0140474
+0,          5,          5,        1,    13440, c778e1fca209b880920a8a585013526b2f857b8d5aa39cab6745350ab60cbe5a
+0,          6,          6,        1,    13440, fe2f053ee85ceae306f71b281549c78e2d49a253ece8c5b42b7a0a73c0b33b1e
+0,          7,          7,        1,    13440, 5cee38e28b9a474f42d09420211a78b9ccf4bfc020488f97bbbff3378e8a6a5c
+0,          8,          8,        1,    13440, b68e5077ec7a5cfbd74d9442606f1c725c629c9c02c33cfc5301f9045a73dea2
+0,          9,          9,        1,    13440, 8e0804b09c896b2f56e1abef5641b9a0ac4efeda775dd66b0606040b68f0edbd
+0,         10,         10,        1,    13440, d5a64dbb3a74839fdb03cd87067a1ca9b98ce10b6ada975f0c3b360be635a0fb
+0,         11,         11,        1,    13440, b99df06d7d5e83a3789a50dede79669a3eceb4dcc4e3f817361c2afdaf0854be
+0,         12,         12,        1,    13440, ca7461e6f47d37dba40620441d3652cf7fcce80ff3e7583cb6b0d87d2aa79ca6
+0,         13,         13,        1,    13440, 7211ea94b82d9e4253300fecc908706b7bec0a8c2affbf5a62cd6fdd5fdaaf5e
+0,         14,         14,        1,    13440, 00f14ea56b8f4af58f6c4a48d4d0a85128c5a61f623a70a2b8f0c37d868669a1
+0,         15,         15,        1,    13440, dfc34c6a1d515766af17624bae51abd4ac6a49125124955c40583b99229da2ef
+0,         16,         16,        1,    13440, a9bdcec407ac7cb4711cd3f211a2c0521ee87cd4e9020a341f12afffdb90ac60
+0,         17,         17,        1,    13440, 665b2158e9711c7d67a64fe3a8a22113cce58ca335dc098c564200ecbac7a2b8
+0,         18,         18,        1,    13440, 1399590ca1a2b3e6f7e2eb72cacae33320b37a0eb671d6c155917dbf1e4cf2b2
+0,         19,         19,        1,    13440, ced2a90fd6a92ec1a867e3122a4aa7b7cd84aa7006de040171bf7e5ab934191d
+0,         20,         20,        1,    13440, 9becefbe29c3e50cb3170e544fb3d100fc2023d7dc35bc6d264349c7035c8ac2
+0,         21,         21,        1,    13440, 1fccf0eeb232bcbe0e1fecb8e8540a466ecddb066557a9451eeb25bb9ffea32e
+0,         22,         22,        1,    13440, 37f15ef78fab237181780eed2e0252ee6716e6b1732b5fce39b3ff20b1cb1ea0
+0,         23,         23,        1,    13440, 5e8a3e4b1d9d5d6b5fd75e79ca860b88c71a79accab15855710a6d16557eba04

@@ -1,0 +1,26 @@
+#format: frame checksums
+#version: 2
+#hash: SHA256
+#software: Lavf60.16.100
+#tb 0: 1/8
+#media_type 0: video
+#codec_id 0: rawvideo
+#dimensions 0: 512x130
+#sar 0: 0/1
+#stream#, dts,        pts, duration,     size, hash
+0,          0,          0,        1,    99840, e8d2aa6c950bf1f2f783f144a05657fb169471cebaa79f42881f4ca2f82306dd
+0,          1,          1,        1,    99840, bd509ece864ffab46fbbb0e515728dcea8a5ca31b57169f005186a9f95e374ff
+0,          2,          2,        1,    99840, b05c2031b68f224b6a28967200fd99204b85347c1d5a6a453ea9f12d43d0c610
+0,          3,          3,        1,    99840, 178230cc689511e9099d9804ba2dea8bf5fe55e58934538537d10231dc0ae239
+0,          4,          4,        1,    99840, a21a92cd723e401d3a8c9a80d1db5c198777a83ca7b28298964ac6a87881185f
+0,          5,          5,        1,    99840, f99d16c336c90af90e3459ccd1c24c9ba6ad19866b1606400345cf50445c0bbd
+0,          6,          6,        1,    99840, e0fd0454a8d2b0763593b0f870540619dab939abe348a2c89ca35e4ccafc1e87
+0,          7,          7,        1,    99840, de52529964841b20934bd510510ebe0e44e8c1f5e1bfa73d450db7800d0a3f48
+0,          8,          8,        1,    99840, 29497ca6c6fff661f0982aabcd68b7b8320a7458b931a89424bab7f61dfb968f
+0,          9,          9,        1,    99840, 89cac32acddbcfcf1777564574f31833e1eee4fe9241e471a641ad2a6ae5d821
+0,         10,         10,        1,    99840, 51322208ad1669473510e41e8b71576095e43ef71ffbc4c35f999c8984f433b1
+0,         11,         11,        1,    99840, 2072f57925dd461bcc8b2f235ffcac0c2a060d9fbc032017ae83ccaa63a53d70
+0,         12,         12,        1,    99840, 4cc7d08d210544cea68067ef2a163422c71e889fed394dde189b5c26eb382773
+0,         13,         13,        1,    99840, bafebf664e5ec067b0172ea66dbc939e1816c111a63933a96ba862f75074e5ad
+0,         14,         14,        1,    99840, ab8acccf16d0591e64d9e84b8794da6d7bc5658e65d7aef64f93fee27ce2adc5
+0,         15,         15,        1,    99840, 9d720f8a605cd9c8da1506494f1384f6276bad4ba50209aa46cc3db15cd6e95b
