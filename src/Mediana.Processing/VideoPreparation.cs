@@ -29,12 +29,12 @@ namespace Mediana.Processing
                 throw new ArgumentOutOfRangeException(nameof(options), "Video dimension bounds must be at least two samples.");
             }
             VideoFormat planar = inputFormat;
-            if (inputFormat.PixelFormat == VideoPixelFormat.Rgba32 && options.RgbConversion is not null)
+            if ((inputFormat.PixelFormat == VideoPixelFormat.Rgba32 || inputFormat.PixelFormat is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Gbr }) && options.RgbConversion is not null)
             {
                 rgb = new(inputFormat, options.RgbConversion, allocator);
                 planar = rgb.OutputFormat;
             }
-            transform = new(planar, sourceDisplayMatrix, options.OutputPixelFormat ?? planar.PixelFormat, allocator);
+            transform = new(planar, sourceDisplayMatrix, options.OutputPixelFormat ?? DefaultOutput(planar.PixelFormat), allocator);
             if (options.MaximumWidth is not null || options.MaximumHeight is not null)
             {
                 resizer = Yuv420AreaResizer.CreateFit(transform.OutputFormat,
@@ -42,6 +42,17 @@ namespace Mediana.Processing
                     options.MaximumHeight ?? transform.OutputFormat.Height, allocator);
             }
             OutputFormat = resizer?.OutputFormat ?? transform.OutputFormat;
+        }
+
+        private static VideoPixelFormat DefaultOutput(VideoPixelFormat input)
+        {
+            if (input is not PlanarVideoPixelFormat planar || planar.ColorModel != PlanarColorModel.Yuv ||
+                planar.HorizontalSubsampling == 2 && planar.VerticalSubsampling == 2) { return input; }
+            return planar.BitDepth switch
+            {
+                8 => VideoPixelFormat.Yuv420P8, 10 => VideoPixelFormat.Yuv420P10, 12 => VideoPixelFormat.Yuv420P12,
+                _ => new PlanarVideoPixelFormat($"yuv420p{planar.BitDepth}", PlanarColorModel.Yuv, planar.BitDepth, 2, 2)
+            };
         }
 
         public VideoFormat OutputFormat { get; }

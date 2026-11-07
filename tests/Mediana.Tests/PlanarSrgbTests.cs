@@ -53,7 +53,7 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
-        private static VideoFrame Create(VideoFormat format, MediaBufferAllocator allocator, Func<int, int, int, int> sample)
+        internal static VideoFrame Create(VideoFormat format, MediaBufferAllocator allocator, Func<int, int, int, int> sample)
         {
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate((int)layout[^1].EndOffset);
