@@ -39,6 +39,9 @@ the interval. Known display durations are clipped at overlapping subsequent fram
 starts and the selected end; shorter durations preserve gaps. No missing frames,
 samples or durations are synthesized. Rotation, sample aspect ratio and explicit
 pixel precision conversion use shared `VideoPreparation`.
+`VideoIntervalAlignment.CompleteFrames` instead requires a contiguous interval
+whose start and end both coincide with complete presentation frames. It rejects
+partial boundaries and gaps; on-demand HLS consumes this same mode.
 
 `IContainerPresentationReader` exposes explicit presentation selections without
 media reads. MP4 interprets one unit-rate media edit, optionally preceded by an
@@ -89,9 +92,11 @@ discarded. `ProcessAsync` also owns its opened container and writer, while borro
 the supplied byte source and destination stream.
 
 Sequential-only demuxers are supported by the existing decoding APIs. Independent
-multi-track processing currently requires indexed packets. Independent audiovisual
-HLS encoding, including continuous audio packet grids across adjacent requests,
-is not yet supplied by this operation.
+multi-track processing currently requires indexed packets. On-demand AVC HLS uses
+this operation with optional original AAC packets on their unchanged audio grid.
+Independently restarting an audio encoder across HLS boundaries still requires
+an explicit packet-grid and codec-context strategy; arbitrary freshly primed AAC
+intervals are not presented as a continuous audio rendition.
 
 ## Encoded MP4 fragments
 

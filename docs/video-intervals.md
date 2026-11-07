@@ -42,8 +42,9 @@ decoder restart, discards preroll and encodes the selected interval. Resizing an
 precision preparation use `VideoPreparation`.
 
 These intervals are for encoding. Compressed copy additionally needs validated
-codec access points and dependency closure. The on-demand AVC session currently
-emits one video track; audiovisual interval orchestration remains separate work.
+codec access points and dependency closure. The on-demand AVC session uses the
+shared audiovisual interval operation and can preserve an accompanying AAC track
+on its original packet grid.
 
 ## Verification
 

@@ -95,9 +95,12 @@ fails before any bytes are published. A boundary can fall between source IDRs.
 Window clocks need not equal the track clock. Frame timing must be exactly
 representable in the output track's time base.
 
-The current encoding session produces one AVC video track at the decoded input
-dimensions and preserves the source display matrix. The supplied video format must
-match the decoder's output, including color interpretation and sample aspect ratio.
+The encoding session uses `MediaEngine.OpenProcessingAsync`, with the same codec
+selection, indexed seeking, frame preparation and packet merge as file operations.
+`VideoPreparationOptions` applies orientation, explicit pixel precision and maximum
+dimensions before encoding. The supplied input video format must match the decoder's
+output, including color interpretation and sample aspect ratio. Output pixels are
+already oriented and the output display matrix is identity.
 The reader and allocator remain borrowed; operations on either the session or its
 reader must not overlap. Requests can be repeated after cancellation or an output
 failure. Failed output is discarded by the caller.
@@ -109,6 +112,28 @@ without copying packet payloads. Buffer allocations use the supplied allocator.
 fragments separately from HLS. Its `avc3`/`hev1` sample entries permit parameter sets
 in samples; decoder configuration is also included in initialization. It requires
 explicit PTS, DTS, positive durations, sync indications and contiguous decode times.
+
+### Original AAC audio
+
+Set `copyAudioStreamIndex` to include a selected AAC-LC track in the same fMP4
+initialization and requested fragments. The reader must expose indexed packet clocks.
+Use the reader's linear movie timeline when source edit lists describe codec delay
+or track offsets. Session creation and initialization perform no media payload reads.
+
+Audio access units belong to the video window containing their original presentation
+start, so adjacent requests carry every packet once. Their duration may cross the
+video boundary; timestamps and compressed payload are preserved. The first window
+can include up to two preceding packets for initial AAC overlap recovery. An explicit
+MP4 timestamp offset and initialization edit preserve any negative preroll times.
+Subsequent requests need no prior request or encoded-segment state. This mode copies
+AAC and does not restart an audio encoder. The audiovisual playlist omits the
+independent-segments claim because audio decoder overlap can cross segment boundaries.
+
+Managed tests verify every copied audio payload and clock against the original
+MP4, reverse/repeated cold requests, bounded source reads and released storage.
+Independent FFmpeg playback of a 12-segment playlist decodes all 60 scaled pictures;
+its complete decoded audio is byte-identical to decoding the original AAC source.
+Native AOT also exercises repeated audiovisual requests using this shared operation.
 
 All 60 independently decoded output pictures from a 12-second AVC source match
 reference YUV pixels. Managed checks also compare the encoded packets with sequential

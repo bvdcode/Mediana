@@ -7,8 +7,10 @@ using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.Core.Video;
 using Mediana.IO;
 using Mediana.Processing;
+using Mediana.Streaming.Hls;
 
 namespace Mediana.NativeTests
 {
@@ -47,10 +49,37 @@ namespace Mediana.NativeTests
                     if (allocator.AllocatedBytes != baseline)
                     { throw new InvalidOperationException("Audiovisual processing retained codec or presentation buffers."); }
                 }
+                await VerifyHlsAsync(reader, allocator, baseline);
             }
             if (allocator.AllocatedBytes != 0 || !input.CanRead)
             { throw new InvalidOperationException("Audiovisual processing retained storage or closed the borrowed source."); }
             Console.WriteLine("PASS audiovisual interval processing: scaled video, exact PCM sample selection, encoder priming/padding, repeatable muxing and released ownership.");
+        }
+
+        private static async Task VerifyHlsAsync(Mp4Reader reader, MediaBufferAllocator allocator, long baseline)
+        {
+            VideoFormat format = new(64, 48, VideoPixelFormat.Yuv420P8,
+                new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709, ColorRange.Limited, ChromaLocation.Left), new(1, 1));
+            await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(reader, 0, new H264DecoderFactory(), format,
+                new MediaDuration(1, new(1, 1)), allocator, preparation: new() { MaximumWidth = 32 }, copyAudioStreamIndex: 1);
+            using MemoryStream initialization = new();
+            await session.WriteInitializationAsync(initialization);
+            byte[]? previous = null;
+            foreach (int number in new[] { 11, 0, 11 })
+            {
+                using MemoryStream output = new();
+                HlsMediaSegment segment = await session.WriteSegmentAsync(number, output);
+                byte[] bytes = output.ToArray();
+                if (segment.ByteLength != bytes.Length || bytes.Length == 0 || session.Streams.Count != 2 || allocator.AllocatedBytes != baseline)
+                { throw new InvalidDataException("An audiovisual HLS request changed its declarations, output length or resource ownership."); }
+                if (number == 11)
+                {
+                    if (previous is not null && !previous.AsSpan().SequenceEqual(bytes))
+                    { throw new InvalidDataException("Repeated cold audiovisual HLS requests changed their fragment bytes."); }
+                    previous = bytes;
+                }
+            }
+            Console.WriteLine("PASS audiovisual HLS intervals: shared processing, scaling, original AAC packet clocks and repeated cold fragments.");
         }
     }
 }
