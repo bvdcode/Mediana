@@ -17,7 +17,7 @@ flac-track,flac-native;flac-codec,decode,Complete 596-second stereo film soundtr
 flac-sustained,flac-native;flac-codec,decode,Complete 10-minute stereo stress stream to PCM16 WAVE,FFmpeg,heavy,
 mp3-long,mp3-file;mp3-mpeg1,decode,Complete 2460.096-second 48 kHz stereo MP3 stress input to PCM16 WAVE,FFmpeg,heavy,
 aac-multichannel,mp4-classic;aac-lc,decode,Complete 596-second AAC-LC 5.1 soundtrack in M4A to PCM16 WAVE,FFmpeg,heavy,
-audio-resample,pcm-s16;mp3-mpeg1,decode,Complete 2460.096-second stereo MP3; mono downmix and 48-to-16 kHz resampling,FFmpeg / libswresample,heavy,
+audio-resample,pcm-s16;mp3-mpeg1,process,Complete 2460.096-second stereo MP3; mono downmix and 48-to-16 kHz resampling,FFmpeg / libswresample,heavy,
 avc-decode-30m,mp4-classic;avc-main,decode,All 43201 frames of a 30-minute 720p video; native YUV decoding plus per-frame SHA-256,FFmpeg,heavy,
 avc-transcode-30m,avc-constrained-baseline;mpeg-ts,encode,Complete 30-minute 720p24 video-only transcode; 10 Mbit/s target; source PSNR and size measured,FFmpeg / libx264,heavy,../h264-hd-encoding.md
 remux-hls,mp4-classic;mpeg-ts,write,Complete 30-minute AVC/AAC MP4 to MPEG-TS stream copy,FFmpeg,heavy,

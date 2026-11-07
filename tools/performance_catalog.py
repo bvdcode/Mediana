@@ -51,7 +51,14 @@ def load_comparisons(path: Path, identifiers: set[str]) -> list[Comparison]:
             raise ValueError(f"Invalid comparison ID: {item.id}")
         if set(item.format_ids.split(";")) - identifiers:
             raise ValueError(f"Unknown comparison format: {item.id}")
-        if item.operation not in {"read", "decode", "render", "encode", "write"}:
+        if item.operation not in {
+            "read",
+            "decode",
+            "render",
+            "encode",
+            "write",
+            "process",
+        }:
             raise ValueError(f"Invalid comparison operation: {item.id}")
         if (
             item.track not in {"ordinary", "heavy"}
