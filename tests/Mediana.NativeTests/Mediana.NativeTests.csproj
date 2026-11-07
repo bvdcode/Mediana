@@ -341,6 +341,7 @@
     <Compile Include="../Shared/FragmentHlsTestInput.cs" Link="FragmentHlsTestInput.cs" />
     <Compile Include="../Shared/OnDemandHlsTestInput.cs" Link="OnDemandHlsTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Mp4/hls-on-demand.mp4;../Mediana.Tests/Data/Mp4/hls-on-demand.encoded-segments.yuv" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-aac-on-demand.mp4" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Ogg/OggContainerTestInput.cs" Link="OggContainerTestInput.cs" />
     <Compile Include="../Shared/OpusRangeTestInput.cs" Link="OpusRangeTestInput.cs" />
     <Compile Include="../Shared/OpusPulseTestInput.cs" Link="OpusPulseTestInput.cs" />
