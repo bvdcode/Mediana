@@ -48,9 +48,17 @@ namespace Mediana.Codecs.Jpeg
                 token.ThrowIfCancellationRequested();
                 int sourceX = orientation.SourceX(0, y, image.Width);
                 int sourceY = orientation.SourceY(0, y, image.Height);
-                for (int x = 0; x < width; x++, sourceX += orientation.A, sourceY += orientation.C)
+                JpegSampleCursor firstSamples = new(image, image.Components[0], sourceX, sourceY, orientation, phaseX, phaseY);
+                JpegSampleCursor secondSamples = default;
+                JpegSampleCursor thirdSamples = default;
+                if (image.Components.Count > 1)
                 {
-                    int first = Sample(image, image.Components[0], sourceX, sourceY, phaseX, phaseY);
+                    secondSamples = new(image, image.Components[1], sourceX, sourceY, orientation, phaseX, phaseY);
+                    thirdSamples = new(image, image.Components[2], sourceX, sourceY, orientation, phaseX, phaseY);
+                }
+                for (int x = 0; x < width; x++)
+                {
+                    int first = firstSamples.ReadNext();
                     Span<byte> pixel = pixels.Slice((y * width + x) * 4, 4);
                     if (image.Components.Count == 1)
                     {
@@ -60,8 +68,8 @@ namespace Mediana.Codecs.Jpeg
                     }
                     else
                     {
-                        int second = Sample(image, image.Components[1], sourceX, sourceY, phaseX, phaseY);
-                        int third = Sample(image, image.Components[2], sourceX, sourceY, phaseX, phaseY);
+                        int second = secondSamples.ReadNext();
+                        int third = thirdSamples.ReadNext();
                         if (rgb)
                         {
                             pixel[0] = (byte)first;
@@ -81,39 +89,6 @@ namespace Mediana.Codecs.Jpeg
                 }
             }
             token.ThrowIfCancellationRequested();
-        }
-
-        private static int Sample(in JpegSampleLayout image, JpegComponent component, int x, int y, int phaseX, int phaseY)
-        {
-            ReadOnlySpan<byte> samples = component.Samples.Span;
-            if (component.Horizontal == image.MaximumHorizontal && component.Vertical == image.MaximumVertical)
-            {
-                return samples[y * component.SampleStride + x];
-            }
-            int dx = image.MaximumHorizontal * 2;
-            int dy = image.MaximumVertical * 2;
-            int nx = 2 * x * component.Horizontal + (phaseX == 0 ? 0 : component.Horizontal - phaseX);
-            int ny = 2 * y * component.Vertical + (phaseY == 0 ? 0 : component.Vertical - phaseY);
-            int lowX = Math.DivRem(nx, dx, out int fractionX);
-            int lowY = Math.DivRem(ny, dy, out int fractionY);
-            if (fractionX < 0)
-            {
-                lowX--;
-                fractionX += dx;
-            }
-            if (fractionY < 0)
-            {
-                lowY--;
-                fractionY += dy;
-            }
-            int x0 = Math.Clamp(lowX, 0, component.SampleWidth - 1);
-            int x1 = Math.Clamp(lowX + 1, 0, component.SampleWidth - 1);
-            int y0 = Math.Clamp(lowY, 0, component.SampleHeight - 1) * component.SampleStride;
-            int y1 = Math.Clamp(lowY + 1, 0, component.SampleHeight - 1) * component.SampleStride;
-            int top = samples[y0 + x0] * (dx - fractionX) + samples[y0 + x1] * fractionX;
-            int bottom = samples[y1 + x0] * (dx - fractionX) + samples[y1 + x1] * fractionX;
-            int divisor = dx * dy;
-            return (top * (dy - fractionY) + bottom * fractionY + divisor / 2) / divisor;
         }
 
         private static byte Clamp(int value) => (byte)Math.Clamp(value, 0, 255);
