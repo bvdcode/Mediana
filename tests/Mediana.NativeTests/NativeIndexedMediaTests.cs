@@ -41,6 +41,14 @@ namespace Mediana.NativeTests
                 throw new InvalidDataException("The HEVC arithmetic or interpolation reference count differs.");
             }
             Console.WriteLine("PASS HEVC primitives: 72 I/P/B headers, Main/Main10 weights, 129,888 arithmetic bins, WPP snapshots and 1,280 exact fractional predictions.");
+            if (HevcWeightedPredictionTestInput.Verify(hevcRoot) != 2592 ||
+                await HevcMotionCompensationTestInput.VerifyAsync(hevcRoot) != 768)
+            {
+                throw new InvalidDataException("The HEVC motion reference count differs.");
+            }
+            await HevcPictureStorageTestInput.VerifyAsync(hevcRoot, "main8");
+            await HevcPictureStorageTestInput.VerifyAsync(hevcRoot, "main10");
+            Console.WriteLine("PASS HEVC motion: 2,592 weighted predictions, 768 Main/Main10 complete motion blocks and shared reference/output pixel ownership.");
             string opusRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Opus");
             if (OpusPulseTestInput.Verify(opusRoot) != 13574 || OpusLaplaceTestInput.Verify(opusRoot) != 5257 ||
                 OpusEnergyTestInput.Verify(opusRoot) != 768 || OpusAllocationTestInput.Verify(opusRoot) != 4096 ||
