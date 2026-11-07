@@ -49,8 +49,9 @@ explicit sample positions and rejects an unspecified position. Byte and word
 samples support 8/10-bit HEIC and other unsigned component ranges through 16 bits.
 
 `CopyRow` borrows the source, destination and a float workspace sized by
-`WorkspaceLength`. Calls allocate no buffers. Plan storage scales with axis
-lengths and kernel width; HEIC temporary rows scale with coded image width.
+`WorkspaceLength`. Calls allocate no buffers. Source indices scale with axis
+lengths; kernel weights are stored once per repeating phase, at most two phases
+per axis. HEIC temporary rows scale with coded image width.
 No full-resolution intermediate Cb/Cr planes or additional full RGBA copy are
 created. Plans can be shared concurrently with separate caller workspaces.
 
