@@ -6,6 +6,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/JpegSampleCursorTestInput.cs" Link="JpegSampleCursorTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />
+    <None Include="Data/Vp8/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Data/Mjpeg/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageExifOrientationTestInput.cs" Link="ImageExifOrientationTestInput.cs" />
     <Compile Include="../Shared/MediaExportTestInput.cs" Link="MediaExportTestInput.cs" />

@@ -2,6 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Memory;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 namespace Mediana.Codecs.Vp8
 {
@@ -15,28 +17,59 @@ namespace Mediana.Codecs.Vp8
         internal static void Decode(ReadOnlyMemory<byte> encoded, Span<byte> planes, int width, int height, MediaBufferWorkspace workspace, CancellationToken token)
         {
             Vp8FrameHeader header = new(encoded, token);
+            if (!header.KeyFrame) { throw new InvalidDataException("A WebP picture must be a VP8 keyframe."); }
+            Decode(header, planes, width, height, workspace, workspace.Allocate(checked((width + 15) / 16 * ((height + 15) / 16))).Span, [], token);
+        }
+        internal static void Decode(Vp8FrameHeader header, Span<byte> planes, int width, int height,
+            MediaBufferWorkspace workspace, Span<byte> segmentMap, ReadOnlyMemory<byte>[] references, CancellationToken token)
+        {
             int columns = (width + 15) / 16, rows = (height + 15) / 16, stride = checked(columns * 16), paddedHeight = checked(rows * 16);
             int yLength = checked(stride * paddedHeight), uvLength = yLength / 4;
             if (planes.Length != checked(yLength + 2 * uvLength)) { throw new ArgumentException("VP8 reconstruction requires complete padded YUV planes.", nameof(planes)); }
             Span<byte> yPlane = planes[..yLength], uPlane = planes.Slice(yLength, uvLength), vPlane = planes[(yLength + uvLength)..];
             Span<byte> aboveModes = workspace.Allocate(columns * 4).Span, aboveContexts = workspace.Allocate(columns * 9).Span;
             Span<byte> filters = workspace.Allocate(checked(columns * rows * 2)).Span;
+            int metadataBytes = checked((columns + 1) * 2 * Unsafe.SizeOf<Vp8Macroblock>());
+            Span<Vp8Macroblock> macroblocks = MemoryMarshal.Cast<byte, Vp8Macroblock>(workspace.Allocate(metadataBytes).Span);
+            macroblocks.Clear();
             Span<byte> leftModes = stackalloc byte[4], leftContexts = stackalloc byte[9], modes = stackalloc byte[16];
             Span<int> dcValues = stackalloc int[16], walsh = stackalloc int[16], coefficients = stackalloc int[16];
             Span<byte> prediction = stackalloc byte[256], top = stackalloc byte[16], left = stackalloc byte[16];
             for (int row = 0; row < rows; row++)
             {
                 leftModes.Clear(); leftContexts.Clear();
+                Span<Vp8Macroblock> previous = macroblocks.Slice((row & 1) * (columns + 1), columns + 1);
+                Span<Vp8Macroblock> currentRow = macroblocks.Slice(((row + 1) & 1) * (columns + 1), columns + 1);
+                currentRow.Clear();
                 Vp8BooleanReader tokens = header.Tokens[row & (header.Tokens.Length - 1)];
                 for (int column = 0; column < columns; column++)
                 {
                     token.ThrowIfCancellationRequested();
-                    int segment = header.UpdateMap ? header.Control.Read(header.SegmentProbabilities[0])
-                        ? 2 + (header.Control.Read(header.SegmentProbabilities[2]) ? 1 : 0)
-                        : header.Control.Read(header.SegmentProbabilities[1]) ? 1 : 0 : 0;
+                    int macroblockIndex = row * columns + column;
+                    if (header.UpdateMap)
+                    {
+                        segmentMap[macroblockIndex] = (byte)(header.Control.Read(header.SegmentProbabilities[0])
+                            ? 2 + (header.Control.Read(header.SegmentProbabilities[2]) ? 1 : 0)
+                            : header.Control.Read(header.SegmentProbabilities[1]) ? 1 : 0);
+                    }
+                    int segment = header.Segmentation ? segmentMap[macroblockIndex] : 0;
                     bool skip = header.SkipEnabled && header.Control.Read(header.SkipProbability);
-                    int mode = header.Control.Tree(LumaTree, LumaProbabilities);
-                    bool blocks = mode == 4;
+                    bool inter = !header.KeyFrame && header.Control.Read(header.IntraProbability);
+                    Vp8Macroblock block = default;
+                    int mode = 0, chromaMode = 0;
+                    if (inter)
+                    {
+                        Vp8MotionReader.Read(header, ref block, currentRow[column], previous[column + 1], previous[column], column, row, columns, rows);
+                        aboveModes.Slice(column * 4, 4).Clear(); leftModes.Clear();
+                    }
+                    else
+                    {
+                        mode = header.KeyFrame ? header.Control.Tree(LumaTree, LumaProbabilities)
+                            : header.Control.Tree([0, 2, 4, 6, -1, -2, -3, -4], header.LumaProbabilities);
+                        block.Mode = mode;
+                    }
+                    bool blocks = mode == 4 && !inter;
+                    bool secondOrder = inter ? block.Mode != 4 : !blocks;
                     if (blocks)
                     {
                         for (int by = 0; by < 4; by++)
@@ -44,29 +77,34 @@ namespace Mediana.Codecs.Vp8
                             for (int bx = 0; bx < 4; bx++)
                             {
                                 int index = column * 4 + bx;
-                                byte blockMode = (byte)header.Control.Tree(BlockTree, Vp8ProbabilityTables.BlockModes.Slice((aboveModes[index] * 10 + leftModes[by]) * 9, 9));
+                                byte blockMode = (byte)header.Control.Tree(BlockTree, header.KeyFrame ? Vp8ProbabilityTables.BlockModes.Slice((aboveModes[index] * 10 + leftModes[by]) * 9, 9) : [120, 90, 79, 133, 87, 85, 80, 111, 151]);
                                 modes[by * 4 + bx] = blockMode; aboveModes[index] = blockMode; leftModes[by] = blockMode;
                             }
                         }
                     }
-                    else
+                    else if (!inter)
                     {
                         byte blockMode = mode switch { 0 => 0, 1 => 2, 2 => 3, 3 => 1, _ => throw new InvalidDataException("Invalid VP8 luma mode.") };
                         aboveModes.Slice(column * 4, 4).Fill(blockMode); leftModes.Fill(blockMode);
                     }
-                    int chromaMode = header.Control.Tree(ChromaTree, ChromaProbabilities), q = header.Quantizers[segment];
+                    if (!inter) { chromaMode = header.Control.Tree(ChromaTree, header.KeyFrame ? ChromaProbabilities : header.ChromaProbabilities); }
+                    currentRow[column + 1] = block;
+                    int q = header.Quantizers[segment];
                     Span<byte> above = aboveContexts.Slice(column * 9, 9);
                     dcValues.Clear(); walsh.Clear();
                     bool any = false;
-                    if (!blocks)
+                    if (secondOrder)
                     {
                         bool nonzero = !skip && Vp8CoefficientReader.Read(tokens, header.Probabilities, walsh, 1, above[8] + leftContexts[8],
                             Dc(q + header.Deltas[1]) * 2, Math.Max(8, Ac(q + header.Deltas[2]) * 155 / 100));
                         above[8] = leftContexts[8] = nonzero ? (byte)1 : (byte)0; any |= nonzero;
                         Vp8CoefficientReader.Walsh(walsh, dcValues);
-                        byte corner = Neighbors(yPlane, stride, column * 16, row * 16, 16, top, left);
-                        Vp8ChromaPrediction.Predict((Vp8ChromaMode)mode, top, left, corner, row != 0, column != 0, prediction, 16);
-                        for (int line = 0; line < 16; line++) { prediction.Slice(line * 16, 16).CopyTo(yPlane.Slice((row * 16 + line) * stride + column * 16, 16)); }
+                        if (!inter)
+                        {
+                            byte corner = Neighbors(yPlane, stride, column * 16, row * 16, 16, top, left);
+                            Vp8ChromaPrediction.Predict((Vp8ChromaMode)mode, top, left, corner, row != 0, column != 0, prediction, 16);
+                            for (int line = 0; line < 16; line++) { prediction.Slice(line * 16, 16).CopyTo(yPlane.Slice((row * 16 + line) * stride + column * 16, 16)); }
+                        }
                     }
                     for (int plane = 0; plane < 3; plane++)
                     {
@@ -75,7 +113,7 @@ namespace Mediana.Codecs.Vp8
                         int contextStart = plane switch { 0 => 0, 1 => 4, 2 => 6, _ => throw new InvalidDataException("Invalid VP8 plane.") };
                         int dc = plane == 0 ? Dc(q + header.Deltas[0]) : Math.Min(132, Dc(q + header.Deltas[3]));
                         int ac = plane == 0 ? Ac(q) : Ac(q + header.Deltas[4]);
-                        if (plane != 0)
+                        if (plane != 0 && !inter)
                         {
                             byte corner = Neighbors(pixels, planeStride, column * size, row * size, size, top[..size], left[..size]);
                             Vp8ChromaPrediction.Predict((Vp8ChromaMode)chromaMode, top[..size], left[..size], corner, row != 0, column != 0, prediction[..64]);
@@ -86,14 +124,28 @@ namespace Mediana.Codecs.Vp8
                             for (int bx = 0; bx < across; bx++)
                             {
                                 coefficients.Clear();
-                                int type = plane == 0 ? blocks ? 3 : 0 : 2;
+                                int type = plane == 0 ? secondOrder ? 0 : 3 : 2;
                                 bool nonzero = !skip && Vp8CoefficientReader.Read(tokens, header.Probabilities, coefficients, type,
                                     above[contextStart + bx] + leftContexts[contextStart + by], dc, ac);
                                 above[contextStart + bx] = leftContexts[contextStart + by] = nonzero ? (byte)1 : (byte)0;
                                 any |= nonzero;
                                 if (type == 0) { coefficients[0] = dcValues[by * 4 + bx]; }
                                 int px = column * size + bx * 4, py = row * size + by * 4;
-                                if (plane == 0 && blocks)
+                                if (inter)
+                                {
+                                    ReadOnlySpan<byte> reference = references[block.Reference].Span;
+                                    reference = plane switch
+                                    {
+                                        0 => reference[..yLength], 1 => reference.Slice(yLength, uvLength),
+                                        2 => reference.Slice(yLength + uvLength, uvLength), _ => throw new InvalidDataException("Invalid VP8 reference plane.")
+                                    };
+                                    Vp8MotionVector motion = plane == 0
+                                        ? block.Mode == 4 ? block.Blocks[by * 4 + bx] : block.Motion
+                                        : Vp8InterPrediction.Chroma(block, bx, by, header.Version);
+                                    Vp8InterPrediction.Predict(reference, planeStride, plane == 0 ? paddedHeight : paddedHeight / 2,
+                                        px, py, motion, header.Version, prediction[..16]);
+                                }
+                                else if (plane == 0 && blocks)
                                 {
                                     byte corner = Neighbors(pixels, planeStride, px, py, 4, top[..4], left[..4]);
                                     for (int index = 4; index < 8; index++)
@@ -110,10 +162,12 @@ namespace Mediana.Codecs.Vp8
                         }
                     }
                     int filterOffset = (row * columns + column) * 2;
-                    filters[filterOffset] = (byte)header.Filter(segment, blocks); filters[filterOffset + 1] = blocks || any ? (byte)1 : (byte)0;
+                    filters[filterOffset] = (byte)(inter ? header.InterFilter(segment, block.Reference, block.Mode) : header.Filter(segment, blocks));
+                    filters[filterOffset + 1] = !secondOrder || any ? (byte)1 : (byte)0;
                 }
             }
-            Filter(yPlane, uPlane, vPlane, stride, columns, rows, filters, header, token);
+            if (header.LoopFilterEnabled) { Filter(yPlane, uPlane, vPlane, stride, columns, rows, filters, header, token); }
+            header.CommitEntropy();
         }
         private static byte Neighbors(ReadOnlySpan<byte> pixels, int stride, int x, int y, int size, Span<byte> top, Span<byte> left)
         {

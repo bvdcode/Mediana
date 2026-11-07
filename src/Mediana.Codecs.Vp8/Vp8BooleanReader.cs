@@ -10,8 +10,9 @@ namespace Mediana.Codecs.Vp8
         private uint value, range = 255;
         internal Vp8BooleanReader(ReadOnlyMemory<byte> encoded)
         {
-            if (encoded.Length < 2) { throw new InvalidDataException("Truncated VP8 arithmetic partition."); }
-            this.encoded = encoded; value = (uint)((encoded.Span[0] << 8) | encoded.Span[1]);
+            if (encoded.Length == 0) { throw new InvalidDataException("Truncated VP8 arithmetic partition."); }
+            this.encoded = encoded; value = (uint)(encoded.Span[0] << 8);
+            if (encoded.Length > 1) { value |= encoded.Span[1]; }
         }
         internal bool Read(int probability = 128)
         {

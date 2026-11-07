@@ -17,6 +17,7 @@ namespace Mediana.Codecs.Vp8
                     int inner = level;
                     if (header.Sharpness != 0) { inner = Math.Min(inner >> (header.Sharpness > 4 ? 2 : 1), 9 - header.Sharpness); }
                     inner = Math.Max(1, inner); int hev = level >= 40 ? 2 : level >= 15 ? 1 : 0;
+                    if (!header.KeyFrame && level >= 20) { hev++; }
                     for (int plane = 0; plane < (header.SimpleFilter ? 1 : 3); plane++)
                     {
                         Span<byte> data = plane switch { 0 => y, 1 => u, 2 => v, _ => throw new InvalidDataException("Invalid VP8 plane.") };
