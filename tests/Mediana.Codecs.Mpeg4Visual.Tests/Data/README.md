@@ -26,5 +26,4 @@ macroblock decisions and trellis, temporally varying noise, 30000/1001 cadence,
 and odd 97×81 geometry. The `xvid` sequence uses the independent libxvid encoder
 at 128×96 with quarter-pixel motion and B pictures. It is demultiplexed from AVI
 and normalized with `mpeg4_unpack_bframes` before raw-stream reference decoding;
-22 coded pictures are retained. Packed transport behavior is checked separately
-when supported by the container API.
+22 coded pictures are retained. Raw-stream tests contain complete individual VOPs.

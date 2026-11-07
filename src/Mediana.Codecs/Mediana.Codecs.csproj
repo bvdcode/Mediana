@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <InternalsVisibleTo Include="Mediana.Codecs.Mpeg4Visual" />
     <InternalsVisibleTo Include="Mediana.Codecs.H264" />
     <InternalsVisibleTo Include="Mediana.Codecs.Hevc" />
     <InternalsVisibleTo Include="Mediana.Codecs.Opus" />
