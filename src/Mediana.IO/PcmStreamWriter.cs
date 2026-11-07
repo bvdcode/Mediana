@@ -13,7 +13,7 @@ namespace Mediana.IO
     /// Matching byte order writes frame memory directly. Byte swapping uses at most 64 KiB of scratch storage.
     /// Does not flush or close the destination. Failed writes may leave partial output and must be discarded.
     /// The caller serializes operations on the destination.</summary>
-    public static class PcmStreamWriter
+    public static partial class PcmStreamWriter
     {
         private const int MaximumScratchBytes = 64 * 1024;
 

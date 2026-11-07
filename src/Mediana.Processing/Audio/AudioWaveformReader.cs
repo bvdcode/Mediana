@@ -12,14 +12,9 @@ namespace Mediana.Processing.Audio
     /// Failure or cancellation makes the reader terminal and releases its owned frames and filter storage.</summary>
     public class AudioWaveformReader : IAsyncDisposable
     {
-        private readonly Func<CancellationToken, ValueTask<AudioFrame?>> readFrame;
-        private readonly double[] channelGains;
-        private readonly AudioWaveformOptions options;
-        private readonly MediaBufferAllocator allocator;
-        private readonly AudioResampler resampler;
+        private readonly MonoAudioReader resampler;
         private readonly AudioLevelAccumulator accumulator;
         private readonly Action<AudioLevel> emit;
-        private AudioChannelMixer? mixer;
         private AudioLevel? pending;
         private bool ended;
         private bool disposed;
@@ -48,32 +43,15 @@ namespace Mediana.Processing.Audio
             ArgumentNullException.ThrowIfNull(options);
             ArgumentNullException.ThrowIfNull(allocator);
             options.Validate();
-            if (mixer is null && channelGains.IsEmpty)
-            {
-                throw new ArgumentException("An explicit mono coefficient is required for every input channel.", nameof(channelGains));
-            }
-            if (mixer is not null && mixer.OutputFormat.Channels.Count != 1)
-            {
-                throw new ArgumentException("The waveform mixer must produce exactly one channel.", nameof(mixer));
-            }
-            foreach (double gain in channelGains)
-            {
-                if (!double.IsFinite(gain))
-                {
-                    throw new ArgumentException("Channel gains must be finite.", nameof(channelGains));
-                }
-            }
-            this.readFrame = readFrame;
-            this.channelGains = channelGains.ToArray();
-            this.mixer = mixer;
-            this.options = options;
-            this.allocator = allocator;
             accumulator = new AudioLevelAccumulator(options.SamplesPerWindow);
             emit = Emit;
-            resampler = new AudioResampler(ReadMixedAsync, options.SampleRate, allocator, options.Resampling with
+            AudioResampleOptions resampling = options.Resampling with
             {
                 SamplesPerFrame = Math.Min(options.SamplesPerWindow, options.Resampling.SamplesPerFrame)
-            });
+            };
+            resampler = mixer is null
+                ? new MonoAudioReader(readFrame, channelGains, options.SampleRate, allocator, options.SampleFormat, resampling)
+                : new MonoAudioReader(readFrame, mixer, options.SampleRate, allocator, options.SampleFormat, resampling);
         }
 
         public async ValueTask<AudioLevel?> ReadLevelAsync(CancellationToken cancellationToken = default)
@@ -96,16 +74,7 @@ namespace Mediana.Processing.Audio
                         accumulator.Complete(emit, cancellationToken);
                         ended = true;
                     }
-                    else if (frame.Format.SampleFormat == options.SampleFormat)
-                    {
-                        accumulator.Process(frame, emit, cancellationToken);
-                    }
-                    else
-                    {
-                        using AudioFrame converted = AudioSampleConverter.Apply(frame, options.SampleFormat,
-                            AudioStorageLayout.Interleaved, allocator, cancellationToken);
-                        accumulator.Process(converted, emit, cancellationToken);
-                    }
+                    else { accumulator.Process(frame, emit, cancellationToken); }
                 }
                 AudioLevel? result = pending;
                 pending = null;
@@ -128,17 +97,6 @@ namespace Mediana.Processing.Audio
                     Volatile.Write(ref busy, 0);
                 }
             }
-        }
-
-        private async ValueTask<AudioFrame?> ReadMixedAsync(CancellationToken cancellationToken)
-        {
-            using AudioFrame? frame = await readFrame(cancellationToken).ConfigureAwait(false);
-            if (frame is null)
-            {
-                return null;
-            }
-            mixer ??= new AudioChannelMixer(frame.Format, ["mono"], channelGains);
-            return mixer.Apply(frame, allocator, cancellationToken);
         }
 
         private void Emit(AudioLevel level)
