@@ -3,6 +3,7 @@
 
 using Mediana.Codecs.Aac;
 using Mediana.Codecs.Mp3;
+using Mediana.Codecs.Opus;
 using Mediana.Codecs.Flac;
 using Mediana.Codecs.Pcm;
 
@@ -16,6 +17,7 @@ namespace Mediana.Cli
             .AddAudioDecoder(new AiffPcmDecoderFactory())
             .AddAudioDecoder(new AacDecoderFactory())
             .AddAudioDecoder(new Mp3DecoderFactory())
+            .AddAudioDecoder(new OpusDecoderFactory())
             .Build();
     }
 }

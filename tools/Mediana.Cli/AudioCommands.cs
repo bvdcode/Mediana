@@ -7,7 +7,7 @@ namespace Mediana.Cli
 {
     internal class AudioCommands(CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
-        /// <summary>Decode supported WAVE, AIFF, AAC, FLAC or MP3 to raw native-endian PCM.</summary>
+        /// <summary>Decode supported WAVE, AIFF, AAC, FLAC, MP3 or Opus to raw native-endian PCM.</summary>
         /// <param name="input">Existing input media file.</param>
         /// <param name="output">Output raw PCM file.</param>
         /// <param name="stream">Audio stream index.</param>
