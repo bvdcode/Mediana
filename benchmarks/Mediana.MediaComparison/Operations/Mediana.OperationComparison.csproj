@@ -9,6 +9,9 @@
   <ItemGroup>
     <ProjectReference Include="$(ProductRoot)/src/Mediana/Mediana.csproj" />
     <ProjectReference Include="$(ProductRoot)/src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
+    <ProjectReference Include="$(ProductRoot)/src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
+    <ProjectReference Include="$(ProductRoot)/src/Mediana.Containers.Avi/Mediana.Containers.Avi.csproj" />
+    <ProjectReference Include="$(ProductRoot)/src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
     <ProjectReference Include="$(ProductRoot)/src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
     <ProjectReference Include="$(ProductRoot)/src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />
     <ProjectReference Include="$(ProductRoot)/src/Mediana.Documents.Xlsx/Mediana.Documents.Xlsx.csproj" />

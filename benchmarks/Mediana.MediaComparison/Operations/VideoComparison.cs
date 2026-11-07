@@ -2,8 +2,12 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Globalization;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using Mediana.Codecs.H264;
+using Mediana.Codecs.Jpeg;
+using Mediana.Containers.Avi;
+using Mediana.Containers.Matroska;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
@@ -15,9 +19,14 @@ namespace Mediana.OperationComparison
     {
         internal static async Task RunAsync(string input, string destination)
         {
+            using Process process = Process.GetCurrentProcess();
+            long allocated = GC.GetTotalAllocatedBytes(true);
+            TimeSpan cpu = process.TotalProcessorTime;
+            Stopwatch watch = Stopwatch.StartNew();
             MediaEngine engine = new MediaEngineBuilder()
                 .AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
-                .AddVideoDecoder(new H264DecoderFactory()).Build();
+                .AddContainer(new AviReaderFactory()).AddContainer(new MatroskaReaderFactory())
+                .AddVideoDecoder(new MjpegDecoderFactory()).AddVideoDecoder(new H264DecoderFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             await using VideoSession session = await engine.OpenVideoAsync(source, 0);
             await using FileStream output = new(destination, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
@@ -28,10 +37,6 @@ namespace Mediana.OperationComparison
             {
                 using (frame)
                 {
-                    if (frame.Format.PixelFormat != VideoPixelFormat.Yuv420P8)
-                    {
-                        throw new InvalidDataException("Expected native planar YUV420P8.");
-                    }
                     MediaTimestamp timestamp = frame.Timestamp ?? throw new InvalidDataException("Missing presentation time.");
                     MediaDuration duration = frame.Duration ?? throw new InvalidDataException("Missing frame duration.");
                     if (timestamp.TimeBase != duration.TimeBase)
@@ -62,7 +67,12 @@ namespace Mediana.OperationComparison
             {
                 throw new InvalidDataException("Empty decode or retained frame storage.");
             }
-            await Console.Out.WriteLineAsync($"pictures={pictures}; eof=true; retained_bytes=0");
+            await writer.FlushAsync();
+            watch.Stop();
+            cpu = process.TotalProcessorTime - cpu;
+            allocated = GC.GetTotalAllocatedBytes(true) - allocated;
+            process.Refresh();
+            await Console.Out.WriteLineAsync(FormattableString.Invariant($"pictures={pictures}; eof=true; retained_bytes=0; elapsed-ms={watch.Elapsed.TotalMilliseconds:F3}; cpu-ms={cpu.TotalMilliseconds:F3}; allocated-bytes={allocated}; peak-rss-bytes={process.PeakWorkingSet64}"));
         }
     }
 }
