@@ -17,17 +17,9 @@ namespace Mediana.Formats.Audio
 
         public static VorbisConfiguration Read(ReadOnlyMemory<byte> configuration)
         {
-            ReadOnlySpan<byte> bytes = configuration.Span;
-            if (bytes.IsEmpty || bytes[0] != 2) { throw new InvalidDataException("Vorbis configuration requires three Xiph-laced headers."); }
-            int offset = 1;
-            int identificationBytes = ReadLength(bytes, ref offset), commentBytes = ReadLength(bytes, ref offset);
-            if (identificationBytes > bytes.Length - offset || commentBytes > bytes.Length - offset - identificationBytes)
-            {
-                throw new InvalidDataException("A Vorbis header extends past its configuration.");
-            }
-            VorbisIdentification identification = VorbisIdentification.Read(bytes.Slice(offset, identificationBytes));
-            offset += identificationBytes;
-            ReadOnlyMemory<byte> comments = configuration.Slice(offset, commentBytes), setup = configuration[(offset + commentBytes)..];
+            XiphLacedHeaders headers = XiphLacedHeaders.Read(configuration);
+            VorbisIdentification identification = VorbisIdentification.Read(headers.First.Span);
+            ReadOnlyMemory<byte> comments = headers.Second, setup = headers.Third;
             if (comments.Length < 7 || comments.Span[0] != 3 || !comments.Span.Slice(1, 6).SequenceEqual("vorbis"u8) ||
                 setup.Length < 7 || setup.Span[0] != 5 || !setup.Span.Slice(1, 6).SequenceEqual("vorbis"u8))
             {
@@ -36,15 +28,5 @@ namespace Mediana.Formats.Audio
             return new(identification, comments, setup);
         }
 
-        private static int ReadLength(ReadOnlySpan<byte> bytes, ref int offset)
-        {
-            int length = 0;
-            while (true)
-            {
-                if (offset == bytes.Length) { throw new InvalidDataException("The Vorbis Xiph header lacing is truncated."); }
-                byte value = bytes[offset++]; length = checked(length + value);
-                if (value != 255) { return length; }
-            }
-        }
     }
 }
