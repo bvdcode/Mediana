@@ -20,3 +20,11 @@ Primary syntax and algorithm references:
 - [MPEG-4 reference software catalogue](https://mpeg.chiariglione.org/technologies/reference-software/mpeg-4-reference-software.html)
 - [FFmpeg MPEG-4 Visual decoder](https://github.com/FFmpeg/FFmpeg/blob/n7.1/libavcodec/mpeg4videodec.c)
 - [JCodec MPEG-4 decoder](https://github.com/jcodec/jcodec/tree/master/src/main/java/org/jcodec/codecs/mpeg4)
+
+Additional complete sequences cover 256×192 motion at 24 fps with rate-distortion
+macroblock decisions and trellis, temporally varying noise, 30000/1001 cadence,
+and odd 97×81 geometry. The `xvid` sequence uses the independent libxvid encoder
+at 128×96 with quarter-pixel motion and B pictures. It is demultiplexed from AVI
+and normalized with `mpeg4_unpack_bframes` before raw-stream reference decoding;
+22 coded pictures are retained. Packed transport behavior is checked separately
+when supported by the container API.
