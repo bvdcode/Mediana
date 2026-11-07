@@ -110,14 +110,7 @@ namespace Mediana.Codecs.Opus
             if (subframe == 2) { output[..(2 * mode.SamplesPerSubframe)].CopyTo(state.OutputHistory[state.HistorySamples..]); }
             ReadOnlySpan<short> input = state.OutputHistory.Slice(start + subframe * mode.SamplesPerSubframe, state.HistorySamples - start);
             Span<short> whitened = state.Whitened[start..];
-            whitened[..mode.LpcOrder].Clear();
-            for (int at = mode.LpcOrder; at < input.Length; at++)
-            {
-                int prediction = 0;
-                for (int tap = 0; tap < mode.LpcOrder; tap++) { prediction = unchecked(prediction + input[at - tap - 1] * lpc[tap]); }
-                int residual = unchecked((input[at] << 12) - prediction);
-                whitened[at] = (short)Math.Clamp(SilkFixedMath.RoundShift(residual, 12), short.MinValue, short.MaxValue);
-            }
+            SilkLpcAnalysis.Apply(input, lpc, whitened);
             if (subframe == 0) { inverse = (int)((long)inverse * (short)scale >> 16) << 2; }
             Span<int> ltp = state.LtpHistory;
             ReadOnlySpan<short> history = state.Whitened;

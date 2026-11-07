@@ -530,3 +530,19 @@ contain square-root input/output, sample count and signed 16-bit PCM, 32-bit
 energy/shift/order/chirp and signed 16-bit input/output LPC coefficients.
 
 SHA-256: `ecb99a4e5ebd445cb7aa846b543850f7512b0c962475bc0ef83e16511c69ea9b`.
+
+`silk-concealment.bin` records 288 sequential lost-frame reconstructions from
+libopus 1.6.1 across all SILK internal rates, both frame sizes, signal types,
+pitch filters, gains and prior synthesis histories. PCM, LPC/output histories,
+attenuated filters, drifting pitch and random state match exactly. Repeated
+reconstruction allocates no managed storage. Comfort noise and reconnection to
+new received packets are checked separately.
+
+The little-endian file starts with `OPUSSLC1` and a 32-bit case count. Cases
+record rate/subframes/signal/pattern, gains, LPC coefficients, pitch lags, LTP
+coefficients and scale, excitation, output history and LPC history. Four output
+frames follow with PCM, LPC/output histories, pitch, random scale/seed and
+attenuated LTP/LPC coefficients. Samples and filter coefficients are signed
+16-bit values; remaining scalar and excitation/history fields are 32-bit.
+
+SHA-256: `5bfab1b30ef849d5ed9b7326c591254dae8eb05d393edf0ee5f81530132f3f5b`.
