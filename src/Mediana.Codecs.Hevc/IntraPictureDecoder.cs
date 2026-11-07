@@ -78,7 +78,7 @@ namespace Mediana.Codecs.Hevc
             SequenceParameters sequence = slice.Picture.Sequence;
             HevcCabacReader reader = new HevcCabacReader(slice.Reader, slice.Qp);
             QuantizationGroup quantization = new QuantizationGroup(slice, reader, blocks);
-            IntraCodingTreeDecoder tree = new IntraCodingTreeDecoder(slice, reader, blocks, quantization);
+            CodingTreeDecoder tree = new CodingTreeDecoder(slice, reader, blocks, quantization);
             ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding, sequence.ChromaFormat == 3);
             using ReconstructionWorkspace workspace = new ReconstructionWorkspace();
             BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace, blocks, partitions);

@@ -7,8 +7,8 @@ using System.Runtime.CompilerServices;
 
 namespace Mediana.Codecs.Hevc
 {
-    internal class IntraCodingTreeDecoder(HevcSliceHeader slice, HevcCabacReader reader,
-        CodingBlockMap blocks, QuantizationGroup quantization)
+    internal class CodingTreeDecoder(HevcSliceHeader slice, HevcCabacReader reader,
+        CodingBlockMap blocks, QuantizationGroup quantization, HevcInterPredictionDecoder? inter = null)
     {
         private readonly SequenceParameters sequence = slice.Picture.Sequence;
         private readonly TransformTreeDecoder transforms = new(slice, reader, blocks, quantization);
@@ -80,8 +80,24 @@ namespace Mediana.Codecs.Hevc
         {
             int size = 1 << log2Size;
             bool bypass = slice.Picture.TransquantBypass && reader.Read(CabacElement.TransquantBypass);
-            bool intraSplit = (log2Size == sequence.Log2MinCodingBlock) && !reader.Read(CabacElement.PartMode);
+            bool skipped = false;
+            if (slice.Type != HevcSliceType.I)
+            {
+                if (inter is null) { throw new InvalidOperationException("HEVC inter prediction has no reference context."); }
+                bool left = blocks.Partitions is null || blocks.Partitions.SameSlice(x - 1, y, x, y);
+                bool top = blocks.Partitions is null || blocks.Partitions.SameSlice(x, y - 1, x, y);
+                int context = (left && blocks.IsSkipped(x - 1, y) ? 1 : 0) + (top && blocks.IsSkipped(x, y - 1) ? 1 : 0);
+                skipped = reader.Read(CabacElement.Skip, context);
+            }
+            bool intra = slice.Type == HevcSliceType.I || !skipped && reader.Read(CabacElement.PredictionMode);
             blocks.SetCodingUnit(x, y, size, depth, bypass);
+            if (!intra)
+            {
+                DecodeInter(x, y, log2Size, depth, bypass, skipped, reconstruction);
+                quantization.CompleteCodingUnit(x, y, size); return;
+            }
+            inter?.MarkIntra(x, y, size);
+            bool intraSplit = (log2Size == sequence.Log2MinCodingBlock) && !reader.Read(CabacElement.PartMode);
             modes.ReadLuma(x, y, size, intraSplit);
             Span<int> chromaModes = stackalloc int[4];
             int modeCount = intraSplit && (sequence.ChromaFormat == 3) ? 4 : 1;
@@ -93,6 +109,26 @@ namespace Mediana.Codecs.Hevc
             }
             transforms.Decode(x, y, log2Size, true, intraSplit, false, chromaModes[..modeCount], bypass, reconstruction);
             quantization.CompleteCodingUnit(x, y, size);
+        }
+
+
+        private void DecodeInter(int x, int y, int log2Size, int depth, bool bypass, bool skipped, BlockReconstructor reconstruction)
+        {
+            HevcInterPredictionDecoder prediction = inter ?? throw new InvalidOperationException("Missing HEVC inter prediction context.");
+            int size = 1 << log2Size;
+            blocks.SetInter(x, y, size, skipped);
+            HevcPartitionMode partition = skipped ? HevcPartitionMode.Whole : prediction.ReadPartition(log2Size);
+            Span<HevcPredictionBlock> units = stackalloc HevcPredictionBlock[4];
+            int count = HevcPartitionLayout.Write(partition, x, y, size, units);
+            bool merged = false;
+            for (int i = 0; i < count; i++) { merged = prediction.Decode(units[i], depth, skipped); }
+            bool coded = !skipped && (partition == HevcPartitionMode.Whole && merged || reader.Read(CabacElement.RootCbf));
+            if (coded)
+            {
+                ReadOnlySpan<int> chromaModes = [0];
+                transforms.Decode(x, y, log2Size, false, false, partition != HevcPartitionMode.Whole, chromaModes, bypass, reconstruction);
+            }
+            else { prediction.MarkAvailable(x, y, size); }
         }
 
     }
