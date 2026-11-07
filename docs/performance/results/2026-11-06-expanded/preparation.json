@@ -1,0 +1,33 @@
+{
+  "source_files": {
+    "camera-source.png": {
+      "bytes": 17525994,
+      "sha256": "038aabfb9961bee48079b3b3a9fe5e1d4e8083a0a5ed6971b5ae5e9dfeb19eb2"
+    },
+    "camera-source.jpg": {
+      "bytes": 3752964,
+      "sha256": "db4bf52a0fc5170ecd1e1a3c5f84a4de85ebba47b7e505eac778c047e1b264ed"
+    },
+    "sticker-source.rgba": {
+      "bytes": 188743680,
+      "sha256": "d984a206695b075dd4edddda3f1f96a05ce7ed11a248859732ad1df76d2cf8a0"
+    }
+  },
+  "camera_crop": [
+    500,
+    0,
+    3500,
+    3000
+  ],
+  "camera_size": [
+    2560,
+    2560
+  ],
+  "camera_transform": "heif-convert nearest-neighbor; Pillow ICC to sRGB; center square crop; Lanczos image resize; JPEG quality95 4:4:4",
+  "webp_animation_source_renderer": "Ubuntu rlottie 0.1+dfsg-4ubuntu1.1; 180 raw RGBA frames; lossless encoding coalesces to177",
+  "ogg_reference_count": {
+    "codec_name": "opus",
+    "nb_read_packets": "90001"
+  },
+  "ogg_mediana_packet_count": 90001
+}
