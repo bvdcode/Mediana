@@ -23,8 +23,7 @@ namespace Mediana.Cli
         public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, H264EncoderOptions options,
             int? maximumWidth, int? maximumHeight, bool videoOnly, ILogger logger, CancellationToken cancellationToken)
         {
-            MediaEngine engine = ContainerEngineFactory.CreateBuilder(Mp4TimestampMode.LinearMovie)
-                .AddVideoDecoder(new H264DecoderFactory())
+            MediaEngine engine = ContainerEngineFactory.CreateVideoBuilder(Mp4TimestampMode.LinearMovie)
                 .AddVideoEncoder(new H264EncoderFactory(options))
                 .AddContainerWriter(new MpegTsWriterFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));

@@ -3,7 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using Mediana.Codecs;
-using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -39,7 +38,7 @@ namespace Mediana.Cli
             }
             else
             {
-                MediaEngine engine = ContainerEngineFactory.CreateBuilder(Mp4TimestampMode.LinearMovie).AddVideoDecoder(new H264DecoderFactory()).Build();
+                MediaEngine engine = ContainerEngineFactory.CreateVideoBuilder(Mp4TimestampMode.LinearMovie).Build();
                 await using VideoSession session = stream is int selected
                     ? await engine.OpenVideoAsync(source, selected, cancellationToken: token)
                     : await engine.OpenVideoAsync(source, cancellationToken: token);

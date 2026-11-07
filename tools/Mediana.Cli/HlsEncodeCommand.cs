@@ -20,9 +20,7 @@ namespace Mediana.Cli
             AudioCodecMode? audioCodec, int[] audioBitRates, int? audioChannels, int[] widths, H264RateControlOptions?[]? videoRates,
             int qp, long targetMilliseconds, bool separateAudio, TextWriter console, ILogger logger, CancellationToken token)
         {
-            MediaEngine engine = new MediaEngineBuilder()
-                .AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
-                .AddVideoDecoder(new H264DecoderFactory()).Build();
+            MediaEngine engine = ContainerEngineFactory.CreateVideoBuilder(Mp4TimestampMode.LinearMovie).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             await using VideoSession session = await engine.OpenVideoAsync(source, videoIndex, cancellationToken: token);
             MediaBufferAllocator allocator = new(BufferBudgetBytes);
