@@ -37,6 +37,7 @@ class Result:
     mediana_cpu_seconds: str
     mediana_peak_rss_bytes: str
     report: str
+    quality: str
 
 
 def load_comparisons(path: Path, identifiers: set[str]) -> list[Comparison]:
@@ -71,7 +72,11 @@ def load_results(path: Path, cases: list[Comparison]) -> dict[str, Result]:
         raise ValueError("Duplicate measured case")
     identifiers = {item.id for item in cases}
     for item in rows:
-        if item.case not in identifiers or not (path.parent / item.report).is_file():
+        if (
+            item.case not in identifiers
+            or not (path.parent / item.report).is_file()
+            or not item.quality.strip()
+        ):
             raise ValueError(f"Unknown measured case or missing report: {item.case}")
         for engine in ("alternative", "mediana"):
             for metric in ("elapsed_seconds", "cpu_seconds", "peak_rss_bytes"):
@@ -126,7 +131,7 @@ def render_performance(
         if result is not None:
             reference = metrics(result, "alternative")
             mediana = metrics(result, "mediana")
-            evidence = f"[Measured subset]({result.report})"
+            evidence = f"[Measured subset]({result.report}); {result.quality}"
         else:
             reference = mediana = "—"
             evidence = (

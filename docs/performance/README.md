@@ -27,8 +27,8 @@ that conversion case.
 
 | Case | Operation / representative workload | Track | Alternative | Alternative: elapsed / CPU (ms or s) / peak RSS (MiB) | Mediana: elapsed / CPU (ms or s) / peak RSS (MiB) | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| <a id="heic-photo-12mp"></a>`heic-photo-12mp` | decode: 12 MP real photograph to source-color RGBA8 (no ICC transform) | ordinary | libheif + libde265 | 371.5 ms / CPU 588.0 ms / RSS 73.2 MiB | 610.1 ms / CPU 1.136 s / RSS 65.0 MiB | [Measured subset](results/2026-11-06/README.md) |
-| <a id="heic-photo-200mp"></a>`heic-photo-200mp` | decode: 199.76 MP real tiled photograph to source-color RGBA8 (no ICC transform) | heavy | libheif + libde265 | 3.997 s / CPU 6.189 s / RSS 1074.8 MiB | 5.601 s / CPU 10.930 s / RSS 835.2 MiB | [Measured subset](results/2026-11-06/README.md) |
+| <a id="heic-photo-12mp"></a>`heic-photo-12mp` | decode: 12 MP real photograph to source-color RGBA8 (no ICC transform) | ordinary | libheif + libde265 | 371.5 ms / CPU 588.0 ms / RSS 73.2 MiB | 610.1 ms / CPU 1.136 s / RSS 65.0 MiB | [Measured subset](results/2026-11-06/README.md); Source-color RGBA: max error 1 byte |
+| <a id="heic-photo-200mp"></a>`heic-photo-200mp` | decode: 199.76 MP real tiled photograph to source-color RGBA8 (no ICC transform) | heavy | libheif + libde265 | 3.997 s / CPU 6.189 s / RSS 1074.8 MiB | 5.601 s / CPU 10.930 s / RSS 835.2 MiB | [Measured subset](results/2026-11-06/README.md); Source-color RGBA: max error 1 byte |
 | <a id="heic-preview"></a>`heic-preview` | decode: Real ICC-profiled photograph to full-size PNG | ordinary | libheif + libde265 / heif-convert | — | — | [Related measurements](results/2026-11-06/README.md); target run open |
 | <a id="jpeg-photo"></a>`jpeg-photo` | decode: High-detail photograph and progressive scan to PNG | ordinary | FFmpeg / libjpeg-turbo | — | — | Target run open |
 | <a id="png-large"></a>`png-large` | decode: Large RGBA image with alpha and interlace to PNG | heavy | FFmpeg | — | — | Target run open |
@@ -39,8 +39,8 @@ that conversion case.
 | <a id="jp2-scan"></a>`jp2-scan` | decode: Large tiled high-precision scanned image | heavy | OpenJPEG | — | — | Target run open |
 | <a id="jbig2-scan"></a>`jbig2-scan` | decode: Dense monochrome text/image page with symbol dictionaries | heavy | jbig2dec | — | — | Target run open |
 | <a id="flac-track"></a>`flac-track` | decode: Complete music track to PCM16 WAVE | ordinary | FFmpeg / libFLAC | — | — | Target run open |
-| <a id="flac-sustained"></a>`flac-sustained` | decode: Complete 10-minute stereo stress stream to PCM16 WAVE | heavy | FFmpeg | 628.9 ms / CPU 702.2 ms / RSS 52.0 MiB | 1.574 s / CPU 1.640 s / RSS 26.6 MiB | [Measured subset](results/2026-11-06/README.md) |
-| <a id="mp3-long"></a>`mp3-long` | decode: Complete long mono/stereo recording to PCM16 WAVE | heavy | FFmpeg | 2.596 s / CPU 2.954 s / RSS 52.2 MiB | 7.131 s / CPU 8.345 s / RSS 26.9 MiB | [Measured subset](results/2026-11-06/README.md) |
+| <a id="flac-sustained"></a>`flac-sustained` | decode: Complete 10-minute stereo stress stream to PCM16 WAVE | heavy | FFmpeg | 628.9 ms / CPU 702.2 ms / RSS 52.0 MiB | 1.574 s / CPU 1.640 s / RSS 26.6 MiB | [Measured subset](results/2026-11-06/README.md); Every PCM sample exact |
+| <a id="mp3-long"></a>`mp3-long` | decode: Complete long mono/stereo recording to PCM16 WAVE | heavy | FFmpeg | 2.596 s / CPU 2.954 s / RSS 52.2 MiB | 7.131 s / CPU 8.345 s / RSS 26.9 MiB | [Measured subset](results/2026-11-06/README.md); PCM16: max error 1 unit |
 | <a id="aac-multichannel"></a>`aac-multichannel` | decode: Complete long 5.1 AAC stream to PCM16 WAVE | heavy | FFmpeg | — | — | Target run open |
 | <a id="audio-resample"></a>`audio-resample` | decode: Complete long recording downmix and 48-to-16 kHz resampling | heavy | FFmpeg / libswresample | — | — | Target run open |
 | <a id="avc-decode-30m"></a>`avc-decode-30m` | decode: Every frame of a 30-minute HD video to native YUV | heavy | FFmpeg | — | — | Target run open |
@@ -57,6 +57,28 @@ that conversion case.
 | <a id="ogg-index"></a>`ogg-index` | read: Complete long Opus/Vorbis indexing and packet extraction | heavy | FFmpeg / libogg | — | — | Target run open |
 
 <!-- comparisons:end -->
+
+## HEIC direction and chroma reconstruction
+
+A HEIC workload identifies the operation direction and the chroma reconstruction
+method separately. The decoder exposes [four reconstruction kernels](../chroma-reconstruction.md).
+Bilinear is the current default. The original paired measurements explicitly use
+nearest neighbor; their timings do not establish the cost of another kernel.
+
+| Direction / stage | Method | Mediana status | Reference / measurements |
+| --- | --- | --- | --- |
+| Decode: chroma expansion | Nearest neighbor | Implemented | libheif/libde265; [12 MP](#heic-photo-12mp) and [200 MP](#heic-photo-200mp) |
+| Decode: chroma expansion | Bilinear | Implemented; default | libheif supports this mode; paired CPU/RAM measurements remain open |
+| Decode: chroma expansion | Bicubic (Catmull-Rom) | Implemented | Independent component-plane checks; whole-image CPU/RAM measurements remain open |
+| Decode: chroma expansion | Lanczos3 | Implemented | Radius-three window; independent component-plane checks; whole-image CPU/RAM measurements remain open |
+| Encode: HEVC image and HEIF writing | Separate encoder operation | Not implemented | Decoder results do not establish encoding support |
+
+Nearest neighbor repeats a color sample; bilinear mixes neighboring samples;
+bicubic uses a wider cubic neighborhood; Lanczos uses a windowed sinc filter.
+Compare speed, memory and color-edge quality with the same chroma siting, range,
+precision and color transform. The method name alone does not establish identical
+filter coefficients or boundary handling. Encoding needs separate chroma
+subsampling, compression quality, file-size and timing checks.
 
 ## Measurement contract
 

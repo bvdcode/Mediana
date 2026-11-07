@@ -71,8 +71,8 @@ class PerformanceCatalogTests(unittest.TestCase):
             path.write_text(
                 "case,alternative_elapsed_seconds,alternative_cpu_seconds,"
                 "alternative_peak_rss_bytes,mediana_elapsed_seconds,"
-                "mediana_cpu_seconds,mediana_peak_rss_bytes,report\n"
-                "photo,inf,1,100,1,1,100,report.md\n"
+                "mediana_cpu_seconds,mediana_peak_rss_bytes,report,quality\n"
+                "photo,inf,1,100,1,1,100,report.md,Exact samples\n"
             )
             case = Comparison(
                 "photo", "jpeg-baseline", "decode", "Photo", "Reference", "ordinary", ""
