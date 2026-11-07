@@ -48,6 +48,36 @@ presentation clock. A fixed picture period is distinct from a VOP's fractional
 within-second time increment; its ratio to the resolution defines cadence.
 See [ARIB STD-B24, Volume 1, Annex F, Note 2](https://www.arib.or.jp/english/html/overview/doc/6-STD-B24v5_2-1p3-E1.pdf).
 
+`partial-macroblock` contains 37 pictures at 96×72, with half-pixel four-vector
+motion and B pictures. The bottom eight visible luma rows share a partially
+visible macroblock. Its complete I420 reference was decoded by independent Xvid
+1.3.7 using `xvid_decore`, one thread, and no postprocessing. The test compares
+every visible Y, U and V sample in display order, requires at least 48 dB PSNR
+and maximum error six per picture, and verifies all picture storage is released.
+
+The source is the first 37 coded VOPs, including their original opening headers,
+from this synthetic 96-picture sequence:
+
+```sh
+ffmpeg -f lavfi -i 'testsrc2=size=96x72:rate=24,noise=alls=35:allf=t+u:all_seed=6' \
+  -frames:v 96 -c:v mpeg4 -q:v 8 -flags +mv4 -mbd rd -trellis 1 -bf 2 \
+  -g 48 -threads 1 partial.avi
+ffmpeg -i partial.avi -map 0:v:0 -c:v copy -f m4v partial.m4v
+```
+
+The retained prefix ends immediately before the 38th VOP start code. Xvid emits
+exactly 37 pictures, including the final delayed reference picture. The `.m4v`
+SHA-256 is `d4e02e066c62110ae882bde7cfcdad36fa9e9e2bd994134d1df1478d78fd4464`;
+the 383,616-byte `.yuv` SHA-256 is
+`315bec5f3eb89d4d56846208cb3b206e333984618a2e14f039b7130a7fd3cce8`.
+
+[Xvid 1.3.7 source](https://downloads.xvid.com/downloads/xvidcore-1.3.7.tar.gz),
+`src/image/image.c`, documents reference padding at macroblock boundaries under
+ISO/IEC 14496-2 clause 7.6.4. This fixture distinguishes those reconstructed
+padded samples from clipping each 8×8 prediction's origin to the visible image
+boundary. Decoder-specific numerical differences are evaluated against the
+stated reconstruction tolerance.
+
 The `xvid.avi` fixture retains the original DivX packed transport declaration.
 Its 24 AVI transport ticks contain 22 coded pictures, two initial empty chunks
 and uncoded transport placeholders. Decoding the original AVI with FFmpeg
