@@ -38,6 +38,13 @@ namespace Mediana.Formats.Audio
             return value;
         }
 
+        public bool TryRead(int count, out uint value)
+        {
+            if (!TryPeek(count, out value)) { position = (long)bytes.Length * 8; return false; }
+            position += count;
+            return true;
+        }
+
         public void Skip(long count)
         {
             if (count < 0 || count > Remaining) { throw new InvalidDataException("The Vorbis bitstream is truncated."); }
