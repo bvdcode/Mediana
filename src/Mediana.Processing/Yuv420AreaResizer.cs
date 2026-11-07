@@ -16,16 +16,18 @@ namespace Mediana.Processing
         private readonly VideoFormat inputFormat;
         private readonly MediaBufferAllocator allocator;
         private readonly WritableMediaBuffer ranges;
+        private readonly WritableMediaBuffer? workspace;
         private bool disposed;
         private int busy;
 
         private Yuv420AreaResizer(VideoFormat inputFormat, VideoFormat outputFormat, MediaBufferAllocator allocator,
-            WritableMediaBuffer ranges)
+            WritableMediaBuffer ranges, WritableMediaBuffer? workspace)
         {
             this.inputFormat = inputFormat;
             OutputFormat = outputFormat;
             this.allocator = allocator;
             this.ranges = ranges;
+            this.workspace = workspace;
         }
 
         public VideoFormat OutputFormat { get; }
@@ -49,6 +51,7 @@ namespace Mediana.Processing
             VideoFormat outputFormat = new(width, height, VideoPixelFormat.Yuv420P8, inputFormat.Color, aspect, inputFormat.ColorDescription);
             WritableMediaBuffer storage = allocator.Allocate(checked((width + height + width / 2 + height / 2) * RangeBytes));
             bool succeeded = false;
+            WritableMediaBuffer? workspace = null;
             try
             {
                 Span<AreaSampleRange> all = MemoryMarshal.Cast<byte, AreaSampleRange>(storage.Memory.Span);
@@ -60,7 +63,11 @@ namespace Mediana.Processing
                 AreaSampleRange.Fill(all.Slice(offset, width / 2), inputFormat.Width / 2, horizontal + 1, cancellationToken);
                 offset += width / 2;
                 AreaSampleRange.Fill(all.Slice(offset, height / 2), inputFormat.Height / 2, vertical + 1, cancellationToken);
-                Yuv420AreaResizer result = new(inputFormat, outputFormat, allocator, storage);
+                if (width != inputFormat.Width || height != inputFormat.Height)
+                {
+                    workspace = allocator.Allocate(checked(2 * width * sizeof(long)));
+                }
+                Yuv420AreaResizer result = new(inputFormat, outputFormat, allocator, storage, workspace);
                 succeeded = true;
                 return result;
             }
@@ -69,6 +76,7 @@ namespace Mediana.Processing
                 if (!succeeded)
                 {
                     storage.Dispose();
+                    workspace?.Dispose();
                 }
             }
         }
@@ -113,6 +121,19 @@ namespace Mediana.Processing
                 }
                 PlaneLayout[] planes = OutputFormat.CreateTightLayout();
                 using WritableMediaBuffer output = allocator.Allocate(checked((int)planes[^1].EndOffset));
+                if (workspace is null)
+                {
+                    for (int plane = 0; plane < planes.Length; plane++)
+                    {
+                        for (int y = 0; y < planes[plane].Height; y++)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            input.GetRow(plane, y).CopyTo(output.Memory.Span.Slice(planes[plane].Offset + y * planes[plane].Stride));
+                        }
+                    }
+                    using MediaBuffer copy = output.Publish();
+                    return new VideoFrame(OutputFormat, copy, planes, input.Timestamp, input.Duration);
+                }
                 ReadOnlySpan<AreaSampleRange> all = MemoryMarshal.Cast<byte, AreaSampleRange>(ranges.Memory.Span);
                 int offset = 0;
                 ReadOnlySpan<AreaSampleRange> lumaX = all.Slice(offset, OutputFormat.Width);
@@ -125,7 +146,8 @@ namespace Mediana.Processing
                 for (int plane = 0; plane < 3; plane++)
                 {
                     Render(input, plane, output.Memory.Span.Slice(planes[plane].Offset), planes[plane].Stride,
-                        plane == 0 ? lumaX : chromaX, plane == 0 ? lumaY : chromaY, cancellationToken);
+                        plane == 0 ? lumaX : chromaX, plane == 0 ? lumaY : chromaY,
+                        MemoryMarshal.Cast<byte, long>(workspace.Memory.Span), cancellationToken);
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 using MediaBuffer buffer = output.Publish();
@@ -138,36 +160,62 @@ namespace Mediana.Processing
         }
 
         private static void Render(VideoFrame input, int plane, Span<byte> output, int stride,
-            ReadOnlySpan<AreaSampleRange> horizontal, ReadOnlySpan<AreaSampleRange> vertical, CancellationToken cancellationToken)
+            ReadOnlySpan<AreaSampleRange> horizontal, ReadOnlySpan<AreaSampleRange> vertical,
+            Span<long> workspace, CancellationToken cancellationToken)
         {
-            long denominator = 16L * input.Planes[plane].RowBytes * input.Planes[plane].Height;
+            int sourceWidth = input.Planes[plane].RowBytes;
+            long denominator = 16L * sourceWidth * input.Planes[plane].Height;
+            Span<long> filtered = workspace[..horizontal.Length];
+            Span<long> sums = workspace.Slice(horizontal.Length, horizontal.Length);
+            int cachedRow = -1;
             for (int y = 0; y < vertical.Length; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 AreaSampleRange rows = vertical[y];
-                for (int x = 0; x < horizontal.Length; x++)
+                sums.Clear();
+                for (int sourceY = rows.First; sourceY <= rows.Last; sourceY++)
                 {
-                    if ((x & 255) == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (sourceY != cachedRow)
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
+                        FilterRow(input.GetRow(plane, sourceY), horizontal, filtered, cancellationToken);
+                        cachedRow = sourceY;
                     }
-                    AreaSampleRange columns = horizontal[x];
-                    long sum = 0;
-                    for (int sourceY = rows.First; sourceY <= rows.Last; sourceY++)
+                    long weight = rows.Weight(sourceY, 4L * vertical.Length);
+                    for (int x = 0; x < sums.Length; x++)
                     {
-                        ReadOnlySpan<byte> row = input.GetRow(plane, sourceY);
-                        long weightY = rows.Weight(sourceY, 4L * vertical.Length);
-                        for (int sourceX = columns.First; sourceX <= columns.Last; sourceX++)
-                        {
-                            if ((sourceX & 1023) == 0)
-                            {
-                                cancellationToken.ThrowIfCancellationRequested();
-                            }
-                            sum += row[sourceX] * columns.Weight(sourceX, 4L * horizontal.Length) * weightY;
-                        }
+                        sums[x] += filtered[x] * weight;
                     }
-                    output[y * stride + x] = (byte)((sum + denominator / 2) / denominator);
                 }
+                Span<byte> outputRow = output.Slice(y * stride, horizontal.Length);
+                for (int x = 0; x < sums.Length; x++)
+                {
+                    outputRow[x] = (byte)((sums[x] + denominator / 2) / denominator);
+                }
+            }
+        }
+
+        private static void FilterRow(ReadOnlySpan<byte> input, ReadOnlySpan<AreaSampleRange> horizontal,
+            Span<long> output, CancellationToken cancellationToken)
+        {
+            long interiorWeight = 4L * horizontal.Length;
+            for (int x = 0; x < horizontal.Length; x++)
+            {
+                if ((x & 1023) == 0) { cancellationToken.ThrowIfCancellationRequested(); }
+                AreaSampleRange columns = horizontal[x];
+                long sum = input[columns.First] * columns.FirstWeight;
+                if (columns.Last > columns.First)
+                {
+                    sum += input[columns.Last] * columns.LastWeight;
+                    long interior = 0;
+                    for (int sourceX = columns.First + 1; sourceX < columns.Last; sourceX++)
+                    {
+                        if ((sourceX & 1023) == 0) { cancellationToken.ThrowIfCancellationRequested(); }
+                        interior += input[sourceX];
+                    }
+                    sum += interior * interiorWeight;
+                }
+                output[x] = sum;
             }
         }
 
@@ -186,6 +234,7 @@ namespace Mediana.Processing
             {
                 disposed = true;
                 ranges.Dispose();
+                workspace?.Dispose();
             }
             finally
             {

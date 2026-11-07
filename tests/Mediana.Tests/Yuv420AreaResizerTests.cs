@@ -55,6 +55,43 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void VariedRatiosAndRepeatedFramesMatchIndependentAreaIntegrals()
+        {
+            Random sizes = new(5418);
+            foreach (ChromaLocation location in new[] { ChromaLocation.Left, ChromaLocation.Center,
+                ChromaLocation.TopLeft, ChromaLocation.Top, ChromaLocation.BottomLeft, ChromaLocation.Bottom })
+            {
+                for (int example = 0; example < 12; example++)
+                {
+                    MediaBufferAllocator allocator = new(65536);
+                    int width = 2 * sizes.Next(2, 9);
+                    int height = 2 * sizes.Next(2, 8);
+                    int targetWidth = 2 * sizes.Next(1, width / 2 + 1);
+                    int targetHeight = 2 * sizes.Next(1, height / 2 + 1);
+                    using VideoFrame input = CreateFrame(width, height, location, allocator, true);
+                    using Yuv420AreaResizer resizer = Yuv420AreaResizer.Create(input.Format, targetWidth, targetHeight, allocator);
+                    for (int repeat = 0; repeat < 2; repeat++)
+                    {
+                        using VideoFrame output = resizer.Apply(input);
+                        for (int plane = 0; plane < 3; plane++)
+                        {
+                            for (int y = 0; y < output.Planes[plane].Height; y++)
+                            {
+                                for (int x = 0; x < output.Planes[plane].RowBytes; x++)
+                                {
+                                    Assert.Equal(Reference(input, plane, x, y, output.Planes[plane].RowBytes,
+                                        output.Planes[plane].Height), output.GetRow(plane, y)[x]);
+                                }
+                            }
+                        }
+                    }
+                    resizer.Dispose(); input.Dispose();
+                    Assert.Equal(0, allocator.AllocatedBytes);
+                }
+            }
+        }
+
+        [Fact]
         public void CenteredCheckerboardReducesToAnAverageInsteadOfAliasing()
         {
             MediaBufferAllocator allocator = new(65536);
@@ -104,6 +141,16 @@ namespace Mediana.Tests
             output.Dispose();
             Assert.Equal(held, allocator.AllocatedBytes);
             input.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public void WorkspaceAllocationFailureReleasesTheSamplingPlan()
+        {
+            VideoFormat format = new(1920, 1080, VideoPixelFormat.Yuv420P8,
+                new(ChromaLocation: ChromaLocation.Left));
+            MediaBufferAllocator allocator = new(72_000);
+            Assert.Throws<MediaMemoryLimitException>(() => Yuv420AreaResizer.Create(format, 1280, 720, allocator));
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
