@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using Mediana.Core.Metadata;
+using Mediana.Core.Video;
 using Mediana.Formats.Metadata;
 
 namespace Mediana.Codecs.Webp
@@ -15,6 +16,8 @@ namespace Mediana.Codecs.Webp
         internal int LoopCount;
         internal bool Animated;
         internal ReadOnlyMemory<byte> Icc, Exif, Xmp;
+        internal OrthogonalTransform Orientation { get; }
+        private ReadOnlyMemory<byte> ExifTiff => Exif.Span.StartsWith("Exif\0\0"u8) ? Exif[6..] : Exif;
         internal readonly List<WebpDecodedFrame> Frames = [];
         internal WebpDocument(ReadOnlyMemory<byte> encoded, CancellationToken token)
         {
@@ -89,6 +92,7 @@ namespace Mediana.Codecs.Webp
             { throw new InvalidDataException("WebP features require an extended header."); }
             if (flags >= 0 && (((flags & 32) != 0) != !Icc.IsEmpty || ((flags & 8) != 0) != !Exif.IsEmpty || ((flags & 4) != 0) != !Xmp.IsEmpty))
             { throw new InvalidDataException("WebP metadata flags disagree with its chunks."); }
+            Orientation = Exif.IsEmpty ? OrthogonalTransform.Identity : ExifOrientation.Read(ExifTiff, token);
         }
         private static void Unique(ref ReadOnlyMemory<byte> destination, ReadOnlyMemory<byte> value)
         {
@@ -136,15 +140,14 @@ namespace Mediana.Codecs.Webp
         internal ImageInfo Inspect(CancellationToken token)
         {
             List<MediaProperty> properties = [new("media", "codec", Frames.All(frame => frame.Lossless) ? "vp8l" : Frames.All(frame => !frame.Lossless) ? "vp8" : "vp8/vp8l"),
-                new("webp", "animated", Animated), new("webp", "frame_count", Frames.Count)];
+                new("webp", "animated", Animated), new("webp", "frame_count", Frames.Count), new("webp", "stored_dimensions", Width, Height)];
             if (Animated) { properties.AddRange([new("webp", "loop_count", LoopCount), new("webp", "background_bgra", Background)]); }
             if (!Icc.IsEmpty) { properties.Add(new("icc", "profile", MediaPropertyValue.FromBytes(Icc.Span))); }
             if (!Xmp.IsEmpty) { properties.Add(new("xmp", "packet", MediaPropertyValue.FromBytes(Xmp.Span))); }
             List<MediaMetadata> children = [];
             if (!Exif.IsEmpty)
             {
-                ReadOnlyMemory<byte> tiff = Exif.Span.StartsWith("Exif\0\0"u8) ? Exif[6..] : Exif;
-                children.Add(ExifMetadataReader.Read(tiff, token));
+                children.Add(ExifMetadataReader.Read(ExifTiff, token));
             }
             if (Animated)
             {
@@ -155,7 +158,8 @@ namespace Mediana.Codecs.Webp
                         new("webp", "duration_ms", frame.Duration), new("webp", "replace", frame.Replace), new("webp", "dispose_to_background", frame.Dispose)]));
                 }
             }
-            return new("webp", Width, Height, ImageDimensionUnit.Pixels, duration: Animated ? new(Duration, new(1, 1000)) : null,
+            return new("webp", Orientation.SwapsAxes ? Height : Width, Orientation.SwapsAxes ? Width : Height,
+                ImageDimensionUnit.Pixels, duration: Animated ? new(Duration, new(1, 1000)) : null,
                 metadata: new("image", properties, children));
         }
     }

@@ -40,6 +40,10 @@ namespace Mediana.Codecs.Jpeg
             }
             if (AdobeColorTransform is int transform) { properties.Add(new("jpeg", "adobe_color_transform", transform)); }
             if (IsSrgb) { properties.Add(new("exif", "color_space", "sRGB")); }
+            if (image.Warnings.Count != 0)
+            {
+                properties.Add(new("media", "warnings", image.Warnings.Select(warning => (MediaPropertyValue)warning).ToArray()));
+            }
             List<MediaMetadata> components = image.Components.Select((component, index) => new MediaMetadata("component/" + index,
                 [new("jpeg", "identifier", (uint)component.Id), new("jpeg", "sampling_factors", component.Horizontal, component.Vertical)])).ToList();
             return new("image", properties, components.Concat(inspection));

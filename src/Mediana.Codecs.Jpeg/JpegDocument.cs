@@ -73,6 +73,10 @@ namespace Mediana.Codecs.Jpeg
                             AddWarning("JPEG JFIF and Exif chroma positions conflict; using centered JFIF chroma positioning.");
                         }
                     }
+                    if (metadata.HasUnalignedExifOffsets)
+                    {
+                        AddWarning("JPEG Exif contains unaligned offsets; reading values at their declared byte positions.");
+                    }
                     if (Progressive && allocator is not null)
                     {
                         foreach (JpegComponent component in components)
@@ -113,7 +117,7 @@ namespace Mediana.Codecs.Jpeg
                     case >= 224 and <= 239:
                         if (!componentSamples || marker == 238)
                         {
-                            metadata.Read(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);
+                            metadata.Read(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), options.AllowUnalignedExifOffsets, token);
                             if (allocator is null)
                             {
                                 metadata.Inspect(marker, encoded.Slice(reader.Position - segment.Length, segment.Length), token);

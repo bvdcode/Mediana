@@ -26,8 +26,16 @@ ordering and consecutive IDAT data. Chunk boundaries can split any part of the
 zlib stream, including its header and checksum. A truncated zlib stream or an
 incorrect scanline length is rejected. Unknown critical chunks are unsupported;
 unknown ancillary chunks are skipped. Unused trailing bytes in the final IDAT
-are ignored as prescribed by PNG section 11.2.3. APNG and Exif presentation
-transforms are explicitly unsupported.
+are ignored as prescribed by PNG section 11.2.3. APNG remains unsupported.
+
+The primary Exif Orientation tag in an eXIf chunk supports all eight rotations
+and reflections, in either TIFF byte order. Both probing and decoding report the
+oriented dimensions. The original Exif tree and `png.stored_dimensions` retain
+the source declarations. Orientation is applied directly while expanding each
+scanline, including Adam7 passes and reduced decoding, without allocating a
+second image. Axis swaps invert the sample aspect ratio. Invalid orientation
+values, types, counts or truncated TIFF data are rejected before pixel allocation.
+The eXIf layout follows [PNG section 11.3.4.5](https://www.w3.org/TR/png-3/#eXIf).
 
 `PngDecodeOptions` bounds encoded bytes, pixel count and chunk count before
 decoding. Defaults are 64 MiB, 16,777,216 pixels and 100,000 chunks. Encoded bytes

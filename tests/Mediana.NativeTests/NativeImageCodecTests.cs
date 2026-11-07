@@ -10,6 +10,9 @@ namespace Mediana.NativeTests
         internal static async Task RunAsync()
         {
             await NativeWebpTests.RunAsync();
+            await ImageExifOrientationTestInput.VerifyPngAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
+            await ImageExifOrientationTestInput.VerifyWebpAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Raster"));
+            ImageExifOrientationTestInput.VerifyInvalidMetadata();
             await PngDecodeTestInput.VerifyCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
             await PngDecodeTestInput.VerifyReducedCorpusAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Png"));
             await PngDecodeTestInput.VerifyIntegrityAsync();

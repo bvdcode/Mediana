@@ -13,6 +13,30 @@ and [VP8 decoding specification](https://www.rfc-editor.org/rfc/rfc6386).
 container, frame and EXIF/GPS/ICC/XMP metadata without decoding samples. See
 [raster decoding, selection and ownership](raster-decoding.md).
 
+Decoding applies all eight primary Exif orientations after animation composition;
+disposal rectangles and blending stay in the encoded canvas coordinates. Probe
+dimensions describe the oriented canvas, while `webp.stored_dimensions` and the
+Exif tree retain the original declarations. Color, alpha, timestamps and frame
+durations survive the transform. For an oriented still, the allocator accounts
+for the decoded canvas and one oriented output during publication. Animation
+orientation is fused into the independent frame copy already required for each
+snapshot. Identity still images continue to transfer their decoded storage.
+
+## RIFF padding interoperability
+
+Chunk sizes exclude padding; an odd payload is followed by one zero byte outside
+the payload. The writer preserves this framing for VP8, VP8L, ALPH and metadata.
+
+The authored `webp-vp8-odd-padding.webp` reference contains a final 275-byte VP8
+payload and a zero RIFF pad. Mediana, FFmpeg and Pillow/libwebp decode the complete
+file. ImageSharp 4.1.3 throws `Invalid Webp data, could not read chunk type`.
+Its [VP8 parser](https://github.com/SixLabors/ImageSharp/blob/v4.1.3/src/ImageSharp/Formats/Webp/WebpChunkParsingUtils.cs)
+consumes the declared VP8 payload without advancing past the pad; the extended
+chunk loop then attempts to read another header from the remaining single byte.
+An equivalent control that includes that zero in the VP8 payload length instead
+opens in ImageSharp and produces identical libwebp pixels. The encoder retains
+the RIFF framing specified by the format.
+
 ## Still images
 
 Input is a borrowed `VideoFrame` with straight RGBA32 pixels, full-range sRGB

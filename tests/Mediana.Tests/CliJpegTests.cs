@@ -17,6 +17,21 @@ namespace Mediana.Tests
         private readonly string directory = Directory.CreateTempSubdirectory("mediana-jpeg-").FullName;
 
         [Fact]
+        public async Task UnalignedExifCanBeProbedAndConvertedWithAnExplicitWarning()
+        {
+            byte[] encoded = await JpegExifTestInput.UnalignedAsync(Path.Combine(AppContext.BaseDirectory, "Data", "JpegExif"));
+            string input = Path.Combine(directory, "image.bin"), output = Path.Combine(directory, "image.png");
+            await File.WriteAllBytesAsync(input, encoded);
+            (int code, string text, string error) = await CliTests.RunAsync(["probe", input]);
+            Assert.True(code == 0, error);
+            Assert.Contains("19x35 pixels", text, StringComparison.Ordinal);
+            Assert.Contains(JpegExifTestInput.UnalignedWarning, text, StringComparison.Ordinal);
+            (code, _, error) = await CliTests.RunAsync(["-i", input, output]);
+            Assert.True(code == 0, error);
+            Assert.True(File.Exists(output));
+        }
+
+        [Fact]
         public async Task JfifCorpusConvertsByContentWithCompleteIndependentPixelChecks()
         {
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg");

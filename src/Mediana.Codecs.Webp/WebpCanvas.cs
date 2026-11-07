@@ -21,7 +21,9 @@ namespace Mediana.Codecs.Webp
             this.document = document; this.allocator = allocator;
             if (request.MaximumPixels is int limit && (long)document.Width * document.Height > limit) { throw new InvalidDataException("WebP source exceeds MaximumPixels."); }
             VideoColorDescription? color = document.Icc.IsEmpty ? null : new IccColorDescription(document.Icc.Span, false);
-            format = new(document.Width, document.Height, VideoPixelFormat.Rgba32, VideoColorInfo.Srgb, SampleAspectRatio.Square, color);
+            bool swap = document.Orientation.SwapsAxes;
+            format = new(swap ? document.Height : document.Width, swap ? document.Width : document.Height,
+                VideoPixelFormat.Rgba32, VideoColorInfo.Srgb, SampleAspectRatio.Square, color);
             layout = format.CreateTightLayout(); canvas = allocator.Allocate(checked((int)layout[0].EndOffset));
             bool complete = false;
             try { if (document.Animated) { Clear(0, 0, document.Width, document.Height, token); } complete = true; }
@@ -86,12 +88,35 @@ namespace Mediana.Codecs.Webp
                 MemoryMarshal.Cast<byte, uint>(canvas.Memory.Span.Slice((row * document.Width + left) * 4, width * 4)).Fill(rgba);
             }
         }
-        internal VideoFrame Frame(long start, int duration, bool transfer)
+        internal VideoFrame Frame(long start, int duration, bool transfer, CancellationToken token)
         {
-            using WritableMediaBuffer? copy = transfer ? null : allocator.Allocate(canvas.Memory.Length);
-            if (copy is not null) { canvas.Memory.CopyTo(copy.Memory); }
+            token.ThrowIfCancellationRequested();
+            OrthogonalTransform orientation = document.Orientation;
+            using WritableMediaBuffer? copy = transfer && orientation == OrthogonalTransform.Identity ? null : allocator.Allocate(canvas.Memory.Length);
+            if (copy is not null)
+            {
+                if (orientation == OrthogonalTransform.Identity) { canvas.Memory.CopyTo(copy.Memory); }
+                else { CopyOriented(copy.Memory.Span, orientation, token); }
+            }
+            token.ThrowIfCancellationRequested();
             using MediaBuffer pixels = (copy ?? canvas).Publish();
             return new(format, pixels, layout, new(start, new(1, 1000)), document.Animated ? new(duration, new(1, 1000)) : null);
+        }
+
+        private void CopyOriented(Span<byte> target, OrthogonalTransform orientation, CancellationToken token)
+        {
+            ReadOnlySpan<byte> source = canvas.Memory.Span;
+            for (int y = 0; y < format.Height; y++)
+            {
+                token.ThrowIfCancellationRequested();
+                int sourceX = orientation.SourceX(0, y, document.Width);
+                int sourceY = orientation.SourceY(0, y, document.Height);
+                for (int x = 0; x < format.Width; x++, sourceX += orientation.A, sourceY += orientation.C)
+                {
+                    if ((x & 1023) == 0) { token.ThrowIfCancellationRequested(); }
+                    source.Slice((sourceY * document.Width + sourceX) * 4, 4).CopyTo(target.Slice((y * format.Width + x) * 4, 4));
+                }
+            }
         }
         public void Dispose() => canvas.Dispose();
     }

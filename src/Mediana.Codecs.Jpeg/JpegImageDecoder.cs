@@ -60,7 +60,8 @@ namespace Mediana.Codecs.Jpeg
                 MaximumPixels = Math.Min(maximum, options.MaximumPixels),
                 MaximumEncodedBytes = options.MaximumEncodedBytes,
                 MaximumMarkers = options.MaximumMarkers,
-                ChromaConflictPolicy = options.ChromaConflictPolicy
+                ChromaConflictPolicy = options.ChromaConflictPolicy,
+                AllowUnalignedExifOffsets = options.AllowUnalignedExifOffsets
             } : options;
             using JpegDocument image = new(encoded, limits, sourceColorSpace, sampleAspectRatio, cancellationToken);
             image.Read(allocator);

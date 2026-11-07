@@ -66,6 +66,25 @@ with its missing-label policy. See [ICC conversion](icc-color.md).
 
 ## Exif presentation
 
+TIFF requires directories and out-of-line values to begin on word boundaries
+([TIFF 6.0, section 2](https://download.osgeo.org/libtiff/doc/TIFF6.pdf)). The JPEG
+presentation reader rejects unaligned primary/color-directory and recognized
+rational offsets by default. To read such exports at their declared byte positions:
+
+```csharp
+JpegImageDecoder jpeg = new(new JpegDecodeOptions
+{
+    AllowUnalignedExifOffsets = true
+});
+ImageDecodeRequest request = new() { WarningHandler = warnings.Add };
+using VideoFrame image = await jpeg.DecodeAsync(encoded, request, allocator, cancellationToken);
+```
+
+The option preserves bounds, type, count, value and conflict validation. A decode
+reports one warning through the request; inspection retains warnings in the
+`media.warnings` metadata property. The CLI enables this option for both probing
+and conversion. Truncated values and offsets into the TIFF header remain errors.
+
 Standalone decoding reads the primary Exif TIFF directory and its Exif color
 directory in either byte order. Offsets, directory extents, ordered unique tags,
 recognized scalar types/counts and rational values are checked within the APP1
