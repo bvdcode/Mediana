@@ -11,6 +11,7 @@ using Mediana.Codecs.Jpeg;
 using Mediana.Codecs.Vp8;
 using Mediana.Codecs.Vp9;
 using Mediana.Codecs.Theora;
+using Mediana.Codecs.Mpeg4Visual;
 using Mediana.Containers.Ogg;
 using Mediana.Containers.Avi;
 using Mediana.Containers.Matroska;
@@ -23,7 +24,7 @@ namespace Mediana.OperationComparison
 {
     internal static class VideoComparison
     {
-        internal static async Task RunAsync(string input, string destination, bool pooled = false)
+        internal static async Task RunAsync(string input, string destination, bool pooled = false, bool writePixels = false)
         {
             using Process process = Process.GetCurrentProcess();
             long allocated = GC.GetTotalAllocatedBytes(true);
@@ -32,12 +33,12 @@ namespace Mediana.OperationComparison
             MediaEngine engine = new MediaEngineBuilder()
                 .AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
                 .AddContainer(new OggReaderFactory()).AddContainer(new AviReaderFactory()).AddContainer(new MatroskaReaderFactory())
-                .AddVideoDecoder(new TheoraDecoderFactory()).AddVideoDecoder(new Vp8DecoderFactory()).AddVideoDecoder(new Vp9DecoderFactory()).AddVideoDecoder(new MjpegDecoderFactory()).AddVideoDecoder(new H264DecoderFactory()).Build();
+                .AddVideoDecoder(new Mpeg4DecoderFactory()).AddVideoDecoder(new TheoraDecoderFactory()).AddVideoDecoder(new Vp8DecoderFactory()).AddVideoDecoder(new Vp9DecoderFactory()).AddVideoDecoder(new MjpegDecoderFactory()).AddVideoDecoder(new H264DecoderFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             MediaBufferAllocator allocator = pooled ? new(64 * 1024 * 1024, MemoryPool<byte>.Shared) : new(64 * 1024 * 1024);
             await using VideoSession session = await engine.OpenVideoAsync(source, allocator, new(), 0);
             await using FileStream output = new(destination, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
-            await using StreamWriter writer = new(output);
+            await using StreamWriter? writer = writePixels ? null : new(output);
             using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             int pictures = 0;
             while (await session.ReadFrameAsync() is VideoFrame frame)
@@ -50,7 +51,7 @@ namespace Mediana.OperationComparison
                     {
                         throw new InvalidDataException("Frame duration uses a different clock.");
                     }
-                    if (pictures == 0)
+                    if (pictures == 0 && writer is not null)
                     {
                         await writer.WriteLineAsync($"#tb 0: {timestamp.TimeBase.Numerator}/{timestamp.TimeBase.Denominator}");
                     }
@@ -60,12 +61,20 @@ namespace Mediana.OperationComparison
                         for (int row = 0; row < frame.Planes[plane].Height; row++)
                         {
                             hash.AppendData(frame.GetRow(plane, row));
+                            if (writePixels)
+                            {
+                                PlaneLayout layout = frame.Planes[plane];
+                                await output.WriteAsync(frame.Data.Slice(checked(layout.Offset + row * layout.Stride), layout.RowBytes));
+                            }
                             bytes = checked(bytes + frame.Planes[plane].RowBytes);
                         }
                     }
                     string digest = Convert.ToHexStringLower(hash.GetHashAndReset());
-                    await writer.WriteLineAsync(string.Create(CultureInfo.InvariantCulture,
-                        $"0, {timestamp.Value}, {timestamp.Value}, {duration.Value}, {bytes}, {digest}"));
+                    if (writer is not null)
+                    {
+                        await writer.WriteLineAsync(string.Create(CultureInfo.InvariantCulture,
+                            $"0, {timestamp.Value}, {timestamp.Value}, {duration.Value}, {bytes}, {digest}"));
+                    }
                     pictures++;
                 }
             }
@@ -74,7 +83,8 @@ namespace Mediana.OperationComparison
             {
                 throw new InvalidDataException("Empty decode or retained frame storage.");
             }
-            await writer.FlushAsync();
+            if (writer is not null) { await writer.FlushAsync(); }
+            else { await output.FlushAsync(); }
             watch.Stop();
             cpu = process.TotalProcessorTime - cpu;
             allocated = GC.GetTotalAllocatedBytes(true) - allocated;

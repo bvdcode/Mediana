@@ -29,6 +29,20 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS public Vorbis PCM: 1,183 sequential packets, 128 transforms, sample clocks, overlap transitions and lease ownership match independent references.");
             await Vp8ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Vp8"));
             Console.WriteLine("PASS VP8 video: exact WebM pictures, hidden references, repeated indexed seeks, AVC encoding and pooled buffer release.");
+            foreach (string visualName in new[] { "bframes", "fractional", "quarter" })
+            {
+                Mediana.Core.Timing.TimeBase cadence = visualName switch
+                {
+                    "fractional" => new(1001, 30000),
+                    "bframes" or "quarter" => new(1, 12),
+                    _ => throw new InvalidDataException("Unknown MPEG-4 Visual reference cadence.")
+                };
+                foreach (string extension in new[] { "avi", "mp4" })
+                {
+                    await Mpeg4ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mpeg4Visual"), visualName, extension, cadence);
+                }
+            }
+            Console.WriteLine("PASS MPEG-4 Visual: complete I/P/B sequences, exact clocks, reverse indexed seeks, previews and AVC intervals.");
             foreach (string name in new[] { "main420", "chroma422", "chroma444", "motion", "noise", "odd420", "duplicate", "fractional", "av" })
             { await TheoraContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Theora"), name); }
             Console.WriteLine("PASS Theora video: exact native planes, fractional clocks, Ogg/Vorbis multiplexing, indexed seeks, previews, AVC encoding and pooled buffer release.");

@@ -7,6 +7,7 @@
     <ProductRoot Condition="'$(ProductRoot)' == ''">../../..</ProductRoot>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="$(ProductRoot)/src/Mediana.Codecs.Mpeg4Visual/Mediana.Codecs.Mpeg4Visual.csproj" />
     <ProjectReference Include="$(ProductRoot)/src/Mediana/Mediana.csproj" />
     <ProjectReference Include="$(ProductRoot)/src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
     <ProjectReference Include="$(ProductRoot)/src/Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />

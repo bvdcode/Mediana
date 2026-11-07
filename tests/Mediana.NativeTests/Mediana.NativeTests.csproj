@@ -9,6 +9,10 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/Mpeg4TestInput.cs" Link="Mpeg4TestInput.cs" />
+    <Compile Include="../Shared/Mpeg4ContainerTestInput.cs" Link="Mpeg4ContainerTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Mpeg4Visual/Mediana.Codecs.Mpeg4Visual.csproj" />
+    <None Include="../Mediana.Codecs.Mpeg4Visual.Tests/Data/*" Link="Data/Mpeg4Visual/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/TheoraContainerTestInput.cs" Link="TheoraContainerTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Theora/Mediana.Codecs.Theora.csproj" />
     <None Include="../Mediana.Codecs.Theora.Tests/Data/*" Link="Data/Theora/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
