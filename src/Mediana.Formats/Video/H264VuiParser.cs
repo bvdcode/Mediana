@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core.Video;
+
 namespace Mediana.Formats.Video
 {
     /// <summary>Reads VUI declarations and validates bounded timing, HRD and picture-buffering syntax.</summary>
@@ -15,28 +17,13 @@ namespace Mediana.Formats.Video
             if (bits.ReadFlag())
             {
                 int aspectRatioIdc = (int)bits.ReadBits(8);
-                (int width, int height) = aspectRatioIdc switch
+                int width, height;
+                if (aspectRatioIdc == 255) { width = (int)bits.ReadBits(16); height = (int)bits.ReadBits(16); }
+                else
                 {
-                    0 => (0, 0),
-                    1 => (1, 1),
-                    2 => (12, 11),
-                    3 => (10, 11),
-                    4 => (16, 11),
-                    5 => (40, 33),
-                    6 => (24, 11),
-                    7 => (20, 11),
-                    8 => (32, 11),
-                    9 => (80, 33),
-                    10 => (18, 11),
-                    11 => (15, 11),
-                    12 => (64, 33),
-                    13 => (160, 99),
-                    14 => (4, 3),
-                    15 => (3, 2),
-                    16 => (2, 1),
-                    255 => ((int)bits.ReadBits(16), (int)bits.ReadBits(16)),
-                    _ => throw new InvalidDataException("The H.264 aspect ratio identifier is reserved.")
-                };
+                    SampleAspectRatio? ratio = SampleAspectRatioCode.Get(aspectRatioIdc);
+                    width = ratio?.Numerator ?? 0; height = ratio?.Denominator ?? 0;
+                }
                 result = result with { AspectRatioWidth = width, AspectRatioHeight = height };
             }
             aspectEnd = bits.BitPosition;
