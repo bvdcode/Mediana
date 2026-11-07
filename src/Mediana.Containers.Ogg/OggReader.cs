@@ -9,10 +9,10 @@ using Mediana.IO;
 
 namespace Mediana.Containers.Ogg
 {
-    /// <summary>Indexes Opus/Vorbis packets in a complete Ogg source, including separate logical streams and links.
-    /// Opening scans and verifies pages, retaining only headers and packet locations, not compressed audio.
+    /// <summary>Indexes Theora/Opus/Vorbis packets in a complete Ogg source, including separate logical streams and links.
+    /// Opening scans and verifies pages, retaining only headers and packet locations, not compressed media.
     /// Borrows an immutable random-access source. Operations must not overlap; failed reads can be retried.</summary>
-    public class OggReader : IIndexedPrerollReader, IIndexedPresentationTimingReader
+    public class OggReader : IIndexedPrerollReader, IIndexedPresentationTimingReader, IIndexedPacketTimingReader
     {
         private readonly IRandomAccessByteSource source;
         private readonly MediaBufferAllocator allocator;
@@ -64,7 +64,7 @@ namespace Mediana.Containers.Ogg
                     {
                         if (!active.TryGetValue((packet.LinkIndex, packet.Serial), out OggTrack? track))
                         {
-                            track = new(tracks.Count, packet, allocator);
+                            track = OggTrack.Create(tracks.Count, packet, allocator);
                             bool added = false;
                             try { tracks.Add(track); added = true; }
                             finally { if (!added) { track.Dispose(); } }
@@ -118,6 +118,7 @@ namespace Mediana.Containers.Ogg
                     else { high = middle - 1; }
                 }
                 cancellationToken.ThrowIfCancellationRequested();
+                low = track.RandomAccessPacket(low);
                 return new(streamIndex, low, new(track.Index[low].Timestamp, track.Clock));
             }
             finally { Exit(); }
@@ -140,10 +141,27 @@ namespace Mediana.Containers.Ogg
                     start--;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
+                start = track.RandomAccessPacket(start);
                 return new(streamIndex, start, new(track.Index[start].Timestamp, track.Clock));
             }
             finally { Exit(); }
         }
+
+        public ContainerPacketTiming GetPacketTiming(int streamIndex, long packetIndex, CancellationToken cancellationToken = default)
+        {
+            Enter();
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                OggTrack track = Track(streamIndex); OggIndexedPacket entry = track.Index[packetIndex];
+                MediaTimestamp timestamp = new(entry.Timestamp, track.Clock);
+                return new(timestamp, timestamp, new(entry.Samples, track.Clock), IsKeyFrame(track, entry));
+            }
+            finally { Exit(); }
+        }
+
+        private static bool IsKeyFrame(OggTrack track, OggIndexedPacket entry) =>
+            entry.RandomAccessPacket < 0 || track.Index[entry.RandomAccessPacket].Timestamp == entry.Timestamp;
 
         public MediaDuration? GetPresentationDuration(int streamIndex, long packetIndex,
             CancellationToken cancellationToken = default)
@@ -201,7 +219,7 @@ namespace Mediana.Containers.Ogg
         {
             using MediaBuffer data = await OggPacketAccess.ReadAsync(pages, track, entry, allocator, token).ConfigureAwait(false);
             MediaTimestamp timestamp = new(entry.Timestamp, track.Clock);
-            return new(track.StreamIndex, data, timestamp, timestamp, new(entry.Samples, track.Clock), true);
+            return new(track.StreamIndex, data, timestamp, timestamp, new(entry.Samples, track.Clock), IsKeyFrame(track, entry));
         }
 
         private OggTrack Track(int index)

@@ -9,14 +9,7 @@ namespace Mediana.Codecs.Theora
             TheoraFrameState state, scoped Span<int> qualities, out int qualityCount, CancellationToken token)
         {
             state.Clear();
-            if (reader.Flag()) { throw new InvalidDataException("A Theora data packet has its header bit set."); }
-            bool inter = reader.Flag(); qualities[0] = reader.Read(6); qualityCount = 1;
-            if (reader.Flag())
-            {
-                qualities[1] = reader.Read(6); qualityCount = 2;
-                if (reader.Flag()) { qualities[2] = reader.Read(6); qualityCount = 3; }
-            }
-            if (!inter && reader.Read(3) != 0) { throw new InvalidDataException("The Theora intra frame reserved bits are nonzero."); }
+            bool inter = TheoraFrameHeader.Read(ref reader, qualities, out qualityCount);
             ReadCoded(ref reader, layout, state, inter);
             for (int block = 0; block < layout.BlockCount; block++)
             { if (state.Coded[block] != 0) { state.CodedBlocks[state.CodedCount++] = block; } }

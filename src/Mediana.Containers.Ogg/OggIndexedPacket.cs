@@ -4,5 +4,5 @@
 namespace Mediana.Containers.Ogg
 {
     internal readonly record struct OggIndexedPacket(long Page, long Timestamp,
-        int Samples, int PresentationSamples, int Bytes, int Lace);
+        int Samples, int PresentationSamples, int Bytes, int Lace, long RandomAccessPacket = -1);
 }

@@ -11,3 +11,5 @@ The first stream uses the `testsrc2` source; the others use `testsrc`. Generatio
 Each `.framehash` contains FFmpeg SHA-256 hashes over all visible native YUV planes, in presentation order with `-fps_mode passthrough`. The opening `.yuv` files permit exact pixel diagnostics.
 
 Additional sequences cover 48 moving 256×192 pictures (`motion`, quality 4), 24 noisy 128×96 pictures (`noise`, quality 1), an odd 65×49 4:2:0 crop (`odd420`, quality 8), and a constant-color source (`duplicate`). The constant-color export contains one coded picture; explicit zero-byte repeat packets are tested separately.
+
+`fractional.ogv` uses 30000/1001 fps with a key interval of six. `av.ogv` multiplexes 12-fps Theora video with 48-kHz mono Vorbis from a 617-Hz synthetic sine wave. These exercise exact clocks and independent logical-stream indexes.

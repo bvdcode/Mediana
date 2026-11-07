@@ -15,6 +15,7 @@ namespace Mediana.Codecs.Theora.Tests
         [InlineData("noise")]
         [InlineData("odd420")]
         [InlineData("duplicate")]
+        [InlineData("fractional")]
         [InlineData("main420")]
         [InlineData("chroma422")]
         [InlineData("chroma444")]

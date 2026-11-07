@@ -9,6 +9,9 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/TheoraContainerTestInput.cs" Link="TheoraContainerTestInput.cs" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Theora/Mediana.Codecs.Theora.csproj" />
+    <None Include="../Mediana.Codecs.Theora.Tests/Data/*" Link="Data/Theora/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Vp9ContainerTestInput.cs" Link="Vp9ContainerTestInput.cs" />
     <Compile Include="../Shared/Vp9KeyPictureTestInput.cs" Link="Vp9KeyPictureTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Vp9/Mediana.Codecs.Vp9.csproj" />
