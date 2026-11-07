@@ -32,11 +32,14 @@ namespace Mediana.NativeTests
                 OpusSilkLpcTestInput.Verify(opusRoot) != 6144 || OpusSilkIndicesTestInput.Verify(opusRoot) != 3456 ||
                 OpusSilkParametersTestInput.Verify(opusRoot) != 2304 || OpusSilkFixedTestInput.Verify(opusRoot) != 12288 ||
                 OpusSilkSynthesisTestInput.Verify(opusRoot) != 768 || OpusSilkStereoTestInput.Verify(opusRoot) != 1536 ||
-                OpusSilkResamplerTestInput.Verify(opusRoot) != 768 || OpusSilkPcmTestInput.Verify(opusRoot) != 3072)
+                OpusSilkResamplerTestInput.Verify(opusRoot) != 768 || OpusSilkPcmTestInput.Verify(opusRoot) != 3072 ||
+                OpusCeltPcmTestInput.Verify(opusRoot, "decoded-hybrid.bin") != 576 ||
+                OpusCeltPcmTestInput.Verify(opusRoot, "decoded-transitions.bin") != 768)
             {
                 throw new InvalidDataException("The Opus reference case count differs.");
             }
             Console.WriteLine("PASS CELT: spectral stages, transforms, filtering and 2,448 sequential PCM frames match independent references.");
+            Console.WriteLine("PASS Opus hybrid and transitions: 1,344 sequential frames, shared entropy, bandwidth changes and redundancy match independent PCM.");
             Console.WriteLine("PASS SILK synthesis: frame controls, pulses, LSF/LPC, pitch rewhitening, PCM and retained histories match independent references.");
             Console.WriteLine("PASS on-demand HLS encoding: independent reverse and repeated mid-GOP windows, exact reference pixels, clocks and allocation release.");
             Console.WriteLine("PASS Ogg: independent Opus/Vorbis packets, metadata, reverse requests, seek preroll and borrowed source ownership.");

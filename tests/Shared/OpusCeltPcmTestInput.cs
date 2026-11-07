@@ -9,10 +9,17 @@ namespace Mediana.Tests
 {
     internal static class OpusCeltPcmTestInput
     {
-        public static int Verify(string root)
+        public static int Verify(string root, string filename = "decoded-celt.bin")
         {
-            using BinaryReader reader = new(File.OpenRead(Path.Combine(root, "decoded-celt.bin")));
-            if (!reader.ReadBytes(8).AsSpan().SequenceEqual("OPUSPCM1"u8))
+            using BinaryReader reader = new(File.OpenRead(Path.Combine(root, filename)));
+            ReadOnlySpan<byte> magic = filename switch
+            {
+                "decoded-celt.bin" => "OPUSPCM1"u8,
+                "decoded-hybrid.bin" => "OPUSHYB1"u8,
+                "decoded-transitions.bin" => "OPUSTRN1"u8,
+                _ => throw new ArgumentOutOfRangeException(nameof(filename))
+            };
+            if (!reader.ReadBytes(8).AsSpan().SequenceEqual(magic))
             {
                 throw new InvalidDataException("The CELT PCM reference header is invalid.");
             }
@@ -28,7 +35,8 @@ namespace Mediana.Tests
                 int channels = reader.ReadInt32();
                 bool disableInversion = reader.ReadInt32() != 0;
                 int count = reader.ReadInt32();
-                using (CeltFrameDecoder decoder = new(plan, codebook, allocator, channels, disableInversion))
+                if (disableInversion != (channels == 1)) { throw new InvalidDataException("The Opus reference phase inversion differs from its channel mapping."); }
+                using (OpusFrameDecoder decoder = new(plan, codebook, allocator, channels))
                 {
                     for (int frame = 0; frame < count; frame++)
                     {
@@ -36,11 +44,11 @@ namespace Mediana.Tests
                         int expectedSamples = reader.ReadInt32();
                         uint expectedRange = reader.ReadUInt32();
                         OpusPacketInfo layout = OpusPacketInfo.ReadFrames(packet, ranges);
-                        CeltBandMode mode = CeltBandMode.FromConfiguration(OpusPacketConfiguration.FromToc(packet[0]));
+                        OpusPacketConfiguration configuration = OpusPacketConfiguration.FromToc(packet[0]);
                         int decoded = 0;
                         for (int at = 0; at < layout.FrameCount; at++)
                         {
-                            decoded += decoder.Decode(packet.AsSpan()[ranges[at]], mode, pcm[(decoded * channels)..]);
+                            decoded += decoder.Decode(packet.AsSpan()[ranges[at]], configuration, pcm[(decoded * channels)..]);
                         }
                         if (decoded != expectedSamples || decoder.FinalRange != expectedRange)
                         {

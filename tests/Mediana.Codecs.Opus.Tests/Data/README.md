@@ -473,3 +473,24 @@ budget exhaustion releases every previously allocated lease, and reset and
 precancellation preserve the required state/output contracts.
 
 SHA-256: `1c902e15b3d6c7a56c4b1bd7570d2eea93583e3044c79e4b4fba9202cf161759`.
+
+`decoded-hybrid.bin` records 48 independently encoded streams and 576 hybrid
+frames decoded through libopus 1.6.1. Both durations and bandwidths, mono/stereo
+coding and outputs, three bitrate targets, tones, chirps, noise, impulses and
+silence are included. SILK and CELT share one arithmetic decoder. Sample counts
+and final ranges match exactly; PCM uses the same tolerance as `decoded-celt.bin`.
+
+`decoded-transitions.bin` records 12 continuous streams and 768 frames with
+switches between SILK, hybrid and CELT, narrowband through fullband, and every
+mono/stereo input/output combination. Cases exercise both directions of CELT
+transition redundancy, hybrid high-band fade-out and preserved SILK histories
+across internal sample-rate changes. Every final range and sample count matches
+exactly, with the same PCM tolerance. Repeated hybrid decoding and bandwidth
+changes allocate no managed storage after workspace preparation.
+
+Both files use the `decoded-celt.bin` layout, with magic `OPUSHYB1` and
+`OPUSTRN1` respectively.
+
+decoded-hybrid.bin SHA-256: `20c8cd4bfbaadc75a52efaebe56b7b9e2a88ed6380401e6cda86ed30930b9d7b`.
+
+decoded-transitions.bin SHA-256: `77f011ba1ed4bf35ae084f8570a3fdb17135625f2f85abd4c4fcc66256a7dfe0`.
