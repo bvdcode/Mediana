@@ -8,7 +8,7 @@ namespace Mediana.Codecs.Hevc
     /// <summary>
     /// Decodes one independent intra random-access picture using exclusive plane rentals.
     /// </summary>
-    internal class IntraPictureDecoder(IntraSliceHeader slice, PicturePartitions? partitions = null)
+    internal class IntraPictureDecoder(HevcSliceHeader slice, PicturePartitions? partitions = null)
     {
         public async Task<DecodedPicture> DecodeAsync(int workerCount, CancellationToken cancellationToken)
         {
@@ -61,7 +61,7 @@ namespace Mediana.Codecs.Hevc
                 }
                 else
                 {
-                    foreach (IntraSliceHeader segment in partitions.Slices)
+                    foreach (HevcSliceHeader segment in partitions.Slices)
                     {
                         DecodeSequential(segment, picture, blocks, sao, cancellationToken);
                     }
@@ -69,7 +69,7 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
-        private void DecodeSequential(IntraSliceHeader slice, DecodedPicture picture, CodingBlockMap blocks, SaoFilter sao, CancellationToken cancellationToken)
+        private void DecodeSequential(HevcSliceHeader slice, DecodedPicture picture, CodingBlockMap blocks, SaoFilter sao, CancellationToken cancellationToken)
         {
             SequenceParameters sequence = slice.Picture.Sequence;
             IntraCabacReader reader = new IntraCabacReader(slice.Reader, slice.Qp);

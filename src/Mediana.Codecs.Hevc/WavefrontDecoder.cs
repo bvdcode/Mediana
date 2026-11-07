@@ -15,7 +15,7 @@ namespace Mediana.Codecs.Hevc
     /// after handoff. Failure cancels dependent rows, and every worker finishes before
     /// the caller can return the picture's plane rentals.
     /// </remarks>
-    internal class WavefrontDecoder(IntraSliceHeader slice, DecodedPicture picture, CodingBlockMap blocks, SaoFilter sao)
+    internal class WavefrontDecoder(HevcSliceHeader slice, DecodedPicture picture, CodingBlockMap blocks, SaoFilter sao)
     {
         public async Task DecodeAsync(int workerCount, CancellationToken cancellationToken)
         {

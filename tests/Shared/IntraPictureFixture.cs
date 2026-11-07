@@ -13,7 +13,7 @@ namespace Mediana.Tests
 {
     internal static class IntraPictureFixture
     {
-        public static async Task<IntraSliceHeader> ReadSliceAsync(string file)
+        public static async Task<HevcSliceHeader> ReadSliceAsync(string file)
         {
             byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Heif", file));
             Dictionary<int, SequenceParameters> sequences = new Dictionary<int, SequenceParameters>();
@@ -36,7 +36,7 @@ namespace Mediana.Tests
                         break;
                     case 19:
                     case 20:
-                        return IntraSliceHeader.Read(nal, pictures);
+                        return HevcSliceHeader.Read(nal, pictures);
                 }
             }
             throw new InvalidDataException("The picture fixture has no IDR slice.");

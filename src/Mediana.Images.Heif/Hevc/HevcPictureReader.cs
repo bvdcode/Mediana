@@ -13,7 +13,7 @@ namespace Mediana.Images.Heif.Hevc
     {
         private readonly Dictionary<int, SequenceParameters> sequences = new Dictionary<int, SequenceParameters>();
         private readonly Dictionary<int, PictureParameters> pictures = new Dictionary<int, PictureParameters>();
-        private readonly List<IntraSliceHeader> slices = new List<IntraSliceHeader>();
+        private readonly List<HevcSliceHeader> slices = new List<HevcSliceHeader>();
         private int? pictureType;
 
         public void Read(NalPayload unit)
@@ -57,7 +57,7 @@ namespace Mediana.Images.Heif.Hevc
                 throw new InvalidDataException("HEVC image contains no intra random-access picture.");
             }
             PicturePartitions? partitions = slices.Count > 1 ? new PicturePartitions(slices) : null;
-            IntraSliceHeader first = slices[0];
+            HevcSliceHeader first = slices[0];
             if ((partitions is null) && first.Picture.EntropyCodingSync)
             {
                 int rows = ((first.Picture.Sequence.Height - 1) / (1 << first.Picture.Sequence.Log2Ctb)) + 1;
@@ -71,7 +71,7 @@ namespace Mediana.Images.Heif.Hevc
 
         private void AddSlice(NalPayload unit)
         {
-            IntraSliceHeader header = IntraSliceHeader.Read(unit, pictures);
+            HevcSliceHeader header = HevcSliceHeader.Read(unit, pictures);
             if (slices.Count == 0)
             {
                 if (header.StartCtbAddress != 0)

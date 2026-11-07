@@ -15,7 +15,7 @@ namespace Mediana.Codecs.Hevc
         private readonly int width;
         private readonly int height;
 
-        public PicturePartitions(IReadOnlyList<IntraSliceHeader> slices)
+        public PicturePartitions(IReadOnlyList<HevcSliceHeader> slices)
         {
             Slices = slices;
             SequenceParameters sequence = slices[0].Picture.Sequence;
@@ -28,7 +28,7 @@ namespace Mediana.Codecs.Hevc
             owners = new int[checked(columns * rows)];
             for (int i = 0; i < slices.Count; i++)
             {
-                IntraSliceHeader slice = slices[i];
+                HevcSliceHeader slice = slices[i];
                 int end = (i + 1) < slices.Count ? slices[i + 1].StartCtbAddress : owners.Length;
                 if (((i == 0) && (slice.StartCtbAddress != 0)) || (slice.StartCtbAddress >= end) || (end > owners.Length))
                 {
@@ -44,9 +44,9 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
-        public IReadOnlyList<IntraSliceHeader> Slices { get; }
+        public IReadOnlyList<HevcSliceHeader> Slices { get; }
 
-        public IntraSliceHeader SliceAt(int x, int y) => Slices[owners[Address(x, y)]];
+        public HevcSliceHeader SliceAt(int x, int y) => Slices[owners[Address(x, y)]];
 
         public bool SameSlice(int x, int y, int currentX, int currentY) =>
             (x >= 0) && (y >= 0) && (x < width) && (y < height) && (owners[Address(x, y)] == owners[Address(currentX, currentY)]);

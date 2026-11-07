@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 
 namespace Mediana.Codecs.Hevc
 {
-    internal class IntraCodingTreeDecoder(IntraSliceHeader slice, IntraCabacReader reader,
+    internal class IntraCodingTreeDecoder(HevcSliceHeader slice, IntraCabacReader reader,
         CodingBlockMap blocks, QuantizationGroup quantization)
     {
         private readonly SequenceParameters sequence = slice.Picture.Sequence;

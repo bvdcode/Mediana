@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Mediana.Codecs.Hevc
 {
-    internal class QuantizationGroup(IntraSliceHeader slice, IntraCabacReader reader, CodingBlockMap blocks)
+    internal class QuantizationGroup(HevcSliceHeader slice, IntraCabacReader reader, CodingBlockMap blocks)
     {
         private int previousQp = slice.Qp;
         private int currentQp = slice.Qp;

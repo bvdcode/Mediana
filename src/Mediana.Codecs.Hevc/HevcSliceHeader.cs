@@ -10,7 +10,7 @@ namespace Mediana.Codecs.Hevc
     /// <summary>
     /// Describes an independent intra random-access slice and positions its reader at the CABAC payload.
     /// </summary>
-    internal class IntraSliceHeader
+    internal class HevcSliceHeader
     {
         public PictureParameters Picture { get; private set; } = null!;
         public BitReader Reader { get; private set; } = null!;
@@ -29,7 +29,7 @@ namespace Mediana.Codecs.Hevc
         public int BetaOffset { get; private set; }
         public int TcOffset { get; private set; }
 
-        public static IntraSliceHeader Read(NalPayload nal, IReadOnlyDictionary<int, PictureParameters> pictures)
+        public static HevcSliceHeader Read(NalPayload nal, IReadOnlyDictionary<int, PictureParameters> pictures)
         {
             if ((nal.Type < 16) || (nal.Type > 21))
             {
@@ -48,7 +48,7 @@ namespace Mediana.Codecs.Hevc
             int rows = ((picture.Sequence.Height - 1) / (1 << picture.Sequence.Log2Ctb)) + 1;
             int count = checked(columns * rows);
             int start = ReadStart(reader, picture, first, count);
-            IntraSliceHeader slice = new IntraSliceHeader
+            HevcSliceHeader slice = new HevcSliceHeader
             {
                 Picture = picture,
                 Reader = reader,

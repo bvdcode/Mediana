@@ -18,7 +18,7 @@ namespace Mediana.Codecs.Hevc
     /// </remarks>
     internal class SaoFilter
     {
-        private readonly IntraSliceHeader slice;
+        private readonly HevcSliceHeader slice;
         private readonly SaoParameters[] parameters;
         private readonly int columns;
         private readonly int components;
@@ -27,7 +27,7 @@ namespace Mediana.Codecs.Hevc
         private readonly bool chromaEnabled;
         private readonly PicturePartitions? partitions;
 
-        public SaoFilter(IntraSliceHeader slice, PicturePartitions? partitions = null)
+        public SaoFilter(HevcSliceHeader slice, PicturePartitions? partitions = null)
         {
             this.slice = slice;
             this.partitions = partitions;
@@ -39,7 +39,7 @@ namespace Mediana.Codecs.Hevc
             chromaEnabled = slice.SaoChroma;
             if (partitions is not null)
             {
-                foreach (IntraSliceHeader segment in partitions.Slices)
+                foreach (HevcSliceHeader segment in partitions.Slices)
                 {
                     lumaEnabled |= segment.SaoLuma;
                     chromaEnabled |= segment.SaoChroma;
@@ -56,7 +56,7 @@ namespace Mediana.Codecs.Hevc
                 return;
             }
             int ctb = 1 << slice.Picture.Sequence.Log2Ctb;
-            IntraSliceHeader currentSlice = partitions?.SliceAt(x * ctb, y * ctb) ?? slice;
+            HevcSliceHeader currentSlice = partitions?.SliceAt(x * ctb, y * ctb) ?? slice;
             if (!currentSlice.SaoLuma && !currentSlice.SaoChroma)
             {
                 return;

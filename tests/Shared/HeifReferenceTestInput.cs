@@ -99,7 +99,7 @@ namespace Mediana.Tests
             {
                 foreach (int workers in new[] { 1, 4 })
                 {
-                    IntraSliceHeader slice = await IntraPictureFixture.ReadSliceAsync(name);
+                    HevcSliceHeader slice = await IntraPictureFixture.ReadSliceAsync(name);
                     using DecodedPicture picture = await new IntraPictureDecoder(slice).DecodeAsync(workers, CancellationToken.None)
                         .WaitAsync(TimeSpan.FromSeconds(10));
                     if (IntraPictureFixture.PlaneHash(picture) != hash)

@@ -8,7 +8,7 @@ namespace Mediana.Codecs.Hevc
 {
     internal static class DeblockingFilter
     {
-        public static void Apply(DecodedPicture picture, IntraSliceHeader slice, CodingBlockMap blocks)
+        public static void Apply(DecodedPicture picture, HevcSliceHeader slice, CodingBlockMap blocks)
         {
             for (int direction = 0; direction < 2; direction++)
             {
@@ -39,7 +39,7 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
-        private static void LumaEdges<TSample, TFormat>(SamplePlaneView<TSample> plane, IntraSliceHeader slice, CodingBlockMap blocks, bool vertical)
+        private static void LumaEdges<TSample, TFormat>(SamplePlaneView<TSample> plane, HevcSliceHeader slice, CodingBlockMap blocks, bool vertical)
             where TSample : unmanaged
             where TFormat : struct, ISampleFormat<TSample>
         {
@@ -53,7 +53,7 @@ namespace Mediana.Codecs.Hevc
                     int y = vertical ? along : across;
                     if (blocks.Boundary(x, y, vertical))
                     {
-                        IntraSliceHeader current = blocks.Partitions?.SliceAt(x, y) ?? slice;
+                        HevcSliceHeader current = blocks.Partitions?.SliceAt(x, y) ?? slice;
                         int px = vertical ? x - 1 : x;
                         int py = vertical ? y : y - 1;
                         if (!current.DeblockingDisabled && (blocks.Partitions is null || blocks.Partitions.CanFilter(x, y, px, py)))
@@ -65,7 +65,7 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
-        private static void LumaEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, IntraSliceHeader slice, CodingBlockMap blocks, int x, int y, bool vertical)
+        private static void LumaEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, HevcSliceHeader slice, CodingBlockMap blocks, int x, int y, bool vertical)
             where TSample : unmanaged
             where TFormat : struct, ISampleFormat<TSample>
         {
@@ -142,7 +142,7 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
-        private static void ChromaEdges<TSample, TFormat>(SamplePlaneView<TSample> plane, IntraSliceHeader slice, CodingBlockMap blocks, bool vertical, int qpOffset)
+        private static void ChromaEdges<TSample, TFormat>(SamplePlaneView<TSample> plane, HevcSliceHeader slice, CodingBlockMap blocks, bool vertical, int qpOffset)
             where TSample : unmanaged
             where TFormat : struct, ISampleFormat<TSample>
         {
@@ -167,9 +167,9 @@ namespace Mediana.Codecs.Hevc
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int ChromaThreshold(IntraSliceHeader slice, CodingBlockMap blocks, int x, int y, int px, int py, int qpOffset)
+        private static int ChromaThreshold(HevcSliceHeader slice, CodingBlockMap blocks, int x, int y, int px, int py, int qpOffset)
         {
-            IntraSliceHeader current = blocks.Partitions?.SliceAt(x, y) ?? slice;
+            HevcSliceHeader current = blocks.Partitions?.SliceAt(x, y) ?? slice;
             if (current.DeblockingDisabled || (blocks.Partitions is not null && !blocks.Partitions.CanFilter(x, y, px, py)))
             {
                 return 0;
@@ -180,7 +180,7 @@ namespace Mediana.Codecs.Hevc
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ChromaEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, IntraSliceHeader slice,
+        private static void ChromaEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, HevcSliceHeader slice,
             CodingBlockMap blocks, bool vertical, int qpOffset, int x, int y, Span<int> samples)
             where TSample : unmanaged
             where TFormat : struct, ISampleFormat<TSample>

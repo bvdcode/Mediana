@@ -23,7 +23,7 @@ namespace Mediana.Tests
         public async Task ParallelWavefrontSamplesAndCancellationAreCorrect()
         {
             await HeifReferenceTestInput.VerifyWavefrontAsync();
-            IntraSliceHeader slice = await IntraPictureFixture.ReadSliceAsync("wpp-8bit.hevc");
+            HevcSliceHeader slice = await IntraPictureFixture.ReadSliceAsync("wpp-8bit.hevc");
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
                 await new IntraPictureDecoder(slice).DecodeAsync(4, new CancellationToken(true)).WaitAsync(TimeSpan.FromSeconds(10)));
         }
