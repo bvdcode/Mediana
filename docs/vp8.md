@@ -34,6 +34,12 @@ corpus and do not establish conformance for every possible VP8 stream.
 
 ## Complete decode performance
 
+Mediana records CPU and elapsed time from the operation inside a fresh .NET
+process, including compilation reached within it. It excludes host startup before
+the operation. FFmpeg records the complete child process, including executable
+startup. Peak RSS covers each process lifetime. These boundaries differ by
+startup work and must be retained when interpreting close results.
+
 A single pinned CPU decoded and hashed every visible YUV row, writing one
 SHA-256 record per picture. Fresh .NET processes used a shared buffer pool,
 one processor and disabled tiered compilation. FFmpeg used one decoder

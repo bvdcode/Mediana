@@ -51,10 +51,16 @@ reverse seeks and complete AVC encoding for all nine container fixtures.
 
 ## Complete decode performance
 
+Mediana records CPU and elapsed time from the operation inside a fresh .NET
+process, including compilation reached within it. It excludes host startup before
+the operation. FFmpeg records the complete child process, including executable
+startup. Peak RSS covers each process lifetime. These boundaries differ by
+startup work and must be retained when interpreting close results.
+
 The operation opens the file, decodes every picture, hashes every visible YUV
 row and writes a SHA-256 record per picture. Fresh .NET processes use a caller
 pool, one pinned CPU and disabled tiered compilation. FFmpeg uses one decoder
-thread and equivalent SHA-256 frame output. Timings include startup and output.
+thread and equivalent SHA-256 frame output. Timings include opening and output.
 
 Three alternating runs of a synthetic ten-second 1280×720, 24-fps source give
 these medians before and after block prediction and active-coefficient changes:

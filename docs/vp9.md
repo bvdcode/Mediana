@@ -50,6 +50,12 @@ The complete Native AOT executable and the VP9 suite with hardware intrinsics di
 
 ## Complete decode performance
 
+Mediana records CPU and elapsed time from the operation inside a fresh .NET
+process, including compilation reached within it. It excludes host startup before
+the operation. FFmpeg records the complete child process, including executable
+startup. Peak RSS covers each process lifetime. These boundaries differ by
+startup work and must be retained when interpreting close results.
+
 Fresh processes opened WebM, decoded and SHA-256-hashed every visible plane,
 and wrote one hash record per picture. Both implementations ran on one
 pinned CPU; FFmpeg used one decoder thread. The .NET comparison disabled
