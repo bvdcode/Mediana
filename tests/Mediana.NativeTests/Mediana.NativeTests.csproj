@@ -364,6 +364,8 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Vorbis/Mediana.Codecs.Vorbis.csproj" />
     <Compile Include="../Shared/VorbisCodebookTestInput.cs" Link="VorbisCodebookTestInput.cs" />
     <Compile Include="../Shared/VorbisSpectrumTestInput.cs" Link="VorbisSpectrumTestInput.cs" />
+    <Compile Include="../Shared/VorbisImdctTestInput.cs" Link="VorbisImdctTestInput.cs" />
+    <Compile Include="../Shared/VorbisPcmTestInput.cs" Link="VorbisPcmTestInput.cs" />
     <None Include="../Mediana.Codecs.Vorbis.Tests/Data/*.bin.gz" Link="Data/Vorbis/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Opus.Tests/Data/*.bin" Link="Data/Opus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Opus.Tests/Data/*.bin.gz" Link="Data/Opus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
