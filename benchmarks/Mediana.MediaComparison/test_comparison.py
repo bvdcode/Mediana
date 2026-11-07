@@ -16,8 +16,9 @@ import wave
 from collections.abc import Callable
 from pathlib import Path
 
-from comparison_models import output_fingerprint
+from comparison_models import MeasuredOutput, Measurement, output_fingerprint
 from frame_validation import compare_frames
+from pair_validator import PairValidator
 from PIL import Image, ImageCms
 from run_comparison import measure
 from validate_outputs import compare_samples, validate_pair
@@ -125,6 +126,49 @@ class SampleValidationTests(unittest.TestCase):
                 stream.write(f"0, 2, 2, 2, 1536, {digest}\n")
             with self.assertRaisesRegex(ValueError, "frame counts differ"):
                 compare_frames(left, right)
+
+    def test_reuses_validation_only_for_identical_complete_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source.rgba"
+            source.write_bytes(bytes(64))
+            validator = PairValidator(root, 10)
+            results = []
+            for repetition in range(1, 4):
+                products = {}
+                for engine in ("mediana", "alternative"):
+                    path = root / f"{engine}.rgba"
+                    content = bytearray(source.read_bytes())
+                    if engine == "alternative" and repetition == 3:
+                        content[-1] = 1
+                    path.write_bytes(content)
+                    size, digest = output_fingerprint(path)
+                    products[engine] = MeasuredOutput(
+                        Measurement(
+                            "fixture",
+                            engine,
+                            repetition,
+                            0,
+                            0,
+                            0,
+                            0,
+                            False,
+                            size,
+                            digest,
+                        ),
+                        path,
+                    )
+                results.append(
+                    validator.compare("fixture", repetition, source, products)
+                )
+            self.assertEqual(
+                [item["source_validation_repetition"] for item in results], [1, 1, 3]
+            )
+            self.assertEqual([item["different_samples"] for item in results], [0, 0, 1])
+            self.assertEqual(
+                results[1]["validation_method"],
+                "identical complete output fingerprints",
+            )
 
 
 if __name__ == "__main__":

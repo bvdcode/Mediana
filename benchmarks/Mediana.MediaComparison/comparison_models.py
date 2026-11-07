@@ -49,6 +49,14 @@ class Measurement:
     output_sha256: str
 
 
+@dataclass(frozen=True)
+class MeasuredOutput:
+    """Keep the actual output path separate from portable measurement records."""
+
+    measurement: Measurement
+    path: Path
+
+
 def file_hash(path: Path) -> str:
     """Hash a file with bounded working memory."""
     with path.open("rb") as stream:

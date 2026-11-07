@@ -12,7 +12,6 @@ import os
 import platform
 import signal
 import subprocess
-import sys
 import tempfile
 import threading
 import time
@@ -21,12 +20,14 @@ from pathlib import Path
 
 from comparison_models import (
     Command,
+    MeasuredOutput,
     Measurement,
     Workload,
     file_hash,
     load_workloads,
     output_fingerprint,
 )
+from pair_validator import PairValidator
 
 LOGGER = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def run_case(
     logs: Path,
     cpus: str,
     timeout: float,
-) -> tuple[Measurement, Path]:
+) -> MeasuredOutput:
     """Expand one manifest command, measure it and fingerprint its output."""
     prefix = f"{case.id}-{engine}-{repetition}"
     destination = output / (prefix + case.output_extension)
@@ -119,7 +120,7 @@ def run_case(
     size, checksum = (0, "")
     if code == 0:
         size, checksum = output_fingerprint(produced)
-    return (
+    return MeasuredOutput(
         Measurement(
             case.id,
             engine,
@@ -203,6 +204,7 @@ def main() -> None:
         json.dumps(metadata, indent=2) + "\n", encoding="utf-8"
     )
     failed = False
+    validator = PairValidator(args.output, args.timeout)
     with (args.output / "measurements.jsonl").open("w", encoding="utf-8") as stream, (
         args.output / "validation.jsonl"
     ).open("w", encoding="utf-8") as validation:
@@ -216,10 +218,10 @@ def main() -> None:
                 ) as directory:
                     pair = Path(directory)
                     succeeded = True
-                    products: dict[str, Path] = {}
+                    products: dict[str, MeasuredOutput] = {}
                     for engine, command in engines:
                         LOGGER.info("%s %s repetition %d", case.id, engine, repetition)
-                        result, products[engine] = run_case(
+                        result = run_case(
                             case,
                             command,
                             engine,
@@ -230,40 +232,16 @@ def main() -> None:
                             args.cpus,
                             args.timeout,
                         )
-                        stream.write(json.dumps(asdict(result)) + "\n")
+                        products[engine] = result
+                        stream.write(json.dumps(asdict(result.measurement)) + "\n")
                         stream.flush()
-                        succeeded &= result.exit_code == 0
+                        succeeded &= result.measurement.exit_code == 0
                     failed |= not succeeded
                     if succeeded:
-                        checked = subprocess.run(
-                            [
-                                sys.executable,
-                                str(Path(__file__).with_name("validate_outputs.py")),
-                                str(products["mediana"]),
-                                str(products["alternative"]),
-                                "--source",
-                                str(args.inputs / case.input),
-                            ],
-                            check=False,
-                            capture_output=True,
-                            text=True,
-                            timeout=args.timeout,
+                        samples = validator.compare(
+                            case.id, repetition, args.inputs / case.input, products
                         )
-                        if checked.returncode != 0:
-                            failed = True
-                            LOGGER.error("%s sample validation failed", case.id)
-                            (
-                                args.output / f"{case.id}-{repetition}-validation.log"
-                            ).write_text(checked.stderr, encoding="utf-8")
-                            samples = {
-                                "validation_succeeded": False,
-                                "exit_code": checked.returncode,
-                            }
-                        else:
-                            samples = {
-                                "validation_succeeded": True,
-                                **json.loads(checked.stdout),
-                            }
+                        failed |= not bool(samples["validation_succeeded"])
                         validation.write(
                             json.dumps(
                                 {"case": case.id, "repetition": repetition, **samples}
