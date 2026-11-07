@@ -20,3 +20,9 @@ with no encoded samples. They verify sensor-directory selection for DNG, CR2, NE
 and ARW and that Sony make alone does not identify an ordinary TIFF as RAW.
 
 No runtime decoding dependency on these reference tools is required.
+
+`webp-vp8-odd-padding.webp` is an authored 33×35 RGBA pattern, with channel
+`c = (7*x + 11*y + 19*channel) mod 256`, encoded by Mediana as lossy WebP at
+quality 2. Its ALPH payload is 184 bytes and its VP8 payload is 275 bytes, followed
+by the required zero RIFF padding byte. The independent complete RGBA reference
+uses Pillow 12.3/libwebp. It exercises an odd final VP8 chunk in an extended file.

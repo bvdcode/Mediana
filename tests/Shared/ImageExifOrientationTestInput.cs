@@ -190,9 +190,14 @@ namespace Mediana.Tests
                 {
                     (int dx, int dy) = orientation switch
                     {
-                        1 => (x, y), 2 => (reducedWidth - 1 - x, y), 3 => (reducedWidth - 1 - x, reducedHeight - 1 - y),
-                        4 => (x, reducedHeight - 1 - y), 5 => (y, x), 6 => (reducedHeight - 1 - y, x),
-                        7 => (reducedHeight - 1 - y, reducedWidth - 1 - x), 8 => (y, reducedWidth - 1 - x),
+                        1 => (x, y),
+                        2 => (reducedWidth - 1 - x, y),
+                        3 => (reducedWidth - 1 - x, reducedHeight - 1 - y),
+                        4 => (x, reducedHeight - 1 - y),
+                        5 => (y, x),
+                        6 => (reducedHeight - 1 - y, x),
+                        7 => (reducedHeight - 1 - y, reducedWidth - 1 - x),
+                        8 => (y, reducedWidth - 1 - x),
                         _ => throw new ArgumentOutOfRangeException(nameof(orientation))
                     };
                     Require(frame.GetRow(0, dy).Slice(dx * 4, 4).SequenceEqual(original.AsSpan((y * factor * width + x * factor) * 4, 4)));

@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Text.Json;
+using System.Buffers.Binary;
 using Mediana.Codecs.Webp;
 using Mediana.Core.Memory;
 using Mediana.Core.Metadata;
@@ -11,6 +12,36 @@ namespace Mediana.Codecs.Raster.Tests
 {
     public class WebpDecoderTests
     {
+        [Fact]
+        public async Task OddFinalVp8PayloadUsesContainerPaddingAndRejectsInvalidExtents()
+        {
+            byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "webp-vp8-odd-padding.webp"));
+            Assert.Equal(506, encoded.Length);
+            Assert.Equal((uint)498, BinaryPrimitives.ReadUInt32LittleEndian(encoded.AsSpan(4)));
+            Assert.True(encoded.AsSpan(222, 4).SequenceEqual("VP8 "u8));
+            Assert.Equal((uint)275, BinaryPrimitives.ReadUInt32LittleEndian(encoded.AsSpan(226)));
+            Assert.Equal(0, encoded[^1]);
+            WebpImageDecoder decoder = new();
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using (VideoFrame frame = await decoder.DecodeAsync(encoded, new(), allocator))
+            { Assert.Equal(33, frame.Format.Width); Assert.Equal(35, frame.Format.Height); }
+            Assert.Equal(0, allocator.AllocatedBytes);
+            byte[] badPadding = encoded.ToArray(); badPadding[^1] = 1;
+            await RejectAsync(badPadding);
+            byte[] missingPadding = encoded[..^1];
+            BinaryPrimitives.WriteInt32LittleEndian(missingPadding.AsSpan(4), missingPadding.Length - 8);
+            await RejectAsync(missingPadding);
+            byte[] badSize = encoded.ToArray();
+            BinaryPrimitives.WriteUInt32LittleEndian(badSize.AsSpan(226), uint.MaxValue);
+            await RejectAsync(badSize);
+
+            async Task RejectAsync(byte[] data)
+            {
+                await Assert.ThrowsAsync<InvalidDataException>(async () => await decoder.DecodeAsync(data, new(), allocator));
+                Assert.Equal(0, allocator.AllocatedBytes);
+            }
+        }
+
         [Fact]
         public async Task MetadataDoesNotDecodeSamplesAndFramesOwnTheirPixels()
         {

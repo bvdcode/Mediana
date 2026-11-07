@@ -436,5 +436,14 @@
     ],
     "lossy": true,
     "maximum_error": 4
+  },
+  {
+    "file": "webp-vp8-odd-padding.webp",
+    "width": 33,
+    "height": 35,
+    "pixels": [
+      "webp-vp8-odd-padding.rgba"
+    ],
+    "lossy": true
   }
 ]
