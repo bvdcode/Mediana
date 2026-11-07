@@ -7,7 +7,8 @@ namespace Mediana.Containers
 {
     /// <summary>Optional presentation intervals for indexed packets representing complete presentation units.
     /// Raw packet durations remain the container's original intervals. Decode consumers may use this
-    /// duration with the same payload and timestamps. Null means the presentation interval is unknown.
+    /// duration with the same payload and timestamps. Null means the packet has no independently known
+    /// presentation interval, including decode-only packets identified by a separate presentation index.
     /// Queries preserve packet cursors and do not read encoded media; owned metadata may be cached.</summary>
     public interface IIndexedPresentationTimingReader : IIndexedContainerReader
     {

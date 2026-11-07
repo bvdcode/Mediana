@@ -58,10 +58,23 @@ namespace Mediana.Execution
                 case PacketCopyAlignment.Exact:
                     if (first < 0 || earliest != selection.Start)
                     { throw new NotSupportedException("Compressed copy requires a nonempty interval starting on a packet boundary."); }
-                    ContainerPacketTiming final = reader.GetPacketTiming(streamIndex, finalPresentationPacket, cancellationToken);
-                    MediaDuration duration = (reader is IIndexedPresentationTimingReader presentation
-                        ? presentation.GetPresentationDuration(streamIndex, finalPresentationPacket, cancellationToken) : final.Duration)
-                        ?? throw new NotSupportedException("Compressed copy requires a known final presentation duration.");
+                    MediaDuration? finalDuration;
+                    if (stream.Kind == MediaKind.Video && reader is IIndexedVideoPresentationReader videoPresentation)
+                    {
+                        (MediaTimestamp start, MediaTimestamp lastTime, MediaDuration? extent) = FindPresentationExtent(
+                            videoPresentation, streamIndex, first, last, selection, cancellationToken);
+                        if (start != selection.Start)
+                        { throw new NotSupportedException("Compressed copy requires an exact first displayed-picture boundary."); }
+                        latest = lastTime;
+                        finalDuration = extent;
+                    }
+                    else
+                    {
+                        ContainerPacketTiming final = reader.GetPacketTiming(streamIndex, finalPresentationPacket, cancellationToken);
+                        finalDuration = reader is IIndexedPresentationTimingReader presentation
+                            ? presentation.GetPresentationDuration(streamIndex, finalPresentationPacket, cancellationToken) : final.Duration;
+                    }
+                    MediaDuration duration = finalDuration ?? throw new NotSupportedException("Compressed copy requires a known final presentation duration.");
                     TimeBase clock = TimeBase.Common(latest!.Value.ReduceClock().TimeBase,
                         new MediaTimestamp(duration.Value, duration.TimeBase).ReduceClock().TimeBase);
                     MediaTimestamp end = new(checked(latest.Value.Rescale(clock, TimestampRounding.TowardZero).Value +
@@ -95,6 +108,29 @@ namespace Mediana.Execution
                 if (packet.StreamIndex != streamIndex || packet.PresentationTime != expected || !inspector!.IsRandomAccess(packet, cancellationToken))
                 { throw new NotSupportedException("Video copy boundaries require codec-validated independent access packets."); }
             }
+        }
+
+        private static (MediaTimestamp Start, MediaTimestamp Last, MediaDuration? Duration) FindPresentationExtent(
+            IIndexedVideoPresentationReader reader, int stream, long firstPacket, long lastPacket,
+            MediaTimeRange selection, CancellationToken token)
+        {
+            MediaTimestamp? first = null;
+            ContainerVideoPresentationUnit? last = null;
+            long count = reader.GetPresentationUnitCount(stream);
+            for (long index = 0; index < count; index++)
+            {
+                token.ThrowIfCancellationRequested();
+                ContainerVideoPresentationUnit unit = reader.GetPresentationUnit(stream, index, token);
+                if (unit.PacketIndex < firstPacket || unit.PacketIndex > lastPacket) { continue; }
+                MediaTimestamp pts = unit.PresentationTime ?? throw new NotSupportedException("Exact video copy requires known displayed-picture timestamps.");
+                if (pts.CompareTo(selection.Start) < 0 || pts.CompareTo(selection.End) >= 0)
+                { throw new NotSupportedException("Exact video copy cannot split the displayed pictures of one coded packet."); }
+                if (first is null || pts.CompareTo(first.Value) < 0) { first = pts; }
+                if (last is null || pts.CompareTo(last.Value.PresentationTime!.Value) > 0) { last = unit; }
+            }
+            if (first is null || last is null)
+            { throw new NotSupportedException("Exact video copy requires at least one displayed picture."); }
+            return (first.Value, last.Value.PresentationTime!.Value, last.Value.Duration);
         }
     }
 }

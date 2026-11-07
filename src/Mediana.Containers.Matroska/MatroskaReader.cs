@@ -10,7 +10,7 @@ namespace Mediana.Containers.Matroska
     /// <summary>Indexes one known-length Matroska Segment. Borrows its random-access source.
     /// Packets follow stored Block order, with exact rounded PTS and no inferred DTS.
     /// Returned packets and metadata survive reader disposal. Operations and disposal cannot overlap.</summary>
-    public partial class MatroskaReader : IIndexedPacketTimingReader, IContainerAttachmentReader
+    public partial class MatroskaReader : IIndexedVideoPresentationReader, IIndexedPresentationTimingReader, IContainerAttachmentReader
     {
         private readonly MatroskaPacketIndex index;
         private readonly MatroskaPacketSource packets;

@@ -15,6 +15,7 @@ namespace Mediana.Containers.Matroska
         private readonly MatroskaTrackIndex[] tracks;
         private readonly Dictionary<ulong, int> trackNumbers;
         private readonly MatroskaIndexOptions options;
+        private readonly MatroskaIndexBudget budget;
         private bool complete;
         private bool disposed;
 
@@ -24,7 +25,7 @@ namespace Mediana.Containers.Matroska
             ArgumentNullException.ThrowIfNull(tracks);
             options.Validate();
             this.options = options;
-            MatroskaIndexBudget budget = new(allocator, options.MaximumIndexBytes);
+            budget = new(allocator, options.MaximumIndexBytes);
             blocks = new(budget);
             clusters = new(budget);
             extensions = new(budget);
@@ -45,6 +46,12 @@ namespace Mediana.Containers.Matroska
         public int BlockCount { get { EnsureReadable(); return blocks.Count; } }
         public int ClusterCount { get { EnsureReadable(); return clusters.Count; } }
         public int TrackCount { get { EnsureReadable(); return tracks.Length; } }
+
+        internal WritableMediaBuffer AllocatePresentationStorage(int length)
+        {
+            EnsureReadable();
+            return budget.Allocate(length);
+        }
 
         internal void AddCluster(ulong timestamp)
         {

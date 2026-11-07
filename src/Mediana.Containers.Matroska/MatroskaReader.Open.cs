@@ -36,6 +36,7 @@ namespace Mediana.Containers.Matroska
                     new MatroskaTrackInfo(track, configurations[stream].Stream)).ToArray());
                 ContainerInfo commonInfo = CreateInfo(metadata, descriptions, index, header.DocumentType);
                 packets = new(source, allocator, index, tracks, configurations, info.TimestampScale, options.IndexOptions);
+                await packets.InitializePresentationAsync(options.IndexOptions, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 MatroskaAttachmentSource attachmentSource = new(source, allocator, attachments, options.MaxAttachmentBytes);
                 MatroskaReader reader = new(index, packets, info, descriptions, commonInfo, attachmentSource);

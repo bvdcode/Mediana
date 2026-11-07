@@ -10,7 +10,7 @@ namespace Mediana.Containers.Matroska
 {
     /// <summary>Reads owned packets in physical order or by track index. Borrows the source and completed index.
     /// Owns a reusable block workspace; operations and disposal cannot overlap.</summary>
-    internal class MatroskaPacketSource : IDisposable
+    internal partial class MatroskaPacketSource : IDisposable
     {
         private readonly IRandomAccessByteSource source;
         private readonly MediaBufferAllocator allocator;
@@ -114,7 +114,8 @@ namespace Mediana.Containers.Matroska
         {
             MatroskaIndexedBlock block = index.GetBlock(address.BlockIndex);
             MatroskaBlockExtensions? extra = index.GetExtensions(address.BlockIndex);
-            if ((block.Flags & 8) != 0 || extra?.CodecState is not null || extra?.BlockAdditions is not null ||
+            if (((block.Flags & 8) != 0 && configurations[block.StreamIndex].Stream.CodecId is not ("vp8" or "vp9")) ||
+                extra?.CodecState is not null || extra?.BlockAdditions is not null ||
                 extra?.DiscardPaddingNanoseconds is not (null or 0))
             {
                 throw new NotSupportedException("Matroska invisible frames, codec state, block additions and discard padding require additional packet semantics.");
@@ -241,6 +242,7 @@ namespace Mediana.Containers.Matroska
             {
                 disposed = true;
                 blocks.Dispose();
+                presentation?.Dispose();
             }
             finally
             {
