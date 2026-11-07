@@ -361,6 +361,10 @@
     <Compile Include="../Shared/OpusRecoveryTestInput.cs" Link="OpusRecoveryTestInput.cs" />
     <Compile Include="../Shared/OpusMultistreamTestInput.cs" Link="OpusMultistreamTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Vorbis/Mediana.Codecs.Vorbis.csproj" />
+    <Compile Include="../Shared/VorbisCodebookTestInput.cs" Link="VorbisCodebookTestInput.cs" />
+    <Compile Include="../Shared/VorbisSpectrumTestInput.cs" Link="VorbisSpectrumTestInput.cs" />
+    <None Include="../Mediana.Codecs.Vorbis.Tests/Data/*.bin.gz" Link="Data/Vorbis/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Opus.Tests/Data/*.bin" Link="Data/Opus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Opus.Tests/Data/*.bin.gz" Link="Data/Opus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />

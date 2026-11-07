@@ -17,6 +17,14 @@ namespace Mediana.NativeTests
                 throw new InvalidDataException("The Opus entropy reference operation count differs.");
             }
             Console.WriteLine("PASS Opus entropy: 65,071 independent symbols, final ranges and whole/fractional bit budgets match.");
+            string vorbisRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Vorbis");
+            if (VorbisCodebookTestInput.Verify(vorbisRoot) != 49152 ||
+                VorbisSpectrumTestInput.Verify(vorbisRoot) != 1183 ||
+                VorbisSpectrumTestInput.Verify(vorbisRoot, "synthetic-spectrum.bin.gz") != 192)
+            {
+                throw new InvalidDataException("The Vorbis reference case count differs.");
+            }
+            Console.WriteLine("PASS Vorbis spectra: 49,152 codewords, both floors, all residues, 1,375 packets and nominal truncation match independent references.");
             string opusRoot = Path.Combine(AppContext.BaseDirectory, "Data", "Opus");
             if (OpusPulseTestInput.Verify(opusRoot) != 13574 || OpusLaplaceTestInput.Verify(opusRoot) != 5257 ||
                 OpusEnergyTestInput.Verify(opusRoot) != 768 || OpusAllocationTestInput.Verify(opusRoot) != 4096 ||
