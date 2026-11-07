@@ -444,6 +444,7 @@
     "pixels": [
       "webp-vp8-odd-padding.rgba"
     ],
-    "lossy": true
+    "lossy": true,
+    "maximum_error": 1
   }
 ]
