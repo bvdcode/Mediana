@@ -17,8 +17,28 @@ namespace Mediana.Tests
         {
             using JsonDocument reference = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, name + ".headers.json")));
             JsonElement[] expected = reference.RootElement.EnumerateArray().Where(value => value.GetProperty("kind").GetString() == "Slice Segment Header").ToArray();
+            HevcSliceHeader[] headers = await ReadHeadersAsync(root, name);
+            JsonElement pps = reference.RootElement.EnumerateArray().First(value => value.GetProperty("kind").GetString() == "Picture Parameter Set").GetProperty("fields");
+            foreach (PictureParameters picture in headers.Select(header => header.Picture).Distinct())
+            {
+                Equal(pps, "cabac_init_present_flag", picture.CabacInitPresent);
+                Equal(pps, "num_ref_idx_l0_default_active_minus1", picture.DefaultReferences0 - 1);
+                Equal(pps, "num_ref_idx_l1_default_active_minus1", picture.DefaultReferences1 - 1);
+                Equal(pps, "constrained_intra_pred_flag", picture.ConstrainedIntraPrediction);
+                Equal(pps, "weighted_pred_flag", picture.WeightedPrediction);
+                Equal(pps, "weighted_bipred_flag", picture.WeightedBiprediction);
+                Equal(pps, "lists_modification_present_flag", picture.ListModificationPresent);
+                Equal(pps, "log2_parallel_merge_level_minus2", picture.Log2ParallelMergeLevel - 2);
+            }
+            if (headers.Length != expected.Length) { throw new InvalidDataException("The HEVC header count differs."); }
+            for (int i = 0; i < headers.Length; i++) { Verify(headers[i], expected[i]); }
+            return headers.Length;
+        }
+
+        public static async Task<HevcSliceHeader[]> ReadHeadersAsync(string root, string name)
+        {
             MediaBufferAllocator allocator = new(1024 * 1024);
-            int count = 0;
+            List<HevcSliceHeader> result = [];
             await using (RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, name + ".mp4"))))
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
             {
@@ -34,31 +54,17 @@ namespace Mediana.Tests
                         if (nal.Type == 34) { PictureParameters picture = PictureParameters.Read(nal, sequences); pictures.Add(picture.Id, picture); }
                     }
                 }
-                JsonElement pps = reference.RootElement.EnumerateArray().First(value => value.GetProperty("kind").GetString() == "Picture Parameter Set").GetProperty("fields");
-                foreach (PictureParameters picture in pictures.Values)
-                {
-                    Equal(pps, "cabac_init_present_flag", picture.CabacInitPresent);
-                    Equal(pps, "num_ref_idx_l0_default_active_minus1", picture.DefaultReferences0 - 1);
-                    Equal(pps, "num_ref_idx_l1_default_active_minus1", picture.DefaultReferences1 - 1);
-                    Equal(pps, "constrained_intra_pred_flag", picture.ConstrainedIntraPrediction);
-                    Equal(pps, "weighted_pred_flag", picture.WeightedPrediction);
-                    Equal(pps, "weighted_bipred_flag", picture.WeightedBiprediction);
-                    Equal(pps, "lists_modification_present_flag", picture.ListModificationPresent);
-                    Equal(pps, "log2_parallel_merge_level_minus2", picture.Log2ParallelMergeLevel - 2);
-                }
                 for (int packetIndex = 0; packetIndex < reader.GetPacketCount(0); packetIndex++)
                 {
                     using MediaPacket packet = await reader.ReadPacketAtAsync(0, packetIndex);
                     foreach (NalPayload nal in NalPayload.ReadLengthPrefixed(packet.Data, configuration.LengthSize))
                     {
-                        if (nal.Type is not (>= 0 and <= 9 or >= 16 and <= 21)) { continue; }
-                        if (count >= expected.Length) { throw new InvalidDataException("The HEVC reference has fewer slice headers."); }
-                        Verify(HevcSliceHeader.Read(nal, pictures), expected[count++]);
+                        if (nal.Type is >= 0 and <= 9 or >= 16 and <= 21) { result.Add(HevcSliceHeader.Read(nal, pictures)); }
                     }
                 }
             }
-            if (count != expected.Length || allocator.AllocatedBytes != 0) { throw new InvalidDataException("The HEVC header count or retained allocation differs."); }
-            return count;
+            if (allocator.AllocatedBytes != 0) { throw new InvalidDataException("HEVC headers retained container storage."); }
+            return result.ToArray();
         }
 
         private static void Verify(HevcSliceHeader actual, JsonElement section)
