@@ -30,6 +30,7 @@
     <Compile Include="../Shared/OpusSilkStereoTestInput.cs" Link="OpusSilkStereoTestInput.cs" />
     <Compile Include="../Shared/OpusSilkResamplerTestInput.cs" Link="OpusSilkResamplerTestInput.cs" />
     <Compile Include="../Shared/OpusSilkPcmTestInput.cs" Link="OpusSilkPcmTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkSignalTestInput.cs" Link="OpusSilkSignalTestInput.cs" />
     <Compile Include="../Shared/OpusMultistreamTestInput.cs" Link="OpusMultistreamTestInput.cs" />
     <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />

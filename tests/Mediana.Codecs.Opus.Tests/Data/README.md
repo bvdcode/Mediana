@@ -520,3 +520,13 @@ decoded-multistream.bin SHA-256: `69d7757398a96b1376d45e8117fcdef7d9a600f640f5c4
 ogg-stereo.f32le SHA-256: `29a251245580a03c8f1bef08c1f105ba1f2b5e5edf9eef406b3892ad837d56d9`.
 
 ogg-seek.bin SHA-256: `c5761a62315f4c760f9304bc7f5f97bbe20026b9d7d6dd2c9e5509f15bab337b`.
+
+`silk-signal.bin` records 4,096 signal-energy, square-root and Q16 chirp
+filter-expansion cases from libopus 1.6.1. Signal lengths span 1 through 320,
+including silence, noise and saturated samples. Both LPC orders, signed integer
+boundaries and chirps near unity are included. All fixed-point results match
+exactly. The little-endian file starts with `OPUSSIG1` and a 32-bit count. Cases
+contain square-root input/output, sample count and signed 16-bit PCM, 32-bit
+energy/shift/order/chirp and signed 16-bit input/output LPC coefficients.
+
+SHA-256: `ecb99a4e5ebd445cb7aa846b543850f7512b0c962475bc0ef83e16511c69ea9b`.
