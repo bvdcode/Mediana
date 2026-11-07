@@ -64,8 +64,8 @@ namespace Mediana.Tests
                 for (int example = 0; example < 12; example++)
                 {
                     MediaBufferAllocator allocator = new(65536);
-                    int width = 2 * sizes.Next(2, 9);
-                    int height = 2 * sizes.Next(2, 8);
+                    int width = sizes.Next(3, 18);
+                    int height = sizes.Next(3, 16);
                     int targetWidth = 2 * sizes.Next(1, width / 2 + 1);
                     int targetHeight = 2 * sizes.Next(1, height / 2 + 1);
                     using VideoFrame input = CreateFrame(width, height, location, allocator, true);
@@ -199,8 +199,8 @@ namespace Mediana.Tests
                 _ => throw new ArgumentOutOfRangeException(nameof(input))
             };
             decimal scale = plane == 0 ? 1 : 2;
-            decimal ratioX = input.Planes[plane].RowBytes / (decimal)width;
-            decimal ratioY = input.Planes[plane].Height / (decimal)height;
+            decimal ratioX = input.Format.Width / scale / width;
+            decimal ratioY = input.Format.Height / scale / height;
             decimal shiftX = plane == 0 ? 0.5m : (horizontal + 0.5m) / scale;
             decimal shiftY = plane == 0 ? 0.5m : (vertical + 0.5m) / scale;
             decimal centerX = x * ratioX + shiftX * (ratioX - 1);

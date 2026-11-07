@@ -41,10 +41,10 @@ namespace Mediana.Processing
             ArgumentOutOfRangeException.ThrowIfLessThan(width, 2);
             ArgumentOutOfRangeException.ThrowIfLessThan(height, 2);
             if (inputFormat.PixelFormat != VideoPixelFormat.Yuv420P8 ||
-                ((inputFormat.Width | inputFormat.Height | width | height) & 1) != 0 ||
+                ((width | height) & 1) != 0 ||
                 width > inputFormat.Width || height > inputFormat.Height)
             {
-                throw new NotSupportedException("Area video resizing requires even-sized YUV420P8 input and output without enlargement.");
+                throw new NotSupportedException("Area video resizing requires YUV420P8 input and even-sized output without enlargement.");
             }
             (int horizontal, int vertical) = ChromaSamplePosition.InHalfLumaSamples(inputFormat.Color.ChromaLocation);
             SampleAspectRatio? aspect = ResizeGeometry.PreserveDisplayAspect(inputFormat, width, height);
@@ -60,9 +60,9 @@ namespace Mediana.Processing
                 offset += width;
                 AreaSampleRange.Fill(all.Slice(offset, height), inputFormat.Height, 2, cancellationToken);
                 offset += height;
-                AreaSampleRange.Fill(all.Slice(offset, width / 2), inputFormat.Width / 2, horizontal + 1, cancellationToken);
+                AreaSampleRange.Fill(all.Slice(offset, width / 2), (inputFormat.Width + 1) / 2, inputFormat.Width, 2, horizontal + 1, cancellationToken);
                 offset += width / 2;
-                AreaSampleRange.Fill(all.Slice(offset, height / 2), inputFormat.Height / 2, vertical + 1, cancellationToken);
+                AreaSampleRange.Fill(all.Slice(offset, height / 2), (inputFormat.Height + 1) / 2, inputFormat.Height, 2, vertical + 1, cancellationToken);
                 if (width != inputFormat.Width || height != inputFormat.Height)
                 {
                     workspace = allocator.Allocate(checked(2 * width * sizeof(long)));
@@ -163,8 +163,8 @@ namespace Mediana.Processing
             ReadOnlySpan<AreaSampleRange> horizontal, ReadOnlySpan<AreaSampleRange> vertical,
             Span<long> workspace, CancellationToken cancellationToken)
         {
-            int sourceWidth = input.Planes[plane].RowBytes;
-            long denominator = 16L * sourceWidth * input.Planes[plane].Height;
+            long denominator = 16L * input.Format.Width * input.Format.Height;
+            int extentDenominator = plane == 0 ? 1 : 2;
             Span<long> filtered = workspace[..horizontal.Length];
             Span<long> sums = workspace.Slice(horizontal.Length, horizontal.Length);
             int cachedRow = -1;
@@ -178,10 +178,10 @@ namespace Mediana.Processing
                     cancellationToken.ThrowIfCancellationRequested();
                     if (sourceY != cachedRow)
                     {
-                        FilterRow(input.GetRow(plane, sourceY), horizontal, filtered, cancellationToken);
+                        FilterRow(input.GetRow(plane, sourceY), horizontal, filtered, extentDenominator, cancellationToken);
                         cachedRow = sourceY;
                     }
-                    long weight = rows.Weight(sourceY, 4L * vertical.Length);
+                    long weight = rows.Weight(sourceY, 4L * vertical.Length * extentDenominator);
                     for (int x = 0; x < sums.Length; x++)
                     {
                         sums[x] += filtered[x] * weight;
@@ -196,9 +196,9 @@ namespace Mediana.Processing
         }
 
         private static void FilterRow(ReadOnlySpan<byte> input, ReadOnlySpan<AreaSampleRange> horizontal,
-            Span<long> output, CancellationToken cancellationToken)
+            Span<long> output, int extentDenominator, CancellationToken cancellationToken)
         {
-            long interiorWeight = 4L * horizontal.Length;
+            long interiorWeight = 4L * horizontal.Length * extentDenominator;
             for (int x = 0; x < horizontal.Length; x++)
             {
                 if ((x & 1023) == 0) { cancellationToken.ThrowIfCancellationRequested(); }
