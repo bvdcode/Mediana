@@ -266,10 +266,10 @@ mpeg-surround,Audio coding and sample representations,MPEG Surround,Spatial audi
 mpegh-audio,Audio coding and sample representations,MPEG-H 3D Audio,Channel/object/scene-based audio,audio-codec,,C,mpeg-audio,
 flac-codec,Audio coding and sample representations,FLAC,Lossless sample coding,audio-codec,.flac,A,flac,"Current decoder has fixed/LPC prediction, Rice residuals, stereo decorrelation and CRC checks."
 alac,Audio coding and sample representations,Apple Lossless,ALAC sample coding,audio-codec,,A,alac,
-opus-silk,Audio coding and sample representations,Opus,SILK speech mode,audio-codec,,A,opus,
-opus-celt,Audio coding and sample representations,Opus,CELT transform mode,audio-codec,,A,opus,Internal sequential mono/stereo CELT reconstruction has reference checks; no public Opus stream decoder or SILK/hybrid support yet.
-opus-hybrid,Audio coding and sample representations,Opus,Hybrid and mode transitions,audio-codec,,A,opus,
-opus-multistream,Audio coding and sample representations,Opus,Multistream and channel mappings,audio-codec,,B,opus,Ambisonics mappings need their own declared scope and reference fixtures.
+opus-silk,Audio coding and sample representations,Opus,SILK speech mode,audio-codec,,A,opus,"Public managed decoder covers SILK speech, DTX and mode transitions with independent PCM references; explicit loss/FEC APIs remain separate."
+opus-celt,Audio coding and sample representations,Opus,CELT transform mode,audio-codec,,A,opus,"Public managed 48 kHz Float32 decoding covers CELT, transitions and retained-state recovery with independent libopus references."
+opus-hybrid,Audio coding and sample representations,Opus,Hybrid and mode transitions,audio-codec,,A,opus,"Public managed decoder reconstructs hybrid frames and mode transitions, including redundancy and missing transition intervals; independent references cover the implemented scope."
+opus-multistream,Audio coding and sample representations,Opus,Multistream and channel mappings,audio-codec,,B,opus,"Public decoder supports channel mapping families 0, 1 and 255, including duplicate/silent channels; other families and ambisonics remain separate."
 vorbis,Audio coding and sample representations,Vorbis,Vorbis I mono/stereo/multichannel,audio-codec,,A,vorbis,
 speex-nb,Audio coding and sample representations,Speex,Narrowband,audio-codec,,B,speex,
 speex-wb,Audio coding and sample representations,Speex,Wideband / ultra-wideband,audio-codec,,B,speex,

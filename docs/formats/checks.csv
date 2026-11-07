@@ -527,13 +527,13 @@ flac-codec,decode,partial,partial,partial,partial,partial,partial,../../tests/Me
 flac-codec,encode,planned,planned,planned,planned,planned,planned,
 alac,decode,planned,planned,planned,planned,planned,planned,
 alac,encode,planned,planned,planned,planned,planned,planned,
-opus-silk,decode,planned,planned,planned,planned,planned,planned,
+opus-silk,decode,partial,partial,partial,planned,planned,partial,../opus-decoding.md;../../src/Mediana.Codecs.Opus/OpusDecoderFactory.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusDecoderTests.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusFrameDecoderTests.cs
 opus-silk,encode,planned,planned,planned,planned,planned,planned,
-opus-celt,decode,partial,partial,partial,planned,planned,planned,../../src/Mediana.Codecs.Opus/CeltFrameDecoder.cs;../../tests/Mediana.Codecs.Opus.Tests/CeltFrameDecoderTests.cs
+opus-celt,decode,partial,partial,partial,planned,planned,partial,../opus-decoding.md;../../src/Mediana.Codecs.Opus/OpusDecoderFactory.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusDecoderTests.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusFrameDecoderTests.cs
 opus-celt,encode,planned,planned,planned,planned,planned,planned,
-opus-hybrid,decode,planned,planned,planned,planned,planned,planned,
+opus-hybrid,decode,partial,partial,partial,planned,planned,partial,../opus-decoding.md;../../src/Mediana.Codecs.Opus/OpusDecoderFactory.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusDecoderTests.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusFrameDecoderTests.cs
 opus-hybrid,encode,planned,planned,planned,planned,planned,planned,
-opus-multistream,decode,planned,planned,planned,planned,planned,planned,
+opus-multistream,decode,partial,partial,partial,planned,planned,partial,../opus-decoding.md;../../src/Mediana.Codecs.Opus/OpusDecoderFactory.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusDecoderTests.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusFrameDecoderTests.cs
 opus-multistream,encode,planned,planned,planned,planned,planned,planned,
 vorbis,decode,planned,planned,planned,planned,planned,planned,
 vorbis,encode,planned,planned,planned,planned,planned,planned,
