@@ -17,6 +17,7 @@ namespace Mediana.Codecs.Opus
         private SilkFrameDecoder? silk;
         private OpusCodingMode? previousMode;
         private bool previousRedundancy, disposed, faulted;
+        private int previousEndBand = CeltBandTables.BandCount;
 
         public OpusFrameDecoder(CeltTransformPlan plan, CeltPulseCodebook codebook, MediaBufferAllocator allocator, int channels, bool disableInversion)
         {
@@ -40,7 +41,6 @@ namespace Mediana.Codecs.Opus
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (faulted) { throw new InvalidOperationException("Reset the Opus frame decoder after a failed frame."); }
-            if (frame.Length <= 1) { throw new NotSupportedException("An uncoded Opus frame requires packet-loss reconstruction."); }
             ArgumentOutOfRangeException.ThrowIfGreaterThan(frame.Length, 1275, nameof(frame));
             int samples = configuration.SamplesPerFrame;
             ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, samples * Channels, nameof(output));
@@ -48,7 +48,8 @@ namespace Mediana.Codecs.Opus
             bool succeeded = false;
             try
             {
-                DecodeCore(frame, configuration, output[..(samples * Channels)], cancellationToken);
+                if (frame.Length <= 1) { ConcealCore(samples, output[..(samples * Channels)], cancellationToken); }
+                else { DecodeCore(frame, configuration, output[..(samples * Channels)], cancellationToken); }
                 succeeded = true;
                 return samples;
             }
@@ -66,6 +67,11 @@ namespace Mediana.Codecs.Opus
                 OpusBandwidth.Fullband => 21,
                 _ => throw new ArgumentOutOfRangeException(nameof(configuration))
             };
+            bool changesCelt = previousMode.HasValue && previousMode != mode &&
+                (previousMode == OpusCodingMode.Celt || mode == OpusCodingMode.Celt);
+            Span<float> transitionPcm = stackalloc float[2 * FadeSamples * Channels];
+            bool blendTransition = changesCelt && mode == OpusCodingMode.Celt && !previousRedundancy;
+            if (blendTransition) { ConcealCore(Math.Min(2 * FadeSamples, configuration.SamplesPerFrame), transitionPcm, token); }
             OpusRangeDecoder range = new(frame);
             OpusTransitionInfo transition = default;
             if (mode != OpusCodingMode.Celt)
@@ -84,11 +90,9 @@ namespace Mediana.Codecs.Opus
                 transition = OpusTransitionInfo.Read(ref range, mode == OpusCodingMode.Hybrid);
             }
             bool hasTransition = transition.Bytes != 0;
-            bool changesCelt = previousMode.HasValue && previousMode != mode &&
-                (previousMode == OpusCodingMode.Celt || mode == OpusCodingMode.Celt);
-            if (changesCelt && !hasTransition && !previousRedundancy)
+            if (changesCelt && mode != OpusCodingMode.Celt && !hasTransition)
             {
-                throw new NotSupportedException("An Opus mode switch without transition redundancy requires packet-loss reconstruction.");
+                ConcealCore(2 * FadeSamples, transitionPcm, token); blendTransition = true;
             }
             Span<float> redundant = MemoryMarshal.Cast<byte, float>(transitionStorage.Span);
             uint redundantRange = 0;
@@ -134,8 +138,70 @@ namespace Mediana.Codecs.Opus
                 Span<float> beginning = output.Slice(FadeSamples * Channels, FadeSamples * Channels);
                 Fade(redundant[(FadeSamples * Channels)..], beginning, beginning);
             }
+            if (blendTransition)
+            {
+                if (configuration.SamplesPerFrame >= 2 * FadeSamples)
+                {
+                    transitionPcm[..(FadeSamples * Channels)].CopyTo(output);
+                    Span<float> beginning = output.Slice(FadeSamples * Channels, FadeSamples * Channels);
+                    Fade(transitionPcm[(FadeSamples * Channels)..], beginning, beginning);
+                }
+                else { Fade(transitionPcm[..(FadeSamples * Channels)], output, output); }
+            }
             FinalRange ^= redundantRange;
+            previousEndBand = endBand;
             previousMode = mode; previousRedundancy = hasTransition && !transition.AtStart;
+        }
+
+        public int Conceal(int samples, Span<float> output, CancellationToken cancellationToken = default)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (faulted) { throw new InvalidOperationException("Reset the Opus frame decoder after a failed frame."); }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(samples);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(samples, OpusPacketInfo.MaximumPacketSamples);
+            if (samples % FadeSamples != 0) { throw new ArgumentException("Opus recovery requires a whole number of 2.5 millisecond intervals.", nameof(samples)); }
+            ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, samples * Channels, nameof(output));
+            cancellationToken.ThrowIfCancellationRequested();
+            bool succeeded = false;
+            try { ConcealCore(samples, output, cancellationToken); succeeded = true; return samples; }
+            finally { if (!succeeded) { faulted = true; } }
+        }
+
+        private void ConcealCore(int samples, Span<float> output, CancellationToken token)
+        {
+            if (!previousMode.HasValue) { output[..(samples * Channels)].Clear(); FinalRange = 0; return; }
+            OpusCodingMode mode = previousMode.Value;
+            if (previousRedundancy) { mode = OpusCodingMode.Celt; }
+            Span<float> shortSilk = stackalloc float[480 * Channels];
+            int written = 0;
+            while (written < samples)
+            {
+                token.ThrowIfCancellationRequested();
+                int block = Math.Min(960, samples - written);
+                if (block > 480 && block < 960) { block = 480; }
+                if (mode != OpusCodingMode.Silk && block > 240 && block < 480) { block = 240; }
+                Span<float> target = output.Slice(written * Channels, block * Channels);
+                if (mode != OpusCodingMode.Celt)
+                {
+                    if (silk is null) { throw new InvalidOperationException("An Opus SILK recovery frame has no prior channel state."); }
+                    if (block < 480) { silk.Conceal(480, shortSilk, token); shortSilk[..target.Length].CopyTo(target); }
+                    else { silk.Conceal(block, target, token); }
+                }
+                if (mode != OpusCodingMode.Silk)
+                {
+                    int shift = block switch { 120 => 0, 240 => 1, 480 => 2, 960 => 3, _ => throw new InvalidOperationException() };
+                    int first = mode switch
+                    {
+                        OpusCodingMode.Celt => 0,
+                        OpusCodingMode.Hybrid => 17,
+                        OpusCodingMode.Silk => throw new InvalidOperationException(),
+                        _ => throw new InvalidOperationException()
+                    };
+                    celt.Conceal(new(Channels, shift, first, previousEndBand), target, mode == OpusCodingMode.Hybrid, token);
+                }
+                written += block;
+            }
+            previousMode = mode; previousRedundancy = false; FinalRange = 0;
         }
 
         private void Fade(ReadOnlySpan<float> first, ReadOnlySpan<float> second, Span<float> output)
@@ -155,7 +221,7 @@ namespace Mediana.Codecs.Opus
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             celt.Reset(); silk?.Reset(); transitionStorage.Span.Clear();
-            previousMode = null; previousRedundancy = false; FinalRange = 0; faulted = false;
+            previousMode = null; previousRedundancy = false; previousEndBand = CeltBandTables.BandCount; FinalRange = 0; faulted = false;
         }
 
         public void Dispose()

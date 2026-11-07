@@ -18,6 +18,20 @@ namespace Mediana.Codecs.Opus.Tests
     public class OpusDecoderTests
     {
         [Fact]
+        public void DtxBeforeReceivedSpeechPublishesTimestampedSilence()
+        {
+            MediaBufferAllocator allocator = new(256 * 1024);
+            using IMediaCodec<MediaPacket, AudioFrame> decoder = Create(allocator);
+            using WritableMediaBuffer writable = allocator.Allocate(1); writable.Span[0] = 248;
+            using MediaBuffer buffer = writable.Publish();
+            using MediaPacket packet = new(0, buffer, new(1920, new(1, 48000)));
+            Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(packet));
+            using AudioFrame frame = decoder.Receive().Value;
+            Assert.Equal(960, frame.SamplesPerChannel); Assert.Equal(packet.PresentationTime, frame.Timestamp);
+            Assert.True(frame.GetPlane(0).Span.IndexOfAnyExcept((byte)0) < 0);
+        }
+
+        [Fact]
         public void MultistreamMappingAndPacketFramePackingMatchIndependentPcm() =>
             Assert.Equal(144, OpusMultistreamTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data")));
 

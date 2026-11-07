@@ -71,7 +71,7 @@ namespace Mediana.Codecs.Opus
             return samples;
         }
 
-        public int DecodeLayer(ref OpusRangeDecoder range, int channels, int samples, Span<float> output,
+        public int DecodeLayer(ref OpusRangeDecoder range, int channels, int samples, scoped Span<float> output,
             CancellationToken cancellationToken = default)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
@@ -121,7 +121,7 @@ namespace Mediana.Codecs.Opus
         }
 
         private void DecodeBlock(ref OpusRangeDecoder range, SilkFrameMode mode, int channels, int index,
-            SilkPayloadHeader header, Span<float> output)
+            SilkPayloadHeader header, scoped Span<float> output)
         {
             bool collapsing = previousChannels == 2 && channels == 1 && !sampleRateChanged;
             sampleRateChanged = false;

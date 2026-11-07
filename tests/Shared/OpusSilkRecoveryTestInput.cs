@@ -10,9 +10,9 @@ namespace Mediana.Tests
 {
     internal static class OpusSilkRecoveryTestInput
     {
-        public static int Verify(string root)
+        public static int Verify(string root, string filename = "decoded-silk-recovery.bin.gz")
         {
-            using GZipStream stream = new(File.OpenRead(Path.Combine(root, "decoded-silk-recovery.bin.gz")), CompressionMode.Decompress);
+            using GZipStream stream = new(File.OpenRead(Path.Combine(root, filename)), CompressionMode.Decompress);
             using BinaryReader reader = new(stream);
             if (!reader.ReadBytes(8).AsSpan().SequenceEqual("OPUSREC1"u8))
             {
@@ -47,7 +47,16 @@ namespace Mediana.Tests
                             OpusPacketConfiguration configuration = OpusPacketConfiguration.FromToc(packet[0]);
                             for (int at = 0; at < layout.FrameCount; at++)
                             {
-                                decoded += decoder.Decode(packet.AsSpan()[ranges[at]], configuration, pcm[(decoded * channels)..]);
+                                if (configuration.CodingMode == OpusCodingMode.Silk)
+                                {
+                                    decoded += decoder.Decode(packet.AsSpan()[ranges[at]], configuration, pcm[(decoded * channels)..]);
+                                }
+                                else if (configuration.CodingMode == OpusCodingMode.Hybrid)
+                                {
+                                    OpusRangeDecoder range = new(packet.AsSpan()[ranges[at]]);
+                                    decoded += decoder.DecodeLayer(ref range, configuration.CodedChannelCount, configuration.SamplesPerFrame, pcm[(decoded * channels)..]);
+                                }
+                                else { throw new InvalidDataException("The SILK recovery corpus contains a CELT packet."); }
                             }
                         }
                         if (decoded != expectedSamples || decoder.FinalRange != expectedRange)

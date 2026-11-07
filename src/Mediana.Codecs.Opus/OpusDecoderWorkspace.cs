@@ -28,7 +28,7 @@ namespace Mediana.Codecs.Opus
                 for (int index = 0; index < decoders.Length; index++)
                 {
                     int channels = index < configuration.CoupledStreamCount ? 2 : 1;
-                    decoders[index] = new(createdPlan, createdCodebook, allocator, channels, false);
+                    decoders[index] = new(createdPlan, createdCodebook, allocator, channels, channels == 1);
                 }
                 if (configuration.MappingFamily != 0)
                 {

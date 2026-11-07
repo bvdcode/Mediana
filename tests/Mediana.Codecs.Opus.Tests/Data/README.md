@@ -612,3 +612,39 @@ histories and LPC analysis. Scalar and SIMD libopus builds also differ on this
 corpus. The stricter ordinary-frame comparisons remain unchanged.
 
 SHA-256: `5a14c7c3b19c54eddce8fe4459a69f7ef3771480f1274e1cfdfbd2519054f07c`.
+
+`decoded-hybrid-recovery.bin.gz`
+
+16 libopus 1.6.1 hybrid streams contain 1,536 packets at super-wide/full
+bandwidth, 10/20 ms, mono/stereo output and changing coded channel counts.
+Loss bursts, long losses, silence, DTX and resumed speech share the CELT recovery
+layout and quality bounds, with decompressed magic `OPUSHRC1`.
+The public factory produces identical PCM to frame reconstruction, preserves
+packet timestamps and releases working storage at completion.
+
+SHA-256: `6c01ff967f5f1789dcad0cc88e51591f6a581386d77e5838a2fb663eec7f830a`.
+
+`decoded-hybrid-silk-recovery.bin.gz`
+
+The SILK layer of the same 1,536 hybrid packets is recorded independently
+through the libopus SILK API. PCM and entropy state after the SILK layer match
+exactly, isolating fixed-point recovery from CELT float synthesis. Its layout
+and magic follow `decoded-silk-recovery.bin.gz`.
+
+SHA-256: `f0bc482ff0acf1f337a7d9eedb3fdf06273444a9c571cebdf605ba9b195fa579`.
+
+`decoded-unprimed-transitions.bin.gz`
+
+16 libopus 1.6.1 streams contain 1,024 packets switching between independent
+SILK, hybrid and CELT encoders without transition redundancy. CELT durations
+span 2.5/5/10/20 ms and all bandwidths, exercising both transition directions
+and truncated fades. The layout and quality bounds follow CELT recovery, with
+magic `OPUSUTC1`. Public packet decoding also checks sample counts, timestamps,
+PCM and lease ownership.
+
+SHA-256: `89bd53e2a6e42718c7b1a8349ae5d0df5393cd8c108611fda9121768e2e7fa0e`.
+
+The public recovery checks represent explicit losses as valid one-frame uncoded
+Opus packets with the retained TOC duration. Empty media packets remain invalid.
+Mono decoders disable stereo-phase inversion; coupled stereo decoders preserve
+it, matching the reference channel configuration.

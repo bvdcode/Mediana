@@ -8,7 +8,9 @@ external decoder or native multimedia dependency is used.
 The decoder reconstructs SILK, CELT and hybrid frames. It supports all standard
 frame durations, VBR/CBR packet framing, multiple frames per packet, changing
 coded channel counts, bandwidth changes, transition redundancy and hybrid
-high-band fade-out. Channel mapping families 0, 1 and 255 support mono/stereo,
+high-band fade-out. Uncoded DTX frames and mode transitions without redundant
+audio reconstruct the required missing interval. Mono decoding disables stereo
+phase inversion. Channel mapping families 0, 1 and 255 support mono/stereo,
 standard one-through-eight-speaker layouts and discrete channels respectively.
 Multistream packets share prepared transform and pulse tables. Duplicated and
 silent output channels retain their declared positions. Other mapping families
@@ -45,11 +47,20 @@ Whole Ogg decoding and indexed restarts additionally verify pre-skip, final
 granules, timestamps and ownership through the public audio API. Native AOT
 verification covers frame reconstruction and the public multistream factory.
 
-Uncoded frames used for discontinuous transmission and packet-loss
-reconstruction are not yet decoded. Mode switches that require reconstructed
-missing audio rather than transition redundancy are rejected explicitly.
-Exposing Opus forward-error-correction recovery is also still open; ordinary
-SILK decoding reads and skips its redundant data correctly.
+Recovery corpora additionally cover 13,312 public packets with DTX, short and
+long loss bursts, resumed speech and transitions without redundant audio.
+SILK recovery matches fixed-point reference PCM exactly. CELT loss reconstruction
+is non-normative and depends on rounding of retained histories and LPC analysis;
+complete-stream comparisons require at least 40 dB signal-to-error ratio and
+peak error below 0.02 times the larger of one and the reference peak. Scalar and
+SIMD libopus builds also produce different recovered samples. Ordinary-frame
+comparisons retain the stricter float tolerances above. Repeated mode changes,
+DTX and recovery allocate no managed working storage.
+
+The packet API accepts uncoded Opus frames; an empty media packet does not
+represent a lost interval. A public missing-interval API and forward-error-
+correction recovery remain open. Ordinary SILK decoding reads and skips its
+redundant data correctly.
 
 Framing, synthesis and transitions follow
 [RFC 6716](https://www.rfc-editor.org/rfc/rfc6716.html), and Ogg presentation,
