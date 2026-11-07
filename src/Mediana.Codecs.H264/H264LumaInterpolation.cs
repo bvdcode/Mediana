@@ -12,22 +12,39 @@ namespace Mediana.Codecs.H264
         public static void Apply(ReadOnlySpan<byte> samples, int stride, int rows, long x, long y,
             int dx, int dy, int width, int height, Span<byte> output)
         {
-            Span<byte> patch = stackalloc byte[(BlockSize + Padding) * (BlockSize + Padding)];
             for (int top = 0; top < height;)
             {
                 int tileHeight = Math.Min(BlockSize, height - top);
                 for (int left = 0; left < width;)
                 {
                     int tileWidth = Math.Min(BlockSize, width - left);
-                    int patchStride = tileWidth + Padding;
-                    H264BorderExtension.Copy(samples, stride, rows, x + left - FirstTap, y + top - FirstTap,
-                        patchStride, tileHeight + Padding, patch);
-                    PredictTile(patch, patchStride, dx, dy, tileWidth, tileHeight, width,
-                        output[(top * width + left)..]);
+                    long patchX = x + left - FirstTap;
+                    long patchY = y + top - FirstTap;
+                    Span<byte> destination = output[(top * width + left)..];
+                    if (patchX >= 0 && patchX <= stride - tileWidth - Padding &&
+                        patchY >= 0 && patchY <= rows - tileHeight - Padding)
+                    {
+                        PredictTile(samples[((int)patchY * stride + (int)patchX)..], stride, dx, dy,
+                            tileWidth, tileHeight, width, destination);
+                    }
+                    else
+                    {
+                        PredictBorder(samples, stride, rows, patchX, patchY, dx, dy,
+                            tileWidth, tileHeight, width, destination);
+                    }
                     left += tileWidth;
                 }
                 top += tileHeight;
             }
+        }
+
+        private static void PredictBorder(ReadOnlySpan<byte> samples, int stride, int rows, long x, long y,
+            int dx, int dy, int width, int height, int outputStride, Span<byte> output)
+        {
+            Span<byte> patch = stackalloc byte[(BlockSize + Padding) * (BlockSize + Padding)];
+            int patchStride = width + Padding;
+            H264BorderExtension.Copy(samples, stride, rows, x, y, patchStride, height + Padding, patch);
+            PredictTile(patch, patchStride, dx, dy, width, height, outputStride, output);
         }
 
         private static void PredictTile(ReadOnlySpan<byte> patch, int stride, int dx, int dy,

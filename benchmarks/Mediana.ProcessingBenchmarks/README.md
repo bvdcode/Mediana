@@ -88,3 +88,20 @@ elapsed, 93.303 s CPU, 54.4 MiB peak RSS and 558.7 MiB total allocation.
 Both tracks were encoded, including all 84,375 audio input frames. This small-frame
 long recording checks bounded memory and total sample/frame processing; it is not
 an HD throughput result.
+
+## Reference and interpolation follow-up
+
+On the same HD source, FFmpeg/libx264 `veryfast`, Baseline, QP26, no B pictures,
+GOP48, area scaling and one pinned encoding/filter thread took 7.183 s process CPU
+and 8.241 s elapsed. Its MPEG-TS output was 7,598,208 bytes, versus 12,990,988 bytes
+for Mediana. Independent source-relative PSNR was 38.972 dB and 40.125 dB,
+respectively. Equal quantizers do not establish equal quality or compression;
+this observation does not establish encoder parity. A substantial CPU gap remains.
+
+Sampled profiling identified motion interpolation among decoder hot paths.
+Interior six-tap blocks now read their reference picture directly; only border
+blocks materialize an extended patch. Three further alternating pooled HD runs
+gave median CPU 35.938 s before and 34.903 s after, about 2.9% lower. Elapsed
+medians were 37.125 s and 35.921 s. Every output retained the hash above.
+This is a separate small whole-operation improvement. A tested 16-bit intermediate
+change did not improve full-pipeline throughput and is not included.
