@@ -75,6 +75,14 @@ timestamps and durations must fit it without rounding.
 An explicit clock also supports indexed readers that do not expose metadata-only
 packet clock queries; unsupported automatic selection fails before payload reads.
 
+The H.264 encoder checks level cadence against the timestamps of consecutive
+pictures, independently of their display extents. A clipped final picture can
+therefore last 1 ms without implying a 1,000 fps stream. Positive, exact display
+durations and nonoverlapping timestamps remain required. This follows
+[H.264 (June 2026), Annex A.3.1 and Annex C.2.2](https://www.itu.int/rec/T-REC-H.264-202606-I/en),
+which define the relevant intervals between successive pictures and exclude the
+last displayed picture from the next-picture interval constraint.
+
 `MediaTrackResult` reports encoded frames, input PCM samples, packet/payload counts
 and available encoder priming/padding. Sample counts describe PCM submitted to the
 encoder. Compressed output also contains the encoder's declared delay and padding;
