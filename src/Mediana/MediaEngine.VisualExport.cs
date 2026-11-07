@@ -31,7 +31,8 @@ namespace Mediana
             using VideoFrame frame = await session.ReadFrameAsync(cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidDataException("There is no frame at or after the requested timestamp.");
             bool preserveAspect = session.IsImage && (encoder.Features & ImageEncoderFeatures.SampleAspectRatio) != 0;
-            return await ExportImageAsync(frame, destination, encoder, allocator, session.DisplayMatrix, preserveAspect, options, cancellationToken).ConfigureAwait(false);
+            VideoDisplayMatrix matrix = session.DisplayMatrix ?? throw new NotSupportedException("The video stream has no display transform interpretation.");
+            return await ExportImageAsync(frame, destination, encoder, allocator, matrix, preserveAspect, options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Exports borrowed pixels through the same presentation policy as visual previews.</summary>
@@ -43,6 +44,8 @@ namespace Mediana
             ArgumentNullException.ThrowIfNull(encoder);
             ValidateDestination(destination);
             options ??= new(); options.Validate();
+            if (preserveSampleAspectRatio && (encoder.Features & ImageEncoderFeatures.SampleAspectRatio) == 0)
+            { throw new NotSupportedException("The selected image encoder cannot preserve sample aspect ratio."); }
             using VideoFrame output = VisualFramePreparation.Apply(frame, displayMatrix, preserveSampleAspectRatio, options, allocator, cancellationToken);
             long bytes = await encoder.EncodeAsync(output, destination, allocator, cancellationToken).ConfigureAwait(false);
             return new(1, bytes, output.Format.Width, output.Format.Height, output.Timestamp, output.Duration);
@@ -82,7 +85,7 @@ namespace Mediana
                 while (await session.ReadFrameAsync(token).ConfigureAwait(false) is VideoFrame frame)
                 {
                     using (frame)
-                    using (VideoFrame pixels = VisualFramePreparation.Apply(frame, session.DisplayMatrix, false, options, allocator, token))
+                    using (VideoFrame pixels = VisualFramePreparation.Apply(frame, session.DisplayMatrix ?? throw new NotSupportedException("The video stream has no display transform interpretation."), false, options, allocator, token))
                     using (VideoFrame timed = clock.Apply(pixels))
                     {
                         if (count == 0) { first = timed.Timestamp; width = timed.Format.Width; height = timed.Format.Height; }

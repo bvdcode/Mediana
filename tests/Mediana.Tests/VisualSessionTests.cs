@@ -114,6 +114,51 @@ namespace Mediana.Tests
             Assert.Contains("primaries", warnings[0], StringComparison.Ordinal); Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Fact]
+        public async Task ExplicitSelectionUsesItsParserAndPreservesNestedImageRegistration()
+        {
+            FixtureImageDecoder outer = new("outer", (_, request, allocator, token) =>
+                request.Images!.DecodeAsync("PIX"u8.ToArray(), new(), allocator, token));
+            MediaEngine engine = new MediaEngineBuilder().AddImageDecoder(outer).AddImageDecoder(new EmbeddedTestImageDecoder()).Build();
+            await using ShortReadSource source = new("NOT-A-RECOGNIZED-HEADER"u8.ToArray());
+            MediaBufferAllocator allocator = new(64 * 1024);
+            await using (VisualSession session = await engine.OpenVisualAsync(source, allocator,
+                new() { Images = new() { DecoderImplementationId = "outer" } }))
+            {
+                using VideoFrame frame = await session.ReadFrameAsync() ?? throw new InvalidDataException();
+                Assert.Equal(new byte[] { 21, 43, 65, 255 }, frame.Data.ToArray());
+                Assert.Equal(1, outer.DecodeCalls);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public async Task ExplicitDecoderFailureIsNotReplacedByAnotherRecognizableFormat()
+        {
+            FixtureImageDecoder selected = new("selected", (_, _, _, _) => throw new InvalidDataException("Selected parser failure."));
+            MediaEngine engine = new MediaEngineBuilder().AddImageDecoder(selected).AddImageDecoder(new EmbeddedTestImageDecoder()).Build();
+            await using ShortReadSource source = new("PIX"u8.ToArray());
+            MediaBufferAllocator allocator = new(64 * 1024);
+            await using (VisualSession session = await engine.OpenVisualAsync(source, allocator,
+                new() { Images = new() { DecoderImplementationId = "selected" } }))
+            {
+                InvalidDataException error = await Assert.ThrowsAsync<InvalidDataException>(() => session.ReadFrameAsync().AsTask());
+                Assert.Equal("Selected parser failure.", error.Message); Assert.Equal(1, selected.DecodeCalls);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public async Task MissingExplicitImplementationFailsBeforeReadingAnyInput()
+        {
+            MediaEngine engine = new MediaEngineBuilder().AddImageDecoder(new EmbeddedTestImageDecoder()).Build();
+            await using TrackingRandomAccessSource source = new("PIX"u8.ToArray());
+            MediaBufferAllocator allocator = new(64 * 1024);
+            await Assert.ThrowsAsync<NotSupportedException>(async () => await engine.OpenVisualAsync(source, allocator,
+                new() { Images = new() { DecoderImplementationId = "unknown" } }));
+            Assert.Empty(source.Reads); Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]

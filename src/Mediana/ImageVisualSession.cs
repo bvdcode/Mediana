@@ -12,17 +12,18 @@ namespace Mediana
     {
         private IAsyncEnumerator<VideoFrame>? frames;
         private bool read;
-        private readonly CancellationTokenSource lifetime = new();
+        private CancellationTokenSource? lifetime;
 
         public override bool IsImage => true;
-        public override VideoDisplayMatrix DisplayMatrix => VideoDisplayMatrix.Identity;
+        public override VideoDisplayMatrix? DisplayMatrix => VideoDisplayMatrix.Identity;
         public override MediaDuration? CodedDuration => null;
 
         protected override async ValueTask<VideoFrame?> ReadCoreAsync(CancellationToken cancellationToken)
         {
             if (options.ReadImageSequence)
             {
-                using CancellationTokenRegistration registration = cancellationToken.Register(lifetime.Cancel);
+                lifetime ??= new();
+                using CancellationTokenRegistration registration = cancellationToken.Register(static state => ((CancellationTokenSource)state!).Cancel(), lifetime);
                 frames ??= engine.DecodeImageFramesAsync(encoded.Memory, allocator, options.Request, options.Images,
                     lifetime.Token).GetAsyncEnumerator(lifetime.Token);
                 return await frames.MoveNextAsync().ConfigureAwait(false) ? frames.Current : null;
@@ -40,7 +41,7 @@ namespace Mediana
         protected override async ValueTask DisposeCoreAsync()
         {
             try { if (frames is not null) { await frames.DisposeAsync().ConfigureAwait(false); } }
-            finally { encoded.Dispose(); lifetime.Dispose(); }
+            finally { encoded.Dispose(); lifetime?.Dispose(); }
         }
     }
 }

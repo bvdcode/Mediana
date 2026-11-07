@@ -28,7 +28,14 @@ namespace Mediana
                     if (declared.Primaries == ColorPrimaries.Unspecified) { missing.Add("primaries"); }
                     if (declared.Transfer == TransferFunction.Unspecified) { missing.Add("transfer"); }
                     if (declared.Matrix == MatrixCoefficients.Unspecified) { missing.Add("matrix"); }
-                    options.WarningHandler?.Invoke($"Missing source color metadata ({string.Join(", ", missing)}); preview uses primaries {resolved.Primaries}, transfer {resolved.Transfer}, matrix {resolved.Matrix}. Declared values were preserved.");
+                    bool preservesDeclarations =
+                        (declared.Primaries == ColorPrimaries.Unspecified || declared.Primaries == resolved.Primaries) &&
+                        (declared.Transfer == TransferFunction.Unspecified || declared.Transfer == resolved.Transfer) &&
+                        (declared.Matrix == MatrixCoefficients.Unspecified || declared.Matrix == resolved.Matrix) &&
+                        declared.Range == resolved.Range && declared.ChromaLocation == resolved.ChromaLocation;
+                    if (missing.Count == 0 || !preservesDeclarations)
+                    { options.WarningHandler?.Invoke($"The configured color policy uses {resolved}. Source metadata was not modified."); }
+                    else { options.WarningHandler?.Invoke($"Missing source color metadata ({string.Join(", ", missing)}); preview uses primaries {resolved.Primaries}, transfer {resolved.Transfer}, matrix {resolved.Matrix}. Declared values were preserved."); }
                 }
                 return resolved;
             }

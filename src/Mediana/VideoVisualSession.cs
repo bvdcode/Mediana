@@ -11,8 +11,7 @@ namespace Mediana
     {
         private bool opening = true;
         public override bool IsImage => false;
-        public override VideoDisplayMatrix DisplayMatrix => session.Stream.DisplayMatrix
-            ?? throw new NotSupportedException("The video stream has no display transform interpretation.");
+        public override VideoDisplayMatrix? DisplayMatrix => session.Stream.DisplayMatrix;
         public override MediaDuration? CodedDuration => session.Stream.CodedDuration;
 
         protected override async ValueTask<VideoFrame?> ReadCoreAsync(CancellationToken cancellationToken)

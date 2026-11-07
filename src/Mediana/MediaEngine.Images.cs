@@ -23,15 +23,15 @@ namespace Mediana
             int probeLength = GetImageProbeLength(options, cancellationToken);
             using WritableMediaBuffer writable = allocator.Allocate(Math.Min(probeLength, options.MaxInputBytes));
             int read = await MediaInputProbe.ReadAsync(source, writable.Memory, cancellationToken).ConfigureAwait(false);
-            IImageDecoder? opening = FindImageDecoder(writable.Memory.Span[..read], source.Length ?? (read < writable.Memory.Length ? read : null));
+            IImageDecoder? opening = FindConfiguredImageDecoder(writable.Memory.Span[..read], source.Length ?? (read < writable.Memory.Length ? read : null), options);
             if (opening is not null) { request.Validate(opening.Features); }
             using MediaBuffer prefix = writable.Publish();
             await using IByteSource replay = MediaInputProbe.Replay(source, prefix, read);
             using MediaBuffer input = await EncodedImageInput.ReadAsync(replay, options.MaxInputBytes, allocator, cancellationToken).ConfigureAwait(false);
-            IImageDecoder decoder = FindImageDecoder(input.Memory.Span[..Math.Min(probeLength, input.Memory.Length)], input.Memory.Length)
+            IImageDecoder decoder = FindConfiguredImageDecoder(input.Memory.Span[..Math.Min(probeLength, input.Memory.Length)], input.Memory.Length, options)
                 ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
             request.Validate(decoder.Features);
-            return await imageContext.DecodeAsync(input.Memory, request, allocator, cancellationToken).ConfigureAwait(false);
+            return await DecodeConfiguredImageAsync(input.Memory, request, allocator, options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Decodes complete encoded bytes without copying them into another input/probe buffer.
@@ -49,10 +49,10 @@ namespace Mediana
             {
                 throw new NotSupportedException("The encoded image exceeds the configured input byte limit.");
             }
-            IImageDecoder decoder = FindImageDecoder(encoded.Span[..Math.Min(probeLength, encoded.Length)], encoded.Length)
+            IImageDecoder decoder = FindConfiguredImageDecoder(encoded.Span[..Math.Min(probeLength, encoded.Length)], encoded.Length, options)
                 ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
             request.Validate(decoder.Features);
-            return imageContext.DecodeAsync(encoded, request, allocator, cancellationToken);
+            return DecodeConfiguredImageAsync(encoded, request, allocator, options, cancellationToken);
         }
 
         private int GetImageProbeLength(ImageOpenOptions options, CancellationToken token)
@@ -63,12 +63,21 @@ namespace Mediana
             {
                 throw new NotSupportedException("No image decoders are registered.");
             }
-            if (ImageProbeLength > options.MaxProbeBytes)
+            int probeLength = options.DecoderImplementationId is string id ? imageContext.GetDecoder(id).ProbeLength : ImageProbeLength;
+            if (probeLength > options.MaxProbeBytes)
             {
                 throw new NotSupportedException("Registered image recognition exceeds the configured probe byte limit.");
             }
-            return ImageProbeLength;
+            return probeLength;
         }
+
+        private IImageDecoder? FindConfiguredImageDecoder(ReadOnlySpan<byte> prefix, long? length, ImageOpenOptions options) =>
+            options.DecoderImplementationId is string id ? imageContext.GetDecoder(id) : FindImageDecoder(prefix, length);
+
+        private ValueTask<VideoFrame> DecodeConfiguredImageAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, ImageOpenOptions options, CancellationToken token) =>
+            options.DecoderImplementationId is string id ? imageContext.DecodeUsingAsync(id, encoded, request, allocator, token)
+                : imageContext.DecodeAsync(encoded, request, allocator, token);
 
         /// <summary>Returns the uniquely recognized image implementation, or null. The prefix may be shorter than
         /// ImageProbeLength at EOF. Recognition does not validate the complete file; ambiguity throws.</summary>

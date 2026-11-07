@@ -49,10 +49,22 @@ namespace Mediana.Codecs
             return selected;
         }
 
-        public async ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+        public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default) =>
+            DecodeCoreAsync(encoded, request, allocator, null, cancellationToken);
+
+        /// <summary>Uses an explicitly registered decoder without content-based substitution; nested images retain the shared registry.</summary>
+        public ValueTask<VideoFrame> DecodeUsingAsync(string implementationId, ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
-            IImageDecoder decoder = Select(encoded, request, allocator, cancellationToken);
+            ArgumentException.ThrowIfNullOrWhiteSpace(implementationId);
+            return DecodeCoreAsync(encoded, request, allocator, implementationId, cancellationToken);
+        }
+
+        private async ValueTask<VideoFrame> DecodeCoreAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, string? implementationId, CancellationToken cancellationToken)
+        {
+            IImageDecoder decoder = Select(encoded, request, allocator, cancellationToken, implementationId);
             VideoFrame frame = await decoder.DecodeAsync(encoded, Descend(request), allocator, cancellationToken).ConfigureAwait(false);
             return ValidateFrame(frame, request, cancellationToken);
         }
@@ -69,10 +81,21 @@ namespace Mediana.Codecs
         }
 
         /// <summary>Decodes a sequence in the same nested-image scope as still decoding. Each frame transfers ownership to the caller.</summary>
-        public async IAsyncEnumerable<VideoFrame> DecodeFramesAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
-            MediaBufferAllocator allocator, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public IAsyncEnumerable<VideoFrame> DecodeFramesAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default) =>
+            DecodeFramesCoreAsync(encoded, request, allocator, null, cancellationToken);
+
+        public IAsyncEnumerable<VideoFrame> DecodeFramesUsingAsync(string implementationId, ReadOnlyMemory<byte> encoded,
+            ImageDecodeRequest request, MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
-            IImageDecoder decoder = Select(encoded, request, allocator, cancellationToken);
+            ArgumentException.ThrowIfNullOrWhiteSpace(implementationId);
+            return DecodeFramesCoreAsync(encoded, request, allocator, implementationId, cancellationToken);
+        }
+
+        private async IAsyncEnumerable<VideoFrame> DecodeFramesCoreAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, string? implementationId, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            IImageDecoder decoder = Select(encoded, request, allocator, cancellationToken, implementationId);
             if (decoder is not IImageSequenceDecoder sequence)
             {
                 throw new NotSupportedException($"Image decoder '{decoder.ImplementationId}' does not expose an animation sequence.");
@@ -84,16 +107,23 @@ namespace Mediana.Codecs
             }
         }
 
-        private IImageDecoder Select(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request, MediaBufferAllocator allocator, CancellationToken token)
+        private IImageDecoder Select(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request, MediaBufferAllocator allocator, CancellationToken token, string? implementationId = null)
         {
             ArgumentNullException.ThrowIfNull(request);
             ArgumentNullException.ThrowIfNull(allocator);
             token.ThrowIfCancellationRequested();
             if (remainingDepth == 0) { throw new InvalidDataException("Embedded images exceed the configured decoding depth."); }
-            IImageDecoder decoder = FindDecoder(encoded.Span, encoded.Length)
-                ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
+            IImageDecoder decoder = implementationId is not null ? GetDecoder(implementationId) :
+                FindDecoder(encoded.Span, encoded.Length) ?? throw new NotSupportedException("No registered image decoder recognizes the input.");
             request.Validate(decoder.Features);
             return decoder;
+        }
+
+        public IImageDecoder GetDecoder(string implementationId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(implementationId);
+            return decoders.SingleOrDefault(decoder => decoder.ImplementationId == implementationId)
+                ?? throw new NotSupportedException($"No image decoder is registered as '{implementationId}'.");
         }
 
         private ImageDecodeRequest Descend(ImageDecodeRequest request) => request with

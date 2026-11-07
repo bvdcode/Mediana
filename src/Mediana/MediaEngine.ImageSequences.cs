@@ -38,7 +38,9 @@ namespace Mediana
             request ??= new();
             GetImageProbeLength(options, cancellationToken);
             if (encoded.Length > options.MaxInputBytes) { throw new NotSupportedException("The encoded image exceeds the configured input byte limit."); }
-            return imageContext.DecodeFramesAsync(encoded, request, allocator, cancellationToken);
+            return options.DecoderImplementationId is string id
+                ? imageContext.DecodeFramesUsingAsync(id, encoded, request, allocator, cancellationToken)
+                : imageContext.DecodeFramesAsync(encoded, request, allocator, cancellationToken);
         }
     }
 }

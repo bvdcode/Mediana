@@ -16,7 +16,7 @@ namespace Mediana
         private bool faulted;
 
         public abstract bool IsImage { get; }
-        public abstract VideoDisplayMatrix DisplayMatrix { get; }
+        public abstract VideoDisplayMatrix? DisplayMatrix { get; }
         public abstract MediaDuration? CodedDuration { get; }
 
         public async ValueTask<VideoFrame?> ReadFrameAsync(CancellationToken cancellationToken = default)

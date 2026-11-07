@@ -20,12 +20,14 @@ namespace Mediana
             ArgumentNullException.ThrowIfNull(allocator);
             options ??= new(); options.Validate();
             cancellationToken.ThrowIfCancellationRequested();
-            int length = Math.Max(ImageProbeLength, containers.Select(item => item.ProbeLength).DefaultIfEmpty().Max());
-            if (length > options.Media.MaxProbeBytes || ImageProbeLength > options.Images.MaxProbeBytes)
+            IImageDecoder? selected = options.Images.DecoderImplementationId is string id ? imageContext.GetDecoder(id) : null;
+            int length = selected?.ProbeLength ?? Math.Max(ImageProbeLength, containers.Select(item => item.ProbeLength).DefaultIfEmpty().Max());
+            if (selected is not null ? length > options.Images.MaxProbeBytes :
+                length > options.Media.MaxProbeBytes || ImageProbeLength > options.Images.MaxProbeBytes)
             { throw new NotSupportedException("Registered visual recognition exceeds the configured probe byte limit."); }
             using WritableMediaBuffer writable = allocator.Allocate(length);
             int read = await MediaInputProbe.ReadAsync(source, writable.Memory, cancellationToken).ConfigureAwait(false);
-            IImageDecoder? image = FindImageDecoder(writable.Memory.Span[..read], source.Length ?? (read < length ? read : null));
+            IImageDecoder? image = selected ?? FindImageDecoder(writable.Memory.Span[..read], source.Length ?? (read < length ? read : null));
             using MediaBuffer prefix = writable.Publish();
             IByteSource replay = MediaInputProbe.Replay(source, prefix, read);
             VideoSession? video = null;
