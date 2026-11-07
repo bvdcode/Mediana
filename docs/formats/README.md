@@ -56,13 +56,13 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `webm-file` | WebM — File presentation | .webm | R □ · W □ | A | Codec mappings and track constraints must conform to WebM. [webm](sources.md#webm) | — |
 | `webm-live` | WebM — Incremental / live presentation | .webm | R □ · W □ | B | Track metadata, unknown sizes and incremental clusters need separate fixtures. [webm](sources.md#webm) | — |
 | `ogg` | Ogg — Single and multiplexed logical streams | .ogg .oga .ogv .opus .spx | R ◐ · W □ | A | Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate. [ogg](sources.md#ogg) | [ogg-index](../performance/README.md#ogg-index) |
-| `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R ◐ · W □ | B | Current reader keeps chained links separately selectable; selecting a link does not concatenate links. [ogg](sources.md#ogg) | [ogg-index](../performance/README.md#ogg-index) |
+| `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R ◐ · W □ | B | Current reader keeps chained links separately selectable; selecting a link does not concatenate links. [ogg](sources.md#ogg) | — |
 | `avi` | AVI — RIFF AVI 1.0 | .avi | R □ · W □ | B | [riff](sources.md#riff) | — |
 | `avi-opendml` | AVI — OpenDML / AVI 2.0 | .avi | R □ · W □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `asf` | ASF — File and streaming structure | .asf .wmv .wma | R □ · W □ | B | [asf](sources.md#asf) | — |
 | `flv` | FLV — Classic file structure | .flv | R □ · W □ | B | [flv](sources.md#flv) | — |
 | `flv-enhanced` | Enhanced FLV — Extended codec mappings | .flv | R □ · W □ | C | Pin the extended specification and codec mappings first. [discovery](sources.md#discovery) | — |
-| `mpeg-ts` | MPEG-TS — 188-byte transport packets | .ts .mpegts | R □ · W ◐ | A | Current writer: one program with AVC/AAC/MP3; reader and broader mappings are open. [mpeg-systems](sources.md#mpeg-systems) | [avc-transcode-30m](../performance/README.md#avc-transcode-30m), [remux-hls](../performance/README.md#remux-hls) |
+| `mpeg-ts` | MPEG-TS — 188-byte transport packets | .ts .mpegts | R □ · W ◐ | A | Current writer: one program with AVC/AAC/MP3; reader and broader mappings are open. [mpeg-systems](sources.md#mpeg-systems) | [avc-transcode-30m](../performance/README.md#avc-transcode-30m), [remux-hls](../performance/README.md#remux-hls), [hls-segment-30m](../performance/README.md#hls-segment-30m) |
 | `m2ts` | MPEG-TS — 192-byte source packets | .m2ts .mts | R □ · W □ | B | [mpeg-systems](sources.md#mpeg-systems), [discovery](sources.md#discovery) | — |
 | `mpeg-ts-204` | MPEG-TS — 204-byte protected packets | .ts | R □ · W □ | C | [mpeg-systems](sources.md#mpeg-systems) | — |
 | `mpeg-ps` | MPEG Program Stream — MPEG-1 / MPEG-2 systems | .mpg .mpeg .vob | R □ · W □ | B | [mpeg-systems](sources.md#mpeg-systems) | — |
@@ -118,7 +118,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | --- | --- | --- | --- | :---: | --- | --- |
 | `jpeg-baseline` | JPEG — Baseline sequential Huffman DCT, 8-bit | .jpg .jpeg .jpe | D ◐ · E □ | A | Current grayscale/three-component decoding; encoder is open. [jpeg](sources.md#jpeg) | [jpeg-photo](../performance/README.md#jpeg-photo), [pdf-scan](../performance/README.md#pdf-scan) |
 | `jpeg-sequential` | JPEG — Extended sequential Huffman DCT, 8/12-bit | .jpg .jpeg | D ◐ · E □ | B | Current SOF1 decoder is 8-bit; 12-bit precision remains open. [jpeg](sources.md#jpeg) | — |
-| `jpeg-progressive` | JPEG — Progressive Huffman DCT, 8/12-bit | .jpg .jpeg | D ◐ · E □ | A | Current SOF2 decoder is 8-bit; no encoder or 12-bit reconstruction yet. [jpeg](sources.md#jpeg) | [jpeg-photo](../performance/README.md#jpeg-photo) |
+| `jpeg-progressive` | JPEG — Progressive Huffman DCT, 8/12-bit | .jpg .jpeg | D ◐ · E □ | A | Current SOF2 decoder is 8-bit; no encoder or 12-bit reconstruction yet. [jpeg](sources.md#jpeg) | [jpeg-photo-progressive](../performance/README.md#jpeg-photo-progressive) |
 | `jpeg-arithmetic` | JPEG — Arithmetic DCT coding | .jpg .jpeg | D □ · E □ | B | [jpeg](sources.md#jpeg) | — |
 | `jpeg-lossless` | JPEG — Predictive lossless, Huffman/arithmetic | .jpg .jpeg | D □ · E □ | B | Original JPEG lossless is distinct from JPEG-LS and JPEG XL. [jpeg](sources.md#jpeg) | — |
 | `jpeg-hierarchical` | JPEG — Hierarchical modes | .jpg .jpeg | D □ · E □ | C | [jpeg](sources.md#jpeg) | — |
@@ -128,7 +128,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `jpegls-near` | JPEG-LS — Part 1 near-lossless | .jls | D □ · E □ | B | [jpegls](sources.md#jpegls) | — |
 | `jpegls-extensions` | JPEG-LS — Part 2 extensions | .jls | D □ · E □ | C | [jpegls](sources.md#jpegls) | — |
 | `j2k-reversible` | JPEG 2000 — Part 1 reversible 5/3 | .j2k .j2c .jpc | D ◐ · E □ | A | Current decoder covers integer components; packet/header extensions remain open. [jpeg2000](sources.md#jpeg2000) | [jp2-scan](../performance/README.md#jp2-scan) |
-| `j2k-irreversible` | JPEG 2000 — Part 1 irreversible 9/7 | .j2k .j2c .jpc | D ◐ · E □ | A | Current tests include independent references with an explicit numeric tolerance. [jpeg2000](sources.md#jpeg2000) | [jp2-scan](../performance/README.md#jp2-scan) |
+| `j2k-irreversible` | JPEG 2000 — Part 1 irreversible 9/7 | .j2k .j2c .jpc | D ◐ · E □ | A | Current tests include independent references with an explicit numeric tolerance. [jpeg2000](sources.md#jpeg2000) | — |
 | `j2k-part2` | JPEG 2000 — Part 2 coding extensions | .j2k .jpx | D □ · E □ | B | [jpeg2000](sources.md#jpeg2000) | — |
 | `htj2k` | HTJ2K — JPEG 2000 Part 15 block coding | .j2k .jhc .jph | D □ · E □ | B | Track HT block coding independently of JP2/JPX wrappers. [htj2k](sources.md#htj2k) | — |
 | `jpegxr` | JPEG XR — HD Photo coding | .jxr .wdp .hdp | D □ · E □ | B | [jpegxr](sources.md#jpegxr) | — |
@@ -136,7 +136,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `jbig1` | JBIG — T.82 bi-level coding | .jbg .jbig | D □ · E □ | B | [jbig](sources.md#jbig) | — |
 | `jbig2-sequential` | JBIG2 — Sequential standalone pages | .jb2 .jbig2 | D ◐ · E □ | A | Current decoder has bounded arithmetic/Huffman/MMR regions and dictionaries. [jbig](sources.md#jbig) | [jbig2-scan](../performance/README.md#jbig2-scan) |
 | `jbig2-random` | JBIG2 — Random-access organization | .jb2 .jbig2 | D ◐ · E □ | B | [jbig](sources.md#jbig) | — |
-| `jbig2-embedded` | JBIG2 — Embedded streams with globals | — | D ◐ · E □ | A | Used for PDF images; not a standalone-file wrapper. [jbig](sources.md#jbig), [pdf](sources.md#pdf) | [jbig2-scan](../performance/README.md#jbig2-scan), [pdf-scan](../performance/README.md#pdf-scan) |
+| `jbig2-embedded` | JBIG2 — Embedded streams with globals | — | D ◐ · E □ | A | Used for PDF images; not a standalone-file wrapper. [jbig](sources.md#jbig), [pdf](sources.md#pdf) | — |
 | `fax-t4` | CCITT Group 3 — T.4 one-/two-dimensional fax coding | — | D □ · E □ | B | [jbig](sources.md#jbig) | — |
 | `fax-t6` | CCITT Group 4 — T.6 MMR coding | — | D □ · E □ | B | An internal JBIG2 primitive is not yet a general exposed image decoder. [jbig](sources.md#jbig) | — |
 
@@ -145,14 +145,14 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
 | `png-gray` | PNG — Grayscale, 1/2/4/8/16-bit | .png | D ◐ · E □ | A | Current decode expands to RGBA8; native 16-bit output and grayscale encoding are open. [png](sources.md#png) | — |
-| `png-rgb` | PNG — Truecolor RGB, 8/16-bit | .png | D ◐ · E □ | A | [png](sources.md#png) | [png-large](../performance/README.md#png-large) |
+| `png-rgb` | PNG — Truecolor RGB, 8/16-bit | .png | D ◐ · E □ | A | [png](sources.md#png) | — |
 | `png-indexed` | PNG — Indexed color, 1/2/4/8-bit | .png | D ◐ · E □ | A | [png](sources.md#png) | — |
 | `png-alpha` | PNG — Grayscale/truecolor with alpha, 8/16-bit | .png | D ◐ · E ◐ | A | Current encoder emits noninterlaced straight-alpha RGBA8 sRGB only. [png](sources.md#png) | [png-large](../performance/README.md#png-large) |
-| `png-adam7` | PNG — Adam7 interlace | .png | D ◐ · E □ | A | [png](sources.md#png) | [png-large](../performance/README.md#png-large) |
+| `png-adam7` | PNG — Adam7 interlace | .png | D ◐ · E □ | A | [png](sources.md#png) | — |
 | `apng` | APNG — Animated PNG with frame disposal/blending | .png .apng | D □ · E □ | A | [png](sources.md#png) | — |
-| `webp-lossy` | WebP — Lossy VP8 image | .webp | D ◐ · E ◐ | A | Managed VP8 keyframe encoding with quality 0-100 and lossless alpha; keyframe decoding includes segmentation and deblocking. [webp](sources.md#webp) | [webp-still](../performance/README.md#webp-still), [webp-encode](../performance/README.md#webp-encode) |
-| `webp-lossless` | WebP — Lossless VP8L image | .webp | D ◐ · E ◐ | A | VP8L encoding and decoding preserve straight RGBA8 exactly, including transparent RGB. [webp](sources.md#webp) | [webp-still](../performance/README.md#webp-still), [webp-encode](../performance/README.md#webp-encode) |
-| `webp-extended` | WebP — Extended RIFF, alpha and metadata | .webp | D ◐ · E ◐ | A | VP8X canvas flags, raw or lossless-compressed ALPH and unchanged ICC/EXIF/XMP payloads. [webp](sources.md#webp) | [webp-still](../performance/README.md#webp-still) |
+| `webp-lossy` | WebP — Lossy VP8 image | .webp | D ◐ · E ◐ | A | Managed VP8 keyframe encoding with quality 0-100 and lossless alpha; keyframe decoding includes segmentation and deblocking. [webp](sources.md#webp) | [webp-still](../performance/README.md#webp-still), [webp-encode-lossy](../performance/README.md#webp-encode-lossy) |
+| `webp-lossless` | WebP — Lossless VP8L image | .webp | D ◐ · E ◐ | A | VP8L encoding and decoding preserve straight RGBA8 exactly, including transparent RGB. [webp](sources.md#webp) | [webp-still-lossless](../performance/README.md#webp-still-lossless), [webp-encode](../performance/README.md#webp-encode) |
+| `webp-extended` | WebP — Extended RIFF, alpha and metadata | .webp | D ◐ · E ◐ | A | VP8X canvas flags, raw or lossless-compressed ALPH and unchanged ICC/EXIF/XMP payloads. [webp](sources.md#webp) | [webp-still-lossless](../performance/README.md#webp-still-lossless), [webp-encode-lossy](../performance/README.md#webp-encode-lossy) |
 | `webp-animation` | WebP — Animated extended WebP | .webp | D ◐ · E ◐ | A | Incremental VP8/VP8L or mixed frames, partial rectangles, blending, disposal, background, loop count and metadata; CLI exports TGS/video sequences. [webp](sources.md#webp) | [webp-animation](../performance/README.md#webp-animation) |
 | `avif-still` | AVIF — Still image, Baseline/Advanced profiles | .avif | D □ · E □ | A | Split profile/precision coverage as AV1 implementation grows. [avif](sources.md#avif), [av1](sources.md#av1) | — |
 | `avif-alpha` | AVIF — Auxiliary alpha images | .avif | D □ · E □ | A | [avif](sources.md#avif) | — |
@@ -176,17 +176,17 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
 | `gif87a` | GIF — GIF87a still images | .gif | D ◐ · E □ | A | [gif](sources.md#gif) | — |
-| `gif89a` | GIF — GIF89a transparency and animation | .gif | D ◐ · E □ | A | Disposal, palette changes, timing and loop metadata require independent samples. [gif](sources.md#gif) | [raster-pages](../performance/README.md#raster-pages) |
-| `bmp-rgb` | BMP — Uncompressed palettes / RGB / bitfields | .bmp .dib | D ◐ · E □ | A | [bmp-dds](sources.md#bmp-dds) | [raster-pages](../performance/README.md#raster-pages) |
-| `bmp-rle` | BMP — RLE4 / RLE8 | .bmp .dib | D ◐ · E □ | B | [bmp-dds](sources.md#bmp-dds) | [raster-pages](../performance/README.md#raster-pages) |
+| `gif89a` | GIF — GIF89a transparency and animation | .gif | D ◐ · E □ | A | Disposal, palette changes, timing and loop metadata require independent samples. [gif](sources.md#gif) | — |
+| `bmp-rgb` | BMP — Uncompressed palettes / RGB / bitfields | .bmp .dib | D ◐ · E □ | A | [bmp-dds](sources.md#bmp-dds) | — |
+| `bmp-rle` | BMP — RLE4 / RLE8 | .bmp .dib | D ◐ · E □ | B | [bmp-dds](sources.md#bmp-dds) | — |
 | `bmp-v5` | BMP — V4/V5 color and alpha | .bmp | D ◐ · E □ | B | [bmp-dds](sources.md#bmp-dds) | — |
-| `tiff-strips` | TIFF — Classic TIFF, strips and tiles | .tif .tiff | D ◐ · E □ | A | Both byte orders, planar configurations, multipage and native precision. [tiff](sources.md#tiff) | [raster-pages](../performance/README.md#raster-pages) |
+| `tiff-strips` | TIFF — Classic TIFF, strips and tiles | .tif .tiff | D ◐ · E □ | A | Both byte orders, planar configurations, multipage and native precision. [tiff](sources.md#tiff) | — |
 | `tiff-bigtiff` | BigTIFF — 64-bit offsets and sizes | .tif .tiff .btf | D ◐ · E □ | B | [tiff](sources.md#tiff), [discovery](sources.md#discovery) | — |
 | `tiff-packbits` | TIFF — PackBits compression | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff) | — |
 | `tiff-lzw` | TIFF — LZW compression and predictors | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff) | [raster-pages](../performance/README.md#raster-pages) |
-| `tiff-deflate` | TIFF — Deflate compression and predictors | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff) | [raster-pages](../performance/README.md#raster-pages) |
-| `tiff-jpeg` | TIFF — JPEG compression mappings | .tif .tiff | D ◐ · E □ | B | Old and revised JPEG-in-TIFF representations need separate fixtures. [tiff](sources.md#tiff), [jpeg](sources.md#jpeg) | [raster-pages](../performance/README.md#raster-pages) |
-| `tiff-fax` | TIFF — CCITT fax compression | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff), [jbig](sources.md#jbig) | [raster-pages](../performance/README.md#raster-pages) |
+| `tiff-deflate` | TIFF — Deflate compression and predictors | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff) | — |
+| `tiff-jpeg` | TIFF — JPEG compression mappings | .tif .tiff | D ◐ · E □ | B | Old and revised JPEG-in-TIFF representations need separate fixtures. [tiff](sources.md#tiff), [jpeg](sources.md#jpeg) | — |
+| `tiff-fax` | TIFF — CCITT fax compression | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff), [jbig](sources.md#jbig) | — |
 | `tga` | TGA — Raw/RLE truecolor, indexed and alpha | .tga | D □ · E □ | B | [discovery](sources.md#discovery) | — |
 | `pcx` | PCX — Palette / RGB RLE | .pcx | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `sgi` | SGI RGB — Raw/RLE planar images | .sgi .rgb .rgba | D □ · E □ | C | [discovery](sources.md#discovery) | — |
@@ -259,7 +259,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `avc-baseline` | H.264 / AVC — Baseline | .h264 .264 | D ◐ · E □ | A | Includes tools beyond the constrained profile; do not inherit its completion. [h264](sources.md#h264) | — |
 | `avc-main` | H.264 / AVC — Main | .h264 .264 | D ◐ · E □ | A | Current progressive 8-bit 4:2:0 CABAC/CAVLC subset includes I/P/B pictures. [h264](sources.md#h264) | [avc-decode-30m](../performance/README.md#avc-decode-30m) |
 | `avc-extended` | H.264 / AVC — Extended | .h264 .264 | D □ · E □ | B | [h264](sources.md#h264) | — |
-| `avc-high` | H.264 / AVC — High | .h264 .264 | D ◐ · E □ | A | Current progressive 8-bit 4:2:0 reconstruction uses default scaling matrices. [h264](sources.md#h264) | [avc-decode-30m](../performance/README.md#avc-decode-30m) |
+| `avc-high` | H.264 / AVC — High | .h264 .264 | D ◐ · E □ | A | Current progressive 8-bit 4:2:0 reconstruction uses default scaling matrices. [h264](sources.md#h264) | — |
 | `avc-high10` | H.264 / AVC — High 10 / High 10 Intra | .h264 .264 | D □ · E □ | B | Parsing profile identifiers is not 10-bit decoding support. [h264](sources.md#h264) | — |
 | `avc-high422` | H.264 / AVC — High 4:2:2 / High 4:2:2 Intra | .h264 .264 | D □ · E □ | B | [h264](sources.md#h264) | — |
 | `avc-high444` | H.264 / AVC — High 4:4:4 Predictive / Intra | .h264 .264 | D □ · E □ | B | [h264](sources.md#h264) | — |
@@ -341,7 +341,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `mp3-mpeg1` | MP3 — MPEG-1 Layer III | .mp3 | D ◐ · E □ | A | Current decoder covers mono/stereo/joint stereo; no MP3 encoder. [mpeg-audio](sources.md#mpeg-audio) | [mp3-long](../performance/README.md#mp3-long), [audio-resample](../performance/README.md#audio-resample) |
 | `mp3-mpeg2` | MP3 — MPEG-2 Layer III lower sampling rates | .mp3 | D ◐ · E □ | A | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `mp3-mpeg25` | MP3 — MPEG-2.5 Layer III extension | .mp3 | D ◐ · E □ | B | Widely used non-ISO extension; track it separately from MPEG-2. [mpeg-audio](sources.md#mpeg-audio), [discovery](sources.md#discovery) | — |
-| `aac-lc` | AAC — Low Complexity, 1024/960-sample modes | — | D ◐ · E ◐ | A | Current decode: supported 1024-sample configurations 1–7; encode: experimental mono/stereo 1024 only. [mpeg-audio](sources.md#mpeg-audio) | [aac-multichannel](../performance/README.md#aac-multichannel), [audio-resample](../performance/README.md#audio-resample) |
+| `aac-lc` | AAC — Low Complexity, 1024/960-sample modes | — | D ◐ · E ◐ | A | Current decode: supported 1024-sample configurations 1–7; encode: experimental mono/stereo 1024 only. [mpeg-audio](sources.md#mpeg-audio) | [aac-multichannel](../performance/README.md#aac-multichannel) |
 | `aac-main` | AAC — Main object type | — | D □ · E □ | C | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `aac-ssr` | AAC — Scalable Sample Rate | — | D □ · E □ | C | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `aac-ltp` | AAC — Long Term Prediction | — | D □ · E □ | C | [mpeg-audio](sources.md#mpeg-audio) | — |
@@ -410,7 +410,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `pdf-2` | PDF — PDF 2.0 / ISO 32000-2 | .pdf | R □ · V □ · W □ | B | [pdf](sources.md#pdf) | — |
 | `pdf-a` | PDF/A — Archival conformance profiles | .pdf | R □ · V □ · W □ | B | Rendering a PDF/A file is distinct from validating or writing a conforming archival document. [pdf](sources.md#pdf) | — |
 | `pdf-x` | PDF/X — Print exchange profiles | .pdf | R □ · V □ · W □ | B | [pdf](sources.md#pdf) | — |
-| `pdf-forms` | PDF — AcroForm and annotation appearance | .pdf | R ◐ · V ◐ · W □ | B | Current renderer handles supported annotation appearances, not a complete form system. [pdf](sources.md#pdf) | [pdf-page](../performance/README.md#pdf-page) |
+| `pdf-forms` | PDF — AcroForm and annotation appearance | .pdf | R ◐ · V ◐ · W □ | B | Current renderer handles supported annotation appearances, not a complete form system. [pdf](sources.md#pdf) | — |
 | `pdf-encrypted` | PDF — Standard encrypted documents | .pdf | R □ · V □ · W □ | B | Authentication/decryption is separate from signature verification and page rendering. [pdf](sources.md#pdf) | — |
 | `pdf-3d` | PDF — Embedded U3D / PRC annotations | .pdf | R □ · V □ · W □ | C | Embedded geometry decoding and 3D annotation rendering remain separate tasks. [pdf](sources.md#pdf), [discovery](sources.md#discovery) | — |
 | `openxml-opc` | Open Packaging Conventions — ZIP parts, content types and relationships | .docx .xlsx .pptx | R ◐ · W □ | A | Bounded package reading and content-type page decoder routing are implemented; document layout is registered separately. [office](sources.md#office) | — |
@@ -429,7 +429,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `potx` | PresentationML — Templates and slideshow packages | .potx .ppsx | R □ · V □ · W □ | B | [office](sources.md#office) | — |
 | `pptx-animation` | PresentationML — Slide transitions and animation timing | .pptx | R □ · V □ · W □ | B | Static slide rendering does not close timed presentation rendering. [office](sources.md#office) | — |
 | `doc-binary` | Word binary — Legacy DOC revisions | .doc .dot | R □ · V □ · W □ | B | [office](sources.md#office) | — |
-| `xls-binary` | Excel binary — BIFF5 / BIFF8 workbooks | .xls .xlt | R ◐ · V □ · W □ | B | Current reader covers a bounded OLE/BIFF8 workbook subset; earlier BIFF revisions and styled rendering remain open. [office](sources.md#office) | [spreadsheet-read](../performance/README.md#spreadsheet-read) |
+| `xls-binary` | Excel binary — BIFF5 / BIFF8 workbooks | .xls .xlt | R ◐ · V □ · W □ | B | Current reader covers a bounded OLE/BIFF8 workbook subset; earlier BIFF revisions and styled rendering remain open. [office](sources.md#office) | — |
 | `ppt-binary` | PowerPoint binary — Legacy presentation revisions | .ppt .pps .pot | R □ · V □ · W □ | B | [office](sources.md#office) | — |
 | `rtf` | Rich Text Format — Formatted text and embedded resources | .rtf | R □ · V □ · W □ | B | [office](sources.md#office), [discovery](sources.md#discovery) | — |
 | `odt` | OpenDocument Text — ODF text documents | .odt .ott .fodt | R □ · V □ · W □ | B | [odf](sources.md#odf) | — |
@@ -487,8 +487,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
-| `hls-ts-vod` | HLS — VOD MPEG-TS media playlists | .m3u8 | R □ · W ◐ | A | Current writer supports stream copy and supported AVC/AAC encoding; no general HLS reader. [hls](sources.md#hls) | [remux-hls](../performance/README.md#remux-hls) |
-| `hls-master` | HLS — Master playlists and rendition groups | .m3u8 | R □ · W ◐ | A | Current writer prepares supported video/audio variants and measured transport output. [hls](sources.md#hls) | [remux-hls](../performance/README.md#remux-hls) |
+| `hls-ts-vod` | HLS — VOD MPEG-TS media playlists | .m3u8 | R □ · W ◐ | A | Current writer supports stream copy and supported AVC/AAC encoding; no general HLS reader. [hls](sources.md#hls) | [hls-segment-30m](../performance/README.md#hls-segment-30m) |
+| `hls-master` | HLS — Master playlists and rendition groups | .m3u8 | R □ · W ◐ | A | Current writer prepares supported video/audio variants and measured transport output. [hls](sources.md#hls) | — |
 | `hls-live` | HLS — Live/event playlists and discontinuities | .m3u8 | R □ · W □ | A | [hls](sources.md#hls) | — |
 | `hls-fmp4` | HLS — Fragmented MP4 segments | .m3u8 .m4s | R □ · W □ | A | [hls](sources.md#hls), [iso-bmff](sources.md#iso-bmff) | — |
 | `hls-lowlatency` | HLS — Low-latency parts and blocking reload | .m3u8 | R □ · W □ | B | [hls](sources.md#hls) | — |
@@ -522,10 +522,10 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
-| `obj` | Wavefront OBJ — Polygon geometry, attributes and groups | .obj | R ◐ · V ◐ · W □ | B | Indexed geometry and preview implemented; UVs are not retained, groups are combined and MTL/textures remain separate. [obj-ply](sources.md#obj-ply) | [mesh-preview](../performance/README.md#mesh-preview) |
+| `obj` | Wavefront OBJ — Polygon geometry, attributes and groups | .obj | R ◐ · V ◐ · W □ | B | Indexed geometry and preview implemented; UVs are not retained, groups are combined and MTL/textures remain separate. [obj-ply](sources.md#obj-ply) | — |
 | `mtl` | Wavefront MTL — Material library and texture references | .mtl | R □ · W □ | B | Interpret legacy material parameters explicitly when mapping to a renderer. [obj-ply](sources.md#obj-ply) | — |
 | `stl-ascii` | STL — ASCII triangle mesh | .stl | R ◐ · V ◐ · W □ | B | Reader and CPU preview implemented; model writing remains open. [stl](sources.md#stl) | — |
-| `stl-binary` | STL — Binary triangle mesh | .stl | R ◐ · V ◐ · W □ | B | Reader and CPU preview implemented; recognition checks exact length and triangle count. Facet color extensions are not rendered. [stl](sources.md#stl) | [mesh-preview](../performance/README.md#mesh-preview) |
+| `stl-binary` | STL — Binary triangle mesh | .stl | R ◐ · V ◐ · W □ | B | Reader and CPU preview implemented; recognition checks exact length and triangle count. Facet color extensions are not rendered. [stl](sources.md#stl) | — |
 | `ply-ascii` | PLY — ASCII elements and properties | .ply | R □ · V □ · W □ | B | Mesh, point and custom-property support need explicit scope. [obj-ply](sources.md#obj-ply) | — |
 | `ply-binary-le` | PLY — Binary little-endian | .ply | R □ · V □ · W □ | B | [obj-ply](sources.md#obj-ply) | — |
 | `ply-binary-be` | PLY — Binary big-endian | .ply | R □ · V □ · W □ | B | [obj-ply](sources.md#obj-ply) | — |

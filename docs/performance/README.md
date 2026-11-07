@@ -27,34 +27,38 @@ that conversion case.
 
 | Case | Operation / representative workload | Track | Alternative | Alternative: elapsed / CPU (ms or s) / peak RSS (MiB) | Mediana: elapsed / CPU (ms or s) / peak RSS (MiB) | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| <a id="heic-photo-12mp"></a>`heic-photo-12mp` | decode: 12 MP real photograph to source-color RGBA8 (no ICC transform) | ordinary | libheif + libde265 | 371.5 ms / CPU 588.0 ms / RSS 73.2 MiB | 610.1 ms / CPU 1.136 s / RSS 65.0 MiB | [Measured subset](results/2026-11-06/README.md); Source-color RGBA: max error 1 byte |
-| <a id="heic-photo-200mp"></a>`heic-photo-200mp` | decode: 199.76 MP real tiled photograph to source-color RGBA8 (no ICC transform) | heavy | libheif + libde265 | 3.997 s / CPU 6.189 s / RSS 1074.8 MiB | 5.601 s / CPU 10.930 s / RSS 835.2 MiB | [Measured subset](results/2026-11-06/README.md); Source-color RGBA: max error 1 byte |
+| <a id="heic-photo-12mp"></a>`heic-photo-12mp` | decode: 12 MP real photograph to source-color RGBA8 (no ICC transform); nearest-neighbor chroma | ordinary | libheif + libde265 | 371.5 ms / CPU 588.0 ms / RSS 73.2 MiB | 610.1 ms / CPU 1.136 s / RSS 65.0 MiB | [Measured subset](results/2026-11-06/README.md); Source-color RGBA: max error 1 byte |
+| <a id="heic-photo-200mp"></a>`heic-photo-200mp` | decode: 199.76 MP real tiled photograph to source-color RGBA8 (no ICC transform); nearest-neighbor chroma | heavy | libheif + libde265 | 3.997 s / CPU 6.189 s / RSS 1074.8 MiB | 5.601 s / CPU 10.930 s / RSS 835.2 MiB | [Measured subset](results/2026-11-06/README.md); Source-color RGBA: max error 1 byte |
 | <a id="heic-preview"></a>`heic-preview` | decode: Real ICC-profiled photograph to full-size PNG | ordinary | libheif + libde265 / heif-convert | — | — | [Related measurements](results/2026-11-06/README.md); target run open |
-| <a id="jpeg-photo"></a>`jpeg-photo` | decode: High-detail photograph and progressive scan to PNG | ordinary | FFmpeg / libjpeg-turbo | — | — | Target run open |
-| <a id="png-large"></a>`png-large` | decode: Large RGBA image with alpha and interlace to PNG | heavy | FFmpeg | — | — | Target run open |
-| <a id="webp-still"></a>`webp-still` | decode: Photograph and alpha image to full-size PNG | ordinary | FFmpeg / libwebp | — | — | Target run open |
-| <a id="webp-animation"></a>`webp-animation` | decode: Composite every frame including disposal and blending | heavy | libwebp | — | — | Target run open |
-| <a id="webp-encode"></a>`webp-encode` | encode: Photograph and difficult alpha/texture images | ordinary | ImageSharp / libwebp | — | — | [Related measurements](../../benchmarks/Mediana.WebpBenchmarks/README.md); target run open |
-| <a id="raster-pages"></a>`raster-pages` | decode: Representative bitmap and compressed multipage scan | ordinary | FFmpeg / libtiff | — | — | Target run open |
-| <a id="jp2-scan"></a>`jp2-scan` | decode: Large tiled high-precision scanned image | heavy | OpenJPEG | — | — | Target run open |
-| <a id="jbig2-scan"></a>`jbig2-scan` | decode: Dense monochrome text/image page with symbol dictionaries | heavy | jbig2dec | — | — | Target run open |
-| <a id="flac-track"></a>`flac-track` | decode: Complete music track to PCM16 WAVE | ordinary | FFmpeg / libFLAC | — | — | Target run open |
+| <a id="jpeg-photo"></a>`jpeg-photo` | decode: 2560-square baseline JPEG photograph to PNG | ordinary | libjpeg-turbo 3.1.4.1 / Pillow | — | — | Target run open |
+| <a id="jpeg-photo-progressive"></a>`jpeg-photo-progressive` | decode: 2560-square progressive JPEG photograph to PNG | ordinary | libjpeg-turbo 3.1.4.1 / Pillow | — | — | Target run open |
+| <a id="png-large"></a>`png-large` | decode: 2560-square noninterlaced RGBA photograph to PNG | heavy | FFmpeg | — | — | Target run open |
+| <a id="webp-still"></a>`webp-still` | decode: 2560-square lossy VP8 photograph to PNG | ordinary | libwebp 1.6.0 / Pillow | — | — | Target run open |
+| <a id="webp-still-lossless"></a>`webp-still-lossless` | decode: 2560-square lossless VP8L photograph with alpha to PNG | ordinary | libwebp 1.6.0 / Pillow | — | — | Target run open |
+| <a id="webp-animation"></a>`webp-animation` | decode: All 177 composited frames of a 512-square lossless animation | heavy | libwebp 1.3.2 | — | — | Target run open |
+| <a id="webp-encode"></a>`webp-encode` | encode: 2560-square photograph with alpha to lossless WebP | ordinary | libwebp 1.3.2 / cwebp | — | — | [Related measurements](../../benchmarks/Mediana.WebpBenchmarks/README.md); target run open |
+| <a id="webp-encode-lossy"></a>`webp-encode-lossy` | encode: 2560-square photograph with alpha to lossy WebP; quality setting 75; source error and size measured | ordinary | libwebp 1.3.2 / cwebp | — | — | Target run open |
+| <a id="raster-pages"></a>`raster-pages` | decode: Complete single-page 2560-square RGB LZW TIFF to PNG | ordinary | FFmpeg | — | — | Target run open |
+| <a id="jp2-scan"></a>`jp2-scan` | decode: 2560-square 8-bit reversible JP2 photograph with 512-square tiles | heavy | OpenJPEG 2.5.0 | — | — | Target run open |
+| <a id="jbig2-scan"></a>`jbig2-scan` | decode: Complete 2048x3072 monochrome MMR text/rule page | heavy | jbig2dec 0.20 | — | — | Target run open |
+| <a id="flac-track"></a>`flac-track` | decode: Complete 596-second stereo film soundtrack to PCM16 WAVE | ordinary | FFmpeg | — | — | Target run open |
 | <a id="flac-sustained"></a>`flac-sustained` | decode: Complete 10-minute stereo stress stream to PCM16 WAVE | heavy | FFmpeg | 628.9 ms / CPU 702.2 ms / RSS 52.0 MiB | 1.574 s / CPU 1.640 s / RSS 26.6 MiB | [Measured subset](results/2026-11-06/README.md); Every PCM sample exact |
-| <a id="mp3-long"></a>`mp3-long` | decode: Complete long mono/stereo recording to PCM16 WAVE | heavy | FFmpeg | 2.596 s / CPU 2.954 s / RSS 52.2 MiB | 7.131 s / CPU 8.345 s / RSS 26.9 MiB | [Measured subset](results/2026-11-06/README.md); PCM16: max error 1 unit |
-| <a id="aac-multichannel"></a>`aac-multichannel` | decode: Complete long 5.1 AAC stream to PCM16 WAVE | heavy | FFmpeg | — | — | Target run open |
-| <a id="audio-resample"></a>`audio-resample` | decode: Complete long recording downmix and 48-to-16 kHz resampling | heavy | FFmpeg / libswresample | — | — | Target run open |
-| <a id="avc-decode-30m"></a>`avc-decode-30m` | decode: Every frame of a 30-minute HD video to native YUV | heavy | FFmpeg | — | — | Target run open |
-| <a id="avc-transcode-30m"></a>`avc-transcode-30m` | encode: Complete 30-minute HD transcode at matched quality/rate | heavy | FFmpeg / libx264 | — | — | [Related measurements](../h264-hd-encoding.md); target run open |
-| <a id="remux-hls"></a>`remux-hls` | write: Complete 30-minute A/V stream copy and VOD segmentation | heavy | FFmpeg | — | — | Target run open |
-| <a id="pdf-page"></a>`pdf-page` | render: First-page preview of vector/text/image document at fixed DPI | ordinary | Poppler | — | — | Target run open |
-| <a id="pdf-scan"></a>`pdf-scan` | render: Large scanned page with masks and embedded image codecs | heavy | Poppler | — | — | Target run open |
-| <a id="svg-scene"></a>`svg-scene` | render: Text/clipping/gradient/filter artwork at 2560 square | heavy | librsvg / resvg | — | — | Target run open |
-| <a id="tgs-animation"></a>`tgs-animation` | render: Complete representative sticker animation | heavy | rlottie / lottie-web | — | — | Target run open |
-| <a id="word-page"></a>`word-page` | render: Paginated text/tables/images with fixed embedded fonts | ordinary | LibreOffice | — | — | Target run open |
-| <a id="presentation-slide"></a>`presentation-slide` | render: Slide with inherited layout and picture fills at fixed size | ordinary | LibreOffice | — | — | Target run open |
-| <a id="spreadsheet-read"></a>`spreadsheet-read` | read: Large workbook streaming all cell values and cached formulas | heavy | ExcelDataReader | — | — | Target run open |
-| <a id="mesh-preview"></a>`mesh-preview` | render: Complex mesh and component assembly to 512-square RGBA | heavy | Render.NET | — | — | [Related measurements](../mesh-performance.md); target run open |
-| <a id="ogg-index"></a>`ogg-index` | read: Complete long Opus/Vorbis indexing and packet extraction | heavy | FFmpeg / libogg | — | — | Target run open |
+| <a id="mp3-long"></a>`mp3-long` | decode: Complete 2460.096-second 48 kHz stereo MP3 stress input to PCM16 WAVE | heavy | FFmpeg | 2.596 s / CPU 2.954 s / RSS 52.2 MiB | 7.131 s / CPU 8.345 s / RSS 26.9 MiB | [Measured subset](results/2026-11-06/README.md); PCM16: max error 1 unit |
+| <a id="aac-multichannel"></a>`aac-multichannel` | decode: Complete 596-second AAC-LC 5.1 soundtrack in M4A to PCM16 WAVE | heavy | FFmpeg | — | — | Target run open |
+| <a id="audio-resample"></a>`audio-resample` | decode: Complete 2460.096-second stereo MP3; mono downmix and 48-to-16 kHz resampling | heavy | FFmpeg / libswresample | — | — | Target run open |
+| <a id="avc-decode-30m"></a>`avc-decode-30m` | decode: All 43201 frames of a 30-minute 720p video; native YUV decoding plus per-frame SHA-256 | heavy | FFmpeg | — | — | Target run open |
+| <a id="avc-transcode-30m"></a>`avc-transcode-30m` | encode: Complete 30-minute 720p24 video-only transcode; 10 Mbit/s target; source PSNR and size measured | heavy | FFmpeg / libx264 | — | — | [Related measurements](../h264-hd-encoding.md); target run open |
+| <a id="remux-hls"></a>`remux-hls` | write: Complete 30-minute AVC/AAC MP4 to MPEG-TS stream copy | heavy | FFmpeg | — | — | Target run open |
+| <a id="hls-segment-30m"></a>`hls-segment-30m` | write: Complete 30-minute AVC/AAC VOD segmentation; playlist and every MPEG-TS segment | heavy | FFmpeg | — | — | Target run open |
+| <a id="pdf-page"></a>`pdf-page` | render: Letter page with Core14 text and 540 vector rectangles at 96 DPI | ordinary | Poppler 26.05.0 | — | — | Target run open |
+| <a id="pdf-scan"></a>`pdf-scan` | render: Letter page containing a 2560-square JPEG and grayscale soft mask at 96 DPI | heavy | Poppler 26.05.0 | — | — | Target run open |
+| <a id="svg-scene"></a>`svg-scene` | render: 2560-square scene; 180 gradient circles plus clipping and Gaussian blur | heavy | librsvg 2.58.0 | — | — | Target run open |
+| <a id="tgs-animation"></a>`tgs-animation` | render: All 180 frames of a 512-square 44-layer sticker; supersampling 1 | heavy | rlottie ea06d2f | — | — | Target run open |
+| <a id="word-page"></a>`word-page` | render: First Letter page; paragraphs/table/photo/footer using installed DejaVu Sans at 96 DPI | ordinary | LibreOfficeDev 26.8 alpha0 | — | — | Target run open |
+| <a id="presentation-slide"></a>`presentation-slide` | render: 960x540 slide; inherited title layout plus photo and themed chart shapes | ordinary | LibreOfficeDev 26.8 alpha0 | — | — | Target run open |
+| <a id="spreadsheet-read"></a>`spreadsheet-read` | read: All 400000 numeric XLSX cells including 80000 cached formulas; LE binary64 export | heavy | ExcelDataReader 3.9.0 / .NET 10 JIT | — | — | Target run open |
+| <a id="mesh-preview"></a>`mesh-preview` | render: Complete dog.3mf assembly to 512-square RGBA; warmed JIT operation mean and lifetime RSS | heavy | Render.NET | — | — | [Related measurements](../mesh-performance.md); target run open |
+| <a id="ogg-index"></a>`ogg-index` | read: Complete 1800-second Ogg Opus scan and all encoded payload bytes | heavy | FFmpeg | — | — | Target run open |
 
 <!-- comparisons:end -->
 
