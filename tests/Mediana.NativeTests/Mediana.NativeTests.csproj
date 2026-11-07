@@ -353,6 +353,12 @@
     <Compile Include="../Shared/OpusSilkStereoTestInput.cs" Link="OpusSilkStereoTestInput.cs" />
     <Compile Include="../Shared/OpusSilkResamplerTestInput.cs" Link="OpusSilkResamplerTestInput.cs" />
     <Compile Include="../Shared/OpusSilkPcmTestInput.cs" Link="OpusSilkPcmTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkSignalTestInput.cs" Link="OpusSilkSignalTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkConcealmentTestInput.cs" Link="OpusSilkConcealmentTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkNoiseTestInput.cs" Link="OpusSilkNoiseTestInput.cs" />
+    <Compile Include="../Shared/OpusSilkRecoveryTestInput.cs" Link="OpusSilkRecoveryTestInput.cs" />
+    <Compile Include="../Shared/OpusCeltPredictionTestInput.cs" Link="OpusCeltPredictionTestInput.cs" />
+    <Compile Include="../Shared/OpusRecoveryTestInput.cs" Link="OpusRecoveryTestInput.cs" />
     <Compile Include="../Shared/OpusMultistreamTestInput.cs" Link="OpusMultistreamTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <None Include="../Mediana.Codecs.Opus.Tests/Data/*.bin" Link="Data/Opus/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

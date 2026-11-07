@@ -35,11 +35,20 @@ namespace Mediana.NativeTests
                 OpusSilkResamplerTestInput.Verify(opusRoot) != 768 || OpusSilkPcmTestInput.Verify(opusRoot) != 3072 ||
                 OpusCeltPcmTestInput.Verify(opusRoot, "decoded-hybrid.bin") != 576 ||
                 OpusCeltPcmTestInput.Verify(opusRoot, "decoded-transitions.bin") != 768 ||
-                OpusMultistreamTestInput.Verify(opusRoot) != 144)
+                OpusMultistreamTestInput.Verify(opusRoot) != 144 ||
+                OpusSilkSignalTestInput.Verify(opusRoot) != 4096 || OpusSilkConcealmentTestInput.Verify(opusRoot) != 288 ||
+                OpusSilkNoiseTestInput.Verify(opusRoot) != 192 || OpusCeltPredictionTestInput.Verify(opusRoot) != 128 ||
+                OpusSilkRecoveryTestInput.Verify(opusRoot) != 4608 ||
+                OpusSilkRecoveryTestInput.Verify(opusRoot, "decoded-hybrid-silk-recovery.bin.gz") != 1536 ||
+                OpusRecoveryTestInput.Verify(opusRoot, "decoded-silk-recovery.bin.gz") != 4608 ||
+                OpusRecoveryTestInput.Verify(opusRoot, "decoded-celt-recovery.bin.gz") != 6144 ||
+                OpusRecoveryTestInput.Verify(opusRoot, "decoded-hybrid-recovery.bin.gz") != 1536 ||
+                OpusRecoveryTestInput.Verify(opusRoot, "decoded-unprimed-transitions.bin.gz") != 1024)
             {
                 throw new InvalidDataException("The Opus reference case count differs.");
             }
             Console.WriteLine("PASS CELT: spectral stages, transforms, filtering and 2,448 sequential PCM frames match independent references.");
+            Console.WriteLine("PASS Opus recovery: 13,312 public packets, DTX, long losses, mode transitions, PCM, timestamps and lease ownership.");
             Console.WriteLine("PASS public Opus multistream: 144 packets, one through eight channels, self-delimited framing and mapped PCM match independent references.");
             Console.WriteLine("PASS Opus hybrid and transitions: 1,344 sequential frames, shared entropy, bandwidth changes and redundancy match independent PCM.");
             Console.WriteLine("PASS SILK synthesis: frame controls, pulses, LSF/LPC, pitch rewhitening, PCM and retained histories match independent references.");
