@@ -15,6 +15,7 @@ namespace Mediana.Execution
     /// Sorts clock metadata in allocator-owned workspace without reading compressed payload or decoding frames.
     /// Cuts follow target multiples from the first presentation timestamp, avoiding cumulative rounding drift.
     /// Every returned interval contains whole presentation units; compressed stream copy needs separate restart validation.
+    /// Explicit container presentation ranges clip source display extents before planning.
     /// Readers without IIndexedVideoPresentationReader must expose exactly one displayed unit per indexed packet.</summary>
     public static class VideoSegmentPlanner
     {
@@ -31,19 +32,35 @@ namespace Mediana.Execution
             { throw new NotSupportedException("Video clock planning requires indexed complete video access units."); }
             long count = UnitCount(reader, streamIndex);
             if (count <= 0) { throw new InvalidDataException("The video stream contains no indexed presentation units."); }
+            MediaTimeRange? selection = (reader as IContainerPresentationReader)?.GetPresentationRange(streamIndex, cancellationToken);
             TimeBase clock = new(1, 1);
             VideoPresentationUnit? last = null;
+            VideoPresentationUnit? preceding = null;
+            MediaTimestamp? following = null;
             for (long index = 0; index < count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 VideoPresentationUnit unit = Unit(reader, streamIndex, index, cancellationToken);
-                MediaTimestamp pts = unit.Start;
-                clock = TimeBase.Common(clock, pts.ReduceClock().TimeBase);
-                if (unit.Duration is MediaDuration extent)
-                { clock = TimeBase.Common(clock, new MediaTimestamp(extent.Value, extent.TimeBase).ReduceClock().TimeBase); }
-                if (last is null || pts.CompareTo(last.Value.Start) > 0) { last = unit; }
+                if (selection is MediaTimeRange range)
+                {
+                    if (unit.Start.CompareTo(range.Start) < 0)
+                    {
+                        if (preceding is null || unit.Start.CompareTo(preceding.Value.Start) > 0) { preceding = unit; }
+                        continue;
+                    }
+                    if (following is null || unit.Start.CompareTo(following.Value) < 0) { following = unit.Start; }
+                }
+                if (Project(unit, selection) is not VideoPresentationUnit displayed) { continue; }
+                clock = IncludeClock(clock, displayed);
+                if (last is null || displayed.Start.CompareTo(last.Value.Start) > 0) { last = displayed; }
             }
-            MediaDuration duration = FinalDuration(reader, streamIndex, last!.Value, cancellationToken);
+            if (preceding is VideoPresentationUnit previous && Project(previous, selection, following) is VideoPresentationUnit opening)
+            {
+                clock = IncludeClock(clock, opening);
+                if (last is null) { last = opening; }
+            }
+            if (last is null) { throw new InvalidDataException("The video presentation range contains no indexed presentation units."); }
+            MediaDuration duration = FinalDuration(last.Value);
             return TimeBase.Common(clock, new MediaTimestamp(duration.Value, duration.TimeBase).ReduceClock().TimeBase);
         }
 
@@ -70,21 +87,31 @@ namespace Mediana.Execution
             }
             using WritableMediaBuffer workspace = allocator.Allocate(checked((int)packetCount * unitBytes));
             Span<VideoPresentationUnit> units = MemoryMarshal.Cast<byte, VideoPresentationUnit>(workspace.Memory.Span);
-            TimeBase clock = new(1, 1);
             for (int index = 0; index < units.Length; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                VideoPresentationUnit unit = Unit(reader, streamIndex, index, cancellationToken);
-                MediaTimestamp pts = unit.Start;
-                clock = TimeBase.Common(clock, pts.ReduceClock().TimeBase);
-                if (unit.Duration is MediaDuration extent)
-                { clock = TimeBase.Common(clock, new MediaTimestamp(extent.Value, extent.TimeBase).ReduceClock().TimeBase); }
-                units[index] = unit;
+                units[index] = Unit(reader, streamIndex, index, cancellationToken);
             }
             units.Sort(static (left, right) => left.Start.CompareTo(right.Start));
             cancellationToken.ThrowIfCancellationRequested();
+            MediaTimeRange? selection = (reader as IContainerPresentationReader)?.GetPresentationRange(streamIndex, cancellationToken);
+            TimeBase clock = new(1, 1);
+            int selected = 0;
+            for (int index = 0; index < units.Length; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                VideoPresentationUnit unit = units[index];
+                MediaTimestamp? following = index + 1 < units.Length ? units[index + 1].Start : null;
+                if (selection is MediaTimeRange range && unit.Start.CompareTo(range.Start) < 0 &&
+                    following is MediaTimestamp next && next.CompareTo(range.Start) <= 0) { continue; }
+                if (Project(unit, selection, following) is not VideoPresentationUnit displayed) { continue; }
+                units[selected++] = displayed;
+                clock = IncludeClock(clock, displayed);
+            }
+            if (selected == 0) { throw new InvalidDataException("The video presentation range contains no indexed presentation units."); }
+            units = units[..selected];
             VideoPresentationUnit last = units[^1];
-            MediaDuration length = FinalDuration(reader, streamIndex, last, cancellationToken);
+            MediaDuration length = FinalDuration(last);
             clock = TimeBase.Common(clock, new MediaTimestamp(length.Value, length.TimeBase).ReduceClock().TimeBase);
             for (int index = 0; index < units.Length; index++)
             {
@@ -140,12 +167,39 @@ namespace Mediana.Execution
             return ticks >= total ? total : (long)ticks;
         }
 
-        private static MediaDuration FinalDuration(IIndexedPacketTimingReader reader, int streamIndex,
-            VideoPresentationUnit last, CancellationToken token)
+        private static TimeBase IncludeClock(TimeBase clock, VideoPresentationUnit unit)
         {
-            MediaDuration duration = (reader is not IIndexedVideoPresentationReader && reader is IIndexedPresentationTimingReader presentation
-                ? presentation.GetPresentationDuration(streamIndex, last.PacketIndex, token) : last.Duration)
-                ?? throw new NotSupportedException("The final video presentation interval is unknown.");
+            clock = TimeBase.Common(clock, unit.Start.ReduceClock().TimeBase);
+            return unit.Duration is MediaDuration extent
+                ? TimeBase.Common(clock, new MediaTimestamp(extent.Value, extent.TimeBase).ReduceClock().TimeBase) : clock;
+        }
+
+        private static VideoPresentationUnit? Project(VideoPresentationUnit unit, MediaTimeRange? selection,
+            MediaTimestamp? following = null)
+        {
+            if (selection is not MediaTimeRange range) { return unit; }
+            if (unit.Start.CompareTo(range.End) >= 0 || range.Duration.Value == 0) { return null; }
+            if (unit.Duration is not MediaDuration duration)
+            {
+                if (unit.Start.CompareTo(range.Start) < 0)
+                { throw new NotSupportedException("The leading video presentation interval is unknown."); }
+                return unit;
+            }
+            TimeBase clock = TimeBase.Common(unit.Start.ReduceClock().TimeBase,
+                new MediaTimestamp(duration.Value, duration.TimeBase).ReduceClock().TimeBase);
+            MediaTimestamp end = new(checked(unit.Start.Rescale(clock, TimestampRounding.TowardZero).Value +
+                new MediaTimestamp(duration.Value, duration.TimeBase).Rescale(clock, TimestampRounding.TowardZero).Value), clock);
+            if (following is MediaTimestamp next && unit.Start.CompareTo(range.Start) < 0 && next.CompareTo(end) < 0) { end = next; }
+            if (end.CompareTo(range.Start) <= 0) { return null; }
+            MediaTimestamp start = unit.Start.CompareTo(range.Start) < 0 ? range.Start : unit.Start;
+            if (range.End.CompareTo(end) < 0) { end = range.End; }
+            MediaTimeRange projected = new(start.ReduceClock(), end.ReduceClock());
+            return unit with { Start = projected.Start, Duration = projected.Duration };
+        }
+
+        private static MediaDuration FinalDuration(VideoPresentationUnit last)
+        {
+            MediaDuration duration = last.Duration ?? throw new NotSupportedException("The final video presentation interval is unknown.");
             if (duration.Value == 0) { throw new InvalidDataException("The final video presentation interval must be positive."); }
             return duration;
         }

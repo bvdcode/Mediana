@@ -48,6 +48,18 @@ media reads. MP4 interprets one unit-rate media edit, optionally preceded by an
 empty delay edit, on the reader's selected packet timeline. These declarations
 intersect requested encoding intervals. Absence of an explicit selection remains
 distinct from an empty selection. Nonlinear edits are rejected.
+
+Before applying the requested interval, video intersects each decoded source
+display extent with the container's presentation range. A picture crossing the
+declared start retains its pixels and receives the trimmed start and duration;
+the closing picture is clipped at the declared end. This follows Core Media's
+[trimmed presentation timestamp](https://developer.apple.com/documentation/coremedia/cmreadysamplebuffer/outputpresentationtimestamp)
+model. Source clipping does not relax requested `CompleteFrames` boundaries or
+fill gaps. Automatic video and HLS planning use the same source extents, exclude
+decode-only preroll and postroll, and retain a known earlier media end rather
+than extending the final picture to a longer declaration. Planning and exact
+clock queries read indexed timing metadata without encoded payload.
+
 The [QuickTime edit-list specification](https://developer.apple.com/documentation/quicktime-file-format/edit_list_atom/edit_list_table)
 defines separate movie-duration and media-start units. The operation does not
 infer additional undocumented codec delay from container names.

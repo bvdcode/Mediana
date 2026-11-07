@@ -110,6 +110,70 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Theory]
+        [InlineData(1, 101, true)]
+        [InlineData(2, 101, false)]
+        [InlineData(1, 100, false)]
+        public async Task SourceBoundsTrimOpeningAndClosingPicturesBeforeStrictRequestedAlignment(int start, int end, bool valid)
+        {
+            MediaBufferAllocator allocator = new(8);
+            long[] times = [-100, -30, 10, 25, 40];
+            long[] lengths = [200, 60, 15, 15, 30];
+            int reads = 0;
+            ValueTask<VideoFrame?> ReadAsync(CancellationToken token)
+            {
+                token.ThrowIfCancellationRequested();
+                int index = reads++;
+                return ValueTask.FromResult(index == times.Length ? null : Create(allocator, times[index], lengths[index]));
+            }
+            TimeBase clock = new(1, 3000);
+            await using VideoPresentationReader reader = new(ReadAsync, new(new(start, clock), new(end, clock)),
+                VideoIntervalAlignment.CompleteFrames, new(new(1, clock), new(101, clock)));
+            async Task DrainAsync()
+            {
+                long[] expectedTimes = [1, 30, 75];
+                long[] expectedDurations = [29, 45, 26];
+                int count = 0;
+                while (true)
+                {
+                    using VideoFrame? frame = await reader.ReadFrameAsync();
+                    if (frame is null) { break; }
+                    if (valid)
+                    {
+                        Assert.Equal(new MediaTimestamp(expectedTimes[count], clock), frame.Timestamp);
+                        Assert.Equal(new MediaTimestamp(expectedDurations[count], clock), new(frame.Duration!.Value.Value, frame.Duration.Value.TimeBase));
+                        Assert.Equal(unchecked((byte)times[count + 1]), frame.Data.Span[0]);
+                    }
+                    count++;
+                }
+                if (valid) { Assert.Equal(3, count); }
+            }
+            if (valid) { await DrainAsync(); }
+            else if (start != 1) { await Assert.ThrowsAsync<InvalidDataException>(DrainAsync); }
+            else { await Assert.ThrowsAsync<NotSupportedException>(DrainAsync); }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(-20, -10)]
+        [InlineData(20, 30)]
+        [InlineData(5, 5)]
+        public async Task DisjointOrEmptySourceAndRequestedRangesDoNotReadFrames(int start, int end)
+        {
+            int reads = 0;
+            ValueTask<VideoFrame?> ReadAsync(CancellationToken token)
+            {
+                reads++;
+                throw new InvalidOperationException("Empty selections must not read frames.");
+            }
+            TimeBase clock = new(1, 1000);
+            await using VideoPresentationReader reader = new(ReadAsync, new(new(start, clock), new(end, clock)),
+                VideoIntervalAlignment.CompleteFrames, new(new(0, clock), new(10, clock)));
+            Assert.Null(await reader.ReadFrameAsync());
+            Assert.Null(await reader.ReadFrameAsync());
+            Assert.Equal(0, reads);
+        }
+
         private static VideoFrame Create(MediaBufferAllocator allocator, long time, long? duration)
         {
             VideoFormat format = new(1, 1, VideoPixelFormat.Rgba32);

@@ -7,13 +7,15 @@ using Mediana.Core.Video;
 namespace Mediana.Processing
 {
     /// <summary>Selects frames starting inside an optional presentation interval and clips overlapping
-    /// display durations at the next frame or selected end. Short declared durations preserve gaps.
+    /// display durations at the next frame or selected end. An optional source presentation range first
+    /// intersects decoded display extents, preserving partial opening and closing frames. Short durations preserve gaps.
     /// Borrows the callback; owns at most one lookahead frame. Returned pixels retain their original storage.
     /// Requires ordered known timestamps and positive durations; no duration or pixels are synthesized.</summary>
     public class VideoPresentationReader : IAsyncDisposable
     {
         private readonly Func<CancellationToken, ValueTask<VideoFrame?>> read;
         private readonly MediaTimeRange? selection;
+        private readonly MediaTimeRange? sourcePresentation;
         private readonly VideoIntervalAlignment alignment;
         private MediaTimestamp? previousEnd;
         private VideoFrame? pending;
@@ -23,13 +25,20 @@ namespace Mediana.Processing
         private int busy;
 
         public VideoPresentationReader(Func<CancellationToken, ValueTask<VideoFrame?>> read, MediaTimeRange? selection = null,
-            VideoIntervalAlignment alignment = VideoIntervalAlignment.ClipDisplayDuration)
+            VideoIntervalAlignment alignment = VideoIntervalAlignment.ClipDisplayDuration) : this(read, selection, alignment, null)
+        {
+        }
+
+        public VideoPresentationReader(Func<CancellationToken, ValueTask<VideoFrame?>> read, MediaTimeRange? selection,
+            VideoIntervalAlignment alignment, MediaTimeRange? sourcePresentation)
         {
             ArgumentNullException.ThrowIfNull(read);
             if (!Enum.IsDefined(alignment)) { throw new ArgumentOutOfRangeException(nameof(alignment)); }
             if (selection is MediaTimeRange range) { range.Start.TimeBase.Validate(); range.End.TimeBase.Validate(); }
+            if (sourcePresentation is MediaTimeRange source) { source.Start.TimeBase.Validate(); source.End.TimeBase.Validate(); }
             this.read = read;
             this.selection = selection;
+            this.sourcePresentation = sourcePresentation;
             this.alignment = alignment;
         }
 
@@ -56,7 +65,10 @@ namespace Mediana.Processing
 
         private async ValueTask<VideoFrame?> ReadCoreAsync(CancellationToken token)
         {
-            if (ended || selection is MediaTimeRange empty && empty.Duration.Value == 0) { return null; }
+            if (ended || selection is MediaTimeRange empty && empty.Duration.Value == 0 ||
+                sourcePresentation is MediaTimeRange sourceEmpty && sourceEmpty.Duration.Value == 0) { return null; }
+            if (selection is MediaTimeRange requested && sourcePresentation is MediaTimeRange declared &&
+                (requested.End.CompareTo(declared.Start) <= 0 || declared.End.CompareTo(requested.Start) <= 0)) { return null; }
             pending ??= await read(token).ConfigureAwait(false);
             while (pending is not null)
             {
@@ -65,6 +77,8 @@ namespace Mediana.Processing
                 token.ThrowIfCancellationRequested();
                 MediaTimestamp start = current.Timestamp ?? throw new NotSupportedException("Video presentation requires known timestamps.");
                 if (selection is MediaTimeRange limit && start.CompareTo(limit.End) >= 0)
+                { ValidateCompletion(); ended = true; return null; }
+                if (sourcePresentation is MediaTimeRange sourceLimit && start.CompareTo(sourceLimit.End) >= 0)
                 { ValidateCompletion(); ended = true; return null; }
                 MediaDuration duration = current.Duration ?? throw new NotSupportedException("Video presentation requires known durations.");
                 if (duration.Value == 0) { throw new InvalidDataException("Video presentation durations must be positive."); }
@@ -80,6 +94,12 @@ namespace Mediana.Processing
                     if (nextTime.CompareTo(end) < 0) { end = nextTime; }
                 }
                 else { ended = true; }
+                if (sourcePresentation is MediaTimeRange source)
+                {
+                    if (end.CompareTo(source.Start) <= 0) { continue; }
+                    if (start.CompareTo(source.Start) < 0) { start = source.Start; }
+                    if (source.End.CompareTo(end) < 0) { end = source.End; }
+                }
                 if (selection is MediaTimeRange range)
                 {
                     if (start.CompareTo(range.Start) < 0) { continue; }
