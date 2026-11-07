@@ -19,9 +19,9 @@ ogg,read,partial,partial,partial,partial,partial,planned,../ogg-reading.md;../..
 ogg,write,planned,planned,planned,planned,planned,planned,
 ogg-chained,read,partial,partial,partial,planned,planned,planned,../ogg-reading.md;../../tests/Mediana.Containers.Ogg.Tests/OggReaderTests.cs
 ogg-chained,write,planned,planned,planned,planned,planned,planned,
-avi,read,planned,planned,planned,planned,planned,planned,
+avi,read,partial,partial,partial,planned,planned,partial,../avi.md;../../tests/Mediana.Containers.Avi.Tests/Data/fixture.md
 avi,write,planned,planned,planned,planned,planned,planned,
-avi-opendml,read,planned,planned,planned,planned,planned,planned,
+avi-opendml,read,partial,partial,partial,planned,planned,partial,../avi.md;../../tests/Mediana.Containers.Avi.Tests/Data/fixture.md
 avi-opendml,write,planned,planned,planned,planned,planned,planned,
 asf,read,planned,planned,planned,planned,planned,planned,
 asf,write,planned,planned,planned,planned,planned,planned,
@@ -453,7 +453,7 @@ utvideo,decode,planned,planned,planned,planned,planned,planned,
 utvideo,encode,planned,planned,planned,planned,planned,planned,
 ffvhuff,decode,planned,planned,planned,planned,planned,planned,
 ffvhuff,encode,planned,planned,planned,planned,planned,planned,
-mjpeg,decode,planned,planned,planned,planned,planned,planned,
+mjpeg,decode,partial,partial,partial,planned,planned,partial,../mjpeg.md;../../tests/Mediana.Tests/Data/Mjpeg/fixture.md
 mjpeg,encode,planned,planned,planned,planned,planned,planned,
 mjpeg2000,decode,planned,planned,planned,planned,planned,planned,
 mjpeg2000,encode,planned,planned,planned,planned,planned,planned,

@@ -10,6 +10,7 @@ namespace Mediana.NativeTests
         internal static async Task RunAsync()
         {
             await NativeMjpegTests.RunAsync();
+            await NativeAviTests.RunAsync();
             string root = Path.Combine(AppContext.BaseDirectory, "Data");
             await JpegDecodeTestInput.VerifyCorpusAsync(Path.Combine(root, "Jpeg"));
             await JpegDecodeTestInput.VerifyIntegrityAsync(Path.Combine(root, "Jpeg"));

@@ -9,6 +9,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../Mediana.Containers.Avi.Tests/Data/*.avi" Link="Data/Avi/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mjpeg/*" Link="Data/Mjpeg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageExifOrientationTestInput.cs" Link="ImageExifOrientationTestInput.cs" />
     <Compile Include="../Shared/MediaExportTestInput.cs" Link="MediaExportTestInput.cs" />
@@ -119,6 +120,7 @@
     <Compile Include="../Shared/EbmlElementTestSource.cs" Link="EbmlElementTestSource.cs" />
     <Compile Include="../Shared/EbmlElementTestInput.cs" Link="EbmlElementTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Avi/Mediana.Containers.Avi.csproj" />
     <Compile Include="../Shared/EbmlValueTestInput.cs" Link="EbmlValueTestInput.cs" />
     <Compile Include="../Shared/H264DcResidualTestInput.cs" Link="H264DcResidualTestInput.cs" />
     <Compile Include="../Shared/H264ZeroResidualTestInput.cs" Link="H264ZeroResidualTestInput.cs" />

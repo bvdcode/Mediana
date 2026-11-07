@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 102 variants · 132 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 105 variants · 135 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -23,14 +23,14 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | Group | Implemented variants | Target variants | Implemented operations | Target operations |
 | --- | ---: | ---: | ---: | ---: |
-| [Containers and packaging](#containers-and-packaging) | 14 | 44 | 16 | 88 |
+| [Containers and packaging](#containers-and-packaging) | 16 | 44 | 18 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 6 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 13 | 35 | 13 | 64 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 4 | 62 | 5 | 124 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 5 | 62 | 6 | 124 |
 | [Audio coding and sample representations](#audio-coding-and-sample-representations) | 16 | 63 | 22 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
@@ -57,8 +57,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `webm-live` | WebM — Incremental / live presentation | .webm | R □ · W □ | B | Track metadata, unknown sizes and incremental clusters need separate fixtures. [webm](sources.md#webm) | — |
 | `ogg` | Ogg — Single and multiplexed logical streams | .ogg .oga .ogv .opus .spx | R ◐ · W □ | A | Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate. [ogg](sources.md#ogg) | [ogg-index](../performance/README.md#ogg-index) |
 | `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R ◐ · W □ | B | Current reader keeps chained links separately selectable; selecting a link does not concatenate links. [ogg](sources.md#ogg) | — |
-| `avi` | AVI — RIFF AVI 1.0 | .avi | R □ · W □ | B | [riff](sources.md#riff) | — |
-| `avi-opendml` | AVI — OpenDML / AVI 2.0 | .avi | R □ · W □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
+| `avi` | AVI — RIFF AVI 1.0 | .avi | R ◐ · W □ | B | [riff](sources.md#riff) | — |
+| `avi-opendml` | AVI — OpenDML / AVI 2.0 | .avi | R ◐ · W □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `asf` | ASF — File and streaming structure | .asf .wmv .wma | R □ · W □ | B | [asf](sources.md#asf) | — |
 | `flv` | FLV — Classic file structure | .flv | R □ · W □ | B | [flv](sources.md#flv) | — |
 | `flv-enhanced` | Enhanced FLV — Extended codec mappings | .flv | R □ · W □ | C | Pin the extended specification and codec mappings first. [discovery](sources.md#discovery) | — |
@@ -312,7 +312,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `huffyuv` | HuffYUV — Lossless video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `utvideo` | Ut Video — Lossless video families | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `ffvhuff` | FFVHUFF — HuffYUV-derived lossless video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
-| `mjpeg` | Motion JPEG — Independently JPEG-coded video frames | — | D □ · E □ | B | Frame coding and AVI/MOV mappings must be tested separately. [jpeg](sources.md#jpeg), [mpeg-video](sources.md#mpeg-video) | — |
+| `mjpeg` | Motion JPEG — Independently JPEG-coded video frames | — | D ◐ · E □ | B | Frame coding and AVI/MOV mappings must be tested separately. [jpeg](sources.md#jpeg), [mpeg-video](sources.md#mpeg-video) | — |
 | `mjpeg2000` | Motion JPEG 2000 — Independently JPEG 2000-coded frames | — | D □ · E □ | C | [jpeg2000](sources.md#jpeg2000) | — |
 | `vc2` | VC-2 / Dirac — Wavelet video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `cineform` | CineForm — Wavelet editing codec | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |

@@ -5,6 +5,7 @@ using Mediana.Codecs.H264;
 using Mediana.Codecs.Hevc;
 using Mediana.Codecs.Jpeg;
 using Mediana.Containers.Aiff;
+using Mediana.Containers.Avi;
 using Mediana.Containers.Flac;
 using Mediana.Containers.Mp3;
 using Mediana.Containers.Mp4;
@@ -26,6 +27,7 @@ namespace Mediana.Cli
             .AddContainer(new WaveReaderFactory())
             .AddContainer(new AiffReaderFactory())
             .AddContainer(new MatroskaReaderFactory())
+            .AddContainer(new AviReaderFactory())
             .AddContainer(new OggReaderFactory())
             .AddContainer(new Mp4ReaderFactory(new Mp4ReadOptions { TimestampMode = timestampMode }));
     }
