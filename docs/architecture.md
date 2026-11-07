@@ -167,7 +167,10 @@ dimensions and composition timing.
 empty `Streams` and `StreamMetadata` collections; they do not invent packet streams.
 Metadata survives source disposal. Random access inspection preserves the source
 cursor; sequential probing replays the recognized prefix. Container inspection does
-not scan encoded packets. Image readers may inspect the entire input, bounded by
+not decode packets. Where container tables omit video display semantics, indexing
+can read bounded codec header prefixes to establish clocks or visible pictures.
+A packed representation without indexed subframe boundaries also requires
+structural scanning; that cost belongs to opening the container. Image readers may inspect the entire input, bounded by
 `MaxImageInputBytes`; encoded buffers share `BufferBudgetBytes`, and each module
 retains its own parsing-work limits. A successful probe describes declared metadata
 and does not guarantee support for every encoded feature.

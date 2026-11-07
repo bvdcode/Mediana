@@ -1,5 +1,5 @@
 format_id,operation,implementation,samples,correctness,cpu,memory,aot,evidence
-mp4-classic,read,partial,partial,partial,planned,planned,planned,../architecture.md;../../tests/Mediana.Tests/Data/Mp4/README.md
+mp4-classic,read,partial,partial,partial,planned,planned,partial,../architecture.md;../../tests/Mediana.Tests/Data/Mp4/README.md
 mp4-classic,write,planned,planned,planned,planned,planned,planned,
 mp4-fragmented,read,planned,planned,planned,planned,planned,planned,
 mp4-fragmented,write,planned,planned,planned,planned,planned,planned,
@@ -7,7 +7,7 @@ mov,read,partial,partial,partial,planned,planned,planned,../architecture.md;../.
 mov,write,planned,planned,planned,planned,planned,planned,
 3gp,read,planned,planned,planned,planned,planned,planned,
 3gp,write,planned,planned,planned,planned,planned,planned,
-matroska-indexed,read,partial,partial,partial,planned,planned,planned,../matroska-ebml.md;../../tests/Mediana.Tests/Data/Matroska/README.md
+matroska-indexed,read,partial,partial,partial,planned,planned,partial,../matroska-ebml.md;../../tests/Mediana.Tests/Data/Matroska/README.md
 matroska-indexed,write,planned,planned,planned,planned,planned,planned,
 matroska-live,read,planned,planned,planned,planned,planned,planned,
 matroska-live,write,planned,planned,planned,planned,planned,planned,
@@ -387,13 +387,13 @@ vvc-multilayer,decode,planned,planned,planned,planned,planned,planned,
 vvc-multilayer,encode,planned,planned,planned,planned,planned,planned,
 vp8,decode,partial,partial,partial,partial,partial,partial,../vp8.md;../../tests/Mediana.Tests/Data/Vp8/README.md
 vp8,encode,planned,planned,planned,planned,planned,planned,
-vp9-p0,decode,planned,planned,planned,planned,planned,planned,
+vp9-p0,decode,partial,partial,partial,partial,partial,partial,../vp9.md
 vp9-p0,encode,planned,planned,planned,planned,planned,planned,
-vp9-p1,decode,planned,planned,planned,planned,planned,planned,
+vp9-p1,decode,partial,partial,partial,planned,planned,partial,../vp9.md
 vp9-p1,encode,planned,planned,planned,planned,planned,planned,
-vp9-p2,decode,planned,planned,planned,planned,planned,planned,
+vp9-p2,decode,partial,partial,partial,planned,planned,partial,../vp9.md
 vp9-p2,encode,planned,planned,planned,planned,planned,planned,
-vp9-p3,decode,planned,planned,planned,planned,planned,planned,
+vp9-p3,decode,partial,partial,partial,planned,planned,partial,../vp9.md
 vp9-p3,encode,planned,planned,planned,planned,planned,planned,
 av1-main,decode,planned,planned,planned,planned,planned,planned,
 av1-main,encode,planned,planned,planned,planned,planned,planned,
@@ -411,9 +411,9 @@ mpeg2-main,decode,planned,planned,planned,planned,planned,planned,
 mpeg2-main,encode,planned,planned,planned,planned,planned,planned,
 mpeg2-high,decode,planned,planned,planned,planned,planned,planned,
 mpeg2-high,encode,planned,planned,planned,planned,planned,planned,
-mpeg4-simple,decode,planned,planned,planned,planned,planned,planned,
+mpeg4-simple,decode,partial,partial,partial,planned,planned,partial,../mpeg4-visual.md
 mpeg4-simple,encode,planned,planned,planned,planned,planned,planned,
-mpeg4-asp,decode,planned,planned,planned,planned,planned,planned,
+mpeg4-asp,decode,partial,partial,partial,partial,partial,partial,../mpeg4-visual.md
 mpeg4-asp,encode,planned,planned,planned,planned,planned,planned,
 h261,decode,planned,planned,planned,planned,planned,planned,
 h261,encode,planned,planned,planned,planned,planned,planned,
@@ -421,7 +421,7 @@ h263,decode,planned,planned,planned,planned,planned,planned,
 h263,encode,planned,planned,planned,planned,planned,planned,
 h263-extensions,decode,planned,planned,planned,planned,planned,planned,
 h263-extensions,encode,planned,planned,planned,planned,planned,planned,
-theora,decode,planned,planned,planned,planned,planned,planned,
+theora,decode,partial,partial,partial,partial,partial,partial,../theora.md
 theora,encode,planned,planned,planned,planned,planned,planned,
 vc1,decode,planned,planned,planned,planned,planned,planned,
 vc1,encode,planned,planned,planned,planned,planned,planned,
@@ -812,7 +812,7 @@ hls-master,write,partial,partial,partial,planned,planned,planned,../audio-hls.md
 hls-live,read,planned,planned,planned,planned,planned,planned,
 hls-live,write,planned,planned,planned,planned,planned,planned,
 hls-fmp4,read,planned,planned,planned,planned,planned,planned,
-hls-fmp4,write,planned,planned,planned,planned,planned,planned,
+hls-fmp4,write,partial,partial,partial,partial,partial,partial,../hls-on-demand.md
 hls-lowlatency,read,planned,planned,planned,planned,planned,planned,
 hls-lowlatency,write,planned,planned,planned,planned,planned,planned,
 hls-encryption,read,planned,planned,planned,planned,planned,planned,

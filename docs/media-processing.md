@@ -86,17 +86,56 @@ reported timing when exact trimmed playback is required.
 The processing session owns its codec and preparation state and borrows the
 indexed reader and allocator. The caller serializes use of that reader. Writing
 consumes the session once, borrows the writer, and completes it on success.
+The optional packet observer runs after each successful writer call and borrows
+the packet only for that callback. Retain a packet explicitly to extend its lifetime.
+Observer failures or cancellation abort without completing the writer.
 Dispose the session after success, cancellation or failure. Other track resources
 are released even when individual disposal fails. Failed container output must be
 discarded. `ProcessAsync` also owns its opened container and writer, while borrowing
 the supplied byte source and destination stream.
 
+`TranscodeVideoAsync` is a single-video convenience adapter over this same indexed
+operation. It retains explicit audio omission and progress reporting while sharing
+exact output clocks, presentation selection and preparation across source changes.
+Custom sequential readers can use `MediaOperations.EncodeVideoAsync` with their
+own frame callback, encoder and exact output clock.
+
 Sequential-only demuxers are supported by the existing decoding APIs. Independent
 multi-track processing currently requires indexed packets. On-demand AVC HLS uses
 this operation with optional original AAC packets on their unchanged audio grid.
-Independently restarting an audio encoder across HLS boundaries still requires
-an explicit packet-grid and codec-context strategy; arbitrary freshly primed AAC
-intervals are not presented as a continuous audio rendition.
+`AacEncodingInterval` and `AacIntervalEncoderFactory` supply a shared packet grid,
+bounded analysis context and explicit priming/padding for independently requested
+AAC intervals. The [on-demand HLS API](hls-on-demand.md#encoding-aac-audio) uses
+those contracts alongside video and applies an explicit presentation endpoint.
+
+## Coded packets and displayed pictures
+
+`IIndexedVideoPresentationReader` exposes displayed-picture metadata separately
+from compressed packets. `ContainerVideoPresentationUnit` identifies the source
+packet, output ordinal, presentation timestamp and known display duration.
+A decode-only reference packet contributes no displayed unit; a representation
+with several independently timed pictures can expose several units. Unknown
+clocks remain unknown. Restart and packet cursors still refer to coded packets.
+
+`VideoSegmentPlanner` consumes this index when available. The packet-clock path
+requires one displayed unit per indexed packet. Both paths use caller-budgeted
+workspace and perform no encoded reads or frame decoding during planning.
+A codec or container with several displayed pictures but no distinct timing for
+them cannot claim exact presentation indexing by dividing a nominal duration.
+
+Matroska resolves implicit video display extents to the next visible timestamp.
+Explicit `BlockDuration` retains its declared extent, including real gaps.
+A known final explicit or nominal duration supplies the tail; an unknown tail
+stays unknown. Hidden VP8/VP9 reference frames do not create presentation cuts.
+Container invisible flags and bounded shared codec prefix syntax are checked
+while indexing. The nominal `DefaultDuration` remains part of raw packet metadata;
+the separate display-extent index describes how long a visible picture is held
+until the next PTS. This is an explicit presentation interpretation, rather than
+a claim that the container specification discards its declared default duration.
+See [Matroska timing and block semantics](https://www.rfc-editor.org/rfc/rfc9559.html#section-5.1.3.5.3)
+and [WebM alternate-reference guidance](https://www.webmproject.org/docs/container/). Raw packet clocks and durations remain inspectable unchanged.
+The existing `IIndexedPresentationTimingReader` hook supplies resolved durations
+to the same decoding pipeline used by file operations and requested HLS windows.
 
 ## Encoded MP4 fragments
 

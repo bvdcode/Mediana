@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 107 variants · 137 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 115 variants · 145 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -30,13 +30,13 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 13 | 35 | 13 | 64 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 6 | 62 | 7 | 124 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 13 | 62 | 14 | 124 |
 | [Audio coding and sample representations](#audio-coding-and-sample-representations) | 16 | 63 | 22 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
 | [Fonts and text presentation resources](#fonts-and-text-presentation-resources) | 6 | 14 | 7 | 27 |
 | [Subtitles, captions and timed graphics](#subtitles-captions-and-timed-graphics) | 0 | 13 | 0 | 39 |
-| [Streaming presentations and transport protocols](#streaming-presentations-and-transport-protocols) | 2 | 13 | 2 | 26 |
+| [Streaming presentations and transport protocols](#streaming-presentations-and-transport-protocols) | 3 | 13 | 3 | 26 |
 | [Metadata, color and ancillary records](#metadata-color-and-ancillary-records) | 5 | 12 | 5 | 24 |
 | [3D meshes and manufacturing interchange](#3d-meshes-and-manufacturing-interchange) | 5 | 14 | 10 | 41 |
 | [3D scenes, materials and animation](#3d-scenes-materials-and-animation) | 0 | 20 | 0 | 60 |
@@ -47,17 +47,17 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
-| `mp4-classic` | MP4 / ISO BMFF — Non-fragmented files | .mp4 .m4a .m4v | R ◐ · W □ | A | Current reader maps AVC/AAC/MP3; other codec mappings remain separate work. [iso-bmff](sources.md#iso-bmff) | [aac-multichannel](../performance/README.md#aac-multichannel), [avc-decode-30m](../performance/README.md#avc-decode-30m), [remux-hls](../performance/README.md#remux-hls) |
+| `mp4-classic` | MP4 / ISO BMFF — Non-fragmented files | .mp4 .m4a .m4v | R ◐ · W □ | A | Current reader maps AVC/HEVC/MPEG-4 Visual/AAC/MP3; other codec mappings remain separate work. [iso-bmff](sources.md#iso-bmff) | [aac-multichannel](../performance/README.md#aac-multichannel), [avc-decode-30m](../performance/README.md#avc-decode-30m), [remux-hls](../performance/README.md#remux-hls) |
 | `mp4-fragmented` | MP4 / ISO BMFF — Fragmented files | .mp4 .m4s | R □ · W □ | A | Includes initialization segments, fragment timing and incremental input. [iso-bmff](sources.md#iso-bmff) | — |
 | `mov` | QuickTime — Movie files | .mov .qt | R ◐ · W □ | A | Current MP4-family reader covers a subset; legacy QuickTime sample descriptions remain open. [quicktime](sources.md#quicktime) | — |
 | `3gp` | 3GPP — 3GP / 3G2 files | .3gp .3g2 | R □ · W □ | B | Validate their brands and track mappings independently of MP4. [iso-bmff](sources.md#iso-bmff), [discovery](sources.md#discovery) | — |
-| `matroska-indexed` | Matroska — Indexed file presentation | .mkv .mka .mks | R ◐ · W □ | A | Indexed AVC/HEVC/VP8/MJPEG/AAC/MP3 mappings; other codecs remain stored representations. [matroska](sources.md#matroska) | — |
+| `matroska-indexed` | Matroska — Indexed file presentation | .mkv .mka .mks | R ◐ · W □ | A | Indexed AVC/HEVC/VP8/VP9/MJPEG/AAC/MP3 mappings; other codecs remain stored representations. [matroska](sources.md#matroska) | — |
 | `matroska-live` | Matroska — Live / unknown-size stream | .mkv | R □ · W □ | B | [matroska](sources.md#matroska) | — |
 | `webm-file` | WebM — File presentation | .webm | R ◐ · W □ | A | Codec mappings and track constraints must conform to WebM. [webm](sources.md#webm) | — |
 | `webm-live` | WebM — Incremental / live presentation | .webm | R □ · W □ | B | Track metadata, unknown sizes and incremental clusters need separate fixtures. [webm](sources.md#webm) | — |
 | `ogg` | Ogg — Single and multiplexed logical streams | .ogg .oga .ogv .opus .spx | R ◐ · W □ | A | Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate. [ogg](sources.md#ogg) | [ogg-index](../performance/README.md#ogg-index) |
 | `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R ◐ · W □ | B | Current reader keeps chained links separately selectable; selecting a link does not concatenate links. [ogg](sources.md#ogg) | — |
-| `avi` | AVI — RIFF AVI 1.0 | .avi | R ◐ · W □ | B | [riff](sources.md#riff) | — |
+| `avi` | AVI — RIFF AVI 1.0 | .avi | R ◐ · W □ | B | Indexed MJPEG/MPEG-4 Visual/PCM input; declared packed DivX/Xvid normalizes into complete VOPs. [API](../avi.md). [riff](sources.md#riff) | — |
 | `avi-opendml` | AVI — OpenDML / AVI 2.0 | .avi | R ◐ · W □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `asf` | ASF — File and streaming structure | .asf .wmv .wma | R □ · W □ | B | [asf](sources.md#asf) | — |
 | `flv` | FLV — Classic file structure | .flv | R □ · W □ | B | [flv](sources.md#flv) | — |
@@ -279,10 +279,10 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `vvc-main444` | H.266 / VVC — Main 10 4:4:4 | .h266 .vvc | D □ · E □ | C | [h266](sources.md#h266) | — |
 | `vvc-multilayer` | H.266 / VVC — Multilayer and still-picture profiles | .h266 .vvc | D □ · E □ | C | Split the selected profiles before implementation. [h266](sources.md#h266) | — |
 | `vp8` | VP8 — Video bitstream | .ivf | D ◐ · E □ | A | Managed key/inter decoding shares VP8 kernels with WebP; WebM/Matroska mapping and direct coded packets are supported; IVF container parsing remains open. [webm](sources.md#webm) | — |
-| `vp9-p0` | VP9 — Profile 0, 8-bit 4:2:0 | .ivf | D □ · E □ | A | [webm](sources.md#webm) | — |
-| `vp9-p1` | VP9 — Profile 1, 8-bit other sampling | .ivf | D □ · E □ | B | [webm](sources.md#webm) | — |
-| `vp9-p2` | VP9 — Profile 2, 10/12-bit 4:2:0 | .ivf | D □ · E □ | A | [webm](sources.md#webm) | — |
-| `vp9-p3` | VP9 — Profile 3, 10/12-bit other sampling | .ivf | D □ · E □ | B | [webm](sources.md#webm) | — |
+| `vp9-p0` | VP9 — Profile 0, 8-bit 4:2:0 | .ivf | D ◐ · E □ | A | Managed profile 0 video decoding, references, tiles and WebM/Matroska mapping; IVF framing remains separate. [API](../vp9.md). [webm](sources.md#webm) | — |
+| `vp9-p1` | VP9 — Profile 1, 8-bit other sampling | .ivf | D ◐ · E □ | B | Managed profile 1 decoding with native 4:2:2/4:4:0/4:4:4/GBR sampling. [API](../vp9.md). [webm](sources.md#webm) | — |
+| `vp9-p2` | VP9 — Profile 2, 10/12-bit 4:2:0 | .ivf | D ◐ · E □ | A | Managed profile 2 decoding with native 10/12-bit planes. [API](../vp9.md). [webm](sources.md#webm) | — |
+| `vp9-p3` | VP9 — Profile 3, 10/12-bit other sampling | .ivf | D ◐ · E □ | B | Managed profile 3 decoding with native high precision and sampling. [API](../vp9.md). [webm](sources.md#webm) | — |
 | `av1-main` | AV1 — Main profile | .obu .ivf | D □ · E □ | A | [av1](sources.md#av1) | — |
 | `av1-high` | AV1 — High profile | .obu .ivf | D □ · E □ | B | [av1](sources.md#av1) | — |
 | `av1-professional` | AV1 — Professional profile | .obu .ivf | D □ · E □ | B | [av1](sources.md#av1) | — |
@@ -291,12 +291,12 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `mpeg1-video` | MPEG-1 Video — ISO/IEC 11172-2 | .m1v .mpg | D □ · E □ | B | [mpeg-video](sources.md#mpeg-video) | — |
 | `mpeg2-main` | MPEG-2 Video — Simple/Main profiles | .m2v .mpg | D □ · E □ | B | [mpeg-video](sources.md#mpeg-video) | — |
 | `mpeg2-high` | MPEG-2 Video — 4:2:2 / High / scalable profiles | .m2v | D □ · E □ | C | [mpeg-video](sources.md#mpeg-video) | — |
-| `mpeg4-simple` | MPEG-4 Visual — Simple profile | .m4v | D □ · E □ | B | [mpeg-video](sources.md#mpeg-video) | — |
-| `mpeg4-asp` | MPEG-4 Visual — Advanced Simple profile | .m4v | D □ · E □ | B | Includes familiar DivX/Xvid-era interoperability; product names are not new standards. [mpeg-video](sources.md#mpeg-video) | — |
+| `mpeg4-simple` | MPEG-4 Visual — Simple profile | .m4v | D ◐ · E □ | B | Managed progressive I/P decoding, spatial prediction, resynchronization and AVI/MP4 mappings. [API](../mpeg4-visual.md). [mpeg-video](sources.md#mpeg-video) | — |
+| `mpeg4-asp` | MPEG-4 Visual — Advanced Simple profile | .m4v | D ◐ · E □ | B | Managed progressive I/P/B and quarter-pixel motion; interlace, sprites and partitioned layers remain separate tools. [API](../mpeg4-visual.md). [mpeg-video](sources.md#mpeg-video) | — |
 | `h261` | H.261 — Video coding | .h261 | D □ · E □ | C | [itu-video](sources.md#itu-video) | — |
 | `h263` | H.263 — Baseline | .h263 | D □ · E □ | C | [itu-video](sources.md#itu-video) | — |
 | `h263-extensions` | H.263 — Annex extensions / H.263+ | .h263 | D □ · E □ | C | [itu-video](sources.md#itu-video) | — |
-| `theora` | Theora — Video coding | .ogv | D □ · E □ | B | [theora](sources.md#theora) | — |
+| `theora` | Theora — Video coding | .ogv | D ◐ · E □ | B | Managed Theora 3.2, native 4:2:0/4:2:2/4:4:4 planes and indexed Ogg mapping. [API](../theora.md). [theora](sources.md#theora) | — |
 | `vc1` | VC-1 — Simple/Main/Advanced profiles | — | D □ · E □ | C | Select the SMPTE 421M revision and transport mappings before implementation. [discovery](sources.md#discovery) | — |
 | `wmv-legacy` | Windows Media Video — Earlier WMV revisions | — | D □ · E □ | C | Split WMV1/WMV2 and concrete bitstream revisions when scoped. [discovery](sources.md#discovery) | — |
 | `vp6` | VP6 — Legacy web video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
@@ -490,7 +490,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `hls-ts-vod` | HLS — VOD MPEG-TS media playlists | .m3u8 | R □ · W ◐ | A | Current writer supports stream copy and supported AVC/AAC encoding; no general HLS reader. [hls](sources.md#hls) | [hls-segment-30m](../performance/README.md#hls-segment-30m) |
 | `hls-master` | HLS — Master playlists and rendition groups | .m3u8 | R □ · W ◐ | A | Current writer prepares supported video/audio variants and measured transport output. [hls](sources.md#hls) | — |
 | `hls-live` | HLS — Live/event playlists and discontinuities | .m3u8 | R □ · W □ | A | [hls](sources.md#hls) | — |
-| `hls-fmp4` | HLS — Fragmented MP4 segments | .m3u8 .m4s | R □ · W □ | A | [hls](sources.md#hls), [iso-bmff](sources.md#iso-bmff) | — |
+| `hls-fmp4` | HLS — Fragmented MP4 segments | .m3u8 .m4s | R □ · W ◐ | A | Indexed AVC/AAC copy and independently encoded AVC/AAC intervals. [API](../hls-on-demand.md). [hls](sources.md#hls), [iso-bmff](sources.md#iso-bmff) | — |
 | `hls-lowlatency` | HLS — Low-latency parts and blocking reload | .m3u8 | R □ · W □ | B | [hls](sources.md#hls) | — |
 | `hls-encryption` | HLS — Declared encryption and key handling | .m3u8 | R □ · W □ | B | Encryption is separate from codec support and external rights-management systems. [hls](sources.md#hls) | — |
 | `dash-static` | MPEG-DASH — Static MPD and segment addressing | .mpd | R □ · W □ | B | [dash](sources.md#dash) | — |
