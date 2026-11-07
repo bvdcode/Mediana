@@ -87,8 +87,8 @@ namespace Mediana.Codecs.Aac
 
         private bool Analyze(int start, CancellationToken token)
         {
-            bool left = leftDetector.Analyze(workspace!.Pcm(0).Slice(start, FrameSamples), token);
-            bool right = format.Channels.Count == 2 && rightDetector.Analyze(workspace.Pcm(1).Slice(start, FrameSamples), token);
+            bool left = AacTransientDetector.AnalyzeWindow(workspace!.Pcm(0).Slice(start - FrameSamples, 2 * FrameSamples), token);
+            bool right = format.Channels.Count == 2 && AacTransientDetector.AnalyzeWindow(workspace.Pcm(1).Slice(start - FrameSamples, 2 * FrameSamples), token);
             return left || right;
         }
     }

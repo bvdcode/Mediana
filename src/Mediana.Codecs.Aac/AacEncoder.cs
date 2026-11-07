@@ -27,14 +27,13 @@ namespace Mediana.Codecs.Aac
         private AudioFrame? input;
         private int inputOffset;
         private int buffered;
-        private AacTransientDetector leftDetector;
-        private AacTransientDetector rightDetector;
         private AacWindowSelector windowSelector;
         private bool currentAnalyzed;
         private bool currentTransient;
         private long? firstTimestamp;
         private long packets;
         private long budgetRemainder;
+        private readonly long initialBudgetRemainder;
         private bool completed;
         private bool drained;
         private bool disposed;
@@ -42,7 +41,7 @@ namespace Mediana.Codecs.Aac
         private int busy;
 
         private AacEncoder(AudioFormat format, AacConfiguration configuration, EncodedStreamInfo stream,
-            MediaBufferAllocator allocator, AacEncoderOptions options)
+            MediaBufferAllocator allocator, AacEncoderOptions options, long frameOffset)
         {
             this.format = format;
             this.configuration = configuration;
@@ -50,6 +49,8 @@ namespace Mediana.Codecs.Aac
             this.options = options;
             Stream = stream;
             sampleTicks = stream.TimeBase.Denominator / format.SampleRate;
+            initialBudgetRemainder = (long)((Int128)frameOffset * options.BitRate * FrameSamples % format.SampleRate);
+            budgetRemainder = initialBudgetRemainder;
         }
 
         public EncodedStreamInfo Stream { get; }
@@ -58,11 +59,17 @@ namespace Mediana.Codecs.Aac
         public int? PaddingSamples => drained ? (int)((FrameSamples - InputSamplesPerChannel % FrameSamples) % FrameSamples) : null;
 
         public static AacEncoder Create(AudioFormat format, TimeBase clock, MediaBufferAllocator allocator,
-            AacEncoderOptions? options = null, int streamIndex = 0)
+            AacEncoderOptions? options = null, int streamIndex = 0) => CreateAtFrameOffset(format, clock, allocator, 0, options, streamIndex);
+
+        /// <summary>Starts on an explicit global 1024-sample frame grid. The offset preserves the fractional bit budget;
+        /// PCM timestamps retain their original origin. A bounded preceding PCM window is still required for matching output.</summary>
+        public static AacEncoder CreateAtFrameOffset(AudioFormat format, TimeBase clock, MediaBufferAllocator allocator,
+            long frameOffset, AacEncoderOptions? options = null, int streamIndex = 0)
         {
             ArgumentNullException.ThrowIfNull(format);
             ArgumentNullException.ThrowIfNull(allocator);
             ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
+            ArgumentOutOfRangeException.ThrowIfNegative(frameOffset);
             clock.Validate();
             if (format.SampleFormat != AudioSampleFormat.Float32 || format.Layout != AudioStorageLayout.Interleaved ||
                 !(format.Channels.SequenceEqual(["front-center"]) || format.Channels.SequenceEqual(["mono"]) ||
@@ -79,7 +86,7 @@ namespace Mediana.Codecs.Aac
             options ??= new();
             options.Validate(format.SampleRate, format.Channels.Count, AacPacketEncoder.MinimumFrameBits(configuration.FrequencyIndex, format.Channels.Count));
             EncodedStreamInfo stream = new(streamIndex, MediaKind.Audio, AacConfiguration.CodecId, StreamFormats.Aac, clock, configuration.ToAudioSpecificConfig());
-            return new(format, configuration, stream, allocator, options);
+            return new(format, configuration, stream, allocator, options, frameOffset);
         }
 
         public CodecInputStatus TrySend(AudioFrame frame, CancellationToken cancellationToken = default)
@@ -166,9 +173,9 @@ namespace Mediana.Codecs.Aac
                 Clear();
                 completed = drained = faulted = false;
                 firstTimestamp = null;
-                InputSamplesPerChannel = packets = budgetRemainder = 0;
+                InputSamplesPerChannel = packets = 0;
+                budgetRemainder = initialBudgetRemainder;
                 buffered = inputOffset = 0;
-                leftDetector = rightDetector = default;
                 windowSelector = default;
                 currentAnalyzed = currentTransient = false;
             }
