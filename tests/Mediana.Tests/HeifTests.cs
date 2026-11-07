@@ -38,9 +38,16 @@ namespace Mediana.Tests
         public async Task RegisteredFramesRemainIndependentAfterInputAndWorkspaceReuse() =>
             await HeifFrameOwnershipTestInput.VerifyAsync(Root);
 
+        [Theory]
+        [InlineData(ChromaUpsamplingFilter.NearestNeighbor)]
+        [InlineData(ChromaUpsamplingFilter.Bilinear)]
+        [InlineData(ChromaUpsamplingFilter.Bicubic)]
+        [InlineData(ChromaUpsamplingFilter.Lanczos3)]
+        public Task IccProfilesSurviveCopiedAndDirectFramesAndUseCommonConversion(ChromaUpsamplingFilter filter) =>
+            HeifFrameOwnershipTestInput.VerifyIccAsync(Root, Path.Combine(AppContext.BaseDirectory, "Data", "Icc"), filter);
+
         [Fact]
-        public Task IccProfilesSurviveCopiedAndDirectFramesAndUseCommonConversion() =>
-            HeifFrameOwnershipTestInput.VerifyIccAsync(Root, Path.Combine(AppContext.BaseDirectory, "Data", "Icc"));
+        public Task AllFiltersPreserveVisibleGeometryAndAlpha() => HeifReferenceTestInput.VerifyFiltersAsync(Root);
 
         [Fact]
         public async Task OutputBudgetIsReservedBeforePictureDecodingAndReleasedOnFailure()

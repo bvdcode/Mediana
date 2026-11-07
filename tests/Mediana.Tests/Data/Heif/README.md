@@ -39,3 +39,14 @@ These files are outside the 42-entry manifest. Checks compare the original
 decoded samples, retained profile bytes and `prof`/`rICC` identity, then exercise
 common sRGB conversion, fitted previews, copied/direct frame ownership and CLI
 PNG export. They use the same MIT license and copyright as the source fixtures.
+
+`chroma-reconstruction.json` contains original 20×16 unsigned component patterns
+at 8- and 10-bit precision and independent 2× reconstruction references from
+Pillow 12.3.0. The patterns use
+`round(((23*x + 41*y + 13*x*y) mod 251) * maximum / 250)`.
+References resize an `F`-mode image using NEAREST, BILINEAR, BICUBIC and LANCZOS,
+then round with `floor(value + 0.5)` and clip to the component range. Samples
+are centered. Bicubic/Lanczos comparisons exclude four/six output border pixels:
+Pillow renormalizes truncated kernels, whereas chroma reconstruction extends
+edge samples. Separate checks cover edge extension, constant planes and all
+six sample locations. These references use the same MIT license and copyright.

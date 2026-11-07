@@ -113,7 +113,8 @@ namespace Mediana.Images.Heif.Container
             {
                 throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
             }
-            return PictureRenderer.Render(picture, crop, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers, alphaInformation, destination);
+            return PictureRenderer.Render(picture, crop, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers,
+                options.ChromaFilter, cancellationToken, alphaInformation, destination);
         }
 
         private async Task<RgbaImage> ApplyAlphaAsync(HeifItem item, RgbaImage color, ImageDecodePath path, bool parallel)

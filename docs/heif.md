@@ -29,6 +29,14 @@ monochrome and 4:2:0/4:2:2/4:4:4, independent slices, wavefront coding, scaling
 lists, deblocking and SAO. This module does not expose a general HEVC video
 session or encode HEIC files.
 
+Chroma reconstruction defaults to bilinear. `HeicDecodeOptions.ChromaFilter`
+selects nearest-neighbor, bilinear, Catmull-Rom bicubic or Lanczos3. Filtering
+uses the shared `Mediana.Processing.ChromaUpsampler`, the HEVC sample location
+and native 8/10-bit components before RGB conversion. Row workspace is bounded
+by component width; no full-resolution intermediate chroma planes are created.
+The 42 original RGBA hashes explicitly select nearest-neighbor. All four modes
+also exercise the image geometry, alpha and ICC ownership checks.
+
 Returned pixels use straight alpha. Ordered container transformations and alpha
 composition are already applied. RGB retains the signalled CICP primaries and
 transfer function; embedded ICC bytes are retained in `ColorInformation`.

@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Core.Video;
-
-namespace Mediana.Processing
+namespace Mediana.Core.Video
 {
-    internal static class ChromaSamplePosition
+    public static class ChromaSamplePosition
     {
-        // Rec. ITU-T H.264, Figure E-1; offsets in half-luma-sample units.
+        /// <summary>Returns sample offsets from the top-left luma sample in half-luma units.</summary>
         public static (int Horizontal, int Vertical) InHalfLumaSamples(ChromaLocation location) => location switch
         {
             ChromaLocation.Left => (0, 1),

@@ -11,8 +11,10 @@ namespace Mediana.Tests
 {
     internal static class HeifFrameOwnershipTestInput
     {
-        internal static async Task VerifyIccAsync(string root, string iccRoot)
+        internal static async Task VerifyIccAsync(string root, string iccRoot,
+            ChromaUpsamplingFilter filter = ChromaUpsamplingFilter.Bilinear)
         {
+            HeicDecodeOptions options = new(filter);
             foreach ((string name, string profileName, bool restricted) in new[]
             {
                 ("basic-8bit", "sampled-v2", false), ("basic-8bit", "linear-v2", true),
@@ -23,15 +25,15 @@ namespace Mediana.Tests
                 string kind = restricted ? "ricc" : "prof";
                 byte[] input = await File.ReadAllBytesAsync(Path.Combine(root, $"icc-{kind}-{name}.heic"));
                 byte[] profile = await File.ReadAllBytesAsync(Path.Combine(iccRoot, profileName + ".icc"));
-                RgbaImage baseline = await HeicDocument.Load(await File.ReadAllBytesAsync(Path.Combine(root, name + ".heic"))).DecodePrimaryAsync();
-                RgbaImage image = await HeicDocument.Load(input).DecodePrimaryAsync();
+                RgbaImage baseline = await HeicDocument.Load(await File.ReadAllBytesAsync(Path.Combine(root, name + ".heic")), options).DecodePrimaryAsync();
+                RgbaImage image = await HeicDocument.Load(input, options).DecodePrimaryAsync();
                 if (!image.Pixels.Span.SequenceEqual(baseline.Pixels.Span) || !image.ColorInformation.IccProfile.Span.SequenceEqual(profile))
                 {
                     throw new InvalidDataException("HEIF decoding must retain its RGB signal and owned ICC profile.");
                 }
                 MediaBufferAllocator allocator = new(image.Pixels.Length * 5);
                 using (VideoFrame copied = image.ToVideoFrame(allocator, SampleAspectRatio.Square))
-                using (VideoFrame direct = await new HeicImageDecoder(SampleAspectRatio.Square).DecodeAsync(input, new(), allocator))
+                using (VideoFrame direct = await new HeicImageDecoder(SampleAspectRatio.Square, options).DecodeAsync(input, new(), allocator))
                 {
                     Array.Clear(input);
                     if (copied.Format.ColorDescription is not IccColorDescription copiedIcc ||

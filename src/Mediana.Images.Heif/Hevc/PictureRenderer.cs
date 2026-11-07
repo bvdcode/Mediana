@@ -14,13 +14,15 @@ namespace Mediana.Images.Heif.Hevc
     /// Renders a clean aperture within the SPS conformance window into owned RGBA8 rows.
     /// </summary>
     /// <remarks>
-    /// Chroma sample (x/2,y/2) supplies each 2x2 luma block; no smoothing is applied.
+    /// Subsampled chroma uses the selected reconstruction kernel before RGB conversion.
     /// Alpha auxiliary samples use their SEI range and clipping operations when present,
     /// otherwise their full integer range, independently of video colour-range flags. Output arrays never alias reconstructed picture planes.
     /// </remarks>
-    internal static class PictureRenderer
+    internal static partial class PictureRenderer
     {
-        public static RgbaImage Render(DecodedPicture picture, ImageCrop crop, ColorEncoding color, IccColorDescription? iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null, Memory<byte> destination = default)
+        public static RgbaImage Render(DecodedPicture picture, ImageCrop crop, ColorEncoding color, IccColorDescription? iccProfile,
+            bool alpha, PixelBufferScope buffers, ChromaUpsamplingFilter chromaFilter, CancellationToken cancellationToken,
+            AlphaChannelInformation? alphaInformation = null, Memory<byte> destination = default)
         {
             ColorConversion? conversion = CreateConversion(picture, color, alpha, alphaInformation);
             int width = crop.Width;
@@ -29,7 +31,15 @@ namespace Mediana.Images.Heif.Hevc
 
             if (!alpha && picture.Cb is not null && picture.Cr is not null)
             {
-                RenderColor(picture, crop, conversion!, pixels.Span);
+                if (picture.Sequence.ChromaFormat == 3 || (chromaFilter == ChromaUpsamplingFilter.NearestNeighbor
+                    && picture.Sequence.Video.ChromaLocation is 0 or 1 or 2 or 3))
+                {
+                    RenderColor(picture, crop, conversion!, pixels.Span);
+                }
+                else
+                {
+                    RenderFilteredColor(picture, crop, conversion!, chromaFilter, pixels.Span, cancellationToken);
+                }
             }
             else
             {
