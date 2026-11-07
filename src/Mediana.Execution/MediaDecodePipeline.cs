@@ -16,6 +16,7 @@ namespace Mediana.Execution
         private readonly IMediaCodec<MediaPacket, TFrame> decoder;
         private readonly int streamIndex;
         private readonly long? maxPacketReads;
+        private readonly MediaReadBudget? sharedReadBudget;
         private readonly IRandomAccessInspector? randomAccessInspector;
         private MediaPacket? pendingPacket;
         private long packetReads;
@@ -27,7 +28,8 @@ namespace Mediana.Execution
         private int busy;
 
         public MediaDecodePipeline(IContainerReader reader, IMediaCodec<MediaPacket, TFrame> decoder,
-            int streamIndex, long? maxPacketReads = null, IRandomAccessInspector? randomAccessInspector = null)
+            int streamIndex, long? maxPacketReads = null, IRandomAccessInspector? randomAccessInspector = null,
+            MediaReadBudget? sharedReadBudget = null)
         {
             ArgumentNullException.ThrowIfNull(reader);
             ArgumentNullException.ThrowIfNull(decoder);
@@ -41,6 +43,7 @@ namespace Mediana.Execution
             this.decoder = decoder;
             this.streamIndex = streamIndex;
             this.maxPacketReads = maxPacketReads;
+            this.sharedReadBudget = sharedReadBudget;
             this.randomAccessInspector = randomAccessInspector;
         }
 
@@ -155,8 +158,9 @@ namespace Mediana.Execution
                 {
                     throw new InvalidOperationException($"The configured container limit of {limit} packet reads has been reached.");
                 }
-                packetReads++;
             }
+            sharedReadBudget?.CountPacketRead();
+            if (maxPacketReads is not null) { packetReads++; }
         }
 
         public void Dispose()
