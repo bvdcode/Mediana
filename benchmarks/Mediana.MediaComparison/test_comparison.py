@@ -67,6 +67,19 @@ class ProcessMeasurementTests(unittest.TestCase):
             self.assertEqual(result[3:], (0, False))
             self.assertGreaterEqual(result[1], 0.19)
 
+    def test_parent_memory_is_excluded_from_child_peak_rss(self) -> None:
+        parent_memory = bytearray(b"\x01") * (64 * 1024 * 1024)
+        with tempfile.TemporaryDirectory() as directory:
+            result = measure(
+                [sys.executable, "-c", "raise SystemExit(0)"],
+                dict(os.environ),
+                Path(directory) / "memory.log",
+                10,
+            )
+            self.assertEqual(result[3:], (0, False))
+            self.assertGreater(result[2], 0)
+            self.assertLess(result[2], len(parent_memory) // 2)
+
 
 class SampleValidationTests(unittest.TestCase):
     """Compare decoded data rather than file-container identity."""

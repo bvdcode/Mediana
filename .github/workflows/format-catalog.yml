@@ -35,6 +35,10 @@ jobs:
           persist-credentials: false
       - run: python3 tools/format-catalog.py --check
       - run: python3 -m unittest discover -s tools -p 'test_performance_catalog.py'
+      - name: Install resource counter
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes time
       - name: Test comparison runner
         run: |
           python3 -m venv "$RUNNER_TEMP/media-comparison-venv"

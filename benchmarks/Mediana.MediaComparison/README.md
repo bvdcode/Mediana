@@ -5,7 +5,7 @@ order, records elapsed time, process CPU time and peak RSS, and validates every
 decoded sample outside the measured interval. See the
 [workload registry and measurements](../../docs/performance/README.md).
 
-The runner uses Python 3.12+, NumPy and Pillow for separate validation, `taskset`,
+The runner uses Python 3.12+, NumPy and Pillow for separate validation, `taskset`, GNU time,
 FFmpeg, and optional libheif **1.23.2** development headers/library. None of these
 reference tools are dependencies of the Mediana packages or CLI.
 
@@ -36,6 +36,8 @@ API definitions are in the
 
 Install validation dependencies with
 `python3 -m pip install -r benchmarks/Mediana.MediaComparison/requirements.txt`.
+Install GNU time as the `time` executable, or supply its absolute path through
+`--variable resource_timer=<executable>`.
 
 Use the filenames and input hashes in the measurement report. `--case` is
 repeatable. Select two available logical CPUs on different physical cores. The
@@ -70,12 +72,16 @@ the complete output. A byte-identical pair reuses its first full sample comparis
 within the same case and immutable input; changed output requires a new comparison.
 The validation record identifies the source repetition and method.
 
-CPU is Linux `wait4` user + system time for the specific child, including
-descendants it waits for. Peak RSS is the resident high-water mark of an individual
-process, converted from KiB to bytes; it does not sum simultaneous descendants.
+CPU is Linux `wait4` user + system time for the specific child, including the
+GNU time launcher and descendants it waits for. Peak RSS is GNU time's child
+resident high-water mark, converted from KiB to bytes; it does not sum simultaneous descendants.
+Capturing RSS from the native launcher excludes Python memory inherited before
+the first executable starts. A regression check retains 64 MiB in the parent
+and requires the small child's reported peak to remain below half that amount.
 It includes runtime/native memory and is not a managed-allocation counter or peak
 system RAM. These counters follow the
-[Linux resource-usage contract](https://man7.org/linux/man-pages/man2/getrusage.2.html).
+[Linux resource-usage contract](https://man7.org/linux/man-pages/man2/getrusage.2.html)
+and [GNU time](https://www.gnu.org/software/time/).
 Elapsed time includes startup, I/O and cleanup. File hashing and validation happen
 after timing. A CPU allowance does not establish equal internal parallelism.
 

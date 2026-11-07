@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import platform
+import shutil
 import signal
 import subprocess
 import tempfile
@@ -33,13 +34,19 @@ LOGGER = logging.getLogger(__name__)
 
 
 def measure(
-    arguments: list[str], environment: dict[str, str], log: Path, timeout: float
+    arguments: list[str],
+    environment: dict[str, str],
+    log: Path,
+    timeout: float,
+    resource_timer: str = "time",
 ) -> tuple[float, float, int, int, bool]:
-    """Wait for this child only and retain its CPU and resident high-water mark."""
+    """Retain precise CPU time and child RSS without Python's inherited RSS floor."""
     expired = threading.Event()
+    resident = log.with_suffix(".rss")
+    resident.unlink(missing_ok=True)
     started = time.perf_counter()
     with log.open("wb") as output, subprocess.Popen(
-        arguments,
+        [resource_timer, "-q", "-f", "%M", "-o", str(resident), *arguments],
         env=environment,
         stdout=output,
         stderr=output,
@@ -63,10 +70,17 @@ def measure(
             timer.cancel()
             timer.join()
         elapsed = time.perf_counter() - started
+        if expired.is_set():
+            peak = 0
+        else:
+            peak = int(resident.read_text()) * 1024
+        resident.unlink(missing_ok=True)
+        if process.returncode == 0 and peak <= 0:
+            raise ValueError("Missing positive child resident high-water mark")
         return (
             elapsed,
             usage.ru_utime + usage.ru_stime,
-            usage.ru_maxrss * 1024,
+            peak,
             process.returncode,
             expired.is_set(),
         )
@@ -112,7 +126,11 @@ def run_case(
         }
     )
     elapsed, cpu, rss, code, expired = measure(
-        arguments, environment, logs / (prefix + ".log"), timeout
+        arguments,
+        environment,
+        logs / (prefix + ".log"),
+        timeout,
+        variables["resource_timer"],
     )
     produced = Path(command.output.format_map(replacements))
     if code == 0 and not produced.is_file():
@@ -175,10 +193,14 @@ def main() -> None:
     variables = {
         "mediana": str(args.mediana.resolve()),
         "inputs": str(args.inputs.resolve()),
+        "resource_timer": "time",
     }
     for item in args.variable:
         key, value = item.split("=", 1)
         variables[key] = value
+    resource_timer = shutil.which(variables["resource_timer"])
+    if resource_timer is None:
+        parser.error("GNU time is required; set --variable resource_timer=<executable>")
     args.output.mkdir(parents=True, exist_ok=False)
     metadata = {
         "revision": args.revision,
@@ -189,6 +211,11 @@ def main() -> None:
         "repeats": args.repeats,
         "scope": "fresh process, complete command, warm filesystem cache",
         "output_storage": "temporary decoded pair, validation and removal outside timing",
+        "resource_accounting": {
+            "cpu": "wait4 user + system, including GNU time and waited descendants",
+            "peak_rss": "GNU time child ru_maxrss, KiB converted to bytes",
+            "resource_timer_sha256": file_hash(Path(resource_timer)),
+        },
         "manifest": json.loads(args.manifest.read_text(encoding="utf-8")),
         "inputs": [
             {
