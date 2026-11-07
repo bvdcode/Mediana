@@ -108,7 +108,7 @@ namespace Mediana.Tests
             }
         }
 
-        private static ReadOnlyMemory<byte> Box(ReadOnlyMemory<byte> bytes, ReadOnlySpan<char> type)
+        internal static ReadOnlyMemory<byte> Box(ReadOnlyMemory<byte> bytes, ReadOnlySpan<char> type)
         {
             int at = 0;
             while (at < bytes.Length)

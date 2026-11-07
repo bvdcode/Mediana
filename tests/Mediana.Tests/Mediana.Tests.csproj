@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Shared/Vp8ContainerTestInput.cs" Link="Vp8ContainerTestInput.cs" />
+    <Compile Include="../Shared/VpxHlsTestInput.cs" Link="VpxHlsTestInput.cs" />
     <Compile Include="../Shared/JpegSampleCursorTestInput.cs" Link="JpegSampleCursorTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />
     <None Include="Data/Vp8/*" CopyToOutputDirectory="PreserveNewest" />

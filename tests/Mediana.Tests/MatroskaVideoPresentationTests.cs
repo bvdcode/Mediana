@@ -4,7 +4,6 @@
 using Mediana.Codecs;
 using Mediana.Codecs.Vp8;
 using Mediana.Codecs.Vp9;
-using Mediana.Containers;
 using Mediana.Containers.Matroska;
 using Mediana.Core;
 using Mediana.Core.Memory;
@@ -12,7 +11,6 @@ using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Execution;
 using Mediana.Formats.Video;
-using Mediana.Processing;
 using Mediana.Streaming.Hls;
 using static Mediana.Tests.MatroskaIndexTestData;
 using static Mediana.Tests.MatroskaMetadataTestData;
@@ -35,7 +33,7 @@ namespace Mediana.Tests
                 "Vp9" => new Vp9DecoderFactory(),
                 _ => throw new ArgumentOutOfRangeException(nameof(codec))
             };
-            await VerifyHlsAsync(data, decoder, pictures);
+            await VpxHlsTestInput.VerifyAsync(data, decoder, pictures);
         }
 
         [Theory]
@@ -64,7 +62,7 @@ namespace Mediana.Tests
                 Assert.Equal(reader.GetPacketTiming(0, 1).PresentationTime, reader.GetPacketTiming(0, 2).PresentationTime);
             }
             Assert.Equal(0, allocator.AllocatedBytes);
-            await VerifyHlsAsync(data, new Vp8DecoderFactory(), 2);
+            await VpxHlsTestInput.VerifyAsync(data, new Vp8DecoderFactory(), 2);
         }
 
         [Fact]
@@ -81,7 +79,7 @@ namespace Mediana.Tests
                 MediaDuration extent = reader.GetPresentationDuration(0, 0)!.Value;
                 Assert.Equal(new MediaTimestamp(10, new(1, 1000)), new(extent.Value, extent.TimeBase));
                 Assert.Equal(extent, reader.GetPresentationDuration(0, 1));
-                VideoFormat format = await ReadFormatAsync(data, new Vp8DecoderFactory(), allocator);
+                VideoFormat format = await VpxHlsTestInput.ReadFormatAsync(data, new Vp8DecoderFactory(), allocator);
                 await using AvcHlsTranscodeSession hls = AvcHlsTranscodeSession.Create(reader, 0, new Vp8DecoderFactory(), format,
                     [new HlsVideoWindow(0, new(0, new(1, 1000)), new(50, new(1, 1000)))], allocator);
                 using MemoryStream output = new();
@@ -183,60 +181,9 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
-        private static async Task VerifyHlsAsync(byte[] data, IVideoDecoderFactory decoder, int pictures)
-        {
-            MediaBufferAllocator allocator = new(16 * 1024 * 1024);
-            VideoFormat format = await ReadFormatAsync(data, decoder, allocator);
-            await using (TrackingRandomAccessSource source = new(data))
-            await using (MatroskaReader reader = await MatroskaReader.OpenAsync(source, allocator))
-            {
-                Assert.Equal(pictures, reader.GetPresentationUnitCount(0));
-                long retained = allocator.AllocatedBytes;
-                source.Reads.Clear();
-                await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(reader, 0, decoder, format,
-                    new MediaDuration(1, new(1, 1)), allocator, preparation: new VideoPreparationOptions { MaximumWidth = 32 });
-                using MemoryStream initialization = new();
-                await session.WriteInitializationAsync(initialization);
-                for (long unit = 0; unit < reader.GetPresentationUnitCount(0); unit++)
-                {
-                    ContainerVideoPresentationUnit presentation = reader.GetPresentationUnit(0, unit);
-                    Assert.Equal(presentation.Duration, reader.GetPresentationDuration(0, presentation.PacketIndex));
-                }
-                Assert.Empty(source.Reads);
-                Assert.Equal(retained, allocator.AllocatedBytes);
-                Dictionary<int, byte[]> fragments = [];
-                long observed = 0;
-                foreach (int number in Enumerable.Range(0, session.Windows.Count).Reverse().Append(session.Windows.Count - 1))
-                {
-                    using MemoryStream output = new();
-                    await session.WriteSegmentAsync(number, output);
-                    byte[] fragment = output.ToArray();
-                    Assert.Equal(retained, allocator.AllocatedBytes);
-                    if (fragments.TryGetValue(number, out byte[]? previous)) { Assert.Equal(previous, fragment); continue; }
-                    fragments.Add(number, fragment);
-                    ReadOnlyMemory<byte> track = Mp4TestBoxes.Get(Mp4TestBoxes.Get(fragment, "moof"), "traf");
-                    ReadOnlyMemory<byte> run = Mp4TestBoxes.Get(track, "trun");
-                    uint count = Mp4TestBoxes.UInt32(run, 4);
-                    long ticks = checked((long)Mp4TestBoxes.UInt64(Mp4TestBoxes.Get(track, "tfdt"), 4));
-                    HlsVideoWindow window = session.Windows[number];
-                    Assert.Equal(window.Start, new MediaTimestamp(ticks, session.Stream.TimeBase));
-                    for (int packet = 0; packet < count; packet++) { ticks += Mp4TestBoxes.UInt32(run, 12 + 16 * packet); }
-                    Assert.Equal(window.End, new MediaTimestamp(ticks, session.Stream.TimeBase));
-                    observed += count;
-                }
-                Assert.Equal(pictures, observed);
-            }
-            Assert.Equal(0, allocator.AllocatedBytes);
-        }
-
-        private static async Task<VideoFormat> ReadFormatAsync(byte[] data, IVideoDecoderFactory decoder, MediaBufferAllocator allocator)
-        {
-            MediaEngine engine = new MediaEngineBuilder().AddContainer(new MatroskaReaderFactory()).AddVideoDecoder(decoder).Build();
-            await using TrackingRandomAccessSource source = new(data);
-            await using VideoSession session = await engine.OpenVideoAsync(source, allocator, new(), null);
-            using VideoFrame first = (await session.ReadFrameAsync())!;
-            return first.Format;
-        }
+        [Fact]
+        public Task NativeCompatibleColdTailSmokeUsesTheSameVisiblePictureContracts() =>
+            VpxHlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
 
         private static async Task<byte[][]> Vp8PayloadsAsync()
         {
