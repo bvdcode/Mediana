@@ -11,3 +11,7 @@ Both files decompress to `VORSPEC1`, a 32-bit stream count, then length-prefixed
 SHA-256 `spectrum.bin.gz`: `710cd089da9e4f6c047c6f6d844dc3d804e81262997c26946ed024854a9ec2c2`.
 
 SHA-256 `synthetic-spectrum.bin.gz`: `3c6940857aaa0b1ce7ff4fff4ae1fb272d773acc8b86c032c5a43afc0c2a4686`.
+
+`inverse-mdct.bin.gz` contains 128 independent Xiph inverse transforms: all block sizes 64–8192, impulses, tones, noise, cancellation patterns and amplitude scales. Decompressed `VORMDCT1` is followed by a 32-bit case count; each case stores a 32-bit block size, its half-size float spectrum and full-size float output. All fields use little endian.
+
+SHA-256: `3bab0493ed8151d13c3298d62ae5819006d2b64145651d14503bd1720e3bd2eb`.
