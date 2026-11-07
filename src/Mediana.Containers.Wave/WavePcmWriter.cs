@@ -12,7 +12,7 @@ namespace Mediana.Containers.Wave
 {
     /// <summary>Streams PCM frames into RIFF/WAVE, borrowing frames, allocator and an empty seekable destination.
     /// CompleteAsync finalizes sizes; unfinished or failed output must be discarded. RF64 is not supported.</summary>
-    public class WavePcmWriter : IAsyncDisposable
+    public class WavePcmWriter : IAudioFrameWriter
     {
         private readonly Stream destination;
         private readonly AudioFormat format;
