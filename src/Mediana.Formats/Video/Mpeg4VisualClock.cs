@@ -17,6 +17,8 @@ namespace Mediana.Formats.Video
             timeBase = seconds + 60 * (minutes + 60L * hours);
         }
         public long Read(Mpeg4VopHeader header, Mpeg4VisualConfiguration configuration)
+            => Read(new Mpeg4VopTiming(header.Type, header.ModuloTimeBase, header.TimeIncrement, header.IsCoded), configuration);
+        public long Read(Mpeg4VopTiming header, Mpeg4VisualConfiguration configuration)
         {
             if (header.Type == Mpeg4VopType.Bidirectional)
             { return checked((previousTimeBase + header.ModuloTimeBase) * configuration.TimeIncrementResolution + header.TimeIncrement); }

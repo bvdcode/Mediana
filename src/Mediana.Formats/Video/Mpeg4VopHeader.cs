@@ -10,11 +10,8 @@ namespace Mediana.Formats.Video
     {
         public static Mpeg4VopHeader Read(ref Mpeg4VisualBitReader bits, Mpeg4VisualConfiguration configuration)
         {
-            Mpeg4VopType type = (Mpeg4VopType)bits.Read(2); int modulo = 0;
-            while (bits.Flag()) { modulo = checked(modulo + 1); }
-            bits.Marker(); int increment = bits.Read(configuration.TimeIncrementBits); bits.Marker();
-            if (increment >= configuration.TimeIncrementResolution) { throw new InvalidDataException("The MPEG-4 Visual picture clock increment exceeds its resolution."); }
-            bool coded = bits.Flag();
+            Mpeg4VopTiming time = Mpeg4VopTiming.Read(ref bits, configuration);
+            Mpeg4VopType type = time.Type; int modulo = time.ModuloTimeBase, increment = time.TimeIncrement; bool coded = time.IsCoded;
             if (!coded) { return new(type, modulo, increment, false, false, 0, 0, 0, 0, false, false); }
             if (configuration.NewPrediction)
             {
