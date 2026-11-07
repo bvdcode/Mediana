@@ -10,6 +10,7 @@ from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
 from docx import Document
+from docx.oxml.ns import qn
 from docx.shared import Inches, Pt
 from pptx import Presentation
 from pptx.enum.dml import MSO_THEME_COLOR
@@ -89,6 +90,9 @@ def prepare_word(output: Path, photo: Path) -> None:
         style = document.styles[name]
         style.font.name = "DejaVu Sans"
         style.font.size = Pt(11)
+        fonts = style.element.get_or_add_rPr().get_or_add_rFonts()
+        for attribute in ("asciiTheme", "hAnsiTheme", "eastAsiaTheme", "cstheme"):
+            fonts.attrib.pop(qn(f"w:{attribute}"), None)
     document.add_heading("Multimedia processing report", 0)
     for index in range(6):
         document.add_paragraph(
