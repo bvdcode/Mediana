@@ -546,3 +546,14 @@ attenuated LTP/LPC coefficients. Samples and filter coefficients are signed
 16-bit values; remaining scalar and excitation/history fields are 32-bit.
 
 SHA-256: `5bfab1b30ef849d5ed9b7326c591254dae8eb05d393edf0ee5f81530132f3f5b`.
+
+`silk-noise.bin` records 192 sequential comfort-noise frames from libopus
+1.6.1, preceded by eight inactive parameter updates per stream. All internal
+rates, both frame sizes and eight gain ranges cover both noise-energy scaling
+branches. Saturated input PCM, noise synthesis histories and random state match
+exactly. The file starts with `OPUSCNG1` and a 32-bit case count. Cases contain
+32-bit rate/subframes/level, then eight sets of signed 16-bit LSFs and 32-bit
+gains/excitation. Four lost frames contain 32-bit random scale and previous gain,
+signed 16-bit input/output PCM, 16 signed 32-bit synthesis words and a 32-bit seed.
+
+SHA-256: `cbb60c4d3f7ff7c22458e9a061629276b7d4f00dc86e075af8e9fa68b6d8a739`.
