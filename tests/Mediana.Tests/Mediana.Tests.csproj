@@ -5,6 +5,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="Data/Mjpeg/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageExifOrientationTestInput.cs" Link="ImageExifOrientationTestInput.cs" />
     <Compile Include="../Shared/MediaExportTestInput.cs" Link="MediaExportTestInput.cs" />
     <Compile Include="../Shared/YuvFramePreparationTestInput.cs" Link="YuvFramePreparationTestInput.cs" />

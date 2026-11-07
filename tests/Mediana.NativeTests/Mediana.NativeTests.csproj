@@ -9,6 +9,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../Mediana.Tests/Data/Mjpeg/*" Link="Data/Mjpeg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageExifOrientationTestInput.cs" Link="ImageExifOrientationTestInput.cs" />
     <Compile Include="../Shared/MediaExportTestInput.cs" Link="MediaExportTestInput.cs" />
     <Compile Include="../Shared/YuvFramePreparationTestInput.cs" Link="YuvFramePreparationTestInput.cs" />

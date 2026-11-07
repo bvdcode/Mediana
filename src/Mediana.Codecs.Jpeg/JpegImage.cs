@@ -33,6 +33,17 @@ namespace Mediana.Codecs.Jpeg
         /// <summary>Original APP14 transform code: 0 (none), 1 (YCbCr), 2 (YCCK), or null when absent.</summary>
         public int? AdobeColorTransform { get; }
 
+        internal JpegColorSpace GetComponentColorSpace() => AdobeColorTransform switch
+        {
+            0 => JpegColorSpace.Rgb,
+            1 => JpegColorSpace.YCbCr,
+            null when samples.Components.Count == 3 && samples.Components[0].Id == (byte)'R' &&
+                samples.Components[1].Id == (byte)'G' && samples.Components[2].Id == (byte)'B' => JpegColorSpace.Rgb,
+            null => JpegColorSpace.YCbCr,
+            2 => throw new NotSupportedException("JPEG YCCK components cannot be decoded as RGB or YCbCr."),
+            _ => throw new InvalidDataException("The JPEG Adobe component transform is invalid.")
+        };
+
         /// <summary>Writes straight RGBA8 into caller-owned storage using the explicit component interpretation.
         /// Grayscale ignores the three-component interpretation. Writes exactly Width*Height*4 bytes and
         /// preserves any destination tail. No output allocation or metadata-derived color conversion occurs.

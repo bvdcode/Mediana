@@ -31,7 +31,8 @@ namespace Mediana.Cli
                     StreamIndex = streamIndex,
                     MaximumWidth = maximumWidth,
                     MaximumHeight = maximumHeight,
-                    OmitAudio = videoOnly
+                    OmitAudio = videoOnly,
+                    RgbConversion = new()
                 }, progress.Report, cancellationToken);
             }, cancellationToken);
             if (allocator.AllocatedBytes != 0) { throw new InvalidOperationException("Video encoding buffers were not released."); }

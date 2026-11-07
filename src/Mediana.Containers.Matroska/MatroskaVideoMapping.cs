@@ -7,7 +7,8 @@ namespace Mediana.Containers.Matroska
 {
     internal static class MatroskaVideoMapping
     {
-        public static bool TryGetAspectRatio(MatroskaVideoSettings video, out VideoAspectRatioDescription? aspectRatio)
+        public static bool TryGetAspectRatio(MatroskaVideoSettings video, out VideoAspectRatioDescription? aspectRatio,
+            bool requireYuv420 = true)
         {
             aspectRatio = null;
             if (video.PixelWidth == 0 || video.PixelHeight == 0 || video.CropLeft != 0 || video.CropRight != 0 ||
@@ -18,7 +19,7 @@ namespace Mediana.Containers.Matroska
             }
             if (video.Colour is MatroskaColourSettings colour &&
                 ((colour.BitsPerChannel is not (0 or 8)) ||
-                (colour.ChromaSubsamplingHorz is not (null or 1)) || (colour.ChromaSubsamplingVert is not (null or 1)) ||
+                (requireYuv420 && ((colour.ChromaSubsamplingHorz is not (null or 1)) || (colour.ChromaSubsamplingVert is not (null or 1)))) ||
                 (colour.CbSubsamplingHorz is not (null or 0)) || (colour.CbSubsamplingVert is not (null or 0))))
             {
                 return false;
