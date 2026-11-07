@@ -6,10 +6,8 @@ using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
-using Mediana.Core.Video;
 using Mediana.Execution;
 using Mediana.IO;
-using Mediana.Processing;
 using Mediana.Processing.Audio;
 
 namespace Mediana
@@ -18,7 +16,8 @@ namespace Mediana
     {
         /// <summary>Decodes, optionally resizes and encodes one video stream using registered codec and muxer factories.
         /// Borrows source, destination and allocator. Input allocations share its budget and retain their configured local limit.
-        /// Applies declared display orientation and configured planar preparation without discarding audio implicitly.
+        /// Requires an indexed container; derives an exact presentation clock and prepares changing decoded formats
+        /// for one fixed encoder format. Applies declared display orientation without discarding audio implicitly.
         /// Failed output must be discarded.</summary>
         public async Task<MediaOperationProgress> TranscodeVideoAsync(IByteSource source, Stream destination,
             string codecId, string containerFormatId, MediaBufferAllocator allocator, VideoTranscodeOptions? options = null,
@@ -31,26 +30,24 @@ namespace Mediana
             await using ContainerSession container = await OpenContainerAsync(source, allocator, options.Input, cancellationToken).ConfigureAwait(false);
             if (!options.OmitAudio && container.Streams.Any(stream => stream.Kind == MediaKind.Audio))
             { throw new NotSupportedException("The input contains audio. Video-only encoding requires explicitly omitting audio tracks."); }
-            await using VideoSession session = OpenVideo(container, options.StreamIndex, cancellationToken);
-            VideoDisplayMatrix matrix = session.Stream.DisplayMatrix
-                ?? throw new NotSupportedException("Video encoding requires a known source display transform.");
-            using VideoFrame first = await session.ReadFrameAsync(cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidDataException("The input contains no decoded video frames.");
-            using VideoPreparation preparation = new(first.Format, matrix, allocator, options);
-            using IMediaEncoder<VideoFrame> encoder = CreateVideoEncoder(codecId, preparation.OutputFormat, session.Stream.TimeBase, allocator);
+            if (container.Reader is not IIndexedContainerReader indexed)
+            { throw new NotSupportedException("Video encoding requires an indexed container reader."); }
+            if (options.StreamIndex is < 0) { throw new ArgumentOutOfRangeException(nameof(options)); }
+            int streamIndex = options.StreamIndex ?? container.Streams.FirstOrDefault(stream => stream.Kind == MediaKind.Video)?.StreamIndex
+                ?? throw new NotSupportedException("The input contains no stream of the requested media kind.");
+            VideoEncodingRequest request = new(streamIndex, 0, FindOutput(videoEncoders, codecId), options);
+            await using MediaProcessingSession session = await OpenProcessingCoreAsync(indexed, [request], allocator, container.Allocator,
+                new() { Input = options.Input }, cancellationToken).ConfigureAwait(false);
+            EncodedStreamInfo stream = container.Streams.Single(stream => stream.StreamIndex == streamIndex);
             using CountingWriteStream output = new(destination);
-            await using IContainerWriter writer = CreateContainerWriter(containerFormatId, output, [encoder.Stream], allocator);
-            bool opening = true;
-            return await MediaOperations.EncodeVideoAsync(ReadAsync, encoder, writer,
-                update => progress?.Invoke(new(update.ProcessedDuration, output.BytesWritten, update.IsComplete, session.Stream.CodedDuration)),
-                cancellationToken).ConfigureAwait(false);
+            await using IContainerWriter writer = CreateContainerWriter(containerFormatId, output, session.Streams, allocator);
+            await session.WriteAsync(writer, progress is null ? null : Observe, cancellationToken).ConfigureAwait(false);
+            MediaOperationProgress result = session.GetSingleTrackProgress(true);
+            progress?.Invoke(new(result.ProcessedDuration, output.BytesWritten, true, stream.CodedDuration));
+            return result;
 
-            async ValueTask<VideoFrame?> ReadAsync(CancellationToken token)
-            {
-                using VideoFrame? frame = opening ? first.Retain() : await session.ReadFrameAsync(token).ConfigureAwait(false);
-                if (opening) { opening = false; first.Dispose(); }
-                return frame is null ? null : preparation.Apply(frame, token);
-            }
+            void Observe(MediaPacket _) => progress?.Invoke(new(session.GetSingleTrackProgress(false).ProcessedDuration,
+                output.BytesWritten, false, stream.CodedDuration));
         }
 
         /// <summary>Decodes and prepares mono/stereo Float32 PCM for a registered encoder and muxer.
