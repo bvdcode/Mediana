@@ -40,23 +40,7 @@ namespace Mediana.Codecs.Vp8
         {
             if (coefficients[1..16].IndexOfAnyExcept(0) < 0)
             {
-                int dc = (coefficients[0] + 4) >> 3;
-                for (int row = 0; row < 4; row++)
-                {
-                    Span<byte> target = destination.Slice(offset + row * stride, 4);
-                    ReadOnlySpan<byte> source = prediction.Slice(row * 4, 4);
-                    if (dc == 0)
-                    {
-                        source.CopyTo(target);
-                    }
-                    else
-                    {
-                        for (int column = 0; column < 4; column++)
-                        {
-                            target[column] = (byte)Math.Clamp(source[column] + dc, 0, 255);
-                        }
-                    }
-                }
+                ReconstructDc(coefficients[0], prediction, destination, offset, stride);
                 return;
             }
             Span<int> vertical = stackalloc int[16];
@@ -73,6 +57,27 @@ namespace Mediana.Codecs.Vp8
                 {
                     int index = start + column;
                     destination[offset + row * stride + column] = (byte)Math.Clamp(prediction[index] + ((residual[index] + 4) >> 3), 0, 255);
+                }
+            }
+        }
+
+        internal static void ReconstructDc(int coefficient, ReadOnlySpan<byte> prediction, Span<byte> destination, int offset, int stride)
+        {
+            int dc = (coefficient + 4) >> 3;
+            for (int row = 0; row < 4; row++)
+            {
+                Span<byte> target = destination.Slice(offset + row * stride, 4);
+                ReadOnlySpan<byte> source = prediction.Slice(row * 4, 4);
+                if (dc == 0)
+                {
+                    source.CopyTo(target);
+                }
+                else
+                {
+                    for (int column = 0; column < 4; column++)
+                    {
+                        target[column] = (byte)Math.Clamp(source[column] + dc, 0, 255);
+                    }
                 }
             }
         }

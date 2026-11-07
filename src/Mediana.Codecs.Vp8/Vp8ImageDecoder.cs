@@ -125,10 +125,10 @@ namespace Mediana.Codecs.Vp8
                             {
                                 coefficients.Clear();
                                 int type = plane == 0 ? secondOrder ? 0 : 3 : 2;
-                                bool nonzero = !skip && Vp8CoefficientReader.Read(tokens, header.Probabilities, coefficients, type,
+                                int nonzeroEnd = skip ? 0 : Vp8CoefficientReader.ReadNonzeroEnd(tokens, header.Probabilities, coefficients, type,
                                     above[contextStart + bx] + leftContexts[contextStart + by], dc, ac);
-                                above[contextStart + bx] = leftContexts[contextStart + by] = nonzero ? (byte)1 : (byte)0;
-                                any |= nonzero;
+                                above[contextStart + bx] = leftContexts[contextStart + by] = nonzeroEnd != 0 ? (byte)1 : (byte)0;
+                                any |= nonzeroEnd != 0;
                                 if (type == 0) { coefficients[0] = dcValues[by * 4 + bx]; }
                                 int px = column * size + bx * 4, py = row * size + by * 4;
                                 if (inter)
@@ -157,7 +157,8 @@ namespace Mediana.Codecs.Vp8
                                 }
                                 else
                                 { for (int line = 0; line < 4; line++) { pixels.Slice((py + line) * planeStride + px, 4).CopyTo(prediction.Slice(line * 4, 4)); } }
-                                Vp8Transform.Reconstruct(coefficients, prediction, pixels, py * planeStride + px, planeStride);
+                                if (nonzeroEnd <= 1) { Vp8Transform.ReconstructDc(coefficients[0], prediction, pixels, py * planeStride + px, planeStride); }
+                                else { Vp8Transform.Reconstruct(coefficients, prediction, pixels, py * planeStride + px, planeStride); }
                             }
                         }
                     }
