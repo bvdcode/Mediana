@@ -29,7 +29,7 @@ namespace Mediana.NativeTests
             if (result.Tracks.Count != 1 || result.Tracks[0].Frames != 12 || allocator.AllocatedBytes != 0 ||
                 !input.CanRead || output.Length == 0 || output.Length % 188 != 0)
             { throw new InvalidDataException("The MJPEG video operation changed picture counts, output transport or borrowed ownership."); }
-            await using VideoSession video = await engine.OpenVideoAsync(source);
+            await using VideoSession video = await engine.OpenVideoAsync(source, allocator, new(), null);
             int count = 0;
             while (await video.ReadFrameAsync() is VideoFrame frame)
             {

@@ -15,7 +15,7 @@ namespace Mediana
     {
         /// <summary>Streams decoded audio into a supplied PCM container writer, converting the sample representation once.
         /// Preserves sample rate and channels. Borrows source, destination, writer factory and output allocator.
-        /// Decoding uses the input options' budget. Failed output must be discarded.</summary>
+        /// Input storage shares the allocator and retains its configured local limit. Failed output must be discarded.</summary>
         public async Task<PcmExportResult> ExportPcmAsync(IByteSource source, Stream destination,
             IAudioFrameWriterFactory factory, MediaBufferAllocator allocator, PcmExportOptions? options = null,
             Action<MediaOutputProgress>? progress = null, CancellationToken cancellationToken = default)
@@ -24,9 +24,7 @@ namespace Mediana
             ArgumentNullException.ThrowIfNull(factory);
             ArgumentNullException.ThrowIfNull(allocator);
             options ??= new();
-            await using AudioSession session = options.StreamIndex is int index
-                ? await OpenAudioAsync(source, index, options.Input, cancellationToken).ConfigureAwait(false)
-                : await OpenAudioAsync(source, options.Input, cancellationToken).ConfigureAwait(false);
+            await using AudioSession session = await OpenAudioAsync(source, allocator, options.Input, options.StreamIndex, cancellationToken).ConfigureAwait(false);
             using AudioFrame first = await session.ReadFrameAsync(cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidDataException("The input contains no decoded audio samples.");
             AudioFormat format = new(first.Format.SampleRate, options.SampleFormat, AudioStorageLayout.Interleaved, first.Format.Channels.ToArray());

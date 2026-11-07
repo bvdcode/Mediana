@@ -17,7 +17,7 @@ namespace Mediana
     public partial class MediaEngine
     {
         /// <summary>Decodes, optionally resizes and encodes one video stream using registered codec and muxer factories.
-        /// Borrows source, destination and output allocator. Decoding uses the input options' budget.
+        /// Borrows source, destination and allocator. Input allocations share its budget and retain their configured local limit.
         /// Applies declared display orientation and configured planar preparation without discarding audio implicitly.
         /// Failed output must be discarded.</summary>
         public async Task<MediaOperationProgress> TranscodeVideoAsync(IByteSource source, Stream destination,
@@ -28,7 +28,7 @@ namespace Mediana
             ArgumentNullException.ThrowIfNull(allocator);
             options ??= new();
             if (options.MaximumWidth is < 2 || options.MaximumHeight is < 2) { throw new ArgumentOutOfRangeException(nameof(options)); }
-            await using ContainerSession container = await OpenContainerAsync(source, options.Input, cancellationToken).ConfigureAwait(false);
+            await using ContainerSession container = await OpenContainerAsync(source, allocator, options.Input, cancellationToken).ConfigureAwait(false);
             if (!options.OmitAudio && container.Streams.Any(stream => stream.Kind == MediaKind.Audio))
             { throw new NotSupportedException("The input contains audio. Video-only encoding requires explicitly omitting audio tracks."); }
             await using VideoSession session = OpenVideo(container, options.StreamIndex, cancellationToken);
@@ -62,9 +62,7 @@ namespace Mediana
             ValidateDestination(destination);
             ArgumentNullException.ThrowIfNull(allocator);
             options ??= new();
-            await using AudioSession session = options.StreamIndex is int index
-                ? await OpenAudioAsync(source, index, options.Input, cancellationToken).ConfigureAwait(false)
-                : await OpenAudioAsync(source, options.Input, cancellationToken).ConfigureAwait(false);
+            await using AudioSession session = await OpenAudioAsync(source, allocator, options.Input, options.StreamIndex, cancellationToken).ConfigureAwait(false);
             using AudioFrame first = await session.ReadFrameAsync(cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidDataException("The input contains no decoded audio samples.");
             AudioEncodingPcm converter = new(first.Format, options.Channels);
@@ -105,7 +103,7 @@ namespace Mediana
         {
             ValidateDestination(destination);
             ArgumentNullException.ThrowIfNull(allocator);
-            await using ContainerSession reader = await OpenContainerAsync(source, options, cancellationToken).ConfigureAwait(false);
+            await using ContainerSession reader = await OpenContainerAsync(source, allocator, options ?? new(), cancellationToken).ConfigureAwait(false);
             if (streamIndices is not null && (streamIndices.Count == 0 || streamIndices.Distinct().Count() != streamIndices.Count))
             { throw new ArgumentException("Select unique existing streams.", nameof(streamIndices)); }
             EncodedStreamInfo[] selected = streamIndices is null

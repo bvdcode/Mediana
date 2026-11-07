@@ -65,3 +65,11 @@ transcoding speed. Allocation totals use the default unpooled decoder storage;
 callers can provide a shared pool through the public decode-session overload.
 The reproducible command is the comparison tool's `video input.avi output.sha256`;
 `video-pooled` runs the same operation with caller-owned pooled storage.
+
+Three additional process pairs compared the optimized decoder with direct versus
+pooled caller storage. Median total allocations fell from 588.69 to 13.02 MiB,
+and median peak RSS from 75.64 to 58.04 MiB. CPU medians were 3234.429 and
+3188.060 ms; the main benefit of pooling here is allocation pressure. Every frame
+hash remained identical. Both session counters and the shared allocator returned
+to zero after disposal. The pool remains caller-owned, and retained frames keep
+only their own leases after a session closes.
