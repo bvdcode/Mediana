@@ -63,7 +63,7 @@ namespace Mediana.Codecs.Theora.Tests
         {
             List<byte[]> packets = await TheoraTestInput.ReadPacketsAsync("main420");
             MediaBufferAllocator allocator = new(4 * 1024 * 1024, MemoryPool<byte>.Shared);
-            EncodedStreamInfo stream = new(0, MediaKind.Video, "theora", StreamFormats.Theora, new(1,12), TheoraTestInput.Configuration(packets));
+            EncodedStreamInfo stream = new(0, MediaKind.Video, "theora", StreamFormats.Theora, new(1, 12), TheoraTestInput.Configuration(packets));
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new TheoraDecoderFactory().Create(stream, allocator);
             using (MediaPacket packet = Packet(allocator, [], stream, 0))
             { Assert.Throws<InvalidDataException>(() => decoder.TrySend(packet)); }
@@ -97,7 +97,7 @@ namespace Mediana.Codecs.Theora.Tests
         {
             List<byte[]> packets = await TheoraTestInput.ReadPacketsAsync("main420");
             MediaBufferAllocator input = new(1024 * 1024), allocator = new(budget);
-            EncodedStreamInfo stream = new(0, MediaKind.Video, "theora", StreamFormats.Theora, new(1,12), TheoraTestInput.Configuration(packets));
+            EncodedStreamInfo stream = new(0, MediaKind.Video, "theora", StreamFormats.Theora, new(1, 12), TheoraTestInput.Configuration(packets));
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new TheoraDecoderFactory().Create(stream, allocator);
             using MediaPacket packet = Packet(input, packets[3], stream, 0);
             Assert.Throws<MediaMemoryLimitException>(() => decoder.TrySend(packet)); Assert.Equal(0, allocator.AllocatedBytes);

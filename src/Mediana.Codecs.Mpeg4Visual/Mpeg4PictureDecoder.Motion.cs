@@ -19,7 +19,8 @@ namespace Mediana.Codecs.Mpeg4Visual
         {
             int limit = 32 << (code - 1);
             if (value < -limit) { return value + limit * 2; }
-            if (value >= limit) { return value - limit * 2; } return value;
+            if (value >= limit) { return value - limit * 2; }
+            return value;
         }
         private void ReadMotion(ref Mpeg4VisualBitReader bits, int mb, bool four, int code, int bound)
         {
@@ -37,7 +38,9 @@ namespace Mediana.Codecs.Mpeg4Visual
                     case 3: leftMb = topMb = rightMb = mb; leftBlock = 2; topBlock = 0; rightBlock = 1; break;
                     default: throw new InvalidOperationException("Invalid MPEG-4 Visual motion block.");
                 }
-                if (leftMb < bound) { leftMb = -1; } if (topMb < bound) { topMb = -1; } if (rightMb < bound) { rightMb = -1; }
+                if (leftMb < bound) { leftMb = -1; }
+                if (topMb < bound) { topMb = -1; }
+                if (rightMb < bound) { rightMb = -1; }
                 for (int axis = 0; axis < 2; axis++)
                 {
                     int a = leftMb < 0 ? 0 : state[leftMb * 10 + leftBlock * 2 + axis];
@@ -64,7 +67,7 @@ namespace Mediana.Codecs.Mpeg4Visual
                 int mx, my;
                 if (four)
                 {
-                    ReadOnlySpan<byte> round = [0,0,0,1,1,1,1,1,0,0,0,0,0,0,1,1];
+                    ReadOnlySpan<byte> round = [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1];
                     int sx = 0, sy = 0;
                     for (int i = 0; i < 4; i++) { sx += config.QuarterPel ? motion[i * 2] / 2 : motion[i * 2]; sy += config.QuarterPel ? motion[i * 2 + 1] / 2 : motion[i * 2 + 1]; }
                     mx = (sx >> 3) + round[sx & 15]; my = (sy >> 3) + round[sy & 15];

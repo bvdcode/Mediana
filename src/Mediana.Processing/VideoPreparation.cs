@@ -50,7 +50,9 @@ namespace Mediana.Processing
                 planar.HorizontalSubsampling == 2 && planar.VerticalSubsampling == 2) { return input; }
             return planar.BitDepth switch
             {
-                8 => VideoPixelFormat.Yuv420P8, 10 => VideoPixelFormat.Yuv420P10, 12 => VideoPixelFormat.Yuv420P12,
+                8 => VideoPixelFormat.Yuv420P8,
+                10 => VideoPixelFormat.Yuv420P10,
+                12 => VideoPixelFormat.Yuv420P12,
                 _ => new PlanarVideoPixelFormat($"yuv420p{planar.BitDepth}", PlanarColorModel.Yuv, planar.BitDepth, 2, 2)
             };
         }

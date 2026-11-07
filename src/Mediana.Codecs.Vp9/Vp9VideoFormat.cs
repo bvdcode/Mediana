@@ -34,8 +34,11 @@ namespace Mediana.Codecs.Vp9
                 7 => VideoColorInfo.Srgb,
                 _ => throw new InvalidDataException("Invalid VP9 color space.")
             };
-            color = color with { Range = geometry.FullRange ? ColorRange.Full : ColorRange.Limited,
-                ChromaLocation = geometry.ColorSpace == 7 ? ChromaLocation.Unspecified : ChromaLocation.Center };
+            color = color with
+            {
+                Range = geometry.FullRange ? ColorRange.Full : ColorRange.Limited,
+                ChromaLocation = geometry.ColorSpace == 7 ? ChromaLocation.Unspecified : ChromaLocation.Center
+            };
             long numerator = (long)geometry.RenderWidth * geometry.Height, denominator = (long)geometry.RenderHeight * geometry.Width;
             long divisor = (long)BigInteger.GreatestCommonDivisor(numerator, denominator);
             SampleAspectRatio aspect = new(checked((int)(numerator / divisor)), checked((int)(denominator / divisor)));

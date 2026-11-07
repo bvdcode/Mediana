@@ -35,8 +35,8 @@ namespace Mediana.Formats.Video
         public int QuantizerBits { get; private set; } = 5;
         public ReadOnlyMemory<byte> IntraMatrix => intra;
         public ReadOnlyMemory<byte> InterMatrix => inter;
-        private readonly byte[] intra = [8,17,18,19,21,23,25,27,17,18,19,21,23,25,27,28,20,21,22,23,24,26,28,30,21,22,23,24,26,28,30,32,22,23,24,26,28,30,32,35,23,24,26,28,30,32,35,38,25,26,28,30,32,35,38,41,27,28,30,32,35,38,41,45];
-        private readonly byte[] inter = [16,17,18,19,20,21,22,23,17,18,19,20,21,22,23,24,18,19,20,21,22,23,24,25,19,20,21,22,23,24,26,27,20,21,22,23,25,26,27,28,21,22,23,24,26,27,28,30,22,23,24,26,27,28,30,31,23,24,25,27,28,30,31,33];
+        private readonly byte[] intra = [8, 17, 18, 19, 21, 23, 25, 27, 17, 18, 19, 21, 23, 25, 27, 28, 20, 21, 22, 23, 24, 26, 28, 30, 21, 22, 23, 24, 26, 28, 30, 32, 22, 23, 24, 26, 28, 30, 32, 35, 23, 24, 26, 28, 30, 32, 35, 38, 25, 26, 28, 30, 32, 35, 38, 41, 27, 28, 30, 32, 35, 38, 41, 45];
+        private readonly byte[] inter = [16, 17, 18, 19, 20, 21, 22, 23, 17, 18, 19, 20, 21, 22, 23, 24, 18, 19, 20, 21, 22, 23, 24, 25, 19, 20, 21, 22, 23, 24, 26, 27, 20, 21, 22, 23, 25, 26, 27, 28, 21, 22, 23, 24, 26, 27, 28, 30, 22, 23, 24, 26, 27, 28, 30, 31, 23, 24, 25, 27, 28, 30, 31, 33];
         public static Mpeg4VisualConfiguration Read(ReadOnlySpan<byte> configuration)
         {
             int position = Mpeg4VisualStartCodes.Find(configuration);
@@ -58,7 +58,11 @@ namespace Mediana.Formats.Video
             int aspect = bits.Read(4);
             (result.AspectNumerator, result.AspectDenominator) = aspect switch
             {
-                1 => (1,1), 2 => (12,11), 3 => (10,11), 4 => (16,11), 5 => (40,33),
+                1 => (1, 1),
+                2 => (12, 11),
+                3 => (10, 11),
+                4 => (16, 11),
+                5 => (40, 33),
                 15 => (bits.Read(8), bits.Read(8)),
                 _ => throw new InvalidDataException("The MPEG-4 Visual aspect ratio identifier is reserved.")
             };
@@ -120,7 +124,7 @@ namespace Mediana.Formats.Video
         }
         private static void ReadMatrix(ref Mpeg4VisualBitReader bits, Span<byte> matrix)
         {
-            ReadOnlySpan<byte> scan = [0,1,8,16,9,2,3,10,17,24,32,25,18,11,4,5,12,19,26,33,40,48,41,34,27,20,13,6,7,14,21,28,35,42,49,56,57,50,43,36,29,22,15,23,30,37,44,51,58,59,52,45,38,31,39,46,53,60,61,54,47,55,62,63];
+            ReadOnlySpan<byte> scan = [0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63];
             byte last = 0;
             for (int i = 0; i < 64; i++)
             {

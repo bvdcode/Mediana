@@ -23,7 +23,8 @@ namespace Mediana.Codecs.Vp9
             if ((!skip || !inter) && compressed.TransformMode == 4 && size >= 3)
             {
                 int upper = hasAbove && !above.Skip ? above.Transform : maxTransform, lower = hasLeft && !left.Skip ? left.Transform : maxTransform;
-                if (!hasLeft) { lower = upper; } if (!hasAbove) { upper = lower; }
+                if (!hasLeft) { lower = upper; }
+                if (!hasAbove) { upper = lower; }
                 int context = upper + lower > maxTransform ? 1 : 0; transform = 0;
                 while (transform < maxTransform && symbols.Read(ref bits, probabilities, Vp9ProbabilityOffset.Transform + maxTransform * 6 + context * 3 + transform)) { transform++; }
             }
@@ -56,8 +57,15 @@ namespace Mediana.Codecs.Vp9
             }
             int lumaMode = (int)(modes >> 24), chromaMode = header.IsIntra ? bits.Tree(IntraTree, Vp9Tables.KeyChroma.Slice(lumaMode * 9, 9)) :
                 symbols.Tree(ref bits, IntraTree, probabilities, Vp9ProbabilityOffset.Chroma + lumaMode * 9);
-            Vp9BlockInfo block = new() { Size = (byte)size, Transform = (byte)transform, Segment = (byte)segment,
-                Mode = (byte)lumaMode, SubModes = modes, Skip = skip };
+            Vp9BlockInfo block = new()
+            {
+                Size = (byte)size,
+                Transform = (byte)transform,
+                Segment = (byte)segment,
+                Mode = (byte)lumaMode,
+                SubModes = modes,
+                Skip = skip
+            };
             StoreBlock(ref bits, row, column, block, chromaMode);
         }
 
@@ -97,8 +105,11 @@ namespace Mediana.Codecs.Vp9
                         if (startX <= maxX && startY <= maxY)
                         {
                             int mode = plane == 0 ? block.Size < 3 ? block.SubMode(blockIndex) : block.Mode : chromaMode;
-                            if (!block.Inter) { Vp9IntraPrediction.Predict(samples, planeStride, maxX, maxY, startX, startY, size, mode,
-                                column > tile.ColumnStart || x > 0, row > 0 || y > 0, x + step < width4, depth); }
+                            if (!block.Inter)
+                            {
+                                Vp9IntraPrediction.Predict(samples, planeStride, maxX, maxY, startX, startY, size, mode,
+                                column > tile.ColumnStart || x > 0, row > 0 || y > 0, x + step < width4, depth);
+                            }
                             if (!block.Skip)
                             {
                                 int upper = 0, lower = 0;

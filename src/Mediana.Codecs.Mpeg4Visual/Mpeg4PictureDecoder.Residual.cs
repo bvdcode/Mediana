@@ -28,13 +28,19 @@ namespace Mediana.Codecs.Mpeg4Visual
                 int size = (block < 4 ? Mpeg4Codebooks.DcLuma : Mpeg4Codebooks.DcChroma).Read(ref bits);
                 int value = bits.Read(size);
                 if (size != 0 && (value & (1 << (size - 1))) == 0) { value -= (1 << size) - 1; }
-                if (size > 8) { bits.Marker(); } coefficients[0] = value; start = 1;
+                if (size > 8) { bits.Marker(); }
+                coefficients[0] = value; start = 1;
             }
             int plane = block < 4 ? 0 : block - 3, width = plane == 0 ? mbWidth * 2 : mbWidth;
             int x = mb % mbWidth, y = mb / mbWidth;
             if (plane == 0) { x = x * 2 + (block & 1); y = y * 2 + (block >> 1); }
-            int baseIndex = plane switch { 0 => 0, 1 => mbWidth * mbHeight * 4, 2 => mbWidth * mbHeight * 5,
-                _ => throw new InvalidOperationException("Invalid MPEG-4 Visual plane.") };
+            int baseIndex = plane switch
+            {
+                0 => 0,
+                1 => mbWidth * mbHeight * 4,
+                2 => mbWidth * mbHeight * 5,
+                _ => throw new InvalidOperationException("Invalid MPEG-4 Visual plane.")
+            };
             int index = baseIndex + y * width + x;
             int left = x != 0 && NeighborAvailable(plane, x - 1, y, bound) ? index - 1 : -1;
             int top = y != 0 && NeighborAvailable(plane, x, y - 1, bound) ? index - width : -1;
@@ -70,8 +76,13 @@ namespace Mediana.Codecs.Mpeg4Visual
         {
             int mb = plane == 0 ? (y / 2) * mbWidth + x / 2 : y * mbWidth + x;
             if (mb < bound) { return false; }
-            int offset = plane switch { 0 => 0, 1 => mbWidth * mbHeight * 4, 2 => mbWidth * mbHeight * 5,
-                _ => throw new InvalidOperationException("Invalid MPEG-4 Visual plane.") };
+            int offset = plane switch
+            {
+                0 => 0,
+                1 => mbWidth * mbHeight * 4,
+                2 => mbWidth * mbHeight * 5,
+                _ => throw new InvalidOperationException("Invalid MPEG-4 Visual plane.")
+            };
             return Predictions[(offset + y * (plane == 0 ? mbWidth * 2 : mbWidth) + x) * 16 + 15] != 0;
         }
         private static int RoundDivide(int value, int divisor) => value >= 0 ? (value + divisor / 2) / divisor : (value - divisor / 2) / divisor;
@@ -109,14 +120,16 @@ namespace Mediana.Codecs.Mpeg4Visual
             int alignment = 8 - (int)(bits.BitPosition & 7);
             int length = 17 + (header.Type switch
             {
-                Mpeg4VopType.Intra => 0, Mpeg4VopType.Predictive => header.ForwardCode - 1,
+                Mpeg4VopType.Intra => 0,
+                Mpeg4VopType.Predictive => header.ForwardCode - 1,
                 Mpeg4VopType.Bidirectional => Math.Max(2, Math.Max(header.ForwardCode, header.BackwardCode)) - 1,
                 Mpeg4VopType.Sprite => throw new NotSupportedException("Sprite resynchronization is not supported."),
                 _ => throw new InvalidDataException("Invalid MPEG-4 Visual picture type.")
             });
             if (bits.RemainingBits < alignment + length || bits.Peek(alignment) != (1 << (alignment - 1)) - 1) { return; }
             Mpeg4VisualBitReader look = bits; look.Skip(alignment);
-            if (look.Read(length) != 1) { return; } bits = look;
+            if (look.Read(length) != 1) { return; }
+            bits = look;
             int numberBits = Math.Max(1, System.Numerics.BitOperations.Log2((uint)(mbWidth * mbHeight - 1)) + 1);
             if (bits.Read(numberBits) != mb) { throw new InvalidDataException("The MPEG-4 Visual video-packet macroblock address is inconsistent."); }
             quantizer = bits.Read(config.QuantizerBits);
@@ -125,7 +138,7 @@ namespace Mediana.Codecs.Mpeg4Visual
             {
                 int modulo = 0; while (bits.Flag()) { modulo = checked(modulo + 1); }
                 bits.Marker(); int increment = bits.Read(config.TimeIncrementBits); bits.Marker();
-                Mpeg4VopType type = (Mpeg4VopType)bits.Read(2); ReadOnlySpan<byte> thresholds = [32,13,15,17,19,21,23,1];
+                Mpeg4VopType type = (Mpeg4VopType)bits.Read(2); ReadOnlySpan<byte> thresholds = [32, 13, 15, 17, 19, 21, 23, 1];
                 int threshold = thresholds[bits.Read(3)], forward = type != Mpeg4VopType.Intra ? bits.Read(3) : 1;
                 int backward = type == Mpeg4VopType.Bidirectional ? bits.Read(3) : 1;
                 if (modulo != header.ModuloTimeBase || increment != header.TimeIncrement || type != header.Type || threshold != header.IntraDcThreshold ||

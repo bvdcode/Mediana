@@ -42,7 +42,8 @@ namespace Mediana.Codecs.Mpeg4Visual
                 for (int y = 0; y < 8; y++)
                 {
                     int at = y * stride + x, value = (int)((column[y] + (1L << 29)) >> 30);
-                    if (!intra) { value += target[at]; } target[at] = (byte)Math.Clamp(value, 0, 255);
+                    if (!intra) { value += target[at]; }
+                    target[at] = (byte)Math.Clamp(value, 0, 255);
                 }
             }
         }

@@ -47,11 +47,22 @@ namespace Mediana.Formats.Video
             { throw new InvalidDataException("The Theora geometry, clock or reserved identification fields are invalid."); }
             return new()
             {
-                Revision = packet[9], CodedWidth = codedWidth, CodedHeight = codedHeight, Width = width, Height = height,
-                PictureX = x, PictureY = y, FrameRateNumerator = numerator, FrameRateDenominator = denominator,
-                AspectRatioNumerator = Read24(packet[30..]), AspectRatioDenominator = Read24(packet[33..]),
-                ColorSpace = packet[36], NominalBitRate = Read24(packet[37..]),
-                Quality = flags >> 10, GranuleShift = (flags >> 5) & 31, PixelFormat = pixelFormat
+                Revision = packet[9],
+                CodedWidth = codedWidth,
+                CodedHeight = codedHeight,
+                Width = width,
+                Height = height,
+                PictureX = x,
+                PictureY = y,
+                FrameRateNumerator = numerator,
+                FrameRateDenominator = denominator,
+                AspectRatioNumerator = Read24(packet[30..]),
+                AspectRatioDenominator = Read24(packet[33..]),
+                ColorSpace = packet[36],
+                NominalBitRate = Read24(packet[37..]),
+                Quality = flags >> 10,
+                GranuleShift = (flags >> 5) & 31,
+                PixelFormat = pixelFormat
             };
         }
 

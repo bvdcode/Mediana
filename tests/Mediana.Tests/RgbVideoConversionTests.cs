@@ -22,54 +22,54 @@ namespace Mediana.Tests
                 (MatrixCoefficients.Fcc, 0.30m, 0.11m), (MatrixCoefficients.Smpte240M, 0.212m, 0.087m),
                 (MatrixCoefficients.Bt2020NonConstant, 0.2627m, 0.0593m)
             })
-            foreach (ColorRange range in new[] { ColorRange.Full, ColorRange.Limited })
-            {
-                MediaBufferAllocator allocator = new(1024 * 1024);
-                using (VideoFrame input = Input(width, height, allocator))
+                foreach (ColorRange range in new[] { ColorRange.Full, ColorRange.Limited })
                 {
-                    byte[] unchanged = input.Data.ToArray();
-                    long baseline = allocator.AllocatedBytes;
-                    RgbaToYuv420 conversion = new(input.Format, new() { Matrix = matrix, Range = range }, allocator);
-                    using (VideoFrame output = conversion.Apply(input))
+                    MediaBufferAllocator allocator = new(1024 * 1024);
+                    using (VideoFrame input = Input(width, height, allocator))
                     {
-                        Assert.Equal(input.Timestamp, output.Timestamp);
-                        Assert.Equal(input.Duration, output.Duration);
-                        Assert.Equal(input.Format.SampleAspectRatio, output.Format.SampleAspectRatio);
-                        Assert.Equal(input.Format.Color.Primaries, output.Format.Color.Primaries);
-                        Assert.Equal(input.Format.Color.Transfer, output.Format.Color.Transfer);
-                        Assert.Equal(ChromaLocation.Center, output.Format.Color.ChromaLocation);
-                        decimal yScale = range == ColorRange.Full ? 255 : 219;
-                        decimal yOffset = range == ColorRange.Full ? 0 : 16;
-                        decimal chromaScale = range == ColorRange.Full ? 255 : 224;
-                        for (int y = 0; y < height; y++)
-                        for (int x = 0; x < width; x++)
+                        byte[] unchanged = input.Data.ToArray();
+                        long baseline = allocator.AllocatedBytes;
+                        RgbaToYuv420 conversion = new(input.Format, new() { Matrix = matrix, Range = range }, allocator);
+                        using (VideoFrame output = conversion.Apply(input))
                         {
-                            ReadOnlySpan<byte> pixel = input.GetRow(0, y).Slice(x * 4, 4);
-                            decimal luma = red * pixel[0] + (1 - red - blue) * pixel[1] + blue * pixel[2];
-                            Assert.InRange(Math.Abs(output.GetRow(0, y)[x] - Round(yOffset + luma * yScale / 255)), 0, 1);
+                            Assert.Equal(input.Timestamp, output.Timestamp);
+                            Assert.Equal(input.Duration, output.Duration);
+                            Assert.Equal(input.Format.SampleAspectRatio, output.Format.SampleAspectRatio);
+                            Assert.Equal(input.Format.Color.Primaries, output.Format.Color.Primaries);
+                            Assert.Equal(input.Format.Color.Transfer, output.Format.Color.Transfer);
+                            Assert.Equal(ChromaLocation.Center, output.Format.Color.ChromaLocation);
+                            decimal yScale = range == ColorRange.Full ? 255 : 219;
+                            decimal yOffset = range == ColorRange.Full ? 0 : 16;
+                            decimal chromaScale = range == ColorRange.Full ? 255 : 224;
+                            for (int y = 0; y < height; y++)
+                                for (int x = 0; x < width; x++)
+                                {
+                                    ReadOnlySpan<byte> pixel = input.GetRow(0, y).Slice(x * 4, 4);
+                                    decimal luma = red * pixel[0] + (1 - red - blue) * pixel[1] + blue * pixel[2];
+                                    Assert.InRange(Math.Abs(output.GetRow(0, y)[x] - Round(yOffset + luma * yScale / 255)), 0, 1);
+                                }
+                            for (int top = 0; top < height; top += 2)
+                                for (int left = 0; left < width; left += 2)
+                                {
+                                    decimal r = 0, g = 0, b = 0, count = 0;
+                                    for (int y = top; y < Math.Min(top + 2, height); y++)
+                                        for (int x = left; x < Math.Min(left + 2, width); x++)
+                                        {
+                                            ReadOnlySpan<byte> pixel = input.GetRow(0, y).Slice(x * 4, 4);
+                                            r += pixel[0]; g += pixel[1]; b += pixel[2]; count++;
+                                        }
+                                    decimal luma = red * r + (1 - red - blue) * g + blue * b;
+                                    int cb = Round(128 + chromaScale * (b - luma) / (510 * (1 - blue) * count));
+                                    int cr = Round(128 + chromaScale * (r - luma) / (510 * (1 - red) * count));
+                                    Assert.InRange(Math.Abs(output.GetRow(1, top / 2)[left / 2] - cb), 0, 1);
+                                    Assert.InRange(Math.Abs(output.GetRow(2, top / 2)[left / 2] - cr), 0, 1);
+                                }
+                            Assert.Equal(unchanged, input.Data.ToArray());
                         }
-                        for (int top = 0; top < height; top += 2)
-                        for (int left = 0; left < width; left += 2)
-                        {
-                            decimal r = 0, g = 0, b = 0, count = 0;
-                            for (int y = top; y < Math.Min(top + 2, height); y++)
-                            for (int x = left; x < Math.Min(left + 2, width); x++)
-                            {
-                                ReadOnlySpan<byte> pixel = input.GetRow(0, y).Slice(x * 4, 4);
-                                r += pixel[0]; g += pixel[1]; b += pixel[2]; count++;
-                            }
-                            decimal luma = red * r + (1 - red - blue) * g + blue * b;
-                            int cb = Round(128 + chromaScale * (b - luma) / (510 * (1 - blue) * count));
-                            int cr = Round(128 + chromaScale * (r - luma) / (510 * (1 - red) * count));
-                            Assert.InRange(Math.Abs(output.GetRow(1, top / 2)[left / 2] - cb), 0, 1);
-                            Assert.InRange(Math.Abs(output.GetRow(2, top / 2)[left / 2] - cr), 0, 1);
-                        }
-                        Assert.Equal(unchanged, input.Data.ToArray());
+                        Assert.Equal(baseline, allocator.AllocatedBytes);
                     }
-                    Assert.Equal(baseline, allocator.AllocatedBytes);
+                    Assert.Equal(0, allocator.AllocatedBytes);
                 }
-                Assert.Equal(0, allocator.AllocatedBytes);
-            }
         }
 
         [Fact]
@@ -110,14 +110,14 @@ namespace Mediana.Tests
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)plane.EndOffset + 5));
             writable.Span.Fill(203);
             for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
-            {
-                Span<byte> pixel = writable.Span.Slice(plane.Offset + y * plane.Stride + x * 4, 4);
-                pixel[0] = (byte)((31 * x + 79 * y) & 255);
-                pixel[1] = (byte)((97 * x + 47 * y) & 255);
-                pixel[2] = (byte)((173 * x + 13 * y) & 255);
-                pixel[3] = transparent && y == height - 1 && x == width - 1 ? (byte)254 : (byte)255;
-            }
+                for (int x = 0; x < width; x++)
+                {
+                    Span<byte> pixel = writable.Span.Slice(plane.Offset + y * plane.Stride + x * 4, 4);
+                    pixel[0] = (byte)((31 * x + 79 * y) & 255);
+                    pixel[1] = (byte)((97 * x + 47 * y) & 255);
+                    pixel[2] = (byte)((173 * x + 13 * y) & 255);
+                    pixel[3] = transparent && y == height - 1 && x == width - 1 ? (byte)254 : (byte)255;
+                }
             using MediaBuffer buffer = writable.Publish();
             return new(format, buffer, [plane], new MediaTimestamp(73, new(1, 1000)), new MediaDuration(41, new(1, 1000)));
         }

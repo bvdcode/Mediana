@@ -25,7 +25,8 @@ namespace Mediana.Codecs.Vp9
                 if (haveAbove) { for (int i = 0; i < size; i++) { sum += top[i + 1]; } count += size; }
                 if (haveLeft) { for (int i = 0; i < size; i++) { sum += left[i]; } count += size; }
                 T dc = T.CreateTruncating(count == 0 ? middle : (sum + count / 2) / count);
-                for (int row = 0; row < size; row++) { plane.Slice((y + row) * stride + x, size).Fill(dc); } return;
+                for (int row = 0; row < size; row++) { plane.Slice((y + row) * stride + x, size).Fill(dc); }
+                return;
             }
             for (int row = 0; row < size; row++)
             {

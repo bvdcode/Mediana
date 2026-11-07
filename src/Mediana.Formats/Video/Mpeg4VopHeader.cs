@@ -16,12 +16,13 @@ namespace Mediana.Formats.Video
             if (configuration.NewPrediction)
             {
                 int length = Math.Min(configuration.TimeIncrementBits + 3, 15); bits.Skip(length);
-                if (bits.Flag()) { bits.Skip(length); } bits.Marker();
+                if (bits.Flag()) { bits.Skip(length); }
+                bits.Marker();
             }
             bool rounding = (type == Mpeg4VopType.Predictive || type == Mpeg4VopType.Sprite && configuration.SpriteMode == 2) && bits.Flag();
             if (configuration.ReducedResolution && type is Mpeg4VopType.Intra or Mpeg4VopType.Predictive && bits.Flag())
             { throw new NotSupportedException("Reduced-resolution MPEG-4 Visual pictures are not supported."); }
-            ReadOnlySpan<byte> thresholds = [32,13,15,17,19,21,23,1]; int dc = thresholds[bits.Read(3)];
+            ReadOnlySpan<byte> thresholds = [32, 13, 15, 17, 19, 21, 23, 1]; int dc = thresholds[bits.Read(3)];
             bool top = false, alternate = false;
             if (configuration.Interlaced) { top = bits.Flag(); alternate = bits.Flag(); }
             if (type == Mpeg4VopType.Sprite) { throw new NotSupportedException("MPEG-4 Visual sprite pictures are not supported."); }

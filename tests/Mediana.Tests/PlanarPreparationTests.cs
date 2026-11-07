@@ -43,8 +43,11 @@ namespace Mediana.Tests
                                     decimal sourceX = displayX * a + displayY * b, sourceY = displayX * c + displayY * d;
                                     decimal value;
                                     if (plane == 0) { value = Read(input, plane, (int)sourceX, (int)sourceY, depth); }
-                                    else { value = Interpolate(input, plane, (sourceX - (horizontal == 1 ? 0 : 0.5m)) / horizontal,
-                                        (sourceY - (vertical == 1 ? 0 : 0.5m)) / vertical, depth); }
+                                    else
+                                    {
+                                        value = Interpolate(input, plane, (sourceX - (horizontal == 1 ? 0 : 0.5m)) / horizontal,
+                                        (sourceY - (vertical == 1 ? 0 : 0.5m)) / vertical, depth);
+                                    }
                                     int expected = (int)decimal.Round(value / (1 << (depth - 8)), MidpointRounding.AwayFromZero);
                                     Assert.Equal(Math.Min(255, expected), row[x]);
                                 }

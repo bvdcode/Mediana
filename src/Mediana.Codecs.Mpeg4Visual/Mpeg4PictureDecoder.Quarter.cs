@@ -13,7 +13,7 @@ namespace Mediana.Codecs.Mpeg4Visual
             { Mpeg4MotionCompensation.PredictHalf(target, reference, width, height, x, y, size, size, dx * 2, dy * 2, rounding, average); return; }
             Span<byte> horizontal = stackalloc byte[17 * 16];
             int rows = fy == 0 ? size : size + 1;
-            ReadOnlySpan<int> filter = [-1,3,-6,20,20,-6,3,-1];
+            ReadOnlySpan<int> filter = [-1, 3, -6, 20, 20, -6, 3, -1];
             for (int row = 0; row < rows; row++)
             {
                 int ry = Math.Clamp(y + dy + row, 0, height - 1) * width;
@@ -57,7 +57,8 @@ namespace Mediana.Codecs.Mpeg4Visual
         private static int Mirror(int index, int length)
         {
             if (index < 0) { return -index - 1; }
-            if (index >= length) { return 2 * length - index - 1; } return index;
+            if (index >= length) { return 2 * length - index - 1; }
+            return index;
         }
     }
 }

@@ -83,15 +83,23 @@ namespace Mediana.Codecs.Mpeg4Visual
                     if (header.Type == Mpeg4VopType.Intra) { mode = symbol < 4 ? 3 : 4; }
                     else
                     {
-                        mode = (symbol / 4) switch { 0 => 0, 1 => 3, 2 => 1, 3 => 4, 4 => 2,
-                            _ => throw new InvalidDataException("The MPEG-4 Visual macroblock type is invalid.") };
+                        mode = (symbol / 4) switch
+                        {
+                            0 => 0,
+                            1 => 3,
+                            2 => 1,
+                            3 => 4,
+                            4 => 2,
+                            _ => throw new InvalidDataException("The MPEG-4 Visual macroblock type is invalid.")
+                        };
                     }
                     bool intra = mode is 3 or 4;
                     if (intra) { acPrediction = bits.Flag(); }
                     int cbpy = Mpeg4Codebooks.Cbpy.Read(ref bits);
-                    if (!intra) { cbpy ^= 15; } cbp = (cbpy << 2) | (symbol & 3);
+                    if (!intra) { cbpy ^= 15; }
+                    cbp = (cbpy << 2) | (symbol & 3);
                     if (mode is 1 or 4)
-                    { ReadOnlySpan<int> changes = [-1,-2,1,2]; quantizer = Math.Clamp(quantizer + changes[bits.Read(2)], 1, 31); }
+                    { ReadOnlySpan<int> changes = [-1, -2, 1, 2]; quantizer = Math.Clamp(quantizer + changes[bits.Read(2)], 1, 31); }
                     if (!intra) { ReadMotion(ref bits, mb, mode == 2, header.ForwardCode, bound); }
                 }
                 Motion[mb * 10 + 8] = skipped ? 16 : mode; Motion[mb * 10 + 9] = quantizer;

@@ -71,7 +71,10 @@ namespace Mediana.Codecs.Vp8
                 int mode = header.Control.Tree([0, 2, -1, 4, -2, -3], SubContexts.Slice(context * 3, 3));
                 Vp8MotionVector motion = mode switch
                 {
-                    0 => l, 1 => a, 2 => default, 3 => ReadVector(header.Control, header.MotionProbabilities).Add(best),
+                    0 => l,
+                    1 => a,
+                    2 => default,
+                    3 => ReadVector(header.Control, header.MotionProbabilities).Add(best),
                     _ => throw new InvalidDataException("Invalid VP8 subblock motion mode.")
                 };
                 for (int i = first; i < 16; i++) { if (map[i] == group) { current.Blocks[i] = motion; } }

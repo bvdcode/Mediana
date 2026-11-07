@@ -129,7 +129,7 @@ namespace Mediana.Codecs.Mpeg4Visual.Tests
             Assert.Equal(0, allocator.AllocatedBytes); decoder.Reset();
             using (MediaPacket packet = Mpeg4TestInput.Packet(allocator, packets[1])) { Assert.Throws<InvalidDataException>(() => decoder.TrySend(packet)); }
             Assert.Equal(0, allocator.AllocatedBytes); decoder.Reset();
-            using (MediaPacket packet = Mpeg4TestInput.Packet(allocator, [0,0,1,0xb6])) { Assert.Throws<InvalidDataException>(() => decoder.TrySend(packet)); }
+            using (MediaPacket packet = Mpeg4TestInput.Packet(allocator, [0, 0, 1, 0xb6])) { Assert.Throws<InvalidDataException>(() => decoder.TrySend(packet)); }
             Assert.Equal(0, allocator.AllocatedBytes);
         }
     }

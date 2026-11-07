@@ -105,7 +105,9 @@ namespace Mediana.Codecs.Vp9
             Vp9BlockInfo single = a ? above : left, compound = a ? left : above;
             return single.ReferenceZero switch
             {
-                2 => 3 + B(Has(compound, 2)), 3 => B(Has(compound, 2)), 1 => 1 + 2 * B(Has(compound, 2)),
+                2 => 3 + B(Has(compound, 2)),
+                3 => B(Has(compound, 2)),
+                1 => 1 + 2 * B(Has(compound, 2)),
                 _ => throw new InvalidDataException("Invalid VP9 single reference.")
             };
         }

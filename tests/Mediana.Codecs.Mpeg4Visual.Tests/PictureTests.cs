@@ -63,14 +63,14 @@ namespace Mediana.Codecs.Mpeg4Visual.Tests
             int display = 0;
             foreach ((long time, byte[] pixels) in pictures.OrderBy(item => item.Time))
             {
-                    ReadOnlySpan<byte> expected = reference.AsSpan(display * frameBytes, frameBytes);
-                    long squared = 0; int maximum = 0;
-                    for (int at = 0; at < pixels.Length; at++)
-                    {
-                        int error = Math.Abs(expected[at] - pixels[at]); maximum = Math.Max(maximum, error); squared += error * error;
-                    }
-                    double psnr = squared == 0 ? double.PositiveInfinity : 10 * Math.Log10(255.0 * 255 * frameBytes / squared);
-                    Assert.True(psnr > 48 && maximum <= 6, $"{name} display {display} time {time}: PSNR {psnr:F3} max {maximum}.");
+                ReadOnlySpan<byte> expected = reference.AsSpan(display * frameBytes, frameBytes);
+                long squared = 0; int maximum = 0;
+                for (int at = 0; at < pixels.Length; at++)
+                {
+                    int error = Math.Abs(expected[at] - pixels[at]); maximum = Math.Max(maximum, error); squared += error * error;
+                }
+                double psnr = squared == 0 ? double.PositiveInfinity : 10 * Math.Log10(255.0 * 255 * frameBytes / squared);
+                Assert.True(psnr > 48 && maximum <= 6, $"{name} display {display} time {time}: PSNR {psnr:F3} max {maximum}.");
                 display++;
             }
         }

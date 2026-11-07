@@ -70,7 +70,10 @@ namespace Mediana.Codecs.Vp8
 
         private static SampleAspectRatio Scale(int code) => code switch
         {
-            0 => new(1, 1), 1 => new(5, 4), 2 => new(5, 3), 3 => new(2, 1),
+            0 => new(1, 1),
+            1 => new(5, 4),
+            2 => new(5, 3),
+            3 => new(2, 1),
             _ => throw new InvalidDataException("Invalid VP8 display scale.")
         };
 

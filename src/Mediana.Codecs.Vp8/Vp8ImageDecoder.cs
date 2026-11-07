@@ -136,8 +136,10 @@ namespace Mediana.Codecs.Vp8
                                     ReadOnlySpan<byte> reference = references[block.Reference].Span;
                                     reference = plane switch
                                     {
-                                        0 => reference[..yLength], 1 => reference.Slice(yLength, uvLength),
-                                        2 => reference.Slice(yLength + uvLength, uvLength), _ => throw new InvalidDataException("Invalid VP8 reference plane.")
+                                        0 => reference[..yLength],
+                                        1 => reference.Slice(yLength, uvLength),
+                                        2 => reference.Slice(yLength + uvLength, uvLength),
+                                        _ => throw new InvalidDataException("Invalid VP8 reference plane.")
                                     };
                                     Vp8MotionVector motion = plane == 0
                                         ? block.Mode == 4 ? block.Blocks[by * 4 + bx] : block.Motion

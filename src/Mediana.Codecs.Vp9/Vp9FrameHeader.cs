@@ -93,7 +93,11 @@ namespace Mediana.Codecs.Vp9
                     if (!validScale) { throw new InvalidDataException("No VP9 reference is within the permitted scaling range."); }
                     HighPrecisionMotion = bits.Flag(); InterpolationFilter = bits.Flag() ? 4 : bits.Read(2) switch
                     {
-                        0 => 1, 1 => 0, 2 => 2, 3 => 3, _ => throw new InvalidDataException("Invalid VP9 interpolation filter.")
+                        0 => 1,
+                        1 => 0,
+                        2 => 2,
+                        3 => 3,
+                        _ => throw new InvalidDataException("Invalid VP9 interpolation filter.")
                     };
                 }
             }

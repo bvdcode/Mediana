@@ -60,7 +60,7 @@ namespace Mediana.Tests
             }
             using MemoryStream output = new();
             VideoEncodingRequest request = new(0, 0, new H264EncoderFactory(), new VideoPreparationOptions
-                { OutputPixelFormat = VideoPixelFormat.Yuv420P8, MaximumWidth = 32, RgbConversion = new() });
+            { OutputPixelFormat = VideoPixelFormat.Yuv420P8, MaximumWidth = 32, RgbConversion = new() });
             MediaProcessingResult encoded = await engine.ProcessAsync(source, output, "mpegts", [request], allocator);
             if (encoded.Tracks[0].Frames != positions.Count || output.Length == 0)
             { throw new InvalidDataException("MPEG-4 Visual to AVC changed the picture count."); }

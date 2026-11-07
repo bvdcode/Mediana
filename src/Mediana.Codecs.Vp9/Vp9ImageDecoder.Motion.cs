@@ -39,7 +39,9 @@ namespace Mediana.Codecs.Vp9
                         }
                         Vp9MotionVector value = mode switch
                         {
-                            10 => nearest, 11 => near, 12 => default,
+                            10 => nearest,
+                            11 => near,
+                            12 => default,
                             13 => Vp9MotionReader.Read(ref bits, probabilities, symbols, best[list], header.HighPrecisionMotion),
                             _ => throw new InvalidDataException("Invalid VP9 motion mode.")
                         };

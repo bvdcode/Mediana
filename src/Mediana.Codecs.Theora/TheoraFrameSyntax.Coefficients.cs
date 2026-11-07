@@ -61,7 +61,7 @@ namespace Mediana.Codecs.Theora
                 case >= 17 and <= 22:
                     negative = reader.Flag();
                     (int start, int bits) = symbol switch
-                    { 17 => (7,1), 18 => (9,2), 19 => (13,3), 20 => (21,4), 21 => (37,5), 22 => (69,9), _ => throw new InvalidDataException() };
+                    { 17 => (7, 1), 18 => (9, 2), 19 => (13, 3), 20 => (21, 4), 21 => (37, 5), 22 => (69, 9), _ => throw new InvalidDataException() };
                     magnitude = start + reader.Read(bits); break;
                 case >= 23 and <= 27: zeros = symbol - 22; negative = reader.Flag(); magnitude = 1; break;
                 case 28: negative = reader.Flag(); zeros = 6 + reader.Read(2); magnitude = 1; break;

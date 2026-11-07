@@ -32,10 +32,17 @@ namespace Mediana.Codecs.Theora
                         int l = neighbors[0], dl = neighbors[1], d = neighbors[2], dr = neighbors[3];
                         int prediction = mask switch
                         {
-                            0 => last[reference], 1 or 3 => l, 2 => dl, 4 or 6 or 12 => d, 5 => (l + d) / 2,
-                            7 or 15 => (29 * l - 26 * dl + 29 * d) / 32, 8 => dr,
-                            9 or 11 or 13 => (75 * l + 53 * dr) / 128, 10 => (dl + dr) / 2,
-                            14 => (3 * dl + 10 * d + 3 * dr) / 16, _ => throw new InvalidDataException("Invalid Theora DC predictor mask.")
+                            0 => last[reference],
+                            1 or 3 => l,
+                            2 => dl,
+                            4 or 6 or 12 => d,
+                            5 => (l + d) / 2,
+                            7 or 15 => (29 * l - 26 * dl + 29 * d) / 32,
+                            8 => dr,
+                            9 or 11 or 13 => (75 * l + 53 * dr) / 128,
+                            10 => (dl + dr) / 2,
+                            14 => (3 * dl + 10 * d + 3 * dr) / 16,
+                            _ => throw new InvalidDataException("Invalid Theora DC predictor mask.")
                         };
                         if ((mask & 7) == 7)
                         {
