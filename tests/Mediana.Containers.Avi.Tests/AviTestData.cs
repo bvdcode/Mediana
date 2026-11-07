@@ -69,6 +69,42 @@ namespace Mediana.Containers.Avi.Tests
             return Chunk("RIFF", Join("AVI ", header, movie, tail));
         }
 
+        public static byte[] BuildAvix()
+        {
+            byte[] original = Build(AviIndexKind.Super);
+            int index = original.AsSpan().IndexOf("indx"u8);
+            int insert = index + 48;
+            byte[] first = new byte[original.Length + 16];
+            original.AsSpan(0, insert).CopyTo(first);
+            original.AsSpan(insert).CopyTo(first.AsSpan(insert + 16));
+            Put(first, 4, (uint)(first.Length - 8));
+            Put(first, 16, BinaryPrimitives.ReadUInt32LittleEndian(first.AsSpan(16)) + 16);
+            int stream = first.AsSpan().IndexOf("strl"u8) - 8;
+            Put(first, stream + 4, BinaryPrimitives.ReadUInt32LittleEndian(first.AsSpan(stream + 4)) + 16);
+            Put(first, index + 4, 56);
+            Put(first, index + 12, 2);
+            int standard = original.AsSpan().IndexOf("ix00"u8) + 16;
+            BinaryPrimitives.WriteUInt64LittleEndian(first.AsSpan(index + 32), (ulong)standard);
+            for (int packet = 0; packet < 3; packet++)
+            {
+                int entry = standard + 32 + packet * 8;
+                Put(first, entry, BinaryPrimitives.ReadUInt32LittleEndian(first.AsSpan(entry)) + 16);
+            }
+            byte[] movie = Chunk("LIST", Join("movi", Chunk("00dc", [0xff, 0xd8, 1, 2, 0xff, 0xd9, 9])));
+            byte[] last = new byte[32];
+            BinaryPrimitives.WriteUInt16LittleEndian(last, 2); last[3] = 1;
+            Put(last, 4, 1); Encoding.ASCII.GetBytes("00dc").CopyTo(last, 8);
+            Put(last, 24, (uint)(first.Length + 12 + 12 + 8)); Put(last, 28, 7);
+            byte[] continuation = Chunk("RIFF", Join("AVIX", movie, Chunk("ix00", last)));
+            BinaryPrimitives.WriteUInt64LittleEndian(first.AsSpan(index + 48), (ulong)(first.Length + 12 + movie.Length));
+            Put(first, index + 56, (uint)(last.Length + 8)); Put(first, index + 60, 1);
+            int main = first.AsSpan().IndexOf("avih"u8);
+            Put(first, main + 24, 4);
+            int header = first.AsSpan().IndexOf("strh"u8);
+            Put(first, header + 40, 4);
+            return Join("", first, continuation);
+        }
+
         private static void Put(byte[] bytes, int offset, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset), value);
 
         private static byte[] Chunk(string id, byte[] data)

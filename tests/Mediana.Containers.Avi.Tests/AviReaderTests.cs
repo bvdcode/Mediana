@@ -72,6 +72,21 @@ namespace Mediana.Containers.Avi.Tests
         }
 
         [Fact]
+        public async Task OpenDmlSuperIndexSpansAnAvixContinuationWithoutReadingTheMoviePayload()
+        {
+            byte[] bytes = AviTestData.BuildAvix();
+            await using AviTestSource source = new(bytes, 3);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using AviReader reader = await AviReader.OpenAsync(source, allocator);
+            Assert.Equal(4, reader.GetPacketCount(0));
+            using MediaPacket last = await reader.ReadPacketAtAsync(0, 3);
+            Assert.Equal(6, last.PresentationTime!.Value.Value);
+            Assert.Equal(new byte[] { 0xff, 0xd8, 1, 2, 0xff, 0xd9, 9 }, last.Data.ToArray());
+            using MediaPacket first = (await reader.ReadPacketAsync())!;
+            Assert.Equal(3, first.PresentationTime!.Value.Value);
+        }
+
+        [Fact]
         public async Task IndependentInterleavedReferenceMatchesEveryPacketWithoutReadingMediaAtOpen()
         {
             string root = Path.Combine(AppContext.BaseDirectory, "Data");
