@@ -13,6 +13,7 @@ namespace Mediana.Processing
     public class VideoPreparation : IDisposable
     {
         private readonly Yuv420FrameTransform transform;
+        private readonly RgbaToYuv420? rgb;
         private readonly Yuv420AreaResizer? resizer;
         private bool disposed;
         private int busy;
@@ -27,7 +28,13 @@ namespace Mediana.Processing
             {
                 throw new ArgumentOutOfRangeException(nameof(options), "Video dimension bounds must be at least two samples.");
             }
-            transform = new(inputFormat, sourceDisplayMatrix, options.OutputPixelFormat ?? inputFormat.PixelFormat, allocator);
+            VideoFormat planar = inputFormat;
+            if (inputFormat.PixelFormat == VideoPixelFormat.Rgba32 && options.RgbConversion is not null)
+            {
+                rgb = new(inputFormat, options.RgbConversion, allocator);
+                planar = rgb.OutputFormat;
+            }
+            transform = new(planar, sourceDisplayMatrix, options.OutputPixelFormat ?? planar.PixelFormat, allocator);
             if (options.MaximumWidth is not null || options.MaximumHeight is not null)
             {
                 resizer = Yuv420AreaResizer.CreateFit(transform.OutputFormat,
@@ -45,8 +52,9 @@ namespace Mediana.Processing
             try
             {
                 ObjectDisposedException.ThrowIf(disposed, this);
-                if (resizer is null) { return transform.Apply(input, cancellationToken); }
-                using VideoFrame transformed = transform.Apply(input, cancellationToken);
+                using VideoFrame? converted = rgb?.Apply(input, cancellationToken);
+                if (resizer is null) { return transform.Apply(converted ?? input, cancellationToken); }
+                using VideoFrame transformed = transform.Apply(converted ?? input, cancellationToken);
                 return resizer.ResizeOrRetain(transformed, cancellationToken);
             }
             finally { Volatile.Write(ref busy, 0); }

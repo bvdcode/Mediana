@@ -72,6 +72,13 @@ copies selected compressed streams and lets the registered writer validate compa
 
 `VideoPreparation` in `Mediana.Processing` shares native-YUV preparation between file
 encoding, complete HLS rendition packages and independently requested AVC HLS windows.
+
+Opaque straight RGBA8 input can be prepared for video encoding by explicitly
+setting `VideoPreparationOptions.RgbConversion`. `RgbaToYuv420` preserves the
+source primaries/transfer and converts stored RGB samples to the selected matrix
+and range. Chroma cells are averaged before rounding, including odd image edges.
+Transparency requires explicit compositing before conversion. Without this option,
+video preparation does not implicitly discard alpha or select a YUV color matrix.
 Its options select storage bounds and an optional output pixel format. By default decoded
 precision is preserved. Selecting `VideoPixelFormat.Yuv420P8` explicitly permits rounded,
 saturating reduction of ten-bit samples. This operation preserves transfer functions and
