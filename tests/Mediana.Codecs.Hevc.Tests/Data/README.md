@@ -11,3 +11,7 @@ The four `.headers.json` files retain independently parsed SPS/PPS and slice fie
 `cabac.bin.gz` contains 129,888 independently encoded HM-18.0 arithmetic bins across 18 streams: all I/P/B context initializations, six quantizers, bypass/termination, and WPP checkpoints restored both locally and into another reader. Each case stores group sizes and initial packed probability states, the checkpoint operation index, then two arithmetic byte streams with three-byte `(group, index, symbol)` operations. Group 255 denotes bypass. Integers are little-endian 32-bit. Decompressed header: `HEVCCAB1`, followed by the case count.
 
 SHA-256: `d0e2b52f509e3304f6f39cbc4cf711ed4eaadb48b21522fdc5464c44e045baae`.
+
+`interpolation.bin.gz` contains 1,280 HM-18.0 predictions: both bit depths, every quarter-luma and eighth-chroma phase, rectangles from 4x4 through 64x16 and 48x48, interior and extended picture borders. The reference stores unrounded fourteen-bit values without the HM internal offset. Decompressed header `HEVCINT1` is followed by the 32-bit case count. Each case stores ten 32-bit integers (depth, chroma flag, source width/height, source x/y, fractional x/y, block width/height), unsigned 16-bit source samples and signed 32-bit output values. Fields are little endian.
+
+SHA-256: `bbd3ce2b6d3c44b127a5b6a5cc42a39e512ce362afc3e9e62fb874b20300daf1`.

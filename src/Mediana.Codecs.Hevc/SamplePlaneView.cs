@@ -24,6 +24,7 @@ namespace Mediana.Codecs.Hevc
         }
 
         public Span<TSample> Samples => samples;
+        public ReadOnlySamplePlaneView<TSample> AsReadOnly() => new(samples, Width, Height);
         public int Width { get; }
         public int Height { get; }
         public Span<TSample> Row(int y) => samples.Slice(checked(y * Width), Width);
