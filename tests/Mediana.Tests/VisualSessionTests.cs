@@ -15,6 +15,36 @@ namespace Mediana.Tests
 {
     public class VisualSessionTests
     {
+        [Fact]
+        public async Task VideoVisualSessionsUseTheCallerPoolAndKeepRetainedPicturesWithinItsBudget()
+        {
+            using CountingMemoryPool pool = new();
+            MediaBufferAllocator allocator = new(1024 * 1024, pool);
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory()).AddVideoDecoder(new H264DecoderFactory()).Build();
+            await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("avc-aac.mp4"));
+            VideoFrame picture;
+            await using (VisualSession session = await engine.OpenVisualAsync(source, allocator))
+            {
+                picture = (await session.ReadFrameAsync())!;
+                Assert.True(allocator.AllocatedBytes >= picture.Data.Length);
+            }
+            Assert.True(allocator.AllocatedBytes >= picture.Data.Length);
+            Assert.False(source.IsDisposed);
+            Assert.False(pool.Disposed);
+            Assert.Equal(64, picture.Format.Width);
+            picture.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.Equal(pool.Rentals, pool.Returns);
+            MediaBufferAllocator tooSmall = new(4096, pool);
+            await Assert.ThrowsAsync<MediaMemoryLimitException>(async () =>
+            {
+                await using VisualSession session = await engine.OpenVisualAsync(source, tooSmall);
+                using VideoFrame? frame = await session.ReadFrameAsync();
+            });
+            Assert.Equal(0, tooSmall.AllocatedBytes);
+            Assert.Equal(pool.Rentals, pool.Returns);
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
