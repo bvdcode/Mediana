@@ -9,8 +9,9 @@ using Mediana.Drawing;
 
 namespace Mediana.Documents.Pdf
 {
-    /// <summary>Registered PDF page rendering with zero-based page selection and explicit resolution limits.</summary>
-    public class PdfImageDecoder(PdfReaderOptions? readerOptions = null, PdfRenderOptions? renderOptions = null) : IImageDecoder, IImageInfoReader
+    /// <summary>Registered PDF page rendering or embedded-image extraction with zero-based selection and explicit resolution limits.</summary>
+    public class PdfImageDecoder(PdfReaderOptions? readerOptions = null, PdfRenderOptions? renderOptions = null,
+        int? embeddedImageIndex = null) : IImageDecoder, IImageInfoReader
     {
         public string ImplementationId => "pdf.managed.image";
         public int ProbeLength => 32;
@@ -43,6 +44,7 @@ namespace Mediana.Documents.Pdf
             ArgumentNullException.ThrowIfNull(request);
             ArgumentNullException.ThrowIfNull(allocator);
             request.Validate(Features);
+            if (embeddedImageIndex is < 0) { throw new ArgumentOutOfRangeException(nameof(embeddedImageIndex)); }
             PdfReaderOptions configured = readerOptions ?? new();
             if (request.Resources is not null && await request.Resources.GetAsync<TextOptions>(cancellationToken).ConfigureAwait(false) is TextOptions text)
             {
@@ -58,6 +60,13 @@ namespace Mediana.Documents.Pdf
             foreach (string warning in document.Warnings)
             {
                 request.WarningHandler?.Invoke(warning);
+            }
+            if (embeddedImageIndex is int index)
+            {
+                using PdfPage page = document.GetPage(request.PageIndex + 1, cancellationToken);
+                foreach (string warning in page.Warnings) { request.WarningHandler?.Invoke(warning); }
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, page.Images.Count, nameof(embeddedImageIndex));
+                return page.Images[index].ToVideoFrame(cancellationToken);
             }
             PdfRenderOptions rendering = (renderOptions ?? new PdfRenderOptions()) with
             {

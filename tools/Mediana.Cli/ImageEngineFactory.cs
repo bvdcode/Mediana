@@ -27,6 +27,8 @@ namespace Mediana.Cli
     {
         private const int MaximumDocumentPreviewDimension = 1200;
 
+        public static MediaEngine CreateVisual() => AddDecoders(ContainerEngineFactory.CreateVideoBuilder(Mediana.Containers.Mp4.Mp4TimestampMode.LinearMovie)).Build();
+
         public static MediaEngine Create() => AddDecoders(new MediaEngineBuilder()).Build();
 
         internal static MediaEngineBuilder AddDecoders(MediaEngineBuilder builder) => AddStillImageDecoders(builder)

@@ -4,7 +4,6 @@
 using Mediana.Codecs;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
-using Mediana.Core.Video;
 using Mediana.IO;
 using Mediana.Processing;
 using Microsoft.Extensions.Logging;
@@ -18,41 +17,35 @@ namespace Mediana.Cli
         {
             MediaEngine engine = ImageEngineFactory.AddDecoders(new MediaEngineBuilder()).ReplaceImageDecoder(decoder).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
-            return await RunAsync(engine, source, outputFile, logger, encoder, request, cancellationToken);
+            return await RunAsync(engine, source, outputFile, logger, encoder, request, cancellationToken, new()
+            {
+                Images = CommandImageResources.OpenOptions with { DecoderImplementationId = decoder.ImplementationId },
+                Request = request ?? new()
+            });
         }
 
         public static async Task<int> RunAsync(MediaEngine engine, IByteSource source, CommandOutputFile outputFile, ILogger logger,
-            IImageEncoder encoder, ImageDecodeRequest? request = null, CancellationToken cancellationToken = default)
+            IImageEncoder encoder, ImageDecodeRequest? request = null, CancellationToken cancellationToken = default,
+            VisualOpenOptions? input = null, int maximumWidth = int.MaxValue, int maximumHeight = int.MaxValue)
         {
             MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
-            Action<string> warning = message => logger.LogWarning("{Warning}", message);
-            request = (request ?? new ImageDecodeRequest()) with { WarningHandler = request?.WarningHandler + warning };
-            using (VideoFrame frame = await engine.DecodeImageAsync(source, allocator, request, CommandImageResources.OpenOptions, cancellationToken))
-            using (VideoFrame srgb = PrepareFrame(frame, encoder, logger, allocator, cancellationToken))
+            VisualExportOptions options = new()
             {
-                long encodedLength = 0;
-                await outputFile.WriteAsync(async output =>
-                {
-                    encodedLength = await encoder.EncodeAsync(srgb, output, allocator, cancellationToken);
-                }, cancellationToken: cancellationToken);
-                await Console.Out.WriteLineAsync($"{encoder.FormatId.ToUpperInvariant()} image: {srgb.Format.Width}x{srgb.Format.Height}; {encodedLength} bytes; sRGB.");
-            }
-            if (allocator.AllocatedBytes != 0)
+                Input = input ?? new() { Images = CommandImageResources.OpenOptions, Request = request ?? new() },
+                MaximumWidth = maximumWidth, MaximumHeight = maximumHeight,
+                ColorResolver = SdrPreviewColorPolicy.Resolve,
+                WarningHandler = message => logger.LogWarning("{Warning}", message)
+            };
+            VisualExportResult? result = null;
+            await outputFile.WriteAsync(async output =>
             {
-                throw new InvalidOperationException("Image output buffers were not released.");
-            }
+                result = await engine.ExportPreviewAsync(source, output, encoder, allocator, options, cancellationToken);
+            }, cancellationToken);
+            if (allocator.AllocatedBytes != 0) { throw new InvalidOperationException("Image output buffers were not released."); }
+            string timing = result!.FirstTimestamp is MediaTimestamp timestamp
+                ? $"; PTS {timestamp.Value} at {timestamp.TimeBase.Numerator}/{timestamp.TimeBase.Denominator}" : string.Empty;
+            await Console.Out.WriteLineAsync($"{encoder.FormatId.ToUpperInvariant()} preview: {result.Width}x{result.Height}; {result.BytesWritten} bytes{timing}; sRGB. Live buffer bytes: 0.");
             return 0;
-        }
-
-        private static VideoFrame PrepareFrame(VideoFrame input, IImageEncoder encoder, ILogger logger,
-            MediaBufferAllocator allocator, CancellationToken cancellationToken)
-        {
-            VideoColorInfo Resolve(VideoFormat format) => PreviewColorPolicy.Resolve(format, logger);
-            if ((encoder.Features & ImageEncoderFeatures.SampleAspectRatio) != 0)
-            {
-                return SrgbConverter.ApplyWithColorPolicy(input, Resolve, allocator, cancellationToken);
-            }
-            return SrgbPreview.FitWithColorPolicy(input, Resolve, VideoDisplayMatrix.Identity, int.MaxValue, int.MaxValue, allocator, cancellationToken);
         }
 
         public static Task<int> SvgAsync(string inputPath, CommandOutputFile outputFile, int? width, ILogger logger, IImageEncoder encoder, CancellationToken cancellationToken = default) =>
