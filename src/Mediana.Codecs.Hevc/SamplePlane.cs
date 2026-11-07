@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.InteropServices;
 
 namespace Mediana.Codecs.Hevc
 {
@@ -19,9 +20,15 @@ namespace Mediana.Codecs.Hevc
         private readonly byte[] bytes = Array.Empty<byte>();
         private readonly ushort[] words = Array.Empty<ushort>();
         private readonly bool[] available = Array.Empty<bool>();
-        private bool disposed;
+        private readonly Memory<byte> borrowed;
+        private bool frozen, availabilityReturned, disposed;
 
-        public SamplePlane(int width, int height, int bitDepth)
+        public SamplePlane(int width, int height, int bitDepth) : this(width, height, bitDepth, Memory<byte>.Empty, true) { }
+
+        /// <summary>Borrows pixel storage from the containing picture; this plane owns only its availability map.</summary>
+        public SamplePlane(int width, int height, int bitDepth, Memory<byte> pixels) : this(width, height, bitDepth, pixels, false) { }
+
+        private SamplePlane(int width, int height, int bitDepth, Memory<byte> pixels, bool rentPixels)
         {
             if ((width <= 0) || (height <= 0) || ((width % 4) != 0) || ((height % 4) != 0))
             {
@@ -35,21 +42,25 @@ namespace Mediana.Codecs.Hevc
             Height = height;
             BitDepth = bitDepth;
             int count = checked(width * height);
+            borrowed = rentPixels ? Memory<byte>.Empty : pixels[..checked(count * ((bitDepth + 7) / 8))];
             bool initialized = false;
             try
             {
-                switch (bitDepth)
+                if (rentPixels)
                 {
-                    case 8:
-                        bytes = ArrayPool<byte>.Shared.Rent(count);
-                        bytes.AsSpan(0, count).Clear();
-                        break;
-                    case 10:
-                        words = ArrayPool<ushort>.Shared.Rent(count);
-                        words.AsSpan(0, count).Clear();
-                        break;
-                    default:
-                        throw new InvalidOperationException("Unsupported component sample depth.");
+                    switch (bitDepth)
+                    {
+                        case 8:
+                            bytes = ArrayPool<byte>.Shared.Rent(count);
+                            bytes.AsSpan(0, count).Clear();
+                            break;
+                        case 10:
+                            words = ArrayPool<ushort>.Shared.Rent(count);
+                            words.AsSpan(0, count).Clear();
+                            break;
+                        default:
+                            throw new InvalidOperationException("Unsupported component sample depth.");
+                    }
                 }
                 available = ArrayPool<bool>.Shared.Rent(count / 16);
                 available.AsSpan(0, count / 16).Clear();
@@ -74,11 +85,12 @@ namespace Mediana.Codecs.Hevc
             get
             {
                 ThrowIfDisposed();
-                if (bytes.Length == 0)
+                if (BitDepth != 8)
                 {
                     throw new InvalidOperationException("The component does not use byte samples.");
                 }
-                return new SamplePlaneView<byte>(bytes, Width, Height);
+                ThrowIfFrozen();
+                return new SamplePlaneView<byte>(borrowed.IsEmpty ? bytes.AsSpan() : borrowed.Span, Width, Height);
             }
         }
 
@@ -87,27 +99,68 @@ namespace Mediana.Codecs.Hevc
             get
             {
                 ThrowIfDisposed();
-                if (words.Length == 0)
+                if (BitDepth != 10)
                 {
                     throw new InvalidOperationException("The component does not use word samples.");
                 }
-                return new SamplePlaneView<ushort>(words, Width, Height);
+                ThrowIfFrozen();
+                return new SamplePlaneView<ushort>(borrowed.IsEmpty ? words.AsSpan() : MemoryMarshal.Cast<byte, ushort>(borrowed.Span), Width, Height);
             }
+        }
+
+        public ReadOnlySamplePlaneView<byte> ReadByteView
+        {
+            get
+            {
+                ThrowIfDisposed();
+                if (BitDepth != 8) { throw new InvalidOperationException("The component does not use byte samples."); }
+                return new(borrowed.IsEmpty ? bytes.AsSpan() : borrowed.Span, Width, Height);
+            }
+        }
+
+        public ReadOnlySamplePlaneView<ushort> ReadWordView
+        {
+            get
+            {
+                ThrowIfDisposed();
+                if (BitDepth != 10) { throw new InvalidOperationException("The component does not use word samples."); }
+                return new(borrowed.IsEmpty ? words.AsSpan() : MemoryMarshal.Cast<byte, ushort>(borrowed.Span), Width, Height);
+            }
+        }
+
+        public void Freeze()
+        {
+            ThrowIfDisposed();
+            if (frozen) { return; }
+            ArrayPool<bool>.Shared.Return(available);
+            availabilityReturned = true;
+            frozen = true;
         }
 
         public int Neighbour(int x, int y)
         {
             ThrowIfDisposed();
+            ThrowIfFrozen();
             if ((x < 0) || (y < 0) || (x >= Width) || (y >= Height) || !available[((y / 4) * (Width / 4)) + (x / 4)])
             {
                 return -1;
             }
             int index = (y * Stride) + x;
-            if (bytes.Length != 0)
+            if (!borrowed.IsEmpty)
             {
-                return bytes[index];
+                return BitDepth switch
+                {
+                    8 => borrowed.Span[index],
+                    10 => MemoryMarshal.Cast<byte, ushort>(borrowed.Span)[index],
+                    _ => throw new InvalidOperationException("Unsupported component sample depth.")
+                };
             }
-            return words[index];
+            return BitDepth switch
+            {
+                8 => bytes[index],
+                10 => words[index],
+                _ => throw new InvalidOperationException("Unsupported component sample depth.")
+            };
         }
 
         public void Store(int x, int y, int size, ReadOnlySpan<int> prediction, ReadOnlySpan<int> residual)
@@ -161,11 +214,16 @@ namespace Mediana.Codecs.Hevc
                 {
                     ArrayPool<ushort>.Shared.Return(words);
                 }
-                if (available.Length != 0)
+                if (available.Length != 0 && !availabilityReturned)
                 {
                     ArrayPool<bool>.Shared.Return(available);
                 }
             }
+        }
+
+        private void ThrowIfFrozen()
+        {
+            if (frozen) { throw new InvalidOperationException("Published HEVC samples cannot be modified or used for intra availability."); }
         }
 
         private void ThrowIfDisposed()
