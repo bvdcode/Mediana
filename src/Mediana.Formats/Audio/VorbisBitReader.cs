@@ -9,21 +9,32 @@ namespace Mediana.Formats.Audio
         private long position;
         public readonly long Remaining => (long)bytes.Length * 8 - position;
 
-        public uint Read(int count)
+        public readonly bool TryPeek(int count, out uint value)
         {
             if (count is < 0 or > 32) { throw new ArgumentOutOfRangeException(nameof(count)); }
-            if (count > Remaining) { throw new InvalidDataException("The Vorbis bitstream is truncated."); }
-            uint value = 0;
-            int written = 0;
-            while (written < count)
+            value = 0;
+            if (count > Remaining) { return false; }
+            if (count == 0) { return true; }
+            int start = (int)(position >> 3), shift = (int)(position & 7);
+            ulong packed;
+            if (bytes.Length - start >= sizeof(ulong))
             {
-                int offset = (int)(position & 7);
-                int length = Math.Min(8 - offset, count - written);
-                uint bits = (uint)(bytes[(int)(position >> 3)] >> offset) & ((1u << length) - 1);
-                value |= bits << written;
-                position += length;
-                written += length;
+                packed = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(bytes[start..]);
             }
+            else
+            {
+                packed = 0;
+                int needed = (shift + count + 7) / 8;
+                for (int index = 0; index < needed; index++) { packed |= (ulong)bytes[start + index] << (8 * index); }
+            }
+            value = (uint)(packed >> shift) & (uint.MaxValue >> (32 - count));
+            return true;
+        }
+
+        public uint Read(int count)
+        {
+            if (!TryPeek(count, out uint value)) { throw new InvalidDataException("The Vorbis bitstream is truncated."); }
+            position += count;
             return value;
         }
 

@@ -20,6 +20,14 @@ namespace Mediana.Formats.Audio
 
         public static VorbisSetupInfo Read(VorbisIdentification identification, ReadOnlySpan<byte> setup,
             CancellationToken cancellationToken = default)
+            => ReadCore(identification, setup, null, cancellationToken);
+
+        internal static VorbisSetupInfo ReadForDecoding(VorbisIdentification identification, ReadOnlySpan<byte> setup,
+            VorbisSetupVisitor visitor, CancellationToken cancellationToken = default)
+            => ReadCore(identification, setup, visitor, cancellationToken);
+
+        private static VorbisSetupInfo ReadCore(VorbisIdentification identification, ReadOnlySpan<byte> setup,
+            VorbisSetupVisitor? visitor, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(identification);
             if (setup.Length < 7 || setup[0] != 5 || !setup.Slice(1, 6).SequenceEqual("vorbis"u8))
@@ -27,7 +35,7 @@ namespace Mediana.Formats.Audio
                 throw new InvalidDataException("The Vorbis setup packet is absent or truncated.");
             }
             VorbisBitReader reader = new(setup[7..]);
-            bool[] modes = VorbisSetupReader.Read(ref reader, identification.ChannelCount, cancellationToken);
+            bool[] modes = VorbisSetupReader.Read(ref reader, identification.ChannelCount, cancellationToken, visitor);
             return new(identification, modes);
         }
 
