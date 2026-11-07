@@ -25,8 +25,9 @@ cc -std=c11 -O2 -Wall -Wextra -Werror benchmarks/Mediana.MediaComparison/heif_re
 ```
 
 The native reference explicitly selects libde265, strict decoding, two tile and
-codec threads, source color-profile passthrough and nearest-neighbor chroma
-upsampling, matching Mediana's existing chroma expansion. Different RGB values
+codec threads and source color-profile passthrough. `workloads.json` selects
+nearest-neighbor chroma in both callers. Their current default is bilinear;
+Mediana additionally exposes bicubic and Lanczos3. Different RGB values
 are recorded by maximum error and RMSE, never silently accepted as byte-identical.
 API definitions are in the
 [libheif 1.23.2 source](https://github.com/strukturag/libheif/tree/v1.23.2/libheif/api/libheif).
@@ -40,7 +41,9 @@ Use the filenames and input hashes in the measurement report. `--case` is
 repeatable. Select two available logical CPUs on different physical cores. The
 scratch directory must have space for the largest decoded pair, approximately
 1.6 GB for the current HEIC case. A pair is validated and deleted before the next
-case; repetitions do not accumulate decoded files. Logs and JSON remain in a new
+case; repetitions do not accumulate decoded files. The 30-minute 10 Mbit/s
+transcode needs about 5 GB for its encoded pair, in addition to the inputs.
+Logs and JSON remain in a new
 output directory. Use the same output filesystem for both engines and report its
 type. Do not use a memory filesystem when measuring storage throughput.
 
@@ -67,15 +70,17 @@ the complete output. A byte-identical pair reuses its first full sample comparis
 within the same case and immutable input; changed output requires a new comparison.
 The validation record identifies the source repetition and method.
 
-CPU is Linux `wait4` user + system time for the specific child; peak RSS is its
-resident high-water mark, converted from KiB to bytes. It includes runtime/native
-process memory and is not a managed-allocation counter or peak system RAM.
+CPU is Linux `wait4` user + system time for the specific child, including
+descendants it waits for. Peak RSS is the resident high-water mark of an individual
+process, converted from KiB to bytes; it does not sum simultaneous descendants.
+It includes runtime/native memory and is not a managed-allocation counter or peak
+system RAM. These counters follow the
+[Linux resource-usage contract](https://man7.org/linux/man-pages/man2/getrusage.2.html).
 Elapsed time includes startup, I/O and cleanup. File hashing and validation happen
 after timing. A CPU allowance does not establish equal internal parallelism.
 
-These workloads have no child-process execution inside the measured tools. An
-alternative that starts workers as separate processes requires process-tree
-accounting before using this runner. Invalid outputs retain their measurements;
+The tools are invoked directly. An alternative using detached workers, or a case
+requiring aggregate process-tree memory, needs additional accounting. Invalid outputs retain their measurements;
 successful process exit alone does not establish conformance or visual equality.
 
 ## Additional operations

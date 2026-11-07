@@ -51,6 +51,22 @@ class ProcessMeasurementTests(unittest.TestCase):
             )
             self.assertEqual(result[3:], (-9, True))
 
+    def test_waited_for_descendant_cpu_is_included(self) -> None:
+        child = "import time\nend = time.process_time() + 0.2\nwhile time.process_time() < end:\n    pass"
+        parent = (
+            "import subprocess, sys\n"
+            f"subprocess.run([sys.executable, '-c', {child!r}], check=True)"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            result = measure(
+                [sys.executable, "-c", parent],
+                dict(os.environ),
+                Path(directory) / "descendant.log",
+                10,
+            )
+            self.assertEqual(result[3:], (0, False))
+            self.assertGreaterEqual(result[1], 0.19)
+
 
 class SampleValidationTests(unittest.TestCase):
     """Compare decoded data rather than file-container identity."""
