@@ -35,7 +35,7 @@ namespace Mediana.Codecs.Opus
                 if (pending is not null) { succeeded = true; return CodecInputStatus.OutputRequired; }
                 if (input.StreamIndex != streamIndex || input.Data.IsEmpty) { throw new InvalidDataException("The Opus packet is empty or belongs to a different stream."); }
                 int samples = OpusPacketInfo.ReadTiming(input.Data.Span).SampleCount;
-                int end = GetPresentationSamples(input.Duration, samples);
+                int end = AudioPacketTiming.GetPresentationSamples(input.Duration, OpusConfiguration.ClockRate, samples);
                 workspace ??= new(configuration, allocator);
                 using WritableMediaBuffer writable = allocator.Allocate(format.GetBufferSize(samples));
                 Span<float> output = MemoryMarshal.Cast<byte, float>(writable.Span);
@@ -60,19 +60,6 @@ namespace Mediana.Codecs.Opus
                 succeeded = true; return CodecInputStatus.Accepted;
             }
             finally { if (!succeeded) { Fault(); } }
-        }
-
-        private static int GetPresentationSamples(MediaDuration? duration, int samples)
-        {
-            if (duration is null) { return samples; }
-            MediaDuration value = duration.Value;
-            Int128 numerator = (Int128)value.Value * value.TimeBase.Numerator * OpusConfiguration.ClockRate;
-            Int128 count = numerator / value.TimeBase.Denominator;
-            if (numerator % value.TimeBase.Denominator != 0 || count > samples)
-            {
-                throw new InvalidDataException("The Opus presentation duration must contain a whole number of samples within its coded packet.");
-            }
-            return (int)count;
         }
 
         private void ApplyGain(Span<float> output)
