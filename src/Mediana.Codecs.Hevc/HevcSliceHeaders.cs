@@ -11,8 +11,9 @@ namespace Mediana.Codecs.Hevc
             HevcSliceHeader first = slices[0];
             foreach (HevcSliceHeader slice in slices)
             {
-                if (!ReferenceEquals(slice.Picture.Sequence, first.Picture.Sequence) || slice.PictureOrderCount != first.PictureOrderCount ||
+                if (!ReferenceEquals(slice.Picture, first.Picture) || slice.PictureOrderCount != first.PictureOrderCount ||
                     slice.NalType != first.NalType || slice.TemporalId != first.TemporalId || slice.PictureOutput != first.PictureOutput ||
+                    slice.NoOutputOfPriorPictures != first.NoOutputOfPriorPictures || slice.TemporalMvp != first.TemporalMvp ||
                     !slice.References.ShortTerm.Pictures.SequenceEqual(first.References.ShortTerm.Pictures) ||
                     !slice.References.LongTerm.SequenceEqual(first.References.LongTerm))
                 { throw new InvalidDataException("Inconsistent HEVC slices in one picture."); }
