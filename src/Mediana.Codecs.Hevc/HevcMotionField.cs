@@ -30,6 +30,13 @@ namespace Mediana.Codecs.Hevc
         public int Width { get; }
         public int Height { get; }
 
+        public void Reset()
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (cellSize != 4) { throw new InvalidOperationException("Temporal motion fields are immutable."); }
+            storage.Memory.Span.Clear();
+        }
+
         public HevcMotionSample Get(int x, int y)
         {
             ObjectDisposedException.ThrowIf(disposed, this);

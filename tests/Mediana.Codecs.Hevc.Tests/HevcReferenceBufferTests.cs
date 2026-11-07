@@ -10,6 +10,37 @@ namespace Mediana.Codecs.Hevc.Tests
     public class HevcReferenceBufferTests
     {
         [Fact]
+        public void ReusedWorkingMotionClearsAvailabilityWithoutAllocatingOrChangingCompactReferences()
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using (HevcMotionField working = new(64, 48, allocator))
+            {
+                working.Set(0, 0, 64, 48, new(7, 0, new(3, 5), default, 0, -1, HevcMotionSample.List0));
+                using HevcMotionField retained = working.Compact(allocator);
+                long before = GC.GetAllocatedBytesForCurrentThread();
+                working.Reset();
+                long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+                Assert.Equal(0, allocated);
+                for (int y = 0; y < 48; y += 4)
+                {
+                    for (int x = 0; x < 64; x += 4)
+                    { Assert.False(working.Get(x, y).IsAvailable); Assert.Equal(7, retained.Get(x, y).PictureOrder0); }
+                }
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(int.MaxValue, 1)]
+        [InlineData(int.MinValue, -1)]
+        public void ReferenceOrderCannotWrapAroundTheSignedStorageRange(int order, int delta)
+        {
+            using HevcReferenceBuffer buffer = new();
+            HevcSliceReferences syntax = new(order & 255, new([new(delta, false)]), []);
+            Assert.Throws<InvalidDataException>(() => buffer.Select(syntax, order, 8));
+        }
+
+        [Fact]
         public void TemporalStoragePreservesRoundedSixteenSampleCellsWithMuchSmallerCapacity()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);

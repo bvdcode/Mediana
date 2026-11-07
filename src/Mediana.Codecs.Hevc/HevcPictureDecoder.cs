@@ -10,6 +10,7 @@ namespace Mediana.Codecs.Hevc
         private readonly MediaBufferAllocator allocator;
         private readonly ReconstructionWorkspace workspace;
         private readonly HevcMotionCompensator compensator;
+        private HevcMotionField? workingMotion;
         private bool disposed;
 
         public HevcPictureDecoder(MediaBufferAllocator allocator)
@@ -31,7 +32,7 @@ namespace Mediana.Codecs.Hevc
             bool completed = false;
             try
             {
-                using HevcMotionField motion = new(sequence.Width, sequence.Height, allocator);
+                HevcMotionField motion = GetMotion(sequence);
                 using CodingBlockMap blocks = new(sequence.Width, sequence.Height, partitions);
                 SaoFilter sao = new(first, partitions);
                 foreach (HevcSliceHeader slice in slices)
@@ -72,10 +73,19 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
+        private HevcMotionField GetMotion(SequenceParameters sequence)
+        {
+            if (workingMotion is not null && workingMotion.Width == sequence.Width && workingMotion.Height == sequence.Height)
+            { workingMotion.Reset(); return workingMotion; }
+            workingMotion?.Dispose(); workingMotion = null;
+            workingMotion = new(sequence.Width, sequence.Height, allocator);
+            return workingMotion;
+        }
+
         public void Dispose()
         {
             if (disposed) { return; }
-            compensator.Dispose(); workspace.Dispose(); disposed = true;
+            workingMotion?.Dispose(); compensator.Dispose(); workspace.Dispose(); disposed = true;
         }
     }
 }

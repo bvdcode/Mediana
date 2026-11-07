@@ -22,7 +22,7 @@ namespace Mediana.Codecs.Hevc
             List<HevcReferenceEntry> before = [], after = [], longTerm = [];
             foreach (HevcShortTermReference reference in syntax.ShortTerm.Pictures)
             {
-                long target = order + reference.Delta;
+                long target = (long)order + reference.Delta;
                 if (target < int.MinValue || target > int.MaxValue || target == order)
                 { throw new InvalidDataException("Invalid HEVC short-term picture order."); }
                 int key = (int)target;
