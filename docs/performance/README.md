@@ -71,10 +71,10 @@ nearest neighbor; their timings do not establish the cost of another kernel.
 
 | Direction / stage | Method | Mediana status | Reference / measurements |
 | --- | --- | --- | --- |
-| Decode: chroma expansion | Nearest neighbor | Implemented | libheif/libde265; [12 MP](#heic-photo-12mp) and [200 MP](#heic-photo-200mp) |
-| Decode: chroma expansion | Bilinear | Implemented; default | libheif supports this mode; paired CPU/RAM measurements remain open |
-| Decode: chroma expansion | Bicubic (Catmull-Rom) | Implemented | Independent component-plane checks; whole-image CPU/RAM measurements remain open |
-| Decode: chroma expansion | Lanczos3 | Implemented | Radius-three window; independent component-plane checks; whole-image CPU/RAM measurements remain open |
+| Decode: chroma expansion | Nearest neighbor | Implemented | libheif/libde265; [paired 12 MP](#heic-photo-12mp) and [200 MP](#heic-photo-200mp); [current four-mode runs](../chroma-reconstruction.md#whole-file-measurements) |
+| Decode: chroma expansion | Bilinear | Implemented; default | [Complete 12 MP and 200 MP runs](../chroma-reconstruction.md#whole-file-measurements); native sample-location/edge behavior differs |
+| Decode: chroma expansion | Bicubic (Catmull-Rom) | Implemented | [Complete 12 MP and 200 MP runs](../chroma-reconstruction.md#whole-file-measurements); independent component-plane checks |
+| Decode: chroma expansion | Lanczos3 | Implemented | [Complete 12 MP and 200 MP runs](../chroma-reconstruction.md#whole-file-measurements); radius-three window and independent component-plane checks |
 | Encode: HEVC image and HEIF writing | Separate encoder operation | Not implemented | Decoder results do not establish encoding support |
 
 Nearest neighbor repeats a color sample; bilinear mixes neighboring samples;
