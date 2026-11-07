@@ -557,3 +557,14 @@ gains/excitation. Four lost frames contain 32-bit random scale and previous gain
 signed 16-bit input/output PCM, 16 signed 32-bit synthesis words and a 32-bit seed.
 
 SHA-256: `cbb60c4d3f7ff7c22458e9a061629276b7d4f00dc86e075af8e9fa68b6d8a739`.
+
+`decoded-silk-recovery.bin.gz` records 4,608 packets from 48 libopus 1.6.1
+streams. SILK rates 8/12/16 kHz, mono/stereo decoding, coded channel changes
+and 10/20/40/60 ms packets include received speech, paired packet losses,
+long silent intervals with DTX and resumed speech. All PCM samples and final
+entropy ranges match exactly. Each stream records 32-bit rate/output channels/
+packet count. Packets record 32-bit encoded length (zero for loss), bytes,
+32-bit decoded sample count/final range and interleaved signed 16-bit PCM.
+The decompressed header is `OPUSREC1` followed by a 32-bit stream count.
+
+SHA-256: `e7517e3d76ecaafe108e85bfd26dc64490a52e4fb1e404d81d8bf730b3a744b9`.

@@ -150,6 +150,14 @@ namespace Mediana.Codecs.Opus
             mid.Decode(ref range, mode, midCoding, header.IsActive(0, index), midSamples);
             if (channels == 2 && !midOnly) { side.Decode(ref range, mode, sideCoding, header.IsActive(1, index), sideSamples); }
             else { sideSamples.Clear(); }
+            PublishBlock(mode, channels, prediction, midSamples, sideSamples, collapsing, output);
+            previousChannels = channels; previousMidOnly = midOnly;
+        }
+
+        private void PublishBlock(SilkFrameMode mode, int channels, SilkStereoPrediction prediction,
+            Span<short> midSamples, Span<short> sideSamples, bool collapsing, Span<float> output)
+        {
+            Span<short> values = MemoryMarshal.Cast<byte, short>(storage.Span);
             if (OutputChannels == 2 && channels == 2) { SilkStereoSynthesis.Unmix(stereo, mode, prediction, midSamples, sideSamples); }
             else { SilkStereoSynthesis.DelayMono(stereo, midSamples); }
             Span<short> converted = values[(2 * planeSamples)..];
@@ -161,7 +169,32 @@ namespace Mediana.Codecs.Opus
                 else if (collapsing) { rightResampler.Process(midSamples, converted); }
                 for (int at = 0; at < written; at++) { output[2 * at + 1] = converted[at] * (1f / 32768); }
             }
-            previousChannels = channels; previousMidOnly = midOnly;
+        }
+
+        public int Conceal(int samples, Span<float> output, CancellationToken cancellationToken = default)
+        {
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (faulted) { throw new InvalidOperationException("Reset the SILK decoder after a failed frame."); }
+            if (samples is not (480 or 960)) { throw new ArgumentOutOfRangeException(nameof(samples)); }
+            ArgumentOutOfRangeException.ThrowIfLessThan(output.Length, samples * OutputChannels, nameof(output));
+            cancellationToken.ThrowIfCancellationRequested();
+            bool succeeded = false;
+            try
+            {
+                int subframes = samples switch { 480 => 2, 960 => 4, _ => throw new InvalidOperationException() };
+                SilkFrameMode mode = new(SampleRate, subframes);
+                Span<short> values = MemoryMarshal.Cast<byte, short>(storage.Span);
+                Span<short> midSamples = values[..mode.FrameSamples], sideSamples = values.Slice(planeSamples, mode.FrameSamples);
+                mid.Conceal(mode, midSamples);
+                if (previousChannels == 2 && !previousMidOnly) { side.Conceal(mode, sideSamples); }
+                else { sideSamples.Clear(); }
+                cancellationToken.ThrowIfCancellationRequested();
+                PublishBlock(mode, previousChannels, stereo.Prediction, midSamples, sideSamples, false, output);
+                mid.ResetGainIndex();
+                if (previousChannels == 2) { side.ResetGainIndex(); }
+                FinalRange = 0; succeeded = true; return samples;
+            }
+            finally { if (!succeeded) { faulted = true; } }
         }
 
         public void SetSampleRate(int sampleRate)

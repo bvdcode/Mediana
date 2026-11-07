@@ -9,7 +9,7 @@ namespace Mediana.Codecs.Opus
         private const int PitchTaps = 5;
 
         public static void Process(SilkSynthesisState state, SilkFrameMode mode, SilkFrameIndices indices,
-            SilkFilterParameters filters, SilkParameterBuffers parameters, ReadOnlySpan<short> pulses, Span<short> output)
+            SilkFilterParameters filters, SilkParameterBuffers parameters, ReadOnlySpan<short> pulses, Span<short> output, int recoveryPitch = 0)
         {
             ArgumentNullException.ThrowIfNull(state);
             if (state.SampleRate != mode.SampleRate) { throw new ArgumentException("The SILK synthesis state has a different sample rate.", nameof(state)); }
@@ -27,6 +27,10 @@ namespace Mediana.Codecs.Opus
                 SilkSignalType.Voiced => true,
                 _ => throw new ArgumentOutOfRangeException(nameof(indices))
             };
+            if (recoveryPitch != 0 && (recoveryPitch < 2 * mode.RateKhz || recoveryPitch > 18 * mode.RateKhz))
+            {
+                throw new ArgumentOutOfRangeException(nameof(recoveryPitch));
+            }
             foreach (int gain in parameters.GainsQ16[..mode.Subframes])
             {
                 if (gain is < 81920 or > 1686110208) { throw new ArgumentOutOfRangeException(nameof(parameters)); }
@@ -58,7 +62,7 @@ namespace Mediana.Codecs.Opus
                 }
                 state.PreviousGainQ16 = gain;
                 Span<int> residual = excitation.Slice(subframe * subframeSamples, subframeSamples);
-                if (voiced)
+                if (voiced || (recoveryPitch != 0 && subframe < 2))
                 {
                     int lag = parameters.PitchLags[subframe];
                     if (subframe == 0 || (subframe == 2 && filters.InterpolationQ2 < 4))
