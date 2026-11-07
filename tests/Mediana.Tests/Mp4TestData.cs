@@ -14,7 +14,7 @@ namespace Mediana.Tests
         public static int PayloadOffset(byte[] data, string boxType)
         {
             int offset = data.AsSpan().IndexOf(Encoding.Latin1.GetBytes(boxType));
-            Assert.True(offset >= 4, $"The fixture has no '{boxType}' box.");
+            if (offset < 4) { throw new InvalidDataException($"The fixture has no '{boxType}' box."); }
             return offset + 4;
         }
 
@@ -47,7 +47,8 @@ namespace Mediana.Tests
 
         public static byte[] AppendToVisualDescription(byte[] data, byte[] suffix)
         {
-            Assert.True(PayloadOffset(data, "moov") > PayloadOffset(data, "mdat"));
+            if (PayloadOffset(data, "moov") <= PayloadOffset(data, "mdat"))
+            { throw new InvalidDataException("The fixture requires movie metadata after its media data."); }
             int entry = PayloadOffset(data, "avc1") - 8;
             int end = checked(entry + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(entry, 4)));
             foreach (string type in new[] { "moov", "trak", "mdia", "minf", "stbl", "stsd", "avc1" })
@@ -90,7 +91,7 @@ namespace Mediana.Tests
             {
                 int payload = PayloadOffset(data, type);
                 int oldSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(payload - 8, 4));
-                Assert.Equal(0, data[payload]);
+                if (data[payload] != 0) { throw new InvalidDataException("The fixture time header must use version zero."); }
                 byte[] replacement = new byte[oldSize + 12];
                 BinaryPrimitives.WriteUInt32BigEndian(replacement, (uint)replacement.Length);
                 data.AsSpan(payload - 4, 4).CopyTo(replacement.AsSpan(4));

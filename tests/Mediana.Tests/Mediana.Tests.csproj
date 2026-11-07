@@ -15,6 +15,7 @@
     <None Include="Data/Mjpeg/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/ImageExifOrientationTestInput.cs" Link="ImageExifOrientationTestInput.cs" />
     <Compile Include="../Shared/MediaExportTestInput.cs" Link="MediaExportTestInput.cs" />
+    <Compile Include="../Shared/VideoTranscodeTestInput.cs" Link="VideoTranscodeTestInput.cs" />
     <Compile Include="../Shared/YuvFramePreparationTestInput.cs" Link="YuvFramePreparationTestInput.cs" />
     <Compile Include="../Shared/DocumentPackageTestData.cs" Link="DocumentPackageTestData.cs" />
     <Compile Include="../Shared/PresentationTestData.cs" Link="PresentationTestData.cs" />

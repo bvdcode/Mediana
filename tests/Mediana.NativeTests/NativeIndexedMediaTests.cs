@@ -29,6 +29,8 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS public Vorbis PCM: 1,183 sequential packets, 128 transforms, sample clocks, overlap transitions and lease ownership match independent references.");
             await Vp8ContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Vp8"));
             Console.WriteLine("PASS VP8 video: exact WebM pictures, hidden references, repeated indexed seeks, AVC encoding and pooled buffer release.");
+            await VideoTranscodeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
+            Console.WriteLine("PASS video convenience: adaptive VP9, exact 1/101 ms movie tails, rate control, input progress and output match common processing.");
             await VpxHlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"));
             Console.WriteLine("PASS WebM HLS: cold and repeated VP8/VP9 tail windows, hidden references, exact clocks and sample counts, payload-free planning and released buffers.");
             foreach (string visualName in new[] { "bframes", "fractional", "quarter" })

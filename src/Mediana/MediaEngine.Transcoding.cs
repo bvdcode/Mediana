@@ -6,6 +6,7 @@ using Mediana.Containers;
 using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 using Mediana.Execution;
 using Mediana.IO;
 using Mediana.Processing.Audio;
@@ -39,15 +40,17 @@ namespace Mediana
             await using MediaProcessingSession session = await OpenProcessingCoreAsync(indexed, [request], allocator, container.Allocator,
                 new() { Input = options.Input }, cancellationToken).ConfigureAwait(false);
             EncodedStreamInfo stream = container.Streams.Single(stream => stream.StreamIndex == streamIndex);
+            MediaDuration? totalDuration = (indexed as IContainerPresentationReader)?.GetPresentationRange(streamIndex, cancellationToken)?.Duration
+                ?? stream.CodedDuration;
             using CountingWriteStream output = new(destination);
             await using IContainerWriter writer = CreateContainerWriter(containerFormatId, output, session.Streams, allocator);
             await session.WriteAsync(writer, progress is null ? null : Observe, cancellationToken).ConfigureAwait(false);
             MediaOperationProgress result = session.GetSingleTrackProgress(true);
-            progress?.Invoke(new(result.ProcessedDuration, output.BytesWritten, true, stream.CodedDuration));
+            progress?.Invoke(new(result.ProcessedDuration, output.BytesWritten, true, totalDuration));
             return result;
 
             void Observe(MediaPacket _) => progress?.Invoke(new(session.GetSingleTrackProgress(false).ProcessedDuration,
-                output.BytesWritten, false, stream.CodedDuration));
+                output.BytesWritten, false, totalDuration));
         }
 
         /// <summary>Decodes and prepares mono/stereo Float32 PCM for a registered encoder and muxer.
