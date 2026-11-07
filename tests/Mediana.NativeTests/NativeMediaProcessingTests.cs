@@ -5,6 +5,8 @@ using Mediana.Codecs.Aac;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
+using Mediana.Containers;
+using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
@@ -49,19 +51,24 @@ namespace Mediana.NativeTests
                     if (allocator.AllocatedBytes != baseline)
                     { throw new InvalidOperationException("Audiovisual processing retained codec or presentation buffers."); }
                 }
-                await VerifyHlsAsync(reader, allocator, baseline);
+                await VerifyHlsAsync(reader, allocator, baseline, false);
+                await VerifyHlsAsync(reader, allocator, baseline, true);
             }
             if (allocator.AllocatedBytes != 0 || !input.CanRead)
             { throw new InvalidOperationException("Audiovisual processing retained storage or closed the borrowed source."); }
             Console.WriteLine("PASS audiovisual interval processing: scaled video, exact PCM sample selection, encoder priming/padding, repeatable muxing and released ownership.");
         }
 
-        private static async Task VerifyHlsAsync(Mp4Reader reader, MediaBufferAllocator allocator, long baseline)
+        private static async Task VerifyHlsAsync(Mp4Reader reader, MediaBufferAllocator allocator, long baseline, bool encodeAudio)
         {
             VideoFormat format = new(64, 48, VideoPixelFormat.Yuv420P8,
                 new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709, ColorRange.Limited, ChromaLocation.Left), new(1, 1));
             await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(reader, 0, new H264DecoderFactory(), format,
-                new MediaDuration(1, new(1, 1)), allocator, preparation: new() { MaximumWidth = 32 }, copyAudioStreamIndex: 1);
+                new MediaDuration(1, new(1, 1)), allocator, preparation: new() { MaximumWidth = 32 },
+                copyAudioStreamIndex: encodeAudio ? null : 1,
+                audioEncoding: encodeAudio ? new(1, new AacDecoderFactory(),
+                    new AudioFormat(48000, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, "front-center"),
+                    ((IContainerPresentationReader)reader).GetPresentationRange(1)!.Value) : null);
             using MemoryStream initialization = new();
             await session.WriteInitializationAsync(initialization);
             byte[]? previous = null;
@@ -79,7 +86,7 @@ namespace Mediana.NativeTests
                     previous = bytes;
                 }
             }
-            Console.WriteLine("PASS audiovisual HLS intervals: shared processing, scaling, original AAC packet clocks and repeated cold fragments.");
+            Console.WriteLine($"PASS audiovisual HLS intervals: shared processing, scaling, AAC {(encodeAudio ? "encoding" : "copy")} and repeated cold fragments.");
         }
     }
 }

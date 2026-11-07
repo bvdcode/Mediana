@@ -9,7 +9,7 @@ using Mediana.Execution;
 
 namespace Mediana.Streaming.Hls
 {
-    internal class HlsCopiedAudioTrack
+    internal class HlsCopiedAudioTrack : IHlsAudioTrack
     {
         private const int InitialPrerollPackets = 2;
         private readonly IIndexedPacketTimingReader reader;
@@ -38,7 +38,7 @@ namespace Mediana.Streaming.Hls
 
         public Mp4AudioTrackDefinition Definition { get; }
 
-        public PacketCopyRequest CreateRequest(HlsVideoWindow window)
+        public MediaTrackRequest CreateRequest(HlsVideoWindow window)
         {
             MediaTimestamp start = window.Start;
             if (window.Number == 0)
@@ -63,7 +63,7 @@ namespace Mediana.Streaming.Hls
                     }
                 }
             }
-            return new(sourceStreamIndex, Definition.Stream.StreamIndex, PacketCopyAlignment.PresentationStarts, new(start, window.End));
+            return new PacketCopyRequest(sourceStreamIndex, Definition.Stream.StreamIndex, PacketCopyAlignment.PresentationStarts, new(start, window.End));
         }
     }
 }

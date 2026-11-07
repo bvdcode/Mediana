@@ -135,6 +135,73 @@ Independent FFmpeg playback of a 12-segment playlist decodes all 60 scaled pictu
 its complete decoded audio is byte-identical to decoding the original AAC source.
 Native AOT also exercises repeated audiovisual requests using this shared operation.
 
+### Encoding AAC audio
+
+Supply `audioEncoding` instead of `copyAudioStreamIndex` to decode and encode the
+selected audio alongside each requested video window:
+
+```csharp
+HlsAacEncoding audio = new(
+    audioStreamIndex, audioDecoderFactory, decodedAudioFormat, audioPresentation,
+    new AacEncoderOptions { BitRate = 128000 }, channels: 2);
+
+await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(
+    reader, videoStreamIndex, videoDecoderFactory, decodedVideoFormat,
+    new MediaDuration(2, new TimeBase(1, 1)), allocator,
+    preparation: new VideoPreparationOptions { MaximumWidth = 1280 },
+    audioEncoding: audio);
+```
+
+The caller declares the decoder's PCM format and exact audible source bounds.
+Container presentation edits still restrict decoded samples. Channel preparation
+uses the same Float32 conversion and explicit mono/stereo downmix as file encoding.
+The source decoder must support indexed restart or bounded container preroll.
+Creation validates these capabilities without reading source packets.
+
+AAC access units use one global 1024-sample grid anchored at the declared source
+origin. Each video window owns packets whose presentation starts lie within it;
+the source's initial priming packet belongs only to its opening window. Requests
+decode at most four preceding encoder blocks and two following blocks, in addition
+to the source decoder's own preroll. The fractional per-frame bitrate budget is
+reconstructed arithmetically from the grid offset. No earlier interval is encoded
+and no saved encoder checkpoint or preceding request is needed.
+
+`AacEncodingInterval` and `AacIntervalEncoderFactory` expose this mechanism outside
+HLS. Pass the plan's `Input` and `Output` as `AudioEncodingRequest.selection` and
+`packetSelection`. The request and shared processing engine retain no AAC-specific
+branch. Empty packet intervals need no audio encoding request.
+
+Bounded transient analysis uses the previous and current PCM blocks. Independently
+encoded windows match continuous encoding byte for byte for identical PCM, including
+transient transitions, fractional clocks, mono/stereo, 8/22.05/44.1/48 kHz and a
+partial final frame. Compressed sources with perceptual noise substitution can
+synthesize a different valid noise phase after seeking. Those sources are checked
+for repeated-request determinism, unchanged packet clocks, complete packet ownership
+and decoded signal quality rather than identical continuous-encode payloads.
+
+The initialization contains an explicit finite presentation endpoint and a priming
+offset. Its movie and track header durations remain zero as required for HLS fMP4.
+Raw AAC decoding still returns complete 1024-sample frames; the consumer applies
+the declared presentation endpoint when excluding tail padding. FFmpeg raw PCM
+export includes the same final 512 padded samples for both the generated 12-second
+source and the encoded HLS output. Those samples are excluded from audible-range
+quality measurements.
+
+Independent FFmpeg decoding of all 12 reverse-generated audiovisual segments yields
+60 pictures and 576,512 raw mono samples. Over the declared 576,000 audible samples,
+SNR against FFmpeg decoding of the source is 70.13 dB; 2048-sample neighborhoods
+around the eleven joins measure 74.05–77.00 dB. The playlist omits the independent
+segments claim because AAC overlap can span adjacent segments.
+
+The `hls` command in `Mediana.ProcessingBenchmarks` measures opening/index reads,
+requested-interval reads, complete encoding/muxing, elapsed/CPU time, peak RSS and
+managed allocations. On the generated 30-minute AVC/AAC source (17,929,339 bytes),
+opening reads 586,471 bytes and requesting second 1799 reads another 11,255 bytes.
+One cold-process observation, including runtime compilation, is 781 ms elapsed,
+761 ms CPU, 50.5 MiB peak RSS and 3.07 MiB managed allocations. The reader retains
+1 MiB of pooled index storage; disposal releases the complete allocator budget.
+This is a cold-I/O/ownership check, not a codec throughput comparison.
+
 All 60 independently decoded output pictures from a 12-second AVC source match
 reference YUV pixels. Managed checks also compare the encoded packets with sequential
 source decoding, including mid-GOP windows, reverse and repeated requests, clocks,
