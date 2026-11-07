@@ -27,29 +27,29 @@ namespace Mediana.Tests
             Dictionary<MediaTimestamp, string> pictures = [];
             await using (VideoSession session = await engine.OpenVideoAsync(source, allocator, new(), null))
             {
-                if (session.Stream.CodecId != "theora") { throw new InvalidDataException("Ogg did not expose VP9 video."); }
+                if (session.Stream.CodecId != "theora") { throw new InvalidDataException("Ogg did not expose Theora video."); }
                 while (await session.ReadFrameAsync() is VideoFrame frame)
                 {
                     using (frame)
                     {
                         string digest = Hash(frame, hash);
-                        if (expected[pictures.Count] != digest) { throw new InvalidDataException("Ogg VP9 differs from independent reconstruction."); }
-                        pictures.Add(frame.Timestamp ?? throw new InvalidDataException("Missing VP9 presentation time."), digest);
+                        if (expected[pictures.Count] != digest) { throw new InvalidDataException("Ogg Theora differs from independent reconstruction."); }
+                        pictures.Add(frame.Timestamp ?? throw new InvalidDataException("Missing Theora presentation time."), digest);
                         if (pictures.Count == 1)
                         {
                             using VideoFrame preview = SrgbPreview.FitWithColorPolicy(frame, SdrPreviewColorPolicy.Resolve, VideoDisplayMatrix.Identity, 32, 32, allocator);
-                            if (preview.Format.Width > 32 || preview.Format.Height > 32) { throw new InvalidDataException("VP9 preview exceeded its dimensions."); }
+                            if (preview.Format.Width > 32 || preview.Format.Height > 32) { throw new InvalidDataException("Theora preview exceeded its dimensions."); }
                         }
                     }
                 }
-                if (pictures.Count != expected.Length) { throw new InvalidDataException("Ogg VP9 picture count differs."); }
+                if (pictures.Count != expected.Length) { throw new InvalidDataException("Ogg Theora picture count differs."); }
                 MediaTimestamp[] positions = pictures.Keys.ToArray();
                 foreach (MediaTimestamp target in new[] { positions[^1], positions[0], positions[positions.Length / 2], positions[^1] })
                 {
                     await session.SeekAsync(target);
-                    using VideoFrame frame = await session.ReadFrameAtOrAfterAsync(target) ?? throw new InvalidDataException("VP9 indexed seek lost its picture.");
+                    using VideoFrame frame = await session.ReadFrameAtOrAfterAsync(target) ?? throw new InvalidDataException("Theora indexed seek lost its picture.");
                     if (frame.Timestamp is not MediaTimestamp timestamp || !pictures.TryGetValue(timestamp, out string? digest) || digest != Hash(frame, hash))
-                    { throw new InvalidDataException("VP9 indexed seek changed reconstructed pixels."); }
+                    { throw new InvalidDataException("Theora indexed seek changed reconstructed pixels."); }
                 }
             }
             using MemoryStream output = new();
@@ -57,8 +57,8 @@ namespace Mediana.Tests
                 [new VideoEncodingRequest(0, 0, new H264EncoderFactory(), new VideoPreparationOptions
                     { OutputPixelFormat = VideoPixelFormat.Yuv420P8, MaximumWidth = 32, RgbConversion = new() })], allocator);
             if (encoded.Tracks[0].Frames != expected.Length || output.Length == 0)
-            { throw new InvalidDataException("VP9 to AVC encoding changed the picture count."); }
-            if (allocator.AllocatedBytes != 0) { throw new InvalidDataException("VP9 session retained frame or reference storage."); }
+            { throw new InvalidDataException("Theora to AVC encoding changed the picture count."); }
+            if (allocator.AllocatedBytes != 0) { throw new InvalidDataException("Theora session retained frame or reference storage."); }
         }
 
         private static string Hash(VideoFrame frame, IncrementalHash hash)
