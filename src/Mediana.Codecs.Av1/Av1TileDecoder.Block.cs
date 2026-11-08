@@ -32,6 +32,9 @@ namespace Mediana.Codecs.Av1
             {
                 throw new NotSupportedException("AV1 directional intra edge filtering is not implemented.");
             }
+            bool hasChroma = !sequence.Monochrome && !(height == 1 && (row & 1) == 0) &&
+                !(width == 1 && (column & 1) == 0);
+            Av1ChromaMode chroma = hasChroma ? ReadChromaMode(mode, blockIndex, width, height) : default;
             Span<byte> colors = stackalloc byte[8];
             int paletteSize = 0;
             int widthLog = BitOperations.Log2((uint)width);
@@ -39,6 +42,14 @@ namespace Mediana.Codecs.Av1
             if (mode == 0 && blockIndex >= 3 && width <= 16 && height <= 16 && header.ScreenContent)
             {
                 paletteSize = Palette(row, column, widthLog + heightLog - 2, colors);
+            }
+            if (hasChroma && chroma.Mode == 0 && blockIndex >= 3 && width <= 16 && height <= 16 && header.ScreenContent)
+            {
+                int uvPaletteContext = paletteSize == 0 ? 0 : 1;
+                if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.UvPaletteModeOffset + uvPaletteContext * 3, 3)) != 0)
+                {
+                    throw new NotSupportedException("AV1 chroma palette reconstruction is not implemented.");
+                }
             }
             if (mode == 0 && paletteSize == 0 && sequence.FilterIntra && width <= 8 && height <= 8)
             {
@@ -53,7 +64,7 @@ namespace Mediana.Codecs.Av1
             {
                 ReadPaletteTokens(row, column, width * 4, height * 4, paletteSize, colorMap);
             }
-            Residual(row, column, width, height, skip != 0, mode, angleDelta, colors[..paletteSize], colorMap);
+            Residual(row, column, width, height, skip != 0, mode, angleDelta, hasChroma, chroma, colors[..paletteSize], colorMap);
             Av1BlockContext context = new()
             {
                 Mode = (byte)mode,
@@ -82,77 +93,80 @@ namespace Mediana.Codecs.Av1
         }
 
         private void Residual(int row, int column, int width, int height, bool skip, int mode, int angleDelta,
-            scoped ReadOnlySpan<byte> colors, scoped ReadOnlySpan<byte> colorMap)
+            bool hasChroma, Av1ChromaMode chroma, scoped ReadOnlySpan<byte> colors, scoped ReadOnlySpan<byte> colorMap)
         {
-            int codedWidth = Math.Min(width, sequence.MiColumns - column);
-            int codedHeight = Math.Min(height, sequence.MiRows - row);
             Span<int> residual = stackalloc int[16];
-            for (int unitY = 0; unitY < codedHeight; unitY += 16)
+            int planes = hasChroma ? 3 : 1;
+            for (int unitY = 0; unitY < height; unitY += 16)
             {
-                for (int unitX = 0; unitX < codedWidth; unitX += 16)
+                for (int unitX = 0; unitX < width; unitX += 16)
                 {
-                    for (int y = unitY; y < Math.Min(unitY + 16, codedHeight); y++)
+                    for (int plane = 0; plane < planes; plane++)
                     {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        for (int x = unitX; x < Math.Min(unitX + 16, codedWidth); x++)
+                        int sub = sequence.PlaneShift(plane);
+                        int planeColumn = column >> sub;
+                        int planeRow = row >> sub;
+                        int blockWidth = Math.Max(1, width >> sub);
+                        int blockHeight = Math.Max(1, height >> sub);
+                        int codedWidth = Math.Min(blockWidth, sequence.PlaneColumns(plane) - planeColumn);
+                        int codedHeight = Math.Min(blockHeight, sequence.PlaneRows(plane) - planeRow);
+                        int startX = unitX >> sub;
+                        int startY = unitY >> sub;
+                        int endX = Math.Min(startX + (16 >> sub), codedWidth);
+                        int endY = Math.Min(startY + (16 >> sub), codedHeight);
+                        int stride = sequence.PlaneStride(plane);
+                        int offset = sequence.PlaneOffset(plane);
+                        int selectedMode = plane == 0 ? mode : chroma.Mode;
+                        int selectedDelta = plane == 0 ? angleDelta : chroma.AngleDelta;
+                        for (int y = startY; y < endY; y++)
                         {
-                            Coefficients(column + x, row + y, width, height, skip, residual);
-                            int pixelX = (column + x) * 4;
-                            int pixelY = (row + y) * 4;
-                            if (colors.IsEmpty)
+                            cancellationToken.ThrowIfCancellationRequested();
+                            for (int x = startX; x < endX; x++)
                             {
-                                PredictIntra(pixelX, pixelY, mode, angleDelta);
-                            }
-                            else
-                            {
-                                for (int dy = 0; dy < 4; dy++)
+                                Coefficients(plane, planeColumn + x, planeRow + y, blockWidth, blockHeight, skip, residual);
+                                int pixelX = (planeColumn + x) * 4;
+                                int pixelY = (planeRow + y) * 4;
+                                if (plane == 0 && !colors.IsEmpty)
                                 {
-                                    Span<byte> target = output.Slice((pixelY + dy) * sequence.Stride + pixelX, 4);
-                                    for (int dx = 0; dx < 4; dx++)
+                                    for (int dy = 0; dy < 4; dy++)
                                     {
-                                        target[dx] = colors[colorMap[(y * 4 + dy) * (width * 4) + x * 4 + dx]];
+                                        Span<byte> target = output.Slice(offset + (pixelY + dy) * stride + pixelX, 4);
+                                        for (int dx = 0; dx < 4; dx++)
+                                        {
+                                            target[dx] = colors[colorMap[(y * 4 + dy) * (width * 4) + x * 4 + dx]];
+                                        }
                                     }
                                 }
-                            }
-                            for (int dy = 0; dy < 4; dy++)
-                            {
-                                Span<byte> target = output.Slice((pixelY + dy) * sequence.Stride + pixelX, 4);
-                                for (int dx = 0; dx < 4; dx++)
+                                else
                                 {
-                                    target[dx] = (byte)Math.Clamp(target[dx] + residual[dy * 4 + dx], 0, 255);
+                                    PredictIntra(plane, pixelX, pixelY, selectedMode == 13 ? 0 : selectedMode, selectedDelta);
+                                    if (selectedMode == 13)
+                                    {
+                                        int alpha = plane switch
+                                        {
+                                            1 => chroma.AlphaU,
+                                            2 => chroma.AlphaV,
+                                            _ => throw new InvalidDataException("AV1 CFL prediction requires a chroma plane.")
+                                        };
+                                        int maximumX = Math.Min((column + width) * 4, sequence.Stride);
+                                        int maximumY = Math.Min((row + height) * 4, sequence.PaddedHeight);
+                                        PredictChromaFromLuma(plane, pixelX, pixelY, alpha, maximumX, maximumY);
+                                    }
                                 }
+                                for (int dy = 0; dy < 4; dy++)
+                                {
+                                    Span<byte> target = output.Slice(offset + (pixelY + dy) * stride + pixelX, 4);
+                                    for (int dx = 0; dx < 4; dx++)
+                                    {
+                                        target[dx] = (byte)Math.Clamp(target[dx] + residual[dy * 4 + dx], 0, 255);
+                                    }
+                                }
+                                int decodedOffset = offset / 16 + (planeRow + y) * sequence.PlaneColumns(plane) + planeColumn + x;
+                                decoded[decodedOffset] = 1;
                             }
-                            decoded[(row + y) * sequence.MiColumns + column + x] = 1;
                         }
                     }
                 }
-            }
-        }
-
-        private void PredictDc(int x, int y)
-        {
-            int sum = 0;
-            int count = 0;
-            if (x > 0)
-            {
-                for (int index = 0; index < 4; index++)
-                {
-                    sum += output[(y + index) * sequence.Stride + x - 1];
-                }
-                count += 4;
-            }
-            if (y > 0)
-            {
-                foreach (byte sample in output.Slice((y - 1) * sequence.Stride + x, 4))
-                {
-                    sum += sample;
-                }
-                count += 4;
-            }
-            byte predicted = count == 0 ? (byte)128 : (byte)((sum + count / 2) / count);
-            for (int index = 0; index < 4; index++)
-            {
-                output.Slice((y + index) * sequence.Stride + x, 4).Fill(predicted);
             }
         }
 

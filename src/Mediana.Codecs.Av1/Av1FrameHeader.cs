@@ -33,6 +33,18 @@ namespace Mediana.Codecs.Av1
             ReadSingleTile(ref bits, sequence);
             int quantizer = bits.Read(8);
             int delta = bits.Flag() ? bits.ReadSigned(7) : 0;
+            if (!sequence.Monochrome)
+            {
+                bool different = sequence.SeparateUvDeltaQ && bits.Flag();
+                int uDc = ReadDelta(ref bits);
+                int uAc = ReadDelta(ref bits);
+                int vDc = different ? ReadDelta(ref bits) : uDc;
+                int vAc = different ? ReadDelta(ref bits) : uAc;
+                if (uDc != 0 || uAc != 0 || vDc != 0 || vAc != 0)
+                {
+                    throw new NotSupportedException("AV1 quantized chroma reconstruction is not implemented.");
+                }
+            }
             if (quantizer != 0 || delta != 0)
             {
                 throw new NotSupportedException("AV1 quantized coefficient reconstruction is not implemented.");
@@ -57,6 +69,8 @@ namespace Mediana.Codecs.Av1
             }
             return new(disableCdfUpdate, screenContent, bits.ByteOffset);
         }
+
+        private static int ReadDelta(ref Av1BitReader bits) => bits.Flag() ? bits.ReadSigned(7) : 0;
 
         private static void ReadSingleTile(ref Av1BitReader bits, Av1SequenceHeader sequence)
         {

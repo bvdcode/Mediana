@@ -5,13 +5,23 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void Coefficients(int x4, int y4, int blockWidth, int blockHeight, bool skip, scoped Span<int> quant)
+        private void Coefficients(int plane, int x4, int y4, int blockWidth, int blockHeight, bool skip, scoped Span<int> quant)
         {
             quant.Clear();
-            ref Av1BlockContext top = ref above[x4];
-            ref Av1BlockContext prior = ref left[y4 & (LeftContexts - 1)];
+            ref Av1BlockContext top = ref CoefficientAbove(plane)[x4];
+            int mask = (LeftContexts >> sequence.PlaneShift(plane)) - 1;
+            ref Av1BlockContext prior = ref CoefficientLeft(plane)[y4 & mask];
+            int planeType = plane == 0 ? 0 : 1;
             int context;
-            if (blockWidth == 1 && blockHeight == 1)
+            if (plane != 0)
+            {
+                context = 7 + ((top.Level | top.Dc) != 0 ? 1 : 0) + ((prior.Level | prior.Dc) != 0 ? 1 : 0);
+                if (blockWidth * blockHeight > 1)
+                {
+                    context += 3;
+                }
+            }
+            else if (blockWidth == 1 && blockHeight == 1)
             {
                 context = 0;
             }
@@ -36,12 +46,12 @@ namespace Mediana.Codecs.Av1
                 top.Level = prior.Level = top.Dc = prior.Dc = 0;
                 return;
             }
-            int point = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.Eob16Offset, 6)) + 1;
+            int point = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.Eob16Offset + planeType * 12, 6)) + 1;
             int end = point < 2 ? point : (1 << (point - 2)) + 1;
             int shift = point - 3;
             if (shift >= 0)
             {
-                int extra = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.EobExtraOffset + shift * 3, 3));
+                int extra = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.EobExtraOffset + planeType * 27 + shift * 3, 3));
                 end += extra << shift;
                 end += (int)symbols.ReadLiteral(shift);
             }
@@ -53,19 +63,19 @@ namespace Mediana.Codecs.Av1
                 if (ordinal == end - 1)
                 {
                     int lastContext = ordinal switch { 0 => 0, <= 2 => 1, <= 4 => 2, _ => 3 };
-                    level = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBaseEobOffset + lastContext * 4, 4)) + 1;
+                    level = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBaseEobOffset + planeType * 16 + lastContext * 4, 4)) + 1;
                 }
                 else
                 {
                     int baseContext = CoefficientBaseContext(quant, position);
-                    level = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBaseOffset + baseContext * 5, 5));
+                    level = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBaseOffset + planeType * 210 + baseContext * 5, 5));
                 }
                 if (level > 2)
                 {
                     int rangeContext = CoefficientRangeContext(quant, position);
                     for (int index = 0; index < 4; index++)
                     {
-                        int extra = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBrOffset + rangeContext * 5, 5));
+                        int extra = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBrOffset + planeType * 105 + rangeContext * 5, 5));
                         level += extra;
                         if (extra < 3)
                         {
@@ -90,7 +100,7 @@ namespace Mediana.Codecs.Av1
                 {
                     int sum = DcSign(top.Dc) + DcSign(prior.Dc);
                     int signContext = sum switch { < 0 => 1, > 0 => 2, _ => 0 };
-                    negative = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.DcSignOffset + signContext * 3, 3)) != 0;
+                    negative = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.DcSignOffset + planeType * 9 + signContext * 3, 3)) != 0;
                 }
                 else
                 {

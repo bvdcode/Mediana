@@ -39,3 +39,10 @@ libaom/libdav1d versions. The larger pictures allow the encoder to select
 partitions and angle deltas, exercising rectangular blocks and partial frame
 edges. Nonzero AC coefficients, Golomb escapes, DC sign contexts and inverse
 Walsh-Hadamard reconstruction must match every visible source sample.
+
+The `yuv*.obu` samples are Main-profile 8-bit 4:2:0 lossless pictures at
+16×16, 32×32, 37×29 and 64×64. Their `.yuv` baselines contain visible planar
+Y/U/V samples, decoded independently by libdav1d. They cover independent noisy
+color planes, non-neutral DC values, color ramps and chroma correlated with
+luma. Encoding permits angle deltas and encoder-selected partitions, disables
+palettes for these samples, and retains the preceding filter restrictions.

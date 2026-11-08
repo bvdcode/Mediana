@@ -70,11 +70,11 @@ namespace Mediana.Codecs.Av1
                 throw new InvalidDataException("The AV1 still picture is missing its sequence or frame.");
             }
             Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry);
-            int sampleCount = checked(geometry.Stride * geometry.PaddedHeight);
-            int contextBytes = checked((geometry.MiColumns + Av1TileDecoder.LeftContexts) * Unsafe.SizeOf<Av1BlockContext>());
+            int sampleCount = geometry.SampleCount;
+            int contextBytes = checked(geometry.ContextCount * Unsafe.SizeOf<Av1BlockContext>());
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
             using (WritableMediaBuffer contexts = allocator.Allocate(contextBytes))
-            using (WritableMediaBuffer decoded = allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows)))
+            using (WritableMediaBuffer decoded = allocator.Allocate(geometry.SampleCount / 16))
             {
                 Span<ushort> probabilities = stackalloc ushort[Av1DefaultCdfs.Count];
                 Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities, decoded.Span,

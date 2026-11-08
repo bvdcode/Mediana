@@ -13,6 +13,7 @@ namespace Mediana.Codecs.Av1
         private readonly Span<byte> output;
         private readonly Span<ushort> probabilities;
         private readonly Span<byte> decoded;
+        private readonly Span<Av1BlockContext> contexts;
         private readonly Span<Av1BlockContext> above;
         private readonly Span<Av1BlockContext> left;
         private readonly CancellationToken cancellationToken;
@@ -26,8 +27,9 @@ namespace Mediana.Codecs.Av1
             this.output = output;
             this.probabilities = probabilities;
             this.decoded = decoded;
+            this.contexts = contexts;
             above = contexts[..sequence.MiColumns];
-            left = contexts[sequence.MiColumns..];
+            left = contexts.Slice(sequence.MiColumns, LeftContexts);
             this.cancellationToken = cancellationToken;
             symbols = new(encoded, !header.DisableCdfUpdate);
             Av1DefaultCdfs.Values.CopyTo(probabilities);
@@ -40,12 +42,43 @@ namespace Mediana.Codecs.Av1
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 left.Clear();
+                if (!sequence.Monochrome)
+                {
+                    CoefficientLeft(1).Clear();
+                    CoefficientLeft(2).Clear();
+                }
                 for (int column = 0; column < sequence.MiColumns; column += side)
                 {
                     Partition(row, column, side);
                 }
             }
             symbols.Finish();
+        }
+
+        private Span<Av1BlockContext> CoefficientAbove(int plane)
+        {
+            int luma = sequence.MiColumns + LeftContexts;
+            int chroma = luma / 2;
+            return plane switch
+            {
+                0 => above,
+                1 => contexts.Slice(luma, sequence.MiColumns / 2),
+                2 => contexts.Slice(luma + chroma, sequence.MiColumns / 2),
+                _ => throw new ArgumentOutOfRangeException(nameof(plane))
+            };
+        }
+
+        private Span<Av1BlockContext> CoefficientLeft(int plane)
+        {
+            int luma = sequence.MiColumns + LeftContexts;
+            int chroma = luma / 2;
+            return plane switch
+            {
+                0 => left,
+                1 => contexts.Slice(luma + sequence.MiColumns / 2, LeftContexts / 2),
+                2 => contexts.Slice(luma + chroma + sequence.MiColumns / 2, LeftContexts / 2),
+                _ => throw new ArgumentOutOfRangeException(nameof(plane))
+            };
         }
 
         private void Partition(int row, int column, int side)

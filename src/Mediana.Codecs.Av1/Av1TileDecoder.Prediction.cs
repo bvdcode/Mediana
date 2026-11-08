@@ -5,30 +5,32 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void PredictIntra(int x, int y, int mode, int angleDelta)
+        private void PredictIntra(int plane, int x, int y, int mode, int angleDelta)
         {
             if (mode == 0)
             {
-                PredictDc(x, y);
+                PredictDc(plane, x, y);
                 return;
             }
+            int stride = sequence.PlaneStride(plane);
+            int offset = sequence.PlaneOffset(plane);
             Span<byte> top = stackalloc byte[9];
             Span<byte> prior = stackalloc byte[9];
-            bool topRight = IsDecoded((x >> 2) + 1, (y >> 2) - 1);
-            bool bottomLeft = IsDecoded((x >> 2) - 1, (y >> 2) + 1);
-            int topLimit = Math.Min(sequence.Stride - 1, x + (topRight ? 8 : 4) - 1);
-            int leftLimit = Math.Min(sequence.PaddedHeight - 1, y + (bottomLeft ? 8 : 4) - 1);
+            bool topRight = IsDecoded(plane, (x >> 2) + 1, (y >> 2) - 1);
+            bool bottomLeft = IsDecoded(plane, (x >> 2) - 1, (y >> 2) + 1);
+            int topLimit = Math.Min(stride - 1, x + (topRight ? 8 : 4) - 1);
+            int leftLimit = Math.Min(sequence.PlaneHeight(plane) - 1, y + (bottomLeft ? 8 : 4) - 1);
             for (int index = 0; index < 8; index++)
             {
-                top[index + 1] = y > 0 ? output[(y - 1) * sequence.Stride + Math.Min(topLimit, x + index)] :
-                    x > 0 ? output[y * sequence.Stride + x - 1] : (byte)127;
-                prior[index + 1] = x > 0 ? output[Math.Min(leftLimit, y + index) * sequence.Stride + x - 1] :
-                    y > 0 ? output[(y - 1) * sequence.Stride + x] : (byte)129;
+                top[index + 1] = y > 0 ? output[offset + (y - 1) * stride + Math.Min(topLimit, x + index)] :
+                    x > 0 ? output[offset + y * stride + x - 1] : (byte)127;
+                prior[index + 1] = x > 0 ? output[offset + Math.Min(leftLimit, y + index) * stride + x - 1] :
+                    y > 0 ? output[offset + (y - 1) * stride + x] : (byte)129;
             }
             byte corner;
             if (x > 0 && y > 0)
             {
-                corner = output[(y - 1) * sequence.Stride + x - 1];
+                corner = output[offset + (y - 1) * stride + x - 1];
             }
             else if (y > 0)
             {
@@ -93,13 +95,42 @@ namespace Mediana.Codecs.Av1
                             _ => throw new InvalidDataException("The AV1 intra direction angle is invalid.")
                         };
                     }
-                    output[(y + row) * sequence.Stride + x + column] = value;
+                    output[offset + (y + row) * stride + x + column] = value;
                 }
             }
         }
 
-        private bool IsDecoded(int column, int row) => column >= 0 && row >= 0 && column < sequence.MiColumns &&
-            row < sequence.MiRows && decoded[row * sequence.MiColumns + column] != 0;
+        private bool IsDecoded(int plane, int column, int row) => column >= 0 && row >= 0 && column < sequence.PlaneColumns(plane) &&
+            row < sequence.PlaneRows(plane) && decoded[sequence.PlaneOffset(plane) / 16 + row * sequence.PlaneColumns(plane) + column] != 0;
+
+        private void PredictDc(int plane, int x, int y)
+        {
+            int stride = sequence.PlaneStride(plane);
+            int offset = sequence.PlaneOffset(plane);
+            int sum = 0;
+            int count = 0;
+            if (x > 0)
+            {
+                for (int index = 0; index < 4; index++)
+                {
+                    sum += output[offset + (y + index) * stride + x - 1];
+                }
+                count += 4;
+            }
+            if (y > 0)
+            {
+                foreach (byte sample in output.Slice(offset + (y - 1) * stride + x, 4))
+                {
+                    sum += sample;
+                }
+                count += 4;
+            }
+            byte predicted = count == 0 ? (byte)128 : (byte)((sum + count / 2) / count);
+            for (int index = 0; index < 4; index++)
+            {
+                output.Slice(offset + (y + index) * stride + x, 4).Fill(predicted);
+            }
+        }
 
         private static byte Interpolate(scoped ReadOnlySpan<byte> edge, int basis, int weight)
         {
