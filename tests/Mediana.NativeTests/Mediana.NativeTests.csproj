@@ -462,6 +462,7 @@
     <Compile Include="../Shared/H264CabacTransformTestInput.cs" Link="H264CabacTransformTestInput.cs" />
     <Compile Include="../Shared/H264CabacResidualWriter.cs" Link="H264CabacResidualWriter.cs" />
     <Compile Include="../Shared/H264CabacIntervalWriter.cs" Link="H264CabacIntervalWriter.cs" />
+    <Compile Include="../Shared/H264CabacEncodingTestInput.cs" Link="H264CabacEncodingTestInput.cs" />
     <Compile Include="../Shared/H264CabacTestInput.cs" Link="H264CabacTestInput.cs" />
     <Compile Include="../Shared/H264CabacPredictionTestInput.cs" Link="H264CabacPredictionTestInput.cs" />
     <Compile Include="../Shared/H264CabacBidirectionalTestInput.cs" Link="H264CabacBidirectionalTestInput.cs" />

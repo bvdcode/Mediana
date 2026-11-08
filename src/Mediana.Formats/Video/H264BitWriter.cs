@@ -119,6 +119,18 @@ namespace Mediana.Formats.Video
             {
                 WriteBits(0, 8 - partialBits);
             }
+            return TryFinishCompletedRbsp();
+        }
+
+        /// <summary>Publishes a byte-aligned NAL whose syntax writer has already emitted RBSP trailing bits.
+        /// This is required when CABAC termination supplies the stop bit. Returns null on measured overflow.</summary>
+        public MediaBuffer? TryFinishCompletedRbsp()
+        {
+            ObjectDisposedException.ThrowIf(finished, this);
+            if (partialBits != 0)
+            {
+                throw new InvalidOperationException("The completed H.264 RBSP must be byte-aligned.");
+            }
             finished = true;
             if (length > maximumBytes)
             {
