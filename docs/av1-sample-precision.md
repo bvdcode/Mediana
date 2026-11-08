@@ -103,10 +103,48 @@ The same fixed-core ABBA comparison used six measurements per implementation and
 +3.43% and +3.45%. Checksums matched and measured calls allocated zero managed
 bytes. These measurements do not establish whole-decoder throughput.
 
-The complete coded-picture decoder currently accepts eight-bit Main-profile
-sequences. Ten-bit decoding still requires routing sample precision through picture storage,
-reference prediction and in-loop filters. High-depth kernel coverage alone does
-not establish coded-picture support.
+The coded-picture decoder accepts eight- and ten-bit Main-profile 4:2:0 or
+monochrome sequences. Tile contexts, palette colors, reconstruction, reference
+prediction and in-loop filters preserve the sample type. Pixel offsets and
+strides count samples; allocation sizes and public plane layouts count bytes.
+Entropy, decoded flags and motion metadata retain their existing storage.
+Eight-bit contexts retain byte palettes and images are never widened for
+reconstruction. Twelve-bit support remains at the kernel level.
+
+Five independent Main10 intra pictures verify lossless residuals, quantized
+reconstruction, palettes, chroma-from-luma prediction and quantization matrices
+before in-loop filtering. Seven complete twelve-picture Main10 sequences
+add inter prediction, odd dimensions, monochrome, tiles, film grain and
+super-resolution. All visible samples match independent dav1d output in normal,
+scalar and strict Native AOT execution, including reset and retained frames.
+
+CDEF luma strength is scaled to the sample depth before variance adjustment;
+primary tap parity is selected from the adjusted value. Another 864 independent
+AOM vectors verify zero variance, logarithm boundaries and saturation at eight,
+ten and twelve bits. The byte and unsigned sixteen-bit paths agree for every
+eight-bit vector.
+
+A complete eight-bit public-decoder comparison before and after the Main10
+picture and tile changes used .NET 10.0.403 Native AOT on Linux x64. Each
+fresh process warmed the full sequence three times, then decoded preloaded
+packets serially through `IMediaCodec<MediaPacket, VideoFrame>`, consumed every
+visible row, checked independent frame hashes, completed input and reset.
+Four measurements per version ran in ABBA order on the same fixed processor
+with no concurrent workloads. Median process CPU time and peak RSS were:
+
+| Workload | Measured frames | CPU before | CPU after | Change | Allocations in each version | Process RSS before → after |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Ordinary inter, 160×136 | 240 | 471.87 ms | 468.37 ms | −0.74% | 23.39 MiB | 21.97 → 22.18 MiB |
+| Variable super-resolution, 192×136 | 72 | 446.67 ms | 447.49 ms | +0.18% | 8.98 MiB | 21.98 → 22.05 MiB |
+| Super-resolution and grain, 193×137 | 72 | 479.89 ms | 479.31 ms | −0.12% | 14.41 MiB | 23.38 → 23.50 MiB |
+| Mixed intra block copy, 512×192 | 60 | 431.32 ms | 437.84 ms | +1.51% | 18.75 MiB | 19.65 → 19.78 MiB |
+
+Total managed allocations matched exactly for each workload. All 32 runs
+matched the independent decoded pixels and released every buffer lease.
+These are warmed short-sequence comparisons of the public decoder; file I/O
+and container indexing are outside the measured interval. Process RSS includes
+startup and warm-up. They do not establish throughput for long videos or a
+comparison with another decoder.
 
 Prediction and edge operations follow section 7.11.2, dequantization follows
 section 7.12.2, inverse transforms follow sections 7.13.2–7.13.3, and deblocking

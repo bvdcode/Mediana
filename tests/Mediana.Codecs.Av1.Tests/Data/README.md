@@ -684,6 +684,25 @@ Variances 0, 1, 63, 64, 127, 128, 4095, 4096 and 1048576 exercise zero,
 logarithm boundaries and saturation at eight, ten and twelve bits. Both
 block sizes, all directions and primary strengths 0, 1, 7 and 15 are covered.
 
+## Ten-bit intra tile reconstruction
+
+`tenFlat`, `tenLossless`, `tenQuantized`, `tenPalette` and `tenMatrix` each
+contain one Main10 4:2:0 picture encoded by libaom 3.8.2, with independent
+dav1d 1.4.1 unsigned sixteen-bit visible samples. Each `.tile.bin.gz` stream
+starts with `AV1TILE1`, width and height as little-endian unsigned sixteen-bit
+integers, then encoded and decoded byte counts as little-endian signed
+32-bit integers. Encoded low-overhead OBUs and decoded Y/U/V rasters follow.
+
+The encoder uses one thread, CPU4, GOP1 and disables CDEF, restoration and
+deblocking to isolate tile reconstruction. Flat 32×32 and odd lossless 65×49
+use CQ0; quantized 64×64 uses CQ28; palette 128×96 uses CQ25; matrix 96×80
+uses CQ34 and quantization matrix level 6. The five files occupy less than
+49 KiB compressed. Native block inspection confirms 224 luma and 480 chroma
+palette cells, palette values through 948, and actual chroma-from-luma cells
+in the lossless, quantized and matrix pictures. Tests compare every visible
+sample, sample-count versus byte-count storage, and reject incompatible
+sample types or depths before writing output.
+
 ## Inter prediction sample precision
 
 `inter-precision.bin.gz` contains 1,890 independent eight-, ten- and twelve-bit
