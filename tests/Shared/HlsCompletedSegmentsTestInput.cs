@@ -40,6 +40,34 @@ namespace Mediana.Tests
             {
                 throw new InvalidOperationException("Completed HLS rates did not include the eligible unequal-duration segment set.");
             }
+            VerifyShortPresentation();
+        }
+
+        private static void VerifyShortPresentation()
+        {
+            TimeBase clock = new(1, 1000);
+            HlsMediaSegment[] segments =
+            [
+                new(0, new(0, clock), new(100, clock), 188),
+                new(1, new(100, clock), new(200, clock), 752)
+            ];
+            List<string> warnings = [];
+            HlsBandwidthOptions options = new()
+            {
+                PeakMode = HlsPeakBandwidthMode.EstimateShortPresentation,
+                WarningHandler = warnings.Add
+            };
+            if (HlsMediaPlaylist.MeasureBandwidth(segments, 1, options) != (30080, 25067) || warnings.Count != 1 ||
+                !warnings[0].Contains("estimated", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Short HLS presentation did not use the conservative complete-segment estimate and warning.");
+            }
+            warnings.Clear();
+            HlsMediaSegment[] boundary = [new(0, new(0, clock), new(500, clock), 188)];
+            if (HlsMediaPlaylist.MeasureBandwidth(boundary, 1, options) != (3008, 3008) || warnings.Count != 0)
+            {
+                throw new InvalidOperationException("An eligible RFC bandwidth window was replaced by an estimate.");
+            }
         }
     }
 }

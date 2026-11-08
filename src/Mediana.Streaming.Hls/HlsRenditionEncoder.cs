@@ -52,7 +52,7 @@ namespace Mediana.Streaming.Hls
                 {
                     for (int profile = 0; profile < audio!.ProfileCount; profile++)
                     {
-                        audioOutputs.Add(HlsAudioOutput.Create(audio.GetStream(profile), allocator, options.TargetDuration, output, profile));
+                        audioOutputs.Add(HlsAudioOutput.Create(audio.GetStream(profile), allocator, options.TargetDuration, output, profile, options.Bandwidth));
                     }
                 }
                 HashSet<(int Width, int Height)> dimensions = [];
@@ -61,7 +61,7 @@ namespace Mediana.Streaming.Hls
                     HlsVideoProfile profile = profiles[index];
                     HlsVideoRendition rendition = HlsVideoRendition.Create(preparation.OutputFormat, stream,
                         options.SeparateAudio ? null : audio?.GetStream(index), allocator, profile.MaximumWidth,
-                        profile.EncoderOptions, options.TargetDuration, output);
+                        profile.EncoderOptions, options.TargetDuration, output, options.Bandwidth);
                     video.Add(rendition);
                     if (!dimensions.Add((rendition.Format.Width, rendition.Format.Height)))
                     {
@@ -112,6 +112,8 @@ namespace Mediana.Streaming.Hls
             int[] audioProfiles, HlsAudioSource? audio)
         {
             if (stream.DisplayMatrix is null) { throw new NotSupportedException("Video encoding requires a known source display transform."); }
+            ArgumentNullException.ThrowIfNull(options.Bandwidth);
+            options.Bandwidth.Validate();
             options.TargetDuration.TimeBase.Validate();
             if (options.TargetDuration.Value <= 0 || profiles.Length == 0
                 || profiles.Any(profile => profile is null || profile.MaximumWidth < 2 || profile.EncoderOptions is null))

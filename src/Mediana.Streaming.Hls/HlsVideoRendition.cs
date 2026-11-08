@@ -21,7 +21,7 @@ namespace Mediana.Streaming.Hls
         public VideoFormat Format => resizer.OutputFormat;
 
         public static HlsVideoRendition Create(VideoFormat source, EncodedStreamInfo video, EncodedStreamInfo? audio, MediaBufferAllocator allocator,
-            int width, H264EncoderOptions encoderOptions, MediaDuration targetDuration, IHlsPackageOutput output)
+            int width, H264EncoderOptions encoderOptions, MediaDuration targetDuration, IHlsPackageOutput output, HlsBandwidthOptions bandwidth)
         {
             Yuv420AreaResizer resizer = Yuv420AreaResizer.CreateFit(source, width, source.Height, allocator);
             H264Encoder? encoder = null;
@@ -34,7 +34,7 @@ namespace Mediana.Streaming.Hls
                     encoderOptions with { KeyFrameInterval = TimeSpan.FromTicks(intervalTicks) }, video.StreamIndex);
                 string name = "variant-" + width.ToString(CultureInfo.InvariantCulture);
                 HlsRenditionOutput files = new(output, name);
-                AvcHlsWriteOptions options = new() { TargetDuration = targetDuration };
+                AvcHlsWriteOptions options = new() { TargetDuration = targetDuration, Bandwidth = bandwidth };
                 AvcHlsWriter writer = audio is null ? AvcHlsWriter.Create(encoder.Stream, files.OpenSegmentAsync, allocator, options) :
                     AvcHlsWriter.Create(encoder.Stream, audio, files.OpenSegmentAsync, allocator, options);
                 HlsVideoRendition result = new(resizer, encoder, writer, files);

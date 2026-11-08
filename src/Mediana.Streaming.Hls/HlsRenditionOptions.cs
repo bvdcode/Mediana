@@ -15,5 +15,6 @@ namespace Mediana.Streaming.Hls
         public IReadOnlyList<int>? AudioProfileIndices { get; init; }
         /// <summary>Shared orientation/precision/scaling stage applied before the individual rendition sizes.</summary>
         public VideoPreparationOptions FramePreparation { get; init; } = new();
+        public HlsBandwidthOptions Bandwidth { get; init; } = new();
     }
 }

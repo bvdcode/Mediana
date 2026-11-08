@@ -150,7 +150,8 @@ namespace Mediana.Streaming.Hls
         }
 
         /// <summary>Measures peak/average bitrates from complete TS output. Peak uses the RFC 8216 contiguous-duration window.
-        /// Optional dimensions must describe the intended display pixels. Presentations shorter than half TARGETDURATION have no defined peak.</summary>
+        /// Optional dimensions must describe the intended display pixels. A presentation shorter than half TARGETDURATION
+        /// requires an explicit bandwidth estimation policy.</summary>
         public HlsVariant CreateVariant(string playlistUri, int? displayWidth = null, int? displayHeight = null)
             => CreateVariant(playlistUri, displayWidth, displayHeight, options.PlaylistTargetDurationSeconds);
 
@@ -160,7 +161,7 @@ namespace Mediana.Streaming.Hls
         {
             output.EnsureComplete();
             HlsUri.Validate(playlistUri, options.MaximumSegmentUriCharacters);
-            (long peak, long average) = HlsMediaPlaylist.MeasureBandwidth(Segments, targetDurationSeconds);
+            (long peak, long average) = HlsMediaPlaylist.MeasureBandwidth(Segments, targetDurationSeconds, options.Bandwidth);
             string codecs = "avc1." + Convert.ToHexString(stream.Configuration.Span.Slice(1, 3));
             if (audio is not null)
             {

@@ -7,8 +7,10 @@ namespace Mediana.Streaming.Hls
 {
     internal static class HlsBandwidth
     {
-        public static (long Peak, long Average) Calculate(IReadOnlyList<HlsMediaSegment> segments, long? targetDurationSeconds = null)
+        public static (long Peak, long Average) Calculate(IReadOnlyList<HlsMediaSegment> segments, long? targetDurationSeconds,
+            HlsBandwidthOptions? options = null)
         {
+            options?.Validate();
             TimeBase clock = segments[0].Duration.TimeBase;
             long targetSeconds = HlsVodPlaylist.GetTargetDuration(segments, static segment => segment.Duration, targetDurationSeconds);
             long totalBytes = 0;
@@ -37,7 +39,16 @@ namespace Mediana.Streaming.Hls
             }
             if (peak == 0)
             {
-                throw new NotSupportedException("The presentation has no contiguous segment set between half and one-and-a-half of TARGETDURATION; RFC 8216 peak bandwidth is undefined.");
+                bool shortPresentation = totalDuration * clock.Numerator * 2 < (Int128)targetSeconds * clock.Denominator;
+                if (options?.PeakMode != HlsPeakBandwidthMode.EstimateShortPresentation || !shortPresentation)
+                {
+                    throw new NotSupportedException("The presentation has no contiguous segment set between half and one-and-a-half of TARGETDURATION; RFC 8216 peak bandwidth is undefined.");
+                }
+                foreach (HlsMediaSegment segment in segments)
+                {
+                    peak = Math.Max(peak, Rate(segment.ByteLength, segment.Duration.Value, clock));
+                }
+                options.WarningHandler?.Invoke($"The presentation is shorter than half TARGETDURATION. BANDWIDTH is estimated from the largest complete-segment bitrate ({peak} bits/s); the RFC 8216 peak window is undefined.");
             }
             return (peak, Rate(totalBytes, totalDuration, clock));
         }

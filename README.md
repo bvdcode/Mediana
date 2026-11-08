@@ -1771,7 +1771,7 @@ variant. Distinct AAC bitrates have separate audio groups. Completed media
 playlists use the same measured target duration and corresponding bitrate window.
 
 Each variant contains IDR-aligned TS segments and a VOD
-media playlist. The master playlist records actual peak/average transport bitrates
+media playlist. The master playlist records measured peak/average transport bitrates
 and the video/audio codec identifiers. Only video-only output declares independent
 segments. Copy mode preserves original audio bytes and linear-movie timing.
 AAC encoding applies the exact input MP4 sample edit, preserves its movie origin
@@ -1784,6 +1784,14 @@ Segment timelines must match across variants. Output
 is prepared in one temporary directory and published together after completion;
 errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
 streaming encoded packets without a source-container dependency.
+
+Peak bandwidth normally follows the contiguous-segment window in
+[RFC 8216 section 4.1](https://www.rfc-editor.org/rfc/rfc8216.html#section-4.1).
+For a presentation shorter than half `TARGETDURATION`, that window is undefined.
+The CLI estimates `BANDWIDTH` from the largest complete-segment bitrate and logs
+a warning; average bandwidth still uses the whole presentation. Library clients
+can select this behavior through `HlsBandwidthOptions.PeakMode` on
+`HlsWriteOptions` or `HlsRenditionOptions`. Their default requires an eligible RFC window.
 
 The current mode uses I/P video with IDRs aligned to segment targets. Optional
 per-variant video packet rates use adaptive QP; otherwise QP is fixed. Full HRD

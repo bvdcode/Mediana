@@ -34,6 +34,11 @@ namespace Mediana.Cli
             } : null;
             HlsRenditionOptions options = new()
             {
+                Bandwidth = new()
+                {
+                    PeakMode = HlsPeakBandwidthMode.EstimateShortPresentation,
+                    WarningHandler = message => logger.LogWarning("{Warning}", message)
+                },
                 FramePreparation = new()
                 {
                     ColorResolver = VideoColorPolicy.ResolveForEncoding,
