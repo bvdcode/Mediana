@@ -37,6 +37,8 @@ namespace Mediana.Codecs.Ac3.Tests
         [InlineData("enhanced-coupling-merged.eac3", "enhanced-coupling-merged.pcm", 48000, 2, 135)]
         [InlineData("enhanced-coupling-spectral.eac3", "enhanced-coupling-spectral.pcm", 48000, 2, 135)]
         [InlineData("transient.eac3", "transient.pcm", 48000, 1, 135)]
+        [InlineData("dependent-8.eac3", "dependent-8.pcm", 48000, 8, 135)]
+        [InlineData("dependent-16.eac3", "dependent-16.pcm", 48000, 16, 135)]
         public async Task DecodedPcmMatchesIndependentReference(string encodedName, string referenceName, int rate, int channels, double minimumSnr)
         {
             (int SamplesPerChannel, double SignalToNoiseRatio, double RmsError, double MaximumError, long MaximumAllocatedBytes) metrics = await Ac3PcmTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), encodedName, referenceName, rate, channels, minimumSnr);

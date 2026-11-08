@@ -31,7 +31,12 @@ namespace Mediana.Codecs.Ac3
             {
                 bits.Skip(5); if (bits.Flag()) { bits.Skip(8); }
             }
-            if (header.StreamType == 1) { throw new NotSupportedException("Dependent E-AC-3 substreams require a combined presentation and are not supported."); }
+            if (header.StreamType == 1 && bits.Flag())
+            {
+                ushort map = (ushort)bits.Read(16);
+                if (Mediana.Formats.Audio.Eac3ChannelMap.GetChannelCount(map) != header.ChannelCount)
+                { throw new InvalidDataException("The dependent channel map disagrees with its coded channel count."); }
+            }
             if (bits.Flag()) { SkipMixMetadata(ref bits); }
             if (bits.Flag())
             {

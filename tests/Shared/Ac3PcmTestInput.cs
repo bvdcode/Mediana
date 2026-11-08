@@ -32,15 +32,16 @@ namespace Mediana.Tests
                 for (int offset = 0; offset < encoded.Length;)
                 {
                     Ac3FrameHeader header = Ac3FrameHeader.Read(encoded.AsSpan(offset));
-                    Require(header.SampleRate == sampleRate && header.ChannelCount == channels);
-                    using (WritableMediaBuffer writable = allocator.Allocate(header.FrameBytes))
+                    Require(header.SampleRate == sampleRate);
+                    int packetBytes = FrameSetBytes(encoded, offset);
+                    using (WritableMediaBuffer writable = allocator.Allocate(packetBytes))
                     {
-                        encoded.AsSpan(offset, header.FrameBytes).CopyTo(writable.Span);
+                        encoded.AsSpan(offset, packetBytes).CopyTo(writable.Span);
                         using MediaBuffer buffer = writable.Publish();
                         using MediaPacket packet = new(0, buffer, new(inputSamples, new(1, sampleRate)), duration: new(header.SamplesPerFrame, new(1, sampleRate)));
                         Require(decoder.TrySend(packet) == CodecInputStatus.Accepted);
                     }
-                    inputSamples += header.SamplesPerFrame; offset += header.FrameBytes;
+                    inputSamples += header.SamplesPerFrame; offset += packetBytes;
                     while (decoder.Receive() is { Status: CodecOutputStatus.Available } available)
                     { using AudioFrame frame = available.Value; Compare(frame); }
                 }
@@ -81,8 +82,24 @@ namespace Mediana.Tests
                     error += delta * delta; signal += expected[expectedIndex] * expected[expectedIndex];
                     maximumError = Math.Max(maximumError, Math.Abs(delta));
                 }
-                samples += header.SamplesPerFrame; outputOffset += header.FrameBytes;
+                samples += header.SamplesPerFrame; outputOffset += FrameSetBytes(encoded, outputOffset);
             }
+        }
+
+        private static int FrameSetBytes(byte[] encoded, int offset)
+        {
+            Ac3FrameHeader first = Ac3FrameHeader.Read(encoded.AsSpan(offset));
+            int length = first.FrameBytes;
+            if (first.IsEnhanced)
+            {
+                while (offset + length < encoded.Length)
+                {
+                    Ac3FrameHeader next = Ac3FrameHeader.Read(encoded.AsSpan(offset + length));
+                    if (next.StreamType != 1) { break; }
+                    length += next.FrameBytes;
+                }
+            }
+            return length;
         }
 
         private static void Require(bool condition)

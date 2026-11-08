@@ -32,23 +32,6 @@ namespace Mediana.Codecs.Ac3.Tests
         }
 
         [Theory]
-        [InlineData(17, -1, "dependent")]
-        public void ReportsUnsupportedEnhancedToolsWithoutSubstitutingPcm(int flag, int secondFlag, string tool)
-        {
-            byte[] bytes = Ac3SyntheticFrame.Create(true, false);
-            bytes = Ac3TestBitWriter.WithBit(bytes, flag, true);
-            if (secondFlag >= 0) { bytes = Ac3TestBitWriter.WithBit(bytes, secondFlag, true); }
-            MediaBufferAllocator allocator = new(1024 * 1024);
-            using (Ac3FrameDecoder decoder = new(allocator))
-            {
-                Ac3FrameHeader header = Ac3FrameHeader.Read(bytes); Ac3FrameDecoder.ValidateFrame(bytes, header);
-                NotSupportedException error = Assert.Throws<NotSupportedException>(() => decoder.Decode(bytes, header, new float[1536], CancellationToken.None));
-                Assert.Contains(tool, error.Message, StringComparison.OrdinalIgnoreCase);
-            }
-            Assert.Equal(0, allocator.AllocatedBytes);
-        }
-
-        [Theory]
         [InlineData(false)]
         [InlineData(true)]
         public void ReusesTheReservedSynthesisAndSpectralStorage(bool enhanced)

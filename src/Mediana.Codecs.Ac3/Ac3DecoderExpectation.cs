@@ -5,7 +5,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Ac3
 {
-    internal readonly record struct Ac3DecoderExpectation(int SampleRate, int BitstreamId, int ChannelMode, bool HasLfe)
+    internal readonly record struct Ac3DecoderExpectation(int SampleRate, int BitstreamId, int ChannelMode, bool HasLfe, int DependentSubstreams = 0, int DependentLocations = 0)
     {
         public void Validate(Ac3FrameHeader header)
         {

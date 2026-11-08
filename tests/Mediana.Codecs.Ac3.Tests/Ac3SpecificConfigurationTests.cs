@@ -40,7 +40,7 @@ namespace Mediana.Codecs.Ac3.Tests
             Assert.Contains("independent", new Eac3DecoderFactory().GetUnsupportedReason(stream));
             data[1] = 0;
             stream = new(0, MediaKind.Audio, "eac3", StreamFormats.Eac3Mp4, new(1, 48000), data);
-            Assert.Contains("Dependent", new Eac3DecoderFactory().GetUnsupportedReason(stream));
+            Assert.Null(new Eac3DecoderFactory().GetUnsupportedReason(stream));
         }
 
         [Fact]

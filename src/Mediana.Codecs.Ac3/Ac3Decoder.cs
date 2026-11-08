@@ -12,14 +12,13 @@ namespace Mediana.Codecs.Ac3
     internal partial class Ac3Decoder(int streamIndex, bool enhanced, MediaBufferAllocator allocator, bool applyDynamicRangeCompression,
         Ac3DecoderExpectation? expectation = null) : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
     {
-        private const int MaximumFramesPerAccessUnit = 6;
-        private const int MaximumSamplesPerAccessUnit = 1536;
-        private readonly Ac3FrameHeader?[] frames = new Ac3FrameHeader?[MaximumFramesPerAccessUnit];
         private Ac3FrameDecoder? workspace;
         private Ac3FrameHeader? configuration;
         private AudioFormat? format;
         private AudioFrame? pending;
         private Ac3TransientProcessing? transientProcessing;
+        private Eac3AccessUnit? enhancedAccessUnit;
+        private Eac3ProgramLayout? enhancedProgram;
         private bool originalBeginning = true;
         private long prerollPackets;
         private bool disposed, completed, faulted;
@@ -35,27 +34,21 @@ namespace Mediana.Codecs.Ac3
                 if (completed) { throw new InvalidOperationException("AC-3 input is complete."); }
                 if (pending is not null || transientProcessing is not null && transientProcessing.HasOutput) { success = true; return CodecInputStatus.OutputRequired; }
                 if (input.StreamIndex != streamIndex) { throw new InvalidDataException("The AC-3 packet belongs to a different stream."); }
-                (int frameCount, int codedSamples) = ReadAccessUnit(input.Data.Span);
-                Ac3FrameHeader header = frames[0]!;
+                if (enhanced)
+                {
+                    ProcessEnhanced(input, cancellationToken);
+                    if (prerollPackets > 0) { prerollPackets--; }
+                    success = true; return CodecInputStatus.Accepted;
+                }
+                Ac3FrameHeader header = ReadAc3Frame(input.Data.Span);
+                int codedSamples = header.SamplesPerFrame;
                 configuration ??= header;
                 format ??= new(header.SampleRate, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, header.GetChannelOrder());
                 workspace ??= new(allocator, applyDynamicRangeCompression);
                 int count = AudioPacketTiming.GetPresentationSamples(input.Duration, header.SampleRate, codedSamples);
-                if (enhanced)
-                {
-                    ProcessEnhanced(input, frameCount, codedSamples, count, cancellationToken);
-                    if (prerollPackets > 0) { prerollPackets--; }
-                    success = true; return CodecInputStatus.Accepted;
-                }
                 using WritableMediaBuffer writable = allocator.Allocate(format.GetBufferSize(codedSamples));
                 Span<float> pcm = MemoryMarshal.Cast<byte, float>(writable.Span);
-                for (int index = 0, offset = 0, samples = 0; index < frameCount; index++)
-                {
-                    Ac3FrameHeader frame = frames[index]!;
-                    workspace.Decode(input.Data.Span.Slice(offset, frame.FrameBytes), frame,
-                        pcm.Slice(samples * header.ChannelCount, frame.SamplesPerFrame * header.ChannelCount), cancellationToken);
-                    offset += frame.FrameBytes; samples += frame.SamplesPerFrame;
-                }
+                workspace.Decode(input.Data.Span, header, pcm, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (prerollPackets == 0 && count != 0)
                 {
@@ -69,35 +62,18 @@ namespace Mediana.Codecs.Ac3
             finally { if (!success) { Fault(); } }
         }
 
-        private (int Frames, int Samples) ReadAccessUnit(ReadOnlySpan<byte> data)
+        private Ac3FrameHeader ReadAc3Frame(ReadOnlySpan<byte> data)
         {
-            int count = 0, samples = 0;
-            if (data.IsEmpty) { throw new InvalidDataException("The AC-3 access unit is empty."); }
-            for (int offset = 0; offset < data.Length;)
-            {
-                if (count == MaximumFramesPerAccessUnit) { throw new InvalidDataException("An E-AC-3 access unit exceeds six audio blocks."); }
-                Ac3FrameHeader header = Ac3FrameHeader.Read(data[offset..]);
-                if (header.IsEnhanced != enhanced) { throw new InvalidDataException("The AC-3 syncframe does not match the declared codec."); }
-                expectation?.Validate(header);
-                if (header.FrameBytes > data.Length - offset || (!enhanced && header.FrameBytes != data.Length))
-                {
-                    throw new InvalidDataException("The AC-3 syncframe boundaries do not match the access unit.");
-                }
-                Ac3FrameDecoder.ValidateFrame(data.Slice(offset, header.FrameBytes), header);
-                if (enhanced && header.StreamType == 1) { throw new NotSupportedException("Dependent E-AC-3 substream composition is not supported."); }
-                Ac3FrameHeader? expected = configuration ?? (count == 0 ? null : frames[0]);
-                if (expected is not null && (header.SampleRate != expected.SampleRate || header.ChannelMode != expected.ChannelMode ||
-                    header.HasLfe != expected.HasLfe || header.SubstreamId != expected.SubstreamId))
-                {
-                    throw new NotSupportedException("AC-3 sample rate, channel configuration or independent substream changes require a new decoder.");
-                }
-                samples += header.SamplesPerFrame;
-                if (samples > MaximumSamplesPerAccessUnit) { throw new InvalidDataException("An E-AC-3 access unit exceeds six audio blocks."); }
-                frames[count++] = header; offset += header.FrameBytes;
-            }
-            if (expectation is not null && samples != MaximumSamplesPerAccessUnit)
-            { throw new InvalidDataException("An MP4 AC-3 access unit requires exactly six audio blocks."); }
-            return (count, samples);
+            Ac3FrameHeader header = Ac3FrameHeader.Read(data);
+            if (header.IsEnhanced) { throw new InvalidDataException("The syncframe does not match the declared AC-3 codec."); }
+            expectation?.Validate(header);
+            if (header.FrameBytes != data.Length)
+            { throw new InvalidDataException("An AC-3 access unit must contain exactly one complete syncframe."); }
+            Ac3FrameDecoder.ValidateFrame(data, header);
+            if (configuration is not null && (header.SampleRate != configuration.SampleRate ||
+                header.ChannelMode != configuration.ChannelMode || header.HasLfe != configuration.HasLfe))
+            { throw new NotSupportedException("AC-3 sampling format changes require a new decoder."); }
+            return header;
         }
         public CodecOutput<AudioFrame> Receive(CancellationToken cancellationToken = default)
         {
@@ -133,7 +109,7 @@ namespace Mediana.Codecs.Ac3
             ObjectDisposedException.ThrowIf(disposed, this);
             pending?.Dispose(); pending = null; workspace?.Reset();
             transientProcessing?.Dispose(); transientProcessing = null; originalBeginning = true;
-            Array.Clear(frames);
+            enhancedProgram?.Dispose(); enhancedProgram = null; enhancedAccessUnit = null;
             configuration = null; format = null; prerollPackets = 0; completed = false; faulted = false;
         }
         private void Fault() { Reset(); faulted = true; }
@@ -146,7 +122,7 @@ namespace Mediana.Codecs.Ac3
         {
             if (disposed) { return; }
             pending?.Dispose(); pending = null; transientProcessing?.Dispose(); transientProcessing = null;
-            workspace?.Dispose(); workspace = null; disposed = true;
+            workspace?.Dispose(); workspace = null; enhancedProgram?.Dispose(); enhancedProgram = null; enhancedAccessUnit = null; disposed = true;
             GC.SuppressFinalize(this);
         }
     }

@@ -33,7 +33,7 @@ namespace Mediana.Codecs.Ac3
             Eac3SpecificConfiguration configuration = Eac3SpecificConfiguration.Read(stream.Configuration.Span);
             if (configuration.Substreams.Count != 1) { return "Multiple independent E-AC-3 substreams require presentation selection and are not supported."; }
             Eac3SubstreamConfiguration substream = configuration.Substreams[0];
-            if (substream.DependentSubstreamCount != 0) { return "Dependent E-AC-3 substream composition is not supported."; }
+            if (substream.DependentSubstreamCount > 8) { return "An E-AC-3 programme exceeds eight dependent substreams."; }
             if (substream.AssociatedService) { return "Associated E-AC-3 services require a main presentation for mixing and are not supported."; }
             return substream.BitstreamId == 16 ? null : "The enhanced AC-3 bitstream version is not supported.";
         }
@@ -49,7 +49,8 @@ namespace Mediana.Codecs.Ac3
                 if (Enhanced)
                 {
                     Eac3SubstreamConfiguration config = Eac3SpecificConfiguration.Read(stream.Configuration.Span).Substreams[0];
-                    expectation = new(config.SampleRate, config.BitstreamId, config.ChannelMode, config.HasLfe);
+                    expectation = new(config.SampleRate, config.BitstreamId, config.ChannelMode, config.HasLfe,
+                        config.DependentSubstreamCount, config.DependentChannelLocations);
                 }
                 else
                 {
