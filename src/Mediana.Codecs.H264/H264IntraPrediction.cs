@@ -47,15 +47,30 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("An H.264 intra prediction references unavailable neighbours.");
             }
+            switch (mode)
+            {
+                case 0:
+                    for (int row = 0; row < size; row++)
+                    {
+                        top[..size].CopyTo(output.Slice(row * size, size));
+                    }
+                    return;
+                case 1:
+                    for (int row = 0; row < size; row++)
+                    {
+                        output.Slice(row * size, size).Fill(left[row]);
+                    }
+                    return;
+                case 2:
+                    output[..(size * size)].Fill((byte)Dc(top[..Math.Min(top.Length, size)], left[..Math.Min(left.Length, size)]));
+                    return;
+            }
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
                     int value = mode switch
                     {
-                        0 => top[x],
-                        1 => left[y],
-                        2 => Dc(top[..Math.Min(top.Length, size)], left[..Math.Min(left.Length, size)]),
                         3 => Quarter(top[x + y], top[x + y + 1], top[Math.Min(x + y + 2, size * 2 - 1)]),
                         4 => Diagonal(x, y, top, left, corner!.Value),
                         5 => VerticalRight(x, y, top, left, corner!.Value),

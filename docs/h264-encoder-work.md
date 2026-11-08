@@ -382,3 +382,19 @@ increases by approximately the prepared storage capacity, rather than once
 per picture. Measurements include input buffers and transport output.
 The change improves repeated interpolation work; H.264 rate-distortion
 performance and the remaining x264 CPU gap are separate open comparisons.
+
+## Small-block intra prediction
+
+Vertical and horizontal predictions now copy or fill complete rows. DC luma
+prediction computes its mean once per block rather than once per pixel.
+Intra4x4 mode comparison uses the existing 16-byte SIMD SAD operation and
+preserves the predicted-mode tie rule. These changes add no picture storage
+and apply to both encoding and decoding prediction.
+
+All three complete Native AOT encoding controls above retain exactly the same
+transport bytes. With the prepared-reference implementation as the control,
+paired CPU observations are 5.349–5.865 versus 5.428–5.693 seconds for natural
+video, 0.859 versus 0.840–0.843 for motion, and 1.836–1.858 versus 1.718–1.794
+for the static image. The natural-video result is within host variability;
+these checks establish correctness and reduced redundant computation rather
+than a large overall encoding improvement.
