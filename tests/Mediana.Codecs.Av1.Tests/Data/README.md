@@ -87,3 +87,13 @@ Cases use zero, DC/AC impulses and seeded coefficient blocks. After `AV1TXF2D`
 and a uint32 count, each record stores type, width and height as bytes, followed
 by full planar int32 input and output matrices. These transform fixtures verify
 primitive arithmetic; they do not establish larger-transform picture coverage.
+
+`hidden.obu` starts from the first ordinary key picture in `sequence.obu`.
+Its uncompressed header is rewritten according to the normative hidden-key
+syntax (`show_frame=0`, `showable_frame=1`, error resilience and all eight
+reference refresh flags), leaving the encoded tile unchanged. A subsequent
+frame-header OBU displays reference slot seven. Independent libdav1d decoding
+outputs exactly one 48×40 picture, stored as `hidden.yuv`; its samples equal
+the original independently decoded key picture. Tests cover combined/separate
+access units, reference leases, reset and the prohibition on displaying a
+hidden key picture twice through different reference slots.

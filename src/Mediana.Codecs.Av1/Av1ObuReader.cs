@@ -66,6 +66,10 @@ namespace Mediana.Codecs.Av1
             }
             payload = data.Slice(offset, (int)size);
             offset += (int)size;
+            if (type == 2 && !payload.IsEmpty)
+            {
+                throw new InvalidDataException("An AV1 temporal delimiter must be empty.");
+            }
             return true;
         }
     }

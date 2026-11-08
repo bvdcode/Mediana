@@ -15,7 +15,7 @@ namespace Mediana.Codecs.Av1.Tests
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", "sequence.obu"));
             byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", "sequence.reference.yuv"));
             MediaBufferAllocator allocator = new(1024 * 1024);
-            Av1PictureDecoder decoder = new(allocator);
+            using Av1PictureDecoder decoder = new(allocator);
             int frame = 0;
             foreach (ReadOnlyMemory<byte> packet in AccessUnits(encoded))
             {
@@ -48,6 +48,7 @@ namespace Mediana.Codecs.Av1.Tests
                 }
                 frame++;
             }
+            decoder.Dispose();
             Assert.Equal(5, frame);
             Assert.Equal(0, allocator.AllocatedBytes);
         }

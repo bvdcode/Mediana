@@ -1,7 +1,11 @@
 Managed AV1 reconstruction currently covers Main-profile eight-bit key pictures with lossless or four-point quantized
 transforms, monochrome or 4:2:0, with a single tile inside a complete frame
 OBU. The public factory accepts version-one av1C configuration and low-overhead
-OBUs with explicit sizes. Output keeps native planar samples, packet timing,
+OBUs with explicit sizes. Hidden key pictures, eight reference slots and
+show-existing display are supported, including multiple hidden/visible frame
+OBUs in one access unit. Reference display retains the existing pixel buffer;
+reset and disposal release references independently of returned frames.
+Output keeps native planar samples, packet timing,
 render aspect ratio and codec color labels without copying pixel storage.
 
 Verified reconstruction includes all partition shapes, palette luma,

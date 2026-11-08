@@ -7,8 +7,9 @@ using Mediana.Core.Memory;
 
 namespace Mediana.Codecs.Av1
 {
-    internal class Av1PictureDecoder(MediaBufferAllocator allocator, Av1Configuration? configuration = null)
+    internal class Av1PictureDecoder(MediaBufferAllocator allocator, Av1Configuration? configuration = null) : IDisposable
     {
+        private readonly Av1ReferencePictures references = new();
         private Av1SequenceHeader? savedSequence = configuration?.Sequence;
 
         internal Av1Picture Decode(ReadOnlySpan<byte> encoded, CancellationToken cancellationToken = default)
@@ -19,6 +20,7 @@ namespace Mediana.Codecs.Av1
             Av1SequenceHeader? sequence = savedSequence;
             bool hasSequence = false;
             ReadOnlySpan<byte> frame = default;
+            bool separateHeader = false;
             while (obus.TryRead(out int type, out ReadOnlySpan<byte> payload))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -34,11 +36,8 @@ namespace Mediana.Codecs.Av1
                         hasSequence = true;
                         break;
                     case 2:
-                        if (!payload.IsEmpty)
-                        {
-                            throw new InvalidDataException("An AV1 temporal delimiter must be empty.");
-                        }
                         break;
+                    case 3:
                     case 6:
                         if (sequence is null || !frame.IsEmpty)
                         {
@@ -49,8 +48,8 @@ namespace Mediana.Codecs.Av1
                             throw new InvalidDataException("The AV1 frame OBU is empty.");
                         }
                         frame = payload;
+                        separateHeader = type == 3;
                         break;
-                    case 3:
                     case 4:
                     case 7:
                     case 8:
@@ -73,7 +72,23 @@ namespace Mediana.Codecs.Av1
             {
                 throw new InvalidDataException("The AV1 access unit is missing its sequence or frame.");
             }
-            Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry);
+            if (separateHeader)
+            {
+                if (geometry.Tools.ReducedStillPicture || (hasSequence && sequence != savedSequence))
+                {
+                    throw new InvalidDataException("AV1 reference display requires an unchanged non-reduced sequence.");
+                }
+                Av1BitReader bits = new(frame);
+                if (!bits.Flag())
+                {
+                    throw new NotSupportedException("AV1 separate frame headers and tile groups are not implemented.");
+                }
+                int reference = bits.Read(3);
+                bits.Finish();
+                return references.Show(reference);
+            }
+            Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry, references);
+            references.Invalidate(header.InvalidReferences);
             geometry = header.Geometry;
             int sampleCount = geometry.SampleCount;
             int contextBytes = checked(geometry.ContextCount * Unsafe.SizeOf<Av1BlockContext>());
@@ -88,7 +103,19 @@ namespace Mediana.Codecs.Av1
             }
             cancellationToken.ThrowIfCancellationRequested();
             savedSequence = sequence;
-            return new(header, pixels.Publish());
+            Av1Picture picture = new(header, pixels.Publish());
+            bool transferred = false;
+            try
+            {
+                if (!geometry.Tools.ReducedStillPicture) { references.Save(picture); }
+                transferred = true;
+                return picture;
+            }
+            finally
+            {
+                if (!transferred) { picture.Dispose(); }
+            }
         }
+        public void Dispose() => references.Dispose();
     }
 }
