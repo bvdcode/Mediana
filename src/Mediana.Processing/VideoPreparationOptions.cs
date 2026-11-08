@@ -15,7 +15,7 @@ namespace Mediana.Processing
         public VideoColorInfo? SourceColorInterpretation { get; init; }
         /// <summary>Explicit color policy applied when no source interpretation is supplied. Null preserves strict decoded labels.</summary>
         public Func<VideoFormat, VideoColorInfo>? ColorResolver { get; init; }
-        /// <summary>Receives color-interpretation warnings when the configured preparation resolves a source format.</summary>
+        /// <summary>Receives color-interpretation and sample-precision warnings once when a source format is configured.</summary>
         public Action<string>? WarningHandler { get; init; }
         /// <summary>Null preserves decoded precision. Selecting a lower sample precision explicitly permits rounded
         /// sample conversion; it does not permit changing colorimetry or tone mapping.</summary>

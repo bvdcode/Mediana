@@ -5,6 +5,7 @@ using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
 using Mediana.Core.Memory;
+using Mediana.Core.Video;
 using Mediana.Execution;
 using Mediana.IO;
 using Mediana.Processing;
@@ -33,6 +34,7 @@ namespace Mediana.Cli
                     MaximumWidth = maximumWidth,
                     MaximumHeight = maximumHeight,
                     OmitAudio = videoOnly,
+                    OutputPixelFormat = VideoPixelFormat.Yuv420P8,
                     ColorResolver = VideoColorPolicy.ResolveForEncoding,
                     WarningHandler = message => logger.LogWarning("{Warning}", message),
                     RgbConversion = new()

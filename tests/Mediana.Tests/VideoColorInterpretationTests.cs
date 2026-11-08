@@ -134,5 +134,19 @@ namespace Mediana.Tests
             Assert.Equal(new VideoColorInfo(), source.Color);
             Assert.Equal(0, allocator.AllocatedBytes);
         }
+
+        [Fact]
+        public void ThrowingPrecisionWarningDoesNotRetainResizingWorkspace()
+        {
+            MediaBufferAllocator allocator = new(4096);
+            VideoFormat source = new(16, 12, VideoPixelFormat.Yuv420P10, Color);
+            Assert.Throws<OperationCanceledException>(() => new VideoPreparation(source, VideoDisplayMatrix.Identity, allocator, new()
+            {
+                MaximumWidth = 8,
+                OutputPixelFormat = VideoPixelFormat.Yuv420P8,
+                WarningHandler = _ => throw new OperationCanceledException()
+            }));
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
     }
 }

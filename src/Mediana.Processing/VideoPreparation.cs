@@ -47,6 +47,12 @@ namespace Mediana.Processing
                 planar = rgb.OutputFormat;
             }
             transform = new(planar, sourceDisplayMatrix, options.OutputPixelFormat ?? DefaultOutput(planar.PixelFormat), allocator);
+            if (options.WarningHandler is not null &&
+                inputFormat.PixelFormat is PlanarVideoPixelFormat source &&
+                transform.OutputFormat.PixelFormat is PlanarVideoPixelFormat output && source.BitDepth > output.BitDepth)
+            {
+                options.WarningHandler($"Source sample precision is reduced from {source.BitDepth} to {output.BitDepth} bits using rounded conversion for the selected output pixel format.");
+            }
             if (options.MaximumWidth is not null || options.MaximumHeight is not null)
             {
                 resizer = Yuv420AreaResizer.CreateFit(transform.OutputFormat,

@@ -12,7 +12,11 @@ namespace Mediana.Tests
     {
         public static void Verify()
         {
-            foreach (int width in new[] { 1, 17, 31, 32, 33, 65, 1025 }) { VerifyPrecision(width); }
+            foreach (int width in new[] { 1, 17, 31, 32, 33, 65, 1025 })
+            {
+                VerifyPrecision(width, 10);
+                VerifyPrecision(width, 12);
+            }
             MediaBufferAllocator allocator = new(4096);
             VideoFormat format = new(4, 2, VideoPixelFormat.Yuv420P8, new(ChromaLocation: ChromaLocation.Center), new(4, 3));
             using WritableMediaBuffer writable = allocator.Allocate(12);
@@ -30,24 +34,40 @@ namespace Mediana.Tests
             if (allocator.AllocatedBytes != 0) { throw new InvalidDataException("YUV preparation retained pixel storage after disposal."); }
         }
 
-        private static void VerifyPrecision(int width)
+        private static void VerifyPrecision(int width, int bitDepth)
         {
             MediaBufferAllocator allocator = new(65536);
-            VideoFormat format = new(width, 4, VideoPixelFormat.Yuv420P10);
+            VideoPixelFormat pixelFormat = bitDepth switch
+            {
+                10 => VideoPixelFormat.Yuv420P10,
+                12 => VideoPixelFormat.Yuv420P12,
+                _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
+            };
+            VideoFormat format = new(width, 4, pixelFormat);
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate((int)planes[^1].EndOffset);
             Span<ushort> values = MemoryMarshal.Cast<byte, ushort>(writable.Memory.Span);
-            for (int index = 0; index < values.Length; index++) { values[index] = (ushort)(index % 1024); }
+            for (int index = 0; index < values.Length; index++) { values[index] = (ushort)(index % (1 << bitDepth)); }
             using MediaBuffer buffer = writable.Publish();
             using VideoFrame input = new(format, buffer, planes);
+            List<string> warnings = [];
             using VideoPreparation operation = new(format, VideoDisplayMatrix.Identity, allocator,
-                new() { OutputPixelFormat = VideoPixelFormat.Yuv420P8 });
+                new() { OutputPixelFormat = VideoPixelFormat.Yuv420P8, WarningHandler = warnings.Add });
             using VideoFrame output = operation.Apply(input);
             for (int index = 0; index < values.Length; index++)
             {
-                if (Math.Min(255, (values[index] + 2) / 4) != output.Data.Span[index])
+                int shift = bitDepth - 8;
+                if (Math.Min(255, (values[index] + (1 << (shift - 1))) >> shift) != output.Data.Span[index])
                 {
                     throw new InvalidDataException("YUV precision conversion differs from rounded scalar reference samples.");
+                }
+            }
+            using (VideoFrame repeated = operation.Apply(input))
+            {
+                if (!repeated.Data.Span.SequenceEqual(output.Data.Span) || warnings.Count != 1 ||
+                    !warnings[0].Contains($"from {bitDepth} to 8 bits", StringComparison.Ordinal))
+                {
+                    throw new InvalidDataException("YUV precision conversion did not report one warning for its configured source format.");
                 }
             }
             output.Dispose(); input.Dispose(); buffer.Dispose(); operation.Dispose();

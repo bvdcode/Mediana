@@ -41,6 +41,7 @@ namespace Mediana.Cli
                 },
                 FramePreparation = new()
                 {
+                    OutputPixelFormat = VideoPixelFormat.Yuv420P8,
                     ColorResolver = VideoColorPolicy.ResolveForEncoding,
                     WarningHandler = message => logger.LogWarning("{Warning}", message),
                     RgbConversion = new()
