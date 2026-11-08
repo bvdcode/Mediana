@@ -8,15 +8,26 @@ namespace Mediana.Codecs.Aac
 {
     internal ref struct AacAdtsCrc
     {
-        private const int Polynomial = 0x8005;
         private readonly ReadOnlySpan<byte> payload;
         private readonly bool present;
         private readonly ushort expected;
         private ushort remainder;
 
-        public AacAdtsCrc(ReadOnlySpan<byte> payload, ReadOnlySpan<byte> prefix, int frequencyIndex, int channels)
+        public AacAdtsCrc(ReadOnlySpan<byte> payload, ReadOnlySpan<byte> prefix, int frequencyIndex, int channels,
+            ushort? rawDataBlockCrc = null)
         {
             this.payload = payload;
+            remainder = AdtsCrc16.Initial;
+            if (rawDataBlockCrc.HasValue)
+            {
+                if (!prefix.IsEmpty)
+                {
+                    throw new InvalidDataException("An ADTS raw block CRC cannot be combined with a single-block header CRC.");
+                }
+                present = true;
+                expected = rawDataBlockCrc.Value;
+                return;
+            }
             if (prefix.IsEmpty)
             {
                 return;
@@ -34,7 +45,6 @@ namespace Mediana.Codecs.Aac
             }
             present = true;
             expected = BinaryPrimitives.ReadUInt16BigEndian(prefix[AdtsFrameHeader.ByteLength..]);
-            remainder = ushort.MaxValue;
             foreach (byte value in prefix[..AdtsFrameHeader.ByteLength])
             {
                 Append(value, 8);
@@ -79,15 +89,7 @@ namespace Mediana.Codecs.Aac
 
         private void Append(int value, int count)
         {
-            for (int shift = count - 1; shift >= 0; shift--)
-            {
-                int feedback = (remainder >> 15) ^ ((value >> shift) & 1);
-                remainder = (ushort)(remainder << 1);
-                if (feedback != 0)
-                {
-                    remainder ^= Polynomial;
-                }
-            }
+            remainder = AdtsCrc16.Append(remainder, value, count);
         }
     }
 }

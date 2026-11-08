@@ -18,7 +18,7 @@ namespace Mediana.Tests
         {
             await using AdtsReadTrackingSource source = new(Input);
             MediaBufferAllocator allocator = new(4096);
-            await using AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator);
+            await using AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit });
             Assert.Equal(4, reader.GetPacketCount(0));
             Assert.Equal(28, source.Reads.Sum(item => item.Length));
             long[] expected = [.. Enumerable.Range(0, 7).Select(value => (long)value),
@@ -39,7 +39,7 @@ namespace Mediana.Tests
             await source.ReadAsync(new byte[1]);
             MediaBufferAllocator allocator = new(4096);
             MediaPacket retained;
-            await using (AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator))
+            await using (AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }))
             {
                 foreach (int index in new[] { 3, 1, 3, 0, 2 })
                 {
@@ -69,7 +69,7 @@ namespace Mediana.Tests
         {
             await using AdtsReadTrackingSource source = new(Input);
             MediaBufferAllocator allocator = new(4096);
-            await using AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator);
+            await using AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit });
             TimeBase clock = new(1, 44100);
             MediaTimestamp target = new(3172, clock);
             Assert.Equal(3, reader.FindSeekPoint(0, target, 4)!.Value.PacketIndex);
@@ -94,7 +94,7 @@ namespace Mediana.Tests
         {
             await using AdtsReadTrackingSource source = new(Input);
             MediaBufferAllocator allocator = new(4096);
-            await using AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator);
+            await using AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit });
             using CancellationTokenSource cancellation = new();
             await cancellation.CancelAsync();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.ReadPacketAtAsync(0, 3, cancellation.Token).AsTask());
@@ -114,11 +114,11 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(4096);
             if (hex.Contains("FFF14C", StringComparison.Ordinal))
             {
-                await Assert.ThrowsAsync<NotSupportedException>(() => AdtsIndexedReader.OpenAsync(source, allocator).AsTask());
+                await Assert.ThrowsAsync<NotSupportedException>(() => AdtsIndexedReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }).AsTask());
             }
             else
             {
-                await Assert.ThrowsAsync<InvalidDataException>(() => AdtsIndexedReader.OpenAsync(source, allocator).AsTask());
+                await Assert.ThrowsAsync<InvalidDataException>(() => AdtsIndexedReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }).AsTask());
             }
             Assert.Equal(0, allocator.AllocatedBytes);
             Assert.False(source.IsDisposed);

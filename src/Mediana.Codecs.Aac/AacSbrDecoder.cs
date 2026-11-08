@@ -8,10 +8,11 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    internal class AacSbrDecoder(int streamIndex, AacConfiguration configuration, MediaBufferAllocator allocator, int maxAccessUnitBytes)
+    internal class AacSbrDecoder(int streamIndex, AacConfiguration configuration, MediaBufferAllocator allocator, int maxAccessUnitBytes,
+        bool adts = false)
         : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
     {
-        private readonly AacDecoder decoder = new(streamIndex, configuration, allocator, maxAccessUnitBytes);
+        private readonly AacDecoder decoder = new(streamIndex, configuration, allocator, maxAccessUnitBytes, adts);
 
         public int RequiredPrerollPackets => 2;
         public void ResetForPreroll(long packetCount, bool startsAtStreamBeginning) =>

@@ -38,7 +38,7 @@ namespace Mediana.Tests
             byte[] input = await ReadFixtureAsync(name);
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using (ShortReadSource source = new(input))
-            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator))
+            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }))
             {
                 AacDecoderFactory factory = new();
                 IPacketIntegrityValidator validator = factory.CreateIntegrityValidator(reader.Streams[0]);
@@ -91,7 +91,7 @@ namespace Mediana.Tests
             input[offset] ^= mask;
             MediaBufferAllocator allocator = new(256 * 1024);
             await using (ShortReadSource source = new(input))
-            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator))
+            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }))
             {
                 using MediaPacket packet = Assert.IsType<MediaPacket>(await reader.ReadPacketAsync());
                 AacDecoderFactory factory = new();
@@ -114,7 +114,7 @@ namespace Mediana.Tests
             MediaPacket retained;
             IPacketIntegrityValidator validator;
             await using (AdtsReadTrackingSource source = new(input))
-            await using (AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator))
+            await using (AdtsIndexedReader reader = await AdtsIndexedReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }))
             {
                 Assert.Equal(42, source.Reads.Sum(read => read.Length));
                 source.Reads.Clear();
@@ -147,14 +147,14 @@ namespace Mediana.Tests
             int frameBytes = AdtsFrameHeader.Read(input).FrameBytes;
             MediaBufferAllocator allocator = new(frameBytes + 8);
             await using (ShortReadSource source = new(input))
-            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator))
+            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }))
             {
                 await Assert.ThrowsAsync<MediaMemoryLimitException>(() => reader.ReadPacketAsync().AsTask());
                 Assert.Equal(0, allocator.AllocatedBytes);
             }
             MediaBufferAllocator cancelled = new(8192);
             await using (GatedByteSource source = new(input))
-            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, cancelled))
+            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, cancelled, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }))
             {
                 source.GateReads = true;
                 using CancellationTokenSource cancellation = new();
@@ -172,7 +172,7 @@ namespace Mediana.Tests
             byte[] input = await ReadFixtureAsync("tone-1");
             MediaBufferAllocator allocator = new(8192);
             await using (ShortReadSource source = new(input))
-            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator))
+            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }))
             {
                 using MediaPacket packet = Assert.IsType<MediaPacket>(await reader.ReadPacketAsync());
                 IPacketIntegrityValidator validator = new AacDecoderFactory().CreateIntegrityValidator(reader.Streams[0]);

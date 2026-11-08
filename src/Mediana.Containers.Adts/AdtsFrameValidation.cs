@@ -13,13 +13,16 @@ namespace Mediana.Containers.Adts
         {
             if (header.RawDataBlockCount != 1)
             {
-                throw new NotSupportedException("Multiple raw data blocks in one ADTS frame require explicit block separation.");
+                throw new NotSupportedException("The raw AAC access-unit projection requires exactly one raw data block per ADTS frame.");
             }
         }
 
-        public static void RequireConfiguration(AdtsFrameHeader first, AdtsFrameHeader next)
+        public static void RequireConfiguration(AdtsFrameHeader first, AdtsFrameHeader next, AdtsPacketFraming framing)
         {
-            RequireSingleBlock(next);
+            if (framing == AdtsPacketFraming.RawAccessUnit)
+            {
+                RequireSingleBlock(next);
+            }
             if (next.IsMpeg2 != first.IsMpeg2 || next.AudioObjectType != first.AudioObjectType
                 || next.FrequencyIndex != first.FrequencyIndex || next.ChannelConfiguration != first.ChannelConfiguration)
             {

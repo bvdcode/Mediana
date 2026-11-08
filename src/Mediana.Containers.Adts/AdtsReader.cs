@@ -10,26 +10,27 @@ using Mediana.IO;
 
 namespace Mediana.Containers.Adts
 {
-    /// <summary>Forward-only ADTS reader, one raw data block per frame. Borrows its source.
-    /// Opening reads only the first header. Packets exclude transport headers and optional CRC words;
-    /// Protected packets retain their transport header and CRC as side data for codec-level validation.
+    /// <summary>Forward-only ADTS reader. Borrows its source. Opening reads only the first header.
+    /// Transport packets preserve all raw blocks; optional single-block projection retains protection as side data.
     /// Midstream configuration changes and resynchronization are not supported.</summary>
     public class AdtsReader : IContainerReader
     {
         private readonly IByteSource source;
         private readonly MediaBufferAllocator allocator;
         private readonly WritableMediaBuffer scratch;
+        private readonly AdtsPacketFraming framing;
         private AdtsFrameHeader? next;
-        private long frames;
+        private long rawDataBlocks;
         private bool ended;
         private bool disposed;
         private bool faulted;
         private int busy;
 
-        private AdtsReader(IByteSource source, MediaBufferAllocator allocator)
+        private AdtsReader(IByteSource source, MediaBufferAllocator allocator, AdtsPacketFraming framing)
         {
             this.source = source;
             this.allocator = allocator;
+            this.framing = framing;
             scratch = allocator.Allocate(AdtsFrameHeader.ByteLength + 2);
         }
 
@@ -37,24 +38,29 @@ namespace Mediana.Containers.Adts
         public ContainerInfo Info { get; } = new("adts");
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
         /// <summary>Known only after EOF. Includes the decoder's priming and final padding.</summary>
-        public MediaDuration? CodedDuration => ended ? new(checked(frames * AdtsFrameValidation.SamplesPerFrame), Streams[0].TimeBase) : null;
+        public MediaDuration? CodedDuration => ended ? new(checked(rawDataBlocks * AdtsFrameValidation.SamplesPerFrame), Streams[0].TimeBase) : null;
+
+        public static ValueTask<AdtsReader> OpenAsync(IByteSource source, MediaBufferAllocator allocator,
+            CancellationToken cancellationToken = default) => OpenAsync(source, allocator, new AdtsReaderOptions(), cancellationToken);
 
         public static async ValueTask<AdtsReader> OpenAsync(IByteSource source, MediaBufferAllocator allocator,
-            CancellationToken cancellationToken = default)
+            AdtsReaderOptions options, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(allocator);
+            ArgumentNullException.ThrowIfNull(options);
+            options.Validate();
             cancellationToken.ThrowIfCancellationRequested();
-            AdtsReader reader = new(source, allocator);
+            AdtsReader reader = new(source, allocator, options.PacketFraming);
             bool success = false;
             try
             {
                 await source.ReadExactlyAsync(reader.scratch.Memory[..AdtsFrameHeader.ByteLength], cancellationToken).ConfigureAwait(false);
                 reader.FirstFrame = AdtsFrameHeader.Read(reader.scratch.Memory.Span);
-                AdtsFrameValidation.RequireSingleBlock(reader.FirstFrame);
+                AdtsFrameValidation.RequireConfiguration(reader.FirstFrame, reader.FirstFrame, options.PacketFraming);
                 reader.next = reader.FirstFrame;
                 reader.Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, AacConfiguration.CodecId,
-                    StreamFormats.Aac, new TimeBase(1, reader.FirstFrame.SampleRate), reader.FirstFrame.ToAudioSpecificConfig()) });
+                    AdtsPacketFactory.GetFormat(options.PacketFraming), new TimeBase(1, reader.FirstFrame.SampleRate), reader.FirstFrame.ToAudioSpecificConfig()) });
                 success = true;
                 return reader;
             }
@@ -72,21 +78,34 @@ namespace Mediana.Containers.Adts
                 if (ended) { success = true; return null; }
                 AdtsFrameHeader? header = next ?? await ReadHeaderAsync(cancellationToken).ConfigureAwait(false);
                 if (header is null) { ended = true; success = true; return null; }
-                AdtsFrameValidation.RequireConfiguration(FirstFrame, header.Value);
-                int prefixBytes = header.Value.HasCrc ? AdtsPacketProtection.PrefixByteLength : 0;
-                using WritableMediaBuffer writable = allocator.Allocate(header.Value.FrameBytes - header.Value.HeaderBytes + prefixBytes);
-                if (header.Value.HasCrc)
+                AdtsFrameValidation.RequireConfiguration(FirstFrame, header.Value, framing);
+                int allocationBytes = framing switch
+                {
+                    AdtsPacketFraming.TransportFrame => header.Value.FrameBytes,
+                    AdtsPacketFraming.RawAccessUnit => header.Value.FrameBytes - header.Value.HeaderBytes
+                        + (header.Value.HasCrc ? AdtsPacketProtection.PrefixByteLength : 0),
+                    _ => throw new ArgumentOutOfRangeException(nameof(framing))
+                };
+                using WritableMediaBuffer writable = allocator.Allocate(allocationBytes);
+                int prefixBytes = 0;
+                if (framing == AdtsPacketFraming.TransportFrame)
+                {
+                    scratch.Memory[..AdtsFrameHeader.ByteLength].CopyTo(writable.Memory);
+                    prefixBytes = AdtsFrameHeader.ByteLength;
+                }
+                else if (header.Value.HasCrc)
                 {
                     scratch.Memory[..AdtsFrameHeader.ByteLength].CopyTo(writable.Memory);
                     await source.ReadExactlyAsync(writable.Memory.Slice(AdtsFrameHeader.ByteLength, 2), cancellationToken).ConfigureAwait(false);
+                    prefixBytes = AdtsPacketProtection.PrefixByteLength;
                 }
                 await source.ReadExactlyAsync(writable.Memory[prefixBytes..], cancellationToken).ConfigureAwait(false);
-                MediaTimestamp timestamp = new(checked(frames * AdtsFrameValidation.SamplesPerFrame), Streams[0].TimeBase);
+                MediaTimestamp timestamp = new(checked(rawDataBlocks * AdtsFrameValidation.SamplesPerFrame), Streams[0].TimeBase);
                 using MediaBuffer buffer = writable.Publish();
                 MediaPacket packet = AdtsPacketFactory.Create(buffer, header.Value.HasCrc, timestamp,
-                    new MediaDuration(AdtsFrameValidation.SamplesPerFrame, timestamp.TimeBase));
+                    new MediaDuration(header.Value.RawDataBlockCount * AdtsFrameValidation.SamplesPerFrame, timestamp.TimeBase), framing);
                 next = null;
-                frames++;
+                rawDataBlocks += header.Value.RawDataBlockCount;
                 success = true;
                 return packet;
             }

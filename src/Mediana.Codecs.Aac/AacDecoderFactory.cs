@@ -9,7 +9,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    /// <summary>Decodes AAC-LC channel configurations 1–7 and mono/stereo HE-AAC, including parametric stereo, one raw_data_block per packet.
+    /// <summary>Decodes AAC-LC channel configurations 1–7 and mono/stereo HE-AAC, including parametric stereo, in raw or ADTS framing.
     /// Outputs native-endian interleaved float32 PCM. Priming, padding and container edit trimming are not applied.</summary>
     public class AacDecoderFactory : IAudioDecoderFactory, IRandomAccessDecoderFactory, IPacketIntegrityValidatorFactory
     {
@@ -32,7 +32,7 @@ namespace Mediana.Codecs.Aac
             {
                 return "The stream is not AAC audio.";
             }
-            string? formatReason = StreamFormats.Aac.GetUnsupportedReason(stream.Format);
+            string? formatReason = stream.Format == StreamFormats.AacAdts ? null : StreamFormats.Aac.GetUnsupportedReason(stream.Format);
             if (formatReason is not null)
             {
                 return formatReason;
@@ -62,21 +62,22 @@ namespace Mediana.Codecs.Aac
         {
             ArgumentNullException.ThrowIfNull(allocator);
             AacConfiguration configuration = RequireConfiguration(stream);
+            bool adts = stream.Format == StreamFormats.AacAdts;
             return configuration.SpectralBandReplication == true ?
-                new AacSbrDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes) :
-                new AacDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes);
+                new AacSbrDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes, adts) :
+                new AacDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes, adts);
         }
 
         public IRandomAccessInspector CreateRandomAccessInspector(EncodedStreamInfo stream)
         {
             AacConfiguration configuration = RequireConfiguration(stream);
-            return new AacRandomAccessInspector(stream.StreamIndex, configuration, maxAccessUnitBytes);
+            return new AacRandomAccessInspector(stream.StreamIndex, configuration, maxAccessUnitBytes, stream.Format == StreamFormats.AacAdts);
         }
 
         public IPacketIntegrityValidator CreateIntegrityValidator(EncodedStreamInfo stream)
         {
             AacConfiguration configuration = RequireConfiguration(stream);
-            return new AacPacketIntegrityValidator(stream.StreamIndex, configuration, maxAccessUnitBytes);
+            return new AacPacketIntegrityValidator(stream.StreamIndex, configuration, maxAccessUnitBytes, stream.Format == StreamFormats.AacAdts);
         }
 
         private AacConfiguration RequireConfiguration(EncodedStreamInfo stream)

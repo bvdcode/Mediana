@@ -34,9 +34,9 @@ namespace Mediana.Tests
                 {
                     using (packet)
                     {
-                        if (packet.SideDataCount != 1 || validator.Validate(packet) != PacketIntegrityStatus.Verified)
+                        if (packet.SideDataCount != 0 || validator.Validate(packet) != PacketIntegrityStatus.Verified)
                         {
-                            throw new InvalidDataException("Protected ADTS packet lost its integrity side data.");
+                            throw new InvalidDataException("Protected ADTS transport packet lost its embedded integrity fields.");
                         }
                         using MediaPacket retained = packet.Retain();
                         packet.Dispose();

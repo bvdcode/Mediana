@@ -12,38 +12,47 @@ namespace Mediana.Containers.Adts
 {
     /// <summary>Indexes frame headers without reading compressed payloads. Borrows a complete immutable random-access source.
     /// Reads preserve the source cursor; indexed reads also preserve the reader cursor.
-    /// Protected packets retain their transport header and CRC as side data for codec-level validation.</summary>
+    /// Transport packets preserve all raw blocks; optional single-block projection retains protection as side data.</summary>
     public partial class AdtsIndexedReader : IIndexedPrerollReader, IIndexedPacketTimingReader, IIndexedPresentationTimingReader
     {
         private readonly IRandomAccessByteSource source;
         private readonly MediaBufferAllocator allocator;
         private readonly List<AdtsFrameLocation> locations;
+        private readonly AdtsPacketFraming framing;
         private int cursor;
         private bool disposed;
         private int busy;
 
         private AdtsIndexedReader(IRandomAccessByteSource source, MediaBufferAllocator allocator,
-            AdtsFrameHeader first, List<AdtsFrameLocation> locations)
+            AdtsFrameHeader first, List<AdtsFrameLocation> locations, AdtsPacketFraming framing)
         {
             this.source = source;
             this.allocator = allocator;
             this.locations = locations;
+            this.framing = framing;
             FirstFrame = first;
             TimeBase clock = new(1, first.SampleRate);
             Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, AacConfiguration.CodecId,
-                StreamFormats.Aac, clock, first.ToAudioSpecificConfig(),
-                codedDuration: new MediaDuration((long)locations.Count * AdtsFrameValidation.SamplesPerFrame, clock)) });
+                AdtsPacketFactory.GetFormat(framing), clock, first.ToAudioSpecificConfig(),
+                codedDuration: new MediaDuration(locations[^1].SampleOffset
+                    + locations[^1].RawDataBlockCount * AdtsFrameValidation.SamplesPerFrame, clock)) });
         }
 
         public AdtsFrameHeader FirstFrame { get; }
         public ContainerInfo Info { get; } = new("adts");
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
 
+        public static ValueTask<AdtsIndexedReader> OpenAsync(IRandomAccessByteSource source,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default) =>
+            OpenAsync(source, allocator, new AdtsReaderOptions(), cancellationToken);
+
         public static async ValueTask<AdtsIndexedReader> OpenAsync(IRandomAccessByteSource source,
-            MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
+            MediaBufferAllocator allocator, AdtsReaderOptions options, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(allocator);
+            ArgumentNullException.ThrowIfNull(options);
+            options.Validate();
             long length = source.Length ?? throw new NotSupportedException("ADTS indexing requires a known source length.");
             if (length < AdtsFrameHeader.ByteLength) { throw new InvalidDataException("The ADTS source is empty or truncated."); }
             cancellationToken.ThrowIfCancellationRequested();
@@ -51,6 +60,7 @@ namespace Mediana.Containers.Adts
             List<AdtsFrameLocation> locations = [];
             AdtsFrameHeader first = default;
             long position = 0;
+            long samples = 0;
             while (position < length)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -61,16 +71,18 @@ namespace Mediana.Containers.Adts
                 await source.ReadExactlyAtAsync(position, scratch.Memory, cancellationToken).ConfigureAwait(false);
                 AdtsFrameHeader header = AdtsFrameHeader.Read(scratch.Memory.Span);
                 if (locations.Count == 0) { first = header; }
-                AdtsFrameValidation.RequireConfiguration(first, header);
+                AdtsFrameValidation.RequireConfiguration(first, header, options.PacketFraming);
                 if (header.FrameBytes > length - position)
                 {
                     throw new InvalidDataException("The ADTS frame extends beyond the source.");
                 }
-                locations.Add(new(position + header.HeaderBytes, header.FrameBytes - header.HeaderBytes, header.HasCrc));
+                locations.Add(new(position + header.HeaderBytes, header.FrameBytes - header.HeaderBytes,
+                    header.HasCrc, header.RawDataBlockCount, samples));
+                samples = checked(samples + header.RawDataBlockCount * AdtsFrameValidation.SamplesPerFrame);
                 position = checked(position + header.FrameBytes);
             }
             cancellationToken.ThrowIfCancellationRequested();
-            return new(source, allocator, first, locations);
+            return new(source, allocator, first, locations, options.PacketFraming);
         }
 
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
@@ -103,16 +115,21 @@ namespace Mediana.Containers.Adts
         private async ValueTask<MediaPacket> ReadCoreAsync(int index, CancellationToken token)
         {
             AdtsFrameLocation location = locations[index];
-            int prefixBytes = location.HasCrc ? AdtsPacketProtection.PrefixByteLength : 0;
+            int prefixBytes = framing switch
+            {
+                AdtsPacketFraming.TransportFrame => AdtsFrameHeader.ByteLength + (location.HasCrc ? 2 * location.RawDataBlockCount : 0),
+                AdtsPacketFraming.RawAccessUnit => location.HasCrc ? AdtsPacketProtection.PrefixByteLength : 0,
+                _ => throw new ArgumentOutOfRangeException(nameof(framing))
+            };
             using WritableMediaBuffer writable = allocator.Allocate(location.ByteLength + prefixBytes);
             await source.ReadExactlyAtAsync(location.Offset - prefixBytes, writable.Memory, token).ConfigureAwait(false);
             using MediaBuffer buffer = writable.Publish();
             MediaTimestamp timestamp = Timestamp(index);
-            return AdtsPacketFactory.Create(buffer, location.HasCrc, timestamp, Duration);
+            return AdtsPacketFactory.Create(buffer, location.HasCrc, timestamp, Duration(index), framing);
         }
 
-        private MediaTimestamp Timestamp(int index) => new((long)index * AdtsFrameValidation.SamplesPerFrame, Streams[0].TimeBase);
-        private MediaDuration Duration => new(AdtsFrameValidation.SamplesPerFrame, Streams[0].TimeBase);
+        private MediaTimestamp Timestamp(int index) => new(locations[index].SampleOffset, Streams[0].TimeBase);
+        private MediaDuration Duration(int index) => new(locations[index].RawDataBlockCount * AdtsFrameValidation.SamplesPerFrame, Streams[0].TimeBase);
 
         private void RequireActive() => ObjectDisposedException.ThrowIf(disposed, this);
 

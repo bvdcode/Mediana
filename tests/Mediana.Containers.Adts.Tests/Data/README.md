@@ -37,3 +37,20 @@ all six frames and rejects a bit change in the last data byte, beyond the first
 192 DSE bits. This verifies whole-element coverage separately from the fixed
 channel prefix lengths. Its SHA-256 is
 `b2dd718fc7db611d561a85721ed1f6a3243b8e688ec259c70720ff6dd2df851d`.
+
+`multi-protected.aac` and `multi-unprotected.aac` regroup the six original
+`tone-2.aac` access units, repeated three times, without changing compressed
+audio. Their 11 transport frames contain 1, 2, 3, 4, 2, 1, 1, 1, 1, 1, 1 raw
+blocks. Frame lengths, block-position tables and CRCs follow
+ISO/IEC 14496-3:2001/Cor 1:2002, Annex 1.A.3.2. VBR fullness is 0x7ff.
+The original FDK AAC 2.0.3 decoder, with its PCM limiter disabled, reconstructs
+all 18 access units in each file. All 73,728 PCM16 output bytes equal the original
+single-block sequence; their SHA-256 is
+`c1a01ccbab8e59277f1e233e7feeba7ba86c71d0339b460acf59a66b7826545e`.
+The complete single-block ending also provides the lookahead required by that
+decoder's ADTS multi-block transport availability checks.
+
+| File | SHA-256 |
+| --- | --- |
+| multi-protected.aac | d53e3137fbcc23dee35763c7d637525a04900e48ca5f874b6a939961d0d5605a |
+| multi-unprotected.aac | f00d55d53230814b158124432664a0a73723221c2e26d977eadf6ef3c4a709f9 |

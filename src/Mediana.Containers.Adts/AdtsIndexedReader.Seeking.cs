@@ -62,7 +62,7 @@ namespace Mediana.Containers.Adts
                 int index = RequirePacket(streamIndex, packetIndex);
                 cancellationToken.ThrowIfCancellationRequested();
                 MediaTimestamp timestamp = Timestamp(index);
-                return new(timestamp, timestamp, Duration, null);
+                return new(timestamp, timestamp, Duration(index), null);
             }
             finally { Exit(); }
         }
@@ -72,9 +72,9 @@ namespace Mediana.Containers.Adts
             Enter();
             try
             {
-                RequirePacket(streamIndex, packetIndex);
+                int index = RequirePacket(streamIndex, packetIndex);
                 cancellationToken.ThrowIfCancellationRequested();
-                return Duration;
+                return Duration(index);
             }
             finally { Exit(); }
         }

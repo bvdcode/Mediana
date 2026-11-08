@@ -5,13 +5,27 @@ using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Formats.Audio;
+using Mediana.Formats;
 
 namespace Mediana.Containers.Adts
 {
     internal static class AdtsPacketFactory
     {
-        public static MediaPacket Create(MediaBuffer buffer, bool hasCrc, MediaTimestamp timestamp, MediaDuration duration)
+        public static EncodedStreamFormat GetFormat(AdtsPacketFraming framing) => framing switch
         {
+            AdtsPacketFraming.TransportFrame => StreamFormats.AacAdts,
+            AdtsPacketFraming.RawAccessUnit => StreamFormats.Aac,
+            _ => throw new ArgumentOutOfRangeException(nameof(framing))
+        };
+
+        public static MediaPacket Create(MediaBuffer buffer, bool hasCrc, MediaTimestamp timestamp, MediaDuration duration,
+            AdtsPacketFraming framing)
+        {
+            if (framing == AdtsPacketFraming.TransportFrame)
+            {
+                _ = new AdtsFrameLayout(buffer.Memory.Span);
+                return new(0, buffer, timestamp, timestamp, duration);
+            }
             if (!hasCrc)
             {
                 return new(0, buffer, timestamp, timestamp, duration);

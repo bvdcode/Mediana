@@ -28,7 +28,10 @@ namespace Mediana.Codecs.Aac
             {
                 throw new ArgumentException("The stream is not AAC audio.", nameof(stream));
             }
-            StreamFormats.Aac.Require(stream.Format);
+            if (stream.Format != StreamFormats.AacAdts)
+            {
+                StreamFormats.Aac.Require(stream.Format);
+            }
             AacConfiguration? configuration = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out _);
             if (configuration is null)
             {

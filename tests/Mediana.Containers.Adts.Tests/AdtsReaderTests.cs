@@ -20,7 +20,7 @@ namespace Mediana.Tests
             await using ShortReadSource source = new([.. frame, .. protectedFrame]);
             MediaBufferAllocator allocator = new(4096);
             MediaPacket retained;
-            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator))
+            await using (AdtsReader reader = await AdtsReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }))
             {
                 Assert.Equal(9, allocator.AllocatedBytes);
                 Assert.Null(reader.CodedDuration);
@@ -56,7 +56,7 @@ namespace Mediana.Tests
         {
             await using ShortReadSource source = new(Convert.FromHexString("FFF15080013FFC1122" + tail));
             MediaBufferAllocator allocator = new(4096);
-            await using AdtsReader reader = await AdtsReader.OpenAsync(source, allocator);
+            await using AdtsReader reader = await AdtsReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit });
             using MediaPacket retained = Assert.IsType<MediaPacket>(await reader.ReadPacketAsync());
             await Assert.ThrowsAsync<InvalidDataException>(() => reader.ReadPacketAsync().AsTask());
             Assert.Equal(2, allocator.AllocatedBytes);
@@ -73,7 +73,7 @@ namespace Mediana.Tests
         {
             await using ShortReadSource source = new(Convert.FromHexString("FFF15080013FFC1122" + tail));
             MediaBufferAllocator allocator = new(4096);
-            await using AdtsReader reader = await AdtsReader.OpenAsync(source, allocator);
+            await using AdtsReader reader = await AdtsReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit });
             using (MediaPacket? first = await reader.ReadPacketAsync()) { Assert.NotNull(first); }
             await Assert.ThrowsAsync<NotSupportedException>(() => reader.ReadPacketAsync().AsTask());
             Assert.Equal(0, allocator.AllocatedBytes);
@@ -84,7 +84,7 @@ namespace Mediana.Tests
         {
             await using ShortReadSource source = new(Convert.FromHexString("FFF15080017FFD11223344"));
             MediaBufferAllocator allocator = new(4096);
-            await Assert.ThrowsAsync<NotSupportedException>(() => AdtsReader.OpenAsync(source, allocator).AsTask());
+            await Assert.ThrowsAsync<NotSupportedException>(() => AdtsReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit }).AsTask());
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
@@ -93,7 +93,7 @@ namespace Mediana.Tests
         {
             await using GatedByteSource source = new(Convert.FromHexString("FFF15080013FFC1122"));
             MediaBufferAllocator allocator = new(4096);
-            await using AdtsReader reader = await AdtsReader.OpenAsync(source, allocator);
+            await using AdtsReader reader = await AdtsReader.OpenAsync(source, allocator, new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit });
             source.GateReads = true;
             using CancellationTokenSource cancellation = new();
             Task<MediaPacket?> pending = reader.ReadPacketAsync(cancellation.Token).AsTask();

@@ -6,7 +6,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    internal class AacPacketIntegrityValidator(int streamIndex, AacConfiguration configuration, int maxAccessUnitBytes)
+    internal class AacPacketIntegrityValidator(int streamIndex, AacConfiguration configuration, int maxAccessUnitBytes, bool adts = false)
         : IPacketIntegrityValidator
     {
         private readonly AacChannelLayout layout = new(configuration.ChannelConfiguration);
@@ -20,9 +20,20 @@ namespace Mediana.Codecs.Aac
             {
                 throw new ArgumentException("The packet belongs to a different AAC stream.", nameof(packet));
             }
-            if (packet.Data.Length > maxAccessUnitBytes)
+            if (!adts && packet.Data.Length > maxAccessUnitBytes)
             {
                 throw new NotSupportedException("The AAC packet exceeds the configured access unit limit.");
+            }
+            if (adts)
+            {
+                AdtsFrameLayout frame = new(packet.Data.Span);
+                frame.RequireConfiguration(configuration);
+                if (!frame.Header.HasCrc)
+                {
+                    return PacketIntegrityStatus.NotPresent;
+                }
+                AacAdtsPacketParser.Inspect(packet.Data.Span, configuration, layout, maxAccessUnitBytes, cancellationToken, out _);
+                return PacketIntegrityStatus.Verified;
             }
             ReadOnlySpan<byte> protection = AacPacketProtection.GetPrefix(packet);
             if (protection.IsEmpty)

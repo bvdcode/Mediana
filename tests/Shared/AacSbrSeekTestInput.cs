@@ -29,7 +29,8 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(512 * 1024);
             await using TrackingRandomAccessSource source = new(input);
             await using IIndexedContainerReader reader = mp4 ? await Mp4Reader.OpenAsync(source, allocator) :
-                await AdtsIndexedReader.OpenAsync(source, allocator);
+                await AdtsIndexedReader.OpenAsync(source, allocator,
+                    new AdtsReaderOptions { PacketFraming = AdtsPacketFraming.RawAccessUnit });
             Require(reader.GetPacketCount(0) == 16);
             for (int index = 0; index < packets.Length; index++)
             {

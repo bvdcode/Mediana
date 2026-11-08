@@ -9,6 +9,14 @@ namespace Mediana.Containers.Adts
 {
     public class AdtsReaderFactory : IContainerReaderFactory
     {
+        private readonly AdtsReaderOptions options;
+
+        public AdtsReaderFactory(AdtsReaderOptions? options = null)
+        {
+            this.options = options ?? new();
+            this.options.Validate();
+        }
+
         public string ImplementationId => "adts.managed";
         public int ProbeLength => AdtsFrameHeader.ByteLength;
         public bool CanRead(ReadOnlySpan<byte> prefix) => prefix.Length >= ProbeLength && AdtsFrameHeader.HasSync(prefix);
@@ -19,9 +27,9 @@ namespace Mediana.Containers.Adts
             ArgumentNullException.ThrowIfNull(source);
             if (source is IRandomAccessByteSource random && random.Length is not null)
             {
-                return await AdtsIndexedReader.OpenAsync(random, allocator, cancellationToken).ConfigureAwait(false);
+                return await AdtsIndexedReader.OpenAsync(random, allocator, options, cancellationToken).ConfigureAwait(false);
             }
-            return await AdtsReader.OpenAsync(source, allocator, cancellationToken).ConfigureAwait(false);
+            return await AdtsReader.OpenAsync(source, allocator, options, cancellationToken).ConfigureAwait(false);
         }
     }
 }

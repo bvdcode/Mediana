@@ -6,7 +6,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    internal class AacRandomAccessInspector(int streamIndex, AacConfiguration configuration, int maxAccessUnitBytes)
+    internal class AacRandomAccessInspector(int streamIndex, AacConfiguration configuration, int maxAccessUnitBytes, bool adts = false)
         : IRandomAccessRecoveryInspector, IRandomAccessOriginInspector
     {
         private readonly AacChannelLayout layout = new(configuration.ChannelConfiguration);
@@ -41,31 +41,26 @@ namespace Mediana.Codecs.Aac
             {
                 throw new ArgumentException("The packet belongs to a different AAC stream.", nameof(packet));
             }
-            if (packet.Data.Length > maxAccessUnitBytes)
+            if (!adts && packet.Data.Length > maxAccessUnitBytes)
             {
                 throw new NotSupportedException("The AAC packet exceeds the configured access unit limit.");
             }
-            AacAccessUnitInspection inspection = AacAccessUnitParser.Inspect(packet.Data.Span, configuration.FrequencyIndex,
-                configuration.SampleRate * 2, layout, cancellationToken, AacPacketProtection.GetPrefix(packet));
-            bool sbr = inspection.HasSbr;
-            if (sbr && configuration.SpectralBandReplication == false)
+            AacAccessUnitInspection inspection;
+            bool hasParametricStereo;
+            if (adts)
             {
-                throw new InvalidDataException("The SBR payload contradicts the stream configuration.");
+                inspection = AacAdtsPacketParser.Inspect(packet.Data.Span, configuration, layout, maxAccessUnitBytes,
+                    cancellationToken, out hasParametricStereo);
             }
-            if (!sbr && configuration.SpectralBandReplication == true)
+            else
             {
-                throw new InvalidDataException("The HE-AAC frame is missing its SBR payload.");
+                inspection = AacAccessUnitParser.Inspect(packet.Data.Span, configuration.FrequencyIndex,
+                    configuration.SampleRate * 2, layout, cancellationToken, AacPacketProtection.GetPrefix(packet));
+                inspection.RequireConfiguration(configuration, layout.ChannelCount);
+                hasParametricStereo = inspection.HasParametricStereo;
             }
-            if (sbr && layout.ChannelCount > 2)
+            if (hasParametricStereo)
             {
-                throw new NotSupportedException("SBR decoding requires mono or stereo audio.");
-            }
-            if (inspection.HasParametricStereo)
-            {
-                if (configuration.ParametricStereo == false)
-                {
-                    throw new InvalidDataException("The PS payload contradicts the stream configuration.");
-                }
                 parametricStereo = true;
             }
             return inspection;

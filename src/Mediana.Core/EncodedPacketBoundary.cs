@@ -7,6 +7,7 @@ namespace Mediana.Core
     {
         ArbitraryBytes,
         AccessUnit,
-        SampleBlock
+        SampleBlock,
+        TransportFrame
     }
 }

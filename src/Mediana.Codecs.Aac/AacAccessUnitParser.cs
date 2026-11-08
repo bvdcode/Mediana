@@ -5,29 +5,32 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacAccessUnitParser
     {
-        public static void Read(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate, AacDecoderWorkspace workspace,
-            ref uint noiseState, CancellationToken cancellationToken, ReadOnlySpan<byte> protection = default)
+        public static int Read(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate, AacDecoderWorkspace workspace,
+            ref uint noiseState, CancellationToken cancellationToken, ReadOnlySpan<byte> protection = default,
+            bool allowTrailingBlocks = false, ushort? rawDataBlockCrc = null)
         {
             workspace.BeginSbrFrame();
-            ReadCore(data, frequencyIndex, sbrSampleRate, workspace.Layout, workspace.ElementTags, workspace,
-                ref noiseState, cancellationToken, protection);
+            return ReadCore(data, frequencyIndex, sbrSampleRate, workspace.Layout, workspace.ElementTags, workspace,
+                ref noiseState, cancellationToken, protection, allowTrailingBlocks, rawDataBlockCrc).ByteLength;
         }
 
         public static AacAccessUnitInspection Inspect(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate,
-            AacChannelLayout layout, CancellationToken cancellationToken, ReadOnlySpan<byte> protection = default)
+            AacChannelLayout layout, CancellationToken cancellationToken, ReadOnlySpan<byte> protection = default,
+            bool allowTrailingBlocks = false, ushort? rawDataBlockCrc = null)
         {
             Span<int> tags = stackalloc int[layout.Elements.Length];
             tags.Fill(-1);
             uint noiseState = 0;
-            return ReadCore(data, frequencyIndex, sbrSampleRate, layout, tags, null, ref noiseState, cancellationToken, protection);
+            return ReadCore(data, frequencyIndex, sbrSampleRate, layout, tags, null, ref noiseState, cancellationToken,
+                protection, allowTrailingBlocks, rawDataBlockCrc);
         }
 
         private static AacAccessUnitInspection ReadCore(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate,
             AacChannelLayout layout, Span<int> tags, AacDecoderWorkspace? workspace, ref uint noiseState,
-            CancellationToken cancellationToken, ReadOnlySpan<byte> protection)
+            CancellationToken cancellationToken, ReadOnlySpan<byte> protection, bool allowTrailingBlocks, ushort? rawDataBlockCrc)
         {
             AacBitReader bits = new(data);
-            AacAdtsCrc crc = new(data, protection, frequencyIndex, layout.ChannelCount);
+            AacAdtsCrc crc = new(data, protection, frequencyIndex, layout.ChannelCount, rawDataBlockCrc);
             int element = 0;
             int channel = 0;
             int previousType = -1;
@@ -100,12 +103,12 @@ namespace Mediana.Codecs.Aac
                 previousType = type;
             }
             bits.Align();
-            if (element != layout.Elements.Length || bits.Remaining != 0)
+            if (element != layout.Elements.Length || !allowTrailingBlocks && bits.Remaining != 0)
             {
                 throw new InvalidDataException("An AAC packet must contain one complete raw data block for the configured channels.");
             }
             crc.Verify();
-            return new(independent, hasSbr, hasParametricStereo, originIndependent);
+            return new(independent, hasSbr, hasParametricStereo, originIndependent, bits.Position / 8);
         }
 
         private static int ReadPair(ref AacBitReader bits, AacDecoderWorkspace? workspace, int channel, int frequencyIndex,

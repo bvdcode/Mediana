@@ -12,6 +12,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <Using Include="Xunit" />
     <Compile Include="../Shared/AdtsDecodeTestInput.cs" Link="AdtsDecodeTestInput.cs" />
+    <Compile Include="../Shared/AdtsMultiBlockTestInput.cs" Link="AdtsMultiBlockTestInput.cs" />
     <Compile Include="../Mediana.Tests/ShortReadSource.cs" Link="ShortReadSource.cs" />
     <Compile Include="../Mediana.Tests/GatedByteSource.cs" Link="GatedByteSource.cs" />
     <None Include="Data/*" CopyToOutputDirectory="PreserveNewest" />
