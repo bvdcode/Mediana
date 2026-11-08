@@ -5,6 +5,10 @@ namespace Mediana.Codecs.Ac3.Tests
 {
     internal static class Ac3TransientFrame
     {
+        public static byte[] CreateTailSequence() => [.. Ac3SyntheticFrame.Create(true, true),
+            .. Ac3SyntheticFrame.Create(true, true, transientLocation: 4092, transientLength: 255),
+            .. Ac3SyntheticFrame.Create(true, true, transientLocation: 2048, transientLength: 255)];
+
         public static byte[] CreateSequence()
         {
             (int? Location, int Length)[] settings = [(1408, 160), (4092, 255), (0, 128), (768, 232),

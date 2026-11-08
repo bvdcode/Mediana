@@ -72,7 +72,7 @@ namespace Mediana.Codecs.Ac3
             ProcessEvents();
         }
 
-        private void ProcessEvents()
+        private void ProcessEvents(bool final = false)
         {
             for (int channel = 0; channel < eventCount.Length; channel++)
             {
@@ -80,7 +80,7 @@ namespace Mediana.Codecs.Ac3
                 {
                     int index = channel * MaximumEvents + eventHead[channel];
                     Ac3TransientEvent item = events[index];
-                    if (item.Transient > decodedSamples) { break; }
+                    if (!final && item.Transient > decodedSamples) { break; }
                     Apply(channel, item);
                     eventHead[channel] = (eventHead[channel] + 1) % MaximumEvents; eventCount[channel]--;
                 }
@@ -89,11 +89,13 @@ namespace Mediana.Codecs.Ac3
 
         private void Apply(int channel, Ac3TransientEvent item)
         {
+            if (item.TargetStart >= decodedSamples) { return; }
+            int correctionSamples = item.Transient > decodedSamples ? checked((int)(decodedSamples - item.TargetStart)) : item.CorrectionLength;
             Span<float> synthesis = stackalloc float[1020];
             Span<byte> unknown = stackalloc byte[1020];
             int sourceUnit = head, targetUnit = head;
             ushort channelMask = (ushort)(1 << channel);
-            for (int sample = 0; sample < item.SynthesisLength; sample++)
+            for (int sample = 0; sample < correctionSamples; sample++)
             {
                 long position = item.SourceStart + sample;
                 if (position < 0)
@@ -108,7 +110,7 @@ namespace Mediana.Codecs.Ac3
                     unknown[sample] = IsUnknown(position, channelMask) ? (byte)1 : (byte)0;
                 }
             }
-            for (int sample = 0; sample < item.CorrectionLength; sample++)
+            for (int sample = 0; sample < correctionSamples; sample++)
             {
                 long position = item.TargetStart + sample;
                 if (position < 0) { continue; }
@@ -179,9 +181,7 @@ namespace Mediana.Codecs.Ac3
 
         public void CompleteInput()
         {
-            ProcessEvents();
-            if (eventCount.AsSpan().ContainsAnyExcept(0))
-            { throw new InvalidDataException("E-AC-3 input ended before its signalled transient processing was complete."); }
+            ProcessEvents(final: true);
             completed = true;
         }
 

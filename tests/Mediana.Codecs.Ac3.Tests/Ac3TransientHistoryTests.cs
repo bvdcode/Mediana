@@ -18,6 +18,8 @@ namespace Mediana.Codecs.Ac3.Tests
                 Assert.InRange(item.SynthesisLength, 768, 1020);
                 Assert.InRange(item.CorrectionLength, 767, 1019);
                 Assert.True(item.Transient - item.SourceStart <= 1528);
+                Assert.True(item.TargetStart - item.SourceStart >= 257);
+                Assert.True(item.SourceStart + item.CorrectionLength <= item.Transient - 257);
                 Assert.True(item.TargetStart >= -767);
                 Assert.True(4092 + item.CorrectionLength < Ac3TransientProcessing.HoldbackSamples);
                 Assert.True(4092 + 1536 + 1276 < Ac3TransientProcessing.HistorySamples);

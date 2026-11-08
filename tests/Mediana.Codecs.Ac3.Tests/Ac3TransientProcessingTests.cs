@@ -14,10 +14,11 @@ namespace Mediana.Codecs.Ac3.Tests
         public void ReproducesIndependentTimeScalingAndOutOfOrderTransientSequence()
         {
             Assert.Equal(File.ReadAllBytes(Ac3DecoderTests.Data("transient.eac3")), Ac3TransientFrame.CreateSequence());
+            Assert.Equal(File.ReadAllBytes(Ac3DecoderTests.Data("transient-tail.eac3")), Ac3TransientFrame.CreateTailSequence());
         }
 
         [Fact]
-        public void MissingHistoryAndUnfinishedFutureProcessingFailBeforePublishingApproximatePcm()
+        public void MissingHistoryFailsBeforePublishingApproximatePcm()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (IMediaCodec<MediaPacket, AudioFrame> decoder = Ac3DecoderTests.Create(true, allocator))
@@ -25,13 +26,29 @@ namespace Mediana.Codecs.Ac3.Tests
                 using (MediaPacket invalid = Ac3DecoderTests.Packet(Ac3SyntheticFrame.Create(true, false, 1, transientLocation: 0), allocator))
                 { Assert.Throws<InvalidDataException>(() => decoder.TrySend(invalid)); }
                 Assert.Throws<InvalidOperationException>(() => decoder.Receive());
-                decoder.Reset();
-                using MediaPacket unfinished = Ac3DecoderTests.Packet(Ac3SyntheticFrame.Create(true, false, 1, transientLocation: 4092), allocator);
-                decoder.TrySend(unfinished); Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
-                Assert.Throws<InvalidDataException>(() => decoder.CompleteInput());
-                Assert.Throws<InvalidOperationException>(() => decoder.Receive());
             }
             Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public void FutureCorrectionOutsideTheDecodedExtentDoesNotChangeItsPcm()
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            byte[] expected = Decode(null);
+            Assert.Equal(expected, Decode(4092));
+            Assert.Equal(0, allocator.AllocatedBytes);
+
+            byte[] Decode(int? location)
+            {
+                using IMediaCodec<MediaPacket, AudioFrame> decoder = Ac3DecoderTests.Create(true, allocator);
+                using MediaPacket packet = Ac3DecoderTests.Packet(Ac3SyntheticFrame.Create(true, false, 1, transientLocation: location), allocator);
+                decoder.TrySend(packet); Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
+                decoder.CompleteInput();
+                using AudioFrame frame = decoder.Receive().Value;
+                Assert.Equal(256, frame.SamplesPerChannel);
+                Assert.Equal(CodecOutputStatus.EndOfStream, decoder.Receive().Status);
+                return frame.GetPlane(0).ToArray();
+            }
         }
 
         [Fact]

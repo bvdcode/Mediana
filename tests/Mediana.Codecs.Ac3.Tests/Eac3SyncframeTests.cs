@@ -16,6 +16,7 @@ namespace Mediana.Codecs.Ac3.Tests
         [InlineData("dependent-8.eac3", "dependent-8.pcm", 8, 135)]
         [InlineData("dependent-16.eac3", "dependent-16.pcm", 16, 135)]
         [InlineData("transient.eac3", "transient.pcm", 1, 135)]
+        [InlineData("transient-tail.eac3", "transient-tail.pcm", 1, 135)]
         [InlineData("adaptive-quantizers.eac3", "adaptive-quantizers.pcm", 1, 135)]
         [InlineData("enhanced-coupling.eac3", "enhanced-coupling.pcm", 2, 135)]
         public Task IndividualSyncframesPreserveTheCompleteProgrammeWithoutCopyingEncodedData(string encoded, string reference, int channels, double minimumSnr) =>
