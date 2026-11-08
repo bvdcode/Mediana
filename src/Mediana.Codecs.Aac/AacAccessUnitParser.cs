@@ -32,6 +32,7 @@ namespace Mediana.Codecs.Aac
             int channel = 0;
             int previousType = -1;
             bool independent = true;
+            bool originIndependent = true;
             bool hasSbr = false;
             bool hasParametricStereo = false;
             while (true)
@@ -84,7 +85,9 @@ namespace Mediana.Codecs.Aac
                         crc.AddDataElement(start, bits.Position);
                         break;
                     case 6:
-                        independent &= ReadFill(ref bits, workspace, element - 1, previousType, sbrSampleRate, out bool sbr, out bool ps);
+                        independent &= ReadFill(ref bits, workspace, element - 1, previousType, sbrSampleRate, out bool sbr,
+                            out bool ps, out bool origin);
+                        originIndependent &= origin;
                         hasSbr |= sbr;
                         hasParametricStereo |= ps;
                         break;
@@ -102,7 +105,7 @@ namespace Mediana.Codecs.Aac
                 throw new InvalidDataException("An AAC packet must contain one complete raw data block for the configured channels.");
             }
             crc.Verify();
-            return new(independent, hasSbr, hasParametricStereo);
+            return new(independent, hasSbr, hasParametricStereo, originIndependent);
         }
 
         private static int ReadPair(ref AacBitReader bits, AacDecoderWorkspace? workspace, int channel, int frequencyIndex,
@@ -152,10 +155,11 @@ namespace Mediana.Codecs.Aac
         }
 
         private static bool ReadFill(ref AacBitReader bits, AacDecoderWorkspace? workspace, int element, int previousType,
-            int sbrSampleRate, out bool hasSbr, out bool hasParametricStereo)
+            int sbrSampleRate, out bool hasSbr, out bool hasParametricStereo, out bool canStartFromOrigin)
         {
             hasSbr = false;
             hasParametricStereo = false;
+            canStartFromOrigin = true;
             int count = bits.Read(4);
             if (count == 15)
             {
@@ -194,7 +198,8 @@ namespace Mediana.Codecs.Aac
                     hasSbr = true;
                     if (workspace is null)
                     {
-                        return AacSbrElement.InspectRandomAccess(ref payload, extension == 14, previousType == 1 ? 2 : 1, sbrSampleRate, out hasParametricStereo);
+                        return AacSbrElement.InspectRandomAccess(ref payload, extension == 14, previousType == 1 ? 2 : 1,
+                            sbrSampleRate, out hasParametricStereo, out canStartFromOrigin);
                     }
                     AacSbrElement sbr = workspace.GetSbrElement(element, sbrSampleRate);
                     sbr.Read(ref payload, extension == 14);

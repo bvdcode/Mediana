@@ -10,6 +10,34 @@ namespace Mediana.Tests
 {
     public class AacPsOriginTests
     {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task InitialEmptyStereoEnvelopeIsAStreamOriginButNotAnArbitraryRestart(bool explicitPs)
+        {
+            byte[][] packets = await AacPsDecodeTestInput.ReadPacketsAsync(Root, "transients");
+            MediaBufferAllocator allocator = new(256 * 1024);
+            IRandomAccessInspector inspector = new AacDecoderFactory().CreateRandomAccessInspector(AacPsDecodeTestInput.Stream(explicitPs));
+            IRandomAccessOriginInspector origin = Assert.IsAssignableFrom<IRandomAccessOriginInspector>(inspector);
+            Assert.True(origin.RequiresOriginPacket);
+            using MediaPacket first = AacSbrDecodeTestInput.Packet(allocator, packets[0], 0);
+            Assert.False(inspector.IsRandomAccess(first));
+            Assert.Equal(2, origin.InspectOrigin(first)?.RequiredPrerollPackets);
+            Assert.False(origin.RequiresOriginPacket);
+            Assert.False(inspector.IsRandomAccess(first));
+        }
+
+        [Fact]
+        public async Task MissingInitialSbrHeaderHasNoStreamOriginGuarantee()
+        {
+            byte[][] packets = await AacPsDecodeTestInput.ReadPacketsAsync(Root, "transients");
+            MediaBufferAllocator allocator = new(256 * 1024);
+            IRandomAccessOriginInspector origin = Assert.IsAssignableFrom<IRandomAccessOriginInspector>(
+                new AacDecoderFactory().CreateRandomAccessInspector(AacPsDecodeTestInput.Stream(true)));
+            using MediaPacket packet = AacSbrDecodeTestInput.Packet(allocator, packets[1], 1);
+            Assert.Null(origin.InspectOrigin(packet));
+        }
+
         [Fact]
         public async Task OpeningStereoSignalingSurvivesPacketDisposalAndConstrainsLaterAnchors()
         {
@@ -84,14 +112,14 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public void ExplicitPsAndNonMonauralStreamsDoNotRequireOriginReads()
+        public void ExplicitPsRequiresOriginInitializationButNonMonauralStreamsDoNot()
         {
             AacDecoderFactory factory = new();
             IRandomAccessOriginInspector explicitPs = Assert.IsAssignableFrom<IRandomAccessOriginInspector>(
                 factory.CreateRandomAccessInspector(AacPsDecodeTestInput.Stream(true)));
             IRandomAccessOriginInspector stereo = Assert.IsAssignableFrom<IRandomAccessOriginInspector>(
                 factory.CreateRandomAccessInspector(AacSbrDecodeTestInput.Stream(2, false)));
-            Assert.False(explicitPs.RequiresOriginPacket);
+            Assert.True(explicitPs.RequiresOriginPacket);
             Assert.False(stereo.RequiresOriginPacket);
         }
 

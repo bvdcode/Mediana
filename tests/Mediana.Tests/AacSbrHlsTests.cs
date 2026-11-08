@@ -10,5 +10,11 @@ namespace Mediana.Tests
         {
             await AacSbrHlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "AacSbr"));
         }
+
+        [Fact]
+        public async Task ColdOutOfOrderStereoSegmentsCanStartBeforeTheFirstIndependentStereoEnvelope()
+        {
+            await AacSbrHlsTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "AacPs"), parametricStereo: true);
+        }
     }
 }

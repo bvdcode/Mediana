@@ -50,7 +50,7 @@ namespace Mediana.Execution
                 {
                     throw new InvalidDataException("The preroll packet differs from its container index.");
                 }
-                RandomAccessRecovery? recovery = InspectRestart(packet, cancellationToken);
+                RandomAccessRecovery? recovery = InspectRestart(packet, cancellationToken, point.PacketIndex == 0);
                 int candidateRequirement = Math.Max(required, recovery.GetValueOrDefault().RequiredPrerollPackets);
                 long distance = output.PacketIndex - point.PacketIndex;
                 if (recovery.HasValue && (point.PacketIndex == 0 || distance >= candidateRequirement))

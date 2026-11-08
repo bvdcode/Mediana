@@ -19,6 +19,7 @@ namespace Mediana.Execution
         private readonly MediaReadBudget? sharedReadBudget;
         private readonly IRandomAccessInspector? randomAccessInspector;
         private bool originInspected;
+        private RandomAccessRecovery? originRecovery;
         private MediaPacket? pendingPacket;
         private long packetReads;
         private bool inputCompleted;

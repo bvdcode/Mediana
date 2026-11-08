@@ -14,12 +14,13 @@ namespace Mediana.Codecs.Aac
         private bool originInspected;
 
         public bool RequiresOriginPacket => !originInspected && layout.ChannelCount == 1
-            && configuration.ParametricStereo is null && configuration.SpectralBandReplication != false;
+            && configuration.ParametricStereo != false && configuration.SpectralBandReplication != false;
 
-        public void InspectOrigin(MediaPacket origin, CancellationToken cancellationToken = default)
+        public RandomAccessRecovery? InspectOrigin(MediaPacket origin, CancellationToken cancellationToken = default)
         {
-            Inspect(origin, cancellationToken);
+            AacAccessUnitInspection inspection = Inspect(origin, cancellationToken);
             originInspected = true;
+            return inspection.OriginIndependent ? new RandomAccessRecovery(inspection.HasSbr ? 2 : 1) : null;
         }
 
         public bool IsRandomAccess(MediaPacket packet, CancellationToken cancellationToken = default) =>

@@ -18,7 +18,7 @@ namespace Mediana.Tests
 {
     internal static class AacSbrHlsTestInput
     {
-        public static async Task VerifyAsync(string root)
+        public static async Task VerifyAsync(string root, bool parametricStereo = false)
         {
             byte[] bytes = await File.ReadAllBytesAsync(Path.Combine(root, "transients-av.mp4"));
             MediaBufferAllocator allocator = new(8 * 1024 * 1024);
@@ -44,9 +44,11 @@ namespace Mediana.Tests
                 byte[] fragment = output.ToArray();
                 if (number == 4)
                 {
+                    int audioStart = parametricStereo ? 30 : 33;
                     Mp4SampleInfo[] permitted = [
                         .. Enumerable.Range(36, 12).Select(index => reader.GetSampleInfo(0, index)),
-                        .. Enumerable.Range(33, 13).Select(index => reader.GetSampleInfo(1, index))];
+                        .. Enumerable.Range(audioStart, parametricStereo ? 17 : 13).Select(index => reader.GetSampleInfo(1, index)),
+                        .. parametricStereo ? new[] { reader.GetSampleInfo(1, 0) } : []];
                     Require(source.Reads.All(range => permitted.Any(
                         sample => range.Offset >= sample.Offset && range.Offset + range.Length <= sample.Offset + sample.Size)));
                     if (tail is not null) { Require(fragment.AsSpan().SequenceEqual(tail)); }

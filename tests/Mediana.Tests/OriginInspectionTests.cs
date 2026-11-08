@@ -90,6 +90,69 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public async Task OriginRecoveryCannotAuthorizeAHeaderlessLaterRestart()
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(await DataAsync());
+            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            OriginInspectorProbe inspector = new(_ => null, originRecovery: new(0));
+            using MediaDecodePipeline<AudioFrame> pipeline = new(new IndexedReaderView(reader),
+                new AacDecoderFactory().Create(reader.Streams[0], allocator), 0, randomAccessInspector: inspector);
+            await pipeline.SeekAsync(reader.GetSampleInfo(0, 10).PresentationTime);
+            using (AudioFrame frame = (await pipeline.ReadAsync())!)
+            {
+                Assert.Equal(reader.GetSampleInfo(0, 0).PresentationTime, frame.Timestamp);
+            }
+            Assert.NotEmpty(inspector.Inspections);
+            Assert.Equal(1, inspector.OriginReads);
+            pipeline.Dispose();
+            await reader.DisposeAsync();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ValidatedOriginStartsWithoutChangingOrdinaryRestartInspection(bool preroll)
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(await DataAsync());
+            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            IIndexedContainerReader indexed = preroll ? reader : new IndexedReaderView(reader);
+            OriginInspectorProbe inspector = new(_ => null, originRecovery: new(0));
+            using MediaDecodePipeline<AudioFrame> pipeline = new(indexed,
+                new AacDecoderFactory().Create(reader.Streams[0], allocator), 0, randomAccessInspector: inspector);
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                await pipeline.SeekAsync(reader.GetSampleInfo(0, 0).PresentationTime);
+                using AudioFrame frame = (await pipeline.ReadAsync())!;
+                Assert.Equal(reader.GetSampleInfo(0, 0).PresentationTime, frame.Timestamp);
+            }
+            Assert.Empty(inspector.Inspections);
+            Assert.Equal(1, inspector.OriginReads);
+            pipeline.Dispose();
+            await reader.DisposeAsync();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public async Task OriginRecoveryDoesNotDiscardDecoderPrerollRequirements()
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(await DataAsync());
+            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            OriginInspectorProbe inspector = new(_ => null, originRecovery: new(1));
+            using MediaDecodePipeline<AudioFrame> pipeline = new(new IndexedReaderView(reader),
+                new AacDecoderFactory().Create(reader.Streams[0], allocator), 0, randomAccessInspector: inspector);
+            await Assert.ThrowsAsync<NotSupportedException>(() => pipeline.SeekAsync(reader.GetSampleInfo(0, 0).PresentationTime).AsTask());
+            Assert.Equal(1, inspector.OriginReads);
+            Assert.Empty(inspector.Inspections);
+            pipeline.Dispose();
+            await reader.DisposeAsync();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public async Task OriginReadConsumesTheSamePacketBudgetAsSeekAndDecode()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);

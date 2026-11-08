@@ -14,9 +14,11 @@ namespace Mediana.Codecs.Aac
         public AacPsData? ParametricStereo { get; private set; }
         public bool HasParametricStereoData { get; private set; }
 
-        public static bool InspectRandomAccess(ref AacBitReader bits, bool crc, int channelCount, int outputSampleRate, out bool hasParametricStereo)
+        public static bool InspectRandomAccess(ref AacBitReader bits, bool crc, int channelCount, int outputSampleRate,
+            out bool hasParametricStereo, out bool canStartFromOrigin)
         {
             hasParametricStereo = false;
+            canStartFromOrigin = false;
             if (crc)
             {
                 VerifyCrc(ref bits);
@@ -30,6 +32,7 @@ namespace Mediana.Codecs.Aac
             AacSbrElement element = new(channelCount, outputSampleRate);
             element.Read(ref bits, false);
             hasParametricStereo = element.HasParametricStereoData;
+            canStartFromOrigin = true;
             return element.ParametricStereo is null || element.ParametricStereo.Independent;
         }
 

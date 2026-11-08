@@ -60,7 +60,7 @@ namespace Mediana.Execution
                     {
                         throw new InvalidDataException("The seek packet differs from its container index.");
                     }
-                    RandomAccessRecovery? recovery = InspectRestart(packet, cancellationToken);
+                    RandomAccessRecovery? recovery = InspectRestart(packet, cancellationToken, point.PacketIndex == 0);
                     if (recovery.HasValue)
                     {
                         if (recovery.Value.RequiredPrerollPackets != 0)
@@ -98,8 +98,9 @@ namespace Mediana.Execution
             }
         }
 
-        private RandomAccessRecovery? InspectRestart(MediaPacket packet, CancellationToken cancellationToken)
+        private RandomAccessRecovery? InspectRestart(MediaPacket packet, CancellationToken cancellationToken, bool atOrigin)
         {
+            if (atOrigin && originRecovery.HasValue) { return originRecovery; }
             if (randomAccessInspector is IRandomAccessRecoveryInspector recovery)
             {
                 return recovery.InspectRecovery(packet, cancellationToken);
@@ -125,8 +126,9 @@ namespace Mediana.Execution
             {
                 throw new InvalidDataException("The opening packet differs from its indexed stream.");
             }
-            origin.InspectOrigin(packet, cancellationToken);
+            RandomAccessRecovery? recovery = origin.InspectOrigin(packet, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
+            originRecovery = recovery;
             originInspected = true;
         }
     }

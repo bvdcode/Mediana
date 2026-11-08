@@ -80,3 +80,12 @@ The complete comparison covers 104448 samples, achieves 102.76 dB and has
 maximum absolute error below 0.000031. Both forward AOT 29 and backward
 sync-extension PS signaling are tested. Synthesis uses the 32-band QMF bank;
 it does not resample 48 kHz PCM.
+
+`transients-av.mp4` copies the H.264 video from the HE-AAC HLS fixture and the
+unchanged PS access units from `transients.aac`, remuxed with FFmpeg 6.1.1 and
+trimmed to two seconds. Its SHA-256 is
+`5cf767c17b7d323dd3df509c72672e404561906ab34e2e8927ecc7df6ccbbb1b`.
+The first PS frame carries an empty envelope: it is a valid stream origin but
+is not an arbitrary independent PS restart. The HLS test requests late, first,
+middle and repeated windows, checks bounded source reads and audio clocks,
+and requires identical repeated fragments and complete storage release.

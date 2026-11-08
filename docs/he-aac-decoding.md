@@ -43,11 +43,14 @@ therefore reject an SBR-only restart anchor. These restart rules restore a
 fresh decoder at an eligible anchor; they do not represent an exact snapshot
 of a decoder that has processed the complete preceding stream.
 
-When monaural opening configuration leaves PS unspecified, the optional generic
-origin-inspection capability examines packet zero once before indexed seeking.
+For monaural streams that can carry PS, the optional generic origin-inspection
+capability examines packet zero once before indexed seeking.
 It retains no payload. A detected PS extension constrains later restart anchors;
 absence of that extension does not permanently declare that the stream has no
-PS. Stereo cores and complete PS signaling need no extra origin read. Ordinary
+PS. Explicit PS also requires origin inspection: an opening empty PS envelope
+is a valid stream origin, although it is not an arbitrary random-access point.
+The origin guarantee applies only to packet zero; later candidates still need
+independent stereo parameters. Stereo cores and explicitly absent PS need no extra origin read. Ordinary
 sequential decoding performs no additional origin read. Indexed reads otherwise
 remain restricted to the chosen restart window and the requested output.
 
