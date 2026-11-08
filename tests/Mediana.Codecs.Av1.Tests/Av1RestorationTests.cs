@@ -99,7 +99,7 @@ namespace Mediana.Codecs.Av1.Tests
                     pixels.AsSpan(source * 16, 16).CopyTo(scratch.AsSpan(row * 16));
                 }
                 if (!pixels.AsSpan().SequenceEqual(expected)) { changed++; }
-                Av1RestorationSource input = new(scratch, default, 16, 16, 16, y, 0, 64);
+                Av1RestorationSource<byte> input = new(scratch, default, 16, 16, 16, y, 0, 64);
                 switch (kind)
                 {
                     case 0:

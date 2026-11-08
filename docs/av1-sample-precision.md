@@ -80,6 +80,29 @@ four edges each. Deblocking included the same source reset in both versions.
 Checksums matched and measured calls allocated zero managed bytes. These figures
 measure kernels rather than complete decoding throughput.
 
+Wiener and self-guided restoration also share byte and unsigned sixteen-bit
+sample implementations. Wiener uses the normative three-bit first rounding at
+eight or ten bits and five-bit first rounding at twelve bits, followed by the
+corresponding second pass and clipping bounds. Self-guided restoration normalizes
+its variance statistics while preserving full sample precision for the local
+mean. Its mean product uses wide arithmetic before rounding. Stripe sources and
+saved boundary rows retain their original sample type; no image conversion is
+introduced.
+
+Another 6,144 independent AOM 3.8.2 vectors verify Wiener and all sixteen
+self-guided parameter sets across eight, ten and twelve bits. Cases cover image
+boundaries, single-sample regions, coefficient limits, constant extrema, ramps
+and random fields. Full output hashes match in normal, scalar and strict Native
+AOT execution. Every eight-bit vector additionally checks the byte specialization,
+and warmed kernel calls allocate zero managed bytes. Separate tests verify
+high-depth stripe boundary samples and the twelve-bit maximum-field mean product.
+
+The same fixed-core ABBA comparison used six measurements per implementation and
+6,000 calls per workload on 32×32 regions. Median eight-bit CPU time changed from
+176.09 to 182.12 ms for Wiener and 229.48 to 237.40 ms for self-guided restoration:
++3.43% and +3.45%. Checksums matched and measured calls allocated zero managed
+bytes. These measurements do not establish whole-decoder throughput.
+
 The complete coded-picture decoder currently accepts eight-bit Main-profile
 sequences. Ten-bit decoding still requires routing sample precision through picture storage,
 reference prediction and in-loop filters. High-depth kernel coverage alone does
@@ -87,7 +110,7 @@ not establish coded-picture support.
 
 Prediction and edge operations follow section 7.11.2, dequantization follows
 section 7.12.2, inverse transforms follow sections 7.13.2–7.13.3, and deblocking
-and CDEF follow sections 7.14–7.15 of the
+and CDEF follow sections 7.14–7.15. Restoration follows section 7.17 of the
 [AV1 specification, version 1.0.0 with Errata 1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf).
 Independent vector formats are described with the
 [test data](../tests/Mediana.Codecs.Av1.Tests/Data/README.md).

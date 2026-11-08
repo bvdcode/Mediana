@@ -1,18 +1,28 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
     internal static class Av1RestorationSelfGuided
     {
-        internal static void Filter(Av1RestorationSource source, Span<byte> output, int stride, int x, int y, int width, int height, Av1RestorationUnit unit)
+        internal static void Filter<T>(Av1RestorationSource<T> source, Span<T> output, int stride, int x, int y, int width, int height, Av1RestorationUnit unit, int bitDepth = 8) where T : unmanaged, IBinaryInteger<T>
         {
+            int coefficientShift = bitDepth switch
+            {
+                8 => 0,
+                10 => 2,
+                12 => 4,
+                _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
+            };
+            int maximum = (1 << bitDepth) - 1;
             Span<int> first = stackalloc int[width * height];
             Span<int> second = stackalloc int[width * height];
             bool useFirst = Av1SelfGuidedParameters.Radius(unit.Set, 0) != 0;
             bool useSecond = Av1SelfGuidedParameters.Radius(unit.Set, 1) != 0;
-            if (useFirst) { Box(source, first, x, y, width, height, unit.Set, 0); }
-            if (useSecond) { Box(source, second, x, y, width, height, unit.Set, 1); }
+            if (useFirst) { Box(source, first, x, y, width, height, unit.Set, 0, coefficientShift); }
+            if (useSecond) { Box(source, second, x, y, width, height, unit.Set, 1, coefficientShift); }
             int thirdWeight = 128 - unit.X0 - unit.X1;
             for (int row = 0; row < height; row++)
             {
@@ -21,13 +31,15 @@ namespace Mediana.Codecs.Av1
                     int original = source.Center(x + column, y + row) << 4;
                     int index = row * width + column;
                     int sum = unit.X1 * original + unit.X0 * (useFirst ? first[index] : original) + thirdWeight * (useSecond ? second[index] : original);
-                    output[(y + row) * stride + x + column] = (byte)Math.Clamp((sum + 1024) >> 11, 0, 255);
+                    output[(y + row) * stride + x + column] = T.CreateTruncating(Math.Clamp((sum + 1024) >> 11, 0, maximum));
                 }
             }
         }
 
-        private static void Box(Av1RestorationSource source, Span<int> filtered, int x, int y, int width, int height, int set, int pass)
+        private static void Box<T>(Av1RestorationSource<T> source, Span<int> filtered, int x, int y, int width, int height, int set, int pass, int coefficientShift) where T : unmanaged, IBinaryInteger<T>
         {
+            int sumBias = coefficientShift == 0 ? 0 : 1 << (coefficientShift - 1);
+            int squaresBias = coefficientShift == 0 ? 0 : 1 << (2 * coefficientShift - 1);
             int radius = Av1SelfGuidedParameters.Radius(set, pass);
             int epsilon = Av1SelfGuidedParameters.Epsilon(set, pass);
             int count = (2 * radius + 1) * (2 * radius + 1);
@@ -75,12 +87,14 @@ namespace Mediana.Codecs.Av1
                 }
                 for (int column = -1; column <= width; column++)
                 {
-                    int variance = Math.Max(0, squares * count - sum * sum);
+                    int normalizedSquares = (squares + squaresBias) >> (2 * coefficientShift);
+                    int normalizedSum = (sum + sumBias) >> coefficientShift;
+                    int variance = Math.Max(0, normalizedSquares * count - normalizedSum * normalizedSum);
                     int z = (int)(((long)variance * scale + (1 << 19)) >> 20);
                     int attenuation = z >= 255 ? 256 : z == 0 ? 1 : ((z << 8) + z / 2) / (z + 1);
                     int index = (row + 1) * columns + column + 1;
                     a[index] = attenuation;
-                    b[index] = ((256 - attenuation) * sum * reciprocal + 2048) >> 12;
+                    b[index] = checked((int)(((256 - attenuation) * (long)sum * reciprocal + 2048) >> 12));
                     if (column < width)
                     {
                         sum += columnSums[column + 2 * radius + 2] - columnSums[column + 1];

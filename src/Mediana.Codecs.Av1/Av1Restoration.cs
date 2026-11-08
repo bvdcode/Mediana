@@ -84,7 +84,7 @@ namespace Mediana.Codecs.Av1
                     if (y != 0) { ring.Slice(side * stride, 3 * stride).CopyTo(ring); }
                     int copyRows = Math.Min(side + 3, height - y);
                     output.Slice(y * stride, copyRows * stride).CopyTo(ring[(3 * stride)..]);
-                    Av1RestorationSource source = new(ring, planeBoundaries, stride, width, height, y, (y + (8 >> shift)) / (64 >> shift), 64 >> shift);
+                    Av1RestorationSource<byte> source = new(ring, planeBoundaries, stride, width, height, y, (y + (8 >> shift)) / (64 >> shift), 64 >> shift);
                     int unitRow = Math.Min(rows - 1, (y + (8 >> shift)) / size);
                     for (int x = 0; x < width;)
                     {

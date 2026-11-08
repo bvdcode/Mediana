@@ -657,3 +657,18 @@ horizontally or vertically. Inputs exercise narrow, flat and wide filtering,
 flatness thresholds, extrema and every supported clipping range. The native
 reference passes undefined-behavior checks; verification also requires zero
 managed allocations during warmed kernel calls.
+
+
+`restoration-precision.bin.gz` contains 6,144 independent AOM 3.8.2 Wiener and
+self-guided restoration vectors at eight, ten and twelve bits. The stream starts
+with `AV1HLRES` and a little-endian 32-bit case count. Each fifteen-byte case
+header stores depth, filter kind (zero for Wiener, one for self-guided), width,
+height, x/y origin, six signed Wiener coefficients in vertical/horizontal order,
+the self-guided set and its two signed projection weights. Input samples and
+full output digests use the same 16×16 little-endian unsigned sixteen-bit layout
+as the CDEF corpus. Filtered regions have widths and heights from one to four;
+all sixteen self-guided sets and legal coefficient limits are represented.
+The unsigned sixteen-bit and byte paths match every eight-bit vector. Native
+undefined-behavior checks, untouched destination samples and warmed zero-allocation
+checks are included. A separate maximum-field probe confirms the twelve-bit
+self-guided result without overflowing the local-mean multiplication.
