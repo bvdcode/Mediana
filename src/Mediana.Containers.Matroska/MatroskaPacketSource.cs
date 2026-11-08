@@ -120,18 +120,7 @@ namespace Mediana.Containers.Matroska
             {
                 throw new NotSupportedException("Matroska invisible frames, codec state, block additions and discard padding require additional packet semantics.");
             }
-            if (cachedBlock != address.BlockIndex)
-            {
-                cachedBlock = -1;
-                MatroskaBlockHeader header = await blocks.ReadAsync(block.Element, token).ConfigureAwait(false);
-                if (header.TrackNumber != tracks[block.StreamIndex].Number || header.FrameCount != block.FrameCount ||
-                    header.RelativeTimestamp != block.RelativeTimestamp || header.Flags != block.Flags)
-                {
-                    throw new InvalidDataException("The Matroska block no longer matches its index.");
-                }
-                cachedBlock = address.BlockIndex;
-            }
-            MatroskaFrameRange frame = blocks.GetFrame(address.FrameIndex);
+            MatroskaFrameRange frame = await ReadFrameRangeAsync(address, block, token).ConfigureAwait(false);
             MatroskaPacketTiming timing = GetTiming(address);
             using WritableMediaBuffer writable = allocator.Allocate(Math.Max(1, frame.Length));
             await source.ReadExactlyAtAsync(frame.Offset, writable.Memory[..frame.Length], token).ConfigureAwait(false);

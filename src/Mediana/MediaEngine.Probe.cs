@@ -25,7 +25,7 @@ namespace Mediana
             if (imageDecoders.Length == 0)
             {
                 await using ContainerSession session = await OpenContainerAsync(source, options, cancellationToken).ConfigureAwait(false);
-                return ReadContainerInfo(session, cancellationToken);
+                return await ReadContainerInfoAsync(session.Reader, session.Allocator, options.MaxProbeBytes, cancellationToken).ConfigureAwait(false);
             }
             int probeLength = Math.Max(ImageProbeLength, containers.Select(factory => factory.ProbeLength).DefaultIfEmpty().Max());
             if (probeLength > options.MaxProbeBytes)
@@ -42,7 +42,7 @@ namespace Mediana
             if (factory is not null)
             {
                 await using IContainerReader container = await factory.OpenAsync(replay, allocator, cancellationToken).ConfigureAwait(false);
-                return ReadContainerInfo(container, cancellationToken);
+                return await ReadContainerInfoAsync(container, allocator, options.MaxProbeBytes, cancellationToken).ConfigureAwait(false);
             }
             using MediaBuffer input = await EncodedImageInput.ReadAsync(replay, options.MaxImageInputBytes, allocator, cancellationToken).ConfigureAwait(false);
             decoder ??= FindImageDecoder(input.Memory.Span[..Math.Min(ImageProbeLength, input.Memory.Length)], input.Memory.Length)

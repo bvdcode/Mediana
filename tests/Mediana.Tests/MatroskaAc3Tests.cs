@@ -9,6 +9,7 @@ using Mediana.Containers.Matroska;
 using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
+using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
 using Mediana.Formats.Audio;
 using static Mediana.Tests.MatroskaIndexTestData;
@@ -19,6 +20,63 @@ namespace Mediana.Tests
 {
     public class MatroskaAc3Tests
     {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task PacketPrefixesPreserveLaceBoundariesAndSequentialPosition(bool laced)
+        {
+            byte[] frame = First("stereo-44100.ac3");
+            byte[] payload = laced ? [1, .. frame, .. frame] : frame;
+            byte flags = laced ? (byte)0x84 : (byte)0x80;
+            byte[] data = File(Ac3FrameHeader.Read(frame), Cluster(Unsigned(0xE7, 0), Block(flags: flags, payload: payload)));
+            int firstPayload = data.AsSpan().IndexOf(frame);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using EbmlElementTestSource source = new(data)
+            { MaximumRead = 3, ExcludedReadRange = (firstPayload + 256, firstPayload + frame.Length) };
+            await using (MatroskaReader reader = await MatroskaReader.OpenAsync(source, allocator))
+            {
+                IIndexedPacketPrefixReader prefixes = reader;
+                byte[] destination = Enumerable.Repeat((byte)0xa5, 12).ToArray();
+                for (int index = laced ? 1 : 0; index >= 0; index--)
+                {
+                    Assert.Equal(8, await prefixes.ReadPacketPrefixAtAsync(0, index, destination.AsMemory(2, 8)));
+                    Assert.Equal(frame[..8], destination[2..10]);
+                    Assert.Equal(new byte[] { 0xa5, 0xa5 }, destination[..2]);
+                    Assert.Equal(new byte[] { 0xa5, 0xa5 }, destination[10..]);
+                }
+                Assert.Equal(0, await prefixes.ReadPacketPrefixAtAsync(0, 0, Memory<byte>.Empty));
+                await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+                    await prefixes.ReadPacketPrefixAtAsync(0, reader.GetPacketCount(0), destination));
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                    await prefixes.ReadPacketPrefixAtAsync(0, 0, destination, new CancellationToken(true)));
+                source.ExcludedReadRange = null;
+                using MediaPacket packet = (await reader.ReadPacketAsync())!;
+                Assert.Equal(frame, packet.Data.ToArray());
+                byte[] oversized = new byte[frame.Length + 17];
+                Assert.Equal(frame.Length, await prefixes.ReadPacketPrefixAtAsync(0, 0, oversized));
+                Assert.Equal(frame, oversized[..frame.Length]);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.False(source.IsDisposed);
+        }
+
+        [Fact]
+        public async Task CommonProbeObtainsMatroskaAudioFactsFromTheRegisteredMetadataReader()
+        {
+            byte[] frame = First("stereo-44100.ac3");
+            byte[] data = File(Ac3FrameHeader.Read(frame), Cluster(Unsigned(0xE7, 0), Block(payload: frame)));
+            int firstPayload = data.AsSpan().IndexOf(frame);
+            await using EbmlElementTestSource source = new(data)
+            { ExcludedReadRange = (firstPayload + 256, firstPayload + frame.Length) };
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(new MatroskaReaderFactory())
+                .AddStreamMetadataReader(new Ac3StreamMetadataReader()).Build();
+            MediaInfo info = await engine.ProbeAsync(source);
+            AudioStreamMetadata metadata = Assert.IsType<AudioStreamMetadata>(info.StreamMetadata[0]);
+            Assert.Equal(44100, metadata.SampleRate);
+            Assert.Equal(2, metadata.ChannelCount);
+            Assert.Empty(engine.AudioDecoderImplementations);
+        }
+
         [Theory]
         [InlineData("mono.ac3")]
         [InlineData("stereo-44100.ac3")]

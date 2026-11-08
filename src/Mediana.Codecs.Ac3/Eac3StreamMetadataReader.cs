@@ -14,6 +14,7 @@ namespace Mediana.Codecs.Ac3
         public override string ImplementationId => "mediana.eac3.metadata";
         public override string CodecId => Ac3FrameHeader.EnhancedCodecId;
         protected override EncodedStreamFormat RawFormat => StreamFormats.Eac3;
+        protected override string ProfileName => "E-AC-3";
 
         public override StreamMetadata? Read(EncodedStreamInfo stream)
         {
@@ -24,7 +25,7 @@ namespace Mediana.Codecs.Ac3
             return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount,
                 channelOrder: configuration.DependentSubstreamCount == 0 ?
                     Ac3ChannelLayout.GetChannelOrder(configuration.ChannelMode, configuration.HasLfe) : null)
-            { CodecProfile = new("E-AC-3") };
+            { CodecProfile = new(ProfileName) };
         }
     }
 }

@@ -8,12 +8,14 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Ac3
 {
-    /// <summary>Reads declared AC-3 sampling parameters from dac3 without decoding audio.</summary>
-    public class Ac3StreamMetadataReader : IStreamMetadataReader
+    /// <summary>Reads AC-3 sampling parameters from dac3 or an opening syncframe prefix without decoding audio.</summary>
+    public class Ac3StreamMetadataReader : IPacketPrefixMetadataReader
     {
         public virtual string ImplementationId => "mediana.ac3.metadata";
         public virtual string CodecId => Ac3FrameHeader.CodecId;
         protected virtual EncodedStreamFormat RawFormat => StreamFormats.Ac3;
+        protected virtual string ProfileName => "AC-3";
+        public int PacketProbeLength => Ac3FrameHeader.HeaderBytes;
 
         public virtual StreamMetadata? Read(EncodedStreamInfo stream)
         {
@@ -22,7 +24,20 @@ namespace Mediana.Codecs.Ac3
             StreamFormats.Ac3Mp4.Require(stream.Format);
             Ac3SpecificConfiguration configuration = Ac3SpecificConfiguration.Read(stream.Configuration.Span);
             return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount,
-                channelOrder: configuration.GetChannelOrder()) { CodecProfile = new("AC-3") };
+                channelOrder: configuration.GetChannelOrder()) { CodecProfile = new(ProfileName) };
+        }
+
+        public StreamMetadata? ReadPacketPrefix(EncodedStreamInfo stream, ReadOnlySpan<byte> prefix)
+        {
+            RequireStream(stream);
+            RawFormat.Require(stream.Format);
+            Ac3FrameHeader header = Ac3FrameHeader.Read(prefix);
+            if (header.IsEnhanced != (RawFormat == StreamFormats.Eac3))
+            {
+                throw new InvalidDataException("The opening syncframe differs from the declared audio codec.");
+            }
+            return new AudioStreamMetadata(header.SampleRate, header.ChannelCount, channelOrder: header.GetChannelOrder())
+            { CodecProfile = new(ProfileName) };
         }
 
         protected void RequireStream(EncodedStreamInfo stream)
