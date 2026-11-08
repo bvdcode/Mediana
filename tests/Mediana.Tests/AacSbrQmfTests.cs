@@ -12,6 +12,48 @@ namespace Mediana.Tests
     public class AacSbrQmfTests
     {
         [Fact]
+        public void FastModulationMatchesDirectMatricesOverIndependentRandomSequences()
+        {
+            MediaBufferAllocator allocator = new(64 * 1024);
+            using (AacSbrQmf fast = new(allocator))
+            using (AacSbrQmfReference direct = new(allocator))
+            {
+                Random random = new(15279);
+                double[] input = new double[32];
+                Complex[] fastBands = new Complex[32];
+                Complex[] directBands = new Complex[32];
+                Complex[] synthesisInput = new Complex[64];
+                double[] fastPcm = new double[64];
+                double[] directPcm = new double[64];
+                for (int slot = 0; slot < 96; slot++)
+                {
+                    for (int index = 0; index < input.Length; index++)
+                    {
+                        input[index] = random.NextDouble() * 2 - 1;
+                    }
+                    fast.Analyze(input, fastBands);
+                    direct.Analyze(input, directBands);
+                    for (int band = 0; band < fastBands.Length; band++)
+                    {
+                        Assert.InRange(Complex.Abs(fastBands[band] - directBands[band]), 0, 2e-8);
+                    }
+                    for (int band = 0; band < synthesisInput.Length; band++)
+                    {
+                        synthesisInput[band] = new Complex(random.NextDouble() * 65536 - 32768,
+                            random.NextDouble() * 65536 - 32768);
+                    }
+                    fast.Synthesize(synthesisInput, fastPcm);
+                    direct.Synthesize(synthesisInput, directPcm);
+                    for (int index = 0; index < fastPcm.Length; index++)
+                    {
+                        Assert.InRange(Math.Abs(fastPcm[index] - directPcm[index]), 0, 2e-12);
+                    }
+                }
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public async Task CompleteImpulseResponseMatchesIndependentAnalysisAndSynthesis()
         {
             byte[] bands = await ReadReferenceAsync("bands");

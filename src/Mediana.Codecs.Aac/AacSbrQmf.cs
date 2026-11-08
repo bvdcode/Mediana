@@ -11,8 +11,12 @@ namespace Mediana.Codecs.Aac
     {
         private const int AnalysisLength = 320;
         private const int SynthesisLength = 1280;
-        private static readonly double[] AnalysisModulation = CreateAnalysisModulation();
-        private static readonly double[] SynthesisModulation = CreateSynthesisModulation();
+        private static readonly AacFourierPlan AnalysisPlan = new(64);
+        private static readonly AacFourierPlan SynthesisPlan = new(128);
+        private static readonly Complex[] AnalysisPreRotation = CreateRotation(64, -Math.PI / 64, 0);
+        private static readonly Complex[] AnalysisPostRotation = CreateRotation(32, -Math.PI / 128, -Math.PI / 256);
+        private static readonly Complex[] SynthesisPreRotation = CreateRotation(64, -255 * Math.PI / 128, 0);
+        private static readonly Complex[] SynthesisPostRotation = CreateRotation(128, Math.PI / 128, -127.5 * Math.PI / 128);
         private readonly WritableMediaBuffer storage;
 
         public AacSbrQmf(MediaBufferAllocator allocator)
@@ -34,7 +38,7 @@ namespace Mediana.Codecs.Aac
                 history[31 - index] = input[index] * 32768;
             }
             ReadOnlySpan<double> window = AacSbrTables.QmfWindow;
-            Span<double> polyphase = stackalloc double[64];
+            Span<Complex> work = stackalloc Complex[64];
             for (int index = 0; index < 64; index++)
             {
                 double sum = 0;
@@ -43,12 +47,12 @@ namespace Mediana.Codecs.Aac
                     int offset = index + block * 64;
                     sum += history[offset] * window[offset * 2];
                 }
-                polyphase[index] = sum;
+                work[AnalysisPlan.Reversed[index]] = sum * AnalysisPreRotation[index];
             }
+            AacFourier.Transform(work, AnalysisPlan.Rotations, default);
             for (int band = 0; band < 32; band++)
             {
-                output[band] = new Complex(Dot(polyphase, AnalysisModulation.AsSpan(band * 128, 64)),
-                    Dot(polyphase, AnalysisModulation.AsSpan(band * 128 + 64, 64)));
+                output[band] = Complex.Conjugate(work[band]) * AnalysisPostRotation[band];
             }
         }
 
@@ -60,10 +64,16 @@ namespace Mediana.Codecs.Aac
             }
             Span<double> history = MemoryMarshal.Cast<byte, double>(storage.Memory.Span)[AnalysisLength..];
             history[..1152].CopyTo(history[128..]);
-            ReadOnlySpan<double> components = MemoryMarshal.Cast<Complex, double>(input);
+            Span<Complex> work = stackalloc Complex[128];
+            work.Clear();
+            for (int band = 0; band < 64; band++)
+            {
+                work[SynthesisPlan.Reversed[band]] = Complex.Conjugate(input[band] * SynthesisPreRotation[band]);
+            }
+            AacFourier.Transform(work, SynthesisPlan.Rotations, default);
             for (int index = 0; index < 128; index++)
             {
-                history[index] = Dot(components, SynthesisModulation.AsSpan(index * 128, 128));
+                history[index] = (Complex.Conjugate(work[index]) * SynthesisPostRotation[index]).Real / 32;
             }
             ReadOnlySpan<double> window = AacSbrTables.QmfWindow;
             for (int index = 0; index < 64; index++)
@@ -78,52 +88,13 @@ namespace Mediana.Codecs.Aac
             }
         }
 
-        private static double Dot(ReadOnlySpan<double> first, ReadOnlySpan<double> second)
+        private static Complex[] CreateRotation(int length, double step, double phase)
         {
-            Vector<double> sum = Vector<double>.Zero;
-            int index = 0;
-            if (Vector.IsHardwareAccelerated)
+            Complex[] result = new Complex[length];
+            for (int index = 0; index < length; index++)
             {
-                for (; index <= first.Length - Vector<double>.Count; index += Vector<double>.Count)
-                {
-                    sum += new Vector<double>(first.Slice(index, Vector<double>.Count)) *
-                        new Vector<double>(second.Slice(index, Vector<double>.Count));
-                }
-            }
-            double result = Vector.Sum(sum);
-            for (; index < first.Length; index++)
-            {
-                result += first[index] * second[index];
-            }
-            return result;
-        }
-
-        private static double[] CreateAnalysisModulation()
-        {
-            double[] result = new double[32 * 128];
-            for (int band = 0; band < 32; band++)
-            {
-                for (int index = 0; index < 64; index++)
-                {
-                    double angle = Math.PI / 64 * (band + 0.5) * (2 * index - 0.5);
-                    result[band * 128 + index] = Math.Cos(angle);
-                    result[band * 128 + index + 64] = Math.Sin(angle);
-                }
-            }
-            return result;
-        }
-
-        private static double[] CreateSynthesisModulation()
-        {
-            double[] result = new double[128 * 128];
-            for (int index = 0; index < 128; index++)
-            {
-                for (int band = 0; band < 64; band++)
-                {
-                    double angle = Math.PI / 128 * (band + 0.5) * (2 * index - 255);
-                    result[index * 128 + band * 2] = Math.Cos(angle) / 32;
-                    result[index * 128 + band * 2 + 1] = -Math.Sin(angle) / 32;
-                }
+                (double sine, double cosine) = Math.SinCos(index * step + phase);
+                result[index] = new Complex(cosine, sine);
             }
             return result;
         }
