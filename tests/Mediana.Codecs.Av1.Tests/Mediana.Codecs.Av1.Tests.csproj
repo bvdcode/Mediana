@@ -14,6 +14,7 @@
     <Using Include="Xunit" />
     <None Include="Data/**/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Av1ContainerTestInput.cs" Link="Av1ContainerTestInput.cs" />
+    <Compile Include="../Shared/Av1PictureSequenceTestInput.cs" Link="Av1PictureSequenceTestInput.cs" />
     <Compile Include="../Shared/Av1TimingTestInput.cs" Link="Av1TimingTestInput.cs" />
   </ItemGroup>
 </Project>

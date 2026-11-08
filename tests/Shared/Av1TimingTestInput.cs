@@ -8,7 +8,6 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.Formats;
-using Av1ObuReader = Mediana.Formats.Video.Av1ObuReader;
 
 namespace Mediana.Tests
 {
@@ -18,7 +17,7 @@ namespace Mediana.Tests
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(root, fixture + ".obu"));
             byte[] expected = File.ReadAllBytes(Path.Combine(root, "timing.reference.yuv"));
-            List<ReadOnlyMemory<byte>> packets = Packets(encoded);
+            List<ReadOnlyMemory<byte>> packets = Av1PictureSequenceTestInput.Packets(encoded);
             MediaBufferAllocator allocator = new(1024 * 1024);
             EncodedStreamInfo stream = new(2, MediaKind.Video, "av1", StreamFormats.Av1, new(1, 97), [0x81, 0, 12, 0]);
             Av1DecoderFactory factory = new();
@@ -62,25 +61,6 @@ namespace Mediana.Tests
                 }
             }
             Require(allocator.AllocatedBytes == 0);
-        }
-
-        private static List<ReadOnlyMemory<byte>> Packets(byte[] encoded)
-        {
-            List<ReadOnlyMemory<byte>> packets = [];
-            Av1ObuReader reader = new(encoded);
-            int start = 0;
-            int previous = 0;
-            while (reader.TryRead(out int type, out _))
-            {
-                if (type == 2 && previous > start)
-                {
-                    packets.Add(encoded.AsMemory(start, previous - start));
-                    start = previous;
-                }
-                previous = reader.ByteOffset;
-            }
-            if (start < encoded.Length) { packets.Add(encoded.AsMemory(start)); }
-            return packets;
         }
 
         private static void Require(bool condition)
