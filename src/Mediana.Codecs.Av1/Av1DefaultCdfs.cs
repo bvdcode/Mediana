@@ -86,7 +86,10 @@ namespace Mediana.Codecs.Av1
         internal const int CompGroupOffset = 6868;
         internal const int CompoundTypeOffset = 6886;
         internal const int WedgeIndexOffset = 6952;
-        internal const int Count = 7326;
+        internal const int DeltaQOffset = 7326;
+        internal const int DeltaLfOffset = 7331;
+        internal const int DeltaLfMultiOffset = 7336;
+        internal const int Count = 7356;
 
         internal static ReadOnlySpan<int> CounterOffsets =>
         [
@@ -178,6 +181,7 @@ namespace Mediana.Codecs.Av1
             6933, 6936, 6939, 6942, 6945, 6948, 6951,
             6968, 6985, 7002, 7019, 7036, 7053, 7070, 7087, 7104, 7121, 7138, 7155, 7172, 7189, 7206, 7223,
             7240, 7257, 7274, 7291, 7308, 7325,
+            7330, 7335, 7340, 7345, 7350, 7355,
         ];
     }
 }

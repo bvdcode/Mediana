@@ -25,6 +25,9 @@ namespace Mediana.Codecs.Av1
         private readonly ReadOnlySpan<Av1MotionFieldSample> motionField;
         private Av1RestorationReferences restorationReferences;
         private Av1SymbolReader symbols;
+        private Av1Quantization quantization;
+        private Av1BlockFilterDeltas filterDeltas;
+        private bool readDeltas;
 
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
             Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default, Span<Av1RestorationUnit> restorationUnits = default, ReadOnlySpan<Av1MotionFieldSample> motionField = default)
@@ -56,6 +59,9 @@ namespace Mediana.Codecs.Av1
             this.filterBlocks = filterBlocks;
             this.sequence = sequence;
             this.header = header;
+            quantization = header.Quantization;
+            filterDeltas = default;
+            readDeltas = false;
             this.output = output;
             this.probabilities = probabilities;
             this.decoded = decoded;
@@ -81,6 +87,7 @@ namespace Mediana.Codecs.Av1
                 }
                 for (int column = 0; column < sequence.MiColumns; column += side)
                 {
+                    readDeltas = header.Deltas.QuantizerPresent;
                     ReadRestoration(row, column, side);
                     Partition(row, column, side);
                 }

@@ -27,6 +27,14 @@ namespace Mediana.Codecs.Av1
                 2 => V,
                 _ => throw new ArgumentOutOfRangeException(nameof(plane))
             };
+            int index = plane switch
+            {
+                0 => pass,
+                1 => 2,
+                2 => 3,
+                _ => throw new ArgumentOutOfRangeException(nameof(plane))
+            };
+            level = Math.Clamp(level + block.Deltas[index], 0, 63);
             if (DeltaEnabled)
             {
                 int shift = level >> 5;

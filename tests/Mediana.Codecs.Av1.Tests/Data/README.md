@@ -275,3 +275,20 @@ wedge master initialization, sign lookup, codebooks and mask-copy routines in
 width and height precede sixteen wedge indices, each with the two signs in
 order. Each mask contains `width * height` bytes in row order. All geometries,
 indices and signs are compared byte for byte.
+
+
+`deltaQRegions`, `deltaLfRegions` and `deltaLfMono` each contain three ordinary
+key pictures with delta-Q enabled. The color sequences are 160×136 and use
+libaom 3.8.2 visual delta-Q mode 3; the latter enables loop-filter deltas. The
+monochrome sequence is 117×83 and uses mode 2 with filter deltas. Palette coding
+is disabled; intra tools and in-loop filters retain defaults. The color
+sequences select Q140 and Q176, with filter delta +10 when enabled; the mono
+sequence selects Q116 and filter delta −6. All visible-sample references use
+libdav1d 1.4.1.
+
+Their `.delta.gz` files use independent AOM 3.8.2 `AV1D_GET_MI_INFO` inspection.
+The decompressed header is `AV1DLTA1`, then a little-endian 32-bit picture count.
+Each picture starts with 16-bit MI rows and columns. Each eight-byte cell stores
+quantizer index, signed common filter delta, four signed component filter
+deltas, luma palette count and chroma palette count. The tests compare effective
+per-component filter state, frame resets and complete decoded samples.

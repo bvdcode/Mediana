@@ -9,6 +9,7 @@ namespace Mediana.Codecs.Av1
         internal byte LumaTransform;
         internal byte ChromaTransform;
         private byte prediction;
+        internal Av1BlockFilterDeltas Deltas;
 
         internal int Reference => prediction & 7;
         internal bool MotionMode => (prediction & 8) != 0;

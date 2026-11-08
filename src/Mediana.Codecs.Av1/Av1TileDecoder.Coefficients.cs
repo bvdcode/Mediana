@@ -103,7 +103,7 @@ namespace Mediana.Codecs.Av1
                 level &= 0xFFFFF;
                 total += level;
                 int signed = negative ? -level : level;
-                int multiplier = position == 0 ? header.Quantization.Dc(plane) : header.Quantization.Ac(plane);
+                int multiplier = position == 0 ? quantization.Dc(plane) : quantization.Ac(plane);
                 int dequantized = (Math.Abs(signed * multiplier) & 0xFFFFFF) >> size.DequantizationShift;
                 quant[position] = Math.Clamp(negative ? -dequantized : dequantized, short.MinValue, short.MaxValue);
             }

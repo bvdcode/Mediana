@@ -22,6 +22,7 @@ namespace Mediana.Codecs.Av1
                 (column > 0 ? left[row & (LeftContexts - 1)].Skip : 0);
             int skip = skipMode ? 1 : symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipOffset + skipContext * 3, 3));
             ReadCdef(row, column, width, height, skip != 0);
+            ReadBlockDeltas(width, height, skip != 0);
             if (interFrame && (skipMode || ReadInter(row, column)))
             {
                 InterBlock(row, column, width, height, skip, skipMode);

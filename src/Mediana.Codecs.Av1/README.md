@@ -89,6 +89,14 @@ allocation. Independent native vectors cover all geometries, filter types,
 availability and partial destinations. Ordinary default-tool libaom stills and
 filtered moving sequences match independent decoded samples.
 
+Superblock quantizer and loop-filter deltas support resolution shifts, escaped
+magnitudes, sign, bounded accumulation and frame/tile reset. Effective filter
+deltas are applied before reference and mode scaling. Three color/monochrome
+sequences exercise nonzero positive and negative changes; all nine pictures
+match libdav1d, and per-block filter state matches independent AOM inspection.
+Temporary filter metadata uses eight bytes per 4×4 block; reference-picture
+storage is unchanged.
+
 Temporal motion prediction saves one six-byte vector/distance sample per 8×8
 luma region, shared by every reference slot using that picture. Projection
 preserves normative source order and block bounds; destination-reference vectors

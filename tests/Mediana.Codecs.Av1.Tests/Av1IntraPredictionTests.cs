@@ -37,6 +37,9 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("maskedFree", 96, 80, false, 10)]
         [InlineData("maskedOdd", 57, 43, false, 10)]
         [InlineData("maskedLarge", 128, 96, false, 10)]
+        [InlineData("deltaQRegions", 160, 136, false, 3)]
+        [InlineData("deltaLfRegions", 160, 136, false, 3)]
+        [InlineData("deltaLfMono", 117, 83, true, 3)]
         public void PublicCodecMatchesIndependentDecodedVideo(string name, int width, int height, bool monochrome, int count)
         {
             byte[] encoded = Read(name + ".obu");

@@ -23,7 +23,7 @@ namespace Mediana.Codecs.Av1
         private void StoreFilterBlock(int row, int column, int width, int height, int reference, int mode, bool skip)
         {
             if (filterBlocks.IsEmpty) { return; }
-            Av1FilterBlock block = new() { BlockSize = (byte)BlockIndex(width, height) };
+            Av1FilterBlock block = new() { BlockSize = (byte)BlockIndex(width, height), Deltas = BlockFilterDeltas() };
             block.SetPrediction(reference, mode >= 13 && mode is not (15 or 23), skip);
             for (int y = row; y < row + height && y < sequence.MiRows; y++)
             {

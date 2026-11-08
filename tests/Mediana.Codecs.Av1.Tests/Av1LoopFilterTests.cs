@@ -40,7 +40,7 @@ namespace Mediana.Codecs.Av1.Tests
             }
             Assert.True(changed > 200);
             Assert.Equal(-1, expanded.ReadByte());
-            Assert.Equal(4, Unsafe.SizeOf<Av1FilterBlock>());
+            Assert.Equal(8, Unsafe.SizeOf<Av1FilterBlock>());
         }
     }
 }
