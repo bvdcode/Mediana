@@ -575,3 +575,26 @@ configuration sets `rc_superres_mode` and both denominator fields directly.
 The `.sha256` files use the `AV1HASH1` format and independent dav1d output,
 covering 156 visible pictures. Public decoder tests repeat every sequence after
 reset and separately verify held output leases across reference scale changes.
+
+`transform1d-precision.bin.gz`, `transform2d-precision.bin.gz` and
+`lossless-precision.bin.gz` contain independent AOM 3.8.2 inverse-transform
+vectors. Each gzip stream starts with its eight-byte magic (`AV1HTX1D`,
+`AV1HTX2D`, `AV1HWHT1`) and a little-endian unsigned 32-bit case count.
+The one-dimensional corpus contains 5,796 cases at signed precision 16, 18
+and 20; a case stores precision, transform kind and length as bytes, then
+signed little-endian 32-bit input coefficients and a SHA-256 output digest.
+The two-dimensional corpus contains 3,474 cases at sample depth eight, ten
+and twelve; its byte header stores depth, transform type, width and height,
+followed by the same coefficient and digest encoding. All nineteen geometries
+and every valid transform pair are covered, including flips and rectangular
+scaling. Inputs include signed impulses, dense random coefficients, alternating
+and constant fields. Normative row and column ranges are independent.
+
+The lossless corpus contains 291 WHT cases. Each stores a depth byte, sixteen
+input coefficients and a SHA-256 digest of sixteen residuals. The native WHT
+uses transposed coefficient storage; its input is transposed into that layout,
+while captured residuals retain their output raster order. Cases include zero,
+signed impulses, the most negative sample and random lossless coefficients.
+All transform digests serialize signed output values as little-endian 32-bit
+integers. The native reference passes range assertions and undefined-behavior
+sanitizer checks. Verification also checks zero allocations during warmed calls.

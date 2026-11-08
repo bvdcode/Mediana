@@ -5,8 +5,16 @@ namespace Mediana.Codecs.Av1
 {
     internal static class Av1LosslessTransform
     {
-        internal static void Inverse(Span<int> coefficients)
+        internal static void Inverse(Span<int> coefficients, int bitDepth = 8)
         {
+            int sampleMaximum = bitDepth switch
+            {
+                8 => 255,
+                10 => 1023,
+                12 => 4095,
+                _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
+            };
+            int columnMaximum = (1 << (Math.Max(bitDepth + 6, 16) - 1)) - 1;
             for (int row = 0; row < 4; row++)
             {
                 Walsh(coefficients.Slice(row * 4, 4), 2);
@@ -16,12 +24,12 @@ namespace Mediana.Codecs.Av1
             {
                 for (int y = 0; y < 4; y++)
                 {
-                    column[y] = Math.Clamp(coefficients[y * 4 + x], short.MinValue, short.MaxValue);
+                    column[y] = Math.Clamp(coefficients[y * 4 + x], -columnMaximum - 1, columnMaximum);
                 }
                 Walsh(column, 0);
                 for (int y = 0; y < 4; y++)
                 {
-                    if (column[y] is < -256 or > 255)
+                    if (column[y] < -sampleMaximum - 1 || column[y] > sampleMaximum)
                     {
                         throw new InvalidDataException("The AV1 lossless residual exceeds its signed sample precision.");
                     }

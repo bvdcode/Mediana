@@ -33,12 +33,36 @@ Coefficient reconstruction retains the wide multiplication and 24-bit magnitude
 mask before the transform-size division, then clips to the declared signed
 precision: 16, 18 or 20 bits. Invalid depths are rejected explicitly.
 
-The complete coded-picture decoder currently accepts eight-bit Main-profile
-sequences. Ten-bit decoding still requires depth-aware transforms,
-picture storage, reference prediction and in-loop filters. High-depth prediction
-kernel coverage alone does not establish coded-picture support.
+Inverse DCT and ADST share the existing integer implementation across signed
+16-, 18- and 20-bit intermediate ranges. Two-dimensional reconstruction uses
+`BitDepth + 8` for rows and `max(BitDepth + 6, 16)` for columns, including the
+normative clamp between passes. Identity transforms, rectangular scaling and
+flips retain their prescribed rounding. Lossless WHT retains the declared
+sample range. Coefficient storage stays thirty-two bits at every sample depth.
 
-Prediction and edge operations follow section 7.11.2 of the
+Independent AOM 3.8.2 kernels verify 9,561 additional vectors: 5,796 one-dimensional
+transforms, 3,474 two-dimensional transforms and 291 lossless blocks. The corpus
+covers every supported transform length and rectangular geometry, all valid
+transform types and flips, positive and negative impulses, random coefficients,
+constant fields and alternating fields. Normal, scalar and strict Native AOT
+execution match every output hash without allocating managed kernel buffers.
+The native reference also passes undefined-behavior checks.
+
+A second warmed eight-bit ABBA comparison used six measurements per implementation
+on the same fixed core with tiered compilation disabled. Median CPU time changed
+from 48.99 to 46.59 ms for 250,000 4×4 DCT calls, 89.27 to 84.65 ms for 50,000
+8×8 ADST/ADST calls, 219.18 to 217.52 ms for 6,000 32×32 DCT calls and 249.11
+to 246.71 ms for 1,500 64×64 DCT calls. Each call included an identical coefficient
+reset. Output checksums matched and allocations remained zero. These measurements
+cover the transform kernels and coefficient reset only.
+
+The complete coded-picture decoder currently accepts eight-bit Main-profile
+sequences. Ten-bit decoding still requires routing sample precision through picture storage,
+reference prediction and in-loop filters. High-depth kernel coverage alone does
+not establish coded-picture support.
+
+Prediction and edge operations follow section 7.11.2, dequantization follows
+section 7.12.2, and inverse transforms follow sections 7.13.2–7.13.3 of the
 [AV1 specification, version 1.0.0 with Errata 1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf).
 Independent vector formats are described with the
 [test data](../tests/Mediana.Codecs.Av1.Tests/Data/README.md).

@@ -5,6 +5,6 @@ namespace Mediana.Codecs.Av1
 {
     internal static class Av1Transform4
     {
-        internal static void Inverse(Span<int> values, int type) => Av1InverseTransform.Inverse(values, 4, 4, type);
+        internal static void Inverse(Span<int> values, int type, int bitDepth = 8) => Av1InverseTransform.Inverse(values, 4, 4, type, bitDepth);
     }
 }

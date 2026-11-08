@@ -7,8 +7,16 @@ namespace Mediana.Codecs.Av1
 {
     internal static partial class Av1InverseTransform
     {
-        internal static void Inverse(Span<int> values, int width, int height, int type)
+        internal static void Inverse(Span<int> values, int width, int height, int type, int bitDepth = 8)
         {
+            int rowMaximum = Maximum(bitDepth switch
+            {
+                8 => 16,
+                10 => 18,
+                12 => 20,
+                _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
+            });
+            int columnMaximum = Maximum(Math.Max(bitDepth + 6, 16));
             int horizontal = Horizontal(type);
             int vertical = Vertical(type);
             ValidateSize(width, horizontal);
@@ -33,17 +41,17 @@ namespace Mediana.Codecs.Av1
                 {
                     for (int index = 0; index < width; index++) { samples[index] = Round((long)samples[index] * 2896); }
                 }
-                Transform(samples, horizontal);
+                TransformInRange(samples, horizontal, rowMaximum);
                 for (int index = 0; index < width; index++)
                 {
-                    samples[index] = Math.Clamp(Round(samples[index], rowShift), short.MinValue, short.MaxValue);
+                    samples[index] = Math.Clamp(Round(samples[index], rowShift), -columnMaximum - 1, columnMaximum);
                 }
             }
             Span<int> column = stackalloc int[height];
             for (int x = 0; x < width; x++)
             {
                 for (int y = 0; y < height; y++) { column[y] = values[y * width + x]; }
-                Transform(column[..height], vertical);
+                TransformInRange(column[..height], vertical, columnMaximum);
                 for (int y = 0; y < height; y++) { values[y * width + x] = Round(column[y], 4); }
             }
             if (type is 4 or 6 or 8 or 14)
@@ -64,13 +72,18 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        internal static void Transform(Span<int> values, int type)
+        internal static void Transform(Span<int> values, int type, int precision = 16)
+        {
+            TransformInRange(values, type, Maximum(precision));
+        }
+
+        private static void TransformInRange(Span<int> values, int type, int maximum)
         {
             ValidateSize(values.Length, type);
             switch (type)
             {
-                case 0: Dct(values); break;
-                case 1: Adst(values); break;
+                case 0: Dct(values, maximum); break;
+                case 1: Adst(values, maximum); break;
                 case 2:
                     int multiplier = values.Length switch
                     {
@@ -115,11 +128,19 @@ namespace Mediana.Codecs.Av1
         }
 
         private static int Round(long value, int bits = 12) => bits == 0 ? checked((int)value) : checked((int)((value + (1L << (bits - 1))) >> bits));
-        private static int Clip(int value) => Math.Clamp(value, short.MinValue, short.MaxValue);
-
-        private static void Validate(int value)
+        private static int Maximum(int precision) => precision switch
         {
-            if (value is < short.MinValue or > short.MaxValue)
+            16 => 32767,
+            18 => 131071,
+            20 => 524287,
+            _ => throw new ArgumentOutOfRangeException(nameof(precision))
+        };
+
+        private static int Clip(int value, int maximum) => Math.Clamp(value, -maximum - 1, maximum);
+
+        private static void Validate(int value, int maximum)
+        {
+            if (value < -maximum - 1 || value > maximum)
             {
                 throw new InvalidDataException("The AV1 transform intermediate exceeds its signed precision.");
             }
@@ -151,30 +172,30 @@ namespace Mediana.Codecs.Av1
             };
         }
 
-        private static void Rotate(Span<int> values, int a, int b, int angle, bool flip)
+        private static void Rotate(Span<int> values, int a, int b, int angle, bool flip, int maximum)
         {
             int cosine = Cosine(angle);
             int sine = Cosine(angle - 64);
             int first = Round((long)values[a] * cosine - (long)values[b] * sine);
             int second = Round((long)values[a] * sine + (long)values[b] * cosine);
-            Validate(first); Validate(second);
+            Validate(first, maximum); Validate(second, maximum);
             values[a] = flip ? second : first;
             values[b] = flip ? first : second;
         }
 
-        private static void Hadamard(Span<int> values, int a, int b, bool flip)
+        private static void Hadamard(Span<int> values, int a, int b, bool flip, int maximum)
         {
             int first = values[a];
             int second = values[b];
             if (flip)
             {
-                values[a] = Clip(second - first);
-                values[b] = Clip(second + first);
+                values[a] = Clip(second - first, maximum);
+                values[b] = Clip(second + first, maximum);
             }
             else
             {
-                values[a] = Clip(first + second);
-                values[b] = Clip(first - second);
+                values[a] = Clip(first + second, maximum);
+                values[b] = Clip(first - second, maximum);
             }
         }
     }
