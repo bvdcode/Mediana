@@ -53,19 +53,27 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
-        [Fact]
-        public async Task CompleteImpulseResponseMatchesIndependentAnalysisAndSynthesis()
+        [Theory]
+        [InlineData(32)]
+        [InlineData(64)]
+        public async Task CompleteImpulseResponseMatchesIndependentAnalysisAndSynthesis(int synthesisBands)
         {
             byte[] bands = await ReadReferenceAsync("bands");
-            byte[] pcm = await ReadReferenceAsync("out");
+            string outputName = synthesisBands switch
+            {
+                32 => "single-rate-out",
+                64 => "out",
+                _ => throw new ArgumentOutOfRangeException(nameof(synthesisBands))
+            };
+            byte[] pcm = await ReadReferenceAsync(outputName);
             Assert.Equal(96 * 32 * 2 * sizeof(float), bands.Length);
-            Assert.Equal(96 * 64 * sizeof(float), pcm.Length);
+            Assert.Equal(96 * synthesisBands * sizeof(float), pcm.Length);
             MediaBufferAllocator allocator = new(32 * 1024);
-            using (AacSbrQmf qmf = new(allocator))
+            using (AacSbrQmf qmf = new(allocator, synthesisBands))
             {
                 double[] input = new double[32];
-                Complex[] output = new Complex[64];
-                double[] samples = new double[64];
+                Complex[] output = new Complex[synthesisBands];
+                double[] samples = new double[synthesisBands];
                 double analysisError = 0;
                 double analysisEnergy = 0;
                 double synthesisError = 0;
@@ -88,9 +96,9 @@ namespace Mediana.Tests
                         analysisEnergy += expected.Real * expected.Real + expected.Imaginary * expected.Imaginary;
                     }
                     qmf.Synthesize(output, samples);
-                    for (int index = 0; index < 64; index++)
+                    for (int index = 0; index < synthesisBands; index++)
                     {
-                        double expected = BinaryPrimitives.ReadSingleLittleEndian(pcm.AsSpan((slot * 64 + index) * sizeof(float))) / 32768;
+                        double expected = BinaryPrimitives.ReadSingleLittleEndian(pcm.AsSpan((slot * synthesisBands + index) * sizeof(float))) / 32768;
                         double difference = expected - samples[index];
                         Assert.InRange(Math.Abs(difference), 0, 3e-7);
                         synthesisError += difference * difference;

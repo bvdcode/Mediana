@@ -25,6 +25,20 @@ namespace Mediana.Tests
         }
 
         [Theory]
+        [InlineData(1, false, false)]
+        [InlineData(2, false, false)]
+        [InlineData(1, true, false)]
+        [InlineData(2, true, false)]
+        [InlineData(1, false, true)]
+        [InlineData(2, false, true)]
+        [InlineData(1, true, true)]
+        [InlineData(2, true, true)]
+        public async Task SingleRateSeeksPreserveIndependentRestartPcmAndCoreSampleClocks(int channels, bool explicitSbr, bool mp4)
+        {
+            await AacSbrSeekTestInput.VerifyAsync(Root, channels, explicitSbr, mp4, singleRate: true);
+        }
+
+        [Theory]
         [InlineData(1)]
         [InlineData(2)]
         public async Task InspectorRequiresActualSbrHeaderAndDoesNotRetainPacketState(int channels)

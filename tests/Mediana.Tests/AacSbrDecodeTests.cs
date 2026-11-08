@@ -22,6 +22,16 @@ namespace Mediana.Tests
         }
 
         [Theory]
+        [InlineData(1, false)]
+        [InlineData(2, false)]
+        [InlineData(1, true)]
+        [InlineData(2, true)]
+        public async Task SingleRateSynthesisMatchesCompleteIndependentPcmWithForwardAndSyncSignaling(int channels, bool explicitSbr)
+        {
+            await AacSbrDecodeTestInput.VerifySequenceAsync(Root, channels, explicitSbr, singleRate: true);
+        }
+
+        [Theory]
         [InlineData(1)]
         [InlineData(2)]
         public async Task ResetRestoresAllSynthesisStateAndRetainedOutputRemainsIndependent(int channels)

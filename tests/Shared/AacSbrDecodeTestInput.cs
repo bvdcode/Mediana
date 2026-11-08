@@ -18,15 +18,18 @@ namespace Mediana.Tests
 {
     internal static class AacSbrDecodeTestInput
     {
-        public static async Task VerifySequenceAsync(string root, int channels, bool explicitSbr)
+        public static async Task VerifySequenceAsync(string root, int channels, bool explicitSbr, bool singleRate = false)
         {
             byte[][] packets = await ReadPacketsAsync(root, channels);
-            byte[] expected = await ReadPcmAsync(root, channels);
-            Require(packets.Length == 16 && expected.Length == 16 * 2048 * channels * sizeof(float));
+            byte[] expected = await ReadPcmAsync(root, channels, singleRate: singleRate);
+            int samplesPerFrame = singleRate ? 1024 : 2048;
+            int sampleRate = singleRate ? 24000 : 48000;
+            EncodedStreamInfo stream = singleRate ? SingleRateStream(channels, explicitSbr) : Stream(channels, explicitSbr);
+            Require(packets.Length == 16 && expected.Length == 16 * samplesPerFrame * channels * sizeof(float));
             MediaBufferAllocator allocator = new(256 * 1024);
-            using (IMediaCodec<MediaPacket, AudioFrame> decoder = new AacDecoderFactory().Create(Stream(channels, explicitSbr), allocator))
+            using (IMediaCodec<MediaPacket, AudioFrame> decoder = new AacDecoderFactory().Create(stream, allocator))
             {
-                Require(decoder is IPacketPrerollDecoder preroll && preroll.RequiredPrerollPackets == (explicitSbr ? 2 : 1));
+                Require(decoder is IPacketPrerollDecoder preroll && preroll.RequiredPrerollPackets == (explicitSbr || singleRate ? 2 : 1));
                 double error = 0;
                 double energy = 0;
                 double maximum = 0;
@@ -37,8 +40,8 @@ namespace Mediana.Tests
                     Require(decoder.TrySend(packet) == CodecInputStatus.Accepted);
                     Require(decoder.TrySend(packet) == CodecInputStatus.OutputRequired);
                     using AudioFrame frame = decoder.Receive().Value;
-                    Require(frame.Format.SampleRate == 48000 && frame.Format.Channels.Count == channels && frame.SamplesPerChannel == 2048
-                        && frame.Duration == new MediaDuration(2048, new TimeBase(1, 48000)) && frame.Timestamp == packet.PresentationTime);
+                    Require(frame.Format.SampleRate == sampleRate && frame.Format.Channels.Count == channels && frame.SamplesPerChannel == samplesPerFrame
+                        && frame.Duration == new MediaDuration(samplesPerFrame, new TimeBase(1, sampleRate)) && frame.Timestamp == packet.PresentationTime);
                     ReadOnlySpan<byte> actual = frame.GetPlane(0).Span;
                     int offset = index * actual.Length;
                     for (int position = 0; position < actual.Length; position += sizeof(float))
@@ -76,6 +79,19 @@ namespace Mediana.Tests
             return new(0, MediaKind.Audio, "aac", StreamFormats.Aac, new TimeBase(1, 24000), configuration);
         }
 
+        public static EncodedStreamInfo SingleRateStream(int channels, bool explicitSbr)
+        {
+            byte[] configuration = (channels, explicitSbr) switch
+            {
+                (1, true) => [0x2b, 0x0b, 0x08, 0],
+                (2, true) => [0x2b, 0x13, 0x08, 0],
+                (1, false) => [0x13, 0x08, 0x56, 0xe5, 0xb5, 0x48, 0],
+                (2, false) => [0x13, 0x10, 0x56, 0xe5, 0xb5, 0x48, 0],
+                _ => throw new ArgumentOutOfRangeException(nameof(channels))
+            };
+            return new(0, MediaKind.Audio, "aac", StreamFormats.Aac, new TimeBase(1, 24000), configuration);
+        }
+
         public static MediaPacket Packet(MediaBufferAllocator allocator, byte[] bytes, int index)
         {
             using WritableMediaBuffer writable = allocator.Allocate(bytes.Length);
@@ -101,16 +117,27 @@ namespace Mediana.Tests
             return packets.ToArray();
         }
 
-        public static async Task<byte[]> ReadPcmAsync(string root, int channels, bool restart = false)
+        public static Task<byte[]> ReadPcmAsync(string root, int channels, bool restart = false, bool singleRate = false)
+        {
+            (string suffix, string property) = (restart, singleRate) switch
+            {
+                (false, false) => (".f32le.gz", "pcmSha256"),
+                (true, false) => ("-rap.f32le.gz", "restartPcmSha256"),
+                (false, true) => ("-single-rate.f32le.gz", "singleRatePcmSha256"),
+                (true, true) => ("-single-rate-rap.f32le.gz", "singleRateRestartPcmSha256")
+            };
+            return ReadReferenceAsync(root, channels, suffix, property);
+        }
+
+        private static async Task<byte[]> ReadReferenceAsync(string root, int channels, string suffix, string property)
         {
             string name = Name(channels);
-            string suffix = restart ? "-rap.f32le.gz" : ".f32le.gz";
             await using FileStream file = File.OpenRead(Path.Combine(root, name + suffix));
             await using GZipStream gzip = new(file, CompressionMode.Decompress);
             await using MemoryStream output = new();
             await gzip.CopyToAsync(output);
             byte[] bytes = output.ToArray();
-            await VerifyHashAsync(root, name, bytes, restart ? "restartPcmSha256" : "pcmSha256");
+            await VerifyHashAsync(root, name, bytes, property);
             return bytes;
         }
 

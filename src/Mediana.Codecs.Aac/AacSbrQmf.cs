@@ -10,20 +10,31 @@ namespace Mediana.Codecs.Aac
     internal class AacSbrQmf : IDisposable
     {
         private const int AnalysisLength = 320;
-        private const int SynthesisLength = 1280;
         private static readonly AacFourierPlan AnalysisPlan = new(64);
         private static readonly AacFourierPlan SynthesisPlan = new(128);
         private static readonly Complex[] AnalysisPreRotation = CreateRotation(64, -Math.PI / 64, 0);
         private static readonly Complex[] AnalysisPostRotation = CreateRotation(32, -Math.PI / 128, -Math.PI / 256);
         private static readonly Complex[] SynthesisPreRotation = CreateRotation(64, -255 * Math.PI / 128, 0);
         private static readonly Complex[] SynthesisPostRotation = CreateRotation(128, Math.PI / 128, -127.5 * Math.PI / 128);
+        private static readonly Complex[] SingleRatePostRotation = CreateRotation(64, Math.PI / 64, -127.5 * Math.PI / 128);
         private readonly WritableMediaBuffer storage;
+        private readonly AacFourierPlan synthesisPlan;
+        private readonly Complex[] synthesisPostRotation;
 
-        public AacSbrQmf(MediaBufferAllocator allocator)
+        public AacSbrQmf(MediaBufferAllocator allocator, int synthesisBands = 64)
         {
-            storage = allocator.Allocate((AnalysisLength + SynthesisLength) * sizeof(double));
+            (synthesisPlan, synthesisPostRotation) = synthesisBands switch
+            {
+                32 => (AnalysisPlan, SingleRatePostRotation),
+                64 => (SynthesisPlan, SynthesisPostRotation),
+                _ => throw new ArgumentOutOfRangeException(nameof(synthesisBands))
+            };
+            SynthesisBands = synthesisBands;
+            storage = allocator.Allocate((AnalysisLength + 20 * synthesisBands) * sizeof(double));
             storage.Memory.Span.Clear();
         }
+
+        public int SynthesisBands { get; }
 
         public void Analyze(ReadOnlySpan<double> input, Span<Complex> output)
         {
@@ -58,31 +69,34 @@ namespace Mediana.Codecs.Aac
 
         public void Synthesize(ReadOnlySpan<Complex> input, Span<double> output)
         {
-            if (input.Length != 64 || output.Length != 64)
+            int bands = SynthesisBands;
+            if (input.Length != bands || output.Length != bands)
             {
-                throw new ArgumentException("SBR synthesis requires 64 input subbands and 64 output samples.");
+                throw new ArgumentException("SBR synthesis requires matching configured subband and output sample counts.");
             }
             Span<double> history = MemoryMarshal.Cast<byte, double>(storage.Memory.Span)[AnalysisLength..];
-            history[..1152].CopyTo(history[128..]);
+            history[..(18 * bands)].CopyTo(history[(2 * bands)..]);
             Span<Complex> work = stackalloc Complex[128];
+            work = work[..(2 * bands)];
             work.Clear();
-            for (int band = 0; band < 64; band++)
+            for (int band = 0; band < bands; band++)
             {
-                work[SynthesisPlan.Reversed[band]] = Complex.Conjugate(input[band] * SynthesisPreRotation[band]);
+                work[synthesisPlan.Reversed[band]] = Complex.Conjugate(input[band] * SynthesisPreRotation[band]);
             }
-            AacFourier.Transform(work, SynthesisPlan.Rotations, default);
-            for (int index = 0; index < 128; index++)
+            AacFourier.Transform(work, synthesisPlan.Rotations, default);
+            for (int index = 0; index < work.Length; index++)
             {
-                history[index] = (Complex.Conjugate(work[index]) * SynthesisPostRotation[index]).Real / 32;
+                history[index] = (Complex.Conjugate(work[index]) * synthesisPostRotation[index]).Real / 32;
             }
             ReadOnlySpan<double> window = AacSbrTables.QmfWindow;
-            for (int index = 0; index < 64; index++)
+            int windowStep = 64 / bands;
+            for (int index = 0; index < bands; index++)
             {
                 double sum = 0;
                 for (int block = 0; block < 5; block++)
                 {
-                    sum += history[block * 256 + index] * window[block * 128 + index];
-                    sum += history[block * 256 + index + 192] * window[block * 128 + index + 64];
+                    sum += history[block * 4 * bands + index] * window[block * 128 + index * windowStep];
+                    sum += history[block * 4 * bands + index + 3 * bands] * window[block * 128 + index * windowStep + 64];
                 }
                 output[index] = sum / 32768;
             }

@@ -27,7 +27,7 @@ namespace Mediana.Codecs.Aac
                 throw new NotSupportedException("The AAC packet exceeds the configured access unit limit.");
             }
             AacAccessUnitInspection inspection = AacAccessUnitParser.Inspect(packet.Data.Span, configuration.FrequencyIndex,
-                configuration.ExtensionSampleRate ?? configuration.SampleRate * 2, layout, cancellationToken);
+                configuration.SampleRate * 2, layout, cancellationToken);
             bool sbr = inspection.HasSbr;
             if (sbr && configuration.SpectralBandReplication == false)
             {
@@ -39,7 +39,7 @@ namespace Mediana.Codecs.Aac
             }
             if (sbr && layout.ChannelCount > 2)
             {
-                throw new NotSupportedException("SBR decoding requires dual-rate mono or stereo audio.");
+                throw new NotSupportedException("SBR decoding requires mono or stereo audio.");
             }
             return inspection.Independent ? new RandomAccessRecovery(sbr ? 2 : 1) : null;
         }

@@ -9,7 +9,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    /// <summary>Decodes AAC-LC channel configurations 1–7 and dual-rate mono/stereo HE-AAC, one raw_data_block per packet.
+    /// <summary>Decodes AAC-LC channel configurations 1–7 and mono/stereo HE-AAC, one raw_data_block per packet.
     /// Outputs native-endian interleaved float32 PCM. Priming, padding and container edit trimming are not applied.</summary>
     public class AacDecoderFactory : IAudioDecoderFactory, IRandomAccessDecoderFactory
     {
@@ -48,9 +48,9 @@ namespace Mediana.Codecs.Aac
             }
             if (configuration.SpectralBandReplication == true)
             {
-                if (configuration.OutputSampleRate != configuration.SampleRate * 2 || configuration.ChannelCount > 2)
+                if (configuration.ChannelCount > 2)
                 {
-                    return "SBR decoding requires dual-rate mono or stereo audio.";
+                    return "SBR decoding requires mono or stereo audio.";
                 }
             }
             return configuration.FrequencyIndex == 12 ? "The 7350 Hz AAC band tables are not supported." : null;

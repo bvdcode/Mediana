@@ -79,7 +79,7 @@ namespace Mediana.Codecs.Aac
                     throw new NotSupportedException("The AAC packet exceeds the configured access unit limit.");
                 }
                 workspace ??= new AacDecoderWorkspace(allocator, layout);
-                int sbrRate = configuration.ExtensionSampleRate ?? configuration.SampleRate * 2;
+                int sbrRate = configuration.SampleRate * 2;
                 AacAccessUnitParser.Read(input.Data.Span, configuration.FrequencyIndex, sbrRate, workspace, ref noiseState, cancellationToken);
                 bool sbr = workspace.SbrElements.Any(element => element is not null);
                 if (sbr && configuration.SpectralBandReplication == false)
@@ -94,9 +94,9 @@ namespace Mediana.Codecs.Aac
                 {
                     throw new NotSupportedException("SBR seeking requires a restart header and at least two preroll packets.");
                 }
-                if (sbr && (sbrRate != configuration.SampleRate * 2 || layout.ChannelCount > 2))
+                if (sbr && layout.ChannelCount > 2)
                 {
-                    throw new NotSupportedException("SBR decoding requires dual-rate mono or stereo audio.");
+                    throw new NotSupportedException("SBR decoding requires mono or stereo audio.");
                 }
                 if (sbr)
                 {
@@ -107,12 +107,9 @@ namespace Mediana.Codecs.Aac
                             throw new InvalidDataException("The AAC frame is missing its SBR channel data.");
                         }
                     }
-                    if (format.SampleRate != sbrRate)
-                    {
-                        format = sbrFormat ??= layout.CreateFormat(sbrRate);
-                    }
+                    format = sbrFormat ??= layout.CreateFormat(configuration.ExtensionSampleRate ?? sbrRate);
                 }
-                int sampleCount = sbr ? 2048 : 1024;
+                int sampleCount = sbr ? 1024 * format.SampleRate / configuration.SampleRate : 1024;
                 if (prerollPackets != 0)
                 {
                     for (int channel = 0; channel < workspace.Channels.Length; channel++)
@@ -157,7 +154,8 @@ namespace Mediana.Codecs.Aac
             if (current.SbrElements.Length != 0)
             {
                 AacSbrElement element = current.SbrElements[0] ?? throw new InvalidOperationException("The SBR element is missing.");
-                AacSbrChannelState state = current.SbrChannels[codedChannel] ??= new AacSbrChannelState(allocator);
+                AacSbrChannelState state = current.SbrChannels[codedChannel] ??=
+                    new AacSbrChannelState(allocator, 32 * format.SampleRate / configuration.SampleRate);
                 state.Process(synthesized, output, channelIndex, format.Channels.Count, element, element.Channels[codedChannel], element.Patches, cancellationToken);
                 return;
             }

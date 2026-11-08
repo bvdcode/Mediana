@@ -20,14 +20,14 @@ namespace Mediana.Codecs.Aac
         private int previousCrossover = 32;
         private int previousStop = 32;
 
-        public AacSbrChannelState(MediaBufferAllocator allocator)
+        public AacSbrChannelState(MediaBufferAllocator allocator, int synthesisBands = 64)
         {
             storage = allocator.Allocate((LowLength + HighLength) * 2 * sizeof(double) + HistoryLength * 2 * sizeof(double));
             bool succeeded = false;
             try
             {
                 storage.Memory.Span.Clear();
-                qmf = new AacSbrQmf(allocator);
+                qmf = new AacSbrQmf(allocator, synthesisBands);
                 succeeded = true;
             }
             finally
@@ -64,8 +64,9 @@ namespace Mediana.Codecs.Aac
                 subbands.Clear();
                 low.Slice((slot + 2) * 32, crossover).CopyTo(subbands);
                 high.Slice((slot + 2) * 64 + crossover, stop - crossover).CopyTo(subbands[crossover..]);
-                qmf.Synthesize(subbands, samples);
-                for (int index = 0; index < 64; index++)
+                int bands = qmf.SynthesisBands;
+                qmf.Synthesize(subbands[..bands], samples[..bands]);
+                for (int index = 0; index < bands; index++)
                 {
                     float value = (float)samples[index];
                     if (!float.IsFinite(value))
@@ -74,7 +75,7 @@ namespace Mediana.Codecs.Aac
                     }
                     if (!output.IsEmpty)
                     {
-                        output[(slot * 64 + index) * channelCount + channelIndex] = value;
+                        output[(slot * bands + index) * channelCount + channelIndex] = value;
                     }
                 }
             }

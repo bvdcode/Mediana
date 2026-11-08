@@ -5,6 +5,10 @@ sample 13, followed by zero samples. `qmf-impulse-bands.f32le.gz` contains 96 sl
 of 32 complex subbands, real and imaginary float32 components interleaved.
 `qmf-impulse-out.f32le.gz` contains 6144 real output samples. Both use the
 PCM16 amplitude domain; the test divides synthesis output by 32768.
+`qmf-impulse-single-rate-out.f32le.gz` contains the corresponding 3072 samples
+from the reference's 32-channel synthesis bank. This mode uses the lower 32
+complex subbands, the downsampled prototype taps and its required modulation
+phase; it does not resample full-band decoded PCM.
 
 The independent decoder is the floating-point reference distributed with 3GPP
 TS 26.410, enhanced aacPlus source dated 2009-07. Analysis uses 32 channels;
@@ -55,3 +59,13 @@ HE-AAC packets. The HLS test requests late, early and repeated segments,
 checks that a cold late request reads only its preceding video GOP and SBR
 header interval, verifies encoded audio packet clocks and decoded format,
 and requires identical repeated fragments and release of all media buffers.
+
+The `-single-rate.f32le.gz` and `-single-rate-rap.f32le.gz` references use the
+same compressed access units with 24 kHz output signaling. Their complete
+16-frame and five-frame startup responses contain 1024 samples per channel per
+frame. FFmpeg 6.1.1 decodes an indexed MP4 with backward-compatible SBR and an
+explicitly absent PS extension for mono; stereo uses forward SBR signaling.
+Tests exercise both signaling forms for both channel counts, including cold
+and repeated MP4/ADTS seeks. Complete mono and stereo decoding achieves
+117.67 dB and 111.27 dB signal/error ratio respectively, with maximum absolute
+error below 0.000006. The existing dual-rate sequences remain byte-identical.

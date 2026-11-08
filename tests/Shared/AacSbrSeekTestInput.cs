@@ -17,11 +17,13 @@ namespace Mediana.Tests
 {
     internal static class AacSbrSeekTestInput
     {
-        public static async Task VerifyAsync(string root, int channels, bool explicitSbr, bool mp4)
+        public static async Task VerifyAsync(string root, int channels, bool explicitSbr, bool mp4, bool singleRate = false)
         {
             byte[][] packets = await AacSbrDecodeTestInput.ReadPacketsAsync(root, channels);
-            byte[] continuous = await AacSbrDecodeTestInput.ReadPcmAsync(root, channels);
-            byte[] restart = await AacSbrDecodeTestInput.ReadPcmAsync(root, channels, true);
+            byte[] continuous = await AacSbrDecodeTestInput.ReadPcmAsync(root, channels, singleRate: singleRate);
+            byte[] restart = await AacSbrDecodeTestInput.ReadPcmAsync(root, channels, true, singleRate);
+            int samplesPerFrame = singleRate ? 1024 : 2048;
+            int sampleRate = singleRate ? 24000 : 48000;
             string stem = channels switch { 1 => "transients-mono", 2 => "transients-stereo", _ => throw new ArgumentOutOfRangeException(nameof(channels)) };
             byte[] input = await File.ReadAllBytesAsync(Path.Combine(root, stem + (mp4 ? ".m4a" : ".aac")));
             MediaBufferAllocator allocator = new(512 * 1024);
@@ -34,7 +36,8 @@ namespace Mediana.Tests
                 using MediaPacket packet = await reader.ReadPacketAtAsync(0, index);
                 Require(packet.Data.Span.SequenceEqual(packets[index]));
             }
-            EncodedStreamInfo stream = AacSbrDecodeTestInput.Stream(channels, explicitSbr);
+            EncodedStreamInfo stream = singleRate ? AacSbrDecodeTestInput.SingleRateStream(channels, explicitSbr)
+                : AacSbrDecodeTestInput.Stream(channels, explicitSbr);
             AacDecoderFactory factory = new();
             IRandomAccessInspector inspector = factory.CreateRandomAccessInspector(stream);
             using MediaDecodePipeline<AudioFrame> pipeline = new(reader, factory.Create(stream, allocator), 0, randomAccessInspector: inspector);
@@ -47,8 +50,8 @@ namespace Mediana.Tests
                 await pipeline.SeekAsync(target);
                 using AudioFrame frame = await pipeline.ReadAsync() ?? throw new InvalidDataException("HE-AAC seeking lost its requested output frame.");
                 Require(frame.Timestamp == target);
-                Require(frame.SamplesPerChannel == 2048);
-                Require(frame.Format.SampleRate == 48000);
+                Require(frame.SamplesPerChannel == samplesPerFrame);
+                Require(frame.Format.SampleRate == sampleRate);
                 Require(frame.Format.Channels.Count == channels);
                 byte[] actual = frame.GetPlane(0).ToArray();
                 if (observed.TryGetValue(index, out byte[]? previous))
@@ -56,7 +59,7 @@ namespace Mediana.Tests
                     Require(actual.AsSpan().SequenceEqual(previous));
                 }
                 observed[index] = actual;
-                int bytes = 2048 * channels * sizeof(float);
+                int bytes = samplesPerFrame * channels * sizeof(float);
                 byte[] expected = index >= 13 ? restart.AsSpan((index - 11) * bytes, bytes).ToArray() : continuous.AsSpan(index * bytes, bytes).ToArray();
                 ReadOnlySpan<float> left = MemoryMarshal.Cast<byte, float>(actual);
                 ReadOnlySpan<float> right = MemoryMarshal.Cast<byte, float>(expected);

@@ -2,7 +2,7 @@
 
 `AudioSession.CanSeek` reports whether the container and decoder provide a
 supported indexed restart path. MP4/MOV and indexed ADTS support AAC-LC and
-dual-rate mono/stereo HE-AAC restarts.
+single-rate and dual-rate mono/stereo HE-AAC restarts.
 `SeekAsync(target)` positions the first returned PCM block at or before the
 requested presentation time; an exact sample window then selects `[start, end)`.
 
@@ -69,7 +69,9 @@ Eight complete cold-restart windows of tonal and transient mono/stereo HE-AAC
 match independent FFmpeg Float32 decoding after two warmup packets: signal/error
 ratio 78.53–121.73 dB and maximum absolute error below 0.00018. MP4 and ADTS tests
 cover implicit/explicit signaling, sample clocks, EOF, out-of-order repeats and
-bounded live storage. Independent restarts do not promise the identical noise
+bounded live storage. Single-rate tests cover forward and backward-compatible
+SBR signaling, retain the core sample clock and compare every returned sample
+against independent 24 kHz startup references. Independent restarts do not promise the identical noise
 phase of continuous decoding from the original stream beginning.
 
 ## Timelines and checks
