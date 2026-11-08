@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal partial class H264CabacEncodingSyntax
+    internal partial class H264CabacSyntax<TWriter>
     {
         public bool TryWriteResidual(H264ResidualCategory category, int plane, int x, int y,
             ReadOnlySpan<int> coefficients, out int count)
@@ -82,7 +82,7 @@ namespace Mediana.Codecs.H264
                     }
                     if (magnitude >= 15) { WriteExpGolomb(magnitude - 15, 0); }
                 }
-                encoder.WriteBypass(signed < 0);
+                writer.WriteBypass(signed < 0);
                 if (magnitude == 1) { equalOne++; } else { greaterOne++; }
             }
             return total;

@@ -60,6 +60,7 @@
     <Compile Include="../Shared/H264SampleDifferenceTestInput.cs" Link="H264SampleDifferenceTestInput.cs" />
     <Compile Include="../Shared/H264ChromaDifferenceTestInput.cs" Link="H264ChromaDifferenceTestInput.cs" />
     <Compile Include="../Shared/H264CabacEncodingTestInput.cs" Link="H264CabacEncodingTestInput.cs" />
+    <Compile Include="../Shared/H264CabacCheckpointTestInput.cs" Link="H264CabacCheckpointTestInput.cs" />
     <Compile Include="../Shared/H264CabacPictureTestInput.cs" Link="H264CabacPictureTestInput.cs" />
     <None Include="Data/H264CabacEncoding/*" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264LumaCandidateTestInput.cs" Link="H264LumaCandidateTestInput.cs" />

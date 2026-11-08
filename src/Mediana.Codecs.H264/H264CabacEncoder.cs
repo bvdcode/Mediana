@@ -27,6 +27,26 @@ namespace Mediana.Codecs.H264
 
         public long BinCount { get; private set; }
 
+        public int CurrentRange => range;
+        public H264CabacRateSample RateSample => new(
+            checked(bits.BitPosition + outputCount + outstanding + (firstBit ? 0 : 1)), range);
+
+        public H264CabacEncoderCheckpoint CreateCheckpoint() => new(bits.CreateCheckpoint(), range, low,
+            outstanding, outputBits, outputCount, firstBit, terminated, BinCount);
+
+        public void Restore(in H264CabacEncoderCheckpoint checkpoint)
+        {
+            bits.Restore(checkpoint.Writer);
+            range = checkpoint.Range;
+            low = checkpoint.Low;
+            outstanding = checkpoint.Outstanding;
+            outputBits = checkpoint.OutputBits;
+            outputCount = checkpoint.OutputCount;
+            firstBit = checkpoint.FirstBit;
+            terminated = checkpoint.Terminated;
+            BinCount = checkpoint.BinCount;
+        }
+
         public void WriteBin(bool value, ref H264CabacContext context)
         {
             EnsureActive();
