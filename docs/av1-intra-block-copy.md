@@ -29,6 +29,12 @@ twelve bits. The complete existing AV1 suite passes in both normal and scalar mo
 a strict Native AOT consumer repeats all 42 picture hashes, ownership checks and
 48 pure-kernel cases. These checks do not imply complete high-bit-depth frame decoding.
 
+JIT allocation checks run in a checked no-GC interval with a positive allocation
+control and retain the exact zero-byte requirement. This isolates the counter
+from the background-collection accounting effect reproduced by an empty
+SpinWait interval on .NET 10.0.14 and reported in
+[dotnet/runtime #134724](https://github.com/dotnet/runtime/issues/134724).
+
 The implementation follows the approved
 [AV1 Bitstream and Decoding Process Specification](https://aomediacodec.github.io/av1-spec/av1-spec.pdf):
 sections 5.9, 5.11.7, 5.11.26, 5.11.31, 6.10.25, 7.10.2 and 7.11.3.

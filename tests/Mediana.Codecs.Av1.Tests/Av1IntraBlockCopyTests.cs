@@ -5,6 +5,7 @@ using System.Numerics;
 
 namespace Mediana.Codecs.Av1.Tests
 {
+    [Collection("Allocation")]
     public class Av1IntraBlockCopyTests
     {
         [Theory]
@@ -64,14 +65,25 @@ namespace Mediana.Codecs.Av1.Tests
                         }
                         Av1IntraBlockCopy.Apply<T>(actual, stride, x, y, width, rows, vectorX, vectorY, subX, subY);
                         Assert.True(actual.AsSpan().SequenceEqual(expected), $"{depth}-bit phase {phase} with subsampling {subX},{subY}.");
-                        for (int repetition = 0; repetition < 64; repetition++)
+                        Assert.True(GC.TryStartNoGCRegion(1024 * 1024));
+                        long allocated;
+                        long controlAllocated;
+                        try
                         {
-                            Av1IntraBlockCopy.Apply<T>(actual, stride, x, y, width, rows, vectorX, vectorY, subX, subY);
+                            long before = GC.GetAllocatedBytesForCurrentThread();
+                            for (int repetition = 0; repetition < 32; repetition++)
+                            { Av1IntraBlockCopy.Apply<T>(actual, stride, x, y, width, rows, vectorX, vectorY, subX, subY); }
+                            allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+                            long controlBefore = GC.GetAllocatedBytesForCurrentThread();
+                            byte[] control = new byte[37];
+                            controlAllocated = GC.GetAllocatedBytesForCurrentThread() - controlBefore;
+                            GC.KeepAlive(control);
                         }
-                        long before = GC.GetAllocatedBytesForCurrentThread();
-                        for (int repetition = 0; repetition < 32; repetition++)
-                        { Av1IntraBlockCopy.Apply<T>(actual, stride, x, y, width, rows, vectorX, vectorY, subX, subY); }
-                        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+                        finally
+                        {
+                            GC.EndNoGCRegion();
+                        }
+                        Assert.Equal(IntPtr.Size == 8 ? 64 : 52, controlAllocated);
                         Assert.True(allocated == 0, $"{depth}-bit phase {phase} with subsampling {subX},{subY} allocated {allocated} bytes after warmup.");
                     }
                 }
