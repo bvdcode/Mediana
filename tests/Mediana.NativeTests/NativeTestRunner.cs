@@ -290,6 +290,7 @@ namespace Mediana.NativeTests
             await Mp4TimelineTestInput.VerifyAsync(root);
             await HlsAudioPreparationTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
             await HlsRenditionTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
+            await HlsRenditionTestInput.VerifyOverlappingDurationsAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
             await HlsRenditionTestInput.VerifySeparateAudioAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
             await HlsPlanTestInput.VerifyAsync(root);
             await HlsSessionTestInput.VerifyAsync(root);
