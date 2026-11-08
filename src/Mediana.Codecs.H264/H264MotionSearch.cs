@@ -38,14 +38,19 @@ namespace Mediana.Codecs.H264
         }
 
         public static (int X, int Y, bool Exact) Select(H264SourceMacroblock input, H264Picture reference, H264Picture target,
+            int x, int y, int range, Span<byte> prediction, CancellationToken token, H264MotionReference? interpolation = null) =>
+            Select<H264FastMacroblockAnalysis>(input, reference, target, x, y, range, prediction, token, interpolation);
+
+        public static (int X, int Y, bool Exact) Select<TAnalysis>(H264SourceMacroblock input, H264Picture reference, H264Picture target,
             int x, int y, int range, Span<byte> prediction, CancellationToken token, H264MotionReference? interpolation = null)
+            where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             Span<byte> candidate = stackalloc byte[384];
             (int predictedX, int predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
             H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), input.Samples, candidate, prediction, interpolation);
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
             search.Scan(range, token);
-            search.Refine(range, token, interpolation);
+            search.Refine<TAnalysis>(range, token, interpolation);
             search.WritePrediction();
             return (search.motionX, search.motionY, search.best == 0);
         }
@@ -84,7 +89,8 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private void Refine(int range, CancellationToken token, H264MotionReference? interpolation)
+        private void Refine<TAnalysis>(int range, CancellationToken token, H264MotionReference? interpolation)
+            where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             if (range == 0 || (best == 0 && motionX == predicted.X && motionY == predicted.Y))
             {
@@ -98,8 +104,8 @@ namespace Mediana.Codecs.H264
             H264LumaNeighborhood neighborhood = interpolation is null
                 ? new(reference, (long)position.X + (originX >> 2), (long)position.Y + (originY >> 2), samples, filtered)
                 : new(interpolation, position.X + (originX >> 2), position.Y + (originY >> 2));
-            ReadOnlySpan<int> offsetsX = [-1, 0, 1, -1, 1, -1, 0, 1];
-            ReadOnlySpan<int> offsetsY = [-1, -1, -1, 0, 0, 1, 1, 1];
+            ReadOnlySpan<int> offsetsX = TAnalysis.SubpixelOffsetsX;
+            ReadOnlySpan<int> offsetsY = TAnalysis.SubpixelOffsetsY;
             for (int step = 2; step >= 1 && range > 0; step /= 2)
             {
                 token.ThrowIfCancellationRequested();

@@ -101,7 +101,7 @@ namespace Mediana.Codecs.H264
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             motion.BeginMacroblock(address);
-            (int motionX, int motionY, bool exact) = H264MotionSearch.Select(source, reference, target, x, y,
+            (int motionX, int motionY, bool exact) = H264MotionSearch.Select<TAnalysis>(source, reference, target, x, y,
                 searchRange, prediction, token, interpolation);
             (int skipX, int skipY) = H264MotionPrediction.Skip(target, x, y);
             int pattern = 0;
