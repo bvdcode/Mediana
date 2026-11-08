@@ -45,6 +45,7 @@ namespace Mediana.NativeTests
             H264CabacEncodingTestInput.Verify();
             H264CabacCheckpointTestInput.Verify();
             H264PreparedMacroblockTestInput.Verify();
+            H264QuantizedSkipTestInput.Verify();
             H264RateDistortionTestInput.VerifyLifecycle();
             foreach (int qp in new[] { 0, 12, 26, 38, 51 })
             {
