@@ -26,6 +26,9 @@ namespace Mediana.NativeTests
             }
             Av1PictureSequenceTestInput.Verify(root, "tilesMono", [0x81, 0, 28, 0]);
             Console.WriteLine("PASS AV1 tiled pictures: context selection, separate tile groups, nonuniform and clipped geometry, monochrome and repeated reset match independent frame hashes.");
+            Av1GrainDisplayTestInput.VerifyPictures(root);
+            Av1GrainDisplayTestInput.VerifyOwnership(root);
+            Console.WriteLine("PASS AV1 film grain: 408 independent picture hashes, monochrome, clipped geometry, immutable prediction references, held output, reset and cancellation ownership match.");
         }
     }
 }

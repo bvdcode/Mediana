@@ -488,3 +488,17 @@ tiles, directional enhancement and self-guided restoration. These sequences
 check tile-local spatial contexts and frame-wide postfilters without retaining
 large raw references or relying on the source pixels as the reconstruction
 oracle.
+
+## Film grain
+
+`grain-kernels.gz` stores parameters and independent output SHA-256 hashes
+for 192 synthesis cases from libaom 3.8.2. Inputs use a deterministic integer
+pattern, including monochrome and 4:2:0 samples at 8, 10 and 12 bits. The
+reference covers 277,904 samples and all autoregressive lags, syntax shifts,
+range and overlap combinations.
+
+`grain01.obu` through `grain16.obu` use libaom's sixteen film-grain test
+parameter sets, twelve 64×48 or 65×49 pictures each. `grainMono.obu` contains
+twelve 65×49 monochrome pictures. Corresponding `AV1HASH1` manifests record
+the visible dimensions and a SHA-256 digest over the concatenated visible
+Y, U and V rows of each displayed picture, decoded independently by dav1d.

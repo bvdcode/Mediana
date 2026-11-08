@@ -4,7 +4,7 @@
 namespace Mediana.Codecs.Av1
 {
     internal readonly partial record struct Av1FrameHeader(bool DisableCdfUpdate, bool ScreenContent, int TileOffset, Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight, Av1Quantization Quantization, bool ReducedTransformSet, bool SelectTransform, bool ShowFrame, bool Showable, Av1FrameType FrameType,
-        int RefreshReferences, int InvalidReferences, int OrderHint, bool DisableFrameEndUpdate, int FrameId = 0, Av1InterPrediction Inter = default, Av1LoopFilterParameters LoopFilter = default, Av1CdefParameters Cdef = default, Av1RestorationParameters Restoration = default, Av1BlockDeltaParameters Deltas = default, Av1FrameTiming Timing = default, Av1Segmentation Segmentation = default, Av1TileInfo Tiles = default, Av1GlobalMotion GlobalMotion = default)
+        int RefreshReferences, int InvalidReferences, int OrderHint, bool DisableFrameEndUpdate, int FrameId = 0, Av1InterPrediction Inter = default, Av1LoopFilterParameters LoopFilter = default, Av1CdefParameters Cdef = default, Av1RestorationParameters Restoration = default, Av1BlockDeltaParameters Deltas = default, Av1FrameTiming Timing = default, Av1Segmentation Segmentation = default, Av1TileInfo Tiles = default, Av1GlobalMotion GlobalMotion = default, Av1GrainParameters? Grain = null)
     {
         internal static Av1FrameHeader Parse(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1ReferencePictures references, bool separateHeader = false)
         {
@@ -62,17 +62,14 @@ namespace Mediana.Codecs.Av1
             }
             bool reducedTransformSet = bits.Flag();
             Av1GlobalMotion globalMotion = Av1GlobalMotion.Read(ref bits, context.Intra, inter.HighPrecisionMotion, primary?.Header.GlobalMotion ?? default);
-            if (sequence.FilmGrain && (context.ShowFrame || context.Showable) && bits.Flag())
-            {
-                throw new NotSupportedException("AV1 film grain synthesis is not implemented.");
-            }
+            Av1GrainParameters? grain = Av1GrainHeader.Read(ref bits, context, references);
             if (separateHeader) { bits.Finish(); }
             else { bits.Align(); }
             if (!separateHeader && bits.ByteOffset == encoded.Length)
             {
                 throw new InvalidDataException("The AV1 frame has no tile payload.");
             }
-            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, inter, loopFilter, cdef, restoration, deltas, context.Timing, segmentation, tiles, globalMotion);
+            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, inter, loopFilter, cdef, restoration, deltas, context.Timing, segmentation, tiles, globalMotion, grain);
         }
 
         private static int ReadDelta(ref Av1BitReader bits) => bits.Flag() ? bits.ReadSigned(7) : 0;

@@ -13,6 +13,8 @@ namespace Mediana.Codecs.Av1
         private Av1FrameHeader? layoutHeader;
         private VideoFormat? format;
         private PlaneLayout[]? planes;
+        private PlaneLayout[]? displayPlanes;
+        private int displayLength;
         private VideoFrame? output;
         private bool completed;
         private bool disposed;
@@ -53,7 +55,7 @@ namespace Mediana.Codecs.Av1
                     {
                         throw new NotSupportedException("An AV1 access unit must contain at most one visible picture with its presentation timestamp.");
                     }
-                    Publish(picture, packet);
+                    Publish(picture, packet, cancellationToken);
                 }
                 if (!decoded) { throw new InvalidDataException("The AV1 access unit is empty."); }
                 success = true;
@@ -70,16 +72,28 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        private void Publish(Av1Picture picture, MediaPacket packet)
+        private void Publish(Av1Picture picture, MediaPacket packet, CancellationToken cancellationToken)
         {
             Av1FrameHeader header = picture.Header;
             if (layoutHeader is not Av1FrameHeader previous || previous.Geometry != header.Geometry || previous.RenderWidth != header.RenderWidth || previous.RenderHeight != header.RenderHeight)
             {
                 format = Av1VideoFormat.Create(header, stream);
                 planes = Av1VideoFormat.Layout(header.Geometry);
+                displayPlanes = format.CreateTightLayout();
+                PlaneLayout last = displayPlanes[^1];
+                displayLength = checked(last.Offset + last.Stride * last.Height);
                 layoutHeader = header;
             }
-            output = new(format!, picture.Pixels, planes!, packet.PresentationTime, packet.Duration);
+            if (header.Grain is not Av1GrainParameters grain)
+            {
+                output = new(format!, picture.Pixels, planes!, packet.PresentationTime, packet.Duration);
+                return;
+            }
+            using WritableMediaBuffer display = allocator.Allocate(displayLength);
+            Av1GrainSynthesis.Apply(grain, header.Geometry.Width, header.Geometry.Height, header.Geometry.Monochrome,
+                header.Geometry.MatrixCoefficients == 0, picture.Pixels.Memory.Span, planes!, display.Span, displayPlanes!, allocator, cancellationToken);
+            using MediaBuffer pixels = display.Publish();
+            output = new(format!, pixels, displayPlanes!, packet.PresentationTime, packet.Duration);
         }
 
         public CodecOutput<VideoFrame> Receive(CancellationToken cancellationToken = default)
@@ -139,6 +153,8 @@ namespace Mediana.Codecs.Av1
             layoutHeader = null;
             format = null;
             planes = null;
+            displayPlanes = null;
+            displayLength = 0;
         }
 
         private void EnsureUsable()

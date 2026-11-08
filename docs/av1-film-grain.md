@@ -22,3 +22,17 @@ heights, every supported sample depth, all autoregressive lags and syntax
 shifts, extreme signed coefficients, monochrome, chroma-from-luma, overlap,
 full and restricted ranges, and seeds at both ends of the 16-bit domain.
 Normal, scalar and strict Native AOT runs match the independent samples.
+
+The eight-bit decoder reads grain parameters from frame headers, including
+reference-parameter reuse with a newly signaled seed. A displayed existing
+reference retains its original grain state. Grain is applied after picture
+reconstruction into separate owned display storage; prediction references
+retain the samples before grain synthesis. Pictures without grain keep the
+existing buffer-lease path.
+
+Seventeen libaom-generated Main-profile sequences exercise all sixteen
+film-grain test parameter sets and a monochrome sequence. The public decoder
+matches 408 independent dav1d picture hashes across two decode/reset passes,
+including 65×49 visible dimensions. Held display frames remain unchanged
+through subsequent decoding, reset and cancellation; media allocations are
+released independently when their owners are disposed.
