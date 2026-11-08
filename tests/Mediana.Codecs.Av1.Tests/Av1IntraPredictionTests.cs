@@ -31,6 +31,12 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("compoundBlend", 64, 48, false, 10)]
         [InlineData("compoundLossless", 64, 48, false, 10)]
         [InlineData("compoundLookahead", 64, 48, false, 10)]
+        [InlineData("masked8", 96, 80, false, 10)]
+        [InlineData("masked16", 96, 80, false, 10)]
+        [InlineData("masked32", 96, 80, false, 10)]
+        [InlineData("maskedFree", 96, 80, false, 10)]
+        [InlineData("maskedOdd", 57, 43, false, 10)]
+        [InlineData("maskedLarge", 128, 96, false, 10)]
         public void PublicCodecMatchesIndependentDecodedVideo(string name, int width, int height, bool monochrome, int count)
         {
             byte[] encoded = Read(name + ".obu");

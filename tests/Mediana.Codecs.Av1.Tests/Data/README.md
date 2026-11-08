@@ -253,3 +253,25 @@ references, four little-endian signed 16-bit vector components, reference-MV
 index, skip mode, compound index and compound group. All six
 sequences compare every meaningful inter cell against these independent values,
 in addition to the public decoder's complete sample comparison.
+
+
+`masked8`, `masked16`, `masked32` and `maskedFree` contain ten 96×80 pictures
+with wedge-shaped transitions and averaged deterministic patterns. Partition
+sizes are fixed at 8, 16, 32, and variable respectively. `maskedOdd` contains
+ten 57×43 pictures with fixed sixteen-sample partitions. `maskedLarge` contains
+ten 128×96 pictures with fixed sixty-four-sample partitions, selecting inferred
+difference masks without a compound-type symbol. All sequences enable masked,
+distance-weighted and temporal prediction, ordinary intra tools, deblocking,
+CDEF and restoration. Inter-intra, overlapped and warped motion are off. Encoding
+uses libaom 3.8.2; complete sample references use libdav1d 1.4.1. The independent
+block inspection confirms actual wedge and difference-weighted selection and
+both mask signs. Their `.motion.gz` format is `AV1MOTN3`, extending each
+`AV1MOTN2` cell with four bytes: native compound type, difference-mask type,
+wedge index and wedge sign.
+
+`wedge-masks.gz` contains all 288 wedge masks from the unchanged AOM 3.8.2
+wedge master initialization, sign lookup, codebooks and mask-copy routines in
+`av1/common/reconinter.c`. For each supported block size in enum order, a byte
+width and height precede sixteen wedge indices, each with the two signs in
+order. Each mask contains `width * height` bytes in row order. All geometries,
+indices and signs are compared byte for byte.

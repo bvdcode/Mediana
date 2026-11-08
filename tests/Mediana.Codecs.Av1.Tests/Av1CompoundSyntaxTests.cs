@@ -16,7 +16,13 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("compoundBlend", 532, 192, 68)]
         [InlineData("compoundLossless", 576, 192, 8)]
         [InlineData("compoundLookahead", 588, 0, 16)]
-        public void EncodedCorpusExercisesDualReferencePrediction(string name, int expectedCompound, int expectedSkip, int expectedDistance)
+        [InlineData("masked8", 1476, 0, 0, 20, 4)]
+        [InlineData("masked16", 1664, 0, 0, 96, 16)]
+        [InlineData("masked32", 1984, 0, 128, 256, 80)]
+        [InlineData("maskedFree", 1468, 0, 0, 4, 0)]
+        [InlineData("maskedOdd", 672, 0, 0, 48, 32)]
+        [InlineData("maskedLarge", 2944, 768, 0, 0, 384)]
+        public void EncodedCorpusExercisesDualReferencePrediction(string name, int expectedCompound, int expectedSkip, int expectedDistance, int expectedWedge = 0, int expectedDifference = 0)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", name + ".obu"));
             MediaBufferAllocator allocator = new(1024 * 1024);
@@ -24,10 +30,14 @@ namespace Mediana.Codecs.Av1.Tests
             int skipped = 0;
             int distance = 0;
             int index = 0;
+            int wedge = 0;
+            int difference = 0;
             using FileStream motionFile = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Data", name + ".motion.gz"));
             using GZipStream expanded = new(motionFile, CompressionMode.Decompress);
             using BinaryReader motionReader = new(expanded);
-            Assert.Equal("AV1MOTN2"u8.ToArray(), motionReader.ReadBytes(8));
+            byte[] signature = motionReader.ReadBytes(8);
+            bool masks = signature.AsSpan().SequenceEqual("AV1MOTN3"u8);
+            Assert.True(masks || signature.AsSpan().SequenceEqual("AV1MOTN2"u8));
             Assert.Equal(10, motionReader.ReadInt32());
             using (Av1ReferencePictures references = new())
             {
@@ -59,7 +69,7 @@ namespace Mediana.Codecs.Av1.Tests
                         new Av1FilterBlock[cells], new sbyte[header.Cdef.IndexCount(geometry)],
                         new Av1RestorationUnit[header.Restoration.UnitCount(geometry)], field);
                     try { tile.Decode(); }
-                    finally { AssertNativeMotion(motionReader, geometry, blocks, index - 1); }
+                    finally { AssertNativeMotion(motionReader, geometry, blocks, index - 1, masks, ref wedge, ref difference); }
                     foreach (Av1MotionBlock block in blocks)
                     {
                         if (block.SecondReference == 0) { continue; }
@@ -79,11 +89,13 @@ namespace Mediana.Codecs.Av1.Tests
             Assert.Equal(expectedCompound, compound);
             Assert.Equal(expectedSkip, skipped);
             Assert.Equal(expectedDistance, distance);
+            Assert.Equal(expectedWedge, wedge);
+            Assert.Equal(expectedDifference, difference);
             Assert.Equal(0, allocator.AllocatedBytes);
             Assert.Equal(-1, expanded.ReadByte());
         }
 
-        private static void AssertNativeMotion(BinaryReader reader, Av1SequenceHeader sequence, ReadOnlySpan<Av1MotionBlock> blocks, int frame)
+        private static void AssertNativeMotion(BinaryReader reader, Av1SequenceHeader sequence, ReadOnlySpan<Av1MotionBlock> blocks, int frame, bool masks, ref int wedge, ref int difference)
         {
             Assert.Equal(sequence.MiRows, reader.ReadUInt16());
             Assert.Equal(sequence.MiColumns, reader.ReadUInt16());
@@ -103,6 +115,17 @@ namespace Mediana.Codecs.Av1.Tests
                     bool skipMode = reader.ReadByte() != 0;
                     int compoundIndex = reader.ReadByte();
                     int compoundGroup = reader.ReadByte();
+                    if (masks)
+                    {
+                        int type = reader.ReadByte();
+                        _ = reader.ReadBytes(3);
+                        if (second != 0 && compoundGroup != 0)
+                        {
+                            if (type == 2) { wedge++; }
+                            else if (type == 3) { difference++; }
+                            else { Assert.Fail("An independent masked compound type is invalid."); }
+                        }
+                    }
                     Av1MotionBlock actual = blocks[y * sequence.MiColumns + x];
                     Assert.True(actual.Reference == first && actual.SecondReference == second,
                         $"Frame {frame}, MI {y},{x}: refs {actual.Reference}/{actual.SecondReference}, expected {first}/{second}, size {size}.");

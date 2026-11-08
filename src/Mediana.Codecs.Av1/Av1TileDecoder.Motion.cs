@@ -5,8 +5,11 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void PredictInter(int row, int column, int width, int height, bool hasChroma, Av1MotionBlock block, Av1ReferencePictures pictures, Av1CompoundWeights weights)
+        private void PredictInter(int row, int column, int width, int height, bool hasChroma, Av1MotionBlock block, Av1ReferencePictures pictures, Av1CompoundPrediction prediction)
         {
+            int maskStride = width * 4;
+            Span<byte> mask = prediction.Mask == Av1CompoundMaskType.None ? default : stackalloc byte[maskStride * height * 4];
+            if (prediction.Mask == Av1CompoundMaskType.Wedge) { Av1WedgeMask.Initialize(mask, maskStride, height * 4, prediction.Index, prediction.Sign); }
             int planes = hasChroma ? 3 : 1;
             for (int plane = 0; plane < planes; plane++)
             {
@@ -54,7 +57,7 @@ namespace Mediana.Codecs.Av1
                             else
                             {
                                 Av1StoredPicture second = pictures.Get(header.Inter.References[selected.SecondReference - 1]);
-                                Av1MotionCompensation.ApplyCompound(output, sequence, reference, second, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, weights);
+                                Av1MotionCompensation.ApplyCompound(output, sequence, reference, second, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, prediction, mask, maskStride);
                             }
                         }
                     }

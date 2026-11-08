@@ -107,8 +107,14 @@ AOM block modes, references, vectors and skip/compound flags match six moving
 sequences, including lossless content. All decoded samples also match libdav1d,
 including a sequence with encoder lookahead enabled.
 
-Masked compound prediction,
-non-identity global motion, overlapped/warped reconstruction,
+Masked compound prediction supports wedge masks and difference-weighted masks,
+including both signs and rounded 4:2:0 chroma weights. One bounded luma mask is
+shared across planes without allocating a frame-sized mask. All 288 wedge
+size/index/sign combinations match independent AOM vectors. Six ten-picture
+sequences cover actual masked blocks, odd dimensions, variable partitions and
+inferred difference masks for large blocks; output samples match libdav1d.
+
+Non-identity global motion, overlapped/warped reconstruction,
 intra block copy,
 chroma palette, segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,

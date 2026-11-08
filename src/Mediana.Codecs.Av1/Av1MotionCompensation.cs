@@ -7,20 +7,20 @@ namespace Mediana.Codecs.Av1
     {
         internal static void Apply(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
             int plane, int x, int y, int width, int height, Av1MotionBlock motion)
-            => Convolve(output, target, reference, plane, x, y, width, height, motion, default, default);
+            => Convolve(output, target, reference, plane, x, y, width, height, motion, default);
 
         internal static void ApplyCompound(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture first, Av1StoredPicture second,
-            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundWeights weights)
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundPrediction compound, Span<byte> mask = default, int maskStride = 0)
         {
             Span<short> prediction = stackalloc short[width * height];
-            Convolve(output, target, first, plane, x, y, width, height, motion, prediction, default);
+            Convolve(output, target, first, plane, x, y, width, height, motion, new(prediction));
             motion.Row = motion.SecondRow;
             motion.Column = motion.SecondColumn;
-            Convolve(output, target, second, plane, x, y, width, height, motion, prediction, weights);
+            Convolve(output, target, second, plane, x, y, width, height, motion, new(prediction, compound, mask, maskStride, target.PlaneShift(plane)));
         }
 
         private static void Convolve(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
-            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Span<short> prediction, Av1CompoundWeights weights)
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundBlend blend)
         {
             Av1SequenceHeader source = reference.Header.Geometry;
             if (source.Width > target.Width * 2 || source.Height > target.Height * 2 ||
@@ -43,7 +43,7 @@ namespace Mediana.Codecs.Av1
             int stepY = (scaleY + 8) >> 4;
             if (stepX == 1024 && stepY == 1024 && (startX & 1023) == 32 && (startY & 1023) == 32)
             {
-                if (!prediction.IsEmpty)
+                if (blend.Active)
                 {
                     for (int row = 0; row < height; row++)
                     {
@@ -52,7 +52,8 @@ namespace Mediana.Codecs.Av1
                         {
                             int sourceX = Math.Clamp((startX >> 10) + column, 0, sourceWidth - 1);
                             int value = pixels[sourceY * sourceStride + sourceX] << 4;
-                            StoreCompound(destination, destinationStride, x, y, width, row, column, prediction, value, weights);
+                            byte color = blend.Apply(row, column, width, value);
+                            if (blend.Second) { destination[(y + row) * destinationStride + x + column] = color; }
                         }
                     }
                     return;
@@ -100,21 +101,13 @@ namespace Mediana.Codecs.Av1
                     {
                         sum += vertical[tap] * intermediate[((sourceY + tap - 3) & 7) * 128 + column];
                     }
-                    if (prediction.IsEmpty) { result[column] = (byte)Math.Clamp((sum + 1024) >> 11, 0, 255); }
-                    else { StoreCompound(destination, destinationStride, x, y, width, row, column, prediction, (sum + 64) >> 7, weights); }
+                    if (!blend.Active) { result[column] = (byte)Math.Clamp((sum + 1024) >> 11, 0, 255); }
+                    else
+                    {
+                        byte color = blend.Apply(row, column, width, (sum + 64) >> 7);
+                        if (blend.Second) { result[column] = color; }
+                    }
                 }
-            }
-        }
-
-        private static void StoreCompound(Span<byte> destination, int stride, int x, int y, int width, int row, int column,
-            Span<short> prediction, int value, Av1CompoundWeights weights)
-        {
-            int index = row * width + column;
-            if (weights.Second == 0) { prediction[index] = checked((short)value); }
-            else
-            {
-                int sum = weights.First * prediction[index] + weights.Second * value;
-                destination[(y + row) * stride + x + column] = (byte)Math.Clamp((sum + 128) >> 8, 0, 255);
             }
         }
 
