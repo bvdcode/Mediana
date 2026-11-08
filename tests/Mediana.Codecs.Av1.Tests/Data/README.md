@@ -520,3 +520,12 @@ SHA-256 digest per level, plane and transform in that order. Digests come from
 the AOM 3.8.2 `iwt_matrix_ref` data; rectangular native tables are transposed to
 normative row-major order before hashing. All 100,320 unique values also match
 the approved AV1 specification's `Quantizer_Matrix` table.
+
+## Super-resolution row filters
+
+`super-resolution-rows.gz` contains 720 independent convolution hashes from
+unchanged AOM 3.8.2 sample kernels. The deterministic inputs exercise all
+super-resolution denominators, luma and chroma geometry, padded frame edges,
+8/10/12-bit samples and widths from 1 to 65,535. The comparison covers
+2,573,376 samples. These row-kernel checks are separate from full-frame
+super-resolution integration and full high-bit-depth decoder support.
