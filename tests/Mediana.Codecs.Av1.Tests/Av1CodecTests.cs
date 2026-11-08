@@ -114,23 +114,26 @@ namespace Mediana.Codecs.Av1.Tests
         [Theory]
         [InlineData(0, 0)]
         [InlineData(1, 32)]
-        [InlineData(2, 76)]
         [InlineData(3, 1)]
-        public void InvalidOrUnsupportedConfigurationFailsBeforeAllocation(int index, byte value)
+        public void InvalidConfigurationFailsBeforeAllocation(int index, byte value)
         {
             byte[] encoded = Read("sequence.obu");
             byte[] configuration = Configuration(encoded, false);
             configuration[index] = value;
             EncodedStreamInfo stream = new(3, MediaKind.Video, "av1", StreamFormats.Av1, new(1, 25), configuration);
             MediaBufferAllocator allocator = new(1024 * 1024);
-            if (index == 2)
-            {
-                Assert.Throws<NotSupportedException>(() => new Av1DecoderFactory().Create(stream, allocator));
-            }
-            else
-            {
-                Assert.Throws<InvalidDataException>(() => new Av1DecoderFactory().Create(stream, allocator));
-            }
+            Assert.Throws<InvalidDataException>(() => new Av1DecoderFactory().Create(stream, allocator));
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData("81200000")]
+        [InlineData("81407C00")]
+        public void UnsupportedProfileFailsBeforeAllocation(string configuration)
+        {
+            EncodedStreamInfo stream = new(3, MediaKind.Video, "av1", StreamFormats.Av1, new(1, 25), Convert.FromHexString(configuration));
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            Assert.Throws<NotSupportedException>(() => new Av1DecoderFactory().Create(stream, allocator));
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
@@ -146,7 +149,13 @@ namespace Mediana.Codecs.Av1.Tests
                     byte[] configuration = new byte[4 + (includeSequence ? reader.ByteOffset - previous : 0)];
                     configuration[0] = 0x81;
                     configuration[1] = (byte)sequence.Tools.Level;
-                    configuration[2] = (byte)((sequence.Tools.Tier ? 128 : 0) | (sequence.Monochrome ? 16 : 0) | 12 | sequence.ChromaPosition);
+                    int precision = sequence.BitDepth switch
+                    {
+                        8 => 0,
+                        10 => 64,
+                        _ => throw new InvalidDataException("The sequence uses an unsupported sample precision.")
+                    };
+                    configuration[2] = (byte)(precision | (sequence.Tools.Tier ? 128 : 0) | (sequence.Monochrome ? 16 : 0) | 12 | sequence.ChromaPosition);
                     if (includeSequence)
                     {
                         packet[previous..reader.ByteOffset].CopyTo(configuration.AsSpan(4));

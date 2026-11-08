@@ -279,6 +279,10 @@
     <Compile Include="../Shared/Av1PictureSequenceTestInput.cs" Link="Av1PictureSequenceTestInput.cs" />
     <Compile Include="../Shared/Av1GrainDisplayTestInput.cs" Link="Av1GrainDisplayTestInput.cs" />
     <Compile Include="../Shared/Av1SuperResolutionTestInput.cs" Link="Av1SuperResolutionTestInput.cs" />
+    <Compile Include="../Shared/Av1Main10TestInput.cs" Link="Av1Main10TestInput.cs" />
+    <Compile Include="../Shared/Av1Main10ContainerTestInput.cs" Link="Av1Main10ContainerTestInput.cs" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/main10Default.mp4;../Mediana.Codecs.Av1.Tests/Data/main10Default.mkv" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/main10*.obu;../Mediana.Codecs.Av1.Tests/Data/main10*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/superres*.obu;../Mediana.Codecs.Av1.Tests/Data/superres*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/grain*.obu;../Mediana.Codecs.Av1.Tests/Data/grain*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/intrabc*.obu;../Mediana.Codecs.Av1.Tests/Data/intrabc*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

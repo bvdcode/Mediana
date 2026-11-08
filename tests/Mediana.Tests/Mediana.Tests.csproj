@@ -15,6 +15,7 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Vp8/Mediana.Codecs.Vp8.csproj" />
     <None Include="Data/Vp8/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/interOrdered.mp4;../Mediana.Codecs.Av1.Tests/Data/interOrdered.mkv" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/main10Default.mp4;../Mediana.Codecs.Av1.Tests/Data/main10Default.mkv" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Vp9.Tests/Data/*.webm" Link="Data/Vp9/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Vp9.Tests/Data/*.sha256" Link="Data/Vp9/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Data/Mjpeg/*" CopyToOutputDirectory="PreserveNewest" />

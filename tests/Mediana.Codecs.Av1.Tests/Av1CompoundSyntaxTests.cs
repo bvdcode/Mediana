@@ -64,8 +64,8 @@ namespace Mediana.Codecs.Av1.Tests
                     ReadOnlySpan<ushort> initial = header.Inter.PrimaryReference != Av1InterPrediction.NoPrimaryReference && header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch
                         ? MemoryMarshal.Cast<byte, ushort>(references.Get(header.Inter.References[header.Inter.PrimaryReference]).Cdfs.Memory.Span) : default;
                     using WritableMediaBuffer pixels = allocator.Allocate(geometry.SampleCount);
-                    Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities,
-                        new byte[geometry.SampleCount / 16], new Av1BlockContext[geometry.ContextCount], default, initial, references, blocks,
+                    Av1TileDecoder<byte> tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities,
+                        new byte[geometry.SampleCount / 16], new Av1BlockContext<byte>[geometry.ContextCount], default, initial, references, blocks,
                         new Av1FilterBlock[cells], new sbyte[header.Cdef.IndexCount(geometry)],
                         new Av1RestorationUnit[header.Restoration.UnitCount(geometry)], field);
                     try { tile.Decode(); }

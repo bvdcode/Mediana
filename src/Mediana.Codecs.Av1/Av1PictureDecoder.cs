@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Mediana.Core.Memory;
 
 namespace Mediana.Codecs.Av1
 {
-    internal class Av1PictureDecoder(MediaBufferAllocator allocator, Av1Configuration? configuration = null) : IDisposable
+    internal partial class Av1PictureDecoder(MediaBufferAllocator allocator, Av1Configuration? configuration = null) : IDisposable
     {
         private readonly Av1ReferencePictures references = new();
         private Av1SequenceHeader? savedSequence = configuration?.Sequence;
@@ -99,118 +97,15 @@ namespace Mediana.Codecs.Av1
                 return references.Show(reference, new(presentationTime, null));
             }
             Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry, references, separateHeader);
-            bool inter = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
-            references.Invalidate(header.InvalidReferences);
-            geometry = header.Geometry;
-            int sampleCount = geometry.SampleCount;
-            int contextBytes = checked(geometry.ContextCount * Unsafe.SizeOf<Av1BlockContext>());
-            Span<ushort> probabilities = stackalloc ushort[Av1DefaultCdfs.Count];
-            ReadOnlySpan<ushort> initialProbabilities = default;
-            if (inter && header.Inter.PrimaryReference != Av1InterPrediction.NoPrimaryReference)
+            ReadOnlySpan<byte> tileData = separateHeader ? encoded[frameEnd..] : frame[header.TileOffset..];
+            Av1Picture picture = header.Geometry.BitDepth switch
             {
-                initialProbabilities = MemoryMarshal.Cast<byte, ushort>(references.Get(header.Inter.References[header.Inter.PrimaryReference]).Cdfs.Memory.Span);
-            }
-            int cdefIndexCount = header.Cdef.IndexCount(geometry);
-            int restorationBytes = checked(header.Restoration.UnitCount(header.PixelGeometry) * Unsafe.SizeOf<Av1RestorationUnit>());
-            using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
-            Av1SequenceHeader pixelGeometry = header.PixelGeometry;
-            using WritableMediaBuffer? upscaled = header.SuperResolution.Active ? allocator.Allocate(pixelGeometry.SampleCount) : null;
-            MediaBuffer? previousSegmentMap = null;
-            if (header.Segmentation.Enabled && header.Inter.PrimaryReference != Av1InterPrediction.NoPrimaryReference)
-            {
-                Av1StoredPicture previous = references.Get(header.Inter.References[header.Inter.PrimaryReference]);
-                if (previous.Header.Geometry.MiColumns == geometry.MiColumns && previous.Header.Geometry.MiRows == geometry.MiRows)
-                {
-                    previousSegmentMap = previous.SegmentMap;
-                }
-            }
-            ReadOnlySpan<byte> previousSegments = previousSegmentMap is null ? default : previousSegmentMap.Memory.Span;
-            int segmentLength = header.Segmentation.Enabled && (header.Segmentation.UpdateMap || previousSegmentMap is null)
-                ? geometry.MiColumns * geometry.MiRows : 0;
-            using WritableMediaBuffer? segments = segmentLength != 0 ? allocator.Allocate(segmentLength) : null;
-            int storedMotionLength = Av1MotionField.StoredLength(geometry, header);
-            using WritableMediaBuffer? savedMotion = storedMotionLength != 0 ? allocator.Allocate(storedMotionLength) : null;
-            using (WritableMediaBuffer? motions = inter || header.Intrabc ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1MotionBlock>())) : null)
-            using (WritableMediaBuffer? projected = inter && header.Inter.ReferenceMotion ? allocator.Allocate(Av1MotionField.ByteLength(geometry)) : null)
-            using (WritableMediaBuffer? filterMetadata = header.LoopFilter.Enabled || header.Cdef.Enabled
-                ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1FilterBlock>())) : null)
-            using (WritableMediaBuffer? cdefMetadata = cdefIndexCount != 0 ? allocator.Allocate(cdefIndexCount) : null)
-            using (WritableMediaBuffer? restorationMetadata = restorationBytes != 0 ? allocator.Allocate(restorationBytes) : null)
-            using (WritableMediaBuffer contexts = allocator.Allocate(contextBytes))
-            using (WritableMediaBuffer decoded = allocator.Allocate(geometry.SampleCount / 16))
-            {
-                Span<Av1MotionBlock> motionBlocks = motions is null ? default : MemoryMarshal.Cast<byte, Av1MotionBlock>(motions.Span);
-                Span<Av1FilterBlock> filterBlocks = filterMetadata is null ? default : MemoryMarshal.Cast<byte, Av1FilterBlock>(filterMetadata.Span);
-                Span<sbyte> cdefIndices = cdefMetadata is null ? default : MemoryMarshal.Cast<byte, sbyte>(cdefMetadata.Span);
-                Span<Av1RestorationUnit> restorationUnits = restorationMetadata is null ? default : MemoryMarshal.Cast<byte, Av1RestorationUnit>(restorationMetadata.Span);
-                Span<Av1MotionFieldSample> motionField = projected is null ? default : MemoryMarshal.Cast<byte, Av1MotionFieldSample>(projected.Span);
-                if (projected is not null) { Av1MotionField.Estimate(geometry, header, references, motionField, cancellationToken); }
-                ReadOnlySpan<byte> tileData = separateHeader ? encoded[frameEnd..] : frame[header.TileOffset..];
-                Av1TilePayloadReader tiles = new(tileData, header.Tiles, !separateHeader);
-                ReadOnlySpan<byte> selectedTile = default;
-                while (true)
-                {
-                    if (!tiles.TryRead(out int tileIndex, out ReadOnlySpan<byte> encodedTile, cancellationToken))
-                    {
-                        if (selectedTile.IsEmpty) { break; }
-                        tileIndex = header.Tiles.ContextUpdateTile;
-                        encodedTile = selectedTile;
-                        selectedTile = default;
-                    }
-                    else if (header.Tiles.Count > 1 && tileIndex == header.Tiles.ContextUpdateTile)
-                    {
-                        selectedTile = encodedTile;
-                        continue;
-                    }
-                    Av1TileDecoder tile = new(encodedTile, geometry, header, pixels.Span, probabilities, decoded.Span,
-                        MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices, restorationUnits, motionField, segments is null ? default : segments.Span, previousSegments, tileIndex);
-                    tile.Decode();
-                }
-                if (savedMotion is not null) { Av1MotionField.Store(geometry, header, references, motionBlocks, savedMotion.Span, cancellationToken); }
-                if (header.LoopFilter.Enabled) { Av1LoopFilter.Apply(pixels.Span, geometry, header.LoopFilter, filterBlocks, cancellationToken, header.Segmentation); }
-                int boundaryLength = Av1Restoration.BoundaryLength(pixelGeometry, header.Restoration);
-                using WritableMediaBuffer? boundaryBuffer = boundaryLength != 0 ? allocator.Allocate(boundaryLength) : null;
-                Span<byte> boundaries = boundaryBuffer is null ? default : boundaryBuffer.Span;
-                if (header.Restoration.Enabled)
-                {
-                    if (upscaled is null) { Av1Restoration.SaveBoundaries(pixels.Span, geometry, header.Restoration, boundaries); }
-                    else { Av1SuperResolutionUpscaling.SaveBoundaries(pixels.Span, geometry, pixelGeometry, header.Restoration, boundaries, cancellationToken); }
-                }
-                if (header.Cdef.Enabled)
-                {
-                    using WritableMediaBuffer scratch = allocator.Allocate(Av1Cdef.ScratchLength(geometry));
-                    Av1Cdef.Apply(pixels.Span, geometry, header.Cdef, filterBlocks, cdefIndices, scratch.Span, cancellationToken);
-                }
-                if (upscaled is not null) { Av1SuperResolutionUpscaling.Frame(pixels.Span, geometry, upscaled.Span, pixelGeometry, cancellationToken); }
-                if (header.Restoration.Enabled)
-                {
-                    using WritableMediaBuffer scratch = allocator.Allocate(Av1Restoration.ScratchLength(pixelGeometry, header.Restoration));
-                    Av1Restoration.Apply(upscaled is null ? pixels.Span : upscaled.Span, pixelGeometry, header.Restoration, restorationUnits, boundaries, scratch.Span, cancellationToken);
-                }
-            }
-            cancellationToken.ThrowIfCancellationRequested();
+                8 => Reconstruct<byte>(header, tileData, separateHeader, cancellationToken),
+                10 => Reconstruct<ushort>(header, tileData, separateHeader, cancellationToken),
+                _ => throw new NotSupportedException("AV1 reconstruction requires eight- or ten-bit Main-profile samples.")
+            };
             savedSequence = sequence;
-            Av1Picture picture = new(header, upscaled is null ? pixels.Publish() : upscaled.Publish());
-            bool transferred = false;
-            try
-            {
-                if (!geometry.Tools.ReducedStillPicture)
-                {
-                    if (header.DisableFrameEndUpdate)
-                    {
-                        Av1TileProbabilities.Initialize(probabilities, header.Quantization.BaseIndex, initialProbabilities);
-                    }
-                    using MediaBuffer? motionField = savedMotion?.Publish();
-                    using MediaBuffer? segmentMap = segments?.Publish() ?? previousSegmentMap?.Retain();
-                    references.Save(picture, probabilities, allocator, motionField, segmentMap);
-                }
-                transferred = true;
-                return picture;
-            }
-            finally
-            {
-                if (!transferred) { picture.Dispose(); }
-            }
+            return picture;
         }
         public void Dispose() => references.Dispose();
     }

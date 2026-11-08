@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private void Residual(int row, int column, int width, int height, bool skip, Av1IntraMode luma,
-            bool hasChroma, Av1ChromaMode chroma, scoped Av1PalettePrediction palette,
+            bool hasChroma, Av1ChromaMode chroma, scoped Av1PalettePrediction<T> palette,
             Av1TransformSize lumaTransform, bool inter = false)
         {
             int capacity = lumaTransform.Width * lumaTransform.Height;
@@ -56,7 +58,7 @@ namespace Mediana.Codecs.Av1
         }
 
         private void TransformBlock(int plane, int row, int column, int width, int height, int x, int y, int blockWidth, int blockHeight,
-            bool skip, Av1IntraMode prediction, Av1ChromaMode chroma, scoped Av1PalettePrediction palette, Av1TransformSize size, scoped Span<int> residual, bool inter)
+            bool skip, Av1IntraMode prediction, Av1ChromaMode chroma, scoped Av1PalettePrediction<T> palette, Av1TransformSize size, scoped Span<int> residual, bool inter)
         {
             int sub = sequence.PlaneShift(plane);
             int x4 = (column >> sub) + x;
@@ -69,13 +71,13 @@ namespace Mediana.Codecs.Av1
             int offset = sequence.PlaneOffset(plane);
             int visibleWidth = Math.Min(size.Width, stride - pixelX);
             int visibleHeight = Math.Min(size.Height, sequence.PlaneHeight(plane) - pixelY);
-            ReadOnlySpan<byte> colors = palette.Colors(plane);
+            ReadOnlySpan<T> colors = palette.Colors(plane);
             if (!colors.IsEmpty)
             {
                 ReadOnlySpan<byte> colorMap = palette.Map(plane);
                 for (int dy = 0; dy < visibleHeight; dy++)
                 {
-                    Span<byte> target = output.Slice(offset + (pixelY + dy) * stride + pixelX, visibleWidth);
+                    Span<T> target = output.Slice(offset + (pixelY + dy) * stride + pixelX, visibleWidth);
                     for (int dx = 0; dx < visibleWidth; dx++)
                     {
                         target[dx] = colors[colorMap[(y * 4 + dy) * (blockWidth * 4) + x * 4 + dx]];
@@ -100,10 +102,10 @@ namespace Mediana.Codecs.Av1
             }
             for (int dy = 0; dy < visibleHeight; dy++)
             {
-                Span<byte> target = output.Slice(offset + (pixelY + dy) * stride + pixelX, visibleWidth);
+                Span<T> target = output.Slice(offset + (pixelY + dy) * stride + pixelX, visibleWidth);
                 for (int dx = 0; dx < visibleWidth; dx++)
                 {
-                    target[dx] = (byte)Math.Clamp(target[dx] + residual[dy * size.Width + dx], 0, 255);
+                    target[dx] = T.CreateTruncating(Math.Clamp(int.CreateTruncating(target[dx]) + residual[dy * size.Width + dx], 0, (1 << SampleBitDepth) - 1));
                 }
             }
             StoreFilterTransform(plane, x4, y4, size);

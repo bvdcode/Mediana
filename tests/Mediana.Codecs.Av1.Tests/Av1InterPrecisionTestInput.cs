@@ -94,7 +94,7 @@ namespace Mediana.Codecs.Av1.Tests
                 for (int column = 0; column < maskStride; column++)
                 { mask[row * maskStride + column] = (byte)((row * 17 + column * 11 + sign * 23) % 65); }
             }
-            Av1SequenceHeader source = template.Sequence with { Width = 96, Height = 80 };
+            Av1SequenceHeader source = template.Sequence with { Width = 96, Height = 80, BitDepth = depth };
             Av1SequenceHeader target = source with { Width = targetWidth, Height = targetHeight };
             T[] firstPixels = Pixels<T>(source, depth, pattern, 0, originals[0]);
             T[] secondPixels = Pixels<T>(source, depth, pattern, 1, originals[1]);

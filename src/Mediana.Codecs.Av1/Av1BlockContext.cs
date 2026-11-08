@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.Av1
 {
-    internal struct Av1BlockContext
+    internal struct Av1BlockContext<T> where T : unmanaged
     {
         internal byte Mode;
         internal byte Level;
@@ -16,8 +16,8 @@ namespace Mediana.Codecs.Av1
         internal byte TransformWidth;
         internal byte TransformHeight;
         internal byte PaletteCount;
-        internal Av1PaletteColors Palette;
+        internal Av1PaletteColors<T> Palette;
         internal byte UvPaletteCount;
-        internal Av1PaletteColors UvPalette;
+        internal Av1PaletteColors<T> UvPalette;
     }
 }

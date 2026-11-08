@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal readonly record struct Av1SequenceHeader(int Width, int Height, bool Monochrome, bool SeparateUvDeltaQ, int ChromaPosition, bool Superblock128,
         bool FilterIntra, bool IntraEdgeFilter, bool SuperResolution, bool Cdef, bool Restoration, bool FilmGrain, bool FullRange,
-        int ColorPrimaries, int TransferCharacteristics, int MatrixCoefficients, Av1SequenceTools Tools, Av1SequenceTiming? Timing = null)
+        int ColorPrimaries, int TransferCharacteristics, int MatrixCoefficients, Av1SequenceTools Tools, Av1SequenceTiming? Timing = null, int BitDepth = 8)
     {
         internal int MiColumns => 2 * ((Width + 7) >> 3);
         internal int MiRows => 2 * ((Height + 7) >> 3);
@@ -13,7 +13,13 @@ namespace Mediana.Codecs.Av1
         internal int PaddedHeight => MiRows * 4;
         internal int LumaSamples => checked(Stride * PaddedHeight);
         internal int SampleCount => checked(LumaSamples + (Monochrome ? 0 : LumaSamples / 2));
-        internal int ContextCount => checked((MiColumns + Av1TileDecoder.LeftContexts) * (Monochrome ? 1 : 2));
+        internal int SampleByteCount => BitDepth switch
+        {
+            8 => SampleCount,
+            10 or 12 => checked(SampleCount * 2),
+            _ => throw new InvalidDataException("The AV1 sample depth is invalid.")
+        };
+        internal int ContextCount => checked((MiColumns + Av1TileDecoder<byte>.LeftContexts) * (Monochrome ? 1 : 2));
 
         internal int PlaneShift(int plane) => plane switch
         {
@@ -82,10 +88,7 @@ namespace Mediana.Codecs.Av1
             bool superResolution = bits.Flag();
             bool cdef = bits.Flag();
             bool restoration = bits.Flag();
-            if (bits.Flag())
-            {
-                throw new NotSupportedException("AV1 high-precision reconstruction is not implemented.");
-            }
+            int bitDepth = bits.Flag() ? 10 : 8;
             bool monochrome = bits.Flag();
             int primaries = 2;
             int transfer = 2;
@@ -115,7 +118,7 @@ namespace Mediana.Codecs.Av1
             bool filmGrain = bits.Flag();
             bits.Finish();
             return new(width, height, monochrome, separateUv, chromaPosition, largeSuperblock, filterIntra, edgeFilter, superResolution, cdef, restoration,
-                filmGrain, fullRange, primaries, transfer, matrix, tools, timing);
+                filmGrain, fullRange, primaries, transfer, matrix, tools, timing, bitDepth);
         }
 
         private static Av1SequenceTools ReadTools(ref Av1BitReader bits, bool reduced, int widthBits, int heightBits, int level, bool tier, int frameIdBits, int deltaIdBits)

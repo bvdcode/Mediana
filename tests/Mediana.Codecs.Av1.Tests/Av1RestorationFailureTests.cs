@@ -21,7 +21,7 @@ namespace Mediana.Codecs.Av1.Tests
             int samples = 120 * 88;
             int metadata = 30 * 22 * Unsafe.SizeOf<Av1FilterBlock>();
             int units = Unsafe.SizeOf<Av1RestorationUnit>();
-            int contexts = (30 + Av1TileDecoder.LeftContexts) * Unsafe.SizeOf<Av1BlockContext>();
+            int contexts = (30 + Av1TileDecoder<byte>.LeftContexts) * Unsafe.SizeOf<Av1BlockContext<byte>>();
             int boundary = 120 * 4;
             int scratch = 120 * 10;
             int reserved = allocation switch

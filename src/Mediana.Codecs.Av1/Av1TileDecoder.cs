@@ -5,18 +5,18 @@ using System.Numerics;
 
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         internal const int LeftContexts = 32;
         private readonly Av1SequenceHeader sequence;
         private readonly Av1FrameHeader header;
         private readonly Av1TileBounds bounds;
-        private readonly Span<byte> output;
+        private readonly Span<T> output;
         private readonly Span<ushort> probabilities;
         private readonly Span<byte> decoded;
-        private readonly Span<Av1BlockContext> contexts;
-        private readonly Span<Av1BlockContext> above;
-        private readonly Span<Av1BlockContext> left;
+        private readonly Span<Av1BlockContext<T>> contexts;
+        private readonly Span<Av1BlockContext<T>> above;
+        private readonly Span<Av1BlockContext<T>> left;
         private readonly CancellationToken cancellationToken;
         private readonly Av1ReferencePictures? references;
         private readonly Span<Av1MotionBlock> motionBlocks;
@@ -37,9 +37,15 @@ namespace Mediana.Codecs.Av1
         private Av1BlockFilterDeltas filterDeltas;
         private bool readDeltas;
 
+        private int SampleBitDepth => typeof(T) == typeof(byte) ? 8 : sequence.BitDepth;
+
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
-            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default, Span<Av1RestorationUnit> restorationUnits = default, ReadOnlySpan<Av1MotionFieldSample> motionField = default, Span<byte> segmentMap = default, ReadOnlySpan<byte> previousSegments = default, int tileIndex = 0)
+            Span<T> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext<T>> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default, Span<Av1RestorationUnit> restorationUnits = default, ReadOnlySpan<Av1MotionFieldSample> motionField = default, Span<byte> segmentMap = default, ReadOnlySpan<byte> previousSegments = default, int tileIndex = 0)
         {
+            if (sequence.BitDepth is not (8 or 10 or 12) || typeof(T) != typeof(byte) && typeof(T) != typeof(ushort) || typeof(T) == typeof(byte) && sequence.BitDepth != 8)
+            {
+                throw new ArgumentException("The AV1 sample storage cannot represent the sequence depth.", nameof(sequence));
+            }
             bounds = header.Tiles.Bounds(tileIndex, sequence);
             if ((header.LoopFilter.Enabled || header.Cdef.Enabled) && filterBlocks.Length != sequence.MiColumns * sequence.MiRows)
             {
@@ -144,7 +150,7 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        private Span<Av1BlockContext> CoefficientAbove(int plane)
+        private Span<Av1BlockContext<T>> CoefficientAbove(int plane)
         {
             int luma = sequence.MiColumns + LeftContexts;
             int chroma = luma / 2;
@@ -157,7 +163,7 @@ namespace Mediana.Codecs.Av1
             };
         }
 
-        private Span<Av1BlockContext> CoefficientLeft(int plane)
+        private Span<Av1BlockContext<T>> CoefficientLeft(int plane)
         {
             int luma = sequence.MiColumns + LeftContexts;
             int chroma = luma / 2;

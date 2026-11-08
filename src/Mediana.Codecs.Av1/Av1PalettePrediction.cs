@@ -3,15 +3,15 @@
 
 namespace Mediana.Codecs.Av1
 {
-    internal readonly ref struct Av1PalettePrediction(ReadOnlySpan<byte> lumaColors, ReadOnlySpan<byte> chromaColors,
-        ReadOnlySpan<byte> lumaMap, ReadOnlySpan<byte> chromaMap)
+    internal readonly ref struct Av1PalettePrediction<T>(ReadOnlySpan<T> lumaColors, ReadOnlySpan<T> chromaColors,
+        ReadOnlySpan<byte> lumaMap, ReadOnlySpan<byte> chromaMap) where T : unmanaged
     {
-        private readonly ReadOnlySpan<byte> y = lumaColors;
-        private readonly ReadOnlySpan<byte> uv = chromaColors;
+        private readonly ReadOnlySpan<T> y = lumaColors;
+        private readonly ReadOnlySpan<T> uv = chromaColors;
         private readonly ReadOnlySpan<byte> yMap = lumaMap;
         private readonly ReadOnlySpan<byte> uvMap = chromaMap;
 
-        internal ReadOnlySpan<byte> Colors(int plane) => plane switch
+        internal ReadOnlySpan<T> Colors(int plane) => plane switch
         {
             0 => y,
             1 => uv[..(uv.Length / 2)],

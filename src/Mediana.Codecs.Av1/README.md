@@ -1,4 +1,4 @@
-Managed AV1 reconstruction currently covers Main-profile eight-bit intra and inter pictures with lossless or quantized
+Managed AV1 reconstruction currently covers Main-profile eight- and ten-bit intra and inter pictures with lossless or quantized
 transforms, monochrome or 4:2:0, with uniform/nonuniform tile grids inside a
 complete FRAME OBU or separate FRAME_HEADER and TILE_GROUP OBUs. The public factory accepts version-one av1C configuration and low-overhead
 OBUs with explicit sizes or an implicit final OBU extent. Hidden key pictures, eight reference slots and
@@ -7,6 +7,15 @@ OBUs in one access unit. Reference display retains the existing pixel buffer;
 reset and disposal release references independently of returned frames.
 Output keeps native planar samples, packet timing,
 render aspect ratio and codec color labels without copying pixel storage.
+
+Ten-bit output stores each sample in the low ten bits of a native-endian
+unsigned 16-bit word. Tile reconstruction, prediction, transforms and frame
+filters share typed implementations with the eight-bit path. Pixel strides and
+offsets are expressed in bytes at the public frame boundary; internal geometry
+counts samples. Seven twelve-picture Main 10 sequences reproduce 168 independent
+visible-picture hashes across reset, including inter prediction, all frame
+filters, odd dimensions, monochrome, tiles, film grain and super-resolution.
+MP4 and Matroska checks preserve these samples across repeated indexed seeks.
 
 Verified reconstruction includes all partition shapes, palette luma,
 nonzero lossless coefficients, directional intra prediction with filtered and upsampled edges, chroma prediction from luma, ordinary multi-frame sequence headers,

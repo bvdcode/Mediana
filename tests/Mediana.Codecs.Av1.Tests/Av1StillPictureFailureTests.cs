@@ -41,7 +41,7 @@ namespace Mediana.Codecs.Av1.Tests
         {
             byte[] encoded = Read("palette");
             int samples = 16 * 16;
-            int contextBytes = (4 + Av1TileDecoder.LeftContexts) * Unsafe.SizeOf<Av1BlockContext>();
+            int contextBytes = (4 + Av1TileDecoder<byte>.LeftContexts) * Unsafe.SizeOf<Av1BlockContext<byte>>();
             long limit = allocation switch
             {
                 0 => samples - 1,

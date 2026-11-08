@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private const int IntraCopyDelayPixels = 256;
 
@@ -54,7 +54,7 @@ namespace Mediana.Codecs.Av1
             }
             Av1TransformSize transform = ReadInterTransformSizes(row, column, width, height, skip != 0);
             Residual(row, column, width, height, skip != 0, default, hasChroma, default, default, transform, true);
-            Av1BlockContext context = new()
+            Av1BlockContext<T> context = new()
             {
                 WidthLog = (byte)BitOperations.Log2((uint)width), HeightLog = (byte)BitOperations.Log2((uint)height), Skip = (byte)skip
             };

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private Av1InterIntraPrediction ReadInterIntra(int width, int height)
         {
@@ -19,7 +21,7 @@ namespace Mediana.Codecs.Av1
 
         private void BlendInterIntra(int row, int column, int width, int height, bool hasChroma, Av1InterIntraPrediction prediction)
         {
-            Span<byte> inter = stackalloc byte[width * height * 16];
+            Span<T> inter = stackalloc T[width * height * 16];
             Span<byte> mask = prediction.WedgeIndex >= 0 ? stackalloc byte[width * height * 16] : default;
             if (!mask.IsEmpty) { Av1WedgeMask.Initialize(mask, width * 4, height * 4, prediction.WedgeIndex, 0); }
             for (int plane = 0; plane < (hasChroma ? 3 : 1); plane++)
@@ -40,12 +42,12 @@ namespace Mediana.Codecs.Av1
                 PredictIntra(plane, x, y, prediction.Intra, planeWidth, planeHeight, row, column);
                 for (int dy = 0; dy < visibleHeight; dy++)
                 {
-                    Span<byte> target = output.Slice(offset + dy * stride, visibleWidth);
+                    Span<T> target = output.Slice(offset + dy * stride, visibleWidth);
                     for (int dx = 0; dx < visibleWidth; dx++)
                     {
                         int weight = mask.IsEmpty ? Av1InterIntraMask.Weight(prediction.Mode, planeWidth, planeHeight, dy, dx)
                             : Av1MaskSampling.Weight(mask, width * 4, sub, dy, dx);
-                        target[dx] = (byte)((weight * target[dx] + (64 - weight) * inter[dy * visibleWidth + dx] + 32) >> 6);
+                        target[dx] = T.CreateTruncating((weight * int.CreateTruncating(target[dx]) + (64 - weight) * int.CreateTruncating(inter[dy * visibleWidth + dx]) + 32) >> 6);
                     }
                 }
             }

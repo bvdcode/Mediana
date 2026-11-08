@@ -16,7 +16,7 @@ namespace Mediana.Codecs.Av1
             FrameCore(input, coded, output, display, (1 << depth) - 1, token);
         }
 
-        private static void FrameCore<T>(ReadOnlySpan<T> input, Av1SequenceHeader coded, Span<T> output, Av1SequenceHeader display, int maximum, CancellationToken token)
+        internal static void FrameCore<T>(ReadOnlySpan<T> input, Av1SequenceHeader coded, Span<T> output, Av1SequenceHeader display, int maximum, CancellationToken token)
             where T : unmanaged, IBinaryInteger<T>
         {
             Validate(input.Length, coded, display);
@@ -49,7 +49,7 @@ namespace Mediana.Codecs.Av1
             SaveBoundariesCore(input, coded, display, parameters, boundaries, (1 << depth) - 1, token);
         }
 
-        private static void SaveBoundariesCore<T>(ReadOnlySpan<T> input, Av1SequenceHeader coded, Av1SequenceHeader display,
+        internal static void SaveBoundariesCore<T>(ReadOnlySpan<T> input, Av1SequenceHeader coded, Av1SequenceHeader display,
             Av1RestorationParameters parameters, Span<T> boundaries, int maximum, CancellationToken token) where T : unmanaged, IBinaryInteger<T>
         {
             Validate(input.Length, coded, display);

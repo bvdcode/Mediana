@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private int ReadMotionMode(int row, int column, int width, int height, Av1MotionBlock block, Av1ReferencePictures pictures, out Av1WarpParameters warp)
         {

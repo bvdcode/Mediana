@@ -24,7 +24,7 @@ namespace Mediana.Codecs.Av1.Tests
             int samples = 48 * 40 * 3 / 2;
             int snapshot = Av1DefaultCdfs.Count * sizeof(ushort);
             int motions = 12 * 10 * Unsafe.SizeOf<Av1MotionBlock>();
-            int contexts = (12 + Av1TileDecoder.LeftContexts) * 2 * Unsafe.SizeOf<Av1BlockContext>();
+            int contexts = (12 + Av1TileDecoder<byte>.LeftContexts) * 2 * Unsafe.SizeOf<Av1BlockContext<byte>>();
             int retained = samples + snapshot;
             long limit = allocation switch
             {

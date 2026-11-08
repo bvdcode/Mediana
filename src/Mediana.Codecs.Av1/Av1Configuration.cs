@@ -5,14 +5,14 @@ using Mediana.Formats.Video;
 
 namespace Mediana.Codecs.Av1
 {
-    internal readonly record struct Av1Configuration(Av1SequenceHeader? Sequence, bool Monochrome, int ChromaPosition, int Level, bool Tier)
+    internal readonly record struct Av1Configuration(Av1SequenceHeader? Sequence, bool Monochrome, int ChromaPosition, int Level, bool Tier, int BitDepth = 8)
     {
         internal static Av1Configuration Read(ReadOnlySpan<byte> encoded)
         {
             Av1CodecConfigurationRecord record = Av1CodecConfigurationRecord.Read(encoded);
-            if (record.Profile != 0 || record.BitDepth != 8 || !record.SubsamplingX || !record.SubsamplingY)
+            if (record.Profile != 0 || record.BitDepth is not (8 or 10) || !record.SubsamplingX || !record.SubsamplingY)
             {
-                throw new NotSupportedException("AV1 reconstruction requires Main-profile eight-bit 4:2:0 or monochrome samples.");
+                throw new NotSupportedException("AV1 reconstruction requires Main-profile eight- or ten-bit 4:2:0 or monochrome samples.");
             }
             Av1SequenceHeader? sequence = null;
             Av1ObuReader obus = new(encoded[Av1CodecConfigurationRecord.HeaderBytes..], allowImplicitFinalSize: false);
@@ -33,7 +33,7 @@ namespace Mediana.Codecs.Av1
                 }
                 count++;
             }
-            Av1Configuration configuration = new(sequence, record.Monochrome, record.ChromaPosition, record.Level, record.HighTier);
+            Av1Configuration configuration = new(sequence, record.Monochrome, record.ChromaPosition, record.Level, record.HighTier, record.BitDepth);
             if (sequence is Av1SequenceHeader header)
             {
                 configuration.Validate(header);
@@ -43,7 +43,7 @@ namespace Mediana.Codecs.Av1
 
         internal void Validate(Av1SequenceHeader sequence)
         {
-            if (sequence.Monochrome != Monochrome || sequence.ChromaPosition != ChromaPosition || sequence.Tools.Level != Level || sequence.Tools.Tier != Tier)
+            if (sequence.BitDepth != BitDepth || sequence.Monochrome != Monochrome || sequence.ChromaPosition != ChromaPosition || sequence.Tools.Level != Level || sequence.Tools.Tier != Tier)
             {
                 throw new InvalidDataException("The AV1 sequence header does not match its codec configuration record.");
             }

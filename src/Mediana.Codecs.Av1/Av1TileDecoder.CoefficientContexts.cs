@@ -1,26 +1,28 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private int CoefficientSkipContext(int plane, int x4, int y4, int blockWidth, int blockHeight, Av1TransformSize size)
         {
-            Span<Av1BlockContext> top = CoefficientAbove(plane);
-            Span<Av1BlockContext> prior = CoefficientLeft(plane);
+            Span<Av1BlockContext<T>> top = CoefficientAbove(plane);
+            Span<Av1BlockContext<T>> prior = CoefficientLeft(plane);
             int mask = prior.Length - 1;
             int topLevel = 0;
             int leftLevel = 0;
             for (int index = 0; index < size.Width4 && x4 + index < sequence.PlaneColumns(plane); index++)
             {
-                ref Av1BlockContext context = ref top[x4 + index];
+                ref Av1BlockContext<T> context = ref top[x4 + index];
                 if (plane == 0) { topLevel = Math.Max(topLevel, context.Level); }
                 else { topLevel |= context.Level | context.Dc; }
             }
             for (int index = 0; index < size.Height4 && y4 + index < sequence.PlaneRows(plane); index++)
             {
-                ref Av1BlockContext context = ref prior[(y4 + index) & mask];
+                ref Av1BlockContext<T> context = ref prior[(y4 + index) & mask];
                 if (plane == 0) { leftLevel = Math.Max(leftLevel, context.Level); }
                 else { leftLevel |= context.Level | context.Dc; }
             }
@@ -39,8 +41,8 @@ namespace Mediana.Codecs.Av1
         private int CoefficientDcSign(int plane, int x4, int y4, Av1TransformSize size)
         {
             int sum = 0;
-            Span<Av1BlockContext> top = CoefficientAbove(plane);
-            Span<Av1BlockContext> prior = CoefficientLeft(plane);
+            Span<Av1BlockContext<T>> top = CoefficientAbove(plane);
+            Span<Av1BlockContext<T>> prior = CoefficientLeft(plane);
             int mask = prior.Length - 1;
             for (int index = 0; index < size.Width4 && x4 + index < sequence.PlaneColumns(plane); index++)
             {
@@ -55,8 +57,8 @@ namespace Mediana.Codecs.Av1
 
         private void StoreCoefficientContext(int plane, int x4, int y4, Av1TransformSize size, byte level, byte dc)
         {
-            Span<Av1BlockContext> top = CoefficientAbove(plane);
-            Span<Av1BlockContext> prior = CoefficientLeft(plane);
+            Span<Av1BlockContext<T>> top = CoefficientAbove(plane);
+            Span<Av1BlockContext<T>> prior = CoefficientLeft(plane);
             int mask = prior.Length - 1;
             for (int index = 0; index < size.Width4 && x4 + index < sequence.PlaneColumns(plane); index++)
             {

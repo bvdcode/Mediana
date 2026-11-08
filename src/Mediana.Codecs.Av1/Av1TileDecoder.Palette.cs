@@ -5,9 +5,9 @@ using System.Numerics;
 
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
-        private int Palette(int row, int column, int sizeContext, scoped Span<byte> colors, int plane = 0, int lumaPalette = 0)
+        private int Palette(int row, int column, int sizeContext, scoped Span<T> colors, int plane = 0, int lumaPalette = 0)
         {
             int context;
             int offset;
@@ -25,11 +25,11 @@ namespace Mediana.Codecs.Av1
             if (symbols.ReadSymbol(probabilities.Slice(offset, 3)) == 0) { return 0; }
             int sizeOffset = plane == 0 ? Av1DefaultCdfs.PaletteSizeOffset : Av1DefaultCdfs.UvPaletteSizeOffset;
             int count = symbols.ReadSymbol(probabilities.Slice(sizeOffset + sizeContext * 8, 8)) + 2;
-            Span<byte> cache = stackalloc byte[16];
+            Span<T> cache = stackalloc T[16];
             int cached = 0;
             if (row % 16 != 0)
             {
-                ref Av1BlockContext top = ref above[column];
+                ref Av1BlockContext<T> top = ref above[column];
                 for (int index = 0; index < (plane == 0 ? top.PaletteCount : top.UvPaletteCount); index++)
                 {
                     cache[cached++] = plane == 0 ? top.Palette[index] : top.UvPalette[index];
@@ -37,7 +37,7 @@ namespace Mediana.Codecs.Av1
             }
             if (column > bounds.ColumnStart)
             {
-                ref Av1BlockContext previous = ref left[row & (LeftContexts - 1)];
+                ref Av1BlockContext<T> previous = ref left[row & (LeftContexts - 1)];
                 for (int index = 0; index < (plane == 0 ? previous.PaletteCount : previous.UvPaletteCount); index++)
                 {
                     cache[cached++] = plane == 0 ? previous.Palette[index] : previous.UvPalette[index];
@@ -59,19 +59,19 @@ namespace Mediana.Codecs.Av1
             int fresh = selected;
             if (selected < count)
             {
-                colors[selected++] = (byte)symbols.ReadLiteral(8);
+                colors[selected++] = T.CreateTruncating(symbols.ReadLiteral(SampleBitDepth));
             }
             int bits = 0;
             if (selected < count)
             {
-                bits = 5 + (int)symbols.ReadLiteral(2);
+                bits = SampleBitDepth - 3 + (int)symbols.ReadLiteral(2);
             }
             while (selected < count)
             {
                 int delta = (int)symbols.ReadLiteral(bits) + (plane == 0 ? 1 : 0);
-                int next = Math.Min(255, colors[selected - 1] + delta);
-                colors[selected++] = (byte)next;
-                int remaining = (plane == 0 ? 255 : 256) - next;
+                int next = Math.Min((1 << SampleBitDepth) - 1, int.CreateTruncating(colors[selected - 1]) + delta);
+                colors[selected++] = T.CreateTruncating(next);
+                int remaining = ((1 << SampleBitDepth) - (plane == 0 ? 1 : 0)) - next;
                 int remainingBits = remaining <= 1 ? 0 : BitOperations.Log2((uint)(remaining - 1)) + 1;
                 bits = Math.Min(bits, remainingBits);
             }

@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private bool ReadInter(int row, int column)
         {
@@ -109,7 +109,7 @@ namespace Mediana.Codecs.Av1
             StoreFilterBlock(row, column, width, height, reference, mode, skip != 0);
             Av1TransformSize transform = ReadInterTransformSizes(row, column, width, height, skip != 0);
             Residual(row, column, width, height, skip != 0, default, hasChroma, default, default, transform, true);
-            Av1BlockContext contextBlock = new()
+            Av1BlockContext<T> contextBlock = new()
             {
                 WidthLog = (byte)BitOperations.Log2((uint)width), HeightLog = (byte)BitOperations.Log2((uint)height), Skip = (byte)skip
             };

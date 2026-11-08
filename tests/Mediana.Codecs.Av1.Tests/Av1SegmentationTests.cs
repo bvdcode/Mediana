@@ -59,8 +59,8 @@ namespace Mediana.Codecs.Av1.Tests
                         ? previous.SegmentMap.Memory.Span : default;
                     using WritableMediaBuffer pixels = allocator.Allocate(geometry.SampleCount);
                     using WritableMediaBuffer? segments = header.Segmentation.Enabled ? allocator.Allocate(cells) : null;
-                    Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities,
-                        new byte[geometry.SampleCount / 16], new Av1BlockContext[geometry.ContextCount], default, initial, references, blocks,
+                    Av1TileDecoder<byte> tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities,
+                        new byte[geometry.SampleCount / 16], new Av1BlockContext<byte>[geometry.ContextCount], default, initial, references, blocks,
                         filters, new sbyte[header.Cdef.IndexCount(geometry)], new Av1RestorationUnit[header.Restoration.UnitCount(geometry)], field,
                         segments is null ? default : segments.Span, previousMap);
                     tile.Decode();

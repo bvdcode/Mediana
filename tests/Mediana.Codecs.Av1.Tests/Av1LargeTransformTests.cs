@@ -32,9 +32,9 @@ namespace Mediana.Codecs.Av1.Tests
                 Span<ushort> probabilities = stackalloc ushort[Av1DefaultCdfs.Count];
                 using WritableMediaBuffer pixels = allocator.Allocate(sequence.SampleCount);
                 using WritableMediaBuffer decoded = allocator.Allocate(sequence.SampleCount / 16);
-                using WritableMediaBuffer contexts = allocator.Allocate(sequence.ContextCount * Unsafe.SizeOf<Av1BlockContext>());
-                Av1TileDecoder decoder = new(frame[header.TileOffset..], sequence, header, pixels.Span, probabilities,
-                    decoded.Span, MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), default);
+                using WritableMediaBuffer contexts = allocator.Allocate(sequence.ContextCount * Unsafe.SizeOf<Av1BlockContext<byte>>());
+                Av1TileDecoder<byte> decoder = new(frame[header.TileOffset..], sequence, header, pixels.Span, probabilities,
+                    decoded.Span, MemoryMarshal.Cast<byte, Av1BlockContext<byte>>(contexts.Span), default);
                 decoder.Decode();
                 int reads = 0;
                 for (int category = 1; category < 5; category++)

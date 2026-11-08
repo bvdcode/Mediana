@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private Av1ChromaMode ReadChromaMode(int lumaMode, int blockIndex, int width, int height)
         {
@@ -57,7 +59,7 @@ namespace Mediana.Codecs.Av1
                     int sourceX = Math.Min((x + column) * 2, maximumX - 2);
                     int top = sourceY * sequence.Stride + sourceX;
                     int bottom = top + sequence.Stride;
-                    int value = (output[top] + output[top + 1] + output[bottom] + output[bottom + 1]) * 2;
+                    int value = (int.CreateTruncating(output[top]) + int.CreateTruncating(output[top + 1]) + int.CreateTruncating(output[bottom]) + int.CreateTruncating(output[bottom + 1])) * 2;
                     luma[row * width + column] = value;
                     sum += value;
                 }
@@ -67,13 +69,13 @@ namespace Mediana.Codecs.Av1
             int stride = sequence.PlaneStride(plane);
             for (int row = 0; row < Math.Min(height, sequence.PlaneHeight(plane) - y); row++)
             {
-                Span<byte> target = output.Slice(offset + (y + row) * stride + x, Math.Min(width, stride - x));
+                Span<T> target = output.Slice(offset + (y + row) * stride + x, Math.Min(width, stride - x));
                 for (int column = 0; column < target.Length; column++)
                 {
                     int scaled = alpha * (luma[row * width + column] - average);
                     int magnitude = (Math.Abs(scaled) + 32) >> 6;
                     int delta = scaled < 0 ? -magnitude : magnitude;
-                    target[column] = (byte)Math.Clamp(target[column] + delta, 0, 255);
+                    target[column] = T.CreateTruncating(Math.Clamp(int.CreateTruncating(target[column]) + delta, 0, (1 << SampleBitDepth) - 1));
                 }
             }
         }

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private void PredictInter(int row, int column, int width, int height, bool hasChroma, Av1MotionBlock block, Av1ReferencePictures pictures, Av1CompoundPrediction prediction, Av1WarpParameters warp)
         {
@@ -58,18 +60,18 @@ namespace Mediana.Codecs.Av1
                             }
                             if (selected.SecondReference == 0 && firstWarp.IsValid)
                             {
-                                Av1WarpPrediction.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, firstWarp);
+                                Av1WarpPrediction.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, firstWarp, SampleBitDepth);
                             }
                             else if (selected.SecondReference == 0)
                             {
-                                Av1MotionCompensation.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, stepX, stepY);
+                                Av1MotionCompensation.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, stepX, stepY, SampleBitDepth);
                             }
                             else
                             {
                                 Av1StoredPicture second = pictures.Get(header.Inter.References[selected.SecondReference - 1]);
                                 Av1WarpParameters secondWarp = !header.Inter.IntegerMotion && planeWidth >= 8 && planeHeight >= 8
                                     ? GlobalWarp(selected, selected.SecondReference, second) : default;
-                                Av1MotionCompensation.ApplyCompound(output, sequence, reference, second, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, prediction, stepX, stepY, mask, maskStride, firstWarp, secondWarp);
+                                Av1MotionCompensation.ApplyCompound(output, sequence, reference, second, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, prediction, stepX, stepY, mask, maskStride, firstWarp, secondWarp, SampleBitDepth);
                             }
                         }
                     }

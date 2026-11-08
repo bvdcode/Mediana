@@ -38,6 +38,11 @@ namespace Mediana.NativeTests
             Av1PictureSequenceTestInput.Verify(root, "intrabcMixed", [0x81, 0, 12, 0]);
             Av1PictureSequenceTestInput.VerifyOwnership(root, "intrabcMixed", [0x81, 0, 12, 0]);
             Console.WriteLine("PASS AV1 intra block copy: 42 independent picture hashes, odd chroma motion, monochrome, tiles, large superblocks, lossless palettes, inter references and held output match.");
+            Av1Main10TestInput.VerifyPictures(root);
+            Av1Main10TestInput.VerifyOwnership(root);
+            await Av1Main10ContainerTestInput.VerifyAsync(root, "mp4");
+            await Av1Main10ContainerTestInput.VerifyAsync(root, "mkv");
+            Console.WriteLine("PASS AV1 Main 10: 168 independent picture hashes, inter prediction, filters, monochrome, tiles, grain, super-resolution and MP4/Matroska seeks; held outputs, reset, cancellation and released leases match.");
             Av1SuperResolutionTestInput.VerifyPictures(root);
             Av1SuperResolutionTestInput.VerifyOwnership(root);
             Console.WriteLine("PASS AV1 super-resolution: 312 independent hashes across scales, tiles, restoration and grain; held outputs, reset and cancellation remain valid.");

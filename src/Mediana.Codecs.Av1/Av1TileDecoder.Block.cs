@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private void Block(int row, int column, int width, int height)
         {
@@ -59,9 +59,9 @@ namespace Mediana.Codecs.Av1
             bool hasChroma = !sequence.Monochrome && !(height == 1 && (row & 1) == 0) &&
                 !(width == 1 && (column & 1) == 0);
             Av1ChromaMode chroma = hasChroma ? ReadChromaMode(mode, blockIndex, width, height) : default;
-            Span<byte> colors = stackalloc byte[8];
+            Span<T> colors = stackalloc T[8];
             int paletteSize = 0;
-            Span<byte> chromaColors = stackalloc byte[16];
+            Span<T> chromaColors = stackalloc T[16];
             int chromaPaletteSize = 0;
             int widthLog = BitOperations.Log2((uint)width);
             int heightLog = BitOperations.Log2((uint)height);
@@ -92,7 +92,7 @@ namespace Mediana.Codecs.Av1
             StoreFilterBlock(row, column, width, height, 0, mode, skip != 0);
             Av1TransformSize transform = ReadTransformSize(row, column, width, height, true);
             Residual(row, column, width, height, skip != 0, new(mode, angleDelta, filter), hasChroma, chroma, new(colors[..paletteSize], chromaColors[..(chromaPaletteSize * 2)], colorMap, chromaMap), transform);
-            Av1BlockContext context = new()
+            Av1BlockContext<T> context = new()
             {
                 Mode = (byte)mode,
                 WidthLog = (byte)widthLog,
@@ -111,7 +111,7 @@ namespace Mediana.Codecs.Av1
             StoreMotion(row, column, width, height, new() { Width = (byte)width, Height = (byte)height, TransformSize = (byte)transform.Index });
         }
 
-        private void StoreContext(int row, int column, int width, int height, Av1BlockContext context)
+        private void StoreContext(int row, int column, int width, int height, Av1BlockContext<T> context)
         {
             for (int index = 0; index < width && column + index < sequence.MiColumns; index++)
             {

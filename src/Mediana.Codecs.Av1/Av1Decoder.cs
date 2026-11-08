@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
 using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Video;
@@ -90,8 +91,20 @@ namespace Mediana.Codecs.Av1
                 return;
             }
             using WritableMediaBuffer display = allocator.Allocate(displayLength);
-            Av1GrainSynthesis.Apply(grain, header.PixelGeometry.Width, header.PixelGeometry.Height, header.PixelGeometry.Monochrome,
-                header.Geometry.MatrixCoefficients == 0, picture.Pixels.Memory.Span, planes!, display.Span, displayPlanes!, allocator, cancellationToken);
+            switch (header.PixelGeometry.BitDepth)
+            {
+                case 8:
+                    Av1GrainSynthesis.Apply(grain, header.PixelGeometry.Width, header.PixelGeometry.Height, header.PixelGeometry.Monochrome,
+                        header.Geometry.MatrixCoefficients == 0, picture.Pixels.Memory.Span, planes!, display.Span, displayPlanes!, allocator, cancellationToken);
+                    break;
+                case 10:
+                    Av1GrainSynthesis.Apply(grain, header.PixelGeometry.Width, header.PixelGeometry.Height, 10, header.PixelGeometry.Monochrome,
+                        header.Geometry.MatrixCoefficients == 0, MemoryMarshal.Cast<byte, ushort>(picture.Pixels.Memory.Span), planes!,
+                        MemoryMarshal.Cast<byte, ushort>(display.Span), displayPlanes!, allocator, cancellationToken);
+                    break;
+                default:
+                    throw new NotSupportedException("AV1 grain display requires eight- or ten-bit Main-profile samples.");
+            }
             using MediaBuffer pixels = display.Publish();
             output = new(format!, pixels, displayPlanes!, packet.PresentationTime, packet.Duration);
         }

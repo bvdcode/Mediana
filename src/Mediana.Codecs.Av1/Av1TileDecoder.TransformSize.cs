@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private Av1TransformSize ReadTransformSize(int row, int column, int width, int height, bool allowSelect)
         {
@@ -14,13 +16,13 @@ namespace Mediana.Codecs.Av1
             int leftHeight = 0;
             if (row > bounds.RowStart)
             {
-                Av1BlockContext context = above[column];
+                Av1BlockContext<T> context = above[column];
                 bool inter = !motionBlocks.IsEmpty && motionBlocks[(row - 1) * sequence.MiColumns + column].IsInter;
                 topWidth = inter ? 4 << context.WidthLog : context.TransformWidth;
             }
             if (column > bounds.ColumnStart)
             {
-                Av1BlockContext context = left[row & (LeftContexts - 1)];
+                Av1BlockContext<T> context = left[row & (LeftContexts - 1)];
                 bool inter = !motionBlocks.IsEmpty && motionBlocks[row * sequence.MiColumns + column - 1].IsInter;
                 leftHeight = inter ? 4 << context.HeightLog : context.TransformHeight;
             }

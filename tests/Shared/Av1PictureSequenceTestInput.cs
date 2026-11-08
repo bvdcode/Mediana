@@ -58,7 +58,16 @@ namespace Mediana.Tests
                         Require(frame.Timestamp == timestamp && frame.Duration == duration);
                         Require(frame.Format.Width == width && frame.Format.Height == height);
                         Require(frame.Planes.Count == (config.Monochrome ? 1 : 3));
-                        if (!config.Monochrome) { Require(frame.Format.PixelFormat == VideoPixelFormat.Yuv420P8); }
+                        if (!config.Monochrome)
+                        {
+                            VideoPixelFormat expectedFormat = config.BitDepth switch
+                            {
+                                8 => VideoPixelFormat.Yuv420P8,
+                                10 => VideoPixelFormat.Yuv420P10,
+                                _ => throw new InvalidDataException("The AV1 picture reference has an unsupported sample precision.")
+                            };
+                            Require(frame.Format.PixelFormat == expectedFormat);
+                        }
                         for (int plane = 0; plane < frame.Planes.Count; plane++)
                         {
                             for (int row = 0; row < frame.Planes[plane].Height; row++)

@@ -11,11 +11,13 @@ namespace Mediana.Tests
         private readonly string directory = Directory.CreateTempSubdirectory("mediana-av1-").FullName;
 
         [Theory]
-        [InlineData("mp4")]
-        [InlineData("mkv")]
-        public async Task GenericCommandsProbePreviewTranscodeAndWriteHls(string extension)
+        [InlineData("interOrdered", "mp4", 48, 40)]
+        [InlineData("interOrdered", "mkv", 48, 40)]
+        [InlineData("main10Default", "mp4", 160, 136)]
+        [InlineData("main10Default", "mkv", 160, 136)]
+        public async Task GenericCommandsProbePreviewTranscodeAndWriteHls(string fixture, string extension, int width, int height)
         {
-            string input = Path.Combine(AppContext.BaseDirectory, "Data", "Av1", "interOrdered." + extension);
+            string input = Path.Combine(AppContext.BaseDirectory, "Data", "Av1", fixture + "." + extension);
             (int probeCode, string probe, string probeError) = await CliTests.RunAsync(["-i", input]);
             Assert.True(probeCode == 0, probeError);
             Assert.Contains("; av1;", probe, StringComparison.Ordinal);
@@ -24,8 +26,8 @@ namespace Mediana.Tests
             Assert.True(previewCode == 0, previewError);
             byte[] image = await File.ReadAllBytesAsync(png);
             Assert.True(image.AsSpan(0, 8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }));
-            Assert.Equal(48U, BinaryPrimitives.ReadUInt32BigEndian(image.AsSpan(16, 4)));
-            Assert.Equal(40U, BinaryPrimitives.ReadUInt32BigEndian(image.AsSpan(20, 4)));
+            Assert.Equal((uint)width, BinaryPrimitives.ReadUInt32BigEndian(image.AsSpan(16, 4)));
+            Assert.Equal((uint)height, BinaryPrimitives.ReadUInt32BigEndian(image.AsSpan(20, 4)));
             string ts = Path.Combine(directory, "encoded.ts");
             (int encodeCode, _, string encodeError) = await CliTests.RunAsync(["-i", input, ts, "--video-codec", "H264"]);
             Assert.True(encodeCode == 0, encodeError);

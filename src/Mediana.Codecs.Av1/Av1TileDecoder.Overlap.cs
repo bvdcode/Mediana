@@ -5,13 +5,13 @@ using System.Numerics;
 
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private const int MaximumOverlapSamples = 32 * 64;
 
         private void PredictOverlap(int row, int column, int width, int height, bool hasChroma, Av1ReferencePictures pictures)
         {
-            Span<byte> prediction = stackalloc byte[MaximumOverlapSamples];
+            Span<T> prediction = stackalloc T[MaximumOverlapSamples];
             for (int plane = 0; plane < (hasChroma ? 3 : 1); plane++)
             {
                 int sub = sequence.PlaneShift(plane);
@@ -24,7 +24,7 @@ namespace Mediana.Codecs.Av1
         }
 
         private void PredictOverlapSide(int row, int column, int width, int height, int plane, int pass,
-            Av1ReferencePictures pictures, scoped Span<byte> prediction)
+            Av1ReferencePictures pictures, scoped Span<T> prediction)
         {
             int sub = sequence.PlaneShift(plane);
             int w = Math.Max(4, (width * 4) >> sub);
@@ -48,16 +48,16 @@ namespace Mediana.Codecs.Av1
                     int predH = pass == 0 ? Math.Min(h >> 1, 32 >> sub) : Math.Min(h, (step * 4) >> sub);
                     int x = ((pass == 0 ? coordinate : column) * 4) >> sub;
                     int y = ((pass == 0 ? row : coordinate) * 4) >> sub;
-                    Span<byte> region = prediction[..(predW * predH)];
+                    Span<T> region = prediction[..(predW * predH)];
                     Av1StoredPicture reference = pictures.Get(header.Inter.References[candidate.Reference - 1]);
-                    Av1MotionCompensation.Predict(region, sequence, reference, plane, x, y, predW, predH, candidate);
+                    Av1MotionCompensation.Predict(region, sequence, reference, plane, x, y, predW, predH, candidate, SampleBitDepth);
                     BlendOverlap(region, plane, x, y, predW, predH, pass);
                 }
                 coordinate += step;
             }
         }
 
-        private void BlendOverlap(scoped ReadOnlySpan<byte> prediction, int plane, int x, int y, int width, int height, int pass)
+        private void BlendOverlap(scoped ReadOnlySpan<T> prediction, int plane, int x, int y, int width, int height, int pass)
         {
             ReadOnlySpan<byte> mask = Av1ObmcMask.ForLength(pass == 0 ? height : width);
             int stride = sequence.PlaneStride(plane);
@@ -66,11 +66,11 @@ namespace Mediana.Codecs.Av1
             int offset = sequence.PlaneOffset(plane);
             for (int row = 0; row < clippedHeight; row++)
             {
-                Span<byte> destination = output.Slice(offset + (y + row) * stride + x, clippedWidth);
+                Span<T> destination = output.Slice(offset + (y + row) * stride + x, clippedWidth);
                 for (int column = 0; column < clippedWidth; column++)
                 {
                     int weight = mask[pass == 0 ? row : column];
-                    destination[column] = (byte)((weight * destination[column] + (64 - weight) * prediction[row * width + column] + 32) >> 6);
+                    destination[column] = T.CreateTruncating((weight * int.CreateTruncating(destination[column]) + (64 - weight) * int.CreateTruncating(prediction[row * width + column]) + 32) >> 6);
                 }
             }
         }

@@ -36,9 +36,9 @@ namespace Mediana.Codecs.Av1.Tests
                 Assert.Equal(Av1FrameType.Key, header.FrameType);
                 Assert.Equal(sequence.MiRows, reader.ReadUInt16());
                 Assert.Equal(sequence.MiColumns, reader.ReadUInt16());
-                Av1BlockContext[] contexts = new Av1BlockContext[sequence.ContextCount];
+                Av1BlockContext<byte>[] contexts = new Av1BlockContext<byte>[sequence.ContextCount];
                 using WritableMediaBuffer pixels = allocator.Allocate(sequence.SampleCount);
-                Av1TileDecoder tile = new(frame[header.TileOffset..], sequence, header, pixels.Span, new ushort[Av1DefaultCdfs.Count],
+                Av1TileDecoder<byte> tile = new(frame[header.TileOffset..], sequence, header, pixels.Span, new ushort[Av1DefaultCdfs.Count],
                     new byte[sequence.SampleCount / 16], contexts, default, filterBlocks: new Av1FilterBlock[sequence.MiRows * sequence.MiColumns],
                     cdefIndices: new sbyte[header.Cdef.IndexCount(sequence)], restorationUnits: new Av1RestorationUnit[header.Restoration.UnitCount(sequence)]);
                 tile.Decode();

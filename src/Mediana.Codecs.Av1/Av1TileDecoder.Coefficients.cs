@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
-    internal ref partial struct Av1TileDecoder
+    internal ref partial struct Av1TileDecoder<T> where T : unmanaged, IBinaryInteger<T>
     {
         private void Coefficients(int plane, int x4, int y4, int blockWidth, int blockHeight, bool skip, int mode, scoped Span<int> quant, bool inter = false, int lumaRow = 0, int lumaColumn = 0, int transformWidth = 4, int transformHeight = 4)
         {
@@ -74,8 +76,8 @@ namespace Mediana.Codecs.Av1
             }
             int total = 0;
             byte dc = 0;
-            int dcMultiplier = quantization.Dc(plane);
-            int acMultiplier = quantization.Ac(plane);
+            int dcMultiplier = quantization.Dc(plane, SampleBitDepth);
+            int acMultiplier = quantization.Ac(plane, SampleBitDepth);
             int dequantizationShift = size.DequantizationShift;
             for (int ordinal = 0; ordinal < end; ordinal++)
             {
@@ -108,7 +110,7 @@ namespace Mediana.Codecs.Av1
                 total += level;
                 int multiplier = position == 0 ? dcMultiplier : acMultiplier;
                 if (!matrix.IsEmpty) { multiplier = (multiplier * matrix[position] + 16) >> 5; }
-                quant[position] = Av1Quantization.Dequantize(level, multiplier, negative, dequantizationShift);
+                quant[position] = Av1Quantization.Dequantize(level, multiplier, negative, dequantizationShift, SampleBitDepth);
             }
             StoreCoefficientContext(plane, x4, y4, size, (byte)Math.Min(63, total), dc);
             if (size.Width != size.CodedWidth)
@@ -121,11 +123,11 @@ namespace Mediana.Codecs.Av1
             }
             if (lossless)
             {
-                Av1LosslessTransform.Inverse(quant);
+                Av1LosslessTransform.Inverse(quant, SampleBitDepth);
             }
             else
             {
-                Av1InverseTransform.Inverse(quant, size.Width, size.Height, transform);
+                Av1InverseTransform.Inverse(quant, size.Width, size.Height, transform, SampleBitDepth);
             }
         }
 

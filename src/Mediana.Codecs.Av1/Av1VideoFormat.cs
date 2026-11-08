@@ -10,6 +10,7 @@ namespace Mediana.Codecs.Av1
     internal static class Av1VideoFormat
     {
         private static readonly VideoPixelFormat Gray8 = new("gray8", new VideoPlaneFormat(1, 1, 1));
+        private static readonly VideoPixelFormat Gray10 = new("gray10", new VideoPlaneFormat(1, 1, 2));
 
         internal static VideoFormat Create(Av1FrameHeader header, EncodedStreamInfo stream)
         {
@@ -27,21 +28,37 @@ namespace Mediana.Codecs.Av1
             long denominator = (long)header.RenderHeight * geometry.Width;
             long divisor = (long)BigInteger.GreatestCommonDivisor(numerator, denominator);
             SampleAspectRatio aspect = new(checked((int)(numerator / divisor)), checked((int)(denominator / divisor)));
-            return new(geometry.Width, geometry.Height, geometry.Monochrome ? Gray8 : VideoPixelFormat.Yuv420P8, color,
+            VideoPixelFormat pixels = (geometry.Monochrome, geometry.BitDepth) switch
+            {
+                (true, 8) => Gray8,
+                (true, 10) => Gray10,
+                (false, 8) => VideoPixelFormat.Yuv420P8,
+                (false, 10) => VideoPixelFormat.Yuv420P10,
+                _ => throw new NotSupportedException("AV1 reconstruction requires eight- or ten-bit Main-profile samples.")
+            };
+            return new(geometry.Width, geometry.Height, pixels, color,
                 stream.AspectRatioDescription?.Resolve(aspect) ?? aspect, stream.ColorDescription);
         }
 
         internal static PlaneLayout[] Layout(Av1SequenceHeader geometry)
         {
+            int sampleBytes = geometry.BitDepth switch
+            {
+                8 => 1,
+                10 => 2,
+                _ => throw new NotSupportedException("AV1 reconstruction requires eight- or ten-bit Main-profile samples.")
+            };
+            int stride = checked(geometry.Stride * sampleBytes);
+            int rowBytes = checked(geometry.Width * sampleBytes);
             if (geometry.Monochrome)
             {
-                return [new(0, geometry.Stride, geometry.Width, geometry.Height)];
+                return [new(0, stride, rowBytes, geometry.Height)];
             }
-            int chromaWidth = (geometry.Width + 1) >> 1;
+            int chromaWidth = checked(((geometry.Width + 1) >> 1) * sampleBytes);
             int chromaHeight = (geometry.Height + 1) >> 1;
-            return [new(0, geometry.Stride, geometry.Width, geometry.Height),
-                new(geometry.PlaneOffset(1), geometry.Stride >> 1, chromaWidth, chromaHeight),
-                new(geometry.PlaneOffset(2), geometry.Stride >> 1, chromaWidth, chromaHeight)];
+            return [new(0, stride, rowBytes, geometry.Height),
+                new(checked(geometry.PlaneOffset(1) * sampleBytes), stride >> 1, chromaWidth, chromaHeight),
+                new(checked(geometry.PlaneOffset(2) * sampleBytes), stride >> 1, chromaWidth, chromaHeight)];
         }
     }
 }
