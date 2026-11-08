@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
     internal static class Av1LoopFilter
     {
-        internal static void Apply(Span<byte> pixels, Av1SequenceHeader sequence, Av1LoopFilterParameters parameters,
-            ReadOnlySpan<Av1FilterBlock> blocks, CancellationToken cancellationToken, Av1Segmentation segmentation = default)
+        internal static void Apply<T>(Span<T> pixels, Av1SequenceHeader sequence, Av1LoopFilterParameters parameters,
+            ReadOnlySpan<Av1FilterBlock> blocks, CancellationToken cancellationToken, Av1Segmentation segmentation = default,
+            int bitDepth = 8) where T : unmanaged, IBinaryInteger<T>
         {
             if (!parameters.Enabled) { return; }
             if (blocks.Length != sequence.MiColumns * sequence.MiRows || pixels.Length != sequence.SampleCount)
@@ -26,15 +29,16 @@ namespace Mediana.Codecs.Av1
                         cancellationToken.ThrowIfCancellationRequested();
                         for (int column = 0; column < sequence.MiColumns; column += step)
                         {
-                            Edge(pixels, sequence, parameters, blocks, plane, pass, row, column, segmentation);
+                            Edge(pixels, sequence, parameters, blocks, plane, pass, row, column, segmentation, bitDepth);
                         }
                     }
                 }
             }
         }
 
-        private static void Edge(Span<byte> pixels, Av1SequenceHeader sequence, Av1LoopFilterParameters parameters,
-            ReadOnlySpan<Av1FilterBlock> blocks, int plane, int pass, int row, int column, Av1Segmentation segmentation)
+        private static void Edge<T>(Span<T> pixels, Av1SequenceHeader sequence, Av1LoopFilterParameters parameters,
+            ReadOnlySpan<Av1FilterBlock> blocks, int plane, int pass, int row, int column, Av1Segmentation segmentation,
+            int bitDepth) where T : unmanaged, IBinaryInteger<T>
         {
             int x = column * 4;
             int y = row * 4;
@@ -69,7 +73,7 @@ namespace Mediana.Codecs.Av1
             int along = pass == 0 ? stride : 1;
             for (int index = 0; index < 4; index++)
             {
-                Av1LoopFilterKernel.Apply(pixels, offset + index * along, across, filterSize, plane != 0, limit, boundaryLimit, level >> 4);
+                Av1LoopFilterKernel.Apply(pixels, offset + index * along, across, filterSize, plane != 0, limit, boundaryLimit, level >> 4, bitDepth);
             }
         }
     }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
     internal static class Av1Restoration
@@ -25,7 +27,8 @@ namespace Mediana.Codecs.Av1
             return count;
         }
 
-        internal static void SaveBoundaries(ReadOnlySpan<byte> pixels, Av1SequenceHeader sequence, Av1RestorationParameters parameters, Span<byte> boundaries)
+        internal static void SaveBoundaries<T>(ReadOnlySpan<T> pixels, Av1SequenceHeader sequence, Av1RestorationParameters parameters,
+            Span<T> boundaries) where T : unmanaged, IBinaryInteger<T>
         {
             if (pixels.Length != sequence.SampleCount || boundaries.Length != BoundaryLength(sequence, parameters))
             {
@@ -52,8 +55,9 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        internal static void Apply(Span<byte> pixels, Av1SequenceHeader sequence, Av1RestorationParameters parameters,
-            ReadOnlySpan<Av1RestorationUnit> units, ReadOnlySpan<byte> boundaries, Span<byte> scratch, CancellationToken cancellationToken)
+        internal static void Apply<T>(Span<T> pixels, Av1SequenceHeader sequence, Av1RestorationParameters parameters,
+            ReadOnlySpan<Av1RestorationUnit> units, ReadOnlySpan<T> boundaries, Span<T> scratch, CancellationToken cancellationToken,
+            int bitDepth = 8) where T : unmanaged, IBinaryInteger<T>
         {
             if (pixels.Length != sequence.SampleCount || units.Length != parameters.UnitCount(sequence) ||
                 boundaries.Length != BoundaryLength(sequence, parameters) || scratch.Length != ScratchLength(sequence, parameters))
@@ -74,17 +78,17 @@ namespace Mediana.Codecs.Av1
                 int size = parameters.Size(plane);
                 int unitOffset = parameters.Offset(sequence, plane);
                 int boundaryLength = BoundaryCount(sequence, plane) * 4 * stride;
-                ReadOnlySpan<byte> planeBoundaries = boundaries.Slice(boundaryOffset, boundaryLength);
+                ReadOnlySpan<T> planeBoundaries = boundaries.Slice(boundaryOffset, boundaryLength);
                 boundaryOffset += boundaryLength;
-                Span<byte> ring = scratch[..(stride * (side + 6))];
-                Span<byte> output = pixels.Slice(sequence.PlaneOffset(plane), sequence.LumaSamples >> (2 * shift));
+                Span<T> ring = scratch[..(stride * (side + 6))];
+                Span<T> output = pixels.Slice(sequence.PlaneOffset(plane), sequence.LumaSamples >> (2 * shift));
                 for (int y = 0; y < height; y += side)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (y != 0) { ring.Slice(side * stride, 3 * stride).CopyTo(ring); }
                     int copyRows = Math.Min(side + 3, height - y);
                     output.Slice(y * stride, copyRows * stride).CopyTo(ring[(3 * stride)..]);
-                    Av1RestorationSource<byte> source = new(ring, planeBoundaries, stride, width, height, y, (y + (8 >> shift)) / (64 >> shift), 64 >> shift);
+                    Av1RestorationSource<T> source = new(ring, planeBoundaries, stride, width, height, y, (y + (8 >> shift)) / (64 >> shift), 64 >> shift);
                     int unitRow = Math.Min(rows - 1, (y + (8 >> shift)) / size);
                     for (int x = 0; x < width;)
                     {
@@ -98,10 +102,10 @@ namespace Mediana.Codecs.Av1
                             case Av1RestorationType.None:
                                 break;
                             case Av1RestorationType.Wiener:
-                                Av1RestorationWiener.Filter(source, output, stride, x, y, blockWidth, blockHeight, unit);
+                                Av1RestorationWiener.Filter(source, output, stride, x, y, blockWidth, blockHeight, unit, bitDepth);
                                 break;
                             case Av1RestorationType.SelfGuided:
-                                Av1RestorationSelfGuided.Filter(source, output, stride, x, y, blockWidth, blockHeight, unit);
+                                Av1RestorationSelfGuided.Filter(source, output, stride, x, y, blockWidth, blockHeight, unit, bitDepth);
                                 break;
                             case Av1RestorationType.Switchable:
                             default:
