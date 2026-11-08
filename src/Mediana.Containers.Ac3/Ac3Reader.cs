@@ -68,6 +68,8 @@ namespace Mediana.Containers.Ac3
                 { throw new InvalidDataException("The AC-3 syncframe extends beyond the source."); }
                 if (header.IsEnhanced && header.StreamType == 1)
                 {
+                    if (current is { IsEnhanced: false })
+                    { throw new NotSupportedException("A combined AC-3 main and E-AC-3 dependent presentation is not supported."); }
                     if (current is null || current.StreamType != 0 || header.SubstreamId != dependent ||
                         header.SampleRate != current.SampleRate || header.SamplesPerFrame != current.SamplesPerFrame)
                     { throw new InvalidDataException("The dependent E-AC-3 syncframe is not ordered and synchronized with its independent frame."); }

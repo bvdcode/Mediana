@@ -13,6 +13,19 @@ namespace Mediana.Codecs.Ac3.Tests
     public class Ac3ReaderTests
     {
         [Fact]
+        public async Task CombinedLegacyMainAndEnhancedDependentHeadersAreNotExposedAsPlainAc3()
+        {
+            byte[] dependent = Ac3DependentFrame.Create(1);
+            dependent[4] |= 0x10;
+            byte[] data = [.. Ac3SyntheticFrame.Create(false, false), .. dependent];
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using Ac3ReaderTestSource source = new(data) { HeadersOnly = true };
+            await Assert.ThrowsAsync<NotSupportedException>(async () => await Ac3Reader.OpenAsync(source, allocator));
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.False(source.Disposed);
+        }
+
+        [Fact]
         public async Task VariableBlockIndexReadsOnlyHeadersAndKeepsExactSamplesAndIndependentCursors()
         {
             byte[][] frames = [Ac3SyntheticFrame.Create(true, false, 1), Ac3SyntheticFrame.Create(true, false, 2),
