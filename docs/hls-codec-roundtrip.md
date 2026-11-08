@@ -90,3 +90,31 @@ Separate initialization-plus-fragment decoding starts audio at 28.032 and
 56.021333 seconds for windows starting at 28 and 56 seconds. Its decoded samples
 match their declared presentation times; these checks do not establish exact
 sample coverage at the beginning of an isolated audio fragment.
+
+A Main10 MP4 source adds twelve 160×136 AV1 pictures at 6 fps with continuous
+48 kHz stereo AC-3. The public client explicitly selects `Yuv420P8` frame
+preparation and `VideoColorPolicy.ResolveForEncoding`. Rounded conversion from
+ten to eight bits emits a warning; declared BT.709 limited-range color and left
+chroma positioning are preserved.
+
+The session creates four half-second H.264/AAC windows and serves requests
+3, 0, 2, 1, 3 and 2. Both repeated segments are byte-identical. Opening reads
+1,528 bytes; format discovery and preparation raise this to 6,608 bytes. Through
+the first request, for 1.5–2 seconds, counted reads total 49,541 bytes of the
+77,485-byte input. This source has only an initial random-access picture, so
+the late request reconstructs the preceding video pictures needed as references.
+
+FFmpeg 9.0.2 passes sixteen full-playback and absolute-seek checks over files
+and HTTP. Seeks cover 0.25, 0.5, 0.75, 1, 1.25, 1.5 and 1.75 seconds. Complete
+video timestamps are 0 through 11 on a 1/6 clock; each initialization-plus-fragment
+pair independently decodes three pictures, beginning with a key picture at the
+corresponding window start. Five audio windows spanning the beginning, all three
+segment boundaries and the tail select zero displacement, with correlation at
+least 0.99998336. AAC timestamps are contiguous on a 1/48000 clock, with a
+1,024-sample priming skip. Decoded output contains 96,256 samples per channel,
+including a 256-sample tail beyond the two-second video interval; the source
+declares audio through 1.994 seconds.
+
+The same public consumer builds and runs with strict Native AOT checks. All
+eight playlist, initialization and media files match the JIT output byte for
+byte. Owned media storage returns to zero after both executions.
