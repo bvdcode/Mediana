@@ -36,7 +36,7 @@ namespace Mediana.Containers.Adts
         public ContainerInfo Info { get; } = new("adts");
         public IReadOnlyList<EncodedStreamInfo> Streams { get; private set; } = [];
         /// <summary>Known only after EOF. Includes the decoder's priming and final padding.</summary>
-        public MediaDuration? CodedDuration => ended ? new(checked(frames * 1024), Streams[0].TimeBase) : null;
+        public MediaDuration? CodedDuration => ended ? new(checked(frames * AdtsFrameValidation.SamplesPerFrame), Streams[0].TimeBase) : null;
 
         public static async ValueTask<AdtsReader> OpenAsync(IByteSource source, MediaBufferAllocator allocator,
             CancellationToken cancellationToken = default)
@@ -50,7 +50,7 @@ namespace Mediana.Containers.Adts
             {
                 await source.ReadExactlyAsync(reader.scratch.Memory[..AdtsFrameHeader.ByteLength], cancellationToken).ConfigureAwait(false);
                 reader.FirstFrame = AdtsFrameHeader.Read(reader.scratch.Memory.Span);
-                RequireSingleBlock(reader.FirstFrame);
+                AdtsFrameValidation.RequireSingleBlock(reader.FirstFrame);
                 reader.next = reader.FirstFrame;
                 reader.Streams = Array.AsReadOnly(new[] { new EncodedStreamInfo(0, MediaKind.Audio, AacConfiguration.CodecId,
                     StreamFormats.Aac, new TimeBase(1, reader.FirstFrame.SampleRate), reader.FirstFrame.ToAudioSpecificConfig()) });
@@ -71,17 +71,16 @@ namespace Mediana.Containers.Adts
                 if (ended) { success = true; return null; }
                 AdtsFrameHeader? header = next ?? await ReadHeaderAsync(cancellationToken).ConfigureAwait(false);
                 if (header is null) { ended = true; success = true; return null; }
-                RequireSingleBlock(header.Value);
-                ValidateConfiguration(header.Value);
+                AdtsFrameValidation.RequireConfiguration(FirstFrame, header.Value);
                 if (header.Value.HasCrc)
                 {
                     await source.ReadExactlyAsync(scratch.Memory[..2], cancellationToken).ConfigureAwait(false);
                 }
                 using WritableMediaBuffer writable = allocator.Allocate(header.Value.FrameBytes - header.Value.HeaderBytes);
                 await source.ReadExactlyAsync(writable.Memory, cancellationToken).ConfigureAwait(false);
-                MediaTimestamp timestamp = new(checked(frames * 1024), Streams[0].TimeBase);
+                MediaTimestamp timestamp = new(checked(frames * AdtsFrameValidation.SamplesPerFrame), Streams[0].TimeBase);
                 using MediaBuffer buffer = writable.Publish();
-                MediaPacket packet = new(0, buffer, timestamp, timestamp, new MediaDuration(1024, timestamp.TimeBase));
+                MediaPacket packet = new(0, buffer, timestamp, timestamp, new MediaDuration(AdtsFrameValidation.SamplesPerFrame, timestamp.TimeBase));
                 next = null;
                 frames++;
                 success = true;
@@ -105,23 +104,6 @@ namespace Mediana.Containers.Adts
             if (count == 0) { return null; }
             await source.ReadExactlyAsync(scratch.Memory.Slice(count, AdtsFrameHeader.ByteLength - count), token).ConfigureAwait(false);
             return AdtsFrameHeader.Read(scratch.Memory.Span);
-        }
-
-        private static void RequireSingleBlock(AdtsFrameHeader header)
-        {
-            if (header.RawDataBlockCount != 1)
-            {
-                throw new NotSupportedException("Multiple raw data blocks in one ADTS frame require explicit block separation.");
-            }
-        }
-
-        private void ValidateConfiguration(AdtsFrameHeader header)
-        {
-            if (header.IsMpeg2 != FirstFrame.IsMpeg2 || header.AudioObjectType != FirstFrame.AudioObjectType
-                || header.FrequencyIndex != FirstFrame.FrequencyIndex || header.ChannelConfiguration != FirstFrame.ChannelConfiguration)
-            {
-                throw new NotSupportedException("The ADTS stream changes its MPEG version, audio object type, sample rate or channel configuration.");
-            }
         }
 
         private void RequireActive()
