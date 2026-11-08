@@ -632,3 +632,28 @@ picture, including odd luma block vectors in the color sequences. The corpus
 contains 21 visible pictures and 5,167,308 independently decoded sample bytes.
 The public factory tests repeat all sequences after reset, verify random-access
 packet indices, and preserve a held picture across subsequent reconstruction.
+
+
+## In-loop sample precision
+
+`cdef-precision.bin.gz` and `loopfilter-precision.bin.gz` contain independent
+AOM 3.8.2 eight-, ten- and twelve-bit filter vectors. Each gzip stream starts
+with an eight-byte magic (`AV1HCDEF` or `AV1HLPF1`) and a little-endian 32-bit
+case count. Every case stores a 16×16 unsigned sixteen-bit input raster in
+little-endian order and a SHA-256 digest of the full output in the same format,
+including unchanged destination samples.
+
+The CDEF stream has 3,072 cases. Its case header stores depth, block side,
+x/y origin, primary and secondary strengths, damping, selected direction and
+expected direction as bytes, followed by the expected variance as a little-endian
+32-bit integer. Cases cover all eight directions, both block sizes, every image
+boundary, extrema, alternating and constant fields, ramps and random low bits.
+Direction search always uses the 8×8 input block at x=4, y=4.
+
+The deblocking stream has 6,144 cases. Each six-byte case header stores depth,
+filter extent (4, 6, 8 or 14 taps), orientation, limit, boundary limit and
+high-variance threshold. Each case filters four adjacent edges at x=8, y=8,
+horizontally or vertically. Inputs exercise narrow, flat and wide filtering,
+flatness thresholds, extrema and every supported clipping range. The native
+reference passes undefined-behavior checks; verification also requires zero
+managed allocations during warmed kernel calls.

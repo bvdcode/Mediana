@@ -1,12 +1,21 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
     internal static class Av1CdefDirection
     {
-        internal static int Find(ReadOnlySpan<byte> pixels, int stride, out int variance)
+        internal static int Find<T>(ReadOnlySpan<T> pixels, int stride, out int variance, int bitDepth = 8) where T : unmanaged, IBinaryInteger<T>
         {
+            int coefficientShift = bitDepth switch
+            {
+                8 => 0,
+                10 => 2,
+                12 => 4,
+                _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
+            };
             Span<int> partial = stackalloc int[8 * 15];
             Span<int> cost = stackalloc int[8];
             partial.Clear();
@@ -15,7 +24,7 @@ namespace Mediana.Codecs.Av1
             {
                 for (int x = 0; x < 8; x++)
                 {
-                    int sample = pixels[y * stride + x] - 128;
+                    int sample = (int.CreateTruncating(pixels[y * stride + x]) >> coefficientShift) - 128;
                     partial[y + x] += sample;
                     partial[15 + y + x / 2] += sample;
                     partial[30 + y] += sample;

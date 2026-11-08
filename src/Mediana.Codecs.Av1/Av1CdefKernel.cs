@@ -2,14 +2,26 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Mediana.Codecs.Av1
 {
     internal static class Av1CdefKernel
     {
-        internal static void Filter(ReadOnlySpan<byte> source, Span<byte> output, int stride, int planeHeight,
-            int x0, int y0, int side, int primary, int secondary, int damping, int direction)
+        internal static void Filter<T>(ReadOnlySpan<T> source, Span<T> output, int stride, int planeHeight,
+            int x0, int y0, int side, int primary, int secondary, int damping, int direction, int bitDepth = 8) where T : unmanaged, IBinaryInteger<T>
         {
+            int coefficientShift = bitDepth switch
+            {
+                8 => 0,
+                10 => 2,
+                12 => 4,
+                _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
+            };
+            int primaryParity = primary & 1;
+            primary <<= coefficientShift;
+            secondary <<= coefficientShift;
+            damping += coefficientShift;
             if (primary == 0 && secondary == 0) { return; }
             int primaryShift = primary == 0 ? 0 : Math.Max(0, damping - BitOperations.Log2((uint)primary));
             int secondaryShift = secondary == 0 ? 0 : Math.Max(0, damping - BitOperations.Log2((uint)secondary));
@@ -19,13 +31,13 @@ namespace Mediana.Codecs.Av1
             {
                 for (int x = 0; x < side; x++)
                 {
-                    int value = source[(y + 2) * stride + x0 + x];
+                    int value = int.CreateTruncating(source[(y + 2) * stride + x0 + x]);
                     int minimum = value;
                     int maximum = value;
                     int sum = 0;
                     for (int tap = 0; tap < 2; tap++)
                     {
-                        int primaryTap = (primary & 1) != 0 ? 3 : tap == 0 ? 4 : 2;
+                        int primaryTap = primaryParity != 0 ? 3 : tap == 0 ? 4 : 2;
                         for (int sign = -1; sign <= 1; sign += 2)
                         {
                             Add(source, stride, planeHeight, x0 + x, y0 + y, y + 2, rows[direction * 2 + tap] * sign,
@@ -38,16 +50,17 @@ namespace Mediana.Codecs.Av1
                             }
                         }
                     }
-                    output[(y0 + y) * stride + x0 + x] = (byte)Math.Clamp(value + ((8 + sum - (sum < 0 ? 1 : 0)) >> 4), minimum, maximum);
+                    output[(y0 + y) * stride + x0 + x] = T.CreateTruncating(Math.Clamp(value + ((8 + sum - (sum < 0 ? 1 : 0)) >> 4), minimum, maximum));
                 }
             }
         }
 
-        private static void Add(ReadOnlySpan<byte> source, int stride, int height, int x, int y, int localY, int dy, int dx,
-            int value, int strength, int shift, int tap, ref int sum, ref int minimum, ref int maximum)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void Add<T>(ReadOnlySpan<T> source, int stride, int height, int x, int y, int localY, int dy, int dx,
+            int value, int strength, int shift, int tap, ref int sum, ref int minimum, ref int maximum) where T : unmanaged, IBinaryInteger<T>
         {
             if ((uint)(x + dx) >= stride || (uint)(y + dy) >= height) { return; }
-            int sample = source[(localY + dy) * stride + x + dx];
+            int sample = int.CreateTruncating(source[(localY + dy) * stride + x + dx]);
             int difference = sample - value;
             int magnitude = Math.Abs(difference);
             int constrained = Math.Min(magnitude, Math.Max(0, strength - (magnitude >> shift)));

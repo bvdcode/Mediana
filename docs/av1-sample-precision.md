@@ -56,13 +56,38 @@ to 246.71 ms for 1,500 64×64 DCT calls. Each call included an identical coeffic
 reset. Output checksums matched and allocations remained zero. These measurements
 cover the transform kernels and coefficient reset only.
 
+Direction search normalizes ten- and twelve-bit samples before evaluating CDEF
+costs. CDEF scales its primary and secondary strengths and damping while retaining
+the original primary-tap parity. Deblocking scales edge limits, the flatness test
+and the signed clipping range, retaining the prescribed rounding of the narrow
+filter. Both filters operate directly on byte or unsigned sixteen-bit samples.
+The byte specialization keeps fixed eight-bit scaling constants without a
+second filtering algorithm.
+
+Independent AOM 3.8.2 kernels verify another 9,216 cases: 3,072 CDEF cases and
+6,144 deblocking cases at eight, ten and twelve bits. The corpus covers every
+CDEF direction, both block sizes, image edges, direction and variance results,
+all four deblocking extents and both edge orientations. Full destination hashes
+include untouched samples; every eight-bit vector also verifies the byte
+specialization against the independent unsigned sixteen-bit output. Normal, scalar and strict Native AOT execution match
+the independent outputs, with zero allocations during warmed kernel calls.
+
+A warmed eight-bit ABBA comparison used six measurements per implementation,
+with tiered compilation disabled on the same fixed core. Median CPU time changed
+from 223.06 to 222.55 ms for 1,000,000 direction searches, 300.41 to 275.56 ms for
+100,000 CDEF blocks, and 81.55 to 82.62 ms for 1,000,000 deblocking iterations of
+four edges each. Deblocking included the same source reset in both versions.
+Checksums matched and measured calls allocated zero managed bytes. These figures
+measure kernels rather than complete decoding throughput.
+
 The complete coded-picture decoder currently accepts eight-bit Main-profile
 sequences. Ten-bit decoding still requires routing sample precision through picture storage,
 reference prediction and in-loop filters. High-depth kernel coverage alone does
 not establish coded-picture support.
 
 Prediction and edge operations follow section 7.11.2, dequantization follows
-section 7.12.2, and inverse transforms follow sections 7.13.2–7.13.3 of the
+section 7.12.2, inverse transforms follow sections 7.13.2–7.13.3, and deblocking
+and CDEF follow sections 7.14–7.15 of the
 [AV1 specification, version 1.0.0 with Errata 1](https://aomediacodec.github.io/av1-spec/av1-spec.pdf).
 Independent vector formats are described with the
 [test data](../tests/Mediana.Codecs.Av1.Tests/Data/README.md).
