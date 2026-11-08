@@ -12,6 +12,12 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("yuvNoise32", 32, 32)]
         [InlineData("yuvShape37x29", 37, 29)]
         [InlineData("yuvCfl64", 64, 64)]
+        [InlineData("quantized4", 48, 40)]
+        [InlineData("quantizedChroma", 48, 40)]
+        [InlineData("quantizedNoise4", 37, 29)]
+        [InlineData("quantizedNoise12", 37, 29)]
+        [InlineData("quantizedNoise30", 37, 29)]
+        [InlineData("quantizedNoise50", 37, 29)]
         public void ReconstructsEveryIndependent420Plane(string name, int width, int height)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", name + ".obu"));

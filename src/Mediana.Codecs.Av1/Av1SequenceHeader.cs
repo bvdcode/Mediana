@@ -4,7 +4,7 @@
 namespace Mediana.Codecs.Av1
 {
     internal readonly record struct Av1SequenceHeader(int Width, int Height, bool Monochrome, bool SeparateUvDeltaQ, int ChromaPosition, bool Superblock128,
-        bool FilterIntra, bool IntraEdgeFilter, bool SuperResolution, bool FilmGrain, bool FullRange,
+        bool FilterIntra, bool IntraEdgeFilter, bool SuperResolution, bool Cdef, bool Restoration, bool FilmGrain, bool FullRange,
         int ColorPrimaries, int TransferCharacteristics, int MatrixCoefficients, Av1SequenceTools Tools)
     {
         internal int MiColumns => 2 * ((Width + 7) >> 3);
@@ -72,8 +72,8 @@ namespace Mediana.Codecs.Av1
             bool edgeFilter = bits.Flag();
             Av1SequenceTools tools = ReadTools(ref bits, reduced, widthBits, heightBits, level, tier);
             bool superResolution = bits.Flag();
-            bits.Flag();
-            bits.Flag();
+            bool cdef = bits.Flag();
+            bool restoration = bits.Flag();
             if (bits.Flag())
             {
                 throw new NotSupportedException("AV1 high-precision reconstruction is not implemented.");
@@ -106,7 +106,7 @@ namespace Mediana.Codecs.Av1
             }
             bool filmGrain = bits.Flag();
             bits.Finish();
-            return new(width, height, monochrome, separateUv, chromaPosition, largeSuperblock, filterIntra, edgeFilter, superResolution,
+            return new(width, height, monochrome, separateUv, chromaPosition, largeSuperblock, filterIntra, edgeFilter, superResolution, cdef, restoration,
                 filmGrain, fullRange, primaries, transfer, matrix, tools);
         }
         private static (int Level, bool Tier) ReadOperatingPoints(ref Av1BitReader bits)

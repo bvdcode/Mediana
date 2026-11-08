@@ -52,3 +52,24 @@ with ordinary non-reduced sequence/frame headers. The luma and chroma ramps
 change between frames; `sequence.reference.yuv` contains all five pictures
 independently decoded with libdav1d 1.4.1. Tests also remove repeated sequence
 headers and supply the initial sequence through a standard av1C record.
+
+`quantized4.obu` and `quantizedNoise*.obu` exercise lossy Main-profile 4:2:0
+four-point DCT, ADST and identity reconstruction. The former uses changing
+luma/chroma ramps at 48×40; the latter uses independent seeded color noise at
+37×29 with quality settings 4, 12, 30 and 50, covering all four normative
+coefficient-CDF initialization groups and both transform sets. All use 4×4
+partitions and disabled deblocking, CDEF, restoration, edge filtering,
+filter-intra, smooth/Paeth, palette and intrabc tools. The matching `.yuv` files
+are independent libdav1d output, not the pre-encoding source pixels.
+
+`quantizedChroma.obu` adds nonzero +2 DC/AC chroma quantizer deltas to the
+48×40 lossy ramp case. `transform4.bin.gz` contains 903 two-dimensional inverse
+transform cases generated using AOM v3.13.1 `av1_idct4`, `av1_iadst4` and
+`av1_iidentity4_c` from
+[`av1_inv_txfm1d.c`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.13.1/av1/common/av1_inv_txfm1d.c).
+All seven intra transform types have zero, positive/negative basis impulses and
+96 seeded coefficient blocks, with every resulting signed residual recorded.
+The uncompressed format begins with `AV1TXF04` and a little-endian uint32 case
+count; each case has a one-byte transform type and sixteen int32 input values
+followed by sixteen int32 output values. Native reference code is used only
+when generating this fixture.

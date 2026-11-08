@@ -8,10 +8,12 @@ namespace Mediana.Codecs.Av1.Tests
 {
     public class Av1StillPictureFailureTests
     {
-        [Fact]
-        public void EveryTruncatedObuExtentFailsBeforePublishingPixels()
+        [Theory]
+        [InlineData("palette")]
+        [InlineData("quantizedNoise30")]
+        public void EveryTruncatedObuExtentFailsBeforePublishingPixels(string name)
         {
-            byte[] encoded = Read("palette");
+            byte[] encoded = Read(name);
             MediaBufferAllocator allocator = new(1024 * 1024);
             for (int length = 0; length < encoded.Length; length++)
             {

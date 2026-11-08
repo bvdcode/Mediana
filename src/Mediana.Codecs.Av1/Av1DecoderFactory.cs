@@ -8,9 +8,9 @@ using Mediana.Formats;
 
 namespace Mediana.Codecs.Av1
 {
-    /// <summary>Decodes single-tile, lossless Main-profile eight-bit key pictures from low-overhead frame OBUs.
+    /// <summary>Decodes single-tile Main-profile eight-bit key pictures with lossless or four-point quantized transforms from low-overhead frame OBUs.
     /// Monochrome and 4:2:0 output preserve native samples, color labels, render aspect ratio and packet timing.
-    /// Inter pictures, quantized transforms and optional reconstruction tools outside this coverage fail explicitly.
+    /// Inter pictures, larger quantized transforms and optional reconstruction tools outside this coverage fail explicitly.
     /// Input packets are borrowed; output frames own independent buffer leases. Calls must not overlap.</summary>
     public class Av1DecoderFactory : IVideoDecoderFactory
     {

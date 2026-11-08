@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.Av1
 {
-    internal readonly record struct Av1FrameHeader(bool DisableCdfUpdate, bool ScreenContent, int TileOffset, Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight)
+    internal readonly partial record struct Av1FrameHeader(bool DisableCdfUpdate, bool ScreenContent, int TileOffset, Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight, Av1Quantization Quantization, bool ReducedTransformSet, bool SelectTransform)
     {
         private const int MaximumTileWidth = 4096;
         private const int MaximumTileArea = 4096 * 2304;
@@ -72,23 +72,20 @@ namespace Mediana.Codecs.Av1
             }
             ReadSingleTile(ref bits, sequence);
             int quantizer = bits.Read(8);
-            int delta = bits.Flag() ? bits.ReadSigned(7) : 0;
+            int yDc = ReadDelta(ref bits);
+            int uDc = 0;
+            int uAc = 0;
+            int vDc = 0;
+            int vAc = 0;
             if (!sequence.Monochrome)
             {
                 bool different = sequence.SeparateUvDeltaQ && bits.Flag();
-                int uDc = ReadDelta(ref bits);
-                int uAc = ReadDelta(ref bits);
-                int vDc = different ? ReadDelta(ref bits) : uDc;
-                int vAc = different ? ReadDelta(ref bits) : uAc;
-                if (uDc != 0 || uAc != 0 || vDc != 0 || vAc != 0)
-                {
-                    throw new NotSupportedException("AV1 quantized chroma reconstruction is not implemented.");
-                }
+                uDc = ReadDelta(ref bits);
+                uAc = ReadDelta(ref bits);
+                vDc = different ? ReadDelta(ref bits) : uDc;
+                vAc = different ? ReadDelta(ref bits) : uAc;
             }
-            if (quantizer != 0 || delta != 0)
-            {
-                throw new NotSupportedException("AV1 quantized coefficient reconstruction is not implemented.");
-            }
+            Av1Quantization quantization = new(quantizer, yDc, uDc, uAc, vDc, vAc);
             if (bits.Flag())
             {
                 throw new NotSupportedException("AV1 quantization matrix syntax is not implemented.");
@@ -97,7 +94,17 @@ namespace Mediana.Codecs.Av1
             {
                 throw new NotSupportedException("AV1 segmentation is not implemented.");
             }
-            bits.Flag();
+            if (quantizer > 0 && bits.Flag())
+            {
+                throw new NotSupportedException("AV1 block quantizer deltas are not implemented.");
+            }
+            bool selectTransform = false;
+            if (!quantization.Lossless)
+            {
+                ReadInactiveFilters(ref bits, sequence);
+                selectTransform = bits.Flag();
+            }
+            bool reducedTransformSet = bits.Flag();
             if (sequence.FilmGrain && bits.Flag())
             {
                 throw new NotSupportedException("AV1 film grain synthesis is not implemented.");
@@ -107,7 +114,7 @@ namespace Mediana.Codecs.Av1
             {
                 throw new InvalidDataException("The AV1 frame has no tile payload.");
             }
-            return new(disableCdfUpdate, screenContent, bits.ByteOffset, sequence, renderWidth, renderHeight);
+            return new(disableCdfUpdate, screenContent, bits.ByteOffset, sequence, renderWidth, renderHeight, quantization, reducedTransformSet, selectTransform);
         }
 
         private static int ReadDelta(ref Av1BitReader bits) => bits.Flag() ? bits.ReadSigned(7) : 0;

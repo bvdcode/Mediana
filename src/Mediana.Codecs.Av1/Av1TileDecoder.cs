@@ -33,6 +33,7 @@ namespace Mediana.Codecs.Av1
             this.cancellationToken = cancellationToken;
             symbols = new(encoded, !header.DisableCdfUpdate);
             Av1DefaultCdfs.Values.CopyTo(probabilities);
+            Av1CoefficientCdfs.Initialize(probabilities, header.Quantization.BaseIndex);
         }
 
         internal void Decode()

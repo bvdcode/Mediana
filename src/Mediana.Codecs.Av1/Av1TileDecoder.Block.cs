@@ -64,6 +64,10 @@ namespace Mediana.Codecs.Av1
             {
                 ReadPaletteTokens(row, column, width * 4, height * 4, paletteSize, colorMap);
             }
+            if (!header.Quantization.Lossless && (width != 1 || height != 1))
+            {
+                throw new NotSupportedException("AV1 quantized transform sizes larger than four samples are not implemented.");
+            }
             Residual(row, column, width, height, skip != 0, mode, angleDelta, hasChroma, chroma, colors[..paletteSize], colorMap);
             Av1BlockContext context = new()
             {
@@ -123,7 +127,7 @@ namespace Mediana.Codecs.Av1
                             cancellationToken.ThrowIfCancellationRequested();
                             for (int x = startX; x < endX; x++)
                             {
-                                Coefficients(plane, planeColumn + x, planeRow + y, blockWidth, blockHeight, skip, residual);
+                                Coefficients(plane, planeColumn + x, planeRow + y, blockWidth, blockHeight, skip, selectedMode, residual);
                                 int pixelX = (planeColumn + x) * 4;
                                 int pixelY = (planeRow + y) * 4;
                                 if (plane == 0 && !colors.IsEmpty)
