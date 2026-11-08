@@ -9,7 +9,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    /// <summary>Decodes AAC-LC channel configurations 1–7 and mono/stereo HE-AAC, one raw_data_block per packet.
+    /// <summary>Decodes AAC-LC channel configurations 1–7 and mono/stereo HE-AAC, including parametric stereo, one raw_data_block per packet.
     /// Outputs native-endian interleaved float32 PCM. Priming, padding and container edit trimming are not applied.</summary>
     public class AacDecoderFactory : IAudioDecoderFactory, IRandomAccessDecoderFactory
     {
@@ -42,9 +42,9 @@ namespace Mediana.Codecs.Aac
             {
                 return reason;
             }
-            if (configuration.ParametricStereo == true)
+            if (configuration.ParametricStereo == true && configuration.ChannelCount != 1)
             {
-                return "AAC parametric stereo decoding is not supported.";
+                return "PS reconstruction requires a monaural AAC core.";
             }
             if (configuration.SpectralBandReplication == true)
             {

@@ -7,14 +7,32 @@ using Mediana.Formats.Audio;
 namespace Mediana.Codecs.Aac
 {
     internal class AacRandomAccessInspector(int streamIndex, AacConfiguration configuration, int maxAccessUnitBytes)
-        : IRandomAccessRecoveryInspector
+        : IRandomAccessRecoveryInspector, IRandomAccessOriginInspector
     {
         private readonly AacChannelLayout layout = new(configuration.ChannelConfiguration);
+        private bool parametricStereo = configuration.ParametricStereo == true;
+        private bool originInspected;
+
+        public bool RequiresOriginPacket => !originInspected && layout.ChannelCount == 1
+            && configuration.ParametricStereo is null && configuration.SpectralBandReplication != false;
+
+        public void InspectOrigin(MediaPacket origin, CancellationToken cancellationToken = default)
+        {
+            Inspect(origin, cancellationToken);
+            originInspected = true;
+        }
 
         public bool IsRandomAccess(MediaPacket packet, CancellationToken cancellationToken = default) =>
             InspectRecovery(packet, cancellationToken).HasValue;
 
         public RandomAccessRecovery? InspectRecovery(MediaPacket packet, CancellationToken cancellationToken = default)
+        {
+            AacAccessUnitInspection inspection = Inspect(packet, cancellationToken);
+            return inspection.Independent && (!parametricStereo || inspection.HasParametricStereo)
+                ? new RandomAccessRecovery(inspection.HasSbr ? 2 : 1) : null;
+        }
+
+        private AacAccessUnitInspection Inspect(MediaPacket packet, CancellationToken cancellationToken)
         {
             ArgumentNullException.ThrowIfNull(packet);
             cancellationToken.ThrowIfCancellationRequested();
@@ -41,7 +59,15 @@ namespace Mediana.Codecs.Aac
             {
                 throw new NotSupportedException("SBR decoding requires mono or stereo audio.");
             }
-            return inspection.Independent ? new RandomAccessRecovery(sbr ? 2 : 1) : null;
+            if (inspection.HasParametricStereo)
+            {
+                if (configuration.ParametricStereo == false)
+                {
+                    throw new InvalidDataException("The PS payload contradicts the stream configuration.");
+                }
+                parametricStereo = true;
+            }
+            return inspection;
         }
     }
 }

@@ -107,7 +107,21 @@ namespace Mediana.Codecs.Aac
                             throw new InvalidDataException("The AAC frame is missing its SBR channel data.");
                         }
                     }
-                    format = sbrFormat ??= layout.CreateFormat(configuration.ExtensionSampleRate ?? sbrRate);
+                    bool stereoReconstruction = configuration.ParametricStereo == true || workspace.SbrElements[0]?.ParametricStereo is not null;
+                    if (stereoReconstruction && configuration.ParametricStereo == false)
+                    {
+                        throw new InvalidDataException("The PS payload contradicts the stream configuration.");
+                    }
+                    if (stereoReconstruction && layout.ChannelCount != 1)
+                    {
+                        throw new InvalidDataException("PS reconstruction requires a monaural AAC core.");
+                    }
+                    int outputRate = configuration.ExtensionSampleRate ?? sbrRate;
+                    if (sbrFormat is null || stereoReconstruction && sbrFormat.Channels.Count != 2)
+                    {
+                        sbrFormat = stereoReconstruction ? new AacChannelLayout(2).CreateFormat(outputRate) : layout.CreateFormat(outputRate);
+                    }
+                    format = sbrFormat;
                 }
                 int sampleCount = sbr ? 1024 * format.SampleRate / configuration.SampleRate : 1024;
                 if (prerollPackets != 0)
@@ -156,7 +170,8 @@ namespace Mediana.Codecs.Aac
                 AacSbrElement element = current.SbrElements[0] ?? throw new InvalidOperationException("The SBR element is missing.");
                 AacSbrChannelState state = current.SbrChannels[codedChannel] ??=
                     new AacSbrChannelState(allocator, 32 * format.SampleRate / configuration.SampleRate);
-                state.Process(synthesized, output, channelIndex, format.Channels.Count, element, element.Channels[codedChannel], element.Patches, cancellationToken);
+                state.Process(synthesized, output, channelIndex, format.Channels.Count, element, element.Channels[codedChannel], element.Patches,
+                    layout.ChannelCount == 1 && format.Channels.Count == 2, cancellationToken);
                 return;
             }
             if (output.IsEmpty)

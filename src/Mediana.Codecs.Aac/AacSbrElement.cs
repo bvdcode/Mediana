@@ -11,9 +11,12 @@ namespace Mediana.Codecs.Aac
         public AacSbrChannelData[] Channels { get; } = Enumerable.Range(0, channelCount).Select(_ => new AacSbrChannelData()).ToArray();
         public bool FrequencyReset { get; private set; }
         public bool Present { get; set; }
+        public AacPsData? ParametricStereo { get; private set; }
+        public bool HasParametricStereoData { get; private set; }
 
-        public static bool InspectRandomAccess(ref AacBitReader bits, bool crc, int channelCount, int outputSampleRate)
+        public static bool InspectRandomAccess(ref AacBitReader bits, bool crc, int channelCount, int outputSampleRate, out bool hasParametricStereo)
         {
+            hasParametricStereo = false;
             if (crc)
             {
                 VerifyCrc(ref bits);
@@ -26,7 +29,8 @@ namespace Mediana.Codecs.Aac
             }
             AacSbrElement element = new(channelCount, outputSampleRate);
             element.Read(ref bits, false);
-            return true;
+            hasParametricStereo = element.HasParametricStereoData;
+            return element.ParametricStereo is null || element.ParametricStereo.Independent;
         }
 
         public void Read(ref AacBitReader bits, bool crc)
@@ -36,6 +40,7 @@ namespace Mediana.Codecs.Aac
                 throw new InvalidDataException("An AAC channel element has more than one SBR payload.");
             }
             Present = true;
+            HasParametricStereoData = false;
             if (crc)
             {
                 VerifyCrc(ref bits);
@@ -124,9 +129,18 @@ namespace Mediana.Codecs.Aac
                     int extensionId = extension.Read(2);
                     if (extensionId == 2)
                     {
-                        throw new NotSupportedException("AAC parametric stereo decoding is not supported.");
+                        if (Channels.Length != 1 || HasParametricStereoData)
+                        {
+                            throw new InvalidDataException("A PS payload requires one monaural SBR element and cannot be repeated.");
+                        }
+                        ParametricStereo ??= new AacPsData();
+                        ParametricStereo.Read(ref extension);
+                        HasParametricStereoData = true;
                     }
-                    extension.Skip(extension.Remaining);
+                    else
+                    {
+                        extension.Skip(extension.Remaining);
+                    }
                 }
             }
             if (bits.Remaining > 7)

@@ -40,6 +40,7 @@ namespace Mediana.Tests
                 : AacSbrDecodeTestInput.Stream(channels, explicitSbr);
             AacDecoderFactory factory = new();
             IRandomAccessInspector inspector = factory.CreateRandomAccessInspector(stream);
+            bool requiresOrigin = inspector is IRandomAccessOriginInspector origin && origin.RequiresOriginPacket;
             using MediaDecodePipeline<AudioFrame> pipeline = new(reader, factory.Create(stream, allocator), 0, randomAccessInspector: inspector);
             Dictionary<int, byte[]> observed = [];
             double energy = 0, error = 0, maximum = 0;
@@ -76,7 +77,10 @@ namespace Mediana.Tests
                     Require(source.Reads.Sum(range => range.Length) < packets.Sum(packet => packet.Length) / 2);
                     long earliest = mp4 ? ((Mp4Reader)reader).GetSampleInfo(0, 11).Offset :
                         packets.Take(11).Sum(packet => packet.Length + 7) + 7;
-                    Require(source.Reads.All(range => range.Offset >= earliest));
+                    long originOffset = mp4 ? ((Mp4Reader)reader).GetSampleInfo(0, 0).Offset : 7;
+                    Require(source.Reads.Count(range => range.Offset < earliest) == (requiresOrigin ? 1 : 0));
+                    Require(source.Reads.All(range => range.Offset >= earliest
+                        || requiresOrigin && range.Offset == originOffset && range.Length == packets[0].Length));
                 }
                 if (index == 15)
                 {

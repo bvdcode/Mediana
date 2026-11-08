@@ -32,6 +32,7 @@ namespace Mediana.Codecs.Aac
             int previousType = -1;
             bool independent = true;
             bool hasSbr = false;
+            bool hasParametricStereo = false;
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -77,8 +78,9 @@ namespace Mediana.Codecs.Aac
                         bits.Skip(count * 8);
                         break;
                     case 6:
-                        independent &= ReadFill(ref bits, workspace, element - 1, previousType, sbrSampleRate, out bool sbr);
+                        independent &= ReadFill(ref bits, workspace, element - 1, previousType, sbrSampleRate, out bool sbr, out bool ps);
                         hasSbr |= sbr;
+                        hasParametricStereo |= ps;
                         break;
                     case 2:
                     case 5:
@@ -93,7 +95,7 @@ namespace Mediana.Codecs.Aac
             {
                 throw new InvalidDataException("An AAC packet must contain one complete raw data block for the configured channels.");
             }
-            return new(independent, hasSbr);
+            return new(independent, hasSbr, hasParametricStereo);
         }
 
         private static void ReadPair(ref AacBitReader bits, AacDecoderWorkspace? workspace, int channel, int frequencyIndex,
@@ -139,9 +141,10 @@ namespace Mediana.Codecs.Aac
         }
 
         private static bool ReadFill(ref AacBitReader bits, AacDecoderWorkspace? workspace, int element, int previousType,
-            int sbrSampleRate, out bool hasSbr)
+            int sbrSampleRate, out bool hasSbr, out bool hasParametricStereo)
         {
             hasSbr = false;
+            hasParametricStereo = false;
             int count = bits.Read(4);
             if (count == 15)
             {
@@ -180,9 +183,11 @@ namespace Mediana.Codecs.Aac
                     hasSbr = true;
                     if (workspace is null)
                     {
-                        return AacSbrElement.InspectRandomAccess(ref payload, extension == 14, previousType == 1 ? 2 : 1, sbrSampleRate);
+                        return AacSbrElement.InspectRandomAccess(ref payload, extension == 14, previousType == 1 ? 2 : 1, sbrSampleRate, out hasParametricStereo);
                     }
-                    workspace.GetSbrElement(element, sbrSampleRate).Read(ref payload, extension == 14);
+                    AacSbrElement sbr = workspace.GetSbrElement(element, sbrSampleRate);
+                    sbr.Read(ref payload, extension == 14);
+                    hasParametricStereo = sbr.HasParametricStereoData;
                     break;
                 default:
                     throw new NotSupportedException("This AAC fill extension is not supported; SBR, spatial audio and dynamic range extensions require separate handling.");

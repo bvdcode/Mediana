@@ -19,9 +19,12 @@ namespace Mediana.Codecs.Aac
         private readonly int[] previousFiltering = new int[5];
         private int previousCrossover = 32;
         private int previousStop = 32;
+        private AacPsState? parametricStereo;
+        private readonly MediaBufferAllocator allocator;
 
         public AacSbrChannelState(MediaBufferAllocator allocator, int synthesisBands = 64)
         {
+            this.allocator = allocator;
             storage = allocator.Allocate((LowLength + HighLength) * 2 * sizeof(double) + HistoryLength * 2 * sizeof(double));
             bool succeeded = false;
             try
@@ -40,7 +43,7 @@ namespace Mediana.Codecs.Aac
         }
 
         public void Process(ReadOnlySpan<double> core, Span<float> output, int channelIndex, int channelCount,
-            AacSbrElement element, AacSbrChannelData data, AacSbrPatches patches, CancellationToken cancellationToken)
+            AacSbrElement element, AacSbrChannelData data, AacSbrPatches patches, bool stereoReconstruction, CancellationToken cancellationToken)
         {
             Span<byte> bytes = storage.Memory.Span;
             Span<Complex> low = MemoryMarshal.Cast<byte, Complex>(bytes[..(LowLength * 16)]);
@@ -56,6 +59,7 @@ namespace Mediana.Codecs.Aac
             adjustment.Process(high, data, header, element.Tables, patches, history[..HistoryLength], history[HistoryLength..], element.FrequencyReset);
             Span<Complex> subbands = stackalloc Complex[64];
             Span<double> samples = stackalloc double[64];
+            Span<Complex> psInput = stackalloc Complex[stereoReconstruction ? 38 * 64 : 0];
             for (int slot = 0; slot < 32; slot++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -64,6 +68,11 @@ namespace Mediana.Codecs.Aac
                 subbands.Clear();
                 low.Slice((slot + 2) * 32, crossover).CopyTo(subbands);
                 high.Slice((slot + 2) * 64 + crossover, stop - crossover).CopyTo(subbands[crossover..]);
+                if (stereoReconstruction)
+                {
+                    subbands.CopyTo(psInput.Slice(slot * 64, 64));
+                    continue;
+                }
                 int bands = qmf.SynthesisBands;
                 qmf.Synthesize(subbands[..bands], samples[..bands]);
                 for (int index = 0; index < bands; index++)
@@ -79,6 +88,17 @@ namespace Mediana.Codecs.Aac
                     }
                 }
             }
+            if (stereoReconstruction)
+            {
+                psInput[(32 * 64)..].Clear();
+                for (int slot = 32; slot < 38; slot++)
+                {
+                    low.Slice((slot + 2) * 32, 5).CopyTo(psInput.Slice(slot * 64, 5));
+                }
+                parametricStereo ??= new AacPsState(allocator, qmf.SynthesisBands);
+                parametricStereo.Process(psInput, element.ParametricStereo, element.HasParametricStereoData,
+                    element.Tables.StopBand, qmf, output, cancellationToken);
+            }
             previousCrossover = element.Tables.CrossoverBand;
             previousStop = element.Tables.StopBand;
             low.Slice(32 * 32, 8 * 32).CopyTo(low);
@@ -87,6 +107,7 @@ namespace Mediana.Codecs.Aac
 
         public void Dispose()
         {
+            parametricStereo?.Dispose();
             qmf.Dispose();
             storage.Dispose();
         }

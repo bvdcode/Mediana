@@ -222,6 +222,7 @@
     <ProjectReference Include="../../src/Mediana.Containers.Flac/Mediana.Containers.Flac.csproj" />
     <Compile Include="../Shared/AacDecodeTestInput.cs" Link="AacDecodeTestInput.cs" />
     <Compile Include="../Shared/AacSbrDecodeTestInput.cs" Link="AacSbrDecodeTestInput.cs" />
+    <Compile Include="../Shared/AacPsDecodeTestInput.cs" Link="AacPsDecodeTestInput.cs" />
     <Compile Include="../Shared/AacSbrSeekTestInput.cs" Link="AacSbrSeekTestInput.cs" />
     <Compile Include="../Shared/AacSbrHlsTestInput.cs" Link="AacSbrHlsTestInput.cs" />
     <Compile Include="../Shared/AacEncodingTestInput.cs" Link="AacEncodingTestInput.cs" />

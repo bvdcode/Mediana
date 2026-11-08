@@ -3,5 +3,5 @@
 
 namespace Mediana.Codecs.Aac
 {
-    internal readonly record struct AacAccessUnitInspection(bool Independent, bool HasSbr);
+    internal readonly record struct AacAccessUnitInspection(bool Independent, bool HasSbr, bool HasParametricStereo);
 }
