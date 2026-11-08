@@ -53,5 +53,26 @@ namespace Mediana.Tests
             Assert.Throws<InvalidOperationException>(() => new H264CabacEncoder(bits));
             Assert.Throws<InvalidOperationException>(() => bits.TryFinishCompletedRbsp());
         }
+
+        [Theory]
+        [InlineData(1, 0)]
+        [InlineData(129, 1)]
+        [InlineData(1000, 28)]
+        public void ByteStuffingMeetsTheNormativeBinDensityBound(int bins, int words)
+        {
+            MediaBufferAllocator allocator = new(4096);
+            using (H264BitWriter bits = new(allocator, 4096, 0x41, lengthPrefixed: true))
+            {
+                bits.WriteBits(0xfe80, 16);
+                using MediaBuffer packet = bits.TryFinishCabac(bins, 1, 3072)!;
+                Assert.Equal(7 + words * 3, packet.Memory.Length);
+                Assert.Equal((byte)(packet.Memory.Length - 4), packet.Memory.Span[3]);
+                for (int offset = 7; offset < packet.Memory.Length; offset += 3)
+                {
+                    Assert.Equal(new byte[] { 0, 0, 3 }, packet.Memory.Span.Slice(offset, 3).ToArray());
+                }
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
     }
 }
