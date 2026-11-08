@@ -267,6 +267,9 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Mp3/Mediana.Codecs.Mp3.csproj" />
     <Compile Include="../Shared/Mp3SyntaxTestInput.cs" Link="Mp3SyntaxTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp3/Mediana.Containers.Mp3.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Adts/Mediana.Containers.Adts.csproj" />
+    <Compile Include="../Shared/AdtsDecodeTestInput.cs" Link="AdtsDecodeTestInput.cs" />
+    <None Include="../Mediana.Containers.Adts.Tests/Data/*.aac" Link="Data/Aac/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp3/*" Link="Data/Mp3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Mp3ReferenceTestInput.cs" Link="Mp3ReferenceTestInput.cs" />
     <Compile Include="../Shared/FlacWaveformTestInput.cs" Link="FlacWaveformTestInput.cs" />

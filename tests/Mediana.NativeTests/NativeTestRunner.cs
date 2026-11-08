@@ -122,6 +122,7 @@ namespace Mediana.NativeTests
                 await AacFeatureTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
                 Console.WriteLine($"PASS AAC-LC {name}: complete PCM/timing/ownership and reference sample or noise energy checks; maximum PCM difference {difference:G9}.");
             }
+            await NativeAdtsTests.RunAsync();
             for (int sequence = 0; sequence < 4; sequence++)
             {
                 for (int shape = 0; shape < 2; shape++)
