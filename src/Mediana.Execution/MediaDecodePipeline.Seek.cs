@@ -32,15 +32,15 @@ namespace Mediana.Execution
                 {
                     throw new NotSupportedException("Seeking requires indexed container packets.");
                 }
-                if (randomAccessInspector is null)
+                if (decoder is IPacketPrerollDecoder preroll && indexed.SupportsPreroll)
                 {
-                    if (decoder is not IPacketPrerollDecoder preroll || !indexed.SupportsPreroll)
-                    {
-                        throw new NotSupportedException("Seeking requires codec restart inspection or codec and container preroll support.");
-                    }
                     await SeekWithPrerollAsync(indexed, preroll, target, cancellationToken).ConfigureAwait(false);
                     succeeded = true;
                     return;
+                }
+                if (randomAccessInspector is null)
+                {
+                    throw new NotSupportedException("Seeking requires codec restart inspection or codec and container preroll support.");
                 }
                 long before = indexed.Count;
                 while (true)
@@ -59,8 +59,13 @@ namespace Mediana.Execution
                     {
                         throw new InvalidDataException("The seek packet differs from its container index.");
                     }
-                    if (randomAccessInspector.IsRandomAccess(packet, cancellationToken))
+                    RandomAccessRecovery? recovery = InspectRestart(packet, cancellationToken);
+                    if (recovery.HasValue)
                     {
+                        if (recovery.Value.RequiredPrerollPackets != 0)
+                        {
+                            throw new NotSupportedException("This codec restart requires decoder and container preroll support.");
+                        }
                         cancellationToken.ThrowIfCancellationRequested();
                         decoder.Reset();
                         pendingPacket?.Dispose();
@@ -90,6 +95,16 @@ namespace Mediana.Execution
                     Volatile.Write(ref busy, 0);
                 }
             }
+        }
+
+        private RandomAccessRecovery? InspectRestart(MediaPacket packet, CancellationToken cancellationToken)
+        {
+            if (randomAccessInspector is IRandomAccessRecoveryInspector recovery)
+            {
+                return recovery.InspectRecovery(packet, cancellationToken);
+            }
+            return randomAccessInspector is null || randomAccessInspector.IsRandomAccess(packet, cancellationToken)
+                ? new RandomAccessRecovery(0) : null;
         }
     }
 }
