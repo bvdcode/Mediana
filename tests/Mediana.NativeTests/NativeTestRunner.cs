@@ -124,6 +124,7 @@ namespace Mediana.NativeTests
             }
             await NativeAdtsTests.RunAsync();
             await NativeAacSbrTests.RunAsync();
+            await NativeAc3Tests.RunAsync();
             for (int sequence = 0; sequence < 4; sequence++)
             {
                 for (int shape = 0; shape < 2; shape++)
