@@ -16,7 +16,7 @@ namespace Mediana.Cli.Updates
                 [string]$Version
             )
             $ErrorActionPreference = "Stop"
-            $encoding = New-Object System.Text.UTF8Encoding($false)
+            $encoding = [System.Text.UTF8Encoding]::new($false)
             try {
                 [System.IO.File]::AppendAllText($LogPath, "Preparing update to $Version." + [Environment]::NewLine, $encoding)
                 [Console]::Out.WriteLine("ready")
