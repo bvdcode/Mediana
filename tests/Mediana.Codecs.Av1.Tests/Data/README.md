@@ -140,3 +140,25 @@ After `AV1LPF01` and a uint32 case count, each record stores five bytes (tap
 kind, direction, limit, boundary limit, high-variance threshold), followed by
 256 input and 256 output bytes for a 16×16 block. Gzip has a zero timestamp.
 The tests run managed kernels only and compare the entire output block.
+
+`cdefTx8`, `cdefTx32`, `cdefTx64`, `interCdef8` and `interCdefFree` enable
+ordinary CDEF on the preceding 48×40 still and five-picture moving sequences.
+`cdefRegions` contains three 160×136 4:2:0 pictures with different patterns
+across 64×64 regions, exercising multiple strength sets. `cdefMono` is a
+117×83 monochrome picture, and `cdefOdd` is a 37×29 4:2:0 picture. All use
+independent AOM encoding and libdav1d visible-sample baselines, with restoration
+and the other preceding unsupported tools disabled. `cdefMonoZero` sets both
+CDEF strength sets to zero without changing index syntax or coded residuals;
+`cdefMonoRaw` additionally sets both monochrome deblocking levels to zero.
+The independently decoded variants isolate filter stages and rectangular
+four-by-sixteen directional edge extension.
+
+`cdef.bin.gz` records 1,024 cases from AOM v3.13.1
+[`cdef_block.c`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.13.1/av1/common/cdef_block.c).
+Each case verifies native direction/variance and four- or eight-sample filtering
+with flat, gradient, edge and noisy inputs, all eight directions, primary/secondary
+strengths, damping and frame-edge availability. After `AV1CDEF1` and the uint32
+case count, each record stores eight bytes (side, x, y, primary, secondary,
+damping, selected direction, detected direction), int32 variance, and 256-byte
+input and expected output arrays. Every pixel, including unchanged borders,
+is compared exactly. Native reference code is used only for fixture production.

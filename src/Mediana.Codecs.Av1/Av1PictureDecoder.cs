@@ -107,19 +107,27 @@ namespace Mediana.Codecs.Av1
             {
                 initialProbabilities = MemoryMarshal.Cast<byte, ushort>(references.Get(header.Inter.References[header.Inter.PrimaryReference]).Cdfs.Memory.Span);
             }
+            int cdefIndexCount = header.Cdef.IndexCount(geometry);
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
             using (WritableMediaBuffer? motions = inter ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1MotionBlock>())) : null)
-            using (WritableMediaBuffer? filterMetadata = header.LoopFilter.Enabled
+            using (WritableMediaBuffer? filterMetadata = header.LoopFilter.Enabled || header.Cdef.Enabled
                 ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1FilterBlock>())) : null)
+            using (WritableMediaBuffer? cdefMetadata = cdefIndexCount != 0 ? allocator.Allocate(cdefIndexCount) : null)
             using (WritableMediaBuffer contexts = allocator.Allocate(contextBytes))
             using (WritableMediaBuffer decoded = allocator.Allocate(geometry.SampleCount / 16))
             {
                 Span<Av1MotionBlock> motionBlocks = motions is null ? default : MemoryMarshal.Cast<byte, Av1MotionBlock>(motions.Span);
                 Span<Av1FilterBlock> filterBlocks = filterMetadata is null ? default : MemoryMarshal.Cast<byte, Av1FilterBlock>(filterMetadata.Span);
+                Span<sbyte> cdefIndices = cdefMetadata is null ? default : MemoryMarshal.Cast<byte, sbyte>(cdefMetadata.Span);
                 Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities, decoded.Span,
-                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks);
+                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices);
                 tile.Decode();
                 if (header.LoopFilter.Enabled) { Av1LoopFilter.Apply(pixels.Span, geometry, header.LoopFilter, filterBlocks, cancellationToken); }
+                if (header.Cdef.Enabled)
+                {
+                    using WritableMediaBuffer scratch = allocator.Allocate(Av1Cdef.ScratchLength(geometry));
+                    Av1Cdef.Apply(pixels.Span, geometry, header.Cdef, filterBlocks, cdefIndices, scratch.Span, cancellationToken);
+                }
             }
             cancellationToken.ThrowIfCancellationRequested();
             savedSequence = sequence;

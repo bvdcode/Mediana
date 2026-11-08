@@ -5,6 +5,21 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
+        private void ReadCdef(int row, int column, int width, int height, bool skip)
+        {
+            if (skip || cdefIndices.IsEmpty) { return; }
+            int stride = (sequence.MiColumns + 15) >> 4;
+            int index = (row >> 4) * stride + (column >> 4);
+            if (cdefIndices[index] >= 0) { return; }
+            sbyte value = (sbyte)symbols.ReadLiteral(header.Cdef.IndexBits);
+            int endRow = Math.Min(((row & ~15) + height + 15) >> 4, (sequence.MiRows + 15) >> 4);
+            int endColumn = Math.Min(((column & ~15) + width + 15) >> 4, stride);
+            for (int y = row >> 4; y < endRow; y++)
+            {
+                cdefIndices.Slice(y * stride + (column >> 4), endColumn - (column >> 4)).Fill(value);
+            }
+        }
+
         private void StoreFilterBlock(int row, int column, int width, int height, int reference, int mode, bool skip)
         {
             if (filterBlocks.IsEmpty) { return; }

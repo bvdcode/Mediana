@@ -18,8 +18,8 @@ namespace Mediana.Codecs.Av1
             Span<byte> prior = stackalloc byte[width + height + 1];
             bool topRight = IsDecoded(plane, (x >> 2) + (width >> 2), (y >> 2) - 1);
             bool bottomLeft = IsDecoded(plane, (x >> 2) - 1, (y >> 2) + (height >> 2));
-            int topLimit = Math.Min(stride - 1, x + width + (topRight ? height : 0) - 1);
-            int leftLimit = Math.Min(sequence.PlaneHeight(plane) - 1, y + height + (bottomLeft ? width : 0) - 1);
+            int topLimit = Math.Min(stride - 1, x + width * (topRight ? 2 : 1) - 1);
+            int leftLimit = Math.Min(sequence.PlaneHeight(plane) - 1, y + height * (bottomLeft ? 2 : 1) - 1);
             for (int index = 0; index < width + height; index++)
             {
                 top[index + 1] = y > 0 ? output[offset + (y - 1) * stride + Math.Min(topLimit, x + index)] :

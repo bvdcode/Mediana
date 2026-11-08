@@ -51,10 +51,19 @@ It modifies the original pixel buffer in place. Six native still pictures and
 two moving sequences match independent filtered output exactly; 2,048 AOM
 kernel vectors cover every tap size in both directions.
 
+CDEF applies normative direction detection and primary/secondary constrained
+filtering before reference storage. It keeps twelve luma rows and eight rows
+per chroma plane, totaling twenty bytes per padded luma column for 4:2:0,
+without a second image buffer. Eight strength sets, skipped blocks, monochrome,
+partial frame edges and multiple 64×64 strength regions are supported. Native
+kernel vectors and independently decoded still/moving pictures match exactly.
+Rectangular directional prediction limits extended edges to twice their own
+width or height, including narrow four-by-sixteen transforms.
+
 Compound prediction,
 temporal motion fields, non-identity global motion, overlapped/warped reconstruction,
 smooth/Paeth/filter-intra,
-CDEF, loop restoration, intra-edge filtering, intra block copy,
+Loop restoration, intra-edge filtering, intra block copy,
 chroma palette, segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,
 film grain and decoder-model timing are not implemented. Encountering these

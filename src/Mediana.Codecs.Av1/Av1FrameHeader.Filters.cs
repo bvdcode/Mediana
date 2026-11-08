@@ -5,26 +5,8 @@ namespace Mediana.Codecs.Av1
 {
     internal readonly partial record struct Av1FrameHeader
     {
-        private static void ReadInactiveFilters(ref Av1BitReader bits, Av1SequenceHeader sequence)
+        private static void ReadInactiveRestoration(ref Av1BitReader bits, Av1SequenceHeader sequence)
         {
-            if (sequence.Cdef)
-            {
-                bits.Read(2);
-                int strengthBits = bits.Read(2);
-                if (strengthBits != 0)
-                {
-                    throw new NotSupportedException("AV1 directional enhancement reconstruction is not implemented.");
-                }
-                int strength = bits.Read(6);
-                if (!sequence.Monochrome)
-                {
-                    strength |= bits.Read(6);
-                }
-                if (strength != 0)
-                {
-                    throw new NotSupportedException("AV1 directional enhancement reconstruction is not implemented.");
-                }
-            }
             if (sequence.Restoration)
             {
                 int planes = sequence.Monochrome ? 1 : 3;

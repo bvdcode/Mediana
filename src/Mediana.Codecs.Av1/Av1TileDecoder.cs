@@ -20,15 +20,22 @@ namespace Mediana.Codecs.Av1
         private readonly Av1ReferencePictures? references;
         private readonly Span<Av1MotionBlock> motionBlocks;
         private readonly Span<Av1FilterBlock> filterBlocks;
+        private readonly Span<sbyte> cdefIndices;
         private Av1SymbolReader symbols;
 
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
-            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default)
+            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default)
         {
-            if (header.LoopFilter.Enabled && filterBlocks.Length != sequence.MiColumns * sequence.MiRows)
+            if ((header.LoopFilter.Enabled || header.Cdef.Enabled) && filterBlocks.Length != sequence.MiColumns * sequence.MiRows)
             {
                 throw new ArgumentException("The AV1 loop-filter metadata has an invalid extent.", nameof(filterBlocks));
             }
+            if (cdefIndices.Length != header.Cdef.IndexCount(sequence))
+            {
+                throw new ArgumentException("The AV1 directional-filter index metadata has an invalid extent.", nameof(cdefIndices));
+            }
+            this.cdefIndices = cdefIndices;
+            cdefIndices.Fill(-1);
             this.references = references;
             this.motionBlocks = motionBlocks;
             this.filterBlocks = filterBlocks;
