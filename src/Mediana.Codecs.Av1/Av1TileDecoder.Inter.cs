@@ -20,6 +20,10 @@ namespace Mediana.Codecs.Av1
 
         private void InterBlock(int row, int column, int width, int height, int skip)
         {
+            if (!header.Quantization.Lossless && skip == 0 && (width != 1 || height != 1))
+            {
+                throw new NotSupportedException("AV1 quantized inter transforms larger than four samples are not implemented.");
+            }
             Av1ReferencePictures pictures = references ?? throw new InvalidOperationException("AV1 inter prediction requires stored pictures.");
             int reference = ReadReference(row, column);
             Span<Av1MotionCandidate> storage = stackalloc Av1MotionCandidate[Av1MotionCandidates.Capacity];

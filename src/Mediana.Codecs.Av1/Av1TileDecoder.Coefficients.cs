@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void Coefficients(int plane, int x4, int y4, int blockWidth, int blockHeight, bool skip, int mode, scoped Span<int> quant)
+        private void Coefficients(int plane, int x4, int y4, int blockWidth, int blockHeight, bool skip, int mode, scoped Span<int> quant, bool inter = false, int lumaRow = 0, int lumaColumn = 0)
         {
             quant.Clear();
             ref Av1BlockContext top = ref CoefficientAbove(plane)[x4];
@@ -46,8 +46,9 @@ namespace Mediana.Codecs.Av1
                 top.Level = prior.Level = top.Dc = prior.Dc = 0;
                 return;
             }
-            int transform = ReadTransform(plane, mode);
-            int transformClass = transform switch { 10 => 2, 11 => 1, _ => 0 };
+            int transform = ReadTransform(plane, mode, inter, x4, y4, lumaRow, lumaColumn);
+            if (inter && plane == 0) { motionBlocks[y4 * sequence.MiColumns + x4].Transform = (byte)transform; }
+            int transformClass = transform switch { 10 or 12 or 14 => 2, 11 or 13 or 15 => 1, _ => 0 };
             int point = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.Eob16Offset + planeType * 12 + (transformClass == 0 ? 0 : 6), 6)) + 1;
             int end = point < 2 ? point : (1 << (point - 2)) + 1;
             int shift = point - 3;
@@ -142,11 +143,29 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        private int ReadTransform(int plane, int mode)
+        private int ReadTransform(int plane, int mode, bool inter, int x4, int y4, int lumaRow, int lumaColumn)
         {
             if (header.Quantization.Lossless)
             {
                 return 0;
+            }
+            if (inter)
+            {
+                if (plane != 0)
+                {
+                    int row = Math.Max(lumaRow, y4 << 1);
+                    int column = Math.Max(lumaColumn, x4 << 1);
+                    return motionBlocks[row * sequence.MiColumns + column].Transform;
+                }
+                if (header.Quantization.BaseIndex == 0) { return 0; }
+                if (header.ReducedTransformSet)
+                {
+                    int type = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.InterTx3Offset, 3));
+                    return type == 0 ? 9 : 0;
+                }
+                int symbol = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.InterTx1Offset, 17));
+                ReadOnlySpan<byte> transforms = [9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 4, 5, 3, 6, 7, 8];
+                return transforms[symbol];
             }
             if (plane != 0)
             {

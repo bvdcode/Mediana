@@ -19,6 +19,9 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("interResidual", false)]
         [InlineData("interPrimary", true)]
         [InlineData("interLarge", true)]
+        [InlineData("interQuantized10", false)]
+        [InlineData("interQuantized30", false)]
+        [InlineData("interQuantized50", false)]
         public void PublicCodecPreservesSequencePixelsTimingAndLeases(string fixture, bool configureSequence)
         {
             byte[] encoded = Read(fixture + ".obu");

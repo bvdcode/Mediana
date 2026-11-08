@@ -93,9 +93,9 @@ namespace Mediana.Codecs.Av1
             }
             Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry, references);
             bool inter = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
-            if (inter && (!header.Quantization.Lossless || header.Inter.ReferenceMotion))
+            if (inter && header.Inter.ReferenceMotion)
             {
-                throw new NotSupportedException("AV1 quantized inter blocks and temporal motion candidates are not implemented.");
+                throw new NotSupportedException("AV1 temporal motion candidates are not implemented.");
             }
             references.Invalidate(header.InvalidReferences);
             geometry = header.Geometry;

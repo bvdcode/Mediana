@@ -54,7 +54,9 @@ namespace Mediana.Codecs.Av1
         internal const int MvClass0BitOffset = 2841;
         internal const int MvClass0HpOffset = 2847;
         internal const int MvHpOffset = 2853;
-        internal const int Count = 2859;
+        internal const int InterTx1Offset = 2859;
+        internal const int InterTx3Offset = 2876;
+        internal const int Count = 2879;
 
         internal static ReadOnlySpan<ushort> Values =>
         [
@@ -284,6 +286,9 @@ namespace Mediana.Codecs.Av1
             27648, 32768, 0, 27648, 32768, 0,
             20480, 32768, 0, 20480, 32768, 0,
             16384, 32768, 0, 16384, 32768, 0,
+            4458, 5560, 7695, 9709, 13330, 14789, 17537, 20266, 21504, 22848, 23934, 25474, 27727, 28915,
+            30631, 32768, 0,
+            16384, 32768, 0,
         ];
 
         internal static ReadOnlySpan<int> CounterOffsets =>
@@ -317,7 +322,7 @@ namespace Mediana.Codecs.Av1
             2642, 2645, 2648, 2651, 2656, 2668, 2680, 2685, 2690, 2695, 2700, 2705, 2710, 2714, 2718, 2722,
             2726, 2730, 2734, 2738, 2742, 2746, 2750, 2754, 2758, 2762, 2766, 2770, 2774, 2777, 2780, 2783,
             2786, 2789, 2792, 2795, 2798, 2801, 2804, 2807, 2810, 2813, 2816, 2819, 2822, 2825, 2828, 2831,
-            2834, 2837, 2840, 2843, 2846, 2849, 2852, 2855, 2858,
+            2834, 2837, 2840, 2843, 2846, 2849, 2852, 2855, 2858, 2875, 2878,
         ];
     }
 }

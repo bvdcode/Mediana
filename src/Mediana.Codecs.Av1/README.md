@@ -18,7 +18,7 @@ transform sets. Independent libdav1d baselines require
 exact equality for every visible sample. Entropy fixtures separately check
 arithmetic state and CDF adaptation against AOM.
 
-Single-reference lossless inter pictures support nearest, near, new and identity-global
+Single-reference lossless and four-point quantized inter pictures support nearest, near, new and identity-global
 motion, primary-reference probability loading, frame identifiers and expiry, native
 eighth-sample luma and sixteenth-sample chroma interpolation, sub-eight-pixel
 chroma motion and reference scaling. Motion metadata and stored probability
@@ -26,7 +26,12 @@ snapshots are accounted against the caller buffer budget. Independent moving
 sequences with nonzero residuals and unconstrained lossless partitions match
 every native reference sample.
 
-Larger quantized transforms, quantized inter pictures, compound prediction,
+Four-point inter transforms include all sixteen DCT, ADST, flipped ADST and
+identity combinations, with native chroma transform propagation. Three
+independently encoded lossy sequences at different quantization levels match
+every libdav1d sample.
+
+Larger quantized transforms, compound prediction,
 temporal motion fields, non-identity global motion, switchable motion modes,
 smooth/Paeth/filter-intra,
 deblocking, CDEF, loop restoration, intra-edge filtering, intra block copy,

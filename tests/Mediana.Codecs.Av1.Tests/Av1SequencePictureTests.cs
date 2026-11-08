@@ -15,6 +15,9 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("interResidual", false)]
         [InlineData("interPrimary", false)]
         [InlineData("interLarge", false)]
+        [InlineData("interQuantized10", false)]
+        [InlineData("interQuantized30", false)]
+        [InlineData("interQuantized50", false)]
         public void ReconstructsIndependentPictureSequence(string fixture, bool omitRepeatedHeaders)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", fixture + ".obu"));

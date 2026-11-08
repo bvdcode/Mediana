@@ -145,7 +145,7 @@ namespace Mediana.Codecs.Av1
                             cancellationToken.ThrowIfCancellationRequested();
                             for (int x = startX; x < endX; x++)
                             {
-                                Coefficients(plane, planeColumn + x, planeRow + y, blockWidth, blockHeight, skip, selectedMode, residual);
+                                Coefficients(plane, planeColumn + x, planeRow + y, blockWidth, blockHeight, skip, selectedMode, residual, inter, row, column);
                                 int pixelX = (planeColumn + x) * 4;
                                 int pixelY = (planeRow + y) * 4;
                                 if (plane == 0 && !colors.IsEmpty)
