@@ -20,7 +20,7 @@ namespace Mediana.Codecs.Av1
         private Av1SymbolReader symbols;
 
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
-            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken)
+            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default)
         {
             this.sequence = sequence;
             this.header = header;
@@ -32,8 +32,7 @@ namespace Mediana.Codecs.Av1
             left = contexts.Slice(sequence.MiColumns, LeftContexts);
             this.cancellationToken = cancellationToken;
             symbols = new(encoded, !header.DisableCdfUpdate);
-            Av1DefaultCdfs.Values.CopyTo(probabilities);
-            Av1CoefficientCdfs.Initialize(probabilities, header.Quantization.BaseIndex);
+            Av1TileProbabilities.Initialize(probabilities, header.Quantization.BaseIndex, initialProbabilities);
         }
 
         internal void Decode()

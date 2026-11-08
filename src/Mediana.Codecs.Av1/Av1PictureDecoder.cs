@@ -92,11 +92,11 @@ namespace Mediana.Codecs.Av1
             geometry = header.Geometry;
             int sampleCount = geometry.SampleCount;
             int contextBytes = checked(geometry.ContextCount * Unsafe.SizeOf<Av1BlockContext>());
+            Span<ushort> probabilities = stackalloc ushort[Av1DefaultCdfs.Count];
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
             using (WritableMediaBuffer contexts = allocator.Allocate(contextBytes))
             using (WritableMediaBuffer decoded = allocator.Allocate(geometry.SampleCount / 16))
             {
-                Span<ushort> probabilities = stackalloc ushort[Av1DefaultCdfs.Count];
                 Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities, decoded.Span,
                     MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken);
                 tile.Decode();
@@ -107,7 +107,14 @@ namespace Mediana.Codecs.Av1
             bool transferred = false;
             try
             {
-                if (!geometry.Tools.ReducedStillPicture) { references.Save(picture); }
+                if (!geometry.Tools.ReducedStillPicture)
+                {
+                    if (header.DisableFrameEndUpdate)
+                    {
+                        Av1TileProbabilities.Initialize(probabilities, header.Quantization.BaseIndex);
+                    }
+                    references.Save(picture, probabilities, allocator);
+                }
                 transferred = true;
                 return picture;
             }

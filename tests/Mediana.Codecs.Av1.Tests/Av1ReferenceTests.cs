@@ -31,7 +31,7 @@ namespace Mediana.Codecs.Av1.Tests
                         Assert.Equal(CodecInputStatus.Accepted, codec.TrySend(hidden));
                         Assert.Equal(CodecOutputStatus.InputRequired, codec.Receive().Status);
                     }
-                    Assert.Equal(48 * 40 * 3 / 2, pixels.AllocatedBytes);
+                    Assert.Equal(48 * 40 * 3 / 2 + Av1DefaultCdfs.Count * sizeof(ushort), pixels.AllocatedBytes);
                     using MediaPacket show = Packet(packets[1].Span, input);
                     Assert.Equal(CodecInputStatus.Accepted, codec.TrySend(show));
                 }
@@ -41,7 +41,7 @@ namespace Mediana.Codecs.Av1.Tests
                     Assert.Equal(CodecInputStatus.Accepted, codec.TrySend(packet));
                 }
                 VideoFrame frame = codec.Receive().Value;
-                Assert.Equal(48 * 40 * 3 / 2, pixels.AllocatedBytes);
+                Assert.Equal(48 * 40 * 3 / 2 + Av1DefaultCdfs.Count * sizeof(ushort), pixels.AllocatedBytes);
                 codec.Reset();
                 int offset = 0;
                 for (int plane = 0; plane < frame.Planes.Count; plane++)
@@ -110,6 +110,30 @@ namespace Mediana.Codecs.Av1.Tests
                 Assert.Equal(CodecOutputStatus.InputRequired, codec.Receive().Status);
             }
             Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public void ProbabilitySnapshotBudgetFailureReleasesDecodedPixelsAndFaultsUntilReset()
+        {
+            byte[] encoded = Read("hidden.obu");
+            IReadOnlyList<ReadOnlyMemory<byte>> packets = Av1SequencePictureTests.AccessUnits(encoded);
+            MediaBufferAllocator input = new(1024 * 1024);
+            MediaBufferAllocator allocator = new(48 * 40 * 3 / 2 + Av1DefaultCdfs.Count * sizeof(ushort) - 1);
+            using (IMediaCodec<MediaPacket, VideoFrame> codec = new Av1DecoderFactory().Create(Stream(encoded), allocator))
+            {
+                using (MediaPacket hidden = Packet(packets[0].Span, input))
+                {
+                    Assert.Throws<MediaMemoryLimitException>(() => codec.TrySend(hidden));
+                }
+                Assert.Equal(0, allocator.AllocatedBytes);
+                Assert.Throws<InvalidOperationException>(() => codec.Receive());
+                codec.Reset();
+                using MediaPacket valid = Packet(Read("yuv16.obu"), input);
+                Assert.Equal(CodecInputStatus.Accepted, codec.TrySend(valid));
+                codec.Receive().Value.Dispose();
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+            Assert.Equal(0, input.AllocatedBytes);
         }
 
         private static EncodedStreamInfo Stream(ReadOnlySpan<byte> encoded) => new(3, MediaKind.Video, "av1", StreamFormats.Av1, new(1, 25), Av1CodecTests.Configuration(encoded, true));

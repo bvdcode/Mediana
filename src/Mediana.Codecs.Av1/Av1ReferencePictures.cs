@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
+using Mediana.Core.Memory;
+
 namespace Mediana.Codecs.Av1
 {
     internal class Av1ReferencePictures : IDisposable
@@ -11,16 +14,21 @@ namespace Mediana.Codecs.Av1
 
         internal int OrderHint(int index) => pictures[index]?.Header.OrderHint ?? 0;
 
-        internal void Save(Av1Picture picture)
+        internal Av1StoredPicture Get(int index) => pictures[index] ?? throw new InvalidDataException("The AV1 reference picture has not been initialized.");
+
+        internal void Save(Av1Picture picture, ReadOnlySpan<ushort> probabilities, MediaBufferAllocator allocator)
         {
             if (picture.Header.RefreshReferences == 0) { return; }
-            Av1StoredPicture stored = new(picture);
+            using WritableMediaBuffer write = allocator.Allocate(checked(probabilities.Length * sizeof(ushort)));
+            MemoryMarshal.AsBytes(probabilities).CopyTo(write.Span);
+            using MediaBuffer cdfs = write.Publish();
+            Av1StoredPicture stored = new(picture, cdfs);
             Refresh(stored, picture.Header.RefreshReferences);
         }
 
         internal Av1Picture Show(int index)
         {
-            Av1StoredPicture stored = pictures[index] ?? throw new InvalidDataException("The AV1 reference picture has not been initialized.");
+            Av1StoredPicture stored = Get(index);
             if (!stored.Showable)
             {
                 throw new InvalidDataException("The AV1 reference picture is not showable.");
