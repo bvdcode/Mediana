@@ -111,7 +111,7 @@ namespace Mediana.Codecs.H264
             return result;
         }
 
-        private static int AnalyzeLuma(ReadOnlySpan<byte> source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+        internal static int AnalyzeLuma(ReadOnlySpan<byte> source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
         {
             int pattern = 0;
             for (int index = 0; index < 16; index += 2)
@@ -131,6 +131,10 @@ namespace Mediana.Codecs.H264
 
         private static bool TryWriteLuma(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
             ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients)
+            => TryWriteLuma(new H264CavlcEncodingSyntax(bits, target), target, x, y, qp, pattern, prediction, coefficients);
+
+        internal static bool TryWriteLuma<TSyntax>(TSyntax syntax, H264Picture target, int x, int y, int qp, int pattern,
+            ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients) where TSyntax : IH264EncodingSyntax
         {
             if ((pattern & 15) == 0)
             {
@@ -145,7 +149,7 @@ namespace Mediana.Codecs.H264
                 ReadOnlySpan<int> levels = coefficients.Slice(index * 16, 16);
                 int count = 0;
                 if ((pattern & (1 << (index / 4))) != 0 &&
-                    !H264CavlcWriter.TryWrite(bits, levels, target.NeighbourCount(0, x + blockX, y + blockY), out count))
+                    !syntax.TryWriteResidual(H264ResidualCategory.Luma4x4, 0, x + blockX, y + blockY, levels, out count))
                 {
                     return false;
                 }
