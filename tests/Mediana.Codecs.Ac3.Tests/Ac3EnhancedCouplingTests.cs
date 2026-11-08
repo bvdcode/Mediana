@@ -60,7 +60,7 @@ namespace Mediana.Codecs.Ac3.Tests
             using (IMediaCodec<MediaPacket, AudioFrame> decoder = Ac3DecoderTests.Create(true, allocator))
             using (MediaPacket packet = Ac3DecoderTests.Packet(data, allocator, 733))
             {
-                Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(packet));
+                Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(packet)); decoder.CompleteInput();
                 using AudioFrame frame = decoder.Receive().Value;
                 Assert.Equal(768, frame.SamplesPerChannel); Assert.Equal(packet.PresentationTime, frame.Timestamp);
                 Assert.Equal(2, frame.Format.Channels.Count);

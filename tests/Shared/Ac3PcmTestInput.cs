@@ -24,7 +24,7 @@ namespace Mediana.Tests
             IAudioDecoderFactory factory = first.IsEnhanced ? new Eac3DecoderFactory(false) : new Ac3DecoderFactory(false);
             EncodedStreamInfo stream = new(0, MediaKind.Audio, factory.CodecId, first.IsEnhanced ? StreamFormats.Eac3 : StreamFormats.Ac3, new(1, sampleRate));
             MediaBufferAllocator allocator = new(1024 * 1024);
-            int samples = 0;
+            int samples = 0, inputSamples = 0, outputOffset = 0;
             double error = 0, signal = 0, maximumError = 0;
             long maximumAllocated = 0;
             using (IMediaCodec<MediaPacket, AudioFrame> decoder = factory.Create(stream, allocator))
@@ -37,41 +37,52 @@ namespace Mediana.Tests
                     {
                         encoded.AsSpan(offset, header.FrameBytes).CopyTo(writable.Span);
                         using MediaBuffer buffer = writable.Publish();
-                        using MediaPacket packet = new(0, buffer, new(samples, new(1, sampleRate)), duration: new(header.SamplesPerFrame, new(1, sampleRate)));
+                        using MediaPacket packet = new(0, buffer, new(inputSamples, new(1, sampleRate)), duration: new(header.SamplesPerFrame, new(1, sampleRate)));
                         Require(decoder.TrySend(packet) == CodecInputStatus.Accepted);
                     }
-                    using (AudioFrame frame = decoder.Receive().Value)
-                    {
-                        maximumAllocated = Math.Max(maximumAllocated, allocator.AllocatedBytes);
-                        Require(frame.SamplesPerChannel == header.SamplesPerFrame && frame.Format.Channels.Count == channels);
-                        Require(frame.Format.SampleRate == sampleRate && frame.Timestamp == new MediaTimestamp(samples, new(1, sampleRate)));
-                        Require(frame.Duration == new MediaDuration(header.SamplesPerFrame, new(1, sampleRate)));
-                        ReadOnlySpan<float> actual = MemoryMarshal.Cast<byte, float>(frame.GetPlane(0).Span);
-                        ReadOnlySpan<float> expected = MemoryMarshal.Cast<byte, float>(reference.AsSpan(samples * channels * sizeof(float), actual.Length * sizeof(float)));
-                        for (int index = 0; index < actual.Length; index++)
-                        {
-                            Require(float.IsFinite(actual[index]));
-                            int expectedIndex = index;
-                            if (channels == 6)
-                            {
-                                ReadOnlySpan<int> order = [0, 2, 1, 4, 5, 3];
-                                expectedIndex = index / channels * channels + order[index % channels];
-                            }
-                            double delta = actual[index] - expected[expectedIndex];
-                            error += delta * delta; signal += expected[expectedIndex] * expected[expectedIndex];
-                            maximumError = Math.Max(maximumError, Math.Abs(delta));
-                        }
-                    }
-                    Require(decoder.Receive().Status == CodecOutputStatus.InputRequired);
-                    samples += header.SamplesPerFrame; offset += header.FrameBytes;
+                    inputSamples += header.SamplesPerFrame; offset += header.FrameBytes;
+                    while (decoder.Receive() is { Status: CodecOutputStatus.Available } available)
+                    { using AudioFrame frame = available.Value; Compare(frame); }
                 }
-                decoder.CompleteInput(); Require(decoder.Receive().Status == CodecOutputStatus.EndOfStream);
+                decoder.CompleteInput();
+                CodecOutput<AudioFrame> output = decoder.Receive();
+                while (output.Status == CodecOutputStatus.Available)
+                {
+                    using (AudioFrame frame = output.Value) { Compare(frame); }
+                    output = decoder.Receive();
+                }
+                Require(output.Status == CodecOutputStatus.EndOfStream);
             }
             Require(allocator.AllocatedBytes == 0 && samples * channels * sizeof(float) == reference.Length);
             double snr = 10 * Math.Log10(signal / Math.Max(error, double.Epsilon));
             if (snr < minimumSnr)
             { throw new InvalidDataException($"The AC-3 PCM reference differs: SNR {snr:F3} dB; maximum error {maximumError:G9}."); }
             return (samples, snr, Math.Sqrt(error / (samples * channels)), maximumError, maximumAllocated);
+
+            void Compare(AudioFrame frame)
+            {
+                Ac3FrameHeader header = Ac3FrameHeader.Read(encoded.AsSpan(outputOffset));
+                maximumAllocated = Math.Max(maximumAllocated, allocator.AllocatedBytes);
+                Require(frame.SamplesPerChannel == header.SamplesPerFrame && frame.Format.Channels.Count == channels);
+                Require(frame.Format.SampleRate == sampleRate && frame.Timestamp == new MediaTimestamp(samples, new(1, sampleRate)));
+                Require(frame.Duration == new MediaDuration(header.SamplesPerFrame, new(1, sampleRate)));
+                ReadOnlySpan<float> actual = MemoryMarshal.Cast<byte, float>(frame.GetPlane(0).Span);
+                ReadOnlySpan<float> expected = MemoryMarshal.Cast<byte, float>(reference.AsSpan(samples * channels * sizeof(float), actual.Length * sizeof(float)));
+                for (int index = 0; index < actual.Length; index++)
+                {
+                    Require(float.IsFinite(actual[index]));
+                    int expectedIndex = index;
+                    if (channels == 6)
+                    {
+                        ReadOnlySpan<int> order = [0, 2, 1, 4, 5, 3];
+                        expectedIndex = index / channels * channels + order[index % channels];
+                    }
+                    double delta = actual[index] - expected[expectedIndex];
+                    error += delta * delta; signal += expected[expectedIndex] * expected[expectedIndex];
+                    maximumError = Math.Max(maximumError, Math.Abs(delta));
+                }
+                samples += header.SamplesPerFrame; outputOffset += header.FrameBytes;
+            }
         }
 
         private static void Require(bool condition)

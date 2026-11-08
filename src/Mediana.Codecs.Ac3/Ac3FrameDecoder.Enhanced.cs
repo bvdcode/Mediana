@@ -150,7 +150,7 @@ namespace Mediana.Codecs.Ac3
             {
                 for (int ch = 0; ch < fullChannels; ch++)
                 {
-                    if (bits.Flag()) { throw new NotSupportedException("E-AC-3 transient pre-noise processing is not supported."); }
+                    if (bits.Flag()) { transientLocations[ch] = bits.Read(10) * 4; transientLengths[ch] = bits.Read(8); }
                 }
             }
             if (attenuationExists)

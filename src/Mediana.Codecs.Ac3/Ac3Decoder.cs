@@ -9,7 +9,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Ac3
 {
-    internal class Ac3Decoder(int streamIndex, bool enhanced, MediaBufferAllocator allocator, bool applyDynamicRangeCompression,
+    internal partial class Ac3Decoder(int streamIndex, bool enhanced, MediaBufferAllocator allocator, bool applyDynamicRangeCompression,
         Ac3DecoderExpectation? expectation = null) : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
     {
         private const int MaximumFramesPerAccessUnit = 6;
@@ -19,9 +19,11 @@ namespace Mediana.Codecs.Ac3
         private Ac3FrameHeader? configuration;
         private AudioFormat? format;
         private AudioFrame? pending;
+        private Ac3TransientProcessing? transientProcessing;
+        private bool originalBeginning = true;
         private long prerollPackets;
         private bool disposed, completed, faulted;
-        public int RequiredPrerollPackets => 1;
+        public int RequiredPrerollPackets => enhanced ? Ac3TransientProcessing.InitialPrerollPackets : 1;
 
         public CodecInputStatus TrySend(MediaPacket input, CancellationToken cancellationToken = default)
         {
@@ -31,7 +33,7 @@ namespace Mediana.Codecs.Ac3
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (completed) { throw new InvalidOperationException("AC-3 input is complete."); }
-                if (pending is not null) { success = true; return CodecInputStatus.OutputRequired; }
+                if (pending is not null || transientProcessing is not null && transientProcessing.HasOutput) { success = true; return CodecInputStatus.OutputRequired; }
                 if (input.StreamIndex != streamIndex) { throw new InvalidDataException("The AC-3 packet belongs to a different stream."); }
                 (int frameCount, int codedSamples) = ReadAccessUnit(input.Data.Span);
                 Ac3FrameHeader header = frames[0]!;
@@ -39,6 +41,12 @@ namespace Mediana.Codecs.Ac3
                 format ??= new(header.SampleRate, AudioSampleFormat.Float32, AudioStorageLayout.Interleaved, header.GetChannelOrder());
                 workspace ??= new(allocator, applyDynamicRangeCompression);
                 int count = AudioPacketTiming.GetPresentationSamples(input.Duration, header.SampleRate, codedSamples);
+                if (enhanced)
+                {
+                    ProcessEnhanced(input, frameCount, codedSamples, count, cancellationToken);
+                    if (prerollPackets > 0) { prerollPackets--; }
+                    success = true; return CodecInputStatus.Accepted;
+                }
                 using WritableMediaBuffer writable = allocator.Allocate(format.GetBufferSize(codedSamples));
                 Span<float> pcm = MemoryMarshal.Cast<byte, float>(writable.Span);
                 for (int index = 0, offset = 0, samples = 0; index < frameCount; index++)
@@ -96,22 +104,35 @@ namespace Mediana.Codecs.Ac3
             EnsureUsable();
             if (cancellationToken.IsCancellationRequested) { Fault(); cancellationToken.ThrowIfCancellationRequested(); }
             if (pending is not null) { AudioFrame frame = pending; pending = null; return CodecOutput<AudioFrame>.Available(frame); }
+            if (transientProcessing is not null && transientProcessing.HasOutput)
+            {
+                bool success = false;
+                try
+                {
+                    AudioFrame frame = transientProcessing.Receive(); success = true;
+                    return CodecOutput<AudioFrame>.Available(frame);
+                }
+                finally { if (!success) { Fault(); } }
+            }
             return completed ? CodecOutput<AudioFrame>.EndOfStream : CodecOutput<AudioFrame>.InputRequired;
         }
         public void CompleteInput()
         {
             EnsureUsable();
             if (prerollPackets != 0) { Fault(); throw new InvalidDataException("AC-3 input ended before its requested preroll was complete."); }
-            completed = true;
+            bool success = false;
+            try { transientProcessing?.CompleteInput(); completed = true; success = true; }
+            finally { if (!success) { Fault(); } }
         }
         public void ResetForPreroll(long packetCount, bool startsAtStreamBeginning)
         {
-            ArgumentOutOfRangeException.ThrowIfNegative(packetCount); Reset(); prerollPackets = packetCount;
+            ArgumentOutOfRangeException.ThrowIfNegative(packetCount); Reset(); prerollPackets = packetCount; originalBeginning = startsAtStreamBeginning;
         }
         public void Reset()
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             pending?.Dispose(); pending = null; workspace?.Reset();
+            transientProcessing?.Dispose(); transientProcessing = null; originalBeginning = true;
             Array.Clear(frames);
             configuration = null; format = null; prerollPackets = 0; completed = false; faulted = false;
         }
@@ -124,7 +145,8 @@ namespace Mediana.Codecs.Ac3
         public void Dispose()
         {
             if (disposed) { return; }
-            pending?.Dispose(); pending = null; workspace?.Dispose(); workspace = null; disposed = true;
+            pending?.Dispose(); pending = null; transientProcessing?.Dispose(); transientProcessing = null;
+            workspace?.Dispose(); workspace = null; disposed = true;
             GC.SuppressFinalize(this);
         }
     }

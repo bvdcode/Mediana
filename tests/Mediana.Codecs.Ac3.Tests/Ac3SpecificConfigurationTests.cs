@@ -52,7 +52,7 @@ namespace Mediana.Codecs.Ac3.Tests
             using (IMediaCodec<MediaPacket, AudioFrame> decoder = new Eac3DecoderFactory(false).Create(stream, allocator))
             {
                 using MediaPacket packet = Ac3DecoderTests.Packet(bytes, allocator, count: 1000);
-                decoder.TrySend(packet); using AudioFrame pcm = decoder.Receive().Value;
+                decoder.TrySend(packet); decoder.CompleteInput(); using AudioFrame pcm = decoder.Receive().Value;
                 Assert.Equal(1000, pcm.SamplesPerChannel);
                 decoder.Reset();
                 byte[] shortFrame = Ac3SyntheticFrame.Create(true, false, 1);

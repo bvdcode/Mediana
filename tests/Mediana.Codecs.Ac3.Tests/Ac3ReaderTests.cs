@@ -46,9 +46,15 @@ namespace Mediana.Codecs.Ac3.Tests
                 for (int index = 0; index < 4; index++)
                 {
                     using MediaPacket packet = (await reader.ReadPacketAsync())!;
-                    decoder.TrySend(packet); using AudioFrame frame = decoder.Receive().Value;
-                    Assert.Equal(counts[index], frame.SamplesPerChannel); Assert.Equal(packet.PresentationTime, frame.Timestamp);
+                    decoder.TrySend(packet); Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
                 }
+                decoder.CompleteInput();
+                for (int index = 0; index < 4; index++)
+                {
+                    using AudioFrame frame = decoder.Receive().Value;
+                    Assert.Equal(counts[index], frame.SamplesPerChannel); Assert.Equal(new MediaTimestamp(first[index], new(1, 48000)), frame.Timestamp);
+                }
+                Assert.Equal(CodecOutputStatus.EndOfStream, decoder.Receive().Status);
                 Assert.Null(await reader.ReadPacketAsync());
             }
             Assert.Equal(0, allocator.AllocatedBytes); Assert.False(source.Disposed);
@@ -73,10 +79,15 @@ namespace Mediana.Codecs.Ac3.Tests
                 {
                     using (packet)
                     {
-                        decoder.TrySend(packet); using AudioFrame frame = decoder.Receive().Value;
-                        total += frame.SamplesPerChannel;
+                        decoder.TrySend(packet);
+                        while (decoder.Receive() is { Status: CodecOutputStatus.Available } available)
+                        { using AudioFrame frame = available.Value; total += frame.SamplesPerChannel; }
                     }
                 }
+                decoder.CompleteInput();
+                while (decoder.Receive() is { Status: CodecOutputStatus.Available } available)
+                { using AudioFrame frame = available.Value; total += frame.SamplesPerChannel; }
+                Assert.Equal(CodecOutputStatus.EndOfStream, decoder.Receive().Status);
                 Assert.Equal(6144, total);
             }
             Assert.Equal(0, allocator.AllocatedBytes);

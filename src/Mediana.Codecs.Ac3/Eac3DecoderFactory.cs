@@ -7,9 +7,9 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Ac3
 {
-    /// <summary>Managed E-AC-3 decoder for independent and AC-3-converted substreams using conventional transforms and coupling.
-    /// Each packet contains one or more syncframes, totalling at most six audio blocks. Output covers their combined PCM.
-    /// Adaptive hybrid transforms, enhanced coupling, spectral extension and transient pre-noise processing are rejected.</summary>
+    /// <summary>Managed E-AC-3 decoder for independent and AC-3-converted substreams, including adaptive transforms,
+    /// both coupling modes, spectral extension and transient pre-noise processing. Packets contain at most six audio blocks.
+    /// Output preserves combined packet timing and is delayed until transient corrections are complete. Drain at EOF.</summary>
     public class Eac3DecoderFactory(bool applyDynamicRangeCompression = true) : Ac3DecoderFactory(applyDynamicRangeCompression)
     {
         public override string CodecId => Ac3FrameHeader.EnhancedCodecId;

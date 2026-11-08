@@ -17,6 +17,9 @@ namespace Mediana.Codecs.Ac3
         private readonly bool[] coupled = new bool[5], shortBlock = new bool[5], dither = new bool[5], coordinateNew = new bool[5], coordinateValid = new bool[5], rematrix = new bool[4];
         private readonly bool[] couplingMerge = new bool[18];
         private readonly double[] dynamics = new double[2];
+        private readonly int[] transientLocations = new int[5], transientLengths = new int[5];
+        internal ReadOnlySpan<int> TransientLocations => transientLocations;
+        internal ReadOnlySpan<int> TransientLengths => transientLengths;
         private Ac3FrameHeader header = null!;
         private int fullChannels, coarse, slowDecay, fastDecay, slowGain, dbKnee, floor, couplingStart, couplingEnd, subbands, fastLeak, slowLeak;
         private bool coupling, phaseInUse, couplingExponentsRequired, enhancedCouplingInUse;
@@ -51,6 +54,7 @@ namespace Mediana.Codecs.Ac3
             fullChannels = header.ChannelCount - (header.HasLfe ? 1 : 0);
             Array.Clear(coupled); Array.Clear(coordinateValid); Array.Clear(rematrix);
             Array.Clear(end); Array.Clear(fine); Array.Clear(fastGain); Array.Clear(deltaMode);
+            transientLocations.AsSpan().Fill(-1);
             coupling = false; phaseInUse = false; enhancedCouplingInUse = false; dynamics.AsSpan().Fill(1);
             spectralExtension.ResetFrame(); adaptiveTransform.ResetFrame(); enhancedCoordinates.ResetFrame();
             for (int ch = 0; ch < 7; ch++) { workspace.Delta(ch).Clear(); }

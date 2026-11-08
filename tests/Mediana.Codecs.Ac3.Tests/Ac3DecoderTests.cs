@@ -26,6 +26,11 @@ namespace Mediana.Codecs.Ac3.Tests
             {
                 Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
                 Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(packet));
+                if (enhanced)
+                {
+                    for (int index = 1; index < 5; index++)
+                    { using MediaPacket following = Packet(encoded, allocator, 733 + 1536 * index); Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(following)); }
+                }
                 Assert.Equal(CodecInputStatus.OutputRequired, decoder.TrySend(packet));
                 using AudioFrame frame = decoder.Receive().Value;
                 Assert.Equal(new MediaTimestamp(733, new(1, 48000)), frame.Timestamp);
@@ -43,7 +48,7 @@ namespace Mediana.Codecs.Ac3.Tests
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
-        public void OnePacketPrerollReconstructsTheSameFollowingPcm(bool enhanced)
+        public void OriginPrerollReconstructsTheSameFollowingPcm(bool enhanced)
         {
             byte[] encoded = File.ReadAllBytes(Data(enhanced ? "stereo.eac3" : "mono.ac3"));
             Ac3FrameHeader first = Ac3FrameHeader.Read(encoded);
@@ -52,14 +57,16 @@ namespace Mediana.Codecs.Ac3.Tests
             using (MediaPacket firstPacket = Packet(encoded.AsSpan(0, first.FrameBytes), allocator))
             using (MediaPacket secondPacket = Packet(encoded.AsSpan(first.FrameBytes, Ac3FrameHeader.Read(encoded.AsSpan(first.FrameBytes)).FrameBytes), allocator, 1536))
             {
-                decoder.TrySend(firstPacket); decoder.Receive().Value.Dispose();
-                decoder.TrySend(secondPacket);
+                decoder.TrySend(firstPacket);
+                if (!enhanced) { decoder.Receive().Value.Dispose(); }
+                decoder.TrySend(secondPacket); decoder.CompleteInput();
+                if (enhanced) { decoder.Receive().Value.Dispose(); }
                 using AudioFrame expected = decoder.Receive().Value;
                 IPacketPrerollDecoder seeking = Assert.IsAssignableFrom<IPacketPrerollDecoder>(decoder);
-                Assert.Equal(1, seeking.RequiredPrerollPackets);
+                Assert.Equal(enhanced ? 26 : 1, seeking.RequiredPrerollPackets);
                 seeking.ResetForPreroll(1, true);
                 decoder.TrySend(firstPacket); Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
-                decoder.TrySend(secondPacket);
+                decoder.TrySend(secondPacket); decoder.CompleteInput();
                 using AudioFrame actual = decoder.Receive().Value;
                 Assert.Equal(expected.GetPlane(0).ToArray(), actual.GetPlane(0).ToArray());
                 Assert.Equal(secondPacket.PresentationTime, actual.Timestamp);
@@ -67,12 +74,14 @@ namespace Mediana.Codecs.Ac3.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
-        [Fact]
-        public void CancellationFaultsTheDecoderAndResetRestoresIt()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void CancellationFaultsTheDecoderAndResetRestoresIt(bool enhanced)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
-            using (IMediaCodec<MediaPacket, AudioFrame> decoder = Create(false, allocator))
-            using (MediaPacket packet = Packet(ReadFirstFrame("mono.ac3"), allocator))
+            using (IMediaCodec<MediaPacket, AudioFrame> decoder = Create(enhanced, allocator))
+            using (MediaPacket packet = Packet(ReadFirstFrame(enhanced ? "stereo.eac3" : "mono.ac3"), allocator))
             {
                 using CancellationTokenSource cancellation = new(); cancellation.Cancel();
                 Assert.Throws<OperationCanceledException>(() => decoder.TrySend(packet, cancellation.Token));
@@ -165,9 +174,16 @@ namespace Mediana.Codecs.Ac3.Tests
                 foreach (byte[] part in parts)
                 {
                     using MediaPacket packet = Packet(part, allocator, offset);
-                    decoder.TrySend(packet); using AudioFrame output = decoder.Receive().Value;
+                    decoder.TrySend(packet); Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
+                    offset += Ac3FrameHeader.Read(part).SamplesPerFrame;
+                }
+                decoder.CompleteInput(); offset = 0;
+                while (decoder.Receive() is { Status: CodecOutputStatus.Available } available)
+                {
+                    using AudioFrame output = available.Value;
                     MemoryMarshal.Cast<byte, float>(output.GetPlane(0).Span).CopyTo(expected.AsSpan(offset)); offset += output.SamplesPerChannel;
                 }
+                Assert.Equal(1536, offset);
                 decoder.Reset();
                 using MediaPacket combined = Packet(bundle, allocator, 733, presentationSamples);
                 Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(combined)); decoder.CompleteInput();

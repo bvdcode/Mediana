@@ -5,12 +5,12 @@ namespace Mediana.Codecs.Ac3.Tests
 {
     internal static class Ac3SyntheticFrame
     {
-        public static byte[] Create(bool enhanced, bool switched, int blocks = 6, int? dynamicRange = null, int exponentStrategy = 1)
+        public static byte[] Create(bool enhanced, bool switched, int blocks = 6, int? dynamicRange = null, int exponentStrategy = 1, int? transientLocation = null, int transientLength = 0)
         {
             int length = enhanced ? 2048 : 2560;
             Ac3TestBitWriter writer = new(length);
             writer.Write(0xb77, 16);
-            if (enhanced) { WriteEnhancedHeader(writer, length, blocks, exponentStrategy); }
+            if (enhanced) { WriteEnhancedHeader(writer, length, blocks, exponentStrategy, transientLocation, transientLength); }
             else
             {
                 writer.Write(0, 16); writer.Write(0, 2); writer.Write(36, 6); writer.Write(8, 5); writer.Write(0, 3);
@@ -53,7 +53,7 @@ namespace Mediana.Codecs.Ac3.Tests
             return writer.Finish(enhanced);
         }
 
-        private static void WriteEnhancedHeader(Ac3TestBitWriter writer, int length, int blocks, int exponentStrategy)
+        private static void WriteEnhancedHeader(Ac3TestBitWriter writer, int length, int blocks, int exponentStrategy, int? transientLocation, int transientLength)
         {
             writer.Write(0, 2); writer.Write(0, 3); writer.Write(length / 2 - 1, 11); writer.Write(0, 2);
             writer.Write(blocks switch { 1 => 0, 2 => 1, 3 => 2, 6 => 3, _ => throw new ArgumentOutOfRangeException(nameof(blocks)) }, 2);
@@ -61,10 +61,12 @@ namespace Mediana.Codecs.Ac3.Tests
             if (blocks != 6) { writer.Write(0, 1); }
             writer.Write(0, 1);
             if (blocks == 6) { writer.Write(1, 1); writer.Write(0, 1); }
-            writer.Write(0, 2); writer.Write(0, 1); writer.Write(1, 1); writer.Write(1, 1); writer.Write(0, 5);
+            writer.Write(0, 2); writer.Write(transientLocation.HasValue ? 1 : 0, 1); writer.Write(1, 1); writer.Write(1, 1); writer.Write(0, 5);
             for (int block = 0; block < blocks; block++) { writer.Write(block == 0 ? exponentStrategy : 0, 2); }
             if (blocks == 6) { writer.Write(0, 5); } else { writer.Write(0, 1); }
             writer.Write(63, 6); writer.Write(15, 4);
+            if (transientLocation.HasValue)
+            { writer.Write(1, 1); writer.Write(transientLocation.Value / 4, 10); writer.Write(transientLength, 8); }
             if (blocks > 1) { writer.Write(0, 1); }
         }
     }
