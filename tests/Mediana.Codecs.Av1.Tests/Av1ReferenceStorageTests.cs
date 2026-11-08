@@ -9,6 +9,17 @@ namespace Mediana.Codecs.Av1.Tests
     public class Av1ReferenceStorageTests
     {
         [Fact]
+        public void LoadingPrimaryReferenceResetsCountsAndPreservesProbabilities()
+        {
+            ushort[] saved = Av1DefaultCdfs.Values.ToArray();
+            foreach (int offset in Av1DefaultCdfs.CounterOffsets) { saved[offset] = 32; }
+            Span<ushort> loaded = stackalloc ushort[Av1DefaultCdfs.Count];
+            Av1TileProbabilities.Initialize(loaded, 200, saved);
+            Assert.True(loaded.SequenceEqual(Av1DefaultCdfs.Values));
+            foreach (int offset in Av1DefaultCdfs.CounterOffsets) { Assert.Equal(32, saved[offset]); }
+        }
+
+        [Fact]
         public void SharedSlotsOwnOneFrozenProbabilitySnapshotAndOnePixelLease()
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", "yuv16.obu"));

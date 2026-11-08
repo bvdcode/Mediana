@@ -13,11 +13,23 @@ namespace Mediana.Codecs.Av1
             int skipContext = (row > 0 ? above[column].Skip : 0) +
                 (column > 0 ? left[row & (LeftContexts - 1)].Skip : 0);
             int skip = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipOffset + skipContext * 3, 3));
+            bool interFrame = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
+            if (interFrame && ReadInter(row, column))
+            {
+                InterBlock(row, column, width, height, skip);
+                return;
+            }
             int aboveMode = row > 0 ? above[column].Mode : 0;
             int leftMode = column > 0 ? left[row & (LeftContexts - 1)].Mode : 0;
             ReadOnlySpan<byte> modeContexts = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
             int modeContext = modeContexts[aboveMode] * 5 + modeContexts[leftMode];
-            int mode = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.IntraModeOffset + modeContext * 14, 14));
+            int modeOffset = Av1DefaultCdfs.IntraModeOffset + modeContext * 14;
+            if (interFrame)
+            {
+                int sizeGroup = Math.Clamp(BitOperations.Log2((uint)Math.Max(width, height)) - 1, 0, 3);
+                modeOffset = Av1DefaultCdfs.InterIntraModeOffset + sizeGroup * 14;
+            }
+            int mode = symbols.ReadSymbol(probabilities.Slice(modeOffset, 14));
             if (mode > 8)
             {
                 throw new NotSupportedException("AV1 smooth and Paeth intra prediction are not implemented.");
@@ -81,6 +93,12 @@ namespace Mediana.Codecs.Av1
             {
                 context.Palette[index] = colors[index];
             }
+            StoreContext(row, column, width, height, context);
+            StoreMotion(row, column, width, height, new() { Width = (byte)width, Height = (byte)height });
+        }
+
+        private void StoreContext(int row, int column, int width, int height, Av1BlockContext context)
+        {
             for (int index = 0; index < width && column + index < sequence.MiColumns; index++)
             {
                 context.Level = above[column + index].Level;
@@ -97,7 +115,7 @@ namespace Mediana.Codecs.Av1
         }
 
         private void Residual(int row, int column, int width, int height, bool skip, int mode, int angleDelta,
-            bool hasChroma, Av1ChromaMode chroma, scoped ReadOnlySpan<byte> colors, scoped ReadOnlySpan<byte> colorMap)
+            bool hasChroma, Av1ChromaMode chroma, scoped ReadOnlySpan<byte> colors, scoped ReadOnlySpan<byte> colorMap, bool inter = false)
         {
             Span<int> residual = stackalloc int[16];
             int planes = hasChroma ? 3 : 1;
@@ -141,7 +159,7 @@ namespace Mediana.Codecs.Av1
                                         }
                                     }
                                 }
-                                else
+                                else if (!inter)
                                 {
                                     PredictIntra(plane, pixelX, pixelY, selectedMode == 13 ? 0 : selectedMode, selectedDelta);
                                     if (selectedMode == 13)

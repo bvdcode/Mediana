@@ -23,6 +23,7 @@ namespace Mediana.Codecs.Av1
                     throw new InvalidDataException("The AV1 reference probability snapshot has an invalid extent.");
                 }
                 reference.CopyTo(target);
+                foreach (int offset in Av1DefaultCdfs.CounterOffsets) { target[offset] = 0; }
             }
         }
     }

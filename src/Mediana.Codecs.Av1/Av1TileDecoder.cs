@@ -17,11 +17,15 @@ namespace Mediana.Codecs.Av1
         private readonly Span<Av1BlockContext> above;
         private readonly Span<Av1BlockContext> left;
         private readonly CancellationToken cancellationToken;
+        private readonly Av1ReferencePictures? references;
+        private readonly Span<Av1MotionBlock> motionBlocks;
         private Av1SymbolReader symbols;
 
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
-            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default)
+            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default)
         {
+            this.references = references;
+            this.motionBlocks = motionBlocks;
             this.sequence = sequence;
             this.header = header;
             this.output = output;

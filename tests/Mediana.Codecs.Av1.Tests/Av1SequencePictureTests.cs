@@ -8,12 +8,17 @@ namespace Mediana.Codecs.Av1.Tests
     public class Av1SequencePictureTests
     {
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void ReconstructsIndependentKeyframeSequence(bool omitRepeatedHeaders)
+        [InlineData("sequence", false)]
+        [InlineData("sequence", true)]
+        [InlineData("interRepeat", false)]
+        [InlineData("interMove", false)]
+        [InlineData("interResidual", false)]
+        [InlineData("interPrimary", false)]
+        [InlineData("interLarge", false)]
+        public void ReconstructsIndependentPictureSequence(string fixture, bool omitRepeatedHeaders)
         {
-            byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", "sequence.obu"));
-            byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", "sequence.reference.yuv"));
+            byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", fixture + ".obu"));
+            byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", fixture == "sequence" ? "sequence.reference.yuv" : fixture + ".yuv"));
             MediaBufferAllocator allocator = new(1024 * 1024);
             using Av1PictureDecoder decoder = new(allocator);
             int frame = 0;

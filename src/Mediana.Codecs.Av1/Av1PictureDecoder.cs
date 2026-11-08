@@ -92,21 +92,29 @@ namespace Mediana.Codecs.Av1
                 return references.Show(reference);
             }
             Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry, references);
-            if (header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch)
+            bool inter = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
+            if (inter && (!header.Quantization.Lossless || header.Inter.ReferenceMotion))
             {
-                throw new NotSupportedException("AV1 inter-block reconstruction is not implemented.");
+                throw new NotSupportedException("AV1 quantized inter blocks and temporal motion candidates are not implemented.");
             }
             references.Invalidate(header.InvalidReferences);
             geometry = header.Geometry;
             int sampleCount = geometry.SampleCount;
             int contextBytes = checked(geometry.ContextCount * Unsafe.SizeOf<Av1BlockContext>());
             Span<ushort> probabilities = stackalloc ushort[Av1DefaultCdfs.Count];
+            ReadOnlySpan<ushort> initialProbabilities = default;
+            if (inter && header.Inter.PrimaryReference != Av1InterPrediction.NoPrimaryReference)
+            {
+                initialProbabilities = MemoryMarshal.Cast<byte, ushort>(references.Get(header.Inter.References[header.Inter.PrimaryReference]).Cdfs.Memory.Span);
+            }
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
+            using (WritableMediaBuffer? motions = inter ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1MotionBlock>())) : null)
             using (WritableMediaBuffer contexts = allocator.Allocate(contextBytes))
             using (WritableMediaBuffer decoded = allocator.Allocate(geometry.SampleCount / 16))
             {
+                Span<Av1MotionBlock> motionBlocks = motions is null ? default : MemoryMarshal.Cast<byte, Av1MotionBlock>(motions.Span);
                 Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities, decoded.Span,
-                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken);
+                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks);
                 tile.Decode();
             }
             cancellationToken.ThrowIfCancellationRequested();
@@ -119,7 +127,7 @@ namespace Mediana.Codecs.Av1
                 {
                     if (header.DisableFrameEndUpdate)
                     {
-                        Av1TileProbabilities.Initialize(probabilities, header.Quantization.BaseIndex);
+                        Av1TileProbabilities.Initialize(probabilities, header.Quantization.BaseIndex, initialProbabilities);
                     }
                     references.Save(picture, probabilities, allocator);
                 }

@@ -50,16 +50,15 @@ namespace Mediana.Codecs.Av1
                 ReadInactiveFilters(ref bits, sequence);
                 selectTransform = bits.Flag();
             }
+            Av1InterPrediction inter = context.Inter;
             if (!context.Intra)
             {
                 if (bits.Flag())
                 {
                     throw new NotSupportedException("AV1 compound reference prediction is not implemented.");
                 }
-                if (!context.ErrorResilient && sequence.Tools.WarpedMotion && bits.Flag())
-                {
-                    throw new NotSupportedException("AV1 warped motion prediction is not implemented.");
-                }
+                bool warped = !context.ErrorResilient && sequence.Tools.WarpedMotion && bits.Flag();
+                inter = inter with { WarpedMotion = warped };
             }
             bool reducedTransformSet = bits.Flag();
             if (!context.Intra)
@@ -81,7 +80,7 @@ namespace Mediana.Codecs.Av1
             {
                 throw new InvalidDataException("The AV1 frame has no tile payload.");
             }
-            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, context.Inter);
+            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, inter);
         }
 
         private static int ReadDelta(ref Av1BitReader bits) => bits.Flag() ? bits.ReadSigned(7) : 0;
