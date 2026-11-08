@@ -5,87 +5,63 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void Coefficients(int plane, int x4, int y4, int blockWidth, int blockHeight, bool skip, int mode, scoped Span<int> quant, bool inter = false, int lumaRow = 0, int lumaColumn = 0)
+        private void Coefficients(int plane, int x4, int y4, int blockWidth, int blockHeight, bool skip, int mode, scoped Span<int> quant, bool inter = false, int lumaRow = 0, int lumaColumn = 0, int transformWidth = 4, int transformHeight = 4)
         {
             quant.Clear();
-            ref Av1BlockContext top = ref CoefficientAbove(plane)[x4];
-            int mask = (LeftContexts >> sequence.PlaneShift(plane)) - 1;
-            ref Av1BlockContext prior = ref CoefficientLeft(plane)[y4 & mask];
+            Av1TransformSize size = new(transformWidth, transformHeight);
             int planeType = plane == 0 ? 0 : 1;
-            int context;
-            if (plane != 0)
+            int context = CoefficientSkipContext(plane, x4, y4, blockWidth, blockHeight, size);
+            if (skip || symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.AllZeroOffset + size.Context * 39 + context * 3, 3)) != 0)
             {
-                context = 7 + ((top.Level | top.Dc) != 0 ? 1 : 0) + ((prior.Level | prior.Dc) != 0 ? 1 : 0);
-                if (blockWidth * blockHeight > 1)
-                {
-                    context += 3;
-                }
-            }
-            else if (blockWidth == 1 && blockHeight == 1)
-            {
-                context = 0;
-            }
-            else if (top.Level == 0 && prior.Level == 0)
-            {
-                context = 1;
-            }
-            else if (top.Level == 0 || prior.Level == 0)
-            {
-                context = 2 + (Math.Max(top.Level, prior.Level) > 3 ? 1 : 0);
-            }
-            else if (Math.Max(top.Level, prior.Level) <= 3)
-            {
-                context = 4;
-            }
-            else
-            {
-                context = Math.Min(top.Level, prior.Level) <= 3 ? 5 : 6;
-            }
-            if (skip || symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.AllZeroOffset + context * 3, 3)) != 0)
-            {
-                top.Level = prior.Level = top.Dc = prior.Dc = 0;
+                StoreCoefficientContext(plane, x4, y4, size, 0, 0);
+                StoreTransform(plane, x4, y4, size, 0);
                 return;
             }
-            int transform = ReadTransform(plane, mode, inter, x4, y4, lumaRow, lumaColumn);
-            if (inter && plane == 0) { motionBlocks[y4 * sequence.MiColumns + x4].Transform = (byte)transform; }
+            int transform = ReadTransform(plane, mode, inter, x4, y4, lumaRow, lumaColumn, size);
+            StoreTransform(plane, x4, y4, size, transform);
             int transformClass = transform switch { 10 or 12 or 14 => 2, 11 or 13 or 15 => 1, _ => 0 };
-            int point = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.Eob16Offset + planeType * 12 + (transformClass == 0 ? 0 : 6), 6)) + 1;
+            int eobSize = System.Numerics.BitOperations.Log2((uint)(size.CodedWidth * size.CodedHeight)) - 4;
+            int eobOffset = eobSize switch
+            {
+                0 => Av1DefaultCdfs.Eob16Offset, 1 => Av1DefaultCdfs.Eob32Offset,
+                2 => Av1DefaultCdfs.Eob64Offset, 3 => Av1DefaultCdfs.Eob128Offset,
+                4 => Av1DefaultCdfs.Eob256Offset, 5 => Av1DefaultCdfs.Eob512Offset,
+                6 => Av1DefaultCdfs.Eob1024Offset,
+                _ => throw new InvalidDataException("The AV1 coefficient extent is invalid.")
+            };
+            int alphabet = 6 + eobSize;
+            int eobContext = eobSize >= 5 ? planeType : planeType * 2 + (transformClass == 0 ? 0 : 1);
+            int point = symbols.ReadSymbol(probabilities.Slice(eobOffset + eobContext * alphabet, alphabet)) + 1;
             int end = point < 2 ? point : (1 << (point - 2)) + 1;
             int shift = point - 3;
             if (shift >= 0)
             {
-                int extra = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.EobExtraOffset + planeType * 27 + shift * 3, 3));
+                int extra = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.EobExtraOffset + size.Context * 54 + planeType * 27 + shift * 3, 3));
                 end += extra << shift;
                 end += (int)symbols.ReadLiteral(shift);
             }
-            ReadOnlySpan<byte> scan;
-            switch (transformClass)
-            {
-                case 0: scan = [0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15]; break;
-                case 1: scan = [0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15]; break;
-                case 2: scan = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]; break;
-                default: throw new InvalidDataException("The AV1 transform class is invalid.");
-            }
+            ReadOnlySpan<ushort> scan = Av1CoefficientTables.Scan(size.CodedWidth, size.CodedHeight);
             for (int ordinal = end - 1; ordinal >= 0; ordinal--)
             {
-                int position = scan[ordinal];
+                int position = ScanPosition(scan, ordinal, transformClass, size);
                 int level;
                 if (ordinal == end - 1)
                 {
-                    int lastContext = ordinal switch { 0 => 0, <= 2 => 1, <= 4 => 2, _ => 3 };
-                    level = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBaseEobOffset + planeType * 16 + lastContext * 4, 4)) + 1;
+                    int area = size.CodedWidth * size.CodedHeight;
+                    int lastContext = ordinal == 0 ? 0 : ordinal <= area / 8 ? 1 : ordinal <= area / 4 ? 2 : 3;
+                    level = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBaseEobOffset + size.Context * 32 + planeType * 16 + lastContext * 4, 4)) + 1;
                 }
                 else
                 {
-                    int baseContext = CoefficientBaseContext(quant, position, transformClass);
-                    level = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBaseOffset + planeType * 210 + baseContext * 5, 5));
+                    int baseContext = CoefficientBaseContext(quant, position, transformClass, size);
+                    level = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBaseOffset + size.Context * 420 + planeType * 210 + baseContext * 5, 5));
                 }
                 if (level > 2)
                 {
-                    int rangeContext = CoefficientRangeContext(quant, position, transformClass);
+                    int rangeContext = CoefficientRangeContext(quant, position, transformClass, size);
                     for (int index = 0; index < 4; index++)
                     {
-                        int extra = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBrOffset + planeType * 105 + rangeContext * 5, 5));
+                        int extra = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CoeffBrOffset + Math.Min(size.Context, 3) * 210 + planeType * 105 + rangeContext * 5, 5));
                         level += extra;
                         if (extra < 3)
                         {
@@ -99,7 +75,7 @@ namespace Mediana.Codecs.Av1
             byte dc = 0;
             for (int ordinal = 0; ordinal < end; ordinal++)
             {
-                int position = scan[ordinal];
+                int position = ScanPosition(scan, ordinal, transformClass, size);
                 int level = quant[position];
                 if (level == 0)
                 {
@@ -108,7 +84,7 @@ namespace Mediana.Codecs.Av1
                 bool negative;
                 if (ordinal == 0)
                 {
-                    int sum = DcSign(top.Dc) + DcSign(prior.Dc);
+                    int sum = CoefficientDcSign(plane, x4, y4, size);
                     int signContext = sum switch { < 0 => 1, > 0 => 2, _ => 0 };
                     negative = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.DcSignOffset + planeType * 9 + signContext * 3, 3)) != 0;
                 }
@@ -128,71 +104,25 @@ namespace Mediana.Codecs.Av1
                 total += level;
                 int signed = negative ? -level : level;
                 int multiplier = position == 0 ? header.Quantization.Dc(plane) : header.Quantization.Ac(plane);
-                int dequantized = Math.Abs(signed * multiplier) & 0xFFFFFF;
+                int dequantized = (Math.Abs(signed * multiplier) & 0xFFFFFF) >> size.DequantizationShift;
                 quant[position] = Math.Clamp(negative ? -dequantized : dequantized, short.MinValue, short.MaxValue);
             }
-            top.Level = prior.Level = (byte)Math.Min(63, total);
-            top.Dc = prior.Dc = dc;
+            StoreCoefficientContext(plane, x4, y4, size, (byte)Math.Min(63, total), dc);
+            if (size.Width != size.CodedWidth)
+            {
+                for (int row = size.CodedHeight - 1; row >= 0; row--)
+                {
+                    quant.Slice(row * size.CodedWidth, size.CodedWidth).CopyTo(quant.Slice(row * size.Width));
+                    quant.Slice(row * size.Width + size.CodedWidth, size.Width - size.CodedWidth).Clear();
+                }
+            }
             if (header.Quantization.Lossless)
             {
                 Av1LosslessTransform.Inverse(quant);
             }
             else
             {
-                Av1Transform4.Inverse(quant, transform);
-            }
-        }
-
-        private int ReadTransform(int plane, int mode, bool inter, int x4, int y4, int lumaRow, int lumaColumn)
-        {
-            if (header.Quantization.Lossless)
-            {
-                return 0;
-            }
-            if (inter)
-            {
-                if (plane != 0)
-                {
-                    int row = Math.Max(lumaRow, y4 << 1);
-                    int column = Math.Max(lumaColumn, x4 << 1);
-                    return motionBlocks[row * sequence.MiColumns + column].Transform;
-                }
-                if (header.Quantization.BaseIndex == 0) { return 0; }
-                if (header.ReducedTransformSet)
-                {
-                    int type = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.InterTx3Offset, 3));
-                    return type == 0 ? 9 : 0;
-                }
-                int symbol = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.InterTx1Offset, 17));
-                ReadOnlySpan<byte> transforms = [9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 4, 5, 3, 6, 7, 8];
-                return transforms[symbol];
-            }
-            if (plane != 0)
-            {
-                return mode switch
-                {
-                    0 or 3 or 13 => 0,
-                    1 or 5 or 8 => 1,
-                    2 or 6 or 7 => 2,
-                    4 => 3,
-                    _ => throw new NotSupportedException("The AV1 chroma transform mode is not implemented.")
-                };
-            }
-            if (header.Quantization.BaseIndex == 0)
-            {
-                return 0;
-            }
-            if (header.ReducedTransformSet)
-            {
-                int symbol = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.IntraTx2Offset + mode * 6, 6));
-                ReadOnlySpan<byte> transforms = [9, 0, 3, 1, 2];
-                return transforms[symbol];
-            }
-            else
-            {
-                int symbol = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.IntraTx1Offset + mode * 8, 8));
-                ReadOnlySpan<byte> transforms = [9, 0, 10, 11, 3, 1, 2];
-                return transforms[symbol];
+                Av1InverseTransform.Inverse(quant, size.Width, size.Height, transform);
             }
         }
 
@@ -210,69 +140,12 @@ namespace Mediana.Codecs.Av1
             return (1 << (length - 1)) | (int)symbols.ReadLiteral(length - 1);
         }
 
-        private static int DcSign(int value) => value switch
+        private static int ScanPosition(ReadOnlySpan<ushort> scan, int ordinal, int transformClass, Av1TransformSize size) => transformClass switch
         {
-            0 => 0,
-            1 => -1,
-            2 => 1,
-            _ => throw new InvalidDataException("The AV1 DC sign context is invalid.")
+            0 => scan[ordinal],
+            1 => (ordinal % size.CodedHeight) * size.CodedWidth + ordinal / size.CodedHeight,
+            2 => ordinal,
+            _ => throw new InvalidDataException("The AV1 transform class is invalid.")
         };
-
-        private static int CoefficientBaseContext(scoped ReadOnlySpan<int> levels, int position, int transformClass)
-        {
-            if (position == 0 && transformClass == 0)
-            {
-                return 0;
-            }
-            int row = position >> 2;
-            int column = position & 3;
-            if (transformClass != 0)
-            {
-                int extent = transformClass == 1 ? column : row;
-                int sum = Neighbor(levels, row, column + 1, 3) + Neighbor(levels, row + 1, column, 3);
-                for (int step = 2; step <= 4; step++)
-                {
-                    sum += transformClass == 1 ? Neighbor(levels, row, column + step, 3) : Neighbor(levels, row + step, column, 3);
-                }
-                return Math.Min((sum + 1) >> 1, 4) + 26 + Math.Min(extent, 2) * 5;
-            }
-            int magnitude = Neighbor(levels, row, column + 1, 3) + Neighbor(levels, row + 1, column, 3) +
-                Neighbor(levels, row + 1, column + 1, 3) + Neighbor(levels, row, column + 2, 3) +
-                Neighbor(levels, row + 2, column, 3);
-            ReadOnlySpan<byte> offsets = [0, 1, 6, 6, 1, 6, 6, 21, 6, 6, 21, 21, 6, 21, 21, 21];
-            return Math.Min((magnitude + 1) >> 1, 4) + offsets[position];
-        }
-
-        private static int CoefficientRangeContext(scoped ReadOnlySpan<int> levels, int position, int transformClass)
-        {
-            int row = position >> 2;
-            int column = position & 3;
-            int magnitude = Neighbor(levels, row, column + 1, 15) + Neighbor(levels, row + 1, column, 15) +
-                (transformClass switch
-                {
-                    0 => Neighbor(levels, row + 1, column + 1, 15),
-                    1 => Neighbor(levels, row, column + 2, 15),
-                    2 => Neighbor(levels, row + 2, column, 15),
-                    _ => throw new InvalidDataException("The AV1 transform class is invalid.")
-                });
-            int context = Math.Min((magnitude + 1) >> 1, 6);
-            if (position == 0)
-            {
-                return context;
-            }
-            bool near = transformClass switch
-            {
-                0 => row < 2 && column < 2,
-                1 => column == 0,
-                2 => row == 0,
-                _ => throw new InvalidDataException("The AV1 transform class is invalid.")
-            };
-            return context + (near ? 7 : 14);
-        }
-
-        private static int Neighbor(scoped ReadOnlySpan<int> levels, int row, int column, int maximum)
-        {
-            return row < 4 && column < 4 ? Math.Min(levels[row * 4 + column], maximum) : 0;
-        }
     }
 }
