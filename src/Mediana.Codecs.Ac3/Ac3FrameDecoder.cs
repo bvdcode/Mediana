@@ -9,6 +9,7 @@ namespace Mediana.Codecs.Ac3
     internal partial class Ac3FrameDecoder(MediaBufferAllocator allocator, bool applyDynamicRangeCompression = true) : IDisposable
     {
         private readonly Ac3Workspace workspace = new(allocator);
+        private readonly Ac3SpectralExtension spectralExtension = new(allocator);
         private static readonly ushort[] CrcTable = CreateCrcTable();
         private readonly int[] end = new int[7], strategies = new int[7], fine = new int[7], fastGain = new int[7], deltaMode = new int[7];
         private readonly bool[] coupled = new bool[5], shortBlock = new bool[5], dither = new bool[5], coordinateNew = new bool[5], coordinateValid = new bool[5], rematrix = new bool[4];
@@ -49,6 +50,7 @@ namespace Mediana.Codecs.Ac3
             Array.Clear(coupled); Array.Clear(coordinateValid); Array.Clear(rematrix);
             Array.Clear(end); Array.Clear(fine); Array.Clear(fastGain); Array.Clear(deltaMode);
             coupling = false; phaseInUse = false; dynamics.AsSpan().Fill(1);
+            spectralExtension.ResetFrame();
             for (int ch = 0; ch < 7; ch++) { workspace.Delta(ch).Clear(); }
             Ac3BitReader bits = new(data);
             if (header.IsEnhanced) { ReadEnhancedHeader(ref bits); }
@@ -60,6 +62,7 @@ namespace Mediana.Codecs.Ac3
                 else { ReadBlock(ref bits, block); }
                 ReadMantissas(ref bits);
                 ApplyRematrix();
+                for (int ch = 0; ch < fullChannels; ch++) { spectralExtension.Process(ch, workspace.Spectrum(ch), ref random); }
                 for (int ch = 0; ch < header.ChannelCount; ch++)
                 {
                     double gain = applyDynamicRangeCompression ? dynamics[header.ChannelMode == 0 && ch == 1 ? 1 : 0] : 1;
@@ -157,7 +160,8 @@ namespace Mediana.Codecs.Ac3
             }
             if (count < 2) { throw new InvalidDataException("AC-3 coupling requires at least two channels."); }
             phaseInUse = header.ChannelMode == 2 && bits.Flag();
-            int begin = bits.Read(4), finish = bits.Read(4) + 3;
+            int begin = bits.Read(4);
+            int finish = enhanced && spectralExtension.InUse ? (spectralExtension.BeginBin - 37) / 12 : bits.Read(4) + 3;
             if (begin >= finish) { throw new InvalidDataException("The AC-3 coupling frequency range is invalid."); }
             int newStart = 37 + begin * 12, newEnd = 37 + finish * 12;
             couplingExponentsRequired = !previous || newStart != couplingStart || newEnd != couplingEnd;
@@ -215,7 +219,8 @@ namespace Mediana.Codecs.Ac3
             bool present = enhanced && block == 0 || bits.Flag();
             if (!present && block == 0) { throw new InvalidDataException("The first AC-3 block must define its rematrix strategy."); }
             if (!present) { return; }
-            int bands = !coupling || couplingStart > 61 ? 4 : couplingStart > 37 ? 3 : 2;
+            int bands = !coupling ? spectralExtension.InUse && spectralExtension.BeginCode < 2 ? 3 : 4 :
+                couplingStart > 61 ? 4 : couplingStart > 37 ? 3 : 2;
             for (int band = 0; band < 4; band++) { rematrix[band] = band < bands && bits.Flag(); }
         }
 
@@ -225,10 +230,13 @@ namespace Mediana.Codecs.Ac3
             {
                 if (strategies[ch] == 0)
                 {
-                    if (coupled[ch] && end[ch] != couplingStart) { throw new InvalidDataException("Changed AC-3 channel bandwidth requires new exponents."); }
+                    if ((coupled[ch] && end[ch] != couplingStart) ||
+                        (spectralExtension.UsesChannel(ch) && !coupled[ch] && end[ch] != spectralExtension.BeginBin))
+                    { throw new InvalidDataException("Changed AC-3 channel bandwidth requires new exponents."); }
                     continue;
                 }
                 if (coupled[ch]) { end[ch] = couplingStart; }
+                else if (spectralExtension.UsesChannel(ch)) { end[ch] = spectralExtension.BeginBin; }
                 else
                 {
                     int bandwidth = bits.Read(6);
@@ -323,6 +331,6 @@ namespace Mediana.Codecs.Ac3
         }
 
         public void Reset() { workspace.Reset(); random = 1; }
-        public void Dispose() => workspace.Dispose();
+        public void Dispose() { workspace.Dispose(); spectralExtension.Dispose(); }
     }
 }

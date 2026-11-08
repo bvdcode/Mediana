@@ -27,6 +27,12 @@ namespace Mediana.Codecs.Ac3.Tests
         [InlineData("d45.ac3", "d45.pcm", 48000, 1, 135)]
         [InlineData("enhanced-d25.eac3", "enhanced-d25.pcm", 48000, 1, 135)]
         [InlineData("enhanced-d45.eac3", "enhanced-d45.pcm", 48000, 1, 135)]
+        [InlineData("spectral.eac3", "spectral.pcm", 48000, 1, 130)]
+        [InlineData("spectral-atten0.eac3", "spectral-atten0.pcm", 48000, 1, 130)]
+        [InlineData("spectral-atten31.eac3", "spectral-atten31.pcm", 48000, 1, 130)]
+        [InlineData("spectral-merged.eac3", "spectral-merged.pcm", 48000, 1, 130)]
+        [InlineData("spectral-rematrix.eac3", "spectral-rematrix.pcm", 48000, 2, 130)]
+        [InlineData("spectral-coupled.eac3", "spectral-coupled.pcm", 48000, 2, 130)]
         public void DecodedPcmMatchesIndependentReference(string encodedName, string referenceName, int rate, int channels, double minimumSnr)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", encodedName));

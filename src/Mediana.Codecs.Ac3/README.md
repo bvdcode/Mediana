@@ -20,12 +20,13 @@ Both implementations validate frame length and the complete-frame CRC before dec
 - Long and switched short inverse transforms, Kaiser-Bessel-derived window and persistent overlap.
 - Line-mode dynamic range control, enabled by default. Pass `applyDynamicRangeCompression: false` to a factory to preserve the encoded dynamic range. Dialogue normalization and RF compression metadata do not change PCM gain.
 - E-AC-3 independent or AC-3-converted substreams using conventional transforms and coupling, all four block counts, frame/block exponent and SNR strategies.
+- E-AC-3 spectral extension with band merging, reused coordinates, noise blending and attenuation filters; it composes with stereo rematrixing and standard coupling.
 
-E-AC-3 dependent substream composition, adaptive hybrid transforms, enhanced coupling, spectral extension and transient pre-noise processing are not implemented. Their presence produces a specific `NotSupportedException` before PCM is published. Reserved syntax is rejected. The sample rate code reserved by ETSI TS 102 366 is rejected rather than interpreted as a reduced-rate extension.
+E-AC-3 dependent substream composition, adaptive hybrid transforms, enhanced coupling and transient pre-noise processing are not implemented. Their presence produces a specific `NotSupportedException` before PCM is published. Reserved syntax is rejected. The sample rate code reserved by ETSI TS 102 366 is rejected rather than interpreted as a reduced-rate extension.
 
 ## Verification
 
-The dedicated test project compares decoded PCM to independently decoded FFmpeg float32 references. It covers mono, stereo and 5.1 at the three sample rates, coupled and uncoupled spectra, all four E-AC-3 block counts, long/short transitions, and exponent reuse. Controlled inputs without dither exceed 135 dB differential SNR. Dither uses an independent sequence permitted by the specification, so dithered outputs are compared by error and signal energy rather than bit identity.
+The dedicated test project compares decoded PCM to independently decoded FFmpeg float32 references. It covers mono, stereo and 5.1 at the three sample rates, coupled and uncoupled spectra, all four E-AC-3 block counts, long/short transitions, and exponent reuse. Controlled inputs without dither exceed 135 dB differential SNR. Spectral-extension reference inputs cover stereo rematrixing, standard coupling, band merging and both attenuation extremes; their differential SNR exceeds 139 dB. Noise blending is checked against the banded energy envelope with a conforming independent random sequence. Dither uses an independent sequence permitted by the specification, so dithered outputs are compared by error and signal energy rather than bit identity.
 
 Contract tests cover backpressure, timestamps, clipped presentation, preroll, retained output, cancellation, reset, corruption, allocator failure and zero additional spectral/synthesis workspace allocation during repeated decoding.
 

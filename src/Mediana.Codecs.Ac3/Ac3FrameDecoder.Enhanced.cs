@@ -155,7 +155,7 @@ namespace Mediana.Codecs.Ac3
             }
             if (attenuationExists)
             {
-                for (int ch = 0; ch < fullChannels; ch++) { if (bits.Flag()) { bits.Skip(5); } }
+                spectralExtension.ReadAttenuation(ref bits, fullChannels);
             }
             if (blocks != 1 && bits.Flag())
             {
@@ -172,7 +172,7 @@ namespace Mediana.Codecs.Ac3
             for (int ch = 0; ch < fullChannels; ch++) { shortBlock[ch] = blockSwitchExists && bits.Flag(); }
             for (int ch = 0; ch < fullChannels; ch++) { dither[ch] = !ditherExists || bits.Flag(); }
             ReadDynamics(ref bits);
-            if ((block == 0 || bits.Flag()) && bits.Flag()) { throw new NotSupportedException("E-AC-3 spectral extension is not supported."); }
+            spectralExtension.ReadBlock(ref bits, block, fullChannels, header.ChannelMode == 1);
             if (enhancedCouplingStrategy[block])
             {
                 ReadCoupling(ref bits, enhancedCoupling[block], true);

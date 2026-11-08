@@ -50,8 +50,7 @@ namespace Mediana.Codecs.Ac3
 
         private double NextDither()
         {
-            random ^= random << 13; random ^= random >> 17; random ^= random << 5;
-            return ((random >> 8) / 8388608.0 - 1) * 0.7071067811865476;
+            return Ac3NoiseGenerator.Next(ref random) * 0.7071067811865476;
         }
 
         private void ApplyRematrix()
