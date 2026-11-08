@@ -97,12 +97,19 @@ namespace Mediana.Codecs.Av1
             this.probabilities = probabilities;
             this.decoded = decoded;
             this.contexts = contexts;
-            contexts.Clear();
             above = contexts[..sequence.MiColumns];
             left = contexts.Slice(sequence.MiColumns, LeftContexts);
             this.cancellationToken = cancellationToken;
             symbols = new(encoded, !header.DisableCdfUpdate);
             Av1TileProbabilities.Initialize(probabilities, header.Quantization.BaseIndex, initialProbabilities);
+            int startColumn = bounds.ColumnStart;
+            int tileColumns = bounds.ColumnEnd - startColumn;
+            above.Slice(startColumn, tileColumns).Clear();
+            if (!sequence.Monochrome)
+            {
+                CoefficientAbove(1).Slice(startColumn >> 1, tileColumns >> 1).Clear();
+                CoefficientAbove(2).Slice(startColumn >> 1, tileColumns >> 1).Clear();
+            }
         }
 
         internal void Decode()
