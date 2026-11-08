@@ -83,7 +83,7 @@ namespace Mediana.Codecs.Av1
             }
             else if (!inter)
             {
-                PredictIntra(plane, pixelX, pixelY, mode == 13 ? default : prediction, size.Width, size.Height);
+                PredictIntra(plane, pixelX, pixelY, mode == 13 ? default : prediction, size.Width, size.Height, row, column);
                 if (mode == 13)
                 {
                     int alpha = plane switch
@@ -106,10 +106,12 @@ namespace Mediana.Codecs.Av1
                 }
             }
             StoreFilterTransform(plane, x4, y4, size);
+            byte decodedFlags = DecodedFlag;
+            if (!inter && mode is >= 9 and <= 11) { decodedFlags |= SmoothFlag; }
             for (int dy = 0; dy < (visibleHeight >> 2); dy++)
             {
                 int decodedOffset = offset / 16 + (y4 + dy) * sequence.PlaneColumns(plane) + x4;
-                decoded.Slice(decodedOffset, visibleWidth >> 2).Fill(1);
+                decoded.Slice(decodedOffset, visibleWidth >> 2).Fill(decodedFlags);
             }
         }
     }

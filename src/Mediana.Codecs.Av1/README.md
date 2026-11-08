@@ -9,8 +9,7 @@ Output keeps native planar samples, packet timing,
 render aspect ratio and codec color labels without copying pixel storage.
 
 Verified reconstruction includes all partition shapes, palette luma,
-nonzero lossless coefficients, directional intra prediction without edge
-filtering, chroma prediction from luma, ordinary multi-frame sequence headers,
+nonzero lossless coefficients, directional intra prediction with filtered and upsampled edges, chroma prediction from luma, ordinary multi-frame sequence headers,
 odd dimensions and partial frame edges. Quantized four-point reconstruction
 includes DCT, ADST, identity and horizontal/vertical DCT transform types, all
 four coefficient probability groups, chroma quantizer deltas and reduced
@@ -83,9 +82,16 @@ AOM kernel vectors exercise every supported square/rectangular transform and
 cropped destinations; independently decoded still/moving sequences verify
 residuals and in-loop filtering together.
 
+Directional prediction filters reference edges with normative strength, corner
+filtering and upsampling for every angle delta. Smooth-neighbor state shares
+the existing per-plane decoded-block byte, without an extra picture-sized
+allocation. Independent native vectors cover all geometries, filter types,
+availability and partial destinations. Ordinary default-tool libaom stills and
+filtered moving sequences match independent decoded samples.
+
 Compound prediction,
 temporal motion fields, non-identity global motion, overlapped/warped reconstruction,
-intra-edge filtering, intra block copy,
+intra block copy,
 chroma palette, segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,
 film grain and decoder-model timing are not implemented. Encountering these

@@ -18,6 +18,10 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("filterRegions", 160, 136, false, 3)]
         [InlineData("filterMono", 117, 83, true, 1)]
         [InlineData("filterOdd", 37, 29, false, 1)]
+        [InlineData("edgeRegions", 160, 136, false, 3)]
+        [InlineData("edgeOdd", 37, 29, false, 1)]
+        [InlineData("defaultStill", 160, 136, false, 1)]
+        [InlineData("defaultMono", 117, 83, true, 1)]
         public void PublicCodecMatchesIndependentIntraVideo(string name, int width, int height, bool monochrome, int count)
         {
             byte[] encoded = Read(name + ".obu");

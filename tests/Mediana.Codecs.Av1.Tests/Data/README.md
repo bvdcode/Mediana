@@ -205,3 +205,17 @@ edge patterns each. `filterRegions`, `filterMono` and `filterOdd` use the same
 source patterns, dimensions and independent encoder/decoder versions as their
 `smooth` counterparts, with recursive intra enabled. Edge filtering remains
 disabled for these three fixtures.
+
+`directional.bin.gz` contains 4,256 directional edge vectors from AOM 3.13.1 C
+kernels. It starts with `AV1DIR01` and a little-endian 32-bit count. Each record
+stores byte width, height, angle, filter type, availability flags, visible width
+and visible height; two width-plus-height-plus-two edge arrays starting at
+logical sample -2; and width-times-height expected samples. The corpus spans
+all nineteen geometries, eight directional modes, seven angle deltas, both
+smooth-neighbor filter types, four availability combinations and partial blocks.
+
+`edgeRegions` (160×136, three frames) and `edgeOdd` (37×29) add directional
+edge filtering to the same quantized 4:2:0 source patterns. `defaultStill`
+(160×136 4:2:0) and `defaultMono` (117×83 monochrome) use ordinary libaom
+still-picture defaults at CRF35 without overriding individual coding tools.
+Their visible-sample baselines use libdav1d 1.4.1.

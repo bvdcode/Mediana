@@ -42,10 +42,6 @@ namespace Mediana.Codecs.Av1
             {
                 angleDelta = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.AngleDeltaOffset + (mode - 1) * 8, 8)) - 3;
             }
-            if (mode is >= 1 and <= 8 && sequence.IntraEdgeFilter && (mode != 1 && mode != 2 || angleDelta != 0))
-            {
-                throw new NotSupportedException("AV1 directional chroma edge filtering is not implemented.");
-            }
             return new(mode, angleDelta, alphaU, alphaV);
         }
 
