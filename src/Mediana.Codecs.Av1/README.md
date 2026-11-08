@@ -19,7 +19,8 @@ exact equality for every visible sample. Entropy fixtures separately check
 arithmetic state and CDF adaptation against AOM.
 
 Single-reference lossless and four-point quantized inter pictures support nearest, near, new and identity-global
-motion, primary-reference probability loading, frame identifiers and expiry, native
+motion, primary-reference probability loading, frame identifiers and expiry, modular
+order hints and short reference signaling, native
 eighth-sample luma and sixteenth-sample chroma interpolation, sub-eight-pixel
 chroma motion and reference scaling. Motion metadata and stored probability
 snapshots are accounted against the caller buffer budget. Independent moving

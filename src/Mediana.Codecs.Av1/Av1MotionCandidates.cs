@@ -200,9 +200,7 @@ namespace Mediana.Codecs.Av1
             int bits = sequence.Tools.OrderHintBits;
             if (bits == 0) { return false; }
             int hint = pictures.OrderHint(header.Inter.References[candidate - 1]);
-            int sign = 1 << (bits - 1);
-            int difference = hint - header.OrderHint;
-            return ((difference & (sign - 1)) - (difference & sign)) > 0;
+            return Av1ReferenceOrdering.Distance(hint, header.OrderHint, bits) > 0;
         }
 
         private int Lower(int value)

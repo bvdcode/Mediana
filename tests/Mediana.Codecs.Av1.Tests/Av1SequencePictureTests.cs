@@ -15,13 +15,15 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("interResidual", false)]
         [InlineData("interPrimary", false)]
         [InlineData("interLarge", false)]
+        [InlineData("interOrdered", false)]
+        [InlineData("interShort", false)]
         [InlineData("interQuantized10", false)]
         [InlineData("interQuantized30", false)]
         [InlineData("interQuantized50", false)]
         public void ReconstructsIndependentPictureSequence(string fixture, bool omitRepeatedHeaders)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", fixture + ".obu"));
-            byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", fixture == "sequence" ? "sequence.reference.yuv" : fixture + ".yuv"));
+            byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", fixture == "sequence" ? "sequence.reference.yuv" : fixture == "interShort" ? "interOrdered.yuv" : fixture + ".yuv"));
             MediaBufferAllocator allocator = new(1024 * 1024);
             using Av1PictureDecoder decoder = new(allocator);
             int frame = 0;

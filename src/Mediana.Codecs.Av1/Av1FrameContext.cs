@@ -65,13 +65,18 @@ namespace Mediana.Codecs.Av1
             Av1ReferenceIndices references = default;
             if (!intra)
             {
-                if (sequence.Tools.OrderHintBits != 0 && bits.Flag())
+                bool shortSignaling = sequence.Tools.OrderHintBits != 0 && bits.Flag();
+                if (shortSignaling)
                 {
-                    throw new NotSupportedException("AV1 short reference signaling is not implemented.");
+                    int last = bits.Read(3);
+                    int golden = bits.Read(3);
+                    Span<int> hints = stackalloc int[Av1ReferencePictures.Count];
+                    for (int index = 0; index < hints.Length; index++) { hints[index] = pictures.OrderHint(index); }
+                    references = Av1ReferenceOrdering.Resolve(hints, orderHint, sequence.Tools.OrderHintBits, last, golden);
                 }
                 for (int index = 0; index < Av1ReferenceIndices.Count; index++)
                 {
-                    int slot = bits.Read(3);
+                    int slot = shortSignaling ? references[index] : bits.Read(3);
                     if ((invalid & (1 << slot)) != 0)
                     {
                         throw new InvalidDataException("The AV1 frame references an expired picture.");

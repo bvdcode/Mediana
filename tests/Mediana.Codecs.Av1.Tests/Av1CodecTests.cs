@@ -19,13 +19,15 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("interResidual", false)]
         [InlineData("interPrimary", true)]
         [InlineData("interLarge", true)]
+        [InlineData("interOrdered", false)]
+        [InlineData("interShort", false)]
         [InlineData("interQuantized10", false)]
         [InlineData("interQuantized30", false)]
         [InlineData("interQuantized50", false)]
         public void PublicCodecPreservesSequencePixelsTimingAndLeases(string fixture, bool configureSequence)
         {
             byte[] encoded = Read(fixture + ".obu");
-            byte[] expected = Read(fixture == "sequence" ? "sequence.reference.yuv" : fixture + ".yuv");
+            byte[] expected = Read(fixture == "sequence" ? "sequence.reference.yuv" : fixture == "interShort" ? "interOrdered.yuv" : fixture + ".yuv");
             IReadOnlyList<ReadOnlyMemory<byte>> packets = Av1SequencePictureTests.AccessUnits(encoded);
             byte[] configuration = Configuration(packets[0].Span, configureSequence);
             EncodedStreamInfo stream = new(3, MediaKind.Video, "av1", StreamFormats.Av1, new(1, 25), configuration);
