@@ -16,6 +16,7 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("interPrimary", false)]
         [InlineData("interLarge", false)]
         [InlineData("interOrdered", false)]
+        [InlineData("interIntraMixed", false)]
         [InlineData("interShort", false)]
         [InlineData("interQuantized10", false)]
         [InlineData("interQuantized30", false)]
@@ -59,7 +60,7 @@ namespace Mediana.Codecs.Av1.Tests
                 frame++;
             }
             decoder.Dispose();
-            Assert.Equal(5, frame);
+            Assert.Equal(expected.Length / (48 * 40 * 3 / 2), frame);
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 

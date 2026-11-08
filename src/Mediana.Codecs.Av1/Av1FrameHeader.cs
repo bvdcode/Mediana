@@ -53,10 +53,11 @@ namespace Mediana.Codecs.Av1
             Av1InterPrediction inter = context.Inter;
             if (!context.Intra)
             {
-                if (bits.Flag())
-                {
-                    throw new NotSupportedException("AV1 compound reference prediction is not implemented.");
-                }
+                bool selectReference = bits.Flag();
+                inter = inter with { SelectReference = selectReference };
+                bool skipMode = selectReference && sequence.Tools.OrderHintBits != 0 &&
+                    Av1ReferenceOrdering.HasSkipPair(inter.References, references, context.OrderHint, sequence.Tools.OrderHintBits) && bits.Flag();
+                inter = inter with { SkipMode = skipMode };
                 bool warped = !context.ErrorResilient && sequence.Tools.WarpedMotion && bits.Flag();
                 inter = inter with { WarpedMotion = warped };
             }

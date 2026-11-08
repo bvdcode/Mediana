@@ -30,10 +30,12 @@ every native reference sample.
 Four-point inter transforms include all sixteen DCT, ADST, flipped ADST and
 identity combinations, with native chroma transform propagation. Three
 independently encoded lossy sequences at different quantization levels match
-every libdav1d sample.
+every libdav1d sample. Frame permissions for compound prediction, skip mode,
+inter-intra blending and switchable motion are parsed independently of the
+selected block tool; ordinary single-reference translation remains supported.
 
 Larger quantized transforms, compound prediction,
-temporal motion fields, non-identity global motion, switchable motion modes,
+temporal motion fields, non-identity global motion, overlapped/warped reconstruction,
 smooth/Paeth/filter-intra,
 deblocking, CDEF, loop restoration, intra-edge filtering, intra block copy,
 chroma palette, segmentation, multiple

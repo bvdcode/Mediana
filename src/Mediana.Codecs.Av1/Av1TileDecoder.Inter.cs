@@ -25,7 +25,7 @@ namespace Mediana.Codecs.Av1
                 throw new NotSupportedException("AV1 quantized inter transforms larger than four samples are not implemented.");
             }
             Av1ReferencePictures pictures = references ?? throw new InvalidOperationException("AV1 inter prediction requires stored pictures.");
-            int reference = ReadReference(row, column);
+            int reference = ReadReference(row, column, width, height);
             Span<Av1MotionCandidate> storage = stackalloc Av1MotionCandidate[Av1MotionCandidates.Capacity];
             Av1MotionCandidates candidates = new(storage, motionBlocks, sequence, header, pictures, row, column, width, height, reference);
             candidates.Build();
@@ -55,18 +55,11 @@ namespace Mediana.Codecs.Av1
                 if (joint is 2 or 3) { motionY += ReadMotionComponent(0); }
                 if (joint is 1 or 3) { motionX += ReadMotionComponent(1); }
             }
-            if (motionY is < -16384 or > 16383 || motionX is < -16384 or > 16383)
+            if (motionY is <= -16384 or >= 16384 || motionX is <= -16384 or >= 16384)
             {
                 throw new InvalidDataException("The AV1 motion vector exceeds its permitted range.");
             }
-            if (sequence.Tools.InterIntra && Math.Min(width, height) >= 2 && Math.Max(width, height) <= 8)
-            {
-                throw new NotSupportedException("AV1 inter-intra blending is not implemented.");
-            }
-            if (header.Inter.SwitchableMotion && Math.Min(width, height) >= 2)
-            {
-                throw new NotSupportedException("AV1 switchable motion modes are not implemented.");
-            }
+            ReadSimpleMotion(row, column, width, height, reference, pictures);
             int filterY = header.Inter.InterpolationFilter;
             int filterX = filterY;
             if (filterY == 4)
@@ -94,10 +87,19 @@ namespace Mediana.Codecs.Av1
             StoreContext(row, column, width, height, contextBlock);
         }
 
-        private int ReadReference(int row, int column)
+        private int ReadReference(int row, int column, int width, int height)
         {
             int aboveRef = row > 0 ? motionBlocks[(row - 1) * sequence.MiColumns + column].Reference : 0;
             int leftRef = column > 0 ? motionBlocks[row * sequence.MiColumns + column - 1].Reference : 0;
+            if (header.Inter.SelectReference && Math.Min(width, height) >= 2)
+            {
+                int context = row > 0 && column > 0 ? (aboveRef >= 5 ? 1 : 0) ^ (leftRef >= 5 ? 1 : 0)
+                    : row > 0 ? (aboveRef >= 5 ? 1 : 0) : column > 0 ? (leftRef >= 5 ? 1 : 0) : 1;
+                if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CompModeOffset + context * 3, 3)) != 0)
+                {
+                    throw new NotSupportedException("AV1 compound block prediction is not implemented.");
+                }
+            }
             if (ReadReferenceDecision(0, CountReferences(aboveRef, leftRef, 1, 4), CountReferences(aboveRef, leftRef, 5, 7)) != 0)
             {
                 if (ReadReferenceDecision(1, CountReferences(aboveRef, leftRef, 5, 6), CountReferences(aboveRef, leftRef, 7, 7)) != 0) { return 7; }

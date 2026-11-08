@@ -20,6 +20,7 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("interPrimary", true)]
         [InlineData("interLarge", true)]
         [InlineData("interOrdered", false)]
+        [InlineData("interIntraMixed", false)]
         [InlineData("interShort", false)]
         [InlineData("interQuantized10", false)]
         [InlineData("interQuantized30", false)]

@@ -10,10 +10,15 @@ namespace Mediana.Codecs.Av1
         private void Block(int row, int column, int width, int height)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            bool interFrame = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
+            if (interFrame && header.Inter.SkipMode && Math.Min(width, height) >= 2 &&
+                symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipModeOffset, 3)) != 0)
+            {
+                throw new NotSupportedException("AV1 compound skip-mode reconstruction is not implemented.");
+            }
             int skipContext = (row > 0 ? above[column].Skip : 0) +
                 (column > 0 ? left[row & (LeftContexts - 1)].Skip : 0);
             int skip = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipOffset + skipContext * 3, 3));
-            bool interFrame = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
             if (interFrame && ReadInter(row, column))
             {
                 InterBlock(row, column, width, height, skip);
@@ -26,7 +31,7 @@ namespace Mediana.Codecs.Av1
             int modeOffset = Av1DefaultCdfs.IntraModeOffset + modeContext * 14;
             if (interFrame)
             {
-                int sizeGroup = Math.Clamp(BitOperations.Log2((uint)Math.Max(width, height)) - 1, 0, 3);
+                int sizeGroup = BlockSizeGroup(BlockIndex(width, height));
                 modeOffset = Av1DefaultCdfs.InterIntraModeOffset + sizeGroup * 14;
             }
             int mode = symbols.ReadSymbol(probabilities.Slice(modeOffset, 14));
@@ -190,6 +195,12 @@ namespace Mediana.Codecs.Av1
                     }
                 }
             }
+        }
+
+        private static int BlockSizeGroup(int blockIndex)
+        {
+            ReadOnlySpan<byte> groups = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 0, 0, 1, 1, 2, 2];
+            return groups[blockIndex];
         }
 
         private static int BlockIndex(int width, int height) => (width, height) switch

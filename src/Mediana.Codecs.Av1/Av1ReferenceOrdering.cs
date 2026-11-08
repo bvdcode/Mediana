@@ -62,6 +62,31 @@ namespace Mediana.Codecs.Av1
             return references;
         }
 
+        internal static bool HasSkipPair(Av1ReferenceIndices indices, Av1ReferencePictures references, int current, int bits)
+        {
+            int forward = -1;
+            int forwardHint = 0;
+            bool backward = false;
+            for (int index = 0; index < Av1ReferenceIndices.Count; index++)
+            {
+                int hint = references.OrderHint(indices[index]);
+                int distance = Distance(hint, current, bits);
+                if (distance < 0 && (forward < 0 || Distance(hint, forwardHint, bits) > 0))
+                {
+                    forward = index;
+                    forwardHint = hint;
+                }
+                backward |= distance > 0;
+            }
+            if (forward < 0) { return false; }
+            if (backward) { return true; }
+            for (int index = 0; index < Av1ReferenceIndices.Count; index++)
+            {
+                if (Distance(references.OrderHint(indices[index]), forwardHint, bits) < 0) { return true; }
+            }
+            return false;
+        }
+
         internal static int Distance(int first, int second, int bits)
         {
             if (bits == 0) { return 0; }
