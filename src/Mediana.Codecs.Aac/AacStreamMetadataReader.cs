@@ -34,9 +34,21 @@ namespace Mediana.Codecs.Aac
             {
                 return null;
             }
-            CodecProfileInfo profile = configuration.ParametricStereo ? HighEfficiencyStereo :
-                configuration.SpectralBandReplication == true ? HighEfficiency : LowComplexity;
-            return new AudioStreamMetadata(configuration.OutputSampleRate, configuration.ParametricStereo ? 2 : configuration.ChannelCount)
+            CodecProfileInfo profile = configuration.ParametricStereo switch
+            {
+                true => HighEfficiencyStereo,
+                false or null => configuration.SpectralBandReplication switch
+                {
+                    true => HighEfficiency,
+                    false or null => LowComplexity
+                }
+            };
+            int channels = configuration.ParametricStereo switch
+            {
+                true => 2,
+                false or null => configuration.ChannelCount
+            };
+            return new AudioStreamMetadata(configuration.OutputSampleRate, channels)
             {
                 CodecProfile = profile
             };

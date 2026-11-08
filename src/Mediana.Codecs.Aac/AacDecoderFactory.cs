@@ -42,7 +42,7 @@ namespace Mediana.Codecs.Aac
             {
                 return reason;
             }
-            if (configuration.ParametricStereo)
+            if (configuration.ParametricStereo == true)
             {
                 return "AAC parametric stereo decoding is not supported.";
             }

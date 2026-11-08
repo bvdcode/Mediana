@@ -10,7 +10,7 @@ namespace Mediana.Formats.Audio
         private readonly byte[]? serialized;
 
         private AacConfiguration(int frequencyIndex, int channelConfiguration, bool? sbr = null,
-            int? extensionSampleRate = null, bool parametricStereo = false, byte[]? serialized = null)
+            int? extensionSampleRate = null, bool? parametricStereo = null, byte[]? serialized = null)
         {
             FrequencyIndex = frequencyIndex;
             ChannelConfiguration = channelConfiguration;
@@ -32,7 +32,8 @@ namespace Mediana.Formats.Audio
         /// <summary>Null means no out-of-band declaration; SBR may still be present in raw data.</summary>
         public bool? SpectralBandReplication { get; }
         public int? ExtensionSampleRate { get; }
-        public bool ParametricStereo { get; }
+        /// <summary>Null means no out-of-band declaration; PS may still be present in SBR extension data.</summary>
+        public bool? ParametricStereo { get; }
         public int OutputSampleRate => ExtensionSampleRate ?? SampleRate;
         public int OutputSamplesPerFrame => checked(SamplesPerFrame * (OutputSampleRate / SampleRate));
 
@@ -78,7 +79,7 @@ namespace Mediana.Formats.Audio
             }
             bool? sbr = null;
             int? extensionRate = null;
-            bool ps = objectType == 29;
+            bool? ps = objectType == 29 ? true : null;
             if (objectType is 5 or 29)
             {
                 sbr = true;

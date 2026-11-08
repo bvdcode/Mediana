@@ -51,20 +51,25 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData("2C0A8800", 16000, 32000, 1, false)]
-        [InlineData("2C128800", 16000, 32000, 2, false)]
+        [InlineData("2C0A8800", 16000, 32000, 1, null)]
+        [InlineData("2C128800", 16000, 32000, 2, null)]
         [InlineData("EC0A8800", 16000, 32000, 1, true)]
-        [InlineData("2B8A0800", 22050, 44100, 1, false)]
-        [InlineData("2B920800", 22050, 44100, 2, false)]
+        [InlineData("2B8A0800", 22050, 44100, 1, null)]
+        [InlineData("2B920800", 22050, 44100, 2, null)]
         [InlineData("EB8A0800", 22050, 44100, 1, true)]
-        [InlineData("2B098800", 24000, 48000, 1, false)]
-        [InlineData("2B118800", 24000, 48000, 2, false)]
+        [InlineData("2B098800", 24000, 48000, 1, null)]
+        [InlineData("2B118800", 24000, 48000, 2, null)]
         [InlineData("EB098800", 24000, 48000, 1, true)]
-        [InlineData("118856E580", 48000, 96000, 1, false)]
-        [InlineData("138856E5A0", 22050, 44100, 1, false)]
+        [InlineData("118856E580", 48000, 96000, 1, null)]
+        [InlineData("138856E5A0", 22050, 44100, 1, null)]
         [InlineData("138856E5A54880", 22050, 44100, 1, true)]
-        public void AtscEnhancementConfigurationsPreserveCoreAndOutputParameters(string hex,
-            int coreRate, int outputRate, int channels, bool ps)
+        [InlineData("130856E59D4800", 24000, 48000, 1, false)]
+        [InlineData("2B0B0800", 24000, 24000, 1, null)]
+        [InlineData("2B130800", 24000, 24000, 2, null)]
+        [InlineData("130856E5B54800", 24000, 24000, 1, false)]
+        [InlineData("131056E5B54800", 24000, 24000, 2, false)]
+        public void EnhancementConfigurationsPreserveCoreOutputAndPsSignaling(string hex,
+            int coreRate, int outputRate, int channels, bool? ps)
         {
             byte[] bytes = Convert.FromHexString(hex);
             AacConfiguration value = AacConfiguration.ReadAudioSpecificConfig(bytes, out string? reason)!;
@@ -77,7 +82,7 @@ namespace Mediana.Tests
             Assert.True(value.SpectralBandReplication);
             Assert.Equal(ps, value.ParametricStereo);
             Assert.Equal(1024, value.SamplesPerFrame);
-            Assert.Equal(2048, value.OutputSamplesPerFrame);
+            Assert.Equal(1024 * (outputRate / coreRate), value.OutputSamplesPerFrame);
             Assert.Equal(bytes, value.ToAudioSpecificConfig());
         }
 
