@@ -30,7 +30,7 @@ namespace Mediana.Containers.Mp4
             }
             return (kind, entry.Type) switch
             {
-                (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1" or "mp4v") => ParseVideo(entry, budget, quickTime),
+                (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1" or "av01" or "mp4v") => ParseVideo(entry, budget, quickTime),
                 (MediaKind.Audio, "mp4a") => ParseAudio(entry, budget),
                 (MediaKind.Audio, "ac-3" or "ec-3") => ParseAc3(entry, budget),
                 (MediaKind.Data, "tmcd") => ParseTimecode(entry),
@@ -81,6 +81,10 @@ namespace Mediana.Containers.Mp4
                     ReadOnlyMemory<byte> hevc = children.Required("hvcC").Payload;
                     HevcDecoderConfiguration.Read(hevc);
                     return (HevcDecoderConfiguration.CodecId, StreamFormats.Hevc, hevc);
+                case "av01":
+                    ReadOnlyMemory<byte> av1 = children.Required("av1C").Payload;
+                    Av1CodecConfigurationRecord.Read(av1.Span);
+                    return (Av1CodecConfigurationRecord.CodecId, StreamFormats.Av1, av1);
                 default:
                     throw new InvalidOperationException("The MP4 video sample entry mapping is inconsistent.");
             }

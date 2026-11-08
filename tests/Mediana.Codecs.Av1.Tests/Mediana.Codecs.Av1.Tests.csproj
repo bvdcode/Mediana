@@ -5,10 +5,14 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Mediana.Codecs.Av1/Mediana.Codecs.Av1.csproj" />
+    <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <Using Include="Xunit" />
     <None Include="Data/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Av1ContainerTestInput.cs" Link="Av1ContainerTestInput.cs" />
   </ItemGroup>
 </Project>

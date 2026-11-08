@@ -3,74 +3,20 @@
 
 namespace Mediana.Codecs.Av1
 {
-    internal ref struct Av1ObuReader(ReadOnlySpan<byte> encoded)
+    internal ref struct Av1ObuReader(ReadOnlySpan<byte> encoded, bool allowImplicitFinalSize = true)
     {
-        private readonly ReadOnlySpan<byte> data = encoded;
-        private int offset;
+        private Formats.Video.Av1ObuReader reader = new(encoded, allowImplicitFinalSize);
 
-        internal int ByteOffset => offset;
+        internal readonly int ByteOffset => reader.ByteOffset;
 
         internal bool TryRead(out int type, out ReadOnlySpan<byte> payload)
         {
-            type = 0;
-            payload = default;
-            if (offset == data.Length)
+            bool available = reader.TryRead(out type, out payload);
+            if (available && (reader.TemporalId != 0 || reader.SpatialId != 0))
             {
-                return false;
+                throw new NotSupportedException("AV1 temporal and spatial scalability are not implemented.");
             }
-            int header = data[offset++];
-            if ((header & 0x81) != 0)
-            {
-                throw new InvalidDataException("The AV1 OBU forbidden or reserved bit is set.");
-            }
-            type = (header >> 3) & 15;
-            if ((header & 4) != 0)
-            {
-                if (offset == data.Length)
-                {
-                    throw new InvalidDataException("The AV1 OBU extension header is truncated.");
-                }
-                int extension = data[offset++];
-                if ((extension & 7) != 0)
-                {
-                    throw new InvalidDataException("The AV1 OBU extension reserved bits are set.");
-                }
-                if (extension != 0)
-                {
-                    throw new NotSupportedException("AV1 temporal and spatial scalability are not implemented.");
-                }
-            }
-            if ((header & 2) == 0)
-            {
-                throw new NotSupportedException("AV1 input requires low-overhead OBUs with explicit sizes.");
-            }
-            ulong size = 0;
-            bool terminated = false;
-            for (int index = 0; index < 8; index++)
-            {
-                if (offset == data.Length)
-                {
-                    throw new InvalidDataException("The AV1 OBU size is truncated.");
-                }
-                byte next = data[offset++];
-                size |= (ulong)(next & 127) << (index * 7);
-                if ((next & 128) == 0)
-                {
-                    terminated = true;
-                    break;
-                }
-            }
-            if (!terminated || size > uint.MaxValue || size > (ulong)(data.Length - offset))
-            {
-                throw new InvalidDataException("The AV1 OBU extent is invalid.");
-            }
-            payload = data.Slice(offset, (int)size);
-            offset += (int)size;
-            if (type == 2 && !payload.IsEmpty)
-            {
-                throw new InvalidDataException("An AV1 temporal delimiter must be empty.");
-            }
-            return true;
+            return available;
         }
     }
 }

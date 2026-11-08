@@ -1,30 +1,21 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Formats.Video;
+
 namespace Mediana.Codecs.Av1
 {
     internal readonly record struct Av1Configuration(Av1SequenceHeader? Sequence, bool Monochrome, int ChromaPosition, int Level, bool Tier)
     {
         internal static Av1Configuration Read(ReadOnlySpan<byte> encoded)
         {
-            if (encoded.Length < 4 || encoded[0] != 0x81 || (encoded[3] & 0xE0) != 0 || ((encoded[3] & 0x10) == 0 && (encoded[3] & 15) != 0))
-            {
-                throw new InvalidDataException("The AV1 codec configuration record is invalid.");
-            }
-            if ((encoded[1] >> 5) != 0 || (encoded[2] & 0x60) != 0 || (encoded[2] & 12) != 12)
+            Av1CodecConfigurationRecord record = Av1CodecConfigurationRecord.Read(encoded);
+            if (record.Profile != 0 || record.BitDepth != 8 || !record.SubsamplingX || !record.SubsamplingY)
             {
                 throw new NotSupportedException("AV1 reconstruction requires Main-profile eight-bit 4:2:0 or monochrome samples.");
             }
-            int level = encoded[1] & 31;
-            bool tier = (encoded[2] & 128) != 0;
-            bool monochrome = (encoded[2] & 16) != 0;
-            int chromaPosition = encoded[2] & 3;
-            if ((level <= 7 && tier) || chromaPosition == 3 || (monochrome && chromaPosition != 0))
-            {
-                throw new InvalidDataException("The AV1 codec configuration signal is invalid.");
-            }
             Av1SequenceHeader? sequence = null;
-            Av1ObuReader obus = new(encoded[4..]);
+            Av1ObuReader obus = new(encoded[Av1CodecConfigurationRecord.HeaderBytes..], allowImplicitFinalSize: false);
             int count = 0;
             while (obus.TryRead(out int type, out ReadOnlySpan<byte> payload))
             {
@@ -42,7 +33,7 @@ namespace Mediana.Codecs.Av1
                 }
                 count++;
             }
-            Av1Configuration configuration = new(sequence, monochrome, chromaPosition, level, tier);
+            Av1Configuration configuration = new(sequence, record.Monochrome, record.ChromaPosition, record.Level, record.HighTier);
             if (sequence is Av1SequenceHeader header)
             {
                 configuration.Validate(header);
