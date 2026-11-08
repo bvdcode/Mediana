@@ -22,6 +22,9 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("edgeOdd", 37, 29, false, 1)]
         [InlineData("defaultStill", 160, 136, false, 1)]
         [InlineData("defaultMono", 117, 83, true, 1)]
+        [InlineData("temporalTx8", 48, 40, false, 10)]
+        [InlineData("temporalTx16", 48, 40, false, 10)]
+        [InlineData("temporalFree", 48, 40, false, 10)]
         public void PublicCodecMatchesIndependentIntraVideo(string name, int width, int height, bool monochrome, int count)
         {
             byte[] encoded = Read(name + ".obu");

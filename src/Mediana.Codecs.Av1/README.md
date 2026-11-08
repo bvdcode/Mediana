@@ -89,8 +89,17 @@ allocation. Independent native vectors cover all geometries, filter types,
 availability and partial destinations. Ordinary default-tool libaom stills and
 filtered moving sequences match independent decoded samples.
 
+Temporal motion prediction saves one six-byte vector/distance sample per 8×8
+luma region, shared by every reference slot using that picture. Projection
+preserves normative source order and block bounds; destination-reference vectors
+are computed at lookup, avoiding seven separate projected grids. Temporal stack
+weights, precision reduction and global-zero contexts follow the same path as
+spatial candidates. Three ten-frame sequences with active reference-motion
+selection match every independent output sample. Native projection/position
+vectors and scoped failure, cancellation, reset and shared-owner checks pass.
+
 Compound prediction,
-temporal motion fields, non-identity global motion, overlapped/warped reconstruction,
+non-identity global motion, overlapped/warped reconstruction,
 intra block copy,
 chroma palette, segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,

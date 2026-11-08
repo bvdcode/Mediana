@@ -219,3 +219,17 @@ edge filtering to the same quantized 4:2:0 source patterns. `defaultStill`
 (160×136 4:2:0) and `defaultMono` (117×83 monochrome) use ordinary libaom
 still-picture defaults at CRF35 without overriding individual coding tools.
 Their visible-sample baselines use libdav1d 1.4.1.
+
+`temporal.bin.gz` contains 4,096 temporal motion vectors from the unchanged AOM
+3.13.1 projection and block-position C routines. It starts with `AV1TMVF1` and
+a little-endian 32-bit count. Each record stores signed 16-bit row, column and
+numerator, byte denominator, signed 16-bit projected row/column, byte frame-grid
+rows/columns and source row/column, byte sign bias and validity, and signed
+16-bit target row/column. All multi-byte fields are little endian.
+
+`temporalTx8`, `temporalTx16` and `temporalFree` are ten-frame 48×40 4:2:0
+sequences with order hints and temporal motion enabled. They use eight-sample,
+sixteen-sample and unrestricted partitions, respectively, nonzero quantized
+residuals and all intra/in-loop filters. Compound, warped, overlapped and
+inter-intra prediction are disabled. The encoder is libaom 3.8.2 at CRF30 with
+no lookahead; independent visible-sample references use libdav1d 1.4.1.

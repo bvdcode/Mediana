@@ -22,11 +22,12 @@ namespace Mediana.Codecs.Av1
         private readonly Span<Av1FilterBlock> filterBlocks;
         private readonly Span<sbyte> cdefIndices;
         private readonly Span<Av1RestorationUnit> restorationUnits;
+        private readonly ReadOnlySpan<Av1MotionFieldSample> motionField;
         private Av1RestorationReferences restorationReferences;
         private Av1SymbolReader symbols;
 
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
-            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default, Span<Av1RestorationUnit> restorationUnits = default)
+            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default, Span<Av1RestorationUnit> restorationUnits = default, ReadOnlySpan<Av1MotionFieldSample> motionField = default)
         {
             if ((header.LoopFilter.Enabled || header.Cdef.Enabled) && filterBlocks.Length != sequence.MiColumns * sequence.MiRows)
             {
@@ -40,6 +41,11 @@ namespace Mediana.Codecs.Av1
             {
                 throw new ArgumentException("The AV1 restoration metadata has an invalid extent.", nameof(restorationUnits));
             }
+            if (motionField.Length != (header.Inter.ReferenceMotion ? sequence.MiColumns * sequence.MiRows / 4 : 0))
+            {
+                throw new ArgumentException("The AV1 temporal motion-field metadata has an invalid extent.", nameof(motionField));
+            }
+            this.motionField = motionField;
             this.restorationUnits = restorationUnits;
             restorationReferences = default;
             for (int plane = 0; plane < 3; plane++) { restorationReferences[plane] = Av1RestorationUnit.Initial; }

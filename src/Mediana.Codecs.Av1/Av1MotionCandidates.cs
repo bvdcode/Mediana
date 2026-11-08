@@ -4,10 +4,11 @@
 namespace Mediana.Codecs.Av1
 {
     internal ref struct Av1MotionCandidates(Span<Av1MotionCandidate> candidateStorage, ReadOnlySpan<Av1MotionBlock> blockStorage,
-        Av1SequenceHeader sequence, Av1FrameHeader header, Av1ReferencePictures pictures, int row, int column, int width, int height, int reference)
+        Av1SequenceHeader sequence, Av1FrameHeader header, Av1ReferencePictures pictures, int row, int column, int width, int height, int reference, ReadOnlySpan<Av1MotionFieldSample> temporalStorage = default)
     {
         private readonly Span<Av1MotionCandidate> candidates = candidateStorage;
         private readonly ReadOnlySpan<Av1MotionBlock> blocks = blockStorage;
+        private readonly ReadOnlySpan<Av1MotionFieldSample> temporal = temporalStorage;
         internal const int Capacity = 8;
         private const int NearbyWeight = 640;
         private int count;
@@ -15,6 +16,7 @@ namespace Mediana.Codecs.Av1
         internal int Count => count;
         internal int NewContext { get; private set; }
         internal int ReferenceContext { get; private set; }
+        internal int ZeroContext { get; private set; }
         internal Av1MotionCandidate this[int index] => candidates[index];
 
         internal void Build()
@@ -29,6 +31,7 @@ namespace Mediana.Codecs.Av1
             {
                 candidates[index] = candidates[index] with { Weight = candidates[index].Weight + NearbyWeight };
             }
+            if (header.Inter.ReferenceMotion) { ScanTemporal(); }
             above |= Point(-1, -1);
             above |= ScanRow(-3);
             left |= ScanColumn(-3);
@@ -135,18 +138,56 @@ namespace Mediana.Codecs.Av1
         {
             if (block.Width == 0 || block.Reference != reference) { return false; }
             if (block.Mode == 16) { newCount++; }
-            int y = Lower(block.Row);
-            int x = Lower(block.Column);
+            AddVector(Lower(block.Row), Lower(block.Column), weight);
+            return true;
+        }
+
+        private void AddVector(int y, int x, int weight)
+        {
             for (int index = 0; index < count; index++)
             {
                 if (candidates[index].Row == y && candidates[index].Column == x)
                 {
                     candidates[index] = candidates[index] with { Weight = candidates[index].Weight + weight };
-                    return true;
+                    return;
                 }
             }
             if (count < Capacity) { candidates[count++] = new(y, x, weight); }
-            return true;
+        }
+
+        private void ScanTemporal()
+        {
+            int stepWidth = width >= 16 ? 4 : 2;
+            int stepHeight = height >= 16 ? 4 : 2;
+            for (int y = 0; y < Math.Min(height, 16); y += stepHeight)
+            {
+                for (int x = 0; x < Math.Min(width, 16); x += stepWidth) { TemporalPoint(y, x); }
+            }
+            if (height is >= 2 and < 16 && width is >= 2 and < 16)
+            {
+                TemporalExtension(height, -2);
+                TemporalExtension(height, width);
+                TemporalExtension(height - 2, width);
+            }
+        }
+
+        private void TemporalExtension(int y, int x)
+        {
+            if ((row & 15) + y is >= 0 and < 16 && (column & 15) + x is >= 0 and < 16) { TemporalPoint(y, x); }
+        }
+
+        private void TemporalPoint(int deltaRow, int deltaColumn)
+        {
+            int y = (row + deltaRow) | 1;
+            int x = (column + deltaColumn) | 1;
+            if (!Inside(y, x)) { return; }
+            bool first = deltaRow == 0 && deltaColumn == 0;
+            if (first) { ZeroContext = 1; }
+            if (!Av1MotionField.TryGet(temporal, sequence, header, pictures, reference, y >> 1, x >> 1, out Av1MotionCandidate motion)) { return; }
+            int motionY = Lower(motion.Row);
+            int motionX = Lower(motion.Column);
+            if (first) { ZeroContext = Math.Abs(motionY) >= 16 || Math.Abs(motionX) >= 16 ? 1 : 0; }
+            AddVector(motionY, motionX, 2);
         }
 
         private void Sort(int start, int end)

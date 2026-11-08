@@ -35,13 +35,22 @@ namespace Mediana.Codecs.Av1
             return invalid;
         }
 
-        internal void Save(Av1Picture picture, ReadOnlySpan<ushort> probabilities, MediaBufferAllocator allocator)
+        internal void Save(Av1Picture picture, ReadOnlySpan<ushort> probabilities, MediaBufferAllocator allocator, MediaBuffer? motionField = null)
         {
             if (picture.Header.RefreshReferences == 0) { return; }
+            if ((motionField?.Memory.Length ?? 0) != Av1MotionField.StoredLength(picture.Header.Geometry, picture.Header))
+            {
+                throw new ArgumentException("The AV1 reference motion-field extent is invalid.", nameof(motionField));
+            }
             using WritableMediaBuffer write = allocator.Allocate(checked(probabilities.Length * sizeof(ushort)));
             MemoryMarshal.AsBytes(probabilities).CopyTo(write.Span);
             using MediaBuffer cdfs = write.Publish();
-            Av1StoredPicture stored = new(picture, cdfs);
+            int alternateOrderHint = 0;
+            if (picture.Header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch)
+            {
+                alternateOrderHint = OrderHint(picture.Header.Inter.References[6]);
+            }
+            Av1StoredPicture stored = new(picture, cdfs, motionField, alternateOrderHint);
             Refresh(stored, picture.Header.RefreshReferences);
         }
 

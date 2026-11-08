@@ -23,11 +23,11 @@ namespace Mediana.Codecs.Av1
             Av1ReferencePictures pictures = references ?? throw new InvalidOperationException("AV1 inter prediction requires stored pictures.");
             int reference = ReadReference(row, column, width, height);
             Span<Av1MotionCandidate> storage = stackalloc Av1MotionCandidate[Av1MotionCandidates.Capacity];
-            Av1MotionCandidates candidates = new(storage, motionBlocks, sequence, header, pictures, row, column, width, height, reference);
+            Av1MotionCandidates candidates = new(storage, motionBlocks, sequence, header, pictures, row, column, width, height, reference, motionField);
             candidates.Build();
             int mode;
             if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.NewMvOffset + candidates.NewContext * 3, 3)) == 0) { mode = 16; }
-            else if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.ZeroMvOffset, 3)) == 0) { mode = 15; }
+            else if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.ZeroMvOffset + candidates.ZeroContext * 3, 3)) == 0) { mode = 15; }
             else { mode = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.RefMvOffset + candidates.ReferenceContext * 3, 3)) == 0 ? 13 : 14; }
             int selected = mode == 14 ? 1 : 0;
             if (mode is 16 or 14)

@@ -93,10 +93,6 @@ namespace Mediana.Codecs.Av1
             }
             Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry, references);
             bool inter = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
-            if (inter && header.Inter.ReferenceMotion)
-            {
-                throw new NotSupportedException("AV1 temporal motion candidates are not implemented.");
-            }
             references.Invalidate(header.InvalidReferences);
             geometry = header.Geometry;
             int sampleCount = geometry.SampleCount;
@@ -110,7 +106,10 @@ namespace Mediana.Codecs.Av1
             int cdefIndexCount = header.Cdef.IndexCount(geometry);
             int restorationBytes = checked(header.Restoration.UnitCount(geometry) * Unsafe.SizeOf<Av1RestorationUnit>());
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
+            int storedMotionLength = Av1MotionField.StoredLength(geometry, header);
+            using WritableMediaBuffer? savedMotion = storedMotionLength != 0 ? allocator.Allocate(storedMotionLength) : null;
             using (WritableMediaBuffer? motions = inter ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1MotionBlock>())) : null)
+            using (WritableMediaBuffer? projected = inter && header.Inter.ReferenceMotion ? allocator.Allocate(Av1MotionField.ByteLength(geometry)) : null)
             using (WritableMediaBuffer? filterMetadata = header.LoopFilter.Enabled || header.Cdef.Enabled
                 ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1FilterBlock>())) : null)
             using (WritableMediaBuffer? cdefMetadata = cdefIndexCount != 0 ? allocator.Allocate(cdefIndexCount) : null)
@@ -122,9 +121,12 @@ namespace Mediana.Codecs.Av1
                 Span<Av1FilterBlock> filterBlocks = filterMetadata is null ? default : MemoryMarshal.Cast<byte, Av1FilterBlock>(filterMetadata.Span);
                 Span<sbyte> cdefIndices = cdefMetadata is null ? default : MemoryMarshal.Cast<byte, sbyte>(cdefMetadata.Span);
                 Span<Av1RestorationUnit> restorationUnits = restorationMetadata is null ? default : MemoryMarshal.Cast<byte, Av1RestorationUnit>(restorationMetadata.Span);
+                Span<Av1MotionFieldSample> motionField = projected is null ? default : MemoryMarshal.Cast<byte, Av1MotionFieldSample>(projected.Span);
+                if (projected is not null) { Av1MotionField.Estimate(geometry, header, references, motionField, cancellationToken); }
                 Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities, decoded.Span,
-                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices, restorationUnits);
+                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices, restorationUnits, motionField);
                 tile.Decode();
+                if (savedMotion is not null) { Av1MotionField.Store(geometry, header, references, motionBlocks, savedMotion.Span, cancellationToken); }
                 if (header.LoopFilter.Enabled) { Av1LoopFilter.Apply(pixels.Span, geometry, header.LoopFilter, filterBlocks, cancellationToken); }
                 int boundaryLength = Av1Restoration.BoundaryLength(geometry, header.Restoration);
                 using WritableMediaBuffer? boundaryBuffer = boundaryLength != 0 ? allocator.Allocate(boundaryLength) : null;
@@ -153,7 +155,8 @@ namespace Mediana.Codecs.Av1
                     {
                         Av1TileProbabilities.Initialize(probabilities, header.Quantization.BaseIndex, initialProbabilities);
                     }
-                    references.Save(picture, probabilities, allocator);
+                    using MediaBuffer? motionField = savedMotion?.Publish();
+                    references.Save(picture, probabilities, allocator, motionField);
                 }
                 transferred = true;
                 return picture;
