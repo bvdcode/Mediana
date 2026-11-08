@@ -5,8 +5,8 @@ using Mediana.Core.Video;
 
 namespace Mediana.Processing
 {
-    /// <summary>Explicit SDR preview interpretation for missing primaries, transfer and matrix labels.
-    /// Keeps all declared values, range and chroma location. RGB uses sRGB; YUV uses declared matrix/primaries
+    /// <summary>Explicit SDR interpretation for missing primaries, transfer, matrix and chroma-location labels.
+    /// Keeps all declared values and range. Planar YUV with missing siting uses left chroma. RGB uses sRGB; YUV uses declared matrix/primaries
     /// before SD/HD geometry defaults. Does not modify metadata or provide HDR tone mapping.
     /// Applications should report assumptions; conversion operations remain strict unless this policy is chosen.</summary>
     public static class SdrPreviewColorPolicy
@@ -28,13 +28,13 @@ namespace Mediana.Processing
             {
                 throw new NotSupportedException("HDR preview requires a tone mapping operation.");
             }
+            VideoColorInfo resolved = VideoColorPolicy.ResolveChromaLocation(format);
             if (declared.Primaries != ColorPrimaries.Unspecified && declared.Transfer != TransferFunction.Unspecified &&
                 declared.Matrix != MatrixCoefficients.Unspecified)
             {
-                return declared;
+                return resolved;
             }
             VideoColorInfo defaults = SelectDefaults(format, declared);
-            VideoColorInfo resolved = declared;
             if (declared.Primaries == ColorPrimaries.Unspecified)
             {
                 resolved = resolved with { Primaries = defaults.Primaries };
@@ -52,7 +52,8 @@ namespace Mediana.Processing
 
         private static VideoColorInfo SelectDefaults(VideoFormat format, VideoColorInfo declared)
         {
-            if (ReferenceEquals(format.PixelFormat, VideoPixelFormat.Rgba32))
+            if (ReferenceEquals(format.PixelFormat, VideoPixelFormat.Rgba32) ||
+                format.PixelFormat is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Gbr })
             {
                 return VideoColorInfo.Srgb;
             }

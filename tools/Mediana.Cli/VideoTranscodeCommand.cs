@@ -7,6 +7,7 @@ using Mediana.Containers.MpegTs;
 using Mediana.Core.Memory;
 using Mediana.Execution;
 using Mediana.IO;
+using Mediana.Processing;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
@@ -32,6 +33,8 @@ namespace Mediana.Cli
                     MaximumWidth = maximumWidth,
                     MaximumHeight = maximumHeight,
                     OmitAudio = videoOnly,
+                    ColorResolver = VideoColorPolicy.ResolveForEncoding,
+                    WarningHandler = message => logger.LogWarning("{Warning}", message),
                     RgbConversion = new()
                 }, progress.Report, cancellationToken);
             }, cancellationToken);

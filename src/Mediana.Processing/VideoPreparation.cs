@@ -29,7 +29,13 @@ namespace Mediana.Processing
             {
                 throw new ArgumentOutOfRangeException(nameof(options), "Video dimension bounds must be at least two samples.");
             }
-            if (options.SourceColorInterpretation is VideoColorInfo interpretation)
+            VideoColorInfo? interpretation = options.SourceColorInterpretation;
+            if (interpretation is null && options.ColorResolver is not null && inputFormat.ColorDescription is not IccColorDescription)
+            {
+                VideoColorInfo resolved = VideoColorPolicy.Resolve(inputFormat, options.ColorResolver, options.WarningHandler);
+                if (resolved != inputFormat.GetColorInterpretation()) { interpretation = resolved; }
+            }
+            if (interpretation is not null)
             {
                 interpretedInput = new(inputFormat.Width, inputFormat.Height, inputFormat.PixelFormat,
                     interpretation, inputFormat.SampleAspectRatio);

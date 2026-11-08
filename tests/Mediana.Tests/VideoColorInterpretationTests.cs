@@ -95,5 +95,44 @@ namespace Mediana.Tests
             }
             Assert.Equal(0, allocator.AllocatedBytes);
         }
+
+        [Fact]
+        public void SelectedPolicyResolvesOncePerFormatAndPreservesSamplesAndSourceLabels()
+        {
+            MediaBufferAllocator allocator = new(4096);
+            VideoFormat source = new(16, 12, VideoPixelFormat.Yuv420P8);
+            List<string> warnings = [];
+            using (VideoPreparationSequence preparation = new(source, VideoDisplayMatrix.Identity, allocator,
+                new() { ColorResolver = SdrPreviewColorPolicy.Resolve, WarningHandler = warnings.Add }))
+            {
+                for (int index = 0; index < 3; index++)
+                {
+                    using VideoFrame input = PlanarSrgbTests.Create(source, allocator, (plane, x, y) => plane * 32 + x + y);
+                    long held = allocator.AllocatedBytes;
+                    using VideoFrame output = preparation.Apply(input);
+                    Assert.Equal(held, allocator.AllocatedBytes);
+                    Assert.True(input.Data.Equals(output.Data));
+                    Assert.Equal(ChromaLocation.Left, output.Format.Color.ChromaLocation);
+                    Assert.Equal(new VideoColorInfo(), input.Format.Color);
+                }
+            }
+            Assert.Contains("chroma location", Assert.Single(warnings), StringComparison.Ordinal);
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public void ExplicitInterpretationTakesPriorityOverPolicy()
+        {
+            MediaBufferAllocator allocator = new(4096);
+            VideoFormat source = new(16, 12, VideoPixelFormat.Yuv420P8);
+            using VideoPreparation preparation = new(source, VideoDisplayMatrix.Identity, allocator, new()
+            {
+                SourceColorInterpretation = Color,
+                ColorResolver = _ => throw new InvalidOperationException("Explicit interpretation must take priority.")
+            });
+            Assert.Equal(Color, preparation.OutputFormat.Color);
+            Assert.Equal(new VideoColorInfo(), source.Color);
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
     }
 }

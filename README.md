@@ -1253,15 +1253,20 @@ sRGB RGBA32. The sample uses this combined path. Separate color conversion and
 geometry operations remain available. The explicit-source-color overload accepts
 an application interpretation while preserving the original frame metadata.
 
-The CLI video preview commands infer missing SDR color labels and log the chosen
-values once. Explicit decoder labels take precedence. Missing primaries or matrix
+The CLI preview commands use an explicit compatibility policy for missing SDR
+color labels and log the chosen values once per configured source format. Explicit decoder labels take precedence. Missing primaries or matrix
 first use the declared matrix or primaries when available; otherwise SD storage
 up to 1024x576 uses BT.601 (SMPTE 170M at up to 480 lines, BT.470BG above 480),
 and larger storage uses BT.709. Missing SDR transfer uses BT.709; straight RGB
-uses sRGB defaults. This is a preview policy, not a measurement of the source
-color space. Range, chroma location and sample aspect ratio still come from the
-decoder. The library conversion APIs require explicit color interpretation.
-PQ/HLG input still requires tone mapping.
+uses sRGB defaults. Missing planar-YUV chroma location uses left siting with a
+warning. These are application interpretations of missing labels. Declared range,
+chroma location and sample aspect ratio retain their decoder values. Library
+conversion and video preparation remain strict unless a caller selects a policy;
+`VideoPreparationOptions.ColorResolver` uses the same mechanism for file and HLS
+processing. Their CLI policy resolves missing YUV chroma siting while preserving
+native colorimetry, including HDR labels. RGB-to-YUV conversion uses the SDR color
+interpretation. Explicit `SourceColorInterpretation` takes precedence over a resolver.
+PQ/HLG previews still require tone mapping.
 
 DisplayResize.Fit uses storage width times SAR and the storage height as the
 unscaled display size, fits within the requested box without enlargement, rounds to

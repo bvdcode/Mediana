@@ -7,6 +7,7 @@ using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Execution;
 using Mediana.IO;
+using Mediana.Processing;
 using Mediana.Streaming.Hls;
 using Microsoft.Extensions.Logging;
 
@@ -33,7 +34,12 @@ namespace Mediana.Cli
             } : null;
             HlsRenditionOptions options = new()
             {
-                FramePreparation = new() { RgbConversion = new() },
+                FramePreparation = new()
+                {
+                    ColorResolver = VideoColorPolicy.ResolveForEncoding,
+                    WarningHandler = message => logger.LogWarning("{Warning}", message),
+                    RgbConversion = new()
+                },
                 VideoProfiles = widths.Select((width, index) => new HlsVideoProfile(width,
                     new H264EncoderOptions { Quantizer = qp, RateControl = videoRates?[index] })).ToArray(),
                 TargetDuration = new(targetMilliseconds, new(1, 1000)),

@@ -10,9 +10,13 @@ namespace Mediana.Processing
         public int? MaximumWidth { get; init; }
         public int? MaximumHeight { get; init; }
         /// <summary>Explicitly replaces source color labels and their source-description interpretation without
-        /// converting samples. Null preserves the decoded interpretation. Callers must establish the replacement
+        /// converting samples. Null uses the configured policy or preserves the decoded interpretation. Callers must establish the replacement
         /// from knowledge of the source; this option does not infer missing characteristics.</summary>
         public VideoColorInfo? SourceColorInterpretation { get; init; }
+        /// <summary>Explicit color policy applied when no source interpretation is supplied. Null preserves strict decoded labels.</summary>
+        public Func<VideoFormat, VideoColorInfo>? ColorResolver { get; init; }
+        /// <summary>Receives color-interpretation warnings when the configured preparation resolves a source format.</summary>
+        public Action<string>? WarningHandler { get; init; }
         /// <summary>Null preserves decoded precision. Selecting a lower sample precision explicitly permits rounded
         /// sample conversion; it does not permit changing colorimetry or tone mapping.</summary>
         public VideoPixelFormat? OutputPixelFormat { get; init; }
