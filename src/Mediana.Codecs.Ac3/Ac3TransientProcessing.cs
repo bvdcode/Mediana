@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -14,10 +15,10 @@ namespace Mediana.Codecs.Ac3
         internal const int HistorySamples = 8192;
         internal const int InitialUnknownSamples = 4092;
         internal const int InitialPrerollPackets = 26;
-        private const int MaximumUnits = 40, MaximumEvents = 18;
+        private const int MaximumUnits = 40, MaximumEvents = 18, MaximumChannels = 16;
         private readonly Ac3BufferedAccessUnit[] units = new Ac3BufferedAccessUnit[MaximumUnits];
-        private readonly Ac3TransientEvent[] events = new Ac3TransientEvent[5 * MaximumEvents];
-        private readonly int[] eventHead = new int[5], eventCount = new int[5];
+        private readonly Ac3TransientEvent[] events = new Ac3TransientEvent[MaximumChannels * MaximumEvents];
+        private readonly int[] eventHead = new int[MaximumChannels], eventCount = new int[MaximumChannels];
         private static readonly double[] FadeIn = CreateWindow(256), FadeBack = CreateWindow(128);
         private WritableMediaBuffer? taint;
         private int head, count;
@@ -41,7 +42,7 @@ namespace Mediana.Codecs.Ac3
                 Delivered = presentationSamples == 0
             };
             count++;
-            if (!originalBeginning) { taint ??= allocator.Allocate(HistorySamples); }
+            if (!originalBeginning) { taint ??= allocator.Allocate(HistorySamples * sizeof(ushort)); }
         }
 
         public Span<float> GetFrameStorage(int samples)
@@ -55,9 +56,9 @@ namespace Mediana.Codecs.Ac3
             int channels = format.Channels.Count;
             if (taint is not null)
             {
-                byte mask = (byte)((1 << channels) - 1);
+                ushort mask = (ushort)((1 << channels) - 1);
                 for (int sample = 0; sample < samples; sample++)
-                { taint.Span[(int)((decodedSamples + sample) & (HistorySamples - 1))] = decodedSamples + sample < InitialUnknownSamples ? mask : (byte)0; }
+                { Taint[(int)((decodedSamples + sample) & (HistorySamples - 1))] = decodedSamples + sample < InitialUnknownSamples ? mask : (ushort)0; }
             }
             for (int channel = 0; channel < locations.Length; channel++)
             {
@@ -91,7 +92,7 @@ namespace Mediana.Codecs.Ac3
             Span<float> synthesis = stackalloc float[1020];
             Span<byte> unknown = stackalloc byte[1020];
             int sourceUnit = head, targetUnit = head;
-            byte channelMask = (byte)(1 << channel);
+            ushort channelMask = (ushort)(1 << channel);
             for (int sample = 0; sample < item.SynthesisLength; sample++)
             {
                 long position = item.SourceStart + sample;
@@ -134,14 +135,16 @@ namespace Mediana.Codecs.Ac3
             throw new InvalidDataException("E-AC-3 transient synthesis exceeds the retained PCM history.");
         }
 
-        private bool IsUnknown(long position, byte channelMask) => taint is not null &&
-            (taint.Span[(int)(position & (HistorySamples - 1))] & channelMask) != 0;
+        private Span<ushort> Taint => MemoryMarshal.Cast<byte, ushort>(taint!.Span);
 
-        private void SetUnknown(long position, byte channelMask, bool value)
+        private bool IsUnknown(long position, ushort channelMask) => taint is not null &&
+            (Taint[(int)(position & (HistorySamples - 1))] & channelMask) != 0;
+
+        private void SetUnknown(long position, ushort channelMask, bool value)
         {
             if (taint is null) { return; }
-            ref byte mask = ref taint.Span[(int)(position & (HistorySamples - 1))];
-            mask = value ? (byte)(mask | channelMask) : (byte)(mask & ~channelMask);
+            ref ushort mask = ref Taint[(int)(position & (HistorySamples - 1))];
+            mask = value ? (ushort)(mask | channelMask) : (ushort)(mask & ~channelMask);
         }
 
         private int FindOutput()
@@ -163,7 +166,7 @@ namespace Mediana.Codecs.Ac3
             {
                 for (int sample = 0; sample < unit.PresentationSamples; sample++)
                 {
-                    if (taint.Span[(int)((unit.Start + sample) & (HistorySamples - 1))] != 0)
+                    if (Taint[(int)((unit.Start + sample) & (HistorySamples - 1))] != 0)
                     { throw new NotSupportedException("Exact E-AC-3 transient recovery is not established; decode from an earlier independently recoverable position."); }
                 }
             }

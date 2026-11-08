@@ -16,7 +16,9 @@ namespace Mediana.Codecs.Ac3
         private readonly int[] end = new int[7], strategies = new int[7], fine = new int[7], fastGain = new int[7], deltaMode = new int[7];
         private readonly bool[] coupled = new bool[5], shortBlock = new bool[5], dither = new bool[5], coordinateNew = new bool[5], coordinateValid = new bool[5], rematrix = new bool[4];
         private readonly bool[] couplingMerge = new bool[18];
-        private readonly double[] dynamics = new double[2];
+        private readonly double[] dynamics = new double[2], frameDynamics = new double[12];
+        internal ReadOnlySpan<double> FrameDynamics => frameDynamics;
+        internal bool DynamicRangeMetadataSeen { get; private set; }
         private readonly int[] transientLocations = new int[5], transientLengths = new int[5];
         internal ReadOnlySpan<int> TransientLocations => transientLocations;
         internal ReadOnlySpan<int> TransientLengths => transientLengths;
@@ -50,7 +52,14 @@ namespace Mediana.Codecs.Ac3
 
         public void Decode(ReadOnlySpan<byte> data, Ac3FrameHeader frameHeader, Span<float> output, CancellationToken cancellationToken)
         {
+            DecodeMapped(data, frameHeader, output, frameHeader.ChannelCount, default, default, cancellationToken);
+        }
+
+        internal void DecodeMapped(ReadOnlySpan<byte> data, Ac3FrameHeader frameHeader, Span<float> output,
+            int outputChannels, ReadOnlySpan<int> channelMap, ReadOnlySpan<double> programDynamics, CancellationToken cancellationToken)
+        {
             header = frameHeader;
+            DynamicRangeMetadataSeen = false;
             fullChannels = header.ChannelCount - (header.HasLfe ? 1 : 0);
             Array.Clear(coupled); Array.Clear(coordinateValid); Array.Clear(rematrix);
             Array.Clear(end); Array.Clear(fine); Array.Clear(fastGain); Array.Clear(deltaMode);
@@ -66,14 +75,20 @@ namespace Mediana.Codecs.Ac3
                 cancellationToken.ThrowIfCancellationRequested();
                 if (header.IsEnhanced) { ReadEnhancedBlock(ref bits, block); }
                 else { ReadBlock(ref bits, block); }
+                frameDynamics[block * 2] = dynamics[0]; frameDynamics[block * 2 + 1] = dynamics[header.ChannelMode == 0 ? 1 : 0];
                 ReadMantissas(ref bits, block);
                 ApplyRematrix();
                 for (int ch = 0; ch < fullChannels; ch++) { spectralExtension.Process(ch, workspace.Spectrum(ch), ref random); }
                 for (int ch = 0; ch < header.ChannelCount; ch++)
                 {
-                    double gain = applyDynamicRangeCompression ? dynamics[header.ChannelMode == 0 && ch == 1 ? 1 : 0] : 1;
-                    Ac3Synthesis.Process(workspace.Spectrum(ch), workspace.Overlap(ch), output[(block * 256 * header.ChannelCount + ch)..],
-                        header.ChannelCount, ch < fullChannels && shortBlock[ch], gain);
+                    int destination = channelMap.IsEmpty ? ch : channelMap[ch];
+                    if (destination < 0) { continue; }
+                    int component = header.ChannelMode == 0 && ch == 1 ? 1 : 0;
+                    double gain = 1;
+                    if (applyDynamicRangeCompression)
+                    { gain = programDynamics.IsEmpty ? dynamics[component] : programDynamics[block * 2 + component]; }
+                    Ac3Synthesis.Process(workspace.Spectrum(ch), workspace.Overlap(ch), output[(block * 256 * outputChannels + destination)..],
+                        outputChannels, ch < fullChannels && shortBlock[ch], gain);
                 }
                 if (bits.Remaining < 18) { throw new InvalidDataException("AC-3 audio data overlaps its checksum."); }
             }
@@ -145,6 +160,7 @@ namespace Mediana.Codecs.Ac3
             {
                 if (bits.Flag())
                 {
+                    DynamicRangeMetadataSeen = true;
                     int value = bits.Read(8), exponent = (value >> 5) - ((value & 128) != 0 ? 8 : 0);
                     dynamics[ch] = Math.ScaleB((value & 31) + 32, exponent - 5);
                 }
