@@ -101,11 +101,24 @@ namespace Mediana.Codecs.H264
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             motion.BeginMacroblock(address);
-            (int motionX, int motionY, bool exact) = H264MotionSearch.Select<TAnalysis>(source, reference, target, x, y,
-                searchRange, prediction, token, interpolation);
             (int skipX, int skipY) = H264MotionPrediction.Skip(target, x, y);
+            int motionX;
+            int motionY;
+            bool zeroResidual;
+            if (TAnalysis.Enabled && analysis!.TrySkip(source, reference, address, x, y,
+                skipX, skipY, searchRange, prediction, interpolation))
+            {
+                motionX = skipX;
+                motionY = skipY;
+                zeroResidual = true;
+            }
+            else
+            {
+                (motionX, motionY, zeroResidual) = H264MotionSearch.Select<TAnalysis>(source, reference, target, x, y,
+                    searchRange, prediction, token, interpolation);
+            }
             int pattern = 0;
-            if (exact) { coefficients.Clear(); }
+            if (zeroResidual) { coefficients.Clear(); }
             else
             {
                 pattern = H264InterEncoder.AnalyzeLuma(source.Luma, quantizer, prediction[..256], coefficients[..256]);

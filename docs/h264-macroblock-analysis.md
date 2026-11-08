@@ -3,7 +3,7 @@
 `H264EncoderOptions.MacroblockAnalysis` selects the prediction analysis policy:
 
 - `Fast` is the default. Predictive pictures use motion-compensated Inter16×16 prediction with the existing skip decisions. It preserves the established encoded output and does not allocate rate-distortion state.
-- `RateDistortion` can improve compression by considering an additional Intra16 candidate in predictive pictures. It requires `H264EntropyCoding.Cabac`; requesting it with CAVLC throws `NotSupportedException` before encoding starts. It is an explicit quality/compression choice; operation cost depends on the content.
+- `RateDistortion` combines a quantized P_SKIP probe, a smaller fractional-motion search and an additional Intra16 candidate in predictive pictures. It requires `H264EntropyCoding.Cabac`; requesting it with CAVLC throws `NotSupportedException` before encoding starts. It is an explicit quality/compression choice; operation cost depends on the content.
 
 ```csharp
 H264EncoderOptions options = new()
@@ -15,6 +15,10 @@ H264EncoderOptions options = new()
 ```
 
 RateDistortion uses four cardinal neighbors for each half-pixel and quarter-pixel refinement stage. Fast keeps its eight-neighbor refinement. The smaller search budget reduces motion-analysis cost while the subsequent reconstruction/rate decision retains most of the compression benefit. Neither policy changes interpolation or decoder reconstruction rules.
+
+Before motion search, RateDistortion probes the derived P_SKIP vector when a previously coded left or top neighbor is skipped and the vector remains within the configured search range. The probe uses the existing interpolation and paired transform/quantization kernels. It accepts only when every quantized luma, chroma DC and chroma AC coefficient is zero, then writes the ordinary P_SKIP representation. A rejected probe leaves committed syntax, quantizer and reference state unchanged and continues through motion search. The probe uses bounded stack storage and allocates no managed memory. Fast does not execute this probe.
+
+A zero quantized residual does not mean identical source samples or an optimal motion vector. Taking this early decision changes the reconstructed reference chain and can lower PSNR at the same QP. The resulting speed, size and quality trade is measured together below.
 
 The additional analysis is bounded to macroblocks whose Inter16×16 candidate has nonzero luma residual in all four 8×8 coded groups. It shortlists one legal Intra16 mode by luma SAD, then compares both candidates using their actual clipped YUV reconstruction error and local CABAC arithmetic-interval cost. The comparison includes macroblock type, motion differences, coded-block pattern, quantizer syntax and residual bins from the same initial adaptive contexts. A partial cost can reject a candidate only when its nonnegative accumulated cost cannot beat the current candidate. Equal total costs retain the inter candidate.
 
@@ -32,30 +36,50 @@ A Linux x64 Native AOT comparison on an Intel Core i5-12450H used one execution 
 
 | Content | QP | Fast bytes | RateDistortion bytes | Fast PSNR | RateDistortion PSNR |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Natural | 22 | 4,423,007 | 3,580,438 | 45.839 dB | 46.212 dB |
-| Natural | 26 | 2,993,947 | 2,356,786 | 43.110 dB | 43.416 dB |
-| Natural | 30 | 2,209,758 | 1,733,838 | 40.804 dB | 41.101 dB |
-| Natural | 34 | 1,740,728 | 1,383,486 | 38.577 dB | 38.852 dB |
-| Motion | 22 | 1,622,865 | 1,588,114 | 49.763 dB | 50.016 dB |
-| Motion | 26 | 1,290,795 | 1,265,628 | 45.634 dB | 45.869 dB |
-| Motion | 30 | 1,007,237 | 981,449 | 42.735 dB | 42.955 dB |
-| Motion | 34 | 767,046 | 732,086 | 39.595 dB | 39.787 dB |
-| Flat | 22 | 38,880 | 38,480 | 51.386 dB | 51.385 dB |
-| Flat | 26 | 34,600 | 34,580 | 53.969 dB | 53.969 dB |
-| Flat | 30 | 35,068 | 33,804 | 44.506 dB | 44.500 dB |
-| Flat | 34 | 45,564 | 45,576 | 40.427 dB | 40.423 dB |
-Interpolating log payload size within the measured PSNR brackets at the Fast QP26 quality gives approximately **24.4% less payload for natural video** and **3.9% less for motion**. This is an interpolation, not a claim that equal QP means equal quality. Flat content changes little at QP26; its nonmonotonic QP/PSNR curve is not fitted into a monotonic rate model. All twelve complete `Fast` transport hashes match the preceding encoder implementation.
+| Natural | 22 | 4,423,007 | 3,446,899 | 45.839 dB | 46.100 dB |
+| Natural | 26 | 2,993,947 | 2,135,179 | 43.110 dB | 43.181 dB |
+| Natural | 30 | 2,209,758 | 1,436,354 | 40.804 dB | 40.710 dB |
+| Natural | 34 | 1,740,728 | 987,866 | 38.577 dB | 38.139 dB |
+| Motion | 22 | 1,622,865 | 1,564,534 | 49.763 dB | 49.321 dB |
+| Motion | 26 | 1,290,795 | 1,230,209 | 45.634 dB | 44.984 dB |
+| Motion | 30 | 1,007,237 | 945,883 | 42.735 dB | 42.378 dB |
+| Motion | 34 | 767,046 | 696,219 | 39.595 dB | 39.070 dB |
+| Flat | 22 | 38,880 | 32,420 | 51.386 dB | 51.315 dB |
+| Flat | 26 | 34,600 | 30,896 | 53.969 dB | 53.895 dB |
+| Flat | 30 | 35,068 | 28,588 | 44.506 dB | 44.460 dB |
+| Flat | 34 | 45,564 | 28,448 | 40.427 dB | 40.232 dB |
+Interpolating log payload size within the measured PSNR brackets at the Fast QP26 quality gives approximately **29.5% less payload for natural video** and **2.0% less for motion**. The motion estimate uses the additional QP25 point; neither estimate extrapolates. These are interpolation estimates, not claims that equal QP means equal quality. Flat content has a nonmonotonic QP/PSNR curve and is not fitted into a monotonic rate model. All twelve complete Fast transport hashes match the preceding implementation.
 
-A separate paired QP26 series ran the complete Native AOT operations serially in before/after/after/before order. Both modes retain the quality differences shown above; CPU values are not measurements at exactly matched PSNR.
+Compared with the preceding cardinal-refinement RateDistortion policy, the QP26 outputs change as follows:
 
-| QP26 operation | Fast CPU | RateDistortion CPU | Fast allocated bytes | RateDistortion allocated bytes | Fast peak RSS | RateDistortion peak RSS |
+| Content | Previous bytes / PSNR | Quantized-skip bytes / PSNR |
+| --- | ---: | ---: |
+| Natural | 2,356,786 / 43.416 dB | 2,135,179 / 43.181 dB |
+| Motion | 1,265,628 / 45.869 dB | 1,230,209 / 44.984 dB |
+| Flat | 34,580 / 53.969 dB | 30,896 / 53.895 dB |
+
+At the preceding RateDistortion QP26 PSNR, interpolation between the measured new QP25/26 points estimates 6.0% less payload for natural video and 0.9% more for motion. Fixed-QP output therefore must not be described as preserving equal quality. The separate CPU comparison below retains the actual PSNR/size differences.
+
+The common verification covers the updated RateDistortion references, exact Fast output hashes, zero-allocation repeated probes, every subpixel phase and coded-border extension. Complete generated sequences cover QP0/12/26/38/51, chroma-only changes, crop, variable cadence, reset, cancellation and adaptive rate retries. Probe checks independently compare scalar transform/quantization decisions and verify that rejected probes do not modify committed syntax or reference samples.
+
+## Quantized-skip operation comparison
+
+A separate final Native AOT comparison uses the preceding cardinal-refinement RateDistortion implementation as its reference. Each pair runs serially in ABBA order on one execution CPU, with two complete fresh processes per implementation. CPU includes Y4M reads, encoding, MPEG-TS muxing and process exit. Every complete transport hash matches the independently decoded quality result.
+
+| Input | QP | Previous RD CPU | Quantized-skip RD CPU | CPU change | PSNR change | Payload change |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Natural | 5.712 s | 5.640 s | 424,981,424 | 422,571,176 | 52,428,800 | 53,739,520 |
-| Motion | 1.037 s | 1.149 s | 74,519,948 | 74,595,972 | 15,323,136 | 15,323,136 |
-| Flat | 1.653 s | 1.481 s | 279,739,828 | 279,778,340 | 53,280,768 | 58,916,864 |
+| Natural | 26 | 4.823 s | 4.255 s | −11.8% | −0.235 dB | −9.4% |
+| Motion | 26 | 1.011 s | 0.868 s | −14.2% | −0.885 dB | −2.8% |
 
-Entries are medians of two complete operations per mode. Natural CPU samples were 5.581/5.843 s for Fast and 5.681/5.600 s for RateDistortion; motion was 1.026/1.048 s versus 1.129/1.169 s. The measured motion analysis tax remains approximately 11%. Natural costs are similar; flat uses less CPU in this series. These measurements do not demonstrate parity with x264 veryfast.
+Equal QP does not give equal quality. Two additional direct comparisons use the closest tested integer QP above the reference PSNR: new QP25 against previous QP26. These preserve the actual higher quality and larger payload rather than claiming an exact PSNR match.
 
-Compared with eight-neighbor RateDistortion refinement, the cardinal refinement reduces observed CPU by approximately 8% on natural video and 6% on motion while increasing estimated matched-quality payload by approximately 1.6% and 0.2%, respectively. This is a search-budget tradeoff. Fast output remains unchanged.
+| Input | Previous QP26 CPU | New QP25 CPU | CPU change | PSNR change | Payload change |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Natural | 4.821 s | 4.346 s | −9.9% | +0.764 dB | +6.1% |
+| Motion | 1.074 s | 0.905 s | −15.7% | +0.852 dB | +4.7% |
 
-Peak RSS includes the runtime, executable and buffers and varies between processes. RateDistortion adds bounded syntax state per predictive picture and borrowed stack storage per analyzed macroblock; it does not retain candidate pictures or duplicate whole-frame pixel buffers. Native code inspection confirms that the Fast macroblock specialization contains no call into rate-distortion selection.
+Natural QP26 CPU samples are 4.821/4.824 s before and 4.216/4.294 s after; motion samples are 1.006/1.017 s versus 0.863/0.873 s. These short runs support a useful operation-level tradeoff; they do not establish a universal speed coefficient or x264 veryfast parity. Integer QP25/26 brackets do not prove exact matched-quality CPU.
+
+At QP26, managed allocated bytes decrease from approximately 422.54 to 421.99 MB for natural video and 74.59 to 74.55 MB for motion. Median process peak RSS is 50.0 versus 56.6 MiB for natural video and 18.3 MiB for both motion variants. QP25 natural peak is 51.3 MiB. RSS includes executable, runtime and collection behavior; the probe retains no new picture or persistent cache. Repeated probe checks require zero heap allocation, unchanged allocator reservation and a positive allocation-counter control inside a checked no-GC interval.
+
+Fast remains the default and retains all twelve complete transport hashes at QP22/26/30/34 on the three inputs. Native code inspection confirms that its macroblock specialization calls neither the quantized-skip probe nor rate-distortion selection. The quantized-skip policy changes only explicitly selected RateDistortion output.

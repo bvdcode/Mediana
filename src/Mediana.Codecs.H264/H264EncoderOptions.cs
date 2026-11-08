@@ -9,7 +9,7 @@ namespace Mediana.Codecs.H264
         public int Quantizer { get; init; } = 26;
         /// <summary>CAVLC uses Baseline profile; CABAC uses Main profile without changing prediction or quantization.</summary>
         public H264EntropyCoding EntropyCoding { get; init; } = H264EntropyCoding.Cavlc;
-        /// <summary>Prediction analysis policy. Rate-distortion analysis requires CABAC and trades CPU for compression.</summary>
+        /// <summary>Prediction analysis policy. Rate-distortion analysis requires CABAC; quality, compression and cost depend on the content.</summary>
         public H264MacroblockAnalysis MacroblockAnalysis { get; init; } = H264MacroblockAnalysis.Fast;
         public int MaximumPacketBytes { get; init; } = 16 * 1024 * 1024;
         /// <summary>Media-time IDR interval; the first eligible frame starts the next group. Zero makes every frame an IDR.</summary>

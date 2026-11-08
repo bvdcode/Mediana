@@ -72,8 +72,8 @@
     "quantizer": 51,
     "bit_rate": 0,
     "buffer_ms": 0,
-    "transport_sha256": "6c4bc8675526cebca64c864b93c34948d266c890961f86381c08a8d4cae19fc5",
-    "pixels_sha256": "a4eaaf005fc9e3973617a2e027a13c59807f296ea7d44ad86ce23cfcc00fa039",
+    "transport_sha256": "51490bf5184c734b610d06921de54b4e028c30038a0a47ac67714aef0ab7a07f",
+    "pixels_sha256": "6e7b9d8056d8dc2243d3d7751ace3f5a71f675a0575d1b69cf632cb3be3bdfcf",
     "pixels_bytes": 187680
   },
   {
@@ -105,8 +105,8 @@
     "quantizer": 51,
     "bit_rate": 0,
     "buffer_ms": 0,
-    "transport_sha256": "c39e8d0bcf162d4656de8d0f6d575a6e4b006411bd7c144ea30255553a9d159c",
-    "pixels_sha256": "20d4cd501dd82ae2e59639dd448d6aa9777a0c242cd06bc18f2d22cb8e61fdc9",
+    "transport_sha256": "0026ed7bcfdbd248106d320b1bd0e69458a4135e400fb78965c7881b62acb155",
+    "pixels_sha256": "af19f8f0128d0dc8d161580aba11584abc10d367b043f039d2a835aef70a352f",
     "pixels_bytes": 184320
   },
   {

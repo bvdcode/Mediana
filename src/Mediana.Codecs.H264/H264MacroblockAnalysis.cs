@@ -8,7 +8,7 @@ namespace Mediana.Codecs.H264
     {
         /// <summary>Uses motion-compensated prediction for predictive pictures.</summary>
         Fast,
-        /// <summary>Also compares selected Intra16 candidates by reconstruction error and CABAC rate.</summary>
+        /// <summary>Probes quantized skip and compares selected Intra16 candidates by reconstruction error and CABAC rate.</summary>
         RateDistortion
     }
 }

@@ -9,6 +9,11 @@ namespace Mediana.Codecs.H264
             .Select(qp => 0.85 * Math.Pow(2, (qp - 12) / 3.0)).ToArray();
         private readonly H264CabacCostSyntax costSyntax = new(state, target, quantizer);
 
+        public bool TrySkip(H264SourceMacroblock source, H264Picture reference, int address, int x, int y,
+            int motionX, int motionY, int searchRange, Span<byte> prediction, H264MotionReference? interpolation) =>
+            H264QuantizedSkipAnalysis.TryAnalyze(state, source, reference, address, x, y,
+                motionX, motionY, quantizer, searchRange, prediction, interpolation);
+
         public bool TryWrite(H264CabacEncodingSyntax syntax, H264SourceMacroblock source,
             H264CabacPredictionWindow motion, int x, int y, int interPattern, int motionX, int motionY,
             ReadOnlySpan<byte> interPrediction, ReadOnlySpan<int> interCoefficients)
