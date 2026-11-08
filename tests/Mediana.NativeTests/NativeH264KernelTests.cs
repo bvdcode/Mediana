@@ -36,6 +36,7 @@ namespace Mediana.NativeTests
             H264LumaNeighborhoodTestInput.Verify();
             H264ShortInterpolationTestInput.Verify();
             H264SampleDifferenceTestInput.Verify();
+            H264ChromaDifferenceTestInput.Verify();
             H264LumaCandidateTestInput.Verify();
             H264LumaNeighborhoodTestInput.VerifyAllocation();
             await H264MotionSearchTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));

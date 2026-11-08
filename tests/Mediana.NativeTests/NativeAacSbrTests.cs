@@ -26,6 +26,7 @@ namespace Mediana.NativeTests
             }
             await AacSbrHlsTestInput.VerifyAsync(root);
             string psRoot = Path.Combine(AppContext.BaseDirectory, "Data", "AacPs");
+            await AacSbrHlsTestInput.VerifyAsync(psRoot, parametricStereo: true);
             foreach (bool explicitPs in new[] { false, true })
             {
                 foreach (string name in new[] { "tonal", "transients", "parameters" })

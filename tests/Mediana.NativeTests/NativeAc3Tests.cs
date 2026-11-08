@@ -13,9 +13,12 @@ namespace Mediana.NativeTests
             await Ac3ContainerTestInput.VerifyAsync("stereo-eac3.mp4", "stereo.eac3", true, 2);
             await Ac3ContainerTestInput.VerifyBundledAndSeekAsync();
             await Ac3ContainerTestInput.VerifyTransientAsync();
+            await Ac3ContainerTestInput.VerifyTransientTailAsync();
             foreach (int channels in new[] { 8, 16 })
             {
                 await Ac3ContainerTestInput.VerifyCompositionAsync(channels);
+                await Ac3MatroskaTestInput.VerifyAsync(channels, false);
+                await Ac3MatroskaTestInput.VerifyAsync(channels, true);
             }
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Ac3");
             foreach (string name in new[] { "spectral", "spectral-atten0", "spectral-atten31", "spectral-merged",
@@ -25,6 +28,7 @@ namespace Mediana.NativeTests
                 await Ac3PcmTestInput.VerifyAsync(root, name + ".eac3", name + ".pcm", 48000, channels, 100);
             }
             await Ac3PcmTestInput.VerifyAsync(root, "transient.eac3", "transient.pcm", 48000, 1, 135);
+            await Ac3PcmTestInput.VerifyAsync(root, "transient-tail.eac3", "transient-tail.pcm", 48000, 1, 135);
             foreach (int channels in new[] { 8, 16 })
             {
                 await Ac3PcmTestInput.VerifyAsync(root, $"dependent-{channels}.eac3", $"dependent-{channels}.pcm", 48000, channels, 135);
