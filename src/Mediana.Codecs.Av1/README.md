@@ -24,7 +24,7 @@ logic across square and rectangular transforms up to 64 samples. Four native
 partition choices consume larger transform contexts and match every visible
 libdav1d sample, including clipped edge blocks and chroma transforms.
 
-Single-reference lossless and four-point quantized inter pictures support nearest, near, new and identity-global
+Single-reference lossless and quantized inter pictures support nearest, near, new and identity-global
 motion, primary-reference probability loading, frame identifiers and expiry, modular
 order hints and short reference signaling, native
 eighth-sample luma and sixteenth-sample chroma interpolation, sub-eight-pixel
@@ -36,11 +36,14 @@ every native reference sample.
 Four-point inter transforms include all sixteen DCT, ADST, flipped ADST and
 identity combinations, with native chroma transform propagation. Three
 independently encoded lossy sequences at different quantization levels match
-every libdav1d sample. Frame permissions for compound prediction, skip mode,
+every libdav1d sample. Variable transform trees share the same coefficient and
+prediction paths; four additional five-frame sequences with eight-, sixteen-,
+thirty-two-sample and unrestricted partition choices match exactly. Transform
+size metadata uses the existing motion-grid allocation. Frame permissions for compound prediction, skip mode,
 inter-intra blending and switchable motion are parsed independently of the
 selected block tool; ordinary single-reference translation remains supported.
 
-Variable-size quantized inter transform trees, compound prediction,
+Compound prediction,
 temporal motion fields, non-identity global motion, overlapped/warped reconstruction,
 smooth/Paeth/filter-intra,
 deblocking, CDEF, loop restoration, intra-edge filtering, intra block copy,

@@ -98,7 +98,7 @@ namespace Mediana.Codecs.Av1
                 context.Palette[index] = colors[index];
             }
             StoreContext(row, column, width, height, context);
-            StoreMotion(row, column, width, height, new() { Width = (byte)width, Height = (byte)height });
+            StoreMotion(row, column, width, height, new() { Width = (byte)width, Height = (byte)height, TransformSize = (byte)transform.Index });
         }
 
         private void StoreContext(int row, int column, int width, int height, Av1BlockContext context)

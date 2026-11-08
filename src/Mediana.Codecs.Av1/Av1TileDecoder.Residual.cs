@@ -35,6 +35,12 @@ namespace Mediana.Codecs.Av1
                         int endY = Math.Min(startY + (16 >> sub), codedHeight);
                         Av1TransformSize size = plane == 0 ? lumaTransform : header.Quantization.Lossless ? new(4, 4) :
                             new(Math.Min(blockWidth * 4, 32), Math.Min(blockHeight * 4, 32));
+                        if (inter && plane == 0 && !header.Quantization.Lossless)
+                        {
+                            InterTransformTree(row, column, width, height, startX, startY,
+                                Math.Min(16, width - startX) * 4, Math.Min(16, height - startY) * 4, skip, residual);
+                            continue;
+                        }
                         for (int y = startY; y < endY; y += size.Height4)
                         {
                             cancellationToken.ThrowIfCancellationRequested();

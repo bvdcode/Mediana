@@ -115,3 +115,11 @@ They retain the preceding optional-filter restrictions and use ordinary quantize
 transform selection. Their `.yuv` files are independent libdav1d reconstructions.
 Tests require every visible sample to match and separately verify that each
 encoded picture actually consumes non-four-point transform probability contexts.
+
+`interTx8`, `interTx16`, `interTx32` and `interTxFree` contain five 48×40
+Main-profile 8-bit 4:2:0 pictures each. AOM encodes translation and changing
+residual detail at CRF 30 with fixed eight-, sixteen-, thirty-two-sample or
+unrestricted partitions. Variable transform selection is enabled. In-loop
+filters, temporal motion, compound prediction and warped motion are disabled
+to isolate transform-tree reconstruction. Every visible sample in the `.yuv`
+libdav1d baselines must match through both picture and public codec APIs.

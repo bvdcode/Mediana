@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.CompilerServices;
+
 namespace Mediana.Codecs.Av1.Tests
 {
     public class Av1TransformContextTests
@@ -15,6 +17,7 @@ namespace Mediana.Codecs.Av1.Tests
             {
                 Av1TransformSize size = new(widths[index], heights[index]);
                 Assert.Equal(index, size.Index);
+                Assert.Equal(size, Av1TransformSize.FromIndex(index));
                 ReadOnlySpan<ushort> scan = Av1CoefficientTables.Scan(size.CodedWidth, size.CodedHeight);
                 Assert.Equal(size.CodedWidth * size.CodedHeight, scan.Length);
                 Assert.Equal(0, scan[0]);
@@ -31,6 +34,12 @@ namespace Mediana.Codecs.Av1.Tests
                     Assert.InRange(size.Split.Index, 0, 18);
                 }
             }
+        }
+
+        [Fact]
+        public void TransformMetadataUsesTheExistingMotionGridExtent()
+        {
+            Assert.Equal(16, Unsafe.SizeOf<Av1MotionBlock>());
         }
 
         [Theory]

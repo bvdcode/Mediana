@@ -14,5 +14,6 @@ namespace Mediana.Codecs.Av1
         internal byte FilterY;
         internal byte FilterX;
         internal byte Transform;
+        internal byte TransformSize;
     }
 }

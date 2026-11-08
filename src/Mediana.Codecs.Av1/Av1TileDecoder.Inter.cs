@@ -20,10 +20,6 @@ namespace Mediana.Codecs.Av1
 
         private void InterBlock(int row, int column, int width, int height, int skip)
         {
-            if (!header.Quantization.Lossless && skip == 0 && (width != 1 || height != 1))
-            {
-                throw new NotSupportedException("AV1 quantized inter transforms larger than four samples are not implemented.");
-            }
             Av1ReferencePictures pictures = references ?? throw new InvalidOperationException("AV1 inter prediction requires stored pictures.");
             int reference = ReadReference(row, column, width, height);
             Span<Av1MotionCandidate> storage = stackalloc Av1MotionCandidate[Av1MotionCandidates.Capacity];
@@ -79,7 +75,8 @@ namespace Mediana.Codecs.Av1
             StoreMotion(row, column, width, height, block);
             bool hasChroma = !sequence.Monochrome && !(height == 1 && (row & 1) == 0) && !(width == 1 && (column & 1) == 0);
             PredictInter(row, column, width, height, hasChroma, block, pictures);
-            Residual(row, column, width, height, skip != 0, 0, 0, hasChroma, default, default, default, new(4, 4), true);
+            Av1TransformSize transform = ReadInterTransformSizes(row, column, width, height, skip != 0);
+            Residual(row, column, width, height, skip != 0, 0, 0, hasChroma, default, default, default, transform, true);
             Av1BlockContext contextBlock = new()
             {
                 WidthLog = (byte)BitOperations.Log2((uint)width), HeightLog = (byte)BitOperations.Log2((uint)height), Skip = (byte)skip
