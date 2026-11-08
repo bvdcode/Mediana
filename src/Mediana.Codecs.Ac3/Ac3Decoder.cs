@@ -9,7 +9,8 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Ac3
 {
-    internal class Ac3Decoder(int streamIndex, bool enhanced, MediaBufferAllocator allocator, bool applyDynamicRangeCompression) : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
+    internal class Ac3Decoder(int streamIndex, bool enhanced, MediaBufferAllocator allocator, bool applyDynamicRangeCompression,
+        Ac3DecoderExpectation? expectation = null) : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
     {
         private const int MaximumFramesPerAccessUnit = 6;
         private const int MaximumSamplesPerAccessUnit = 1536;
@@ -69,6 +70,7 @@ namespace Mediana.Codecs.Ac3
                 if (count == MaximumFramesPerAccessUnit) { throw new InvalidDataException("An E-AC-3 access unit exceeds six audio blocks."); }
                 Ac3FrameHeader header = Ac3FrameHeader.Read(data[offset..]);
                 if (header.IsEnhanced != enhanced) { throw new InvalidDataException("The AC-3 syncframe does not match the declared codec."); }
+                expectation?.Validate(header);
                 if (header.FrameBytes > data.Length - offset || (!enhanced && header.FrameBytes != data.Length))
                 {
                     throw new InvalidDataException("The AC-3 syncframe boundaries do not match the access unit.");
@@ -85,6 +87,8 @@ namespace Mediana.Codecs.Ac3
                 if (samples > MaximumSamplesPerAccessUnit) { throw new InvalidDataException("An E-AC-3 access unit exceeds six audio blocks."); }
                 frames[count++] = header; offset += header.FrameBytes;
             }
+            if (expectation is not null && samples != MaximumSamplesPerAccessUnit)
+            { throw new InvalidDataException("An MP4 AC-3 access unit requires exactly six audio blocks."); }
             return (count, samples);
         }
         public CodecOutput<AudioFrame> Receive(CancellationToken cancellationToken = default)

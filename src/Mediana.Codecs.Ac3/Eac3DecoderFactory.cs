@@ -16,5 +16,6 @@ namespace Mediana.Codecs.Ac3
         public override string ImplementationId => "mediana.eac3";
         protected override bool Enhanced => true;
         protected override EncodedStreamFormat ExpectedFormat => StreamFormats.Eac3;
+        protected override EncodedStreamFormat ExpectedMp4Format => StreamFormats.Eac3Mp4;
     }
 }

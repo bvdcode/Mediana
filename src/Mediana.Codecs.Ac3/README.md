@@ -1,6 +1,8 @@
 # AC-3 and E-AC-3 decoding
 
-`Ac3DecoderFactory` and `Eac3DecoderFactory` implement the shared `IAudioDecoderFactory` contract. AC-3 consumes one complete syncframe per `MediaPacket` with `StreamFormats.Ac3`. E-AC-3 accepts one or more complete syncframes of the same independent substream, totalling at most six audio blocks, with `StreamFormats.Eac3`. This includes the combined access units used in MP4. The external configuration is empty because each syncframe describes its sample rate and channel mode.
+`Ac3DecoderFactory` and `Eac3DecoderFactory` implement the shared `IAudioDecoderFactory` contract. AC-3 consumes one complete syncframe per `MediaPacket` with `StreamFormats.Ac3`. E-AC-3 accepts one or more complete syncframes of the same independent substream, totalling at most six audio blocks, with `StreamFormats.Eac3`. These self-describing representations use an empty external configuration.
+
+MP4 uses the explicit `StreamFormats.Ac3Mp4` and `StreamFormats.Eac3Mp4` representations with the original `dac3` or `dec3` payload. Their access units contain exactly six audio blocks. The factories validate that syncframes agree with the configured sampling format. `Ac3StreamMetadataReader` and `Eac3StreamMetadataReader` inspect these configurations independently of decode support; the latter reports the main independent presentation, including declared dependent channel locations. Dependent composition, multiple independent presentations and associated-service mixing produce explicit decoder refusals.
 
 Output is native-endian, interleaved float32 PCM. Coded channel order is preserved, with explicit labels from `Ac3FrameHeader.GetChannelOrder()`. For 5.1 this is left, centre, right, left surround, right surround, LFE. There is no implicit downmix or sample rate conversion.
 

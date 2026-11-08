@@ -9,10 +9,8 @@ namespace Mediana.Formats.Audio
         public const string CodecId = "ac3";
         public const string EnhancedCodecId = "eac3";
         public const int HeaderBytes = 8;
-        private static ReadOnlySpan<int> Rates => [48000, 44100, 32000];
         private static ReadOnlySpan<int> BitRates => [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640];
         private static ReadOnlySpan<int> Words44100 => [69, 87, 104, 121, 139, 174, 208, 243, 278, 348, 417, 487, 557, 696, 835, 975, 1114, 1253, 1393];
-        private static ReadOnlySpan<int> Channels => [2, 1, 2, 3, 3, 4, 4, 5];
 
         private Ac3FrameHeader(ReadOnlySpan<byte> bytes)
         {
@@ -35,7 +33,7 @@ namespace Mediana.Formats.Audio
                 {
                     throw new InvalidDataException("The E-AC-3 sample rate code is reserved.");
                 }
-                SampleRate = Rates[SampleRateCode];
+                SampleRate = Ac3ChannelLayout.GetSampleRate(SampleRateCode);
                 SamplesPerFrame = code switch { 0 => 256, 1 => 512, 2 => 768, 3 => 1536, _ => throw new InvalidOperationException() };
                 ChannelMode = bytes[4] >> 1 & 7;
                 HasLfe = (bytes[4] & 1) != 0;
@@ -46,7 +44,7 @@ namespace Mediana.Formats.Audio
                 SampleRateCode = bytes[4] >> 6;
                 int sizeCode = bytes[4] & 63;
                 if (SampleRateCode == 3 || sizeCode >= 38) { throw new InvalidDataException("The AC-3 sample rate or frame size code is reserved."); }
-                SampleRate = Rates[SampleRateCode];
+                SampleRate = Ac3ChannelLayout.GetSampleRate(SampleRateCode);
                 int rate = BitRates[sizeCode / 2];
                 FrameBytes = SampleRateCode switch
                 {
@@ -63,7 +61,7 @@ namespace Mediana.Formats.Audio
                 if (ChannelMode == 2) { bit += 2; }
                 HasLfe = (bytes[bit / 8] >> (7 - bit % 8) & 1) != 0;
             }
-            ChannelCount = Channels[ChannelMode] + (HasLfe ? 1 : 0);
+            ChannelCount = Ac3ChannelLayout.GetChannelCount(ChannelMode, HasLfe);
             if (FrameBytes < HeaderBytes + 2) { throw new InvalidDataException("The AC-3 syncframe is too short for its header and checksum."); }
         }
 
@@ -79,21 +77,7 @@ namespace Mediana.Formats.Audio
         public int ChannelCount { get; }
         public bool HasLfe { get; }
         /// <summary>Channels in coded order; decoding preserves this order without downmixing.</summary>
-        public string[] GetChannelOrder()
-        {
-            string[] main = ChannelMode switch
-            {
-                0 or 2 => ["front-left", "front-right"],
-                1 => ["front-center"],
-                3 => ["front-left", "front-center", "front-right"],
-                4 => ["front-left", "front-right", "back-center"],
-                5 => ["front-left", "front-center", "front-right", "back-center"],
-                6 => ["front-left", "front-right", "side-left", "side-right"],
-                7 => ["front-left", "front-center", "front-right", "side-left", "side-right"],
-                _ => throw new InvalidOperationException()
-            };
-            return HasLfe ? [.. main, "low-frequency"] : main;
-        }
+        public string[] GetChannelOrder() => Ac3ChannelLayout.GetChannelOrder(ChannelMode, HasLfe);
         public static Ac3FrameHeader Read(ReadOnlySpan<byte> data) => new(data);
     }
 }
