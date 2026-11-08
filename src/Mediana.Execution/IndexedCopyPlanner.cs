@@ -90,6 +90,17 @@ namespace Mediana.Execution
             if (stream.Kind == MediaKind.Video)
             {
                 ArgumentNullException.ThrowIfNull(inspector);
+                if (inspector is IRandomAccessOriginInspector origin && origin.RequiresOriginPacket)
+                {
+                    budget?.CountPacketRead();
+                    using MediaPacket packet = await reader.ReadPacketAtAsync(streamIndex, 0, cancellationToken).ConfigureAwait(false);
+                    if (packet.StreamIndex != streamIndex)
+                    {
+                        throw new InvalidDataException("The opening packet differs from its indexed stream.");
+                    }
+                    origin.InspectOrigin(packet, cancellationToken);
+                    cancellationToken.ThrowIfCancellationRequested();
+                }
                 await VerifyRestartAsync(first, earliest!.Value).ConfigureAwait(false);
                 if (last + 1 < count)
                 {

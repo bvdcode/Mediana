@@ -32,6 +32,7 @@ namespace Mediana.Execution
                 {
                     throw new NotSupportedException("Seeking requires indexed container packets.");
                 }
+                await InspectOriginAsync(indexed, cancellationToken).ConfigureAwait(false);
                 if (decoder is IPacketPrerollDecoder preroll && indexed.SupportsPreroll)
                 {
                     await SeekWithPrerollAsync(indexed, preroll, target, cancellationToken).ConfigureAwait(false);
@@ -105,6 +106,28 @@ namespace Mediana.Execution
             }
             return randomAccessInspector is null || randomAccessInspector.IsRandomAccess(packet, cancellationToken)
                 ? new RandomAccessRecovery(0) : null;
+        }
+
+        private async ValueTask InspectOriginAsync(IndexedPacketReader indexed, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (originInspected || randomAccessInspector is not IRandomAccessOriginInspector origin || !origin.RequiresOriginPacket)
+            {
+                return;
+            }
+            if (indexed.Count == 0)
+            {
+                throw new NotSupportedException("The empty stream has no opening packet for restart inspection.");
+            }
+            CountPacketRead();
+            using MediaPacket packet = await indexed.ReadPacketAtAsync(0, cancellationToken).ConfigureAwait(false);
+            if (packet.StreamIndex != streamIndex)
+            {
+                throw new InvalidDataException("The opening packet differs from its indexed stream.");
+            }
+            origin.InspectOrigin(packet, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            originInspected = true;
         }
     }
 }
