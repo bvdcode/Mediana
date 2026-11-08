@@ -127,5 +127,5 @@ intra block copy,
 chroma palette, segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,
 film grain and decoder-model timing are not implemented. Encountering these
-tools fails explicitly. The module is not registered in the default pipeline
-or published as a package while ordinary AV1 playback coverage is incomplete.
+tools fails explicitly. The module requires explicit factory registration while ordinary AV1 playback
+coverage is incomplete.

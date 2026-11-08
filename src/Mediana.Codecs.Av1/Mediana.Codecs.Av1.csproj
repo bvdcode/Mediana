@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <IsPackable>false</IsPackable>
-    <Description>Managed AV1 bitstream and reconstruction primitives.</Description>
+    <Description>Managed AV1 video decoding for Mediana.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />
