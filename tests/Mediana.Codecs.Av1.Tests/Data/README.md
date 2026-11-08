@@ -672,3 +672,14 @@ The unsigned sixteen-bit and byte paths match every eight-bit vector. Native
 undefined-behavior checks, untouched destination samples and warmed zero-allocation
 checks are included. A separate maximum-field probe confirms the twelve-bit
 self-guided result without overflowing the local-mean multiplication.
+
+`cdef-variance-precision.bin.gz` adds 864 independent AOM 3.8.2 cases for
+luma strength adjustment. Its header is `AV1HCDVA` and a little-endian
+32-bit count. The eight-byte case header stores depth, side, x/y origin,
+primary and secondary strengths, damping and direction; a little-endian
+32-bit variance precedes the usual sixteen-bit input raster and output digest.
+Primary strength is scaled to sample precision before the reference applies
+`adjust_strength`, then selects primary taps from the adjusted strength.
+Variances 0, 1, 63, 64, 127, 128, 4095, 4096 and 1048576 exercise zero,
+logarithm boundaries and saturation at eight, ten and twelve bits. Both
+block sizes, all directions and primary strengths 0, 1, 7 and 15 are covered.

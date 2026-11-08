@@ -45,11 +45,8 @@ namespace Mediana.Codecs.Av1
                     int direction = Av1CdefDirection.Find<T>(scratch[(2 * sequence.Stride + x)..], sequence.Stride, out int variance, bitDepth);
                     int primary = parameters.Primary(index, 0);
                     int yDirection = primary == 0 ? 0 : direction;
-                    int varianceStrength = variance >> 6;
-                    int adjustment = varianceStrength == 0 ? 0 : Math.Min(BitOperations.Log2((uint)varianceStrength), 12);
-                    primary = variance == 0 ? 0 : (primary * (4 + adjustment) + 8) >> 4;
                     Av1CdefKernel.Filter(scratch, pixels[..sequence.LumaSamples], sequence.Stride, sequence.PaddedHeight,
-                        x, y, 8, primary, parameters.Secondary(index, 0), parameters.Damping, yDirection, bitDepth);
+                        x, y, 8, primary, parameters.Secondary(index, 0), parameters.Damping, yDirection, bitDepth, variance);
                     offset = sequence.Stride * 12;
                     for (int plane = 1; plane < planes; plane++)
                     {

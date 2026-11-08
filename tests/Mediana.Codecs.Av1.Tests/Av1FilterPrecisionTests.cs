@@ -18,6 +18,13 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData(8)]
         [InlineData(10)]
         [InlineData(12)]
+        public void LumaVarianceAdjustsScaledCdefStrengthBeforeFiltering(int bitDepth) =>
+            Av1FilterPrecisionTestInput.VerifyCdefVariance(Data, bitDepth);
+
+        [Theory]
+        [InlineData(8)]
+        [InlineData(10)]
+        [InlineData(12)]
         public void EveryDeblockingExtentAndDirectionMatchesIndependentHighDepthKernels(int bitDepth) =>
             Av1FilterPrecisionTestInput.VerifyDeblocking(Data, bitDepth);
 

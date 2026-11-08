@@ -9,7 +9,7 @@ namespace Mediana.Codecs.Av1
     internal static class Av1CdefKernel
     {
         internal static void Filter<T>(ReadOnlySpan<T> source, Span<T> output, int stride, int planeHeight,
-            int x0, int y0, int side, int primary, int secondary, int damping, int direction, int bitDepth = 8) where T : unmanaged, IBinaryInteger<T>
+            int x0, int y0, int side, int primary, int secondary, int damping, int direction, int bitDepth = 8, int? lumaVariance = null) where T : unmanaged, IBinaryInteger<T>
         {
             int coefficientShift = bitDepth switch
             {
@@ -18,10 +18,16 @@ namespace Mediana.Codecs.Av1
                 12 => 4,
                 _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
             };
-            int primaryParity = primary & 1;
             primary <<= coefficientShift;
             secondary <<= coefficientShift;
             damping += coefficientShift;
+            if (lumaVariance is int variance)
+            {
+                int varianceStrength = variance >> 6;
+                int adjustment = varianceStrength == 0 ? 0 : Math.Min(BitOperations.Log2((uint)varianceStrength), 12);
+                primary = variance == 0 ? 0 : (primary * (4 + adjustment) + 8) >> 4;
+            }
+            int primaryParity = (primary >> coefficientShift) & 1;
             if (primary == 0 && secondary == 0) { return; }
             int primaryShift = primary == 0 ? 0 : Math.Max(0, damping - BitOperations.Log2((uint)primary));
             int secondaryShift = secondary == 0 ? 0 : Math.Max(0, damping - BitOperations.Log2((uint)secondary));
