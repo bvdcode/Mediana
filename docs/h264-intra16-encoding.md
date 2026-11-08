@@ -1,8 +1,20 @@
-The intra16 encoder writes CAVLC luma DC and AC coefficients, all four 16x16
+The intra16 component writes CAVLC and CABAC luma DC and AC coefficients, all four 16x16
 luma prediction modes, chroma residuals and quantizer transitions in I and P
 slices. It shares chroma quantization, residual writing and reconstruction with
 the existing encoder. Working coefficients and predictions use bounded stack
 storage; no additional picture buffer is retained.
+
+Analysis produces coefficients and prediction samples without changing the
+reconstructed picture. Entropy writing and reconstruction consume that result,
+so comparing a candidate does not require repeating its transform. Both entropy
+modes use the same reconstruction kernel. CABAC handles Intra16 macroblock types
+in I and P slices, including its PCM-selection bin and embedded coded patterns.
+
+Thirty additional complete streams cover sixty independently decoded CABAC
+pictures at QP 0, 12, 26, 38 and 51. Gradients, constant planes and luma/chroma
+checkerboards exercise zero residuals, DC/AC patterns and all four prediction
+modes. Every sample matches FFmpeg 9.0.2 with original full-range samples and
+timestamps. Normal, hardware-intrinsics-disabled and strict Native AOT checks pass.
 
 The luma DC path applies a separable 4x4 Hadamard transform to the raster DC
 coefficients before quantization and zigzag scanning. An independent direct

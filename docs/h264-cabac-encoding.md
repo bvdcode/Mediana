@@ -95,3 +95,50 @@ host scheduling outliers; CPU also has outliers on motion and flat content.
 Natural video gives the most consistent CPU reduction. These figures compare
 process CPU medians. They are
 an internal before/after comparison and do not establish parity with x264.
+
+## Current x264 comparison
+
+A subsequent comparison measures complete Y4M input, H.264 encoding and MPEG-TS
+output with one logical CPU. Each configuration runs six fresh processes in
+ABBA/BAAB/ABBA order. Mediana uses the direct-cost Native AOT build at QP26;
+FFmpeg 6.1.1 uses libx264 with its normal assembly implementation. The two
+measured reference QPs bracket Mediana's decoded PSNR; nominal QP equality is
+not treated as equal quality. All 144 timed processes complete successfully,
+and quality checks compare all 4,512 pictures against the original planes.
+
+| Input | Mediana PSNR | Common-tool x264 CPU ratio | Default veryfast CPU ratio |
+| --- | ---: | ---: | ---: |
+| Natural video | 43.110 dB | 4.56–4.64× | 2.82–2.84× |
+| Motion | 45.634 dB | 3.37–3.69× | 2.23–2.54× |
+| Flat content | 53.969 dB | about 4.30× | 2.82–2.87× |
+
+Ratios are Mediana process CPU divided by x264 process CPU. The common-tool
+configuration uses Main profile, CABAC, no B pictures, one reference, a 48-picture
+GOP and disabled scene cuts. Default veryfast retains its High profile, B pictures
+and adaptive GOP; its results are reported separately. Both include their
+respective muxer and process overhead.
+
+| Input | Mediana AVC bytes | Common-tool x264 AVC bytes | Default veryfast AVC bytes |
+| --- | ---: | ---: | ---: |
+| Natural video | 2,993,947 | 1,195,638–1,318,137 | 911,184–1,011,813 |
+| Motion | 1,290,795 | 918,035–984,556 | 811,356–878,739 |
+| Flat content | 34,600 | 24,386–24,894 | 12,708–12,828 |
+
+These are complete Annex-B video bytes, including configuration and framing,
+at the same measured endpoints. Median peak process RSS is approximately
+49/21/50 MiB for Mediana on natural/motion/flat inputs, 79–80/57/75–76 MiB
+for common-tool x264 and 102–103/64/100–102 MiB for default veryfast.
+Lower memory does not compensate for the remaining speed and size differences.
+
+Natural-video reference PSNR spans 42.795–43.277 dB for common tools and
+42.870–43.347 dB for defaults. Motion spans 45.358–46.304 dB and
+44.954–45.962 dB respectively. Flat content has a nonmonotonic quality curve:
+dominated points are excluded, and the remaining bracket is wide,
+53.560–56.443 dB or 53.560–56.377 dB. These are actual measured endpoints,
+not an exact equal-quality CPU interpolation or proof of equal perceptual quality.
+
+Individual CPU coefficients of variation reach 20–31%; alternating four-run
+blocks also show a multiple-fold gap. The measurements do not establish a
+universal coefficient with percent-level precision. This covers three
+8–12 second inputs on Linux x64; the speed and compression-efficiency targets
+remain open.
