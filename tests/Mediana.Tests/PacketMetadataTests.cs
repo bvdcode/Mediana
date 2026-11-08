@@ -19,11 +19,12 @@ namespace Mediana.Tests
         {
             byte[] frame = First();
             FixturePacketMetadataReader metadata = new("ac3", 8, new AudioStreamMetadata(48000, 1));
-            MediaEngineBuilder builder = new MediaEngineBuilder().AddContainer(new Ac3ReaderFactory()).AddStreamMetadataReader(metadata);
+            MediaEngineBuilder builder = new MediaEngineBuilder().AddContainer(new FixturePacketContainerFactory(new Ac3ReaderFactory()))
+                .AddStreamMetadataReader(metadata);
             if (images) { builder.AddImageDecoder(new PngImageDecoder()); }
             await using EbmlElementTestSource source = new(frame) { MaximumRead = 3 };
             if (!images) { source.ExcludedReadRange = (8, frame.Length); }
-            MediaInfo info = await builder.Build().ProbeAsync(source, images ? null : new() { BufferBudgetBytes = 16, MaxProbeBytes = 8 });
+            MediaInfo info = await builder.Build().ProbeAsync(source, images ? null : new() { BufferBudgetBytes = 20, MaxProbeBytes = 8 });
             Assert.Equal(frame[..8], metadata.Prefix);
             Assert.Equal(1, metadata.PrefixReads);
             Assert.Equal(48000, Assert.IsType<AudioStreamMetadata>(info.StreamMetadata[0]).SampleRate);
@@ -100,7 +101,7 @@ namespace Mediana.Tests
         {
             byte[] input = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Ac3", name));
             Ac3FrameHeader header = Ac3FrameHeader.Read(input);
-            await using EbmlElementTestSource source = new(input[..header.FrameBytes]) { ExcludedReadRange = (8, header.FrameBytes) };
+            await using EbmlElementTestSource source = new(input[..header.FrameBytes]) { ExcludedReadRange = (enhanced ? 12 : 8, header.FrameBytes) };
             MediaEngine engine = new MediaEngineBuilder().AddContainer(new Ac3ReaderFactory())
                 .AddStreamMetadataReader(new Ac3StreamMetadataReader()).AddStreamMetadataReader(new Eac3StreamMetadataReader()).Build();
             MediaInfo info = await engine.ProbeAsync(source);
@@ -109,11 +110,11 @@ namespace Mediana.Tests
             Assert.Equal(header.SampleRate, metadata.SampleRate);
             Assert.Equal(enhanced ? "eac3" : "ac3", info.Streams[0].CodecId);
             Assert.Empty(engine.AudioDecoderImplementations);
-            Assert.Equal(24, source.BytesRead);
+            Assert.Equal(enhanced ? 20 : 16, source.BytesRead);
         }
 
         private static MediaEngine Engine(FixturePacketMetadataReader metadata) => new MediaEngineBuilder()
-            .AddContainer(new Ac3ReaderFactory()).AddStreamMetadataReader(metadata).Build();
+            .AddContainer(new FixturePacketContainerFactory(new Ac3ReaderFactory())).AddStreamMetadataReader(metadata).Build();
         private static byte[] First()
         {
             byte[] source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", "Ac3", "mono.ac3"));

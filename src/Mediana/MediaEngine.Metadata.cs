@@ -19,11 +19,13 @@ namespace Mediana
             foreach (EncodedStreamInfo stream in container.Streams)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!metadataReaders.TryGetValue(stream.CodecId, out IStreamMetadataReader? reader))
+                metadataReaders.TryGetValue(stream.CodecId, out IStreamMetadataReader? reader);
+                StreamMetadata? value = reader?.Read(stream);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (value is null && container is IContainerStreamMetadataProvider provider)
                 {
-                    continue;
+                    value = provider.GetStreamMetadata(stream.StreamIndex);
                 }
-                StreamMetadata? value = reader.Read(stream);
                 if (value is null && reader is IPacketPrefixMetadataReader packetReader &&
                     container is IIndexedPacketPrefixReader indexed && indexed.GetPacketCount(stream.StreamIndex) != 0)
                 {
