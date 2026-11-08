@@ -15,9 +15,15 @@ namespace Mediana.NativeTests
                 foreach (bool explicitSbr in new[] { false, true })
                 {
                     await AacSbrDecodeTestInput.VerifySequenceAsync(root, channels, explicitSbr);
+                    foreach (bool mp4 in new[] { false, true })
+                    {
+                        await AacSbrSeekTestInput.VerifyAsync(root, channels, explicitSbr, mp4);
+                    }
                 }
             }
+            await AacSbrHlsTestInput.VerifyAsync(root);
             Console.WriteLine("PASS HE-AAC: mono/stereo, explicit/implicit SBR, every independent PCM sample, exact timing and persistent state ownership.");
+            Console.WriteLine("PASS HE-AAC: indexed MP4/ADTS recovery, fresh HLS requests, repeated segments and bounded source reads.");
         }
     }
 }
