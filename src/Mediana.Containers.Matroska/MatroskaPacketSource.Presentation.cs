@@ -9,9 +9,12 @@ namespace Mediana.Containers.Matroska
     internal partial class MatroskaPacketSource
     {
         private MatroskaPresentationIndex? presentation;
+        private MatroskaAudioTimingIndex? audioTiming;
 
         public async ValueTask InitializePresentationAsync(MatroskaIndexOptions options, CancellationToken token)
         {
+            audioTiming = await MatroskaAudioTimingIndex.CreateAsync(source, allocator, index, tracks,
+                configurations, options, token).ConfigureAwait(false);
             presentation = await MatroskaPresentationIndex.CreateAsync(source, allocator, index, this,
                 configurations, options, token).ConfigureAwait(false);
         }
