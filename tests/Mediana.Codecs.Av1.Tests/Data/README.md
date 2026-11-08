@@ -683,3 +683,29 @@ Primary strength is scaled to sample precision before the reference applies
 Variances 0, 1, 63, 64, 127, 128, 4095, 4096 and 1048576 exercise zero,
 logarithm boundaries and saturation at eight, ten and twelve bits. Both
 block sizes, all directions and primary strengths 0, 1, 7 and 15 are covered.
+
+## Inter prediction sample precision
+
+`inter-precision.bin.gz` contains 1,890 independent eight-, ten- and twelve-bit
+AOM v3.13.1 prediction cases, 630 per precision. The reference uses the official
+high-depth two-dimensional, scaled, compound and affine-warp C functions, plus
+the weighted and difference-mask blending functions. The supporting warped
+filter and division tables match the same release. Inputs are deterministic
+random fields, zero, maximum, alternating and sharp-filter extrema patterns.
+The gzip file SHA-256 is
+`de9f77bd1bd23fb535963aedcfd31f7f8d9242c85792bab1d3285a541fd41983`.
+
+The expanded stream starts with `AV1INTER` and a little-endian 32-bit case
+count. Each precision section begins with two 96×80 4:2:0 reference rasters,
+stored as little-endian unsigned sixteen-bit samples. Case headers store 26
+little-endian 32-bit integers: depth, prediction kind, source pattern, plane,
+target size, block origin and visible size, coded prediction size, interpolation
+filters, both motion vectors, mask kind and sign, compound weights, intermediate
+extrema, and mask size. Two six-integer affine matrices follow. Each record ends
+with the expected visible unsigned sixteen-bit samples and expected mask bytes.
+
+The corpus contains 313,152 expected output samples. Intermediate values span
+−20,602 through 36,983. Tests also preserve surrounding destination samples and
+both reference pictures, compare every mask byte, and require zero managed
+allocations during warmed calls. The same corpus runs with normal and disabled
+hardware intrinsics and in a strict portable Native AOT executable.

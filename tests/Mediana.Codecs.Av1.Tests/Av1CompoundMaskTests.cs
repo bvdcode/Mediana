@@ -38,10 +38,11 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData(-1000, 5000, 1, 3, 255)]
         public void DifferenceMaskRetainsSignedPredictionUntilFinalBlend(short first, int second, int sign, byte weight, byte expected)
         {
-            Span<short> prediction = stackalloc short[1];
-            prediction[0] = first;
+            Span<ushort> prediction = stackalloc ushort[1];
+            Av1CompoundBlend<byte> initial = new(prediction);
+            initial.Apply(0, 0, 1, first);
             Span<byte> mask = stackalloc byte[1];
-            Av1CompoundBlend blend = new(prediction, new(default, Av1CompoundMaskType.Difference, Sign: sign), mask, 1);
+            Av1CompoundBlend<byte> blend = new(prediction, new(default, Av1CompoundMaskType.Difference, Sign: sign), mask, 1);
             Assert.Equal(expected, blend.Apply(0, 0, 1, second));
             Assert.Equal(weight, mask[0]);
         }
@@ -49,10 +50,13 @@ namespace Mediana.Codecs.Av1.Tests
         [Fact]
         public void ChromaUsesRoundedLumaMaskAverageWithoutOverwritingIt()
         {
-            short[] prediction = [1600, 1600];
+            ushort[] prediction = new ushort[2];
+            Av1CompoundBlend<byte> initial = new(prediction);
+            initial.Apply(0, 0, 2, 1600);
+            initial.Apply(0, 1, 2, 1600);
             byte[] mask = [0, 1, 63, 64, 2, 3, 61, 62];
             byte[] original = mask.ToArray();
-            Av1CompoundBlend blend = new(prediction, new(default, Av1CompoundMaskType.Difference), mask, 4, 1);
+            Av1CompoundBlend<byte> blend = new(prediction, new(default, Av1CompoundMaskType.Difference), mask, 4, 1);
             Assert.Equal(197, blend.Apply(0, 0, 2, 3200));
             Assert.Equal(102, blend.Apply(0, 1, 2, 3200));
             Assert.Equal(original, mask);

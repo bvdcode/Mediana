@@ -108,7 +108,7 @@ namespace Mediana.Codecs.Av1.Tests
         public void PredictionDestinationBorrowsOnlyItsLocalRegion()
         {
             byte[] pixels = new byte[12];
-            Av1PredictionDestination destination = new(pixels.AsSpan(2, 8), 4, 10, 20);
+            Av1PredictionDestination<byte> destination = new(pixels.AsSpan(2, 8), 4, 10, 20);
             destination.Row(11, 21, 2).Fill(7);
             Assert.Equal(new byte[] { 0, 0, 0, 0, 0, 0, 0, 7, 7, 0, 0, 0 }, pixels);
         }
