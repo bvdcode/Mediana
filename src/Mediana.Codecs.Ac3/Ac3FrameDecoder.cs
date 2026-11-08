@@ -11,6 +11,7 @@ namespace Mediana.Codecs.Ac3
         private readonly Ac3Workspace workspace = new(allocator);
         private readonly Ac3SpectralExtension spectralExtension = new(allocator);
         private readonly Ac3AdaptiveTransform adaptiveTransform = new(allocator);
+        private readonly Ac3EnhancedCoupling enhancedCoordinates = new(allocator);
         private static readonly ushort[] CrcTable = CreateCrcTable();
         private readonly int[] end = new int[7], strategies = new int[7], fine = new int[7], fastGain = new int[7], deltaMode = new int[7];
         private readonly bool[] coupled = new bool[5], shortBlock = new bool[5], dither = new bool[5], coordinateNew = new bool[5], coordinateValid = new bool[5], rematrix = new bool[4];
@@ -18,7 +19,7 @@ namespace Mediana.Codecs.Ac3
         private readonly double[] dynamics = new double[2];
         private Ac3FrameHeader header = null!;
         private int fullChannels, coarse, slowDecay, fastDecay, slowGain, dbKnee, floor, couplingStart, couplingEnd, subbands, fastLeak, slowLeak;
-        private bool coupling, phaseInUse, couplingExponentsRequired;
+        private bool coupling, phaseInUse, couplingExponentsRequired, enhancedCouplingInUse;
         private uint random = 1;
 
         public static void ValidateFrame(ReadOnlySpan<byte> data, Ac3FrameHeader header)
@@ -50,8 +51,8 @@ namespace Mediana.Codecs.Ac3
             fullChannels = header.ChannelCount - (header.HasLfe ? 1 : 0);
             Array.Clear(coupled); Array.Clear(coordinateValid); Array.Clear(rematrix);
             Array.Clear(end); Array.Clear(fine); Array.Clear(fastGain); Array.Clear(deltaMode);
-            coupling = false; phaseInUse = false; dynamics.AsSpan().Fill(1);
-            spectralExtension.ResetFrame(); adaptiveTransform.ResetFrame();
+            coupling = false; phaseInUse = false; enhancedCouplingInUse = false; dynamics.AsSpan().Fill(1);
+            spectralExtension.ResetFrame(); adaptiveTransform.ResetFrame(); enhancedCoordinates.ResetFrame();
             for (int ch = 0; ch < 7; ch++) { workspace.Delta(ch).Clear(); }
             Ac3BitReader bits = new(data);
             if (header.IsEnhanced) { ReadEnhancedHeader(ref bits); }
@@ -144,85 +145,6 @@ namespace Mediana.Codecs.Ac3
                     dynamics[ch] = Math.ScaleB((value & 31) + 32, exponent - 5);
                 }
             }
-        }
-
-        private void ReadCoupling(ref Ac3BitReader bits, bool inUse, bool enhanced)
-        {
-            bool previous = coupling;
-            coupling = inUse;
-            if (!coupling) { Array.Clear(coupled); Array.Clear(coordinateValid); phaseInUse = false; return; }
-            if (enhanced && bits.Flag()) { throw new NotSupportedException("E-AC-3 enhanced coupling is not supported."); }
-            int count = 0;
-            for (int ch = 0; ch < fullChannels; ch++)
-            {
-                bool inChannel = enhanced && header.ChannelMode == 2 || bits.Flag();
-                if (!inChannel || !coupled[ch] || !previous) { coordinateValid[ch] = false; }
-                coupled[ch] = inChannel; if (inChannel) { count++; }
-            }
-            if (count < 2) { throw new InvalidDataException("AC-3 coupling requires at least two channels."); }
-            phaseInUse = header.ChannelMode == 2 && bits.Flag();
-            int begin = bits.Read(4);
-            int finish = enhanced && spectralExtension.InUse ? (spectralExtension.BeginBin - 37) / 12 : bits.Read(4) + 3;
-            if (begin >= finish) { throw new InvalidDataException("The AC-3 coupling frequency range is invalid."); }
-            int newStart = 37 + begin * 12, newEnd = 37 + finish * 12;
-            couplingExponentsRequired = !previous || newStart != couplingStart || newEnd != couplingEnd;
-            couplingStart = newStart; couplingEnd = newEnd; subbands = finish - begin;
-            if (!enhanced || bits.Flag())
-            {
-                couplingMerge[0] = false;
-                for (int band = 1; band < subbands; band++) { couplingMerge[band] = bits.Flag(); }
-            }
-            else if (!previous)
-            {
-                for (int band = 1; band < subbands; band++) { couplingMerge[band] = DefaultCouplingMerge[begin + band] != 0; }
-            }
-        }
-
-        private void ReadCoordinates(ref Ac3BitReader bits, bool enhanced)
-        {
-            if (!coupling) { return; }
-            Array.Clear(coordinateNew);
-            for (int ch = 0; ch < fullChannels; ch++)
-            {
-                if (!coupled[ch]) { continue; }
-                bool present = enhanced && !coordinateValid[ch] || bits.Flag();
-                coordinateNew[ch] = present;
-                if (!present && !coordinateValid[ch]) { throw new InvalidDataException("AC-3 coupling coordinates cannot be reused before being defined."); }
-                if (!present) { continue; }
-                int master = bits.Read(2) * 3;
-                double coordinate = 0;
-                for (int band = 0; band < subbands; band++)
-                {
-                    if (band == 0 || !couplingMerge[band])
-                    {
-                        int exponent = bits.Read(4), mantissa = bits.Read(4);
-                        coordinate = Math.ScaleB(exponent == 15 ? mantissa / 16.0 : (mantissa + 16) / 32.0, -exponent - master) * 8;
-                    }
-                    workspace.Coordinates(ch)[band] = coordinate;
-                }
-                coordinateValid[ch] = true;
-            }
-            if (header.ChannelMode == 2 && phaseInUse && (coordinateNew[0] || coordinateNew[1]))
-            {
-                bool negative = false;
-                for (int band = 0; band < subbands; band++)
-                {
-                    if (band == 0 || !couplingMerge[band]) { negative = bits.Flag(); }
-                    double coordinate = Math.Abs(workspace.Coordinates(1)[band]);
-                    workspace.Coordinates(1)[band] = negative ? -coordinate : coordinate;
-                }
-            }
-        }
-
-        private void ReadRematrix(ref Ac3BitReader bits, int block, bool enhanced)
-        {
-            if (header.ChannelMode != 2) { return; }
-            bool present = enhanced && block == 0 || bits.Flag();
-            if (!present && block == 0) { throw new InvalidDataException("The first AC-3 block must define its rematrix strategy."); }
-            if (!present) { return; }
-            int bands = !coupling ? spectralExtension.InUse && spectralExtension.BeginCode < 2 ? 3 : 4 :
-                couplingStart > 61 ? 4 : couplingStart > 37 ? 3 : 2;
-            for (int band = 0; band < 4; band++) { rematrix[band] = band < bands && bits.Flag(); }
         }
 
         private void ReadExponents(ref Ac3BitReader bits, int block)
@@ -332,6 +254,6 @@ namespace Mediana.Codecs.Ac3
         }
 
         public void Reset() { workspace.Reset(); random = 1; }
-        public void Dispose() { workspace.Dispose(); spectralExtension.Dispose(); adaptiveTransform.Dispose(); }
+        public void Dispose() { workspace.Dispose(); spectralExtension.Dispose(); adaptiveTransform.Dispose(); enhancedCoordinates.Dispose(); }
     }
 }

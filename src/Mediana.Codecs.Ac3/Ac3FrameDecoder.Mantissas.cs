@@ -27,6 +27,11 @@ namespace Mediana.Codecs.Ac3
                     if (!coupled[ch]) { continue; }
                     Span<double> spectrum = workspace.Spectrum(ch);
                     ReadOnlySpan<double> common = workspace.Spectrum(6), coords = workspace.Coordinates(ch);
+                    if (enhancedCouplingInUse)
+                    {
+                        enhancedCoordinates.Process(ch, spectrum, common, bap, exponents, dither[ch], ref random);
+                        continue;
+                    }
                     for (int bin = couplingStart; bin < couplingEnd; bin++)
                     {
                         double coefficient = common[bin];

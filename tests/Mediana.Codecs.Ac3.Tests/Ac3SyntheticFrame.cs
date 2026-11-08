@@ -5,25 +5,6 @@ namespace Mediana.Codecs.Ac3.Tests
 {
     internal static class Ac3SyntheticFrame
     {
-        public static byte[] EnhancedCouplingPrefix()
-        {
-            Ac3TestBitWriter writer = new(2048);
-            writer.Write(0xb77, 16); writer.Write(0, 2); writer.Write(0, 3); writer.Write(1023, 11);
-            writer.Write(0, 2); writer.Write(3, 2); writer.Write(2, 3); writer.Write(0, 1); writer.Write(16, 5);
-            writer.Write(31, 5); writer.Write(0, 4);
-            writer.Write(1, 1); writer.Write(0, 1); writer.Write(0, 2); writer.Write(0, 1);
-            writer.Write(1, 1); writer.Write(1, 1); writer.Write(0, 5);
-            writer.Write(1, 1); writer.Write(0, 5);
-            for (int block = 0; block < 6; block++)
-            {
-                writer.Write(block == 0 ? 1 : 0, 2); writer.Write(block == 0 ? 1 : 0, 2); writer.Write(block == 0 ? 1 : 0, 2);
-            }
-            writer.Write(0, 10); writer.Write(63, 6); writer.Write(15, 4); writer.Write(0, 1);
-            writer.Write(0, 2); writer.Write(0, 2); writer.Write(0, 1); writer.Write(0, 1);
-            writer.Write(1, 1);
-            return writer.Finish(true);
-        }
-
         public static byte[] Create(bool enhanced, bool switched, int blocks = 6, int? dynamicRange = null, int exponentStrategy = 1)
         {
             int length = enhanced ? 2048 : 2560;

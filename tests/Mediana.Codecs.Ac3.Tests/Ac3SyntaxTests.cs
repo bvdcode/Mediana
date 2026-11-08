@@ -31,20 +31,6 @@ namespace Mediana.Codecs.Ac3.Tests
             Assert.Equal(File.ReadAllBytes(Ac3DecoderTests.Data(file)), Ac3SyntheticFrame.Create(enhanced, false, exponentStrategy: strategy));
         }
 
-        [Fact]
-        public void ReportsEnhancedCouplingBeforePublishingAnyPcm()
-        {
-            byte[] bytes = Ac3SyntheticFrame.EnhancedCouplingPrefix();
-            MediaBufferAllocator allocator = new(1024 * 1024);
-            using (Ac3FrameDecoder decoder = new(allocator))
-            {
-                Ac3FrameHeader header = Ac3FrameHeader.Read(bytes); Ac3FrameDecoder.ValidateFrame(bytes, header);
-                NotSupportedException error = Assert.Throws<NotSupportedException>(() => decoder.Decode(bytes, header, new float[3072], CancellationToken.None));
-                Assert.Contains("enhanced coupling", error.Message, StringComparison.OrdinalIgnoreCase);
-            }
-            Assert.Equal(0, allocator.AllocatedBytes);
-        }
-
         [Theory]
         [InlineData(58, 93, "pre-noise")]
         [InlineData(17, -1, "dependent")]
