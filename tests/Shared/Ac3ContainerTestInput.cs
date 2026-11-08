@@ -171,6 +171,60 @@ namespace Mediana.Tests
             Require(allocator.AllocatedBytes == 0 && !source.IsDisposed && !original.IsDisposed);
         }
 
+        public static async Task VerifyCompositionAsync(int channels)
+        {
+            byte[] raw = await ReadAsync($"dependent-{channels}.eac3");
+            byte[] encoded = await ReadAsync($"dependent-{channels}.mp4");
+            MediaEngine engine = Engine();
+            await using EbmlElementTestSource original = new(raw) { MaximumRead = 5 };
+            await using EbmlElementTestSource source = new(encoded) { MaximumRead = 7 };
+            MediaInfo rawInfo = await engine.ProbeAsync(original), mp4Info = await engine.ProbeAsync(source);
+            Require(rawInfo.StreamMetadata[0] is AudioStreamMetadata rawMetadata && rawMetadata.ChannelCount == channels);
+            Require(mp4Info.StreamMetadata[0] is AudioStreamMetadata mp4Metadata && mp4Metadata.ChannelCount == channels);
+            Require(rawInfo.Streams[0].Configuration.IsEmpty);
+            byte[] expected = new byte[3072 * channels * sizeof(float)];
+            await using (AudioSession audio = await engine.OpenAudioAsync(original))
+            {
+                int offset = 0;
+                while (await audio.ReadFrameAsync() is AudioFrame frame)
+                {
+                    using (frame)
+                    {
+                        Require(frame.Format.Channels.Count == channels && frame.SamplesPerChannel == 768);
+                        Require(frame.Timestamp == new MediaTimestamp(offset / (channels * sizeof(float)), new(1, 48000)));
+                        frame.GetPlane(0).Span.CopyTo(expected.AsSpan(offset)); offset += frame.GetPlane(0).Length;
+                    }
+                }
+                Require(offset == expected.Length);
+                await audio.SeekAsync(new(2000, new(1, 48000)));
+                using AudioFrame tail = (await audio.ReadFrameAsync())!;
+                Require(tail.Timestamp == new MediaTimestamp(1536, new(1, 48000)));
+                Require(tail.GetPlane(0).Span.SequenceEqual(expected.AsSpan(1536 * channels * sizeof(float), tail.GetPlane(0).Length)));
+                tail.Dispose(); await audio.DisposeAsync(); Require(audio.AllocatedBufferBytes == 0);
+            }
+            await using (AudioSession audio = await engine.OpenAudioAsync(source))
+            {
+                int offset = 0;
+                while (await audio.ReadFrameAsync() is AudioFrame frame)
+                {
+                    using (frame)
+                    {
+                        Require(frame.Format.Channels.Count == channels && frame.SamplesPerChannel == 1536);
+                        Require(frame.Timestamp == new MediaTimestamp(offset / (channels * sizeof(float)), new(1, 48000)));
+                        Require(frame.GetPlane(0).Span.SequenceEqual(expected.AsSpan(offset, frame.GetPlane(0).Length)));
+                        offset += frame.GetPlane(0).Length;
+                    }
+                }
+                Require(offset == expected.Length);
+                await audio.SeekAsync(new(2000, new(1, 48000)));
+                using AudioFrame tail = (await audio.ReadFrameAsync())!;
+                Require(tail.Timestamp == new MediaTimestamp(1536, new(1, 48000)));
+                Require(tail.GetPlane(0).Span.SequenceEqual(expected.AsSpan(1536 * channels * sizeof(float))));
+                tail.Dispose(); await audio.DisposeAsync(); Require(audio.AllocatedBufferBytes == 0);
+            }
+            Require(!source.IsDisposed && !original.IsDisposed);
+        }
+
         private static void Require(bool condition)
         {
             if (!condition) { throw new InvalidDataException("The AC-3 container metadata, PCM, clock or resource lifetime is incorrect."); }

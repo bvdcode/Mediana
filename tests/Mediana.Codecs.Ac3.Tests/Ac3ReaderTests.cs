@@ -22,7 +22,7 @@ namespace Mediana.Codecs.Ac3.Tests
             await using Ac3ReaderTestSource source = new(data) { MaximumRead = 2, HeadersOnly = true };
             await using (Ac3Reader reader = await Ac3Reader.OpenAsync(source, allocator))
             {
-                Assert.Equal(32, source.ReadBytes); Assert.Equal(4, reader.GetPacketCount(0));
+                Assert.Equal(36, source.ReadBytes); Assert.Equal(4, reader.GetPacketCount(0));
                 Assert.Equal(new MediaDuration(3072, new(1, 48000)), reader.Streams[0].CodedDuration);
                 Assert.Equal(0, allocator.AllocatedBytes);
                 long before = source.ReadCalls;

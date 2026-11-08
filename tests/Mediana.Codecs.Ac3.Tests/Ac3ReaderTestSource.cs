@@ -12,6 +12,7 @@ namespace Mediana.Codecs.Ac3.Tests
         public int ReadCalls { get; private set; }
         public long ReadBytes { get; private set; }
         public bool HeadersOnly { get; set; }
+        public IReadOnlyList<(long Start, long End)>? AllowedReadRanges { get; set; }
         public bool FailNext { get; set; }
         public bool Disposed { get; private set; }
         public Task? Gate { get; init; }
@@ -22,6 +23,8 @@ namespace Mediana.Codecs.Ac3.Tests
             if (Gate is not null) { await Gate.WaitAsync(cancellationToken); }
             if (FailNext) { FailNext = false; throw new IOException("The source read failed."); }
             if (HeadersOnly) { Assert.True(destination.Length <= 8); }
+            if (AllowedReadRanges is not null)
+            { Assert.Contains(AllowedReadRanges, range => offset >= range.Start && offset + destination.Length <= range.End); }
             if (offset >= data.Length) { return 0; }
             int count = Math.Min(Math.Min(destination.Length, MaximumRead), data.Length - (int)offset);
             data.Slice((int)offset, count).CopyTo(destination); ReadBytes += count; return count;

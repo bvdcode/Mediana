@@ -10,7 +10,7 @@ using Mediana.IO;
 
 namespace Mediana.Containers.Ac3
 {
-    /// <summary>Indexes eight-byte AC-3/E-AC-3 frame prefixes without reading compressed payloads.
+    /// <summary>Indexes bounded AC-3/E-AC-3 frame headers and opening channel maps without reading compressed audio payloads.
     /// Borrows a complete immutable random-access source. Returned packets own independent storage.</summary>
     public partial class Ac3Reader : IIndexedPrerollReader, IIndexedPacketTimingReader, IIndexedPresentationTimingReader
     {
@@ -21,10 +21,13 @@ namespace Mediana.Containers.Ac3
         private bool disposed;
 
         private Ac3Reader(IRandomAccessByteSource source, MediaBufferAllocator allocator,
-            Ac3FrameHeader first, List<Ac3FrameLocation> locations, long samples, long payloadBytes)
+            Ac3FrameHeader first, Eac3FrameMetadata[]? program, List<Ac3FrameLocation> locations, long samples, long payloadBytes)
         {
             this.source = source; this.allocator = allocator; this.locations = locations;
             FirstFrame = first;
+            ChannelOrder = Array.AsReadOnly(program is null ? first.GetChannelOrder() : Eac3ChannelMap.GetProgramChannelOrder(program));
+            openingMetadata = new(first.SampleRate, ChannelOrder.Count, channelOrder: ChannelOrder)
+            { CodecProfile = new(first.IsEnhanced ? "E-AC-3" : "AC-3") };
             TimeBase clock = new(1, first.SampleRate);
             MediaDuration duration = new(samples, clock);
             string codec = first.IsEnhanced ? Ac3FrameHeader.EnhancedCodecId : Ac3FrameHeader.CodecId;
@@ -34,6 +37,8 @@ namespace Mediana.Containers.Ac3
         }
 
         public Ac3FrameHeader FirstFrame { get; }
+        /// <summary>Rendered programme channels, including dependent replacements and extensions, in output order.</summary>
+        public IReadOnlyList<string> ChannelOrder { get; }
         public ContainerInfo Info { get; }
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
 
@@ -44,26 +49,58 @@ namespace Mediana.Containers.Ac3
             long length = source.Length ?? throw new NotSupportedException("AC-3 indexing requires a known source length.");
             if (length < Ac3FrameHeader.HeaderBytes) { throw new InvalidDataException("The AC-3 source is empty or truncated."); }
             cancellationToken.ThrowIfCancellationRequested();
-            using WritableMediaBuffer scratch = allocator.Allocate(Ac3FrameHeader.HeaderBytes);
+            using WritableMediaBuffer scratch = allocator.Allocate(Eac3FrameMetadata.MaximumPrefixBytes);
             List<Ac3FrameLocation> locations = [];
             Ac3FrameHeader? first = null;
+            List<Eac3FrameMetadata> program = [];
+            Ac3FrameHeader? current = null;
+            int dependent = 0, expectedDependents = -1;
             long position = 0, samples = 0;
             while (position < length)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (length - position < Ac3FrameHeader.HeaderBytes)
                 { throw new InvalidDataException("The final AC-3 syncframe header is truncated."); }
-                await source.ReadExactlyAtAsync(position, scratch.Memory, cancellationToken).ConfigureAwait(false);
+                await source.ReadExactlyAtAsync(position, scratch.Memory[..Ac3FrameHeader.HeaderBytes], cancellationToken).ConfigureAwait(false);
                 Ac3FrameHeader header = Ac3FrameHeader.Read(scratch.Memory.Span);
                 first ??= header;
-                RequireConfiguration(first, header);
                 if (header.FrameBytes > length - position)
                 { throw new InvalidDataException("The AC-3 syncframe extends beyond the source."); }
-                locations.Add(new(position, samples, header.FrameBytes, header.SamplesPerFrame));
-                samples = checked(samples + header.SamplesPerFrame); position = checked(position + header.FrameBytes);
+                if (header.IsEnhanced && header.StreamType == 1)
+                {
+                    if (current is null || current.StreamType != 0 || header.SubstreamId != dependent ||
+                        header.SampleRate != current.SampleRate || header.SamplesPerFrame != current.SamplesPerFrame)
+                    { throw new InvalidDataException("The dependent E-AC-3 syncframe is not ordered and synchronized with its independent frame."); }
+                    dependent++;
+                    Ac3FrameLocation previous = locations[^1];
+                    locations[^1] = previous with { ByteLength = checked(previous.ByteLength + header.FrameBytes) };
+                }
+                else
+                {
+                    RequireConfiguration(first, header);
+                    if (current is not null)
+                    {
+                        if (expectedDependents < 0) { expectedDependents = dependent; }
+                        else if (dependent != expectedDependents)
+                        { throw new NotSupportedException("E-AC-3 dependent substream count changes require a new track."); }
+                    }
+                    current = header; dependent = 0;
+                    locations.Add(new(position, samples, header.FrameBytes, header.SamplesPerFrame));
+                    samples = checked(samples + header.SamplesPerFrame);
+                }
+                if (first.IsEnhanced && locations.Count == 1)
+                {
+                    int bytes = Math.Min(header.FrameBytes, Eac3FrameMetadata.MaximumPrefixBytes);
+                    await source.ReadExactlyAtAsync(position + Ac3FrameHeader.HeaderBytes,
+                        scratch.Memory.Slice(Ac3FrameHeader.HeaderBytes, bytes - Ac3FrameHeader.HeaderBytes), cancellationToken).ConfigureAwait(false);
+                    program.Add(Eac3FrameMetadata.Read(scratch.Memory.Span[..bytes]));
+                }
+                position = checked(position + header.FrameBytes);
             }
+            if (expectedDependents >= 0 && dependent != expectedDependents)
+            { throw new InvalidDataException("The final E-AC-3 frame set is missing dependent substreams."); }
             cancellationToken.ThrowIfCancellationRequested();
-            return new(source, allocator, first!, locations, samples, length);
+            return new(source, allocator, first!, first!.IsEnhanced ? program.ToArray() : null, locations, samples, length);
         }
 
         private static void RequireConfiguration(Ac3FrameHeader first, Ac3FrameHeader header)
@@ -72,8 +109,8 @@ namespace Mediana.Containers.Ac3
                 header.ChannelMode != first.ChannelMode || header.HasLfe != first.HasLfe ||
                 header.SubstreamId != first.SubstreamId)
             { throw new NotSupportedException("AC-3 codec, sampling format or independent substream changes require a new track."); }
-            if (header.IsEnhanced && header.StreamType == 1)
-            { throw new NotSupportedException("Dependent E-AC-3 substream composition is not supported."); }
+            if (header.IsEnhanced && (header.StreamType == 1 || header.SubstreamId != 0))
+            { throw new NotSupportedException("Standalone E-AC-3 requires the selected independent substream zero."); }
         }
 
         public async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken cancellationToken = default)
@@ -105,8 +142,18 @@ namespace Mediana.Containers.Ac3
             await source.ReadExactlyAtAsync(location.Offset, writable.Memory, token).ConfigureAwait(false);
             Ac3FrameHeader header = Ac3FrameHeader.Read(writable.Span);
             RequireConfiguration(FirstFrame, header);
-            if (header.FrameBytes != location.ByteLength || header.SamplesPerFrame != location.Samples)
+            if (header.SamplesPerFrame != location.Samples)
             { throw new InvalidDataException("The AC-3 syncframe no longer matches its index."); }
+            int offset = header.FrameBytes, dependent = 0;
+            while (offset < location.ByteLength)
+            {
+                Ac3FrameHeader next = Ac3FrameHeader.Read(writable.Span[offset..]);
+                if (!header.IsEnhanced || next.StreamType != 1 || next.SubstreamId != dependent ||
+                    next.SampleRate != header.SampleRate || next.SamplesPerFrame != header.SamplesPerFrame)
+                { throw new InvalidDataException("The E-AC-3 frame set no longer matches its index."); }
+                dependent++; offset = checked(offset + next.FrameBytes);
+            }
+            if (offset != location.ByteLength) { throw new InvalidDataException("The AC-3 syncframe boundaries no longer match their index."); }
             token.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             MediaTimestamp pts = Timestamp(index);

@@ -20,6 +20,12 @@ namespace Mediana.Tests
         public Task BundledOneBlockSyncframesAndIndexedPrerollMatchContinuousPcmExactly() =>
             Ac3ContainerTestInput.VerifyBundledAndSeekAsync();
 
+        [Theory]
+        [InlineData(8)]
+        [InlineData(16)]
+        public Task DependentCompositionUsesTheSameClockAndPcmThroughRawAndMp4AccessUnits(int channels) =>
+            Ac3ContainerTestInput.VerifyCompositionAsync(channels);
+
         [Fact]
         public Task DelayedTransientProcessingDrainsThroughContinuousSeekingAndHlsAudioPreparation() =>
             Ac3ContainerTestInput.VerifyTransientAsync();
