@@ -598,3 +598,37 @@ signed impulses, the most negative sample and random lossless coefficients.
 All transform digests serialize signed output values as little-endian 32-bit
 integers. The native reference passes range assertions and undefined-behavior
 sanitizer checks. Verification also checks zero allocations during warmed calls.
+
+
+## Intra block copy pictures
+
+`intrabcColor`, `intrabcOdd`, `intrabcMono`, `intrabcSb128`, `intrabcTiles`,
+`intrabcMixed` and `intrabcLossless` are three-picture libaom 3.8.2 sequences.
+Their `.sha256` files use `AV1HASH1` and independent dav1d 1.4.1 visible output,
+including chroma and each clipped edge. The source is a procedural moving screen
+pattern at six pictures per second. The luma formula for picture `n` is:
+
+```
+x = (column + 3*n) % 65
+z = (row + 5*n) % 31
+Y = 16 + ((x/5)*53 + (z/7)*73 + (x%5 == 0)*103 + (z%7 == 0)*37) % 220
+```
+
+Division is integer division. At each chroma sample, `p` is zero for U and one
+for V; `a = (2*column + 3*n + 17*p) % 65`, `b = (2*row + 5*n) % 31`,
+and the value is `48 + 4*min(a, 64-a) + b`.
+
+The encoder uses CPU2, CQ25, one thread, `enable-intrabc=1`,
+`tune-content=screen`, and no palettes. All pictures are key frames except
+`intrabcMixed`, which uses GOP48 and enables palettes. `intrabcLossless`
+enables palettes and sets CQ0. The default size is 512×192;
+`intrabcOdd` and `intrabcMono` use 513×193, the latter with luma only;
+`intrabcSb128` uses 768×384 with `sb-size=128`;
+`intrabcTiles` uses 1024×384 with two tile columns and two tile rows.
+Other tools retain their encoder defaults.
+
+Native block inspection confirms actual intra-copy selection in every key
+picture, including odd luma block vectors in the color sequences. The corpus
+contains 21 visible pictures and 5,167,308 independently decoded sample bytes.
+The public factory tests repeat all sequences after reset, verify random-access
+packet indices, and preserve a held picture across subsequent reconstruction.

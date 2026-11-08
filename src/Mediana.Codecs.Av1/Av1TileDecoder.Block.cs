@@ -34,6 +34,11 @@ namespace Mediana.Codecs.Av1
                 InterBlock(row, column, width, height, skip, skipMode);
                 return;
             }
+            if (header.Intrabc && symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.IntrabcOffset, 3)) != 0)
+            {
+                IntraBlockCopy(row, column, width, height, skip);
+                return;
+            }
             int aboveMode = row > bounds.RowStart ? above[column].Mode : 0;
             int leftMode = column > bounds.ColumnStart ? left[row & (LeftContexts - 1)].Mode : 0;
             ReadOnlySpan<byte> modeContexts = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];

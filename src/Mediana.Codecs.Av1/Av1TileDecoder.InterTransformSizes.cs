@@ -36,7 +36,7 @@ namespace Mediana.Codecs.Av1
                 else
                 {
                     Av1MotionBlock top = motionBlocks[(row - 1) * sequence.MiColumns + column];
-                    topWidth = row == ownerRow && top.Reference != 0 && above[column].Skip != 0
+                    topWidth = row == ownerRow && top.IsInter && above[column].Skip != 0
                         ? top.Width * 4 : Av1TransformSize.FromIndex(top.TransformSize).Width;
                 }
                 int leftHeight;
@@ -44,7 +44,7 @@ namespace Mediana.Codecs.Av1
                 else
                 {
                     Av1MotionBlock prior = motionBlocks[row * sequence.MiColumns + column - 1];
-                    leftHeight = column == ownerColumn && prior.Reference != 0 && left[row & (LeftContexts - 1)].Skip != 0
+                    leftHeight = column == ownerColumn && prior.IsInter && left[row & (LeftContexts - 1)].Skip != 0
                         ? prior.Height * 4 : Av1TransformSize.FromIndex(prior.TransformSize).Height;
                 }
                 int maximum = System.Numerics.BitOperations.Log2((uint)Math.Min(64, Math.Max(width, height) * 4)) - 2;

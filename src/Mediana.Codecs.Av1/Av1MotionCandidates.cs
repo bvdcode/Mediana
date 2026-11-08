@@ -22,7 +22,7 @@ namespace Mediana.Codecs.Av1
 
         internal void Build()
         {
-            Global = header.GlobalMotion[reference].Motion(row, column, width, height, header.Inter.IntegerMotion, header.Inter.HighPrecisionMotion);
+            Global = reference == 0 ? default : header.GlobalMotion[reference].Motion(row, column, width, height, header.Inter.IntegerMotion, header.Inter.HighPrecisionMotion);
             if (secondReference != 0)
             {
                 Av1MotionCandidate second = header.GlobalMotion[secondReference].Motion(row, column, width, height, header.Inter.IntegerMotion, header.Inter.HighPrecisionMotion);
@@ -149,7 +149,7 @@ namespace Mediana.Codecs.Av1
 
         private bool Add(Av1MotionBlock block, int weight)
         {
-            if (block.Width == 0 || block.Reference == 0) { return false; }
+            if (block.Width == 0 || !block.IsInter) { return false; }
             if (secondReference != 0)
             {
                 if (block.Reference != reference || block.SecondReference != secondReference) { return false; }
@@ -163,11 +163,11 @@ namespace Mediana.Codecs.Av1
                 return true;
             }
             bool matched = false;
-            for (int list = 0; list < 2; list++)
+            for (int list = 0; list < (block.SecondReference == 0 ? 1 : 2); list++)
             {
                 if ((list == 0 ? block.Reference : block.SecondReference) != reference) { continue; }
                 if (HasNewMotion(block.Mode)) { newCount++; }
-                bool global = block.Mode is 15 or 23 && Math.Min(block.Width, block.Height) >= 2 && header.GlobalMotion[reference].Affine;
+                bool global = reference != 0 && block.Mode is 15 or 23 && Math.Min(block.Width, block.Height) >= 2 && header.GlobalMotion[reference].Affine;
                 int y = global ? Global.Row : list == 0 ? block.Row : block.SecondRow;
                 int x = global ? Global.Column : list == 0 ? block.Column : block.SecondColumn;
                 AddVector(Lower(y), Lower(x), weight);

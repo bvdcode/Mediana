@@ -4,7 +4,7 @@
 namespace Mediana.Codecs.Av1
 {
     internal readonly partial record struct Av1FrameHeader(bool DisableCdfUpdate, bool ScreenContent, int TileOffset, Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight, Av1Quantization Quantization, bool ReducedTransformSet, bool SelectTransform, bool ShowFrame, bool Showable, Av1FrameType FrameType,
-        int RefreshReferences, int InvalidReferences, int OrderHint, bool DisableFrameEndUpdate, int FrameId = 0, Av1InterPrediction Inter = default, Av1LoopFilterParameters LoopFilter = default, Av1CdefParameters Cdef = default, Av1RestorationParameters Restoration = default, Av1BlockDeltaParameters Deltas = default, Av1FrameTiming Timing = default, Av1Segmentation Segmentation = default, Av1TileInfo Tiles = default, Av1GlobalMotion GlobalMotion = default, Av1GrainParameters? Grain = null, Av1SuperResolution SuperResolution = default)
+        int RefreshReferences, int InvalidReferences, int OrderHint, bool DisableFrameEndUpdate, int FrameId = 0, Av1InterPrediction Inter = default, Av1LoopFilterParameters LoopFilter = default, Av1CdefParameters Cdef = default, Av1RestorationParameters Restoration = default, Av1BlockDeltaParameters Deltas = default, Av1FrameTiming Timing = default, Av1Segmentation Segmentation = default, Av1TileInfo Tiles = default, Av1GlobalMotion GlobalMotion = default, Av1GrainParameters? Grain = null, Av1SuperResolution SuperResolution = default, bool Intrabc = false)
     {
         internal Av1SequenceHeader PixelGeometry => SuperResolution.PixelGeometry(Geometry);
 
@@ -35,19 +35,19 @@ namespace Mediana.Codecs.Av1
             bool noPrimaryReference = context.Inter.PrimaryReference == Av1InterPrediction.NoPrimaryReference;
             Av1StoredPicture? primary = noPrimaryReference ? null : references.Get(context.Inter.References[context.Inter.PrimaryReference]);
             Av1Segmentation segmentation = Av1Segmentation.Read(ref bits, noPrimaryReference, primary?.Header.Segmentation ?? default);
-            Av1BlockDeltaParameters deltas = Av1BlockDeltaParameters.Read(ref bits, quantizer);
+            Av1BlockDeltaParameters deltas = Av1BlockDeltaParameters.Read(ref bits, quantizer, context.Intrabc);
             Av1LoopFilterParameters loopFilter = Av1LoopFilterParameters.Default;
             Av1CdefParameters cdef = default;
             Av1RestorationParameters restoration = default;
             bool selectTransform = false;
             bool codedLossless = segmentation.CodedLossless(quantization);
-            if (!codedLossless)
+            if (!codedLossless && !context.Intrabc)
             {
                 Av1LoopFilterParameters previous = primary?.Header.LoopFilter ?? Av1LoopFilterParameters.Default;
                 loopFilter = Av1LoopFilterParameters.Read(ref bits, sequence.Monochrome, previous);
                 if (sequence.Cdef) { cdef = Av1CdefParameters.Read(ref bits, sequence.Monochrome); }
             }
-            if (sequence.Restoration && (!codedLossless || sequence.Width != context.SuperResolution.PixelGeometry(sequence).Width))
+            if (sequence.Restoration && !context.Intrabc && (!codedLossless || sequence.Width != context.SuperResolution.PixelGeometry(sequence).Width))
             {
                 restoration = Av1RestorationParameters.Read(ref bits, sequence);
             }
@@ -75,7 +75,7 @@ namespace Mediana.Codecs.Av1
             {
                 throw new InvalidDataException("The AV1 frame has no tile payload.");
             }
-            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, inter, loopFilter, cdef, restoration, deltas, context.Timing, segmentation, tiles, globalMotion, grain, context.SuperResolution);
+            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, inter, loopFilter, cdef, restoration, deltas, context.Timing, segmentation, tiles, globalMotion, grain, context.SuperResolution, context.Intrabc);
         }
 
         private static int ReadDelta(ref Av1BitReader bits) => bits.Flag() ? bits.ReadSigned(7) : 0;

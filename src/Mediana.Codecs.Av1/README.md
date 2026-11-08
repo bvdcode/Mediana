@@ -207,6 +207,12 @@ scaled references and restoration in the upscaled domain. Thirteen independent
 sequences cover monochrome, odd dimensions, tiles and film grain. See
 [super-resolution](../../docs/av1-super-resolution.md).
 
-Intra block copy and high bit depth are not implemented. Encountering these
-tools fails explicitly. The module requires explicit factory registration while ordinary AV1 playback
+Intra block copy reconstructs current-frame whole-pixel luma motion and bilinear
+subsampled chroma from already decoded samples in the same tile. Separate entropy
+contexts, the normative wavefront delay, inter transforms and frame-level filter
+exclusions are supported. Seven independent sequences cover odd dimensions,
+monochrome, 128-pixel superblocks, four tiles, lossless palettes and subsequent
+inter pictures. See [intra block copy](../../docs/av1-intra-block-copy.md).
+
+High bit depth is not implemented. Encountering this tool fails explicitly. The module requires explicit factory registration while ordinary AV1 playback
 coverage is incomplete.

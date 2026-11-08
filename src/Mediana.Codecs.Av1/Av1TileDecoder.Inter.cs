@@ -136,29 +136,31 @@ namespace Mediana.Codecs.Av1
             return symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.InterpolationOffset + (direction * 8 + (compound ? 4 : 0) + context) * 4, 4));
         }
 
-        private int ReadMotionComponent(int component)
+        private int ReadMotionComponent(int component, bool intrabc = false)
         {
-            int sign = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvSignOffset + component * 3, 3));
-            int category = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvClassOffset + component * 12, 12));
+            int firstOffset = intrabc ? Av1DefaultCdfs.IntrabcMvJointOffset - Av1DefaultCdfs.MvJointOffset : 0;
+            int lastOffset = intrabc ? Av1DefaultCdfs.IntrabcMvSignOffset - Av1DefaultCdfs.MvSignOffset : 0;
+            int sign = symbols.ReadSymbol(probabilities.Slice(lastOffset + Av1DefaultCdfs.MvSignOffset + component * 3, 3));
+            int category = symbols.ReadSymbol(probabilities.Slice(firstOffset + Av1DefaultCdfs.MvClassOffset + component * 12, 12));
             int integer = 0;
             int fraction;
             int high;
             int magnitude;
             if (category == 0)
             {
-                integer = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvClass0BitOffset + component * 3, 3));
-                fraction = header.Inter.IntegerMotion ? 3 : symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvClass0FrOffset + (component * 2 + integer) * 5, 5));
-                high = header.Inter.HighPrecisionMotion ? symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvClass0HpOffset + component * 3, 3)) : 1;
+                integer = symbols.ReadSymbol(probabilities.Slice(lastOffset + Av1DefaultCdfs.MvClass0BitOffset + component * 3, 3));
+                fraction = header.Inter.IntegerMotion ? 3 : symbols.ReadSymbol(probabilities.Slice(firstOffset + Av1DefaultCdfs.MvClass0FrOffset + (component * 2 + integer) * 5, 5));
+                high = header.Inter.HighPrecisionMotion ? symbols.ReadSymbol(probabilities.Slice(lastOffset + Av1DefaultCdfs.MvClass0HpOffset + component * 3, 3)) : 1;
                 magnitude = ((integer << 3) | (fraction << 1) | high) + 1;
             }
             else
             {
                 for (int index = 0; index < category; index++)
                 {
-                    integer |= symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvBitOffset + (component * 10 + index) * 3, 3)) << index;
+                    integer |= symbols.ReadSymbol(probabilities.Slice(lastOffset + Av1DefaultCdfs.MvBitOffset + (component * 10 + index) * 3, 3)) << index;
                 }
-                fraction = header.Inter.IntegerMotion ? 3 : symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvFrOffset + component * 5, 5));
-                high = header.Inter.HighPrecisionMotion ? symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvHpOffset + component * 3, 3)) : 1;
+                fraction = header.Inter.IntegerMotion ? 3 : symbols.ReadSymbol(probabilities.Slice(firstOffset + Av1DefaultCdfs.MvFrOffset + component * 5, 5));
+                high = header.Inter.HighPrecisionMotion ? symbols.ReadSymbol(probabilities.Slice(lastOffset + Av1DefaultCdfs.MvHpOffset + component * 3, 3)) : 1;
                 magnitude = (2 << (category + 2)) + ((integer << 3) | (fraction << 1) | high) + 1;
             }
             return sign != 0 ? -magnitude : magnitude;

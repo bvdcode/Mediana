@@ -130,7 +130,7 @@ namespace Mediana.Codecs.Av1
             using WritableMediaBuffer? segments = segmentLength != 0 ? allocator.Allocate(segmentLength) : null;
             int storedMotionLength = Av1MotionField.StoredLength(geometry, header);
             using WritableMediaBuffer? savedMotion = storedMotionLength != 0 ? allocator.Allocate(storedMotionLength) : null;
-            using (WritableMediaBuffer? motions = inter ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1MotionBlock>())) : null)
+            using (WritableMediaBuffer? motions = inter || header.Intrabc ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1MotionBlock>())) : null)
             using (WritableMediaBuffer? projected = inter && header.Inter.ReferenceMotion ? allocator.Allocate(Av1MotionField.ByteLength(geometry)) : null)
             using (WritableMediaBuffer? filterMetadata = header.LoopFilter.Enabled || header.Cdef.Enabled
                 ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1FilterBlock>())) : null)

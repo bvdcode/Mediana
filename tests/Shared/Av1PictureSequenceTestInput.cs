@@ -16,7 +16,7 @@ namespace Mediana.Tests
 {
     internal static class Av1PictureSequenceTestInput
     {
-        internal static void Verify(string root, string fixture, byte[] configuration)
+        internal static void Verify(string root, string fixture, byte[] configuration, ReadOnlySpan<int> randomAccessPackets = default)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(root, fixture + ".obu"));
             using FileStream reference = File.OpenRead(Path.Combine(root, fixture + ".sha256"));
@@ -49,7 +49,8 @@ namespace Mediana.Tests
                         MediaTimestamp timestamp = new(index - 7, stream.TimeBase);
                         MediaDuration duration = new(1, stream.TimeBase);
                         using MediaPacket packet = new(stream.StreamIndex, buffer, timestamp, duration: duration);
-                        Require(inspector.IsRandomAccess(packet) == (index == 0));
+                        bool expectedRandomAccess = randomAccessPackets.IsEmpty ? index == 0 : randomAccessPackets.Contains(index);
+                        Require(inspector.IsRandomAccess(packet) == expectedRandomAccess);
                         Require(decoder.TrySend(packet) == CodecInputStatus.Accepted);
                         CodecOutput<VideoFrame> output = decoder.Receive();
                         Require(output.Status == CodecOutputStatus.Available);

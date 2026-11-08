@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal readonly record struct Av1FrameContext(Av1FrameType Type, bool ShowFrame, bool Showable, bool ErrorResilient,
         bool DisableCdfUpdate, bool ScreenContent, int FrameId, int RefreshReferences, int InvalidReferences, int OrderHint,
-        Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight, Av1InterPrediction Inter, Av1FrameTiming Timing = default, Av1SuperResolution SuperResolution = default)
+        Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight, Av1InterPrediction Inter, Av1FrameTiming Timing = default, Av1SuperResolution SuperResolution = default, bool Intrabc = false)
     {
         internal bool Intra => Type is Av1FrameType.Key or Av1FrameType.IntraOnly;
 
@@ -137,12 +137,10 @@ namespace Mediana.Codecs.Av1
                 }
             }
             Av1InterPrediction inter = new(references, primary, integerMotion, false, 0, false, false);
+            bool intrabc = false;
             if (intra)
             {
-                if (screenContent && sequence.Width == upscaledWidth && bits.Flag())
-                {
-                    throw new NotSupportedException("AV1 intra block copy reconstruction is not implemented.");
-                }
+                intrabc = screenContent && sequence.Width == upscaledWidth && bits.Flag();
             }
             else
             {
@@ -153,7 +151,7 @@ namespace Mediana.Codecs.Av1
                 inter = new(references, primary, integerMotion, highPrecision, interpolation, switchable, referenceMotion);
             }
             return new(type, showFrame, showable, errorResilient, disableCdfUpdate, screenContent, frameId,
-                refresh, invalid, orderHint, sequence, renderWidth, renderHeight, inter, new(presentationTime, removalTime), superResolution);
+                refresh, invalid, orderHint, sequence, renderWidth, renderHeight, inter, new(presentationTime, removalTime), superResolution, intrabc);
         }
     }
 }

@@ -101,7 +101,10 @@ namespace Mediana.Codecs.Av1
         internal const int WedgeInterIntraOffset = 7637;
         internal const int SegmentIdOffset = 7703;
         internal const int SegmentPredictedOffset = 7730;
-        internal const int Count = 7739;
+        internal const int IntrabcOffset = 7739;
+        internal const int IntrabcMvJointOffset = 7742;
+        internal const int IntrabcMvSignOffset = 7801;
+        internal const int Count = 7885;
 
         internal static ReadOnlySpan<int> CounterOffsets =>
         [
@@ -200,6 +203,9 @@ namespace Mediana.Codecs.Av1
             7626, 7631, 7636, 7639, 7642, 7645, 7648, 7651, 7654, 7657, 7660, 7663, 7666, 7669, 7672, 7675,
             7678, 7681, 7684, 7687, 7690, 7693, 7696, 7699, 7702,
             7711, 7720, 7729, 7732, 7735, 7738,
+            7741, 7746, 7758, 7770, 7775, 7780, 7785, 7790, 7795, 7800, 7803, 7806, 7809, 7812, 7815, 7818,
+            7821, 7824, 7827, 7830, 7833, 7836, 7839, 7842, 7845, 7848, 7851, 7854, 7857, 7860, 7863, 7866,
+            7869, 7872, 7875, 7878, 7881, 7884,
         ];
     }
 }
