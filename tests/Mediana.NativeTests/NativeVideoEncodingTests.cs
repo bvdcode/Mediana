@@ -73,6 +73,11 @@ namespace Mediana.NativeTests
                     new() { BitRate = rate, BufferDuration = TimeSpan.FromMilliseconds(buffer) });
             }
             Console.WriteLine("PASS H.264 CABAC encoding: 1120 Main-profile I/P pictures, complete independent pixels, rate envelopes, cropped edges, VFR, IDR intervals and released ownership match.");
+            foreach (int qp in new[] { 0, 12, 26, 38, 51 })
+            {
+                await H264Intra16TestInput.VerifyCabacAsync(h264Root, qp);
+            }
+            Console.WriteLine("PASS H.264 CABAC intra16: 60 independent I/P pictures cover four prediction modes, DC and AC patterns, quantizer extremes and shared reconstruction.");
             foreach ((int mode, int qp, int rate, int buffer) in new (int, int, int, int)[]
                 { (0, 26, 8000, 250), (1, 26, 32000, 200), (2, 26, 48000, 200), (3, 26, 40000, 300), (1, 0, 32000, 200), (3, 51, 40000, 300) })
             {

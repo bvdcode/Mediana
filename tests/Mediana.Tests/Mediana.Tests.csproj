@@ -135,6 +135,7 @@
     <Compile Include="../Shared/ImageOutputAllocationTestInput.cs" Link="ImageOutputAllocationTestInput.cs" />
     <Compile Include="../Shared/H264BaselineEncodingTestInput.cs" Link="H264BaselineEncodingTestInput.cs" />
     <Compile Include="../Shared/H264Intra16TestInput.cs" Link="H264Intra16TestInput.cs" />
+    <None Include="Data/H264/cabac-intra16-qp*.yuv.gz;Data/H264/CABAC-INTRA16.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264PcmEncodingTestInput.cs" Link="H264PcmEncodingTestInput.cs" />
     <Compile Include="../Shared/H264BitWritingTestInput.cs" Link="H264BitWritingTestInput.cs" />
     <Compile Include="../Shared/H264BitReadingTestInput.cs" Link="H264BitReadingTestInput.cs" />

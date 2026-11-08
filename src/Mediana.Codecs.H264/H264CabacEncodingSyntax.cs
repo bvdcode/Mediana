@@ -28,7 +28,44 @@ namespace Mediana.Codecs.H264
         public void WriteIntraType(int address)
         {
             state.Types[address] = 0;
-            WriteBin(false, 3 + state.TypeCondition(state.Left(address)) + state.TypeCondition(state.Top(address)));
+            WriteBin(false, BeginIntraType(address));
+        }
+
+        public void WriteIntra16Type(int address, int mode, int pattern)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(mode);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(mode, 3);
+            if ((pattern & 15) is not (0 or 15) || pattern is < 0 or > 47)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pattern));
+            }
+            bool predictive = kind == H264SliceKind.P;
+            WriteBin(true, BeginIntraType(address));
+            encoder.WriteTermination(false);
+            int suffix = predictive ? 18 : 6;
+            bool ac = (pattern & 15) != 0;
+            int chroma = pattern >> 4;
+            WriteBin(ac, suffix);
+            WriteBin(chroma != 0, suffix + 1);
+            if (chroma != 0) { WriteBin(chroma == 2, suffix + (predictive ? 1 : 2)); }
+            WriteBin((mode & 2) != 0, suffix + (predictive ? 2 : 3));
+            WriteBin((mode & 1) != 0, suffix + (predictive ? 2 : 4));
+            state.Types[address] = (byte)(1 + mode + 4 * chroma + (ac ? 12 : 0));
+            state.Patterns[address] = (byte)pattern;
+        }
+
+        private int BeginIntraType(int address)
+        {
+            switch (kind)
+            {
+                case H264SliceKind.I:
+                    return 3 + state.TypeCondition(state.Left(address)) + state.TypeCondition(state.Top(address));
+                case H264SliceKind.P:
+                    WriteBin(true, 14);
+                    return 17;
+                default:
+                    throw new NotSupportedException("CABAC intra encoding requires an I or P slice.");
+            }
         }
 
         public void WriteIntraMode(int mode, int predicted)

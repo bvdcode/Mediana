@@ -62,5 +62,16 @@ namespace Mediana.Tests
             byte[] expected = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264", $"intra16-qp{qp}.yuv"));
             Assert.Equal(expected, pixels);
         }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(12)]
+        [InlineData(26)]
+        [InlineData(38)]
+        [InlineData(51)]
+        public async Task CabacIntra16InBothSliceKindsPreservesIndependentPictures(int qp)
+        {
+            await H264Intra16TestInput.VerifyCabacAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"), qp);
+        }
     }
 }

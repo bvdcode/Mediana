@@ -177,6 +177,7 @@
     <None Include="../Mediana.Tests/Data/H264/level-burst.sha256" Link="Data/H264/level-burst.sha256" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264IntraModeTestInput.cs" Link="H264IntraModeTestInput.cs" />
     <Compile Include="../Shared/H264Intra16TestInput.cs" Link="H264Intra16TestInput.cs" />
+    <None Include="../Mediana.Tests/Data/H264/cabac-intra16-qp*.yuv.gz;../Mediana.Tests/Data/H264/CABAC-INTRA16.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/H264/intra16-qp*.yuv" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-sound-v2.mov;../Mediana.Tests/Data/Mp4/avc-sound-v2.mov.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-timecode.mov;../Mediana.Tests/Data/Mp4/avc-timecode.mov.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

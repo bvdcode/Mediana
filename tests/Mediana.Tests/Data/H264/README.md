@@ -119,3 +119,27 @@ The 8x8 residual has no separate coded-block flag for 4:2:0 luma.
 | --- | --- |
 | cabac-8x8-contexts.bin | d02aae1ac06cbf564bbd6e2acb7f6c54906e9435bad966d9bd3b43ec612a58cc |
 | cabac-8x8-mapping.bin | b85322398d2be8f82c2c98734a0f3ed28f8cb393e11b9181fcb4e9dada543138 |
+
+## CABAC Intra16 reconstruction
+
+`CABAC-INTRA16.json` describes thirty complete two-picture Main-profile streams
+and their transport and decoded-pixel hashes. Each stream contains one I and
+one P slice, both with four Intra16 macroblocks in prediction modes 2, 1, 0 and 3.
+QP 0, 12, 26, 38 and 51 cover gradients, neutral samples, constant planes,
+luma gradients and luma/chroma checkerboards. These exercise luma DC/AC and
+chroma coded-block patterns, including zero residuals and slice-edge contexts.
+Syntax follows H.264 clauses 7.3.5 and 9.3, including the nonterminating PCM
+selection bin inside the Intra16 macroblock type.
+
+`cabac-intra16-qp*.yuv.gz` contain all independently decoded 32x32 pictures,
+concatenated in ascending content order for each QP. Their uncompressed size
+is 18,432 bytes per QP. FFmpeg 9.0.2 decoded all sixty pictures without errors;
+every sample matches encoder reconstruction. Full-range samples are preserved
+without scaling, range conversion or frame-rate duplication:
+
+```sh
+ffmpeg -nostdin -v error -threads 1 -err_detect explode -i input.ts -map 0:v:0 -fps_mode passthrough -c:v rawvideo -pix_fmt yuvj420p -f rawvideo output.yuv
+```
+
+The checks use the same post-analysis coefficient and reconstruction kernel for
+CAVLC and CABAC. Automatic encoder mode selection is tested separately.
