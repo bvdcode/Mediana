@@ -35,6 +35,9 @@ namespace Mediana.Containers.Mp4
         /// <summary>Optional exact movie-timeline endpoint, measured from zero. A finite edit excludes codec tail padding.
         /// Fragment initialization movie and track header durations remain zero.</summary>
         public MediaTimestamp? PresentationEnd { get; }
+        /// <summary>Optional recovery declaration shared by all encoded samples. Describes decoder requirements;
+        /// it does not insert preroll packets or establish independent decodability.</summary>
+        public Mp4RecoveryDescription? Recovery { get; init; }
         internal abstract void WritePresentationSize(Mp4BoxWriter writer);
         internal abstract void WriteMediaHeader(Mp4BoxWriter writer);
         internal abstract void WriteSampleEntry(Mp4BoxWriter writer);

@@ -39,6 +39,7 @@ namespace Mediana.Containers.Mp4
         public override uint TrackId => track.TrackId;
         public override ulong DecodeTime => checked((ulong)Decode(packets[0]));
         public override int SampleCount => packets.Count;
+        public override Mp4RecoveryDescription? Recovery => track.Recovery;
 
         public override Mp4FragmentSample GetSample(int index, CancellationToken token)
         {

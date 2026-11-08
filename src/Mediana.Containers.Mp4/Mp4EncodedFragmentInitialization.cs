@@ -135,6 +135,8 @@ namespace Mediana.Containers.Mp4
                 if (type == "stsz") { writer.UInt32(0); }
                 writer.End(box);
             }
+            if (track.Recovery is Mp4RecoveryDescription recovery)
+            { Mp4RecoveryGroupWriter.WriteDescription(writer, recovery); }
             writer.End(stbl);
             writer.End(minf);
         }

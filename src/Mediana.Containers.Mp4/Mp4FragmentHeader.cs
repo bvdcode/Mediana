@@ -57,6 +57,8 @@ namespace Mediana.Containers.Mp4
                     bytes = checked(bytes + sample.Size);
                 }
                 writer.End(trun);
+                if (track.Recovery is Mp4RecoveryDescription recovery)
+                { Mp4RecoveryGroupWriter.WriteMapping(writer, recovery, track.SampleCount); }
                 writer.End(traf);
             }
             writer.End(moof);
