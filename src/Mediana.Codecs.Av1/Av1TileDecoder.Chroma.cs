@@ -7,7 +7,9 @@ namespace Mediana.Codecs.Av1
     {
         private Av1ChromaMode ReadChromaMode(int lumaMode, int blockIndex, int width, int height)
         {
-            bool cfl = Math.Max(1, width >> 1) == 1 && Math.Max(1, height >> 1) == 1;
+            bool cfl = header.Quantization.Lossless
+                ? Math.Max(1, width >> 1) == 1 && Math.Max(1, height >> 1) == 1
+                : Math.Max(width, height) <= 8;
             int mode;
             if (cfl)
             {
@@ -51,32 +53,32 @@ namespace Mediana.Codecs.Av1
             return new(mode, angleDelta, alphaU, alphaV);
         }
 
-        private void PredictChromaFromLuma(int plane, int x, int y, int alpha, int maximumX, int maximumY)
+        private void PredictChromaFromLuma(int plane, int x, int y, int alpha, int maximumX, int maximumY, int width, int height)
         {
-            Span<int> luma = stackalloc int[16];
+            Span<int> luma = stackalloc int[width * height];
             int sum = 0;
-            for (int row = 0; row < 4; row++)
+            for (int row = 0; row < height; row++)
             {
                 int sourceY = Math.Min((y + row) * 2, maximumY - 2);
-                for (int column = 0; column < 4; column++)
+                for (int column = 0; column < width; column++)
                 {
                     int sourceX = Math.Min((x + column) * 2, maximumX - 2);
                     int top = sourceY * sequence.Stride + sourceX;
                     int bottom = top + sequence.Stride;
                     int value = (output[top] + output[top + 1] + output[bottom] + output[bottom + 1]) * 2;
-                    luma[row * 4 + column] = value;
+                    luma[row * width + column] = value;
                     sum += value;
                 }
             }
-            int average = (sum + 8) >> 4;
+            int average = (sum + width * height / 2) / (width * height);
             int offset = sequence.PlaneOffset(plane);
             int stride = sequence.PlaneStride(plane);
-            for (int row = 0; row < 4; row++)
+            for (int row = 0; row < Math.Min(height, sequence.PlaneHeight(plane) - y); row++)
             {
-                Span<byte> target = output.Slice(offset + (y + row) * stride + x, 4);
-                for (int column = 0; column < 4; column++)
+                Span<byte> target = output.Slice(offset + (y + row) * stride + x, Math.Min(width, stride - x));
+                for (int column = 0; column < target.Length; column++)
                 {
-                    int scaled = alpha * (luma[row * 4 + column] - average);
+                    int scaled = alpha * (luma[row * width + column] - average);
                     int magnitude = (Math.Abs(scaled) + 32) >> 6;
                     int delta = scaled < 0 ? -magnitude : magnitude;
                     target[column] = (byte)Math.Clamp(target[column] + delta, 0, 255);

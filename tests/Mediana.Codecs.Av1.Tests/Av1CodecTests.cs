@@ -87,7 +87,7 @@ namespace Mediana.Codecs.Av1.Tests
             {
                 using (MediaPacket invalid = Packet([0], allocator, 0))
                 {
-                    Assert.Throws<NotSupportedException>(() => codec.TrySend(invalid));
+                    Assert.Throws<InvalidDataException>(() => codec.TrySend(invalid));
                 }
                 Assert.Equal(0, allocator.AllocatedBytes);
                 Assert.Throws<InvalidOperationException>(() => codec.Receive());
@@ -115,7 +115,7 @@ namespace Mediana.Codecs.Av1.Tests
             configuration[index] = value;
             EncodedStreamInfo stream = new(3, MediaKind.Video, "av1", StreamFormats.Av1, new(1, 25), configuration);
             MediaBufferAllocator allocator = new(1024 * 1024);
-            if (index is 1 or 2)
+            if (index == 2)
             {
                 Assert.Throws<NotSupportedException>(() => new Av1DecoderFactory().Create(stream, allocator));
             }

@@ -79,7 +79,7 @@ namespace Mediana.Codecs.Av1
             StoreMotion(row, column, width, height, block);
             bool hasChroma = !sequence.Monochrome && !(height == 1 && (row & 1) == 0) && !(width == 1 && (column & 1) == 0);
             PredictInter(row, column, width, height, hasChroma, block, pictures);
-            Residual(row, column, width, height, skip != 0, 0, 0, hasChroma, default, default, default, true);
+            Residual(row, column, width, height, skip != 0, 0, 0, hasChroma, default, default, default, new(4, 4), true);
             Av1BlockContext contextBlock = new()
             {
                 WidthLog = (byte)BitOperations.Log2((uint)width), HeightLog = (byte)BitOperations.Log2((uint)height), Skip = (byte)skip

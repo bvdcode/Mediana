@@ -107,3 +107,11 @@ hidden key picture twice through different reference slots.
 `interOrdered.obu` is an AOM lossless moving sequence with seven-bit order hints and explicit reference indices. `interShort.obu` replaces only the first inter picture’s explicit indices with normative short signaling; the referenced key picture is shared by all eight slots at that point. Both libdav1d and AOM independently decoded the altered stream and produced exactly `interOrdered.yuv` for all five pictures. The short-signaling tests also cover modular distances, forward/backward ordering and equal-hint slot tie breaking.
 
 `interIntraMixed` contains two lossless AOM pictures with eight-sample partitions and changing two-dimensional patterns. The visible samples are compared against libdav1d. `interCompound` extends the same pattern family to five pictures: its single-reference prefix is verified exactly, then the first selected compound block is rejected explicitly with decoder cleanup and reset checks. Compound permission in a frame header alone does not trigger rejection.
+
+`quantizedTx8`, `quantizedTx16`, `quantizedTx32` and `quantizedTx64` are 48×40
+Main-profile 8-bit 4:2:0 reduced still pictures encoded by AOM at CRF 30 with
+eight-, sixteen-, thirty-two- and sixty-four-sample partition limits, respectively.
+They retain the preceding optional-filter restrictions and use ordinary quantized
+transform selection. Their `.yuv` files are independent libdav1d reconstructions.
+Tests require every visible sample to match and separately verify that each
+encoded picture actually consumes non-four-point transform probability contexts.

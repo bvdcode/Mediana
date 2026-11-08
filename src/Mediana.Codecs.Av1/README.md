@@ -1,7 +1,7 @@
-Managed AV1 reconstruction currently covers Main-profile eight-bit key pictures with lossless or four-point quantized
+Managed AV1 reconstruction currently covers Main-profile eight-bit key pictures with lossless or quantized
 transforms, monochrome or 4:2:0, with a single tile inside a complete frame
 OBU. The public factory accepts version-one av1C configuration and low-overhead
-OBUs with explicit sizes. Hidden key pictures, eight reference slots and
+OBUs with explicit sizes or an implicit final OBU extent. Hidden key pictures, eight reference slots and
 show-existing display are supported, including multiple hidden/visible frame
 OBUs in one access unit. Reference display retains the existing pixel buffer;
 reset and disposal release references independently of returned frames.
@@ -17,6 +17,12 @@ four coefficient probability groups, chroma quantizer deltas and reduced
 transform sets. Independent libdav1d baselines require
 exact equality for every visible sample. Entropy fixtures separately check
 arithmetic state and CDF adaptation against AOM.
+
+Quantized intra reconstruction shares coefficient, dequantization and prediction
+logic across square and rectangular transforms up to 64 samples. Four native
+48×40 still pictures with eight-, sixteen-, thirty-two- and sixty-four-sample
+partition choices consume larger transform contexts and match every visible
+libdav1d sample, including clipped edge blocks and chroma transforms.
 
 Single-reference lossless and four-point quantized inter pictures support nearest, near, new and identity-global
 motion, primary-reference probability loading, frame identifiers and expiry, modular
@@ -34,7 +40,7 @@ every libdav1d sample. Frame permissions for compound prediction, skip mode,
 inter-intra blending and switchable motion are parsed independently of the
 selected block tool; ordinary single-reference translation remains supported.
 
-Larger quantized transforms, compound prediction,
+Variable-size quantized inter transform trees, compound prediction,
 temporal motion fields, non-identity global motion, overlapped/warped reconstruction,
 smooth/Paeth/filter-intra,
 deblocking, CDEF, loop restoration, intra-edge filtering, intra block copy,

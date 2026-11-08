@@ -5,22 +5,22 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void PredictIntra(int plane, int x, int y, int mode, int angleDelta)
+        private void PredictIntra(int plane, int x, int y, int mode, int angleDelta, int width, int height)
         {
             if (mode == 0)
             {
-                PredictDc(plane, x, y);
+                PredictDc(plane, x, y, width, height);
                 return;
             }
             int stride = sequence.PlaneStride(plane);
             int offset = sequence.PlaneOffset(plane);
-            Span<byte> top = stackalloc byte[9];
-            Span<byte> prior = stackalloc byte[9];
-            bool topRight = IsDecoded(plane, (x >> 2) + 1, (y >> 2) - 1);
-            bool bottomLeft = IsDecoded(plane, (x >> 2) - 1, (y >> 2) + 1);
-            int topLimit = Math.Min(stride - 1, x + (topRight ? 8 : 4) - 1);
-            int leftLimit = Math.Min(sequence.PlaneHeight(plane) - 1, y + (bottomLeft ? 8 : 4) - 1);
-            for (int index = 0; index < 8; index++)
+            Span<byte> top = stackalloc byte[width + height + 1];
+            Span<byte> prior = stackalloc byte[width + height + 1];
+            bool topRight = IsDecoded(plane, (x >> 2) + (width >> 2), (y >> 2) - 1);
+            bool bottomLeft = IsDecoded(plane, (x >> 2) - 1, (y >> 2) + (height >> 2));
+            int topLimit = Math.Min(stride - 1, x + width + (topRight ? height : 0) - 1);
+            int leftLimit = Math.Min(sequence.PlaneHeight(plane) - 1, y + height + (bottomLeft ? width : 0) - 1);
+            for (int index = 0; index < width + height; index++)
             {
                 top[index + 1] = y > 0 ? output[offset + (y - 1) * stride + Math.Min(topLimit, x + index)] :
                     x > 0 ? output[offset + y * stride + x - 1] : (byte)127;
@@ -56,16 +56,16 @@ namespace Mediana.Codecs.Av1
                 dy = Derivative(angle - 90);
             }
             else if (angle > 180) { dy = Derivative(270 - angle); }
-            for (int row = 0; row < 4; row++)
+            for (int row = 0; row < Math.Min(height, sequence.PlaneHeight(plane) - y); row++)
             {
-                for (int column = 0; column < 4; column++)
+                for (int column = 0; column < Math.Min(width, stride - x); column++)
                 {
                     byte value;
                     if (angle < 90)
                     {
                         int index = (row + 1) * dx;
                         int basis = (index >> 6) + column;
-                        value = basis < 7 ? Interpolate(top, basis, (index >> 1) & 31) : top[8];
+                        value = basis < width + height - 1 ? Interpolate(top, basis, (index >> 1) & 31) : top[width + height];
                     }
                     else if (angle is > 90 and < 180)
                     {
@@ -84,7 +84,8 @@ namespace Mediana.Codecs.Av1
                     else if (angle > 180)
                     {
                         int index = (column + 1) * dy;
-                        value = Interpolate(prior, (index >> 6) + row, (index >> 1) & 31);
+                        int basis = (index >> 6) + row;
+                        value = basis < width + height - 1 ? Interpolate(prior, basis, (index >> 1) & 31) : prior[width + height];
                     }
                     else
                     {
@@ -103,7 +104,7 @@ namespace Mediana.Codecs.Av1
         private bool IsDecoded(int plane, int column, int row) => column >= 0 && row >= 0 && column < sequence.PlaneColumns(plane) &&
             row < sequence.PlaneRows(plane) && decoded[sequence.PlaneOffset(plane) / 16 + row * sequence.PlaneColumns(plane) + column] != 0;
 
-        private void PredictDc(int plane, int x, int y)
+        private void PredictDc(int plane, int x, int y, int width, int height)
         {
             int stride = sequence.PlaneStride(plane);
             int offset = sequence.PlaneOffset(plane);
@@ -111,24 +112,24 @@ namespace Mediana.Codecs.Av1
             int count = 0;
             if (x > 0)
             {
-                for (int index = 0; index < 4; index++)
+                for (int index = 0; index < height; index++)
                 {
-                    sum += output[offset + (y + index) * stride + x - 1];
+                    sum += output[offset + Math.Min(y + index, sequence.PlaneHeight(plane) - 1) * stride + x - 1];
                 }
-                count += 4;
+                count += height;
             }
             if (y > 0)
             {
-                foreach (byte sample in output.Slice(offset + (y - 1) * stride + x, 4))
+                for (int index = 0; index < width; index++)
                 {
-                    sum += sample;
+                    sum += output[offset + (y - 1) * stride + Math.Min(x + index, stride - 1)];
                 }
-                count += 4;
+                count += width;
             }
             byte predicted = count == 0 ? (byte)128 : (byte)((sum + count / 2) / count);
-            for (int index = 0; index < 4; index++)
+            for (int index = 0; index < Math.Min(height, sequence.PlaneHeight(plane) - y); index++)
             {
-                output.Slice(offset + (y + index) * stride + x, 4).Fill(predicted);
+                output.Slice(offset + (y + index) * stride + x, Math.Min(width, stride - x)).Fill(predicted);
             }
         }
 
