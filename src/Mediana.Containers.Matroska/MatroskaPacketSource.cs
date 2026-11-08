@@ -167,7 +167,8 @@ namespace Mediana.Containers.Matroska
                     token.ThrowIfCancellationRequested();
                     MatroskaPacketAddress address = index.Locate(streamIndex, position);
                     MatroskaIndexedBlock block = index.GetBlock(address.BlockIndex);
-                    bool sync = block.IsSimpleBlock ? (block.Flags & 0x80) != 0 : !block.HasReferences;
+                    bool sync = audioTiming?.HasStream(streamIndex) == true ||
+                        (block.IsSimpleBlock ? (block.Flags & 0x80) != 0 : !block.HasReferences);
                     long firstPacket = position - address.FrameIndex;
                     if (!sync && firstPacket != 0)
                     {
@@ -182,7 +183,7 @@ namespace Mediana.Containers.Matroska
                             continue;
                         }
                         MatroskaPacketTiming timing = GetTiming(new(address.BlockIndex, frame));
-                        if (timing.PresentationTime is MediaTimestamp pts && (position == 0 || pts.CompareTo(target) <= 0))
+                        if ((timing.IsKeyFrame || position == 0) && timing.PresentationTime is MediaTimestamp pts && (position == 0 || pts.CompareTo(target) <= 0))
                         {
                             return new(streamIndex, position, pts);
                         }
@@ -227,7 +228,7 @@ namespace Mediana.Containers.Matroska
             if (audio is MatroskaAudioFrameTiming exact)
             {
                 duration = new(exact.Samples, new(1, exact.SampleRate));
-                if (extra?.DurationTicks is ulong declared && address.FrameIndex == block.FrameCount - 1)
+                if (extra?.DurationTicks is ulong declared && exact.IsFinalFrameSetInBlock)
                 {
                     MediaDuration whole = clock.GetTrackDuration(declared);
                     MediaTimestamp start = new(exact.PrecedingSamples, new(1, exact.SampleRate));
@@ -238,7 +239,8 @@ namespace Mediana.Containers.Matroska
                         new MediaTimeRange(start.ReduceClock(), finish.ReduceClock()).Duration;
                 }
             }
-            bool keyFrame = block.IsSimpleBlock ? (block.Flags & 0x80) != 0 : !block.HasReferences;
+            bool keyFrame = audio is MatroskaAudioFrameTiming indexedAudio ? !indexedAudio.IsDependent :
+                block.IsSimpleBlock ? (block.Flags & 0x80) != 0 : !block.HasReferences;
             return new(pts, duration, keyFrame);
         }
 

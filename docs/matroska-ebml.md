@@ -93,6 +93,31 @@ configuration extents and independent per-track and cumulative configuration byt
 limits are checked. Configuration snapshots survive source and workspace lifetimes.
 Container code depends on Formats and Core contracts, without decoder references.
 
+AC-3 and E-AC-3 use the mapping's empty initialization and individual syncframes.
+`A_EAC3` exposes `StreamFormats.Eac3Syncframe`: independent and dependent packets
+retain their original payload boundaries. Only independent packets advance the
+programme sample clock and qualify as restart points. Dependent packets carry the
+same programme interval, while their indexed presentation duration is zero so
+they do not count the audio twice. The decoder assembles each synchronized frame
+set using retained original payload leases and writes directly into the final
+rendered channel layout.
+
+Opening reads eight syntax bytes per AC-3/E-AC-3 frame and up to four additional
+bytes per member of the opening E-AC-3 frame set. This is additional to the block
+reader's bounded 256-byte header lookahead, which can include initial payload
+bytes. It does not require reading complete compressed frames. The opening frame
+set establishes exact rendered channel order, including dependent replacement
+and extension up to 16 channels; container-provided stream metadata is available
+without instantiating a decoder. Subsequent indexed timing, metadata and seek
+queries perform no source reads. Invalid substream order, changed dependent
+counts and inconsistent sampling or declared channel counts are rejected.
+
+Laced syncframes retain exact PCM sample periods. An explicit total BlockDuration
+clips every member of the final synchronized frame set, preserving identical
+presentation extents across all rendered channels. Verification covers laced and
+separate-block 8/16-channel programmes, bounded opening reads, independent PCM
+references, indexed recovery, clipped tails and resource cleanup.
+
 The packet source borrows its completed index and random-access input. Its own
 3,328-byte workspace is reused across lace frames. Each returned packet owns one
 payload allocation; an empty payload retains a one-byte backing allocation.

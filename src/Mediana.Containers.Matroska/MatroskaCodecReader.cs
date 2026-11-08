@@ -154,7 +154,7 @@ namespace Mediana.Containers.Matroska
                 (2, "A_AAC") => (kind, AacConfiguration.CodecId, StreamFormats.Aac, null),
                 (2, "A_MPEG/L3") => (kind, Mp3FrameHeader.CodecId, StreamFormats.Mp3, null),
                 (2, "A_AC3") => (kind, Ac3FrameHeader.CodecId, StreamFormats.Ac3, null),
-                (2, "A_EAC3") => (kind, Ac3FrameHeader.EnhancedCodecId, StreamFormats.Eac3, null),
+                (2, "A_EAC3") => (kind, Ac3FrameHeader.EnhancedCodecId, StreamFormats.Eac3Syncframe, null),
                 (_, "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_AV1" or "V_MJPEG" or "V_VP8" or "V_VP9" or "A_AAC" or "A_MPEG/L3" or "A_AC3" or "A_EAC3") =>
                     throw new InvalidDataException("The Matroska codec and track type disagree."),
                 _ => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null)

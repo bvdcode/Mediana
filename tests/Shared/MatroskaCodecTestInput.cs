@@ -62,7 +62,7 @@ namespace Mediana.Tests
             foreach ((string nativeId, string codecId, EncodedStreamFormat format) in new[]
             {
                 ("A_AC3", Ac3FrameHeader.CodecId, StreamFormats.Ac3),
-                ("A_EAC3", Ac3FrameHeader.EnhancedCodecId, StreamFormats.Eac3)
+                ("A_EAC3", Ac3FrameHeader.EnhancedCodecId, StreamFormats.Eac3Syncframe)
             })
             {
                 await using EbmlElementTestSource independent = new(Data([]));

@@ -3,6 +3,7 @@
 
 using Mediana.Core;
 using Mediana.Core.Timing;
+using Mediana.Core.Metadata;
 
 namespace Mediana.Containers.Matroska
 {
@@ -18,6 +19,8 @@ namespace Mediana.Containers.Matroska
             presentation = await MatroskaPresentationIndex.CreateAsync(source, allocator, index, this,
                 configurations, options, token).ConfigureAwait(false);
         }
+
+        public AudioStreamMetadata? GetStreamMetadata(int stream) => audioTiming?.GetMetadata(stream);
 
         public long GetPresentationUnitCount(int stream)
         {
@@ -36,6 +39,8 @@ namespace Mediana.Containers.Matroska
         {
             token.ThrowIfCancellationRequested();
             MatroskaPacketAddress address = index.Locate(stream, packet);
+            if (audioTiming?.Get(stream, packet) is MatroskaAudioFrameTiming { IsDependent: true } dependent)
+            { return new(0, new(1, dependent.SampleRate)); }
             return configurations[stream].Stream.Kind == MediaKind.Video ? presentation!.GetDuration(stream, packet) : GetTiming(address).Duration;
         }
 

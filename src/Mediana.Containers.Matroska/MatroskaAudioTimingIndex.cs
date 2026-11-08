@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Mediana.Core.Memory;
+using Mediana.Core.Metadata;
 using Mediana.Core;
 using Mediana.Formats;
 using Mediana.Formats.Audio;
@@ -15,8 +16,10 @@ namespace Mediana.Containers.Matroska
     internal class MatroskaAudioTimingIndex : IDisposable
     {
         private readonly WritableMediaBuffer?[] storage;
+        private readonly AudioStreamMetadata?[] metadata;
 
-        private MatroskaAudioTimingIndex(int tracks) => storage = new WritableMediaBuffer?[tracks];
+        private MatroskaAudioTimingIndex(int tracks)
+        { storage = new WritableMediaBuffer?[tracks]; metadata = new AudioStreamMetadata?[tracks]; }
 
         public static async ValueTask<MatroskaAudioTimingIndex?> CreateAsync(IRandomAccessByteSource source,
             MediaBufferAllocator allocator, MatroskaPacketIndex index, IReadOnlyList<MatroskaTrack> tracks,
@@ -34,7 +37,7 @@ namespace Mediana.Containers.Matroska
             try
             {
                 using MatroskaBlockReader blocks = new(source, allocator, options.MaximumBlockHeaderBytes, options.MaximumFrameBytes);
-                using WritableMediaBuffer prefix = allocator.Allocate(Ac3FrameHeader.HeaderBytes);
+                using WritableMediaBuffer prefix = allocator.Allocate(Eac3FrameMetadata.MaximumPrefixBytes);
                 for (int stream = 0; stream < tracks.Count; stream++)
                 {
                     string codec = configurations[stream].Stream.CodecId;
@@ -45,7 +48,9 @@ namespace Mediana.Containers.Matroska
                     if (count > int.MaxValue / entryBytes)
                     { throw new NotSupportedException("The Matroska audio timing index exceeds the maximum managed workspace size."); }
                     result.storage[stream] = index.AllocatePacketMetadataStorage(checked((int)count * entryBytes));
-                    int cachedBlock = -1, preceding = 0, blockRate = 0;
+                    MatroskaAc3Programme programme = new(codec, tracks[stream].Audio!.Value);
+                    int cachedBlock = -1, preceding = 0, groupOffset = 0, blockRate = 0;
+                    long lastIndependent = -1;
                     for (long packet = 0; packet < count; packet++)
                     {
                         token.ThrowIfCancellationRequested();
@@ -54,23 +59,42 @@ namespace Mediana.Containers.Matroska
                         {
                             await blocks.ReadAsync(index.GetBlock(address.BlockIndex).Element, token).ConfigureAwait(false);
                             cachedBlock = address.BlockIndex;
-                            preceding = 0; blockRate = 0;
+                            preceding = 0; groupOffset = 0; blockRate = 0; lastIndependent = -1;
                         }
                         MatroskaFrameRange frame = blocks.GetFrame(address.FrameIndex);
                         if (frame.Length < Ac3FrameHeader.HeaderBytes)
                         { throw new InvalidDataException("The Matroska AC-3 syncframe header is truncated."); }
-                        await source.ReadExactlyAtAsync(frame.Offset, prefix.Memory, token).ConfigureAwait(false);
+                        await source.ReadExactlyAtAsync(frame.Offset, prefix.Memory[..Ac3FrameHeader.HeaderBytes], token).ConfigureAwait(false);
                         Ac3FrameHeader header = Ac3FrameHeader.Read(prefix.Memory.Span);
                         if (header.IsEnhanced != (codec == Ac3FrameHeader.EnhancedCodecId) || header.FrameBytes != frame.Length)
                         { throw new InvalidDataException("A Matroska AC-3 frame must contain one complete syncframe of its declared codec."); }
-                        MatroskaAudioSettings audio = tracks[stream].Audio!.Value;
-                        if (audio.SamplingFrequency != header.SampleRate || audio.Channels != (ulong)header.ChannelCount)
-                        { throw new InvalidDataException("The Matroska audio sampling format disagrees with its AC-3 syncframe."); }
+                        if (programme.Observe(header))
+                        {
+                            int bytes = Math.Min(frame.Length, Eac3FrameMetadata.MaximumPrefixBytes);
+                            await source.ReadExactlyAtAsync(frame.Offset + Ac3FrameHeader.HeaderBytes,
+                                prefix.Memory.Slice(Ac3FrameHeader.HeaderBytes, bytes - Ac3FrameHeader.HeaderBytes), token).ConfigureAwait(false);
+                            programme.AddOpening(Eac3FrameMetadata.Read(prefix.Memory.Span[..bytes]));
+                        }
                         if (blockRate != 0 && blockRate != header.SampleRate)
                         { throw new NotSupportedException("Changes to the Matroska audio sample rate within a lace are not supported."); }
-                        result.Entries(stream)[(int)packet] = new(header.SampleRate, header.SamplesPerFrame, preceding, header.FrameBytes);
-                        preceding = checked(preceding + header.SamplesPerFrame); blockRate = header.SampleRate;
+                        bool dependent = header.IsEnhanced && header.StreamType == 1;
+                        if (!dependent)
+                        {
+                            for (long previous = lastIndependent; previous >= 0 && previous < packet; previous++)
+                            { result.Entries(stream)[(int)previous] = result.Entries(stream)[(int)previous] with { IsFinalFrameSetInBlock = false }; }
+                            groupOffset = preceding; lastIndependent = packet;
+                            preceding = checked(preceding + header.SamplesPerFrame);
+                        }
+                        else
+                        {
+                            if (lastIndependent < 0) { lastIndependent = packet; }
+                            if (preceding == 0) { preceding = header.SamplesPerFrame; }
+                        }
+                        result.Entries(stream)[(int)packet] = new(header.SampleRate, header.SamplesPerFrame,
+                            groupOffset, header.FrameBytes, MatroskaAudioFrameTiming.GetIdentity(header), true);
+                        blockRate = header.SampleRate;
                     }
+                    programme.Complete(); result.metadata[stream] = programme.Metadata;
                 }
                 success = true;
                 return result;
@@ -87,10 +111,12 @@ namespace Mediana.Containers.Matroska
             return Entries(stream)[checked((int)packet)];
         }
 
+        public AudioStreamMetadata? GetMetadata(int stream) => metadata[stream];
+
         public bool HasStream(int stream) => storage[stream] is not null;
 
         private static bool RequiresTiming(EncodedStreamInfo stream) =>
-            stream.Format == StreamFormats.Ac3 || stream.Format == StreamFormats.Eac3;
+            stream.Format == StreamFormats.Ac3 || stream.Format == StreamFormats.Eac3Syncframe;
 
         public void ValidatePacket(int stream, long packet, ReadOnlySpan<byte> data, MatroskaTrack track)
         {
@@ -98,7 +124,7 @@ namespace Mediana.Containers.Matroska
             Ac3FrameHeader header = Ac3FrameHeader.Read(data);
             if (header.IsEnhanced != (track.CodecId == "A_EAC3") || header.FrameBytes != data.Length ||
                 header.FrameBytes != timing.FrameBytes || header.SamplesPerFrame != timing.Samples ||
-                header.SampleRate != timing.SampleRate || header.ChannelCount != (long)track.Audio!.Value.Channels)
+                header.SampleRate != timing.SampleRate || MatroskaAudioFrameTiming.GetIdentity(header) != timing.HeaderIdentity)
             { throw new InvalidDataException("The Matroska AC-3 syncframe no longer matches its index."); }
         }
 
