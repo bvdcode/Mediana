@@ -60,3 +60,33 @@ The complete consumer also builds with strict Native AOT checks. Its playlist,
 initialization and seven media outputs are byte-identical to the JIT run, and
 the media allocator retains zero bytes after disposal. This ordinary source
 does not establish support for every AV1 reconstruction tool or bit depth.
+
+Continuous HE-AAC and HE-AAC v2 sources extend audio coverage to sixty seconds.
+Unmodified FDK-AAC 2.0.3 encodes a changing stereo chirp/transient signal in one
+encoder instance per source, using AOT 5 at 48 kbit/s and AOT 29 at 32 kbit/s.
+Each MP4 combines that audio with 720 AVC pictures at 160×96 and 12 fps. Complete
+source PCM has the same sample count as FFmpeg 6.1.1; floating-point comparison
+measures 92.76 dB SNR for HE-AAC and 70.20 dB for HE-AAC v2.
+
+The public HLS session produces fifteen four-second H.264/AAC segments, starting
+with requests 14, 0, 7, 1, 14 and 7. Repeated segments are byte-identical. Opening
+and the first final-window request read 90,718 bytes of the 1,036,358-byte HE-AAC
+source and 80,719 bytes of the 916,474-byte HE-AAC v2 source. Owned media storage
+returns to zero after disposal.
+
+FFmpeg 9.0.2 passes all 24 complete-playback and seek checks over files and HTTP.
+The seeks cover 0.5, 15.37, 31.1, 44.9 and 59.5 seconds. Sixteen audio comparison
+windows spanning the beginning, every segment boundary and the tail select zero
+sample displacement; the lowest correlations are 0.99999187 and 0.99957467.
+HTTP seek-content checks use absolute presentation timestamps with
+[`-seek_timestamp 1`](https://ffmpeg.org/ffmpeg.html#Advanced-options): default
+`-ss` is relative to the file start, which includes negative AAC priming time.
+
+Video covers 0–60 seconds. AAC packets are contiguous on a 1/48000 clock, starting
+at −1024 with a 1024-sample skip indication. Decoded output contains 2,880,512
+samples per channel, including a 512-sample encoded tail beyond sixty seconds
+(10.67 ms). The source encoder tails extend beyond the selected video interval.
+Separate initialization-plus-fragment decoding starts audio at 28.032 and
+56.021333 seconds for windows starting at 28 and 56 seconds. Its decoded samples
+match their declared presentation times; these checks do not establish exact
+sample coverage at the beginning of an isolated audio fragment.
