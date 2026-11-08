@@ -271,9 +271,11 @@
     <ProjectReference Include="../../src/Mediana.Containers.Ac3/Mediana.Containers.Ac3.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Ac3/Mediana.Codecs.Ac3.csproj" />
     <Compile Include="../Shared/Ac3ContainerTestInput.cs" Link="Ac3ContainerTestInput.cs" />
+    <Compile Include="../Shared/Ac3PcmTestInput.cs" Link="Ac3PcmTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Ac3/*" Link="Data/Ac3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Ac3.Tests/Data/*.ac3" Link="Data/Ac3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Ac3.Tests/Data/*.eac3" Link="Data/Ac3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Ac3.Tests/Data/*.pcm" Link="Data/Ac3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/AdtsDecodeTestInput.cs" Link="AdtsDecodeTestInput.cs" />
     <Compile Include="../Shared/AacSbrDecodeTestInput.cs" Link="AacSbrDecodeTestInput.cs" />
     <Compile Include="../Shared/AacSbrSeekTestInput.cs" Link="AacSbrSeekTestInput.cs" />

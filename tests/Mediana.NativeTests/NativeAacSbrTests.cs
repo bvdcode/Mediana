@@ -14,10 +14,13 @@ namespace Mediana.NativeTests
             {
                 foreach (bool explicitSbr in new[] { false, true })
                 {
-                    await AacSbrDecodeTestInput.VerifySequenceAsync(root, channels, explicitSbr);
-                    foreach (bool mp4 in new[] { false, true })
+                    foreach (bool singleRate in new[] { false, true })
                     {
-                        await AacSbrSeekTestInput.VerifyAsync(root, channels, explicitSbr, mp4);
+                        await AacSbrDecodeTestInput.VerifySequenceAsync(root, channels, explicitSbr, singleRate);
+                        foreach (bool mp4 in new[] { false, true })
+                        {
+                            await AacSbrSeekTestInput.VerifyAsync(root, channels, explicitSbr, mp4, singleRate);
+                        }
                     }
                 }
             }
