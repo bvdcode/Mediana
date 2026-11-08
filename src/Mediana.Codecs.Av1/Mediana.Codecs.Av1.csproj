@@ -5,6 +5,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Mediana.Core/Mediana.Core.csproj" />
+    <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
+    <ProjectReference Include="../Mediana.Formats/Mediana.Formats.csproj" />
     <InternalsVisibleTo Include="Mediana.Codecs.Av1.Tests" />
   </ItemGroup>
 </Project>

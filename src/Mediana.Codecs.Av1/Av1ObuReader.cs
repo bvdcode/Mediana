@@ -8,6 +8,8 @@ namespace Mediana.Codecs.Av1
         private readonly ReadOnlySpan<byte> data = encoded;
         private int offset;
 
+        internal int ByteOffset => offset;
+
         internal bool TryRead(out int type, out ReadOnlySpan<byte> payload)
         {
             type = 0;

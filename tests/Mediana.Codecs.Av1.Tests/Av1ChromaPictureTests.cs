@@ -17,7 +17,7 @@ namespace Mediana.Codecs.Av1.Tests
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", name + ".obu"));
             byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", name + ".yuv"));
             MediaBufferAllocator allocator = new(1024 * 1024);
-            using (Av1Picture picture = Av1StillPictureDecoder.Decode(encoded, allocator))
+            using (Av1Picture picture = new Av1PictureDecoder(allocator).Decode(encoded))
             {
                 Assert.False(picture.Sequence.Monochrome);
                 Assert.Equal(width, picture.Sequence.Width);

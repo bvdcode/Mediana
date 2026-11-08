@@ -71,7 +71,7 @@ namespace Mediana.Codecs.Av1.Tests
             byte[] encoded = Read("palette");
             byte[] expected = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", "palette.gray"));
             MediaBufferAllocator allocator = new(1024 * 1024);
-            using (Av1Picture picture = Av1StillPictureDecoder.Decode(encoded, allocator))
+            using (Av1Picture picture = new Av1PictureDecoder(allocator).Decode(encoded))
             {
                 Array.Clear(encoded);
                 Assert.True(expected.AsSpan().SequenceEqual(picture.Pixels.Memory.Span));
@@ -90,7 +90,7 @@ namespace Mediana.Codecs.Av1.Tests
             {
                 for (int ordinal = 0; ordinal < 8; ordinal++)
                 {
-                    using Av1Picture picture = Av1StillPictureDecoder.Decode(encoded, allocator);
+                    using Av1Picture picture = new Av1PictureDecoder(allocator).Decode(encoded);
                     Assert.True(expected.AsSpan().SequenceEqual(picture.Pixels.Memory.Span));
                 }
             })).ToArray();
@@ -102,7 +102,7 @@ namespace Mediana.Codecs.Av1.Tests
 
         private static void Decode(ReadOnlySpan<byte> encoded, MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
-            using Av1Picture picture = Av1StillPictureDecoder.Decode(encoded, allocator, cancellationToken);
+            using Av1Picture picture = new Av1PictureDecoder(allocator).Decode(encoded, cancellationToken);
         }
     }
 }

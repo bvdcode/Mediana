@@ -5,9 +5,10 @@ using Mediana.Core.Memory;
 
 namespace Mediana.Codecs.Av1
 {
-    internal class Av1Picture(Av1SequenceHeader sequence, MediaBuffer pixels) : IDisposable
+    internal class Av1Picture(Av1FrameHeader header, MediaBuffer pixels) : IDisposable
     {
-        internal Av1SequenceHeader Sequence { get; } = sequence;
+        internal Av1FrameHeader Header { get; } = header;
+        internal Av1SequenceHeader Sequence => Header.Geometry;
         internal MediaBuffer Pixels { get; } = pixels;
         public void Dispose() => Pixels.Dispose();
     }

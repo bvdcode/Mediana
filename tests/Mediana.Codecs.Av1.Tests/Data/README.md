@@ -46,3 +46,9 @@ Y/U/V samples, decoded independently by libdav1d. They cover independent noisy
 color planes, non-neutral DC values, color ramps and chroma correlated with
 luma. Encoding permits angle deltas and encoder-selected partitions, disables
 palettes for these samples, and retains the preceding filter restrictions.
+
+`sequence.obu` contains five 48×40 Main-profile lossless 4:2:0 key pictures
+with ordinary non-reduced sequence/frame headers. The luma and chroma ramps
+change between frames; `sequence.reference.yuv` contains all five pictures
+independently decoded with libdav1d 1.4.1. Tests also remove repeated sequence
+headers and supply the initial sequence through a standard av1C record.

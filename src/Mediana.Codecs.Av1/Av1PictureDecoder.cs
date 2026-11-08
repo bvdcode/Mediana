@@ -7,15 +7,17 @@ using Mediana.Core.Memory;
 
 namespace Mediana.Codecs.Av1
 {
-    internal static class Av1StillPictureDecoder
+    internal class Av1PictureDecoder(MediaBufferAllocator allocator, Av1Configuration? configuration = null)
     {
-        internal static Av1Picture Decode(ReadOnlySpan<byte> encoded, MediaBufferAllocator allocator,
-            CancellationToken cancellationToken = default)
+        private Av1SequenceHeader? savedSequence = configuration?.Sequence;
+
+        internal Av1Picture Decode(ReadOnlySpan<byte> encoded, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
             Av1ObuReader obus = new(encoded);
-            Av1SequenceHeader? sequence = null;
+            Av1SequenceHeader? sequence = savedSequence;
+            bool hasSequence = false;
             ReadOnlySpan<byte> frame = default;
             while (obus.TryRead(out int type, out ReadOnlySpan<byte> payload))
             {
@@ -23,11 +25,13 @@ namespace Mediana.Codecs.Av1
                 switch (type)
                 {
                     case 1:
-                        if (sequence is not null || !frame.IsEmpty)
+                        if (hasSequence || !frame.IsEmpty)
                         {
-                            throw new InvalidDataException("The AV1 still picture contains multiple sequence headers.");
+                            throw new InvalidDataException("The AV1 access unit contains multiple sequence headers.");
                         }
                         sequence = Av1SequenceHeader.Parse(payload);
+                        configuration?.Validate(sequence.Value);
+                        hasSequence = true;
                         break;
                     case 2:
                         if (!payload.IsEmpty)
@@ -38,7 +42,7 @@ namespace Mediana.Codecs.Av1
                     case 6:
                         if (sequence is null || !frame.IsEmpty)
                         {
-                            throw new InvalidDataException("The AV1 still picture requires one sequence followed by one frame.");
+                            throw new InvalidDataException("The AV1 access unit requires a sequence configuration and one frame.");
                         }
                         if (payload.IsEmpty)
                         {
@@ -67,9 +71,10 @@ namespace Mediana.Codecs.Av1
             }
             if (sequence is not Av1SequenceHeader geometry || frame.IsEmpty)
             {
-                throw new InvalidDataException("The AV1 still picture is missing its sequence or frame.");
+                throw new InvalidDataException("The AV1 access unit is missing its sequence or frame.");
             }
             Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry);
+            geometry = header.Geometry;
             int sampleCount = geometry.SampleCount;
             int contextBytes = checked(geometry.ContextCount * Unsafe.SizeOf<Av1BlockContext>());
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
@@ -82,7 +87,8 @@ namespace Mediana.Codecs.Av1
                 tile.Decode();
             }
             cancellationToken.ThrowIfCancellationRequested();
-            return new(geometry, pixels.Publish());
+            savedSequence = sequence;
+            return new(header, pixels.Publish());
         }
     }
 }

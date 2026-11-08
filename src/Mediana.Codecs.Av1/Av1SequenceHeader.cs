@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal readonly record struct Av1SequenceHeader(int Width, int Height, bool Monochrome, bool SeparateUvDeltaQ, int ChromaPosition, bool Superblock128,
         bool FilterIntra, bool IntraEdgeFilter, bool SuperResolution, bool FilmGrain, bool FullRange,
-        int ColorPrimaries, int TransferCharacteristics, int MatrixCoefficients)
+        int ColorPrimaries, int TransferCharacteristics, int MatrixCoefficients, Av1SequenceTools Tools)
     {
         internal int MiColumns => 2 * ((Width + 7) >> 3);
         internal int MiRows => 2 * ((Height + 7) >> 3);
@@ -40,18 +40,37 @@ namespace Mediana.Codecs.Av1
             int profile = bits.Read(3);
             bool stillPicture = bits.Flag();
             bool reduced = bits.Flag();
-            if (profile != 0 || !stillPicture || !reduced)
+            if (profile != 0)
             {
-                throw new NotSupportedException("AV1 reconstruction currently requires Main-profile reduced still-picture headers.");
+                throw new NotSupportedException("AV1 reconstruction currently requires Main profile.");
             }
-            bits.Read(5);
+            if (reduced && !stillPicture)
+            {
+                throw new InvalidDataException("An AV1 reduced header requires still_picture.");
+            }
+            int level;
+            bool tier;
+            if (reduced)
+            {
+                level = bits.Read(5);
+                tier = false;
+            }
+            else
+            {
+                (level, tier) = ReadOperatingPoints(ref bits);
+            }
             int widthBits = bits.Read(4) + 1;
             int heightBits = bits.Read(4) + 1;
             int width = bits.Read(widthBits) + 1;
             int height = bits.Read(heightBits) + 1;
+            if (!reduced && bits.Flag())
+            {
+                throw new NotSupportedException("AV1 frame identifiers are not implemented.");
+            }
             bool largeSuperblock = bits.Flag();
             bool filterIntra = bits.Flag();
             bool edgeFilter = bits.Flag();
+            Av1SequenceTools tools = ReadTools(ref bits, reduced, widthBits, heightBits, level, tier);
             bool superResolution = bits.Flag();
             bits.Flag();
             bits.Flag();
@@ -88,7 +107,67 @@ namespace Mediana.Codecs.Av1
             bool filmGrain = bits.Flag();
             bits.Finish();
             return new(width, height, monochrome, separateUv, chromaPosition, largeSuperblock, filterIntra, edgeFilter, superResolution,
-                filmGrain, fullRange, primaries, transfer, matrix);
+                filmGrain, fullRange, primaries, transfer, matrix, tools);
+        }
+        private static (int Level, bool Tier) ReadOperatingPoints(ref Av1BitReader bits)
+        {
+            if (bits.Flag())
+            {
+                throw new NotSupportedException("AV1 decoder-model timing syntax is not implemented.");
+            }
+            bool initialDelay = bits.Flag();
+            int operatingPoints = bits.Read(5) + 1;
+            int firstLevel = 0;
+            bool firstTier = false;
+            for (int index = 0; index < operatingPoints; index++)
+            {
+                bits.Read(12);
+                int level = bits.Read(5);
+                bool tier = level > 7 && bits.Flag();
+                if (index == 0)
+                {
+                    firstLevel = level;
+                    firstTier = tier;
+                }
+                if (initialDelay && bits.Flag())
+                {
+                    bits.Read(4);
+                }
+            }
+            return (firstLevel, firstTier);
+        }
+
+        private static Av1SequenceTools ReadTools(ref Av1BitReader bits, bool reduced, int widthBits, int heightBits, int level, bool tier)
+        {
+            int screenContent = 2;
+            int integerMotion = 2;
+            int orderBits = 0;
+            if (!reduced)
+            {
+                bits.Flag();
+                bits.Flag();
+                bits.Flag();
+                bits.Flag();
+                bool orderHint = bits.Flag();
+                if (orderHint)
+                {
+                    bits.Flag();
+                    bits.Flag();
+                }
+                if (!bits.Flag())
+                {
+                    screenContent = bits.Flag() ? 1 : 0;
+                }
+                if (screenContent > 0 && !bits.Flag())
+                {
+                    integerMotion = bits.Flag() ? 1 : 0;
+                }
+                if (orderHint)
+                {
+                    orderBits = bits.Read(3) + 1;
+                }
+            }
+            return new(reduced, widthBits, heightBits, orderBits, screenContent, integerMotion, level, tier);
         }
     }
 }
