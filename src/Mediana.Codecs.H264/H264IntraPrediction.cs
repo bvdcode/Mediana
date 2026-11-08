@@ -97,24 +97,28 @@ namespace Mediana.Codecs.H264
             byte? corner, Span<byte> output)
         {
             ValidateNeighbours(mode is 0 or 3, mode is 1 or 3, mode == 3, top, left, corner);
-            if (mode == 3)
+            switch (mode)
             {
-                Plane(top, left, corner!.Value, output, 16);
-                return;
-            }
-            int dc = Dc(top, left);
-            for (int y = 0; y < 16; y++)
-            {
-                for (int x = 0; x < 16; x++)
-                {
-                    output[y * 16 + x] = mode switch
+                case 0:
+                    for (int row = 0; row < 16; row++)
                     {
-                        0 => top[x],
-                        1 => left[y],
-                        2 => (byte)dc,
-                        _ => throw new InvalidDataException("Invalid H.264 intra 16x16 prediction mode.")
-                    };
-                }
+                        top[..16].CopyTo(output.Slice(row * 16, 16));
+                    }
+                    return;
+                case 1:
+                    for (int row = 0; row < 16; row++)
+                    {
+                        output.Slice(row * 16, 16).Fill(left[row]);
+                    }
+                    return;
+                case 2:
+                    output[..256].Fill((byte)Dc(top, left));
+                    return;
+                case 3:
+                    Plane(top, left, corner!.Value, output, 16);
+                    return;
+                default:
+                    throw new InvalidDataException("Invalid H.264 intra 16x16 prediction mode.");
             }
         }
 

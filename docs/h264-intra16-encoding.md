@@ -29,3 +29,39 @@ The references are `intra16-qp*.yuv` under the H.264 test data. These checks
 establish coefficient and syntax correctness. Selection against intra4x4 and
 inter modes, and its joint effect on CPU, size and quality, require separate
 complete-sequence comparisons.
+
+## Mode selection comparisons
+
+Two P-picture policies were measured with Linux x64 Native AOT on complete
+12-second natural video, eight-second moving patterns and eight-second static
+graphics. Each ran in before/after/after/before order with one processing thread,
+QP26 and 48-picture IDR spacing. Independent decoding measured PSNR and SSIM
+against the same raw source. These shared-host pilot pairs are not matched-rate
+comparisons with another encoder.
+
+The first policy screened all four intra16 predictions by luma SAD and a syntax
+penalty, then compared reconstructed YUV squared error plus actual coded bits
+against the completed inter candidate. The second selected the screened mode
+directly, avoiding duplicate transform/entropy work.
+
+| Material | Policy | Median CPU, before / after, s | AVC payload, before / after, bytes | PSNR, before / after, dB |
+| --- | --- | ---: | ---: | ---: |
+| Natural video, 1280×720, 288 pictures | Complete reconstruction cost | 5.312 / 6.818 | 4,139,535 / 2,728,224 | 43.110 / 43.582 |
+| Moving patterns, 640×360, 192 pictures | Complete reconstruction cost | 0.839 / 0.921 | 1,429,276 / 1,407,796 | 45.634 / 46.030 |
+| Static graphics, 1280×720, 192 pictures | Complete reconstruction cost | 1.658 / 1.730 | 82,464 / 82,464 | 53.969 / 53.969 |
+| Natural video | Direct screened selection | 5.399 / 7.237 | 4,139,535 / 2,734,182 | 43.110 / 43.589 |
+| Moving patterns | Direct screened selection | 0.874 / 0.937 | 1,429,276 / 1,413,933 | 45.634 / 46.143 |
+| Static graphics | Direct screened selection | 1.794 / 2.168 | 82,464 / 82,464 | 53.969 / 53.969 |
+
+The first policy reduced natural-video payload by 34.1% and improved PSNR by
+0.47 dB, but added 28.3% CPU in this pilot. Direct screening did not establish a
+speed improvement. Row-copy/fill prediction produced identical encoded bytes
+in a further pair but did not remove the complete-operation CPU increase.
+
+The direct policy also passed complete independent pixel reconstruction on
+twelve 80-picture sequences covering scene changes, moving texture, cropped
+edges, low/high QP and rate control. Source hashes match the existing temporal
+and rate-control references. The rate-controlled QP0 sequence at 32 kbit/s lost
+1.226 dB, despite improvements in several other cases. Neither policy was adopted
+as the default mode decision. The coefficient/syntax component remains available
+for further encoder work; these pilots establish no throughput or memory win.
