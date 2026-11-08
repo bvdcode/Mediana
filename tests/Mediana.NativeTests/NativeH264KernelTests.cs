@@ -41,7 +41,17 @@ namespace Mediana.NativeTests
             await H264MotionSearchTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
             H264ChromaInterpolationTestInput.Verify();
             H264IntraModeTestInput.Verify();
+            foreach (int qp in new[] { 0, 12, 26, 38, 51 })
+            {
+                (byte[] _, byte[] pixels) = await H264Intra16TestInput.EncodeAsync(qp);
+                byte[] reference = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264", $"intra16-qp{qp}.yuv"));
+                if (!pixels.AsSpan().SequenceEqual(reference))
+                {
+                    throw new InvalidDataException("H.264 intra16 coding differs from the independent complete pixel reference.");
+                }
+            }
             Console.WriteLine("PASS H.264 motion interpolation: all luma phases, complete blocks, borders and extreme coordinates match scalar convolution.");
+            Console.WriteLine("PASS H.264 intra16 coding: I/P syntax, every prediction mode, five quantizers and complete independent samples match.");
         }
     }
 }
