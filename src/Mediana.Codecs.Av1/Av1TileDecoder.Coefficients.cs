@@ -18,6 +18,7 @@ namespace Mediana.Codecs.Av1
                 return;
             }
             int transform = ReadTransform(plane, mode, inter, x4, y4, lumaRow, lumaColumn, size);
+            ReadOnlySpan<byte> matrix = quantization.Matrix.Weights(plane, size, transform, lossless);
             StoreTransform(plane, x4, y4, size, transform);
             int transformClass = transform switch { 10 or 12 or 14 => 2, 11 or 13 or 15 => 1, _ => 0 };
             int eobSize = System.Numerics.BitOperations.Log2((uint)(size.CodedWidth * size.CodedHeight)) - 4;
@@ -73,6 +74,9 @@ namespace Mediana.Codecs.Av1
             }
             int total = 0;
             byte dc = 0;
+            int dcMultiplier = quantization.Dc(plane);
+            int acMultiplier = quantization.Ac(plane);
+            int dequantizationShift = size.DequantizationShift;
             for (int ordinal = 0; ordinal < end; ordinal++)
             {
                 int position = ScanPosition(scan, ordinal, transformClass, size);
@@ -102,10 +106,9 @@ namespace Mediana.Codecs.Av1
                 }
                 level &= 0xFFFFF;
                 total += level;
-                int signed = negative ? -level : level;
-                int multiplier = position == 0 ? quantization.Dc(plane) : quantization.Ac(plane);
-                int dequantized = (Math.Abs(signed * multiplier) & 0xFFFFFF) >> size.DequantizationShift;
-                quant[position] = Math.Clamp(negative ? -dequantized : dequantized, short.MinValue, short.MaxValue);
+                int multiplier = position == 0 ? dcMultiplier : acMultiplier;
+                if (!matrix.IsEmpty) { multiplier = (multiplier * matrix[position] + 16) >> 5; }
+                quant[position] = Av1Quantization.Dequantize(level, multiplier, negative, dequantizationShift);
             }
             StoreCoefficientContext(plane, x4, y4, size, (byte)Math.Min(63, total), dc);
             if (size.Width != size.CodedWidth)

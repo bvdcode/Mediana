@@ -28,11 +28,8 @@ namespace Mediana.Codecs.Av1
                 vDc = different ? ReadDelta(ref bits) : uDc;
                 vAc = different ? ReadDelta(ref bits) : uAc;
             }
-            Av1Quantization quantization = new(quantizer, yDc, uDc, uAc, vDc, vAc);
-            if (bits.Flag())
-            {
-                throw new NotSupportedException("AV1 quantization matrix syntax is not implemented.");
-            }
+            Av1QuantizationMatrix matrix = Av1QuantizationMatrix.Read(ref bits, sequence.SeparateUvDeltaQ);
+            Av1Quantization quantization = new(quantizer, yDc, uDc, uAc, vDc, vAc, matrix);
             bool noPrimaryReference = context.Inter.PrimaryReference == Av1InterPrediction.NoPrimaryReference;
             Av1StoredPicture? primary = noPrimaryReference ? null : references.Get(context.Inter.References[context.Inter.PrimaryReference]);
             Av1Segmentation segmentation = Av1Segmentation.Read(ref bits, noPrimaryReference, primary?.Header.Segmentation ?? default);

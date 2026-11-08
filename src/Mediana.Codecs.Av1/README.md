@@ -190,7 +190,18 @@ timestamps and visible/reference-display timestamps are preserved as codec metad
 container timestamps remain the output clock. See
 [timing metadata](../../docs/av1-timing.md).
 
-Quantization matrices, intra block copy,
-super-resolution, high bit depth and film grain are not implemented. Encountering these
+Quantization matrices support all fifteen weighted levels, the flat level and
+independent luma/chroma selection. Immutable embedded weights share native
+transform-size aliases without per-frame or per-block allocation. Lossless
+segments and identity/one-dimensional transforms bypass weighting. Nineteen
+independent moving sequences match every native decoded sample; see
+[matrix reconstruction](../../docs/av1-quantization-matrices.md).
+
+Film grain is applied to display storage after reference reconstruction, keeping
+reference pixels unchanged. Parameter inheritance, monochrome, clipped geometry
+and held-frame ownership are independently verified; see
+[film grain](../../docs/av1-film-grain.md).
+
+Intra block copy, super-resolution and high bit depth are not implemented. Encountering these
 tools fails explicitly. The module requires explicit factory registration while ordinary AV1 playback
 coverage is incomplete.

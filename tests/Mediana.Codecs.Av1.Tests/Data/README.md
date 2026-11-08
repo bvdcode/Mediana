@@ -502,3 +502,21 @@ parameter sets, twelve 64×48 or 65×49 pictures each. `grainMono.obu` contains
 twelve 65×49 monochrome pictures. Corresponding `AV1HASH1` manifests record
 the visible dimensions and a SHA-256 digest over the concatenated visible
 Y, U and V rows of each displayed picture, decoded independently by dav1d.
+
+`matrix00` through `matrix14`, `matrixFlat`, `matrixOdd`, `matrixMono` and
+`matrixLossless` contain six moving pictures each. They use libaom 3.8.2 with
+quantization matrices enabled, identical minimum/maximum matrix levels, CPU5,
+CQ31 and no lookahead. The first sixteen use 96×80 4:2:0 `testsrc2` input;
+`matrixOdd` and `matrixMono` use 97×81 deterministic moving gradients and
+alternating regions. `matrixLossless` enables lossless reconstruction while
+retaining the matrix-enabled header. Default intra, inter and in-loop tools
+remain enabled. Independent libdav1d 1.4.1 output supplies the `.sha256` files,
+using the `AV1HASH1` format described above.
+
+`quantization-matrices.sha256` verifies every weighted level, luma/chroma table
+and all nineteen transform-size extents, including the normative large-transform
+aliases. Its format is `AV1QMAT1`, byte counts 15, 2 and 19, then one 32-byte
+SHA-256 digest per level, plane and transform in that order. Digests come from
+the AOM 3.8.2 `iwt_matrix_ref` data; rectangular native tables are transposed to
+normative row-major order before hashing. All 100,320 unique values also match
+the approved AV1 specification's `Quantizer_Matrix` table.
