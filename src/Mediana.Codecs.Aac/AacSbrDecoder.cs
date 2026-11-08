@@ -9,9 +9,13 @@ using Mediana.Formats.Audio;
 namespace Mediana.Codecs.Aac
 {
     internal class AacSbrDecoder(int streamIndex, AacConfiguration configuration, MediaBufferAllocator allocator, int maxAccessUnitBytes)
-        : IMediaCodec<MediaPacket, AudioFrame>
+        : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
     {
         private readonly AacDecoder decoder = new(streamIndex, configuration, allocator, maxAccessUnitBytes);
+
+        public int RequiredPrerollPackets => 2;
+        public void ResetForPreroll(long packetCount, bool startsAtStreamBeginning) =>
+            decoder.ResetForPreroll(packetCount, startsAtStreamBeginning);
 
         public CodecInputStatus TrySend(MediaPacket input, CancellationToken cancellationToken = default) => decoder.TrySend(input, cancellationToken);
         public CodecOutput<AudioFrame> Receive(CancellationToken cancellationToken = default) => decoder.Receive(cancellationToken);

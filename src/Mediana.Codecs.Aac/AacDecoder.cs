@@ -24,19 +24,21 @@ namespace Mediana.Codecs.Aac
         private AacDecoderWorkspace? workspace;
         private AudioFrame? pending;
         private long prerollPackets;
+        private long initialPrerollPackets;
         private uint noiseState = InitialNoiseState;
         private bool completed;
         private bool disposed;
         private bool faulted;
         private bool nonOriginPreroll;
 
-        public int RequiredPrerollPackets => 1;
+        public int RequiredPrerollPackets => configuration.SpectralBandReplication == true || sbrFormat is not null ? 2 : 1;
 
         public void ResetForPreroll(long packetCount, bool startsAtStreamBeginning)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(packetCount);
             Reset();
             prerollPackets = packetCount;
+            initialPrerollPackets = packetCount;
             nonOriginPreroll = !startsAtStreamBeginning;
         }
 
@@ -88,9 +90,9 @@ namespace Mediana.Codecs.Aac
                 {
                     throw new InvalidDataException("The HE-AAC frame is missing its SBR payload.");
                 }
-                if (sbr && nonOriginPreroll)
+                if (sbr && nonOriginPreroll && initialPrerollPackets < 2)
                 {
-                    throw new NotSupportedException("SBR seeking requires the decoder state from the beginning of the stream.");
+                    throw new NotSupportedException("SBR seeking requires a restart header and at least two preroll packets.");
                 }
                 if (sbr && (sbrRate != configuration.SampleRate * 2 || layout.ChannelCount > 2))
                 {
@@ -221,6 +223,7 @@ namespace Mediana.Codecs.Aac
             workspace = null;
             noiseState = InitialNoiseState;
             prerollPackets = 0;
+            initialPrerollPackets = 0;
             completed = false;
             faulted = false;
             nonOriginPreroll = false;

@@ -26,7 +26,7 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(256 * 1024);
             using (IMediaCodec<MediaPacket, AudioFrame> decoder = new AacDecoderFactory().Create(Stream(channels, explicitSbr), allocator))
             {
-                Require(explicitSbr == (decoder is not IPacketPrerollDecoder));
+                Require(decoder is IPacketPrerollDecoder preroll && preroll.RequiredPrerollPackets == (explicitSbr ? 2 : 1));
                 double error = 0;
                 double energy = 0;
                 double maximum = 0;
@@ -101,15 +101,16 @@ namespace Mediana.Tests
             return packets.ToArray();
         }
 
-        private static async Task<byte[]> ReadPcmAsync(string root, int channels)
+        public static async Task<byte[]> ReadPcmAsync(string root, int channels, bool restart = false)
         {
             string name = Name(channels);
-            await using FileStream file = File.OpenRead(Path.Combine(root, name + ".f32le.gz"));
+            string suffix = restart ? "-rap.f32le.gz" : ".f32le.gz";
+            await using FileStream file = File.OpenRead(Path.Combine(root, name + suffix));
             await using GZipStream gzip = new(file, CompressionMode.Decompress);
             await using MemoryStream output = new();
             await gzip.CopyToAsync(output);
             byte[] bytes = output.ToArray();
-            await VerifyHashAsync(root, name, bytes, "pcmSha256");
+            await VerifyHashAsync(root, name, bytes, restart ? "restartPcmSha256" : "pcmSha256");
             return bytes;
         }
 

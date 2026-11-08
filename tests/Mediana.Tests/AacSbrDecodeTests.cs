@@ -85,7 +85,7 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task ImplicitSbrRejectsNonOriginPrerollAndExplicitSbrDoesNotAdvertiseFixedPreroll()
+        public async Task SbrRejectsInsufficientNonOriginPrerollAndPreservesOriginalStreamStartup()
         {
             byte[][] packets = await ReadPacketsAsync(1);
             MediaBufferAllocator allocator = new(256 * 1024);

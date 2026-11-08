@@ -1,7 +1,8 @@
 # Indexed audio seeking
 
 `AudioSession.CanSeek` reports whether the container and decoder provide a
-supported indexed restart path. MP4/MOV AAC-LC sessions support this operation.
+supported indexed restart path. MP4/MOV and indexed ADTS support AAC-LC and
+dual-rate mono/stereo HE-AAC restarts.
 `SeekAsync(target)` positions the first returned PCM block at or before the
 requested presentation time; an exact sample window then selects `[start, end)`.
 
@@ -28,13 +29,16 @@ failure make the session terminal; overlapping calls and disposal are rejected.
 
 ## Recovery contracts
 
-The execution pipeline composes two optional capabilities without codec or
+The execution pipeline composes optional capabilities without codec or
 container format branches:
 
 - `IPacketPrerollDecoder` declares required history in encoded packets and resets
   while suppressing the output associated with the requested leading packets.
 - `IIndexedPrerollReader.GetPrerollStart` combines that history with container
   recovery declarations without reading encoded media or moving reader cursors.
+- `IRandomAccessRecoveryInspector` validates a candidate and returns its required
+  codec warmup in one inspection. The pipeline searches backward from the
+  container recovery position until both the restart and warmup are satisfied.
 
 AAC-LC needs one preceding access unit to reconstruct overlap and window state.
 The decoder processes that history without allocating a returned PCM frame.
@@ -46,6 +50,27 @@ points fail explicitly. See [MP4 recovery groups](mp4-recovery.md).
 The existing `IRandomAccessInspector` contract remains available for independently
 restartable packets, including H.264 access points. Codecs without either supported
 restart contract do not gain seeking from indexed container access alone.
+
+HE-AAC requires an SBR header with independently coded initial envelope and noise
+parameters, plus two preceding access units for core and SBR synthesis recovery.
+The AAC inspector reuses the syntax parser without inverse transforms or PCM
+synthesis; it does not retain state from earlier inspections. Container sync
+flags alone do not establish an SBR restart. An implicit AAC configuration keeps
+the LC one-packet minimum until inspection identifies SBR.
+
+[DVB/ETSI TS 101 154 §6.5.1.3](https://www.etsi.org/deliver/etsi_ts/101100_101199/101154/02.03.01_60/ts_101154v020301p.pdf)
+describes the independent SBR header requirement. Its periodic-header timing is
+a broadcast-profile constraint, not a universal guarantee for arbitrary files.
+If no intervening restart exists, decoding must begin at an earlier valid header.
+The two-unit DSP recovery is also documented and tested in
+[FFmpeg's AAC preroll change](https://github.com/FFmpeg/FFmpeg/commit/ad74ac4cee9061e618b8c80d8cef8c8f4138c42b).
+
+Eight complete cold-restart windows of tonal and transient mono/stereo HE-AAC
+match independent FFmpeg Float32 decoding after two warmup packets: signal/error
+ratio 78.53–121.73 dB and maximum absolute error below 0.00018. MP4 and ADTS tests
+cover implicit/explicit signaling, sample clocks, EOF, out-of-order repeats and
+bounded live storage. Independent restarts do not promise the identical noise
+phase of continuous decoding from the original stream beginning.
 
 ## Timelines and checks
 

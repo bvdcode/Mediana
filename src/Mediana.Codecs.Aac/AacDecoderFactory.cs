@@ -2,17 +2,16 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core;
-using Mediana.Formats;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
-
+using Mediana.Formats;
 using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
     /// <summary>Decodes AAC-LC channel configurations 1–7 and dual-rate mono/stereo HE-AAC, one raw_data_block per packet.
     /// Outputs native-endian interleaved float32 PCM. Priming, padding and container edit trimming are not applied.</summary>
-    public class AacDecoderFactory : IAudioDecoderFactory
+    public class AacDecoderFactory : IAudioDecoderFactory, IRandomAccessDecoderFactory
     {
         private readonly int maxAccessUnitBytes;
 
@@ -62,16 +61,27 @@ namespace Mediana.Codecs.Aac
         public IMediaCodec<MediaPacket, AudioFrame> Create(EncodedStreamInfo stream, MediaBufferAllocator allocator)
         {
             ArgumentNullException.ThrowIfNull(allocator);
+            AacConfiguration configuration = RequireConfiguration(stream);
+            return configuration.SpectralBandReplication == true ?
+                new AacSbrDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes) :
+                new AacDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes);
+        }
+
+        public IRandomAccessInspector CreateRandomAccessInspector(EncodedStreamInfo stream)
+        {
+            AacConfiguration configuration = RequireConfiguration(stream);
+            return new AacRandomAccessInspector(stream.StreamIndex, configuration, maxAccessUnitBytes);
+        }
+
+        private AacConfiguration RequireConfiguration(EncodedStreamInfo stream)
+        {
             string? reason = GetUnsupportedReason(stream);
             if (reason is not null)
             {
                 throw new NotSupportedException(reason);
             }
-            AacConfiguration configuration = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out reason)
+            return AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out reason)
                 ?? throw new NotSupportedException(reason);
-            return configuration.SpectralBandReplication == true ?
-                new AacSbrDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes) :
-                new AacDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes);
         }
     }
 }

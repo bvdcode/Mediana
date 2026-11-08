@@ -38,5 +38,20 @@ maximum absolute error of 0.00025, checks the 48 kHz format, timestamps,
 2048-sample durations, EOF, constant live state within a 256 KiB media-buffer
 budget, and final release of every media buffer. Separate lifecycle tests cover
 reset reproducibility, retained output, cancellation, truncated packets,
-missing initial headers and rejection of a non-origin restart without the
-required persistent SBR state.
+missing initial headers and rejection of insufficient non-origin preroll.
+
+The `-rap.f32le.gz` references decode the complete five-frame suffix starting
+at packet 11 with a fresh FFmpeg decoder, using the same options as above.
+That packet carries the next independent SBR header. Tests seek forward and
+backward, including immediately before and after the required two-packet
+warmup, and compare every returned sample against the appropriate independent
+startup reference. Repeated seeks must reproduce identical PCM and clocks.
+The `.m4a` files wrap the same 16 access units unchanged in indexed MP4.
+
+`transients-av.mp4` combines the full 46-frame stereo signal with an original
+64×48 `testsrc2` pattern: 48 H.264 High pictures at 24 fps, GOP 12, no B pictures,
+BT.709 limited range. FFmpeg 6.1.1 uses `libx264` for video and copies the
+HE-AAC packets. The HLS test requests late, early and repeated segments,
+checks that a cold late request reads only its preceding video GOP and SBR
+header interval, verifies encoded audio packet clocks and decoded format,
+and requires identical repeated fragments and release of all media buffers.
