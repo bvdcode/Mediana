@@ -43,10 +43,18 @@ size metadata uses the existing motion-grid allocation. Frame permissions for co
 inter-intra blending and switchable motion are parsed independently of the
 selected block tool; ordinary single-reference translation remains supported.
 
+Deblocking applies the normative four-, six-, eight- and fourteen-tap filters
+before reference storage. It preserves reference/mode delta state across
+primary-reference loading, supports luma/chroma levels and sharpness, and uses
+four bytes of edge metadata per luma 4×4 block only when filtering is enabled.
+It modifies the original pixel buffer in place. Six native still pictures and
+two moving sequences match independent filtered output exactly; 2,048 AOM
+kernel vectors cover every tap size in both directions.
+
 Compound prediction,
 temporal motion fields, non-identity global motion, overlapped/warped reconstruction,
 smooth/Paeth/filter-intra,
-deblocking, CDEF, loop restoration, intra-edge filtering, intra block copy,
+CDEF, loop restoration, intra-edge filtering, intra block copy,
 chroma palette, segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,
 film grain and decoder-model timing are not implemented. Encountering these

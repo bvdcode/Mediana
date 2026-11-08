@@ -25,6 +25,8 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("interTx16", false)]
         [InlineData("interTx32", false)]
         [InlineData("interTxFree", false)]
+        [InlineData("interDeblocked8", false)]
+        [InlineData("interDeblockedFree", false)]
         public void ReconstructsIndependentPictureSequence(string fixture, bool omitRepeatedHeaders)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", fixture + ".obu"));

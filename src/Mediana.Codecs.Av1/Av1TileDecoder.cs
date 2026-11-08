@@ -19,13 +19,19 @@ namespace Mediana.Codecs.Av1
         private readonly CancellationToken cancellationToken;
         private readonly Av1ReferencePictures? references;
         private readonly Span<Av1MotionBlock> motionBlocks;
+        private readonly Span<Av1FilterBlock> filterBlocks;
         private Av1SymbolReader symbols;
 
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
-            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default)
+            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default)
         {
+            if (header.LoopFilter.Enabled && filterBlocks.Length != sequence.MiColumns * sequence.MiRows)
+            {
+                throw new ArgumentException("The AV1 loop-filter metadata has an invalid extent.", nameof(filterBlocks));
+            }
             this.references = references;
             this.motionBlocks = motionBlocks;
+            this.filterBlocks = filterBlocks;
             this.sequence = sequence;
             this.header = header;
             this.output = output;

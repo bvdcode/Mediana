@@ -105,6 +105,7 @@ namespace Mediana.Codecs.Av1
                     target[dx] = (byte)Math.Clamp(target[dx] + residual[dy * size.Width + dx], 0, 255);
                 }
             }
+            StoreFilterTransform(plane, x4, y4, size);
             for (int dy = 0; dy < (visibleHeight >> 2); dy++)
             {
                 int decodedOffset = offset / 16 + (y4 + dy) * sequence.PlaneColumns(plane) + x4;

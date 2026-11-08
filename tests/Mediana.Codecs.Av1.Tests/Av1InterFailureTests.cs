@@ -59,6 +59,40 @@ namespace Mediana.Codecs.Av1.Tests
         }
 
         [Fact]
+        public void DeblockingMetadataFailureHonorsTheScopedBudgetAndReleasesReferences()
+        {
+            byte[] encoded = Read("interDeblocked8.obu");
+            IReadOnlyList<ReadOnlyMemory<byte>> units = Av1SequencePictureTests.AccessUnits(encoded);
+            int samples = 48 * 40 * 3 / 2;
+            int snapshot = Av1DefaultCdfs.Count * sizeof(ushort);
+            int motions = 12 * 10 * Unsafe.SizeOf<Av1MotionBlock>();
+            int metadata = 12 * 10 * Unsafe.SizeOf<Av1FilterBlock>();
+            int retained = samples + snapshot;
+            MediaBufferAllocator input = new(1024 * 1024);
+            MediaBufferAllocator parent = new(1024 * 1024);
+            MediaBufferAllocator pixels = parent.CreateScope(retained + samples + motions + metadata - 1);
+            using (IMediaCodec<MediaPacket, VideoFrame> codec = new Av1DecoderFactory().Create(Stream(encoded), pixels))
+            {
+                using MediaPacket key = Packet(units[0].Span, input);
+                using MediaPacket inter = Packet(units[1].Span, input);
+                Assert.Equal(CodecInputStatus.Accepted, codec.TrySend(key));
+                codec.Receive().Value.Dispose();
+                Assert.Equal(retained, pixels.AllocatedBytes);
+                MediaMemoryLimitException error = Assert.Throws<MediaMemoryLimitException>(() => codec.TrySend(inter));
+                Assert.Equal(metadata, error.RequestedBytes);
+                Assert.Equal(0, pixels.AllocatedBytes);
+                Assert.Equal(0, parent.AllocatedBytes);
+                Assert.Throws<InvalidOperationException>(() => codec.Receive());
+                codec.Reset();
+                Assert.Equal(CodecInputStatus.Accepted, codec.TrySend(key));
+                codec.Receive().Value.Dispose();
+            }
+            Assert.Equal(0, pixels.AllocatedBytes);
+            Assert.Equal(0, parent.AllocatedBytes);
+            Assert.Equal(0, input.AllocatedBytes);
+        }
+
+        [Fact]
         public void EveryTruncatedInterPacketFaultsWithoutLeakingReferences()
         {
             byte[] encoded = Read("interRepeat.obu");

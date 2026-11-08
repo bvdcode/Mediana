@@ -7,23 +7,6 @@ namespace Mediana.Codecs.Av1
     {
         private static void ReadInactiveFilters(ref Av1BitReader bits, Av1SequenceHeader sequence)
         {
-            int horizontal = bits.Read(6);
-            int vertical = bits.Read(6);
-            if (horizontal != 0 || vertical != 0)
-            {
-                throw new NotSupportedException("AV1 deblocking reconstruction is not implemented.");
-            }
-            bits.Read(3);
-            if (bits.Flag() && bits.Flag())
-            {
-                for (int index = 0; index < 10; index++)
-                {
-                    if (bits.Flag())
-                    {
-                        bits.ReadSigned(7);
-                    }
-                }
-            }
             if (sequence.Cdef)
             {
                 bits.Read(2);

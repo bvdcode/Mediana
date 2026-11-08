@@ -123,3 +123,20 @@ unrestricted partitions. Variable transform selection is enabled. In-loop
 filters, temporal motion, compound prediction and warped motion are disabled
 to isolate transform-tree reconstruction. Every visible sample in the `.yuv`
 libdav1d baselines must match through both picture and public codec APIs.
+
+`deblockedTx4`, `deblockedTx8`, `deblockedTx16`, `deblockedTx32`,
+`deblockedTx64` and `deblockedSharp7` use ordinary AOM deblocking with
+CDEF/restoration disabled. The sharpness case sets sharpness to seven; all
+other cases use the default. The independent libdav1d `.yuv` pictures differ
+from the matching unfiltered output and must match every managed sample.
+`interDeblocked8` and `interDeblockedFree` verify filtered reference propagation
+through five-frame moving sequences with fixed or unrestricted partitions.
+
+`loopfilter.bin.gz` contains 2,048 independent AOM v3.13.1 deblocking cases from
+[`loopfilter.c`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.13.1/aom_dsp/loopfilter.c).
+The corpus covers four-, six-, eight- and fourteen-tap kernels, horizontal and
+vertical edges, flat regions, steps, small variations and unconstrained noise.
+After `AV1LPF01` and a uint32 case count, each record stores five bytes (tap
+kind, direction, limit, boundary limit, high-variance threshold), followed by
+256 input and 256 output bytes for a 16×16 block. Gzip has a zero timestamp.
+The tests run managed kernels only and compare the entire output block.

@@ -81,6 +81,7 @@ namespace Mediana.Codecs.Av1
             {
                 ReadPaletteTokens(row, column, width * 4, height * 4, paletteSize, colorMap);
             }
+            StoreFilterBlock(row, column, width, height, 0, mode, skip != 0);
             Av1TransformSize transform = ReadTransformSize(row, column, width, height, true);
             Residual(row, column, width, height, skip != 0, mode, angleDelta, hasChroma, chroma, colors[..paletteSize], colorMap, transform);
             Av1BlockContext context = new()
