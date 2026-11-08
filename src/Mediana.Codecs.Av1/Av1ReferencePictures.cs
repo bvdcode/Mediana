@@ -54,7 +54,7 @@ namespace Mediana.Codecs.Av1
             Refresh(stored, picture.Header.RefreshReferences);
         }
 
-        internal Av1Picture Show(int index)
+        internal Av1Picture Show(int index, Av1FrameTiming timing = default)
         {
             Av1StoredPicture stored = Get(index);
             if (!stored.Showable)
@@ -66,7 +66,7 @@ namespace Mediana.Codecs.Av1
                 stored.Showable = false;
                 Refresh(stored, All);
             }
-            Av1FrameHeader header = stored.Header with { ShowFrame = true, TileOffset = 0 };
+            Av1FrameHeader header = stored.Header with { ShowFrame = true, TileOffset = 0, Timing = timing };
             return new(header, stored.Pixels.Retain());
         }
 

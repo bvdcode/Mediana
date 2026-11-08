@@ -84,12 +84,13 @@ namespace Mediana.Codecs.Av1
                     throw new NotSupportedException("AV1 separate frame headers and tile groups are not implemented.");
                 }
                 int reference = bits.Read(3);
+                uint? presentationTime = geometry.Timing?.ReadPresentationTime(ref bits);
                 if (geometry.Tools.FrameIdBits != 0 && bits.Read(geometry.Tools.FrameIdBits) != references.Get(reference).Header.FrameId)
                 {
                     throw new InvalidDataException("The AV1 reference display identifier does not match.");
                 }
                 bits.Finish();
-                return references.Show(reference);
+                return references.Show(reference, new(presentationTime, null));
             }
             Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry, references);
             bool inter = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;

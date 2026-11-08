@@ -36,6 +36,25 @@ namespace Mediana.Codecs.Av1
             return (value << (32 - count)) >> (32 - count);
         }
 
+        internal uint ReadUnsigned(int count)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 32);
+            if (count <= 24) { return (uint)Read(count); }
+            return ((uint)Read(count - 16) << 16) | (uint)Read(16);
+        }
+
+        internal uint ReadUvlc()
+        {
+            int leadingZeros = 0;
+            while (!Flag())
+            {
+                if (leadingZeros < 32) { leadingZeros++; }
+            }
+            if (leadingZeros == 32) { return uint.MaxValue; }
+            return ReadUnsigned(leadingZeros) + (1U << leadingZeros) - 1;
+        }
+
         internal int ReadNs(int count)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);

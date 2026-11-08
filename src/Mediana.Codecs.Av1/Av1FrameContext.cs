@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal readonly record struct Av1FrameContext(Av1FrameType Type, bool ShowFrame, bool Showable, bool ErrorResilient,
         bool DisableCdfUpdate, bool ScreenContent, int FrameId, int RefreshReferences, int InvalidReferences, int OrderHint,
-        Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight, Av1InterPrediction Inter)
+        Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight, Av1InterPrediction Inter, Av1FrameTiming Timing = default)
     {
         internal bool Intra => Type is Av1FrameType.Key or Av1FrameType.IntraOnly;
 
@@ -15,6 +15,7 @@ namespace Mediana.Codecs.Av1
             bool showFrame = true;
             bool showable = false;
             bool errorResilient = true;
+            uint? presentationTime = null;
             if (!sequence.Tools.ReducedStillPicture)
             {
                 if (bits.Flag())
@@ -23,6 +24,7 @@ namespace Mediana.Codecs.Av1
                 }
                 type = (Av1FrameType)bits.Read(2);
                 showFrame = bits.Flag();
+                if (showFrame) { presentationTime = sequence.Timing?.ReadPresentationTime(ref bits); }
                 showable = showFrame ? type != Av1FrameType.Key : bits.Flag();
                 errorResilient = type == Av1FrameType.Switch || (type == Av1FrameType.Key && showFrame) || bits.Flag();
             }
@@ -48,6 +50,7 @@ namespace Mediana.Codecs.Av1
             bool overrideSize = type == Av1FrameType.Switch || (!sequence.Tools.ReducedStillPicture && bits.Flag());
             int orderHint = bits.Read(sequence.Tools.OrderHintBits);
             int primary = intra || errorResilient ? Av1InterPrediction.NoPrimaryReference : bits.Read(3);
+            uint? removalTime = sequence.Timing?.ReadBufferRemovalTime(ref bits);
             int refresh = type == Av1FrameType.Switch || (type == Av1FrameType.Key && showFrame)
                 ? Av1ReferencePictures.All : bits.Read(8);
             if (type == Av1FrameType.IntraOnly && refresh == Av1ReferencePictures.All)
@@ -151,7 +154,7 @@ namespace Mediana.Codecs.Av1
                 inter = new(references, primary, integerMotion, highPrecision, interpolation, switchable, referenceMotion);
             }
             return new(type, showFrame, showable, errorResilient, disableCdfUpdate, screenContent, frameId,
-                refresh, invalid, orderHint, sequence, renderWidth, renderHeight, inter);
+                refresh, invalid, orderHint, sequence, renderWidth, renderHeight, inter, new(presentationTime, removalTime));
         }
     }
 }

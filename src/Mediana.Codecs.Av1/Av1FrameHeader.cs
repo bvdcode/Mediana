@@ -4,7 +4,7 @@
 namespace Mediana.Codecs.Av1
 {
     internal readonly partial record struct Av1FrameHeader(bool DisableCdfUpdate, bool ScreenContent, int TileOffset, Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight, Av1Quantization Quantization, bool ReducedTransformSet, bool SelectTransform, bool ShowFrame, bool Showable, Av1FrameType FrameType,
-        int RefreshReferences, int InvalidReferences, int OrderHint, bool DisableFrameEndUpdate, int FrameId = 0, Av1InterPrediction Inter = default, Av1LoopFilterParameters LoopFilter = default, Av1CdefParameters Cdef = default, Av1RestorationParameters Restoration = default, Av1BlockDeltaParameters Deltas = default)
+        int RefreshReferences, int InvalidReferences, int OrderHint, bool DisableFrameEndUpdate, int FrameId = 0, Av1InterPrediction Inter = default, Av1LoopFilterParameters LoopFilter = default, Av1CdefParameters Cdef = default, Av1RestorationParameters Restoration = default, Av1BlockDeltaParameters Deltas = default, Av1FrameTiming Timing = default)
     {
         private const int MaximumTileWidth = 4096;
         private const int MaximumTileArea = 4096 * 2304;
@@ -85,7 +85,7 @@ namespace Mediana.Codecs.Av1
             {
                 throw new InvalidDataException("The AV1 frame has no tile payload.");
             }
-            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, inter, loopFilter, cdef, restoration, deltas);
+            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, inter, loopFilter, cdef, restoration, deltas, context.Timing);
         }
 
         private static int ReadDelta(ref Av1BitReader bits) => bits.Flag() ? bits.ReadSigned(7) : 0;

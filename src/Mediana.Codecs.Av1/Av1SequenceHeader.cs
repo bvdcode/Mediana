@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal readonly record struct Av1SequenceHeader(int Width, int Height, bool Monochrome, bool SeparateUvDeltaQ, int ChromaPosition, bool Superblock128,
         bool FilterIntra, bool IntraEdgeFilter, bool SuperResolution, bool Cdef, bool Restoration, bool FilmGrain, bool FullRange,
-        int ColorPrimaries, int TransferCharacteristics, int MatrixCoefficients, Av1SequenceTools Tools)
+        int ColorPrimaries, int TransferCharacteristics, int MatrixCoefficients, Av1SequenceTools Tools, Av1SequenceTiming? Timing = null)
     {
         internal int MiColumns => 2 * ((Width + 7) >> 3);
         internal int MiRows => 2 * ((Height + 7) >> 3);
@@ -50,6 +50,7 @@ namespace Mediana.Codecs.Av1
             }
             int level;
             bool tier;
+            Av1SequenceTiming? timing = null;
             if (reduced)
             {
                 level = bits.Read(5);
@@ -57,7 +58,7 @@ namespace Mediana.Codecs.Av1
             }
             else
             {
-                (level, tier) = ReadOperatingPoints(ref bits);
+                timing = Av1SequenceTiming.Read(ref bits, out level, out tier);
             }
             int widthBits = bits.Read(4) + 1;
             int heightBits = bits.Read(4) + 1;
@@ -114,34 +115,7 @@ namespace Mediana.Codecs.Av1
             bool filmGrain = bits.Flag();
             bits.Finish();
             return new(width, height, monochrome, separateUv, chromaPosition, largeSuperblock, filterIntra, edgeFilter, superResolution, cdef, restoration,
-                filmGrain, fullRange, primaries, transfer, matrix, tools);
-        }
-        private static (int Level, bool Tier) ReadOperatingPoints(ref Av1BitReader bits)
-        {
-            if (bits.Flag())
-            {
-                throw new NotSupportedException("AV1 decoder-model timing syntax is not implemented.");
-            }
-            bool initialDelay = bits.Flag();
-            int operatingPoints = bits.Read(5) + 1;
-            int firstLevel = 0;
-            bool firstTier = false;
-            for (int index = 0; index < operatingPoints; index++)
-            {
-                bits.Read(12);
-                int level = bits.Read(5);
-                bool tier = level > 7 && bits.Flag();
-                if (index == 0)
-                {
-                    firstLevel = level;
-                    firstTier = tier;
-                }
-                if (initialDelay && bits.Flag())
-                {
-                    bits.Read(4);
-                }
-            }
-            return (firstLevel, firstTier);
+                filmGrain, fullRange, primaries, transfer, matrix, tools, timing);
         }
 
         private static Av1SequenceTools ReadTools(ref Av1BitReader bits, bool reduced, int widthBits, int heightBits, int level, bool tier, int frameIdBits, int deltaIdBits)
