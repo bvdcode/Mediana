@@ -4,6 +4,7 @@
 using Mediana.Core;
 using Mediana.Formats;
 using Mediana.Formats.Video;
+using Mediana.Formats.Audio;
 
 namespace Mediana.Containers.Mp4
 {
@@ -31,6 +32,7 @@ namespace Mediana.Containers.Mp4
             {
                 (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1" or "mp4v") => ParseVideo(entry, budget, quickTime),
                 (MediaKind.Audio, "mp4a") => ParseAudio(entry, budget),
+                (MediaKind.Audio, "ac-3" or "ec-3") => ParseAc3(entry, budget),
                 (MediaKind.Data, "tmcd") => ParseTimecode(entry),
                 _ => throw new NotSupportedException($"MP4 sample entry '{entry.Type}' is not supported.")
             };
@@ -99,6 +101,30 @@ namespace Mediana.Containers.Mp4
             };
             return new Mp4SampleDescription(entry.Type, codecId, format, configuration,
                 AudioChannels: channels, AudioSampleRate: rate);
+        }
+
+        private static Mp4SampleDescription ParseAc3(Mp4Box entry, Mp4ParseBudget budget)
+        {
+            Mp4Binary.Range(entry.Payload.Span, 0, 28);
+            if (Mp4Binary.UInt32(entry.Payload.Span, 8) != 0 || Mp4Binary.UInt32(entry.Payload.Span, 12) != 0)
+            { throw new InvalidDataException("The MP4 AC-3 sample entry reserved fields must be zero."); }
+            Mp4BoxCollection children = new(entry.Payload[28..], budget);
+            RejectEncryption(children);
+            switch (entry.Type)
+            {
+                case "ac-3":
+                    ReadOnlyMemory<byte> ac3 = children.Required("dac3").Payload;
+                    Ac3SpecificConfiguration standard = Ac3SpecificConfiguration.Read(ac3.Span);
+                    return new(entry.Type, Ac3FrameHeader.CodecId, StreamFormats.Ac3Mp4, ac3,
+                        AudioChannels: standard.ChannelCount, AudioSampleRate: standard.SampleRate);
+                case "ec-3":
+                    ReadOnlyMemory<byte> eac3 = children.Required("dec3").Payload;
+                    Eac3SubstreamConfiguration enhanced = Eac3SpecificConfiguration.Read(eac3.Span).Substreams[0];
+                    return new(entry.Type, Ac3FrameHeader.EnhancedCodecId, StreamFormats.Eac3Mp4, eac3,
+                        AudioChannels: enhanced.ChannelCount, AudioSampleRate: enhanced.SampleRate);
+                default:
+                    throw new InvalidOperationException("The MP4 AC-3 sample entry mapping is inconsistent.");
+            }
         }
 
         private static ReadOnlyMemory<byte> ReadAudioDescriptor(Mp4BoxCollection children, ushort version, Mp4ParseBudget budget)
