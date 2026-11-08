@@ -112,6 +112,7 @@ namespace Mediana.Tests
                     Assert.Equal(new MediaDuration(first.SamplesPerFrame, new(1, first.SampleRate)), timing.Duration);
                 }
                 Assert.Equal(readCalls, source.ReadCalls);
+                int decoded = 0;
                 for (int index = 0; index < frames.Count; index++)
                 {
                     using MediaPacket packet = (await reader.ReadPacketAsync())!;
@@ -119,13 +120,28 @@ namespace Mediana.Tests
                     using MediaPacket reference = packet.RetainWithDuration(null);
                     Assert.Equal(CodecInputStatus.Accepted, decoder.TrySend(packet));
                     Assert.Equal(CodecInputStatus.Accepted, direct.TrySend(reference));
-                    using AudioFrame actual = decoder.Receive().Value;
-                    using AudioFrame expected = direct.Receive().Value;
-                    Assert.Equal(first.SamplesPerFrame, actual.SamplesPerChannel);
-                    Assert.Equal(packet.PresentationTime, actual.Timestamp);
-                    Assert.Equal(expected.GetPlane(0).ToArray(), actual.GetPlane(0).ToArray());
+                    Drain();
                 }
                 Assert.Null(await reader.ReadPacketAsync());
+                decoder.CompleteInput(); direct.CompleteInput(); Drain();
+                Assert.Equal(frames.Count, decoded);
+                Assert.Equal(CodecOutputStatus.EndOfStream, decoder.Receive().Status);
+
+                void Drain()
+                {
+                    while (true)
+                    {
+                        CodecOutput<AudioFrame> output = decoder.Receive();
+                        CodecOutput<AudioFrame> reference = direct.Receive();
+                        Assert.Equal(reference.Status, output.Status);
+                        if (output.Status != CodecOutputStatus.Available) { return; }
+                        using AudioFrame actual = output.Value;
+                        using AudioFrame expected = reference.Value;
+                        Assert.Equal(first.SamplesPerFrame, actual.SamplesPerChannel);
+                        Assert.Equal(reader.GetPacketTiming(0, decoded++).PresentationTime, actual.Timestamp);
+                        Assert.Equal(expected.GetPlane(0).ToArray(), actual.GetPlane(0).ToArray());
+                    }
+                }
             }
             Assert.Equal(0, allocator.AllocatedBytes); Assert.False(source.IsDisposed);
         }
@@ -164,9 +180,17 @@ namespace Mediana.Tests
                 for (int index = 0; index < 3; index++)
                 {
                     using MediaPacket packet = await reader.ReadPacketAtAsync(0, index);
-                    decoder.TrySend(packet); using AudioFrame pcm = decoder.Receive().Value;
-                    Assert.Equal(clipped && index == 2 ? 192 : (index + 1) * 256, pcm.SamplesPerChannel); samples += pcm.SamplesPerChannel;
+                    decoder.TrySend(packet);
+                    Assert.Equal(CodecOutputStatus.InputRequired, decoder.Receive().Status);
                 }
+                decoder.CompleteInput();
+                for (int index = 0; index < 3; index++)
+                {
+                    using AudioFrame pcm = decoder.Receive().Value;
+                    Assert.Equal(clipped && index == 2 ? 192 : (index + 1) * 256, pcm.SamplesPerChannel);
+                    Assert.Equal(pts[index], pcm.Timestamp); samples += pcm.SamplesPerChannel;
+                }
+                Assert.Equal(CodecOutputStatus.EndOfStream, decoder.Receive().Status);
                 Assert.Equal(clipped ? 960 : 1536, samples);
             }
             Assert.Equal(0, allocator.AllocatedBytes);

@@ -10,6 +10,7 @@ using Mediana.Core.Memory;
 using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
 using Mediana.Formats;
+using Mediana.Streaming.Hls;
 
 namespace Mediana.Tests
 {
@@ -105,6 +106,69 @@ namespace Mediana.Tests
                 await audio.DisposeAsync(); await reference.DisposeAsync();
                 Require(audio.AllocatedBufferBytes == 0 && reference.AllocatedBufferBytes == 0);
             }
+        }
+
+        public static async Task VerifyTransientAsync()
+        {
+            byte[] raw = await ReadAsync("transient.eac3");
+            byte[] encoded = await ReadAsync("transient.mp4");
+            MediaEngine engine = Engine();
+            byte[] expected = new byte[15360 * sizeof(float)];
+            await using EbmlElementTestSource original = new(raw);
+            await using EbmlElementTestSource source = new(encoded);
+            await using (AudioSession audio = await engine.OpenAudioAsync(original))
+            {
+                int offset = 0;
+                while (await audio.ReadFrameAsync() is AudioFrame pcm)
+                {
+                    using (pcm)
+                    {
+                        Require(pcm.Timestamp == new MediaTimestamp(offset / sizeof(float), new(1, 48000)));
+                        pcm.GetPlane(0).Span.CopyTo(expected.AsSpan(offset)); offset += pcm.GetPlane(0).Length;
+                    }
+                }
+                Require(offset == expected.Length);
+            }
+            await using (AudioSession audio = await engine.OpenAudioAsync(source))
+            {
+                int offset = 0;
+                while (await audio.ReadFrameAsync() is AudioFrame pcm)
+                {
+                    using (pcm)
+                    {
+                        Require(pcm.GetPlane(0).Span.SequenceEqual(expected.AsSpan(offset, pcm.GetPlane(0).Length)));
+                        offset += pcm.GetPlane(0).Length;
+                    }
+                }
+                Require(offset == expected.Length);
+                await audio.SeekAsync(new(11000, new(1, 48000)));
+                using AudioFrame tail = (await audio.ReadFrameAsync())!;
+                Require(tail.Timestamp == new MediaTimestamp(10752, new(1, 48000)));
+                Require(tail.GetPlane(0).Span.SequenceEqual(expected.AsSpan(10752 * sizeof(float), 1536 * sizeof(float))));
+                tail.Dispose(); await audio.DisposeAsync(); Require(audio.AllocatedBufferBytes == 0);
+            }
+            MediaBufferAllocator allocator = new(4 * 1024 * 1024);
+            await using (HlsAacPcmSource pcm = await HlsAacPcmSource.OpenAsync(engine, source, 0, null, allocator))
+            {
+                int offset = 0;
+                while (await pcm.ReadFrameAsync(default) is AudioFrame frame)
+                {
+                    using (frame)
+                    {
+                        Require(frame.GetPlane(0).Span.SequenceEqual(expected.AsSpan(offset, frame.GetPlane(0).Length)));
+                        offset += frame.GetPlane(0).Length;
+                    }
+                }
+                Require(offset == expected.Length);
+            }
+            Require(allocator.AllocatedBytes == 0);
+            await using (HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(engine, source, 0, [64000], null, allocator, default))
+            {
+                await audio.WriteBeforeAsync(null, [], default);
+                Require(audio.InputSamplesPerChannel == 15360 && audio.PacketsWritten == 16);
+                Require(audio.PrimingSamples == 1024 && audio.PaddingSamples == 0);
+            }
+            Require(allocator.AllocatedBytes == 0 && !source.IsDisposed && !original.IsDisposed);
         }
 
         private static void Require(bool condition)
