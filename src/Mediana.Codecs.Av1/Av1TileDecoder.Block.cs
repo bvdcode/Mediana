@@ -13,22 +13,36 @@ namespace Mediana.Codecs.Av1
             int skipContext = (row > 0 ? above[column].Skip : 0) +
                 (column > 0 ? left[row & (LeftContexts - 1)].Skip : 0);
             int skip = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipOffset + skipContext * 3, 3));
-            int mode = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.IntraDcOffset, 14));
-            if (mode != 0)
+            int aboveMode = row > 0 ? above[column].Mode : 0;
+            int leftMode = column > 0 ? left[row & (LeftContexts - 1)].Mode : 0;
+            ReadOnlySpan<byte> modeContexts = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
+            int modeContext = modeContexts[aboveMode] * 5 + modeContexts[leftMode];
+            int mode = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.IntraModeOffset + modeContext * 14, 14));
+            if (mode > 8)
             {
-                throw new NotSupportedException("AV1 non-DC intra prediction is not implemented.");
+                throw new NotSupportedException("AV1 smooth and Paeth intra prediction are not implemented.");
+            }
+            int blockIndex = BlockIndex(width, height);
+            int angleDelta = 0;
+            if (mode != 0 && blockIndex >= 3)
+            {
+                angleDelta = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.AngleDeltaOffset + (mode - 1) * 8, 8)) - 3;
+            }
+            if (mode != 0 && sequence.IntraEdgeFilter && (mode != 1 && mode != 2 || angleDelta != 0))
+            {
+                throw new NotSupportedException("AV1 directional intra edge filtering is not implemented.");
             }
             Span<byte> colors = stackalloc byte[8];
             int paletteSize = 0;
             int widthLog = BitOperations.Log2((uint)width);
             int heightLog = BitOperations.Log2((uint)height);
-            if (width >= 2 && height >= 2 && width <= 16 && height <= 16 && header.ScreenContent)
+            if (mode == 0 && blockIndex >= 3 && width <= 16 && height <= 16 && header.ScreenContent)
             {
                 paletteSize = Palette(row, column, widthLog + heightLog - 2, colors);
             }
-            if (paletteSize == 0 && sequence.FilterIntra && width <= 8 && height <= 8)
+            if (mode == 0 && paletteSize == 0 && sequence.FilterIntra && width <= 8 && height <= 8)
             {
-                int index = BlockIndex(width, height);
+                int index = blockIndex;
                 if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.FilterIntraOffset + index * 3, 3)) != 0)
                 {
                     throw new NotSupportedException("AV1 filter-intra prediction is not implemented.");
@@ -39,9 +53,10 @@ namespace Mediana.Codecs.Av1
             {
                 ReadPaletteTokens(row, column, width * 4, height * 4, paletteSize, colorMap);
             }
-            Residual(row, column, width, height, skip != 0, colors[..paletteSize], colorMap);
+            Residual(row, column, width, height, skip != 0, mode, angleDelta, colors[..paletteSize], colorMap);
             Av1BlockContext context = new()
             {
+                Mode = (byte)mode,
                 WidthLog = (byte)widthLog,
                 HeightLog = (byte)heightLog,
                 Skip = (byte)skip,
@@ -51,19 +66,27 @@ namespace Mediana.Codecs.Av1
             {
                 context.Palette[index] = colors[index];
             }
-            above.Slice(column, Math.Min(width, sequence.MiColumns - column)).Fill(context);
+            for (int index = 0; index < width && column + index < sequence.MiColumns; index++)
+            {
+                context.Level = above[column + index].Level;
+                context.Dc = above[column + index].Dc;
+                above[column + index] = context;
+            }
             for (int index = 0; index < height && row + index < sequence.MiRows; index++)
             {
-                left[(row + index) & (LeftContexts - 1)] = context;
+                int previous = (row + index) & (LeftContexts - 1);
+                context.Level = left[previous].Level;
+                context.Dc = left[previous].Dc;
+                left[previous] = context;
             }
         }
 
-        private void Residual(int row, int column, int width, int height, bool skip,
+        private void Residual(int row, int column, int width, int height, bool skip, int mode, int angleDelta,
             scoped ReadOnlySpan<byte> colors, scoped ReadOnlySpan<byte> colorMap)
         {
             int codedWidth = Math.Min(width, sequence.MiColumns - column);
             int codedHeight = Math.Min(height, sequence.MiRows - row);
-            int context = width == 1 && height == 1 ? 0 : 1;
+            Span<int> residual = stackalloc int[16];
             for (int unitY = 0; unitY < codedHeight; unitY += 16)
             {
                 for (int unitX = 0; unitX < codedWidth; unitX += 16)
@@ -73,15 +96,12 @@ namespace Mediana.Codecs.Av1
                         cancellationToken.ThrowIfCancellationRequested();
                         for (int x = unitX; x < Math.Min(unitX + 16, codedWidth); x++)
                         {
-                            if (!skip && symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.AllZeroOffset + context * 3, 3)) == 0)
-                            {
-                                throw new NotSupportedException("AV1 nonzero transform coefficient reconstruction is not implemented.");
-                            }
+                            Coefficients(column + x, row + y, width, height, skip, residual);
                             int pixelX = (column + x) * 4;
                             int pixelY = (row + y) * 4;
                             if (colors.IsEmpty)
                             {
-                                PredictDc(pixelX, pixelY);
+                                PredictIntra(pixelX, pixelY, mode, angleDelta);
                             }
                             else
                             {
@@ -94,6 +114,15 @@ namespace Mediana.Codecs.Av1
                                     }
                                 }
                             }
+                            for (int dy = 0; dy < 4; dy++)
+                            {
+                                Span<byte> target = output.Slice((pixelY + dy) * sequence.Stride + pixelX, 4);
+                                for (int dx = 0; dx < 4; dx++)
+                                {
+                                    target[dx] = (byte)Math.Clamp(target[dx] + residual[dy * 4 + dx], 0, 255);
+                                }
+                            }
+                            decoded[(row + y) * sequence.MiColumns + column + x] = 1;
                         }
                     }
                 }
@@ -139,11 +168,19 @@ namespace Mediana.Codecs.Av1
             (4, 8) => 7,
             (8, 4) => 8,
             (8, 8) => 9,
+            (8, 16) => 10,
+            (16, 8) => 11,
+            (16, 16) => 12,
+            (16, 32) => 13,
+            (32, 16) => 14,
+            (32, 32) => 15,
             (1, 4) => 16,
             (4, 1) => 17,
             (2, 8) => 18,
             (8, 2) => 19,
-            _ => throw new InvalidDataException("The AV1 filter-intra block geometry is invalid.")
+            (4, 16) => 20,
+            (16, 4) => 21,
+            _ => throw new InvalidDataException("The AV1 block geometry is invalid.")
         };
     }
 }

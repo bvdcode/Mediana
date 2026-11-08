@@ -12,18 +12,20 @@ namespace Mediana.Codecs.Av1
         private readonly Av1FrameHeader header;
         private readonly Span<byte> output;
         private readonly Span<ushort> probabilities;
+        private readonly Span<byte> decoded;
         private readonly Span<Av1BlockContext> above;
         private readonly Span<Av1BlockContext> left;
         private readonly CancellationToken cancellationToken;
         private Av1SymbolReader symbols;
 
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
-            Span<byte> output, Span<ushort> probabilities, Span<Av1BlockContext> contexts, CancellationToken cancellationToken)
+            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken)
         {
             this.sequence = sequence;
             this.header = header;
             this.output = output;
             this.probabilities = probabilities;
+            this.decoded = decoded;
             above = contexts[..sequence.MiColumns];
             left = contexts[sequence.MiColumns..];
             this.cancellationToken = cancellationToken;

@@ -31,3 +31,11 @@ four-color grid. Encoding uses lossless mode, 16×16 fixed partitions, disabled
 CDEF/restoration/filter-intra/intra-edge/angle-delta/smooth/Paeth/intrabc, and
 zero quantization. The tests require exact pixel equality and complete entropy
 termination; this does not establish inter-frame or color AV1 coverage.
+
+The additional monochrome lossless pictures cover black, white, non-neutral
+DC residuals, seeded noise, ramps, smoothly varying shapes and palette caches
+at 16×16, 64×64, 37×29, 96×80 and 48×40. They use the same independent
+libaom/libdav1d versions. The larger pictures allow the encoder to select
+partitions and angle deltas, exercising rectangular blocks and partial frame
+edges. Nonzero AC coefficients, Golomb escapes, DC sign contexts and inverse
+Walsh-Hadamard reconstruction must match every visible source sample.

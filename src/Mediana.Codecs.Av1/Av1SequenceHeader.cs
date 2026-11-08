@@ -4,7 +4,7 @@
 namespace Mediana.Codecs.Av1
 {
     internal readonly record struct Av1SequenceHeader(int Width, int Height, bool Superblock128,
-        bool FilterIntra, bool SuperResolution, bool FilmGrain, bool FullRange,
+        bool FilterIntra, bool IntraEdgeFilter, bool SuperResolution, bool FilmGrain, bool FullRange,
         int ColorPrimaries, int TransferCharacteristics, int MatrixCoefficients)
     {
         internal int MiColumns => 2 * ((Width + 7) >> 3);
@@ -29,7 +29,7 @@ namespace Mediana.Codecs.Av1
             int height = bits.Read(heightBits) + 1;
             bool largeSuperblock = bits.Flag();
             bool filterIntra = bits.Flag();
-            bits.Flag();
+            bool edgeFilter = bits.Flag();
             bool superResolution = bits.Flag();
             bits.Flag();
             bits.Flag();
@@ -53,7 +53,7 @@ namespace Mediana.Codecs.Av1
             bool fullRange = bits.Flag();
             bool filmGrain = bits.Flag();
             bits.Finish();
-            return new(width, height, largeSuperblock, filterIntra, superResolution,
+            return new(width, height, largeSuperblock, filterIntra, edgeFilter, superResolution,
                 filmGrain, fullRange, primaries, transfer, matrix);
         }
     }

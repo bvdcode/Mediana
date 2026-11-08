@@ -5,6 +5,9 @@ namespace Mediana.Codecs.Av1
 {
     internal struct Av1BlockContext
     {
+        internal byte Mode;
+        internal byte Level;
+        internal byte Dc;
         internal byte WidthLog;
         internal byte HeightLog;
         internal byte Skip;

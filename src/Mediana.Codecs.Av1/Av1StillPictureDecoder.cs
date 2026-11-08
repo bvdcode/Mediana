@@ -74,9 +74,10 @@ namespace Mediana.Codecs.Av1
             int contextBytes = checked((geometry.MiColumns + Av1TileDecoder.LeftContexts) * Unsafe.SizeOf<Av1BlockContext>());
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
             using (WritableMediaBuffer contexts = allocator.Allocate(contextBytes))
+            using (WritableMediaBuffer decoded = allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows)))
             {
                 Span<ushort> probabilities = stackalloc ushort[Av1DefaultCdfs.Count];
-                Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities,
+                Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities, decoded.Span,
                     MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken);
                 tile.Decode();
             }
