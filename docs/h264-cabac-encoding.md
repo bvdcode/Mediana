@@ -64,3 +64,17 @@ separate alternating comparison measured about 2.6% less CPU for natural video
 and 2.9% less for motion; the flat-content difference was within run variation.
 This removes part of the arithmetic output overhead, without changing motion
 search or the remaining performance gap.
+
+## Motion-cost storage
+
+Motion search scores both chroma planes together without storing a candidate
+prediction. It builds the complete 384-byte prediction once, after choosing the
+motion vector. The prepared luma planes supply the final fractional prediction.
+Border samples use bounded stack storage; repeated chroma scoring allocates no
+managed memory.
+
+Independent bilinear checks cover 660,480 combinations of phases, borders,
+extreme vectors and rejection thresholds. Normal, hardware-intrinsics-disabled
+and strict Native AOT runs pass. Complete transport and decoded-picture
+references remain unchanged. Initial alternating CPU observations vary enough
+between runs that they do not establish a new stable speed ratio.

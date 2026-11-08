@@ -32,8 +32,9 @@ namespace Mediana.Codecs.H264
             this.interpolation = interpolation;
             motionX = 0;
             motionY = 0;
-            Predict(reference, position.X, position.Y, 0, 0, prediction);
-            best = Difference(source, prediction, int.MaxValue);
+            ReadOnlySpan<byte> luma = reference.ReadPlane(0)[(position.Y * reference.Width + position.X)..];
+            best = H264SampleDifference.Sum16x16(source[..256], luma, reference.Width, int.MaxValue)
+                + H264ChromaDifference.Sum8x8(reference, position.X, position.Y, 0, 0, source[256..], int.MaxValue);
         }
 
         public static (int X, int Y, bool Exact) Select(H264SourceMacroblock input, H264Picture reference, H264Picture target,
@@ -45,6 +46,7 @@ namespace Mediana.Codecs.H264
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
             search.Scan(range, token);
             search.Refine(range, token, interpolation);
+            search.WritePrediction();
             return (search.motionX, search.motionY, search.best == 0);
         }
 
@@ -132,40 +134,46 @@ namespace Mediana.Codecs.H264
             if (((nextX | nextY) & 3) == 0 && interpolation is not null)
             {
                 int start = checked(((int)y + interpolation.Range + 2) * interpolation.SampleStride + (int)x + interpolation.Range + 2);
-                Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], interpolation.Samples[start..], interpolation.SampleStride, best), materializeLuma: true);
+                Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], interpolation.Samples[start..], interpolation.SampleStride, best));
                 return;
             }
             if (((nextX | nextY) & 3) == 0 && x >= 0 && x <= reference.Width - 16 && y >= 0 && y <= reference.Height - 16)
             {
                 ReadOnlySpan<byte> luma = reference.ReadPlane(0).Slice((int)y * reference.Width + (int)x, 15 * reference.Width + 16);
-                Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], luma, reference.Width, best), materializeLuma: true);
+                Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], luma, reference.Width, best));
                 return;
             }
             H264PredictionBlock.Read(reference, 0, position.X, position.Y, 16, 16, nextX, nextY, candidate[..256]);
             Compare(nextX, nextY, Difference(source[..256], candidate[..256], best));
         }
 
-        private void Compare(int nextX, int nextY, int difference, bool materializeLuma = false)
+        private void Compare(int nextX, int nextY, int difference)
         {
             if (difference > best)
             {
                 return;
             }
-            H264PredictionBlock.Read(reference, 1, position.X, position.Y, 16, 16, nextX, nextY, candidate.Slice(256, 64));
-            H264PredictionBlock.Read(reference, 2, position.X, position.Y, 16, 16, nextX, nextY, candidate.Slice(320, 64));
-            difference += Difference(source[256..], candidate[256..], best - difference);
+            difference += H264ChromaDifference.Sum8x8(reference, position.X, position.Y, nextX, nextY, source[256..], best - difference);
             if (difference < best || (difference == best &&
                 VectorBits(nextX - predicted.X, nextY - predicted.Y) < VectorBits(motionX - predicted.X, motionY - predicted.Y)))
             {
-                if (materializeLuma)
-                {
-                    H264PredictionBlock.Read(reference, 0, position.X, position.Y, 16, 16, nextX, nextY, candidate[..256]);
-                }
                 best = difference;
                 motionX = nextX;
                 motionY = nextY;
-                candidate.CopyTo(prediction);
             }
+        }
+
+        private void WritePrediction()
+        {
+            if (interpolation is null)
+            {
+                Predict(reference, position.X, position.Y, motionX, motionY, prediction);
+                return;
+            }
+            H264LumaNeighborhood neighborhood = new(interpolation, position.X + (motionX >> 2), position.Y + (motionY >> 2));
+            neighborhood.Evaluate(motionX & 3, motionY & 3, source[..256], prediction[..256], int.MaxValue);
+            H264PredictionBlock.Read(reference, 1, position.X, position.Y, 16, 16, motionX, motionY, prediction.Slice(256, 64));
+            H264PredictionBlock.Read(reference, 2, position.X, position.Y, 16, 16, motionX, motionY, prediction.Slice(320, 64));
         }
 
         private static int VectorBits(int x, int y) => SignedBits(x) + SignedBits(y);

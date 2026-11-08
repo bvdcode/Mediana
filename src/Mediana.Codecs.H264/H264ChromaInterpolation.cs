@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
@@ -87,13 +88,15 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private static Vector128<short> Horizontal8(ReadOnlySpan<byte> patch, int position, Vector128<short> weight)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static Vector128<short> Horizontal8(ReadOnlySpan<byte> patch, int position, Vector128<short> weight)
         {
             Vector128<short> left = Read8(patch, position);
             Vector128<short> right = Read8(patch, position + 1);
             return Vector128.ShiftLeft(left, 3) + (right - left) * weight;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<short> Read8(ReadOnlySpan<byte> samples, int position) =>
             Vector128.WidenLower(H264VectorSamples.Read8(samples, position)).AsInt16();
     }

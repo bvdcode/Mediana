@@ -9,6 +9,10 @@ namespace Mediana.Tests
         public void VectorDifferencesMatchEveryBytePairAndMixedLaneSums() => H264SampleDifferenceTestInput.Verify();
 
         [Fact]
+        public void PairedChromaCostsMatchBilinearPredictionAtAllPhasesBordersAndCutoffs() =>
+            Assert.Equal(660480, H264ChromaDifferenceTestInput.Verify());
+
+        [Fact]
         public void CandidateEvaluationPreservesEveryRowRejectionBoundaryAndExactTies() => H264LumaCandidateTestInput.Verify();
 
         [Fact]
