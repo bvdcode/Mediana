@@ -11,6 +11,7 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
     <Using Include="Xunit" />
+    <Compile Include="../Shared/Ac3PcmTestInput.cs" Link="Ac3PcmTestInput.cs" />
     <None Include="Data/*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
