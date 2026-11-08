@@ -552,3 +552,9 @@ preceding samples. Each record ends with a SHA-256 digest of visible row-major
 unsigned 16-bit little-endian samples. The native prediction and edge functions
 are unchanged from AOM 3.8.2; kernel tests also verify destination boundaries and
 warmed allocation counts.
+
+`quantizers.sha256` contains the six SHA-256 digests of the 256-entry DC and AC
+quantizer tables at eight, ten and twelve bits, in that order, after the
+`AV1QLUT1` magic. Each entry is an unsigned little-endian sixteen-bit value.
+The table values from AV1 specification section 7.12.2 match every entry in
+AOM 3.8.2 `av1/common/quant_common.c`; digests are calculated from the latter.

@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.Av1
 {
-    internal static class Av1QuantizerTables
+    internal static partial class Av1QuantizerTables
     {
         internal static ReadOnlySpan<ushort> Dc =>
         [

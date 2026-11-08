@@ -26,8 +26,15 @@ and 45.24 to 47.32 ms for 16×16 directional prediction. The changes were +3.56%
 zero managed bytes. These kernel measurements do not establish whole-decoder
 throughput or Native AOT performance.
 
+Dequantization selects the normative DC and AC lookup table for eight, ten or
+twelve bits. All 1,536 entries match both specification section 7.12.2 and the
+AOM 3.8.2 tables. The lookup clamps the quantizer index after each plane delta.
+Coefficient reconstruction retains the wide multiplication and 24-bit magnitude
+mask before the transform-size division, then clips to the declared signed
+precision: 16, 18 or 20 bits. Invalid depths are rejected explicitly.
+
 The complete coded-picture decoder currently accepts eight-bit Main-profile
-sequences. Ten-bit decoding still requires depth-aware quantization, transforms,
+sequences. Ten-bit decoding still requires depth-aware transforms,
 picture storage, reference prediction and in-loop filters. High-depth prediction
 kernel coverage alone does not establish coded-picture support.
 
