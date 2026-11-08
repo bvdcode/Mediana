@@ -398,3 +398,26 @@ video, 0.859 versus 0.840–0.843 for motion, and 1.836–1.858 versus 1.718–1
 for the static image. The natural-video result is within host variability;
 these checks establish correctness and reduced redundant computation rather
 than a large overall encoding improvement.
+
+## Exact intra prediction matches
+
+Intra4x4 selection evaluates the predicted mode first, followed by the remaining
+modes in ascending order. A zero SAD then ends selection immediately. This
+preserves both the minimum-error result and the predicted-mode tie rule, while
+avoiding unnecessary directional predictions on exactly predicted blocks.
+
+Independent scalar selection checks cover 2,304 combinations of predicted
+modes, directional matches, random pixels and flat ties. Focused managed and
+software-only tests pass. Complete Native AOT controls use the same three
+inputs and settings as above, in before/after/after/before order.
+
+| Input | Before CPU range, s | After CPU range, s |
+| --- | ---: | ---: |
+| Natural video, 1280x720 | 6.359–6.498 | 6.068–6.104 |
+| Moving test pattern, 640x360 | 1.080–1.325 | 1.013–1.374 |
+| Static vector-like image, 1280x720 | 1.980–2.098 | 1.817–1.996 |
+
+Every transport remains byte-identical and every operation releases owned
+media storage at EOF. The motion case does not establish a CPU improvement;
+shared-host variability prevents a universal speedup claim. The change adds
+no persistent storage and does not change compression quality or size.

@@ -20,9 +20,11 @@ namespace Mediana.Codecs.H264
             int predicted = target.PredictedMode(x, y);
             int best = int.MaxValue;
             int selected = 2;
-            for (int mode = 0; mode < 9; mode++)
+            for (int order = 0; order < 10; order++)
             {
-                if (!H264IntraPrediction.IsLumaModeAvailable(mode, hasTop, hasLeft, corner is not null))
+                int mode = order == 0 ? predicted : order - 1;
+                if ((order != 0 && mode == predicted) ||
+                    !H264IntraPrediction.IsLumaModeAvailable(mode, hasTop, hasLeft, corner is not null))
                 {
                     continue;
                 }
@@ -34,6 +36,10 @@ namespace Mediana.Codecs.H264
                     best = difference;
                     selected = mode;
                     candidate.CopyTo(prediction);
+                    if (difference == 0)
+                    {
+                        return selected;
+                    }
                 }
             }
             return selected;
