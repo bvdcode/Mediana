@@ -46,7 +46,6 @@ namespace Mediana.Codecs.Ac3.Tests
         }
 
         [Theory]
-        [InlineData(55, -1, "hybrid")]
         [InlineData(58, 93, "pre-noise")]
         [InlineData(17, -1, "dependent")]
         public void ReportsUnsupportedEnhancedToolsWithoutSubstitutingPcm(int flag, int secondFlag, string tool)

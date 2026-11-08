@@ -5,20 +5,20 @@ namespace Mediana.Codecs.Ac3
 {
     internal partial class Ac3FrameDecoder
     {
-        private void ReadMantissas(ref Ac3BitReader bits)
+        private void ReadMantissas(ref Ac3BitReader bits, int block)
         {
             Ac3MantissaReader mantissas = new();
             bool couplingRead = false;
             for (int ch = 0; ch < fullChannels; ch++)
             {
-                ReadSpectrum(ref bits, ref mantissas, ch, 0, end[ch], dither[ch]);
+                ReadSpectrum(ref bits, ref mantissas, ch, block, 0, end[ch], dither[ch]);
                 if (coupled[ch] && !couplingRead)
                 {
-                    ReadSpectrum(ref bits, ref mantissas, 6, couplingStart, couplingEnd, false);
+                    ReadSpectrum(ref bits, ref mantissas, 6, block, couplingStart, couplingEnd, false);
                     couplingRead = true;
                 }
             }
-            if (header.HasLfe) { ReadSpectrum(ref bits, ref mantissas, fullChannels, 0, 7, false); }
+            if (header.HasLfe) { ReadSpectrum(ref bits, ref mantissas, fullChannels, block, 0, 7, false); }
             if (coupling)
             {
                 ReadOnlySpan<byte> bap = workspace.Bap(6), exponents = workspace.Exponents(6);
@@ -37,10 +37,15 @@ namespace Mediana.Codecs.Ac3
             }
         }
 
-        private void ReadSpectrum(ref Ac3BitReader bits, ref Ac3MantissaReader mantissas, int channel, int start, int finish, bool useDither)
+        private void ReadSpectrum(ref Ac3BitReader bits, ref Ac3MantissaReader mantissas, int channel, int block, int start, int finish, bool useDither)
         {
             Span<double> spectrum = workspace.Spectrum(channel); spectrum.Clear();
             ReadOnlySpan<byte> exponents = workspace.Exponents(channel), bap = workspace.Bap(channel);
+            if (adaptiveTransform.IsEnabled(channel))
+            {
+                adaptiveTransform.ReadSpectrum(ref bits, channel, block, start, finish, bap, exponents, spectrum, ref random);
+                return;
+            }
             for (int bin = start; bin < finish; bin++)
             {
                 double value = bap[bin] == 0 && useDither ? NextDither() : mantissas.Read(ref bits, bap[bin]);

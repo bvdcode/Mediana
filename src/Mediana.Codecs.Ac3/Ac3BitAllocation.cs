@@ -64,6 +64,12 @@ namespace Mediana.Codecs.Ac3
             15, 15, 15, 15
             ];
 
+        private static ReadOnlySpan<byte> AdaptiveAllocation =>
+            [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 9, 9, 9, 10,
+             10, 10, 10, 11, 11, 11, 11, 12, 12, 12, 12, 13, 13, 13, 13, 14,
+             14, 14, 14, 15, 15, 15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 18,
+             18, 18, 18, 18, 18, 18, 18, 19, 19, 19, 19, 19, 19, 19, 19, 19];
+
         internal static int Band(int bin)
         {
             int index = BandStarts.BinarySearch(bin);
@@ -72,11 +78,12 @@ namespace Mediana.Codecs.Ac3
 
         public static void Compute(ReadOnlySpan<byte> exponents, Span<byte> bap, int start, int end,
             int sampleRateCode, int slowDecay, int fastDecay, int slowGain, int dbKnee, int floorCode,
-            int snrOffset, int fastGainCode, int couplingFastLeak, int couplingSlowLeak, ReadOnlySpan<int> delta)
+            int snrOffset, int fastGainCode, int couplingFastLeak, int couplingSlowLeak, ReadOnlySpan<int> delta, bool adaptive = false)
         {
             Span<int> psd = stackalloc int[256];
             Span<int> bandPsd = stackalloc int[50];
             Span<int> excitation = stackalloc int[50];
+            ReadOnlySpan<byte> allocation = adaptive ? AdaptiveAllocation : Allocation;
             int firstBand = Band(start), endBand = Band(end - 1) + 1;
             int fGain = (fastGainCode + 1) * 128, sGain = SlowGain[slowGain];
             for (int bin = start; bin < end; bin++) { psd[bin] = 3072 - (exponents[bin] << 7); }
@@ -127,7 +134,7 @@ namespace Mediana.Codecs.Ac3
                 int floor = Floors[floorCode];
                 mask = (Math.Max(mask - snrOffset - floor, 0) & 0x1fe0) + floor;
                 int limit = Math.Min(BandStarts[band + 1], end);
-                for (; bin < limit; bin++) { bap[bin] = Allocation[Math.Clamp((psd[bin] - mask) >> 5, 0, 63)]; }
+                for (; bin < limit; bin++) { bap[bin] = allocation[Math.Clamp((psd[bin] - mask) >> 5, 0, 63)]; }
             }
         }
 

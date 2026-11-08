@@ -139,10 +139,10 @@ namespace Mediana.Codecs.Ac3
                     {
                         if (ch != 6 || enhancedCoupling[block])
                         {
-                            active++; if (enhancedExponents[block * 7 + ch] != 0) { regions++; }
+                            active++; if (enhancedExponents[block * 7 + ch] != 0 || ch == 6 && enhancedCouplingStrategy[block]) { regions++; }
                         }
                     }
-                    if (active == 6 && regions == 1 && bits.Flag()) { throw new NotSupportedException("E-AC-3 adaptive hybrid transforms are not supported."); }
+                    if (active == 6 && regions == 1 && bits.Flag()) { adaptiveTransform.Enable(ch); }
                 }
             }
             if (snrStrategy == 0) { coarse = bits.Read(6); frameFine = bits.Read(4); }

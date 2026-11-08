@@ -10,6 +10,7 @@ namespace Mediana.Codecs.Ac3
     {
         private readonly Ac3Workspace workspace = new(allocator);
         private readonly Ac3SpectralExtension spectralExtension = new(allocator);
+        private readonly Ac3AdaptiveTransform adaptiveTransform = new(allocator);
         private static readonly ushort[] CrcTable = CreateCrcTable();
         private readonly int[] end = new int[7], strategies = new int[7], fine = new int[7], fastGain = new int[7], deltaMode = new int[7];
         private readonly bool[] coupled = new bool[5], shortBlock = new bool[5], dither = new bool[5], coordinateNew = new bool[5], coordinateValid = new bool[5], rematrix = new bool[4];
@@ -50,7 +51,7 @@ namespace Mediana.Codecs.Ac3
             Array.Clear(coupled); Array.Clear(coordinateValid); Array.Clear(rematrix);
             Array.Clear(end); Array.Clear(fine); Array.Clear(fastGain); Array.Clear(deltaMode);
             coupling = false; phaseInUse = false; dynamics.AsSpan().Fill(1);
-            spectralExtension.ResetFrame();
+            spectralExtension.ResetFrame(); adaptiveTransform.ResetFrame();
             for (int ch = 0; ch < 7; ch++) { workspace.Delta(ch).Clear(); }
             Ac3BitReader bits = new(data);
             if (header.IsEnhanced) { ReadEnhancedHeader(ref bits); }
@@ -60,7 +61,7 @@ namespace Mediana.Codecs.Ac3
                 cancellationToken.ThrowIfCancellationRequested();
                 if (header.IsEnhanced) { ReadEnhancedBlock(ref bits, block); }
                 else { ReadBlock(ref bits, block); }
-                ReadMantissas(ref bits);
+                ReadMantissas(ref bits, block);
                 ApplyRematrix();
                 for (int ch = 0; ch < fullChannels; ch++) { spectralExtension.Process(ch, workspace.Spectrum(ch), ref random); }
                 for (int ch = 0; ch < header.ChannelCount; ch++)
@@ -326,11 +327,11 @@ namespace Mediana.Codecs.Ac3
                 if (zero) { workspace.Bap(ch).Clear(); continue; }
                 Ac3BitAllocation.Compute(workspace.Exponents(ch), workspace.Bap(ch), start, finish, header.SampleRateCode,
                     slowDecay, fastDecay, slowGain, dbKnee, floor, (((coarse - 15) << 4) + fine[ch]) << 2,
-                    fastGain[ch], fastLeak, slowLeak, workspace.Delta(ch));
+                    fastGain[ch], fastLeak, slowLeak, workspace.Delta(ch), adaptiveTransform.IsEnabled(ch));
             }
         }
 
         public void Reset() { workspace.Reset(); random = 1; }
-        public void Dispose() { workspace.Dispose(); spectralExtension.Dispose(); }
+        public void Dispose() { workspace.Dispose(); spectralExtension.Dispose(); adaptiveTransform.Dispose(); }
     }
 }
