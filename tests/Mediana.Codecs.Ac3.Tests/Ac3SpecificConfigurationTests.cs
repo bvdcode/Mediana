@@ -83,6 +83,15 @@ namespace Mediana.Codecs.Ac3.Tests
             Assert.Throws<InvalidDataException>(() => new Ac3StreamMetadataReader().Read(invalid));
         }
 
+        [Fact]
+        public void IndependentEac3PrefixCannotInventTheRenderedProgrammeChannelCount()
+        {
+            EncodedStreamInfo stream = new(0, MediaKind.Audio, "eac3", StreamFormats.Eac3, new(1, 48000));
+            Eac3StreamMetadataReader reader = new();
+            Assert.Null(reader.ReadPacketPrefix(stream, Ac3DependentFrame.Create(0).AsSpan(0, 8)));
+            Assert.Throws<InvalidDataException>(() => reader.ReadPacketPrefix(stream, Ac3DecoderTests.ReadFirstFrame("mono.ac3")));
+        }
+
         [Theory]
         [InlineData(new byte[] { })]
         [InlineData(new byte[] { 0, 0 })]

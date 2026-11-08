@@ -27,7 +27,14 @@ namespace Mediana.Codecs.Ac3
                 channelOrder: configuration.GetChannelOrder()) { CodecProfile = new(ProfileName) };
         }
 
-        public StreamMetadata? ReadPacketPrefix(EncodedStreamInfo stream, ReadOnlySpan<byte> prefix)
+        public virtual StreamMetadata? ReadPacketPrefix(EncodedStreamInfo stream, ReadOnlySpan<byte> prefix)
+        {
+            Ac3FrameHeader header = ReadPrefixHeader(stream, prefix);
+            return new AudioStreamMetadata(header.SampleRate, header.ChannelCount, channelOrder: header.GetChannelOrder())
+            { CodecProfile = new(ProfileName) };
+        }
+
+        protected Ac3FrameHeader ReadPrefixHeader(EncodedStreamInfo stream, ReadOnlySpan<byte> prefix)
         {
             RequireStream(stream);
             RawFormat.Require(stream.Format);
@@ -36,8 +43,7 @@ namespace Mediana.Codecs.Ac3
             {
                 throw new InvalidDataException("The opening syncframe differs from the declared audio codec.");
             }
-            return new AudioStreamMetadata(header.SampleRate, header.ChannelCount, channelOrder: header.GetChannelOrder())
-            { CodecProfile = new(ProfileName) };
+            return header;
         }
 
         protected void RequireStream(EncodedStreamInfo stream)

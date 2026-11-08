@@ -16,6 +16,13 @@ namespace Mediana.Codecs.Ac3
         protected override EncodedStreamFormat RawFormat => StreamFormats.Eac3;
         protected override string ProfileName => "E-AC-3";
 
+        /// <summary>An independent-frame prefix alone cannot establish the rendered dependent channel composition.</summary>
+        public override StreamMetadata? ReadPacketPrefix(EncodedStreamInfo stream, ReadOnlySpan<byte> prefix)
+        {
+            ReadPrefixHeader(stream, prefix);
+            return null;
+        }
+
         public override StreamMetadata? Read(EncodedStreamInfo stream)
         {
             RequireStream(stream);
