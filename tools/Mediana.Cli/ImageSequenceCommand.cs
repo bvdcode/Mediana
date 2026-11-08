@@ -22,6 +22,7 @@ namespace Mediana.Cli
             {
                 Input = new()
                 {
+                    Media = CommandMediaResources.OpenOptions,
                     StreamIndex = stream,
                     Images = CommandImageResources.OpenOptions,
                     Request = new() { Time = new MediaTimestamp(milliseconds, new(1, 1000)) }

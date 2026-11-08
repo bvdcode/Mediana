@@ -12,7 +12,6 @@ namespace Mediana.Cli
 {
     internal static class AudioWaveformCommand
     {
-        private const int BufferBudgetBytes = 1024 * 1024;
         private const int WindowsPerFlush = 64;
         private const double CutoffRatio = 0.97;
 
@@ -22,8 +21,8 @@ namespace Mediana.Cli
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
-                new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes }, cancellationToken: cancellationToken);
-            MediaBufferAllocator allocator = new(BufferBudgetBytes);
+                CommandMediaResources.OpenOptions, cancellationToken: cancellationToken);
+            MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
             await using AudioWaveformReader reader = new(session.ReadFrameAsync, gains,
                 new AudioWaveformOptions(sampleRate, samplesPerWindow)
                 {

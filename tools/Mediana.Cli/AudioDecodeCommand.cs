@@ -13,8 +13,8 @@ namespace Mediana.Cli
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
-            await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex, cancellationToken: cancellationToken);
-            MediaBufferAllocator allocator = new(long.MaxValue);
+            await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex, CommandMediaResources.OpenOptions, cancellationToken: cancellationToken);
+            MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
             PcmStreamWriteResult? result = null;
             await outputFile.WriteAsync(async output =>
             {

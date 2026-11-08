@@ -15,7 +15,6 @@ namespace Mediana.Cli
 {
     internal static class HlsEncodeCommand
     {
-        private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string input, string output, int videoIndex, int? audioIndex,
             AudioCodecMode? audioCodec, int[] audioBitRates, int? audioChannels, int[] widths, H264RateControlOptions?[]? videoRates,
@@ -23,8 +22,8 @@ namespace Mediana.Cli
         {
             MediaEngine engine = ContainerEngineFactory.CreateVideoBuilder(Mp4TimestampMode.LinearMovie).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
-            await using VideoSession session = await engine.OpenVideoAsync(source, videoIndex, cancellationToken: token);
-            MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            await using VideoSession session = await engine.OpenVideoAsync(source, videoIndex, CommandMediaResources.OpenOptions, cancellationToken: token);
+            MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
             int[] sourceRates = separateAudio ? audioBitRates.Distinct().ToArray() : audioBitRates;
             await using HlsAudioSource? audio = audioIndex is int index ? audioCodec switch
             {

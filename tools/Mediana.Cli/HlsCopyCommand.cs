@@ -12,11 +12,10 @@ namespace Mediana.Cli
 {
     internal static class HlsCopyCommand
     {
-        private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string input, string output, int videoIndex, int? audioIndex, long targetMilliseconds, CancellationToken cancellationToken = default)
         {
-            MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
             int count = 0;
             await CommandOutputDirectory.WriteAsync(output, async directory =>
             {

@@ -11,20 +11,19 @@ namespace Mediana.Cli
 {
     internal static class AudioEncodeCommand
     {
-        private const long BufferBudgetBytes = 16 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, int bitRate, int? channels, ILogger logger, CancellationToken token)
         {
             MediaEngine engine = AudioEngineFactory.CreateBuilder().AddAudioEncoder(new AacEncoderFactory(new() { BitRate = bitRate }))
                 .AddContainerWriter(new MpegTsWriterFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
-            MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
             MediaProgress progress = new(logger, TimeProvider.System);
             AudioTranscodeResult? result = null;
             await outputFile.WriteAsync(async destination =>
             {
                 result = await engine.TranscodeAudioAsync(source, destination, "aac", "mpegts", allocator,
-                    new() { StreamIndex = streamIndex, Channels = channels }, progress.Report, token);
+                    new() { StreamIndex = streamIndex, Channels = channels, Input = CommandMediaResources.OpenOptions }, progress.Report, token);
             }, token);
             if (allocator.AllocatedBytes != 0) { throw new InvalidOperationException("AAC encoding buffers were not released."); }
             await Console.Out.WriteLineAsync($"AAC-LC MPEG-TS: {result!.SamplesPerChannel} input samples per channel; {result.Encoding.Packets} packets; priming {result.PrimingSamples}; padding {result.PaddingSamples}. Live buffer bytes: 0.");

@@ -237,8 +237,9 @@ are points (1/72 inch); animation metadata includes duration and frame rate. Ima
 inspection reads bounded input and does not decode pixel data. Conversion options
 require an output path.
 
-CLI image inspection and conversion do not impose fixed megabyte or megapixel
-budgets. Image buffers must fit the runtime's managed-array length, and processing
+CLI inspection, audio/video conversion and HLS commands use shared resource
+settings without fixed megabyte or megapixel budgets. Individual buffers must
+fit the runtime's managed-array length, and processing
 requires enough available memory. Library applications can configure input,
 pixel and allocation budgets for their own workloads.
 
@@ -1266,6 +1267,8 @@ conversion and video preparation remain strict unless a caller selects a policy;
 processing. Their CLI policy resolves missing YUV chroma siting while preserving
 native colorimetry, including HDR labels. RGB-to-YUV conversion uses the SDR color
 interpretation. Explicit `SourceColorInterpretation` takes precedence over a resolver.
+CLI H.264 output explicitly selects YUV420P8 and warns once when source precision
+is reduced. The library preserves source precision unless the caller selects a target format.
 PQ/HLG previews still require tone mapping.
 
 DisplayResize.Fit uses storage width times SAR and the storage height as the
