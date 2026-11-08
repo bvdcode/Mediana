@@ -76,5 +76,22 @@ managed memory.
 Independent bilinear checks cover 660,480 combinations of phases, borders,
 extreme vectors and rejection thresholds. Normal, hardware-intrinsics-disabled
 and strict Native AOT runs pass. Complete transport and decoded-picture
-references remain unchanged. Initial alternating CPU observations vary enough
-between runs that they do not establish a new stable speed ratio.
+references remain unchanged.
+
+A subsequent comparison runs six complete Native AOT processes per variant
+and input, in alternating ABBA/BAAB/ABBA order on one logical CPU. Input reading,
+encoding and MPEG-TS writing are included. Every complete transport hash
+matches the original reference.
+
+| Input | Previous CPU median | Direct-cost CPU median | Change |
+| --- | ---: | ---: | ---: |
+| Natural video | 5.920 s | 5.283 s | −10.8% |
+| Motion | 1.073 s | 0.973 s | −9.4% |
+| Flat content | 1.659 s | 1.574 s | −5.1% |
+
+Median peak resident memory is approximately unchanged: 51.0/51.1 MB for natural video,
+13.9/14.0 MB for motion and 51.8/51.8 MB for flat content. Elapsed time contains
+host scheduling outliers; CPU also has outliers on motion and flat content.
+Natural video gives the most consistent CPU reduction. These figures compare
+process CPU medians. They are
+an internal before/after comparison and do not establish parity with x264.
