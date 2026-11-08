@@ -7,7 +7,7 @@ namespace Mediana.Codecs.Av1
     {
         private int ReadTransform(int plane, int mode, bool inter, int x4, int y4, int lumaRow, int lumaColumn, Av1TransformSize size)
         {
-            if (header.Quantization.Lossless || size.Maximum > 3) { return 0; }
+            if (lossless || size.Maximum > 3) { return 0; }
             if (plane != 0)
             {
                 int transform;

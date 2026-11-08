@@ -372,3 +372,35 @@ AOM 3.8.2 `build_smooth_interintra_mask` routine in
 The format is `AV1IIM01`, uint32 case count, followed by byte width, height,
 mode and `width * height` mask bytes per case. DC, vertical, horizontal and
 smooth masks are compared byte for byte, independently of encoded mode selection.
+
+
+`segmentationCyclic` and `segmentationOdd` are eight-picture libaom 3.8.2
+cyclic-refresh sequences at 160×136 and 97×81. Encoding uses cpu-used 0,
+CRF 30, AQ mode 3 and lag-in-frames 0, with prediction tools left at their
+defaults. The odd source is an exact crop of 160×136 testsrc2. Independent
+libdav1d output verifies every sample with nonzero residuals; AOM inspection
+confirms 1,514 and 440 cells with nonzero segment IDs.
+
+`segmentationFeatures` and `segmentationMixed` are eleven-picture, 16×16
+monochrome conformance sequences. Their entropy payloads use the unchanged AOM
+reference arithmetic writer with CDF adaptation disabled. Both streams are
+accepted by AOM 3.8.2 and libdav1d 1.4.1. They select all eight segment IDs,
+forced skip, reference 0/1/7, identity-global motion, inherited maps, temporal
+map prediction and disabled-state reset. Signed feature syntax includes -256
+quantizer and -64 filter values, clipped to -255 and -63. The mixed sequence
+uses a frame base quantizer of 40 with both lossless and quantized segments;
+fixed transform sizes agree with independent AOM inspection. These conformance
+pictures have no nonzero residuals; cyclic-refresh sequences provide that coverage.
+
+All `.segment.gz` files begin with `AV1SEGM2`, uint32 coded-frame count and
+uint16 MI rows/columns per frame. Each six-byte cell stores segment ID, transform
+skip, first and second signed references, fixed transform size and temporal
+segment-prediction flag. Inspection occurs after every individual coded FRAME
+OBU. Tests compare actual block metadata and updated maps; unchanged maps must
+retain their original per-cell IDs and shared allocation.
+
+`segment-id.gz` contains all 288 valid difference/range/predictor combinations
+from unchanged AOM 3.8.2
+[`av1_neg_deinterleave`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.8.2/av1/decoder/decodemv.c).
+The format is `AV1SID01`, uint32 count, then byte difference, prediction, active
+range size and decoded segment ID. Ranges 1–8 and predictors 0–7 are covered.

@@ -7,7 +7,7 @@ namespace Mediana.Codecs.Av1
     {
         private Av1ChromaMode ReadChromaMode(int lumaMode, int blockIndex, int width, int height)
         {
-            bool cfl = header.Quantization.Lossless
+            bool cfl = lossless
                 ? Math.Max(1, width >> 1) == 1 && Math.Max(1, height >> 1) == 1
                 : Math.Max(width, height) <= 8;
             int mode;

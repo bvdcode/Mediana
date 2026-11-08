@@ -24,7 +24,7 @@ namespace Mediana.Codecs.Av1
         {
             if (filterBlocks.IsEmpty) { return; }
             Av1FilterBlock block = new() { BlockSize = (byte)BlockIndex(width, height), Deltas = BlockFilterDeltas() };
-            block.SetPrediction(reference, mode >= 13 && mode is not (15 or 23), skip);
+            block.SetPrediction(reference, mode >= 13 && mode is not (15 or 23), skip, segmentId);
             for (int y = row; y < row + height && y < sequence.MiRows; y++)
             {
                 filterBlocks.Slice(y * sequence.MiColumns + column, Math.Min(width, sequence.MiColumns - column)).Fill(block);

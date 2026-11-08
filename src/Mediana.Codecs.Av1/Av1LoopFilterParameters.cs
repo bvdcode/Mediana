@@ -18,7 +18,7 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        internal int Level(int plane, int pass, Av1FilterBlock block)
+        internal int Level(int plane, int pass, Av1FilterBlock block, Av1Segmentation segmentation = default)
         {
             int level = plane switch
             {
@@ -35,6 +35,7 @@ namespace Mediana.Codecs.Av1
                 _ => throw new ArgumentOutOfRangeException(nameof(plane))
             };
             level = Math.Clamp(level + block.Deltas[index], 0, 63);
+            level = Math.Clamp(level + segmentation.Segments[block.SegmentId].FilterDelta(index), 0, 63);
             if (DeltaEnabled)
             {
                 int shift = level >> 5;

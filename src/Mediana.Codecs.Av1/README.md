@@ -154,10 +154,24 @@ hidden frames and odd dimensions, match every independent sample. Their 400 actu
 inter-intra cells and all other selected motion modes agree with AOM inspection;
 88 additional native masks cover every block shape and blend mode.
 
-Non-identity global motion,
-intra block copy,
-segmentation, multiple
-tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,
-film grain and decoder-model timing are not implemented. Encountering these
+Segmentation supports all eight feature sets, spatial and temporal ID prediction,
+primary-reference feature inheritance, map reuse, dimension resets and disabled
+state. Segment quantization, per-component filter deltas, forced references,
+skip and identity-global modes share the ordinary block reconstruction path.
+Lossless transform selection follows each segment independently of the frame base
+quantizer. A budgeted byte per 4×4 luma block stores the map; unchanged maps retain
+the previous buffer directly across reference pictures. Motion and filter grid
+sizes do not grow. Two cyclic-refresh sequences with nonzero residuals and two
+compact conformance sequences match independent decoded samples and per-block
+segment IDs, skip flags, references and fixed transform sizes.
+
+Sequence timing, optional decoder-model delays, operating-point buffer-removal
+timestamps and visible/reference-display timestamps are preserved as codec metadata;
+container timestamps remain the output clock. See
+[timing metadata](../../docs/av1-timing.md).
+
+Non-identity global motion, quantization matrices, intra block copy, multiple
+tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth
+and film grain are not implemented. Encountering these
 tools fails explicitly. The module requires explicit factory registration while ordinary AV1 playback
 coverage is incomplete.

@@ -7,7 +7,7 @@ namespace Mediana.Codecs.Av1
     {
         private Av1TransformSize ReadTransformSize(int row, int column, int width, int height, bool allowSelect)
         {
-            if (header.Quantization.Lossless) { return new(4, 4); }
+            if (lossless) { return new(4, 4); }
             Av1TransformSize size = new(Math.Min(width * 4, 64), Math.Min(height * 4, 64));
             if (size.Index == 0 || !allowSelect || !header.SelectTransform) { return size; }
             int topWidth = 0;

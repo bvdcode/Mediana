@@ -116,7 +116,7 @@ namespace Mediana.Codecs.Av1
                     quant.Slice(row * size.Width + size.CodedWidth, size.Width - size.CodedWidth).Clear();
                 }
             }
-            if (header.Quantization.Lossless)
+            if (lossless)
             {
                 Av1LosslessTransform.Inverse(quant);
             }

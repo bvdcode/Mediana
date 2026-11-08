@@ -15,6 +15,8 @@ namespace Mediana.Codecs.Av1
                 }
                 return pair;
             }
+            if (Segment.ForcedReference) { return new(Segment.Reference); }
+            if (Segment.Skip || Segment.GlobalMotion) { return new(1); }
             Av1MotionBlock top = row > 0 ? motionBlocks[(row - 1) * sequence.MiColumns + column] : default;
             Av1MotionBlock prior = column > 0 ? motionBlocks[row * sequence.MiColumns + column - 1] : default;
             if (header.Inter.SelectReference && Math.Min(width, height) >= 2 &&

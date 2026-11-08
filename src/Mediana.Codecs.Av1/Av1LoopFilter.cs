@@ -6,7 +6,7 @@ namespace Mediana.Codecs.Av1
     internal static class Av1LoopFilter
     {
         internal static void Apply(Span<byte> pixels, Av1SequenceHeader sequence, Av1LoopFilterParameters parameters,
-            ReadOnlySpan<Av1FilterBlock> blocks, CancellationToken cancellationToken)
+            ReadOnlySpan<Av1FilterBlock> blocks, CancellationToken cancellationToken, Av1Segmentation segmentation = default)
         {
             if (!parameters.Enabled) { return; }
             if (blocks.Length != sequence.MiColumns * sequence.MiRows || pixels.Length != sequence.SampleCount)
@@ -26,7 +26,7 @@ namespace Mediana.Codecs.Av1
                         cancellationToken.ThrowIfCancellationRequested();
                         for (int column = 0; column < sequence.MiColumns; column += step)
                         {
-                            Edge(pixels, sequence, parameters, blocks, plane, pass, row, column);
+                            Edge(pixels, sequence, parameters, blocks, plane, pass, row, column, segmentation);
                         }
                     }
                 }
@@ -34,7 +34,7 @@ namespace Mediana.Codecs.Av1
         }
 
         private static void Edge(Span<byte> pixels, Av1SequenceHeader sequence, Av1LoopFilterParameters parameters,
-            ReadOnlySpan<Av1FilterBlock> blocks, int plane, int pass, int row, int column)
+            ReadOnlySpan<Av1FilterBlock> blocks, int plane, int pass, int row, int column, Av1Segmentation segmentation)
         {
             int x = column * 4;
             int y = row * 4;
@@ -55,8 +55,8 @@ namespace Mediana.Codecs.Av1
             if (coordinate % transformExtent != 0) { return; }
             int blockExtent = Math.Max(4, ((pass == 0 ? current.Width4 : current.Height4) * 4) >> sub);
             if (coordinate % blockExtent != 0 && current.Skip && current.Reference != 0) { return; }
-            int level = parameters.Level(plane, pass, current);
-            if (level == 0) { level = parameters.Level(plane, pass, previous); }
+            int level = parameters.Level(plane, pass, current, segmentation);
+            if (level == 0) { level = parameters.Level(plane, pass, previous, segmentation); }
             if (level == 0) { return; }
             int shift = parameters.Sharpness switch { > 4 => 2, > 0 => 1, _ => 0 };
             int limit = parameters.Sharpness > 0 ? Math.Clamp(level >> shift, 1, 9 - parameters.Sharpness) : Math.Max(1, level);

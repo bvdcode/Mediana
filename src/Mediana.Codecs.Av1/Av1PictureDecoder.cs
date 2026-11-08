@@ -107,6 +107,19 @@ namespace Mediana.Codecs.Av1
             int cdefIndexCount = header.Cdef.IndexCount(geometry);
             int restorationBytes = checked(header.Restoration.UnitCount(geometry) * Unsafe.SizeOf<Av1RestorationUnit>());
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
+            MediaBuffer? previousSegmentMap = null;
+            if (header.Segmentation.Enabled && header.Inter.PrimaryReference != Av1InterPrediction.NoPrimaryReference)
+            {
+                Av1StoredPicture previous = references.Get(header.Inter.References[header.Inter.PrimaryReference]);
+                if (previous.Header.Geometry.MiColumns == geometry.MiColumns && previous.Header.Geometry.MiRows == geometry.MiRows)
+                {
+                    previousSegmentMap = previous.SegmentMap;
+                }
+            }
+            ReadOnlySpan<byte> previousSegments = previousSegmentMap is null ? default : previousSegmentMap.Memory.Span;
+            int segmentLength = header.Segmentation.Enabled && (header.Segmentation.UpdateMap || previousSegmentMap is null)
+                ? geometry.MiColumns * geometry.MiRows : 0;
+            using WritableMediaBuffer? segments = segmentLength != 0 ? allocator.Allocate(segmentLength) : null;
             int storedMotionLength = Av1MotionField.StoredLength(geometry, header);
             using WritableMediaBuffer? savedMotion = storedMotionLength != 0 ? allocator.Allocate(storedMotionLength) : null;
             using (WritableMediaBuffer? motions = inter ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1MotionBlock>())) : null)
@@ -125,10 +138,10 @@ namespace Mediana.Codecs.Av1
                 Span<Av1MotionFieldSample> motionField = projected is null ? default : MemoryMarshal.Cast<byte, Av1MotionFieldSample>(projected.Span);
                 if (projected is not null) { Av1MotionField.Estimate(geometry, header, references, motionField, cancellationToken); }
                 Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities, decoded.Span,
-                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices, restorationUnits, motionField);
+                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices, restorationUnits, motionField, segments is null ? default : segments.Span, previousSegments);
                 tile.Decode();
                 if (savedMotion is not null) { Av1MotionField.Store(geometry, header, references, motionBlocks, savedMotion.Span, cancellationToken); }
-                if (header.LoopFilter.Enabled) { Av1LoopFilter.Apply(pixels.Span, geometry, header.LoopFilter, filterBlocks, cancellationToken); }
+                if (header.LoopFilter.Enabled) { Av1LoopFilter.Apply(pixels.Span, geometry, header.LoopFilter, filterBlocks, cancellationToken, header.Segmentation); }
                 int boundaryLength = Av1Restoration.BoundaryLength(geometry, header.Restoration);
                 using WritableMediaBuffer? boundaryBuffer = boundaryLength != 0 ? allocator.Allocate(boundaryLength) : null;
                 Span<byte> boundaries = boundaryBuffer is null ? default : boundaryBuffer.Span;
@@ -157,7 +170,8 @@ namespace Mediana.Codecs.Av1
                         Av1TileProbabilities.Initialize(probabilities, header.Quantization.BaseIndex, initialProbabilities);
                     }
                     using MediaBuffer? motionField = savedMotion?.Publish();
-                    references.Save(picture, probabilities, allocator, motionField);
+                    using MediaBuffer? segmentMap = segments?.Publish() ?? previousSegmentMap?.Retain();
+                    references.Save(picture, probabilities, allocator, motionField, segmentMap);
                 }
                 transferred = true;
                 return picture;

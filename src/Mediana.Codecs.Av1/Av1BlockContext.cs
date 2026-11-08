@@ -10,7 +10,9 @@ namespace Mediana.Codecs.Av1
         internal byte Dc;
         internal byte WidthLog;
         internal byte HeightLog;
-        internal byte Skip;
+        private byte skip;
+        internal byte Skip { readonly get => (byte)(skip & 1); set => skip = (byte)((skip & ~1) | value); }
+        internal bool SegmentPredicted { readonly get => (skip & 2) != 0; set => skip = (byte)((skip & ~2) | (value ? 2 : 0)); }
         internal byte TransformWidth;
         internal byte TransformHeight;
         internal byte PaletteCount;

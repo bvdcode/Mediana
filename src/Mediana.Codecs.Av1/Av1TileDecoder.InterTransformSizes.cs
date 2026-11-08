@@ -7,7 +7,7 @@ namespace Mediana.Codecs.Av1
     {
         private Av1TransformSize ReadInterTransformSizes(int row, int column, int width, int height, bool skip)
         {
-            if (header.SelectTransform && (width != 1 || height != 1) && !skip && !header.Quantization.Lossless)
+            if (header.SelectTransform && (width != 1 || height != 1) && !skip && !lossless)
             {
                 Av1TransformSize maximum = new(Math.Min(width * 4, 64), Math.Min(height * 4, 64));
                 for (int y = row; y < row + height; y += maximum.Height4)

@@ -10,7 +10,7 @@ namespace Mediana.Codecs.Av1
             Av1TransformSize lumaTransform, bool inter = false)
         {
             int capacity = lumaTransform.Width * lumaTransform.Height;
-            if (hasChroma && !header.Quantization.Lossless)
+            if (hasChroma && !lossless)
             {
                 capacity = Math.Max(capacity, Math.Min(Math.Max(4, width * 2), 32) * Math.Min(Math.Max(4, height * 2), 32));
             }
@@ -33,9 +33,9 @@ namespace Mediana.Codecs.Av1
                         int startY = unitY >> sub;
                         int endX = Math.Min(startX + (16 >> sub), codedWidth);
                         int endY = Math.Min(startY + (16 >> sub), codedHeight);
-                        Av1TransformSize size = plane == 0 ? lumaTransform : header.Quantization.Lossless ? new(4, 4) :
+                        Av1TransformSize size = plane == 0 ? lumaTransform : lossless ? new(4, 4) :
                             new(Math.Min(blockWidth * 4, 32), Math.Min(blockHeight * 4, 32));
-                        if (inter && plane == 0 && !header.Quantization.Lossless)
+                        if (inter && plane == 0 && !lossless)
                         {
                             InterTransformTree(row, column, width, height, startX, startY,
                                 Math.Min(16, width - startX) * 4, Math.Min(16, height - startY) * 4, skip, residual);

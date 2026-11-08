@@ -12,7 +12,7 @@ namespace Mediana.Codecs.Av1
             int side = sequence.Superblock128 ? 32 : 16;
             if (width == side && height == side && skip) { return; }
             int delta = ReadBlockDelta(Av1DefaultCdfs.DeltaQOffset);
-            quantization = quantization with { BaseIndex = Math.Clamp(quantization.BaseIndex + (delta << header.Deltas.QuantizerShift), 1, 255) };
+            currentQuantizer = Math.Clamp(currentQuantizer + (delta << header.Deltas.QuantizerShift), 1, 255);
             if (!header.Deltas.FilterPresent) { return; }
             int count = header.Deltas.MultiFilter ? sequence.Monochrome ? 2 : 4 : 1;
             for (int index = 0; index < count; index++)

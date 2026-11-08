@@ -13,9 +13,10 @@ namespace Mediana.Codecs.Av1
 
         internal int Reference => prediction & 7;
         internal bool MotionMode => (prediction & 8) != 0;
+        internal int SegmentId => prediction >> 5;
         internal bool Skip => (prediction & 16) != 0;
-        internal void SetPrediction(int reference, bool motionMode, bool skip) =>
-            prediction = (byte)(reference | (motionMode ? 8 : 0) | (skip ? 16 : 0));
+        internal void SetPrediction(int reference, bool motionMode, bool skip, int segmentId = 0) =>
+            prediction = (byte)(reference | (motionMode ? 8 : 0) | (skip ? 16 : 0) | (segmentId << 5));
         internal int Transform(int plane) => plane switch
         {
             0 => LumaTransform,

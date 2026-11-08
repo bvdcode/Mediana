@@ -11,8 +11,10 @@ namespace Mediana.Codecs.Av1
         {
             cancellationToken.ThrowIfCancellationRequested();
             bool interFrame = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
+            segmentId = 0;
+            if (interFrame || segmentsBeforeSkip) { ReadSegment(row, column, width, height, interFrame, true, false); }
             bool skipMode = false;
-            if (interFrame && header.Inter.SkipMode && Math.Min(width, height) >= 2)
+            if (interFrame && header.Inter.SkipMode && Math.Min(width, height) >= 2 && !Segment.PreSkip)
             {
                 int skipModeContext = (row > 0 && motionBlocks[(row - 1) * sequence.MiColumns + column].SkipMode ? 1 : 0) +
                     (column > 0 && motionBlocks[row * sequence.MiColumns + column - 1].SkipMode ? 1 : 0);
@@ -20,9 +22,13 @@ namespace Mediana.Codecs.Av1
             }
             int skipContext = (row > 0 ? above[column].Skip : 0) +
                 (column > 0 ? left[row & (LeftContexts - 1)].Skip : 0);
-            int skip = skipMode ? 1 : symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipOffset + skipContext * 3, 3));
+            int skip = skipMode || segmentsBeforeSkip && Segment.Skip ? 1 : symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipOffset + skipContext * 3, 3));
+            if (!segmentsBeforeSkip) { ReadSegment(row, column, width, height, interFrame, false, skip != 0); }
+            StoreSegment(row, column, width, height);
+            lossless = (header.Quantization with { BaseIndex = Segment.QuantizerIndex(header.Quantization.BaseIndex) }).Lossless;
             ReadCdef(row, column, width, height, skip != 0);
             ReadBlockDeltas(width, height, skip != 0);
+            quantization = header.Quantization with { BaseIndex = Segment.QuantizerIndex(currentQuantizer) };
             if (interFrame && (skipMode || ReadInter(row, column)))
             {
                 InterBlock(row, column, width, height, skip, skipMode);
@@ -104,6 +110,7 @@ namespace Mediana.Codecs.Av1
         {
             for (int index = 0; index < width && column + index < sequence.MiColumns; index++)
             {
+                context.SegmentPredicted = above[column + index].SegmentPredicted;
                 context.Level = above[column + index].Level;
                 context.Dc = above[column + index].Dc;
                 above[column + index] = context;
@@ -111,6 +118,7 @@ namespace Mediana.Codecs.Av1
             for (int index = 0; index < height && row + index < sequence.MiRows; index++)
             {
                 int previous = (row + index) & (LeftContexts - 1);
+                context.SegmentPredicted = left[previous].SegmentPredicted;
                 context.Level = left[previous].Level;
                 context.Dc = left[previous].Dc;
                 left[previous] = context;

@@ -26,11 +26,18 @@ namespace Mediana.Codecs.Av1
         private Av1RestorationReferences restorationReferences;
         private Av1SymbolReader symbols;
         private Av1Quantization quantization;
+        private readonly Span<byte> segmentMap;
+        private readonly ReadOnlySpan<byte> previousSegments;
+        private readonly bool segmentsBeforeSkip;
+        private readonly int lastActiveSegment;
+        private int segmentId;
+        private int currentQuantizer;
+        private bool lossless;
         private Av1BlockFilterDeltas filterDeltas;
         private bool readDeltas;
 
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
-            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default, Span<Av1RestorationUnit> restorationUnits = default, ReadOnlySpan<Av1MotionFieldSample> motionField = default)
+            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default, Span<Av1RestorationUnit> restorationUnits = default, ReadOnlySpan<Av1MotionFieldSample> motionField = default, Span<byte> segmentMap = default, ReadOnlySpan<byte> previousSegments = default)
         {
             if ((header.LoopFilter.Enabled || header.Cdef.Enabled) && filterBlocks.Length != sequence.MiColumns * sequence.MiRows)
             {
@@ -48,6 +55,19 @@ namespace Mediana.Codecs.Av1
             {
                 throw new ArgumentException("The AV1 temporal motion-field metadata has an invalid extent.", nameof(motionField));
             }
+            int segmentCount = header.Segmentation.Enabled ? sequence.MiColumns * sequence.MiRows : 0;
+            bool mapLengthValid = segmentMap.Length == segmentCount || header.Segmentation.Enabled && !header.Segmentation.UpdateMap && segmentMap.IsEmpty;
+            if (!mapLengthValid || !previousSegments.IsEmpty && previousSegments.Length != segmentCount)
+            {
+                throw new ArgumentException("The AV1 segmentation buffers have invalid extents.", nameof(segmentMap));
+            }
+            this.segmentMap = segmentMap;
+            this.previousSegments = previousSegments;
+            segmentsBeforeSkip = header.Segmentation.PreSkip;
+            lastActiveSegment = header.Segmentation.LastActiveId;
+            segmentId = 0;
+            currentQuantizer = header.Quantization.BaseIndex;
+            lossless = header.Quantization.Lossless;
             this.motionField = motionField;
             this.restorationUnits = restorationUnits;
             restorationReferences = default;
@@ -93,6 +113,11 @@ namespace Mediana.Codecs.Av1
                 }
             }
             symbols.Finish();
+            if (header.Segmentation.Enabled && !header.Segmentation.UpdateMap && !segmentMap.IsEmpty)
+            {
+                if (previousSegments.IsEmpty) { segmentMap.Clear(); }
+                else { previousSegments.CopyTo(segmentMap); }
+            }
         }
 
         private Span<Av1BlockContext> CoefficientAbove(int plane)

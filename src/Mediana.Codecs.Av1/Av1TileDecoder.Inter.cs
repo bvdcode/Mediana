@@ -9,6 +9,8 @@ namespace Mediana.Codecs.Av1
     {
         private bool ReadInter(int row, int column)
         {
+            if (Segment.ForcedReference) { return Segment.Reference != 0; }
+            if (Segment.GlobalMotion) { return true; }
             bool aboveIntra = row == 0 || motionBlocks[(row - 1) * sequence.MiColumns + column].Reference == 0;
             bool leftIntra = column == 0 || motionBlocks[row * sequence.MiColumns + column - 1].Reference == 0;
             int context;
@@ -29,6 +31,7 @@ namespace Mediana.Codecs.Av1
             candidates.Build();
             int mode;
             if (skipMode) { mode = 17; }
+            else if (Segment.Skip || Segment.GlobalMotion) { mode = 15; }
             else if (compound)
             {
                 ReadOnlySpan<byte> contexts = [0, 1, 1, 1, 1, 1, 2, 3, 4, 4, 4, 4, 5, 6, 7];
