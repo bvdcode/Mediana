@@ -10,6 +10,8 @@ namespace Mediana.Codecs.H264
         private int range = 510;
         private int low;
         private long outstanding;
+        private ulong outputBits;
+        private int outputCount;
         private bool firstBit = true;
         private bool terminated;
 
@@ -95,6 +97,12 @@ namespace Mediana.Codecs.H264
             if (value)
             {
                 PutBit((low & 512) != 0);
+                if (outputCount != 0)
+                {
+                    bits.WriteBits(outputBits, outputCount);
+                    outputBits = 0;
+                    outputCount = 0;
+                }
                 bits.WriteBits((uint)(((low >> 7) & 3) | 1), 2);
                 int alignment = (int)((8 - (bits.BitPosition & 7)) & 7);
                 bits.WriteBits(0, alignment);
@@ -134,15 +142,43 @@ namespace Mediana.Codecs.H264
             }
             else
             {
-                bits.WriteFlag(value);
+                outputBits = (outputBits << 1) | (value ? 1UL : 0);
+                if (++outputCount == 64)
+                {
+                    bits.WriteBits(outputBits, 64);
+                    outputBits = 0;
+                    outputCount = 0;
+                }
             }
             while (outstanding != 0)
             {
                 int count = (int)Math.Min(outstanding, 64);
                 ulong word = value ? 0 : ulong.MaxValue >> (64 - count);
-                bits.WriteBits(word, count);
+                BufferBits(word, count);
                 outstanding -= count;
             }
+        }
+
+        private void BufferBits(ulong word, int count)
+        {
+            int space = 64 - outputCount;
+            if (count < space)
+            {
+                outputBits = (outputBits << count) | word;
+                outputCount += count;
+                return;
+            }
+            if (space == 64)
+            {
+                bits.WriteBits(word, 64);
+            }
+            else
+            {
+                bits.WriteBits((outputBits << space) | (word >> (count - space)), 64);
+            }
+            int remaining = count - space;
+            outputBits = remaining == 0 ? 0 : word & ((1UL << remaining) - 1);
+            outputCount = remaining;
         }
 
         private void EnsureActive()

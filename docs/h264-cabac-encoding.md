@@ -57,3 +57,10 @@ the reconstructed pictures are unchanged. Natural-video PSNR is 43.109928 dB and
 SSIM is 0.977395; motion PSNR is 45.633750 dB and SSIM is 0.994388. CABAC reduces
 video payload, but this initial implementation increases CPU. Matching x264
 `veryfast` across speed, quality and size remains open.
+
+Buffering the decided arithmetic bits in 64-bit words preserves all fourteen
+transport and pixel hashes with hardware intrinsics enabled and disabled. A
+separate alternating comparison measured about 2.6% less CPU for natural video
+and 2.9% less for motion; the flat-content difference was within run variation.
+This removes part of the arithmetic output overhead, without changing motion
+search or the remaining performance gap.
