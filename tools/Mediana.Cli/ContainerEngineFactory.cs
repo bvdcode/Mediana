@@ -9,6 +9,7 @@ using Mediana.Codecs.Vp9;
 using Mediana.Codecs.Theora;
 using Mediana.Codecs.Mpeg4Visual;
 using Mediana.Containers.Aiff;
+using Mediana.Containers.Ac3;
 using Mediana.Containers.Adts;
 using Mediana.Containers.Avi;
 using Mediana.Containers.Flac;
@@ -28,6 +29,7 @@ namespace Mediana.Cli
 
         public static MediaEngineBuilder CreateBuilder(Mp4TimestampMode timestampMode = Mp4TimestampMode.Media) => new MediaEngineBuilder()
             .AddContainer(new AdtsReaderFactory())
+            .AddContainer(new Ac3ReaderFactory())
             .AddContainer(new Mp3ReaderFactory())
             .AddContainer(new FlacReaderFactory())
             .AddContainer(new WaveReaderFactory())
