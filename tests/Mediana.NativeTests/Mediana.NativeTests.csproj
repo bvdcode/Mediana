@@ -276,6 +276,9 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Ac3/Mediana.Codecs.Ac3.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Av1/Mediana.Codecs.Av1.csproj" />
     <Compile Include="../Shared/Av1ContainerTestInput.cs" Link="Av1ContainerTestInput.cs" />
+    <Compile Include="../Shared/Av1TimingTestInput.cs" Link="Av1TimingTestInput.cs" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/timing*.obu" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/timing.reference.yuv" Link="Data/Av1/timing.reference.yuv" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/interOrdered.mp4" Link="Data/Av1/interOrdered.mp4" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/interOrdered.mkv" Link="Data/Av1/interOrdered.mkv" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/interOrdered.yuv" Link="Data/Av1/interOrdered.yuv" CopyToOutputDirectory="PreserveNewest" />

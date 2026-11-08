@@ -14,6 +14,11 @@ namespace Mediana.NativeTests
             await Av1ContainerTestInput.VerifyAsync(root, "mkv");
             await Av1ContainerTestInput.VerifyImplicitFinalSizesAsync(root);
             Console.WriteLine("PASS AV1 public containers: MP4, Matroska, implicit final OBU sizes, exact YUV, repeated seeking and released leases.");
+            foreach (string sample in new[] { "timingEqual", "timingVariable", "timingModel" })
+            {
+                Av1TimingTestInput.Verify(root, sample);
+            }
+            Console.WriteLine("PASS AV1 timing: sequence clocks, decoder-model syntax, hidden and repeated pictures, exact samples and preserved container timestamps.");
         }
     }
 }
