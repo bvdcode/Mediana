@@ -30,6 +30,10 @@ namespace Mediana.Tests
         public Task DelayedTransientProcessingDrainsThroughContinuousSeekingAndHlsAudioPreparation() =>
             Ac3ContainerTestInput.VerifyTransientAsync();
 
+        [Fact]
+        public Task FutureTransientTailDrainsExactExistingSamplesThroughSeekingAndHlsAudioPreparation() =>
+            Ac3ContainerTestInput.VerifyTransientTailAsync();
+
         [Theory]
         [InlineData("mono.mp4", false, 1)]
         [InlineData("stereo-eac3.mp4", true, 2)]

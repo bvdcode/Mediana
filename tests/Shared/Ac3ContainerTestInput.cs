@@ -108,12 +108,15 @@ namespace Mediana.Tests
             }
         }
 
-        public static async Task VerifyTransientAsync()
+        public static Task VerifyTransientAsync() => VerifyTransientAsync("transient", 15360, 11000);
+        public static Task VerifyTransientTailAsync() => VerifyTransientAsync("transient-tail", 4608, 3500);
+
+        private static async Task VerifyTransientAsync(string name, int samples, long seekSample)
         {
-            byte[] raw = await ReadAsync("transient.eac3");
-            byte[] encoded = await ReadAsync("transient.mp4");
+            byte[] raw = await ReadAsync(name + ".eac3");
+            byte[] encoded = await ReadAsync(name + ".mp4");
             MediaEngine engine = Engine();
-            byte[] expected = new byte[15360 * sizeof(float)];
+            byte[] expected = new byte[samples * sizeof(float)];
             await using EbmlElementTestSource original = new(raw);
             await using EbmlElementTestSource source = new(encoded);
             await using (AudioSession audio = await engine.OpenAudioAsync(original))
@@ -141,10 +144,11 @@ namespace Mediana.Tests
                     }
                 }
                 Require(offset == expected.Length);
-                await audio.SeekAsync(new(11000, new(1, 48000)));
+                await audio.SeekAsync(new(seekSample, new(1, 48000)));
                 using AudioFrame tail = (await audio.ReadFrameAsync())!;
-                Require(tail.Timestamp == new MediaTimestamp(10752, new(1, 48000)));
-                Require(tail.GetPlane(0).Span.SequenceEqual(expected.AsSpan(10752 * sizeof(float), 1536 * sizeof(float))));
+                int frameStart = checked((int)(seekSample / 1536 * 1536));
+                Require(tail.Timestamp == new MediaTimestamp(frameStart, new(1, 48000)));
+                Require(tail.GetPlane(0).Span.SequenceEqual(expected.AsSpan(frameStart * sizeof(float), 1536 * sizeof(float))));
                 tail.Dispose(); await audio.DisposeAsync(); Require(audio.AllocatedBufferBytes == 0);
             }
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
@@ -165,8 +169,9 @@ namespace Mediana.Tests
             await using (HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(engine, source, 0, [64000], null, allocator, default))
             {
                 await audio.WriteBeforeAsync(null, [], default);
-                Require(audio.InputSamplesPerChannel == 15360 && audio.PacketsWritten == 16);
-                Require(audio.PrimingSamples == 1024 && audio.PaddingSamples == 0);
+                int encodedFrames = (samples + 1023) / 1024;
+                Require(audio.InputSamplesPerChannel == samples && audio.PacketsWritten == encodedFrames + 1);
+                Require(audio.PrimingSamples == 1024 && audio.PaddingSamples == encodedFrames * 1024 - samples);
             }
             Require(allocator.AllocatedBytes == 0 && !source.IsDisposed && !original.IsDisposed);
         }
