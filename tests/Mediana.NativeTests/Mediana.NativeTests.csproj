@@ -269,6 +269,8 @@
     <ProjectReference Include="../../src/Mediana.Containers.Mp3/Mediana.Containers.Mp3.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Adts/Mediana.Containers.Adts.csproj" />
     <Compile Include="../Shared/AdtsDecodeTestInput.cs" Link="AdtsDecodeTestInput.cs" />
+    <Compile Include="../Shared/AacSbrDecodeTestInput.cs" Link="AacSbrDecodeTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/AacSbr/*" Link="Data/AacSbr/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Containers.Adts.Tests/Data/*.aac" Link="Data/Aac/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp3/*" Link="Data/Mp3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Mp3ReferenceTestInput.cs" Link="Mp3ReferenceTestInput.cs" />
