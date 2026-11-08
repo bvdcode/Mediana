@@ -37,7 +37,8 @@ namespace Mediana.Streaming.Hls
             using AacEncoder encoder = AacEncoder.Create(format, clock, allocator, settings.Options, outputStreamIndex);
             long first = checked(settings.Presentation.Start.Rescale(clock, TimestampRounding.TowardZero).Value -
                 encoder.PrimingSamples * (clock.Denominator / format.SampleRate));
-            Definition = new(encoder.Stream, trackId, first < 0 ? checked(-first) : 0, settings.Presentation.End);
+            Definition = new(encoder.Stream, trackId, first < 0 ? checked(-first) : 0, settings.Presentation.End)
+            { Recovery = new(Mp4RecoveryKind.Roll, -1) };
         }
 
         public Mp4AudioTrackDefinition Definition { get; }

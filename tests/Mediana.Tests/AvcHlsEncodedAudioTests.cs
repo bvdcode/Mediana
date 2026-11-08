@@ -65,6 +65,11 @@ namespace Mediana.Tests
                 Assert.Empty(source.Reads);
                 using MemoryStream init = new();
                 await session.WriteInitializationAsync(init);
+                ReadOnlyMemory<byte> audioTable = Mp4TestBoxes.GetAll(Mp4TestBoxes.Get(init.ToArray(), "moov"), "trak")
+                    .Select(track => Mp4TestBoxes.Get(track, "mdia", "minf", "stbl"))
+                    .Single(table => Mp4TestBoxes.GetAll(table, "sgpd").Count == 1);
+                Assert.Equal("01000000726F6C6C0000000200000001FFFF",
+                    Convert.ToHexString(Mp4TestBoxes.Get(audioTable, "sgpd").Span));
                 Assert.Empty(source.Reads);
                 Assert.Equal(retained, allocator.AllocatedBytes);
                 byte[]? tail = null;
@@ -120,6 +125,12 @@ namespace Mediana.Tests
                     long decode = checked((long)Mp4TestBoxes.UInt64(Mp4TestBoxes.Get(track, "tfdt"), 4) - 1024);
                     int offset = checked((int)Mp4TestBoxes.UInt32(run, 8));
                     uint count = Mp4TestBoxes.UInt32(run, 4);
+                    ReadOnlyMemory<byte> recovery = Mp4TestBoxes.Get(track, "sbgp");
+                    Assert.Equal(0u, Mp4TestBoxes.UInt32(recovery, 0));
+                    Assert.Equal(0x726f6c6cu, Mp4TestBoxes.UInt32(recovery, 4));
+                    Assert.Equal(1u, Mp4TestBoxes.UInt32(recovery, 8));
+                    Assert.Equal(count, Mp4TestBoxes.UInt32(recovery, 12));
+                    Assert.Equal(1u, Mp4TestBoxes.UInt32(recovery, 16));
                     AacEncodingInterval plan = AacEncodingInterval.Create(new(session.Windows[number].Start, session.Windows[number].End), presentation, 48000);
                     ProcessingPacket[] expected = continuous.Where(packet => packet.Pts!.Value.CompareTo(plan.Output.Start) >= 0 && packet.Pts.Value.CompareTo(plan.Output.End) < 0).ToArray();
                     Assert.Equal(expected.Length, (int)count);
