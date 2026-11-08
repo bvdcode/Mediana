@@ -14,20 +14,25 @@ namespace Mediana.Codecs.Ac3
         public int FirstGroupCount { get; private set; }
         public ReadOnlySpan<Eac3EncodedFrame> Frames => frames.AsSpan(0, Count);
 
-        public void Read(ReadOnlySpan<byte> data)
+        public void Clear()
         {
-            Count = 0; Samples = 0; FirstGroupCount = 0;
+            Array.Clear(frames, 0, Count); Count = 0; Samples = 0; FirstGroupCount = 0;
+        }
+
+        public void Read(ReadOnlyMemory<byte> data)
+        {
+            Clear();
             Ac3FrameHeader? main = null;
             int dependent = 0;
             for (int offset = 0; offset < data.Length;)
             {
                 if (Count == MaximumFrames) { throw new InvalidDataException("The E-AC-3 access unit exceeds six complete frame sets."); }
-                Ac3FrameHeader header = Ac3FrameHeader.Read(data[offset..]);
+                Ac3FrameHeader header = Ac3FrameHeader.Read(data.Span[offset..]);
                 if (!header.IsEnhanced || header.FrameBytes > data.Length - offset)
                 { throw new InvalidDataException("The E-AC-3 syncframe does not match its access unit."); }
-                ReadOnlySpan<byte> frame = data.Slice(offset, header.FrameBytes);
-                Ac3FrameDecoder.ValidateFrame(frame, header);
-                Eac3FrameMetadata metadata = Eac3FrameMetadata.Read(frame, header);
+                ReadOnlyMemory<byte> frame = data.Slice(offset, header.FrameBytes);
+                Ac3FrameDecoder.ValidateFrame(frame.Span, header);
+                Eac3FrameMetadata metadata = Eac3FrameMetadata.Read(frame.Span, header);
                 if (header.StreamType == 1)
                 {
                     if (main is null || main.StreamType != 0 || header.SubstreamId != dependent ||
@@ -45,7 +50,7 @@ namespace Mediana.Codecs.Ac3
                     Samples += header.SamplesPerFrame;
                     if (Samples > 1536) { throw new InvalidDataException("The E-AC-3 access unit exceeds six audio blocks."); }
                 }
-                frames[Count++] = new(offset, metadata); offset += header.FrameBytes;
+                frames[Count++] = new(frame, metadata); offset += header.FrameBytes;
             }
             if (Count == 0) { throw new InvalidDataException("The E-AC-3 access unit is empty."); }
             if (FirstGroupCount == 0) { FirstGroupCount = Count; }

@@ -76,25 +76,25 @@ namespace Mediana.Codecs.Ac3
             }
         }
 
-        public void Decode(ReadOnlySpan<byte> data, ReadOnlySpan<Eac3EncodedFrame> group, Span<float> output, CancellationToken token)
+        public void Decode(ReadOnlySpan<Eac3EncodedFrame> group, Span<float> output, CancellationToken token)
         {
             locations.AsSpan().Fill(-1);
             int last = group.Length - 1;
-            DecodeComponent(last, data, group[last], output, default, token);
+            DecodeComponent(last, group[last], output, default, token);
             ReadOnlySpan<double> dynamics = decoders[last]!.FrameDynamics;
             for (int component = 0; component < last; component++)
             {
-                DecodeComponent(component, data, group[component], output, dynamics, token);
+                DecodeComponent(component, group[component], output, dynamics, token);
                 if (component != 0 && decoders[component]!.DynamicRangeMetadataSeen)
                 { throw new InvalidDataException("Programme dynamic range metadata occurs before the last dependent substream."); }
             }
         }
 
-        private void DecodeComponent(int component, ReadOnlySpan<byte> data, Eac3EncodedFrame frame,
+        private void DecodeComponent(int component, Eac3EncodedFrame frame,
             Span<float> output, ReadOnlySpan<double> gain, CancellationToken token)
         {
             Ac3FrameDecoder decoder = decoders[component] ??= new(allocator, applyDynamicRangeCompression);
-            decoder.DecodeMapped(data.Slice(frame.Offset, frame.Header.FrameBytes), frame.Header,
+            decoder.DecodeMapped(frame.Data.Span, frame.Header,
                 output, Format.Channels.Count, maps[component], gain, token);
             for (int channel = 0; channel < maps[component].Length; channel++)
             {

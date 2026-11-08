@@ -16,13 +16,13 @@ namespace Mediana.Tests
     internal static class Ac3PcmTestInput
     {
         public static async Task<(int SamplesPerChannel, double SignalToNoiseRatio, double RmsError, double MaximumError, long MaximumAllocatedBytes)> VerifyAsync(
-            string root, string encodedName, string referenceName, int sampleRate, int channels, double minimumSnr)
+            string root, string encodedName, string referenceName, int sampleRate, int channels, double minimumSnr, bool individualSyncframes = false)
         {
             byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(root, encodedName));
             byte[] reference = await File.ReadAllBytesAsync(Path.Combine(root, referenceName));
             Ac3FrameHeader first = Ac3FrameHeader.Read(encoded);
             IAudioDecoderFactory factory = first.IsEnhanced ? new Eac3DecoderFactory(false) : new Ac3DecoderFactory(false);
-            EncodedStreamInfo stream = new(0, MediaKind.Audio, factory.CodecId, first.IsEnhanced ? StreamFormats.Eac3 : StreamFormats.Ac3, new(1, sampleRate));
+            EncodedStreamInfo stream = new(0, MediaKind.Audio, factory.CodecId, first.IsEnhanced ? individualSyncframes ? StreamFormats.Eac3Syncframe : StreamFormats.Eac3 : StreamFormats.Ac3, new(1, sampleRate));
             MediaBufferAllocator allocator = new(1024 * 1024);
             int samples = 0, inputSamples = 0, outputOffset = 0;
             double error = 0, signal = 0, maximumError = 0;
@@ -33,15 +33,18 @@ namespace Mediana.Tests
                 {
                     Ac3FrameHeader header = Ac3FrameHeader.Read(encoded.AsSpan(offset));
                     Require(header.SampleRate == sampleRate);
-                    int packetBytes = FrameSetBytes(encoded, offset);
+                    int packetBytes = individualSyncframes ? header.FrameBytes : FrameSetBytes(encoded, offset);
+                    bool dependent = header.IsEnhanced && header.StreamType == 1;
+                    int position = dependent ? inputSamples - header.SamplesPerFrame : inputSamples;
                     using (WritableMediaBuffer writable = allocator.Allocate(packetBytes))
                     {
                         encoded.AsSpan(offset, packetBytes).CopyTo(writable.Span);
                         using MediaBuffer buffer = writable.Publish();
-                        using MediaPacket packet = new(0, buffer, new(inputSamples, new(1, sampleRate)), duration: new(header.SamplesPerFrame, new(1, sampleRate)));
+                        using MediaPacket packet = new(0, buffer, new(position, new(1, sampleRate)), duration: new(header.SamplesPerFrame, new(1, sampleRate)));
                         Require(decoder.TrySend(packet) == CodecInputStatus.Accepted);
                     }
-                    inputSamples += header.SamplesPerFrame; offset += packetBytes;
+                    if (!dependent) { inputSamples += header.SamplesPerFrame; }
+                    offset += packetBytes;
                     while (decoder.Receive() is { Status: CodecOutputStatus.Available } available)
                     { using AudioFrame frame = available.Value; Compare(frame); }
                 }

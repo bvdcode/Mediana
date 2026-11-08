@@ -15,6 +15,7 @@ namespace Mediana.Codecs.Ac3
         public override string CodecId => Ac3FrameHeader.EnhancedCodecId;
         protected override EncodedStreamFormat RawFormat => StreamFormats.Eac3;
         protected override string ProfileName => "E-AC-3";
+        protected override bool IsRawFormat(EncodedStreamFormat format) => format == StreamFormats.Eac3 || format == StreamFormats.Eac3Syncframe;
 
         /// <summary>An independent-frame prefix alone cannot establish the rendered dependent channel composition.</summary>
         public override StreamMetadata? ReadPacketPrefix(EncodedStreamInfo stream, ReadOnlySpan<byte> prefix)
@@ -26,7 +27,7 @@ namespace Mediana.Codecs.Ac3
         public override StreamMetadata? Read(EncodedStreamInfo stream)
         {
             RequireStream(stream);
-            if (stream.Format == RawFormat) { return null; }
+            if (IsRawFormat(stream.Format)) { return null; }
             StreamFormats.Eac3Mp4.Require(stream.Format);
             Eac3SubstreamConfiguration configuration = Eac3SpecificConfiguration.Read(stream.Configuration.Span).Substreams[0];
             return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount,

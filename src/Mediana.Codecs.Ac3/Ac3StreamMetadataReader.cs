@@ -15,12 +15,13 @@ namespace Mediana.Codecs.Ac3
         public virtual string CodecId => Ac3FrameHeader.CodecId;
         protected virtual EncodedStreamFormat RawFormat => StreamFormats.Ac3;
         protected virtual string ProfileName => "AC-3";
+        protected virtual bool IsRawFormat(EncodedStreamFormat format) => format == RawFormat;
         public int PacketProbeLength => Ac3FrameHeader.HeaderBytes;
 
         public virtual StreamMetadata? Read(EncodedStreamInfo stream)
         {
             RequireStream(stream);
-            if (stream.Format == RawFormat) { return null; }
+            if (IsRawFormat(stream.Format)) { return null; }
             StreamFormats.Ac3Mp4.Require(stream.Format);
             Ac3SpecificConfiguration configuration = Ac3SpecificConfiguration.Read(stream.Configuration.Span);
             return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount,
@@ -37,7 +38,7 @@ namespace Mediana.Codecs.Ac3
         protected Ac3FrameHeader ReadPrefixHeader(EncodedStreamInfo stream, ReadOnlySpan<byte> prefix)
         {
             RequireStream(stream);
-            RawFormat.Require(stream.Format);
+            if (!IsRawFormat(stream.Format)) { RawFormat.Require(stream.Format); }
             Ac3FrameHeader header = Ac3FrameHeader.Read(prefix);
             if (header.IsEnhanced != (RawFormat == StreamFormats.Eac3))
             {
@@ -51,7 +52,7 @@ namespace Mediana.Codecs.Ac3
             ArgumentNullException.ThrowIfNull(stream);
             if (stream.Kind != MediaKind.Audio || stream.CodecId != CodecId)
             { throw new ArgumentException("The stream is not the expected AC-3 audio codec.", nameof(stream)); }
-            if (stream.Format == RawFormat && !stream.Configuration.IsEmpty)
+            if (IsRawFormat(stream.Format) && !stream.Configuration.IsEmpty)
             { throw new InvalidDataException("Self-describing AC-3 syncframes require an empty external configuration."); }
         }
     }

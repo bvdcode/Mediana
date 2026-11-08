@@ -10,7 +10,7 @@ using Mediana.Formats.Audio;
 namespace Mediana.Codecs.Ac3
 {
     internal partial class Ac3Decoder(int streamIndex, bool enhanced, MediaBufferAllocator allocator, bool applyDynamicRangeCompression,
-        Ac3DecoderExpectation? expectation = null) : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
+        Ac3DecoderExpectation? expectation = null, bool individualSyncframes = false) : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
     {
         private Ac3FrameDecoder? workspace;
         private Ac3FrameHeader? configuration;
@@ -19,10 +19,12 @@ namespace Mediana.Codecs.Ac3
         private Ac3TransientProcessing? transientProcessing;
         private Eac3AccessUnit? enhancedAccessUnit;
         private Eac3ProgramLayout? enhancedProgram;
+        private Eac3FrameSetAssembly? frameSetAssembly;
         private bool originalBeginning = true;
         private long prerollPackets;
         private bool disposed, completed, faulted;
-        public int RequiredPrerollPackets => enhanced ? Ac3TransientProcessing.InitialPrerollPackets : 1;
+        public int RequiredPrerollPackets => enhanced ? Ac3TransientProcessing.InitialPrerollPackets *
+            (individualSyncframes ? Eac3FrameSetAssembly.MaximumMembers : 1) : 1;
 
         public CodecInputStatus TrySend(MediaPacket input, CancellationToken cancellationToken = default)
         {
@@ -36,7 +38,8 @@ namespace Mediana.Codecs.Ac3
                 if (input.StreamIndex != streamIndex) { throw new InvalidDataException("The AC-3 packet belongs to a different stream."); }
                 if (enhanced)
                 {
-                    ProcessEnhanced(input, cancellationToken);
+                    if (individualSyncframes) { ProcessIndividual(input, cancellationToken); }
+                    else { ProcessEnhanced(input, cancellationToken); }
                     if (prerollPackets > 0) { prerollPackets--; }
                     success = true; return CodecInputStatus.Accepted;
                 }
@@ -97,7 +100,10 @@ namespace Mediana.Codecs.Ac3
             EnsureUsable();
             if (prerollPackets != 0) { Fault(); throw new InvalidDataException("AC-3 input ended before its requested preroll was complete."); }
             bool success = false;
-            try { transientProcessing?.CompleteInput(); completed = true; success = true; }
+            try
+            {
+                FlushIndividual(CancellationToken.None); transientProcessing?.CompleteInput(); completed = true; success = true;
+            }
             finally { if (!success) { Fault(); } }
         }
         public void ResetForPreroll(long packetCount, bool startsAtStreamBeginning)
@@ -110,6 +116,7 @@ namespace Mediana.Codecs.Ac3
             pending?.Dispose(); pending = null; workspace?.Reset();
             transientProcessing?.Dispose(); transientProcessing = null; originalBeginning = true;
             enhancedProgram?.Dispose(); enhancedProgram = null; enhancedAccessUnit = null;
+            frameSetAssembly?.Clear();
             configuration = null; format = null; prerollPackets = 0; completed = false; faulted = false;
         }
         private void Fault() { Reset(); faulted = true; }
@@ -122,7 +129,8 @@ namespace Mediana.Codecs.Ac3
         {
             if (disposed) { return; }
             pending?.Dispose(); pending = null; transientProcessing?.Dispose(); transientProcessing = null;
-            workspace?.Dispose(); workspace = null; enhancedProgram?.Dispose(); enhancedProgram = null; enhancedAccessUnit = null; disposed = true;
+            workspace?.Dispose(); workspace = null; enhancedProgram?.Dispose(); enhancedProgram = null; enhancedAccessUnit = null;
+            frameSetAssembly?.Clear(); frameSetAssembly = null; disposed = true;
             GC.SuppressFinalize(this);
         }
     }

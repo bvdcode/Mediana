@@ -5,7 +5,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Ac3
 {
-    internal readonly record struct Eac3EncodedFrame(int Offset, Eac3FrameMetadata Metadata)
+    internal readonly record struct Eac3EncodedFrame(ReadOnlyMemory<byte> Data, Eac3FrameMetadata Metadata)
     {
         public Ac3FrameHeader Header => Metadata.Header;
     }

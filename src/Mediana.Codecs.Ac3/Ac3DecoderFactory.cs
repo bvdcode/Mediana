@@ -23,7 +23,7 @@ namespace Mediana.Codecs.Ac3
         {
             ArgumentNullException.ThrowIfNull(stream);
             if (stream.Kind != MediaKind.Audio || stream.CodecId != CodecId) { return "The stream is not the expected AC-3 audio codec."; }
-            if (stream.Format == ExpectedFormat)
+            if (stream.Format == ExpectedFormat || Enhanced && stream.Format == StreamFormats.Eac3Syncframe)
             {
                 return stream.Configuration.IsEmpty ? null : "AC-3 syncframes are self-describing and require an empty external configuration.";
             }
@@ -58,7 +58,7 @@ namespace Mediana.Codecs.Ac3
                     expectation = new(config.SampleRate, config.BitstreamId, config.ChannelMode, config.HasLfe);
                 }
             }
-            return new Ac3Decoder(stream.StreamIndex, Enhanced, allocator, applyDynamicRangeCompression, expectation);
+            return new Ac3Decoder(stream.StreamIndex, Enhanced, allocator, applyDynamicRangeCompression, expectation, stream.Format == StreamFormats.Eac3Syncframe);
         }
     }
 }
