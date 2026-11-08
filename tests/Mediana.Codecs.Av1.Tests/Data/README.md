@@ -162,3 +162,25 @@ case count, each record stores eight bytes (side, x, y, primary, secondary,
 damping, selected direction, detected direction), int32 variance, and 256-byte
 input and expected output arrays. Every pixel, including unchanged borders,
 is compared exactly. Native reference code is used only for fixture production.
+
+`restorationRegions`, `restorationMono` and `restorationOdd` enable ordinary
+restoration on the corresponding CDEF patterns; `restorationMonoNoCdef` disables
+CDEF to isolate restoration allocation stages. The moving 160×136 case loads
+primary-reference probability snapshots and stores filtered reference pictures.
+`restorationWiener` and `restorationWienerRamp` are 256×192 AOM still pictures
+with sinusoidal or ramp patterns and native Wiener frame parameters on all
+three planes. `restorationMixed` combines smooth noisy and directional textures
+at 512×192: all three planes use switchable restoration and 128-sample units.
+Matching `.yuv` files contain independent libdav1d reconstruction.
+
+`restoration.bin.gz` records 2,048 native AOM v3.13.1 vectors from
+[`restoration.c`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.13.1/av1/common/restoration.c)
+and [`convolve.c`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.13.1/av1/common/convolve.c).
+There are 1,024 Wiener vectors and 1,024 SGRPROJ vectors spanning all sixteen
+SGR sets, coefficient ranges, partial processing blocks, input patterns and frame
+edges. After `AV1LRES1` and a uint32 count, each record stores kind, width,
+height, x and y as bytes; six signed Wiener coefficient bytes in vertical then
+horizontal order; the SGR set byte and two signed projection weights; and
+256-byte input and expected output arrays. The tests require exact equality
+for every sample and unchanged surrounding pixels. Native routines are used
+only to produce the fixture.

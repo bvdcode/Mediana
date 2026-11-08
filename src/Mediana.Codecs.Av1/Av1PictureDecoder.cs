@@ -108,25 +108,37 @@ namespace Mediana.Codecs.Av1
                 initialProbabilities = MemoryMarshal.Cast<byte, ushort>(references.Get(header.Inter.References[header.Inter.PrimaryReference]).Cdfs.Memory.Span);
             }
             int cdefIndexCount = header.Cdef.IndexCount(geometry);
+            int restorationBytes = checked(header.Restoration.UnitCount(geometry) * Unsafe.SizeOf<Av1RestorationUnit>());
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
             using (WritableMediaBuffer? motions = inter ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1MotionBlock>())) : null)
             using (WritableMediaBuffer? filterMetadata = header.LoopFilter.Enabled || header.Cdef.Enabled
                 ? allocator.Allocate(checked(geometry.MiColumns * geometry.MiRows * Unsafe.SizeOf<Av1FilterBlock>())) : null)
             using (WritableMediaBuffer? cdefMetadata = cdefIndexCount != 0 ? allocator.Allocate(cdefIndexCount) : null)
+            using (WritableMediaBuffer? restorationMetadata = restorationBytes != 0 ? allocator.Allocate(restorationBytes) : null)
             using (WritableMediaBuffer contexts = allocator.Allocate(contextBytes))
             using (WritableMediaBuffer decoded = allocator.Allocate(geometry.SampleCount / 16))
             {
                 Span<Av1MotionBlock> motionBlocks = motions is null ? default : MemoryMarshal.Cast<byte, Av1MotionBlock>(motions.Span);
                 Span<Av1FilterBlock> filterBlocks = filterMetadata is null ? default : MemoryMarshal.Cast<byte, Av1FilterBlock>(filterMetadata.Span);
                 Span<sbyte> cdefIndices = cdefMetadata is null ? default : MemoryMarshal.Cast<byte, sbyte>(cdefMetadata.Span);
+                Span<Av1RestorationUnit> restorationUnits = restorationMetadata is null ? default : MemoryMarshal.Cast<byte, Av1RestorationUnit>(restorationMetadata.Span);
                 Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities, decoded.Span,
-                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices);
+                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices, restorationUnits);
                 tile.Decode();
                 if (header.LoopFilter.Enabled) { Av1LoopFilter.Apply(pixels.Span, geometry, header.LoopFilter, filterBlocks, cancellationToken); }
+                int boundaryLength = Av1Restoration.BoundaryLength(geometry, header.Restoration);
+                using WritableMediaBuffer? boundaryBuffer = boundaryLength != 0 ? allocator.Allocate(boundaryLength) : null;
+                Span<byte> boundaries = boundaryBuffer is null ? default : boundaryBuffer.Span;
+                if (header.Restoration.Enabled) { Av1Restoration.SaveBoundaries(pixels.Span, geometry, header.Restoration, boundaries); }
                 if (header.Cdef.Enabled)
                 {
                     using WritableMediaBuffer scratch = allocator.Allocate(Av1Cdef.ScratchLength(geometry));
                     Av1Cdef.Apply(pixels.Span, geometry, header.Cdef, filterBlocks, cdefIndices, scratch.Span, cancellationToken);
+                }
+                if (header.Restoration.Enabled)
+                {
+                    using WritableMediaBuffer scratch = allocator.Allocate(Av1Restoration.ScratchLength(geometry, header.Restoration));
+                    Av1Restoration.Apply(pixels.Span, geometry, header.Restoration, restorationUnits, boundaries, scratch.Span, cancellationToken);
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();

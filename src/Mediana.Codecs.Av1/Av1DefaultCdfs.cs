@@ -73,7 +73,10 @@ namespace Mediana.Codecs.Av1
         internal const int Tx64Offset = 6587;
         internal const int TxfmSplitOffset = 6599;
         internal const int InterTx2Offset = 6662;
-        internal const int Count = 6675;
+        internal const int WienerOffset = 6675;
+        internal const int SelfGuidedOffset = 6678;
+        internal const int RestorationOffset = 6681;
+        internal const int Count = 6685;
 
         internal static ReadOnlySpan<int> CounterOffsets =>
         [
@@ -157,7 +160,7 @@ namespace Mediana.Codecs.Av1
             6371, 6378, 6385, 6392, 6399, 6407, 6415, 6423, 6431, 6440, 6449, 6458, 6467, 6477, 6487, 6497,
             6507, 6518, 6529, 6541, 6553, 6556, 6559, 6562, 6566, 6570, 6574, 6578, 6582, 6586, 6590, 6594,
             6598, 6601, 6604, 6607, 6610, 6613, 6616, 6619, 6622, 6625, 6628, 6631, 6634, 6637, 6640, 6643,
-            6646, 6649, 6652, 6655, 6658, 6661, 6674,
+            6646, 6649, 6652, 6655, 6658, 6661, 6674, 6677, 6680, 6684,
         ];
     }
 }

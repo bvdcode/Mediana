@@ -60,10 +60,20 @@ kernel vectors and independently decoded still/moving pictures match exactly.
 Rectangular directional prediction limits extended edges to twice their own
 width or height, including narrow four-by-sixteen transforms.
 
+Loop restoration reads per-unit Wiener and self-guided projection parameters
+with reference-centered arithmetic syntax and adaptive probability state. Wiener
+uses separable seven-tap luma or five-tap chroma filtering; self-guided projection
+supports all sixteen radius/strength sets. Horizontal and vertical rolling sums
+share local-window statistics across each processing strip. Filtering reuses a
+row buffer of at most ten luma rows and retains only four deblocked rows per
+internal 64-line stripe boundary before CDEF. Real Wiener, SGRPROJ and switchable
+regions, moving references and monochrome/partial edges match independent native
+output; 2,048 additional kernel vectors cover every SGR set and Wiener extremes.
+
 Compound prediction,
 temporal motion fields, non-identity global motion, overlapped/warped reconstruction,
 smooth/Paeth/filter-intra,
-Loop restoration, intra-edge filtering, intra block copy,
+intra-edge filtering, intra block copy,
 chroma palette, segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,
 film grain and decoder-model timing are not implemented. Encountering these
