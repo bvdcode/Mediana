@@ -6,6 +6,7 @@ namespace Mediana.Codecs.Aac
     internal ref struct AacBitReader
     {
         private readonly ReadOnlySpan<byte> data;
+        private readonly int end;
         private int position;
 
         public AacBitReader(ReadOnlySpan<byte> data)
@@ -15,9 +16,17 @@ namespace Mediana.Codecs.Aac
                 throw new ArgumentOutOfRangeException(nameof(data));
             }
             this.data = data;
+            end = data.Length * 8;
         }
 
-        public readonly int Remaining => data.Length * 8 - position;
+        private AacBitReader(ReadOnlySpan<byte> data, int position, int end)
+        {
+            this.data = data;
+            this.position = position;
+            this.end = end;
+        }
+
+        public readonly int Remaining => end - position;
         public readonly int Position => position;
 
         public readonly int PeekByte()
@@ -66,5 +75,17 @@ namespace Mediana.Codecs.Aac
         }
 
         public void Align() => Skip((8 - (position & 7)) & 7);
+
+        public AacBitReader ReadSubstream(int count)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            if (count > Remaining)
+            {
+                throw new InvalidDataException("The AAC access unit is truncated.");
+            }
+            AacBitReader result = new(data, position, position + count);
+            position += count;
+            return result;
+        }
     }
 }

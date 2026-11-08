@@ -45,9 +45,32 @@ namespace Mediana.Codecs.Aac
 
         public AacChannelLayout Layout { get; }
         public AacChannelState[] Channels { get; }
+        public AacSbrElement?[] SbrElements { get; private set; } = [];
+        public AacSbrChannelState?[] SbrChannels { get; private set; } = [];
         public Span<double> Time => MemoryMarshal.Cast<byte, double>(storage.Memory.Span[..OutputOffset]);
         public Span<double> Output => MemoryMarshal.Cast<byte, double>(storage.Memory.Span.Slice(OutputOffset, 1024 * sizeof(double)));
         public Span<Complex> Fourier => MemoryMarshal.Cast<byte, Complex>(storage.Memory.Span[FourierOffset..]);
+
+        public void BeginSbrFrame()
+        {
+            foreach (AacSbrElement? element in SbrElements)
+            {
+                if (element is not null)
+                {
+                    element.Present = false;
+                }
+            }
+        }
+
+        public AacSbrElement GetSbrElement(int index, int sampleRate)
+        {
+            if (SbrElements.Length == 0)
+            {
+                SbrElements = new AacSbrElement?[Layout.Elements.Length];
+                SbrChannels = new AacSbrChannelState?[Channels.Length];
+            }
+            return SbrElements[index] ??= new AacSbrElement(Layout.Elements[index] == 1 ? 2 : 1, sampleRate);
+        }
 
         public void BindElement(int index, int type, int tag)
         {
@@ -74,6 +97,10 @@ namespace Mediana.Codecs.Aac
             foreach (AacChannelState channel in Channels)
             {
                 channel.Dispose();
+            }
+            foreach (AacSbrChannelState? channel in SbrChannels)
+            {
+                channel?.Dispose();
             }
             storage.Dispose();
         }

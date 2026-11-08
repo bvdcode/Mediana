@@ -5,12 +5,14 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacAccessUnitParser
     {
-        public static void Read(ReadOnlySpan<byte> data, int frequencyIndex, AacDecoderWorkspace workspace,
+        public static void Read(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate, AacDecoderWorkspace workspace,
             ref uint noiseState, CancellationToken cancellationToken)
         {
             AacBitReader bits = new(data);
             int element = 0;
             int channel = 0;
+            int previousType = -1;
+            workspace.BeginSbrFrame();
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -49,7 +51,7 @@ namespace Mediana.Codecs.Aac
                         bits.Skip(count * 8);
                         break;
                     case 6:
-                        ReadFill(ref bits);
+                        ReadFill(ref bits, workspace, element - 1, previousType, sbrSampleRate);
                         break;
                     case 2:
                     case 5:
@@ -57,6 +59,7 @@ namespace Mediana.Codecs.Aac
                     default:
                         throw new InvalidDataException("The AAC element identifier is invalid.");
                 }
+                previousType = type;
             }
             bits.Align();
             if (element != workspace.Layout.Elements.Length || bits.Remaining != 0)
@@ -97,7 +100,7 @@ namespace Mediana.Codecs.Aac
             AacSpectralTools.Reconstruct(left, right, commonWindow, maskMode, mask, ref noiseState, cancellationToken);
         }
 
-        private static void ReadFill(ref AacBitReader bits)
+        private static void ReadFill(ref AacBitReader bits, AacDecoderWorkspace workspace, int element, int previousType, int sbrSampleRate)
         {
             int count = bits.Read(4);
             if (count == 15)
@@ -108,24 +111,33 @@ namespace Mediana.Codecs.Aac
             {
                 return;
             }
-            int extension = bits.Read(4);
+            AacBitReader payload = bits.ReadSubstream(count * 8);
+            int extension = payload.Read(4);
             switch (extension)
             {
                 case 0:
-                    bits.Skip(count * 8 - 4);
+                    payload.Skip(payload.Remaining);
                     break;
                 case 1:
-                    if (bits.Read(4) != 0)
+                    if (payload.Read(4) != 0)
                     {
                         throw new InvalidDataException("The AAC fill nibble must be zero.");
                     }
                     for (int index = 1; index < count; index++)
                     {
-                        if (bits.Read(8) != 0xa5)
+                        if (payload.Read(8) != 0xa5)
                         {
                             throw new InvalidDataException("The AAC fill byte is invalid.");
                         }
                     }
+                    break;
+                case 13:
+                case 14:
+                    if (element < 0 || previousType is not (0 or 1))
+                    {
+                        throw new InvalidDataException("An SBR payload must immediately follow its AAC channel element.");
+                    }
+                    workspace.GetSbrElement(element, sbrSampleRate).Read(ref payload, extension == 14);
                     break;
                 default:
                     throw new NotSupportedException("This AAC fill extension is not supported; SBR, spatial audio and dynamic range extensions require separate handling.");

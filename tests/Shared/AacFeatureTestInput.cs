@@ -58,7 +58,8 @@ namespace Mediana.Tests
                         continue;
                     }
                     midSideBands += CountMidSideBands(packet.Data.Span, configuration.FrequencyIndex);
-                    AacAccessUnitParser.Read(packet.Data.Span, configuration.FrequencyIndex, workspace, ref noiseState, default);
+                    AacAccessUnitParser.Read(packet.Data.Span, configuration.FrequencyIndex,
+                        configuration.ExtensionSampleRate ?? configuration.SampleRate * 2, workspace, ref noiseState, default);
                     foreach (AacChannelState channel in workspace.Channels)
                     {
                         sequences |= 1 << channel.Info.Sequence;

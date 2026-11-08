@@ -10,7 +10,7 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    /// <summary>Decodes AAC-LC channel configurations 1–7, one raw_data_block per packet, with 1024 samples per frame.
+    /// <summary>Decodes AAC-LC channel configurations 1–7 and dual-rate mono/stereo HE-AAC, one raw_data_block per packet.
     /// Outputs native-endian interleaved float32 PCM. Priming, padding and container edit trimming are not applied.</summary>
     public class AacDecoderFactory : IAudioDecoderFactory
     {
@@ -43,6 +43,17 @@ namespace Mediana.Codecs.Aac
             {
                 return reason;
             }
+            if (configuration.ParametricStereo)
+            {
+                return "AAC parametric stereo decoding is not supported.";
+            }
+            if (configuration.SpectralBandReplication == true)
+            {
+                if (configuration.OutputSampleRate != configuration.SampleRate * 2 || configuration.ChannelCount > 2)
+                {
+                    return "SBR decoding requires dual-rate mono or stereo audio.";
+                }
+            }
             return configuration.FrequencyIndex == 12 ? "The 7350 Hz AAC band tables are not supported." : null;
         }
 
@@ -58,7 +69,9 @@ namespace Mediana.Codecs.Aac
             }
             AacConfiguration configuration = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out reason)
                 ?? throw new NotSupportedException(reason);
-            return new AacDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes);
+            return configuration.SpectralBandReplication == true ?
+                new AacSbrDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes) :
+                new AacDecoder(stream.StreamIndex, configuration, allocator, maxAccessUnitBytes);
         }
     }
 }

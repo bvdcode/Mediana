@@ -38,7 +38,8 @@ namespace Mediana.Tests
                         using MediaPacket packet = await reader.ReadPacketAtAsync(1, index);
                         foreach (AacChannelState channel in workspace.Channels) { channel.ClearFrame(); }
                         uint seed = 0x13579bdf;
-                        AacAccessUnitParser.Read(packet.Data.Span, configuration.FrequencyIndex, workspace, ref seed, default);
+                        AacAccessUnitParser.Read(packet.Data.Span, configuration.FrequencyIndex,
+                            configuration.ExtensionSampleRate ?? configuration.SampleRate * 2, workspace, ref seed, default);
                         noise |= seed != 0x13579bdf;
                     }
                     Assert.True(noise, "The compressed source must exercise perceptual noise substitution and its nonunique synthesized noise phase.");

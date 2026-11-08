@@ -1,0 +1,22 @@
+{
+  "fixtures": [
+    {
+      "name": "transients-mono",
+      "sampleRate": 48000,
+      "coreSampleRate": 24000,
+      "channels": 1,
+      "frames": 16,
+      "inputSha256": "8b406fe3616eea0d824cc83a416f937004a4ff4151cab00c6b406b91610032f4",
+      "pcmSha256": "034fc2766b6b17a6391456f9d266520d75634271be1e5d94f85c7d3254346a27"
+    },
+    {
+      "name": "transients-stereo",
+      "sampleRate": 48000,
+      "coreSampleRate": 24000,
+      "channels": 2,
+      "frames": 16,
+      "inputSha256": "389992fdfff773730bd6ae4c9661522cf5a3e13d81f7398748da2bfd3a41f076",
+      "pcmSha256": "15ee79ac4e2573fd877957cd4b9b54531f8932f379202c5237829a125562c640"
+    }
+  ]
+}
