@@ -73,3 +73,17 @@ The uncompressed format begins with `AV1TXF04` and a little-endian uint32 case
 count; each case has a one-byte transform type and sixteen int32 input values
 followed by sixteen int32 output values. Native reference code is used only
 when generating this fixture.
+
+`transform1d.bin.gz` records 1,932 independent AOM one-dimensional transform
+cases: DCT lengths 4–64, ADST lengths 4–16 and identity lengths 4–32. Cases
+include zero input, positive/negative basis impulses and seeded coefficient
+vectors. After `AV1TXF1D` and a uint32 count, each record stores type and length
+as bytes, followed by the int32 input and output vectors.
+
+`transform2d.bin.gz` composes those native routines according to the normative
+two-dimensional scaling, clamping and flipping rules. It contains 772 cases
+across all nineteen AV1 transform geometries and applicable transform types.
+Cases use zero, DC/AC impulses and seeded coefficient blocks. After `AV1TXF2D`
+and a uint32 count, each record stores type, width and height as bytes, followed
+by full planar int32 input and output matrices. These transform fixtures verify
+primitive arithmetic; they do not establish larger-transform picture coverage.
