@@ -137,7 +137,15 @@ sixteen-byte grid cell. Three moving sequences, including odd dimensions and
 hidden reference frames, match every libdav1d sample; 3,492 actual overlap cells
 match independent AOM mode inspection for every coded frame.
 
-Non-identity global motion, warped reconstruction, inter-intra blending,
+Local affine warp selects up to eight eligible single-reference neighbors,
+fits a bounded fixed-point model and validates its two shear operations.
+Normative eight-tap filtering operates in 8×8 regions with a 480-byte stack
+intermediate, sharing one model across luma and chroma. No matrix is stored per
+motion-grid cell. Independent AOM vectors verify 512 fits and 256 filtered
+luma/chroma regions. Three moving sequences, including hidden frames and odd
+dimensions, match every libdav1d sample and 156 actual local-warp cells.
+
+Non-identity global motion, inter-intra blending,
 intra block copy,
 segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,

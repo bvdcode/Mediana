@@ -325,3 +325,30 @@ display OBUs do not add a record. The uncompressed format begins with
 and four bytes per cell: block size, first signed reference, second signed
 reference and motion mode. The three corpora have 13, 8 and 8 coded frames,
 with 1,956, 876 and 660 inter cells selecting OBMC. Gzip timestamps are zero.
+
+`warpDefault`, `warpRegions` and `warpOdd` repeat the preceding moving OBMC
+sources with local warped motion enabled; only inter-intra compound is
+disabled. All 28 visible pictures match independent libdav1d output. The same
+per-coded-frame `.obmc.gz` format verifies every motion mode: the three
+sequences contain 100, 32 and 24 local-warp cells, of which 100, 28 and 24
+have non-translation affine parameters in AOM inspection. Hidden coded frames
+are inspected individually before a subsequent visible frame changes the
+current native block grid.
+
+`warp-fit.gz` and `warp-kernels.gz` use unchanged AOM 3.8.2
+[`warped_motion.c`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.8.2/av1/common/warped_motion.c)
+least-squares, shear and eight-bit filtering routines. The fit format starts
+with `AV1WFIT1` and uint32 count (512). Each record stores byte sample count and
+block size, uint16 MI row/column, int32 motion row/column, then four int32
+coordinates per sample in source-row/source-column/destination-row/destination-column
+order. A validity byte follows; valid records store six int32 model parameters
+and four int16 shear parameters. There are 442 valid fits, including single
+sample and larger candidate sets; invalid sets remain invalid.
+
+The filtering format starts with `AV1WARP1`, uint32 count (256) and one seeded
+96×80 planar YUV420 reference. Each case stores the six int32 model parameters,
+four int16 shears, byte plane/x/y/width/height and densely packed filtered
+samples. Cases include translation beyond reference edges, signed shears,
+luma/chroma planes and clipped non-eight-sample destinations. Output outside
+the requested region and reference pixels must remain unchanged. These native
+routines are fixture-generation tools only; runtime tests use managed code.

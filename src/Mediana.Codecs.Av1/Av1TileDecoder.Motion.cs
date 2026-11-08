@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void PredictInter(int row, int column, int width, int height, bool hasChroma, Av1MotionBlock block, Av1ReferencePictures pictures, Av1CompoundPrediction prediction)
+        private void PredictInter(int row, int column, int width, int height, bool hasChroma, Av1MotionBlock block, Av1ReferencePictures pictures, Av1CompoundPrediction prediction, Av1WarpParameters warp)
         {
             int maskStride = width * 4;
             Span<byte> mask = prediction.Mask == Av1CompoundMaskType.None ? default : stackalloc byte[maskStride * height * 4];
@@ -50,7 +50,11 @@ namespace Mediana.Codecs.Av1
                         int clippedHeight = Math.Min(stepY, sequence.PlaneHeight(plane) - y - dy);
                         if (clippedWidth > 0 && clippedHeight > 0)
                         {
-                            if (selected.SecondReference == 0)
+                            if (selected.MotionMode == 2 && warp.IsValid && planeWidth >= 8 && planeHeight >= 8)
+                            {
+                                Av1WarpPrediction.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, warp);
+                            }
+                            else if (selected.SecondReference == 0)
                             {
                                 Av1MotionCompensation.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected);
                             }

@@ -77,13 +77,14 @@ namespace Mediana.Codecs.Av1
                 if (list == 0) { block.Row = motionY; block.Column = motionX; }
                 else { block.SecondRow = (short)motionY; block.SecondColumn = (short)motionX; }
             }
-            if (!compound) { block.MotionMode = ReadMotionMode(row, column, width, height, reference, pictures); }
+            Av1WarpParameters warp = default;
+            if (!compound) { block.MotionMode = ReadMotionMode(row, column, width, height, block, pictures, out warp); }
             Av1CompoundPrediction compoundPrediction = compound ? ReadCompoundPrediction(row, column, width, height, ref block, pictures) : default;
             int filterY = header.Inter.InterpolationFilter;
             int filterX = filterY;
             if (filterY == 4)
             {
-                if (skipMode || Math.Min(width, height) >= 2 && mode is 15 or 23) { filterY = filterX = 0; }
+                if (skipMode || block.MotionMode == 2 || Math.Min(width, height) >= 2 && mode is 15 or 23) { filterY = filterX = 0; }
                 else
                 {
                     filterY = ReadInterpolation(row, column, reference, 0, compound);
@@ -94,7 +95,7 @@ namespace Mediana.Codecs.Av1
             block.FilterX = (byte)filterX;
             StoreMotion(row, column, width, height, block);
             bool hasChroma = !sequence.Monochrome && !(height == 1 && (row & 1) == 0) && !(width == 1 && (column & 1) == 0);
-            PredictInter(row, column, width, height, hasChroma, block, pictures, compoundPrediction);
+            PredictInter(row, column, width, height, hasChroma, block, pictures, compoundPrediction, warp);
             if (block.MotionMode == 1) { PredictOverlap(row, column, width, height, hasChroma, pictures); }
             StoreFilterBlock(row, column, width, height, reference, mode, skip != 0);
             Av1TransformSize transform = ReadInterTransformSizes(row, column, width, height, skip != 0);

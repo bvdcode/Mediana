@@ -5,8 +5,10 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private int ReadMotionMode(int row, int column, int width, int height, int reference, Av1ReferencePictures pictures)
+        private int ReadMotionMode(int row, int column, int width, int height, Av1MotionBlock block, Av1ReferencePictures pictures, out Av1WarpParameters warp)
         {
+            warp = default;
+            int reference = block.Reference;
             int blockIndex = BlockIndex(width, height);
             if (sequence.Tools.InterIntra && blockIndex is >= 3 and <= 9)
             {
@@ -20,12 +22,13 @@ namespace Mediana.Codecs.Av1
             Av1SequenceHeader source = pictures.Get(header.Inter.References[reference - 1]).Header.Geometry;
             int scaleX = ((source.Width << 14) + sequence.Width / 2) / sequence.Width;
             int scaleY = ((source.Height << 14) + sequence.Height / 2) / sequence.Height;
-            bool warped = !header.Inter.IntegerMotion && header.Inter.WarpedMotion && scaleX == 16384 && scaleY == 16384 &&
-                HasWarpSamples(row, column, width, height, reference);
-            int mode = warped
+            Span<Av1WarpSample> storage = stackalloc Av1WarpSample[Av1WarpSamples.Capacity];
+            Av1WarpSamples samples = new(storage, motionBlocks, sequence, row, column, width, height, block);
+            if (!header.Inter.IntegerMotion && header.Inter.WarpedMotion && scaleX == 16384 && scaleY == 16384) { samples.Find(); }
+            int mode = !samples.Samples.IsEmpty
                 ? symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MotionModeOffset + blockIndex * 4, 4))
                 : symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.ObmcOffset + blockIndex * 3, 3));
-            if (mode == 2) { throw new NotSupportedException($"AV1 warped block reconstruction is not implemented at ({row}, {column})."); }
+            if (mode == 2) { warp = Av1WarpEstimation.Estimate(samples.Samples, row, column, width, height, block); }
             return mode;
         }
 
@@ -47,60 +50,5 @@ namespace Mediana.Codecs.Av1
             }
             return false;
         }
-
-        private bool HasWarpSamples(int row, int column, int width, int height, int reference)
-        {
-            bool topLeft = true;
-            bool topRight = true;
-            if (row > 0)
-            {
-                int sourceWidth = motionBlocks[(row - 1) * sequence.MiColumns + column].Width;
-                if (sourceWidth == 0) { throw new InvalidDataException("The AV1 upper motion block is unavailable."); }
-                if (width <= sourceWidth)
-                {
-                    int offset = -(column & (sourceWidth - 1));
-                    topLeft = offset == 0;
-                    topRight = offset + sourceWidth <= width;
-                    if (WarpSample(row - 1, column, reference)) { return true; }
-                }
-                else
-                {
-                    for (int index = 0; index < Math.Min(width, sequence.MiColumns - column);)
-                    {
-                        if (WarpSample(row - 1, column + index, reference)) { return true; }
-                        sourceWidth = motionBlocks[(row - 1) * sequence.MiColumns + column + index].Width;
-                        if (sourceWidth == 0) { throw new InvalidDataException("The AV1 upper motion block is unavailable."); }
-                        index += Math.Min(width, sourceWidth);
-                    }
-                }
-            }
-            if (column > 0)
-            {
-                int sourceHeight = motionBlocks[row * sequence.MiColumns + column - 1].Height;
-                if (sourceHeight == 0) { throw new InvalidDataException("The AV1 left motion block is unavailable."); }
-                if (height <= sourceHeight)
-                {
-                    if ((row & (sourceHeight - 1)) != 0) { topLeft = false; }
-                    if (WarpSample(row, column - 1, reference)) { return true; }
-                }
-                else
-                {
-                    for (int index = 0; index < Math.Min(height, sequence.MiRows - row);)
-                    {
-                        if (WarpSample(row + index, column - 1, reference)) { return true; }
-                        sourceHeight = motionBlocks[(row + index) * sequence.MiColumns + column - 1].Height;
-                        if (sourceHeight == 0) { throw new InvalidDataException("The AV1 left motion block is unavailable."); }
-                        index += Math.Min(height, sourceHeight);
-                    }
-                }
-            }
-            if (topLeft && WarpSample(row - 1, column - 1, reference)) { return true; }
-            return topRight && Math.Max(width, height) <= 16 && WarpSample(row - 1, column + width, reference);
-        }
-
-        private bool WarpSample(int row, int column, int reference) =>
-            row >= 0 && row < sequence.MiRows && column >= 0 && column < sequence.MiColumns &&
-            motionBlocks[row * sequence.MiColumns + column].Reference == reference &&
-            motionBlocks[row * sequence.MiColumns + column].SecondReference == 0;
     }
 }

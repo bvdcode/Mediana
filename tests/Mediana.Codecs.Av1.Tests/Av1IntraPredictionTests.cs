@@ -46,6 +46,9 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("obmcDefault", 160, 136, false, 12)]
         [InlineData("obmcRegions", 96, 80, false, 8)]
         [InlineData("obmcOdd", 97, 81, false, 8)]
+        [InlineData("warpDefault", 160, 136, false, 12)]
+        [InlineData("warpRegions", 96, 80, false, 8)]
+        [InlineData("warpOdd", 97, 81, false, 8)]
         public void PublicCodecMatchesIndependentDecodedVideo(string name, int width, int height, bool monochrome, int count)
         {
             byte[] encoded = Read(name + ".obu");

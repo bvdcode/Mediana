@@ -10,10 +10,13 @@ namespace Mediana.Codecs.Av1.Tests
     public class Av1OverlapTests
     {
         [Theory]
-        [InlineData("obmcDefault", 13, 1956)]
-        [InlineData("obmcRegions", 8, 876)]
-        [InlineData("obmcOdd", 8, 660)]
-        public void EveryCodedFrameMatchesIndependentOverlapModesIncludingHiddenFrames(string name, int codedFrames, int expectedOverlap)
+        [InlineData("obmcDefault", 13, 1956, 0)]
+        [InlineData("obmcRegions", 8, 876, 0)]
+        [InlineData("obmcOdd", 8, 660, 0)]
+        [InlineData("warpDefault", 13, 1824, 100)]
+        [InlineData("warpRegions", 8, 948, 32)]
+        [InlineData("warpOdd", 8, 636, 24)]
+        public void EveryCodedFrameMatchesIndependentMotionModesIncludingHiddenFrames(string name, int codedFrames, int expectedOverlap, int expectedWarped)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", name + ".obu"));
             using GZipStream source = new(File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Data", name + ".obmc.gz")), CompressionMode.Decompress);
@@ -23,6 +26,7 @@ namespace Mediana.Codecs.Av1.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             int count = 0;
             int overlap = 0;
+            int warped = 0;
             using (Av1ReferencePictures references = new())
             {
                 Av1SequenceHeader sequence = default;
@@ -73,6 +77,7 @@ namespace Mediana.Codecs.Av1.Tests
                         if (first == 0) { continue; }
                         Assert.Equal(mode, actual.MotionMode);
                         if (mode == 1) { overlap++; }
+                        if (mode == 2) { warped++; }
                     }
                     if (header.DisableFrameEndUpdate) { Av1TileProbabilities.Initialize(probabilities, header.Quantization.BaseIndex, initial); }
                     using Av1Picture picture = new(header, pixels.Publish());
@@ -86,6 +91,7 @@ namespace Mediana.Codecs.Av1.Tests
             }
             Assert.Equal(codedFrames, count);
             Assert.Equal(expectedOverlap, overlap);
+            Assert.Equal(expectedWarped, warped);
             Assert.Equal(-1, source.ReadByte());
             Assert.Equal(0, allocator.AllocatedBytes);
         }
