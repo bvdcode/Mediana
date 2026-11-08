@@ -34,7 +34,7 @@ namespace Mediana.Processing
             try
             {
                 ObjectDisposedException.ThrowIf(disposed, this); ArgumentNullException.ThrowIfNull(input); cancellationToken.ThrowIfCancellationRequested();
-                if (!Matches(input.Format, inputFormat))
+                if (!Matches(input.Format, inputFormat, options?.SourceColorInterpretation is null))
                 {
                     VideoPreparation replacement = new(input.Format, displayMatrix, allocator, options); bool accepted = false;
                     try
@@ -52,9 +52,9 @@ namespace Mediana.Processing
             finally { Volatile.Write(ref busy, 0); }
         }
 
-        private static bool Matches(VideoFormat left, VideoFormat right) => left.Width == right.Width && left.Height == right.Height &&
+        private static bool Matches(VideoFormat left, VideoFormat right, bool compareColor = true) => left.Width == right.Width && left.Height == right.Height &&
             left.PixelFormat == right.PixelFormat && left.SampleAspectRatio == right.SampleAspectRatio &&
-            left.GetColorInterpretation() == right.GetColorInterpretation();
+            (!compareColor || left.GetColorInterpretation() == right.GetColorInterpretation());
 
         public void Dispose()
         {

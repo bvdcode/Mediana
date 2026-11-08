@@ -13,6 +13,7 @@ namespace Mediana.Processing
     public class VideoPreparation : IDisposable
     {
         private readonly Yuv420FrameTransform transform;
+        private readonly VideoFormat? interpretedInput;
         private readonly RgbaToYuv420? rgb;
         private readonly Yuv420AreaResizer? resizer;
         private bool disposed;
@@ -28,10 +29,15 @@ namespace Mediana.Processing
             {
                 throw new ArgumentOutOfRangeException(nameof(options), "Video dimension bounds must be at least two samples.");
             }
-            VideoFormat planar = inputFormat;
+            if (options.SourceColorInterpretation is VideoColorInfo interpretation)
+            {
+                interpretedInput = new(inputFormat.Width, inputFormat.Height, inputFormat.PixelFormat,
+                    interpretation, inputFormat.SampleAspectRatio);
+            }
+            VideoFormat planar = interpretedInput ?? inputFormat;
             if ((inputFormat.PixelFormat == VideoPixelFormat.Rgba32 || inputFormat.PixelFormat is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Gbr }) && options.RgbConversion is not null)
             {
-                rgb = new(inputFormat, options.RgbConversion, allocator);
+                rgb = new(planar, options.RgbConversion, allocator);
                 planar = rgb.OutputFormat;
             }
             transform = new(planar, sourceDisplayMatrix, options.OutputPixelFormat ?? DefaultOutput(planar.PixelFormat), allocator);
@@ -65,12 +71,27 @@ namespace Mediana.Processing
             try
             {
                 ObjectDisposedException.ThrowIf(disposed, this);
-                using VideoFrame? converted = rgb?.Apply(input, cancellationToken);
-                if (resizer is null) { return transform.Apply(converted ?? input, cancellationToken); }
-                using VideoFrame transformed = transform.Apply(converted ?? input, cancellationToken);
+                ArgumentNullException.ThrowIfNull(input);
+                cancellationToken.ThrowIfCancellationRequested();
+                using VideoFrame? interpreted = Interpret(input);
+                using VideoFrame? converted = rgb?.Apply(interpreted ?? input, cancellationToken);
+                if (resizer is null) { return transform.Apply(converted ?? interpreted ?? input, cancellationToken); }
+                using VideoFrame transformed = transform.Apply(converted ?? interpreted ?? input, cancellationToken);
                 return resizer.ResizeOrRetain(transformed, cancellationToken);
             }
             finally { Volatile.Write(ref busy, 0); }
+        }
+
+        private VideoFrame? Interpret(VideoFrame input)
+        {
+            if (interpretedInput is null) { return null; }
+            VideoFormat actual = input.Format;
+            if (actual.Width != interpretedInput.Width || actual.Height != interpretedInput.Height ||
+                actual.PixelFormat != interpretedInput.PixelFormat || actual.SampleAspectRatio != interpretedInput.SampleAspectRatio)
+            {
+                throw new NotSupportedException("The input frame differs from the configured video preparation geometry.");
+            }
+            return input.WithFormat(interpretedInput);
         }
 
         public void Dispose()
