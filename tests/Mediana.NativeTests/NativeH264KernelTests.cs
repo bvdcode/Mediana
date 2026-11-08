@@ -43,6 +43,9 @@ namespace Mediana.NativeTests
             H264ChromaInterpolationTestInput.Verify();
             H264IntraModeTestInput.Verify();
             H264CabacEncodingTestInput.Verify();
+            H264CabacCheckpointTestInput.Verify();
+            H264PreparedMacroblockTestInput.Verify();
+            H264RateDistortionTestInput.VerifyLifecycle();
             foreach (int qp in new[] { 0, 12, 26, 38, 51 })
             {
                 (byte[] _, byte[] pixels) = await H264Intra16TestInput.EncodeAsync(qp);

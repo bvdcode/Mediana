@@ -278,6 +278,7 @@
     <Compile Include="../Shared/Av1ContainerTestInput.cs" Link="Av1ContainerTestInput.cs" />
     <Compile Include="../Shared/Av1PictureSequenceTestInput.cs" Link="Av1PictureSequenceTestInput.cs" />
     <Compile Include="../Shared/Av1TimingTestInput.cs" Link="Av1TimingTestInput.cs" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/clippedCompound.obu;../Mediana.Codecs.Av1.Tests/Data/clippedCompound.sha256;../Mediana.Codecs.Av1.Tests/Data/tiles*.obu;../Mediana.Codecs.Av1.Tests/Data/tiles*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/timing*.obu" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/timing.reference.yuv" Link="Data/Av1/timing.reference.yuv" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/interOrdered.mp4" Link="Data/Av1/interOrdered.mp4" CopyToOutputDirectory="PreserveNewest" />
@@ -475,6 +476,11 @@
     <Compile Include="../Shared/H264CabacIntervalWriter.cs" Link="H264CabacIntervalWriter.cs" />
     <Compile Include="../Shared/H264CabacEncodingTestInput.cs" Link="H264CabacEncodingTestInput.cs" />
     <Compile Include="../Shared/H264CabacPictureTestInput.cs" Link="H264CabacPictureTestInput.cs" />
+    <Compile Include="../Shared/H264CabacCheckpointTestInput.cs" Link="H264CabacCheckpointTestInput.cs" />
+    <Compile Include="../Shared/H264PreparedMacroblockTestInput.cs" Link="H264PreparedMacroblockTestInput.cs" />
+    <Compile Include="../Shared/H264CountingSyntax.cs" Link="H264CountingSyntax.cs" />
+    <Compile Include="../Shared/H264RateDistortionTestInput.cs" Link="H264RateDistortionTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/H264RateDistortion/*" Link="Data/H264RateDistortion/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/H264CabacEncoding/*" Link="Data/H264CabacEncoding/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264CabacTestInput.cs" Link="H264CabacTestInput.cs" />
     <Compile Include="../Shared/H264CabacPredictionTestInput.cs" Link="H264CabacPredictionTestInput.cs" />
