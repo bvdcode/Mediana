@@ -8,7 +8,8 @@ using Mediana.Cli.Updates;
 
 namespace Mediana.Tests
 {
-    public class UpdateScriptTests : IDisposable
+    [Collection("CommandLine")]
+    public class UpdateScriptTests(Xunit.Abstractions.ITestOutputHelper output) : IDisposable
     {
         private readonly string directory = Directory.CreateTempSubdirectory("mediana update's (x64) ").FullName;
 
@@ -39,6 +40,7 @@ namespace Mediana.Tests
                 "-TargetPath", installed, "-StagedPath", staged, "-BackupPath", backup,
                 "-LogPath", log, "-ExpectedSha256", Convert.ToHexString(hash), "-Version", "1.2.3"
             ]);
+            Task<string> error = helper.StandardError.ReadToEndAsync();
             try
             {
                 Assert.Equal("ready", await helper.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(10)));
@@ -55,6 +57,7 @@ namespace Mediana.Tests
             }
             finally
             {
+                output.WriteLine($"Helper exited before cleanup: {helper.HasExited}; parent exited: {parent.HasExited}.");
                 foreach (Process process in new[] { helper, parent })
                 {
                     if (!process.HasExited)
@@ -62,6 +65,11 @@ namespace Mediana.Tests
                         process.Kill();
                         await process.WaitForExitAsync();
                     }
+                }
+                output.WriteLine($"Helper exit code: {helper.ExitCode}; stderr: {await error}");
+                if (File.Exists(log))
+                {
+                    output.WriteLine(await File.ReadAllTextAsync(log));
                 }
             }
         }
