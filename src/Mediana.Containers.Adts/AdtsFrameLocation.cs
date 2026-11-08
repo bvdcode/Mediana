@@ -3,5 +3,5 @@
 
 namespace Mediana.Containers.Adts
 {
-    internal readonly record struct AdtsFrameLocation(long Offset, int ByteLength);
+    internal readonly record struct AdtsFrameLocation(long Offset, int ByteLength, bool HasCrc);
 }

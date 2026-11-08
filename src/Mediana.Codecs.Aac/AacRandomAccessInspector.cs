@@ -45,7 +45,7 @@ namespace Mediana.Codecs.Aac
                 throw new NotSupportedException("The AAC packet exceeds the configured access unit limit.");
             }
             AacAccessUnitInspection inspection = AacAccessUnitParser.Inspect(packet.Data.Span, configuration.FrequencyIndex,
-                configuration.SampleRate * 2, layout, cancellationToken);
+                configuration.SampleRate * 2, layout, cancellationToken, AacPacketProtection.GetPrefix(packet));
             bool sbr = inspection.HasSbr;
             if (sbr && configuration.SpectralBandReplication == false)
             {

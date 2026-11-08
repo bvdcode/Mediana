@@ -11,7 +11,8 @@ using Mediana.IO;
 namespace Mediana.Containers.Adts
 {
     /// <summary>Indexes frame headers without reading compressed payloads. Borrows a complete immutable random-access source.
-    /// Reads preserve the source cursor; indexed reads also preserve the reader cursor. CRC words are not verified.</summary>
+    /// Reads preserve the source cursor; indexed reads also preserve the reader cursor.
+    /// Protected packets retain their transport header and CRC as side data for codec-level validation.</summary>
     public partial class AdtsIndexedReader : IIndexedPrerollReader, IIndexedPacketTimingReader, IIndexedPresentationTimingReader
     {
         private readonly IRandomAccessByteSource source;
@@ -65,7 +66,7 @@ namespace Mediana.Containers.Adts
                 {
                     throw new InvalidDataException("The ADTS frame extends beyond the source.");
                 }
-                locations.Add(new(position + header.HeaderBytes, header.FrameBytes - header.HeaderBytes));
+                locations.Add(new(position + header.HeaderBytes, header.FrameBytes - header.HeaderBytes, header.HasCrc));
                 position = checked(position + header.FrameBytes);
             }
             cancellationToken.ThrowIfCancellationRequested();
@@ -102,11 +103,12 @@ namespace Mediana.Containers.Adts
         private async ValueTask<MediaPacket> ReadCoreAsync(int index, CancellationToken token)
         {
             AdtsFrameLocation location = locations[index];
-            using WritableMediaBuffer writable = allocator.Allocate(location.ByteLength);
-            await source.ReadExactlyAtAsync(location.Offset, writable.Memory, token).ConfigureAwait(false);
+            int prefixBytes = location.HasCrc ? AdtsPacketProtection.PrefixByteLength : 0;
+            using WritableMediaBuffer writable = allocator.Allocate(location.ByteLength + prefixBytes);
+            await source.ReadExactlyAtAsync(location.Offset - prefixBytes, writable.Memory, token).ConfigureAwait(false);
             using MediaBuffer buffer = writable.Publish();
             MediaTimestamp timestamp = Timestamp(index);
-            return new(0, buffer, timestamp, timestamp, Duration);
+            return AdtsPacketFactory.Create(buffer, location.HasCrc, timestamp, Duration);
         }
 
         private MediaTimestamp Timestamp(int index) => new((long)index * AdtsFrameValidation.SamplesPerFrame, Streams[0].TimeBase);

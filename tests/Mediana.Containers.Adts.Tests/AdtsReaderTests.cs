@@ -6,6 +6,7 @@ using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Formats;
+using Mediana.Formats.Audio;
 
 namespace Mediana.Tests
 {
@@ -40,7 +41,9 @@ namespace Mediana.Tests
             }
             Assert.False(source.IsDisposed);
             Assert.Equal(new byte[] { 0x33, 0x44 }, retained.Data.ToArray());
-            Assert.Equal(2, allocator.AllocatedBytes);
+            Assert.True(retained.TryGetSideData(AdtsPacketProtection.SideDataKind, out MediaPacketSideDataView protection));
+            Assert.Equal(protectedFrame[..9], protection.Data.ToArray());
+            Assert.Equal(protectedFrame.Length, allocator.AllocatedBytes);
             retained.Dispose();
             Assert.Equal(0, allocator.AllocatedBytes);
         }

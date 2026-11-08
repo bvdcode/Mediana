@@ -20,8 +20,11 @@ clock and seek-point queries perform no source reads. Decoder preroll uses the
 existing packet-history contract. The total coded duration is exposed after
 indexing; it is not reported as a container-declared duration.
 
-Each packet read allocates only the current raw data block, excluding its ADTS
-header and optional CRC word. The reader borrows
+Unprotected packet reads allocate only the current raw data block. Protected
+reads allocate the complete current frame once: the packet payload and
+`AdtsPacketProtection.SideDataKind` prefix are immutable views of that same
+allocation. The nine-byte prefix retains the original transport header and CRC
+without a second transport buffer. The reader borrows
 the source; returned packets retain their own storage after reader disposal.
 Timestamps advance by 1024 core samples and preserve codec priming and padding.
 Implicit SBR, when present, is a decoding concern; the ADTS header declares the
@@ -31,8 +34,31 @@ The header parser validates sync, layer, indexed frequency, reserved MPEG-2
 profile and declared frame capacity. The reader detects truncated payloads and
 configuration changes. One raw data block per frame is supported. Multiple
 blocks, leading/interleaved metadata and resynchronization remain
-open. CRC words are consumed but not verified. SBR decoding remains separate
-from ADTS transport support.
+open. The AAC decoder validates protected packets during its existing syntax
+parse, before emitting PCM. Invalid protection faults the decoder and requires
+reset or disposal. SBR decoding remains separate from ADTS transport support.
+
+Demux clients can validate protection explicitly without reconstructing samples:
+
+```csharp
+IPacketIntegrityValidator validator = new AacDecoderFactory()
+    .CreateIntegrityValidator(reader.Streams[0]);
+PacketIntegrityStatus status = validator.Validate(packet, cancellationToken);
+```
+
+`Verified` refers to the validator's `SideDataKind`; `NotPresent` means that
+scheme is absent. Malformed metadata, mismatched headers, truncated syntax and
+CRC mismatches throw. The validator does not decode PCM or retain packet storage.
+Packet `Retain` and `RetainWithDuration` preserve side-data ownership. Applications
+constructing a packet from only `RetainData` intentionally retain only its payload.
+
+ADTS CRC-16 uses polynomial 0x8005 and initial state 0xffff. Its coverage includes
+all 56 transport header bits, the first 192 bits of each supported channel
+element, another 128 bits from the second CPE channel, and complete data-stream
+elements. Element identifiers are excluded. Short channel regions are zero
+padded; overlapping CPE bits are protected twice. Fill data and the complete AAC
+payload are not blanket-protected. Coupling and in-band program configurations
+remain unsupported by this AAC decoder and validator.
 
 Tests cover byte-at-a-time sources, protected and unprotected headers, packet
 timing and ownership, cancellation, overlapping operations, malformed lengths,
@@ -41,9 +67,15 @@ decode through the public engine; every mono/stereo sample matches the existing
 independent float32 references within 2e-6, with exact sample counts and clocks.
 Indexed decoding also checks repeated backward and forward seeks against continuous
 PCM and verifies that index creation reads headers without payloads.
+Independent FDK AAC 2.0.3 fixtures validate all 24 original mono/stereo CRC words,
+including short and overlapping channel regions. A further six-frame DSE vector
+is accepted by the unchanged FDK decoder and covers data beyond the fixed
+channel prefix length. Tests also reject header, CRC-word and coded-syntax
+corruption, check budget/cancellation cleanup, and verify shared backing memory.
 This does not establish coverage of every AAC profile or ADTS variant.
 
 Header syntax follows [ISO/IEC 13818-7](https://www.iso.org/standard/43345.html).
+CRC coverage follows ISO/IEC 14496-3:2001, Annex 1.A.3.2.1, pages 65–66.
 [SMPTE ST 2041-3](https://pub.smpte.org/pub/st2041-3/st2041-3-2010.pdf), sections
 5–6, also describes ADTS carriage and the distinction between core and SBR output
 sample rates.

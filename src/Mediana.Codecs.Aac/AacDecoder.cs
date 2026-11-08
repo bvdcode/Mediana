@@ -78,9 +78,11 @@ namespace Mediana.Codecs.Aac
                 {
                     throw new NotSupportedException("The AAC packet exceeds the configured access unit limit.");
                 }
+                ReadOnlySpan<byte> protection = AacPacketProtection.GetPrefix(input);
                 workspace ??= new AacDecoderWorkspace(allocator, layout);
                 int sbrRate = configuration.SampleRate * 2;
-                AacAccessUnitParser.Read(input.Data.Span, configuration.FrequencyIndex, sbrRate, workspace, ref noiseState, cancellationToken);
+                AacAccessUnitParser.Read(input.Data.Span, configuration.FrequencyIndex, sbrRate, workspace, ref noiseState,
+                    cancellationToken, protection);
                 bool sbr = workspace.SbrElements.Any(element => element is not null);
                 if (sbr && configuration.SpectralBandReplication == false)
                 {

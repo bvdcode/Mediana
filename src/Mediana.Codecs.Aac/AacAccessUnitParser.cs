@@ -6,27 +6,28 @@ namespace Mediana.Codecs.Aac
     internal static class AacAccessUnitParser
     {
         public static void Read(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate, AacDecoderWorkspace workspace,
-            ref uint noiseState, CancellationToken cancellationToken)
+            ref uint noiseState, CancellationToken cancellationToken, ReadOnlySpan<byte> protection = default)
         {
             workspace.BeginSbrFrame();
             ReadCore(data, frequencyIndex, sbrSampleRate, workspace.Layout, workspace.ElementTags, workspace,
-                ref noiseState, cancellationToken);
+                ref noiseState, cancellationToken, protection);
         }
 
         public static AacAccessUnitInspection Inspect(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate,
-            AacChannelLayout layout, CancellationToken cancellationToken)
+            AacChannelLayout layout, CancellationToken cancellationToken, ReadOnlySpan<byte> protection = default)
         {
             Span<int> tags = stackalloc int[layout.Elements.Length];
             tags.Fill(-1);
             uint noiseState = 0;
-            return ReadCore(data, frequencyIndex, sbrSampleRate, layout, tags, null, ref noiseState, cancellationToken);
+            return ReadCore(data, frequencyIndex, sbrSampleRate, layout, tags, null, ref noiseState, cancellationToken, protection);
         }
 
         private static AacAccessUnitInspection ReadCore(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate,
             AacChannelLayout layout, Span<int> tags, AacDecoderWorkspace? workspace, ref uint noiseState,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, ReadOnlySpan<byte> protection)
         {
             AacBitReader bits = new(data);
+            AacAdtsCrc crc = new(data, protection, frequencyIndex, layout.ChannelCount);
             int element = 0;
             int channel = 0;
             int previousType = -1;
@@ -41,6 +42,7 @@ namespace Mediana.Codecs.Aac
                 {
                     break;
                 }
+                int start = bits.Position;
                 switch (type)
                 {
                     case 0:
@@ -56,11 +58,14 @@ namespace Mediana.Codecs.Aac
                             AacChannelParser.Read(ref bits, single, frequencyIndex, null, false, cancellationToken);
                             AacSpectralTools.Reconstruct(single, null, false, 0, [], ref noiseState, cancellationToken);
                         }
+                        crc.AddChannel(start, bits.Position);
                         channel++;
                         break;
                     case 1:
                         BindElement(layout.Elements, tags, element++, type, bits.Read(4));
-                        ReadPair(ref bits, workspace, channel, frequencyIndex, ref noiseState, cancellationToken);
+                        int secondStart = ReadPair(ref bits, workspace, channel, frequencyIndex, ref noiseState, cancellationToken);
+                        crc.AddChannel(start, bits.Position);
+                        crc.AddSecondChannel(secondStart, bits.Position);
                         channel += 2;
                         break;
                     case 4:
@@ -76,6 +81,7 @@ namespace Mediana.Codecs.Aac
                             bits.Align();
                         }
                         bits.Skip(count * 8);
+                        crc.AddDataElement(start, bits.Position);
                         break;
                     case 6:
                         independent &= ReadFill(ref bits, workspace, element - 1, previousType, sbrSampleRate, out bool sbr, out bool ps);
@@ -95,10 +101,11 @@ namespace Mediana.Codecs.Aac
             {
                 throw new InvalidDataException("An AAC packet must contain one complete raw data block for the configured channels.");
             }
+            crc.Verify();
             return new(independent, hasSbr, hasParametricStereo);
         }
 
-        private static void ReadPair(ref AacBitReader bits, AacDecoderWorkspace? workspace, int channel, int frequencyIndex,
+        private static int ReadPair(ref AacBitReader bits, AacDecoderWorkspace? workspace, int channel, int frequencyIndex,
             ref uint noiseState, CancellationToken cancellationToken)
         {
             bool commonWindow = bits.Read(1) != 0;
@@ -125,9 +132,11 @@ namespace Mediana.Codecs.Aac
                     }
                 }
             }
+            int secondStart;
             if (workspace is null)
             {
                 AacChannelParser.Inspect(ref bits, frequencyIndex, info, false, cancellationToken);
+                secondStart = bits.Position;
                 AacChannelParser.Inspect(ref bits, frequencyIndex, info, commonWindow, cancellationToken);
             }
             else
@@ -135,9 +144,11 @@ namespace Mediana.Codecs.Aac
                 AacChannelState left = workspace.Channels[channel];
                 AacChannelState right = workspace.Channels[channel + 1];
                 AacChannelParser.Read(ref bits, left, frequencyIndex, info, false, cancellationToken);
+                secondStart = bits.Position;
                 AacChannelParser.Read(ref bits, right, frequencyIndex, info, commonWindow, cancellationToken);
                 AacSpectralTools.Reconstruct(left, right, commonWindow, maskMode, mask, ref noiseState, cancellationToken);
             }
+            return secondStart;
         }
 
         private static bool ReadFill(ref AacBitReader bits, AacDecoderWorkspace? workspace, int element, int previousType,

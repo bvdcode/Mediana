@@ -9,3 +9,31 @@ The tests compare every decoded sample with the existing independent float32
 references in `Mediana.Tests/Data/Aac`. No container edit or gapless trimming is
 applied; the references include every complete coded AAC frame. The mono input
 uses 48 kHz, and the stereo input uses 44.1 kHz.
+
+`silence-1.aac`, `silence-2.aac`, `tone-1.aac` and `tone-2.aac` contain six
+protected AAC-LC ADTS frames each. FDK AAC 2.0.3 encoded 4096 generated 48 kHz
+PCM16 samples at 32 kbit/s, using `AACENC_AOT=2`, `AACENC_TRANSMUX=2` and
+`AACENC_PROTECTION=1`. The upstream codec and transport modules were unchanged.
+The inputs are silence and sine tones with a peak PCM16 magnitude of 9000;
+the stereo tone channels use different frequencies. The original FDK decoder accepts every frame and rejects a stream
+with only a CRC-word bit changed.
+
+The silence frames exercise short channel elements, zero padding to 192 and
+128 protected bits, and overlapping CPE protection. The tone frames also cover
+elements longer than their protected prefixes. All 24 transmitted CRC words
+match the normative syntax regions in ISO/IEC 14496-3:2001, Annex 1.A.3.2.1.
+
+| File | SHA-256 |
+| --- | --- |
+| silence-1.aac | 0449c2ab55c9f720ffc7bf5ef55d9239b5252d62f28789449e1cd57022d424ed |
+| silence-2.aac | 3b725c28ac5bc35887236179fdcb8cf2974c926f4359553b6c12d4812a147d8d |
+| tone-1.aac | fab081555ba94661dbf9d588d8ef49702b6baf04b5c84f1092c5a75b376cd091 |
+| tone-2.aac | 5e95b3c135b1d7e66448e05ac569824f6024d944c31b36b33d0db512828d6dfc |
+
+`data-element.aac` prepends a 32-byte aligned data-stream element to each
+`silence-1.aac` raw block and recalculates the transport header and CRC. Its
+data element has tag zero and byte values 0–31. The unchanged FDK decoder accepts
+all six frames and rejects a bit change in the last data byte, beyond the first
+192 DSE bits. This verifies whole-element coverage separately from the fixed
+channel prefix lengths. Its SHA-256 is
+`b2dd718fc7db611d561a85721ed1f6a3243b8e688ec259c70720ff6dd2df851d`.

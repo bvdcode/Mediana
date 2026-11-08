@@ -3,9 +3,13 @@
 
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
+using Mediana.Codecs;
 using Mediana.Codecs.Aac;
+using Mediana.Containers;
 using Mediana.Containers.Adts;
+using Mediana.Core;
 using Mediana.Core.Audio;
+using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
 
@@ -13,6 +17,50 @@ namespace Mediana.Tests
 {
     internal static class AdtsDecodeTestInput
     {
+        public static async Task VerifyProtectedAsync(string root, string name, int channels, bool indexed)
+        {
+            byte[] input = await File.ReadAllBytesAsync(Path.Combine(root, name + ".aac"));
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using (MemoryStream file = new(input, writable: false))
+            await using (IByteSource source = indexed ? new RandomAccessStreamByteSource(file)
+                : new StreamByteSource(file))
+            await using (IContainerReader reader = await new AdtsReaderFactory().OpenAsync(source, allocator))
+            {
+                AacDecoderFactory factory = new();
+                IPacketIntegrityValidator validator = factory.CreateIntegrityValidator(reader.Streams[0]);
+                using IMediaCodec<MediaPacket, AudioFrame> decoder = factory.Create(reader.Streams[0], allocator);
+                int frames = 0;
+                while (await reader.ReadPacketAsync() is MediaPacket packet)
+                {
+                    using (packet)
+                    {
+                        if (packet.SideDataCount != 1 || validator.Validate(packet) != PacketIntegrityStatus.Verified)
+                        {
+                            throw new InvalidDataException("Protected ADTS packet lost its integrity side data.");
+                        }
+                        using MediaPacket retained = packet.Retain();
+                        packet.Dispose();
+                        decoder.TrySend(retained);
+                        using AudioFrame frame = decoder.Receive().Value;
+                        if (frame.SamplesPerChannel != 1024 || frame.Format.Channels.Count != channels
+                            || frame.Timestamp != new MediaTimestamp((long)frames * 1024, new TimeBase(1, 48000)))
+                        {
+                            throw new InvalidDataException("Protected ADTS decoding changed its sample count, channels or timeline.");
+                        }
+                        frames++;
+                    }
+                }
+                if (frames != 6)
+                {
+                    throw new InvalidDataException("Protected ADTS decoding did not consume all six reference frames.");
+                }
+            }
+            if (allocator.AllocatedBytes != 0)
+            {
+                throw new InvalidOperationException("Protected ADTS decoding retained packet or sample storage.");
+            }
+        }
+
         public static async Task VerifyAsync(string root, string name, int rate, int channels, bool indexed)
         {
             byte[] input = await File.ReadAllBytesAsync(Path.Combine(root, name + ".aac"));

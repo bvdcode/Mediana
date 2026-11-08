@@ -11,7 +11,7 @@ namespace Mediana.Codecs.Aac
 {
     /// <summary>Decodes AAC-LC channel configurations 1–7 and mono/stereo HE-AAC, including parametric stereo, one raw_data_block per packet.
     /// Outputs native-endian interleaved float32 PCM. Priming, padding and container edit trimming are not applied.</summary>
-    public class AacDecoderFactory : IAudioDecoderFactory, IRandomAccessDecoderFactory
+    public class AacDecoderFactory : IAudioDecoderFactory, IRandomAccessDecoderFactory, IPacketIntegrityValidatorFactory
     {
         private readonly int maxAccessUnitBytes;
 
@@ -71,6 +71,12 @@ namespace Mediana.Codecs.Aac
         {
             AacConfiguration configuration = RequireConfiguration(stream);
             return new AacRandomAccessInspector(stream.StreamIndex, configuration, maxAccessUnitBytes);
+        }
+
+        public IPacketIntegrityValidator CreateIntegrityValidator(EncodedStreamInfo stream)
+        {
+            AacConfiguration configuration = RequireConfiguration(stream);
+            return new AacPacketIntegrityValidator(stream.StreamIndex, configuration, maxAccessUnitBytes);
         }
 
         private AacConfiguration RequireConfiguration(EncodedStreamInfo stream)
