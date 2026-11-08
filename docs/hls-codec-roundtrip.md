@@ -33,3 +33,30 @@ edit. The output contains 5,760,000, leaving a 256-sample tail, approximately
 5.3 ms, at the end. No accumulated audio displacement was observed over this
 two-minute operation. These are correctness and bounded-read checks; the
 independent playback executable is not a CPU performance baseline.
+
+An additional ordinary libaom AV1 source contains 288 visible Main-profile
+8-bit 160×136 pictures at 24 fps and continuous 48 kHz stereo AC-3 over twelve
+seconds. It uses default reconstruction tools, a four-second keyframe interval
+and explicitly declared BT.709 limited-range color with vertical chroma
+position. No source-color replacement is configured by the client.
+
+The public MP4 reader and AV1 decoder return all 288 pictures with matching
+rational presentation timestamps and durations. Full-plane comparison against
+dav1d finds every visible sample byte-identical after accounting for plane
+strides. The comparison includes decoded hidden pictures used for prediction.
+The common HLS session produces six two-second H.264/AAC windows. Requests run
+in the order 5, 0, 2, 1, 5, 3, 4; both requests for the final window produce
+identical bytes. Opening reads 9,083 bytes, and opening plus the first request
+reads 106,210 bytes of the 439,577-byte source.
+
+Independent HLS playback decodes all 288 pictures from both files and HTTP.
+Input seeks to 0.5, 3.7, 6.1, 10.3 and 11.5 seconds pass on both transports.
+Audio comparison in six windows spanning 0.25–11.75 seconds finds zero sample
+displacement, with correlation above 0.99999987. The decoded output has a
+768-sample tail relative to the edited source, approximately 16 ms; this is
+an end padding difference, not measured accumulated drift.
+
+The complete consumer also builds with strict Native AOT checks. Its playlist,
+initialization and seven media outputs are byte-identical to the JIT run, and
+the media allocator retains zero bytes after disposal. This ordinary source
+does not establish support for every AV1 reconstruction tool or bit depth.
