@@ -1,0 +1,73 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
+using System.Buffers.Binary;
+using System.IO.Compression;
+using System.Numerics;
+using Mediana.Codecs.Aac;
+using Mediana.Core.Memory;
+
+namespace Mediana.Tests
+{
+    public class AacSbrQmfTests
+    {
+        [Fact]
+        public async Task CompleteImpulseResponseMatchesIndependentAnalysisAndSynthesis()
+        {
+            byte[] bands = await ReadReferenceAsync("bands");
+            byte[] pcm = await ReadReferenceAsync("out");
+            Assert.Equal(96 * 32 * 2 * sizeof(float), bands.Length);
+            Assert.Equal(96 * 64 * sizeof(float), pcm.Length);
+            MediaBufferAllocator allocator = new(32 * 1024);
+            using (AacSbrQmf qmf = new(allocator))
+            {
+                double[] input = new double[32];
+                Complex[] output = new Complex[64];
+                double[] samples = new double[64];
+                double analysisError = 0;
+                double analysisEnergy = 0;
+                double synthesisError = 0;
+                double synthesisEnergy = 0;
+                for (int slot = 0; slot < 96; slot++)
+                {
+                    Array.Clear(input);
+                    if (slot == 0)
+                    {
+                        input[13] = 1;
+                    }
+                    qmf.Analyze(input, output.AsSpan(0, 32));
+                    for (int band = 0; band < 32; band++)
+                    {
+                        int offset = (slot * 32 + band) * 2 * sizeof(float);
+                        Complex expected = new(BinaryPrimitives.ReadSingleLittleEndian(bands.AsSpan(offset)),
+                            BinaryPrimitives.ReadSingleLittleEndian(bands.AsSpan(offset + sizeof(float))));
+                        Complex difference = expected - output[band];
+                        analysisError += difference.Real * difference.Real + difference.Imaginary * difference.Imaginary;
+                        analysisEnergy += expected.Real * expected.Real + expected.Imaginary * expected.Imaginary;
+                    }
+                    qmf.Synthesize(output, samples);
+                    for (int index = 0; index < 64; index++)
+                    {
+                        double expected = BinaryPrimitives.ReadSingleLittleEndian(pcm.AsSpan((slot * 64 + index) * sizeof(float))) / 32768;
+                        double difference = expected - samples[index];
+                        Assert.InRange(Math.Abs(difference), 0, 3e-7);
+                        synthesisError += difference * difference;
+                        synthesisEnergy += expected * expected;
+                    }
+                }
+                Assert.True(10 * Math.Log10(analysisEnergy / analysisError) > 130);
+                Assert.True(10 * Math.Log10(synthesisEnergy / synthesisError) > 130);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        private static async Task<byte[]> ReadReferenceAsync(string name)
+        {
+            await using FileStream file = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Data", "AacSbr", $"qmf-impulse-{name}.f32le.gz"));
+            await using GZipStream gzip = new(file, CompressionMode.Decompress);
+            await using MemoryStream output = new();
+            await gzip.CopyToAsync(output);
+            return output.ToArray();
+        }
+    }
+}
