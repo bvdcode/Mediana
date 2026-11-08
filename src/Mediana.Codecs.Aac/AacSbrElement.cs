@@ -12,6 +12,23 @@ namespace Mediana.Codecs.Aac
         public bool FrequencyReset { get; private set; }
         public bool Present { get; set; }
 
+        public static bool InspectRandomAccess(ref AacBitReader bits, bool crc, int channelCount, int outputSampleRate)
+        {
+            if (crc)
+            {
+                VerifyCrc(ref bits);
+            }
+            AacBitReader header = bits;
+            if (header.Read(1) == 0)
+            {
+                bits.Skip(bits.Remaining);
+                return false;
+            }
+            AacSbrElement element = new(channelCount, outputSampleRate);
+            element.Read(ref bits, false);
+            return true;
+        }
+
         public void Read(ref AacBitReader bits, bool crc)
         {
             if (Present)
@@ -24,7 +41,8 @@ namespace Mediana.Codecs.Aac
                 VerifyCrc(ref bits);
             }
             FrequencyReset = false;
-            if (bits.Read(1) != 0)
+            bool headerPresent = bits.Read(1) != 0;
+            if (headerPresent)
             {
                 AacSbrHeader next = AacSbrHeader.Read(ref bits);
                 FrequencyReset = Header is null || next.ChangesFrequencyTables(Header);
@@ -57,6 +75,10 @@ namespace Mediana.Codecs.Aac
             foreach (AacSbrChannelData channel in Channels)
             {
                 channel.ReadDirections(ref bits);
+                if (headerPresent && (channel.EnvelopeTimeDirection[0] || channel.NoiseTimeDirection[0]))
+                {
+                    throw new InvalidDataException("An SBR header frame must code its first envelope and noise floor independently.");
+                }
             }
             left.ReadInverseFiltering(ref bits, Tables.NoiseCount);
             if (Channels.Length == 1)

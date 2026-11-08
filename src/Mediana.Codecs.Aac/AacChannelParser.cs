@@ -11,6 +11,25 @@ namespace Mediana.Codecs.Aac
             channel.ClearFrame();
             int gain = bits.Read(8);
             channel.Info = commonWindow ?? AacWindowInfo.Read(ref bits, frequencyIndex);
+            ReadCore(ref bits, new(channel.Info, channel.Books, channel.Scales, channel.Quantized, channel.TnsFilters),
+                gain, allowIntensity, cancellationToken);
+        }
+
+        public static void Inspect(ref AacBitReader bits, int frequencyIndex, AacWindowInfo? commonWindow,
+            bool allowIntensity, CancellationToken cancellationToken)
+        {
+            int gain = bits.Read(8);
+            AacWindowInfo info = commonWindow ?? AacWindowInfo.Read(ref bits, frequencyIndex);
+            Span<byte> books = stackalloc byte[512];
+            Span<int> quantized = stackalloc int[1024];
+            books.Clear();
+            quantized.Clear();
+            ReadCore(ref bits, new(info, books, [], quantized, null), gain, allowIntensity, cancellationToken);
+        }
+
+        private static void ReadCore(ref AacBitReader bits, scoped AacChannelSyntax channel, int gain, bool allowIntensity,
+            CancellationToken cancellationToken)
+        {
             ReadSections(ref bits, channel, allowIntensity);
             ReadScales(ref bits, channel, gain);
             Span<int> pulsePositions = stackalloc int[4];
@@ -22,7 +41,7 @@ namespace Mediana.Codecs.Aac
             }
             if (bits.Read(1) != 0)
             {
-                AacTemporalNoiseShaping.Read(ref bits, channel);
+                AacTemporalNoiseShaping.Read(ref bits, channel.Info, channel.Filters);
             }
             if (bits.Read(1) != 0)
             {
@@ -40,7 +59,7 @@ namespace Mediana.Codecs.Aac
             }
         }
 
-        private static void ReadSections(ref AacBitReader bits, AacChannelState channel, bool allowIntensity)
+        private static void ReadSections(ref AacBitReader bits, scoped AacChannelSyntax channel, bool allowIntensity)
         {
             AacWindowInfo info = channel.Info;
             int width = info.ShortWindow ? 3 : 5;
@@ -76,7 +95,7 @@ namespace Mediana.Codecs.Aac
             }
         }
 
-        private static void ReadScales(ref AacBitReader bits, AacChannelState channel, int gain)
+        private static void ReadScales(ref AacBitReader bits, scoped AacChannelSyntax channel, int gain)
         {
             int scale = gain;
             int intensity = 0;
@@ -113,12 +132,15 @@ namespace Mediana.Codecs.Aac
                         default:
                             throw new InvalidDataException("The AAC scale factor codebook is invalid.");
                     }
-                    channel.Scales[index] = value;
+                    if (!channel.Scales.IsEmpty)
+                    {
+                        channel.Scales[index] = value;
+                    }
                 }
             }
         }
 
-        private static void ReadSpectrum(ref AacBitReader bits, AacChannelState channel, CancellationToken cancellationToken)
+        private static void ReadSpectrum(ref AacBitReader bits, scoped AacChannelSyntax channel, CancellationToken cancellationToken)
         {
             AacWindowInfo info = channel.Info;
             Span<int> quantized = channel.Quantized;

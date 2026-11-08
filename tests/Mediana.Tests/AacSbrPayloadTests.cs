@@ -77,6 +77,20 @@ namespace Mediana.Tests
             Assert.Equal(noise, element.Channels[0].NoiseRatio[..4]);
         }
 
+        [Theory]
+        [InlineData(23)]
+        [InlineData(24)]
+        public void HeaderFrameCannotDependOnPreviousEnvelopeOrNoise(int bit)
+        {
+            byte[] initial = Convert.FromHexString("964002001400000000C0");
+            AacSbrElement element = new(1, 48000);
+            Read(element, initial, false);
+            element.Present = false;
+            initial[bit / 8] |= (byte)(1 << (7 - bit % 8));
+            InvalidDataException error = Assert.Throws<InvalidDataException>(() => Read(element, initial, false));
+            Assert.Contains("independently", error.Message, StringComparison.Ordinal);
+        }
+
         private static void Read(AacSbrElement element, byte[] data, bool crc)
         {
             AacBitReader bits = new(data);

@@ -8,11 +8,30 @@ namespace Mediana.Codecs.Aac
         public static void Read(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate, AacDecoderWorkspace workspace,
             ref uint noiseState, CancellationToken cancellationToken)
         {
+            workspace.BeginSbrFrame();
+            ReadCore(data, frequencyIndex, sbrSampleRate, workspace.Layout, workspace.ElementTags, workspace,
+                ref noiseState, cancellationToken);
+        }
+
+        public static AacAccessUnitInspection Inspect(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate,
+            AacChannelLayout layout, CancellationToken cancellationToken)
+        {
+            Span<int> tags = stackalloc int[layout.Elements.Length];
+            tags.Fill(-1);
+            uint noiseState = 0;
+            return ReadCore(data, frequencyIndex, sbrSampleRate, layout, tags, null, ref noiseState, cancellationToken);
+        }
+
+        private static AacAccessUnitInspection ReadCore(ReadOnlySpan<byte> data, int frequencyIndex, int sbrSampleRate,
+            AacChannelLayout layout, Span<int> tags, AacDecoderWorkspace? workspace, ref uint noiseState,
+            CancellationToken cancellationToken)
+        {
             AacBitReader bits = new(data);
             int element = 0;
             int channel = 0;
             int previousType = -1;
-            workspace.BeginSbrFrame();
+            bool independent = true;
+            bool hasSbr = false;
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -25,15 +44,22 @@ namespace Mediana.Codecs.Aac
                 {
                     case 0:
                     case 3:
-                        workspace.BindElement(element++, type, bits.Read(4));
-                        AacChannelState single = workspace.Channels[channel++];
-                        AacChannelParser.Read(ref bits, single, frequencyIndex, null, false, cancellationToken);
-                        AacSpectralTools.Reconstruct(single, null, false, 0, [], ref noiseState, cancellationToken);
+                        BindElement(layout.Elements, tags, element++, type, bits.Read(4));
+                        if (workspace is null)
+                        {
+                            AacChannelParser.Inspect(ref bits, frequencyIndex, null, false, cancellationToken);
+                        }
+                        else
+                        {
+                            AacChannelState single = workspace.Channels[channel];
+                            AacChannelParser.Read(ref bits, single, frequencyIndex, null, false, cancellationToken);
+                            AacSpectralTools.Reconstruct(single, null, false, 0, [], ref noiseState, cancellationToken);
+                        }
+                        channel++;
                         break;
                     case 1:
-                        workspace.BindElement(element++, type, bits.Read(4));
-                        ReadPair(ref bits, workspace.Channels[channel], workspace.Channels[channel + 1], frequencyIndex,
-                            ref noiseState, cancellationToken);
+                        BindElement(layout.Elements, tags, element++, type, bits.Read(4));
+                        ReadPair(ref bits, workspace, channel, frequencyIndex, ref noiseState, cancellationToken);
                         channel += 2;
                         break;
                     case 4:
@@ -51,7 +77,8 @@ namespace Mediana.Codecs.Aac
                         bits.Skip(count * 8);
                         break;
                     case 6:
-                        ReadFill(ref bits, workspace, element - 1, previousType, sbrSampleRate);
+                        independent &= ReadFill(ref bits, workspace, element - 1, previousType, sbrSampleRate, out bool sbr);
+                        hasSbr |= sbr;
                         break;
                     case 2:
                     case 5:
@@ -62,13 +89,14 @@ namespace Mediana.Codecs.Aac
                 previousType = type;
             }
             bits.Align();
-            if (element != workspace.Layout.Elements.Length || bits.Remaining != 0)
+            if (element != layout.Elements.Length || bits.Remaining != 0)
             {
                 throw new InvalidDataException("An AAC packet must contain one complete raw data block for the configured channels.");
             }
+            return new(independent, hasSbr);
         }
 
-        private static void ReadPair(ref AacBitReader bits, AacChannelState left, AacChannelState right, int frequencyIndex,
+        private static void ReadPair(ref AacBitReader bits, AacDecoderWorkspace? workspace, int channel, int frequencyIndex,
             ref uint noiseState, CancellationToken cancellationToken)
         {
             bool commonWindow = bits.Read(1) != 0;
@@ -95,13 +123,25 @@ namespace Mediana.Codecs.Aac
                     }
                 }
             }
-            AacChannelParser.Read(ref bits, left, frequencyIndex, info, false, cancellationToken);
-            AacChannelParser.Read(ref bits, right, frequencyIndex, info, commonWindow, cancellationToken);
-            AacSpectralTools.Reconstruct(left, right, commonWindow, maskMode, mask, ref noiseState, cancellationToken);
+            if (workspace is null)
+            {
+                AacChannelParser.Inspect(ref bits, frequencyIndex, info, false, cancellationToken);
+                AacChannelParser.Inspect(ref bits, frequencyIndex, info, commonWindow, cancellationToken);
+            }
+            else
+            {
+                AacChannelState left = workspace.Channels[channel];
+                AacChannelState right = workspace.Channels[channel + 1];
+                AacChannelParser.Read(ref bits, left, frequencyIndex, info, false, cancellationToken);
+                AacChannelParser.Read(ref bits, right, frequencyIndex, info, commonWindow, cancellationToken);
+                AacSpectralTools.Reconstruct(left, right, commonWindow, maskMode, mask, ref noiseState, cancellationToken);
+            }
         }
 
-        private static void ReadFill(ref AacBitReader bits, AacDecoderWorkspace workspace, int element, int previousType, int sbrSampleRate)
+        private static bool ReadFill(ref AacBitReader bits, AacDecoderWorkspace? workspace, int element, int previousType,
+            int sbrSampleRate, out bool hasSbr)
         {
+            hasSbr = false;
             int count = bits.Read(4);
             if (count == 15)
             {
@@ -109,7 +149,7 @@ namespace Mediana.Codecs.Aac
             }
             if (count == 0)
             {
-                return;
+                return true;
             }
             AacBitReader payload = bits.ReadSubstream(count * 8);
             int extension = payload.Read(4);
@@ -137,11 +177,37 @@ namespace Mediana.Codecs.Aac
                     {
                         throw new InvalidDataException("An SBR payload must immediately follow its AAC channel element.");
                     }
+                    hasSbr = true;
+                    if (workspace is null)
+                    {
+                        return AacSbrElement.InspectRandomAccess(ref payload, extension == 14, previousType == 1 ? 2 : 1, sbrSampleRate);
+                    }
                     workspace.GetSbrElement(element, sbrSampleRate).Read(ref payload, extension == 14);
                     break;
                 default:
                     throw new NotSupportedException("This AAC fill extension is not supported; SBR, spatial audio and dynamic range extensions require separate handling.");
             }
+            return true;
+        }
+
+        private static void BindElement(ReadOnlySpan<byte> layout, Span<int> tags, int index, int type, int tag)
+        {
+            if (index >= layout.Length || type != layout[index])
+            {
+                throw new InvalidDataException("The AAC channel elements do not match the configured speaker layout.");
+            }
+            if (tags[index] >= 0 && tags[index] != tag)
+            {
+                throw new InvalidDataException("The AAC element tag changed within the configured stream.");
+            }
+            for (int previous = 0; previous < index; previous++)
+            {
+                if (layout[previous] == type && tags[previous] == tag)
+                {
+                    throw new InvalidDataException("AAC elements of the same type must have unique instance tags.");
+                }
+            }
+            tags[index] = tag;
         }
     }
 }

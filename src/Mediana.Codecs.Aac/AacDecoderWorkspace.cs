@@ -44,6 +44,7 @@ namespace Mediana.Codecs.Aac
         }
 
         public AacChannelLayout Layout { get; }
+        public Span<int> ElementTags => elementTags;
         public AacChannelState[] Channels { get; }
         public AacSbrElement?[] SbrElements { get; private set; } = [];
         public AacSbrChannelState?[] SbrChannels { get; private set; } = [];
@@ -70,26 +71,6 @@ namespace Mediana.Codecs.Aac
                 SbrChannels = new AacSbrChannelState?[Channels.Length];
             }
             return SbrElements[index] ??= new AacSbrElement(Layout.Elements[index] == 1 ? 2 : 1, sampleRate);
-        }
-
-        public void BindElement(int index, int type, int tag)
-        {
-            if (index >= Layout.Elements.Length || type != Layout.Elements[index])
-            {
-                throw new InvalidDataException("The AAC channel elements do not match the configured speaker layout.");
-            }
-            if (elementTags[index] >= 0 && elementTags[index] != tag)
-            {
-                throw new InvalidDataException("The AAC element tag changed within the configured stream.");
-            }
-            for (int previous = 0; previous < index; previous++)
-            {
-                if (Layout.Elements[previous] == type && elementTags[previous] == tag)
-                {
-                    throw new InvalidDataException("AAC elements of the same type must have unique instance tags.");
-                }
-            }
-            elementTags[index] = tag;
         }
 
         public void Dispose()
