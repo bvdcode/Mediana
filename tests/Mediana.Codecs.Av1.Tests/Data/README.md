@@ -184,3 +184,16 @@ horizontal order; the SGR set byte and two signed projection weights; and
 256-byte input and expected output arrays. The tests require exact equality
 for every sample and unchanged surrounding pixels. Native routines are used
 only to produce the fixture.
+
+`intra.bin.gz` contains 608 smooth, smooth-vertical, smooth-horizontal and Paeth
+prediction vectors generated from AOM 3.13.1 C kernels. The stream begins with
+`AV1INTR1` and a little-endian 32-bit count. Each record stores byte width, height
+and mode; width-plus-one above samples and height-plus-one left samples (corner
+at index zero); and width-times-height expected samples. All nineteen transform
+geometries use eight constant, random, ramp, extremal and tie patterns.
+
+`smoothRegions` (160×136, three 4:2:0 frames), `smoothMono` (117×83 monochrome)
+and `smoothOdd` (37×29 4:2:0) enable smooth/Paeth prediction, quantized residuals,
+deblocking, CDEF and restoration. They use libaom 3.8.2 at CRF35 and independent
+libdav1d 1.4.1 visible-sample references. Filter-intra and intra-edge filtering
+are disabled in these fixtures.

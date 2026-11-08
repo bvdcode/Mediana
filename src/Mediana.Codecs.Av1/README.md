@@ -70,9 +70,15 @@ internal 64-line stripe boundary before CDEF. Real Wiener, SGRPROJ and switchabl
 regions, moving references and monochrome/partial edges match independent native
 output; 2,048 additional kernel vectors cover every SGR set and Wiener extremes.
 
+Smooth, smooth-horizontal, smooth-vertical and Paeth intra prediction apply to
+luma and chroma. Their transform selection follows the normative UV mode mapping.
+AOM kernel vectors cover all nineteen transform geometries, including clipped
+destinations, constant inputs, extrema and tie cases; three independently
+encoded still/moving fixtures match every native output sample.
+
 Compound prediction,
 temporal motion fields, non-identity global motion, overlapped/warped reconstruction,
-smooth/Paeth/filter-intra,
+filter-intra,
 intra-edge filtering, intra block copy,
 chroma palette, segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,

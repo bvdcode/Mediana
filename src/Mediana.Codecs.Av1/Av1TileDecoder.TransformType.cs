@@ -22,10 +22,10 @@ namespace Mediana.Codecs.Av1
                     transform = mode switch
                     {
                         0 or 3 or 13 => 0,
-                        1 or 5 or 8 => 1,
-                        2 or 6 or 7 => 2,
-                        4 => 3,
-                        _ => throw new NotSupportedException("The AV1 chroma transform mode is not implemented.")
+                        1 or 5 or 8 or 10 => 1,
+                        2 or 6 or 7 or 11 => 2,
+                        4 or 9 or 12 => 3,
+                        _ => throw new InvalidDataException("The AV1 chroma prediction mode is invalid.")
                     };
                 }
                 if (size.Maximum == 3)

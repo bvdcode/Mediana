@@ -36,17 +36,13 @@ namespace Mediana.Codecs.Av1
                 modeOffset = Av1DefaultCdfs.InterIntraModeOffset + sizeGroup * 14;
             }
             int mode = symbols.ReadSymbol(probabilities.Slice(modeOffset, 14));
-            if (mode > 8)
-            {
-                throw new NotSupportedException("AV1 smooth and Paeth intra prediction are not implemented.");
-            }
             int blockIndex = BlockIndex(width, height);
             int angleDelta = 0;
-            if (mode != 0 && blockIndex >= 3)
+            if (mode is >= 1 and <= 8 && blockIndex >= 3)
             {
                 angleDelta = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.AngleDeltaOffset + (mode - 1) * 8, 8)) - 3;
             }
-            if (mode != 0 && sequence.IntraEdgeFilter && (mode != 1 && mode != 2 || angleDelta != 0))
+            if (mode is >= 1 and <= 8 && sequence.IntraEdgeFilter && (mode != 1 && mode != 2 || angleDelta != 0))
             {
                 throw new NotSupportedException("AV1 directional intra edge filtering is not implemented.");
             }
