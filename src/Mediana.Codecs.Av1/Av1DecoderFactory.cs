@@ -13,7 +13,7 @@ namespace Mediana.Codecs.Av1
     /// Monochrome and 4:2:0 output preserve native samples, color labels, render aspect ratio and packet timing.
     /// Larger quantized transforms and optional reconstruction tools outside this coverage fail explicitly.
     /// Input packets are borrowed; output frames own independent buffer leases. Calls must not overlap.</summary>
-    public class Av1DecoderFactory : IVideoDecoderFactory
+    public class Av1DecoderFactory : IVideoDecoderFactory, IRandomAccessDecoderFactory
     {
         public string ImplementationId => "mediana.av1";
         public string CodecId => "av1";
@@ -26,6 +26,17 @@ namespace Mediana.Codecs.Av1
                 return "The stream is not AV1 video.";
             }
             return StreamFormats.Av1.GetUnsupportedReason(stream.Format);
+        }
+
+        /// <summary>Recognizes complete reference refreshes at the first coded picture of an access unit.
+        /// Hidden reference pictures remain part of the access unit and are decoded before its visible picture.</summary>
+        public IRandomAccessInspector CreateRandomAccessInspector(EncodedStreamInfo stream)
+        {
+            if (GetUnsupportedReason(stream) is string reason)
+            {
+                throw new NotSupportedException(reason);
+            }
+            return new Av1RandomAccessInspector(stream.StreamIndex, Av1Configuration.Read(stream.Configuration.Span));
         }
 
         /// <summary>Creates a decoder from a version-one av1C configuration record.

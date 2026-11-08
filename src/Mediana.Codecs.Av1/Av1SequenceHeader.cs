@@ -69,6 +69,10 @@ namespace Mediana.Codecs.Av1
             {
                 deltaIdBits = bits.Read(4) + 2;
                 frameIdBits = deltaIdBits + bits.Read(3) + 1;
+                if (frameIdBits > 16)
+                {
+                    throw new InvalidDataException("The AV1 frame identifier length exceeds sixteen bits.");
+                }
             }
             bool largeSuperblock = bits.Flag();
             bool filterIntra = bits.Flag();
