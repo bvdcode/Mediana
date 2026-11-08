@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/AllocationMeasurementTestInput.cs" Link="AllocationMeasurementTestInput.cs" />
     <Compile Include="../Shared/OpusRecoveryTestInput.cs" Link="OpusRecoveryTestInput.cs" />
     <Compile Include="../Shared/OpusCeltRecoveryTestInput.cs" Link="OpusCeltRecoveryTestInput.cs" />
     <Compile Include="../Shared/OpusCeltPredictionTestInput.cs" Link="OpusCeltPredictionTestInput.cs" />
