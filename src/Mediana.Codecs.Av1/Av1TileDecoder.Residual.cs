@@ -6,7 +6,7 @@ namespace Mediana.Codecs.Av1
     internal ref partial struct Av1TileDecoder
     {
         private void Residual(int row, int column, int width, int height, bool skip, Av1IntraMode luma,
-            bool hasChroma, Av1ChromaMode chroma, scoped ReadOnlySpan<byte> colors, scoped ReadOnlySpan<byte> colorMap,
+            bool hasChroma, Av1ChromaMode chroma, scoped Av1PalettePrediction palette,
             Av1TransformSize lumaTransform, bool inter = false)
         {
             int capacity = lumaTransform.Width * lumaTransform.Height;
@@ -47,7 +47,7 @@ namespace Mediana.Codecs.Av1
                             for (int x = startX; x < endX; x += size.Width4)
                             {
                                 TransformBlock(plane, row, column, width, height, x, y, blockWidth, blockHeight,
-                                    skip, plane == 0 ? luma : new(chroma.Mode, chroma.AngleDelta), chroma, colors, colorMap, size, residual[..(size.Width * size.Height)], inter);
+                                    skip, plane == 0 ? luma : new(chroma.Mode, chroma.AngleDelta), chroma, palette, size, residual[..(size.Width * size.Height)], inter);
                             }
                         }
                     }
@@ -56,8 +56,7 @@ namespace Mediana.Codecs.Av1
         }
 
         private void TransformBlock(int plane, int row, int column, int width, int height, int x, int y, int blockWidth, int blockHeight,
-            bool skip, Av1IntraMode prediction, Av1ChromaMode chroma, scoped ReadOnlySpan<byte> colors,
-            scoped ReadOnlySpan<byte> colorMap, Av1TransformSize size, scoped Span<int> residual, bool inter)
+            bool skip, Av1IntraMode prediction, Av1ChromaMode chroma, scoped Av1PalettePrediction palette, Av1TransformSize size, scoped Span<int> residual, bool inter)
         {
             int sub = sequence.PlaneShift(plane);
             int x4 = (column >> sub) + x;
@@ -70,14 +69,16 @@ namespace Mediana.Codecs.Av1
             int offset = sequence.PlaneOffset(plane);
             int visibleWidth = Math.Min(size.Width, stride - pixelX);
             int visibleHeight = Math.Min(size.Height, sequence.PlaneHeight(plane) - pixelY);
-            if (plane == 0 && !colors.IsEmpty)
+            ReadOnlySpan<byte> colors = palette.Colors(plane);
+            if (!colors.IsEmpty)
             {
+                ReadOnlySpan<byte> colorMap = palette.Map(plane);
                 for (int dy = 0; dy < visibleHeight; dy++)
                 {
                     Span<byte> target = output.Slice(offset + (pixelY + dy) * stride + pixelX, visibleWidth);
                     for (int dx = 0; dx < visibleWidth; dx++)
                     {
-                        target[dx] = colors[colorMap[(y * 4 + dy) * (width * 4) + x * 4 + dx]];
+                        target[dx] = colors[colorMap[(y * 4 + dy) * (blockWidth * 4) + x * 4 + dx]];
                     }
                 }
             }

@@ -89,6 +89,13 @@ allocation. Independent native vectors cover all geometries, filter types,
 availability and partial destinations. Ordinary default-tool libaom stills and
 filtered moving sequences match independent decoded samples.
 
+Chroma palette prediction shares the luma palette cache and color-index context
+logic. U colors support cached/repeated values; V colors support direct values
+and signed wrapped deltas. Both chroma planes share one index map. Palette maps
+are allocated on the stack only for blocks using them. Ordinary encoder graphic
+pictures, including a default-tool 160×136 key picture and odd 97×81 dimensions,
+match independent samples; native palette sizes 2–8 and cached U values agree.
+
 Superblock quantizer and loop-filter deltas support resolution shifts, escaped
 magnitudes, sign, bounded accumulation and frame/tile reset. Effective filter
 deltas are applied before reference and mode scaling. Three color/monochrome
@@ -124,7 +131,7 @@ inferred difference masks for large blocks; output samples match libdav1d.
 
 Non-identity global motion, overlapped/warped reconstruction,
 intra block copy,
-chroma palette, segmentation, multiple
+segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,
 film grain and decoder-model timing are not implemented. Encountering these
 tools fails explicitly. The module requires explicit factory registration while ordinary AV1 playback

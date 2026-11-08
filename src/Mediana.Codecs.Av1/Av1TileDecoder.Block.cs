@@ -50,6 +50,8 @@ namespace Mediana.Codecs.Av1
             Av1ChromaMode chroma = hasChroma ? ReadChromaMode(mode, blockIndex, width, height) : default;
             Span<byte> colors = stackalloc byte[8];
             int paletteSize = 0;
+            Span<byte> chromaColors = stackalloc byte[16];
+            int chromaPaletteSize = 0;
             int widthLog = BitOperations.Log2((uint)width);
             int heightLog = BitOperations.Log2((uint)height);
             if (mode == 0 && blockIndex >= 3 && width <= 16 && height <= 16 && header.ScreenContent)
@@ -58,11 +60,7 @@ namespace Mediana.Codecs.Av1
             }
             if (hasChroma && chroma.Mode == 0 && blockIndex >= 3 && width <= 16 && height <= 16 && header.ScreenContent)
             {
-                int uvPaletteContext = paletteSize == 0 ? 0 : 1;
-                if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.UvPaletteModeOffset + uvPaletteContext * 3, 3)) != 0)
-                {
-                    throw new NotSupportedException("AV1 chroma palette reconstruction is not implemented.");
-                }
+                chromaPaletteSize = ChromaPalette(row, column, widthLog + heightLog - 2, paletteSize, chromaColors);
             }
             int? filter = null;
             if (mode == 0 && paletteSize == 0 && sequence.FilterIntra && width <= 8 && height <= 8)
@@ -73,14 +71,16 @@ namespace Mediana.Codecs.Av1
                     filter = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.FilterIntraModeOffset, 6));
                 }
             }
-            Span<byte> colorMap = stackalloc byte[64 * 64];
+            Span<byte> colorMap = paletteSize == 0 ? default : stackalloc byte[width * height * 16];
+            Span<byte> chromaMap = chromaPaletteSize == 0 ? default : stackalloc byte[Math.Max(4, width * 2) * Math.Max(4, height * 2)];
             if (paletteSize != 0)
             {
                 ReadPaletteTokens(row, column, width * 4, height * 4, paletteSize, colorMap);
             }
+            if (chromaPaletteSize != 0) { ReadPaletteTokens(row, column, width * 4, height * 4, chromaPaletteSize, chromaMap, 1); }
             StoreFilterBlock(row, column, width, height, 0, mode, skip != 0);
             Av1TransformSize transform = ReadTransformSize(row, column, width, height, true);
-            Residual(row, column, width, height, skip != 0, new(mode, angleDelta, filter), hasChroma, chroma, colors[..paletteSize], colorMap, transform);
+            Residual(row, column, width, height, skip != 0, new(mode, angleDelta, filter), hasChroma, chroma, new(colors[..paletteSize], chromaColors[..(chromaPaletteSize * 2)], colorMap, chromaMap), transform);
             Av1BlockContext context = new()
             {
                 Mode = (byte)mode,
@@ -89,12 +89,13 @@ namespace Mediana.Codecs.Av1
                 Skip = (byte)skip,
                 TransformWidth = (byte)transform.Width,
                 TransformHeight = (byte)transform.Height,
-                PaletteCount = (byte)paletteSize
+                PaletteCount = (byte)paletteSize, UvPaletteCount = (byte)chromaPaletteSize
             };
             for (int index = 0; index < paletteSize; index++)
             {
                 context.Palette[index] = colors[index];
             }
+            for (int index = 0; index < chromaPaletteSize; index++) { context.UvPalette[index] = chromaColors[index]; }
             StoreContext(row, column, width, height, context);
             StoreMotion(row, column, width, height, new() { Width = (byte)width, Height = (byte)height, TransformSize = (byte)transform.Index });
         }

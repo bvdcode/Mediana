@@ -7,31 +7,40 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private int Palette(int row, int column, int sizeContext, scoped Span<byte> colors)
+        private int Palette(int row, int column, int sizeContext, scoped Span<byte> colors, int plane = 0, int lumaPalette = 0)
         {
-            int context = (row > 0 && above[column].PaletteCount != 0 ? 1 : 0) +
-                (column > 0 && left[row & (LeftContexts - 1)].PaletteCount != 0 ? 1 : 0);
-            if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.PaletteModeOffset + (sizeContext * 3 + context) * 3, 3)) == 0)
+            int context;
+            int offset;
+            if (plane == 0)
             {
-                return 0;
+                context = (row > 0 && above[column].PaletteCount != 0 ? 1 : 0) +
+                    (column > 0 && left[row & (LeftContexts - 1)].PaletteCount != 0 ? 1 : 0);
+                offset = Av1DefaultCdfs.PaletteModeOffset + (sizeContext * 3 + context) * 3;
             }
-            int count = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.PaletteSizeOffset + sizeContext * 8, 8)) + 2;
+            else
+            {
+                context = lumaPalette == 0 ? 0 : 1;
+                offset = Av1DefaultCdfs.UvPaletteModeOffset + context * 3;
+            }
+            if (symbols.ReadSymbol(probabilities.Slice(offset, 3)) == 0) { return 0; }
+            int sizeOffset = plane == 0 ? Av1DefaultCdfs.PaletteSizeOffset : Av1DefaultCdfs.UvPaletteSizeOffset;
+            int count = symbols.ReadSymbol(probabilities.Slice(sizeOffset + sizeContext * 8, 8)) + 2;
             Span<byte> cache = stackalloc byte[16];
             int cached = 0;
             if (row % 16 != 0)
             {
                 ref Av1BlockContext top = ref above[column];
-                for (int index = 0; index < top.PaletteCount; index++)
+                for (int index = 0; index < (plane == 0 ? top.PaletteCount : top.UvPaletteCount); index++)
                 {
-                    cache[cached++] = top.Palette[index];
+                    cache[cached++] = plane == 0 ? top.Palette[index] : top.UvPalette[index];
                 }
             }
             if (column > 0)
             {
                 ref Av1BlockContext previous = ref left[row & (LeftContexts - 1)];
-                for (int index = 0; index < previous.PaletteCount; index++)
+                for (int index = 0; index < (plane == 0 ? previous.PaletteCount : previous.UvPaletteCount); index++)
                 {
-                    cache[cached++] = previous.Palette[index];
+                    cache[cached++] = plane == 0 ? previous.Palette[index] : previous.UvPalette[index];
                 }
             }
             cache[..cached].Sort();
@@ -59,10 +68,10 @@ namespace Mediana.Codecs.Av1
             }
             while (selected < count)
             {
-                int delta = (int)symbols.ReadLiteral(bits) + 1;
+                int delta = (int)symbols.ReadLiteral(bits) + (plane == 0 ? 1 : 0);
                 int next = Math.Min(255, colors[selected - 1] + delta);
                 colors[selected++] = (byte)next;
-                int remaining = 255 - next;
+                int remaining = (plane == 0 ? 255 : 256) - next;
                 int remainingBits = remaining <= 1 ? 0 : BitOperations.Log2((uint)(remaining - 1)) + 1;
                 bits = Math.Min(bits, remainingBits);
             }
@@ -73,10 +82,15 @@ namespace Mediana.Codecs.Av1
             return count;
         }
 
-        private void ReadPaletteTokens(int row, int column, int width, int height, int count, scoped Span<byte> map)
+        private void ReadPaletteTokens(int row, int column, int width, int height, int count, scoped Span<byte> map, int plane = 0)
         {
-            int visibleWidth = Math.Min(width, (sequence.MiColumns - column) * 4);
-            int visibleHeight = Math.Min(height, (sequence.MiRows - row) * 4);
+            int sub = sequence.PlaneShift(plane);
+            int visibleWidth = Math.Min(width, (sequence.MiColumns - column) * 4) >> sub;
+            int visibleHeight = Math.Min(height, (sequence.MiRows - row) * 4) >> sub;
+            width >>= sub;
+            height >>= sub;
+            if (width < 4) { width += 2; visibleWidth += 2; }
+            if (height < 4) { height += 2; visibleHeight += 2; }
             map[0] = (byte)symbols.ReadNs(count);
             Span<byte> order = stackalloc byte[8];
             Span<byte> scores = stackalloc byte[8];
@@ -124,7 +138,7 @@ namespace Mediana.Codecs.Av1
                         8 => 1,
                         _ => throw new InvalidDataException("The AV1 palette color context is invalid.")
                     };
-                    Span<ushort> cdf = PaletteColorCdf(count, context);
+                    Span<ushort> cdf = PaletteColorCdf(count, context, plane);
                     map[y * width + x] = order[symbols.ReadSymbol(cdf)];
                 }
             }
@@ -138,7 +152,7 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        private Span<ushort> PaletteColorCdf(int count, int context)
+        private Span<ushort> PaletteColorCdf(int count, int context, int plane)
         {
             int offset = count switch
             {
@@ -151,6 +165,7 @@ namespace Mediana.Codecs.Av1
                 8 => Av1DefaultCdfs.PaletteColor8Offset,
                 _ => throw new InvalidDataException("The AV1 palette size is invalid.")
             };
+            if (plane != 0) { offset += Av1DefaultCdfs.UvPaletteColor2Offset - Av1DefaultCdfs.PaletteColor2Offset; }
             return probabilities.Slice(offset + context * (count + 1), count + 1);
         }
     }

@@ -15,5 +15,7 @@ namespace Mediana.Codecs.Av1
         internal byte TransformHeight;
         internal byte PaletteCount;
         internal Av1PaletteColors Palette;
+        internal byte UvPaletteCount;
+        internal Av1PaletteColors UvPalette;
     }
 }

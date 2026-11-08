@@ -89,7 +89,15 @@ namespace Mediana.Codecs.Av1
         internal const int DeltaQOffset = 7326;
         internal const int DeltaLfOffset = 7331;
         internal const int DeltaLfMultiOffset = 7336;
-        internal const int Count = 7356;
+        internal const int UvPaletteSizeOffset = 7356;
+        internal const int UvPaletteColor2Offset = 7412;
+        internal const int UvPaletteColor3Offset = 7427;
+        internal const int UvPaletteColor4Offset = 7447;
+        internal const int UvPaletteColor5Offset = 7472;
+        internal const int UvPaletteColor6Offset = 7502;
+        internal const int UvPaletteColor7Offset = 7537;
+        internal const int UvPaletteColor8Offset = 7577;
+        internal const int Count = 7622;
 
         internal static ReadOnlySpan<int> CounterOffsets =>
         [
@@ -182,6 +190,9 @@ namespace Mediana.Codecs.Av1
             6968, 6985, 7002, 7019, 7036, 7053, 7070, 7087, 7104, 7121, 7138, 7155, 7172, 7189, 7206, 7223,
             7240, 7257, 7274, 7291, 7308, 7325,
             7330, 7335, 7340, 7345, 7350, 7355,
+            7363, 7371, 7379, 7387, 7395, 7403, 7411, 7414, 7417, 7420, 7423, 7426, 7430, 7434, 7438, 7442,
+            7446, 7451, 7456, 7461, 7466, 7471, 7477, 7483, 7489, 7495, 7501, 7508, 7515, 7522, 7529, 7536,
+            7544, 7552, 7560, 7568, 7576, 7585, 7594, 7603, 7612, 7621,
         ];
     }
 }

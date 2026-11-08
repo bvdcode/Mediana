@@ -292,3 +292,19 @@ Each picture starts with 16-bit MI rows and columns. Each eight-byte cell stores
 quantizer index, signed common filter delta, four signed component filter
 deltas, luma palette count and chroma palette count. The tests compare effective
 per-component filter state, frame resets and complete decoded samples.
+
+
+`defaultKey160` is the first 160×136 picture from a twelve-picture ordinary
+libaom 3.8.2 `testsrc2` sequence at CRF30, with encoder tool defaults. It selects
+chroma palette sizes 2 through 8 and superblock delta-Q. `chromaPaletteRegions`
+and `chromaPaletteOdd` contain three all-intra graphic pictures at 96×80 and
+97×81. The latter is an exact crop from a 160×136 source. Both retain encoder
+tool defaults with CRF30, no lookahead, and keyframe temporal filtering disabled.
+All complete visible-sample references use libdav1d 1.4.1.
+
+Their `.palette.gz` files contain independent AOM 3.8.2 block inspection. The
+header is `AV1PAL01`, a little-endian 32-bit picture count, then 16-bit MI rows
+and columns per picture. Each eighteen-byte cell contains luma and chroma
+palette sizes followed by eight U and eight V palette entries. The tests verify
+all selected chroma sizes and final-row U cache values, in addition to every
+decoded sample.
