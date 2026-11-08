@@ -12,6 +12,7 @@ namespace Mediana.Codecs.Aac
 
         public AacPsHeader? Header { get; private set; }
         public AacPsEnvelope[] Envelopes { get; } = Enumerable.Range(0, 5).Select(_ => new AacPsEnvelope()).ToArray();
+        public int StereoBands { get; private set; } = 20;
         public int EnvelopeCount { get; private set; }
         public int TransmittedEnvelopeCount { get; private set; }
         public bool PhaseEnabled { get; private set; }
@@ -23,6 +24,10 @@ namespace Mediana.Codecs.Aac
             if (headerPresent)
             {
                 Header = AacPsHeader.Read(ref bits);
+                if (Header.IntensityMode is not null || Header.CoherenceMode is not null)
+                {
+                    StereoBands = Header.StereoBands;
+                }
             }
             if (Header is null)
             {
@@ -80,6 +85,15 @@ namespace Mediana.Codecs.Aac
                 {
                     Array.Clear(Envelopes[0].PhaseDifference);
                     Array.Clear(Envelopes[0].OverallPhase);
+                }
+                previous.CopyFrom(Envelopes[0]);
+                if (Header.IntensityMode is null)
+                {
+                    previousIntensityMode = null;
+                }
+                if (Header.CoherenceMode is null)
+                {
+                    previousCoherenceMode = null;
                 }
                 Envelopes[0].EndSlot = 32;
                 EnvelopeCount = 1;

@@ -98,6 +98,21 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void EmptyDisabledParametersBecomeTheNextTimeDifferentialHistory()
+        {
+            AacPsData data = new();
+            AacTestBitWriter first = Header(0, null, false).Write(0, 1).Write(1, 2).Write(0, 1);
+            WriteWord(first, "1100");
+            Repeat(first, "0", 9);
+            Read(data, first.ToArray());
+            Read(data, Header(null, null, false).Write(0, 1).Write(0, 2).ToArray());
+            AacTestBitWriter following = Header(0, null, false).Write(0, 1).Write(1, 2).Write(1, 1);
+            Repeat(following, "0", 10);
+            Read(data, following.ToArray());
+            Assert.All(data.Envelopes[0].Intensity, value => Assert.Equal(0, value));
+        }
+
+        [Fact]
         public void ModeChangesCannotUseOldDifferentialHistory()
         {
             AacPsData data = new();
