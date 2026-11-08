@@ -7,19 +7,24 @@ namespace Mediana.Codecs.Av1
     {
         internal static void Apply(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
             int plane, int x, int y, int width, int height, Av1MotionBlock motion)
-            => Convolve(output, target, reference, plane, x, y, width, height, motion, default);
+            => Convolve(new(output[target.PlaneOffset(plane)..], target.PlaneStride(plane)), target, reference, plane, x, y, width, height, motion, default);
+
+        internal static void Predict(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion)
+            => Convolve(new(output, width, x, y), target, reference, plane, x, y, width, height, motion, default);
 
         internal static void ApplyCompound(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture first, Av1StoredPicture second,
             int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundPrediction compound, Span<byte> mask = default, int maskStride = 0)
         {
             Span<short> prediction = stackalloc short[width * height];
-            Convolve(output, target, first, plane, x, y, width, height, motion, new(prediction));
+            Av1PredictionDestination destination = new(output[target.PlaneOffset(plane)..], target.PlaneStride(plane));
+            Convolve(destination, target, first, plane, x, y, width, height, motion, new(prediction));
             motion.Row = motion.SecondRow;
             motion.Column = motion.SecondColumn;
-            Convolve(output, target, second, plane, x, y, width, height, motion, new(prediction, compound, mask, maskStride, target.PlaneShift(plane)));
+            Convolve(destination, target, second, plane, x, y, width, height, motion, new(prediction, compound, mask, maskStride, target.PlaneShift(plane)));
         }
 
-        private static void Convolve(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
+        private static void Convolve(Av1PredictionDestination destination, Av1SequenceHeader target, Av1StoredPicture reference,
             int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundBlend blend)
         {
             Av1SequenceHeader source = reference.Header.Geometry;
@@ -33,8 +38,6 @@ namespace Mediana.Codecs.Av1
             int sourceHeight = (source.Height + sub) >> sub;
             int sourceStride = source.PlaneStride(plane);
             ReadOnlySpan<byte> pixels = reference.Pixels.Memory.Span[source.PlaneOffset(plane)..];
-            Span<byte> destination = output[target.PlaneOffset(plane)..];
-            int destinationStride = target.PlaneStride(plane);
             int scaleX = ((source.Width << 14) + target.Width / 2) / target.Width;
             int scaleY = ((source.Height << 14) + target.Height / 2) / target.Height;
             int startX = Scale(x, motion.Column, sub, scaleX);
@@ -48,17 +51,18 @@ namespace Mediana.Codecs.Av1
                     for (int row = 0; row < height; row++)
                     {
                         int sourceY = Math.Clamp((startY >> 10) + row, 0, sourceHeight - 1);
+                        Span<byte> result = destination.Row(x, y + row, width);
                         for (int column = 0; column < width; column++)
                         {
                             int sourceX = Math.Clamp((startX >> 10) + column, 0, sourceWidth - 1);
                             int value = pixels[sourceY * sourceStride + sourceX] << 4;
                             byte color = blend.Apply(row, column, width, value);
-                            if (blend.Second) { destination[(y + row) * destinationStride + x + column] = color; }
+                            if (blend.Second) { result[column] = color; }
                         }
                     }
                     return;
                 }
-                CopyInteger(pixels, sourceStride, sourceWidth, sourceHeight, destination, destinationStride,
+                CopyInteger(pixels, sourceStride, sourceWidth, sourceHeight, destination,
                     x, y, width, height, startX >> 10, startY >> 10);
                 return;
             }
@@ -93,7 +97,7 @@ namespace Mediana.Codecs.Av1
                     cachedRows[cache] = sampleY;
                 }
                 ReadOnlySpan<short> vertical = Av1InterpolationFilters.Values.Slice((filterY * 16 + ((positionY >> 6) & 15)) * 8, 8);
-                Span<byte> result = destination.Slice((y + row) * destinationStride + x, width);
+                Span<byte> result = destination.Row(x, y + row, width);
                 for (int column = 0; column < width; column++)
                 {
                     int sum = 0;
@@ -112,7 +116,7 @@ namespace Mediana.Codecs.Av1
         }
 
         private static void CopyInteger(ReadOnlySpan<byte> source, int sourceStride, int sourceWidth, int sourceHeight,
-            Span<byte> destination, int destinationStride, int x, int y, int width, int height, int sourceX, int sourceY)
+            Av1PredictionDestination destination, int x, int y, int width, int height, int sourceX, int sourceY)
         {
             int left = Math.Min(width, Math.Max(0, -sourceX));
             int start = Math.Clamp(sourceX, 0, sourceWidth - 1);
@@ -120,7 +124,7 @@ namespace Mediana.Codecs.Av1
             for (int row = 0; row < height; row++)
             {
                 ReadOnlySpan<byte> input = source.Slice(Math.Clamp(sourceY + row, 0, sourceHeight - 1) * sourceStride, sourceWidth);
-                Span<byte> output = destination.Slice((y + row) * destinationStride + x, width);
+                Span<byte> output = destination.Row(x, y + row, width);
                 output[..left].Fill(input[0]);
                 input.Slice(start, count).CopyTo(output[left..]);
                 output[(left + count)..].Fill(input[^1]);

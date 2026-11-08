@@ -24,6 +24,7 @@ namespace Mediana.Codecs.Av1
         internal int CompoundGroup { readonly get => references >> 7; set => references = (byte)((references & 127) | (value << 7)); }
         internal byte Mode { readonly get => (byte)(mode & 31); set => mode = (byte)((mode & ~31) | value); }
         internal int CompoundIndex { readonly get => (mode >> 5) & 1; set => mode = (byte)((mode & ~32) | (value << 5)); }
+        internal int MotionMode { readonly get => mode >> 6; set => mode = (byte)((mode & 63) | (value << 6)); }
         internal int Row { readonly get => row; set => row = checked((short)value); }
         internal int Column { readonly get => column; set => column = checked((short)value); }
     }

@@ -129,7 +129,15 @@ size/index/sign combinations match independent AOM vectors. Six ten-picture
 sequences cover actual masked blocks, odd dimensions, variable partitions and
 inferred difference masks for large blocks; output samples match libdav1d.
 
-Non-identity global motion, overlapped/warped reconstruction,
+Overlapped motion compensation blends above and left reference predictions in
+normative order, with plane-specific geometry, bounded neighbor counts and
+rounded masks. It reuses the ordinary interpolation kernel through a borrowed
+destination view and a two-kibibyte stack buffer. Motion mode fits the existing
+sixteen-byte grid cell. Three moving sequences, including odd dimensions and
+hidden reference frames, match every libdav1d sample; 3,492 actual overlap cells
+match independent AOM mode inspection for every coded frame.
+
+Non-identity global motion, warped reconstruction, inter-intra blending,
 intra block copy,
 segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,

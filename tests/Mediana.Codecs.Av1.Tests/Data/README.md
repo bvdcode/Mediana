@@ -308,3 +308,20 @@ and columns per picture. Each eighteen-byte cell contains luma and chroma
 palette sizes followed by eight U and eight V palette entries. The tests verify
 all selected chroma sizes and final-row U cache values, in addition to every
 decoded sample.
+
+`obmcDefault`, `obmcRegions` and `obmcOdd` contain moving libaom 3.8.2
+sequences at 160×136, 96×80 and 97×81. Encoding uses CRF 30, cpu-used 0,
+ordinary partitions and in-loop filters, with warped motion and inter-intra
+compound disabled to isolate overlap reconstruction. The twelve-picture first
+sequence retains default lookahead, including hidden frames and reference
+display; the other two contain eight pictures with lag-in-frames 0. The odd
+source is cropped exactly from 160×136 testsrc2 before encoding. Independent
+libdav1d 1.4.1 output in `.yuv` must match every visible sample.
+
+Their `.obmc.gz` records use `AV1D_GET_MI_INFO` from the matching AOM release
+after each individual coded FRAME OBU, including hidden frames. Reference-only
+display OBUs do not add a record. The uncompressed format begins with
+`AV1OBMC1`, uint32 coded-frame count, then per-frame uint16 MI rows/columns
+and four bytes per cell: block size, first signed reference, second signed
+reference and motion mode. The three corpora have 13, 8 and 8 coded frames,
+with 1,956, 876 and 660 inter cells selecting OBMC. Gzip timestamps are zero.

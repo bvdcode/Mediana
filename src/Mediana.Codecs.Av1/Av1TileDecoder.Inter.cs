@@ -77,7 +77,7 @@ namespace Mediana.Codecs.Av1
                 if (list == 0) { block.Row = motionY; block.Column = motionX; }
                 else { block.SecondRow = (short)motionY; block.SecondColumn = (short)motionX; }
             }
-            if (!compound) { ReadSimpleMotion(row, column, width, height, reference, pictures); }
+            if (!compound) { block.MotionMode = ReadMotionMode(row, column, width, height, reference, pictures); }
             Av1CompoundPrediction compoundPrediction = compound ? ReadCompoundPrediction(row, column, width, height, ref block, pictures) : default;
             int filterY = header.Inter.InterpolationFilter;
             int filterX = filterY;
@@ -95,6 +95,7 @@ namespace Mediana.Codecs.Av1
             StoreMotion(row, column, width, height, block);
             bool hasChroma = !sequence.Monochrome && !(height == 1 && (row & 1) == 0) && !(width == 1 && (column & 1) == 0);
             PredictInter(row, column, width, height, hasChroma, block, pictures, compoundPrediction);
+            if (block.MotionMode == 1) { PredictOverlap(row, column, width, height, hasChroma, pictures); }
             StoreFilterBlock(row, column, width, height, reference, mode, skip != 0);
             Av1TransformSize transform = ReadInterTransformSizes(row, column, width, height, skip != 0);
             Residual(row, column, width, height, skip != 0, default, hasChroma, default, default, transform, true);

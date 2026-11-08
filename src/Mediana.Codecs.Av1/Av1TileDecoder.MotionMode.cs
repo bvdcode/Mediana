@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void ReadSimpleMotion(int row, int column, int width, int height, int reference, Av1ReferencePictures pictures)
+        private int ReadMotionMode(int row, int column, int width, int height, int reference, Av1ReferencePictures pictures)
         {
             int blockIndex = BlockIndex(width, height);
             if (sequence.Tools.InterIntra && blockIndex is >= 3 and <= 9)
@@ -16,7 +16,7 @@ namespace Mediana.Codecs.Av1
                     throw new NotSupportedException("AV1 inter-intra blending is not implemented.");
                 }
             }
-            if (!header.Inter.SwitchableMotion || Math.Min(width, height) < 2 || !HasOverlap(row, column, width, height)) { return; }
+            if (!header.Inter.SwitchableMotion || Math.Min(width, height) < 2 || !HasOverlap(row, column, width, height)) { return 0; }
             Av1SequenceHeader source = pictures.Get(header.Inter.References[reference - 1]).Header.Geometry;
             int scaleX = ((source.Width << 14) + sequence.Width / 2) / sequence.Width;
             int scaleY = ((source.Height << 14) + sequence.Height / 2) / sequence.Height;
@@ -25,10 +25,8 @@ namespace Mediana.Codecs.Av1
             int mode = warped
                 ? symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MotionModeOffset + blockIndex * 4, 4))
                 : symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.ObmcOffset + blockIndex * 3, 3));
-            if (mode != 0)
-            {
-                throw new NotSupportedException("AV1 overlapped and warped block reconstruction are not implemented.");
-            }
+            if (mode == 2) { throw new NotSupportedException($"AV1 warped block reconstruction is not implemented at ({row}, {column})."); }
+            return mode;
         }
 
         private bool HasOverlap(int row, int column, int width, int height)
@@ -102,6 +100,7 @@ namespace Mediana.Codecs.Av1
 
         private bool WarpSample(int row, int column, int reference) =>
             row >= 0 && row < sequence.MiRows && column >= 0 && column < sequence.MiColumns &&
-            motionBlocks[row * sequence.MiColumns + column].Reference == reference;
+            motionBlocks[row * sequence.MiColumns + column].Reference == reference &&
+            motionBlocks[row * sequence.MiColumns + column].SecondReference == 0;
     }
 }
