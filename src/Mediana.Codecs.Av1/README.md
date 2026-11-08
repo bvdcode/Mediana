@@ -214,5 +214,6 @@ exclusions are supported. Seven independent sequences cover odd dimensions,
 monochrome, 128-pixel superblocks, four tiles, lossless palettes and subsequent
 inter pictures. See [intra block copy](../../docs/av1-intra-block-copy.md).
 
-High bit depth is not implemented. Encountering this tool fails explicitly. The module requires explicit factory registration while ordinary AV1 playback
-coverage is incomplete.
+High bit depth is not implemented. Encountering this tool fails explicitly.
+Library clients register `Av1DecoderFactory` with their video builder. The CLI
+registers it in the common video pipeline used by previews, encoding and HLS.

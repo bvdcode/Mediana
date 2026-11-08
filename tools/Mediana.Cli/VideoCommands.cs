@@ -8,7 +8,7 @@ namespace Mediana.Cli
 {
     internal class VideoCommands(ILogger logger, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
-        /// <summary>Extract a supported H.264 or HEVC frame to an sRGB PNG or lossless WebP.</summary>
+        /// <summary>Extract a supported video frame to an sRGB PNG or lossless WebP.</summary>
         /// <param name="input">Existing MP4/MOV or Matroska file.</param>
         /// <param name="output">Output PNG or WebP file; the extension selects the encoder.</param>
         /// <param name="stream">Video stream index.</param>
