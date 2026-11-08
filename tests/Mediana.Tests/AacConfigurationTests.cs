@@ -47,13 +47,43 @@ namespace Mediana.Tests
             Assert.Null(reason);
             Assert.Equal(48000, value.SampleRate);
             Assert.Equal(1, value.ChannelCount);
+            Assert.False(value.SpectralBandReplication);
         }
 
         [Theory]
-        [InlineData(new byte[] { 0x29, 0x88 })]
+        [InlineData("2C0A8800", 16000, 32000, 1, false)]
+        [InlineData("2C128800", 16000, 32000, 2, false)]
+        [InlineData("EC0A8800", 16000, 32000, 1, true)]
+        [InlineData("2B8A0800", 22050, 44100, 1, false)]
+        [InlineData("2B920800", 22050, 44100, 2, false)]
+        [InlineData("EB8A0800", 22050, 44100, 1, true)]
+        [InlineData("2B098800", 24000, 48000, 1, false)]
+        [InlineData("2B118800", 24000, 48000, 2, false)]
+        [InlineData("EB098800", 24000, 48000, 1, true)]
+        [InlineData("118856E580", 48000, 96000, 1, false)]
+        [InlineData("138856E5A0", 22050, 44100, 1, false)]
+        [InlineData("138856E5A54880", 22050, 44100, 1, true)]
+        public void AtscEnhancementConfigurationsPreserveCoreAndOutputParameters(string hex,
+            int coreRate, int outputRate, int channels, bool ps)
+        {
+            byte[] bytes = Convert.FromHexString(hex);
+            AacConfiguration value = AacConfiguration.ReadAudioSpecificConfig(bytes, out string? reason)!;
+            Assert.Null(reason);
+            Assert.NotNull(value);
+            Assert.Equal(coreRate, value.SampleRate);
+            Assert.Equal(outputRate, value.OutputSampleRate);
+            Assert.Equal(outputRate, value.ExtensionSampleRate);
+            Assert.Equal(channels, value.ChannelCount);
+            Assert.True(value.SpectralBandReplication);
+            Assert.Equal(ps, value.ParametricStereo);
+            Assert.Equal(1024, value.SamplesPerFrame);
+            Assert.Equal(2048, value.OutputSamplesPerFrame);
+            Assert.Equal(bytes, value.ToAudioSpecificConfig());
+        }
+
+        [Theory]
         [InlineData(new byte[] { 0x11, 0x80 })]
         [InlineData(new byte[] { 0x11, 0x8c })]
-        [InlineData(new byte[] { 0x11, 0x88, 0x56, 0xe5, 0x80 })]
         [InlineData(new byte[] { 0x11, 0x88, 0, 0 })]
         public void UnsupportedToolsDoNotBecomePlainLc(byte[] bytes)
         {
@@ -64,6 +94,8 @@ namespace Mediana.Tests
         [Theory]
         [InlineData(new byte[0])]
         [InlineData(new byte[] { 0x11 })]
+        [InlineData(new byte[] { 0x29, 0x88 })]
+        [InlineData(new byte[] { 0x11, 0x88, 0x56, 0xe5, 0xe8 })]
         [InlineData(new byte[] { 0x16, 0x88 })]
         [InlineData(new byte[] { 0x17, 0x08 })]
         [InlineData(new byte[] { 0x11, 0x88, 0x56, 0xe5 })]
