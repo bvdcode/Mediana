@@ -97,3 +97,5 @@ outputs exactly one 48×40 picture, stored as `hidden.yuv`; its samples equal
 the original independently decoded key picture. Tests cover combined/separate
 access units, reference leases, reset and the prohibition on displaying a
 hidden key picture twice through different reference slots.
+
+`interRepeat.obu` contains five independently encoded 48×40 Main-profile 8-bit 4:2:0 lossless pictures: one keyframe followed by four inter frames. It exercises explicit reference indices, 15-bit frame identifiers with 14-bit reference deltas, and refresh masks 2, 4, 8 and 16. The header tests compare these values against the native bitstream trace; inter-picture reconstruction is not covered by these header assertions. The encoder settings disable loop filtering, compound tools, temporal motion fields and global motion.

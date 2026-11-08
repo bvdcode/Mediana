@@ -16,6 +16,25 @@ namespace Mediana.Codecs.Av1
 
         internal Av1StoredPicture Get(int index) => pictures[index] ?? throw new InvalidDataException("The AV1 reference picture has not been initialized.");
 
+        internal int Expired(int frameId, int idBits, int deltaBits)
+        {
+            if (idBits == 0) { return 0; }
+            int distance = 1 << deltaBits;
+            int modulus = 1 << idBits;
+            int invalid = 0;
+            for (int index = 0; index < Count; index++)
+            {
+                Av1StoredPicture? picture = pictures[index];
+                if (picture is null) { continue; }
+                int previous = picture.Header.FrameId;
+                bool expired = frameId > distance
+                    ? previous > frameId || previous < frameId - distance
+                    : previous > frameId && previous < modulus + frameId - distance;
+                if (expired) { invalid |= 1 << index; }
+            }
+            return invalid;
+        }
+
         internal void Save(Av1Picture picture, ReadOnlySpan<ushort> probabilities, MediaBufferAllocator allocator)
         {
             if (picture.Header.RefreshReferences == 0) { return; }

@@ -63,14 +63,17 @@ namespace Mediana.Codecs.Av1
             int heightBits = bits.Read(4) + 1;
             int width = bits.Read(widthBits) + 1;
             int height = bits.Read(heightBits) + 1;
+            int deltaIdBits = 0;
+            int frameIdBits = 0;
             if (!reduced && bits.Flag())
             {
-                throw new NotSupportedException("AV1 frame identifiers are not implemented.");
+                deltaIdBits = bits.Read(4) + 2;
+                frameIdBits = deltaIdBits + bits.Read(3) + 1;
             }
             bool largeSuperblock = bits.Flag();
             bool filterIntra = bits.Flag();
             bool edgeFilter = bits.Flag();
-            Av1SequenceTools tools = ReadTools(ref bits, reduced, widthBits, heightBits, level, tier);
+            Av1SequenceTools tools = ReadTools(ref bits, reduced, widthBits, heightBits, level, tier, frameIdBits, deltaIdBits);
             bool superResolution = bits.Flag();
             bool cdef = bits.Flag();
             bool restoration = bits.Flag();
@@ -137,22 +140,28 @@ namespace Mediana.Codecs.Av1
             return (firstLevel, firstTier);
         }
 
-        private static Av1SequenceTools ReadTools(ref Av1BitReader bits, bool reduced, int widthBits, int heightBits, int level, bool tier)
+        private static Av1SequenceTools ReadTools(ref Av1BitReader bits, bool reduced, int widthBits, int heightBits, int level, bool tier, int frameIdBits, int deltaIdBits)
         {
             int screenContent = 2;
             int integerMotion = 2;
             int orderBits = 0;
+            bool interIntra = false;
+            bool maskedCompound = false;
+            bool warpedMotion = false;
+            bool dualFilter = false;
+            bool jointCompound = false;
+            bool referenceMotion = false;
             if (!reduced)
             {
-                bits.Flag();
-                bits.Flag();
-                bits.Flag();
-                bits.Flag();
+                interIntra = bits.Flag();
+                maskedCompound = bits.Flag();
+                warpedMotion = bits.Flag();
+                dualFilter = bits.Flag();
                 bool orderHint = bits.Flag();
                 if (orderHint)
                 {
-                    bits.Flag();
-                    bits.Flag();
+                    jointCompound = bits.Flag();
+                    referenceMotion = bits.Flag();
                 }
                 if (!bits.Flag())
                 {
@@ -167,7 +176,7 @@ namespace Mediana.Codecs.Av1
                     orderBits = bits.Read(3) + 1;
                 }
             }
-            return new(reduced, widthBits, heightBits, orderBits, screenContent, integerMotion, level, tier);
+            return new(reduced, widthBits, heightBits, orderBits, screenContent, integerMotion, level, tier, frameIdBits, deltaIdBits, interIntra, maskedCompound, warpedMotion, dualFilter, jointCompound, referenceMotion);
         }
     }
 }
