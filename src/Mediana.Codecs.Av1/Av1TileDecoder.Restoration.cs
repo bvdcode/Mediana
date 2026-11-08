@@ -14,12 +14,14 @@ namespace Mediana.Codecs.Av1
                 if (type == Av1RestorationType.None) { continue; }
                 int size = parameters.Size(plane);
                 int step = 4 >> sequence.PlaneShift(plane);
-                int columns = parameters.Columns(sequence, plane);
+                int columns = parameters.Columns(header.PixelGeometry, plane);
                 int startRow = (row * step + size - 1) / size;
                 int endRow = Math.Min(parameters.Rows(sequence, plane), ((row + side) * step + size - 1) / size);
-                int startColumn = (column * step + size - 1) / size;
-                int endColumn = Math.Min(columns, ((column + side) * step + size - 1) / size);
-                int offset = parameters.Offset(sequence, plane);
+                int numerator = step * header.SuperResolution.ScaleDenominator;
+                int denominator = size * 8;
+                int startColumn = (column * numerator + denominator - 1) / denominator;
+                int endColumn = Math.Min(columns, ((column + side) * numerator + denominator - 1) / denominator);
+                int offset = parameters.Offset(header.PixelGeometry, plane);
                 for (int y = startRow; y < endRow; y++)
                 {
                     for (int x = startColumn; x < endColumn; x++)

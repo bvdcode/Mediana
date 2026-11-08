@@ -75,10 +75,10 @@ namespace Mediana.Codecs.Av1
         private void Publish(Av1Picture picture, MediaPacket packet, CancellationToken cancellationToken)
         {
             Av1FrameHeader header = picture.Header;
-            if (layoutHeader is not Av1FrameHeader previous || previous.Geometry != header.Geometry || previous.RenderWidth != header.RenderWidth || previous.RenderHeight != header.RenderHeight)
+            if (layoutHeader is not Av1FrameHeader previous || previous.Geometry != header.Geometry || previous.SuperResolution != header.SuperResolution || previous.RenderWidth != header.RenderWidth || previous.RenderHeight != header.RenderHeight)
             {
                 format = Av1VideoFormat.Create(header, stream);
-                planes = Av1VideoFormat.Layout(header.Geometry);
+                planes = Av1VideoFormat.Layout(header.PixelGeometry);
                 displayPlanes = format.CreateTightLayout();
                 PlaneLayout last = displayPlanes[^1];
                 displayLength = checked(last.Offset + last.Stride * last.Height);
@@ -90,7 +90,7 @@ namespace Mediana.Codecs.Av1
                 return;
             }
             using WritableMediaBuffer display = allocator.Allocate(displayLength);
-            Av1GrainSynthesis.Apply(grain, header.Geometry.Width, header.Geometry.Height, header.Geometry.Monochrome,
+            Av1GrainSynthesis.Apply(grain, header.PixelGeometry.Width, header.PixelGeometry.Height, header.PixelGeometry.Monochrome,
                 header.Geometry.MatrixCoefficients == 0, picture.Pixels.Memory.Span, planes!, display.Span, displayPlanes!, allocator, cancellationToken);
             using MediaBuffer pixels = display.Publish();
             output = new(format!, pixels, displayPlanes!, packet.PresentationTime, packet.Duration);

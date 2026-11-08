@@ -558,3 +558,20 @@ quantizer tables at eight, ten and twelve bits, in that order, after the
 `AV1QLUT1` magic. Each entry is an unsigned little-endian sixteen-bit value.
 The table values from AV1 specification section 7.12.2 match every entry in
 AOM 3.8.2 `av1/common/quant_common.c`; digests are calculated from the latter.
+
+## Super-resolution pictures
+
+`superres9` through `superres16` contain twelve 192×136 pictures each, encoded
+by libaom 3.8.2 at CQ28, CPU4, no lookahead and fixed super-resolution
+denominators 9–16. `superresOdd` uses 193×137 and denominator 13;
+`superresMono` uses 65×73 and denominator 15; `superresTiles` uses 384×136,
+denominator 11 and two tile columns. `superresRandom` changes the denominator
+between pictures, including an unscaled frame. `superresGrain` combines 193×137,
+denominator 14 and film-grain test vector 16. Other reconstruction tools retain
+their encoder defaults, including loop restoration.
+
+Inputs are FFmpeg `testsrc` at six pictures per second. The AOM public encoder
+configuration sets `rc_superres_mode` and both denominator fields directly.
+The `.sha256` files use the `AV1HASH1` format and independent dav1d output,
+covering 156 visible pictures. Public decoder tests repeat every sequence after
+reset and separately verify held output leases across reference scale changes.

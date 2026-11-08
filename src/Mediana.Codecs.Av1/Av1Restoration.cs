@@ -113,7 +113,7 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        private static int BoundaryCount(Av1SequenceHeader sequence, int plane)
+        internal static int BoundaryCount(Av1SequenceHeader sequence, int plane)
         {
             int shift = sequence.PlaneShift(plane);
             int stripe = 64 >> shift;

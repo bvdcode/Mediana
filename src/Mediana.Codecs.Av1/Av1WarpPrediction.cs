@@ -13,7 +13,7 @@ namespace Mediana.Codecs.Av1
             int plane, int x, int y, int width, int height, Av1WarpParameters warp, Av1CompoundBlend blend)
         {
             int sub = target.PlaneShift(plane);
-            Av1SequenceHeader source = reference.Header.Geometry;
+            Av1SequenceHeader source = reference.PixelGeometry;
             int lastX = ((source.Width + sub) >> sub) - 1;
             int lastY = ((source.Height + sub) >> sub) - 1;
             int sourceStride = source.PlaneStride(plane);

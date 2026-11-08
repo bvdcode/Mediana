@@ -33,7 +33,7 @@ namespace Mediana.Codecs.Av1
                 Av1WarpPrediction.Predict(destination, target, reference, plane, x, y, width, height, warp, blend);
                 return;
             }
-            Av1SequenceHeader source = reference.Header.Geometry;
+            Av1SequenceHeader source = reference.PixelGeometry;
             if (source.Width > target.Width * 2 || source.Height > target.Height * 2 ||
                 target.Width > source.Width * 16 || target.Height > source.Height * 16)
             {

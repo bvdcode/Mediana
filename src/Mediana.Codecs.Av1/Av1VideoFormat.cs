@@ -13,7 +13,7 @@ namespace Mediana.Codecs.Av1
 
         internal static VideoFormat Create(Av1FrameHeader header, EncodedStreamInfo stream)
         {
-            Av1SequenceHeader geometry = header.Geometry;
+            Av1SequenceHeader geometry = header.PixelGeometry;
             VideoColorInfo color = new(CicpColorimetry.GetPrimaries(geometry.ColorPrimaries), CicpColorimetry.GetTransfer(geometry.TransferCharacteristics),
                 CicpColorimetry.GetMatrix(geometry.MatrixCoefficients), geometry.FullRange ? ColorRange.Full : ColorRange.Limited,
                 geometry.ChromaPosition switch

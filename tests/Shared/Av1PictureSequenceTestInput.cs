@@ -100,6 +100,52 @@ namespace Mediana.Tests
             return packets;
         }
 
+        internal static void VerifyOwnership(string root, string fixture, byte[] configuration)
+        {
+            byte[] encoded = File.ReadAllBytes(Path.Combine(root, fixture + ".obu"));
+            List<ReadOnlyMemory<byte>> packets = Av1PictureSequenceTestInput.Packets(encoded);
+            MediaBufferAllocator allocator = new(16 * 1024 * 1024);
+            EncodedStreamInfo stream = new(0, MediaKind.Video, "av1", StreamFormats.Av1, new(1, 6), configuration);
+            using (IMediaCodec<MediaPacket, VideoFrame> decoder = new Av1DecoderFactory().Create(stream, allocator))
+            {
+                Send(decoder, allocator, packets[0], 0);
+                using VideoFrame held = decoder.Receive().Value;
+                byte[] digest = SHA256.HashData(held.Data.Span);
+                for (int index = 1; index < packets.Count; index++)
+                {
+                    Send(decoder, allocator, packets[index], index);
+                    using VideoFrame current = decoder.Receive().Value;
+                    Require(SHA256.HashData(held.Data.Span).AsSpan().SequenceEqual(digest));
+                }
+                decoder.CompleteInput();
+                Require(decoder.Receive().Status == CodecOutputStatus.EndOfStream);
+                decoder.Reset();
+                Require(allocator.AllocatedBytes == held.Data.Length);
+                using CancellationTokenSource cancellation = new();
+                cancellation.Cancel();
+                bool cancelled = false;
+                try { Send(decoder, allocator, packets[0], 0, cancellation.Token); }
+                catch (OperationCanceledException exception) when (exception.CancellationToken == cancellation.Token) { cancelled = true; }
+                Require(cancelled && allocator.AllocatedBytes == held.Data.Length);
+                decoder.Reset();
+                Send(decoder, allocator, packets[0], 0);
+                using VideoFrame restarted = decoder.Receive().Value;
+                Require(SHA256.HashData(restarted.Data.Span).AsSpan().SequenceEqual(digest));
+                Require(SHA256.HashData(held.Data.Span).AsSpan().SequenceEqual(digest));
+            }
+            Require(allocator.AllocatedBytes == 0);
+        }
+
+        private static void Send(IMediaCodec<MediaPacket, VideoFrame> decoder, MediaBufferAllocator allocator,
+            ReadOnlyMemory<byte> encoded, int index, CancellationToken token = default)
+        {
+            using WritableMediaBuffer write = allocator.Allocate(encoded.Length);
+            encoded.Span.CopyTo(write.Span);
+            using MediaBuffer buffer = write.Publish();
+            using MediaPacket packet = new(0, buffer, new MediaTimestamp(index, new(1, 6)), duration: new MediaDuration(1, new(1, 6)));
+            Require(decoder.TrySend(packet, token) == CodecInputStatus.Accepted);
+        }
+
         private static void Require(bool condition)
         {
             if (!condition) { throw new InvalidDataException("AV1 picture output, timing or buffer ownership is invalid."); }

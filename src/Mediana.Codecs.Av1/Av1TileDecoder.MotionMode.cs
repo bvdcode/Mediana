@@ -12,7 +12,7 @@ namespace Mediana.Codecs.Av1
             int blockIndex = BlockIndex(width, height);
             if (!header.Inter.SwitchableMotion || Math.Min(width, height) < 2 || !HasOverlap(row, column, width, height)) { return 0; }
             if (!header.Inter.IntegerMotion && block.Mode is 15 or 23 && header.GlobalMotion[reference].Affine) { return 0; }
-            Av1SequenceHeader source = pictures.Get(header.Inter.References[reference - 1]).Header.Geometry;
+            Av1SequenceHeader source = pictures.Get(header.Inter.References[reference - 1]).PixelGeometry;
             int scaleX = ((source.Width << 14) + sequence.Width / 2) / sequence.Width;
             int scaleY = ((source.Height << 14) + sequence.Height / 2) / sequence.Height;
             Span<Av1WarpSample> storage = stackalloc Av1WarpSample[Av1WarpSamples.Capacity];

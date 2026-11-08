@@ -202,6 +202,11 @@ reference pixels unchanged. Parameter inheritance, monochrome, clipped geometry
 and held-frame ownership are independently verified; see
 [film grain](../../docs/av1-film-grain.md).
 
-Intra block copy, super-resolution and high bit depth are not implemented. Encountering these
+Super-resolution supports all fixed denominators, per-frame scale changes,
+scaled references and restoration in the upscaled domain. Thirteen independent
+sequences cover monochrome, odd dimensions, tiles and film grain. See
+[super-resolution](../../docs/av1-super-resolution.md).
+
+Intra block copy and high bit depth are not implemented. Encountering these
 tools fails explicitly. The module requires explicit factory registration while ordinary AV1 playback
 coverage is incomplete.

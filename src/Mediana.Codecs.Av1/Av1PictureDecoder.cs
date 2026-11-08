@@ -111,8 +111,10 @@ namespace Mediana.Codecs.Av1
                 initialProbabilities = MemoryMarshal.Cast<byte, ushort>(references.Get(header.Inter.References[header.Inter.PrimaryReference]).Cdfs.Memory.Span);
             }
             int cdefIndexCount = header.Cdef.IndexCount(geometry);
-            int restorationBytes = checked(header.Restoration.UnitCount(geometry) * Unsafe.SizeOf<Av1RestorationUnit>());
+            int restorationBytes = checked(header.Restoration.UnitCount(header.PixelGeometry) * Unsafe.SizeOf<Av1RestorationUnit>());
             using WritableMediaBuffer pixels = allocator.Allocate(sampleCount);
+            Av1SequenceHeader pixelGeometry = header.PixelGeometry;
+            using WritableMediaBuffer? upscaled = header.SuperResolution.Active ? allocator.Allocate(pixelGeometry.SampleCount) : null;
             MediaBuffer? previousSegmentMap = null;
             if (header.Segmentation.Enabled && header.Inter.PrimaryReference != Av1InterPrediction.NoPrimaryReference)
             {
@@ -166,24 +168,29 @@ namespace Mediana.Codecs.Av1
                 }
                 if (savedMotion is not null) { Av1MotionField.Store(geometry, header, references, motionBlocks, savedMotion.Span, cancellationToken); }
                 if (header.LoopFilter.Enabled) { Av1LoopFilter.Apply(pixels.Span, geometry, header.LoopFilter, filterBlocks, cancellationToken, header.Segmentation); }
-                int boundaryLength = Av1Restoration.BoundaryLength(geometry, header.Restoration);
+                int boundaryLength = Av1Restoration.BoundaryLength(pixelGeometry, header.Restoration);
                 using WritableMediaBuffer? boundaryBuffer = boundaryLength != 0 ? allocator.Allocate(boundaryLength) : null;
                 Span<byte> boundaries = boundaryBuffer is null ? default : boundaryBuffer.Span;
-                if (header.Restoration.Enabled) { Av1Restoration.SaveBoundaries(pixels.Span, geometry, header.Restoration, boundaries); }
+                if (header.Restoration.Enabled)
+                {
+                    if (upscaled is null) { Av1Restoration.SaveBoundaries(pixels.Span, geometry, header.Restoration, boundaries); }
+                    else { Av1SuperResolutionUpscaling.SaveBoundaries(pixels.Span, geometry, pixelGeometry, header.Restoration, boundaries, cancellationToken); }
+                }
                 if (header.Cdef.Enabled)
                 {
                     using WritableMediaBuffer scratch = allocator.Allocate(Av1Cdef.ScratchLength(geometry));
                     Av1Cdef.Apply(pixels.Span, geometry, header.Cdef, filterBlocks, cdefIndices, scratch.Span, cancellationToken);
                 }
+                if (upscaled is not null) { Av1SuperResolutionUpscaling.Frame(pixels.Span, geometry, upscaled.Span, pixelGeometry, cancellationToken); }
                 if (header.Restoration.Enabled)
                 {
-                    using WritableMediaBuffer scratch = allocator.Allocate(Av1Restoration.ScratchLength(geometry, header.Restoration));
-                    Av1Restoration.Apply(pixels.Span, geometry, header.Restoration, restorationUnits, boundaries, scratch.Span, cancellationToken);
+                    using WritableMediaBuffer scratch = allocator.Allocate(Av1Restoration.ScratchLength(pixelGeometry, header.Restoration));
+                    Av1Restoration.Apply(upscaled is null ? pixels.Span : upscaled.Span, pixelGeometry, header.Restoration, restorationUnits, boundaries, scratch.Span, cancellationToken);
                 }
             }
             cancellationToken.ThrowIfCancellationRequested();
             savedSequence = sequence;
-            Av1Picture picture = new(header, pixels.Publish());
+            Av1Picture picture = new(header, upscaled is null ? pixels.Publish() : upscaled.Publish());
             bool transferred = false;
             try
             {

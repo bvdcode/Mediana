@@ -80,7 +80,7 @@ namespace Mediana.Codecs.Av1
         private Av1WarpParameters GlobalWarp(Av1MotionBlock block, int reference, Av1StoredPicture picture)
         {
             if (block.Mode is not (15 or 23)) { return default; }
-            Av1SequenceHeader source = picture.Header.Geometry;
+            Av1SequenceHeader source = picture.PixelGeometry;
             int scaleX = ((source.Width << 14) + sequence.Width / 2) / sequence.Width;
             int scaleY = ((source.Height << 14) + sequence.Height / 2) / sequence.Height;
             if (scaleX != 16384 || scaleY != 16384) { return default; }

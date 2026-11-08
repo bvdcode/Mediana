@@ -49,7 +49,7 @@ namespace Mediana.Codecs.Av1
             {
                 throw new ArgumentException("The AV1 directional-filter index metadata has an invalid extent.", nameof(cdefIndices));
             }
-            if (restorationUnits.Length != header.Restoration.UnitCount(sequence))
+            if (restorationUnits.Length != header.Restoration.UnitCount(header.PixelGeometry))
             {
                 throw new ArgumentException("The AV1 restoration metadata has an invalid extent.", nameof(restorationUnits));
             }

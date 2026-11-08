@@ -278,6 +278,8 @@
     <Compile Include="../Shared/Av1ContainerTestInput.cs" Link="Av1ContainerTestInput.cs" />
     <Compile Include="../Shared/Av1PictureSequenceTestInput.cs" Link="Av1PictureSequenceTestInput.cs" />
     <Compile Include="../Shared/Av1GrainDisplayTestInput.cs" Link="Av1GrainDisplayTestInput.cs" />
+    <Compile Include="../Shared/Av1SuperResolutionTestInput.cs" Link="Av1SuperResolutionTestInput.cs" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/superres*.obu;../Mediana.Codecs.Av1.Tests/Data/superres*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/grain*.obu;../Mediana.Codecs.Av1.Tests/Data/grain*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Av1TimingTestInput.cs" Link="Av1TimingTestInput.cs" />
     <None Include="../Mediana.Codecs.Av1.Tests/Data/clippedCompound.obu;../Mediana.Codecs.Av1.Tests/Data/clippedCompound.sha256;../Mediana.Codecs.Av1.Tests/Data/tiles*.obu;../Mediana.Codecs.Av1.Tests/Data/tiles*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

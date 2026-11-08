@@ -4,8 +4,10 @@
 namespace Mediana.Codecs.Av1
 {
     internal readonly partial record struct Av1FrameHeader(bool DisableCdfUpdate, bool ScreenContent, int TileOffset, Av1SequenceHeader Geometry, int RenderWidth, int RenderHeight, Av1Quantization Quantization, bool ReducedTransformSet, bool SelectTransform, bool ShowFrame, bool Showable, Av1FrameType FrameType,
-        int RefreshReferences, int InvalidReferences, int OrderHint, bool DisableFrameEndUpdate, int FrameId = 0, Av1InterPrediction Inter = default, Av1LoopFilterParameters LoopFilter = default, Av1CdefParameters Cdef = default, Av1RestorationParameters Restoration = default, Av1BlockDeltaParameters Deltas = default, Av1FrameTiming Timing = default, Av1Segmentation Segmentation = default, Av1TileInfo Tiles = default, Av1GlobalMotion GlobalMotion = default, Av1GrainParameters? Grain = null)
+        int RefreshReferences, int InvalidReferences, int OrderHint, bool DisableFrameEndUpdate, int FrameId = 0, Av1InterPrediction Inter = default, Av1LoopFilterParameters LoopFilter = default, Av1CdefParameters Cdef = default, Av1RestorationParameters Restoration = default, Av1BlockDeltaParameters Deltas = default, Av1FrameTiming Timing = default, Av1Segmentation Segmentation = default, Av1TileInfo Tiles = default, Av1GlobalMotion GlobalMotion = default, Av1GrainParameters? Grain = null, Av1SuperResolution SuperResolution = default)
     {
+        internal Av1SequenceHeader PixelGeometry => SuperResolution.PixelGeometry(Geometry);
+
         internal static Av1FrameHeader Parse(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1ReferencePictures references, bool separateHeader = false)
         {
             Av1BitReader bits = new(encoded);
@@ -38,12 +40,19 @@ namespace Mediana.Codecs.Av1
             Av1CdefParameters cdef = default;
             Av1RestorationParameters restoration = default;
             bool selectTransform = false;
-            if (!segmentation.CodedLossless(quantization))
+            bool codedLossless = segmentation.CodedLossless(quantization);
+            if (!codedLossless)
             {
                 Av1LoopFilterParameters previous = primary?.Header.LoopFilter ?? Av1LoopFilterParameters.Default;
                 loopFilter = Av1LoopFilterParameters.Read(ref bits, sequence.Monochrome, previous);
                 if (sequence.Cdef) { cdef = Av1CdefParameters.Read(ref bits, sequence.Monochrome); }
-                if (sequence.Restoration) { restoration = Av1RestorationParameters.Read(ref bits, sequence); }
+            }
+            if (sequence.Restoration && (!codedLossless || sequence.Width != context.SuperResolution.PixelGeometry(sequence).Width))
+            {
+                restoration = Av1RestorationParameters.Read(ref bits, sequence);
+            }
+            if (!codedLossless)
+            {
                 selectTransform = bits.Flag();
             }
             Av1InterPrediction inter = context.Inter;
@@ -66,7 +75,7 @@ namespace Mediana.Codecs.Av1
             {
                 throw new InvalidDataException("The AV1 frame has no tile payload.");
             }
-            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, inter, loopFilter, cdef, restoration, deltas, context.Timing, segmentation, tiles, globalMotion, grain);
+            return new(disableCdfUpdate, context.ScreenContent, bits.ByteOffset, sequence, context.RenderWidth, context.RenderHeight, quantization, reducedTransformSet, selectTransform, context.ShowFrame, context.Showable, context.Type, context.RefreshReferences, context.InvalidReferences, context.OrderHint, disableFrameEndUpdate, context.FrameId, inter, loopFilter, cdef, restoration, deltas, context.Timing, segmentation, tiles, globalMotion, grain, context.SuperResolution);
         }
 
         private static int ReadDelta(ref Av1BitReader bits) => bits.Flag() ? bits.ReadSigned(7) : 0;

@@ -24,7 +24,7 @@ namespace Mediana.Codecs.Av1
             RowCore(paddedSource, codedWidth, output, (1 << bitDepth) - 1);
         }
 
-        private static void RowCore<T>(ReadOnlySpan<T> paddedSource, int codedWidth, Span<T> output, int maximum)
+        internal static void RowCore<T>(ReadOnlySpan<T> paddedSource, int codedWidth, Span<T> output, int maximum)
             where T : unmanaged, IBinaryInteger<T>
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(codedWidth);
