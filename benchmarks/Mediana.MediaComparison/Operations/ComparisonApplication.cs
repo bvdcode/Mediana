@@ -7,6 +7,11 @@ namespace Mediana.OperationComparison
     {
         internal static Task RunAsync(string[] arguments)
         {
+            if (arguments.Length == 6 && arguments[0] == "h264-encode")
+            {
+                return H264EncodingComparison.RunAsync(arguments[1], arguments[2], int.Parse(arguments[3], System.Globalization.CultureInfo.InvariantCulture),
+                    int.Parse(arguments[4], System.Globalization.CultureInfo.InvariantCulture), int.Parse(arguments[5], System.Globalization.CultureInfo.InvariantCulture));
+            }
             if (arguments.Length != 3)
             {
                 throw new ArgumentException("Expected operation, input and new output path.");
