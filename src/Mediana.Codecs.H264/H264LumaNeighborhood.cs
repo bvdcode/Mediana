@@ -19,6 +19,10 @@ namespace Mediana.Codecs.H264
         private readonly ReadOnlySpan<byte> horizontal;
         private readonly ReadOnlySpan<byte> vertical;
         private readonly ReadOnlySpan<byte> diagonal;
+        private readonly int sampleStride;
+        private readonly int halfStride;
+        private readonly int sampleOrigin;
+        private readonly int halfOrigin;
 
         public H264LumaNeighborhood(H264Picture reference, long x, long y,
             Span<byte> samples, Span<byte> filtered)
@@ -67,6 +71,22 @@ namespace Mediana.Codecs.H264
             horizontal = filtered[..Plane];
             vertical = filtered.Slice(Plane, Plane);
             diagonal = filtered.Slice(2 * Plane, Plane);
+            sampleStride = Patch;
+            halfStride = Window;
+            sampleOrigin = 3 * Patch + 3;
+            halfOrigin = Window + 1;
+        }
+
+        internal H264LumaNeighborhood(H264MotionReference reference, int x, int y)
+        {
+            samples = reference.Samples;
+            horizontal = reference.Horizontal;
+            vertical = reference.Vertical;
+            diagonal = reference.Diagonal;
+            sampleStride = reference.SampleStride;
+            halfStride = reference.HalfStride;
+            sampleOrigin = (y + reference.Range + 2) * sampleStride + x + reference.Range + 2;
+            halfOrigin = (y + reference.Range) * halfStride + x + reference.Range;
         }
 
         /// <summary>Stops after the first row exceeding the error limit. An error within the limit guarantees a complete output block.</summary>
@@ -80,28 +100,28 @@ namespace Mediana.Codecs.H264
             {
                 throw new ArgumentException("The luma comparison and prediction must be complete 16x16 blocks.");
             }
-            int left = (x >> 2) + 1;
-            int top = (y >> 2) + 1;
-            int integer = (top + 2) * Patch + left + 2;
-            int half = top * Window + left;
+            int left = x >> 2;
+            int top = y >> 2;
+            int integer = sampleOrigin + top * sampleStride + left;
+            int half = halfOrigin + top * halfStride + left;
             switch (x & 3, y & 3)
             {
-                case (0, 0): return Copy(samples, Patch, integer, comparison, output, maximumError);
-                case (1, 0): return Average(samples, Patch, integer, horizontal, Window, half, comparison, output, maximumError);
-                case (2, 0): return Copy(horizontal, Window, half, comparison, output, maximumError);
-                case (3, 0): return Average(horizontal, Window, half, samples, Patch, integer + 1, comparison, output, maximumError);
-                case (0, 1): return Average(samples, Patch, integer, vertical, Window, half, comparison, output, maximumError);
-                case (1, 1): return Average(horizontal, Window, half, vertical, Window, half, comparison, output, maximumError);
-                case (2, 1): return Average(horizontal, Window, half, diagonal, Window, half, comparison, output, maximumError);
-                case (3, 1): return Average(horizontal, Window, half, vertical, Window, half + 1, comparison, output, maximumError);
-                case (0, 2): return Copy(vertical, Window, half, comparison, output, maximumError);
-                case (1, 2): return Average(vertical, Window, half, diagonal, Window, half, comparison, output, maximumError);
-                case (2, 2): return Copy(diagonal, Window, half, comparison, output, maximumError);
-                case (3, 2): return Average(diagonal, Window, half, vertical, Window, half + 1, comparison, output, maximumError);
-                case (0, 3): return Average(vertical, Window, half, samples, Patch, integer + Patch, comparison, output, maximumError);
-                case (1, 3): return Average(vertical, Window, half, horizontal, Window, half + Window, comparison, output, maximumError);
-                case (2, 3): return Average(diagonal, Window, half, horizontal, Window, half + Window, comparison, output, maximumError);
-                case (3, 3): return Average(vertical, Window, half + 1, horizontal, Window, half + Window, comparison, output, maximumError);
+                case (0, 0): return Copy(samples, sampleStride, integer, comparison, output, maximumError);
+                case (1, 0): return Average(samples, sampleStride, integer, horizontal, halfStride, half, comparison, output, maximumError);
+                case (2, 0): return Copy(horizontal, halfStride, half, comparison, output, maximumError);
+                case (3, 0): return Average(horizontal, halfStride, half, samples, sampleStride, integer + 1, comparison, output, maximumError);
+                case (0, 1): return Average(samples, sampleStride, integer, vertical, halfStride, half, comparison, output, maximumError);
+                case (1, 1): return Average(horizontal, halfStride, half, vertical, halfStride, half, comparison, output, maximumError);
+                case (2, 1): return Average(horizontal, halfStride, half, diagonal, halfStride, half, comparison, output, maximumError);
+                case (3, 1): return Average(horizontal, halfStride, half, vertical, halfStride, half + 1, comparison, output, maximumError);
+                case (0, 2): return Copy(vertical, halfStride, half, comparison, output, maximumError);
+                case (1, 2): return Average(vertical, halfStride, half, diagonal, halfStride, half, comparison, output, maximumError);
+                case (2, 2): return Copy(diagonal, halfStride, half, comparison, output, maximumError);
+                case (3, 2): return Average(diagonal, halfStride, half, vertical, halfStride, half + 1, comparison, output, maximumError);
+                case (0, 3): return Average(vertical, halfStride, half, samples, sampleStride, integer + sampleStride, comparison, output, maximumError);
+                case (1, 3): return Average(vertical, halfStride, half, horizontal, halfStride, half + halfStride, comparison, output, maximumError);
+                case (2, 3): return Average(diagonal, halfStride, half, horizontal, halfStride, half + halfStride, comparison, output, maximumError);
+                case (3, 3): return Average(vertical, halfStride, half + 1, horizontal, halfStride, half + halfStride, comparison, output, maximumError);
                 default: throw new InvalidOperationException("An H.264 luma fraction is outside its two-bit range.");
             }
         }

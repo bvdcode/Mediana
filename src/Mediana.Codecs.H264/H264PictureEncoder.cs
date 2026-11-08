@@ -12,7 +12,7 @@ namespace Mediana.Codecs.H264
 
         public static H264EncodedPicture Encode(VideoFrame input, H264SequenceParameterSet sequence, H264Picture? reference,
             bool keyFrame, int frameNumber, int idrId, MediaBufferAllocator allocator, H264EncoderOptions options,
-            H264FrameRateBudget budget, ref H264Picture? workspace, CancellationToken token)
+            H264FrameRateBudget budget, ref H264Picture? workspace, CancellationToken token, H264MotionReference? interpolation = null)
         {
             int maximumBytes = Math.Min(options.MaximumPacketBytes, budget.MaximumBytes);
             if (maximumBytes < 8)
@@ -46,7 +46,7 @@ namespace Mediana.Codecs.H264
                             ? H264IntraEncoder.Encode(input, picture, quantizer, options.Quantizer, idrId, allocator, maximumBytes,
                                 options.RateControl is not null, out bytes, token)
                             : H264InterEncoder.Encode(input, picture, reference!, frameNumber, quantizer, allocator, options, maximumBytes,
-                                options.RateControl is not null, out bytes, token);
+                                options.RateControl is not null, out bytes, token, interpolation);
                         if (data is not null)
                         {
                             H264EncodedPicture result = new(picture, data, quantizer);

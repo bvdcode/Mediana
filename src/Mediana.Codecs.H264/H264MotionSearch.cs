@@ -15,12 +15,13 @@ namespace Mediana.Codecs.H264
         private readonly ReadOnlySpan<byte> source;
         private readonly Span<byte> candidate;
         private readonly Span<byte> prediction;
+        private readonly H264MotionReference? interpolation;
         private int best;
         private int motionX;
         private int motionY;
 
         private H264MotionSearch(H264Picture reference, (int X, int Y) position, (int X, int Y) predicted,
-            ReadOnlySpan<byte> source, Span<byte> candidate, Span<byte> prediction)
+            ReadOnlySpan<byte> source, Span<byte> candidate, Span<byte> prediction, H264MotionReference? interpolation)
         {
             this.reference = reference;
             this.position = position;
@@ -28,6 +29,7 @@ namespace Mediana.Codecs.H264
             this.source = source;
             this.candidate = candidate;
             this.prediction = prediction;
+            this.interpolation = interpolation;
             motionX = 0;
             motionY = 0;
             Predict(reference, position.X, position.Y, 0, 0, prediction);
@@ -35,14 +37,14 @@ namespace Mediana.Codecs.H264
         }
 
         public static (int X, int Y, bool Exact) Select(H264SourceMacroblock input, H264Picture reference, H264Picture target,
-            int x, int y, int range, Span<byte> prediction, CancellationToken token)
+            int x, int y, int range, Span<byte> prediction, CancellationToken token, H264MotionReference? interpolation = null)
         {
             Span<byte> candidate = stackalloc byte[384];
             (int predictedX, int predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
-            H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), input.Samples, candidate, prediction);
+            H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), input.Samples, candidate, prediction, interpolation);
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
             search.Scan(range, token);
-            search.Refine(range, token);
+            search.Refine(range, token, interpolation);
             return (search.motionX, search.motionY, search.best == 0);
         }
 
@@ -51,6 +53,8 @@ namespace Mediana.Codecs.H264
             int limit = range * 4;
             ReadOnlySpan<int> stepsX = [-4, 4, 0, 0];
             ReadOnlySpan<int> stepsY = [0, 0, -4, 4];
+            int previousX = int.MinValue;
+            int previousY = int.MinValue;
             for (int iteration = 0; iteration < range * 2; iteration++)
             {
                 token.ThrowIfCancellationRequested();
@@ -64,7 +68,7 @@ namespace Mediana.Codecs.H264
                 {
                     int nextX = centerX + stepsX[direction];
                     int nextY = centerY + stepsY[direction];
-                    if (Math.Abs(nextX) <= limit && Math.Abs(nextY) <= limit)
+                    if (Math.Abs(nextX) <= limit && Math.Abs(nextY) <= limit && (nextX != previousX || nextY != previousY))
                     {
                         Evaluate(nextX, nextY);
                     }
@@ -73,10 +77,12 @@ namespace Mediana.Codecs.H264
                 {
                     break;
                 }
+                previousX = centerX;
+                previousY = centerY;
             }
         }
 
-        private void Refine(int range, CancellationToken token)
+        private void Refine(int range, CancellationToken token, H264MotionReference? interpolation)
         {
             if (range == 0 || (best == 0 && motionX == predicted.X && motionY == predicted.Y))
             {
@@ -87,8 +93,9 @@ namespace Mediana.Codecs.H264
             int originY = motionY;
             Span<byte> samples = stackalloc byte[H264LumaNeighborhood.SampleBytes];
             Span<byte> filtered = stackalloc byte[H264LumaNeighborhood.FilteredBytes];
-            H264LumaNeighborhood neighborhood = new(reference, (long)position.X + (originX >> 2),
-                (long)position.Y + (originY >> 2), samples, filtered);
+            H264LumaNeighborhood neighborhood = interpolation is null
+                ? new(reference, (long)position.X + (originX >> 2), (long)position.Y + (originY >> 2), samples, filtered)
+                : new(interpolation, position.X + (originX >> 2), position.Y + (originY >> 2));
             ReadOnlySpan<int> offsetsX = [-1, 0, 1, -1, 1, -1, 0, 1];
             ReadOnlySpan<int> offsetsY = [-1, -1, -1, 0, 0, 1, 1, 1];
             for (int step = 2; step >= 1 && range > 0; step /= 2)
@@ -122,6 +129,12 @@ namespace Mediana.Codecs.H264
             }
             long x = (long)position.X + (nextX >> 2);
             long y = (long)position.Y + (nextY >> 2);
+            if (((nextX | nextY) & 3) == 0 && interpolation is not null)
+            {
+                int start = checked(((int)y + interpolation.Range + 2) * interpolation.SampleStride + (int)x + interpolation.Range + 2);
+                Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], interpolation.Samples[start..], interpolation.SampleStride, best), materializeLuma: true);
+                return;
+            }
             if (((nextX | nextY) & 3) == 0 && x >= 0 && x <= reference.Width - 16 && y >= 0 && y <= reference.Height - 16)
             {
                 ReadOnlySpan<byte> luma = reference.ReadPlane(0).Slice((int)y * reference.Width + (int)x, 15 * reference.Width + 16);

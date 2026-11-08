@@ -347,3 +347,38 @@ the independent 1,992,038,400-byte raw reference; every encoded output matches
 the independent 78,332,832-byte transport reference. Neither diagnostic changes
 the production reconstruction pipeline or establishes a memory improvement,
 new FFmpeg ratio or complete-film HLS improvement.
+
+## Reusing interpolation across a reference picture
+
+The encoder prepares padded integer samples and the three half-pixel luma
+planes once per reference picture. Macroblock searches share those planes;
+six intermediate filter rows are kept in a duplicated ring rather than a
+second full picture. Integer diamond search also avoids revisiting its
+immediately preceding center. Motion candidates, SAD comparisons, tie ordering,
+quantization and output syntax remain unchanged.
+
+At 1280x720 with a 16-sample motion range, the additional allocator-owned
+storage is 3.81 MiB. It is reused between pictures and released on completion,
+reset, disposal and failure. Independent scalar convolution checks cover all
+fractional positions, picture borders, three search ranges and repeated reuse.
+Both search paths also match the independent motion-vector reference cases.
+
+Complete Native AOT encoding uses three progressive YUV420 inputs at QP 26,
+24 fps and a 48-picture keyframe interval. Each input is run in
+before/after/after/before order, with CPU affinity and one reported processor.
+Every resulting transport is byte-identical to its preceding implementation,
+reaches EOF and releases all owned media storage.
+
+| Input | Pictures | Before CPU range, s | After CPU range, s |
+| --- | ---: | ---: | ---: |
+| Natural video, 1280x720 | 288 | 6.350–7.474 | 5.759–6.283 |
+| Moving test pattern, 640x360 | 192 | 0.929–1.035 | 0.888–0.910 |
+| Static vector-like image, 1280x720 | 192 | 1.902–1.914 | 1.812–1.850 |
+
+These observations come from a shared host and do not establish a universal
+speedup. Natural-video peak RSS rises from 36.3–36.5 to 46.3–55.5 MiB;
+the static case rises from about 37.5 to 55.5 MiB. Cumulative allocation
+increases by approximately the prepared storage capacity, rather than once
+per picture. Measurements include input buffers and transport output.
+The change improves repeated interpolation work; H.264 rate-distortion
+performance and the remaining x264 CPU gap are separate open comparisons.

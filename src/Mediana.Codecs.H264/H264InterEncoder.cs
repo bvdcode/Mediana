@@ -9,7 +9,8 @@ namespace Mediana.Codecs.H264
     internal static class H264InterEncoder
     {
         public static MediaBuffer? Encode(VideoFrame input, H264Picture target, H264Picture reference, int frameNumber, int quantizer,
-            MediaBufferAllocator allocator, H264EncoderOptions options, int maximumBytes, bool measureOverflow, out int encodedLength, CancellationToken token)
+            MediaBufferAllocator allocator, H264EncoderOptions options, int maximumBytes, bool measureOverflow, out int encodedLength,
+            CancellationToken token, H264MotionReference? interpolation = null)
         {
             using H264BitWriter bits = new(allocator, maximumBytes, 0x41, lengthPrefixed: true, measureOverflow: true);
             bits.WriteUnsigned(0);
@@ -33,7 +34,7 @@ namespace Mediana.Codecs.H264
                     token.ThrowIfCancellationRequested();
                     H264SourceMacroblock source = new(input, x, y, samples);
                     (int motionX, int motionY, bool exact) = H264MotionSearch.Select(source, reference, target, x, y,
-                        options.MotionSearchRange, prediction, token);
+                        options.MotionSearchRange, prediction, token, interpolation);
                     (int skipX, int skipY) = H264MotionPrediction.Skip(target, x, y);
                     int predictedX = 0;
                     int predictedY = 0;
