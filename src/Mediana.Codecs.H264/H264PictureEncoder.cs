@@ -42,11 +42,16 @@ namespace Mediana.Codecs.H264
                     try
                     {
                         int bytes;
-                        data = keyFrame
-                            ? H264IntraEncoder.Encode(input, picture, quantizer, options.Quantizer, idrId, allocator, maximumBytes,
-                                options.RateControl is not null, out bytes, token)
-                            : H264InterEncoder.Encode(input, picture, reference!, frameNumber, quantizer, allocator, options, maximumBytes,
-                                options.RateControl is not null, out bytes, token, interpolation);
+                        data = options.EntropyCoding switch
+                        {
+                            H264EntropyCoding.Cabac => H264CabacPictureEncoder.Encode(input, picture, reference, keyFrame, frameNumber,
+                                idrId, quantizer, allocator, options, maximumBytes, out bytes, token, interpolation),
+                            H264EntropyCoding.Cavlc when keyFrame => H264IntraEncoder.Encode(input, picture, quantizer, options.Quantizer,
+                                idrId, allocator, maximumBytes, options.RateControl is not null, out bytes, token),
+                            H264EntropyCoding.Cavlc => H264InterEncoder.Encode(input, picture, reference!, frameNumber, quantizer, allocator,
+                                options, maximumBytes, options.RateControl is not null, out bytes, token, interpolation),
+                            _ => throw new ArgumentOutOfRangeException(nameof(options))
+                        };
                         if (data is not null)
                         {
                             H264EncodedPicture result = new(picture, data, quantizer);

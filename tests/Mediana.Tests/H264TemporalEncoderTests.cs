@@ -33,12 +33,14 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
-        [Fact]
-        public void ResetDiscardsReferencesAndReplaysTheInitialIdrWhilePacketsStayOwned()
+        [Theory]
+        [InlineData(H264EntropyCoding.Cavlc)]
+        [InlineData(H264EntropyCoding.Cabac)]
+        public void ResetDiscardsReferencesAndReplaysTheInitialIdrWhilePacketsStayOwned(H264EntropyCoding entropy)
         {
             MediaBufferAllocator allocator = new(65536);
             VideoFormat format = H264EncoderTests.Format(32, 32);
-            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator, new() { EntropyCoding = entropy });
             using VideoFrame first = H264EncoderTests.Frame(format, allocator, 0);
             encoder.TrySend(first);
             using MediaPacket initial = encoder.Receive().Value!;
@@ -61,15 +63,17 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
-        [Fact]
-        public void CancellationReleasesRetainedReferenceWithoutReleasingCallerStorage()
+        [Theory]
+        [InlineData(H264EntropyCoding.Cavlc)]
+        [InlineData(H264EntropyCoding.Cabac)]
+        public void CancellationReleasesRetainedReferenceWithoutReleasingCallerStorage(H264EntropyCoding entropy)
         {
             MediaBufferAllocator allocator = new(65536);
             VideoFormat format = H264EncoderTests.Format(32, 32);
             using VideoFrame first = H264EncoderTests.Frame(format, allocator, 0);
             using VideoFrame second = H264EncoderTests.Frame(format, allocator, 1);
             long held = allocator.AllocatedBytes;
-            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator, new() { EntropyCoding = entropy });
             encoder.TrySend(first);
             using MediaPacket packet = encoder.Receive().Value!;
             packet.Dispose();

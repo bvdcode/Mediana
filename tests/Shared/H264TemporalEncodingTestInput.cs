@@ -37,7 +37,8 @@ namespace Mediana.Tests
             }
         }
 
-        public static async Task<(byte[] Transport, byte[] Source, byte[] Decoded)> EncodeAsync(int mode, int qp, H264RateControlOptions? rate = null)
+        public static async Task<(byte[] Transport, byte[] Source, byte[] Decoded)> EncodeAsync(int mode, int qp,
+            H264RateControlOptions? rate = null, H264EntropyCoding entropy = H264EntropyCoding.Cavlc)
         {
             (int width, int height) = mode switch
             {
@@ -51,7 +52,8 @@ namespace Mediana.Tests
                 new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709, ColorRange.Limited, ChromaLocation.Left),
                 new SampleAspectRatio(4, 3));
             MediaBufferAllocator allocator = new(8 * 1024 * 1024);
-            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator, new() { Quantizer = qp, RateControl = rate });
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator,
+                new() { Quantizer = qp, RateControl = rate, EntropyCoding = entropy });
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new H264DecoderFactory().Create(encoder.Stream, allocator);
             using MemoryStream transport = new();
             using MemoryStream source = new();

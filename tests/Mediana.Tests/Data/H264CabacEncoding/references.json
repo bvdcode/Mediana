@@ -1,0 +1,128 @@
+[
+  {
+    "case": "cabac-0-qp0",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 122880,
+    "completePixelsEqual": true,
+    "transport_sha256": "da0b3923b2ae061f26d4a17010f0bbaf928cc33616cb7d6fd8c117b3515109ae",
+    "pixels_sha256": "a0a9a75db809fed935e3bd65a4674f6d9dbf4917f859f1032d9fea00e931f142"
+  },
+  {
+    "case": "cabac-0-qp26",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 122880,
+    "completePixelsEqual": true,
+    "transport_sha256": "6bd3da633c1624ca607ac51ac77bfed0b9e9800ed825cd95f0b69bb80f5914c1",
+    "pixels_sha256": "5656772168c0a4b88672ad4dd2eaf1056419d3be4effc7ded1282f9ad6162dad"
+  },
+  {
+    "case": "cabac-1-qp0-32000",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 187680,
+    "completePixelsEqual": true,
+    "transport_sha256": "d201317d46b0586e857fcf13afb9e10a46abf891fb535b58c16c59c5a46be682",
+    "pixels_sha256": "97ebcf972f9667a21aa7aadeee644af503bd354d0fa85742115a05a6dcad78c5"
+  },
+  {
+    "case": "cabac-1-qp0",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 187680,
+    "completePixelsEqual": true,
+    "transport_sha256": "57fad3f0a52782a06a900c801b0565d65a97f01ddeb914cde76c73d6b55b3caf",
+    "pixels_sha256": "2c89911705fe37663b411f63d68abd61caf7dbff78e3b3e713dd0e66ea609d00"
+  },
+  {
+    "case": "cabac-1-qp12",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 187680,
+    "completePixelsEqual": true,
+    "transport_sha256": "965335a3e6b093f9050a84abec48db82fb4df81c92db8960139c83e989de3c83",
+    "pixels_sha256": "707d987f49fa3ca8f70f21b71d13b5bebdbbc5ed8dc77b058138228250cf2659"
+  },
+  {
+    "case": "cabac-1-qp26-32000",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 187680,
+    "completePixelsEqual": true,
+    "transport_sha256": "913ee60a36ff19e8149b3241dbbc1bf85cf24ac153ed7a25c1e0ec5f39048ab4",
+    "pixels_sha256": "3544259cdc911802d8fa1cb60cfa4a97c45ba16c2228c967c33cdfffe3e1b7ac"
+  },
+  {
+    "case": "cabac-1-qp26",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 187680,
+    "completePixelsEqual": true,
+    "transport_sha256": "1afd36beb87205d1c63e81947915f26922dac90bd3444129e8deae723261f9c0",
+    "pixels_sha256": "b32ccb3aeba4c4aa7566975833867a33501c22efe058a70afc1e428512e763c9"
+  },
+  {
+    "case": "cabac-1-qp38",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 187680,
+    "completePixelsEqual": true,
+    "transport_sha256": "ae7ce9bb75348cac27e09341ec507a89f52c658521789b952ef3d57c1feeed7a",
+    "pixels_sha256": "d78af51478b6e3be6a1e0df225bba0cf65b46a13b36c943040ac4c389eea5d2a"
+  },
+  {
+    "case": "cabac-1-qp51",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 187680,
+    "completePixelsEqual": true,
+    "transport_sha256": "e992ad280766942608c59dd51e564c4cd4b178ecb128cbc24fc96828a889d2fe",
+    "pixels_sha256": "4af88ed8baa18d25cf201505d7b818864e6f2691abbe1a4eaf7f397d530caacc"
+  },
+  {
+    "case": "cabac-2-qp0",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 184320,
+    "completePixelsEqual": true,
+    "transport_sha256": "282fcdab2190972219d4a788e30170f9fb064fae4aeb92c2dfddab0dff789d2e",
+    "pixels_sha256": "524a88daff2be9622ad65ed53849064191d15b5af1c41ea582913c4f854af220"
+  },
+  {
+    "case": "cabac-2-qp26",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 184320,
+    "completePixelsEqual": true,
+    "transport_sha256": "03982ea8fadb6fdbb6e2c266b1d67fba857aad9e12b27adfdf1e6f9838d5886c",
+    "pixels_sha256": "d7cb3a99befa023818560e73f6c91fd8c76398070402001a04b6c292f77b8518"
+  },
+  {
+    "case": "cabac-2-qp51",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 184320,
+    "completePixelsEqual": true,
+    "transport_sha256": "50927ef4ba6d0dceda2bb2c11f98d76d8db687802ac96f4001e246ea0612e031",
+    "pixels_sha256": "563122645b038795557ff8a3c085f788de3f883dfba1e0da419d4ae1283a3aa2"
+  },
+  {
+    "case": "cabac-3-qp26",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 204000,
+    "completePixelsEqual": true,
+    "transport_sha256": "8d3c326ba1fa6baabb21038b84c62562eb493abdc58eb9b80f25c0dbbda980e8",
+    "pixels_sha256": "5ec60d6b7a9a20494a75ae8ff1133e1960055ed4cb7b59f690a6bf2bff463fa6"
+  },
+  {
+    "case": "cabac-3-qp51-40000",
+    "exit": 0,
+    "stderr": "",
+    "bytes": 204000,
+    "completePixelsEqual": true,
+    "transport_sha256": "a708cf7bdbc34114992fcf0d987c3aa7acad7d5665e724f444ab2237ef001393",
+    "pixels_sha256": "0f1b5ff6b395599965357da38bae066dd6409faf944c622c019b9a889d27b8b4"
+  }
+]

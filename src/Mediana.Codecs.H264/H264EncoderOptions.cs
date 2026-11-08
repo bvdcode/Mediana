@@ -7,6 +7,8 @@ namespace Mediana.Codecs.H264
     {
         /// <summary>Base QP, from 0 through 51. Macroblocks may increase QP to satisfy Baseline syntax and bit limits.</summary>
         public int Quantizer { get; init; } = 26;
+        /// <summary>CAVLC uses Baseline profile; CABAC uses Main profile without changing prediction or quantization.</summary>
+        public H264EntropyCoding EntropyCoding { get; init; } = H264EntropyCoding.Cavlc;
         public int MaximumPacketBytes { get; init; } = 16 * 1024 * 1024;
         /// <summary>Media-time IDR interval; the first eligible frame starts the next group. Zero makes every frame an IDR.</summary>
         public TimeSpan KeyFrameInterval { get; init; } = TimeSpan.FromSeconds(2);
@@ -18,6 +20,14 @@ namespace Mediana.Codecs.H264
         {
             ArgumentOutOfRangeException.ThrowIfNegative(Quantizer);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(Quantizer, 51);
+            switch (EntropyCoding)
+            {
+                case H264EntropyCoding.Cavlc:
+                case H264EntropyCoding.Cabac:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(EntropyCoding));
+            }
             ArgumentOutOfRangeException.ThrowIfLessThan(MaximumPacketBytes, 8);
             ArgumentOutOfRangeException.ThrowIfLessThan(KeyFrameInterval, TimeSpan.Zero);
             ArgumentOutOfRangeException.ThrowIfNegative(MotionSearchRange);

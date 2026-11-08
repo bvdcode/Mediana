@@ -10,7 +10,7 @@ using Mediana.Formats;
 
 namespace Mediana.Codecs.H264
 {
-    /// <summary>Progressive Baseline CAVLC I/P encoding with fixed QP or constrained variable rate and bounded reference storage.
+    /// <summary>Progressive Baseline CAVLC or Main CABAC I/P encoding with fixed QP or constrained variable rate and bounded reference storage.
     /// Borrows input frames; returns owned length-prefixed AVC packets. Calls and disposal must not overlap.</summary>
     public class H264Encoder : IMediaEncoder<VideoFrame>
     {
@@ -239,7 +239,7 @@ namespace Mediana.Codecs.H264
                     elapsed * H264EncoderConfiguration.MaximumMacroblocksPerSecond ||
                     Stream.TimeBase.Denominator > elapsed * H264EncoderConfiguration.MaximumFramesPerSecond)
                 {
-                    throw new NotSupportedException("The H.264 frame rate exceeds Baseline level 4.1.");
+                    throw new NotSupportedException("The H.264 frame rate exceeds level 4.1.");
                 }
             }
             return exact;
