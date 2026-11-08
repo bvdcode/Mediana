@@ -66,6 +66,7 @@
     <Compile Include="../Shared/H264RateDistortionTestInput.cs" Link="H264RateDistortionTestInput.cs" />
     <Compile Include="../Shared/H264CabacCheckpointTestInput.cs" Link="H264CabacCheckpointTestInput.cs" />
     <Compile Include="../Shared/H264PreparedMacroblockTestInput.cs" Link="H264PreparedMacroblockTestInput.cs" />
+    <Compile Include="../Shared/H264QuantizedSkipTestInput.cs" Link="H264QuantizedSkipTestInput.cs" />
     <Compile Include="../Shared/H264CountingSyntax.cs" Link="H264CountingSyntax.cs" />
     <Compile Include="../Shared/H264CabacPictureTestInput.cs" Link="H264CabacPictureTestInput.cs" />
     <None Include="Data/H264CabacEncoding/*" CopyToOutputDirectory="PreserveNewest" />
