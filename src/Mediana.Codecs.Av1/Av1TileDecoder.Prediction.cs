@@ -65,7 +65,7 @@ namespace Mediana.Codecs.Av1
             }
             ReadOnlySpan<byte> angles = [0, 90, 180, 45, 135, 113, 157, 203, 67];
             int angle = angles[mode] + prediction.AngleDelta * 3;
-            Av1IntraEdges edges = new(top, prior, Math.Min(width, stride - x), Math.Min(height, sequence.PlaneHeight(plane) - y),
+            Av1IntraEdges<byte> edges = new(top, prior, Math.Min(width, stride - x), Math.Min(height, sequence.PlaneHeight(plane) - y),
                 hasTop, hasLeft, sequence.IntraEdgeFilter && SmoothNeighbors(plane, blockRow, blockColumn));
             Av1DirectionalPrediction.Predict(output[(offset + y * stride + x)..], stride, new(width, height), edges, angle, sequence.IntraEdgeFilter);
         }

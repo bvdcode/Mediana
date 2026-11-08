@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
     internal static partial class Av1DirectionalPrediction
     {
-        internal static void Predict(Span<byte> destination, int stride, Av1TransformSize size, Av1IntraEdges edges, int angle, bool filter)
+        internal static void Predict<T>(Span<T> destination, int stride, Av1TransformSize size, Av1IntraEdges<T> edges, int angle, bool filter, int bitDepth = 8) where T : unmanaged, IBinaryInteger<T>
         {
-            PrepareEdges(size, edges, angle, filter, out int upsampleAbove, out int upsampleLeft);
-            ReadOnlySpan<byte> above = edges.Above;
-            ReadOnlySpan<byte> left = edges.Left;
+            PrepareEdges(size, edges, angle, filter, bitDepth, out int upsampleAbove, out int upsampleLeft);
+            ReadOnlySpan<T> above = edges.Above;
+            ReadOnlySpan<T> left = edges.Left;
             int dx = 0;
             int dy = 0;
             if (angle < 90) { dx = Derivative(angle); }
@@ -19,10 +21,10 @@ namespace Mediana.Codecs.Av1
             int maximumY = (size.Width + size.Height - 1) << upsampleLeft;
             for (int y = 0; y < edges.Height; y++)
             {
-                Span<byte> row = destination.Slice(y * stride, edges.Width);
+                Span<T> row = destination.Slice(y * stride, edges.Width);
                 for (int x = 0; x < row.Length; x++)
                 {
-                    byte value;
+                    T value;
                     if (angle < 90)
                     {
                         int index = (y + 1) * dx;
@@ -63,8 +65,8 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        private static byte Interpolate(ReadOnlySpan<byte> edge, int basis, int weight) =>
-            (byte)((edge[basis + 2] * (32 - weight) + edge[basis + 3] * weight + 16) >> 5);
+        private static T Interpolate<T>(ReadOnlySpan<T> edge, int basis, int weight) where T : unmanaged, IBinaryInteger<T> =>
+            T.CreateTruncating((int.CreateTruncating(edge[basis + 2]) * (32 - weight) + int.CreateTruncating(edge[basis + 3]) * weight + 16) >> 5);
 
         private static int Derivative(int angle)
         {

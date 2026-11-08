@@ -529,3 +529,26 @@ super-resolution denominators, luma and chroma geometry, padded frame edges,
 8/10/12-bit samples and widths from 1 to 65,535. The comparison covers
 2,573,376 samples. These row-kernel checks are separate from full-frame
 super-resolution integration and full high-bit-depth decoder support.
+
+`intra-high-depth.bin.gz` contains 2,336 independent AOM 3.8.2 high-depth
+prediction cases: smooth, smooth-horizontal, smooth-vertical and Paeth for all
+nineteen transform geometries, plus all five filter-intra modes for the fourteen
+valid geometries, at both ten- and twelve-bit precision. Inputs include random
+samples, extrema, ramps, alternating edges and constants. The decompressed
+format is `AV1HIN01`, a little-endian 32-bit count, then byte depth, kernel kind
+(0 ordinary, 1 filter-intra), width, height and mode; width+1 top and height+1
+left unsigned 16-bit little-endian samples; and two SHA-256 digests for full
+output and the width−1 by height−1 crop. Digests serialize row-major samples as
+unsigned 16-bit little endian.
+
+`directional-high-depth.bin.gz` contains 8,512 independent AOM 3.8.2 directional
+cases, covering ten/twelve-bit depth, all nineteen geometries, eight base angles,
+all seven angle deltas, both edge-filter types, four availability combinations
+and cropped output. The format is `AV1HDIR1`, a little-endian 32-bit count, then
+byte depth, width, height, angle, edge-filter type, availability bits, visible
+width and visible height. Two arrays of width+height+2 unsigned 16-bit
+little-endian samples contain top and left edge inputs, including the two
+preceding samples. Each record ends with a SHA-256 digest of visible row-major
+unsigned 16-bit little-endian samples. The native prediction and edge functions
+are unchanged from AOM 3.8.2; kernel tests also verify destination boundaries and
+warmed allocation counts.

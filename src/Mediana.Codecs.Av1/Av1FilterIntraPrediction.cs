@@ -1,37 +1,40 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
     internal static class Av1FilterIntraPrediction
     {
-        internal static void Predict(Span<byte> destination, int stride, int width, int height, int visibleWidth, int visibleHeight,
-            ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int mode)
+        internal static void Predict<T>(Span<T> destination, int stride, int width, int height, int visibleWidth, int visibleHeight,
+            ReadOnlySpan<T> above, ReadOnlySpan<T> left, int mode, int bitDepth = 8) where T : unmanaged, IBinaryInteger<T>
         {
             if ((uint)mode >= 5 || width > 32 || height > 32)
             {
                 throw new InvalidDataException("The AV1 recursive intra filter geometry or mode is invalid.");
             }
             ReadOnlySpan<sbyte> taps = Taps.Slice(mode * 56, 56);
-            Span<byte> rows = stackalloc byte[width * 3];
-            Span<byte> previous = rows[..width];
-            Span<byte> first = rows.Slice(width, width);
-            Span<byte> second = rows.Slice(width * 2, width);
+            int maximum = (1 << bitDepth) - 1;
+            Span<T> rows = stackalloc T[width * 3];
+            Span<T> previous = rows[..width];
+            Span<T> first = rows.Slice(width, width);
+            Span<T> second = rows.Slice(width * 2, width);
             above.Slice(1, width).CopyTo(previous);
             Span<int> neighbors = stackalloc int[7];
             for (int y = 0; y < height; y += 2)
             {
                 for (int x = 0; x < width; x += 4)
                 {
-                    neighbors[0] = x != 0 ? previous[x - 1] : y == 0 ? above[0] : left[y];
-                    for (int index = 1; index < 5; index++) { neighbors[index] = previous[x + index - 1]; }
-                    neighbors[5] = x == 0 ? left[y + 1] : first[x - 1];
-                    neighbors[6] = x == 0 ? left[y + 2] : second[x - 1];
+                    neighbors[0] = int.CreateTruncating(x != 0 ? previous[x - 1] : y == 0 ? above[0] : left[y]);
+                    for (int index = 1; index < 5; index++) { neighbors[index] = int.CreateTruncating(previous[x + index - 1]); }
+                    neighbors[5] = int.CreateTruncating(x == 0 ? left[y + 1] : first[x - 1]);
+                    neighbors[6] = int.CreateTruncating(x == 0 ? left[y + 2] : second[x - 1]);
                     for (int index = 0; index < 8; index++)
                     {
                         int sum = 0;
                         for (int sample = 0; sample < 7; sample++) { sum += taps[index * 7 + sample] * neighbors[sample]; }
-                        byte value = (byte)Math.Clamp((sum + 8) >> 4, 0, 255);
+                        T value = T.CreateTruncating(Math.Clamp((sum + 8) >> 4, 0, maximum));
                         if (index < 4) { first[x + index] = value; }
                         else { second[x + index - 4] = value; }
                     }

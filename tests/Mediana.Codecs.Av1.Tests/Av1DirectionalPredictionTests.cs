@@ -33,7 +33,7 @@ namespace Mediana.Codecs.Av1.Tests
                 Assert.Equal(width * height, expected.Length);
                 byte[] actual = new byte[width * height];
                 actual.AsSpan().Fill(237);
-                Av1IntraEdges edges = new(above, left, visibleWidth, visibleHeight, (flags & 1) != 0, (flags & 2) != 0, filterType == 1);
+                Av1IntraEdges<byte> edges = new(above, left, visibleWidth, visibleHeight, (flags & 1) != 0, (flags & 2) != 0, filterType == 1);
                 Av1DirectionalPrediction.Predict(actual, width, new(width, height), edges, angle, true);
                 for (int y = 0; y < height; y++)
                 {

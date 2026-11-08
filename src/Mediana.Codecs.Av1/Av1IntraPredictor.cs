@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+
 namespace Mediana.Codecs.Av1
 {
     internal static class Av1IntraPredictor
     {
-        internal static void Predict(Span<byte> destination, int stride, int width, int height, int visibleWidth, int visibleHeight,
-            ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int mode)
+        internal static void Predict<T>(Span<T> destination, int stride, int width, int height, int visibleWidth, int visibleHeight,
+            ReadOnlySpan<T> above, ReadOnlySpan<T> left, int mode) where T : unmanaged, IBinaryInteger<T>
         {
             switch (mode)
             {
@@ -23,42 +25,42 @@ namespace Mediana.Codecs.Av1
             }
         }
 
-        private static void Smooth(Span<byte> destination, int stride, int width, int height, int visibleWidth, int visibleHeight,
-            ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int mode)
+        private static void Smooth<T>(Span<T> destination, int stride, int width, int height, int visibleWidth, int visibleHeight,
+            ReadOnlySpan<T> above, ReadOnlySpan<T> left, int mode) where T : unmanaged, IBinaryInteger<T>
         {
             ReadOnlySpan<byte> weightsX = Weights.Slice(width - 4, width);
             ReadOnlySpan<byte> weightsY = Weights.Slice(height - 4, height);
-            int below = left[height];
-            int right = above[width];
+            int below = int.CreateTruncating(left[height]);
+            int right = int.CreateTruncating(above[width]);
             for (int y = 0; y < visibleHeight; y++)
             {
-                Span<byte> row = destination.Slice(y * stride, visibleWidth);
+                Span<T> row = destination.Slice(y * stride, visibleWidth);
                 for (int x = 0; x < row.Length; x++)
                 {
-                    int vertical = weightsY[y] * above[x + 1] + (256 - weightsY[y]) * below;
-                    int horizontal = weightsX[x] * left[y + 1] + (256 - weightsX[x]) * right;
+                    int vertical = weightsY[y] * int.CreateTruncating(above[x + 1]) + (256 - weightsY[y]) * below;
+                    int horizontal = weightsX[x] * int.CreateTruncating(left[y + 1]) + (256 - weightsX[x]) * right;
                     row[x] = mode switch
                     {
-                        9 => (byte)((vertical + horizontal + 256) >> 9),
-                        10 => (byte)((vertical + 128) >> 8),
-                        11 => (byte)((horizontal + 128) >> 8),
+                        9 => T.CreateTruncating((vertical + horizontal + 256) >> 9),
+                        10 => T.CreateTruncating((vertical + 128) >> 8),
+                        11 => T.CreateTruncating((horizontal + 128) >> 8),
                         _ => throw new InvalidDataException("The AV1 smooth prediction mode is invalid.")
                     };
                 }
             }
         }
 
-        private static void Paeth(Span<byte> destination, int stride, int visibleWidth, int visibleHeight,
-            ReadOnlySpan<byte> above, ReadOnlySpan<byte> left)
+        private static void Paeth<T>(Span<T> destination, int stride, int visibleWidth, int visibleHeight,
+            ReadOnlySpan<T> above, ReadOnlySpan<T> left) where T : unmanaged, IBinaryInteger<T>
         {
-            int corner = above[0];
+            int corner = int.CreateTruncating(above[0]);
             for (int y = 0; y < visibleHeight; y++)
             {
-                Span<byte> row = destination.Slice(y * stride, visibleWidth);
-                int prior = left[y + 1];
+                Span<T> row = destination.Slice(y * stride, visibleWidth);
+                int prior = int.CreateTruncating(left[y + 1]);
                 for (int x = 0; x < row.Length; x++)
                 {
-                    int top = above[x + 1];
+                    int top = int.CreateTruncating(above[x + 1]);
                     int basis = top + prior - corner;
                     int leftDistance = Math.Abs(basis - prior);
                     int topDistance = Math.Abs(basis - top);
@@ -67,7 +69,7 @@ namespace Mediana.Codecs.Av1
                     if (leftDistance <= topDistance && leftDistance <= cornerDistance) { predicted = prior; }
                     else if (topDistance <= cornerDistance) { predicted = top; }
                     else { predicted = corner; }
-                    row[x] = (byte)predicted;
+                    row[x] = T.CreateTruncating(predicted);
                 }
             }
         }
