@@ -38,6 +38,30 @@ namespace Mediana.Tests
             await Assert.ThrowsAsync<InvalidOperationException>(async () => await window.ReadFrameAsync());
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(1023)]
+        [InlineData(1025)]
+        [InlineData(2048)]
+        public async Task OverlappingOrGappedDecodedSamplesReportExactClockDiscontinuity(long nextTimestamp)
+        {
+            MediaBufferAllocator allocator = new(16384);
+            AudioSignalSource source = new(allocator, 48000, 2048, (index, _) => index, [1024])
+            {
+                Timestamp = position => new(position == 0 ? 0 : nextTimestamp, new(1, 48000))
+            };
+            await using AudioTrimmer window = AudioTrimmer.CreateTimeWindow(source.ReadAsync, new(0, new(1, 1)), null, allocator);
+            using (AudioFrame first = (await window.ReadFrameAsync())!)
+            {
+                Assert.Equal(1024, first.SamplesPerChannel);
+            }
+            InvalidDataException error = await Assert.ThrowsAsync<InvalidDataException>(async () => await window.ReadFrameAsync());
+            Assert.Equal($"PCM timestamp discontinuity at input sample 1024: expected 1024 ticks at 1/48000 seconds, " +
+                $"received {nextTimestamp} ticks at 1/48000 seconds.", error.Message);
+            Assert.Equal(0, allocator.AllocatedBytes);
+            await Assert.ThrowsAsync<InvalidOperationException>(async () => await window.ReadFrameAsync());
+        }
+
         [Fact]
         public void InvalidOrReversedTimesAreRejectedBeforeReading()
         {

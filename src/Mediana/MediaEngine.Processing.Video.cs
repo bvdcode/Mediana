@@ -29,7 +29,9 @@ namespace Mediana
             }
             MediaDecodePipeline<VideoFrame> pipeline = CreateProcessingDecoder(stream, decoders, input);
             if (input.Selection is MediaTimeRange requested) { await pipeline.SeekAsync(requested.Start, token).ConfigureAwait(false); }
-            VideoPresentationReader presentation = input.Resources.OwnAsync(new VideoPresentationReader(ReadDecodedAsync, selection, request.IntervalAlignment));
+            MediaTimeRange? sourcePresentation = (input.Reader as IContainerPresentationReader)?.GetPresentationRange(stream.StreamIndex, token);
+            VideoPresentationReader presentation = input.Resources.OwnAsync(new VideoPresentationReader(ReadDecodedAsync, selection,
+                request.IntervalAlignment, sourcePresentation));
             using VideoFrame first = await presentation.ReadFrameAsync(token).ConfigureAwait(false)
                 ?? throw new InvalidDataException("The selected video interval contains no frames.");
             VideoDisplayMatrix matrix = stream.DisplayMatrix ?? throw new NotSupportedException("Video encoding requires a declared display transform.");

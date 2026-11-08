@@ -93,6 +93,57 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void ContainerPresentationBoundsClipBothBoundaryPicturesBeforePlanning()
+        {
+            TimeBase clock = new(1, 1000);
+            long[] starts = [-100, -30, 10, 25, 40];
+            long[] durations = [200, 60, 15, 15, 30];
+            VideoTimingTestReader reader = new(Enumerable.Range(0, starts.Length)
+                .Select(index => new ContainerPacketTiming(new(starts[index], clock), null, new(durations[index], clock), true)).ToArray(), clock)
+            { PresentationRange = new(new(1, new(1, 3000)), new(101, new(1, 3000))) };
+            MediaBufferAllocator allocator = new(65536);
+            using VideoSegmentPlan plan = VideoSegmentPlanner.Create(reader, 7, new(20, clock), allocator);
+            Assert.Equal(2, plan.Count);
+            Assert.Equal(new MediaTimeRange(new(1, new(1, 3000)), new(75, new(1, 3000))), plan[0]);
+            Assert.Equal(new MediaTimeRange(new(75, new(1, 3000)), new(101, new(1, 3000))), plan[1]);
+            Assert.Equal(plan[0].Start.TimeBase, VideoSegmentPlanner.GetTimeBase(reader, 7));
+            Assert.Equal(0, reader.PacketReads);
+            plan.Dispose();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
+        [InlineData(0, 0)]
+        [InlineData(15, 19)]
+        [InlineData(40, 60)]
+        public void EmptyPresentationSelectionsAndActualGapsDoNotInventPictures(int start, int end)
+        {
+            TimeBase clock = new(1, 1000);
+            VideoTimingTestReader reader = new([new(new(0, clock), null, new(10, clock), true),
+                new(new(20, clock), null, new(10, clock), false)], clock)
+            { PresentationRange = new(new(start, clock), new(end, clock)) };
+            MediaBufferAllocator allocator = new(65536);
+            Assert.Throws<InvalidDataException>(() => VideoSegmentPlanner.Create(reader, 7, new(1, clock), allocator));
+            Assert.Throws<InvalidDataException>(() => VideoSegmentPlanner.GetTimeBase(reader, 7));
+            Assert.Equal(0, reader.PacketReads);
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public void UnknownPostrollDoesNotHideTheKnownSelectedTail()
+        {
+            TimeBase clock = new(1, 1000);
+            VideoTimingTestReader reader = new([new(new(0, clock), null, new(10, clock), true),
+                new(new(10, clock), null, new(20, clock), false), new(new(100, clock), null, null, false)], clock)
+            { PresentationRange = new(new(0, clock), new(20, clock)) };
+            MediaBufferAllocator allocator = new(65536);
+            using VideoSegmentPlan plan = VideoSegmentPlanner.Create(reader, 7, new(1, new(1, 1)), allocator);
+            Assert.Equal(new MediaTimeRange(new(0, clock), new(20, clock)), Assert.Single(plan));
+            Assert.Equal(plan[0].Start.TimeBase, VideoSegmentPlanner.GetTimeBase(reader, 7));
+            Assert.Equal(0, reader.PacketReads);
+        }
+
+        [Fact]
         public void UnknownOrDuplicatePresentationFactsAreRejectedWithoutLeakingTheIndex()
         {
             TimeBase clock = new(1, 1000);
@@ -116,7 +167,8 @@ namespace Mediana.Tests
             TimeBase clock = new(1, 25);
             MediaBufferAllocator allocator = new(65536);
             VideoTimingTestReader reader = new(Enumerable.Range(0, 20)
-                .Select(index => new ContainerPacketTiming(new(index, clock), null, new(1, clock), true)).ToArray(), clock);
+                .Select(index => new ContainerPacketTiming(new(index, clock), null, new(1, clock), true)).ToArray(), clock)
+            { PresentationRange = new(new(0, clock), new(20, clock)) };
             using CancellationTokenSource cancellation = new();
             using WritableMediaBuffer occupied = allocator.Allocate(1);
             WritableMediaBuffer? temporary = null;

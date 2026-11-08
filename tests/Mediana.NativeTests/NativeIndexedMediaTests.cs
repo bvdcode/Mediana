@@ -11,6 +11,11 @@ namespace Mediana.NativeTests
         {
             await FragmentHlsTestInput.VerifyAsync(root);
             await OnDemandHlsTestInput.VerifyAsync(root);
+            await OnDemandHlsTestInput.VerifyEditedAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), 2, 1);
+            await OnDemandHlsTestInput.VerifyEditedAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), 1, 5);
+            await OnDemandHlsTestInput.VerifyFractionalEditsAsync(root, false);
+            await OnDemandHlsTestInput.VerifyFractionalEditsAsync(root, true);
+            Console.WriteLine("PASS edited HLS: partial opening and closing pictures, fractional bounds, cold reverse requests and released buffers.");
             await OggContainerTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Ogg"));
             if (OpusRangeTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data", "Opus")) != 65071)
             {

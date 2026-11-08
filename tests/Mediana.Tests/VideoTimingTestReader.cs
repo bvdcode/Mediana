@@ -7,7 +7,8 @@ using Mediana.Core.Timing;
 
 namespace Mediana.Tests
 {
-    internal class VideoTimingTestReader(IReadOnlyList<ContainerPacketTiming> timings, TimeBase clock, EncodedStreamInfo? stream = null) : IIndexedPacketTimingReader
+    internal class VideoTimingTestReader(IReadOnlyList<ContainerPacketTiming> timings, TimeBase clock, EncodedStreamInfo? stream = null)
+        : IIndexedPacketTimingReader, IContainerPresentationReader
     {
         public ContainerInfo Info { get; } = new("indexed-video");
         public IReadOnlyList<EncodedStreamInfo> Streams { get; } = [stream ?? new(7, MediaKind.Video, "video",
@@ -15,6 +16,14 @@ namespace Mediana.Tests
         public Action? AfterRead { get; set; }
         public int MetadataReads { get; private set; }
         public int PacketReads { get; private set; }
+        public MediaTimeRange? PresentationRange { get; init; }
+
+        public MediaTimeRange? GetPresentationRange(int streamIndex, CancellationToken cancellationToken = default)
+        {
+            _ = GetPacketCount(streamIndex);
+            cancellationToken.ThrowIfCancellationRequested();
+            return PresentationRange;
+        }
 
         public long GetPacketCount(int streamIndex)
         {

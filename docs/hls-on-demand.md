@@ -158,6 +158,13 @@ uses the same Float32 conversion and explicit mono/stereo downmix as file encodi
 The source decoder must support indexed restart or bounded container preroll.
 Creation validates these capabilities without reading source packets.
 
+Audio encoding requires continuous decoded PCM timestamps. Packet timestamps and
+packet durations alone do not prove this: a packet can declare one sample of
+time while its codec produces 1024 samples, causing the next decoded block to
+overlap it. The shared PCM clock reports the input sample position and exact
+expected/received timestamps. It does not implicitly discard, stretch or synthesize
+samples to reconcile a different timeline.
+
 AAC access units use one global 1024-sample grid anchored at the declared source
 origin. Each video window owns packets whose presentation starts lie within it;
 the source's initial priming packet belongs only to its opening window. Requests

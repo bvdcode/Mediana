@@ -10,6 +10,8 @@ using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.Core.Video;
 using Mediana.IO;
+using Mediana.Execution;
+using Mediana.Processing;
 using Mediana.Streaming.Hls;
 
 namespace Mediana.Tests
@@ -44,6 +46,91 @@ namespace Mediana.Tests
             {
                 throw new InvalidOperationException("On-demand encoding retained storage or closed its borrowed source.");
             }
+        }
+
+        public static async Task VerifyEditedAsync(string root, int ticks, int frequency)
+        {
+            byte[] bytes = await File.ReadAllBytesAsync(Path.Combine(root, "frame-rate-edited.mp4"));
+            await VerifyEditedAsync(bytes, new(ticks, new(1, frequency)), new(0, new(1, 90000)),
+                new(68351, new(1, 90000)), 19, new(1515, new(1, 90000)));
+        }
+
+        public static async Task VerifyFractionalEditsAsync(string root, bool wide)
+        {
+            byte[] bytes = Mp4EditTestData.Replace(await File.ReadAllBytesAsync(Path.Combine(root, "avc-tail.mov")), wide,
+                (1, -1, 65536), (1001, 7, 65536));
+            await VerifyEditedAsync(bytes, new(1, new(1, 2)), new(1, new(1, 1000)),
+                new(1002, new(1, 1000)), 6, new(51025, new(1, 256000)));
+        }
+
+        private static async Task VerifyEditedAsync(byte[] bytes, MediaDuration target, MediaTimestamp expectedStart,
+            MediaTimestamp expectedEnd, int expectedPictures, MediaDuration expectedOpeningDuration)
+        {
+            MediaBufferAllocator allocator = new(8 * 1024 * 1024);
+            await using TrackingRandomAccessSource source = new(bytes);
+            await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator,
+                new() { TimestampMode = Mp4TimestampMode.LinearMovie }))
+            {
+                VideoFormat format;
+                using (MediaDecodePipeline<VideoFrame> inspect = new(reader, new H264DecoderFactory().Create(reader.Streams[0], allocator), 0))
+                {
+                    using VideoFrame first = (await inspect.ReadAsync())!;
+                    format = first.Format;
+                }
+                long retained = allocator.AllocatedBytes;
+                source.Reads.Clear();
+                await using AvcHlsTranscodeSession session = AvcHlsTranscodeSession.Create(reader, 0,
+                    new H264DecoderFactory(), format, target, allocator,
+                    preparation: new VideoPreparationOptions { MaximumWidth = 64 });
+                RequireEdited(source.Reads.Count == 0, "Edited HLS planning read encoded media.");
+                RequireEdited(session.Windows[0].Start == expectedStart && session.Windows[^1].End == expectedEnd,
+                    "Edited HLS planning changed the actual displayed extent.");
+                for (int index = 1; index < session.Windows.Count; index++)
+                { RequireEdited(session.Windows[index - 1].End == session.Windows[index].Start, "Edited HLS windows are not contiguous."); }
+                using MemoryStream initialization = new();
+                await session.WriteInitializationAsync(initialization);
+                RequireEdited(source.Reads.Count == 0 && retained == allocator.AllocatedBytes,
+                    "Edited HLS initialization read payload or retained temporary storage.");
+                int pictures = 0;
+                byte[]? tail = null;
+                for (int number = session.Windows.Count - 1; number >= 0; number--)
+                {
+                    using MemoryStream fragment = new();
+                    await session.WriteSegmentAsync(number, fragment);
+                    byte[] output = fragment.ToArray();
+                    ReadOnlyMemory<byte> traf = Box(Box(output, "moof"), "traf"), run = Box(traf, "trun");
+                    int count = checked((int)BinaryPrimitives.ReadUInt32BigEndian(run.Span[4..]));
+                    RequireEdited(count > 0, "An edited HLS window contained no pictures.");
+                    pictures += count;
+                    HlsVideoWindow window = session.Windows[number];
+                    long start = checked((long)BinaryPrimitives.ReadUInt64BigEndian(Box(traf, "tfdt").Span[4..]));
+                    RequireEdited(window.Start == new MediaTimestamp(start, session.Stream.TimeBase), "An edited HLS fragment changed its start.");
+                    long duration = 0;
+                    for (int sample = 0; sample < count; sample++)
+                    { duration += BinaryPrimitives.ReadUInt32BigEndian(run.Span[(12 + sample * 16)..]); }
+                    RequireEdited(window.End == new MediaTimestamp(checked(start + duration), session.Stream.TimeBase),
+                        "An edited HLS fragment changed its exact end.");
+                    if (number == 0)
+                    {
+                        RequireEdited(new MediaTimestamp(expectedOpeningDuration.Value, expectedOpeningDuration.TimeBase) ==
+                            new MediaTimestamp(BinaryPrimitives.ReadUInt32BigEndian(run.Span[12..]), session.Stream.TimeBase),
+                            "The partial opening picture was dropped or its display duration changed.");
+                    }
+                    if (number == session.Windows.Count - 1) { tail = output; }
+                    RequireEdited(retained == allocator.AllocatedBytes, "Edited HLS encoding retained temporary storage.");
+                }
+                RequireEdited(expectedPictures == pictures, "Edited HLS changed the displayed picture count.");
+                using MemoryStream repeated = new();
+                await session.WriteSegmentAsync(session.Windows.Count - 1, repeated);
+                RequireEdited(tail is not null && tail.AsSpan().SequenceEqual(repeated.ToArray()) && retained == allocator.AllocatedBytes,
+                    "A repeated edited HLS window changed its bytes or retained temporary storage.");
+            }
+            RequireEdited(allocator.AllocatedBytes == 0, "Edited HLS retained source or codec storage after disposal.");
+        }
+
+        private static void RequireEdited(bool condition, string message)
+        {
+            if (!condition) { throw new InvalidDataException(message); }
         }
 
         private static void VerifyFragment(byte[] fragment, EncodedStreamInfo stream, byte[] reference,

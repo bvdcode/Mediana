@@ -66,9 +66,15 @@ namespace Mediana.Processing.Audio
                 return;
             }
             MediaTimestamp expected = new(checked(originTicks + position * inputStep), timeBase);
-            if (timestamp is null || timestamp.Value != expected)
+            if (timestamp is not MediaTimestamp actual)
             {
-                throw new InvalidDataException("Resampling requires continuous PCM timestamps.");
+                throw new InvalidDataException($"The PCM timestamp is missing at input sample {position}.");
+            }
+            if (actual != expected)
+            {
+                throw new InvalidDataException($"PCM timestamp discontinuity at input sample {position}: " +
+                    $"expected {expected.Value} ticks at {expected.TimeBase.Numerator}/{expected.TimeBase.Denominator} seconds, " +
+                    $"received {actual.Value} ticks at {actual.TimeBase.Numerator}/{actual.TimeBase.Denominator} seconds.");
             }
         }
 
