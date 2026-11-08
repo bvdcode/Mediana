@@ -91,6 +91,13 @@ all 18 with identical PCM to their original single-block transport. Tests compar
 every decoded sample, repeated out-of-order seeks, exact core timestamps and
 header-only indexing. Regrouped mono/stereo SBR and PS sequences retain every
 sample of their single-block reconstruction.
+MPEG-TS copying preserves complete ADTS frames without adding another header
+or allocating another payload buffer. Generic interval-copy planning accepts
+complete timed audio transport packets; video still requires access-unit framing.
+Fragmented MP4 requires raw AAC access units and rejects ADTS-framed copy.
+An independently decoded complete MPEG-TS sequence contains all 18 access units;
+every PCM16 sample differs from the corresponding Mediana WAVE conversion by
+at most one least-significant bit using FFmpeg 6.1.1.
 This does not establish coverage of every AAC profile or ADTS variant.
 
 Header syntax follows [ISO/IEC 13818-7](https://www.iso.org/standard/43345.html).

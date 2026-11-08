@@ -13,6 +13,32 @@ namespace Mediana.Tests
     public class IndexedCopyPlannerTests
     {
         [Theory]
+        [InlineData(MediaKind.Audio, EncodedPacketBoundary.TransportFrame, true)]
+        [InlineData(MediaKind.Video, EncodedPacketBoundary.TransportFrame, false)]
+        [InlineData(MediaKind.Audio, EncodedPacketBoundary.ArbitraryBytes, false)]
+        [InlineData(MediaKind.Audio, EncodedPacketBoundary.SampleBlock, false)]
+        public async Task CompleteTimedTransportPacketsAreCopyableOnlyForAudio(MediaKind kind, EncodedPacketBoundary boundary, bool supported)
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            byte[] bytes = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac", "lc-mono-48.m4a"));
+            await using TrackingRandomAccessSource source = new(bytes);
+            await using Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator);
+            await using PacketBoundaryReader view = new(reader, kind, boundary);
+            MediaTimeRange range = new(reader.GetSampleInfo(0, 1).PresentationTime, reader.GetSampleInfo(0, 4).PresentationTime);
+            source.Reads.Clear();
+            if (supported)
+            {
+                Assert.Equal(new IndexedPacketRange(1, 3), await IndexedCopyPlanner.CreateAsync(view, 0, range));
+            }
+            else
+            {
+                await Assert.ThrowsAsync<NotSupportedException>(() => IndexedCopyPlanner.CreateAsync(view, 0, range).AsTask());
+            }
+            Assert.Empty(source.Reads);
+            Assert.Throws<ArgumentOutOfRangeException>(() => new EncodedStreamFormat("test", "test", (EncodedPacketBoundary)99));
+        }
+
+        [Theory]
         [InlineData(2, 4, 10, 10)]
         [InlineData(10, 12, 50, 10)]
         public async Task IndependentVideoBoundariesReadOnlyTwoRestartPacketsAndCopyExactPayloads(int start, int end, long first, long count)

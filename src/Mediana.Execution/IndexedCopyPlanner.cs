@@ -31,8 +31,15 @@ namespace Mediana.Execution
             cancellationToken.ThrowIfCancellationRequested();
             EncodedStreamInfo stream = reader.Streams.SingleOrDefault(item => item.StreamIndex == streamIndex)
                 ?? throw new ArgumentOutOfRangeException(nameof(streamIndex));
-            if (stream.Format.Boundary != EncodedPacketBoundary.AccessUnit || stream.Kind is not (MediaKind.Audio or MediaKind.Video))
-            { throw new NotSupportedException("Interval copy requires complete audio or video access units."); }
+            bool completePacket = stream.Format.Boundary switch
+            {
+                EncodedPacketBoundary.AccessUnit => true,
+                EncodedPacketBoundary.TransportFrame => stream.Kind == MediaKind.Audio,
+                EncodedPacketBoundary.ArbitraryBytes or EncodedPacketBoundary.SampleBlock => false,
+                _ => throw new ArgumentOutOfRangeException(nameof(reader), "The stream packet boundary is invalid.")
+            };
+            if (!completePacket || stream.Kind is not (MediaKind.Audio or MediaKind.Video))
+            { throw new NotSupportedException("Interval copy requires complete timed audio or video packets."); }
             long count = reader.GetPacketCount(streamIndex);
             long first = -1;
             long last = -1;

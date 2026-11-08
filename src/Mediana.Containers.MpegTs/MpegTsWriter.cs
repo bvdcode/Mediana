@@ -115,7 +115,7 @@ namespace Mediana.Containers.MpegTs
                 {
                     throw new InvalidDataException("TS packets require ordered decode times, PTS >= DTS and a sufficient timeline offset without excessive gaps.");
                 }
-                using MediaBuffer framed = track.Frame(packet.Data.Span, allocator, options.MaximumPacketBytes, out bool idr);
+                using MediaBuffer framed = track.Frame(packet, allocator, options.MaximumPacketBytes, out bool idr);
                 if (track.Type == 0x1B && !track.LastDecodeTime.HasValue && !idr)
                 {
                     throw new InvalidDataException("Each AVC track must start with an IDR access unit.");
