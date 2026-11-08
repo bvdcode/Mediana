@@ -10,13 +10,16 @@ namespace Mediana.Codecs.Av1.Tests
     public class Av1OverlapTests
     {
         [Theory]
-        [InlineData("obmcDefault", 13, 1956, 0)]
-        [InlineData("obmcRegions", 8, 876, 0)]
-        [InlineData("obmcOdd", 8, 660, 0)]
-        [InlineData("warpDefault", 13, 1824, 100)]
-        [InlineData("warpRegions", 8, 948, 32)]
-        [InlineData("warpOdd", 8, 636, 24)]
-        public void EveryCodedFrameMatchesIndependentMotionModesIncludingHiddenFrames(string name, int codedFrames, int expectedOverlap, int expectedWarped)
+        [InlineData("obmcDefault", 13, 1956, 0, 0)]
+        [InlineData("obmcRegions", 8, 876, 0, 0)]
+        [InlineData("obmcOdd", 8, 660, 0, 0)]
+        [InlineData("warpDefault", 13, 1824, 100, 0)]
+        [InlineData("warpRegions", 8, 948, 32, 0)]
+        [InlineData("warpOdd", 8, 636, 24, 0)]
+        [InlineData("ordinary", 13, 1588, 92, 188)]
+        [InlineData("ordinaryRegions", 8, 784, 8, 72)]
+        [InlineData("ordinaryOdd", 8, 656, 20, 140)]
+        public void EveryCodedFrameMatchesIndependentMotionModesIncludingHiddenFrames(string name, int codedFrames, int expectedOverlap, int expectedWarped, int expectedInterIntra)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", name + ".obu"));
             using GZipStream source = new(File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Data", name + ".obmc.gz")), CompressionMode.Decompress);
@@ -27,6 +30,7 @@ namespace Mediana.Codecs.Av1.Tests
             int count = 0;
             int overlap = 0;
             int warped = 0;
+            int interIntra = 0;
             using (Av1ReferencePictures references = new())
             {
                 Av1SequenceHeader sequence = default;
@@ -70,10 +74,13 @@ namespace Mediana.Codecs.Av1.Tests
                     {
                         _ = reader.ReadByte();
                         int first = reader.ReadSByte();
-                        int second = Math.Max(0, (int)reader.ReadSByte());
+                        int rawSecond = reader.ReadSByte();
+                        int second = Math.Max(0, rawSecond);
                         int mode = reader.ReadByte();
                         Assert.Equal(first, actual.Reference);
                         Assert.Equal(second, actual.SecondReference);
+                        Assert.Equal(first > 0 && rawSecond == 0, actual.InterIntra);
+                        if (actual.InterIntra) { interIntra++; }
                         if (first == 0) { continue; }
                         Assert.Equal(mode, actual.MotionMode);
                         if (mode == 1) { overlap++; }
@@ -92,6 +99,7 @@ namespace Mediana.Codecs.Av1.Tests
             Assert.Equal(codedFrames, count);
             Assert.Equal(expectedOverlap, overlap);
             Assert.Equal(expectedWarped, warped);
+            Assert.Equal(expectedInterIntra, interIntra);
             Assert.Equal(-1, source.ReadByte());
             Assert.Equal(0, allocator.AllocatedBytes);
         }

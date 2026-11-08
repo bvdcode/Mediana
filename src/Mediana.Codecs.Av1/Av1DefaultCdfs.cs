@@ -97,7 +97,9 @@ namespace Mediana.Codecs.Av1
         internal const int UvPaletteColor6Offset = 7502;
         internal const int UvPaletteColor7Offset = 7537;
         internal const int UvPaletteColor8Offset = 7577;
-        internal const int Count = 7622;
+        internal const int InterIntraBlendModeOffset = 7622;
+        internal const int WedgeInterIntraOffset = 7637;
+        internal const int Count = 7703;
 
         internal static ReadOnlySpan<int> CounterOffsets =>
         [
@@ -193,6 +195,8 @@ namespace Mediana.Codecs.Av1
             7363, 7371, 7379, 7387, 7395, 7403, 7411, 7414, 7417, 7420, 7423, 7426, 7430, 7434, 7438, 7442,
             7446, 7451, 7456, 7461, 7466, 7471, 7477, 7483, 7489, 7495, 7501, 7508, 7515, 7522, 7529, 7536,
             7544, 7552, 7560, 7568, 7576, 7585, 7594, 7603, 7612, 7621,
+            7626, 7631, 7636, 7639, 7642, 7645, 7648, 7651, 7654, 7657, 7660, 7663, 7666, 7669, 7672, 7675,
+            7678, 7681, 7684, 7687, 7690, 7693, 7696, 7699, 7702,
         ];
     }
 }

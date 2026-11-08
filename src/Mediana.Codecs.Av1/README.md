@@ -1,4 +1,4 @@
-Managed AV1 reconstruction currently covers Main-profile eight-bit key pictures with lossless or quantized
+Managed AV1 reconstruction currently covers Main-profile eight-bit intra and inter pictures with lossless or quantized
 transforms, monochrome or 4:2:0, with a single tile inside a complete frame
 OBU. The public factory accepts version-one av1C configuration and low-overhead
 OBUs with explicit sizes or an implicit final OBU extent. Hidden key pictures, eight reference slots and
@@ -145,7 +145,16 @@ motion-grid cell. Independent AOM vectors verify 512 fits and 256 filtered
 luma/chroma regions. Three moving sequences, including hidden frames and odd
 dimensions, match every libdav1d sample and 156 actual local-warp cells.
 
-Non-identity global motion, inter-intra blending,
+Inter-intra prediction blends the ordinary clipped inter result with DC, vertical,
+horizontal or smooth intra prediction. Smooth masks use the normative size scale;
+wedge masks share luma geometry and rounded chroma weights with compound prediction.
+One bounded stack prediction is retained, without changing the sixteen-byte motion
+grid. Three moving sequences encoded with ordinary libaom tool defaults, including
+hidden frames and odd dimensions, match every independent sample. Their 400 actual
+inter-intra cells and all other selected motion modes agree with AOM inspection;
+88 additional native masks cover every block shape and blend mode.
+
+Non-identity global motion,
 intra block copy,
 segmentation, multiple
 tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth,

@@ -16,9 +16,15 @@ namespace Mediana.Codecs.Av1.Tests
                 Reference = 3, SecondReference = 7, Mode = 24, Width = 16, Height = 8,
                 Row = -16383, Column = 16383, SecondRow = 16382, SecondColumn = -16382,
                 SkipMode = true, CompoundGroup = 1, CompoundIndex = 1, MotionMode = 2,
-                FilterX = 2, FilterY = 1, Transform = 4, TransformSize = 9
+                FilterX = 2, FilterY = 1, Transform = 4, TransformSize = 9, InterIntra = true
             };
             Assert.Equal(16, Unsafe.SizeOf<Av1MotionBlock>());
+            Assert.True(block.InterIntra);
+            block.FilterX = 1;
+            Assert.True(block.InterIntra);
+            Assert.Equal(1, block.FilterX);
+            block.InterIntra = false;
+            Assert.Equal(1, block.FilterX);
             Assert.Equal(3, block.Reference);
             Assert.Equal(7, block.SecondReference);
             Assert.Equal(24, block.Mode);

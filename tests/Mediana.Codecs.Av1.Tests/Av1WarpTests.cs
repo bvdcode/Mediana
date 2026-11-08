@@ -104,7 +104,7 @@ namespace Mediana.Codecs.Av1.Tests
             Av1WarpSamples candidates = new(storage, blocks, sequence, 2, 2, 2, 2, new() { Reference = 1 });
             candidates.Find();
             Assert.Equal(new Av1WarpSample[] { new(24, 152, 24, 152) }, candidates.Samples.ToArray());
-            blocks[1 * sequence.MiColumns + 4].Reference = 0;
+            blocks[1 * sequence.MiColumns + 4].InterIntra = true;
             candidates = new(storage, blocks, sequence, 2, 2, 2, 2, new() { Reference = 1 });
             candidates.Find();
             Assert.Equal(new Av1WarpSample[] { new(88, 24, 1088, 1024) }, candidates.Samples.ToArray());

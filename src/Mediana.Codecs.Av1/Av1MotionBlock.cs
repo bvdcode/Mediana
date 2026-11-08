@@ -14,10 +14,12 @@ namespace Mediana.Codecs.Av1
         internal short SecondRow;
         internal short SecondColumn;
         internal byte FilterY;
-        internal byte FilterX;
+        private byte filterX;
         internal byte Transform;
         internal byte TransformSize;
 
+        internal byte FilterX { readonly get => (byte)(filterX & 3); set => filterX = (byte)((filterX & ~3) | value); }
+        internal bool InterIntra { readonly get => (filterX & 4) != 0; set => filterX = (byte)((filterX & ~4) | (value ? 4 : 0)); }
         internal byte Reference { readonly get => (byte)(references & 7); set => references = (byte)((references & ~7) | value); }
         internal byte SecondReference { readonly get => (byte)((references >> 3) & 7); set => references = (byte)((references & ~(7 << 3)) | (value << 3)); }
         internal bool SkipMode { readonly get => (references & 64) != 0; set => references = (byte)((references & ~64) | (value ? 64 : 0)); }

@@ -352,3 +352,23 @@ samples. Cases include translation beyond reference edges, signed shears,
 luma/chroma planes and clipped non-eight-sample destinations. Output outside
 the requested region and reference pixels must remain unchanged. These native
 routines are fixture-generation tools only; runtime tests use managed code.
+
+
+`ordinary`, `ordinaryRegions` and `ordinaryOdd` use the preceding moving sources
+with no encoder prediction-tool overrides: libaom 3.8.2, cpu-used 0, CRF 30.
+The first keeps default lookahead; the other two use lag-in-frames 0. All 28
+visible pictures match independent libdav1d 1.4.1 output, including odd edges,
+hidden reference pictures and show-existing display. The `.obmc.gz` records
+cover every individual coded FRAME OBU. They contain 188, 72 and 140 actual
+inter-intra cells, selecting vertical, horizontal and smooth prediction; 128,
+48 and 84 of these use wedge masks. Native second reference 0 identifies
+inter-intra, whereas -1 means an ordinary single-reference prediction.
+The same records include 1,588, 784 and 656 overlap cells, and 92, 8 and 20
+local-warp cells.
+
+`inter-intra-masks.gz` contains all 88 block-shape/mode masks from the unchanged
+AOM 3.8.2 `build_smooth_interintra_mask` routine in
+[`reconinter.c`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.8.2/av1/common/reconinter.c).
+The format is `AV1IIM01`, uint32 case count, followed by byte width, height,
+mode and `width * height` mask bytes per case. DC, vertical, horizontal and
+smooth masks are compared byte for byte, independently of encoded mode selection.

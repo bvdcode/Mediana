@@ -10,14 +10,6 @@ namespace Mediana.Codecs.Av1
             warp = default;
             int reference = block.Reference;
             int blockIndex = BlockIndex(width, height);
-            if (sequence.Tools.InterIntra && blockIndex is >= 3 and <= 9)
-            {
-                int sizeGroup = BlockSizeGroup(blockIndex);
-                if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.InterIntraOffset + (sizeGroup - 1) * 3, 3)) != 0)
-                {
-                    throw new NotSupportedException("AV1 inter-intra blending is not implemented.");
-                }
-            }
             if (!header.Inter.SwitchableMotion || Math.Min(width, height) < 2 || !HasOverlap(row, column, width, height)) { return 0; }
             Av1SequenceHeader source = pictures.Get(header.Inter.References[reference - 1]).Header.Geometry;
             int scaleX = ((source.Width << 14) + sequence.Width / 2) / sequence.Width;

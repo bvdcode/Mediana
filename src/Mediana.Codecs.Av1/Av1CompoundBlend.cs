@@ -36,7 +36,7 @@ namespace Mediana.Codecs.Av1
             }
             else
             {
-                weight = (mask[position] + mask[position + 1] + mask[position + maskStride] + mask[position + maskStride + 1] + 2) >> 2;
+                weight = Av1MaskSampling.Weight(mask, maskStride, subsampling, row, column);
             }
             return (byte)Math.Clamp((weight * first + (64 - weight) * value + 512) >> 10, 0, 255);
         }

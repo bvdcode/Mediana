@@ -69,7 +69,7 @@ namespace Mediana.Codecs.Av1
             if (scanned == Capacity || candidateRow < 0 || candidateColumn < 0 ||
                 candidateRow >= sequence.MiRows || candidateColumn >= sequence.MiColumns) { return; }
             Av1MotionBlock candidate = motionBlocks[candidateRow * sequence.MiColumns + candidateColumn];
-            if (candidate.Reference != motion.Reference || candidate.SecondReference != 0) { return; }
+            if (candidate.Reference != motion.Reference || candidate.SecondReference != 0 || candidate.InterIntra) { return; }
             int threshold = Math.Clamp(Math.Max(width, height) * 4, 16, 112);
             bool valid = Math.Abs(candidate.Row - motion.Row) + Math.Abs(candidate.Column - motion.Column) <= threshold;
             scanned++;
