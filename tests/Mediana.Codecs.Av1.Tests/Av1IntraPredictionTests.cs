@@ -15,7 +15,10 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("smoothRegions", 160, 136, false, 3)]
         [InlineData("smoothMono", 117, 83, true, 1)]
         [InlineData("smoothOdd", 37, 29, false, 1)]
-        public void PublicCodecMatchesIndependentSmoothAndPaethVideo(string name, int width, int height, bool monochrome, int count)
+        [InlineData("filterRegions", 160, 136, false, 3)]
+        [InlineData("filterMono", 117, 83, true, 1)]
+        [InlineData("filterOdd", 37, 29, false, 1)]
+        public void PublicCodecMatchesIndependentIntraVideo(string name, int width, int height, bool monochrome, int count)
         {
             byte[] encoded = Read(name + ".obu");
             byte[] expected = Read(name + ".yuv");
@@ -59,15 +62,17 @@ namespace Mediana.Codecs.Av1.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
-        [Fact]
-        public void NativeSmoothAndPaethMatchAllTransformGeometries()
+        [Theory]
+        [InlineData("intra.bin.gz", "AV1INTR1", 608, false)]
+        [InlineData("filter-intra.bin.gz", "AV1FILT1", 1120, true)]
+        public void NativePredictionMatchesAllTransformGeometries(string fileName, string magic, int count, bool recursive)
         {
-            using FileStream file = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Data", "intra.bin.gz"));
+            using FileStream file = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Data", fileName));
             using GZipStream expanded = new(file, CompressionMode.Decompress);
             using BinaryReader reader = new(expanded);
-            Assert.Equal("AV1INTR1"u8.ToArray(), reader.ReadBytes(8));
-            Assert.Equal(608, reader.ReadInt32());
-            for (int test = 0; test < 608; test++)
+            Assert.Equal(System.Text.Encoding.ASCII.GetBytes(magic), reader.ReadBytes(8));
+            Assert.Equal(count, reader.ReadInt32());
+            for (int test = 0; test < count; test++)
             {
                 int width = reader.ReadByte();
                 int height = reader.ReadByte();
@@ -77,12 +82,12 @@ namespace Mediana.Codecs.Av1.Tests
                 byte[] expected = reader.ReadBytes(width * height);
                 byte[] actual = new byte[width * height];
                 Assert.Equal(width * height, expected.Length);
-                Av1IntraPredictor.Predict(actual, width, width, height, width, height, above, left, mode);
+                Predict(recursive, actual, width, height, width, height, above, left, mode);
                 Assert.True(actual.AsSpan().SequenceEqual(expected), $"Intra prediction vector {test}, mode {mode}, {width}x{height} differs.");
                 actual.AsSpan().Fill(237);
                 int visibleWidth = width - 1;
                 int visibleHeight = height - 1;
-                Av1IntraPredictor.Predict(actual, width, width, height, visibleWidth, visibleHeight, above, left, mode);
+                Predict(recursive, actual, width, height, visibleWidth, visibleHeight, above, left, mode);
                 for (int y = 0; y < height; y++)
                 {
                     for (int x = 0; x < width; x++)
@@ -93,6 +98,13 @@ namespace Mediana.Codecs.Av1.Tests
                 }
             }
             Assert.Equal(-1, expanded.ReadByte());
+        }
+
+        private static void Predict(bool recursive, Span<byte> destination, int width, int height, int visibleWidth, int visibleHeight,
+            ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int mode)
+        {
+            if (recursive) { Av1FilterIntraPrediction.Predict(destination, width, width, height, visibleWidth, visibleHeight, above, left, mode); }
+            else { Av1IntraPredictor.Predict(destination, width, width, height, visibleWidth, visibleHeight, above, left, mode); }
         }
 
         private static byte[] Read(string file) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Data", file));

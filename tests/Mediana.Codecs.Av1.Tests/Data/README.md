@@ -197,3 +197,11 @@ and `smoothOdd` (37×29 4:2:0) enable smooth/Paeth prediction, quantized residua
 deblocking, CDEF and restoration. They use libaom 3.8.2 at CRF35 and independent
 libdav1d 1.4.1 visible-sample references. Filter-intra and intra-edge filtering
 are disabled in these fixtures.
+
+`filter-intra.bin.gz` contains 1,120 recursive intra vectors from AOM 3.13.1 C
+kernels. The `AV1FILT1` stream uses the same record layout as `AV1INTR1`, with
+filter mode zero through four. Fourteen geometries up to 32 samples use sixteen
+edge patterns each. `filterRegions`, `filterMono` and `filterOdd` use the same
+source patterns, dimensions and independent encoder/decoder versions as their
+`smooth` counterparts, with recursive intra enabled. Edge filtering remains
+disabled for these three fixtures.

@@ -65,12 +65,13 @@ namespace Mediana.Codecs.Av1
                     throw new NotSupportedException("AV1 chroma palette reconstruction is not implemented.");
                 }
             }
+            int? filter = null;
             if (mode == 0 && paletteSize == 0 && sequence.FilterIntra && width <= 8 && height <= 8)
             {
                 int index = blockIndex;
                 if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.FilterIntraOffset + index * 3, 3)) != 0)
                 {
-                    throw new NotSupportedException("AV1 filter-intra prediction is not implemented.");
+                    filter = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.FilterIntraModeOffset, 6));
                 }
             }
             Span<byte> colorMap = stackalloc byte[64 * 64];
@@ -80,7 +81,7 @@ namespace Mediana.Codecs.Av1
             }
             StoreFilterBlock(row, column, width, height, 0, mode, skip != 0);
             Av1TransformSize transform = ReadTransformSize(row, column, width, height, true);
-            Residual(row, column, width, height, skip != 0, mode, angleDelta, hasChroma, chroma, colors[..paletteSize], colorMap, transform);
+            Residual(row, column, width, height, skip != 0, new(mode, angleDelta, filter), hasChroma, chroma, colors[..paletteSize], colorMap, transform);
             Av1BlockContext context = new()
             {
                 Mode = (byte)mode,

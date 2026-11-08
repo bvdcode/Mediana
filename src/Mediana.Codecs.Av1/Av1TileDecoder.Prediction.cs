@@ -5,9 +5,10 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void PredictIntra(int plane, int x, int y, int mode, int angleDelta, int width, int height)
+        private void PredictIntra(int plane, int x, int y, Av1IntraMode prediction, int width, int height)
         {
-            if (mode == 0)
+            int mode = prediction.Mode;
+            if (mode == 0 && prediction.Filter is null)
             {
                 PredictDc(plane, x, y, width, height);
                 return;
@@ -45,6 +46,12 @@ namespace Mediana.Codecs.Av1
                 corner = 128;
             }
             top[0] = prior[0] = corner;
+            if (prediction.Filter is int filter)
+            {
+                Av1FilterIntraPrediction.Predict(output[(offset + y * stride + x)..], stride, width, height,
+                    Math.Min(width, stride - x), Math.Min(height, sequence.PlaneHeight(plane) - y), top, prior, filter);
+                return;
+            }
             if (mode is >= 9 and <= 12)
             {
                 Av1IntraPredictor.Predict(output[(offset + y * stride + x)..], stride, width, height,
@@ -52,7 +59,7 @@ namespace Mediana.Codecs.Av1
                 return;
             }
             ReadOnlySpan<byte> angles = [0, 90, 180, 45, 135, 113, 157, 203, 67];
-            int angle = angles[mode] + angleDelta * 3;
+            int angle = angles[mode] + prediction.AngleDelta * 3;
             int dx = 0;
             int dy = 0;
             if (angle < 90) { dx = Derivative(angle); }

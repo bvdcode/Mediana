@@ -77,7 +77,7 @@ namespace Mediana.Codecs.Av1
             PredictInter(row, column, width, height, hasChroma, block, pictures);
             StoreFilterBlock(row, column, width, height, reference, mode, skip != 0);
             Av1TransformSize transform = ReadInterTransformSizes(row, column, width, height, skip != 0);
-            Residual(row, column, width, height, skip != 0, 0, 0, hasChroma, default, default, default, transform, true);
+            Residual(row, column, width, height, skip != 0, default, hasChroma, default, default, default, transform, true);
             Av1BlockContext contextBlock = new()
             {
                 WidthLog = (byte)BitOperations.Log2((uint)width), HeightLog = (byte)BitOperations.Log2((uint)height), Skip = (byte)skip

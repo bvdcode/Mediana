@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void Residual(int row, int column, int width, int height, bool skip, int mode, int angleDelta,
+        private void Residual(int row, int column, int width, int height, bool skip, Av1IntraMode luma,
             bool hasChroma, Av1ChromaMode chroma, scoped ReadOnlySpan<byte> colors, scoped ReadOnlySpan<byte> colorMap,
             Av1TransformSize lumaTransform, bool inter = false)
         {
@@ -47,8 +47,7 @@ namespace Mediana.Codecs.Av1
                             for (int x = startX; x < endX; x += size.Width4)
                             {
                                 TransformBlock(plane, row, column, width, height, x, y, blockWidth, blockHeight,
-                                    skip, plane == 0 ? mode : chroma.Mode, plane == 0 ? angleDelta : chroma.AngleDelta,
-                                    chroma, colors, colorMap, size, residual[..(size.Width * size.Height)], inter);
+                                    skip, plane == 0 ? luma : new(chroma.Mode, chroma.AngleDelta), chroma, colors, colorMap, size, residual[..(size.Width * size.Height)], inter);
                             }
                         }
                     }
@@ -57,13 +56,14 @@ namespace Mediana.Codecs.Av1
         }
 
         private void TransformBlock(int plane, int row, int column, int width, int height, int x, int y, int blockWidth, int blockHeight,
-            bool skip, int mode, int angleDelta, Av1ChromaMode chroma, scoped ReadOnlySpan<byte> colors,
+            bool skip, Av1IntraMode prediction, Av1ChromaMode chroma, scoped ReadOnlySpan<byte> colors,
             scoped ReadOnlySpan<byte> colorMap, Av1TransformSize size, scoped Span<int> residual, bool inter)
         {
             int sub = sequence.PlaneShift(plane);
             int x4 = (column >> sub) + x;
             int y4 = (row >> sub) + y;
-            Coefficients(plane, x4, y4, blockWidth, blockHeight, skip, mode, residual, inter, row, column, size.Width, size.Height);
+            int mode = prediction.Mode;
+            Coefficients(plane, x4, y4, blockWidth, blockHeight, skip, prediction.TransformMode, residual, inter, row, column, size.Width, size.Height);
             int pixelX = x4 * 4;
             int pixelY = y4 * 4;
             int stride = sequence.PlaneStride(plane);
@@ -83,7 +83,7 @@ namespace Mediana.Codecs.Av1
             }
             else if (!inter)
             {
-                PredictIntra(plane, pixelX, pixelY, mode == 13 ? 0 : mode, angleDelta, size.Width, size.Height);
+                PredictIntra(plane, pixelX, pixelY, mode == 13 ? default : prediction, size.Width, size.Height);
                 if (mode == 13)
                 {
                     int alpha = plane switch

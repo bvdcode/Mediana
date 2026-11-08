@@ -16,7 +16,7 @@ namespace Mediana.Codecs.Av1
             {
                 Av1TransformSize size = new(width, height);
                 TransformBlock(0, row, column, blockWidth, blockHeight, x, y, blockWidth, blockHeight,
-                    skip, 0, 0, default, default, default, size, residual[..(width * height)], true);
+                    skip, default, default, default, default, size, residual[..(width * height)], true);
             }
             else if (width > height)
             {
