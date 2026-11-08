@@ -1,6 +1,6 @@
 # Updating the command-line executable
 
-Run the published executable to check the latest stable GitHub release:
+Run the published executable to check the latest stable release:
 
 ```sh
 ./mediana update --check
@@ -19,10 +19,11 @@ the published Windows x64, Linux x64 and macOS ARM64 executables. It preserves
 the executable's location and custom filename. Linux and macOS retain the existing
 file permissions. The installation directory must be writable.
 
-Release checks use GitHub's `releases/latest` redirect and the release's `.sha256`
-asset, without calling the GitHub REST API or requiring an API token. The release
-tag must be a stable three-part version in the Mediana repository. Checksum reads
-are bounded and must name exactly the executable for the selected platform.
+Release checks read `https://releases.splidex.com/mediana/latest.json`. Executables
+are served by Cloudflare R2 through the same domain, under `mediana/<version>/`.
+The manifest must contain a stable three-part version and exactly one matching
+executable for the selected platform, including its size and SHA-256 checksum.
+Manifest reads are limited to 16 KiB. No API token is required.
 
 The updater selects the executable for the current operating system and process
 architecture. Before replacement, it verifies the download size, the published

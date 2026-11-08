@@ -31,6 +31,9 @@ jobs:
           persist-credentials: false
       - name: Check format catalog
         run: python3 tools/format-catalog.py --check
+      - name: Check release publication
+        shell: pwsh
+        run: ./tests/VerifyReleasePublication.ps1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: 10.0.x
@@ -241,6 +244,47 @@ jobs:
         run: >-
           dotnet nuget push 'artifacts/packages/*.nupkg' --skip-duplicate --no-symbols
           --api-key "$GITHUB_TOKEN" --source "https://nuget.pkg.github.com/${PACKAGE_OWNER}/index.json"
+
+  publish-r2:
+    name: Publish executables to releases.splidex.com
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_EC2_METADATA_DISABLED: true
+      AWS_RETRY_MODE: standard
+      AWS_MAX_ATTEMPTS: 6
+      R2_ACCOUNT_ID: ${{ vars.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ vars.R2_BUCKET }}
+      RELEASE_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Check storage configuration
+        shell: bash
+        run: |
+          : "${AWS_ACCESS_KEY_ID:?Set the R2_ACCESS_KEY_ID repository secret}"
+          : "${AWS_SECRET_ACCESS_KEY:?Set the R2_SECRET_ACCESS_KEY repository secret}"
+          : "${R2_ACCOUNT_ID:?Set the R2_ACCOUNT_ID repository variable}"
+          : "${R2_BUCKET:?Set the R2_BUCKET repository variable}"
+      - name: Download native executables
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: native-*
+          merge-multiple: true
+          path: artifacts/binaries
+      - name: Publish verified release
+        shell: pwsh
+        run: >-
+          ./.github/PublishRelease.ps1 -Version $env:RELEASE_VERSION
+          -ArtifactDirectory artifacts/binaries -AccountId $env:R2_ACCOUNT_ID -Bucket $env:R2_BUCKET
 
   release:
     name: Create GitHub release

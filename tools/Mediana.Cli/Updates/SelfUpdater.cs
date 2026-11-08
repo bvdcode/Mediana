@@ -5,13 +5,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli.Updates
 {
-    internal class SelfUpdater(GitHubReleaseClient releases, UpdateInstaller installer, ILogger logger)
+    internal class SelfUpdater(ReleaseClient releases, UpdateInstaller installer, ILogger logger)
     {
         public async Task UpdateAsync(string executablePath, bool checkOnly, CancellationToken token)
         {
             Version currentVersion = await ExecutableVersion.ReadAsync(executablePath, token);
-            logger.LogInformation("Checking the latest GitHub release. Current version: {Version}", currentVersion);
-            GitHubRelease release = await releases.GetLatestAsync(token);
+            logger.LogInformation("Checking the latest Mediana release. Current version: {Version}", currentVersion);
+            UpdateRelease release = await releases.GetLatestAsync(token);
             if (release.Version <= currentVersion)
             {
                 logger.LogInformation("Mediana {Version} is up to date.", currentVersion);

@@ -26,11 +26,11 @@ namespace Mediana.Cli
                 throw new NotSupportedException("Run update from the published Mediana executable.");
             }
 
-            using HttpClient httpClient = new();
+            using HttpClient httpClient = new(new HttpClientHandler { AllowAutoRedirect = false });
             httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mediana-Updater");
             using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromMinutes(15));
-            SelfUpdater updater = new(new GitHubReleaseClient(httpClient, ReleaseAssets.CurrentPlatform, new UpdateRetryPolicy(logger)),
+            SelfUpdater updater = new(new ReleaseClient(httpClient, ReleaseAssets.CurrentPlatform, new UpdateRetryPolicy(logger)),
                 new UpdateInstaller(logger), logger);
             await updater.UpdateAsync(executablePath, check, timeout.Token);
             return CliExitCodes.Success;

@@ -3,5 +3,5 @@
 
 namespace Mediana.Cli.Updates
 {
-    internal record GitHubRelease(Version Version, Uri DownloadUrl, long Size, byte[] Sha256);
+    internal record UpdateRelease(Version Version, Uri DownloadUrl, long Size, byte[] Sha256);
 }
