@@ -6,26 +6,26 @@ namespace Mediana.Codecs.Av1
     internal static class Av1MotionCompensation
     {
         internal static void Apply(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
-            int plane, int x, int y, int width, int height, Av1MotionBlock motion)
-            => Convolve(new(output[target.PlaneOffset(plane)..], target.PlaneStride(plane)), target, reference, plane, x, y, width, height, motion, default);
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion, int predictionWidth, int predictionHeight)
+            => Convolve(new(output[target.PlaneOffset(plane)..], target.PlaneStride(plane)), target, reference, plane, x, y, width, height, motion, default, predictionWidth, predictionHeight);
 
         internal static void Predict(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
             int plane, int x, int y, int width, int height, Av1MotionBlock motion)
-            => Convolve(new(output, width, x, y), target, reference, plane, x, y, width, height, motion, default);
+            => Convolve(new(output, width, x, y), target, reference, plane, x, y, width, height, motion, default, width, height);
 
         internal static void ApplyCompound(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture first, Av1StoredPicture second,
-            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundPrediction compound, Span<byte> mask = default, int maskStride = 0)
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundPrediction compound, int predictionWidth, int predictionHeight, Span<byte> mask = default, int maskStride = 0)
         {
             Span<short> prediction = stackalloc short[width * height];
             Av1PredictionDestination destination = new(output[target.PlaneOffset(plane)..], target.PlaneStride(plane));
-            Convolve(destination, target, first, plane, x, y, width, height, motion, new(prediction));
+            Convolve(destination, target, first, plane, x, y, width, height, motion, new(prediction), predictionWidth, predictionHeight);
             motion.Row = motion.SecondRow;
             motion.Column = motion.SecondColumn;
-            Convolve(destination, target, second, plane, x, y, width, height, motion, new(prediction, compound, mask, maskStride, target.PlaneShift(plane)));
+            Convolve(destination, target, second, plane, x, y, width, height, motion, new(prediction, compound, mask, maskStride, target.PlaneShift(plane)), predictionWidth, predictionHeight);
         }
 
         private static void Convolve(Av1PredictionDestination destination, Av1SequenceHeader target, Av1StoredPicture reference,
-            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundBlend blend)
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundBlend blend, int predictionWidth, int predictionHeight)
         {
             Av1SequenceHeader source = reference.Header.Geometry;
             if (source.Width > target.Width * 2 || source.Height > target.Height * 2 ||
@@ -66,8 +66,8 @@ namespace Mediana.Codecs.Av1
                     x, y, width, height, startX >> 10, startY >> 10);
                 return;
             }
-            int filterX = SelectFilter(motion.FilterX, width);
-            int filterY = SelectFilter(motion.FilterY, height);
+            int filterX = SelectFilter(motion.FilterX, predictionWidth);
+            int filterY = SelectFilter(motion.FilterY, predictionHeight);
             Span<int> intermediate = stackalloc int[8 * 128];
             Span<int> cachedRows = stackalloc int[8];
             cachedRows.Fill(int.MinValue);

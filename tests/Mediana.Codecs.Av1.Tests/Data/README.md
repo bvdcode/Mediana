@@ -404,3 +404,19 @@ from unchanged AOM 3.8.2
 [`av1_neg_deinterleave`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.8.2/av1/decoder/decodemv.c).
 The format is `AV1SID01`, uint32 count, then byte difference, prediction, active
 range size and decoded segment ID. Ranges 1–8 and predictors 0–7 are covered.
+
+`clippedCompound.obu` contains the first 42 display units of a 160×136,
+24-fps sequence encoded by libaom 3.8.2 with cpu-used 5, default prediction
+tools and lookahead. Hidden reference pictures and show-existing displays
+are retained. A compound block at the lower frame edge has a full chroma
+prediction height of 16 samples but only four visible rows. Interpolation
+filter selection must use the full block geometry, as specified by AV1
+section 7.11.3.5, while writes remain clipped to the visible destination.
+
+`clippedCompound.sha256` contains independent libdav1d 1.4.1 output hashes:
+`AV1HASH1`, little-endian uint32 display count, uint16 width and height,
+followed by one 32-byte SHA-256 digest for each densely packed visible
+planar Y/U/V picture. The tests decode through the public factory twice with
+reset, compare every picture digest, preserve supplied packet timing and
+require all buffer leases to be released. Hashes keep the fixture compact
+without reducing pixel coverage.

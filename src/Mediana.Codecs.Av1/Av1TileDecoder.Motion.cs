@@ -56,12 +56,12 @@ namespace Mediana.Codecs.Av1
                             }
                             else if (selected.SecondReference == 0)
                             {
-                                Av1MotionCompensation.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected);
+                                Av1MotionCompensation.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, stepX, stepY);
                             }
                             else
                             {
                                 Av1StoredPicture second = pictures.Get(header.Inter.References[selected.SecondReference - 1]);
-                                Av1MotionCompensation.ApplyCompound(output, sequence, reference, second, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, prediction, mask, maskStride);
+                                Av1MotionCompensation.ApplyCompound(output, sequence, reference, second, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, prediction, stepX, stepY, mask, maskStride);
                             }
                         }
                     }
