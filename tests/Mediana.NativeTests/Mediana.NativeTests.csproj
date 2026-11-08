@@ -287,6 +287,8 @@
     <Compile Include="../Shared/AacSbrDecodeTestInput.cs" Link="AacSbrDecodeTestInput.cs" />
     <Compile Include="../Shared/AacSbrSeekTestInput.cs" Link="AacSbrSeekTestInput.cs" />
     <Compile Include="../Shared/AacSbrHlsTestInput.cs" Link="AacSbrHlsTestInput.cs" />
+    <Compile Include="../Shared/AacPsDecodeTestInput.cs" Link="AacPsDecodeTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/AacPs/*" Link="Data/AacPs/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Mediana.Tests/Mp4TestBoxes.cs" Link="Mp4TestBoxes.cs" />
     <None Include="../Mediana.Tests/Data/AacSbr/*" Link="Data/AacSbr/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Containers.Adts.Tests/Data/*.aac" Link="Data/Aac/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

@@ -25,8 +25,18 @@ namespace Mediana.NativeTests
                 }
             }
             await AacSbrHlsTestInput.VerifyAsync(root);
+            string psRoot = Path.Combine(AppContext.BaseDirectory, "Data", "AacPs");
+            foreach (bool explicitPs in new[] { false, true })
+            {
+                foreach (string name in new[] { "tonal", "transients", "parameters" })
+                {
+                    await AacPsDecodeTestInput.VerifySequenceAsync(psRoot, name, explicitPs);
+                }
+                await AacPsDecodeTestInput.VerifySequenceAsync(psRoot, "transients", explicitPs, singleRate: true);
+            }
             Console.WriteLine("PASS HE-AAC: mono/stereo, explicit/implicit SBR, every independent PCM sample, exact timing and persistent state ownership.");
             Console.WriteLine("PASS HE-AAC: indexed MP4/ADTS recovery, fresh HLS requests, repeated segments and bounded source reads.");
+            Console.WriteLine("PASS HE-AAC v2: explicit/implicit PS, both synthesis rates, complete independent PCM references and bounded persistent storage.");
         }
     }
 }
