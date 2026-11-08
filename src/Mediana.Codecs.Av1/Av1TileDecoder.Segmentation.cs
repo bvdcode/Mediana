@@ -20,8 +20,8 @@ namespace Mediana.Codecs.Av1
             bool predicted = false;
             if (inter && header.Segmentation.TemporalUpdate && (preSkip || !skip))
             {
-                int context = (row > 0 && above[column].SegmentPredicted ? 1 : 0) +
-                    (column > 0 && left[row & (LeftContexts - 1)].SegmentPredicted ? 1 : 0);
+                int context = (row > bounds.RowStart && above[column].SegmentPredicted ? 1 : 0) +
+                    (column > bounds.ColumnStart && left[row & (LeftContexts - 1)].SegmentPredicted ? 1 : 0);
                 predicted = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SegmentPredictedOffset + context * 3, 3)) != 0;
             }
             if (predicted)
@@ -38,9 +38,9 @@ namespace Mediana.Codecs.Av1
 
         private int ReadSpatialSegment(int row, int column, bool skip)
         {
-            int topLeft = row > 0 && column > 0 ? segmentMap[(row - 1) * sequence.MiColumns + column - 1] : -1;
-            int top = row > 0 ? segmentMap[(row - 1) * sequence.MiColumns + column] : -1;
-            int prior = column > 0 ? segmentMap[row * sequence.MiColumns + column - 1] : -1;
+            int topLeft = row > bounds.RowStart && column > bounds.ColumnStart ? segmentMap[(row - 1) * sequence.MiColumns + column - 1] : -1;
+            int top = row > bounds.RowStart ? segmentMap[(row - 1) * sequence.MiColumns + column] : -1;
+            int prior = column > bounds.ColumnStart ? segmentMap[row * sequence.MiColumns + column - 1] : -1;
             int prediction = top < 0 ? prior < 0 ? 0 : prior : prior < 0 ? top : topLeft == top ? top : prior;
             if (skip) { return prediction; }
             int context = topLeft < 0 ? 0 : topLeft == top && topLeft == prior ? 2 : topLeft == top || topLeft == prior || top == prior ? 1 : 0;

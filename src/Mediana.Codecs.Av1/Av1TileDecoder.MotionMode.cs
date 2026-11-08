@@ -15,7 +15,7 @@ namespace Mediana.Codecs.Av1
             int scaleX = ((source.Width << 14) + sequence.Width / 2) / sequence.Width;
             int scaleY = ((source.Height << 14) + sequence.Height / 2) / sequence.Height;
             Span<Av1WarpSample> storage = stackalloc Av1WarpSample[Av1WarpSamples.Capacity];
-            Av1WarpSamples samples = new(storage, motionBlocks, sequence, row, column, width, height, block);
+            Av1WarpSamples samples = new(storage, motionBlocks, sequence, bounds, row, column, width, height, block);
             if (!header.Inter.IntegerMotion && header.Inter.WarpedMotion && scaleX == 16384 && scaleY == 16384) { samples.Find(); }
             int mode = !samples.Samples.IsEmpty
                 ? symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MotionModeOffset + blockIndex * 4, 4))
@@ -26,14 +26,14 @@ namespace Mediana.Codecs.Av1
 
         private bool HasOverlap(int row, int column, int width, int height)
         {
-            if (row > 0)
+            if (row > bounds.RowStart)
             {
                 for (int x = column; x < Math.Min(sequence.MiColumns, column + width); x += 2)
                 {
                     if (motionBlocks[(row - 1) * sequence.MiColumns + (x | 1)].Reference != 0) { return true; }
                 }
             }
-            if (column > 0)
+            if (column > bounds.ColumnStart)
             {
                 for (int y = row; y < Math.Min(sequence.MiRows, row + height); y += 2)
                 {

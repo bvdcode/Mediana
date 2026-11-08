@@ -12,13 +12,13 @@ namespace Mediana.Codecs.Av1
             if (size.Index == 0 || !allowSelect || !header.SelectTransform) { return size; }
             int topWidth = 0;
             int leftHeight = 0;
-            if (row > 0)
+            if (row > bounds.RowStart)
             {
                 Av1BlockContext context = above[column];
                 bool inter = !motionBlocks.IsEmpty && motionBlocks[(row - 1) * sequence.MiColumns + column].Reference != 0;
                 topWidth = inter ? 4 << context.WidthLog : context.TransformWidth;
             }
-            if (column > 0)
+            if (column > bounds.ColumnStart)
             {
                 Av1BlockContext context = left[row & (LeftContexts - 1)];
                 bool inter = !motionBlocks.IsEmpty && motionBlocks[row * sequence.MiColumns + column - 1].Reference != 0;

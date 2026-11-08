@@ -32,7 +32,7 @@ namespace Mediana.Codecs.Av1
             if (size.Index != 0 && depth < 2)
             {
                 int topWidth;
-                if (row == ownerRow && row == 0) { topWidth = 64; }
+                if (row == ownerRow && row == bounds.RowStart) { topWidth = 64; }
                 else
                 {
                     Av1MotionBlock top = motionBlocks[(row - 1) * sequence.MiColumns + column];
@@ -40,7 +40,7 @@ namespace Mediana.Codecs.Av1
                         ? top.Width * 4 : Av1TransformSize.FromIndex(top.TransformSize).Width;
                 }
                 int leftHeight;
-                if (column == ownerColumn && column == 0) { leftHeight = 64; }
+                if (column == ownerColumn && column == bounds.ColumnStart) { leftHeight = 64; }
                 else
                 {
                     Av1MotionBlock prior = motionBlocks[row * sequence.MiColumns + column - 1];

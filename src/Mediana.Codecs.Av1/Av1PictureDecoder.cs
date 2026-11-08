@@ -21,6 +21,8 @@ namespace Mediana.Codecs.Av1
             bool hasSequence = false;
             ReadOnlySpan<byte> frame = default;
             bool separateHeader = false;
+            bool hasGroups = false;
+            int frameEnd = 0;
             while (obus.TryRead(out int type, out ReadOnlySpan<byte> payload))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -49,11 +51,18 @@ namespace Mediana.Codecs.Av1
                         }
                         frame = payload;
                         separateHeader = type == 3;
+                        frameEnd = obus.ByteOffset;
                         break;
                     case 4:
+                        if (frame.IsEmpty || !separateHeader)
+                        {
+                            throw new InvalidDataException("An AV1 tile group requires a separate frame header.");
+                        }
+                        hasGroups = true;
+                        break;
                     case 7:
                     case 8:
-                        throw new NotSupportedException("AV1 separate frame headers, tile groups and tile lists are not implemented.");
+                        throw new NotSupportedException("AV1 redundant frame headers and tile lists are not implemented.");
                     case 0:
                     case 5:
                     case 9:
@@ -72,17 +81,14 @@ namespace Mediana.Codecs.Av1
             {
                 throw new InvalidDataException("The AV1 access unit is missing its sequence or frame.");
             }
-            if (separateHeader)
+            if (separateHeader && !geometry.Tools.ReducedStillPicture && (frame[0] & 128) != 0)
             {
-                if (geometry.Tools.ReducedStillPicture || (hasSequence && sequence != savedSequence))
+                if (hasGroups || (hasSequence && sequence != savedSequence))
                 {
                     throw new InvalidDataException("AV1 reference display requires an unchanged non-reduced sequence.");
                 }
                 Av1BitReader bits = new(frame);
-                if (!bits.Flag())
-                {
-                    throw new NotSupportedException("AV1 separate frame headers and tile groups are not implemented.");
-                }
+                _ = bits.Flag();
                 int reference = bits.Read(3);
                 uint? presentationTime = geometry.Timing?.ReadPresentationTime(ref bits);
                 if (geometry.Tools.FrameIdBits != 0 && bits.Read(geometry.Tools.FrameIdBits) != references.Get(reference).Header.FrameId)
@@ -92,7 +98,7 @@ namespace Mediana.Codecs.Av1
                 bits.Finish();
                 return references.Show(reference, new(presentationTime, null));
             }
-            Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry, references);
+            Av1FrameHeader header = Av1FrameHeader.Parse(frame, geometry, references, separateHeader);
             bool inter = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
             references.Invalidate(header.InvalidReferences);
             geometry = header.Geometry;
@@ -137,9 +143,27 @@ namespace Mediana.Codecs.Av1
                 Span<Av1RestorationUnit> restorationUnits = restorationMetadata is null ? default : MemoryMarshal.Cast<byte, Av1RestorationUnit>(restorationMetadata.Span);
                 Span<Av1MotionFieldSample> motionField = projected is null ? default : MemoryMarshal.Cast<byte, Av1MotionFieldSample>(projected.Span);
                 if (projected is not null) { Av1MotionField.Estimate(geometry, header, references, motionField, cancellationToken); }
-                Av1TileDecoder tile = new(frame[header.TileOffset..], geometry, header, pixels.Span, probabilities, decoded.Span,
-                    MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices, restorationUnits, motionField, segments is null ? default : segments.Span, previousSegments);
-                tile.Decode();
+                ReadOnlySpan<byte> tileData = separateHeader ? encoded[frameEnd..] : frame[header.TileOffset..];
+                Av1TilePayloadReader tiles = new(tileData, header.Tiles, !separateHeader);
+                ReadOnlySpan<byte> selectedTile = default;
+                while (true)
+                {
+                    if (!tiles.TryRead(out int tileIndex, out ReadOnlySpan<byte> encodedTile, cancellationToken))
+                    {
+                        if (selectedTile.IsEmpty) { break; }
+                        tileIndex = header.Tiles.ContextUpdateTile;
+                        encodedTile = selectedTile;
+                        selectedTile = default;
+                    }
+                    else if (header.Tiles.Count > 1 && tileIndex == header.Tiles.ContextUpdateTile)
+                    {
+                        selectedTile = encodedTile;
+                        continue;
+                    }
+                    Av1TileDecoder tile = new(encodedTile, geometry, header, pixels.Span, probabilities, decoded.Span,
+                        MemoryMarshal.Cast<byte, Av1BlockContext>(contexts.Span), cancellationToken, initialProbabilities, references, motionBlocks, filterBlocks, cdefIndices, restorationUnits, motionField, segments is null ? default : segments.Span, previousSegments, tileIndex);
+                    tile.Decode();
+                }
                 if (savedMotion is not null) { Av1MotionField.Store(geometry, header, references, motionBlocks, savedMotion.Span, cancellationToken); }
                 if (header.LoopFilter.Enabled) { Av1LoopFilter.Apply(pixels.Span, geometry, header.LoopFilter, filterBlocks, cancellationToken, header.Segmentation); }
                 int boundaryLength = Av1Restoration.BoundaryLength(geometry, header.Restoration);

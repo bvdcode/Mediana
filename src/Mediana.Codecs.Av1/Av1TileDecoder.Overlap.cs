@@ -15,11 +15,11 @@ namespace Mediana.Codecs.Av1
             for (int plane = 0; plane < (hasChroma ? 3 : 1); plane++)
             {
                 int sub = sequence.PlaneShift(plane);
-                if (row > 0 && BlockIndex(Math.Max(1, width >> sub), Math.Max(1, height >> sub)) >= 3)
+                if (row > bounds.RowStart && BlockIndex(Math.Max(1, width >> sub), Math.Max(1, height >> sub)) >= 3)
                 {
                     PredictOverlapSide(row, column, width, height, plane, 0, pictures, prediction);
                 }
-                if (column > 0) { PredictOverlapSide(row, column, width, height, plane, 1, pictures, prediction); }
+                if (column > bounds.ColumnStart) { PredictOverlapSide(row, column, width, height, plane, 1, pictures, prediction); }
             }
         }
 

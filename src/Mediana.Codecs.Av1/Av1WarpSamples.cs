@@ -4,7 +4,7 @@
 namespace Mediana.Codecs.Av1
 {
     internal ref struct Av1WarpSamples(Span<Av1WarpSample> storage, ReadOnlySpan<Av1MotionBlock> blocks,
-        Av1SequenceHeader sequence, int row, int column, int width, int height, Av1MotionBlock motion)
+        Av1SequenceHeader sequence, Av1TileBounds bounds, int row, int column, int width, int height, Av1MotionBlock motion)
     {
         internal const int Capacity = 8;
         private readonly Span<Av1WarpSample> candidates = storage;
@@ -17,7 +17,7 @@ namespace Mediana.Codecs.Av1
         {
             bool topLeft = true;
             bool topRight = true;
-            if (row > 0)
+            if (row > bounds.RowStart)
             {
                 int sourceWidth = motionBlocks[(row - 1) * sequence.MiColumns + column].Width;
                 if (sourceWidth == 0) { throw new InvalidDataException("The AV1 upper warp block is unavailable."); }
@@ -39,7 +39,7 @@ namespace Mediana.Codecs.Av1
                     }
                 }
             }
-            if (column > 0)
+            if (column > bounds.ColumnStart)
             {
                 int sourceHeight = motionBlocks[row * sequence.MiColumns + column - 1].Height;
                 if (sourceHeight == 0) { throw new InvalidDataException("The AV1 left warp block is unavailable."); }
@@ -66,8 +66,7 @@ namespace Mediana.Codecs.Av1
 
         private void Add(int candidateRow, int candidateColumn)
         {
-            if (scanned == Capacity || candidateRow < 0 || candidateColumn < 0 ||
-                candidateRow >= sequence.MiRows || candidateColumn >= sequence.MiColumns) { return; }
+            if (scanned == Capacity || !bounds.Contains(candidateRow, candidateColumn)) { return; }
             Av1MotionBlock candidate = motionBlocks[candidateRow * sequence.MiColumns + candidateColumn];
             if (candidate.Reference != motion.Reference || candidate.SecondReference != 0 || candidate.InterIntra) { return; }
             int threshold = Math.Clamp(Math.Max(width, height) * 4, 16, 112);

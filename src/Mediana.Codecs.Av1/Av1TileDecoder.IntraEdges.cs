@@ -19,8 +19,8 @@ namespace Mediana.Codecs.Av1
 
         private bool IsDecoded(int plane, int column, int row) => HasDecodedFlag(plane, column, row, DecodedFlag);
 
-        private bool HasDecodedFlag(int plane, int column, int row, byte flag) => column >= 0 && row >= 0 &&
-            column < sequence.PlaneColumns(plane) && row < sequence.PlaneRows(plane) &&
+        private bool HasDecodedFlag(int plane, int column, int row, byte flag) => column >= (bounds.ColumnStart >> sequence.PlaneShift(plane)) && row >= (bounds.RowStart >> sequence.PlaneShift(plane)) &&
+            column < (bounds.ColumnEnd >> sequence.PlaneShift(plane)) && row < (bounds.RowEnd >> sequence.PlaneShift(plane)) &&
             (decoded[sequence.PlaneOffset(plane) / 16 + row * sequence.PlaneColumns(plane) + column] & flag) != 0;
     }
 }

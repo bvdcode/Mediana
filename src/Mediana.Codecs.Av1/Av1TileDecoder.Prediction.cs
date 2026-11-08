@@ -15,29 +15,34 @@ namespace Mediana.Codecs.Av1
             }
             int stride = sequence.PlaneStride(plane);
             int offset = sequence.PlaneOffset(plane);
+            int sub = sequence.PlaneShift(plane);
+            bool hasTop = y > (bounds.RowStart * 4 >> sub);
+            bool hasLeft = x > (bounds.ColumnStart * 4 >> sub);
+            int maximumX = (bounds.ColumnEnd * 4 >> sub) - 1;
+            int maximumY = (bounds.RowEnd * 4 >> sub) - 1;
             Span<byte> top = stackalloc byte[(width + height) * 2 + 2];
             Span<byte> prior = stackalloc byte[(width + height) * 2 + 2];
             bool topRight = IsDecoded(plane, (x >> 2) + (width >> 2), (y >> 2) - 1);
             bool bottomLeft = IsDecoded(plane, (x >> 2) - 1, (y >> 2) + (height >> 2));
-            int topLimit = Math.Min(stride - 1, x + width * (topRight ? 2 : 1) - 1);
-            int leftLimit = Math.Min(sequence.PlaneHeight(plane) - 1, y + height * (bottomLeft ? 2 : 1) - 1);
+            int topLimit = Math.Min(maximumX, x + width * (topRight ? 2 : 1) - 1);
+            int leftLimit = Math.Min(maximumY, y + height * (bottomLeft ? 2 : 1) - 1);
             for (int index = 0; index < width + height; index++)
             {
-                top[index + 2] = y > 0 ? output[offset + (y - 1) * stride + Math.Min(topLimit, x + index)] :
-                    x > 0 ? output[offset + y * stride + x - 1] : (byte)127;
-                prior[index + 2] = x > 0 ? output[offset + Math.Min(leftLimit, y + index) * stride + x - 1] :
-                    y > 0 ? output[offset + (y - 1) * stride + x] : (byte)129;
+                top[index + 2] = hasTop ? output[offset + (y - 1) * stride + Math.Min(topLimit, x + index)] :
+                    hasLeft ? output[offset + y * stride + x - 1] : (byte)127;
+                prior[index + 2] = hasLeft ? output[offset + Math.Min(leftLimit, y + index) * stride + x - 1] :
+                    hasTop ? output[offset + (y - 1) * stride + x] : (byte)129;
             }
             byte corner;
-            if (x > 0 && y > 0)
+            if (hasLeft && hasTop)
             {
                 corner = output[offset + (y - 1) * stride + x - 1];
             }
-            else if (y > 0)
+            else if (hasTop)
             {
                 corner = top[2];
             }
-            else if (x > 0)
+            else if (hasLeft)
             {
                 corner = prior[2];
             }
@@ -61,7 +66,7 @@ namespace Mediana.Codecs.Av1
             ReadOnlySpan<byte> angles = [0, 90, 180, 45, 135, 113, 157, 203, 67];
             int angle = angles[mode] + prediction.AngleDelta * 3;
             Av1IntraEdges edges = new(top, prior, Math.Min(width, stride - x), Math.Min(height, sequence.PlaneHeight(plane) - y),
-                y > 0, x > 0, sequence.IntraEdgeFilter && SmoothNeighbors(plane, blockRow, blockColumn));
+                hasTop, hasLeft, sequence.IntraEdgeFilter && SmoothNeighbors(plane, blockRow, blockColumn));
             Av1DirectionalPrediction.Predict(output[(offset + y * stride + x)..], stride, new(width, height), edges, angle, sequence.IntraEdgeFilter);
         }
 
@@ -69,21 +74,26 @@ namespace Mediana.Codecs.Av1
         {
             int stride = sequence.PlaneStride(plane);
             int offset = sequence.PlaneOffset(plane);
+            int sub = sequence.PlaneShift(plane);
+            bool hasTop = y > (bounds.RowStart * 4 >> sub);
+            bool hasLeft = x > (bounds.ColumnStart * 4 >> sub);
+            int maximumX = (bounds.ColumnEnd * 4 >> sub) - 1;
+            int maximumY = (bounds.RowEnd * 4 >> sub) - 1;
             int sum = 0;
             int count = 0;
-            if (x > 0)
+            if (hasLeft)
             {
                 for (int index = 0; index < height; index++)
                 {
-                    sum += output[offset + Math.Min(y + index, sequence.PlaneHeight(plane) - 1) * stride + x - 1];
+                    sum += output[offset + Math.Min(y + index, maximumY) * stride + x - 1];
                 }
                 count += height;
             }
-            if (y > 0)
+            if (hasTop)
             {
                 for (int index = 0; index < width; index++)
                 {
-                    sum += output[offset + (y - 1) * stride + Math.Min(x + index, stride - 1)];
+                    sum += output[offset + (y - 1) * stride + Math.Min(x + index, maximumX)];
                 }
                 count += width;
             }

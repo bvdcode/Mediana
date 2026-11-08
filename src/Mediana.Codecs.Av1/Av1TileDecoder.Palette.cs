@@ -13,8 +13,8 @@ namespace Mediana.Codecs.Av1
             int offset;
             if (plane == 0)
             {
-                context = (row > 0 && above[column].PaletteCount != 0 ? 1 : 0) +
-                    (column > 0 && left[row & (LeftContexts - 1)].PaletteCount != 0 ? 1 : 0);
+                context = (row > bounds.RowStart && above[column].PaletteCount != 0 ? 1 : 0) +
+                    (column > bounds.ColumnStart && left[row & (LeftContexts - 1)].PaletteCount != 0 ? 1 : 0);
                 offset = Av1DefaultCdfs.PaletteModeOffset + (sizeContext * 3 + context) * 3;
             }
             else
@@ -35,7 +35,7 @@ namespace Mediana.Codecs.Av1
                     cache[cached++] = plane == 0 ? top.Palette[index] : top.UvPalette[index];
                 }
             }
-            if (column > 0)
+            if (column > bounds.ColumnStart)
             {
                 ref Av1BlockContext previous = ref left[row & (LeftContexts - 1)];
                 for (int index = 0; index < (plane == 0 ? previous.PaletteCount : previous.UvPaletteCount); index++)

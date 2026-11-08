@@ -11,11 +11,11 @@ namespace Mediana.Codecs.Av1
         {
             if (Segment.ForcedReference) { return Segment.Reference != 0; }
             if (Segment.GlobalMotion) { return true; }
-            bool aboveIntra = row == 0 || motionBlocks[(row - 1) * sequence.MiColumns + column].Reference == 0;
-            bool leftIntra = column == 0 || motionBlocks[row * sequence.MiColumns + column - 1].Reference == 0;
+            bool aboveIntra = row == bounds.RowStart || motionBlocks[(row - 1) * sequence.MiColumns + column].Reference == 0;
+            bool leftIntra = column == bounds.ColumnStart || motionBlocks[row * sequence.MiColumns + column - 1].Reference == 0;
             int context;
-            if (row > 0 && column > 0) { context = aboveIntra && leftIntra ? 3 : aboveIntra || leftIntra ? 1 : 0; }
-            else if (row > 0 || column > 0) { context = (row > 0 ? aboveIntra : leftIntra) ? 2 : 0; }
+            if (row > bounds.RowStart && column > bounds.ColumnStart) { context = aboveIntra && leftIntra ? 3 : aboveIntra || leftIntra ? 1 : 0; }
+            else if (row > bounds.RowStart || column > bounds.ColumnStart) { context = (row > bounds.RowStart ? aboveIntra : leftIntra) ? 2 : 0; }
             else { context = 0; }
             return symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.IsInterOffset + context * 3, 3)) != 0;
         }
@@ -27,7 +27,7 @@ namespace Mediana.Codecs.Av1
             int reference = pair.First;
             bool compound = pair.Second != 0;
             Span<Av1MotionCandidate> storage = stackalloc Av1MotionCandidate[Av1MotionCandidates.Capacity];
-            Av1MotionCandidates candidates = new(storage, motionBlocks, sequence, header, pictures, row, column, width, height, reference, motionField, pair.Second);
+            Av1MotionCandidates candidates = new(storage, motionBlocks, sequence, header, bounds, pictures, row, column, width, height, reference, motionField, pair.Second);
             candidates.Build();
             int mode;
             if (skipMode) { mode = 17; }
@@ -125,8 +125,8 @@ namespace Mediana.Codecs.Av1
 
         private int ReadInterpolation(int row, int column, int reference, int direction, bool compound)
         {
-            Av1MotionBlock top = row > 0 ? motionBlocks[(row - 1) * sequence.MiColumns + column] : default;
-            Av1MotionBlock prior = column > 0 ? motionBlocks[row * sequence.MiColumns + column - 1] : default;
+            Av1MotionBlock top = row > bounds.RowStart ? motionBlocks[(row - 1) * sequence.MiColumns + column] : default;
+            Av1MotionBlock prior = column > bounds.ColumnStart ? motionBlocks[row * sequence.MiColumns + column - 1] : default;
             int topType = top.Reference == reference || top.SecondReference == reference ? direction == 0 ? top.FilterY : top.FilterX : 3;
             int leftType = prior.Reference == reference || prior.SecondReference == reference ? direction == 0 ? prior.FilterY : prior.FilterX : 3;
             int context = topType == leftType ? topType : topType == 3 ? leftType : leftType == 3 ? topType : 3;

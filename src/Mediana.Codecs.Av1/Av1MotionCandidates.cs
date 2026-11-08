@@ -4,7 +4,7 @@
 namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1MotionCandidates(Span<Av1MotionCandidate> candidateStorage, ReadOnlySpan<Av1MotionBlock> blockStorage,
-        Av1SequenceHeader sequence, Av1FrameHeader header, Av1ReferencePictures pictures, int row, int column, int width, int height, int reference, ReadOnlySpan<Av1MotionFieldSample> temporalStorage = default, int secondReference = 0)
+        Av1SequenceHeader sequence, Av1FrameHeader header, Av1TileBounds bounds, Av1ReferencePictures pictures, int row, int column, int width, int height, int reference, ReadOnlySpan<Av1MotionFieldSample> temporalStorage = default, int secondReference = 0)
     {
         private readonly Span<Av1MotionCandidate> candidates = candidateStorage;
         private readonly ReadOnlySpan<Av1MotionBlock> blocks = blockStorage;
@@ -285,7 +285,7 @@ namespace Mediana.Codecs.Av1
             return value > 0 ? value & ~1 : -((-value) & ~1);
         }
 
-        private bool Inside(int y, int x) => y >= 0 && y < sequence.MiRows && x >= 0 && x < sequence.MiColumns;
+        private bool Inside(int y, int x) => bounds.Contains(y, x);
 
         private static bool HasNewMotion(int mode) => mode is 16 or 19 or 20 or 21 or 22 or 24;
     }

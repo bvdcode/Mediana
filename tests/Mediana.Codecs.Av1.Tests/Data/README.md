@@ -420,3 +420,31 @@ planar Y/U/V picture. The tests decode through the public factory twice with
 reset, compare every picture digest, preserve supplied packet timing and
 require all buffer leases to be released. Hashes keep the fixture compact
 without reducing pixel coverage.
+
+`tilesColumns`, `tilesRows`, `tilesGrid`, `tilesGroups`, `tilesNonuniform`,
+`tilesMono`, `tilesSb128`, `tilesTexture` and `tilesUneven` are six-display-picture
+sequences encoded by unchanged libaom 3.8.2 and decoded independently by
+libdav1d 1.4.1. Each `.sha256` file uses the `AV1HASH1` layout described above;
+monochrome pictures hash their visible luma plane alone. Tests exercise the
+public factory, supplied packet timestamps, reset, random-access inspection
+and complete release of caller-budgeted buffers.
+
+The standard encoder settings are cpu-used 6, CRF 30, one thread and disabled
+non-identity global motion. All other prediction tools retain their defaults.
+Sources are FFmpeg `testsrc2` at 192×160, except `tilesGrid` and `tilesMono`
+which use `testsrc` at 193×145 with 4:2:0 and gray output, and `tilesSb128`
+which uses 320×272 `testsrc2` with 128×128 superblocks. Columns/rows fixtures
+split in one direction; grid/group/mono/large-superblock fixtures use a 2×2
+uniform grid. `tilesGroups` requests two tile groups, producing separate
+FRAME_HEADER and TILE_GROUP OBUs. `tilesNonuniform` uses superblock widths
+1,2 and heights 1,2. `tilesUneven` uses widths 1,1,1, heights 1,2 and three
+groups, covering an actual six-tile grid with three-bit group indices.
+
+`tilesTexture` uses cpu-used 4 and CRF 32 with a 2×2 grid. Its procedural
+320×180 source combines luma `128+35*sin(X/3+N/3)+30*cos(Y/5-N/2)+20*sin((X+Y)/11)`,
+chroma `128+30*sin(X/17+N/5)` and `128+30*cos(Y/13-N/7)`, and FFmpeg noise
+`alls=18:allf=t+u:all_seed=12345`. It selects each of the four context-update
+tiles, directional enhancement and self-guided restoration. These sequences
+check tile-local spatial contexts and frame-wide postfilters without retaining
+large raw references or relying on the source pixels as the reconstruction
+oracle.

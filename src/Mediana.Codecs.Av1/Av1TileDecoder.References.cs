@@ -17,12 +17,12 @@ namespace Mediana.Codecs.Av1
             }
             if (Segment.ForcedReference) { return new(Segment.Reference); }
             if (Segment.Skip || Segment.GlobalMotion) { return new(1); }
-            Av1MotionBlock top = row > 0 ? motionBlocks[(row - 1) * sequence.MiColumns + column] : default;
-            Av1MotionBlock prior = column > 0 ? motionBlocks[row * sequence.MiColumns + column - 1] : default;
+            Av1MotionBlock top = row > bounds.RowStart ? motionBlocks[(row - 1) * sequence.MiColumns + column] : default;
+            Av1MotionBlock prior = column > bounds.ColumnStart ? motionBlocks[row * sequence.MiColumns + column - 1] : default;
             if (header.Inter.SelectReference && Math.Min(width, height) >= 2 &&
-                symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CompModeOffset + CompoundReferenceContext(top, prior, row > 0, column > 0) * 3, 3)) != 0)
+                symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CompModeOffset + CompoundReferenceContext(top, prior, row > bounds.RowStart, column > bounds.ColumnStart) * 3, 3)) != 0)
             {
-                int typeContext = CompoundDirectionContext(top, prior, row > 0, column > 0);
+                int typeContext = CompoundDirectionContext(top, prior, row > bounds.RowStart, column > bounds.ColumnStart);
                 if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CompRefTypeOffset + typeContext * 3, 3)) == 0)
                 {
                     if (ReferenceDecision(Av1DefaultCdfs.UniCompRefOffset, 3, 0, top, prior, 1, 4, 5, 7) != 0) { return new(5, 7); }

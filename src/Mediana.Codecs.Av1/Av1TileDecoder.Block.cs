@@ -16,12 +16,12 @@ namespace Mediana.Codecs.Av1
             bool skipMode = false;
             if (interFrame && header.Inter.SkipMode && Math.Min(width, height) >= 2 && !Segment.PreSkip)
             {
-                int skipModeContext = (row > 0 && motionBlocks[(row - 1) * sequence.MiColumns + column].SkipMode ? 1 : 0) +
-                    (column > 0 && motionBlocks[row * sequence.MiColumns + column - 1].SkipMode ? 1 : 0);
+                int skipModeContext = (row > bounds.RowStart && motionBlocks[(row - 1) * sequence.MiColumns + column].SkipMode ? 1 : 0) +
+                    (column > bounds.ColumnStart && motionBlocks[row * sequence.MiColumns + column - 1].SkipMode ? 1 : 0);
                 skipMode = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipModeOffset + skipModeContext * 3, 3)) != 0;
             }
-            int skipContext = (row > 0 ? above[column].Skip : 0) +
-                (column > 0 ? left[row & (LeftContexts - 1)].Skip : 0);
+            int skipContext = (row > bounds.RowStart ? above[column].Skip : 0) +
+                (column > bounds.ColumnStart ? left[row & (LeftContexts - 1)].Skip : 0);
             int skip = skipMode || segmentsBeforeSkip && Segment.Skip ? 1 : symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipOffset + skipContext * 3, 3));
             if (!segmentsBeforeSkip) { ReadSegment(row, column, width, height, interFrame, false, skip != 0); }
             StoreSegment(row, column, width, height);
@@ -34,8 +34,8 @@ namespace Mediana.Codecs.Av1
                 InterBlock(row, column, width, height, skip, skipMode);
                 return;
             }
-            int aboveMode = row > 0 ? above[column].Mode : 0;
-            int leftMode = column > 0 ? left[row & (LeftContexts - 1)].Mode : 0;
+            int aboveMode = row > bounds.RowStart ? above[column].Mode : 0;
+            int leftMode = column > bounds.ColumnStart ? left[row & (LeftContexts - 1)].Mode : 0;
             ReadOnlySpan<byte> modeContexts = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
             int modeContext = modeContexts[aboveMode] * 5 + modeContexts[leftMode];
             int modeOffset = Av1DefaultCdfs.IntraModeOffset + modeContext * 14;

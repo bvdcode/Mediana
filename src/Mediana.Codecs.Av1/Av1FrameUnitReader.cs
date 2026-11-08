@@ -12,20 +12,41 @@ namespace Mediana.Codecs.Av1
         internal bool TryRead(out ReadOnlySpan<byte> unit, CancellationToken cancellationToken)
         {
             bool sequence = false;
-            while (obus.TryRead(out int type, out ReadOnlySpan<byte> payload))
+            bool header = false;
+            while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                sequence |= type == 1;
-                if (type == 6 || (type == 3 && !payload.IsEmpty && (payload[0] & 128) != 0))
+                Av1ObuReader next = obus;
+                if (!next.TryRead(out int type, out _)) { break; }
+                if (header && type is 1 or 2 or 3 or 6)
                 {
                     unit = data[offset..obus.ByteOffset];
                     offset = obus.ByteOffset;
                     return true;
                 }
-                if (type is 3 or 4 or 7 or 8)
+                obus = next;
+                sequence |= type == 1;
+                if (type == 3) { header = true; }
+                if (type == 6)
                 {
-                    throw new NotSupportedException("AV1 separate frame headers, tile groups and tile lists are not implemented.");
+                    unit = data[offset..obus.ByteOffset];
+                    offset = obus.ByteOffset;
+                    return true;
                 }
+                if (type == 4 && !header)
+                {
+                    throw new InvalidDataException("An AV1 tile group requires a preceding frame header.");
+                }
+                if (type is 7 or 8)
+                {
+                    throw new NotSupportedException("AV1 redundant frame headers and tile lists are not implemented.");
+                }
+            }
+            if (header)
+            {
+                unit = data[offset..obus.ByteOffset];
+                offset = obus.ByteOffset;
+                return true;
             }
             if (sequence)
             {

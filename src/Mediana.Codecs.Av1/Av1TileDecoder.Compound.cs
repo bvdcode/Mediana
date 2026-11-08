@@ -8,8 +8,8 @@ namespace Mediana.Codecs.Av1
         private Av1CompoundPrediction ReadCompoundPrediction(int row, int column, int width, int height, ref Av1MotionBlock block, Av1ReferencePictures pictures)
         {
             if (block.SkipMode) { return new(Av1CompoundWeights.Average); }
-            Av1MotionBlock top = row > 0 ? motionBlocks[(row - 1) * sequence.MiColumns + column] : default;
-            Av1MotionBlock prior = column > 0 ? motionBlocks[row * sequence.MiColumns + column - 1] : default;
+            Av1MotionBlock top = row > bounds.RowStart ? motionBlocks[(row - 1) * sequence.MiColumns + column] : default;
+            Av1MotionBlock prior = column > bounds.ColumnStart ? motionBlocks[row * sequence.MiColumns + column - 1] : default;
             if (sequence.Tools.MaskedCompound)
             {
                 int context = Math.Min(5, CompoundGroupContext(top) + CompoundGroupContext(prior));

@@ -18,7 +18,12 @@ namespace Mediana.Codecs.Av1
                 throw new ArgumentException("The packet belongs to a different AV1 stream.", nameof(packet));
             }
             Av1SequenceHeader? sequence = configuration.Sequence;
-            Av1ObuReader obus = new(packet.Data.Span);
+            Av1FrameUnitReader units = new(packet.Data.Span);
+            if (!units.TryRead(out ReadOnlySpan<byte> unit, cancellationToken))
+            {
+                throw new InvalidDataException("The AV1 access unit contains no frame.");
+            }
+            Av1ObuReader obus = new(unit);
             bool hasSequence = false;
             while (obus.TryRead(out int type, out ReadOnlySpan<byte> payload))
             {
@@ -54,17 +59,18 @@ namespace Mediana.Codecs.Av1
                             }
                             if ((Av1FrameType)bits.Read(2) != Av1FrameType.Key) { return false; }
                         }
-                        if (type == 3)
+                        Av1FrameHeader header = Av1FrameHeader.Parse(payload, geometry, emptyReferences, type == 3);
+                        ReadOnlySpan<byte> tileData = type == 3 ? unit[obus.ByteOffset..] : payload[header.TileOffset..];
+                        Av1TilePayloadReader tiles = new(tileData, header.Tiles, type == 6);
+                        while (tiles.TryRead(out _, out _, cancellationToken))
                         {
-                            throw new NotSupportedException("AV1 separate frame headers and tile groups are not implemented.");
                         }
-                        bits = new(payload);
-                        Av1FrameContext context = Av1FrameContext.Read(ref bits, geometry, emptyReferences);
-                        return context.RefreshReferences == Av1ReferencePictures.All;
+                        return header.RefreshReferences == Av1ReferencePictures.All;
                     case 4:
+                        throw new InvalidDataException("An AV1 tile group requires a preceding frame header.");
                     case 7:
                     case 8:
-                        throw new NotSupportedException("AV1 separate tile groups and tile lists are not implemented.");
+                        throw new NotSupportedException("AV1 redundant frame headers and tile lists are not implemented.");
                 }
             }
             throw new InvalidDataException("The AV1 access unit contains no frame.");

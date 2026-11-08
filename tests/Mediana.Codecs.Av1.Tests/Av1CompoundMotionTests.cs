@@ -74,18 +74,18 @@ namespace Mediana.Codecs.Av1.Tests
                     Row = 8, Column = -16, SecondRow = -40, SecondColumn = 48, Mode = 17
                 };
                 Span<Av1MotionCandidate> storage = stackalloc Av1MotionCandidate[8];
-                Av1MotionCandidates pair = new(storage, blocks, sequence, header, references, 4, 4, 2, 2, 1, secondReference: 2);
+                Av1MotionCandidates pair = new(storage, blocks, sequence, header, new(0, sequence.MiRows, 0, sequence.MiColumns), references, 4, 4, 2, 2, 1, secondReference: 2);
                 pair.Build();
                 Assert.Equal(2, pair.Count);
                 Assert.Equal(new Av1MotionCandidate(8, -16, 644, -24, 32), pair[0]);
                 Assert.Equal(new Av1MotionCandidate(8, -16, 644, -40, 48), pair[1]);
                 Assert.Equal(4, pair.NewContext);
-                Av1MotionCandidates single = new(storage, blocks, sequence, header, references, 4, 4, 2, 2, 2);
+                Av1MotionCandidates single = new(storage, blocks, sequence, header, new(0, sequence.MiRows, 0, sequence.MiColumns), references, 4, 4, 2, 2, 2);
                 single.Build();
                 Assert.Equal(2, single.Count);
                 Assert.Equal(new Av1MotionCandidate(-24, 32, 644), single[0]);
                 Assert.Equal(new Av1MotionCandidate(-40, 48, 644), single[1]);
-                Av1MotionCandidates empty = new(storage, blocks, sequence, header, references, 0, 0, 2, 2, 1, secondReference: 2);
+                Av1MotionCandidates empty = new(storage, blocks, sequence, header, new(0, sequence.MiRows, 0, sequence.MiColumns), references, 0, 0, 2, 2, 1, secondReference: 2);
                 empty.Build();
                 Assert.Equal(2, empty.Count);
                 Assert.Equal(new Av1MotionCandidate(0, 0, 2), empty[0]);
@@ -100,7 +100,7 @@ namespace Mediana.Codecs.Av1.Tests
                 {
                     Reference = 6, Width = 2, Height = 2, Row = 40, Column = 80, Mode = 13
                 };
-                Av1MotionCandidates third = new(storage, blocks, sequence, header, references, 4, 4, 2, 2, 6);
+                Av1MotionCandidates third = new(storage, blocks, sequence, header, new(0, sequence.MiRows, 0, sequence.MiColumns), references, 4, 4, 2, 2, 6);
                 third.Build();
                 Assert.Equal(3, third.Count);
                 Assert.Equal(new Av1MotionCandidate(40, 80, 4), third[0]);

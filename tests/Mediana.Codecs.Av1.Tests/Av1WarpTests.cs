@@ -101,11 +101,11 @@ namespace Mediana.Codecs.Av1.Tests
             blocks[1 * sequence.MiColumns + 1] = new() { Width = 2, Height = 2, Reference = 1, Row = -1000, Column = -1000 };
             blocks[1 * sequence.MiColumns + 4] = new() { Width = 2, Height = 2, Reference = 1 };
             Span<Av1WarpSample> storage = stackalloc Av1WarpSample[Av1WarpSamples.Capacity];
-            Av1WarpSamples candidates = new(storage, blocks, sequence, 2, 2, 2, 2, new() { Reference = 1 });
+            Av1WarpSamples candidates = new(storage, blocks, sequence, new(0, sequence.MiRows, 0, sequence.MiColumns), 2, 2, 2, 2, new() { Reference = 1 });
             candidates.Find();
             Assert.Equal(new Av1WarpSample[] { new(24, 152, 24, 152) }, candidates.Samples.ToArray());
             blocks[1 * sequence.MiColumns + 4].InterIntra = true;
-            candidates = new(storage, blocks, sequence, 2, 2, 2, 2, new() { Reference = 1 });
+            candidates = new(storage, blocks, sequence, new(0, sequence.MiRows, 0, sequence.MiColumns), 2, 2, 2, 2, new() { Reference = 1 });
             candidates.Find();
             Assert.Equal(new Av1WarpSample[] { new(88, 24, 1088, 1024) }, candidates.Samples.ToArray());
         }

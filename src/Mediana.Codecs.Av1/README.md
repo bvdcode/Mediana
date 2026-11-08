@@ -1,6 +1,6 @@
 Managed AV1 reconstruction currently covers Main-profile eight-bit intra and inter pictures with lossless or quantized
-transforms, monochrome or 4:2:0, with a single tile inside a complete frame
-OBU. The public factory accepts version-one av1C configuration and low-overhead
+transforms, monochrome or 4:2:0, with uniform/nonuniform tile grids inside a
+complete FRAME OBU or separate FRAME_HEADER and TILE_GROUP OBUs. The public factory accepts version-one av1C configuration and low-overhead
 OBUs with explicit sizes or an implicit final OBU extent. Hidden key pictures, eight reference slots and
 show-existing display are supported, including multiple hidden/visible frame
 OBUs in one access unit. Reference display retains the existing pixel buffer;
@@ -165,13 +165,20 @@ sizes do not grow. Two cyclic-refresh sequences with nonzero residuals and two
 compact conformance sequences match independent decoded samples and per-block
 segment IDs, skip flags, references and fixed transform sizes.
 
+Multi-tile reconstruction limits spatial contexts and prediction neighbors to each
+tile, while postfilters retain their frame-wide regions. Groups must cover the
+complete grid in order. Compressed payloads borrow packet storage, all tiles share
+the same frame scratch, and the selected context-update tile runs last to preserve
+its probability state without another CDF buffer. Nine native sequences cover
+nonuniform and six-tile layouts, separate groups, partial edges, monochrome, large
+superblocks and active restoration. See [tile reconstruction](../../docs/av1-tiles.md).
+
 Sequence timing, optional decoder-model delays, operating-point buffer-removal
 timestamps and visible/reference-display timestamps are preserved as codec metadata;
 container timestamps remain the output clock. See
 [timing metadata](../../docs/av1-timing.md).
 
-Non-identity global motion, quantization matrices, intra block copy, multiple
-tiles, separate frame-header/tile-group OBUs, super-resolution, high bit depth
-and film grain are not implemented. Encountering these
+Non-identity global motion, quantization matrices, intra block copy,
+super-resolution, high bit depth and film grain are not implemented. Encountering these
 tools fails explicitly. The module requires explicit factory registration while ordinary AV1 playback
 coverage is incomplete.

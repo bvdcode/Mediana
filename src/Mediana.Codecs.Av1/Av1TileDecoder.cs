@@ -10,6 +10,7 @@ namespace Mediana.Codecs.Av1
         internal const int LeftContexts = 32;
         private readonly Av1SequenceHeader sequence;
         private readonly Av1FrameHeader header;
+        private readonly Av1TileBounds bounds;
         private readonly Span<byte> output;
         private readonly Span<ushort> probabilities;
         private readonly Span<byte> decoded;
@@ -37,8 +38,9 @@ namespace Mediana.Codecs.Av1
         private bool readDeltas;
 
         internal Av1TileDecoder(ReadOnlySpan<byte> encoded, Av1SequenceHeader sequence, Av1FrameHeader header,
-            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default, Span<Av1RestorationUnit> restorationUnits = default, ReadOnlySpan<Av1MotionFieldSample> motionField = default, Span<byte> segmentMap = default, ReadOnlySpan<byte> previousSegments = default)
+            Span<byte> output, Span<ushort> probabilities, Span<byte> decoded, Span<Av1BlockContext> contexts, CancellationToken cancellationToken, ReadOnlySpan<ushort> initialProbabilities = default, Av1ReferencePictures? references = null, Span<Av1MotionBlock> motionBlocks = default, Span<Av1FilterBlock> filterBlocks = default, Span<sbyte> cdefIndices = default, Span<Av1RestorationUnit> restorationUnits = default, ReadOnlySpan<Av1MotionFieldSample> motionField = default, Span<byte> segmentMap = default, ReadOnlySpan<byte> previousSegments = default, int tileIndex = 0)
         {
+            bounds = header.Tiles.Bounds(tileIndex, sequence);
             if ((header.LoopFilter.Enabled || header.Cdef.Enabled) && filterBlocks.Length != sequence.MiColumns * sequence.MiRows)
             {
                 throw new ArgumentException("The AV1 loop-filter metadata has an invalid extent.", nameof(filterBlocks));
@@ -73,7 +75,16 @@ namespace Mediana.Codecs.Av1
             restorationReferences = default;
             for (int plane = 0; plane < 3; plane++) { restorationReferences[plane] = Av1RestorationUnit.Initial; }
             this.cdefIndices = cdefIndices;
-            cdefIndices.Fill(-1);
+            if (!cdefIndices.IsEmpty)
+            {
+                int columns = (sequence.MiColumns + 15) >> 4;
+                int start = bounds.ColumnStart >> 4;
+                int length = ((bounds.ColumnEnd + 15) >> 4) - start;
+                for (int row = bounds.RowStart >> 4; row < (bounds.RowEnd + 15) >> 4; row++)
+                {
+                    cdefIndices.Slice(row * columns + start, length).Fill(-1);
+                }
+            }
             this.references = references;
             this.motionBlocks = motionBlocks;
             this.filterBlocks = filterBlocks;
@@ -86,6 +97,7 @@ namespace Mediana.Codecs.Av1
             this.probabilities = probabilities;
             this.decoded = decoded;
             this.contexts = contexts;
+            contexts.Clear();
             above = contexts[..sequence.MiColumns];
             left = contexts.Slice(sequence.MiColumns, LeftContexts);
             this.cancellationToken = cancellationToken;
@@ -96,7 +108,7 @@ namespace Mediana.Codecs.Av1
         internal void Decode()
         {
             int side = sequence.Superblock128 ? 32 : 16;
-            for (int row = 0; row < sequence.MiRows; row += side)
+            for (int row = bounds.RowStart; row < bounds.RowEnd; row += side)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 left.Clear();
@@ -105,7 +117,7 @@ namespace Mediana.Codecs.Av1
                     CoefficientLeft(1).Clear();
                     CoefficientLeft(2).Clear();
                 }
-                for (int column = 0; column < sequence.MiColumns; column += side)
+                for (int column = bounds.ColumnStart; column < bounds.ColumnEnd; column += side)
                 {
                     readDeltas = header.Deltas.QuantizerPresent;
                     ReadRestoration(row, column, side);
@@ -115,8 +127,13 @@ namespace Mediana.Codecs.Av1
             symbols.Finish();
             if (header.Segmentation.Enabled && !header.Segmentation.UpdateMap && !segmentMap.IsEmpty)
             {
-                if (previousSegments.IsEmpty) { segmentMap.Clear(); }
-                else { previousSegments.CopyTo(segmentMap); }
+                for (int row = bounds.RowStart; row < bounds.RowEnd; row++)
+                {
+                    int offset = row * sequence.MiColumns + bounds.ColumnStart;
+                    Span<byte> region = segmentMap.Slice(offset, bounds.ColumnEnd - bounds.ColumnStart);
+                    if (previousSegments.IsEmpty) { region.Clear(); }
+                    else { previousSegments.Slice(offset, region.Length).CopyTo(region); }
+                }
             }
         }
 
@@ -164,8 +181,8 @@ namespace Mediana.Codecs.Av1
             else
             {
                 int log = BitOperations.Log2((uint)side);
-                int context = (row > 0 && above[column].WidthLog < log ? 1 : 0) +
-                    (column > 0 && left[row & (LeftContexts - 1)].HeightLog < log ? 2 : 0);
+                int context = (row > bounds.RowStart && above[column].WidthLog < log ? 1 : 0) +
+                    (column > bounds.ColumnStart && left[row & (LeftContexts - 1)].HeightLog < log ? 2 : 0);
                 Span<ushort> cdf = PartitionCdf(log, context);
                 if (hasRows && hasColumns)
                 {
