@@ -6,6 +6,7 @@
     <Project Path="samples/Mediana.Sample/Mediana.Sample.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Mediana.Containers.Adts/Mediana.Containers.Adts.csproj" />
     <Project Path="src/Mediana.Codecs.Mpeg4Visual/Mediana.Codecs.Mpeg4Visual.csproj" />
     <Project Path="src/Mediana.Codecs.Theora/Mediana.Codecs.Theora.csproj" />
     <Project Path="src/Mediana.Codecs.Vp9/Mediana.Codecs.Vp9.csproj" />
@@ -62,6 +63,7 @@
     <Project Path="src/Mediana/Mediana.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Mediana.Containers.Adts.Tests/Mediana.Containers.Adts.Tests.csproj" />
     <Project Path="tests/Mediana.Codecs.Mpeg4Visual.Tests/Mediana.Codecs.Mpeg4Visual.Tests.csproj" />
     <Project Path="tests/Mediana.Documents.Tests/Mediana.Documents.Tests.csproj" />
     <Project Path="tests/Mediana.Codecs.Raster.Tests/Mediana.Codecs.Raster.Tests.csproj" />

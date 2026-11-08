@@ -13,7 +13,7 @@ The sample can extract a supported video frame, convert SDR color to sRGB, corre
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC/MP3 access units without decoding.
 The WAVE and PCM source modules read integer/float audio through public audio sessions.
-The AAC source module decodes AAC-LC configurations 1–7 from MP4/M4A to float PCM
+The AAC source module decodes AAC-LC configurations 1–7 from MP4/M4A and ADTS to float PCM
 and encodes contiguous mono/stereo PCM as experimental AAC-LC access units.
 Independent source modules also decode HEIC/HEIF still images, JPEG 2000 and JBIG2,
 and rasterize SVG and TGS/Lottie 2D animation. Their output connects to Mediana
@@ -70,6 +70,7 @@ describe the common library pipeline and current verification.
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
+| `Mediana.Containers.Adts` | Streaming ADTS headers and raw AAC packets without buffering the complete input |
 | `Mediana.Containers.Ogg` | Ogg Theora/Opus/Vorbis packets, comments, granule clocks and indexed seek ([API](docs/ogg-reading.md)) |
 | `Mediana.Codecs.Opus` | Managed SILK/CELT/hybrid PCM, multistream, gain and seek priming ([API](docs/opus-decoding.md)) |
 | `Mediana.Codecs.Vorbis` | Managed Vorbis I PCM, all floors/residues, multichannel coupling and indexed seek ([API](docs/vorbis-decoding.md)) |
@@ -524,7 +525,9 @@ All eleven spectral codebooks, escape values, scalefactors, pulse data, long/sho
 sine/KBD windows, TNS, perceptual noise substitution, M/S and intensity stereo
 are implemented. HE-AAC/SBR, spatial extensions, dynamic-range extensions,
 coupling/program-configuration elements, 960-sample
-frames and 7350 Hz are unsupported. The module does not read ADTS or ADIF files.
+frames and 7350 Hz are unsupported. Standalone ADTS input uses
+`Mediana.Containers.Adts`; see [ADTS reading](docs/adts-reading.md).
+ADIF input is not implemented.
 Unsupported tools and malformed input fail explicitly; failure or cancellation
 requires reset or disposal. Reset clears overlap and noise state, so continuous
 output requires decoding the preceding packets. The default access-unit byte

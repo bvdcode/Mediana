@@ -103,7 +103,7 @@ av1-annexb,read,planned,planned,planned,planned,planned,planned,
 av1-annexb,write,planned,planned,planned,planned,planned,planned,
 ivf,read,planned,planned,planned,planned,planned,planned,
 ivf,write,planned,planned,planned,planned,planned,planned,
-aac-adts,read,planned,planned,planned,planned,planned,planned,
+aac-adts,read,partial,partial,partial,planned,planned,planned,../adts-reading.md;../../tests/Mediana.Containers.Adts.Tests/AdtsReaderTests.cs;../../tests/Mediana.Containers.Adts.Tests/AdtsDecodeTests.cs
 aac-adts,write,partial,partial,partial,planned,planned,planned,../architecture.md
 aac-adif,read,planned,planned,planned,planned,planned,planned,
 aac-adif,write,planned,planned,planned,planned,planned,planned,

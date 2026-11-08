@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 115 variants · 145 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 115 variants · 146 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -24,7 +24,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | Group | Implemented variants | Target variants | Implemented operations | Target operations |
 | --- | ---: | ---: | ---: | ---: |
 | [Containers and packaging](#containers-and-packaging) | 17 | 44 | 19 | 88 |
-| [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 6 | 30 |
+| [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 7 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 13 | 35 | 13 | 64 |
@@ -104,7 +104,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `av1-obu` | AV1 — Low-overhead OBU stream | .obu | R □ · W □ | A | [av1](sources.md#av1) | — |
 | `av1-annexb` | AV1 — Annex B framing | .av1 | R □ · W □ | B | [av1](sources.md#av1) | — |
 | `ivf` | IVF — Framed VP8/VP9/AV1 video | .ivf | R □ · W □ | B | [webm](sources.md#webm), [discovery](sources.md#discovery) | — |
-| `aac-adts` | AAC — ADTS framing | .aac .adts | R □ · W ◐ | A | Existing access-unit conversion does not provide a standalone ADTS source reader. [mpeg-audio](sources.md#mpeg-audio) | — |
+| `aac-adts` | AAC — ADTS framing | .aac .adts | R ◐ · W ◐ | A | Standalone single-block streaming reader; CRC verification and multiple-block separation remain open. [mpeg-audio](sources.md#mpeg-audio) | — |
 | `aac-adif` | AAC — ADIF framing | .aac | R □ · W □ | C | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `aac-latm` | AAC — LATM / LOAS framing | .latm .loas | R □ · W □ | B | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `aac-asc` | AAC — Raw access units / AudioSpecificConfig | — | R ◐ · W ◐ | A | Already used for MP4 AAC and AAC encoding; transport boundaries remain explicit. [mpeg-audio](sources.md#mpeg-audio) | — |
