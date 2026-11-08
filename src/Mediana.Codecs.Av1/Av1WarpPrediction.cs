@@ -7,6 +7,10 @@ namespace Mediana.Codecs.Av1
     {
         internal static void Apply(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
             int plane, int x, int y, int width, int height, Av1WarpParameters warp)
+            => Predict(new(output[target.PlaneOffset(plane)..], target.PlaneStride(plane)), target, reference, plane, x, y, width, height, warp, default);
+
+        internal static void Predict(Av1PredictionDestination destination, Av1SequenceHeader target, Av1StoredPicture reference,
+            int plane, int x, int y, int width, int height, Av1WarpParameters warp, Av1CompoundBlend blend)
         {
             int sub = target.PlaneShift(plane);
             Av1SequenceHeader source = reference.Header.Geometry;
@@ -14,8 +18,6 @@ namespace Mediana.Codecs.Av1
             int lastY = ((source.Height + sub) >> sub) - 1;
             int sourceStride = source.PlaneStride(plane);
             ReadOnlySpan<byte> pixels = reference.Pixels.Memory.Span[source.PlaneOffset(plane)..];
-            Span<byte> destination = output[target.PlaneOffset(plane)..];
-            int stride = target.PlaneStride(plane);
             Span<int> intermediate = stackalloc int[15 * 8];
             for (int blockY = 0; blockY < height; blockY += 8)
             {
@@ -46,14 +48,19 @@ namespace Mediana.Codecs.Av1
                     }
                     for (int row = 0; row < Math.Min(8, height - blockY); row++)
                     {
-                        Span<byte> line = destination.Slice((y + blockY + row) * stride + x + blockX, Math.Min(8, width - blockX));
+                        Span<byte> line = destination.Row(x + blockX, y + blockY + row, Math.Min(8, width - blockX));
                         for (int column = 0; column < line.Length; column++)
                         {
                             int phase = ((fractionY + warp.Gamma * (column - 4) + warp.Delta * (row - 4) + 512) >> 10) + 64;
                             ReadOnlySpan<short> filter = Av1WarpTables.Filters.Slice(phase * 8, 8);
                             int sum = 0;
                             for (int tap = 0; tap < 8; tap++) { sum += filter[tap] * intermediate[(row + tap) * 8 + column]; }
-                            line[column] = (byte)Math.Clamp((sum + 1024) >> 11, 0, 255);
+                            if (!blend.Active) { line[column] = (byte)Math.Clamp((sum + 1024) >> 11, 0, 255); }
+                            else
+                            {
+                                byte color = blend.Apply(blockY + row, blockX + column, width, (sum + 64) >> 7);
+                                if (blend.Second) { line[column] = color; }
+                            }
                         }
                     }
                 }

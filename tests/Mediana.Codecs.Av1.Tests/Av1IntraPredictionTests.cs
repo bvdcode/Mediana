@@ -56,6 +56,8 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("segmentationOdd", 97, 81, false, 8)]
         [InlineData("segmentationFeatures", 16, 16, true, 11)]
         [InlineData("segmentationMixed", 16, 16, true, 11)]
+        [InlineData("globalPan", 256, 192, false, 12)]
+        [InlineData("globalFeatures", 16, 16, true, 11)]
         public void PublicCodecMatchesIndependentDecodedVideo(string name, int width, int height, bool monochrome, int count)
         {
             byte[] encoded = Read(name + ".obu");

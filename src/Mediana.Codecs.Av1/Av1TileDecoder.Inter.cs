@@ -64,7 +64,7 @@ namespace Mediana.Codecs.Av1
             {
                 int vectorMode = VectorMode(mode, list);
                 int position = vectorMode == 13 || vectorMode == 16 && candidates.Count <= 1 ? 0 : selected;
-                Av1MotionCandidate prediction = vectorMode == 15 ? default : candidates[position];
+                Av1MotionCandidate prediction = vectorMode == 15 ? candidates.Global : candidates[position];
                 int motionY = list == 0 ? prediction.Row : prediction.SecondRow;
                 int motionX = list == 0 ? prediction.Column : prediction.SecondColumn;
                 if (vectorMode == 16)
@@ -89,7 +89,10 @@ namespace Mediana.Codecs.Av1
             int filterX = filterY;
             if (filterY == 4)
             {
-                if (skipMode || block.MotionMode == 2 || Math.Min(width, height) >= 2 && mode is 15 or 23) { filterY = filterX = 0; }
+                bool global = Math.Min(width, height) >= 2 && mode is 15 or 23;
+                bool translation = header.GlobalMotion[reference].Type == Av1GlobalMotionType.Translation ||
+                    compound && header.GlobalMotion[pair.Second].Type == Av1GlobalMotionType.Translation;
+                if (skipMode || block.MotionMode == 2 || global && !translation) { filterY = filterX = 0; }
                 else
                 {
                     filterY = ReadInterpolation(row, column, reference, 0, compound);

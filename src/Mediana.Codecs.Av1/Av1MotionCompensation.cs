@@ -14,19 +14,25 @@ namespace Mediana.Codecs.Av1
             => Convolve(new(output, width, x, y), target, reference, plane, x, y, width, height, motion, default, width, height);
 
         internal static void ApplyCompound(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture first, Av1StoredPicture second,
-            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundPrediction compound, int predictionWidth, int predictionHeight, Span<byte> mask = default, int maskStride = 0)
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundPrediction compound, int predictionWidth, int predictionHeight,
+            Span<byte> mask = default, int maskStride = 0, Av1WarpParameters firstWarp = default, Av1WarpParameters secondWarp = default)
         {
             Span<short> prediction = stackalloc short[width * height];
             Av1PredictionDestination destination = new(output[target.PlaneOffset(plane)..], target.PlaneStride(plane));
-            Convolve(destination, target, first, plane, x, y, width, height, motion, new(prediction), predictionWidth, predictionHeight);
+            Convolve(destination, target, first, plane, x, y, width, height, motion, new(prediction), predictionWidth, predictionHeight, firstWarp);
             motion.Row = motion.SecondRow;
             motion.Column = motion.SecondColumn;
-            Convolve(destination, target, second, plane, x, y, width, height, motion, new(prediction, compound, mask, maskStride, target.PlaneShift(plane)), predictionWidth, predictionHeight);
+            Convolve(destination, target, second, plane, x, y, width, height, motion, new(prediction, compound, mask, maskStride, target.PlaneShift(plane)), predictionWidth, predictionHeight, secondWarp);
         }
 
         private static void Convolve(Av1PredictionDestination destination, Av1SequenceHeader target, Av1StoredPicture reference,
-            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundBlend blend, int predictionWidth, int predictionHeight)
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundBlend blend, int predictionWidth, int predictionHeight, Av1WarpParameters warp = default)
         {
+            if (warp.IsValid)
+            {
+                Av1WarpPrediction.Predict(destination, target, reference, plane, x, y, width, height, warp, blend);
+                return;
+            }
             Av1SequenceHeader source = reference.Header.Geometry;
             if (source.Width > target.Width * 2 || source.Height > target.Height * 2 ||
                 target.Width > source.Width * 16 || target.Height > source.Height * 16)

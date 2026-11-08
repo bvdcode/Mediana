@@ -23,7 +23,7 @@ logic across square and rectangular transforms up to 64 samples. Four native
 partition choices consume larger transform contexts and match every visible
 libdav1d sample, including clipped edge blocks and chroma transforms.
 
-Single-reference lossless and quantized inter pictures support nearest, near, new and identity-global
+Single-reference lossless and quantized inter pictures support nearest, near, new and global
 motion, primary-reference probability loading, frame identifiers and expiry, modular
 order hints and short reference signaling, native
 eighth-sample luma and sixteenth-sample chroma interpolation, sub-eight-pixel
@@ -145,6 +145,18 @@ motion-grid cell. Independent AOM vectors verify 512 fits and 256 filtered
 luma/chroma regions. Three moving sequences, including hidden frames and odd
 dimensions, match every libdav1d sample and 156 actual local-warp cells.
 
+Global motion supports identity, translation, rotation/zoom and affine models,
+reference-centered parameter syntax and primary-reference inheritance. Seven
+models fit fixed-size value state; motion-grid cells do not grow. Spatial and
+temporal candidate contexts use the current block's projected global vectors.
+Global affine prediction shares the existing warp kernel, including compound
+weighted blending; invalid shear geometry uses the normative vector interpolation
+path. Independent vectors verify 1,024 global vectors at every block geometry
+and precision, plus 192 compound warped regions. A normal camera-pan sequence
+matches native pixels and all reference matrices, including selected affine
+compound blocks. A compact conformance stream covers signed parameter limits,
+all transform types, inherited matrices and keyframe reset.
+
 Inter-intra prediction blends the ordinary clipped inter result with DC, vertical,
 horizontal or smooth intra prediction. Smooth masks use the normative size scale;
 wedge masks share luma geometry and rounded chroma weights with compound prediction.
@@ -178,7 +190,7 @@ timestamps and visible/reference-display timestamps are preserved as codec metad
 container timestamps remain the output clock. See
 [timing metadata](../../docs/av1-timing.md).
 
-Non-identity global motion, quantization matrices, intra block copy,
+Quantization matrices, intra block copy,
 super-resolution, high bit depth and film grain are not implemented. Encountering these
 tools fails explicitly. The module requires explicit factory registration while ordinary AV1 playback
 coverage is incomplete.

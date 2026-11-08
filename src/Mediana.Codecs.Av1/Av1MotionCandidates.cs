@@ -13,6 +13,7 @@ namespace Mediana.Codecs.Av1
         private const int NearbyWeight = 640;
         private int count;
         private int newCount;
+        internal Av1MotionCandidate Global { get; private set; }
         internal int Count => count;
         internal int NewContext { get; private set; }
         internal int ReferenceContext { get; private set; }
@@ -21,6 +22,12 @@ namespace Mediana.Codecs.Av1
 
         internal void Build()
         {
+            Global = header.GlobalMotion[reference].Motion(row, column, width, height, header.Inter.IntegerMotion, header.Inter.HighPrecisionMotion);
+            if (secondReference != 0)
+            {
+                Av1MotionCandidate second = header.GlobalMotion[secondReference].Motion(row, column, width, height, header.Inter.IntegerMotion, header.Inter.HighPrecisionMotion);
+                Global = Global with { SecondRow = second.Row, SecondColumn = second.Column };
+            }
             bool above = ScanRow(-1);
             bool left = ScanColumn(-1);
             if (Math.Max(width, height) <= 16) { above |= Point(-1, width); }
@@ -147,7 +154,12 @@ namespace Mediana.Codecs.Av1
             {
                 if (block.Reference != reference || block.SecondReference != secondReference) { return false; }
                 if (HasNewMotion(block.Mode)) { newCount++; }
-                AddVector(Lower(block.Row), Lower(block.Column), weight, Lower(block.SecondRow), Lower(block.SecondColumn));
+                bool global = block.Mode == 23;
+                int y = global && header.GlobalMotion[reference].Affine ? Global.Row : block.Row;
+                int x = global && header.GlobalMotion[reference].Affine ? Global.Column : block.Column;
+                int secondY = global && header.GlobalMotion[secondReference].Affine ? Global.SecondRow : block.SecondRow;
+                int secondX = global && header.GlobalMotion[secondReference].Affine ? Global.SecondColumn : block.SecondColumn;
+                AddVector(Lower(y), Lower(x), weight, Lower(secondY), Lower(secondX));
                 return true;
             }
             bool matched = false;
@@ -155,7 +167,10 @@ namespace Mediana.Codecs.Av1
             {
                 if ((list == 0 ? block.Reference : block.SecondReference) != reference) { continue; }
                 if (HasNewMotion(block.Mode)) { newCount++; }
-                AddVector(Lower(list == 0 ? block.Row : block.SecondRow), Lower(list == 0 ? block.Column : block.SecondColumn), weight);
+                bool global = block.Mode is 15 or 23 && Math.Min(block.Width, block.Height) >= 2 && header.GlobalMotion[reference].Affine;
+                int y = global ? Global.Row : list == 0 ? block.Row : block.SecondRow;
+                int x = global ? Global.Column : list == 0 ? block.Column : block.SecondColumn;
+                AddVector(Lower(y), Lower(x), weight);
                 matched = true;
             }
             return matched;
@@ -214,7 +229,7 @@ namespace Mediana.Codecs.Av1
                 secondY = Lower(second.Row);
                 secondX = Lower(second.Column);
             }
-            if (first) { ZeroContext = Math.Abs(motionY) >= 16 || Math.Abs(motionX) >= 16 || Math.Abs(secondY) >= 16 || Math.Abs(secondX) >= 16 ? 1 : 0; }
+            if (first) { ZeroContext = Math.Abs(motionY - Global.Row) >= 16 || Math.Abs(motionX - Global.Column) >= 16 || Math.Abs(secondY - Global.SecondRow) >= 16 || Math.Abs(secondX - Global.SecondColumn) >= 16 ? 1 : 0; }
             AddVector(motionY, motionX, 2, secondY, secondX);
         }
 
@@ -263,7 +278,7 @@ namespace Mediana.Codecs.Av1
                     index += length;
                 }
             }
-            for (int index = count; index < 2; index++) { candidates[index] = default; }
+            for (int index = count; index < 2; index++) { candidates[index] = Global; }
         }
 
         private bool Backward(int candidate)
@@ -274,16 +289,7 @@ namespace Mediana.Codecs.Av1
             return Av1ReferenceOrdering.Distance(hint, header.OrderHint, bits) > 0;
         }
 
-        private int Lower(int value)
-        {
-            if (header.Inter.HighPrecisionMotion) { return value; }
-            if (header.Inter.IntegerMotion)
-            {
-                int rounded = (Math.Abs(value) + 3) >> 3;
-                return value > 0 ? rounded << 3 : -(rounded << 3);
-            }
-            return value > 0 ? value & ~1 : -((-value) & ~1);
-        }
+        private int Lower(int value) => Av1MotionPrecision.Lower(value, header.Inter.IntegerMotion, header.Inter.HighPrecisionMotion);
 
         private bool Inside(int y, int x) => bounds.Contains(y, x);
 

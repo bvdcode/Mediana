@@ -50,9 +50,15 @@ namespace Mediana.Codecs.Av1
                         int clippedHeight = Math.Min(stepY, sequence.PlaneHeight(plane) - y - dy);
                         if (clippedWidth > 0 && clippedHeight > 0)
                         {
-                            if (selected.MotionMode == 2 && warp.IsValid && planeWidth >= 8 && planeHeight >= 8)
+                            Av1WarpParameters firstWarp = default;
+                            if (!header.Inter.IntegerMotion && planeWidth >= 8 && planeHeight >= 8)
                             {
-                                Av1WarpPrediction.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, warp);
+                                if (selected.MotionMode == 2) { firstWarp = warp; }
+                                else { firstWarp = GlobalWarp(selected, selected.Reference, reference); }
+                            }
+                            if (selected.SecondReference == 0 && firstWarp.IsValid)
+                            {
+                                Av1WarpPrediction.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, firstWarp);
                             }
                             else if (selected.SecondReference == 0)
                             {
@@ -61,12 +67,24 @@ namespace Mediana.Codecs.Av1
                             else
                             {
                                 Av1StoredPicture second = pictures.Get(header.Inter.References[selected.SecondReference - 1]);
-                                Av1MotionCompensation.ApplyCompound(output, sequence, reference, second, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, prediction, stepX, stepY, mask, maskStride);
+                                Av1WarpParameters secondWarp = !header.Inter.IntegerMotion && planeWidth >= 8 && planeHeight >= 8
+                                    ? GlobalWarp(selected, selected.SecondReference, second) : default;
+                                Av1MotionCompensation.ApplyCompound(output, sequence, reference, second, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, prediction, stepX, stepY, mask, maskStride, firstWarp, secondWarp);
                             }
                         }
                     }
                 }
             }
+        }
+
+        private Av1WarpParameters GlobalWarp(Av1MotionBlock block, int reference, Av1StoredPicture picture)
+        {
+            if (block.Mode is not (15 or 23)) { return default; }
+            Av1SequenceHeader source = picture.Header.Geometry;
+            int scaleX = ((source.Width << 14) + sequence.Width / 2) / sequence.Width;
+            int scaleY = ((source.Height << 14) + sequence.Height / 2) / sequence.Height;
+            if (scaleX != 16384 || scaleY != 16384) { return default; }
+            return header.GlobalMotion[reference].Warp;
         }
     }
 }

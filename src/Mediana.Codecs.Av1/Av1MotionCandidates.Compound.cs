@@ -54,7 +54,8 @@ namespace Mediana.Codecs.Av1
                 for (int index = 0; index < 2; index++)
                 {
                     Av1MotionCandidate vector = index < sameCount[list] ? same[list * 2 + index]
-                        : index - sameCount[list] < differentCount[list] ? different[list * 2 + index - sameCount[list]] : default;
+                        : index - sameCount[list] < differentCount[list] ? different[list * 2 + index - sameCount[list]]
+                        : list == 0 ? Global : new(Global.SecondRow, Global.SecondColumn, 2);
                     combined[index] = list == 0 ? combined[index] with { Row = vector.Row, Column = vector.Column, Weight = 2 }
                         : combined[index] with { SecondRow = vector.Row, SecondColumn = vector.Column };
                 }

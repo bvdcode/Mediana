@@ -421,6 +421,46 @@ reset, compare every picture digest, preserve supplied packet timing and
 require all buffer leases to be released. Hashes keep the fixture compact
 without reducing pixel coverage.
 
+`globalPan` is a twelve-picture 256×192 sequence encoded by libaom 3.8.2,
+cpu-used 0, CRF 30 and lag-in-frames 0, with ordinary prediction defaults.
+It crops a moving 512×384 testsrc2 source with a changing origin. All decoded
+Y/U/V samples agree between independent AOM and libdav1d 1.4.1 decoders.
+Native block inspection confirms eight 4×4 cells using affine global compound
+prediction. The public factory must reproduce all twelve pictures exactly.
+
+`globalFeatures` is an eleven-picture, 16×16 monochrome conformance sequence
+using the unchanged AOM arithmetic writer with disabled CDF adaptation.
+Both independent decoders accept it and produce identical samples. It covers
+identity, translation-only, rotation/zoom and affine models, signed parameter
+endpoints, both translation precisions, primary-reference predictors, invalid
+affine shear geometry and keyframe reset. Its segmentation forces skipped global
+blocks, so these pictures have no nonzero residuals; `globalPan` supplies that
+coverage. `.global.gz` stores public libdav1d frame-header metadata: `AV1GLOB1`,
+uint32 record count, then int64 coded-unit index, five bytes (show frame,
+show existing, high precision, integer precision, primary reference), followed
+by seven records containing byte transform type and six int32 matrix parameters.
+All integer fields are little-endian.
+
+`global-mv.gz` contains 1,024 outputs from the unchanged AOM
+[`gm_get_motion_vector`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.8.2/av1/common/mv.h)
+routine. Identity, translation, rotation/zoom and affine models cover all
+twenty-two block shapes and integer, quarter- and eighth-sample precision.
+Translation-only vectors preserve the normative component assignment specified
+by AV1 section 7.10.2.1. The format is `AV1GMV01`, uint32 count, then byte
+type/high-precision/integer/width-in-4×4/height-in-4×4, uint16 row/column,
+six int32 matrix values and two int32 expected vector components.
+
+`global-warp.gz` uses unchanged AOM
+[`av1_warp_affine_c`](https://aomedia.googlesource.com/aom/+/refs/tags/v3.8.2/av1/common/warped_motion.c)
+to generate 192 independently weighted compound regions. The format is
+`AV1GWAR1`, uint32 count and two seeded 96×80 YUV420 references. Each record
+contains two matrices (six int32 parameters and four int16 shears each), byte
+plane/x/y/width/height/first-weight/second-weight and visible result bytes.
+Average and both asymmetric distance weightings exercise signed shear,
+out-of-frame sampling, all three planes and clipped destinations. Tests also
+require untouched reference samples, unchanged output outside the destination
+and complete buffer release.
+
 `tilesColumns`, `tilesRows`, `tilesGrid`, `tilesGroups`, `tilesNonuniform`,
 `tilesMono`, `tilesSb128`, `tilesTexture` and `tilesUneven` are six-display-picture
 sequences encoded by unchanged libaom 3.8.2 and decoded independently by

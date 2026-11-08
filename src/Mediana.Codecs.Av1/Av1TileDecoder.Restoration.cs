@@ -88,11 +88,8 @@ namespace Mediana.Codecs.Av1
                 accumulated += step;
             }
             int centered = reference - low;
-            if ((centered << 1) <= count) { return low + InverseRestorationRecenter(centered, value); }
-            return high - 1 - InverseRestorationRecenter(count - 1 - centered, value);
+            if ((centered << 1) <= count) { return low + Av1Subexponential.InverseRecenter(centered, value); }
+            return high - 1 - Av1Subexponential.InverseRecenter(count - 1 - centered, value);
         }
-
-        private static int InverseRestorationRecenter(int reference, int value) => value > 2 * reference ? value
-            : (value & 1) != 0 ? reference - ((value + 1) >> 1) : reference + (value >> 1);
     }
 }
