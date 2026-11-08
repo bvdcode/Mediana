@@ -60,6 +60,7 @@
     <Compile Include="../Shared/H264SampleDifferenceTestInput.cs" Link="H264SampleDifferenceTestInput.cs" />
     <Compile Include="../Shared/H264ChromaDifferenceTestInput.cs" Link="H264ChromaDifferenceTestInput.cs" />
     <Compile Include="../Shared/H264CabacEncodingTestInput.cs" Link="H264CabacEncodingTestInput.cs" />
+    <Compile Include="../Shared/H264RateDistortionTestInput.cs" Link="H264RateDistortionTestInput.cs" />
     <Compile Include="../Shared/H264CabacCheckpointTestInput.cs" Link="H264CabacCheckpointTestInput.cs" />
     <Compile Include="../Shared/H264PreparedMacroblockTestInput.cs" Link="H264PreparedMacroblockTestInput.cs" />
     <Compile Include="../Shared/H264CountingSyntax.cs" Link="H264CountingSyntax.cs" />

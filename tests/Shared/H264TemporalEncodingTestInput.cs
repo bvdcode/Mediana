@@ -38,7 +38,8 @@ namespace Mediana.Tests
         }
 
         public static async Task<(byte[] Transport, byte[] Source, byte[] Decoded)> EncodeAsync(int mode, int qp,
-            H264RateControlOptions? rate = null, H264EntropyCoding entropy = H264EntropyCoding.Cavlc)
+            H264RateControlOptions? rate = null, H264EntropyCoding entropy = H264EntropyCoding.Cavlc,
+            H264MacroblockAnalysis analysis = H264MacroblockAnalysis.Fast)
         {
             (int width, int height) = mode switch
             {
@@ -53,7 +54,7 @@ namespace Mediana.Tests
                 new SampleAspectRatio(4, 3));
             MediaBufferAllocator allocator = new(8 * 1024 * 1024);
             using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator,
-                new() { Quantizer = qp, RateControl = rate, EntropyCoding = entropy });
+                new() { Quantizer = qp, RateControl = rate, EntropyCoding = entropy, MacroblockAnalysis = analysis });
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new H264DecoderFactory().Create(encoder.Stream, allocator);
             using MemoryStream transport = new();
             using MemoryStream source = new();
@@ -197,7 +198,7 @@ namespace Mediana.Tests
             }
         }
 
-        private static VideoFrame CreateFrame(VideoFormat format, MediaBufferAllocator allocator, int mode, int index,
+        internal static VideoFrame CreateFrame(VideoFormat format, MediaBufferAllocator allocator, int mode, int index,
             MediaTimestamp timestamp, MediaDuration duration)
         {
             PlaneLayout[] layout = format.CreateTightLayout();

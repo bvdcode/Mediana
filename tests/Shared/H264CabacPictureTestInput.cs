@@ -10,12 +10,19 @@ namespace Mediana.Tests
 {
     internal static class H264CabacPictureTestInput
     {
-        public static async Task VerifyAsync(string root, int mode, int qp, H264RateControlOptions? rate = null)
+        public static async Task VerifyAsync(string root, int mode, int qp, H264RateControlOptions? rate = null,
+            H264MacroblockAnalysis analysis = H264MacroblockAnalysis.Fast)
         {
-            string name = $"cabac-{mode}-qp{qp}";
+            string prefix = analysis switch
+            {
+                H264MacroblockAnalysis.Fast => "cabac",
+                H264MacroblockAnalysis.RateDistortion => "cabac-rd",
+                _ => throw new ArgumentOutOfRangeException(nameof(analysis))
+            };
+            string name = $"{prefix}-{mode}-qp{qp}";
             if (rate is not null) { name += $"-{rate.BitRate}"; }
             (byte[] transport, byte[] _, byte[] actual) = await H264TemporalEncodingTestInput.EncodeAsync(mode, qp,
-                rate, H264EntropyCoding.Cabac);
+                rate, H264EntropyCoding.Cabac, analysis);
             await using FileStream input = File.OpenRead(Path.Combine(root, name + ".yuv.gz"));
             await using GZipStream compressed = new(input, CompressionMode.Decompress);
             using MemoryStream reference = new();
