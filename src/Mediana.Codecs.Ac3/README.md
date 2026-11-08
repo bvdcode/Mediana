@@ -21,7 +21,7 @@ Both implementations validate frame length and the complete-frame CRC before dec
 - Stereo rematrixing; deterministic, channel-independent dither where signalled.
 - Long and switched short inverse transforms, Kaiser-Bessel-derived window and persistent overlap.
 - Line-mode dynamic range control, enabled by default. Pass `applyDynamicRangeCompression: false` to a factory to preserve the encoded dynamic range. Dialogue normalization and RF compression metadata do not change PCM gain.
-- E-AC-3 independent or AC-3-converted substreams using conventional transforms and coupling, all four block counts, frame/block exponent and SNR strategies.
+- E-AC-3 backward-compatible bitstream versions 11–16, independent or AC-3-converted substreams using conventional transforms and coupling, all four block counts, frame/block exponent and SNR strategies.
 - E-AC-3 dependent channel replacement and extension, explicit or base channel maps, up to eight dependent substreams and 16 rendered channels. The last dependent substream supplies line-mode dynamic range control for the complete programme.
 - E-AC-3 adaptive hybrid transforms with every six-dimensional vector codebook, all four gain-adaptive quantization modes, and long/short synthesis. Cached six-block spectra reserve 12 KiB per participating channel on first use.
 - E-AC-3 spectral extension with band merging, reused coordinates, noise blending and attenuation filters; it composes with stereo rematrixing and both coupling modes.

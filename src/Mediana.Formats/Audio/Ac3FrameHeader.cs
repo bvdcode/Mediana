@@ -22,7 +22,7 @@ namespace Mediana.Formats.Audio
             IsEnhanced = BitstreamId > 10;
             if (IsEnhanced)
             {
-                if (BitstreamId != 16) { throw new NotSupportedException("The enhanced AC-3 bitstream version is not supported."); }
+                if (BitstreamId > 16) { throw new NotSupportedException("The enhanced AC-3 bitstream version is not supported."); }
                 StreamType = bytes[2] >> 6;
                 if (StreamType == 3) { throw new InvalidDataException("The E-AC-3 stream type is reserved."); }
                 SubstreamId = bytes[2] >> 3 & 7;

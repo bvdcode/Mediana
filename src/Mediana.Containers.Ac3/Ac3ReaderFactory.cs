@@ -13,7 +13,7 @@ namespace Mediana.Containers.Ac3
         public string ImplementationId => "ac3.managed";
         public int ProbeLength => Ac3FrameHeader.HeaderBytes;
         public bool CanRead(ReadOnlySpan<byte> prefix) => prefix.Length >= ProbeLength &&
-            prefix[0] == 0x0b && prefix[1] == 0x77 && (prefix[5] >> 3 is <= 10 or 16);
+            prefix[0] == 0x0b && prefix[1] == 0x77 && (prefix[5] >> 3 <= 16);
 
         public async ValueTask<IContainerReader> OpenAsync(IByteSource source, MediaBufferAllocator allocator,
             CancellationToken cancellationToken = default)
