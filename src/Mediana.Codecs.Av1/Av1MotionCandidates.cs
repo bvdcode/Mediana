@@ -3,8 +3,8 @@
 
 namespace Mediana.Codecs.Av1
 {
-    internal ref struct Av1MotionCandidates(Span<Av1MotionCandidate> candidateStorage, ReadOnlySpan<Av1MotionBlock> blockStorage,
-        Av1SequenceHeader sequence, Av1FrameHeader header, Av1ReferencePictures pictures, int row, int column, int width, int height, int reference, ReadOnlySpan<Av1MotionFieldSample> temporalStorage = default)
+    internal ref partial struct Av1MotionCandidates(Span<Av1MotionCandidate> candidateStorage, ReadOnlySpan<Av1MotionBlock> blockStorage,
+        Av1SequenceHeader sequence, Av1FrameHeader header, Av1ReferencePictures pictures, int row, int column, int width, int height, int reference, ReadOnlySpan<Av1MotionFieldSample> temporalStorage = default, int secondReference = 0)
     {
         private readonly Span<Av1MotionCandidate> candidates = candidateStorage;
         private readonly ReadOnlySpan<Av1MotionBlock> blocks = blockStorage;
@@ -40,7 +40,11 @@ namespace Mediana.Codecs.Av1
             int total = (above ? 1 : 0) + (left ? 1 : 0);
             Sort(0, nearest);
             Sort(nearest, count);
-            if (count < 2) { Extra(); }
+            if (count < 2)
+            {
+                if (secondReference == 0) { Extra(); }
+                else { ExtraCompound(); }
+            }
             int borderRow = 128 + height * 32;
             int borderColumn = 128 + width * 32;
             for (int index = 0; index < count; index++)
@@ -49,7 +53,9 @@ namespace Mediana.Codecs.Av1
                 candidates[index] = motion with
                 {
                     Row = Math.Clamp(motion.Row, -row * 32 - borderRow, (sequence.MiRows - height - row) * 32 + borderRow),
-                    Column = Math.Clamp(motion.Column, -column * 32 - borderColumn, (sequence.MiColumns - width - column) * 32 + borderColumn)
+                    Column = Math.Clamp(motion.Column, -column * 32 - borderColumn, (sequence.MiColumns - width - column) * 32 + borderColumn),
+                    SecondRow = Math.Clamp(motion.SecondRow, -row * 32 - borderRow, (sequence.MiRows - height - row) * 32 + borderRow),
+                    SecondColumn = Math.Clamp(motion.SecondColumn, -column * 32 - borderColumn, (sequence.MiColumns - width - column) * 32 + borderColumn)
                 };
             }
             NewContext = close switch
@@ -136,23 +142,37 @@ namespace Mediana.Codecs.Av1
 
         private bool Add(Av1MotionBlock block, int weight)
         {
-            if (block.Width == 0 || block.Reference != reference) { return false; }
-            if (block.Mode == 16) { newCount++; }
-            AddVector(Lower(block.Row), Lower(block.Column), weight);
-            return true;
+            if (block.Width == 0 || block.Reference == 0) { return false; }
+            if (secondReference != 0)
+            {
+                if (block.Reference != reference || block.SecondReference != secondReference) { return false; }
+                if (HasNewMotion(block.Mode)) { newCount++; }
+                AddVector(Lower(block.Row), Lower(block.Column), weight, Lower(block.SecondRow), Lower(block.SecondColumn));
+                return true;
+            }
+            bool matched = false;
+            for (int list = 0; list < 2; list++)
+            {
+                if ((list == 0 ? block.Reference : block.SecondReference) != reference) { continue; }
+                if (HasNewMotion(block.Mode)) { newCount++; }
+                AddVector(Lower(list == 0 ? block.Row : block.SecondRow), Lower(list == 0 ? block.Column : block.SecondColumn), weight);
+                matched = true;
+            }
+            return matched;
         }
 
-        private void AddVector(int y, int x, int weight)
+        private void AddVector(int y, int x, int weight, int secondY = 0, int secondX = 0)
         {
             for (int index = 0; index < count; index++)
             {
-                if (candidates[index].Row == y && candidates[index].Column == x)
+                if (candidates[index].Row == y && candidates[index].Column == x &&
+                    candidates[index].SecondRow == secondY && candidates[index].SecondColumn == secondX)
                 {
                     candidates[index] = candidates[index] with { Weight = candidates[index].Weight + weight };
                     return;
                 }
             }
-            if (count < Capacity) { candidates[count++] = new(y, x, weight); }
+            if (count < Capacity) { candidates[count++] = new(y, x, weight, secondY, secondX); }
         }
 
         private void ScanTemporal()
@@ -186,8 +206,16 @@ namespace Mediana.Codecs.Av1
             if (!Av1MotionField.TryGet(temporal, sequence, header, pictures, reference, y >> 1, x >> 1, out Av1MotionCandidate motion)) { return; }
             int motionY = Lower(motion.Row);
             int motionX = Lower(motion.Column);
-            if (first) { ZeroContext = Math.Abs(motionY) >= 16 || Math.Abs(motionX) >= 16 ? 1 : 0; }
-            AddVector(motionY, motionX, 2);
+            int secondY = 0;
+            int secondX = 0;
+            if (secondReference != 0)
+            {
+                if (!Av1MotionField.TryGet(temporal, sequence, header, pictures, secondReference, y >> 1, x >> 1, out Av1MotionCandidate second)) { return; }
+                secondY = Lower(second.Row);
+                secondX = Lower(second.Column);
+            }
+            if (first) { ZeroContext = Math.Abs(motionY) >= 16 || Math.Abs(motionX) >= 16 || Math.Abs(secondY) >= 16 || Math.Abs(secondX) >= 16 ? 1 : 0; }
+            AddVector(motionY, motionX, 2, secondY, secondX);
         }
 
         private void Sort(int start, int end)
@@ -216,11 +244,13 @@ namespace Mediana.Codecs.Av1
                     int x = pass == 0 ? column + index : column - 1;
                     if (!Inside(y, x)) { break; }
                     Av1MotionBlock block = blocks[y * sequence.MiColumns + x];
-                    if (block.Reference != 0)
+                    for (int list = 0; list < 2; list++)
                     {
-                        int sign = Backward(block.Reference) == Backward(reference) ? 1 : -1;
-                        int motionY = block.Row * sign;
-                        int motionX = block.Column * sign;
+                        int candidateReference = list == 0 ? block.Reference : block.SecondReference;
+                        if (candidateReference == 0) { continue; }
+                        int sign = Backward(candidateReference) == Backward(reference) ? 1 : -1;
+                        int motionY = (list == 0 ? block.Row : block.SecondRow) * sign;
+                        int motionX = (list == 0 ? block.Column : block.SecondColumn) * sign;
                         bool duplicate = false;
                         for (int candidate = 0; candidate < count; candidate++)
                         {
@@ -256,5 +286,7 @@ namespace Mediana.Codecs.Av1
         }
 
         private bool Inside(int y, int x) => y >= 0 && y < sequence.MiRows && x >= 0 && x < sequence.MiColumns;
+
+        private static bool HasNewMotion(int mode) => mode is 16 or 19 or 20 or 21 or 22 or 24;
     }
 }

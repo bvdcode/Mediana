@@ -3,5 +3,5 @@
 
 namespace Mediana.Codecs.Av1
 {
-    internal readonly record struct Av1MotionCandidate(int Row, int Column, int Weight);
+    internal readonly record struct Av1MotionCandidate(int Row, int Column, int Weight, int SecondRow = 0, int SecondColumn = 0);
 }

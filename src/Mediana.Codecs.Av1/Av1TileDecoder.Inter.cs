@@ -18,21 +18,31 @@ namespace Mediana.Codecs.Av1
             return symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.IsInterOffset + context * 3, 3)) != 0;
         }
 
-        private void InterBlock(int row, int column, int width, int height, int skip)
+        private void InterBlock(int row, int column, int width, int height, int skip, bool skipMode)
         {
             Av1ReferencePictures pictures = references ?? throw new InvalidOperationException("AV1 inter prediction requires stored pictures.");
-            int reference = ReadReference(row, column, width, height);
+            Av1ReferencePair pair = ReadReference(row, column, width, height, skipMode, pictures);
+            int reference = pair.First;
+            bool compound = pair.Second != 0;
             Span<Av1MotionCandidate> storage = stackalloc Av1MotionCandidate[Av1MotionCandidates.Capacity];
-            Av1MotionCandidates candidates = new(storage, motionBlocks, sequence, header, pictures, row, column, width, height, reference, motionField);
+            Av1MotionCandidates candidates = new(storage, motionBlocks, sequence, header, pictures, row, column, width, height, reference, motionField, pair.Second);
             candidates.Build();
             int mode;
-            if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.NewMvOffset + candidates.NewContext * 3, 3)) == 0) { mode = 16; }
+            if (skipMode) { mode = 17; }
+            else if (compound)
+            {
+                ReadOnlySpan<byte> contexts = [0, 1, 1, 1, 1, 1, 2, 3, 4, 4, 4, 4, 5, 6, 7];
+                int context = contexts[(candidates.ReferenceContext >> 1) * 5 + Math.Min(candidates.NewContext, 4)];
+                mode = 17 + symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CompoundModeOffset + context * 9, 9));
+            }
+            else if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.NewMvOffset + candidates.NewContext * 3, 3)) == 0) { mode = 16; }
             else if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.ZeroMvOffset + candidates.ZeroContext * 3, 3)) == 0) { mode = 15; }
             else { mode = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.RefMvOffset + candidates.ReferenceContext * 3, 3)) == 0 ? 13 : 14; }
-            int selected = mode == 14 ? 1 : 0;
-            if (mode is 16 or 14)
+            bool near = mode is 14 or 18 or 21 or 22;
+            int selected = near ? 1 : 0;
+            if (mode is 16 or 24 || near)
             {
-                int first = mode == 14 ? 1 : 0;
+                int first = near ? 1 : 0;
                 for (int index = first; index < first + 2; index++)
                 {
                     if (candidates.Count <= index + 1) { continue; }
@@ -42,39 +52,49 @@ namespace Mediana.Codecs.Av1
                     if (difference == 0) { break; }
                 }
             }
-            Av1MotionCandidate prediction = mode == 15 ? default : candidates[selected];
-            int motionY = prediction.Row;
-            int motionX = prediction.Column;
-            if (mode == 16)
+            Av1MotionBlock block = new()
             {
-                int joint = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvJointOffset, 5));
-                if (joint is 2 or 3) { motionY += ReadMotionComponent(0); }
-                if (joint is 1 or 3) { motionX += ReadMotionComponent(1); }
-            }
-            if (motionY is <= -16384 or >= 16384 || motionX is <= -16384 or >= 16384)
+                Reference = (byte)reference, SecondReference = (byte)pair.Second, Mode = (byte)mode,
+                Width = (byte)width, Height = (byte)height, SkipMode = skipMode, CompoundIndex = 1
+            };
+            for (int list = 0; list < (compound ? 2 : 1); list++)
             {
-                throw new InvalidDataException("The AV1 motion vector exceeds its permitted range.");
+                int vectorMode = VectorMode(mode, list);
+                int position = vectorMode == 13 || vectorMode == 16 && candidates.Count <= 1 ? 0 : selected;
+                Av1MotionCandidate prediction = vectorMode == 15 ? default : candidates[position];
+                int motionY = list == 0 ? prediction.Row : prediction.SecondRow;
+                int motionX = list == 0 ? prediction.Column : prediction.SecondColumn;
+                if (vectorMode == 16)
+                {
+                    int joint = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.MvJointOffset, 5));
+                    if (joint is 2 or 3) { motionY += ReadMotionComponent(0); }
+                    if (joint is 1 or 3) { motionX += ReadMotionComponent(1); }
+                }
+                if (motionY is <= -16384 or >= 16384 || motionX is <= -16384 or >= 16384)
+                {
+                    throw new InvalidDataException("The AV1 motion vector exceeds its permitted range.");
+                }
+                if (list == 0) { block.Row = motionY; block.Column = motionX; }
+                else { block.SecondRow = (short)motionY; block.SecondColumn = (short)motionX; }
             }
-            ReadSimpleMotion(row, column, width, height, reference, pictures);
+            if (!compound) { ReadSimpleMotion(row, column, width, height, reference, pictures); }
+            Av1CompoundWeights weights = compound ? ReadCompoundWeights(row, column, ref block, pictures) : default;
             int filterY = header.Inter.InterpolationFilter;
             int filterX = filterY;
             if (filterY == 4)
             {
-                if (Math.Min(width, height) >= 2 && mode == 15) { filterY = filterX = 0; }
+                if (skipMode || Math.Min(width, height) >= 2 && mode is 15 or 23) { filterY = filterX = 0; }
                 else
                 {
-                    filterY = ReadInterpolation(row, column, reference, 0);
-                    filterX = sequence.Tools.DualFilter ? ReadInterpolation(row, column, reference, 1) : filterY;
+                    filterY = ReadInterpolation(row, column, reference, 0, compound);
+                    filterX = sequence.Tools.DualFilter ? ReadInterpolation(row, column, reference, 1, compound) : filterY;
                 }
             }
-            Av1MotionBlock block = new()
-            {
-                Reference = (byte)reference, Mode = (byte)mode, Width = (byte)width, Height = (byte)height,
-                Row = motionY, Column = motionX, FilterY = (byte)filterY, FilterX = (byte)filterX
-            };
+            block.FilterY = (byte)filterY;
+            block.FilterX = (byte)filterX;
             StoreMotion(row, column, width, height, block);
             bool hasChroma = !sequence.Monochrome && !(height == 1 && (row & 1) == 0) && !(width == 1 && (column & 1) == 0);
-            PredictInter(row, column, width, height, hasChroma, block, pictures);
+            PredictInter(row, column, width, height, hasChroma, block, pictures, weights);
             StoreFilterBlock(row, column, width, height, reference, mode, skip != 0);
             Av1TransformSize transform = ReadInterTransformSizes(row, column, width, height, skip != 0);
             Residual(row, column, width, height, skip != 0, default, hasChroma, default, default, default, transform, true);
@@ -85,48 +105,24 @@ namespace Mediana.Codecs.Av1
             StoreContext(row, column, width, height, contextBlock);
         }
 
-        private int ReadReference(int row, int column, int width, int height)
+        private static int VectorMode(int mode, int list) => (mode, list) switch
         {
-            int aboveRef = row > 0 ? motionBlocks[(row - 1) * sequence.MiColumns + column].Reference : 0;
-            int leftRef = column > 0 ? motionBlocks[row * sequence.MiColumns + column - 1].Reference : 0;
-            if (header.Inter.SelectReference && Math.Min(width, height) >= 2)
-            {
-                int context = row > 0 && column > 0 ? (aboveRef >= 5 ? 1 : 0) ^ (leftRef >= 5 ? 1 : 0)
-                    : row > 0 ? (aboveRef >= 5 ? 1 : 0) : column > 0 ? (leftRef >= 5 ? 1 : 0) : 1;
-                if (symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.CompModeOffset + context * 3, 3)) != 0)
-                {
-                    throw new NotSupportedException("AV1 compound block prediction is not implemented.");
-                }
-            }
-            if (ReadReferenceDecision(0, CountReferences(aboveRef, leftRef, 1, 4), CountReferences(aboveRef, leftRef, 5, 7)) != 0)
-            {
-                if (ReadReferenceDecision(1, CountReferences(aboveRef, leftRef, 5, 6), CountReferences(aboveRef, leftRef, 7, 7)) != 0) { return 7; }
-                return ReadReferenceDecision(5, CountReferences(aboveRef, leftRef, 5, 5), CountReferences(aboveRef, leftRef, 6, 6)) != 0 ? 6 : 5;
-            }
-            if (ReadReferenceDecision(2, CountReferences(aboveRef, leftRef, 1, 2), CountReferences(aboveRef, leftRef, 3, 4)) != 0)
-            {
-                return ReadReferenceDecision(4, CountReferences(aboveRef, leftRef, 3, 3), CountReferences(aboveRef, leftRef, 4, 4)) != 0 ? 4 : 3;
-            }
-            return ReadReferenceDecision(3, CountReferences(aboveRef, leftRef, 1, 1), CountReferences(aboveRef, leftRef, 2, 2)) != 0 ? 2 : 1;
-        }
+            (>= 13 and <= 16, 0) => mode,
+            (17 or 19, 0) or (17 or 20, 1) => 13,
+            (18 or 21, 0) or (18 or 22, 1) => 14,
+            (20 or 22 or 24, 0) or (19 or 21 or 24, 1) => 16,
+            (23, 0 or 1) => 15,
+            _ => throw new InvalidDataException("The AV1 inter prediction mode is invalid.")
+        };
 
-        private static int CountReferences(int above, int left, int minimum, int maximum) =>
-            (above >= minimum && above <= maximum ? 1 : 0) + (left >= minimum && left <= maximum ? 1 : 0);
-
-        private int ReadReferenceDecision(int decision, int first, int second)
-        {
-            int context = first < second ? 0 : first == second ? 1 : 2;
-            return symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SingleRefOffset + (context * 6 + decision) * 3, 3));
-        }
-
-        private int ReadInterpolation(int row, int column, int reference, int direction)
+        private int ReadInterpolation(int row, int column, int reference, int direction, bool compound)
         {
             Av1MotionBlock top = row > 0 ? motionBlocks[(row - 1) * sequence.MiColumns + column] : default;
             Av1MotionBlock prior = column > 0 ? motionBlocks[row * sequence.MiColumns + column - 1] : default;
-            int topType = top.Reference == reference ? direction == 0 ? top.FilterY : top.FilterX : 3;
-            int leftType = prior.Reference == reference ? direction == 0 ? prior.FilterY : prior.FilterX : 3;
+            int topType = top.Reference == reference || top.SecondReference == reference ? direction == 0 ? top.FilterY : top.FilterX : 3;
+            int leftType = prior.Reference == reference || prior.SecondReference == reference ? direction == 0 ? prior.FilterY : prior.FilterX : 3;
             int context = topType == leftType ? topType : topType == 3 ? leftType : leftType == 3 ? topType : 3;
-            return symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.InterpolationOffset + (direction * 8 + context) * 4, 4));
+            return symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.InterpolationOffset + (direction * 8 + (compound ? 4 : 0) + context) * 4, 4));
         }
 
         private int ReadMotionComponent(int component)

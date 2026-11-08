@@ -63,10 +63,15 @@ namespace Mediana.Codecs.Av1
         }
 
         internal static bool HasSkipPair(Av1ReferenceIndices indices, Av1ReferencePictures references, int current, int bits)
+            => TryGetSkipPair(indices, references, current, bits, out _);
+
+        internal static bool TryGetSkipPair(Av1ReferenceIndices indices, Av1ReferencePictures references, int current, int bits, out Av1ReferencePair pair)
         {
+            pair = default;
             int forward = -1;
             int forwardHint = 0;
-            bool backward = false;
+            int backward = -1;
+            int backwardHint = 0;
             for (int index = 0; index < Av1ReferenceIndices.Count; index++)
             {
                 int hint = references.OrderHint(indices[index]);
@@ -76,15 +81,28 @@ namespace Mediana.Codecs.Av1
                     forward = index;
                     forwardHint = hint;
                 }
-                backward |= distance > 0;
+                if (distance > 0 && (backward < 0 || Distance(hint, backwardHint, bits) < 0))
+                {
+                    backward = index;
+                    backwardHint = hint;
+                }
             }
             if (forward < 0) { return false; }
-            if (backward) { return true; }
-            for (int index = 0; index < Av1ReferenceIndices.Count; index++)
+            if (backward < 0)
             {
-                if (Distance(references.OrderHint(indices[index]), forwardHint, bits) < 0) { return true; }
+                for (int index = 0; index < Av1ReferenceIndices.Count; index++)
+                {
+                    int hint = references.OrderHint(indices[index]);
+                    if (Distance(hint, forwardHint, bits) < 0 && (backward < 0 || Distance(hint, backwardHint, bits) > 0))
+                    {
+                        backward = index;
+                        backwardHint = hint;
+                    }
+                }
             }
-            return false;
+            if (backward < 0) { return false; }
+            pair = new(Math.Min(forward, backward) + 1, Math.Max(forward, backward) + 1);
+            return true;
         }
 
         internal static int Distance(int first, int second, int bits)

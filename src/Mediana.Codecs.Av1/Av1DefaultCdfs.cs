@@ -77,7 +77,15 @@ namespace Mediana.Codecs.Av1
         internal const int SelfGuidedOffset = 6678;
         internal const int RestorationOffset = 6681;
         internal const int FilterIntraModeOffset = 6685;
-        internal const int Count = 6691;
+        internal const int CompRefOffset = 6691;
+        internal const int CompBwdRefOffset = 6718;
+        internal const int CompoundModeOffset = 6736;
+        internal const int CompRefTypeOffset = 6808;
+        internal const int UniCompRefOffset = 6823;
+        internal const int CompoundIndexOffset = 6850;
+        internal const int CompGroupOffset = 6868;
+        internal const int CompoundTypeOffset = 6886;
+        internal const int Count = 6952;
 
         internal static ReadOnlySpan<int> CounterOffsets =>
         [
@@ -162,6 +170,11 @@ namespace Mediana.Codecs.Av1
             6507, 6518, 6529, 6541, 6553, 6556, 6559, 6562, 6566, 6570, 6574, 6578, 6582, 6586, 6590, 6594,
             6598, 6601, 6604, 6607, 6610, 6613, 6616, 6619, 6622, 6625, 6628, 6631, 6634, 6637, 6640, 6643,
             6646, 6649, 6652, 6655, 6658, 6661, 6674, 6677, 6680, 6684, 6690,
+            6693, 6696, 6699, 6702, 6705, 6708, 6711, 6714, 6717, 6720, 6723, 6726, 6729, 6732, 6735, 6744,
+            6753, 6762, 6771, 6780, 6789, 6798, 6807, 6810, 6813, 6816, 6819, 6822, 6825, 6828, 6831, 6834,
+            6837, 6840, 6843, 6846, 6849, 6852, 6855, 6858, 6861, 6864, 6867, 6870, 6873, 6876, 6879, 6882,
+            6885, 6888, 6891, 6894, 6897, 6900, 6903, 6906, 6909, 6912, 6915, 6918, 6921, 6924, 6927, 6930,
+            6933, 6936, 6939, 6942, 6945, 6948, 6951,
         ];
     }
 }

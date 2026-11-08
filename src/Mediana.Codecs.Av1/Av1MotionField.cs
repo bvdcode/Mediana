@@ -41,12 +41,18 @@ namespace Mediana.Codecs.Av1
                 for (int x = 0; x < columns; x++)
                 {
                     Av1MotionBlock block = blocks[(y * 2 + 1) * sequence.MiColumns + x * 2 + 1];
-                    if (block.Reference == 0 || Math.Abs(block.Row) > MaximumStoredComponent || Math.Abs(block.Column) > MaximumStoredComponent) { continue; }
-                    int hint = references.OrderHint(header.Inter.References[block.Reference - 1]);
-                    int distance = -Av1ReferenceOrdering.Distance(hint, header.OrderHint, sequence.Tools.OrderHintBits);
-                    if (distance is > 0 and <= MaximumDistance)
+                    for (int list = 0; list < 2; list++)
                     {
-                        field[y * columns + x] = new((short)block.Row, (short)block.Column, (byte)distance);
+                        int reference = list == 0 ? block.Reference : block.SecondReference;
+                        int motionY = list == 0 ? block.Row : block.SecondRow;
+                        int motionX = list == 0 ? block.Column : block.SecondColumn;
+                        if (reference == 0 || Math.Abs(motionY) > MaximumStoredComponent || Math.Abs(motionX) > MaximumStoredComponent) { continue; }
+                        int hint = references.OrderHint(header.Inter.References[reference - 1]);
+                        int distance = -Av1ReferenceOrdering.Distance(hint, header.OrderHint, sequence.Tools.OrderHintBits);
+                        if (distance is > 0 and <= MaximumDistance)
+                        {
+                            field[y * columns + x] = new((short)motionY, (short)motionX, (byte)distance);
+                        }
                     }
                 }
             }

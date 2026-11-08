@@ -117,7 +117,7 @@ namespace Mediana.Codecs.Av1.Tests
         }
 
         [Fact]
-        public void UnsupportedCompoundBlockFailsAfterCorrectlyDecodedPrefixAndReleasesReferences()
+        public void CompoundSequenceMatchesIndependentPixelsAndResetReleasesReferences()
         {
             byte[] encoded = Read("interCompound.obu");
             byte[] expected = Read("interCompound.yuv");
@@ -125,22 +125,12 @@ namespace Mediana.Codecs.Av1.Tests
             MediaBufferAllocator input = new(1024 * 1024);
             MediaBufferAllocator pixels = new(1024 * 1024);
             int decoded = 0;
-            bool rejected = false;
             using (IMediaCodec<MediaPacket, VideoFrame> codec = new Av1DecoderFactory().Create(Stream(encoded), pixels))
             {
                 foreach (ReadOnlyMemory<byte> unit in units)
                 {
                     using MediaPacket packet = Packet(unit.Span, input);
-                    Exception? error = Record.Exception(() => codec.TrySend(packet));
-                    if (error is not null)
-                    {
-                        Assert.IsType<NotSupportedException>(error);
-                        Assert.Equal("AV1 compound block prediction is not implemented.", error.Message);
-                        Assert.Equal(0, pixels.AllocatedBytes);
-                        Assert.Throws<InvalidOperationException>(() => codec.Receive());
-                        rejected = true;
-                        break;
-                    }
+                    Assert.Equal(CodecInputStatus.Accepted, codec.TrySend(packet));
                     using VideoFrame frame = codec.Receive().Value;
                     int offset = decoded * 48 * 40 * 3 / 2;
                     for (int plane = 0; plane < frame.Planes.Count; plane++)
@@ -154,9 +144,9 @@ namespace Mediana.Codecs.Av1.Tests
                     }
                     decoded++;
                 }
-                Assert.True(rejected);
-                Assert.True(decoded >= 2);
+                Assert.Equal(5, decoded);
                 codec.Reset();
+                Assert.Equal(0, pixels.AllocatedBytes);
                 using MediaPacket key = Packet(units[0].Span, input);
                 Assert.Equal(CodecInputStatus.Accepted, codec.TrySend(key));
                 codec.Receive().Value.Dispose();

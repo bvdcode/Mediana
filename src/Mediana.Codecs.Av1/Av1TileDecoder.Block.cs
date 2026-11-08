@@ -11,18 +11,20 @@ namespace Mediana.Codecs.Av1
         {
             cancellationToken.ThrowIfCancellationRequested();
             bool interFrame = header.FrameType is Av1FrameType.Inter or Av1FrameType.Switch;
-            if (interFrame && header.Inter.SkipMode && Math.Min(width, height) >= 2 &&
-                symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipModeOffset, 3)) != 0)
+            bool skipMode = false;
+            if (interFrame && header.Inter.SkipMode && Math.Min(width, height) >= 2)
             {
-                throw new NotSupportedException("AV1 compound skip-mode reconstruction is not implemented.");
+                int skipModeContext = (row > 0 && motionBlocks[(row - 1) * sequence.MiColumns + column].SkipMode ? 1 : 0) +
+                    (column > 0 && motionBlocks[row * sequence.MiColumns + column - 1].SkipMode ? 1 : 0);
+                skipMode = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipModeOffset + skipModeContext * 3, 3)) != 0;
             }
             int skipContext = (row > 0 ? above[column].Skip : 0) +
                 (column > 0 ? left[row & (LeftContexts - 1)].Skip : 0);
-            int skip = symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipOffset + skipContext * 3, 3));
+            int skip = skipMode ? 1 : symbols.ReadSymbol(probabilities.Slice(Av1DefaultCdfs.SkipOffset + skipContext * 3, 3));
             ReadCdef(row, column, width, height, skip != 0);
-            if (interFrame && ReadInter(row, column))
+            if (interFrame && (skipMode || ReadInter(row, column)))
             {
-                InterBlock(row, column, width, height, skip);
+                InterBlock(row, column, width, height, skip, skipMode);
                 return;
             }
             int aboveMode = row > 0 ? above[column].Mode : 0;

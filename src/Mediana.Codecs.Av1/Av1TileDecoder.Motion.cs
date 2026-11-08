@@ -5,7 +5,7 @@ namespace Mediana.Codecs.Av1
 {
     internal ref partial struct Av1TileDecoder
     {
-        private void PredictInter(int row, int column, int width, int height, bool hasChroma, Av1MotionBlock block, Av1ReferencePictures pictures)
+        private void PredictInter(int row, int column, int width, int height, bool hasChroma, Av1MotionBlock block, Av1ReferencePictures pictures, Av1CompoundWeights weights)
         {
             int planes = hasChroma ? 3 : 1;
             for (int plane = 0; plane < planes; plane++)
@@ -47,7 +47,15 @@ namespace Mediana.Codecs.Av1
                         int clippedHeight = Math.Min(stepY, sequence.PlaneHeight(plane) - y - dy);
                         if (clippedWidth > 0 && clippedHeight > 0)
                         {
-                            Av1MotionCompensation.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected);
+                            if (selected.SecondReference == 0)
+                            {
+                                Av1MotionCompensation.Apply(output, sequence, reference, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected);
+                            }
+                            else
+                            {
+                                Av1StoredPicture second = pictures.Get(header.Inter.References[selected.SecondReference - 1]);
+                                Av1MotionCompensation.ApplyCompound(output, sequence, reference, second, plane, x + dx, y + dy, clippedWidth, clippedHeight, selected, weights);
+                            }
                         }
                     }
                 }

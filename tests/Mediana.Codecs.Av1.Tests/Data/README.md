@@ -233,3 +233,23 @@ sixteen-sample and unrestricted partitions, respectively, nonzero quantized
 residuals and all intra/in-loop filters. Compound, warped, overlapped and
 inter-intra prediction are disabled. The encoder is libaom 3.8.2 at CRF30 with
 no lookahead; independent visible-sample references use libdav1d 1.4.1.
+
+`compoundAverage`, `compoundDistance` and `compoundFree` contain ten 48×40
+pictures with same-direction compound references and temporal motion; partition
+sizes are fixed at 8, fixed at 16, and variable respectively. The first disables
+distance weighting, while the other two enable it. `compoundBlend` and
+`compoundLossless` contain ten 64×48 pictures built from deterministic patterns
+and their averages; both select compound skip mode. The latter is lossless.
+`compoundLookahead` uses the same 64×48 source with eight frames of encoder
+lookahead and alternate reference pictures. The resulting selected picture modes are checked independently. CDEF, restoration and ordinary intra tools
+are enabled; masked compound, inter-intra, overlapped and warped motion are off.
+Encoding uses libaom 3.8.2 and complete pixel references use libdav1d 1.4.1.
+
+The matching `.motion.gz` files contain independent AOM 3.8.2 decoder block
+inspection through `AV1D_GET_MI_INFO`. The decompressed format is `AV1MOTN2`, a
+little-endian 32-bit picture count, then 16-bit MI rows and columns for each
+picture. Each 16-byte cell contains block size, prediction mode, two signed-byte
+references, four little-endian signed 16-bit vector components, reference-MV
+index, skip mode, compound index and compound group. All six
+sequences compare every meaningful inter cell against these independent values,
+in addition to the public decoder's complete sample comparison.

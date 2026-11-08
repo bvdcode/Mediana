@@ -7,6 +7,20 @@ namespace Mediana.Codecs.Av1
     {
         internal static void Apply(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
             int plane, int x, int y, int width, int height, Av1MotionBlock motion)
+            => Convolve(output, target, reference, plane, x, y, width, height, motion, default, default);
+
+        internal static void ApplyCompound(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture first, Av1StoredPicture second,
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Av1CompoundWeights weights)
+        {
+            Span<short> prediction = stackalloc short[width * height];
+            Convolve(output, target, first, plane, x, y, width, height, motion, prediction, default);
+            motion.Row = motion.SecondRow;
+            motion.Column = motion.SecondColumn;
+            Convolve(output, target, second, plane, x, y, width, height, motion, prediction, weights);
+        }
+
+        private static void Convolve(Span<byte> output, Av1SequenceHeader target, Av1StoredPicture reference,
+            int plane, int x, int y, int width, int height, Av1MotionBlock motion, Span<short> prediction, Av1CompoundWeights weights)
         {
             Av1SequenceHeader source = reference.Header.Geometry;
             if (source.Width > target.Width * 2 || source.Height > target.Height * 2 ||
@@ -29,6 +43,20 @@ namespace Mediana.Codecs.Av1
             int stepY = (scaleY + 8) >> 4;
             if (stepX == 1024 && stepY == 1024 && (startX & 1023) == 32 && (startY & 1023) == 32)
             {
+                if (!prediction.IsEmpty)
+                {
+                    for (int row = 0; row < height; row++)
+                    {
+                        int sourceY = Math.Clamp((startY >> 10) + row, 0, sourceHeight - 1);
+                        for (int column = 0; column < width; column++)
+                        {
+                            int sourceX = Math.Clamp((startX >> 10) + column, 0, sourceWidth - 1);
+                            int value = pixels[sourceY * sourceStride + sourceX] << 4;
+                            StoreCompound(destination, destinationStride, x, y, width, row, column, prediction, value, weights);
+                        }
+                    }
+                    return;
+                }
                 CopyInteger(pixels, sourceStride, sourceWidth, sourceHeight, destination, destinationStride,
                     x, y, width, height, startX >> 10, startY >> 10);
                 return;
@@ -72,8 +100,21 @@ namespace Mediana.Codecs.Av1
                     {
                         sum += vertical[tap] * intermediate[((sourceY + tap - 3) & 7) * 128 + column];
                     }
-                    result[column] = (byte)Math.Clamp((sum + 1024) >> 11, 0, 255);
+                    if (prediction.IsEmpty) { result[column] = (byte)Math.Clamp((sum + 1024) >> 11, 0, 255); }
+                    else { StoreCompound(destination, destinationStride, x, y, width, row, column, prediction, (sum + 64) >> 7, weights); }
                 }
+            }
+        }
+
+        private static void StoreCompound(Span<byte> destination, int stride, int x, int y, int width, int row, int column,
+            Span<short> prediction, int value, Av1CompoundWeights weights)
+        {
+            int index = row * width + column;
+            if (weights.Second == 0) { prediction[index] = checked((short)value); }
+            else
+            {
+                int sum = weights.First * prediction[index] + weights.Second * value;
+                destination[(y + row) * stride + x + column] = (byte)Math.Clamp((sum + 128) >> 8, 0, 255);
             }
         }
 

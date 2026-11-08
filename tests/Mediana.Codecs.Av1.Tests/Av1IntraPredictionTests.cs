@@ -25,7 +25,13 @@ namespace Mediana.Codecs.Av1.Tests
         [InlineData("temporalTx8", 48, 40, false, 10)]
         [InlineData("temporalTx16", 48, 40, false, 10)]
         [InlineData("temporalFree", 48, 40, false, 10)]
-        public void PublicCodecMatchesIndependentIntraVideo(string name, int width, int height, bool monochrome, int count)
+        [InlineData("compoundAverage", 48, 40, false, 10)]
+        [InlineData("compoundDistance", 48, 40, false, 10)]
+        [InlineData("compoundFree", 48, 40, false, 10)]
+        [InlineData("compoundBlend", 64, 48, false, 10)]
+        [InlineData("compoundLossless", 64, 48, false, 10)]
+        [InlineData("compoundLookahead", 64, 48, false, 10)]
+        public void PublicCodecMatchesIndependentDecodedVideo(string name, int width, int height, bool monochrome, int count)
         {
             byte[] encoded = Read(name + ".obu");
             byte[] expected = Read(name + ".yuv");

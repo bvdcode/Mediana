@@ -98,7 +98,16 @@ spatial candidates. Three ten-frame sequences with active reference-motion
 selection match every independent output sample. Native projection/position
 vectors and scoped failure, cancellation, reset and shared-owner checks pass.
 
-Compound prediction,
+Dual-reference prediction supports the eight compound motion modes, bidirectional
+and same-direction reference pairs, average and distance-weighted blending, and
+skip mode. Signed intermediate samples retain interpolation precision until the
+final blend; only one block-sized prediction is retained. Both motion vectors
+and compound contexts fit the existing sixteen-byte motion-grid cell. Independent
+AOM block modes, references, vectors and skip/compound flags match six moving
+sequences, including lossless content. All decoded samples also match libdav1d,
+including a sequence with encoder lookahead enabled.
+
+Masked compound prediction,
 non-identity global motion, overlapped/warped reconstruction,
 intra block copy,
 chroma palette, segmentation, multiple
