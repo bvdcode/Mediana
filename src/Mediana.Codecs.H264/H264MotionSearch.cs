@@ -7,7 +7,7 @@ using System.Runtime.Intrinsics;
 
 namespace Mediana.Codecs.H264
 {
-    internal ref struct H264MotionSearch
+    internal ref partial struct H264MotionSearch
     {
         private readonly H264Picture reference;
         private readonly (int X, int Y) position;
@@ -49,6 +49,7 @@ namespace Mediana.Codecs.H264
             (int predictedX, int predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
             H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), input.Samples, candidate, prediction, interpolation);
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
+            if (TAnalysis.Enabled) { search.Seed(target, range); }
             search.Scan(range, token);
             search.Refine<TAnalysis>(range, token, interpolation);
             search.WritePrediction();

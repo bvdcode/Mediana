@@ -27,5 +27,8 @@ namespace Mediana.Tests
 
         [Fact]
         public async Task SearchMatchesIndependentVectorsPredictionsAndSourceOwnership() => await H264MotionSearchTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
+
+        [Fact]
+        public void SpatialAndTemporalSeedsRecoverTranslationsWithoutExceedingTheSearchRange() => H264MotionSeedingTestInput.Verify();
     }
 }

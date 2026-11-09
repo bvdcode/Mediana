@@ -14,8 +14,8 @@
   {
     "case": "Cabac-RateDistortion-1-qp26-a0-b0",
     "decodedBytes": 187680,
-    "transportSha256": "df63d3ba9d3009ce6ff51dc992d2b567f295e3af9c863edf74e30953a2bccba2",
-    "decodedSha256": "646e43a310016cf34d309c118111608ccaaebb070a64960e854256a60759a426"
+    "transportSha256": "7db5784d2452c0d41f8b84e23d489516643e822a6c1ebc604cc9353cccb959f2",
+    "decodedSha256": "75c900ec101542e92c7ac5a0c51123156babdd324481915947d87f299e00ee4b"
   },
   {
     "case": "Cabac-RateDistortion-2-qp18-a2-b-2",
@@ -26,8 +26,8 @@
   {
     "case": "Cabac-RateDistortion-3-qp38-a-6-b6",
     "decodedBytes": 204000,
-    "transportSha256": "8adafed8dcd1bcebf2e965167032b64df2335277753000422648efa0b6e66bfc",
-    "decodedSha256": "d54e98b4d73cb77fa795c34350df71074d8b8f67b642898fba14b43fd236e05b"
+    "transportSha256": "9596b70412febcd58df9087b1e7a8481594053cd523c1295a942d2e2afd21246",
+    "decodedSha256": "8efdddc3373516b146fcbf026cbd4ebd64ad7091138af18add70cbb459d2d2d4"
   },
   {
     "case": "Cavlc-Fast-1-qp26-a0-b0",
