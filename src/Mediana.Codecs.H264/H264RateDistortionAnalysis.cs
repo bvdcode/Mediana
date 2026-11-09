@@ -47,36 +47,25 @@ namespace Mediana.Codecs.H264
             int previousDelta = syntax.PreviousDelta;
             Span<byte> preCounts = stackalloc byte[24];
             H264CabacMacroblockSnapshot preState = H264CabacMacroblockSnapshot.Capture(state, target, x, y, preCounts);
-            H264CabacEncoderCheckpoint engine = syntax.CaptureEngine();
-            H264CabacRateSample initial = syntax.RateSample;
-            Span<short> savedMotion = stackalloc short[32];
-            H264MacroblockMotion.Copy(motion, x, y, savedMotion, false);
-            H264PreparedMacroblockWriter.Write(syntax, target, motion, x, y, first, vector);
-            double firstRate = H264CabacRate.Difference(initial, syntax.RateSample);
+            int initialRange = syntax.RateSample.Range;
+            costSyntax.Reset(initialRange, preContexts, previousDelta);
+            double firstRate = costSyntax.Estimate(x, y, first, vector, new H264CabacUnlimitedCost<H264CabacCostWriter>());
+            preState.Restore(state, target, x, y, preCounts);
             double lambda = Lambdas[quantizer];
             double firstCost = first.Distortion + lambda * firstRate;
             double otherCost = double.PositiveInfinity;
             if (firstIntra ? other.Distortion <= firstCost : other.Distortion < firstCost)
             {
-                Span<byte> acceptedCounts = stackalloc byte[24];
-                H264CabacMacroblockSnapshot acceptedState = H264CabacMacroblockSnapshot.Capture(state, target, x, y, acceptedCounts);
                 try
                 {
-                    preState.Restore(state, target, x, y, preCounts);
-                    costSyntax.Reset(engine.Range, preContexts, previousDelta);
-                    double rate = costSyntax.Estimate(x, y, other, vector, new(other.Distortion, lambda, firstCost, firstIntra));
+                    costSyntax.Reset(initialRange, preContexts, previousDelta);
+                    double rate = costSyntax.Estimate(x, y, other, vector, new H264CabacCostLimit(other.Distortion, lambda, firstCost, firstIntra));
                     otherCost = other.Distortion + lambda * rate;
                 }
-                finally { acceptedState.Restore(state, target, x, y, acceptedCounts); }
+                finally { preState.Restore(state, target, x, y, preCounts); }
             }
             bool chooseOther = firstIntra ? otherCost <= firstCost : otherCost < firstCost;
-            if (!chooseOther) { return; }
-            syntax.RestoreEngine(engine);
-            syntax.RestoreContexts(preContexts);
-            syntax.PreviousDelta = previousDelta;
-            preState.Restore(state, target, x, y, preCounts);
-            H264MacroblockMotion.Copy(motion, x, y, savedMotion, true);
-            H264PreparedMacroblockWriter.Write(syntax, target, motion, x, y, other, vector);
+            H264PreparedMacroblockWriter.Write(syntax, target, motion, x, y, chooseOther ? other : first, vector);
         }
     }
 }
