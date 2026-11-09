@@ -22,7 +22,7 @@ namespace Mediana.Codecs.Hevc
             SequenceParameters sequence = slice.Picture.Sequence;
             int ctbSize = 1 << sequence.Log2Ctb;
             int columns = ((sequence.Width + ctbSize) - 1) / ctbSize;
-            int rows = slice.RowSubstreams.Count;
+            int rows = slice.EntropySubstreams.Count;
             WavefrontRowProgress[] progress = new WavefrontRowProgress[rows];
             HevcCabacReader?[] readers = new HevcCabacReader?[rows];
             using CancellationTokenSource cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -58,7 +58,7 @@ namespace Mediana.Codecs.Hevc
                     while ((row = Interlocked.Increment(ref nextRow)) < rows)
                     {
                         cancellation.Token.ThrowIfCancellationRequested();
-                        HevcCabacReader reader = new HevcCabacReader(new BitReader(slice.RowSubstreams[row]), slice.Qp);
+                        HevcCabacReader reader = new HevcCabacReader(new BitReader(slice.EntropySubstreams[row]), slice.Qp);
                         readers[row] = reader;
                         QuantizationGroup quantization = new QuantizationGroup(slice, reader, blocks);
                         CodingTreeDecoder tree = new CodingTreeDecoder(slice, reader, blocks, quantization);

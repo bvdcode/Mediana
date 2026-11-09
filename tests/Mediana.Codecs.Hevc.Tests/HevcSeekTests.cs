@@ -16,6 +16,9 @@ namespace Mediana.Codecs.Hevc.Tests
         [InlineData("gop10", 48, 12, ".mp4")]
         [InlineData("slices8", 12, 6, ".mp4")]
         [InlineData("predictive10", 20, 10, ".mp4")]
+        [InlineData("tiles-uniform8", 12, 6, ".mp4")]
+        [InlineData("tiles-slices10", 12, 6, ".mp4")]
+        [InlineData("tiles-wpp10", 12, 6, ".mp4")]
         public async Task RandomOrderSeeksAndRestartsPreserveExactPicturesAndOwnership(string name, int count, int rate, string extension)
         {
             await HevcSeekTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), name, count, rate, extension);

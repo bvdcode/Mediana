@@ -79,7 +79,7 @@ namespace Mediana.Codecs.Hevc
             {
                 int scaleX = component == 0 ? 1 : parameters.Sequence.SubWidthC;
                 int scaleY = component == 0 ? 1 : parameters.Sequence.SubHeightC;
-                if ((partitions is not null && !partitions.SameSlice(x * scaleX, y * scaleY, currentX * scaleX, currentY * scaleY)) ||
+                if ((partitions is not null && !partitions.SamePredictionRegion(x * scaleX, y * scaleY, currentX * scaleX, currentY * scaleY)) ||
                     (parameters.ConstrainedIntraPrediction && !blocks.IsIntra(x * scaleX, y * scaleY)))
                 {
                     return -1;

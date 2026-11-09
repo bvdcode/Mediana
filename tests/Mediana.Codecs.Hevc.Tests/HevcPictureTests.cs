@@ -17,6 +17,11 @@ namespace Mediana.Codecs.Hevc.Tests
         [InlineData("slices8", 12)]
         [InlineData("predictive10", 20)]
         [InlineData("intra8", 8)]
+        [InlineData("tiles-uniform8", 12)]
+        [InlineData("tiles-slices8", 12)]
+        [InlineData("tiles-wpp8", 12)]
+        [InlineData("tiles-slices10", 12)]
+        [InlineData("tiles-wpp10", 12)]
         public async Task PublicDecoderPreservesDisplayOrderTimingPrecisionAndIndependentPixelOwnership(string name, int count)
         {
             Assert.Equal(count, await HevcDecoderTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), name));

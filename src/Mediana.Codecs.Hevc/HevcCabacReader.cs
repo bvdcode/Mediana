@@ -13,6 +13,7 @@ namespace Mediana.Codecs.Hevc
     {
         private CabacDecoder decoder;
         private CabacContext[]? wavefrontContexts;
+        private bool hasWavefrontContexts;
         private readonly CabacContext[] contexts;
         private readonly ReadOnlyMemory<int> offsets;
         private readonly int initializationType;
@@ -30,18 +31,27 @@ namespace Mediana.Codecs.Hevc
         {
             wavefrontContexts ??= new CabacContext[contexts.Length];
             contexts.CopyTo(wavefrontContexts, 0);
+            hasWavefrontContexts = true;
+        }
+
+        public void StartTile(BitReader reader, int sliceQp)
+        {
+            decoder = new CabacDecoder(reader);
+            HevcCabacInitialization.Initialize(contexts, initializationType, sliceQp);
+            hasWavefrontContexts = false;
         }
 
         public void StartWavefrontRow(BitReader reader, int sliceQp)
         {
             decoder = new CabacDecoder(reader);
-            if (wavefrontContexts is null) { HevcCabacInitialization.Initialize(contexts, initializationType, sliceQp); }
-            else { wavefrontContexts.CopyTo(contexts, 0); }
+            if (!hasWavefrontContexts) { HevcCabacInitialization.Initialize(contexts, initializationType, sliceQp); }
+            else { wavefrontContexts!.CopyTo(contexts, 0); }
         }
 
         public void CopyWavefrontContexts(HevcCabacReader previous)
         {
             if (initializationType != previous.initializationType) { throw new InvalidOperationException("HEVC WPP rows must use the same context initialization."); }
+            if (!previous.hasWavefrontContexts) { throw new InvalidOperationException("The preceding WPP row has not stored its contexts."); }
             CabacContext[] snapshot = previous.wavefrontContexts ??
                 throw new InvalidOperationException("The preceding WPP row has not stored its contexts.");
             snapshot.CopyTo(contexts, 0);

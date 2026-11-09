@@ -57,3 +57,29 @@ display reordering, independent output leases and repeated seeks.
 - `predictive10.yuv.gz` SHA-256: `64fdb0bad38e0a53364adf5869ddafbf45b94be599f1c2c747622b083477a614`.
 - `intra8.mp4` SHA-256: `79997129ee3ad3321af270c280d3547222ed7109b66431dedd56912c6bb0a0ed`.
 - `intra8.yuv.gz` SHA-256: `3da6fdad94f7823315dbc8befadd05863793619aed3cc67cf3c0b5da8fdd7d0c`.
+
+Five synthetic 320x256, twelve-picture sequences cover HEVC tiles. Kvazaar 2.3.1
+encodes the same `testsrc2` input at six frames/second with `--qp 26 --period 6
+--gop 0 --threads 1 --owf 0`. `tiles-uniform8` uses `--tiles 2x2 --no-wpp`;
+`tiles-slices8` and `tiles-slices10` use `--tiles-width-split 64
+--tiles-height-split 64 --slices tiles --no-wpp`. `tiles-wpp8` and `tiles-wpp10`
+use `--tiles 2x2 --wpp`. The ten-bit encoder is built with `KVZ_BIT_DEPTH=10`
+and receives `--input-bitdepth 10`. MP4 is a stream copy at six frames/second
+with `hvc1` sample entries. These streams disable filtering across tile edges.
+
+The tiles-only references are FFmpeg 6.1.1 reconstructions. Combined tiles/WPP
+references use Kvazaar's `--debug` reconstruction: FFmpeg 6.1.1 differs starting
+at the second tile, while Mediana matches all sixty complete reference pictures.
+Random-order seek tests cover uniform tiles, Main10 independent tile slices and
+Main10 tiles/WPP. No input image resizing or pixel tolerance is applied.
+
+- `tiles-uniform8.mp4` SHA-256: `292a0df4235df6adb0e621d037620e4b6b3b1a63413a6148a01828cbe828baf6`.
+- `tiles-uniform8.yuv.gz` SHA-256: `a1c4f72dda294efbb3ef725ee82a121e8f41c871b3cdfe91f132fe02720915eb`.
+- `tiles-slices8.mp4` SHA-256: `a12395ac50622ff8e09d20d954594cfe5cea11829e21a8a4f84d82589963d4b8`.
+- `tiles-slices8.yuv.gz` SHA-256: `5cab67b2f4db2f76437e5dd1fa367fbc929fea97c384331bcd624ef39e36cbb3`.
+- `tiles-slices10.mp4` SHA-256: `c2b26cdbf790d1f4a96a282ba937a29c8a5936070395d7e2bc0be3a78fae26c4`.
+- `tiles-slices10.yuv.gz` SHA-256: `4fc94ca029e92dbd2ba51535437f02b67f9d515a31a31d30b297bc6da3163a9d`.
+- `tiles-wpp8.mp4` SHA-256: `0c2b375c55151fd4a312f70e746c02e0b074373859d98eca3f0ec3af25481ec1`.
+- `tiles-wpp8.yuv.gz` SHA-256: `4ae5af16a0792232238814b1234606b7b4fd5d4a20f69d05fdaeb60737568899`.
+- `tiles-wpp10.mp4` SHA-256: `19ffff11943576f85bfbd820a46d737ee0dac084057f6c61e9ea85be71279bb9`.
+- `tiles-wpp10.yuv.gz` SHA-256: `733c02fcbe2df6b62be8447e404c8d7867fc88a253d2fe3267971a04a7ad3d38`.

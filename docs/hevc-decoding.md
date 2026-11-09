@@ -29,8 +29,8 @@ suppressed according to H.265 random-access rules.
 
 The decoder supports I/P/B pictures, short/long-term reference selection,
 spatial/temporal motion prediction, merge and asymmetric partitions, explicit
-weights, fractional interpolation, transform residuals, deblocking, SAO, WPP and
-multiple independent slices. Output is in display order, with source packet PTS
+weights, fractional interpolation, transform residuals, deblocking, SAO, WPP,
+uniform/explicit tiles and multiple independent slices. Output is in display order, with source packet PTS
 and duration, conformance cropping, color labels and sample aspect ratio.
 `HevcRandomAccessInspector` validates slice headers independently of container
 key-frame flags.
@@ -88,3 +88,11 @@ process runs show no material CPU change from this storage change; whole HEVC
 decoding remains slower than FFmpeg's single-thread decoder. These figures describe
 this sequence and include owned output buffers; they are not a general throughput
 claim or a zero-allocation claim for public frame publication.
+
+Tile syntax follows H.265 sections 6.5.1, 7.4.7, 8.6 and 9.3. Coding order uses
+tile-scan addresses; container timing and output remain in picture display order.
+Each tile starts with initialized CABAC contexts and QP prediction. WPP rows
+within a tile synchronize from that tile's second CTU. Prediction and SAO merges
+cannot cross tiles; deblocking and SAO filtering respect both tile and slice
+filter flags. Entry-point offsets include encoded emulation-prevention bytes.
+The same tile geometry and entropy handling serve HEIF still-image decoding.

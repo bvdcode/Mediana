@@ -29,7 +29,7 @@ namespace Mediana.Codecs.Hevc
                 int px = x + ((i & 1) * blockSize);
                 int py = y + ((i >> 1) * blockSize);
                 int left = blocks.Mode(px - 1, py);
-                if (blocks.Partitions is not null && !blocks.Partitions.SameSlice(px - 1, py, px, py))
+                if (blocks.Partitions is not null && !blocks.Partitions.SamePredictionRegion(px - 1, py, px, py))
                 {
                     left = 1;
                 }

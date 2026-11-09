@@ -38,11 +38,12 @@ namespace Mediana.Codecs.Hevc
         };
         public PictureParameters Picture { get; private set; } = null!;
         public BitReader Reader { get; private set; } = null!;
-        public IReadOnlyList<ArraySegment<byte>> RowSubstreams { get; private set; } = Array.Empty<ArraySegment<byte>>();
+        public IReadOnlyList<ArraySegment<byte>> EntropySubstreams { get; private set; } = Array.Empty<ArraySegment<byte>>();
         public int PictureOrderCount { get; private set; }
         public HevcSliceReferences References { get; private set; } = HevcSliceReferences.Empty;
         public int StartCtbAddress { get; private set; }
-        public int EndCtbAddress { get; set; }
+        public int StartCtbAddressTs => Picture.Tiles.ToTileScan(StartCtbAddress);
+        public int EndCtbAddressTs { get; set; }
         public bool LoopFilterAcrossSlices { get; private set; }
         public int Qp { get; private set; }
         public int CbQpOffset { get; private set; }
@@ -80,7 +81,7 @@ namespace Mediana.Codecs.Hevc
                 NoOutputOfPriorPictures = noPrior,
                 Reader = reader,
                 StartCtbAddress = start,
-                EndCtbAddress = count,
+                EndCtbAddressTs = count,
                 LoopFilterAcrossSlices = picture.LoopFilterAcrossSlices,
                 DeblockingDisabled = picture.DeblockingDisabled,
                 BetaOffset = picture.BetaOffset,
@@ -90,7 +91,7 @@ namespace Mediana.Codecs.Hevc
             slice.ReadInterInformation();
             slice.ReadQuantization();
             slice.ReadFilters();
-            slice.ReadEntryPoints(nal, rows);
+            slice.ReadEntryPoints(nal);
             return slice;
         }
 
@@ -242,14 +243,14 @@ namespace Mediana.Codecs.Hevc
             }
         }
 
-        private void ReadEntryPoints(NalPayload nal, int rows)
+        private void ReadEntryPoints(NalPayload nal)
         {
             BitReader reader = Reader;
             PictureParameters picture = Picture;
             int[] entryLengths = Array.Empty<int>();
-            if (picture.EntropyCodingSync)
+            if (picture.Tiles.Enabled || picture.EntropyCodingSync)
             {
-                int entries = HevcSyntax.Ue(reader, rows - 1, "num_entry_point_offsets");
+                int entries = HevcSyntax.Ue(reader, picture.Tiles.MaximumSubstreams(picture.EntropyCodingSync) - 1, "num_entry_point_offsets");
                 entryLengths = new int[entries];
                 if (entries > 0)
                 {
@@ -273,10 +274,10 @@ namespace Mediana.Codecs.Hevc
 
             HevcSyntax.Alignment(reader);
             EntropyDataOffset = checked((int)(reader.GetBitPosition() / 8));
-            if (picture.EntropyCodingSync)
+            if (picture.Tiles.Enabled || picture.EntropyCodingSync)
             {
-                this.RowSubstreams = nal.Substreams(checked((int)(reader.GetBitPosition() / 8)), entryLengths);
-                this.Reader = new BitReader(this.RowSubstreams[0]);
+                this.EntropySubstreams = nal.Substreams(checked((int)(reader.GetBitPosition() / 8)), entryLengths);
+                this.Reader = new BitReader(this.EntropySubstreams[0]);
             }
         }
     }

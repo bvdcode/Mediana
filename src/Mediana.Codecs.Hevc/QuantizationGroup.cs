@@ -12,7 +12,7 @@ namespace Mediana.Codecs.Hevc
         private int currentQp = slice.Qp;
         private bool deltaCoded;
 
-        public void StartWavefrontRow()
+        public void ResetPredictor()
         {
             previousQp = slice.Qp;
             currentQp = slice.Qp;
