@@ -23,6 +23,23 @@ namespace Mediana.Processing
             VideoDisplayMatrix displayMatrix, int maximumWidth, int maximumHeight,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
+            return FitCore(input, colorResolver, displayMatrix, maximumWidth, maximumHeight, allocator, cancellationToken, null);
+        }
+
+        /// <summary>Fits a preview with explicit PQ/HLG tone mapping, converting only the selected pixels.</summary>
+        public static VideoFrame FitWithColorPolicy(VideoFrame input, Func<VideoFormat, VideoColorInfo>? colorResolver,
+            HdrToneMappingOptions toneMapping, VideoDisplayMatrix displayMatrix, int maximumWidth, int maximumHeight,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(toneMapping);
+            toneMapping.Validate();
+            return FitCore(input, colorResolver, displayMatrix, maximumWidth, maximumHeight, allocator, cancellationToken, toneMapping);
+        }
+
+        private static VideoFrame FitCore(VideoFrame input, Func<VideoFormat, VideoColorInfo>? colorResolver,
+            VideoDisplayMatrix displayMatrix, int maximumWidth, int maximumHeight, MediaBufferAllocator allocator,
+            CancellationToken cancellationToken, HdrToneMappingOptions? toneMapping)
+        {
             ArgumentNullException.ThrowIfNull(input);
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
@@ -30,7 +47,7 @@ namespace Mediana.Processing
                 ?? throw new NotSupportedException("A preview requires a known sample aspect ratio.");
             OrthogonalTransform orientation = OrthogonalTransform.FromMatrix(displayMatrix);
             NearestNeighborMap map = NearestNeighborMap.Fit(input.Format, aspectRatio, orientation, maximumWidth, maximumHeight);
-            return SrgbConverter.ApplyWithColorPolicy(input, colorResolver, map, SampleAspectRatio.Square, allocator, cancellationToken);
+            return SrgbConverter.ApplyWithColorPolicy(input, colorResolver, map, SampleAspectRatio.Square, allocator, cancellationToken, toneMapping);
         }
 
         /// <summary>Fits a preview using an explicit source color interpretation without changing frame metadata.</summary>

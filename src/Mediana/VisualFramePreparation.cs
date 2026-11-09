@@ -30,15 +30,27 @@ namespace Mediana
         private static VideoFrame ApplyResolved(VideoFrame input, VideoDisplayMatrix matrix, bool preserveAspect,
             VisualExportOptions options, MediaBufferAllocator allocator, CancellationToken token)
         {
-            Func<VideoFormat, VideoColorInfo>? resolver = options.ColorResolver is null ? null : Resolve;
+            Func<VideoFormat, VideoColorInfo>? resolver = options.ColorResolver is null && options.ToneMapping is null ? null : Resolve;
             if (preserveAspect && matrix == VideoDisplayMatrix.Identity &&
                 input.Format.Width <= options.MaximumWidth && input.Format.Height <= options.MaximumHeight)
-            { return SrgbConverter.ApplyWithColorPolicy(input, resolver, allocator, token); }
+            {
+                if (options.ToneMapping is HdrToneMappingOptions toneMapping)
+                { return SrgbConverter.ApplyWithColorPolicy(input, resolver, toneMapping, allocator, token); }
+                return SrgbConverter.ApplyWithColorPolicy(input, resolver, allocator, token);
+            }
+            if (options.ToneMapping is HdrToneMappingOptions previewToneMapping)
+            { return SrgbPreview.FitWithColorPolicy(input, resolver, previewToneMapping, matrix, options.MaximumWidth, options.MaximumHeight, allocator, token); }
             return SrgbPreview.FitWithColorPolicy(input, resolver, matrix, options.MaximumWidth, options.MaximumHeight, allocator, token);
 
             VideoColorInfo Resolve(VideoFormat format)
             {
-                return VideoColorPolicy.Resolve(format, options.ColorResolver!, options.WarningHandler);
+                VideoColorInfo color = options.ColorResolver is null ? format.GetColorInterpretation()
+                    : VideoColorPolicy.Resolve(format, options.ColorResolver, options.WarningHandler);
+                if (options.ToneMapping is HdrToneMappingOptions mapping && color.Transfer is TransferFunction.Pq or TransferFunction.Hlg)
+                {
+                    options.WarningHandler?.Invoke($"HDR {color.Transfer} preview uses Hable tone mapping with a {mapping.SourcePeakLuminance:G} cd/m² source peak and {mapping.TargetPeakLuminance:G} cd/m² target peak. Source metadata was not modified.");
+                }
+                return color;
             }
         }
     }

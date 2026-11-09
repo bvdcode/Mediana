@@ -20,7 +20,8 @@ namespace Mediana.Processing
         }
 
         internal static VideoFrame ApplyWithColorPolicy(VideoFrame input, Func<VideoFormat, VideoColorInfo>? colorResolver,
-            NearestNeighborMap map, SampleAspectRatio? aspectRatio, MediaBufferAllocator allocator, CancellationToken token)
+            NearestNeighborMap map, SampleAspectRatio? aspectRatio, MediaBufferAllocator allocator, CancellationToken token,
+            HdrToneMappingOptions? toneMapping = null)
         {
             ArgumentNullException.ThrowIfNull(allocator);
             token.ThrowIfCancellationRequested();
@@ -34,6 +35,10 @@ namespace Mediana.Processing
                 return ApplyRgba(input, map, aspectRatio, allocator, IccRgbTransform.Get(profile, token), token);
             }
             VideoColorInfo source = colorResolver?.Invoke(input.Format) ?? input.Format.GetColorInterpretation();
+            if (toneMapping is not null && source.Transfer is TransferFunction.Pq or TransferFunction.Hlg)
+            {
+                return Apply(input, source, map, aspectRatio, allocator, new HdrRgbTransform(source.Primaries, source.Transfer, toneMapping), token);
+            }
             return Apply(input, source, map, aspectRatio, allocator, token);
         }
 

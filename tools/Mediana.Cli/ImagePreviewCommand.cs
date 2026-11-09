@@ -36,7 +36,8 @@ namespace Mediana.Cli
                     with { Media = CommandMediaResources.OpenOptions },
                 MaximumWidth = maximumWidth,
                 MaximumHeight = maximumHeight,
-                ColorResolver = SdrPreviewColorPolicy.Resolve,
+                ColorResolver = PreviewColorPolicy.Resolve,
+                ToneMapping = new(),
                 UnspecifiedSampleAspectRatio = SampleAspectRatio.Square,
                 WarningHandler = message => logger.LogWarning("{Warning}", message)
             };

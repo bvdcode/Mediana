@@ -148,7 +148,7 @@ The image modules use their own document/component APIs instead of inventing
 video tracks for HEIF items, JBIG2 pages or vector scenes. Raster results expose
 `ToVideoFrame` for the existing processing and PNG APIs. HEIC and JPEG 2000 retain
 native color information; conversion rejects ICC profiles instead of labelling
-them sRGB. HDR tone mapping is not implemented. JPEG 2000 native component
+them sRGB. The common preview pipeline provides explicit PQ/HLG tone mapping. JPEG 2000 native component
 precision remains available separately from its optional RGBA8 preview.
 
 ```sh
@@ -1167,7 +1167,7 @@ MP4/MOV `colr` descriptions are retained separately from codec labels.
 conversion, previews and H.264 encoding use it. `nclx` declares range, while
 QuickTime `nclc` preserves the codec range. Probe displays container CICP codes or
 ICC profile declarations alongside original codec metadata. ICC transforms and
-HDR tone mapping remain separate unsupported operations. See
+HDR tone mapping are processing operations with explicit source interpretation. See
 [source color contracts](docs/architecture.md#source-color-descriptions).
 AVC stream copy to MPEG-TS/HLS writes source CICP colors into configuration and
 known in-band SPS parameters, preserving compressed pictures and other header
@@ -1193,8 +1193,9 @@ RGBA32 to straight sRGB RGBA32. It supports full/limited YCbCr range, five conve
 YCbCr matrices, all six progressive chroma locations and common D65 primaries.
 Conversion uses linear-light primary transforms and an ideal BT.1886 reference
 display for BT.709/SMPTE 240M signals; RGB excursions and the target sRGB gamut are
-clipped. Alpha, time and sample aspect ratio are preserved. HDR tone mapping and
-unknown color interpretation fail explicitly. An overload accepts an explicit source
+clipped. Alpha, time and sample aspect ratio are preserved. Default conversion rejects
+HDR and unknown color interpretation. Explicit `HdrToneMappingOptions` enable PQ/HLG
+conversion with Hable tone mapping; see [HDR previews](docs/hdr-previews.md). An overload accepts an explicit source
 color interpretation; values are not guessed from the frame size.
 The first weighted reference picture matches independent sRGB RGBA within one 8-bit
 code per channel. The numerical definitions follow [ITU H.264 Annex E](https://www.itu.int/rec/T-REC-H.264-202408-S/en),

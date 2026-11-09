@@ -25,7 +25,7 @@ conversion may finish their current synchronous stage before cancellation return
 Supported containers include `heic`/`heix`, primary images, `hvc1`, `grid`, `iden`
 and `iovl` items, auxiliary monochrome alpha, integral clean aperture, rotations
 and mirrors. HEVC supports single-layer 8/10-bit intra IDR/CRA/BLA pictures,
-monochrome and 4:2:0/4:2:2/4:4:4, independent slices, wavefront coding, scaling
+monochrome and 4:2:0/4:2:2/4:4:4, independent slices, tiles, wavefront coding, scaling
 lists, deblocking and SAO. This module does not expose a general HEVC video
 session or encode HEIC files.
 
@@ -48,8 +48,8 @@ decoder writes directly into its output frame. Both APIs require an explicit
 pixel aspect ratio and preserve `prof`/`rICC` identity, including profiles inherited
 through derived images. Use the common [ICC color conversion](icc-color.md)
 before encoding these samples as sRGB; CLI PNG conversion applies it automatically.
-HDR tone mapping, fractional clean aperture, pixel-aspect correction, HEVC inter prediction, tiles, dependent
-slices, 12-bit/multilayer coding and protected/external items are unsupported.
+PQ/HLG tone mapping is available in the common [preview pipeline](hdr-previews.md).
+Fractional clean aperture, HEVC inter prediction, dependent slices, 12-bit/multilayer coding and protected/external items are unsupported.
 
 `HeicImageDecoder.ReadInfoAsync` reads the primary image's display dimensions,
 including crop and orientation, without decoding HEVC samples. Metadata inspection
