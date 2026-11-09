@@ -1,0 +1,40 @@
+{
+  "fixtures": [
+    {
+      "name": "transients-mono",
+      "sampleRate": 48000,
+      "coreSampleRate": 24000,
+      "channels": 1,
+      "frames": 16,
+      "inputSha256": "8b406fe3616eea0d824cc83a416f937004a4ff4151cab00c6b406b91610032f4",
+      "pcmSha256": "034fc2766b6b17a6391456f9d266520d75634271be1e5d94f85c7d3254346a27",
+      "restartPacketIndex": 11,
+      "restartPcmSha256": "3e2bb1741c981a56f1330c5ec2a94720b94a0ea4a57b973f0c9c79f3622575f5",
+      "mp4Sha256": "bcc5c4943594597f524437e5fec9615e9553f276dcc0a94ba8181b57053cb254",
+      "singleRatePcmSha256": "f8528acd74999be57963989101d60791a4bb366c60a3f1399e2bef57d79c1bfd",
+      "singleRateRestartPcmSha256": "2a73e0d3131099b744864390362d11d75c6513537714e92e803ae80fb0a1391d"
+    },
+    {
+      "name": "transients-stereo",
+      "sampleRate": 48000,
+      "coreSampleRate": 24000,
+      "channels": 2,
+      "frames": 16,
+      "inputSha256": "389992fdfff773730bd6ae4c9661522cf5a3e13d81f7398748da2bfd3a41f076",
+      "pcmSha256": "15ee79ac4e2573fd877957cd4b9b54531f8932f379202c5237829a125562c640",
+      "restartPacketIndex": 11,
+      "restartPcmSha256": "e17d4d490b454e080c8d9d5564ef4075f5dfe350a80db6dfa9a85729d2545b00",
+      "mp4Sha256": "4ba717be0c1dba3c203c41adefd5820f2ea413823b36f29defe12fb4003c794c",
+      "singleRatePcmSha256": "632f710cd88597a9165d3c04eda374ca88cc4d9fdd740edd3992cd8e0b7f7dbc",
+      "singleRateRestartPcmSha256": "66aa41208c44090287247d2dc51d6730b1b34dfbe75031b4f5b3ea3bdef4391e"
+    }
+  ],
+  "audioVideoFixture": {
+    "name": "transients-av.mp4",
+    "sha256": "953b569ad3218e94d0b552d3d41f81c04d71db3183776c813703359867c2721b",
+    "videoFrames": 48,
+    "audioFrames": 46,
+    "sampleRate": 48000,
+    "channels": 2
+  }
+}

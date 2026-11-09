@@ -119,7 +119,8 @@ namespace Mediana.Tests
                         {
                             if (inspection is not null)
                             {
-                                AacAccessUnitParser.Read(packet.Data.Span, aac!.FrequencyIndex, inspection, ref noiseState, default);
+                                AacAccessUnitParser.Read(packet.Data.Span, aac!.FrequencyIndex,
+                                    aac.ExtensionSampleRate ?? aac.SampleRate * 2, inspection, ref noiseState, default);
                                 hasNoise |= inspection.Channels.Any(channel => channel.Books.Contains((byte)13));
                             }
                             Require(audioDecoder.TrySend(packet) == CodecInputStatus.Accepted);

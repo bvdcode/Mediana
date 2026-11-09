@@ -96,6 +96,29 @@ namespace Mediana.Tests
             return ebsp.ToArray();
         }
 
+        public bool Contains(ReadOnlySpan<byte> encoded)
+        {
+            List<byte> rbsp = [];
+            int zeros = 0;
+            foreach (byte value in encoded)
+            {
+                if (zeros == 2 && value == 3)
+                {
+                    zeros = 0;
+                    continue;
+                }
+                rbsp.Add(value);
+                zeros = value == 0 ? zeros + 1 : 0;
+            }
+            int remaining = CodeBits - rbsp.Count * 8;
+            if (remaining < 0)
+            {
+                throw new InvalidOperationException("The encoded arithmetic point exceeds the exact interval precision.");
+            }
+            BigInteger point = new BigInteger(rbsp.ToArray(), isUnsigned: true, isBigEndian: true) << remaining;
+            return point >= low && point < low + width;
+        }
+
         private void Normalize()
         {
             while (range < 256)

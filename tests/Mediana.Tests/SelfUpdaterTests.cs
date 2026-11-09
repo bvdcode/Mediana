@@ -26,7 +26,7 @@ namespace Mediana.Tests
             byte[] original = await File.ReadAllBytesAsync(installed);
             using UpdateHttpHandler handler = Handler(latestVersion, Executable(latestVersion));
             await UpdateAsync(handler, installed, checkOnly);
-            Assert.Equal(3, handler.RequestCount);
+            Assert.Equal(1, handler.RequestCount);
             Assert.Equal(original, await File.ReadAllBytesAsync(installed));
             Assert.Single(Directory.GetFiles(directory));
         }
@@ -96,7 +96,8 @@ namespace Mediana.Tests
             byte[] original = await File.ReadAllBytesAsync(installed);
             byte[] payload = Executable("1.2.3");
             string name = ReleaseAssets.GetName(ReleaseAssets.CurrentPlatform, new Version(1, 2, 3));
-            UpdateTestRelease release = new(payload) { ChecksumOverride = new string('0', 64) + "  " + name };
+            UpdateTestRelease release = new(payload);
+            release.Manifest["assets"]!.AsArray().Single(asset => asset!["name"]!.GetValue<string>() == name)!["sha256"] = new string('0', 64);
             using UpdateHttpHandler handler = new(release);
             await Assert.ThrowsAsync<InvalidDataException>(() => UpdateAsync(handler, installed));
             Assert.Equal(original, await File.ReadAllBytesAsync(installed));
@@ -144,7 +145,7 @@ namespace Mediana.Tests
         private static async Task UpdateAsync(UpdateHttpHandler handler, string installed, bool checkOnly = false, CancellationToken token = default)
         {
             using HttpClient http = new(handler);
-            SelfUpdater updater = new(new GitHubReleaseClient(http, ReleaseAssets.CurrentPlatform, new UpdateRetryPolicy(NullLogger.Instance)),
+            SelfUpdater updater = new(new ReleaseClient(http, ReleaseAssets.CurrentPlatform, new UpdateRetryPolicy(NullLogger.Instance)),
                 new UpdateInstaller(NullLogger.Instance), NullLogger.Instance);
             await updater.UpdateAsync(installed, checkOnly, token);
         }

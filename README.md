@@ -5,7 +5,7 @@ Its media implementation is written in C#, with no FFmpeg, external media proces
 native media libraries, or third-party runtime packages.
 
 The current implementation is experimental. It reads metadata and compressed packets from
-non-fragmented MP4/MOV/M4A files containing AVC, HEVC, MPEG-4 Visual, AAC or MP3 tracks. The MP4 reader also
+non-fragmented MP4/MOV/M4A files containing AVC, HEVC, AV1, MPEG-4 Visual, AAC, MP3 or AC-3/E-AC-3 tracks. The MP4 reader also
 exposes movie-level iTunes/indexed metadata and original encoded cover art. The H.264 source module
 connects CAVLC and CABAC I/P/B decoding to public video sessions and returns cropped YUV frames.
 The HEVC module decodes Main/Main10 I/P/B pictures to native eight/ten-bit YUV, including indexed seek in MP4 and Matroska.
@@ -13,8 +13,11 @@ The sample can extract a supported video frame, convert SDR color to sRGB, corre
 the sample aspect ratio and right-angle orientation, and save a PNG preview.
 An experimental MPEG-TS source module packages AVC/AAC/MP3 access units without decoding.
 The WAVE and PCM source modules read integer/float audio through public audio sessions.
-The AAC source module decodes AAC-LC configurations 1–7 from MP4/M4A to float PCM
-and encodes contiguous mono/stereo PCM as experimental AAC-LC access units.
+The AAC source module decodes AAC-LC configurations 1–7 and mono/stereo HE-AAC
+from MP4/M4A and standalone ADTS. SBR and parametric stereo support single-rate
+and dual-rate synthesis. It encodes contiguous mono/stereo PCM as experimental
+AAC-LC access units. AC-3/E-AC-3 decoding includes dependent channel composition
+and indexed raw/MP4 input.
 Independent source modules also decode HEIC/HEIF still images, JPEG 2000 and JBIG2,
 and rasterize SVG and TGS/Lottie 2D animation. Their output connects to Mediana
 frames, SDR color conversion and PNG encoding. These modules compile inside
@@ -32,11 +35,14 @@ enable the optional resource module through the same public API.
 STL, OBJ and 3MF models can be loaded and rendered to PNG with configurable
 camera, material, shadows and ambient occlusion. See [Mesh APIs and previews](docs/mesh.md).
 Experimental fixed-QP H.264 I/P encoding and YUV downscaling are available.
+H.264 encoding offers [Baseline CAVLC and Main CABAC entropy modes](docs/h264-cabac-encoding.md).
 Experimental AAC-LC audio encoding to MPEG-TS selects long/short windows for
 transients; perceptual allocation remains open. HLS variants can copy or encode audio.
 
 [Indexed audiovisual operations, codec coverage and measured costs](docs/media-capabilities.md)
 describe the common library pipeline and current verification.
+The [complete HLS codec cycles](docs/hls-codec-roundtrip.md) include independent
+playback, out-of-order requests, two-minute audio synchronization and bounded cold reads.
 
 ## Components
 
@@ -63,13 +69,15 @@ describe the common library pipeline and current verification.
 | `Mediana.Core` | Rational time, stream metadata, packets, video/PCM frames, buffer ownership and allocation budgets |
 | `Mediana.IO` | Sequential and random access byte sources, stream ownership and probe replay |
 | `Mediana.Containers` | Reader/writer factory contracts and explicit writer finalization |
-| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/VP8/VP9/AAC/MP3 packet mapping](docs/matroska-ebml.md) |
-| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/MPEG-4 Visual/AAC/MP3 packet reading |
+| `Mediana.Containers.Matroska` | [Indexed MKV/MKA reading, native metadata and AVC/HEVC/AV1/VP8/VP9/AAC/MP3/AC-3 packet mapping](docs/matroska-ebml.md) |
+| `Mediana.Containers.Mp4` | Non-fragmented MP4/MOV/M4A metadata, original cover art and AVC/HEVC/AV1/MPEG-4 Visual/AAC/MP3/AC-3/E-AC-3 packet reading |
 | `Mediana.Containers.Avi` | Indexed RIFF/AVI and OpenDML MJPEG/MPEG-4 Visual/PCM input ([API](docs/avi.md)) |
 | `Mediana.Containers.Wave` | Sequential RIFF/WAVE integer/float PCM reading |
 | `Mediana.Containers.Aiff` | Sequential mono/stereo AIFF and supported AIFF-C PCM reading |
 | `Mediana.Containers.Flac` | Native FLAC STREAMINFO, Vorbis comments, original pictures and compressed chunks |
 | `Mediana.Containers.Mp3` | MPEG Layer III frames, ID3 text and original pictures, Xing/Info and coded timing |
+| `Mediana.Containers.Adts` | Streaming/indexed ADTS transport reading, CRC, multiple AAC blocks and exact core sample clocks |
+| `Mediana.Containers.Ac3` | Indexed raw AC-3/E-AC-3 frame sets, exact sample clocks and opening channel metadata |
 | `Mediana.Containers.Ogg` | Ogg Theora/Opus/Vorbis packets, comments, granule clocks and indexed seek ([API](docs/ogg-reading.md)) |
 | `Mediana.Codecs.Opus` | Managed SILK/CELT/hybrid PCM, multistream, gain and seek priming ([API](docs/opus-decoding.md)) |
 | `Mediana.Codecs.Vorbis` | Managed Vorbis I PCM, all floors/residues, multichannel coupling and indexed seek ([API](docs/vorbis-decoding.md)) |
@@ -78,7 +86,9 @@ describe the common library pipeline and current verification.
 | `Mediana.Codecs` | Separate input/output codec protocol and video/audio decoder/encoder factories |
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
-| `Mediana.Codecs.Aac` | AAC-LC decoding through 7.1 wide and experimental mono/stereo encoding with automatic long/short windows |
+| `Mediana.Codecs.Aac` | AAC-LC through 7.1 wide, mono/stereo SBR, parametric stereo and experimental mono/stereo AAC-LC encoding ([HE-AAC](docs/he-aac-decoding.md)) |
+| `Mediana.Codecs.Ac3` | Managed AC-3/E-AC-3 transforms, coupling, spectral extension, transient processing and dependent channels ([API](src/Mediana.Codecs.Ac3/README.md)) |
+| `Mediana.Codecs.Av1` | Managed eight-bit Main intra/compound inter reconstruction, loop filters and indexed MP4/Matroska input ([coverage](src/Mediana.Codecs.Av1/README.md)) |
 | `Mediana.Codecs.Mpeg4Visual` | Managed MPEG-4 Part 2 I/P/B video, half/quarter-pixel motion and indexed AVI/MP4 seeking ([API](docs/mpeg4-visual.md)) |
 | `Mediana.Codecs.Vp8` | Managed VP8 video, planar references and indexed WebM seeking ([API](docs/vp8.md)) |
 | `Mediana.Codecs.Theora` | Managed Theora video, native planar sampling and indexed Ogg seeking ([API](docs/theora.md)) |
@@ -227,8 +237,9 @@ are points (1/72 inch); animation metadata includes duration and frame rate. Ima
 inspection reads bounded input and does not decode pixel data. Conversion options
 require an output path.
 
-CLI image inspection and conversion do not impose fixed megabyte or megapixel
-budgets. Image buffers must fit the runtime's managed-array length, and processing
+CLI inspection, audio/video conversion and HLS commands use shared resource
+settings without fixed megabyte or megapixel budgets. Individual buffers must
+fit the runtime's managed-array length, and processing
 requires enough available memory. Library applications can configure input,
 pixel and allocation budgets for their own workloads.
 
@@ -522,9 +533,16 @@ configuration, with unique instance tags per type that remain stable until reset
 
 All eleven spectral codebooks, escape values, scalefactors, pulse data, long/short
 sine/KBD windows, TNS, perceptual noise substitution, M/S and intensity stereo
-are implemented. HE-AAC/SBR, spatial extensions, dynamic-range extensions,
+are implemented. Mono/stereo SBR and mono-core parametric stereo reconstruct
+high-frequency and stereo output through persistent filterbanks. Single-rate
+output contains 1024 samples per channel; dual-rate output contains 2048.
+`AacConfiguration` retains core parameters while `AudioFrame.Format` describes
+the actual output. See [HE-AAC signaling, recovery and verification](docs/he-aac-decoding.md).
+Other spatial extensions, dynamic-range extensions,
 coupling/program-configuration elements, 960-sample
-frames and 7350 Hz are unsupported. The module does not read ADTS or ADIF files.
+frames and 7350 Hz are unsupported. Standalone ADTS input uses
+`Mediana.Containers.Adts`; see [ADTS reading](docs/adts-reading.md).
+ADIF input is not implemented.
 Unsupported tools and malformed input fail explicitly; failure or cancellation
 requires reset or disposal. Reset clears overlap and noise state, so continuous
 output requires decoding the preceding packets. The default access-unit byte
@@ -1080,8 +1098,10 @@ the [QuickTime matrix definition](https://developer.apple.com/documentation/quic
 
 Fragmented files, encrypted/external data, compressed QuickTime headers, multiple
 sample descriptions and other sample/handler types fail explicitly. The current
-sample entries are avc1/avc3 and version-zero mp4a with AAC object type 2, 5 or 29,
-or MPEG-1/2 Layer III under ES object type indication 0x6B/0x69.
+sample entries include avc1/avc3, hvc1/hev1, av01, mp4v, ac-3/ec-3 and
+mp4a with AAC object type 2, 5 or 29, or MPEG-1/2 Layer III under ES object
+type indication 0x6B/0x69. Supported QuickTime audio entry versions preserve
+their version-specific declarations.
 Empty samples, sample sizes above 2 GiB and time scales above Int32.MaxValue are
 unsupported. Metadata, codec configuration, boxes, tracks, samples and edits have
 configurable limits through Mp4ReadOptions.
@@ -1234,15 +1254,22 @@ sRGB RGBA32. The sample uses this combined path. Separate color conversion and
 geometry operations remain available. The explicit-source-color overload accepts
 an application interpretation while preserving the original frame metadata.
 
-The CLI video preview commands infer missing SDR color labels and log the chosen
-values once. Explicit decoder labels take precedence. Missing primaries or matrix
+The CLI preview commands use an explicit compatibility policy for missing SDR
+color labels and log the chosen values once per configured source format. Explicit decoder labels take precedence. Missing primaries or matrix
 first use the declared matrix or primaries when available; otherwise SD storage
 up to 1024x576 uses BT.601 (SMPTE 170M at up to 480 lines, BT.470BG above 480),
 and larger storage uses BT.709. Missing SDR transfer uses BT.709; straight RGB
-uses sRGB defaults. This is a preview policy, not a measurement of the source
-color space. Range, chroma location and sample aspect ratio still come from the
-decoder. The library conversion APIs require explicit color interpretation.
-PQ/HLG input still requires tone mapping.
+uses sRGB defaults. Missing planar-YUV chroma location uses left siting with a
+warning. These are application interpretations of missing labels. Declared range,
+chroma location and sample aspect ratio retain their decoder values. Library
+conversion and video preparation remain strict unless a caller selects a policy;
+`VideoPreparationOptions.ColorResolver` uses the same mechanism for file and HLS
+processing. Their CLI policy resolves missing YUV chroma siting while preserving
+native colorimetry, including HDR labels. RGB-to-YUV conversion uses the SDR color
+interpretation. Explicit `SourceColorInterpretation` takes precedence over a resolver.
+CLI H.264 output explicitly selects YUV420P8 and warns once when source precision
+is reduced. The library preserves source precision unless the caller selects a target format.
+PQ/HLG previews still require tone mapping.
 
 DisplayResize.Fit uses storage width times SAR and the storage height as the
 unscaled display size, fits within the requested box without enlargement, rounds to
@@ -1747,7 +1774,7 @@ variant. Distinct AAC bitrates have separate audio groups. Completed media
 playlists use the same measured target duration and corresponding bitrate window.
 
 Each variant contains IDR-aligned TS segments and a VOD
-media playlist. The master playlist records actual peak/average transport bitrates
+media playlist. The master playlist records measured peak/average transport bitrates
 and the video/audio codec identifiers. Only video-only output declares independent
 segments. Copy mode preserves original audio bytes and linear-movie timing.
 AAC encoding applies the exact input MP4 sample edit, preserves its movie origin
@@ -1760,6 +1787,14 @@ Segment timelines must match across variants. Output
 is prepared in one temporary directory and published together after completion;
 errors or cancellation remove it. The library also exposes `AvcHlsWriter` for
 streaming encoded packets without a source-container dependency.
+
+Peak bandwidth normally follows the contiguous-segment window in
+[RFC 8216 section 4.1](https://www.rfc-editor.org/rfc/rfc8216.html#section-4.1).
+For a presentation shorter than half `TARGETDURATION`, that window is undefined.
+The CLI estimates `BANDWIDTH` from the largest complete-segment bitrate and logs
+a warning; average bandwidth still uses the whole presentation. Library clients
+can select this behavior through `HlsBandwidthOptions.PeakMode` on
+`HlsWriteOptions` or `HlsRenditionOptions`. Their default requires an eligible RFC window.
 
 The current mode uses I/P video with IDRs aligned to segment targets. Optional
 per-variant video packet rates use adaptive QP; otherwise QP is fixed. Full HRD

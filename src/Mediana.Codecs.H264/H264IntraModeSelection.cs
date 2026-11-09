@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+
 namespace Mediana.Codecs.H264
 {
     internal static class H264IntraModeSelection
@@ -13,26 +16,30 @@ namespace Mediana.Codecs.H264
             Span<byte> candidate = stackalloc byte[16];
             (bool hasTop, bool hasLeft, byte? corner) = target.ReadLumaNeighbours(x, y, 4, top, left);
             H264Residuals.CopyPrediction(input, 16, 0, 0, source);
+            Vector128<byte> sourcePixels = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(source));
             int predicted = target.PredictedMode(x, y);
             int best = int.MaxValue;
             int selected = 2;
-            for (int mode = 0; mode < 9; mode++)
+            for (int order = 0; order < 10; order++)
             {
-                if (!H264IntraPrediction.IsLumaModeAvailable(mode, hasTop, hasLeft, corner is not null))
+                int mode = order == 0 ? predicted : order - 1;
+                if ((order != 0 && mode == predicted) ||
+                    !H264IntraPrediction.IsLumaModeAvailable(mode, hasTop, hasLeft, corner is not null))
                 {
                     continue;
                 }
                 H264IntraPrediction.Luma4x4(mode, hasTop ? top : [], hasLeft ? left : [], corner, candidate);
-                int difference = 0;
-                for (int index = 0; index < 16; index++)
-                {
-                    difference += Math.Abs(source[index] - candidate[index]);
-                }
+                int difference = H264SampleDifference.Sum16(sourcePixels,
+                    Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(candidate)));
                 if (difference < best || (difference == best && mode == predicted))
                 {
                     best = difference;
                     selected = mode;
                     candidate.CopyTo(prediction);
+                    if (difference == 0)
+                    {
+                        return selected;
+                    }
                 }
             }
             return selected;

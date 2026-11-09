@@ -85,8 +85,11 @@ namespace Mediana.Tests
         [Theory]
         [InlineData("1188", "FFF14C40015FFC010203")]
         [InlineData("118856E500", "FFF14C40015FFC010203")]
+        [InlineData("118856E580", "FFF14C40015FFC010203")]
+        [InlineData("2B098800", "FFF15840015FFC010203")]
+        [InlineData("2B118800", "FFF15880015FFC010203")]
         [InlineData("1210", "FFF15080015FFC010203")]
-        public void AacLcFramingMatchesLiteralAdtsHeader(string configuration, string expected)
+        public void AacFramingUsesTheCoreFrequencyForLiteralAdtsHeaders(string configuration, string expected)
         {
             AacAdtsConverter framing = new(Convert.FromHexString(configuration));
             MediaBufferAllocator allocator = new(1024);
@@ -98,13 +101,15 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData("2988")]
         [InlineData("118C")]
         [InlineData("1180")]
-        [InlineData("118856E580")]
         [InlineData("118800")]
         public void AacRejectsUnsupportedObjectTypesFrameSizesAndExtensions(string configuration) =>
             Assert.Throws<NotSupportedException>(() => new AacAdtsConverter(Convert.FromHexString(configuration)));
+
+        [Fact]
+        public void TruncatedExplicitSbrConfigurationIsMalformed() =>
+            Assert.Throws<InvalidDataException>(() => new AacAdtsConverter(Convert.FromHexString("2988")));
 
         [Fact]
         public void AdtsLengthLimitIsExactAndFailuresReleaseStorage()

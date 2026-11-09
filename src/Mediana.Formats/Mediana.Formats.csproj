@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <InternalsVisibleTo Include="Mediana.Codecs.Aac" />
     <InternalsVisibleTo Include="Mediana.Codecs.Opus" />
+    <InternalsVisibleTo Include="Mediana.Codecs.Ac3" />
     <InternalsVisibleTo Include="Mediana.Codecs.Vorbis" />
     <InternalsVisibleTo Include="Mediana.Codecs.Vorbis.Tests" />
     <InternalsVisibleTo Include="Mediana.Codecs.Tiff" />

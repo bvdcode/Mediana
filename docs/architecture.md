@@ -175,6 +175,16 @@ structural scanning; that cost belongs to opening the container. Image readers m
 retains its own parsing-work limits. A successful probe describes declared metadata
 and does not guarantee support for every encoded feature.
 
+`MediaInfo.StreamMetadata` contains typed opening audio/video parameters separately
+from native property scopes. Registered codec readers inspect configuration first.
+Containers may expose `IContainerStreamMetadataProvider` for facts already established
+while reading framing or headers, without another source read. For example, an
+E-AC-3 frame set can establish a channel union that its independent syncframe alone
+does not describe. When neither source establishes parameters, a registered
+`IPacketPrefixMetadataReader` can inspect a bounded prefix through
+`IIndexedPacketPrefixReader`. Every path checks the stream's media kind and preserves
+packet cursors; decoding and CLI format branches are not involved.
+
 `MediaInfo.Metadata` is the common extensible property tree for every representation.
 Each `MediaMetadata` scope contains namespaced `MediaProperty` entries and child
 scopes: for example, pages, streams, slides, components or native Exif directories.

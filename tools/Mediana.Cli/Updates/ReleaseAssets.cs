@@ -7,7 +7,7 @@ namespace Mediana.Cli.Updates
 {
     internal static class ReleaseAssets
     {
-        public const string Repository = "bvdcode/Mediana";
+        public static readonly Uri BaseUrl = new("https://releases.splidex.com/mediana/");
 
         public static ReleasePlatform CurrentPlatform =>
             (OperatingSystem.IsWindows(), OperatingSystem.IsLinux(), OperatingSystem.IsMacOS(), RuntimeInformation.ProcessArchitecture) switch

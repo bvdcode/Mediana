@@ -8,6 +8,7 @@ namespace Mediana.Containers.Mp4
         public override uint TrackId => reader.Tracks[range.StreamIndex].TrackId;
         public override ulong DecodeTime => checked((ulong)reader.GetFragmentSample(range.StreamIndex, range.FirstSample, default).DecodeTime);
         public override int SampleCount => range.SampleCount;
+        public override Mp4RecoveryDescription? Recovery => null;
 
         public override Mp4FragmentSample GetSample(int index, CancellationToken token)
         {

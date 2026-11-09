@@ -8,6 +8,7 @@ namespace Mediana.Containers.Mp4
         public abstract uint TrackId { get; }
         public abstract ulong DecodeTime { get; }
         public abstract int SampleCount { get; }
+        public abstract Mp4RecoveryDescription? Recovery { get; }
         public abstract Mp4FragmentSample GetSample(int index, CancellationToken token);
     }
 }

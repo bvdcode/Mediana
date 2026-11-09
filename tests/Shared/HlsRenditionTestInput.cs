@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.CompilerServices;
 using Mediana.Codecs.Aac;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
+using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.Core.Video;
 using Mediana.IO;
 using Mediana.Streaming.Hls;
 
@@ -52,6 +55,38 @@ namespace Mediana.Tests
             Require(rejected && allocator.AllocatedBytes == 0 && output.Playlists.Count == 0 && (await source.ReadAtAsync(0, new byte[1]) == 1));
             await session.DisposeAsync();
             Require(session.AllocatedBufferBytes == 0);
+        }
+
+        internal static async Task VerifyOverlappingDurationsAsync(string root)
+        {
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, "avc-multislice-cabac.mp4")));
+            await using VideoSession session = await Engine().OpenVideoAsync(source);
+            EncodedStreamInfo original = session.Stream;
+            EncodedStreamInfo stream = new(original.StreamIndex, original.Kind, original.CodecId, original.Format,
+                new(1, 3000), original.Configuration.Span, original.DisplayMatrix);
+            MediaBufferAllocator allocator = new(32 * 1024 * 1024);
+            HlsPackageTestOutput output = new();
+            List<HlsEncodingProgress> progress = [];
+            HlsEncodingResult result = await HlsRenditionEncoder.EncodeAsync(ReadOverlappingAsync(session), stream, output,
+                Options, allocator, progress: progress.Add);
+            Require(result.InputFrames == 3 && result.SegmentsPerRendition == 2 && output.Segments.Count == 4);
+            Require(progress[^1].Completed && progress[^1].ProcessedDuration is MediaDuration duration &&
+                new MediaTimestamp(duration.Value, duration.TimeBase) == new MediaTimestamp(2998, new(1, 3000)));
+            Require(allocator.AllocatedBytes == 0);
+            using (VideoFrame? remaining = await session.ReadFrameAsync()) { Require(remaining is not null); }
+            await session.DisposeAsync();
+            Require(session.AllocatedBufferBytes == 0 && await source.ReadAtAsync(0, new byte[1]) == 1);
+        }
+
+        private static async IAsyncEnumerable<VideoFrame> ReadOverlappingAsync(VideoSession session,
+            [EnumeratorCancellation] CancellationToken token = default)
+        {
+            for (int index = 0; index < 3; index++)
+            {
+                using VideoFrame frame = await session.ReadFrameAsync(token)
+                    ?? throw new InvalidDataException("The timing test source ended before its selected frames.");
+                yield return frame.WithTiming(new(index * 999, new(1, 3000)), new(1000, new(1, 3000)));
+            }
         }
 
         internal static async Task VerifySeparateAudioAsync(string root)

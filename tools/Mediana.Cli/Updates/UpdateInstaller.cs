@@ -9,7 +9,7 @@ namespace Mediana.Cli.Updates
 {
     internal class UpdateInstaller(ILogger logger)
     {
-        public async Task InstallAsync(string executablePath, string stagedPath, GitHubRelease release, CancellationToken token)
+        public async Task InstallAsync(string executablePath, string stagedPath, UpdateRelease release, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             if (OperatingSystem.IsLinux() || OperatingSystem.IsMacOS())

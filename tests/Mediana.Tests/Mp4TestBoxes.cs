@@ -27,7 +27,10 @@ namespace Mediana.Tests
             while (position < data.Length)
             {
                 int length = checked((int)UInt32(data, position));
-                Assert.InRange(length, 8, data.Length - position);
+                if (length < 8 || length > data.Length - position)
+                {
+                    throw new InvalidDataException("The test MP4 box extends beyond its enclosing region.");
+                }
                 boxes.Add((Encoding.ASCII.GetString(data.Span.Slice(position + 4, 4)), data.Slice(position + 8, length - 8)));
                 position += length;
             }

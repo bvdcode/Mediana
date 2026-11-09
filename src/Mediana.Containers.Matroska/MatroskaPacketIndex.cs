@@ -47,7 +47,7 @@ namespace Mediana.Containers.Matroska
         public int ClusterCount { get { EnsureReadable(); return clusters.Count; } }
         public int TrackCount { get { EnsureReadable(); return tracks.Length; } }
 
-        internal WritableMediaBuffer AllocatePresentationStorage(int length)
+        internal WritableMediaBuffer AllocatePacketMetadataStorage(int length)
         {
             EnsureReadable();
             return budget.Allocate(length);
@@ -155,6 +155,22 @@ namespace Mediana.Containers.Matroska
             }
             MatroskaTrackBlock location = track.Blocks.Get(low);
             return new(location.BlockIndex, checked((int)(packetIndex - location.FirstPacketIndex)));
+        }
+
+        internal long GetPacketIndex(MatroskaPacketAddress address)
+        {
+            MatroskaIndexedBlock block = GetBlock(address.BlockIndex);
+            ArgumentOutOfRangeException.ThrowIfNegative(address.FrameIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(address.FrameIndex, block.FrameCount);
+            MatroskaTrackIndex track = tracks[block.StreamIndex];
+            int low = 0, high = track.Blocks.Count;
+            while (low + 1 < high)
+            {
+                int middle = low + (high - low) / 2;
+                if (track.Blocks.Get(middle).BlockIndex <= address.BlockIndex) { low = middle; }
+                else { high = middle; }
+            }
+            return checked(track.Blocks.Get(low).FirstPacketIndex + address.FrameIndex);
         }
 
         private MatroskaTrackIndex GetTrack(int streamIndex)

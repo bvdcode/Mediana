@@ -347,3 +347,77 @@ the independent 1,992,038,400-byte raw reference; every encoded output matches
 the independent 78,332,832-byte transport reference. Neither diagnostic changes
 the production reconstruction pipeline or establishes a memory improvement,
 new FFmpeg ratio or complete-film HLS improvement.
+
+## Reusing interpolation across a reference picture
+
+The encoder prepares padded integer samples and the three half-pixel luma
+planes once per reference picture. Macroblock searches share those planes;
+six intermediate filter rows are kept in a duplicated ring rather than a
+second full picture. Integer diamond search also avoids revisiting its
+immediately preceding center. Motion candidates, SAD comparisons, tie ordering,
+quantization and output syntax remain unchanged.
+
+At 1280x720 with a 16-sample motion range, the additional allocator-owned
+storage is 3.81 MiB. It is reused between pictures and released on completion,
+reset, disposal and failure. Independent scalar convolution checks cover all
+fractional positions, picture borders, three search ranges and repeated reuse.
+Both search paths also match the independent motion-vector reference cases.
+
+Complete Native AOT encoding uses three progressive YUV420 inputs at QP 26,
+24 fps and a 48-picture keyframe interval. Each input is run in
+before/after/after/before order, with CPU affinity and one reported processor.
+Every resulting transport is byte-identical to its preceding implementation,
+reaches EOF and releases all owned media storage.
+
+| Input | Pictures | Before CPU range, s | After CPU range, s |
+| --- | ---: | ---: | ---: |
+| Natural video, 1280x720 | 288 | 6.350–7.474 | 5.759–6.283 |
+| Moving test pattern, 640x360 | 192 | 0.929–1.035 | 0.888–0.910 |
+| Static vector-like image, 1280x720 | 192 | 1.902–1.914 | 1.812–1.850 |
+
+These observations come from a shared host and do not establish a universal
+speedup. Natural-video peak RSS rises from 36.3–36.5 to 46.3–55.5 MiB;
+the static case rises from about 37.5 to 55.5 MiB. Cumulative allocation
+increases by approximately the prepared storage capacity, rather than once
+per picture. Measurements include input buffers and transport output.
+The change improves repeated interpolation work; H.264 rate-distortion
+performance and the remaining x264 CPU gap are separate open comparisons.
+
+## Small-block intra prediction
+
+Vertical and horizontal predictions now copy or fill complete rows. DC luma
+prediction computes its mean once per block rather than once per pixel.
+Intra4x4 mode comparison uses the existing 16-byte SIMD SAD operation and
+preserves the predicted-mode tie rule. These changes add no picture storage
+and apply to both encoding and decoding prediction.
+
+All three complete Native AOT encoding controls above retain exactly the same
+transport bytes. With the prepared-reference implementation as the control,
+paired CPU observations are 5.349–5.865 versus 5.428–5.693 seconds for natural
+video, 0.859 versus 0.840–0.843 for motion, and 1.836–1.858 versus 1.718–1.794
+for the static image. The natural-video result is within host variability;
+these checks establish correctness and reduced redundant computation rather
+than a large overall encoding improvement.
+
+## Exact intra prediction matches
+
+Intra4x4 selection evaluates the predicted mode first, followed by the remaining
+modes in ascending order. A zero SAD then ends selection immediately. This
+preserves both the minimum-error result and the predicted-mode tie rule, while
+avoiding unnecessary directional predictions on exactly predicted blocks.
+
+Independent scalar selection checks cover 2,304 combinations of predicted
+modes, directional matches, random pixels and flat ties. Focused managed and
+software-only tests pass. Complete Native AOT controls use the same three
+inputs and settings as above, in before/after/after/before order.
+
+| Input | Before CPU range, s | After CPU range, s |
+| --- | ---: | ---: |
+| Natural video, 1280x720 | 6.359–6.498 | 6.068–6.104 |
+| Moving test pattern, 640x360 | 1.080–1.325 | 1.013–1.374 |
+| Static vector-like image, 1280x720 | 1.980–2.098 | 1.817–1.996 |
+
+Every transport remains byte-identical and every operation releases owned
+media storage at EOF. The motion case does not establish a CPU improvement;
+shared-host variability prevents a universal speedup claim. The change adds
+no persistent storage and does not change compression quality or size.

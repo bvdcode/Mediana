@@ -1,0 +1,156 @@
+[
+  {
+    "case": "cabac-rd-0-qp0",
+    "frames": 80,
+    "mode": 0,
+    "quantizer": 0,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "da0b3923b2ae061f26d4a17010f0bbaf928cc33616cb7d6fd8c117b3515109ae",
+    "pixels_sha256": "a0a9a75db809fed935e3bd65a4674f6d9dbf4917f859f1032d9fea00e931f142",
+    "pixels_bytes": 122880
+  },
+  {
+    "case": "cabac-rd-0-qp26",
+    "frames": 80,
+    "mode": 0,
+    "quantizer": 26,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "6bd3da633c1624ca607ac51ac77bfed0b9e9800ed825cd95f0b69bb80f5914c1",
+    "pixels_sha256": "5656772168c0a4b88672ad4dd2eaf1056419d3be4effc7ded1282f9ad6162dad",
+    "pixels_bytes": 122880
+  },
+  {
+    "case": "cabac-rd-1-qp0",
+    "frames": 80,
+    "mode": 1,
+    "quantizer": 0,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "57fad3f0a52782a06a900c801b0565d65a97f01ddeb914cde76c73d6b55b3caf",
+    "pixels_sha256": "2c89911705fe37663b411f63d68abd61caf7dbff78e3b3e713dd0e66ea609d00",
+    "pixels_bytes": 187680
+  },
+  {
+    "case": "cabac-rd-1-qp12",
+    "frames": 80,
+    "mode": 1,
+    "quantizer": 12,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "bc6336745dadd305c8f83ceca4ce69d886ad6905335e05c3abe042ef9bdc965d",
+    "pixels_sha256": "d498df29add95a3c1108a50ec51ec5140397f141fcdb429d869c499e8829b549",
+    "pixels_bytes": 187680
+  },
+  {
+    "case": "cabac-rd-1-qp26",
+    "frames": 80,
+    "mode": 1,
+    "quantizer": 26,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "02c3ac8ca2092813094bec89c20c897897e284f5f0338e410379d4a3220002d6",
+    "pixels_sha256": "2b997aa19054252da2d4c7c950031b61af5e2dc53f685bfc127b21c475deef2c",
+    "pixels_bytes": 187680
+  },
+  {
+    "case": "cabac-rd-1-qp38",
+    "frames": 80,
+    "mode": 1,
+    "quantizer": 38,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "b6d69d01c472361ac076d4b40805661d6226d659ee401a8906abbe3e0afce02f",
+    "pixels_sha256": "1ec0e3f5506b84cc524cc068adf4c05693f8f54fa83fd52320b391c824339c5b",
+    "pixels_bytes": 187680
+  },
+  {
+    "case": "cabac-rd-1-qp51",
+    "frames": 80,
+    "mode": 1,
+    "quantizer": 51,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "51490bf5184c734b610d06921de54b4e028c30038a0a47ac67714aef0ab7a07f",
+    "pixels_sha256": "6e7b9d8056d8dc2243d3d7751ace3f5a71f675a0575d1b69cf632cb3be3bdfcf",
+    "pixels_bytes": 187680
+  },
+  {
+    "case": "cabac-rd-2-qp0",
+    "frames": 80,
+    "mode": 2,
+    "quantizer": 0,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "c63c7055bde98c8bb58c21f9c8c3b86caa733951399f39ce60341efa39d26033",
+    "pixels_sha256": "81a93a24511402afc4c7687edd6ab264c6f5ba5a65494a6574c5c83c3ba7cec0",
+    "pixels_bytes": 184320
+  },
+  {
+    "case": "cabac-rd-2-qp26",
+    "frames": 80,
+    "mode": 2,
+    "quantizer": 26,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "95d5e25a4eed96f50ce6caae18dd5eff745b09dd8326f76261de14f8627dc936",
+    "pixels_sha256": "766353ae2bf3cdc299cedb60888894efa81c2dde6ed9cd3515fc7cc3fbfb3018",
+    "pixels_bytes": 184320
+  },
+  {
+    "case": "cabac-rd-2-qp51",
+    "frames": 80,
+    "mode": 2,
+    "quantizer": 51,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "0026ed7bcfdbd248106d320b1bd0e69458a4135e400fb78965c7881b62acb155",
+    "pixels_sha256": "af19f8f0128d0dc8d161580aba11584abc10d367b043f039d2a835aef70a352f",
+    "pixels_bytes": 184320
+  },
+  {
+    "case": "cabac-rd-3-qp26",
+    "frames": 80,
+    "mode": 3,
+    "quantizer": 26,
+    "bit_rate": 0,
+    "buffer_ms": 0,
+    "transport_sha256": "5262d696ba161b990c40ed5c0a1265f27888e60112ad65a9bd6368b5ace6295d",
+    "pixels_sha256": "ceef37f7532a36af7b45fea532658a10bfe379f0c100ee6455e770e65ae88072",
+    "pixels_bytes": 204000
+  },
+  {
+    "case": "cabac-rd-1-qp0-32000",
+    "frames": 80,
+    "mode": 1,
+    "quantizer": 0,
+    "bit_rate": 32000,
+    "buffer_ms": 200,
+    "transport_sha256": "b67ae9670995016222c9a86d464de34181bb14fda2e4621fb6814d0a0214c79f",
+    "pixels_sha256": "cfe1a12f52f453a813c071e943f8bffe06c7138fdd9b148e482b2b8c04a47a6a",
+    "pixels_bytes": 187680
+  },
+  {
+    "case": "cabac-rd-1-qp26-32000",
+    "frames": 80,
+    "mode": 1,
+    "quantizer": 26,
+    "bit_rate": 32000,
+    "buffer_ms": 200,
+    "transport_sha256": "99c6bd3b6b20869dc4f8b3f39fe9c37c666cc366bdb3bb58ba7705380491e059",
+    "pixels_sha256": "d22d13d495be84c034dcc80d8492cfc16d8951af40d62092fb282e31f6690e8f",
+    "pixels_bytes": 187680
+  },
+  {
+    "case": "cabac-rd-3-qp51-40000",
+    "frames": 80,
+    "mode": 3,
+    "quantizer": 51,
+    "bit_rate": 40000,
+    "buffer_ms": 300,
+    "transport_sha256": "cda932ec33b7cd48ad7d458134381a27943a5c2b65fa8d7876e2f07b16a4b07f",
+    "pixels_sha256": "a75d1de5d0974e482b3cdc686b4d13e9f57c1e943512af6cca857e3d6429d9ab",
+    "pixels_bytes": 204000
+  }
+]

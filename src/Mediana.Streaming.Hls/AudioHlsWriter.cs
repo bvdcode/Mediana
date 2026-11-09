@@ -145,7 +145,7 @@ namespace Mediana.Streaming.Hls
         }
 
         /// <summary>Measures complete transport output for an external audio group. Selection attributes can be set on the returned record.
-        /// Presentations shorter than half TARGETDURATION have no defined peak bandwidth.</summary>
+        /// A presentation shorter than half TARGETDURATION requires an explicit bandwidth estimation policy.</summary>
         public HlsAudioRendition CreateRendition(string playlistUri, string groupId, string name)
             => CreateRendition(playlistUri, groupId, name, options.PlaylistTargetDurationSeconds);
 
@@ -158,7 +158,7 @@ namespace Mediana.Streaming.Hls
             HlsAttribute.Validate(playlistUri);
             HlsAttribute.Validate(groupId);
             HlsAttribute.Validate(name);
-            (long peak, long average) = HlsMediaPlaylist.MeasureBandwidth(Segments, targetDurationSeconds);
+            (long peak, long average) = HlsMediaPlaylist.MeasureBandwidth(Segments, targetDurationSeconds, options.Bandwidth);
             return new(playlistUri, groupId, name, Codecs, peak, average, audio.Channels);
         }
 

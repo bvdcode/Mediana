@@ -44,29 +44,33 @@ namespace Mediana.Codecs.Aac
         }
 
         public AacChannelLayout Layout { get; }
+        public Span<int> ElementTags => elementTags;
         public AacChannelState[] Channels { get; }
+        public AacSbrElement?[] SbrElements { get; private set; } = [];
+        public AacSbrChannelState?[] SbrChannels { get; private set; } = [];
         public Span<double> Time => MemoryMarshal.Cast<byte, double>(storage.Memory.Span[..OutputOffset]);
         public Span<double> Output => MemoryMarshal.Cast<byte, double>(storage.Memory.Span.Slice(OutputOffset, 1024 * sizeof(double)));
         public Span<Complex> Fourier => MemoryMarshal.Cast<byte, Complex>(storage.Memory.Span[FourierOffset..]);
 
-        public void BindElement(int index, int type, int tag)
+        public void BeginSbrFrame()
         {
-            if (index >= Layout.Elements.Length || type != Layout.Elements[index])
+            foreach (AacSbrElement? element in SbrElements)
             {
-                throw new InvalidDataException("The AAC channel elements do not match the configured speaker layout.");
-            }
-            if (elementTags[index] >= 0 && elementTags[index] != tag)
-            {
-                throw new InvalidDataException("The AAC element tag changed within the configured stream.");
-            }
-            for (int previous = 0; previous < index; previous++)
-            {
-                if (Layout.Elements[previous] == type && elementTags[previous] == tag)
+                if (element is not null)
                 {
-                    throw new InvalidDataException("AAC elements of the same type must have unique instance tags.");
+                    element.Present = false;
                 }
             }
-            elementTags[index] = tag;
+        }
+
+        public AacSbrElement GetSbrElement(int index, int sampleRate)
+        {
+            if (SbrElements.Length == 0)
+            {
+                SbrElements = new AacSbrElement?[Layout.Elements.Length];
+                SbrChannels = new AacSbrChannelState?[Channels.Length];
+            }
+            return SbrElements[index] ??= new AacSbrElement(Layout.Elements[index] == 1 ? 2 : 1, sampleRate);
         }
 
         public void Dispose()
@@ -74,6 +78,10 @@ namespace Mediana.Codecs.Aac
             foreach (AacChannelState channel in Channels)
             {
                 channel.Dispose();
+            }
+            foreach (AacSbrChannelState? channel in SbrChannels)
+            {
+                channel?.Dispose();
             }
             storage.Dispose();
         }

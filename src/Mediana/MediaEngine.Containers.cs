@@ -2,9 +2,6 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Containers;
-using Mediana.Core;
-using Mediana.Core.Metadata;
-using Mediana.Codecs;
 using Mediana.Core.Memory;
 using Mediana.IO;
 
@@ -79,30 +76,6 @@ namespace Mediana
                     }
                 }
             }
-        }
-
-        private MediaInfo ReadContainerInfo(IContainerReader container, CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Dictionary<int, StreamMetadata> metadata = [];
-            foreach (EncodedStreamInfo stream in container.Streams)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (metadataReaders.TryGetValue(stream.CodecId, out IStreamMetadataReader? reader))
-                {
-                    StreamMetadata? value = reader.Read(stream);
-                    if (value is not null)
-                    {
-                        if (value.Kind != stream.Kind)
-                        {
-                            throw new InvalidOperationException("The metadata reader returned a different media kind.");
-                        }
-                        metadata.Add(stream.StreamIndex, value);
-                    }
-                }
-            }
-            cancellationToken.ThrowIfCancellationRequested();
-            return new MediaInfo(container.Info, container.Streams, metadata);
         }
 
         private IContainerReaderFactory SelectContainer(ReadOnlySpan<byte> prefix) => FindContainer(prefix)

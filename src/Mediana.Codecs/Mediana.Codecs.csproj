@@ -4,6 +4,7 @@
     <InternalsVisibleTo Include="Mediana.Codecs.H264" />
     <InternalsVisibleTo Include="Mediana.Codecs.Hevc" />
     <InternalsVisibleTo Include="Mediana.Codecs.Opus" />
+    <InternalsVisibleTo Include="Mediana.Codecs.Ac3" />
     <InternalsVisibleTo Include="Mediana.Codecs.Vorbis" />
     <InternalsVisibleTo Include="Mediana.Codecs.Jbig2" />
     <InternalsVisibleTo Include="Mediana.Codecs.Tiff" />

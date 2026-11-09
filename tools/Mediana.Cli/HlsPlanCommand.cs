@@ -11,11 +11,10 @@ namespace Mediana.Cli
 {
     internal static class HlsPlanCommand
     {
-        private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string path, int streamIndex, long targetMilliseconds, CancellationToken cancellationToken = default)
         {
-            MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
             Mp4AvcSegmentPlan plan;
             await using (RandomAccessStreamByteSource source = new(File.OpenRead(path)))
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator,

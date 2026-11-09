@@ -14,7 +14,7 @@ namespace Mediana.Tests
         {
             cancellationToken.ThrowIfCancellationRequested();
             RequestCount++;
-            if (request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath.EndsWith(".sha256", StringComparison.Ordinal) == false)
+            if (request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath.EndsWith("/latest.json", StringComparison.Ordinal) == false)
             {
                 downloading?.Invoke();
             }

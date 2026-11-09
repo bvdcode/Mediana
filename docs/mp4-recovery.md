@@ -56,3 +56,31 @@ payload SHA-256, PTS and DTS for all 19 audio packets in every variant.
 codec restart support. Exact sample selection and handling of synthesized noise
 remain explicit. Output AAC encoder priming and padding are also separate;
 see [audio/video intervals](audiovisual-windows.md).
+
+## Fragment writing
+
+`Mp4TrackDefinition.Recovery` accepts an optional `Mp4RecoveryDescription` through
+an object initializer. This declares one constant recovery distance for every
+encoded sample in that track; the writer does not infer a distance from a codec
+name. Omitting the description writes no recovery groups.
+
+The initialization carries a version-one `sgpd` in the track's sample table,
+with a two-byte signed entry. Every nonempty media fragment carries a version-zero
+`sbgp` in its `traf`, mapping exactly its `trun` sample count to initialization
+description index 1. Fragment-local descriptions use a different index namespace
+and are not used here. This follows ISO/IEC 14496-12:2015, sections 8.9.4 and 10.1.1.
+
+HLS audio encoded by the AAC-LC encoder declares `roll` distance −1. Combined with
+the initialization edit, this represents encoder delay and the preceding packet
+required for decoder recovery, as described in Apple's
+[encoder-delay model](https://developer.apple.com/documentation/quicktime-file-format/summary_using_track_structures_to_represent_encoder_delay).
+This metadata does not duplicate packets or supply missing history at a cold
+segment boundary. Audiovisual playlists do not declare `EXT-X-INDEPENDENT-SEGMENTS`.
+
+Checks cover both group kinds, the full signed distance range, absent declarations,
+one- and three-sample fragments, payload offsets and media-buffer ownership.
+Two continuous 60-second HE-AAC and parametric-stereo sources were transcoded
+through the public HLS session. All 30 fragments retained identical media payloads,
+packet timestamps, durations and flags when recovery metadata was added. Each
+track mapped all 2814 encoded audio samples, including initial priming. Full
+file/HTTP playback and seeking passed independent decoding checks.

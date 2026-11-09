@@ -13,6 +13,7 @@ using Mediana.Processing;
 namespace Mediana.Streaming.Hls
 {
     /// <summary>Encodes an aligned H.264 rendition ladder, coordinates audio delivery and writes a complete VOD package.
+    /// Clips overlapping display durations with one-frame lookahead before encoding.
     /// Input sessions, audio sources, output and allocator remain borrowed. Consumed frames and created writers are disposed.</summary>
     public static class HlsRenditionEncoder
     {
@@ -43,8 +44,9 @@ namespace Mediana.Streaming.Hls
             MediaDurationAccumulator processed = new();
             long count = 0;
             await using IAsyncEnumerator<VideoFrame> input = frames.GetAsyncEnumerator(cancellationToken);
-            if (!await input.MoveNextAsync().ConfigureAwait(false)) { throw new InvalidDataException("The input contains no decoded video frames."); }
-            VideoFrame? current = input.Current;
+            await using VideoPresentationReader presentation = new(ReadFrameAsync);
+            VideoFrame? current = await presentation.ReadFrameAsync(cancellationToken).ConfigureAwait(false);
+            if (current is null) { throw new InvalidDataException("The input contains no decoded video frames."); }
             try
             {
                 using VideoPreparationSequence preparation = new(current.Format, stream.DisplayMatrix!.Value, allocator, options.FramePreparation);
@@ -52,7 +54,7 @@ namespace Mediana.Streaming.Hls
                 {
                     for (int profile = 0; profile < audio!.ProfileCount; profile++)
                     {
-                        audioOutputs.Add(HlsAudioOutput.Create(audio.GetStream(profile), allocator, options.TargetDuration, output, profile));
+                        audioOutputs.Add(HlsAudioOutput.Create(audio.GetStream(profile), allocator, options.TargetDuration, output, profile, options.Bandwidth));
                     }
                 }
                 HashSet<(int Width, int Height)> dimensions = [];
@@ -61,7 +63,7 @@ namespace Mediana.Streaming.Hls
                     HlsVideoProfile profile = profiles[index];
                     HlsVideoRendition rendition = HlsVideoRendition.Create(preparation.OutputFormat, stream,
                         options.SeparateAudio ? null : audio?.GetStream(index), allocator, profile.MaximumWidth,
-                        profile.EncoderOptions, options.TargetDuration, output);
+                        profile.EncoderOptions, options.TargetDuration, output, options.Bandwidth);
                     video.Add(rendition);
                     if (!dimensions.Add((rendition.Format.Width, rendition.Format.Height)))
                     {
@@ -87,7 +89,7 @@ namespace Mediana.Streaming.Hls
                         processed.Add(frame.Duration);
                         progress?.Invoke(new(count, processed.Duration, BytesWritten(), false));
                     }
-                    if (await input.MoveNextAsync().ConfigureAwait(false)) { current = input.Current; }
+                    current = await presentation.ReadFrameAsync(cancellationToken).ConfigureAwait(false);
                 } while (current is not null);
                 if (audio is not null) { await audio.WriteBeforeAsync(null, destinations, cancellationToken).ConfigureAwait(false); }
                 foreach (HlsVideoRendition rendition in video) { await rendition.CompleteAsync(cancellationToken).ConfigureAwait(false); }
@@ -106,12 +108,21 @@ namespace Mediana.Streaming.Hls
             }
 
             long BytesWritten() => checked(video.Sum(rendition => rendition.Writer.BytesWritten) + audioOutputs.Sum(rendition => rendition.Writer.BytesWritten));
+
+            async ValueTask<VideoFrame?> ReadFrameAsync(CancellationToken token)
+            {
+                token.ThrowIfCancellationRequested();
+                if (!await input.MoveNextAsync().ConfigureAwait(false)) { return null; }
+                return input.Current;
+            }
         }
 
         private static void Validate(EncodedStreamInfo stream, HlsRenditionOptions options, HlsVideoProfile[] profiles,
             int[] audioProfiles, HlsAudioSource? audio)
         {
             if (stream.DisplayMatrix is null) { throw new NotSupportedException("Video encoding requires a known source display transform."); }
+            ArgumentNullException.ThrowIfNull(options.Bandwidth);
+            options.Bandwidth.Validate();
             options.TargetDuration.TimeBase.Validate();
             if (options.TargetDuration.Value <= 0 || profiles.Length == 0
                 || profiles.Any(profile => profile is null || profile.MaximumWidth < 2 || profile.EncoderOptions is null))

@@ -10,15 +10,14 @@ namespace Mediana.Cli
 {
     internal static class AudioResampleCommand
     {
-        private const int BufferBudgetBytes = 1024 * 1024;
 
         public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int streamIndex, int sampleRate, double[] gains, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = AudioEngineFactory.Create();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
             await using AudioSession session = await engine.OpenAudioAsync(source, streamIndex,
-                new MediaOpenOptions { BufferBudgetBytes = BufferBudgetBytes }, cancellationToken: cancellationToken);
-            MediaBufferAllocator allocator = new(BufferBudgetBytes);
+                CommandMediaResources.OpenOptions, cancellationToken: cancellationToken);
+            MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
             await using MonoAudioReader reader = new(session.ReadFrameAsync, gains, sampleRate, allocator, AudioSampleFormat.Signed16);
             PcmStreamWriteResult? result = null;
             await outputFile.WriteAsync(async output =>

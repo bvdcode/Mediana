@@ -119,6 +119,18 @@ namespace Mediana.Formats.Video
             {
                 WriteBits(0, 8 - partialBits);
             }
+            return TryFinishCompletedRbsp();
+        }
+
+        /// <summary>Publishes a byte-aligned NAL whose syntax writer has already emitted RBSP trailing bits.
+        /// This is required when CABAC termination supplies the stop bit. Returns null on measured overflow.</summary>
+        public MediaBuffer? TryFinishCompletedRbsp()
+        {
+            ObjectDisposedException.ThrowIf(finished, this);
+            if (partialBits != 0)
+            {
+                throw new InvalidOperationException("The completed H.264 RBSP must be byte-aligned.");
+            }
             finished = true;
             if (length > maximumBytes)
             {
@@ -130,6 +142,26 @@ namespace Mediana.Formats.Video
             }
             using MediaBuffer complete = storage.Publish();
             return complete.Slice(0, length);
+        }
+
+        /// <summary>Publishes a terminated CABAC NAL and appends the zero words required by H.264 clause 9.3.4.6.
+        /// The bin count includes termination decisions. Raw macroblock bits describe the uncompressed coded precision.</summary>
+        public MediaBuffer? TryFinishCabac(long binCount, int macroblockCount, int rawMacroblockBits)
+        {
+            ObjectDisposedException.ThrowIf(finished, this);
+            ArgumentOutOfRangeException.ThrowIfNegative(binCount);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(macroblockCount);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rawMacroblockBits);
+            if (partialBits != 0) { throw new InvalidOperationException("CABAC termination must precede byte stuffing."); }
+            long scaled = checked(3 * (32 * binCount - (long)rawMacroblockBits * macroblockCount));
+            if (scaled > 0)
+            {
+                long minimumBytes = checked((scaled + 1023) / 1024);
+                long missing = minimumBytes - (length - prefixBytes);
+                long words = missing > 0 ? (missing + 2) / 3 : 0;
+                for (long word = 0; word < words; word++) { Append(0); Append(0); Append(3); }
+            }
+            return TryFinishCompletedRbsp();
         }
 
         private void WriteByte(byte value)

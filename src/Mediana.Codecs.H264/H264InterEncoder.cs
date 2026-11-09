@@ -9,7 +9,8 @@ namespace Mediana.Codecs.H264
     internal static class H264InterEncoder
     {
         public static MediaBuffer? Encode(VideoFrame input, H264Picture target, H264Picture reference, int frameNumber, int quantizer,
-            MediaBufferAllocator allocator, H264EncoderOptions options, int maximumBytes, bool measureOverflow, out int encodedLength, CancellationToken token)
+            MediaBufferAllocator allocator, H264EncoderOptions options, int maximumBytes, bool measureOverflow, out int encodedLength,
+            CancellationToken token, H264MotionReference? interpolation = null)
         {
             using H264BitWriter bits = new(allocator, maximumBytes, 0x41, lengthPrefixed: true, measureOverflow: true);
             bits.WriteUnsigned(0);
@@ -33,7 +34,7 @@ namespace Mediana.Codecs.H264
                     token.ThrowIfCancellationRequested();
                     H264SourceMacroblock source = new(input, x, y, samples);
                     (int motionX, int motionY, bool exact) = H264MotionSearch.Select(source, reference, target, x, y,
-                        options.MotionSearchRange, prediction, token);
+                        options.MotionSearchRange, prediction, token, interpolation);
                     (int skipX, int skipY) = H264MotionPrediction.Skip(target, x, y);
                     int predictedX = 0;
                     int predictedY = 0;
@@ -110,7 +111,7 @@ namespace Mediana.Codecs.H264
             return result;
         }
 
-        private static int AnalyzeLuma(ReadOnlySpan<byte> source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+        internal static int AnalyzeLuma(ReadOnlySpan<byte> source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
         {
             int pattern = 0;
             for (int index = 0; index < 16; index += 2)
@@ -130,6 +131,10 @@ namespace Mediana.Codecs.H264
 
         private static bool TryWriteLuma(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
             ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients)
+            => TryWriteLuma(new H264CavlcEncodingSyntax(bits, target), target, x, y, qp, pattern, prediction, coefficients);
+
+        internal static bool TryWriteLuma<TSyntax>(TSyntax syntax, H264Picture target, int x, int y, int qp, int pattern,
+            ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients) where TSyntax : IH264EncodingSyntax
         {
             if ((pattern & 15) == 0)
             {
@@ -144,7 +149,7 @@ namespace Mediana.Codecs.H264
                 ReadOnlySpan<int> levels = coefficients.Slice(index * 16, 16);
                 int count = 0;
                 if ((pattern & (1 << (index / 4))) != 0 &&
-                    !H264CavlcWriter.TryWrite(bits, levels, target.NeighbourCount(0, x + blockX, y + blockY), out count))
+                    !syntax.TryWriteResidual(H264ResidualCategory.Luma4x4, 0, x + blockX, y + blockY, levels, out count))
                 {
                     return false;
                 }

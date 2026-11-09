@@ -10,11 +10,13 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    /// <summary>Reads indexed AAC-LC sample rate and channel count from AudioSpecificConfig.
+    /// <summary>Reads AAC core and signaled enhancement parameters from AudioSpecificConfig.
     /// Reading parameters does not require decoder support for the channel configuration.</summary>
     public class AacStreamMetadataReader : IStreamMetadataReader
     {
         private static readonly CodecProfileInfo LowComplexity = new("LC");
+        private static readonly CodecProfileInfo HighEfficiency = new("HE-AAC");
+        private static readonly CodecProfileInfo HighEfficiencyStereo = new("HE-AAC v2");
 
         public string ImplementationId => "mediana.aac.metadata";
         public string CodecId => AacConfiguration.CodecId;
@@ -26,13 +28,33 @@ namespace Mediana.Codecs.Aac
             {
                 throw new ArgumentException("The stream is not AAC audio.", nameof(stream));
             }
-            StreamFormats.Aac.Require(stream.Format);
+            if (stream.Format != StreamFormats.AacAdts)
+            {
+                StreamFormats.Aac.Require(stream.Format);
+            }
             AacConfiguration? configuration = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out _);
             if (configuration is null)
             {
                 return null;
             }
-            return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount) { CodecProfile = LowComplexity };
+            CodecProfileInfo profile = configuration.ParametricStereo switch
+            {
+                true => HighEfficiencyStereo,
+                false or null => configuration.SpectralBandReplication switch
+                {
+                    true => HighEfficiency,
+                    false or null => LowComplexity
+                }
+            };
+            int channels = configuration.ParametricStereo switch
+            {
+                true => 2,
+                false or null => configuration.ChannelCount
+            };
+            return new AudioStreamMetadata(configuration.OutputSampleRate, channels)
+            {
+                CodecProfile = profile
+            };
         }
     }
 }

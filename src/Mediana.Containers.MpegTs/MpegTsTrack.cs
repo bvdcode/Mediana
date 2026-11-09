@@ -15,6 +15,7 @@ namespace Mediana.Containers.MpegTs
     {
         private readonly AvcAnnexBConverter? avc;
         private readonly AacAdtsConverter? aac;
+        private readonly AacConfiguration? adts;
         private readonly Mp3TransportFraming? mp3;
 
         public MpegTsTrack(EncodedStreamInfo stream, int ordinal, MediaBufferAllocator allocator, int maximumConfigurationBytes)
@@ -31,10 +32,18 @@ namespace Mediana.Containers.MpegTs
                     avc = new(stream.Configuration, stream.ColorDescription, allocator, maximumConfigurationBytes, stream.AspectRatioDescription);
                     break;
                 case (MediaKind.Audio, "aac"):
-                    StreamFormats.Aac.Require(stream.Format);
+                    if (stream.Format == StreamFormats.AacAdts)
+                    {
+                        adts = AacConfiguration.ReadAudioSpecificConfig(stream.Configuration.Span, out string? reason)
+                            ?? throw new NotSupportedException(reason);
+                    }
+                    else
+                    {
+                        StreamFormats.Aac.Require(stream.Format);
+                        aac = new(stream.Configuration.Span);
+                    }
                     Type = 0x0F;
                     PesStreamId = 0xC0 + ordinal;
-                    aac = new(stream.Configuration.Span);
                     break;
                 case (MediaKind.Audio, "mp3"):
                     StreamFormats.Mp3.Require(stream.Format);
@@ -43,7 +52,7 @@ namespace Mediana.Containers.MpegTs
                     PesStreamId = 0xC0 + ordinal;
                     break;
                 default:
-                    throw new NotSupportedException("The TS writer supports length-prefixed AVC, raw AAC-LC and MPEG-1/2 Layer III streams.");
+                    throw new NotSupportedException("The TS writer supports length-prefixed AVC, raw or ADTS-framed AAC and MPEG-1/2 Layer III streams.");
             }
         }
 
@@ -55,8 +64,9 @@ namespace Mediana.Containers.MpegTs
         public int Counter { get; set; } = 15;
         public long? LastDecodeTime { get; set; }
 
-        public MediaBuffer Frame(ReadOnlySpan<byte> data, MediaBufferAllocator allocator, int maximumBytes, out bool idr)
+        public MediaBuffer Frame(MediaPacket packet, MediaBufferAllocator allocator, int maximumBytes, out bool idr)
         {
+            ReadOnlySpan<byte> data = packet.Data.Span;
             if (avc is not null)
             {
                 return avc.Convert(data, allocator, maximumBytes, out idr);
@@ -69,6 +79,13 @@ namespace Mediana.Containers.MpegTs
                     throw new NotSupportedException("The ADTS frame exceeds the configured packet limit.");
                 }
                 return aac.Convert(data, allocator);
+            }
+            if (adts is not null)
+            {
+                idr = false;
+                AdtsFrameLayout frame = new(data);
+                frame.RequireConfiguration(adts);
+                return packet.RetainData();
             }
             if (mp3 is not null)
             {

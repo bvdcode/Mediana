@@ -11,14 +11,13 @@ namespace Mediana.Cli
 {
     internal static class MpegTsRemuxCommand
     {
-        private const long BufferBudgetBytes = 64 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string inputPath, CommandOutputFile outputFile, int? streamIndex = null, CancellationToken cancellationToken = default)
         {
             MediaEngine engine = ContainerEngineFactory.CreateBuilder(Mp4TimestampMode.LinearMovie)
                 .AddContainerWriter(new MpegTsWriterFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(inputPath));
-            MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
             MediaOperationProgress? result = null;
             await outputFile.WriteAsync(async output =>
             {

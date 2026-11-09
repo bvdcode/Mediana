@@ -84,6 +84,7 @@
     <Compile Include="../Shared/Mp4RecoveryTestInput.cs" Link="Mp4RecoveryTestInput.cs" />
 
     <Compile Include="../Shared/H264SampleDifferenceTestInput.cs" Link="H264SampleDifferenceTestInput.cs" />
+    <Compile Include="../Shared/H264ChromaDifferenceTestInput.cs" Link="H264ChromaDifferenceTestInput.cs" />
     <Compile Include="../Shared/H264LumaCandidateTestInput.cs" Link="H264LumaCandidateTestInput.cs" />
     <Compile Include="../Shared/H264DeblockingFilterTestInput.cs" Link="H264DeblockingFilterTestInput.cs" />
     <Compile Include="../Shared/H264ForwardTransformTestInput.cs" Link="H264ForwardTransformTestInput.cs" />
@@ -175,6 +176,9 @@
     <Compile Include="../Shared/H264LevelBurstTestInput.cs" Link="H264LevelBurstTestInput.cs" />
     <None Include="../Mediana.Tests/Data/H264/level-burst.sha256" Link="Data/H264/level-burst.sha256" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264IntraModeTestInput.cs" Link="H264IntraModeTestInput.cs" />
+    <Compile Include="../Shared/H264Intra16TestInput.cs" Link="H264Intra16TestInput.cs" />
+    <None Include="../Mediana.Tests/Data/H264/cabac-intra16-qp*.yuv.gz;../Mediana.Tests/Data/H264/CABAC-INTRA16.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/H264/intra16-qp*.yuv" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-sound-v2.mov;../Mediana.Tests/Data/Mp4/avc-sound-v2.mov.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-timecode.mov;../Mediana.Tests/Data/Mp4/avc-timecode.mov.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264RateEncodingTestInput.cs" Link="H264RateEncodingTestInput.cs" />
@@ -267,6 +271,46 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Mp3/Mediana.Codecs.Mp3.csproj" />
     <Compile Include="../Shared/Mp3SyntaxTestInput.cs" Link="Mp3SyntaxTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp3/Mediana.Containers.Mp3.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Adts/Mediana.Containers.Adts.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Ac3/Mediana.Containers.Ac3.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Ac3/Mediana.Codecs.Ac3.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Av1/Mediana.Codecs.Av1.csproj" />
+    <Compile Include="../Shared/Av1ContainerTestInput.cs" Link="Av1ContainerTestInput.cs" />
+    <Compile Include="../Shared/Av1PictureSequenceTestInput.cs" Link="Av1PictureSequenceTestInput.cs" />
+    <Compile Include="../Shared/Av1GrainDisplayTestInput.cs" Link="Av1GrainDisplayTestInput.cs" />
+    <Compile Include="../Shared/Av1SuperResolutionTestInput.cs" Link="Av1SuperResolutionTestInput.cs" />
+    <Compile Include="../Shared/Av1Main10TestInput.cs" Link="Av1Main10TestInput.cs" />
+    <Compile Include="../Shared/Av1Main10ContainerTestInput.cs" Link="Av1Main10ContainerTestInput.cs" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/main10Default.mp4;../Mediana.Codecs.Av1.Tests/Data/main10Default.mkv" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/main10*.obu;../Mediana.Codecs.Av1.Tests/Data/main10*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/superres*.obu;../Mediana.Codecs.Av1.Tests/Data/superres*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/grain*.obu;../Mediana.Codecs.Av1.Tests/Data/grain*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/intrabc*.obu;../Mediana.Codecs.Av1.Tests/Data/intrabc*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Av1TimingTestInput.cs" Link="Av1TimingTestInput.cs" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/clippedCompound.obu;../Mediana.Codecs.Av1.Tests/Data/clippedCompound.sha256;../Mediana.Codecs.Av1.Tests/Data/tiles*.obu;../Mediana.Codecs.Av1.Tests/Data/tiles*.sha256" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/timing*.obu" Link="Data/Av1/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/timing.reference.yuv" Link="Data/Av1/timing.reference.yuv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/interOrdered.mp4" Link="Data/Av1/interOrdered.mp4" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/interOrdered.mkv" Link="Data/Av1/interOrdered.mkv" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Av1.Tests/Data/interOrdered.yuv" Link="Data/Av1/interOrdered.yuv" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Ac3ContainerTestInput.cs" Link="Ac3ContainerTestInput.cs" />
+    <Compile Include="../Shared/Ac3MatroskaTestInput.cs" Link="Ac3MatroskaTestInput.cs" />
+    <Compile Include="../Shared/Ac3PcmTestInput.cs" Link="Ac3PcmTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Ac3/*" Link="Data/Ac3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Ac3.Tests/Data/*.ac3" Link="Data/Ac3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Ac3.Tests/Data/*.eac3" Link="Data/Ac3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.Ac3.Tests/Data/*.pcm" Link="Data/Ac3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/AdtsDecodeTestInput.cs" Link="AdtsDecodeTestInput.cs" />
+    <Compile Include="../Shared/AdtsMultiBlockTestInput.cs" Link="AdtsMultiBlockTestInput.cs" />
+    <Compile Include="../Shared/AdtsTransportCopyTestInput.cs" Link="AdtsTransportCopyTestInput.cs" />
+    <Compile Include="../Shared/AacSbrDecodeTestInput.cs" Link="AacSbrDecodeTestInput.cs" />
+    <Compile Include="../Shared/AacSbrSeekTestInput.cs" Link="AacSbrSeekTestInput.cs" />
+    <Compile Include="../Shared/AacSbrHlsTestInput.cs" Link="AacSbrHlsTestInput.cs" />
+    <Compile Include="../Shared/AacPsDecodeTestInput.cs" Link="AacPsDecodeTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/AacPs/*" Link="Data/AacPs/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Mediana.Tests/Mp4TestBoxes.cs" Link="Mp4TestBoxes.cs" />
+    <None Include="../Mediana.Tests/Data/AacSbr/*" Link="Data/AacSbr/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Containers.Adts.Tests/Data/*.aac" Link="Data/Aac/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp3/*" Link="Data/Mp3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Mp3ReferenceTestInput.cs" Link="Mp3ReferenceTestInput.cs" />
     <Compile Include="../Shared/FlacWaveformTestInput.cs" Link="FlacWaveformTestInput.cs" />
@@ -361,6 +405,7 @@
     <Compile Include="../Shared/Mp4SampleAccessTestInput.cs" Link="Mp4SampleAccessTestInput.cs" />
     <Compile Include="../Shared/HlsPlanTestInput.cs" Link="HlsPlanTestInput.cs" />
     <Compile Include="../Shared/HlsSessionTestInput.cs" Link="HlsSessionTestInput.cs" />
+    <Compile Include="../Shared/Mp4FragmentRecoveryTestInput.cs" Link="Mp4FragmentRecoveryTestInput.cs" />
     <Compile Include="../Shared/FragmentHlsTestInput.cs" Link="FragmentHlsTestInput.cs" />
     <Compile Include="../Shared/OnDemandHlsTestInput.cs" Link="OnDemandHlsTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Mp4/hls-on-demand.mp4;../Mediana.Tests/Data/Mp4/hls-on-demand.encoded-segments.yuv" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -439,6 +484,15 @@
     <Compile Include="../Shared/H264CabacTransformTestInput.cs" Link="H264CabacTransformTestInput.cs" />
     <Compile Include="../Shared/H264CabacResidualWriter.cs" Link="H264CabacResidualWriter.cs" />
     <Compile Include="../Shared/H264CabacIntervalWriter.cs" Link="H264CabacIntervalWriter.cs" />
+    <Compile Include="../Shared/H264CabacEncodingTestInput.cs" Link="H264CabacEncodingTestInput.cs" />
+    <Compile Include="../Shared/H264CabacPictureTestInput.cs" Link="H264CabacPictureTestInput.cs" />
+    <Compile Include="../Shared/H264CabacCheckpointTestInput.cs" Link="H264CabacCheckpointTestInput.cs" />
+    <Compile Include="../Shared/H264PreparedMacroblockTestInput.cs" Link="H264PreparedMacroblockTestInput.cs" />
+    <Compile Include="../Shared/H264QuantizedSkipTestInput.cs" Link="H264QuantizedSkipTestInput.cs" />
+    <Compile Include="../Shared/H264CountingSyntax.cs" Link="H264CountingSyntax.cs" />
+    <Compile Include="../Shared/H264RateDistortionTestInput.cs" Link="H264RateDistortionTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/H264RateDistortion/*" Link="Data/H264RateDistortion/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Tests/Data/H264CabacEncoding/*" Link="Data/H264CabacEncoding/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264CabacTestInput.cs" Link="H264CabacTestInput.cs" />
     <Compile Include="../Shared/H264CabacPredictionTestInput.cs" Link="H264CabacPredictionTestInput.cs" />
     <Compile Include="../Shared/H264CabacBidirectionalTestInput.cs" Link="H264CabacBidirectionalTestInput.cs" />

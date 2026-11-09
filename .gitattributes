@@ -1,6 +1,7 @@
 * text=auto eol=lf
 
 *.bin binary
+*.aac binary
 *.h264 binary
 *.mp4 binary
 *.mov binary

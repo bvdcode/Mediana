@@ -13,11 +13,7 @@ namespace Mediana.Cli
         internal static int MaximumBufferLength => Array.MaxLength;
         internal static int MaximumRgbaPixels => Array.MaxLength / 4;
         internal static ImageOpenOptions OpenOptions { get; } = new() { MaxInputBytes = Array.MaxLength };
-        internal static MediaOpenOptions ProbeOptions { get; } = new()
-        {
-            MaxImageInputBytes = Array.MaxLength,
-            BufferBudgetBytes = long.MaxValue
-        };
+        internal static MediaOpenOptions ProbeOptions => CommandMediaResources.OpenOptions;
         internal static OpenXmlPackageOptions PackageOptions { get; } = new()
         {
             MaximumInputBytes = Array.MaxLength,
@@ -32,7 +28,7 @@ namespace Mediana.Cli
             MaximumImagePixels = Array.MaxLength / 4
         };
 
-        internal static MediaBufferAllocator CreateAllocator() => new(long.MaxValue);
+        internal static MediaBufferAllocator CreateAllocator() => CommandMediaResources.CreateAllocator();
 
         internal static DrawingRenderOptions DrawingOptions(int? width = null) => new()
         {

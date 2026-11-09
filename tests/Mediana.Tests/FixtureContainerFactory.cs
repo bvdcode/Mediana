@@ -3,11 +3,13 @@
 
 using Mediana.Containers;
 using Mediana.Core.Memory;
+using Mediana.Core.Metadata;
 using Mediana.IO;
 
 namespace Mediana.Tests
 {
-    internal class FixtureContainerFactory(string id = "fixture.container", ContainerInfo? info = null) : IContainerReaderFactory
+    internal class FixtureContainerFactory(string id = "fixture.container", ContainerInfo? info = null,
+        Func<int, StreamMetadata?>? metadata = null) : IContainerReaderFactory
     {
         public string ImplementationId => id;
         public int ProbeLength => 4;
@@ -32,7 +34,7 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException("The probe bytes were not replayed.");
             }
-            LastReader = new FixtureContainer(source, allocator, info);
+            LastReader = new FixtureContainer(source, allocator, info, metadata);
             return LastReader;
         }
     }

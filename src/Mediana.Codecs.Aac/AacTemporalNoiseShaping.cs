@@ -5,9 +5,8 @@ namespace Mediana.Codecs.Aac
 {
     internal static class AacTemporalNoiseShaping
     {
-        public static void Read(ref AacBitReader bits, AacChannelState channel)
+        public static void Read(ref AacBitReader bits, AacWindowInfo info, List<AacTnsFilter>? destination)
         {
-            AacWindowInfo info = channel.Info;
             int windowCount = info.ShortWindow ? 8 : 1;
             int limit = Math.Min(info.MaxBands, AacBandTables.TnsLimit(info.FrequencyIndex, info.ShortWindow));
             Span<double> previous = stackalloc double[13];
@@ -31,6 +30,11 @@ namespace Mediana.Codecs.Aac
                     }
                     bool backward = bits.Read(1) != 0;
                     int coefficientBits = resolution - bits.Read(1);
+                    if (destination is null)
+                    {
+                        bits.Skip(order * coefficientBits);
+                        continue;
+                    }
                     double[] coefficients = new double[order + 1];
                     coefficients[0] = 1;
                     for (int degree = 1; degree <= order; degree++)
@@ -51,7 +55,7 @@ namespace Mediana.Codecs.Aac
                     }
                     int start = window * info.WindowSize + info.Bands[Math.Min(bottom, limit)];
                     int end = window * info.WindowSize + info.Bands[Math.Min(top, limit)];
-                    channel.TnsFilters.Add(new AacTnsFilter(start, end, backward, coefficients));
+                    destination.Add(new AacTnsFilter(start, end, backward, coefficients));
                 }
             }
         }

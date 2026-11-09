@@ -13,6 +13,7 @@ namespace Mediana.Streaming.Hls
         /// <summary>Optional common EXT-X-TARGETDURATION for associated playlists, in seconds.
         /// Each completed segment's duration rounded to the nearest integer must not exceed it. Null selects the measured ceiling.</summary>
         public long? PlaylistTargetDurationSeconds { get; init; }
+        public HlsBandwidthOptions Bandwidth { get; init; } = new();
         public MpegTsWriteOptions Transport { get; init; } = new();
         public int? MaximumSegments { get; init; }
         public int MaximumSegmentUriCharacters { get; init; } = 4096;
@@ -22,6 +23,8 @@ namespace Mediana.Streaming.Hls
             TargetDuration.TimeBase.Validate();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(TargetDuration.Value);
             ArgumentNullException.ThrowIfNull(Transport);
+            ArgumentNullException.ThrowIfNull(Bandwidth);
+            Bandwidth.Validate();
             if (PlaylistTargetDurationSeconds is <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(PlaylistTargetDurationSeconds));

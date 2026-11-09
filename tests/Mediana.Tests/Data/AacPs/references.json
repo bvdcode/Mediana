@@ -1,0 +1,28 @@
+{
+  "encoder": "Fraunhofer FDK AAC 2.0.3, audio object type 29, 32000 bit/s",
+  "decoder": "FFmpeg 6.1.1, float32 little-endian, stereo, complete sequence",
+  "fixtures": [
+    {
+      "name": "tonal",
+      "frames": 27,
+      "inputSha256": "b61ba65bda3ed3aeb72f27611903c7f4a9802ccd2da0c24e922e9db6e4bd0498",
+      "pcmSha256": "20020b8d880eca33b0a4599d1f28c92220afc36251e3e30c266d1791da11a117"
+    },
+    {
+      "name": "transients",
+      "frames": 51,
+      "inputSha256": "16f2e74f46e8a289032d659135c76457a9cc1ce8b58a7112be1f960b109e5b44",
+      "pcmSha256": "be591449402c8c7452ff15b0fe4360d6454bc0e49c2f5a16a4df21cb35dcb97b",
+      "restartPacketIndex": 10,
+      "restartPcmSha256": "24034c37a71b4d38826819d78abba03ce1f21f1f29f21a0fbc79ec6baa390e74",
+      "singleRatePcmSha256": "60b3cf31f86481e55847222cccb79c980542f66e5a5911a02226d2b3c9ad36d1"
+    },
+    {
+      "name": "parameters",
+      "frames": 51,
+      "inputSha256": "1f7ccccf028951159eb608e8ea28fba5784b1af07b7b27f2fc3b9fb81eb6cd3a",
+      "pcmSha256": "421c11253d988ff8f32577a9487fa4edd793a3ecc31eb3ad5ac073ab208aa67f",
+      "decoder": "FFmpeg 9.0.2 with PS-only normative matrix and absent-phase corrections; see README.md"
+    }
+  ]
+}

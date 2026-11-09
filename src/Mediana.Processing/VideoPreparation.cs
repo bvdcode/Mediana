@@ -13,6 +13,7 @@ namespace Mediana.Processing
     public class VideoPreparation : IDisposable
     {
         private readonly Yuv420FrameTransform transform;
+        private readonly VideoFormat? interpretedInput;
         private readonly RgbaToYuv420? rgb;
         private readonly Yuv420AreaResizer? resizer;
         private bool disposed;
@@ -28,13 +29,30 @@ namespace Mediana.Processing
             {
                 throw new ArgumentOutOfRangeException(nameof(options), "Video dimension bounds must be at least two samples.");
             }
-            VideoFormat planar = inputFormat;
+            VideoColorInfo? interpretation = options.SourceColorInterpretation;
+            if (interpretation is null && options.ColorResolver is not null && inputFormat.ColorDescription is not IccColorDescription)
+            {
+                VideoColorInfo resolved = VideoColorPolicy.Resolve(inputFormat, options.ColorResolver, options.WarningHandler);
+                if (resolved != inputFormat.GetColorInterpretation()) { interpretation = resolved; }
+            }
+            if (interpretation is not null)
+            {
+                interpretedInput = new(inputFormat.Width, inputFormat.Height, inputFormat.PixelFormat,
+                    interpretation, inputFormat.SampleAspectRatio);
+            }
+            VideoFormat planar = interpretedInput ?? inputFormat;
             if ((inputFormat.PixelFormat == VideoPixelFormat.Rgba32 || inputFormat.PixelFormat is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Gbr }) && options.RgbConversion is not null)
             {
-                rgb = new(inputFormat, options.RgbConversion, allocator);
+                rgb = new(planar, options.RgbConversion, allocator);
                 planar = rgb.OutputFormat;
             }
             transform = new(planar, sourceDisplayMatrix, options.OutputPixelFormat ?? DefaultOutput(planar.PixelFormat), allocator);
+            if (options.WarningHandler is not null &&
+                inputFormat.PixelFormat is PlanarVideoPixelFormat source &&
+                transform.OutputFormat.PixelFormat is PlanarVideoPixelFormat output && source.BitDepth > output.BitDepth)
+            {
+                options.WarningHandler($"Source sample precision is reduced from {source.BitDepth} to {output.BitDepth} bits using rounded conversion for the selected output pixel format.");
+            }
             if (options.MaximumWidth is not null || options.MaximumHeight is not null)
             {
                 resizer = Yuv420AreaResizer.CreateFit(transform.OutputFormat,
@@ -65,12 +83,27 @@ namespace Mediana.Processing
             try
             {
                 ObjectDisposedException.ThrowIf(disposed, this);
-                using VideoFrame? converted = rgb?.Apply(input, cancellationToken);
-                if (resizer is null) { return transform.Apply(converted ?? input, cancellationToken); }
-                using VideoFrame transformed = transform.Apply(converted ?? input, cancellationToken);
+                ArgumentNullException.ThrowIfNull(input);
+                cancellationToken.ThrowIfCancellationRequested();
+                using VideoFrame? interpreted = Interpret(input);
+                using VideoFrame? converted = rgb?.Apply(interpreted ?? input, cancellationToken);
+                if (resizer is null) { return transform.Apply(converted ?? interpreted ?? input, cancellationToken); }
+                using VideoFrame transformed = transform.Apply(converted ?? interpreted ?? input, cancellationToken);
                 return resizer.ResizeOrRetain(transformed, cancellationToken);
             }
             finally { Volatile.Write(ref busy, 0); }
+        }
+
+        private VideoFrame? Interpret(VideoFrame input)
+        {
+            if (interpretedInput is null) { return null; }
+            VideoFormat actual = input.Format;
+            if (actual.Width != interpretedInput.Width || actual.Height != interpretedInput.Height ||
+                actual.PixelFormat != interpretedInput.PixelFormat || actual.SampleAspectRatio != interpretedInput.SampleAspectRatio)
+            {
+                throw new NotSupportedException("The input frame differs from the configured video preparation geometry.");
+            }
+            return input.WithFormat(interpretedInput);
         }
 
         public void Dispose()

@@ -15,12 +15,12 @@ namespace Mediana.Streaming.Hls
         public string GroupId { get; } = groupId;
 
         public static HlsAudioOutput Create(EncodedStreamInfo stream, MediaBufferAllocator allocator,
-            MediaDuration targetDuration, IHlsPackageOutput output, int index)
+            MediaDuration targetDuration, IHlsPackageOutput output, int index, HlsBandwidthOptions bandwidth)
         {
             string name = "audio-" + index.ToString(CultureInfo.InvariantCulture);
             HlsRenditionOutput files = new(output, name);
             AudioHlsWriter writer = AudioHlsWriter.Create(stream, files.OpenSegmentAsync, allocator,
-                new() { TargetDuration = targetDuration });
+                new() { TargetDuration = targetDuration, Bandwidth = bandwidth });
             return new(writer, files, name);
         }
 

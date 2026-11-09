@@ -58,13 +58,86 @@ namespace Mediana.Tests
         [Fact]
         public void CompleteAndUnsupportedDeclarationsAreNeverReplaced()
         {
-            VideoColorInfo declared = new(ColorPrimaries.DciP3, TransferFunction.Gamma22, MatrixCoefficients.YCgCo, ColorRange.Full);
+            VideoColorInfo declared = new(ColorPrimaries.DciP3, TransferFunction.Gamma22, MatrixCoefficients.YCgCo, ColorRange.Full, ChromaLocation.Center);
             Assert.Same(declared, SdrPreviewColorPolicy.Resolve(new VideoFormat(96, 64, VideoPixelFormat.Yuv420P8, declared)));
             VideoColorInfo partial = declared with { Transfer = TransferFunction.Unspecified };
             VideoColorInfo resolved = SdrPreviewColorPolicy.Resolve(new VideoFormat(96, 64, VideoPixelFormat.Yuv420P8, partial));
             Assert.Equal(declared.Primaries, resolved.Primaries);
             Assert.Equal(declared.Matrix, resolved.Matrix);
             Assert.Equal(declared.Range, resolved.Range);
+        }
+
+        [Theory]
+        [InlineData(8)]
+        [InlineData(10)]
+        [InlineData(12)]
+        public void MissingPlanarChromaUsesLeftWithoutReplacingDeclaredColor(int bitDepth)
+        {
+            VideoColorInfo declared = new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709, ColorRange.Full);
+            VideoFormat format = new(96, 64, new PlanarVideoPixelFormat("yuv", PlanarColorModel.Yuv, bitDepth, 2, 2), declared);
+            List<string> warnings = [];
+            VideoColorInfo resolved = VideoColorPolicy.Resolve(format, SdrPreviewColorPolicy.Resolve, warnings.Add);
+            Assert.Equal(declared with { ChromaLocation = ChromaLocation.Left }, resolved);
+            Assert.Same(declared, format.Color);
+            string warning = Assert.Single(warnings);
+            Assert.Contains("(chroma location)", warning, StringComparison.Ordinal);
+            Assert.Contains("chroma location Left", warning, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(ChromaLocation.Left)]
+        [InlineData(ChromaLocation.Center)]
+        [InlineData(ChromaLocation.TopLeft)]
+        [InlineData(ChromaLocation.Top)]
+        [InlineData(ChromaLocation.BottomLeft)]
+        [InlineData(ChromaLocation.Bottom)]
+        public void DeclaredChromaLocationNeverProducesAnAssumptionWarning(ChromaLocation location)
+        {
+            VideoColorInfo declared = new(ColorPrimaries.Bt709, TransferFunction.Bt709, MatrixCoefficients.Bt709,
+                ColorRange.Limited, location);
+            List<string> warnings = [];
+            Assert.Same(declared, VideoColorPolicy.Resolve(new(96, 64, VideoPixelFormat.Yuv420P8, declared),
+                SdrPreviewColorPolicy.Resolve, warnings.Add));
+            Assert.Empty(warnings);
+        }
+
+        [Fact]
+        public void RgbDoesNotReceiveAChromaInterpretation()
+        {
+            VideoFormat format = new(96, 64, VideoPixelFormat.Rgba32, VideoColorInfo.Srgb);
+            Assert.Same(VideoColorInfo.Srgb, SdrPreviewColorPolicy.Resolve(format));
+        }
+
+        [Theory]
+        [InlineData(8)]
+        [InlineData(10)]
+        [InlineData(12)]
+        public void MissingPlanarRgbColorimetryUsesRgbDefaultsWithoutChromaSiting(int bitDepth)
+        {
+            VideoFormat format = new(96, 64, new PlanarVideoPixelFormat("gbr", PlanarColorModel.Gbr, bitDepth),
+                new VideoColorInfo(Range: ColorRange.Full));
+            Assert.Equal(VideoColorInfo.Srgb, VideoColorPolicy.ResolveForEncoding(format));
+        }
+
+        [Theory]
+        [InlineData(TransferFunction.Pq)]
+        [InlineData(TransferFunction.Hlg)]
+        public void NativeYuvEncodingPreservesHdrWithoutApplyingAnSdrPreviewPolicy(TransferFunction transfer)
+        {
+            VideoColorInfo declared = new(ColorPrimaries.Bt2020, transfer, MatrixCoefficients.Bt2020NonConstant);
+            VideoColorInfo resolved = VideoColorPolicy.ResolveForEncoding(new(1920, 1080, VideoPixelFormat.Yuv420P10, declared));
+            Assert.Equal(declared with { ChromaLocation = ChromaLocation.Left }, resolved);
+        }
+
+        [Fact]
+        public void NativeYuvEncodingDoesNotInventColorimetryNeededOnlyForRgbConversion()
+        {
+            VideoColorInfo declared = new();
+            List<string> warnings = [];
+            VideoColorInfo resolved = VideoColorPolicy.Resolve(new(96, 64, VideoPixelFormat.Yuv420P8, declared),
+                VideoColorPolicy.ResolveForEncoding, warnings.Add);
+            Assert.Equal(declared with { ChromaLocation = ChromaLocation.Left }, resolved);
+            Assert.Contains("(chroma location)", Assert.Single(warnings), StringComparison.Ordinal);
         }
 
         [Theory]

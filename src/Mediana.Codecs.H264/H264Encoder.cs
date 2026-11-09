@@ -10,7 +10,7 @@ using Mediana.Formats;
 
 namespace Mediana.Codecs.H264
 {
-    /// <summary>Progressive Baseline CAVLC I/P encoding with fixed QP or constrained variable rate and bounded reference storage.
+    /// <summary>Progressive Baseline CAVLC or Main CABAC I/P encoding with fixed QP or constrained variable rate and bounded reference storage.
     /// Borrows input frames; returns owned length-prefixed AVC packets. Calls and disposal must not overlap.</summary>
     public class H264Encoder : IMediaEncoder<VideoFrame>
     {
@@ -27,6 +27,7 @@ namespace Mediana.Codecs.H264
         private MediaTimestamp? lastKeyFrame;
         private H264Picture? reference;
         private H264Picture? workspace;
+        private H264MotionReference? motionReference;
         private int frameNumber;
         private bool completed;
         private bool disposed;
@@ -95,8 +96,13 @@ namespace Mediana.Codecs.H264
                 }
                 H264FrameRateBudget requested = rateController?.Prepare(timestamp, durationTicks, keyFrame) ?? new(options.MaximumPacketBytes, options.Quantizer);
                 H264FrameRateBudget budget = new(Math.Min(requested.MaximumBytes, levelBytes), requested.Quantizer);
+                if (!keyFrame && options.MotionSearchRange != 0)
+                {
+                    motionReference ??= new(reference!, options.MotionSearchRange, allocator);
+                    motionReference.Prepare(reference!, cancellationToken);
+                }
                 using H264EncodedPicture encoded = H264PictureEncoder.Encode(input, sequence, reference, keyFrame, number, idrId,
-                    allocator, options, budget, ref workspace, cancellationToken);
+                    allocator, options, budget, ref workspace, cancellationToken, motionReference);
                 levelBudget.Commit(timestamp.Value, keyFrame, encoded.Data.Memory.Length);
                 pending = new MediaPacket(Stream.StreamIndex, encoded.Data, timestamp, timestamp, input.Duration, isKeyFrame: keyFrame);
                 rateController?.Commit(timestamp, encoded.Quantizer, encoded.Data.Memory.Length, keyFrame);
@@ -233,7 +239,7 @@ namespace Mediana.Codecs.H264
                     elapsed * H264EncoderConfiguration.MaximumMacroblocksPerSecond ||
                     Stream.TimeBase.Denominator > elapsed * H264EncoderConfiguration.MaximumFramesPerSecond)
                 {
-                    throw new NotSupportedException("The H.264 frame rate exceeds Baseline level 4.1.");
+                    throw new NotSupportedException("The H.264 frame rate exceeds level 4.1.");
                 }
             }
             return exact;
@@ -272,6 +278,8 @@ namespace Mediana.Codecs.H264
             reference = null;
             workspace?.Dispose();
             workspace = null;
+            motionReference?.Dispose();
+            motionReference = null;
         }
 
         private void Enter()

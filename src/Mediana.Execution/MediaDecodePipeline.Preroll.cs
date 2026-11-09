@@ -32,20 +32,41 @@ namespace Mediana.Execution
             {
                 throw new InvalidDataException("The container returned an invalid preroll position.");
             }
-            CountPacketRead();
-            using MediaPacket packet = await indexed.ReadPacketAtAsync(start.PacketIndex, cancellationToken).ConfigureAwait(false);
-            if (packet.StreamIndex != streamIndex || packet.PresentationTime != start.PresentationTime)
+            long before = start.PacketIndex + 1;
+            while (true)
             {
-                throw new InvalidDataException("The preroll packet differs from its container index.");
+                cancellationToken.ThrowIfCancellationRequested();
+                ContainerSeekPoint point = randomAccessInspector is null ? start :
+                    indexed.FindSeekPoint(start.PresentationTime, before, cancellationToken)
+                        ?? throw new NotSupportedException("No independently decodable packet is available before the preroll position.");
+                if (point.StreamIndex != streamIndex || point.PacketIndex < 0 || point.PacketIndex >= before ||
+                    (point.PacketIndex != 0 && point.PresentationTime.CompareTo(start.PresentationTime) > 0))
+                {
+                    throw new InvalidDataException("The container returned an invalid preroll restart candidate.");
+                }
+                CountPacketRead();
+                using MediaPacket packet = await indexed.ReadPacketAtAsync(point.PacketIndex, cancellationToken).ConfigureAwait(false);
+                if (packet.StreamIndex != streamIndex || packet.PresentationTime != point.PresentationTime)
+                {
+                    throw new InvalidDataException("The preroll packet differs from its container index.");
+                }
+                RandomAccessRecovery? recovery = InspectRestart(packet, cancellationToken, point.PacketIndex == 0);
+                int candidateRequirement = Math.Max(required, recovery.GetValueOrDefault().RequiredPrerollPackets);
+                long distance = output.PacketIndex - point.PacketIndex;
+                if (recovery.HasValue && (point.PacketIndex == 0 || distance >= candidateRequirement))
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    preroll.ResetForPreroll(distance, point.PacketIndex == 0);
+                    pendingPacket?.Dispose();
+                    pendingPacket = null;
+                    pendingPacket = packet.Retain();
+                    indexed.Reposition(point.PacketIndex + 1);
+                    inputCompleted = false;
+                    ended = false;
+                    return;
+                }
+                before = point.PacketIndex;
             }
-            cancellationToken.ThrowIfCancellationRequested();
-            preroll.ResetForPreroll(output.PacketIndex - start.PacketIndex, start.PacketIndex == 0);
-            pendingPacket?.Dispose();
-            pendingPacket = null;
-            pendingPacket = packet.Retain();
-            indexed.Reposition(start.PacketIndex + 1);
-            inputCompleted = false;
-            ended = false;
         }
     }
 }

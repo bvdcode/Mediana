@@ -133,3 +133,21 @@ a dense MMR page and a vector scene; `prepare_documents.py` creates fixed-geomet
 DOCX/PPTX and a 400,000-cell XLSX with 80,000 cached formulas.
 `prepare_webp_animation.py` encodes complete reference RGBA frames. Input geometry,
 reference versions, preparation options and hashes belong in each result report.
+## H.264 encoder comparison input
+
+The operation consumer accepts progressive, even-sized 8-bit YUV420 YUV4MPEG2 input
+through the public encoder and MPEG-TS writer APIs:
+
+```sh
+Mediana.OperationComparison h264-encode input.y4m output.ts 26 0 48
+```
+
+Arguments select QP, target bits per second (zero selects fixed QP), and the IDR
+interval in frames. Input uses an explicit frame rate, square or declared sample
+aspect ratio, and center or left chroma location. The comparison assigns limited
+range BT.709 color interpretation to these samples; prepare inputs accordingly.
+The consumer rejects unsupported or truncated headers and frame tags, reads to
+EOF, checks encoder completion and reports CPU, elapsed time, process peak RSS,
+managed allocation totals and encoded packet bytes. It checks that all owned
+media storage has been released. This separates encoding from source decoding;
+whole-operation transcode measurements remain a separate workload.

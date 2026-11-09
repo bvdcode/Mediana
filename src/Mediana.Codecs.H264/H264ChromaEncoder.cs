@@ -35,6 +35,10 @@ namespace Mediana.Codecs.H264
 
         public static bool TryWrite(H264BitWriter bits, H264Picture target, int x, int y, int qp, int pattern,
             ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients)
+            => TryWrite(new H264CavlcEncodingSyntax(bits, target), target, x, y, qp, pattern, prediction, coefficients);
+
+        public static bool TryWrite<TSyntax>(TSyntax syntax, H264Picture target, int x, int y, int qp, int pattern,
+            ReadOnlySpan<byte> prediction, ReadOnlySpan<int> coefficients) where TSyntax : IH264EncodingSyntax
         {
             if (pattern == 0)
             {
@@ -44,8 +48,8 @@ namespace Mediana.Codecs.H264
                 }
                 return true;
             }
-            if (!H264CavlcWriter.TryWrite(bits, coefficients.Slice(120, 4), -1, out _) ||
-                !H264CavlcWriter.TryWrite(bits, coefficients.Slice(124, 4), -1, out _))
+            if (!syntax.TryWriteResidual(H264ResidualCategory.ChromaDc, 1, x, y, coefficients.Slice(120, 4), out _) ||
+                !syntax.TryWriteResidual(H264ResidualCategory.ChromaDc, 2, x, y, coefficients.Slice(124, 4), out _))
             {
                 return false;
             }
@@ -62,7 +66,8 @@ namespace Mediana.Codecs.H264
                     int blockY = index / 2 * 4;
                     ReadOnlySpan<int> levels = coefficients.Slice(((plane - 1) * 4 + index) * 15, 15);
                     int count = 0;
-                    if (pattern == 2 && !H264CavlcWriter.TryWrite(bits, levels, target.NeighbourCount(plane, x + blockX, y + blockY), out count))
+                    if (pattern == 2 && !syntax.TryWriteResidual(H264ResidualCategory.ChromaAc,
+                        plane, x + blockX, y + blockY, levels, out count))
                     {
                         return false;
                     }

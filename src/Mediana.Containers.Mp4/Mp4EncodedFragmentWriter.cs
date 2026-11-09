@@ -6,7 +6,7 @@ using Mediana.Core.Memory;
 
 namespace Mediana.Containers.Mp4
 {
-    /// <summary>Writes independent audiovisual ISO BMFF initialization and media fragments from encoded packets.
+    /// <summary>Writes audiovisual ISO BMFF initialization and media fragments from encoded packets.
     /// Borrows declarations, packets, allocator and destination. Validates the complete header before publishing bytes.</summary>
     public static class Mp4EncodedFragmentWriter
     {

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Runtime.InteropServices;
 using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
@@ -10,40 +9,51 @@ using Mediana.Formats.Audio;
 
 namespace Mediana.Codecs.Aac
 {
-    internal class AacDecoder : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
+    internal partial class AacDecoder : IMediaCodec<MediaPacket, AudioFrame>, IPacketPrerollDecoder
     {
         private const uint InitialNoiseState = 0x13579bdf;
         private readonly int streamIndex;
         private readonly AacConfiguration configuration;
         private readonly MediaBufferAllocator allocator;
         private readonly int maxAccessUnitBytes;
-        private readonly AudioFormat format;
+        private AudioFormat format;
+        private readonly AudioFormat coreFormat;
+        private AudioFormat? sbrFormat;
         private readonly AacChannelLayout layout;
         private AacDecoderWorkspace? workspace;
-        private AudioFrame? pending;
+        private readonly bool adts;
+        private readonly AudioFrame?[] pending;
+        private int outputCount;
+        private int outputIndex;
         private long prerollPackets;
+        private long prerollAccessUnits;
         private uint noiseState = InitialNoiseState;
         private bool completed;
         private bool disposed;
         private bool faulted;
+        private bool nonOriginPreroll;
 
-        public int RequiredPrerollPackets => 1;
+        public int RequiredPrerollPackets => configuration.SpectralBandReplication == true || sbrFormat is not null ? 2 : 1;
 
         public void ResetForPreroll(long packetCount, bool startsAtStreamBeginning)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(packetCount);
             Reset();
             prerollPackets = packetCount;
+            nonOriginPreroll = !startsAtStreamBeginning;
         }
 
-        public AacDecoder(int streamIndex, AacConfiguration configuration, MediaBufferAllocator allocator, int maxAccessUnitBytes)
+        public AacDecoder(int streamIndex, AacConfiguration configuration, MediaBufferAllocator allocator, int maxAccessUnitBytes, bool adts = false)
         {
             this.streamIndex = streamIndex;
             this.configuration = configuration;
             this.allocator = allocator;
             this.maxAccessUnitBytes = maxAccessUnitBytes;
+            this.adts = adts;
+            pending = new AudioFrame?[adts ? 4 : 1];
             layout = new AacChannelLayout(configuration.ChannelConfiguration);
-            format = layout.CreateFormat(configuration.SampleRate);
+            coreFormat = layout.CreateFormat(configuration.SampleRate);
+            format = coreFormat;
         }
 
         public CodecInputStatus TrySend(MediaPacket input, CancellationToken cancellationToken = default)
@@ -58,7 +68,7 @@ namespace Mediana.Codecs.Aac
                 {
                     throw new InvalidOperationException("AAC input is complete.");
                 }
-                if (pending is not null)
+                if (outputCount != 0)
                 {
                     succeeded = true;
                     return CodecInputStatus.OutputRequired;
@@ -67,32 +77,7 @@ namespace Mediana.Codecs.Aac
                 {
                     throw new InvalidDataException("The AAC packet is empty or belongs to a different stream.");
                 }
-                if (input.Data.Length > maxAccessUnitBytes)
-                {
-                    throw new NotSupportedException("The AAC packet exceeds the configured access unit limit.");
-                }
-                workspace ??= new AacDecoderWorkspace(allocator, layout);
-                AacAccessUnitParser.Read(input.Data.Span, configuration.FrequencyIndex, workspace, ref noiseState, cancellationToken);
-                if (prerollPackets != 0)
-                {
-                    for (int channel = 0; channel < workspace.Channels.Length; channel++)
-                    {
-                        Synthesize(workspace.Channels[channel], [], layout.OutputChannel(channel), cancellationToken);
-                    }
-                    cancellationToken.ThrowIfCancellationRequested();
-                    prerollPackets--;
-                    succeeded = true;
-                    return CodecInputStatus.Accepted;
-                }
-                using WritableMediaBuffer writable = allocator.Allocate(format.GetBufferSize(1024));
-                Span<float> output = MemoryMarshal.Cast<byte, float>(writable.Memory.Span);
-                for (int channel = 0; channel < workspace.Channels.Length; channel++)
-                {
-                    Synthesize(workspace.Channels[channel], output, layout.OutputChannel(channel), cancellationToken);
-                }
-                cancellationToken.ThrowIfCancellationRequested();
-                using MediaBuffer buffer = writable.Publish();
-                pending = new AudioFrame(format, 1024, buffer, input.PresentationTime);
+                ReadPacket(input, cancellationToken);
                 succeeded = true;
                 return CodecInputStatus.Accepted;
             }
@@ -105,36 +90,6 @@ namespace Mediana.Codecs.Aac
             }
         }
 
-        private void Synthesize(AacChannelState channel, Span<float> output, int channelIndex, CancellationToken cancellationToken)
-        {
-            AacDecoderWorkspace current = workspace ?? throw new InvalidOperationException("AAC workspace is missing.");
-            Span<double> synthesized = current.Output;
-            AacSynthesis.Process(channel.Spectrum, channel.Info.Sequence, channel.Info.Shape, channel.PreviousShape,
-                channel.Overlap, synthesized, current.Time, current.Fourier, cancellationToken);
-            channel.PreviousShape = channel.Info.Shape;
-            if (output.IsEmpty)
-            {
-                foreach (double sample in synthesized)
-                {
-                    if (!float.IsFinite((float)sample))
-                    {
-                        throw new InvalidDataException("AAC synthesis produced a nonfinite PCM sample.");
-                    }
-                }
-                return;
-            }
-            int channels = format.Channels.Count;
-            for (int index = 0; index < 1024; index++)
-            {
-                float value = (float)synthesized[index];
-                if (!float.IsFinite(value))
-                {
-                    throw new InvalidDataException("AAC synthesis produced a nonfinite PCM sample.");
-                }
-                output[index * channels + channelIndex] = value;
-            }
-        }
-
         public CodecOutput<AudioFrame> Receive(CancellationToken cancellationToken = default)
         {
             EnsureUsable();
@@ -143,10 +98,15 @@ namespace Mediana.Codecs.Aac
                 Fault();
                 cancellationToken.ThrowIfCancellationRequested();
             }
-            if (pending is not null)
+            if (outputCount != 0)
             {
-                AudioFrame frame = pending;
-                pending = null;
+                AudioFrame frame = pending[outputIndex] ?? throw new InvalidOperationException("The AAC output queue is inconsistent.");
+                pending[outputIndex++] = null;
+                if (outputIndex == outputCount)
+                {
+                    outputCount = 0;
+                    outputIndex = 0;
+                }
                 return CodecOutput<AudioFrame>.Available(frame);
             }
             return completed ? CodecOutput<AudioFrame>.EndOfStream : CodecOutput<AudioFrame>.InputRequired;
@@ -168,14 +128,22 @@ namespace Mediana.Codecs.Aac
         public void Reset()
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            pending?.Dispose();
-            pending = null;
+            for (int index = 0; index < pending.Length; index++)
+            {
+                pending[index]?.Dispose();
+                pending[index] = null;
+            }
+            outputCount = 0;
+            outputIndex = 0;
             workspace?.Dispose();
             workspace = null;
             noiseState = InitialNoiseState;
             prerollPackets = 0;
+            prerollAccessUnits = 0;
             completed = false;
             faulted = false;
+            nonOriginPreroll = false;
+            format = coreFormat;
         }
 
         private void Fault()

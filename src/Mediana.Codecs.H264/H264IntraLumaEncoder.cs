@@ -7,6 +7,10 @@ namespace Mediana.Codecs.H264
     {
         public static int Analyze(H264BitWriter bits, ReadOnlySpan<byte> source, H264Picture target, int x, int y,
             int qp, Span<int> coefficients)
+            => Analyze(new H264CavlcEncodingSyntax(bits, target), source, target, x, y, qp, coefficients);
+
+        public static int Analyze<TSyntax>(TSyntax syntax, ReadOnlySpan<byte> source, H264Picture target, int x, int y,
+            int qp, Span<int> coefficients) where TSyntax : IH264EncodingSyntax
         {
             Span<byte> prediction = stackalloc byte[16];
             Span<int> transformed = stackalloc int[16];
@@ -20,11 +24,7 @@ namespace Mediana.Codecs.H264
                 int predicted = target.PredictedMode(px, py);
                 ReadOnlySpan<byte> blockSource = source[(blockY * 16 + blockX)..];
                 int mode = H264IntraModeSelection.Select(blockSource, target, px, py, prediction);
-                bits.WriteFlag(mode == predicted);
-                if (mode != predicted)
-                {
-                    bits.WriteBits((uint)(mode < predicted ? mode : mode - 1), 3);
-                }
+                syntax.WriteIntraMode(mode, predicted);
                 target.SetLumaMode(px, py, mode);
                 H264EncodingBlocks.Transform(blockSource, 16, prediction, 4, transformed);
                 Span<int> levels = coefficients.Slice(index * 16, 16);
@@ -40,13 +40,17 @@ namespace Mediana.Codecs.H264
         }
 
         public static bool TryWrite(H264BitWriter bits, H264Picture target, int x, int y, int pattern, ReadOnlySpan<int> coefficients)
+            => TryWrite(new H264CavlcEncodingSyntax(bits, target), target, x, y, pattern, coefficients);
+
+        public static bool TryWrite<TSyntax>(TSyntax syntax, H264Picture target, int x, int y, int pattern,
+            ReadOnlySpan<int> coefficients) where TSyntax : IH264EncodingSyntax
         {
             for (int index = 0; index < 16; index++)
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
                 int count = 0;
-                if ((pattern & (1 << (index / 4))) != 0 && !H264CavlcWriter.TryWrite(bits,
-                    coefficients.Slice(index * 16, 16), target.NeighbourCount(0, x + blockX, y + blockY), out count))
+                if ((pattern & (1 << (index / 4))) != 0 && !syntax.TryWriteResidual(H264ResidualCategory.Luma4x4,
+                    0, x + blockX, y + blockY, coefficients.Slice(index * 16, 16), out count))
                 {
                     return false;
                 }

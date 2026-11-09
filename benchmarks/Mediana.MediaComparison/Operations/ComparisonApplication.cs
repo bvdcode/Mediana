@@ -1,12 +1,30 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Codecs.H264;
+
 namespace Mediana.OperationComparison
 {
     internal static class ComparisonApplication
     {
         internal static Task RunAsync(string[] arguments)
         {
+            if (arguments.Length is 6 or 7 && arguments[0] == "h264-encode")
+            {
+                H264EntropyCoding entropy = H264EntropyCoding.Cavlc;
+                if (arguments.Length == 7)
+                {
+                    entropy = arguments[6] switch
+                    {
+                        "cavlc" => H264EntropyCoding.Cavlc,
+                        "cabac" => H264EntropyCoding.Cabac,
+                        _ => throw new ArgumentException("Expected cavlc or cabac entropy coding.")
+                    };
+                }
+                return H264EncodingComparison.RunAsync(arguments[1], arguments[2], int.Parse(arguments[3], System.Globalization.CultureInfo.InvariantCulture),
+                    int.Parse(arguments[4], System.Globalization.CultureInfo.InvariantCulture),
+                    int.Parse(arguments[5], System.Globalization.CultureInfo.InvariantCulture), entropy);
+            }
             if (arguments.Length != 3)
             {
                 throw new ArgumentException("Expected operation, input and new output path.");

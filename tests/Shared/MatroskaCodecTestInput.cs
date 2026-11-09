@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Containers.Matroska;
+using Mediana.Core;
 using Mediana.Core.Memory;
 using Mediana.Formats;
 using Mediana.Formats.Audio;
@@ -55,6 +56,25 @@ namespace Mediana.Tests
                 using MatroskaPacketIndex emptyIndex = await BuildAsync(emptySource, allocator, [empty]);
                 IReadOnlyList<MatroskaCodecConfiguration> result = await ReadCodecsAsync(emptySource, allocator, [empty], emptyIndex);
                 Require(result[0].Stream.Configuration.IsEmpty && result[0].Stream.Format == MatroskaStreamFormats.StoredFrames);
+            }
+            Require(allocator.AllocatedBytes == 0);
+
+            foreach ((string nativeId, string codecId, EncodedStreamFormat format) in new[]
+            {
+                ("A_AC3", Ac3FrameHeader.CodecId, StreamFormats.Ac3),
+                ("A_EAC3", Ac3FrameHeader.EnhancedCodecId, StreamFormats.Eac3Syncframe)
+            })
+            {
+                await using EbmlElementTestSource independent = new(Data([]));
+                MatroskaTrack trackWithoutConfiguration = AudioTrack([]) with
+                { CodecId = nativeId, CodecPrivate = new(0x63A2, -1, long.MaxValue) };
+                using MatroskaPacketIndex emptyIndex = await BuildAsync(independent, allocator, [trackWithoutConfiguration]);
+                long readCalls = independent.ReadCalls;
+                IReadOnlyList<MatroskaCodecConfiguration> mapped = await ReadCodecsAsync(independent, allocator,
+                    [trackWithoutConfiguration], emptyIndex, 1, 1);
+                Require(mapped[0].Stream.CodecId == codecId && mapped[0].Stream.Format == format);
+                Require(mapped[0].Stream.Configuration.IsEmpty && mapped[0].FrameDuration is null);
+                Require(independent.ReadCalls == readCalls);
             }
             Require(allocator.AllocatedBytes == 0);
 

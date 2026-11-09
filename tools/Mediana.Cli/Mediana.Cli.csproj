@@ -42,6 +42,9 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Opus/Mediana.Codecs.Opus.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Vorbis/Mediana.Codecs.Vorbis.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp3/Mediana.Containers.Mp3.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Adts/Mediana.Containers.Adts.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Ac3/Mediana.Containers.Ac3.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Ac3/Mediana.Codecs.Ac3.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Flac/Mediana.Codecs.Flac.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Flac/Mediana.Containers.Flac.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
@@ -54,6 +57,7 @@
     <ProjectReference Include="../../src/Mediana.Streaming.Hls/Mediana.Streaming.Hls.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.H264/Mediana.Codecs.H264.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Hevc/Mediana.Codecs.Hevc.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Av1/Mediana.Codecs.Av1.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Webp/Mediana.Codecs.Webp.csproj" />
   </ItemGroup>

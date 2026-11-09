@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Av1/Mediana.Codecs.Av1.csproj" />
+    <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Mp4/Mediana.Containers.Mp4.csproj" />
+    <ProjectReference Include="../../src/Mediana.Containers.Matroska/Mediana.Containers.Matroska.csproj" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" PrivateAssets="all" />
+    <Using Include="Xunit" />
+    <None Include="Data/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Av1ContainerTestInput.cs" Link="Av1ContainerTestInput.cs" />
+    <Compile Include="../Shared/Av1PictureSequenceTestInput.cs" Link="Av1PictureSequenceTestInput.cs" />
+    <Compile Include="../Shared/Av1GrainDisplayTestInput.cs" Link="Av1GrainDisplayTestInput.cs" />
+    <Compile Include="../Shared/Av1SuperResolutionTestInput.cs" Link="Av1SuperResolutionTestInput.cs" />
+    <Compile Include="../Shared/Av1Main10TestInput.cs" Link="Av1Main10TestInput.cs" />
+    <Compile Include="../Shared/Av1Main10ContainerTestInput.cs" Link="Av1Main10ContainerTestInput.cs" />
+    <Compile Include="../Shared/Av1TimingTestInput.cs" Link="Av1TimingTestInput.cs" />
+  </ItemGroup>
+</Project>

@@ -92,6 +92,17 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException("Motion search differs from the independent complete candidate reference.");
             }
+            using (H264MotionReference prepared = new(reference, item.GetProperty("radius").GetInt32(), allocator))
+            {
+                prepared.Prepare(reference, default);
+                byte[] cachedPrediction = new byte[384];
+                (int cachedX, int cachedY, bool cachedExact) = H264MotionSearch.Select(source, reference, target, x, y,
+                    item.GetProperty("radius").GetInt32(), cachedPrediction, default, prepared);
+                if ((cachedX, cachedY, cachedExact) != (vx, vy, exact) || !cachedPrediction.AsSpan().SequenceEqual(prediction.AsSpan(3, 384)))
+                {
+                    throw new InvalidDataException("Prepared reference planes changed motion selection or prediction samples.");
+                }
+            }
             if (prediction.AsSpan(0, 3).ContainsAnyExcept((byte)183) || prediction.AsSpan(387, 3).ContainsAnyExcept((byte)183)
                 || !storage.Memory.Span.SequenceEqual(unchanged) || target.Modes.ContainsAnyExcept((byte)(H264Picture.InterMode | 128))
                 || target.ReferenceIndices(H264ReferenceList.L0).ContainsAnyExcept((byte)0) || target.MotionX(H264ReferenceList.L0).ContainsAnyExcept(px)

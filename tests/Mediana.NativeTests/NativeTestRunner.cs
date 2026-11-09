@@ -122,6 +122,10 @@ namespace Mediana.NativeTests
                 await AacFeatureTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"), name);
                 Console.WriteLine($"PASS AAC-LC {name}: complete PCM/timing/ownership and reference sample or noise energy checks; maximum PCM difference {difference:G9}.");
             }
+            await NativeAdtsTests.RunAsync();
+            await NativeAacSbrTests.RunAsync();
+            await NativeAc3Tests.RunAsync();
+            await NativeAv1Tests.RunAsync();
             for (int sequence = 0; sequence < 4; sequence++)
             {
                 for (int shape = 0; shape < 2; shape++)
@@ -286,6 +290,7 @@ namespace Mediana.NativeTests
             await Mp4TimelineTestInput.VerifyAsync(root);
             await HlsAudioPreparationTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
             await HlsRenditionTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
+            await HlsRenditionTestInput.VerifyOverlappingDurationsAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
             await HlsRenditionTestInput.VerifySeparateAudioAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
             await HlsPlanTestInput.VerifyAsync(root);
             await HlsSessionTestInput.VerifyAsync(root);

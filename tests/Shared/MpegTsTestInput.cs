@@ -8,6 +8,7 @@ using Mediana.Core;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.Formats;
 using Mediana.IO;
 
 using Mediana.Formats.Audio;
@@ -252,6 +253,14 @@ namespace Mediana.Tests
                     }
                     break;
                 case "aac":
+                    if (stream.Format == StreamFormats.AacAdts)
+                    {
+                        if (!original.AsSpan().SequenceEqual(output))
+                        {
+                            throw new InvalidDataException("The TS payload changed an existing ADTS transport frame.");
+                        }
+                        break;
+                    }
                     int length = (output[3] & 3) << 11 | output[4] << 3 | output[5] >> 5;
                     if (output[0] != 0xFF || output[1] != 0xF1 || length != output.Length || !original.AsSpan().SequenceEqual(output.AsSpan(7)))
                     {

@@ -33,11 +33,17 @@ namespace Mediana.Codecs.H264
             if ((long)width * height > MaximumFrameMacroblocks ||
                 width > MaximumDimensionMacroblocks || height > MaximumDimensionMacroblocks)
             {
-                throw new NotSupportedException("The H.264 picture exceeds Baseline level 4.1 dimensions.");
+                throw new NotSupportedException("The H.264 picture exceeds level 4.1 dimensions.");
             }
             using H264BitWriter sequence = new(allocator, 4096, 0x67);
-            sequence.WriteBits(66, 8);
-            sequence.WriteBits(0xC0, 8);
+            (uint profile, uint constraints) = options.EntropyCoding switch
+            {
+                H264EntropyCoding.Cavlc => (66U, 0xC0U),
+                H264EntropyCoding.Cabac => (77U, 0x40U),
+                _ => throw new ArgumentOutOfRangeException(nameof(options))
+            };
+            sequence.WriteBits(profile, 8);
+            sequence.WriteBits(constraints, 8);
             sequence.WriteBits(Level, 8);
             sequence.WriteUnsigned(0);
             sequence.WriteUnsigned(0);
@@ -64,7 +70,7 @@ namespace Mediana.Codecs.H264
             using H264BitWriter picture = new(allocator, 4096, 0x68);
             picture.WriteUnsigned(0);
             picture.WriteUnsigned(0);
-            picture.WriteFlag(false);
+            picture.WriteFlag(options.EntropyCoding == H264EntropyCoding.Cabac);
             picture.WriteFlag(false);
             picture.WriteUnsigned(0);
             picture.WriteUnsigned(0);

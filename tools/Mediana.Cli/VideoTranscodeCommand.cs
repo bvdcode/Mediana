@@ -5,15 +5,16 @@ using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
 using Mediana.Core.Memory;
+using Mediana.Core.Video;
 using Mediana.Execution;
 using Mediana.IO;
+using Mediana.Processing;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
 {
     internal static class VideoTranscodeCommand
     {
-        private const long BufferBudgetBytes = 128 * 1024 * 1024;
 
         public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, H264EncoderOptions options,
             int? maximumWidth, int? maximumHeight, bool videoOnly, ILogger logger, CancellationToken cancellationToken)
@@ -21,17 +22,21 @@ namespace Mediana.Cli
             MediaEngine engine = ContainerEngineFactory.CreateVideoBuilder(Mp4TimestampMode.LinearMovie)
                 .AddVideoEncoder(new H264EncoderFactory(options)).AddContainerWriter(new MpegTsWriterFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
-            MediaBufferAllocator allocator = new(BufferBudgetBytes);
+            MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
             MediaProgress progress = new(logger, TimeProvider.System);
             MediaOperationProgress? result = null;
             await outputFile.WriteAsync(async destination =>
             {
                 result = await engine.TranscodeVideoAsync(source, destination, "h264", "mpegts", allocator, new()
                 {
+                    Input = CommandMediaResources.OpenOptions,
                     StreamIndex = streamIndex,
                     MaximumWidth = maximumWidth,
                     MaximumHeight = maximumHeight,
                     OmitAudio = videoOnly,
+                    OutputPixelFormat = VideoPixelFormat.Yuv420P8,
+                    ColorResolver = VideoColorPolicy.ResolveForEncoding,
+                    WarningHandler = message => logger.LogWarning("{Warning}", message),
                     RgbConversion = new()
                 }, progress.Report, cancellationToken);
             }, cancellationToken);

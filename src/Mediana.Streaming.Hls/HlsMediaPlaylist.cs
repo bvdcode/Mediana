@@ -31,6 +31,16 @@ namespace Mediana.Streaming.Hls
             return HlsBandwidth.Calculate(segments, targetDurationSeconds);
         }
 
+        /// <summary>Measures complete-file bitrates with an explicit policy for presentations too short for the RFC window.
+        /// An estimated peak is the largest individual segment bitrate and is reported through the warning handler.</summary>
+        public static (long Peak, long Average) MeasureBandwidth(IReadOnlyList<HlsMediaSegment> segments,
+            long? targetDurationSeconds, HlsBandwidthOptions options)
+        {
+            Validate(segments);
+            ArgumentNullException.ThrowIfNull(options);
+            return HlsBandwidth.Calculate(segments, targetDurationSeconds, options);
+        }
+
         private static void Validate(IReadOnlyList<HlsMediaSegment> segments)
         {
             ArgumentNullException.ThrowIfNull(segments);

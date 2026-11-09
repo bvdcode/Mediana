@@ -31,7 +31,8 @@ namespace Mediana.Cli
             MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
             VisualExportOptions options = new()
             {
-                Input = input ?? new() { Images = CommandImageResources.OpenOptions, Request = request ?? new() },
+                Input = (input ?? new() { Images = CommandImageResources.OpenOptions, Request = request ?? new() })
+                    with { Media = CommandMediaResources.OpenOptions },
                 MaximumWidth = maximumWidth,
                 MaximumHeight = maximumHeight,
                 ColorResolver = SdrPreviewColorPolicy.Resolve,

@@ -36,12 +36,29 @@ namespace Mediana.NativeTests
             H264LumaNeighborhoodTestInput.Verify();
             H264ShortInterpolationTestInput.Verify();
             H264SampleDifferenceTestInput.Verify();
+            H264ChromaDifferenceTestInput.Verify();
             H264LumaCandidateTestInput.Verify();
             H264LumaNeighborhoodTestInput.VerifyAllocation();
             await H264MotionSearchTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
             H264ChromaInterpolationTestInput.Verify();
             H264IntraModeTestInput.Verify();
+            H264CabacEncodingTestInput.Verify();
+            H264CabacCheckpointTestInput.Verify();
+            H264PreparedMacroblockTestInput.Verify();
+            H264QuantizedSkipTestInput.Verify();
+            H264RateDistortionTestInput.VerifyLifecycle();
+            foreach (int qp in new[] { 0, 12, 26, 38, 51 })
+            {
+                (byte[] _, byte[] pixels) = await H264Intra16TestInput.EncodeAsync(qp);
+                byte[] reference = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264", $"intra16-qp{qp}.yuv"));
+                if (!pixels.AsSpan().SequenceEqual(reference))
+                {
+                    throw new InvalidDataException("H.264 intra16 coding differs from the independent complete pixel reference.");
+                }
+            }
             Console.WriteLine("PASS H.264 motion interpolation: all luma phases, complete blocks, borders and extreme coordinates match scalar convolution.");
+            Console.WriteLine("PASS H.264 intra16 coding: I/P syntax, every prediction mode, five quantizers and complete independent samples match.");
+            Console.WriteLine("PASS H.264 arithmetic encoding: all probability states, mixed bypass widths, carry, termination and independent exact intervals match.");
         }
     }
 }

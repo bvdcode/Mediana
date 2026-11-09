@@ -134,7 +134,7 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public void AccessUnitLimitAndUnsupportedSbrAreExplicit()
+        public void AccessUnitLimitAndUnassociatedSbrAreExplicit()
         {
             MediaBufferAllocator allocator = new(256 * 1024);
             using MediaPacket packet = Packet(allocator, AacTestPackets.Mono());
@@ -144,7 +144,7 @@ namespace Mediana.Tests
             byte[] sbr = new AacTestBitWriter().Write(6, 3).Write(1, 4).Write(13, 4).Write(0, 4).Write(7, 3).ToArray();
             using MediaPacket extension = Packet(allocator, sbr);
             using IMediaCodec<MediaPacket, AudioFrame> decoder = new AacDecoderFactory().Create(Stream(false), allocator);
-            Assert.Throws<NotSupportedException>(() => decoder.TrySend(extension));
+            Assert.Throws<InvalidDataException>(() => decoder.TrySend(extension));
             Assert.Equal(packet.Data.Length + extension.Data.Length, allocator.AllocatedBytes);
         }
 

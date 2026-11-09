@@ -42,7 +42,7 @@ namespace Mediana.Containers.Matroska
                     int entryBytes = Unsafe.SizeOf<ContainerVideoPresentationUnit>();
                     if (packetCount > int.MaxValue / entryBytes)
                     { throw new NotSupportedException("The Matroska presentation index exceeds the maximum managed workspace size."); }
-                    result.storage[stream] = index.AllocatePresentationStorage(checked((int)packetCount * entryBytes));
+                    result.storage[stream] = index.AllocatePacketMetadataStorage(checked((int)packetCount * entryBytes));
                     int cachedBlock = -1;
                     for (long packet = 0; packet < packetCount; packet++)
                     {

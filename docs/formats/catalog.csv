@@ -51,7 +51,7 @@ vvc-annexb,Elementary streams and packet representations,VVC,Annex B byte stream
 av1-obu,Elementary streams and packet representations,AV1,Low-overhead OBU stream,framing,.obu,A,av1,
 av1-annexb,Elementary streams and packet representations,AV1,Annex B framing,framing,.av1,B,av1,
 ivf,Elementary streams and packet representations,IVF,Framed VP8/VP9/AV1 video,framing,.ivf,B,webm;discovery,
-aac-adts,Elementary streams and packet representations,AAC,ADTS framing,framing,.aac .adts,A,mpeg-audio,Existing access-unit conversion does not provide a standalone ADTS source reader.
+aac-adts,Elementary streams and packet representations,AAC,ADTS framing,framing,.aac .adts,A,mpeg-audio,Standalone single-block streaming reader; CRC verification and multiple-block separation remain open.
 aac-adif,Elementary streams and packet representations,AAC,ADIF framing,framing,.aac,C,mpeg-audio,
 aac-latm,Elementary streams and packet representations,AAC,LATM / LOAS framing,framing,.latm .loas,B,mpeg-audio,
 aac-asc,Elementary streams and packet representations,AAC,Raw access units / AudioSpecificConfig,framing,,A,mpeg-audio,Already used for MP4 AAC and AAC encoding; transport boundaries remain explicit.

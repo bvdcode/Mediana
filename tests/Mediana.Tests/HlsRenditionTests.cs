@@ -8,6 +8,9 @@ namespace Mediana.Tests
         private static string Root => Path.Combine(AppContext.BaseDirectory, "Data", "Mp4");
         [Fact]
         public Task PublicPipelineCreatesAlignedVariantsAndOwnsConsumedFrames() => HlsRenditionTestInput.VerifyAsync(Root);
+
+        [Fact]
+        public Task PublicPipelineClipsOverlappingDurationsAndReleasesLookahead() => HlsRenditionTestInput.VerifyOverlappingDurationsAsync(Root);
         [Fact]
         public Task PublicPipelineRoutesSeparateAudioProfiles() => HlsRenditionTestInput.VerifySeparateAudioAsync(Root);
         [Theory]

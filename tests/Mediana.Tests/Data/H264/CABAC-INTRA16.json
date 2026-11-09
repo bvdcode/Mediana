@@ -1,0 +1,211 @@
+{
+  "reference": "FFmpeg 9.0.2 H.264 decoder; unchanged full-range 8-bit 4:2:0 samples, passthrough timestamps, no scaling or frame duplication",
+  "dimensions": [
+    32,
+    32
+  ],
+  "time_base": "1/24",
+  "quantizers": [
+    0,
+    12,
+    26,
+    38,
+    51
+  ],
+  "prediction_modes": [
+    2,
+    1,
+    0,
+    3
+  ],
+  "content": [
+    "gradient",
+    "neutral",
+    "constant planes",
+    "luma gradients",
+    "checkerboard",
+    "chroma checkerboard"
+  ],
+  "cases": [
+    {
+      "case": "qp0-content0",
+      "pictures": 2,
+      "transport_sha256": "777d6837bac009adfddcc9fc9309f7d98827395f0525a6ad3fe72000f0c40bc4",
+      "decoded_sha256": "38d77639842e33df10ee5bc1040ba2639743424c0c0e239fa129a7168e6949a9"
+    },
+    {
+      "case": "qp0-content1",
+      "pictures": 2,
+      "transport_sha256": "47f17ed2c318cbd1c45cb01547e5a73d65f042064b80655ea8013ac92d2b4803",
+      "decoded_sha256": "753412db29fc2970bed80a0cefed2d3caf17b282ed5b9b8707b5c39929a27fce"
+    },
+    {
+      "case": "qp0-content2",
+      "pictures": 2,
+      "transport_sha256": "4347ef075f912e07e88524d72c79ec6448c777f7fb4f03ed9f7ca5f64af9f8c5",
+      "decoded_sha256": "11a7104da55d5ea35ee43b0855b5538462d76117af3b36b26749a108dd2e0c30"
+    },
+    {
+      "case": "qp0-content3",
+      "pictures": 2,
+      "transport_sha256": "210c52d06a2c61382b17791788e692be562098d5fa277bcaa1edc7eca5734b9d",
+      "decoded_sha256": "6cead046b3eef40c38a4a80057b890e45205e957be21ec8463a0ba0293f58752"
+    },
+    {
+      "case": "qp0-content4",
+      "pictures": 2,
+      "transport_sha256": "6a7775ac99bcdc5dfff561cada2c31ff84c7f8e65da8af1a58d6461633305b50",
+      "decoded_sha256": "f1ccf311d725080a733f830e872e1c86a76ae5b95331aeb33e91ecf4d540df83"
+    },
+    {
+      "case": "qp0-content5",
+      "pictures": 2,
+      "transport_sha256": "d0e756aa1611f691c20983088f395c535ec054042f6b5832a7f7f444f0dfd32e",
+      "decoded_sha256": "011066bb632be8c22622b877674f32f302b4b4e085b12fa56828024b61b5eb72"
+    },
+    {
+      "case": "qp12-content0",
+      "pictures": 2,
+      "transport_sha256": "838f2d5a67ca1f6cb8dc41f6211be4947942bdc78a22e0e1bcb2bc3e67e43c28",
+      "decoded_sha256": "9ec893480510a663e6b6477d610e015e853e56e8d4dc79a013fd6da9a93447da"
+    },
+    {
+      "case": "qp12-content1",
+      "pictures": 2,
+      "transport_sha256": "89a29fd0ccb8954b9b2a2f5f1250c7ba10278114812ea1f8784317d4e56250df",
+      "decoded_sha256": "753412db29fc2970bed80a0cefed2d3caf17b282ed5b9b8707b5c39929a27fce"
+    },
+    {
+      "case": "qp12-content2",
+      "pictures": 2,
+      "transport_sha256": "1e4e6b6254f9ed6876efdbade86c89e6353b438636564ec486bcab5357a7f66d",
+      "decoded_sha256": "11a7104da55d5ea35ee43b0855b5538462d76117af3b36b26749a108dd2e0c30"
+    },
+    {
+      "case": "qp12-content3",
+      "pictures": 2,
+      "transport_sha256": "b8cc436f3b3f7f48cf57fca3468629340f4a1ddaec89d2d60091b7bec7cdb321",
+      "decoded_sha256": "03b474ea7e9b2a1e69a407b551d6097a0b8b5799ef524627fab4c833d105f501"
+    },
+    {
+      "case": "qp12-content4",
+      "pictures": 2,
+      "transport_sha256": "43e7c77ecf5bf450b1deb9643da8485885008fa15c183f06e613a149537599b7",
+      "decoded_sha256": "da7ce9c3a52de39ca0152424e93693a89e40b6018433d7c6777685e618c6b591"
+    },
+    {
+      "case": "qp12-content5",
+      "pictures": 2,
+      "transport_sha256": "d2558708b61f8aeb17ea9c04317e3484e091d0b8babaf1a3cc13f36f1f278d22",
+      "decoded_sha256": "306d453c2af406e4f72b1aae6d4bffc5de42a7fd2f523274ba160d204ddb7023"
+    },
+    {
+      "case": "qp26-content0",
+      "pictures": 2,
+      "transport_sha256": "f659cd025ebbce98e412de09900bd247ea97fd23b6c2dbdc539a0cfa5b404cca",
+      "decoded_sha256": "91c97dc18a215903350b0c19bd5193f2c7e83b5be7aae3697f614ae25c22ed58"
+    },
+    {
+      "case": "qp26-content1",
+      "pictures": 2,
+      "transport_sha256": "34751aa24170d4de88da31f94615a0c03df9dcd8f9131af7f833a15b7884359a",
+      "decoded_sha256": "753412db29fc2970bed80a0cefed2d3caf17b282ed5b9b8707b5c39929a27fce"
+    },
+    {
+      "case": "qp26-content2",
+      "pictures": 2,
+      "transport_sha256": "a3a030dc3a0c60ceb9edc17a9602b0a75b6651c34bf8dcac59bad8d068b14de4",
+      "decoded_sha256": "b3a80b59464c95597d862ddb2468344605b8a365d8dcccef2b517c365663934d"
+    },
+    {
+      "case": "qp26-content3",
+      "pictures": 2,
+      "transport_sha256": "06e2bc802f9df9f13f194aa30ea492eaa15ad9a851e3c56eaf86a63b219b542c",
+      "decoded_sha256": "7716fcdb54e94fd7f0f7e93fe32e03ef49b5f5163f58e1e0885c2a6233021b8c"
+    },
+    {
+      "case": "qp26-content4",
+      "pictures": 2,
+      "transport_sha256": "d8762af0bed300facff677cd1e8b404fcf75f06e576b25689d79dd729d39d51d",
+      "decoded_sha256": "ffa449d4ae429f2fb39d60c017407dede8ba84f6ded92441c0b6d7788aadede8"
+    },
+    {
+      "case": "qp26-content5",
+      "pictures": 2,
+      "transport_sha256": "acc1afaf8ff08ee4fd8849a9b292cda47c146006ac3e59d1060907c7e5e3cbac",
+      "decoded_sha256": "f371516cd1a1c22f43cf7ea6ab6a587777236dc41f8c879a5f7c5b0f673f2eab"
+    },
+    {
+      "case": "qp38-content0",
+      "pictures": 2,
+      "transport_sha256": "4f452f0420bb6e85918764be7a09ec3722a78afb54ef233a2381504c24b2c637",
+      "decoded_sha256": "0b567bba3a9155aa8845ee99bf76f81a0e23303ab4fbbf50295311ecb21769a1"
+    },
+    {
+      "case": "qp38-content1",
+      "pictures": 2,
+      "transport_sha256": "0a2af8a288863efb626a74247c2cb2fa47728a966078dc9046525fc3cb123d1d",
+      "decoded_sha256": "753412db29fc2970bed80a0cefed2d3caf17b282ed5b9b8707b5c39929a27fce"
+    },
+    {
+      "case": "qp38-content2",
+      "pictures": 2,
+      "transport_sha256": "dc28ff3e5b8c66af687b280b39f053172ccb0bf3994dd6127a432818aa98a059",
+      "decoded_sha256": "38dafff8acbc34d16dca1f4f1006bd44358c428f8cb2ad433ecfbb22050cfe03"
+    },
+    {
+      "case": "qp38-content3",
+      "pictures": 2,
+      "transport_sha256": "d2c69247a420182a033d8fadda54c88f588c2d9b469cad97ef78141b0c306325",
+      "decoded_sha256": "6907d5bf8acb18d07e4649b847ad86cc9645e409ae9fa6523e2a7ebb301ec2cd"
+    },
+    {
+      "case": "qp38-content4",
+      "pictures": 2,
+      "transport_sha256": "272874c88053420d64731c1e249683a75e9e73d1d11a8e521b2b23d017d56e91",
+      "decoded_sha256": "d56cc3b7f3d5a2557e3eadb3573b55faa0113692c45e585114876afacc6b473c"
+    },
+    {
+      "case": "qp38-content5",
+      "pictures": 2,
+      "transport_sha256": "f94e8788ff3c2a66e60cf6484e752ad094aa57e2a346a88e7fca006a2be79e5d",
+      "decoded_sha256": "b78eee8d0e87aa17416ba2cc7b38ca02d457c16256410ee4eb1fb091faadb66c"
+    },
+    {
+      "case": "qp51-content0",
+      "pictures": 2,
+      "transport_sha256": "154f1b1e4722737c3828c052156bcad74b36ecd646a00be76a25d00956a8ca40",
+      "decoded_sha256": "2328e1d4bfb70f46ad2bb30386d538c056bfbc310c9914816becdf91ad6c198c"
+    },
+    {
+      "case": "qp51-content1",
+      "pictures": 2,
+      "transport_sha256": "282285dbe594b75064d50f46adbd8ced6dc44614f16c1e243263bf8b23f378cc",
+      "decoded_sha256": "753412db29fc2970bed80a0cefed2d3caf17b282ed5b9b8707b5c39929a27fce"
+    },
+    {
+      "case": "qp51-content2",
+      "pictures": 2,
+      "transport_sha256": "498f0ba04d1a4b16a14ee4e44f78f5263bf928e736eaf549655073b150d47e40",
+      "decoded_sha256": "5f6606edd0d760cc6657a55b582f4bc81c75d11b3e68f77a4bddc51312c5a13d"
+    },
+    {
+      "case": "qp51-content3",
+      "pictures": 2,
+      "transport_sha256": "cb17108cc5e8c459b88ec1058f03466f260203a8653be9ea89a14326f1c47b9a",
+      "decoded_sha256": "2b79cfe43c913e58b41cae5285770d6b7cbb4d7f00da020f3fdc4a25146c061b"
+    },
+    {
+      "case": "qp51-content4",
+      "pictures": 2,
+      "transport_sha256": "cb18946db6fb42da79c0d61c6ad9d5acd1e7237f7ceb4cff5f68d9daa4785fba",
+      "decoded_sha256": "b5cd487ed4647c874ab027c3fef2b52fefb029734130e47ecb08f26fbd96e6d6"
+    },
+    {
+      "case": "qp51-content5",
+      "pictures": 2,
+      "transport_sha256": "225b761e739d1a6bc9adab101697e9af62290e5cee31dd512436cadfdea50d67",
+      "decoded_sha256": "e1438034cccefd1f8daf3762245fe71aaeae7cbc3bb617357759d3dc20046975"
+    }
+  ]
+}

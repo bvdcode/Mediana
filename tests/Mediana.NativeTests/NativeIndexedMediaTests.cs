@@ -9,6 +9,8 @@ namespace Mediana.NativeTests
     {
         public static async Task VerifyAsync(string root)
         {
+            await Mp4FragmentRecoveryTestInput.VerifyAsync();
+            Console.WriteLine("PASS fragmented MP4 recovery: sample-group descriptions, fragment mappings and released buffers.");
             await FragmentHlsTestInput.VerifyAsync(root);
             await OnDemandHlsTestInput.VerifyAsync(root);
             await OnDemandHlsTestInput.VerifyEditedAsync(Path.Combine(AppContext.BaseDirectory, "Data", "FrameRate"), 2, 1);
