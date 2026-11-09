@@ -151,4 +151,3 @@ EOF, checks encoder completion and reports CPU, elapsed time, process peak RSS,
 managed allocation totals and encoded packet bytes. It checks that all owned
 media storage has been released. This separates encoding from source decoding;
 whole-operation transcode measurements remain a separate workload.
-
