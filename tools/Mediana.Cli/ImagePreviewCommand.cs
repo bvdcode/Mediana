@@ -4,6 +4,7 @@
 using Mediana.Codecs;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
+using Mediana.Core.Video;
 using Mediana.IO;
 using Mediana.Processing;
 using Microsoft.Extensions.Logging;
@@ -36,6 +37,7 @@ namespace Mediana.Cli
                 MaximumWidth = maximumWidth,
                 MaximumHeight = maximumHeight,
                 ColorResolver = SdrPreviewColorPolicy.Resolve,
+                UnspecifiedSampleAspectRatio = SampleAspectRatio.Square,
                 WarningHandler = message => logger.LogWarning("{Warning}", message)
             };
             VisualExportResult? result = null;

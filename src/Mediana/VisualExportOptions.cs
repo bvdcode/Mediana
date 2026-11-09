@@ -12,6 +12,8 @@ namespace Mediana
         public int MaximumWidth { get; init; } = int.MaxValue;
         public int MaximumHeight { get; init; } = int.MaxValue;
         public Func<VideoFormat, VideoColorInfo>? ColorResolver { get; init; }
+        /// <summary>Explicit display interpretation when the source omits sample aspect ratio. Null requires a declared value.</summary>
+        public SampleAspectRatio? UnspecifiedSampleAspectRatio { get; init; }
         public Action<string>? WarningHandler { get; init; }
 
         internal void Validate()
@@ -20,6 +22,7 @@ namespace Mediana
             Input.Validate();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumWidth);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumHeight);
+            UnspecifiedSampleAspectRatio?.Validate();
         }
     }
 }
