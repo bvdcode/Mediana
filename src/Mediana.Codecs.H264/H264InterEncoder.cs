@@ -21,7 +21,7 @@ namespace Mediana.Codecs.H264
             bits.WriteFlag(false);
             bits.WriteFlag(false);
             bits.WriteSigned(quantizer - options.Quantizer);
-            bits.WriteUnsigned(1);
+            H264EncoderDeblocking.WriteHeader(bits, options.Deblocking);
             Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
             Span<byte> prediction = stackalloc byte[384];
             Span<int> coefficients = stackalloc int[256 + H264ChromaEncoder.CoefficientCount];

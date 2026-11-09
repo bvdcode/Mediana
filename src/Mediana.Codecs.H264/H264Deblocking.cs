@@ -26,6 +26,10 @@ namespace Mediana.Codecs.H264
             IReadOnlyList<H264ReferencePicture?>? references = null, IReadOnlyList<H264ReferencePicture?>? referencesL1 = null) =>
             ApplyRange(picture, header, picture.Quantizers.Length, cancellationToken, references, referencesL1);
 
+        public static void ApplySingleReference(H264Picture picture, H264SliceHeader header, H264PictureIdentity? reference,
+            CancellationToken cancellationToken) =>
+            ApplyRange(picture, header, picture.Quantizers.Length, cancellationToken, null, null, reference);
+
         public static void Apply(H264Picture picture, IReadOnlyList<H264SliceRegion> slices, CancellationToken cancellationToken)
         {
             foreach (H264SliceRegion slice in slices)
@@ -35,14 +39,29 @@ namespace Mediana.Codecs.H264
         }
 
         private static void ApplyRange(H264Picture picture, H264SliceHeader header, int endMacroblock, CancellationToken cancellationToken,
-            IReadOnlyList<H264ReferencePicture?>? references, IReadOnlyList<H264ReferencePicture?>? referencesL1)
+            IReadOnlyList<H264ReferencePicture?>? references, IReadOnlyList<H264ReferencePicture?>? referencesL1,
+            H264PictureIdentity? singleReference = null)
         {
             if (!header.DeblockingEnabled)
             {
                 return;
             }
+            cancellationToken.ThrowIfCancellationRequested();
+            int maximumQp = 0;
+            foreach (byte qp in picture.Quantizers)
+            {
+                maximumQp = Math.Max(maximumQp, qp);
+            }
+            maximumQp = Math.Max(maximumQp, Math.Max(
+                H264InverseTransform.ChromaQp(maximumQp, header.Picture.ChromaQpOffset),
+                H264InverseTransform.ChromaQp(maximumQp, header.Picture.SecondChromaQpOffset)));
+            if (Alpha[Math.Clamp(maximumQp + header.AlphaOffset, 0, 51)] == 0 ||
+                Beta[Math.Clamp(maximumQp + header.BetaOffset, 0, 51)] == 0)
+            {
+                return;
+            }
             int columns = header.Sequence.WidthInMbs;
-            H264DeblockingContext context = new(picture, references, referencesL1);
+            H264DeblockingContext context = new(picture, references, referencesL1, singleReference);
             Span<byte> strengths = stackalloc byte[32];
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {

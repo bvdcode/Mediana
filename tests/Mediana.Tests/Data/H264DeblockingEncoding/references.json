@@ -1,0 +1,50 @@
+[
+  {
+    "case": "Cabac-Fast-0-qp0-a-6-b-6",
+    "decodedBytes": 122880,
+    "transportSha256": "bdffb2af564fc636f156d9ea552c10527cd930bd5ead929f09e5d354281a1c41",
+    "decodedSha256": "a0a9a75db809fed935e3bd65a4674f6d9dbf4917f859f1032d9fea00e931f142"
+  },
+  {
+    "case": "Cabac-Fast-1-qp26-a0-b0",
+    "decodedBytes": 187680,
+    "transportSha256": "d946113d82ea4b31dc9a35b5b671876a8e296aeb870cc8a838b01e07e24b8168",
+    "decodedSha256": "847d7daac0fb8dd662a73442f504e14018d75ed3d6c1dd8fe91acd9224e47d54"
+  },
+  {
+    "case": "Cabac-RateDistortion-1-qp26-a0-b0",
+    "decodedBytes": 187680,
+    "transportSha256": "7db5784d2452c0d41f8b84e23d489516643e822a6c1ebc604cc9353cccb959f2",
+    "decodedSha256": "75c900ec101542e92c7ac5a0c51123156babdd324481915947d87f299e00ee4b"
+  },
+  {
+    "case": "Cabac-RateDistortion-2-qp18-a2-b-2",
+    "decodedBytes": 184320,
+    "transportSha256": "b930948a9343f5a26804c8a4f7e6a1a3da37dd4f7863272e4e48ae385912ac40",
+    "decodedSha256": "7ea2346d014ded581ad5f1a2cc8670307df04a75b9f7beb087c93855454d6f28"
+  },
+  {
+    "case": "Cabac-RateDistortion-3-qp38-a-6-b6",
+    "decodedBytes": 204000,
+    "transportSha256": "9596b70412febcd58df9087b1e7a8481594053cd523c1295a942d2e2afd21246",
+    "decodedSha256": "8efdddc3373516b146fcbf026cbd4ebd64ad7091138af18add70cbb459d2d2d4"
+  },
+  {
+    "case": "Cavlc-Fast-1-qp26-a0-b0",
+    "decodedBytes": 187680,
+    "transportSha256": "882b62fb4ae500f45efa6529757906cee7d0115c899c7fdc27da4b9fce2068d5",
+    "decodedSha256": "847d7daac0fb8dd662a73442f504e14018d75ed3d6c1dd8fe91acd9224e47d54"
+  },
+  {
+    "case": "Cavlc-Fast-1-qp51-a6-b6",
+    "decodedBytes": 187680,
+    "transportSha256": "ba8576fbe7c1da6696f9e2cd3ad36e2c00ae7aa3a49021c8a03c05d6e588533a",
+    "decodedSha256": "2d04679684a441b61342b2c5ba7486f2256c0003e7814ec49be88d4a6e065039"
+  },
+  {
+    "case": "Cavlc-Fast-3-qp38-a6-b-6",
+    "decodedBytes": 204000,
+    "transportSha256": "2daf45ccbf062cdc47c310dbe9386e7b7188c8e6327a36584faf553b68d6d26e",
+    "decodedSha256": "3fbdf9fc3ed8492c9bb52a8c637a1f7b91ba91068e6c7836227799217e2951aa"
+  }
+]

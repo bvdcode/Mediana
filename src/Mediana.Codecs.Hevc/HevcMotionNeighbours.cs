@@ -11,7 +11,7 @@ namespace Mediana.Codecs.Hevc
         public HevcMotionSample Get(HevcPredictionBlock block, int x, int y)
         {
             HevcMotionSample candidate = motion.Get(x, y);
-            if (!candidate.IsInter || partitions is not null && !partitions.SameSlice(x, y, block.X, block.Y)) { return default; }
+            if (!candidate.IsInter || partitions is not null && !partitions.SamePredictionRegion(x, y, block.X, block.Y)) { return default; }
             bool sameCodingBlock = x >= block.CodingX && x < block.CodingX + block.CodingSize &&
                 y >= block.CodingY && y < block.CodingY + block.CodingSize;
             if (sameCodingBlock)

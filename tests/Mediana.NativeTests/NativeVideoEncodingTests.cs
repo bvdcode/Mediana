@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Tests;
+using Mediana.Codecs.H264;
 using Mediana.Core.Video;
 
 namespace Mediana.NativeTests
@@ -11,6 +12,15 @@ namespace Mediana.NativeTests
         public static async Task RunAsync(string root, string h264Root)
         {
             YuvFramePreparationTestInput.Verify();
+            string filteredRoot = Path.Combine(Path.GetDirectoryName(h264Root)!, "H264DeblockingEncoding");
+            await H264TemporalEncodingTestInput.VerifyDeblockingAsync(filteredRoot, 1, 26,
+                H264EntropyCoding.Cavlc, H264MacroblockAnalysis.Fast, new());
+            await H264TemporalEncodingTestInput.VerifyDeblockingAsync(filteredRoot, 1, 26,
+                H264EntropyCoding.Cabac, H264MacroblockAnalysis.RateDistortion, new());
+            await H264TemporalEncodingTestInput.VerifyDeblockingAsync(filteredRoot, 3, 38,
+                H264EntropyCoding.Cabac, H264MacroblockAnalysis.RateDistortion,
+                new() { AlphaOffset = -6, BetaOffset = 6 });
+            Console.WriteLine("PASS H.264 encoder deblocking: CAVLC, CABAC, filtered prediction references, offsets and complete independent pixels match.");
             Console.WriteLine("PASS YUV preparation: orthogonal plane orientation, inverted pixel aspect and rounded precision conversion match independent samples.");
             H264PictureReuseTestInput.Verify(false);
             H264PictureReuseTestInput.Verify(true);

@@ -5,6 +5,9 @@ using Mediana.Cli;
 using Mediana.Codecs.H264;
 using Mediana.Containers.Mp4;
 using Mediana.Core.Video;
+using Mediana.Core.Memory;
+using Mediana.Codecs.Png;
+using Mediana.Processing;
 using Mediana.IO;
 
 namespace Mediana.Tests
@@ -39,15 +42,43 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task ContainerHdrDeclarationCannotBeReplacedBySdrInference()
+        public async Task ContainerHdrUsesExplicitToneMappingWithoutReplacingItsDeclaration()
         {
+            string input = Mp4ColorTestData.PathFor("container-2020-pq.mp4");
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory()).AddVideoDecoder(new H264DecoderFactory()).Build();
+            await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
+            await using VideoSession session = await engine.OpenVideoAsync(source);
+            using VideoFrame frame = await session.ReadFrameAsync() ?? throw new InvalidDataException("Missing HDR fixture frame.");
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            Assert.Throws<NotSupportedException>(() => SrgbConverter.Apply(frame, allocator));
+            byte[] expected;
+            using (VideoFrame preview = SrgbPreview.FitWithColorPolicy(frame, null, new HdrToneMappingOptions(), VideoDisplayMatrix.Identity, 96, 64, allocator))
+            using (MediaBuffer png = PngEncoder.Encode(preview, allocator))
+            { expected = png.Memory.ToArray(); }
+            Assert.Equal(0, allocator.AllocatedBytes);
+            ProgressTestContext logger = new();
             string output = Path.Combine(directory, "preview.png");
-            (int code, _, _) = await CliTests.RunAsync(["-i", Mp4ColorTestData.PathFor("container-2020-pq.mp4"), output]);
-            Assert.Equal(CliExitCodes.Unsupported, code);
-            NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(() => VideoPreviewCommand.RunAsync(
-                Mp4ColorTestData.PathFor("container-2020-pq.mp4"), new CommandOutputFile(output, false), null, 0, 96, 64, new ProgressTestContext(), new Mediana.Codecs.Png.PngImageEncoder()));
-            Assert.Contains("tone mapping", error.Message, StringComparison.Ordinal);
-            Assert.Empty(Directory.GetFiles(directory));
+            await VideoPreviewCommand.RunAsync(input, new CommandOutputFile(output, false), null, 0, 96, 64, logger, new PngImageEncoder());
+            Assert.Contains("HDR Pq", Assert.Single(logger.Messages), StringComparison.Ordinal);
+            Assert.Equal(expected, await File.ReadAllBytesAsync(output));
+            string generic = Path.Combine(directory, "generic.png");
+            (int code, _, string error) = await CliTests.RunAsync(["-i", input, generic]);
+            Assert.True(code == 0, error);
+            Assert.Equal(expected, await File.ReadAllBytesAsync(generic));
+            Assert.Equal(TransferFunction.Pq, frame.Format.GetColorInterpretation().Transfer);
+        }
+
+        [Fact]
+        public async Task AnimationUsesTheSameHdrPresentationDefaultsAndWarnsOnce()
+        {
+            string output = Path.Combine(directory, "animation.webp");
+            ProgressTestContext logger = new();
+            using StringWriter text = new();
+            await ImageSequenceCommand.RunAsync(Mp4ColorTestData.PathFor("container-2020-pq.mp4"), new(output, false),
+                null, 0, logger, text, new Mediana.Codecs.Webp.WebpImageSequenceEncoder(), default);
+            Assert.Single(logger.Messages, message => message.Contains("HDR Pq", StringComparison.Ordinal));
+            Assert.Contains("10 frames", text.ToString(), StringComparison.Ordinal);
+            Assert.NotEmpty(await File.ReadAllBytesAsync(output));
         }
 
         [Theory]

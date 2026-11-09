@@ -208,14 +208,7 @@ namespace Mediana.Codecs.H264
         {
             int stride = Stride(plane);
             Span<byte> pixels = Plane(plane);
-            for (int row = 0; row < size; row++)
-            {
-                for (int column = 0; column < size; column++)
-                {
-                    int index = row * size + column;
-                    pixels[(y + row) * stride + x + column] = (byte)Math.Clamp((long)prediction[index] + residual[index], 0, 255);
-                }
-            }
+            H264SampleReconstruction.Write(prediction, residual, size, pixels[(y * stride + x)..], stride);
             if (plane == 0)
             {
                 for (int row = 0; row < size; row += 4)

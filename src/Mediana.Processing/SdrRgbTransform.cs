@@ -5,7 +5,7 @@ using Mediana.Core.Video;
 
 namespace Mediana.Processing
 {
-    internal readonly struct SdrRgbTransform : IRgbaPixelTransform
+    internal readonly struct SdrRgbTransform : IRgbPixelTransform
     {
         private readonly RgbMatrix matrix;
         private readonly TransferFunction transfer;

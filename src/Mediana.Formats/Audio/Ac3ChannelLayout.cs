@@ -23,12 +23,21 @@ namespace Mediana.Formats.Audio
         }
 
         public static int GetChannelCount(int channelMode, bool hasLfe) =>
-            (channelMode switch { 0 or 2 => 2, 1 => 1, 3 or 4 => 3, 5 or 6 => 4, 7 => 5,
-                _ => throw new ArgumentOutOfRangeException(nameof(channelMode)) }) + (hasLfe ? 1 : 0);
+            (channelMode switch
+            {
+                0 or 2 => 2,
+                1 => 1,
+                3 or 4 => 3,
+                5 or 6 => 4,
+                7 => 5,
+                _ => throw new ArgumentOutOfRangeException(nameof(channelMode))
+            }) + (hasLfe ? 1 : 0);
 
         internal static int GetSampleRate(int code) => code switch
         {
-            0 => 48000, 1 => 44100, 2 => 32000,
+            0 => 48000,
+            1 => 44100,
+            2 => 32000,
             _ => throw new InvalidDataException("The AC-3 sample rate code is reserved.")
         };
     }

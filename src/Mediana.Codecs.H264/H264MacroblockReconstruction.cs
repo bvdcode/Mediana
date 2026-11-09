@@ -49,18 +49,7 @@ namespace Mediana.Codecs.H264
         }
         private static long BlockError(ReadOnlySpan<byte> source, ReadOnlySpan<byte> prediction,
             int stride, int x, int y, ReadOnlySpan<int> residual, Span<byte> reconstruction)
-        {
-            long error = 0;
-            for (int row = 0; row < 4; row++)
-                for (int column = 0; column < 4; column++)
-                {
-                    int index = (y + row) * stride + x + column;
-                    int sample = Math.Clamp(prediction[index] + residual[row * 4 + column], 0, 255);
-                    reconstruction[index] = (byte)sample;
-                    int difference = source[index] - sample;
-                    error += (long)difference * difference;
-                }
-            return error;
-        }
+            => H264SampleReconstruction.WriteAndMeasure(source[(y * stride + x)..], prediction[(y * stride + x)..], stride,
+                residual, reconstruction[(y * stride + x)..]);
     }
 }

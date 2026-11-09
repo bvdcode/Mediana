@@ -18,9 +18,21 @@ namespace Mediana.Codecs.Av1
             };
             ReadOnlySpan<byte> values = level switch
             {
-                0 => Level00, 1 => Level01, 2 => Level02, 3 => Level03, 4 => Level04,
-                5 => Level05, 6 => Level06, 7 => Level07, 8 => Level08, 9 => Level09,
-                10 => Level10, 11 => Level11, 12 => Level12, 13 => Level13, 14 => Level14,
+                0 => Level00,
+                1 => Level01,
+                2 => Level02,
+                3 => Level03,
+                4 => Level04,
+                5 => Level05,
+                6 => Level06,
+                7 => Level07,
+                8 => Level08,
+                9 => Level09,
+                10 => Level10,
+                11 => Level11,
+                12 => Level12,
+                13 => Level13,
+                14 => Level14,
                 _ => throw new ArgumentOutOfRangeException(nameof(level))
             };
             return values.Slice(planeOffset + offsets[size.Index], size.CodedWidth * size.CodedHeight);

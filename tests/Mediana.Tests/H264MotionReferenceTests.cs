@@ -15,7 +15,11 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264Picture picture = new(new H264SequenceParameterSet
             {
-                WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true, Width = 32, Height = 32
+                WidthInMbs = 2,
+                HeightInMapUnits = 2,
+                FrameMbsOnly = true,
+                Width = 32,
+                Height = 32
             }, allocator, H264SliceKind.P))
             {
                 long pictureBytes = allocator.AllocatedBytes;
@@ -51,7 +55,11 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264Picture picture = new(new H264SequenceParameterSet
             {
-                WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true, Width = 32, Height = 32
+                WidthInMbs = 2,
+                HeightInMapUnits = 2,
+                FrameMbsOnly = true,
+                Width = 32,
+                Height = 32
             }, allocator, H264SliceKind.P))
             using (H264MotionReference prepared = new(picture, range, allocator))
             {

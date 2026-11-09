@@ -8,6 +8,7 @@ namespace Mediana.Codecs.H264
         private readonly H264Picture picture;
         private readonly IReadOnlyList<H264ReferencePicture?>? referencesL0;
         private readonly IReadOnlyList<H264ReferencePicture?>? referencesL1;
+        private readonly H264PictureIdentity? singleReference;
         private readonly ReadOnlySpan<byte> modes;
         private readonly ReadOnlySpan<byte> counts;
         private readonly ReadOnlySpan<byte> transforms;
@@ -27,11 +28,12 @@ namespace Mediana.Codecs.H264
         private H264PictureReferences? topReferences;
 
         public H264DeblockingContext(H264Picture picture, IReadOnlyList<H264ReferencePicture?>? referencesL0,
-            IReadOnlyList<H264ReferencePicture?>? referencesL1)
+            IReadOnlyList<H264ReferencePicture?>? referencesL1, H264PictureIdentity? singleReference = null)
         {
             this.picture = picture;
             this.referencesL0 = referencesL0;
             this.referencesL1 = referencesL1;
+            this.singleReference = singleReference;
             modes = picture.Modes;
             counts = picture.Counts(0);
             transforms = picture.Transforms8x8;
@@ -136,6 +138,14 @@ namespace Mediana.Codecs.H264
             if (referenceIndex == byte.MaxValue)
             {
                 return null;
+            }
+            if (singleReference is not null)
+            {
+                if (list != H264ReferenceList.L0 || referenceIndex != 0)
+                {
+                    throw new InvalidDataException("The H.264 edge does not use the single prediction reference.");
+                }
+                return singleReference;
             }
             H264PictureIdentity identity;
             if (references is null)

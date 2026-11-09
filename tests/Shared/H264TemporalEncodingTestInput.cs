@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Mediana.Codecs;
@@ -18,6 +19,28 @@ namespace Mediana.Tests
     internal static class H264TemporalEncodingTestInput
     {
         public const int FrameCount = 80;
+
+        public static async Task VerifyDeblockingAsync(string root, int mode, int qp, H264EntropyCoding entropy,
+            H264MacroblockAnalysis analysis, H264DeblockingOptions options)
+        {
+            (byte[] transport, byte[] _, byte[] actual) = await EncodeAsync(mode, qp, null, entropy, analysis, options);
+            string name = $"{entropy}-{analysis}-{mode}-qp{qp}-a{options.AlphaOffset}-b{options.BetaOffset}";
+            await using FileStream input = File.OpenRead(Path.Combine(root, name + ".yuv.gz"));
+            await using GZipStream compressed = new(input, CompressionMode.Decompress);
+            using MemoryStream expected = new();
+            await compressed.CopyToAsync(expected);
+            if (!actual.AsSpan().SequenceEqual(expected.GetBuffer().AsSpan(0, (int)expected.Length)))
+            {
+                throw new InvalidDataException("The complete filtered sequence differs from independently decoded pixels.");
+            }
+            using JsonDocument manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "references.json")));
+            JsonElement entry = manifest.RootElement.EnumerateArray().Single(item => item.GetProperty("case").GetString() == name);
+            if (!string.Equals(Convert.ToHexString(SHA256.HashData(transport)), entry.GetProperty("transportSha256").GetString(),
+                StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("The complete filtered transport differs from its independently decoded reference.");
+            }
+        }
 
         public static async Task VerifyAsync(string root, int mode, int qp)
         {
@@ -39,7 +62,7 @@ namespace Mediana.Tests
 
         public static async Task<(byte[] Transport, byte[] Source, byte[] Decoded)> EncodeAsync(int mode, int qp,
             H264RateControlOptions? rate = null, H264EntropyCoding entropy = H264EntropyCoding.Cavlc,
-            H264MacroblockAnalysis analysis = H264MacroblockAnalysis.Fast)
+            H264MacroblockAnalysis analysis = H264MacroblockAnalysis.Fast, H264DeblockingOptions? deblocking = null)
         {
             (int width, int height) = mode switch
             {
@@ -54,7 +77,7 @@ namespace Mediana.Tests
                 new SampleAspectRatio(4, 3));
             MediaBufferAllocator allocator = new(8 * 1024 * 1024);
             using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator,
-                new() { Quantizer = qp, RateControl = rate, EntropyCoding = entropy, MacroblockAnalysis = analysis });
+                new() { Quantizer = qp, RateControl = rate, EntropyCoding = entropy, MacroblockAnalysis = analysis, Deblocking = deblocking });
             using IMediaCodec<MediaPacket, VideoFrame> decoder = new H264DecoderFactory().Create(encoder.Stream, allocator);
             using MemoryStream transport = new();
             using MemoryStream source = new();
@@ -98,6 +121,12 @@ namespace Mediana.Tests
                 H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, packet.Data.Span[4]);
                 quantizers.Add(header.Qp);
                 ratePackets.Add((clock, packet.Data.Length));
+                if (header.DeblockingIdc != (deblocking is null ? 1 : 0) ||
+                    header.AlphaOffset != (deblocking?.AlphaOffset ?? 0) * 2 ||
+                    header.BetaOffset != (deblocking?.BetaOffset ?? 0) * 2)
+                {
+                    throw new InvalidDataException("The temporal encoder changed the requested deblocking parameters.");
+                }
                 if (packet.IsKeyFrame != key || header.IsIdr != key || header.FrameNumber != frameNumber ||
                     header.Kind != (key ? H264SliceKind.I : H264SliceKind.P) ||
                     packet.PresentationTime != input.Timestamp || packet.DecodeTime != input.Timestamp || packet.Duration != input.Duration)

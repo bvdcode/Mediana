@@ -100,7 +100,8 @@ namespace Mediana.Codecs.Av1
                 Skip = (byte)skip,
                 TransformWidth = (byte)transform.Width,
                 TransformHeight = (byte)transform.Height,
-                PaletteCount = (byte)paletteSize, UvPaletteCount = (byte)chromaPaletteSize
+                PaletteCount = (byte)paletteSize,
+                UvPaletteCount = (byte)chromaPaletteSize
             };
             for (int index = 0; index < paletteSize; index++)
             {

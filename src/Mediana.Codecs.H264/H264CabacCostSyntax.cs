@@ -13,8 +13,8 @@ namespace Mediana.Codecs.H264
             PreviousDelta = previousDelta;
         }
 
-        public double Estimate(int x, int y, H264PreparedMacroblock candidate, H264MacroblockMotion motion,
-            H264CabacCostLimit limit)
+        public double Estimate<TLimit>(int x, int y, H264PreparedMacroblock candidate, H264MacroblockMotion motion,
+            TLimit limit) where TLimit : struct, IH264CabacCostLimit<H264CabacCostWriter>
         {
             WriteMacroblock(x, y, candidate.Pattern, candidate.Coefficients, candidate.IntraMode,
                 motion.DifferenceX, motion.DifferenceY, motion.NeighbourX, motion.NeighbourY, limit);

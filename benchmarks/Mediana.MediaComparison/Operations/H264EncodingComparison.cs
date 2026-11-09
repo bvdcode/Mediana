@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers;
 using System.Diagnostics;
 using Mediana.Codecs;
 using Mediana.Codecs.H264;
@@ -14,7 +15,8 @@ namespace Mediana.OperationComparison
     internal static class H264EncodingComparison
     {
         internal static async Task RunAsync(string inputPath, string destination, int quantizer, int bitRate, int keyFrames,
-            H264EntropyCoding entropy = H264EntropyCoding.Cavlc)
+            H264EntropyCoding entropy = H264EntropyCoding.Cavlc, H264MacroblockAnalysis analysis = H264MacroblockAnalysis.Fast,
+            H264DeblockingOptions? deblocking = null, MemoryPool<byte>? bufferPool = null)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(bitRate);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(keyFrames);
@@ -22,13 +24,15 @@ namespace Mediana.OperationComparison
             long allocated = GC.GetTotalAllocatedBytes(true);
             TimeSpan cpu = process.TotalProcessorTime;
             Stopwatch watch = Stopwatch.StartNew();
-            MediaBufferAllocator allocator = new(int.MaxValue);
+            MediaBufferAllocator allocator = bufferPool is null ? new(int.MaxValue) : new(int.MaxValue, bufferPool);
             await using FileStream input = new(inputPath, FileMode.Open, FileAccess.Read, FileShare.Read, 65536, FileOptions.Asynchronous);
             Yuv4MpegInput source = await Yuv4MpegInput.OpenAsync(input);
             H264EncoderOptions options = new()
             {
                 Quantizer = quantizer,
                 EntropyCoding = entropy,
+                MacroblockAnalysis = analysis,
+                Deblocking = deblocking,
                 KeyFrameInterval = TimeSpan.FromSeconds((double)keyFrames * source.Clock.Numerator / source.Clock.Denominator),
                 RateControl = bitRate == 0 ? null : new() { BitRate = bitRate, BufferDuration = TimeSpan.FromSeconds(2) }
             };

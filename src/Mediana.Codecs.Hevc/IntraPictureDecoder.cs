@@ -10,6 +10,8 @@ namespace Mediana.Codecs.Hevc
     /// </summary>
     internal class IntraPictureDecoder(HevcSliceHeader slice, PicturePartitions? partitions = null)
     {
+        private readonly PicturePartitions? regions = partitions ?? (slice.Picture.Tiles.Enabled ? new PicturePartitions([slice]) : null);
+
         public async Task<DecodedPicture> DecodeAsync(int workerCount, CancellationToken cancellationToken)
         {
             if (slice.Type != HevcSliceType.I)
@@ -25,10 +27,10 @@ namespace Mediana.Codecs.Hevc
             bool completed = false;
             try
             {
-                using CodingBlockMap blocks = new CodingBlockMap(sequence.Width, sequence.Height, partitions);
-                SaoFilter sao = new SaoFilter(slice, partitions);
+                using CodingBlockMap blocks = new CodingBlockMap(sequence.Width, sequence.Height, regions);
+                SaoFilter sao = new SaoFilter(slice, regions);
                 await DecodeBlocksAsync(workerCount, picture, blocks, sao, cancellationToken).ConfigureAwait(false);
-                if (partitions is not null || !slice.DeblockingDisabled)
+                if (regions is not null || !slice.DeblockingDisabled)
                 {
                     DeblockingFilter.Apply(picture, slice, blocks);
                 }
@@ -53,19 +55,19 @@ namespace Mediana.Codecs.Hevc
             int columns = ((sequence.Width + ctbSize) - 1) / ctbSize;
             int rows = ((sequence.Height + ctbSize) - 1) / ctbSize;
             int workers = Math.Min(workerCount, Math.Min(rows, (columns + 1) / 2));
-            if (partitions is null && slice.Picture.EntropyCodingSync && (workers > 1))
+            if (regions is null && slice.Picture.EntropyCodingSync && (workers > 1))
             {
                 await new WavefrontDecoder(slice, picture, blocks, sao).DecodeAsync(workers, cancellationToken).ConfigureAwait(false);
             }
             else
             {
-                if (partitions is null)
+                if (regions is null)
                 {
                     DecodeSequential(slice, picture, blocks, sao, cancellationToken);
                 }
                 else
                 {
-                    foreach (HevcSliceHeader segment in partitions.Slices)
+                    foreach (HevcSliceHeader segment in regions.Slices)
                     {
                         DecodeSequential(segment, picture, blocks, sao, cancellationToken);
                     }
@@ -81,22 +83,19 @@ namespace Mediana.Codecs.Hevc
             CodingTreeDecoder tree = new CodingTreeDecoder(slice, reader, blocks, quantization);
             ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding, sequence.ChromaFormat == 3);
             using ReconstructionWorkspace workspace = new ReconstructionWorkspace();
-            BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace, blocks, partitions);
+            BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace, blocks, regions);
             int ctbSize = 1 << sequence.Log2Ctb;
-            int columns = ((sequence.Width + ctbSize) - 1) / ctbSize;
-            int firstRow = slice.StartCtbAddress / columns;
-            for (int address = slice.StartCtbAddress; address < slice.EndCtbAddress; address++)
+            HevcTileLayout tiles = slice.Picture.Tiles;
+            HevcSubstreamReader substreams = new(slice, reader);
+            for (int address = slice.StartCtbAddressTs; address < slice.EndCtbAddressTs; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                int column = address % columns;
-                int row = address / columns;
-                if (slice.Picture.EntropyCodingSync && (column == 0) && (address != slice.StartCtbAddress))
-                {
-                    reader.StartWavefrontRow(new BitReader(slice.RowSubstreams[row - firstRow]), slice.Qp);
-                    quantization.StartWavefrontRow();
-                }
+                int raster = tiles.ToRaster(address);
+                int column = raster % tiles.Columns;
+                int row = raster / tiles.Columns;
+                substreams.StartCtb(raster, quantization);
                 sao.ReadCtb(column, row, reader);
-                tree.DecodeCtb(column * ctbSize, row * ctbSize, reconstruction, (address + 1) == slice.EndCtbAddress);
+                tree.DecodeCtb(column * ctbSize, row * ctbSize, reconstruction, (address + 1) == slice.EndCtbAddressTs);
             }
         }
     }

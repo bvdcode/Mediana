@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Video;
+using Mediana.Processing;
 
 namespace Mediana
 {
@@ -12,6 +13,10 @@ namespace Mediana
         public int MaximumWidth { get; init; } = int.MaxValue;
         public int MaximumHeight { get; init; } = int.MaxValue;
         public Func<VideoFormat, VideoColorInfo>? ColorResolver { get; init; }
+        /// <summary>Explicit PQ/HLG conversion to sRGB. Null keeps HDR conversion strict.</summary>
+        public HdrToneMappingOptions? ToneMapping { get; init; }
+        /// <summary>Explicit display interpretation when the source omits sample aspect ratio. Null requires a declared value.</summary>
+        public SampleAspectRatio? UnspecifiedSampleAspectRatio { get; init; }
         public Action<string>? WarningHandler { get; init; }
 
         internal void Validate()
@@ -20,6 +25,7 @@ namespace Mediana
             Input.Validate();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumWidth);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumHeight);
+            UnspecifiedSampleAspectRatio?.Validate();
         }
     }
 }

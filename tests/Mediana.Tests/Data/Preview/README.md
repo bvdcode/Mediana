@@ -43,7 +43,7 @@ ffmpeg -i untagged-avc.mp4 -map 0:v:0 -c copy -map_metadata -1 -movflags +write_
 Use `pc` for the full-range variant and `.mov` for nclc. The HDR variant
 uses `bt2020`, `smpte2084`, `bt2020nc` and `tv`. The conflict variant uses
 `smpte170m`, `bt709`, `smpte170m` and `pc` with the tagged source.
-The HDR labels test rejection of an unsupported preview transform; the
+The HDR labels test strict conversion without explicit tone mapping; the
 underlying samples are the same generated SDR pattern.
 
 The Annex-B elementary-stream SHA-256 for all variants of the untagged source
@@ -93,3 +93,29 @@ its complete native YUV SHA-256 is
 ```sh
 ffmpeg -i ../Mp4/avc-segments.mp4 -map 0 -c copy -bsf:v h264_mp4toannexb -map_metadata -1 -movflags +write_colr -color_primaries smpte170m -color_trc bt709 -colorspace smpte170m -color_range pc container-segments.mp4
 ```
+
+
+## HDR tone mapping references
+
+`pq-hable.rgba` and `hlg-hable.rgba` are 256×8 straight RGBA8 references generated
+with FFmpeg 6.1.1 and zimg. The input is full-range 16-bit planar G/B/R with
+BT.2020 primaries. `HdrPreviewTests` creates the input: one gray ramp, three primary
+ramps and four mixed-color ramps. Every output channel must differ by at most one
+8-bit code. Tests require no external executable.
+
+The reference uses the BT.2100 PQ EOTF or exact HLG inverse OETF and luminance-based
+OOTF, followed by linear BT.2020-to-BT.709 conversion, Hable tone mapping with a
+1000 cd/m² source peak and 100 cd/m² target peak, and sRGB encoding. Approximate
+gamma is disabled for the HLG luminance-dependent OOTF. The grayscale checks also
+cover the BT.2100 reference luminances independently.
+
+```sh
+ffmpeg -f rawvideo -pixel_format gbrp16le -video_size 256x8 -color_range pc -color_primaries bt2020 -color_trc smpte2084 -colorspace rgb -i ramp.gbrp16le -vf 'zscale=t=linear:npl=100:agamma=0,format=gbrpf32le,zscale=p=bt709:agamma=0,tonemap=hable:desat=0:peak=10,zscale=t=iec61966-2-1:r=full:d=none:agamma=0,format=rgba' -frames:v 1 -f rawvideo pq-hable.rgba
+```
+
+Use `arib-std-b67` instead of `smpte2084` for `hlg-hable.rgba`.
+
+| Reference | SHA-256 |
+| --- | --- |
+| `pq-hable.rgba` | `27701d86ce6f5b606894d077fb0c1ddaeafe131e8a073f87d11c14b3fc17d037` |
+| `hlg-hable.rgba` | `0dc99d071786733229c62b01a141e4b30fba81100a311e52be35cfd62e6dca90` |

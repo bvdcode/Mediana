@@ -41,7 +41,13 @@ namespace Mediana.Processing
             ArgumentNullException.ThrowIfNull(sourceColor);
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
-            SdrRgbTransform transform = new(sourceColor.Primaries, sourceColor.Transfer);
+            return Apply(input, sourceColor, map, aspectRatio, allocator, new SdrRgbTransform(sourceColor.Primaries, sourceColor.Transfer), cancellationToken);
+        }
+
+        private static VideoFrame Apply<TTransform>(VideoFrame input, VideoColorInfo sourceColor, NearestNeighborMap map,
+            SampleAspectRatio? aspectRatio, MediaBufferAllocator allocator, TTransform transform, CancellationToken cancellationToken)
+            where TTransform : struct, IRgbPixelTransform
+        {
             PlanarVideoPixelFormat? planar = input.Format.PixelFormat as PlanarVideoPixelFormat;
             bool yuv = planar?.ColorModel == PlanarColorModel.Yuv;
             bool gbr = planar?.ColorModel == PlanarColorModel.Gbr;
@@ -68,11 +74,11 @@ namespace Mediana.Processing
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             if (gbr)
             {
-                if (planar!.BitDepth > 8) { RenderGbr<ushort>(input, writable.Span, map, planar.BitDepth, transform, cancellationToken); }
-                else { RenderGbr<byte>(input, writable.Span, map, planar.BitDepth, transform, cancellationToken); }
+                if (planar!.BitDepth > 8) { RenderGbr<ushort, TTransform>(input, writable.Span, map, planar.BitDepth, transform, cancellationToken); }
+                else { RenderGbr<byte, TTransform>(input, writable.Span, map, planar.BitDepth, transform, cancellationToken); }
             }
-            else if (planar!.BitDepth > 8) { RenderYuv<ushort>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
-            else { RenderYuv<byte>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
+            else if (planar!.BitDepth > 8) { RenderYuv<ushort, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
+            else { RenderYuv<byte, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration);
@@ -88,8 +94,9 @@ namespace Mediana.Processing
                 && plane.Offset == 0 && plane.Stride == rowBytes && input.Data.Length == (long)rowBytes * input.Format.Height;
         }
 
-        private static void RenderYuv<TSample>(VideoFrame input, Span<byte> output, NearestNeighborMap map, YuvRgbMatrix matrix,
-            ChromaLocation location, SdrRgbTransform transform, CancellationToken cancellationToken) where TSample : unmanaged, IBinaryInteger<TSample>
+        private static void RenderYuv<TSample, TTransform>(VideoFrame input, Span<byte> output, NearestNeighborMap map, YuvRgbMatrix matrix,
+            ChromaLocation location, TTransform transform, CancellationToken cancellationToken)
+            where TSample : unmanaged, IBinaryInteger<TSample> where TTransform : struct, IRgbPixelTransform
         {
             int cachedRow = -1;
             ReadOnlySpan<TSample> luma = default;

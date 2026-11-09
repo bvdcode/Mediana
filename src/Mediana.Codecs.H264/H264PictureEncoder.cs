@@ -10,7 +10,7 @@ namespace Mediana.Codecs.H264
     {
         private const int MaximumAttempts = 8;
 
-        public static H264EncodedPicture Encode(VideoFrame input, H264SequenceParameterSet sequence, H264Picture? reference,
+        public static H264EncodedPicture Encode(VideoFrame input, H264SequenceParameterSet sequence, H264PictureParameterSet parameters, H264Picture? reference,
             bool keyFrame, int frameNumber, int idrId, MediaBufferAllocator allocator, H264EncoderOptions options,
             H264FrameRateBudget budget, ref H264Picture? workspace, CancellationToken token, H264MotionReference? interpolation = null)
         {
@@ -47,13 +47,14 @@ namespace Mediana.Codecs.H264
                             H264EntropyCoding.Cabac => H264CabacPictureEncoder.Encode(input, picture, reference, keyFrame, frameNumber,
                                 idrId, quantizer, allocator, options, maximumBytes, out bytes, token, interpolation),
                             H264EntropyCoding.Cavlc when keyFrame => H264IntraEncoder.Encode(input, picture, quantizer, options.Quantizer,
-                                idrId, allocator, maximumBytes, options.RateControl is not null, out bytes, token),
+                                idrId, allocator, maximumBytes, options.RateControl is not null, out bytes, token, options.Deblocking),
                             H264EntropyCoding.Cavlc => H264InterEncoder.Encode(input, picture, reference!, frameNumber, quantizer, allocator,
                                 options, maximumBytes, options.RateControl is not null, out bytes, token, interpolation),
                             _ => throw new ArgumentOutOfRangeException(nameof(options))
                         };
                         if (data is not null)
                         {
+                            H264EncoderDeblocking.Apply(picture, parameters, reference, keyFrame, quantizer, options.Deblocking, token);
                             H264EncodedPicture result = new(picture, data, quantizer);
                             accepted = true;
                             return result;

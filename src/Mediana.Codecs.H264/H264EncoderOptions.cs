@@ -11,6 +11,8 @@ namespace Mediana.Codecs.H264
         public H264EntropyCoding EntropyCoding { get; init; } = H264EntropyCoding.Cavlc;
         /// <summary>Prediction analysis policy. Rate-distortion analysis requires CABAC; quality, compression and cost depend on the content.</summary>
         public H264MacroblockAnalysis MacroblockAnalysis { get; init; } = H264MacroblockAnalysis.Fast;
+        /// <summary>In-loop deblocking settings. Null disables filtering.</summary>
+        public H264DeblockingOptions? Deblocking { get; init; }
         public int MaximumPacketBytes { get; init; } = 16 * 1024 * 1024;
         /// <summary>Media-time IDR interval; the first eligible frame starts the next group. Zero makes every frame an IDR.</summary>
         public TimeSpan KeyFrameInterval { get; init; } = TimeSpan.FromSeconds(2);
@@ -48,6 +50,7 @@ namespace Mediana.Codecs.H264
             ArgumentOutOfRangeException.ThrowIfNegative(MotionSearchRange);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(MotionSearchRange, 64);
             RateControl?.Validate();
+            Deblocking?.Validate();
         }
     }
 }

@@ -3,6 +3,7 @@
 
 namespace Mediana.Codecs.Av1.Tests
 {
+    [Collection("Allocation")]
     public class Av1TransformPrecisionTests
     {
         private static string Data => Path.Combine(AppContext.BaseDirectory, "Data");

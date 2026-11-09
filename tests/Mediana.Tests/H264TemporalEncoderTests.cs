@@ -34,13 +34,16 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(H264EntropyCoding.Cavlc)]
-        [InlineData(H264EntropyCoding.Cabac)]
-        public void ResetDiscardsReferencesAndReplaysTheInitialIdrWhilePacketsStayOwned(H264EntropyCoding entropy)
+        [InlineData(H264EntropyCoding.Cavlc, false)]
+        [InlineData(H264EntropyCoding.Cabac, false)]
+        [InlineData(H264EntropyCoding.Cavlc, true)]
+        [InlineData(H264EntropyCoding.Cabac, true)]
+        public void ResetDiscardsReferencesAndReplaysTheInitialIdrWhilePacketsStayOwned(H264EntropyCoding entropy, bool deblocking)
         {
             MediaBufferAllocator allocator = new(65536);
             VideoFormat format = H264EncoderTests.Format(32, 32);
-            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator, new() { EntropyCoding = entropy });
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator,
+                new() { EntropyCoding = entropy, Deblocking = deblocking ? new() : null });
             using VideoFrame first = H264EncoderTests.Frame(format, allocator, 0);
             encoder.TrySend(first);
             using MediaPacket initial = encoder.Receive().Value!;
@@ -64,16 +67,19 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(H264EntropyCoding.Cavlc)]
-        [InlineData(H264EntropyCoding.Cabac)]
-        public void CancellationReleasesRetainedReferenceWithoutReleasingCallerStorage(H264EntropyCoding entropy)
+        [InlineData(H264EntropyCoding.Cavlc, false)]
+        [InlineData(H264EntropyCoding.Cabac, false)]
+        [InlineData(H264EntropyCoding.Cavlc, true)]
+        [InlineData(H264EntropyCoding.Cabac, true)]
+        public void CancellationReleasesRetainedReferenceWithoutReleasingCallerStorage(H264EntropyCoding entropy, bool deblocking)
         {
             MediaBufferAllocator allocator = new(65536);
             VideoFormat format = H264EncoderTests.Format(32, 32);
             using VideoFrame first = H264EncoderTests.Frame(format, allocator, 0);
             using VideoFrame second = H264EncoderTests.Frame(format, allocator, 1);
             long held = allocator.AllocatedBytes;
-            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator, new() { EntropyCoding = entropy });
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator,
+                new() { EntropyCoding = entropy, Deblocking = deblocking ? new() : null });
             encoder.TrySend(first);
             using MediaPacket packet = encoder.Receive().Value!;
             packet.Dispose();

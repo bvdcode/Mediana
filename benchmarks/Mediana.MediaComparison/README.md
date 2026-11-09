@@ -140,10 +140,17 @@ through the public encoder and MPEG-TS writer APIs:
 
 ```sh
 Mediana.OperationComparison h264-encode input.y4m output.ts 26 0 48
+Mediana.OperationComparison h264-encode input.y4m output.ts 26 4000000 60 cabac rd filter pooled
 ```
 
 Arguments select QP, target bits per second (zero selects fixed QP), and the IDR
-interval in frames. Input uses an explicit frame rate, square or declared sample
+interval in frames. Optional arguments select `cavlc`/`cabac`, `fast`/`rd`,
+`unfiltered`/`filter`, and `unpooled`/`pooled`, in that order. Defaults are CAVLC,
+Fast analysis, disabled deblocking and unpooled media buffers. RD requires CABAC.
+Pooling uses the existing caller-owned `MemoryPool<byte>.Shared` allocation path;
+it changes buffer reuse rather than encoded pixels. Both buffer configurations
+must be reported explicitly when comparing allocation totals and peak RSS.
+Input uses an explicit frame rate, square or declared sample
 aspect ratio, and center or left chroma location. The comparison assigns limited
 range BT.709 color interpretation to these samples; prepare inputs accordingly.
 The consumer rejects unsupported or truncated headers and frame tags, reads to

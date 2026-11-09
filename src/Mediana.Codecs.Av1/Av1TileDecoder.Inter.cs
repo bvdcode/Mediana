@@ -57,8 +57,13 @@ namespace Mediana.Codecs.Av1
             }
             Av1MotionBlock block = new()
             {
-                Reference = (byte)reference, SecondReference = (byte)pair.Second, Mode = (byte)mode,
-                Width = (byte)width, Height = (byte)height, SkipMode = skipMode, CompoundIndex = 1
+                Reference = (byte)reference,
+                SecondReference = (byte)pair.Second,
+                Mode = (byte)mode,
+                Width = (byte)width,
+                Height = (byte)height,
+                SkipMode = skipMode,
+                CompoundIndex = 1
             };
             for (int list = 0; list < (compound ? 2 : 1); list++)
             {
@@ -111,14 +116,16 @@ namespace Mediana.Codecs.Av1
             Residual(row, column, width, height, skip != 0, default, hasChroma, default, default, transform, true);
             Av1BlockContext<T> contextBlock = new()
             {
-                WidthLog = (byte)BitOperations.Log2((uint)width), HeightLog = (byte)BitOperations.Log2((uint)height), Skip = (byte)skip
+                WidthLog = (byte)BitOperations.Log2((uint)width),
+                HeightLog = (byte)BitOperations.Log2((uint)height),
+                Skip = (byte)skip
             };
             StoreContext(row, column, width, height, contextBlock);
         }
 
         private static int VectorMode(int mode, int list) => (mode, list) switch
         {
-            (>= 13 and <= 16, 0) => mode,
+            ( >= 13 and <= 16, 0) => mode,
             (17 or 19, 0) or (17 or 20, 1) => 13,
             (18 or 21, 0) or (18 or 22, 1) => 14,
             (20 or 22 or 24, 0) or (19 or 21 or 24, 1) => 16,

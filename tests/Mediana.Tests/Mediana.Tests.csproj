@@ -155,6 +155,7 @@
     <Compile Include="../Shared/H264ShortInterpolationTestInput.cs" Link="H264ShortInterpolationTestInput.cs" />
     <Compile Include="../Shared/H264VectorKernelTestInput.cs" Link="H264VectorKernelTestInput.cs" />
     <Compile Include="../Shared/H264MotionSearchTestInput.cs" Link="H264MotionSearchTestInput.cs" />
+    <Compile Include="../Shared/H264MotionSeedingTestInput.cs" Link="H264MotionSeedingTestInput.cs" />
     <None Include="Data/H264/motion-*.yuv;Data/H264/MOTION-SEARCH.json" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264LevelBurstTestInput.cs" Link="H264LevelBurstTestInput.cs" />
     <None Include="Data/H264/level-burst.sha256" CopyToOutputDirectory="PreserveNewest" />

@@ -11,9 +11,13 @@ namespace Mediana.Tests
     public class Mp4MetadataTests
     {
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task QuickTimeClassicAndFullMetadataKeepTheSameValues(bool classic)
+        [InlineData(false, "qt  ")]
+        [InlineData(true, "qt  ")]
+        [InlineData(false, "isom")]
+        [InlineData(true, "isom")]
+        [InlineData(false, "mp42")]
+        [InlineData(true, "mp42")]
+        public async Task QuickTimeClassicAndFullMetadataKeepTheSameValues(bool classic, string brand)
         {
             byte[] item = Mp4MetadataTestData.Box("©nam", Mp4MetadataTestData.Data(1, 0, "example"u8.ToArray()));
             byte[] meta = Mp4MetadataTestData.Meta("mdir", item);
@@ -22,7 +26,7 @@ namespace Mediana.Tests
                 meta = Mp4MetadataTestData.Box("meta", meta.AsSpan(12).ToArray());
             }
             byte[] file = await Mp4MetadataTestData.FileAsync(meta);
-            Mp4TestData.SetBrand(file, "qt  "u8);
+            Mp4TestData.SetBrand(file, Encoding.Latin1.GetBytes(brand));
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using TrackingRandomAccessSource source = new(file, 3);
             await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
@@ -34,12 +38,19 @@ namespace Mediana.Tests
             Assert.False(source.IsDisposed);
         }
 
-        [Fact]
-        public async Task ClassicMetadataDoesNotBypassIsoFullBoxValidation()
+        [Theory]
+        [InlineData("qt  ", 1u)]
+        [InlineData("qt  ", 0x01000000u)]
+        [InlineData("isom", 1u)]
+        [InlineData("isom", 0x01000000u)]
+        [InlineData("mp42", 1u)]
+        [InlineData("mp42", 0x01000000u)]
+        public async Task UnsupportedFullMetadataVersionOrFlagsRemainRejected(string brand, uint header)
         {
             byte[] meta = Mp4MetadataTestData.Meta("mdir", []);
-            byte[] file = await Mp4MetadataTestData.FileAsync(Mp4MetadataTestData.Box("meta", meta.AsSpan(12).ToArray()));
-            Mp4TestData.SetBrand(file, "isom"u8);
+            BinaryPrimitives.WriteUInt32BigEndian(meta.AsSpan(8), header);
+            byte[] file = await Mp4MetadataTestData.FileAsync(meta);
+            Mp4TestData.SetBrand(file, Encoding.Latin1.GetBytes(brand));
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using TrackingRandomAccessSource source = new(file, 3);
             await Assert.ThrowsAsync<NotSupportedException>(async () => await Mp4Reader.OpenAsync(source, allocator));

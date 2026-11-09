@@ -211,11 +211,11 @@ namespace Mediana.Codecs.Hevc
         private int ReadMerge(int x, int y, int current, int ctb, HevcCabacReader reader)
         {
             int previous = -1;
-            if ((x > 0) && (partitions is null || partitions.SameSlice((x - 1) * ctb, y * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
+            if ((x > 0) && (partitions is null || partitions.SamePredictionRegion((x - 1) * ctb, y * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
             {
                 previous = current - components;
             }
-            else if ((y > 0) && (partitions is null || partitions.SameSlice(x * ctb, (y - 1) * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
+            else if ((y > 0) && (partitions is null || partitions.SamePredictionRegion(x * ctb, (y - 1) * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
             {
                 previous = current - (columns * components);
             }

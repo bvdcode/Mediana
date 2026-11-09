@@ -21,7 +21,8 @@ namespace Mediana.Codecs.H264
             else { bits.WriteFlag(false); }
             bits.WriteFlag(false); bits.WriteFlag(false);
             if (!keyFrame) { bits.WriteUnsigned(0); }
-            bits.WriteSigned(quantizer - options.Quantizer); bits.WriteUnsigned(1);
+            bits.WriteSigned(quantizer - options.Quantizer);
+            H264EncoderDeblocking.WriteHeader(bits, options.Deblocking);
             while ((bits.BitPosition & 7) != 0) { bits.WriteFlag(true); }
             H264CabacEncoder arithmetic = new(bits);
             using H264CabacMacroblockState state = new(target.Sequence, allocator);

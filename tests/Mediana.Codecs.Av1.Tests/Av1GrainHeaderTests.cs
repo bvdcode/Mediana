@@ -21,7 +21,11 @@ namespace Mediana.Codecs.Av1.Tests
             Av1SequenceHeader geometry = default(Av1SequenceHeader) with { Width = 32, Height = 32, Monochrome = true, FilmGrain = true };
             Av1FrameHeader header = default(Av1FrameHeader) with
             {
-                Geometry = geometry, Grain = original, FrameType = Av1FrameType.Key, RefreshReferences = 1, Showable = showable
+                Geometry = geometry,
+                Grain = original,
+                FrameType = Av1FrameType.Key,
+                RefreshReferences = 1,
+                Showable = showable
             };
             using (Av1ReferencePictures references = new())
             using (WritableMediaBuffer storage = allocator.Allocate(geometry.SampleCount))

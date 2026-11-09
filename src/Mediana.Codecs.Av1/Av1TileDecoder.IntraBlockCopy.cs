@@ -36,8 +36,15 @@ namespace Mediana.Codecs.Av1
             }
             Av1MotionBlock block = new()
             {
-                Intrabc = true, Mode = 0, Width = (byte)width, Height = (byte)height,
-                Row = motionY, Column = motionX, FilterY = 3, FilterX = 3, CompoundIndex = 1
+                Intrabc = true,
+                Mode = 0,
+                Width = (byte)width,
+                Height = (byte)height,
+                Row = motionY,
+                Column = motionX,
+                FilterY = 3,
+                FilterX = 3,
+                CompoundIndex = 1
             };
             StoreMotion(row, column, width, height, block);
             for (int plane = 0; plane < (hasChroma ? 3 : 1); plane++)
@@ -56,7 +63,9 @@ namespace Mediana.Codecs.Av1
             Residual(row, column, width, height, skip != 0, default, hasChroma, default, default, transform, true);
             Av1BlockContext<T> context = new()
             {
-                WidthLog = (byte)BitOperations.Log2((uint)width), HeightLog = (byte)BitOperations.Log2((uint)height), Skip = (byte)skip
+                WidthLog = (byte)BitOperations.Log2((uint)width),
+                HeightLog = (byte)BitOperations.Log2((uint)height),
+                Skip = (byte)skip
             };
             StoreContext(row, column, width, height, context);
         }

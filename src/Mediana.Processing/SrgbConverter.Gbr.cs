@@ -9,8 +9,9 @@ namespace Mediana.Processing
 {
     public static partial class SrgbConverter
     {
-        private static void RenderGbr<T>(VideoFrame input, Span<byte> output, NearestNeighborMap map, int depth,
-            SdrRgbTransform transform, CancellationToken cancellationToken) where T : unmanaged, IBinaryInteger<T>
+        private static void RenderGbr<T, TTransform>(VideoFrame input, Span<byte> output, NearestNeighborMap map, int depth,
+            TTransform transform, CancellationToken cancellationToken)
+            where T : unmanaged, IBinaryInteger<T> where TTransform : struct, IRgbPixelTransform
         {
             double maximum = (1 << depth) - 1;
             ReadOnlySpan<T> red = default, green = default, blue = default; int cachedRow = -1;

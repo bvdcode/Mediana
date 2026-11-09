@@ -9,7 +9,7 @@ namespace Mediana.Codecs.H264
             int x, int y, H264PreparedMacroblock candidate, H264MacroblockMotion vector)
         {
             syntax.WriteMacroblock(x, y, candidate.Pattern, candidate.Coefficients, candidate.IntraMode,
-                vector.DifferenceX, vector.DifferenceY, vector.NeighbourX, vector.NeighbourY, new H264CabacUnlimitedCost());
+                vector.DifferenceX, vector.DifferenceY, vector.NeighbourX, vector.NeighbourY, new H264CabacUnlimitedCost<H264CabacOutputWriter>());
             if (candidate.IsIntra)
             {
                 target.SetMotion(H264ReferenceList.L0, x, y, 16, 16, -1, 0, 0);

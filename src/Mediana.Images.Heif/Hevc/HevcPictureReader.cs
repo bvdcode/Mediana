@@ -56,12 +56,12 @@ namespace Mediana.Images.Heif.Hevc
             {
                 throw new InvalidDataException("HEVC image contains no intra random-access picture.");
             }
-            PicturePartitions? partitions = slices.Count > 1 ? new PicturePartitions(slices) : null;
             HevcSliceHeader first = slices[0];
+            PicturePartitions? partitions = slices.Count > 1 || first.Picture.Tiles.Enabled ? new PicturePartitions(slices) : null;
             if ((partitions is null) && first.Picture.EntropyCodingSync)
             {
                 int rows = ((first.Picture.Sequence.Height - 1) / (1 << first.Picture.Sequence.Log2Ctb)) + 1;
-                if (first.RowSubstreams.Count != rows)
+                if (first.EntropySubstreams.Count != rows)
                 {
                     throw new InvalidDataException("WPP entry points do not cover every picture row.");
                 }
@@ -88,7 +88,7 @@ namespace Mediana.Images.Heif.Hevc
             {
                 throw new UnsupportedHeicFeatureException("multiple HEVC pictures per image item");
             }
-            else if ((header.StartCtbAddress <= slices[slices.Count - 1].StartCtbAddress) ||
+            else if ((header.StartCtbAddressTs <= slices[slices.Count - 1].StartCtbAddressTs) ||
                 !ReferenceEquals(header.Picture, slices[0].Picture) || (unit.Type != pictureType) ||
                 (header.PictureOrderCount != slices[0].PictureOrderCount))
             {

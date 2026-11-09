@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers;
 using Mediana.Codecs.H264;
 
 namespace Mediana.OperationComparison
@@ -9,10 +10,10 @@ namespace Mediana.OperationComparison
     {
         internal static Task RunAsync(string[] arguments)
         {
-            if (arguments.Length is 6 or 7 && arguments[0] == "h264-encode")
+            if (arguments.Length is >= 6 and <= 10 && arguments[0] == "h264-encode")
             {
                 H264EntropyCoding entropy = H264EntropyCoding.Cavlc;
-                if (arguments.Length == 7)
+                if (arguments.Length >= 7)
                 {
                     entropy = arguments[6] switch
                     {
@@ -21,9 +22,39 @@ namespace Mediana.OperationComparison
                         _ => throw new ArgumentException("Expected cavlc or cabac entropy coding.")
                     };
                 }
+                H264MacroblockAnalysis analysis = H264MacroblockAnalysis.Fast;
+                if (arguments.Length >= 8)
+                {
+                    analysis = arguments[7] switch
+                    {
+                        "fast" => H264MacroblockAnalysis.Fast,
+                        "rd" => H264MacroblockAnalysis.RateDistortion,
+                        _ => throw new ArgumentException("Expected fast or rd macroblock analysis.")
+                    };
+                }
+                H264DeblockingOptions? deblocking = null;
+                if (arguments.Length >= 9)
+                {
+                    deblocking = arguments[8] switch
+                    {
+                        "filter" => new(),
+                        "unfiltered" => null,
+                        _ => throw new ArgumentException("Expected filter or unfiltered reconstruction.")
+                    };
+                }
+                MemoryPool<byte>? bufferPool = null;
+                if (arguments.Length == 10)
+                {
+                    bufferPool = arguments[9] switch
+                    {
+                        "pooled" => MemoryPool<byte>.Shared,
+                        "unpooled" => null,
+                        _ => throw new ArgumentException("Expected pooled or unpooled media buffers.")
+                    };
+                }
                 return H264EncodingComparison.RunAsync(arguments[1], arguments[2], int.Parse(arguments[3], System.Globalization.CultureInfo.InvariantCulture),
                     int.Parse(arguments[4], System.Globalization.CultureInfo.InvariantCulture),
-                    int.Parse(arguments[5], System.Globalization.CultureInfo.InvariantCulture), entropy);
+                    int.Parse(arguments[5], System.Globalization.CultureInfo.InvariantCulture), entropy, analysis, deblocking, bufferPool);
             }
             if (arguments.Length != 3)
             {

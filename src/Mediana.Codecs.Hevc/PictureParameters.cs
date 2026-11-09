@@ -31,6 +31,8 @@ namespace Mediana.Codecs.Hevc
         public bool SliceChromaQpOffsets { get; private set; }
         public bool TransquantBypass { get; private set; }
         public bool EntropyCodingSync { get; private set; }
+        public HevcTileLayout Tiles { get; private set; } = null!;
+        public bool LoopFilterAcrossTiles { get; private set; } = true;
         public bool LoopFilterAcrossSlices { get; private set; }
         public bool DeblockingOverride { get; private set; }
         public bool DeblockingDisabled { get; private set; }
@@ -71,11 +73,10 @@ namespace Mediana.Codecs.Hevc
             pps.WeightedPrediction = reader.ReadFlag();
             pps.WeightedBiprediction = reader.ReadFlag();
             pps.TransquantBypass = reader.ReadFlag();
-            if (reader.ReadFlag())
-            {
-                throw new UnsupportedHevcFeatureException("HEVC tiles");
-            }
+            bool tilesEnabled = reader.ReadFlag();
             pps.EntropyCodingSync = reader.ReadFlag();
+            pps.Tiles = HevcTileLayout.Read(reader, sequence, tilesEnabled);
+            if (tilesEnabled) { pps.LoopFilterAcrossTiles = reader.ReadFlag(); }
             pps.LoopFilterAcrossSlices = reader.ReadFlag();
             if (reader.ReadFlag())
             {

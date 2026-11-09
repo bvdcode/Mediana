@@ -9,6 +9,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="../Mediana.Tests/Data/H264DeblockingEncoding/*" Link="Data/H264DeblockingEncoding/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Mpeg4TestInput.cs" Link="Mpeg4TestInput.cs" />
     <Compile Include="../Shared/Mpeg4ContainerTestInput.cs" Link="Mpeg4ContainerTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Mpeg4Visual/Mediana.Codecs.Mpeg4Visual.csproj" />
@@ -170,6 +171,7 @@
     <Compile Include="../Shared/H264ShortInterpolationTestInput.cs" Link="H264ShortInterpolationTestInput.cs" />
     <Compile Include="../Shared/H264VectorKernelTestInput.cs" Link="H264VectorKernelTestInput.cs" />
     <Compile Include="../Shared/H264MotionSearchTestInput.cs" Link="H264MotionSearchTestInput.cs" />
+    <Compile Include="../Shared/H264MotionSeedingTestInput.cs" Link="H264MotionSeedingTestInput.cs" />
     <None Include="../Mediana.Tests/Data/H264/motion-*.yuv;../Mediana.Tests/Data/H264/MOTION-SEARCH.json" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/H264/baseline-chroma-*.yuv" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/H264/pcm-*.yuv" Link="Data/H264/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
