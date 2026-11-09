@@ -126,6 +126,15 @@ quarter positions average the required clipped samples. SIMD processes 16 differ
 discarded when its partial luma error already exceeds the best complete error.
 This search does not promise a global optimum or a rate/distortion optimum.
 
+`RateDistortion` additionally checks distinct integer search seeds from the left,
+top, top-right and top-left macroblocks of the current picture and the colocated,
+right and lower macroblocks of the previous picture. Only available L0 reference-0
+vectors are used, each clipped to the configured range; duplicates, zero and the
+already tested median predictor are excluded. These are search starting points,
+not inferred output motion. The normal YUV error comparison, tie rule and diamond
+refinement still select the encoded vector. See the complete
+[motion-seed comparisons](h264-motion-seeding.md) for quality, size, CPU and memory.
+
 Prediction uses the existing decoder's border extension and chroma interpolation.
 An odd full-pixel luma displacement requires fractional chroma interpolation.
 Integer predictions copy complete row spans while preserving clipped borders.
