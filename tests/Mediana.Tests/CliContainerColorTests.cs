@@ -68,6 +68,19 @@ namespace Mediana.Tests
             Assert.Equal(TransferFunction.Pq, frame.Format.GetColorInterpretation().Transfer);
         }
 
+        [Fact]
+        public async Task AnimationUsesTheSameHdrPresentationDefaultsAndWarnsOnce()
+        {
+            string output = Path.Combine(directory, "animation.webp");
+            ProgressTestContext logger = new();
+            using StringWriter text = new();
+            await ImageSequenceCommand.RunAsync(Mp4ColorTestData.PathFor("container-2020-pq.mp4"), new(output, false),
+                null, 0, logger, text, new Mediana.Codecs.Webp.WebpImageSequenceEncoder(), default);
+            Assert.Single(logger.Messages, message => message.Contains("HDR Pq", StringComparison.Ordinal));
+            Assert.Contains("10 frames", text.ToString(), StringComparison.Ordinal);
+            Assert.NotEmpty(await File.ReadAllBytesAsync(output));
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]

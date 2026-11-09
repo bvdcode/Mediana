@@ -4,9 +4,7 @@
 using Mediana.Codecs;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
-using Mediana.Core.Video;
 using Mediana.IO;
-using Mediana.Processing;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
@@ -30,15 +28,12 @@ namespace Mediana.Cli
             VisualOpenOptions? input = null, int maximumWidth = int.MaxValue, int maximumHeight = int.MaxValue)
         {
             MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
-            VisualExportOptions options = new()
+            VisualExportOptions options = CommandImageResources.ExportOptions with
             {
                 Input = (input ?? new() { Images = CommandImageResources.OpenOptions, Request = request ?? new() })
                     with { Media = CommandMediaResources.OpenOptions },
                 MaximumWidth = maximumWidth,
                 MaximumHeight = maximumHeight,
-                ColorResolver = PreviewColorPolicy.Resolve,
-                ToneMapping = new(),
-                UnspecifiedSampleAspectRatio = SampleAspectRatio.Square,
                 WarningHandler = message => logger.LogWarning("{Warning}", message)
             };
             VisualExportResult? result = null;

@@ -2,6 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Core.Memory;
+using Mediana.Core.Video;
+using Mediana.Processing;
 using Mediana.Documents.OpenXml;
 using Mediana.Documents.Pdf;
 using Mediana.Drawing;
@@ -13,6 +15,12 @@ namespace Mediana.Cli
         internal static int MaximumBufferLength => Array.MaxLength;
         internal static int MaximumRgbaPixels => Array.MaxLength / 4;
         internal static ImageOpenOptions OpenOptions { get; } = new() { MaxInputBytes = Array.MaxLength };
+        internal static VisualExportOptions ExportOptions { get; } = new()
+        {
+            ColorResolver = PreviewColorPolicy.Resolve,
+            ToneMapping = new(),
+            UnspecifiedSampleAspectRatio = SampleAspectRatio.Square
+        };
         internal static MediaOpenOptions ProbeOptions => CommandMediaResources.OpenOptions;
         internal static OpenXmlPackageOptions PackageOptions { get; } = new()
         {

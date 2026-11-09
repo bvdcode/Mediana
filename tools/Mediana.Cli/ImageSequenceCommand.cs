@@ -5,7 +5,6 @@ using Mediana.Codecs;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
 using Mediana.IO;
-using Mediana.Processing;
 using Microsoft.Extensions.Logging;
 
 namespace Mediana.Cli
@@ -18,7 +17,7 @@ namespace Mediana.Cli
             MediaEngine engine = ImageEngineFactory.CreateVisual();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
-            VisualExportOptions options = new()
+            VisualExportOptions options = CommandImageResources.ExportOptions with
             {
                 Input = new()
                 {
@@ -27,7 +26,6 @@ namespace Mediana.Cli
                     Images = CommandImageResources.OpenOptions,
                     Request = new() { Time = new MediaTimestamp(milliseconds, new(1, 1000)) }
                 },
-                ColorResolver = SdrPreviewColorPolicy.Resolve,
                 WarningHandler = message => logger.LogWarning("{Warning}", message)
             };
             MediaProgress progress = new(logger, TimeProvider.System);
