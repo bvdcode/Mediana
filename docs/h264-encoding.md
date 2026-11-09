@@ -1,5 +1,6 @@
 The managed H.264 encoder accepts progressive, even-sized 8-bit planar YUV 4:2:0
-and writes Constrained Baseline level 4.1 AVC. Each input becomes one access unit.
+and writes level 4.1 AVC: Constrained Baseline with CAVLC or Main with CABAC.
+Each input becomes one access unit.
 IDR pictures start independently decodable groups; P pictures reference the
 preceding reconstructed picture. DTS equals PTS, with no picture reordering.
 
@@ -62,8 +63,33 @@ direction, boundary availability, independent pixels and measured error/size
 tradeoffs. P pictures use P16x16 or
 P_Skip, integer 4x4 residual transforms, per-block quantization, chroma DC
 transforms and CAVLC. The reference contains reconstructed pixels, so quantization
-errors do not create an encoder/decoder prediction mismatch. Deblocking is
-disabled in the coded slice.
+errors do not create an encoder/decoder prediction mismatch. CABAC and
+[rate-distortion analysis](h264-macroblock-analysis.md) also support Intra16
+candidates in P pictures.
+
+`H264EncoderOptions.Deblocking` enables the normative in-loop filter for either
+entropy mode. The accepted reconstructed picture is filtered in place before it
+becomes a prediction reference. The encoded slice declares the same filter
+parameters, so independent decoding reconstructs the same reference chain.
+
+```csharp
+H264EncoderOptions options = new()
+{
+    EntropyCoding = H264EntropyCoding.Cabac,
+    MacroblockAnalysis = H264MacroblockAnalysis.RateDistortion,
+    Deblocking = new H264DeblockingOptions { AlphaOffset = 0, BetaOffset = 0 }
+};
+```
+
+Null, the default, disables filtering. Both offsets accept −6 through 6 in the
+standard's signalled half-index units; each unit changes the corresponding
+threshold-table index by two. Invalid offsets fail before allocating encoding
+storage. Filtering uses the existing reconstruction filter, does not allocate a
+second picture and runs only after a rate-control attempt has been accepted.
+Cancellation and reset release the filtered reference like any other reference.
+Eight complete 80-picture sequences cover both entropy modes, analysis policies,
+cropping, chroma motion, scene changes, variable cadence, QP0 through QP51 and
+extreme offsets. All reconstructed pixels match independent FFmpeg 6.1.1 decoding.
 
 Each transformed macroblock is checked against the 3200-bit CAVLC
 `macroblock_layer` limit in Annex A.3.1(n), and coefficient prefixes are bounded
@@ -108,9 +134,10 @@ their coded-block pattern from actual quantized coefficients. P_Skip is emitted
 only when all residual coefficients are zero and its derived motion vector
 matches the selected vector. Consecutive skips share `mb_skip_run` syntax.
 
-An [exhaustive P/I macroblock trial](h264-mode-decision.md) measured complete
-HD quality, CPU, memory and independent reconstruction. It was not adopted;
-adaptive intra coding in P pictures remains open.
+An earlier [exhaustive P/I macroblock trial](h264-mode-decision.md) measured
+complete HD quality, CPU, memory and independent reconstruction. The current
+[rate-distortion policy](h264-macroblock-analysis.md) bounds the additional intra
+analysis to selected P-picture macroblocks.
 
 Without `RateControl`, `Quantizer` is the base H.264 QP from 0 through 51,
 defaulting to 26. Only macroblocks requiring profile or macroblock-bit-limit
@@ -121,8 +148,8 @@ bits. NAL accounting reserves Annex B delimiters and repeated IDR parameter sets
 A picture may exceed the bitrate multiplied by its own duration when the buffer
 has room. Fixed QP remains fixed; an exhausted level budget rejects the picture.
 These admission bounds do not supply a complete Annex C HRD timing schedule or
-a target bitrate. Adaptive intra/inter decisions,
-multiple references and CABAC encoding remain open.
+a target bitrate. The encoder uses one past reference; it does not produce B
+pictures or multiple-reference prediction.
 
 [Fractional motion search](h264-fractional-motion.md) describes scratch storage,
 independent selection checks and complete CPU/quality measurements.

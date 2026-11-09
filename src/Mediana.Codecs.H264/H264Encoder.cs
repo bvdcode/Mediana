@@ -19,6 +19,7 @@ namespace Mediana.Codecs.H264
         private readonly VideoFormat format;
         private readonly VideoColorInfo color;
         private readonly H264SequenceParameterSet sequence;
+        private readonly H264PictureParameterSet parameters;
         private readonly H264LevelBudget levelBudget;
         private readonly H264RateController? rateController;
         private MediaPacket? pending;
@@ -35,13 +36,14 @@ namespace Mediana.Codecs.H264
         private int idrId;
         private int busy;
 
-        private H264Encoder(VideoFormat format, EncodedStreamInfo stream, H264SequenceParameterSet sequence,
+        private H264Encoder(VideoFormat format, EncodedStreamInfo stream, H264SequenceParameterSet sequence, H264PictureParameterSet parameters,
             MediaBufferAllocator allocator, H264EncoderOptions options, int parameterSetBytes)
         {
             this.format = format;
             color = format.GetColorInterpretation();
             Stream = stream;
             this.sequence = sequence;
+            this.parameters = parameters;
             this.allocator = allocator;
             this.options = options;
             levelBudget = new(stream.TimeBase, sequence.WidthInMbs * sequence.HeightInMapUnits, parameterSetBytes);
@@ -62,7 +64,7 @@ namespace Mediana.Codecs.H264
             byte[] configuration = H264EncoderConfiguration.Create(format, allocator, options, out int parameterSetBytes);
             H264Configuration parsed = H264Configuration.Parse(configuration, new H264DecoderOptions());
             EncodedStreamInfo stream = new(streamIndex, MediaKind.Video, "h264", StreamFormats.Avc, timeBase, configuration, VideoDisplayMatrix.Identity);
-            return new(format, stream, parsed.Sequences[0], allocator, options, parameterSetBytes);
+            return new(format, stream, parsed.Sequences[0], parsed.Pictures[0], allocator, options, parameterSetBytes);
         }
 
         public CodecInputStatus TrySend(VideoFrame input, CancellationToken cancellationToken = default)
@@ -101,7 +103,7 @@ namespace Mediana.Codecs.H264
                     motionReference ??= new(reference!, options.MotionSearchRange, allocator);
                     motionReference.Prepare(reference!, cancellationToken);
                 }
-                using H264EncodedPicture encoded = H264PictureEncoder.Encode(input, sequence, reference, keyFrame, number, idrId,
+                using H264EncodedPicture encoded = H264PictureEncoder.Encode(input, sequence, parameters, reference, keyFrame, number, idrId,
                     allocator, options, budget, ref workspace, cancellationToken, motionReference);
                 levelBudget.Commit(timestamp.Value, keyFrame, encoded.Data.Memory.Length);
                 pending = new MediaPacket(Stream.StreamIndex, encoded.Data, timestamp, timestamp, input.Duration, isKeyFrame: keyFrame);

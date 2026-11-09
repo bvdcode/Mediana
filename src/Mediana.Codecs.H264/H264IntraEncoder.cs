@@ -9,7 +9,8 @@ namespace Mediana.Codecs.H264
     internal static class H264IntraEncoder
     {
         public static MediaBuffer? Encode(VideoFrame input, H264Picture reconstructed, int qp, int initialQuantizer, int idrId,
-            MediaBufferAllocator allocator, int maximumBytes, bool measureOverflow, out int encodedLength, CancellationToken cancellationToken)
+            MediaBufferAllocator allocator, int maximumBytes, bool measureOverflow, out int encodedLength, CancellationToken cancellationToken,
+            H264DeblockingOptions? deblocking = null)
         {
             using H264BitWriter bits = new(allocator, maximumBytes, 0x65, lengthPrefixed: true, measureOverflow: true);
             bits.WriteUnsigned(0);
@@ -20,7 +21,7 @@ namespace Mediana.Codecs.H264
             bits.WriteFlag(false);
             bits.WriteFlag(false);
             bits.WriteSigned(qp - initialQuantizer);
-            bits.WriteUnsigned(1);
+            H264EncoderDeblocking.WriteHeader(bits, deblocking);
             int previousQuantizer = qp;
             Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
             for (int y = 0; y < reconstructed.Height; y += 16)
