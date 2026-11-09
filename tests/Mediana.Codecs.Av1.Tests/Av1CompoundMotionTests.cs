@@ -13,10 +13,24 @@ namespace Mediana.Codecs.Av1.Tests
         {
             Av1MotionBlock block = new()
             {
-                Reference = 3, SecondReference = 7, Mode = 24, Width = 16, Height = 8,
-                Row = -16383, Column = 16383, SecondRow = 16382, SecondColumn = -16382,
-                SkipMode = true, CompoundGroup = 1, CompoundIndex = 1, MotionMode = 2,
-                FilterX = 2, FilterY = 1, Transform = 4, TransformSize = 9, InterIntra = true
+                Reference = 3,
+                SecondReference = 7,
+                Mode = 24,
+                Width = 16,
+                Height = 8,
+                Row = -16383,
+                Column = 16383,
+                SecondRow = 16382,
+                SecondColumn = -16382,
+                SkipMode = true,
+                CompoundGroup = 1,
+                CompoundIndex = 1,
+                MotionMode = 2,
+                FilterX = 2,
+                FilterY = 1,
+                Transform = 4,
+                TransformSize = 9,
+                InterIntra = true
             };
             Assert.Equal(16, Unsafe.SizeOf<Av1MotionBlock>());
             Assert.True(block.InterIntra);
@@ -65,13 +79,27 @@ namespace Mediana.Codecs.Av1.Tests
                 blocks.AsSpan().Fill(new() { Width = 2, Height = 2 });
                 blocks[3 * sequence.MiColumns + 4] = new()
                 {
-                    Reference = 1, SecondReference = 2, Width = 2, Height = 2,
-                    Row = 8, Column = -16, SecondRow = -24, SecondColumn = 32, Mode = 24
+                    Reference = 1,
+                    SecondReference = 2,
+                    Width = 2,
+                    Height = 2,
+                    Row = 8,
+                    Column = -16,
+                    SecondRow = -24,
+                    SecondColumn = 32,
+                    Mode = 24
                 };
                 blocks[4 * sequence.MiColumns + 3] = new()
                 {
-                    Reference = 1, SecondReference = 2, Width = 2, Height = 2,
-                    Row = 8, Column = -16, SecondRow = -40, SecondColumn = 48, Mode = 17
+                    Reference = 1,
+                    SecondReference = 2,
+                    Width = 2,
+                    Height = 2,
+                    Row = 8,
+                    Column = -16,
+                    SecondRow = -40,
+                    SecondColumn = 48,
+                    Mode = 17
                 };
                 Span<Av1MotionCandidate> storage = stackalloc Av1MotionCandidate[8];
                 Av1MotionCandidates pair = new(storage, blocks, sequence, header, new(0, sequence.MiRows, 0, sequence.MiColumns), references, 4, 4, 2, 2, 1, secondReference: 2);
@@ -93,12 +121,24 @@ namespace Mediana.Codecs.Av1.Tests
                 blocks.AsSpan().Fill(new() { Width = 2, Height = 2 });
                 blocks[3 * sequence.MiColumns + 4] = new()
                 {
-                    Reference = 1, SecondReference = 2, Width = 2, Height = 2,
-                    Row = 16, Column = 28, SecondRow = 8, SecondColumn = 14, Mode = 17
+                    Reference = 1,
+                    SecondReference = 2,
+                    Width = 2,
+                    Height = 2,
+                    Row = 16,
+                    Column = 28,
+                    SecondRow = 8,
+                    SecondColumn = 14,
+                    Mode = 17
                 };
                 blocks[sequence.MiColumns + 5] = new()
                 {
-                    Reference = 6, Width = 2, Height = 2, Row = 40, Column = 80, Mode = 13
+                    Reference = 6,
+                    Width = 2,
+                    Height = 2,
+                    Row = 40,
+                    Column = 80,
+                    Mode = 13
                 };
                 Av1MotionCandidates third = new(storage, blocks, sequence, header, new(0, sequence.MiRows, 0, sequence.MiColumns), references, 4, 4, 2, 2, 6);
                 third.Build();

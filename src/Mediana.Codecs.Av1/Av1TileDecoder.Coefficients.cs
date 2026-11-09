@@ -26,9 +26,12 @@ namespace Mediana.Codecs.Av1
             int eobSize = System.Numerics.BitOperations.Log2((uint)(size.CodedWidth * size.CodedHeight)) - 4;
             int eobOffset = eobSize switch
             {
-                0 => Av1DefaultCdfs.Eob16Offset, 1 => Av1DefaultCdfs.Eob32Offset,
-                2 => Av1DefaultCdfs.Eob64Offset, 3 => Av1DefaultCdfs.Eob128Offset,
-                4 => Av1DefaultCdfs.Eob256Offset, 5 => Av1DefaultCdfs.Eob512Offset,
+                0 => Av1DefaultCdfs.Eob16Offset,
+                1 => Av1DefaultCdfs.Eob32Offset,
+                2 => Av1DefaultCdfs.Eob64Offset,
+                3 => Av1DefaultCdfs.Eob128Offset,
+                4 => Av1DefaultCdfs.Eob256Offset,
+                5 => Av1DefaultCdfs.Eob512Offset,
                 6 => Av1DefaultCdfs.Eob1024Offset,
                 _ => throw new InvalidDataException("The AV1 coefficient extent is invalid.")
             };

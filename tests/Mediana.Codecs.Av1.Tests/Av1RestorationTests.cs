@@ -84,9 +84,15 @@ namespace Mediana.Codecs.Av1.Tests
                 int y = reader.ReadByte();
                 Av1RestorationUnit unit = new()
                 {
-                    V0 = reader.ReadSByte(), V1 = reader.ReadSByte(), V2 = reader.ReadSByte(),
-                    H0 = reader.ReadSByte(), H1 = reader.ReadSByte(), H2 = reader.ReadSByte(),
-                    Set = reader.ReadByte(), X0 = reader.ReadSByte(), X1 = reader.ReadSByte()
+                    V0 = reader.ReadSByte(),
+                    V1 = reader.ReadSByte(),
+                    V2 = reader.ReadSByte(),
+                    H0 = reader.ReadSByte(),
+                    H1 = reader.ReadSByte(),
+                    H2 = reader.ReadSByte(),
+                    Set = reader.ReadByte(),
+                    X0 = reader.ReadSByte(),
+                    X1 = reader.ReadSByte()
                 };
                 byte[] pixels = reader.ReadBytes(256);
                 byte[] expected = reader.ReadBytes(256);

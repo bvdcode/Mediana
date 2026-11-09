@@ -14,8 +14,17 @@ namespace Mediana.Codecs.Ac3
 
         public static int Bits(int allocation) => allocation switch
         {
-            0 => 0, 1 => 2, 2 => 3, 3 => 4, 4 => 5, 5 => 7, 6 => 8, 7 => 9,
-            >= 8 and <= 17 => allocation - 5, 18 => 14, 19 => 16,
+            0 => 0,
+            1 => 2,
+            2 => 3,
+            3 => 4,
+            4 => 5,
+            5 => 7,
+            6 => 8,
+            7 => 9,
+            >= 8 and <= 17 => allocation - 5,
+            18 => 14,
+            19 => 16,
             _ => throw new InvalidDataException("The E-AC-3 high-efficiency allocation pointer is invalid.")
         };
 

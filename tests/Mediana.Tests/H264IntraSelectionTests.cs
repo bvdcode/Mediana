@@ -15,7 +15,9 @@ namespace Mediana.Tests
             MediaBufferAllocator allocator = new(1048576);
             using (H264Picture picture = new(new H264SequenceParameterSet
             {
-                WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true
+                WidthInMbs = 2,
+                HeightInMapUnits = 2,
+                FrameMbsOnly = true
             }, allocator, H264SliceKind.I))
             {
                 Random random = new(71093);

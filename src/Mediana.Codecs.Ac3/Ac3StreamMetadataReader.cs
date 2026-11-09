@@ -25,7 +25,8 @@ namespace Mediana.Codecs.Ac3
             StreamFormats.Ac3Mp4.Require(stream.Format);
             Ac3SpecificConfiguration configuration = Ac3SpecificConfiguration.Read(stream.Configuration.Span);
             return new AudioStreamMetadata(configuration.SampleRate, configuration.ChannelCount,
-                channelOrder: configuration.GetChannelOrder()) { CodecProfile = new(ProfileName) };
+                channelOrder: configuration.GetChannelOrder())
+            { CodecProfile = new(ProfileName) };
         }
 
         public virtual StreamMetadata? ReadPacketPrefix(EncodedStreamInfo stream, ReadOnlySpan<byte> prefix)

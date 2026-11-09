@@ -31,7 +31,8 @@ namespace Mediana.Cli
             VisualExportOptions options = CommandImageResources.ExportOptions with
             {
                 Input = (input ?? new() { Images = CommandImageResources.OpenOptions, Request = request ?? new() })
-                    with { Media = CommandMediaResources.OpenOptions },
+                    with
+                { Media = CommandMediaResources.OpenOptions },
                 MaximumWidth = maximumWidth,
                 MaximumHeight = maximumHeight,
                 WarningHandler = message => logger.LogWarning("{Warning}", message)
