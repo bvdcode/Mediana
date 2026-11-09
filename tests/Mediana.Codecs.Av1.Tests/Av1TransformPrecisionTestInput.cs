@@ -9,6 +9,8 @@ namespace Mediana.Codecs.Av1.Tests
 {
     internal static class Av1TransformPrecisionTestInput
     {
+        private const long AllocationRegionBytes = 64 * 1024 * 1024;
+
         internal static void VerifyOneDimension(string root, int precision) => Verify(root, "transform1d-precision.bin.gz", 0, precision, 5796, 1932);
         internal static void VerifyTwoDimensions(string root, int bitDepth) => Verify(root, "transform2d-precision.bin.gz", 1, bitDepth, 3474, 1158);
         internal static void VerifyLossless(string root, int bitDepth) => Verify(root, "lossless-precision.bin.gz", 2, bitDepth, 291, 97);
@@ -25,6 +27,25 @@ namespace Mediana.Codecs.Av1.Tests
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };
             Require(reader.ReadBytes(8).AsSpan().SequenceEqual(magic) && reader.ReadInt32() == total);
+            if (!GC.TryStartNoGCRegion(AllocationRegionBytes))
+            {
+                throw new InvalidOperationException("The transform allocation interval could not be established.");
+            }
+            try
+            {
+                VerifyVectors(reader, kind, precision, total, expectedCount);
+                long before = GC.GetAllocatedBytesForCurrentThread();
+                byte[] control = new byte[37];
+                long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+                GC.KeepAlive(control);
+                Require(allocated == (IntPtr.Size == 8 ? 64 : 52));
+            }
+            finally { GC.EndNoGCRegion(); }
+            Require(source.ReadByte() == -1);
+        }
+
+        private static void VerifyVectors(BinaryReader reader, int kind, int precision, int total, int expectedCount)
+        {
             Span<int> input = stackalloc int[4096];
             Span<int> actual = stackalloc int[4096];
             int verified = 0;
@@ -61,7 +82,7 @@ namespace Mediana.Codecs.Av1.Tests
                 }
                 verified++;
             }
-            Require(verified == expectedCount && source.ReadByte() == -1);
+            Require(verified == expectedCount);
         }
 
         private static void Transform(Span<int> values, int kind, int type, int width, int height, int precision)
