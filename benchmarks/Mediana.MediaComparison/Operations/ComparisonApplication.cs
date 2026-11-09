@@ -9,10 +9,10 @@ namespace Mediana.OperationComparison
     {
         internal static Task RunAsync(string[] arguments)
         {
-            if (arguments.Length is 6 or 7 && arguments[0] == "h264-encode")
+            if (arguments.Length is >= 6 and <= 8 && arguments[0] == "h264-encode")
             {
                 H264EntropyCoding entropy = H264EntropyCoding.Cavlc;
-                if (arguments.Length == 7)
+                if (arguments.Length >= 7)
                 {
                     entropy = arguments[6] switch
                     {
@@ -21,9 +21,19 @@ namespace Mediana.OperationComparison
                         _ => throw new ArgumentException("Expected cavlc or cabac entropy coding.")
                     };
                 }
+                H264MacroblockAnalysis analysis = H264MacroblockAnalysis.Fast;
+                if (arguments.Length == 8)
+                {
+                    analysis = arguments[7] switch
+                    {
+                        "fast" => H264MacroblockAnalysis.Fast,
+                        "rd" => H264MacroblockAnalysis.RateDistortion,
+                        _ => throw new ArgumentException("Expected fast or rd macroblock analysis.")
+                    };
+                }
                 return H264EncodingComparison.RunAsync(arguments[1], arguments[2], int.Parse(arguments[3], System.Globalization.CultureInfo.InvariantCulture),
                     int.Parse(arguments[4], System.Globalization.CultureInfo.InvariantCulture),
-                    int.Parse(arguments[5], System.Globalization.CultureInfo.InvariantCulture), entropy);
+                    int.Parse(arguments[5], System.Globalization.CultureInfo.InvariantCulture), entropy, analysis);
             }
             if (arguments.Length != 3)
             {

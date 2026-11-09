@@ -14,7 +14,7 @@ namespace Mediana.OperationComparison
     internal static class H264EncodingComparison
     {
         internal static async Task RunAsync(string inputPath, string destination, int quantizer, int bitRate, int keyFrames,
-            H264EntropyCoding entropy = H264EntropyCoding.Cavlc)
+            H264EntropyCoding entropy = H264EntropyCoding.Cavlc, H264MacroblockAnalysis analysis = H264MacroblockAnalysis.Fast)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(bitRate);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(keyFrames);
@@ -29,6 +29,7 @@ namespace Mediana.OperationComparison
             {
                 Quantizer = quantizer,
                 EntropyCoding = entropy,
+                MacroblockAnalysis = analysis,
                 KeyFrameInterval = TimeSpan.FromSeconds((double)keyFrames * source.Clock.Numerator / source.Clock.Denominator),
                 RateControl = bitRate == 0 ? null : new() { BitRate = bitRate, BufferDuration = TimeSpan.FromSeconds(2) }
             };
