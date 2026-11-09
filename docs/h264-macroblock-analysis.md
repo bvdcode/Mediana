@@ -22,11 +22,11 @@ A zero quantized residual does not mean identical source samples or an optimal m
 
 The additional analysis is bounded to macroblocks whose Inter16×16 candidate has nonzero luma residual in all four 8×8 coded groups. It shortlists one legal Intra16 mode by luma SAD, then compares both candidates using their actual clipped YUV reconstruction error and local CABAC arithmetic-interval cost. The comparison includes macroblock type, motion differences, coded-block pattern, quantizer syntax and residual bins from the same initial adaptive contexts. A partial cost can reject a candidate only when its nonnegative accumulated cost cannot beat the current candidate. Equal total costs retain the inter candidate.
 
-The encoder prepares each candidate's 384 YUV420 samples once. A speculative commit and arithmetic-writer checkpoint allow retaining the winning candidate without repeating inverse transforms. A separate value-type arithmetic-cost backend shares the same bin syntax and context updates; it does not write output bytes or alter the committed candidate. The default output backend has no cost-estimation branch in its bin methods.
+The encoder prepares each candidate's 384 YUV420 samples once. A separate value-type arithmetic-cost backend estimates candidate costs from the same initial range and adaptive contexts, restoring trial macroblock state between estimates. It shares the output writer's bin syntax but writes no bytes. Only the winning candidate is committed to the output writer and reconstructed picture. No output rollback or repeated inverse transform is required. The output backend has no cost-estimation branch in its bin methods.
 
 The decision is `SSE + λ × local_bits`, with `λ = 0.85 × 2^((QP − 12) / 3)`. This is the no-B P-slice base in the [JM reference encoder's `get_implicit_lambda_p_slice`](https://vcgit.hhi.fraunhofer.de/jvet/JM/-/blob/master/source/app/lencod/lambda.c), before optional metric, temporal-distance and context adjustments. It is an encoder policy, not a conformance requirement. [ITU-T H.264](https://www.itu.int/rec/T-REC-H.264-202606-I/en) specifies reconstruction and CABAC decoding; it does not require an encoder to use a particular rate-distortion search. Local interval cost is distinct from final escaped NAL or transport size.
 
-The same option supports fixed QP and the existing media-time rate controller. Packet timing, keyframe decisions, cancellation and reset retain their existing contracts. Selecting `RateDistortion` does not enable B pictures, weighted prediction, additional motion partitions or in-loop deblocking.
+The same option supports fixed QP and the existing media-time rate controller. Packet timing, keyframe decisions, cancellation and reset retain their existing contracts. Selecting `RateDistortion` does not enable B pictures, weighted prediction or additional motion partitions. [In-loop deblocking](h264-encoding.md#prediction-and-residual-coding) is selected independently through `Deblocking`.
 
 Validation includes complete independently decoded sequences at QP 0, 12, 26, 38 and 51, cropped edges, chroma motion, scene changes, variable frame durations and adaptive quantizers. Mathematical checks cover 512 arithmetic checkpoint/replay sequences and 1440 prepared-reconstruction cases, including scalar execution.
 
@@ -85,3 +85,116 @@ At QP26, managed allocated bytes decrease from approximately 422.54 to 421.99 MB
 Fast remains the default and retains all twelve complete transport hashes at QP22/26/30/34 on the three inputs. Native code inspection confirms that its macroblock specialization calls neither the quantized-skip probe nor rate-distortion selection. The quantized-skip policy changes only explicitly selected RateDistortion output.
 
 The complete Native AOT test consumer builds with reference compatibility checks and compiler/linker warnings treated as errors. It passes the quantized-skip probe, complete RateDistortion references and reset/cancellation checks together with the remaining media pipeline tests.
+
+## Bounded candidate evaluation and SIMD reconstruction
+
+The current implementation estimates candidates before committing CABAC output,
+uses SIMD for clipped sample reconstruction and reconstruction-error calculation,
+and reuses the bounded SIMD SAD kernel for Intra16 mode selection. None of these
+changes modifies prediction choices, quantized coefficients or complete encoded
+bytes when deblocking remains disabled.
+
+An independent Linux x64 Native AOT comparison used an Intel Core i5-12450H,
+one logical execution CPU, CABAC/RD, a 60-picture GOP and a two-second rate buffer.
+Each implementation ran four fresh processes per input, serially in ABBA order.
+CPU includes the complete Y4M read, encoding, MPEG-TS output and process exit.
+
+| Input | Pictures / rate | Nominal bit/s | Earlier CPU | Optimized CPU | Change |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| HD30, 1280×720 | 150 / 30 | 4,000,000 | 5.870 s | 5.228 s | −10.9% |
+| HD24, 1280×720 | 288 / 24 | 4,000,000 | 8.472 s | 7.830 s | −7.6% |
+| Motion, 640×360 | 192 / 24 | 1,000,000 | 0.874 s | 0.825 s | −5.6% |
+| Flat, 1280×720 | 192 / 24 | 4,000,000 | 1.060 s | 1.108 s | +4.5% |
+
+Every complete transport SHA-256 remains identical. Flat content is a measured
+regression, so these changes do not establish a universal speed improvement.
+Median HD30 process peak RSS is 51.6 MiB before and 51.7 MiB after. Managed
+allocation totals remain essentially unchanged with the same allocator; these
+kernels add neither a picture buffer nor a per-candidate heap allocation.
+
+The shared reconstruction kernel also improves decoding of three independent
+x264 High-profile sequences. Four fresh processes per decoder/input give median
+CPU of 2.495 → 2.380 s, 4.125 → 3.926 s and 0.649 → 0.593 s. All visible YUV
+samples, including reordered pictures, match FFmpeg 6.1.1 exactly. Decoder RSS
+still varies with collection timing; these measurements do not establish a
+decoder memory reduction.
+
+## Comparison at matched encoded payload
+
+The same three video inputs were compared with FFmpeg 6.1.1 / libx264 `veryfast`,
+one encoder thread and the same GOP and buffer duration. The reference retains
+its normal B pictures and High-profile tools. Mediana uses CABAC/RD. Each Mediana
+rate was adjusted until the sum of demuxed AVC packet bytes was within 1% of the
+reference; matching nominal bitrates alone was insufficient. Transport overhead
+is reported separately from encoded payload.
+
+| Input | x264 payload | Mediana filtered payload | Difference | x264 PSNR | Mediana PSNR | x264 / Mediana SSIM |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| HD30 | 2,563,313 | 2,571,565 | +0.32% | 51.417 dB | 51.014 dB | 0.993616 / 0.992974 |
+| HD24 | 6,073,119 | 6,078,200 | +0.08% | 52.129 dB | 49.009 dB | 0.996959 / 0.993201 |
+| Motion | 1,076,721 | 1,076,756 | +0.003% | 47.926 dB | 44.256 dB | 0.998029 / 0.993413 |
+
+The in-loop filter increases aggregate PSNR by 0.303, 0.109 and 0.664 dB over
+the corresponding unfiltered Mediana encodes at matched payload. It operates on
+the prediction references, rather than filtering only the exported image.
+Zero-threshold exclusion preserves every encoded byte and avoids the complete
+filter pass when the maximum possible luma/chroma thresholds cannot change a
+sample. Mixed neighboring QPs, independent chroma offsets and threshold offsets
+are checked across all 52 luma QPs.
+
+Two final fresh processes per method/input, in reversed serial order, give the
+following median CPU and median process peak RSS at those matched payloads.
+Every output hash matches the independently decoded quality result above.
+
+| Input | x264 CPU / RSS | Mediana unfiltered CPU / RSS | Mediana filtered CPU / RSS | Mediana filtered + pooled CPU / RSS |
+| --- | ---: | ---: | ---: | ---: |
+| HD30 | 2.805 s / 128.9 MiB | 4.643 s / 51.5 MiB | 5.000 s / 51.6 MiB | 4.913 s / 16.7 MiB |
+| HD24 | 2.943 s / 129.3 MiB | 7.029 s / 50.5 MiB | 7.775 s / 50.5 MiB | 7.736 s / 18.0 MiB |
+| Motion | 0.444 s / 71.5 MiB | 0.791 s / 13.5 MiB | 0.885 s / 13.3 MiB | 0.885 s / 11.6 MiB |
+
+These are separate timing sessions from the earlier unchanged-output comparison;
+cross-session differences are not an additional optimization coefficient. The
+pooled configuration uses the same filter and produces the same encoded bytes
+as the filtered unpooled configuration.
+
+The HD30 result is close to the reference in these metrics. HD24 and motion
+retain substantial quality gaps. Disabling B pictures, 8×8 transforms and smaller
+inter partitions in x264 still leaves gaps; those absent tools alone do not
+explain the result. Individual reference switches affect interacting decisions,
+so their effects cannot be added together as independent contributions.
+Motion estimation, intra-mode selection and rate allocation remain part of the
+compression-efficiency work. x264's
+[motion-estimation implementation](https://github.com/mirror/x264/blob/master/encoder/me.c)
+documents its separate search/refinement budgets and transformed-error/rate
+objectives.
+
+## Thirty-second complete operation
+
+A second series repeats the HD30 source six times: 900 pictures, 30 seconds,
+1280×720 at 30 pictures/s. This measures sustained operation on repeated content,
+rather than an additional independent scene. Each method runs twice in a reversed
+serial order on the same execution CPU. The table reports median CPU and median
+per-process peak RSS; no source decoding or image export is included.
+
+| Method | CPU | Peak RSS | AVC payload | PSNR |
+| --- | ---: | ---: | ---: | ---: |
+| Earlier CABAC/RD, unpooled | 31.596 s | 51.6 MiB | 15,436,301 | 50.807 dB |
+| Optimized CABAC/RD, unpooled | 27.892 s | 51.6 MiB | 15,436,301 | 50.807 dB |
+| Optimized CABAC/RD, filtered, pooled | 29.643 s | 18.7 MiB | 15,438,852 | 51.080 dB |
+| x264 veryfast | 17.143 s | 125.2 MiB | 15,239,065 | 51.435 dB |
+
+The unchanged-output optimization reduces CPU by 11.7% on this complete sequence.
+Both optimized modes process this workload faster than its media duration, with
+little margin in the filtered case. The filtered payload is 1.31% larger than
+x264, so this longer series is not an exact size match. The shorter series above
+provides the tighter payload comparison. x264 remains faster in both series.
+
+The pooled row explicitly uses the existing caller-owned
+`MemoryPool<byte>.Shared` allocator. Managed allocation totals are approximately
+1,335 MB for the unpooled operation and 17.8 MB for the filtered pooled operation;
+the input-frame buffers account for most of this difference. This is an allocator
+configuration comparison, not a claim that enabling deblocking removes those
+allocations. Every encoder reports zero retained media-buffer bytes at EOF.
+Repeated outputs have identical complete hashes within each configuration, and
+the unfiltered earlier/optimized outputs are identical to each other. Independent
+decoding processes the complete sequences for PSNR and SSIM.
