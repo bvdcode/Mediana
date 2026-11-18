@@ -47,19 +47,36 @@ namespace Mediana.Processing
                     try
                     {
                         if (!Matches(replacement.OutputFormat, OutputFormat))
-                        { throw new NotSupportedException("The changed video source requires a different encoded output format; configure a common output geometry and color interpretation."); }
+                        {
+                            throw new NotSupportedException("The changed video source requires a different encoded output format; configure a common output geometry and color interpretation.");
+                        }
                         current.Dispose();
                         current = replacement;
                         inputFormat = input.Format;
                         accepted = true;
                     }
-                    finally { if (!accepted) { replacement.Dispose(); } }
+                    finally
+                    {
+                        if (!accepted)
+                        {
+                            replacement.Dispose();
+                        }
+                    }
                 }
                 VideoFrame prepared = current.Apply(input, cancellationToken);
-                if (ReferenceEquals(prepared.Format, OutputFormat)) { return prepared; }
-                using (prepared) { return prepared.WithFormat(OutputFormat); }
+                if (ReferenceEquals(prepared.Format, OutputFormat))
+                {
+                    return prepared;
+                }
+                using (prepared)
+                {
+                    return prepared.WithFormat(OutputFormat);
+                }
             }
-            finally { Volatile.Write(ref busy, 0); }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
         }
 
         private static bool Matches(VideoFormat left, VideoFormat right, bool compareColor = true) => left.Width == right.Width && left.Height == right.Height &&
@@ -68,12 +85,24 @@ namespace Mediana.Processing
 
         public void Dispose()
         {
-            Enter(); try { disposed = true; current.Dispose(); } finally { Volatile.Write(ref busy, 0); }
+            Enter();
+            try
+            {
+                disposed = true;
+                current.Dispose();
+            }
+            finally
+            {
+                Volatile.Write(ref busy, 0);
+            }
             GC.SuppressFinalize(this);
         }
         private void Enter()
         {
-            if (Interlocked.CompareExchange(ref busy, 1, 0) != 0) { throw new InvalidOperationException("Concurrent video sequence preparation is not supported."); }
+            if (Interlocked.CompareExchange(ref busy, 1, 0) != 0)
+            {
+                throw new InvalidOperationException("Concurrent video sequence preparation is not supported.");
+            }
         }
     }
 }
