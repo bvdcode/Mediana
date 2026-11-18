@@ -24,8 +24,6 @@ namespace Mediana
             options ??= new();
             ContainerSession container = await OpenContainerAsync(source, options, cancellationToken).ConfigureAwait(false);
             List<MediaDecodeTrack> tracks = [];
-            MediaDecodeGroup? group = null;
-            bool success = false;
             try
             {
                 EncodedStreamInfo[] streams = selected is null
@@ -46,35 +44,15 @@ namespace Mediana
                         _ => throw new NotSupportedException("The selected stream is not audio or video.")
                     });
                 }
-                group = new(container, tracks, options.MaxFrameReads, container.Reader as IIndexedPresentationTimingReader);
+                MediaDecodeGroup group = new(container, tracks, options.MaxFrameReads, container.Reader as IIndexedPresentationTimingReader);
                 cancellationToken.ThrowIfCancellationRequested();
                 MediaSession session = new(container, group, streams);
-                success = true;
                 return session;
             }
-            finally
+            catch (Exception error)
             {
-                if (!success)
-                {
-                    try
-                    {
-                        if (group is not null)
-                        {
-                            group.Dispose();
-                        }
-                        else
-                        {
-                            foreach (MediaDecodeTrack track in tracks)
-                            {
-                                track.Dispose();
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        await container.DisposeAsync().ConfigureAwait(false);
-                    }
-                }
+                await MediaResourceCleanup.DisposeAllAsync(tracks, container, error).ConfigureAwait(false);
+                throw;
             }
         }
     }
