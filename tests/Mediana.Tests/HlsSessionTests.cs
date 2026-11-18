@@ -11,6 +11,30 @@ namespace Mediana.Tests
     public class HlsSessionTests
     {
         [Fact]
+        public async Task ColdOpenReadsOnlyIndexesWithoutTouchingMediaPayloads()
+        {
+            byte[] data = await Mp4TestData.ReadAsync("avc-segments.mp4");
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using TrackingRandomAccessSource source = new(data, 37);
+            List<Mp4SampleInfo> samples = [];
+            await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
+            {
+                for (int stream = 0; stream < reader.Tracks.Count; stream++)
+                {
+                    for (int sample = 0; sample < reader.Tracks[stream].SampleCount; sample++)
+                    {
+                        samples.Add(reader.GetSampleInfo(stream, sample));
+                    }
+                }
+            }
+            source.Reads.Clear();
+            await using Mp4HlsSession session = await Mp4HlsSession.OpenAsync(source, allocator, 0, 1, HlsSessionTestInput.Options());
+            Assert.All(source.Reads, read => Assert.DoesNotContain(samples,
+                sample => read.Offset < sample.Offset + sample.Size && read.Offset + read.Length > sample.Offset));
+            Assert.True(source.Reads.Sum(read => read.Length) < data.Length / 4);
+        }
+
+        [Fact]
         public async Task RealVideoAudioIndexPlaylistAndOutOfOrderSegmentsPreserveAllPackets() =>
             await HlsSessionTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"));
 
@@ -113,12 +137,19 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task FailedOpenReleasesReaderAndBorrowsSource()
+        public async Task PacketLimitIsEnforcedWhenTheSegmentIsRequested()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("avc-segments.mp4"));
             Mp4HlsOptions options = HlsSessionTestInput.Options() with { Transport = new() { MaximumPacketBytes = 1 } };
-            await Assert.ThrowsAsync<NotSupportedException>(() => Mp4HlsSession.OpenAsync(source, allocator, 0, 1, options).AsTask());
+            await using (Mp4HlsSession session = await Mp4HlsSession.OpenAsync(source, allocator, 0, 1, options))
+            {
+                long retained = allocator.AllocatedBytes;
+                using MemoryStream destination = new();
+                await Assert.ThrowsAsync<NotSupportedException>(() => session.WriteSegmentAsync(0, destination).AsTask());
+                Assert.Equal(retained, allocator.AllocatedBytes);
+                Assert.Equal(0, destination.Length);
+            }
             Assert.Equal(0, allocator.AllocatedBytes);
             Assert.False(source.IsDisposed);
         }

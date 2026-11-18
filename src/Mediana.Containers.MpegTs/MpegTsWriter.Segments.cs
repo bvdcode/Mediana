@@ -79,7 +79,7 @@ namespace Mediana.Containers.MpegTs
 
         private void EnsureSegmentBoundary()
         {
-            if (!lastDecodeTime.HasValue || segmentPending || (tracks.Length != 1 && tracks.Count(track => track.Type == 0x1B) != 1))
+            if (alignedSegment || !lastDecodeTime.HasValue || segmentPending || (tracks.Length != 1 && tracks.Count(track => track.Type == 0x1B) != 1))
             {
                 throw new InvalidOperationException("A segment boundary requires a nonempty program with one audio track or exactly one AVC track.");
             }

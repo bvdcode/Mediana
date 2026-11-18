@@ -10,7 +10,7 @@ namespace Mediana.Streaming.Hls
     internal static class Mp4HlsPacketWriter
     {
         public static async ValueTask CopyAsync(Mp4Reader reader, int videoStreamIndex, Mp4HlsSegment segment,
-            MpegTsWriter writer, CancellationToken cancellationToken)
+            MpegTsWriter writer, CancellationToken cancellationToken, bool alignCounters = false)
         {
             int video = segment.Video.FirstSample;
             int videoEnd = checked(video + segment.Video.SampleCount);
@@ -26,7 +26,12 @@ namespace Mediana.Streaming.Hls
                 Mp4SampleInfo selected = selectVideo ? videoInfo!.Value : audioInfo!.Value;
                 using (MediaPacket packet = await reader.ReadPacketAtAsync(selected.StreamIndex, selected.SampleIndex, cancellationToken).ConfigureAwait(false))
                 {
-                    await writer.WritePacketAsync(packet, cancellationToken).ConfigureAwait(false);
+                    bool final = selectVideo ? video + 1 == videoEnd : audio + 1 == audioEnd;
+                    if (alignCounters && final)
+                    {
+                        await writer.WriteFinalPacketAsync(packet, cancellationToken).ConfigureAwait(false);
+                    }
+                    else { await writer.WritePacketAsync(packet, cancellationToken).ConfigureAwait(false); }
                 }
                 if (selectVideo)
                 {

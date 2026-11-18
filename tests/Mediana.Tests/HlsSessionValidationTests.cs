@@ -52,23 +52,12 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task CancellationDuringPacketIndexingReleasesReaderAndAllowsReopen()
+        public async Task CancellationDuringHeaderIndexingReleasesReaderAndAllowsReopen()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             await using TrackingRandomAccessSource source = new(await Mp4TestData.ReadAsync("avc-segments.mp4"), 19);
-            long offset;
-            await using (Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator))
-            {
-                offset = reader.GetSampleInfo(1, 10).Offset;
-            }
             using CancellationTokenSource cancellation = new();
-            source.AfterRead = () =>
-            {
-                if (source.Reads[^1].Offset == offset)
-                {
-                    cancellation.Cancel();
-                }
-            };
+            source.AfterRead = cancellation.Cancel;
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Mp4HlsSession.OpenAsync(source, allocator, 0, 1,
                 HlsSessionTestInput.Options(), cancellation.Token).AsTask());
             Assert.Equal(0, allocator.AllocatedBytes);

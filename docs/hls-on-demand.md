@@ -45,10 +45,17 @@ metadata and one input packet, rather than a complete segment. Header storage co
 against the supplied allocator. It does not decode samples or establish random
 access for arbitrary caller-selected ranges.
 
-`Mp4HlsSession` supplies the existing MPEG-TS path. Its preparation pass scans
-compressed media to preserve exact transport counters between files. That prepared
-TS contract is different from the indexed fMP4 request path. Resetting counters
-silently or inserting artificial discontinuities is not required for fMP4 delivery.
+`Mp4HlsSession` supplies the MPEG-TS path with index-only opening. Each requested
+segment validates its AVC IDR and reads only its selected packets. The final PES
+of each populated PID is split with adaptation stuffing to finish the continuity
+counter at fifteen; repeated PAT/PMT sections finish their counter cycles too.
+The next independently generated segment starts at zero. PTS/DTS remain on the
+source timeline, and the preceding indexed decode timestamp bridges PCR output.
+This preserves continuous concatenation without a preceding payload scan or
+playlist discontinuities (RFC 8216 section 3). The added overhead is bounded by
+15 TS packets per populated elementary PID and 30 table packets per segment.
+Audio decoder history is still required across ordinary AAC/MP3 boundaries;
+this packetization does not advertise independent audio decoding.
 
 The AVC/AAC regression source passes requests in reverse order and repeated final
 requests. Managed tests verify cold-opening reads outside every media sample,
