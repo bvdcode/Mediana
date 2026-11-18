@@ -56,7 +56,7 @@ namespace Mediana.Processing
             {
                 matrix = YuvRgbMatrix.Create(sourceColor.Matrix, sourceColor.Range, planar!.BitDepth);
             }
-            else if ((!gbr && !ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32)) || sourceColor.Matrix != MatrixCoefficients.Rgb ||
+            else if ((!gbr && (input.Format.PixelFormat != VideoPixelFormat.Rgba32)) || sourceColor.Matrix != MatrixCoefficients.Rgb ||
                 sourceColor.Range != ColorRange.Full || sourceColor.ChromaLocation != ChromaLocation.Unspecified)
             {
                 throw new NotSupportedException("RGB conversion requires full-range straight RGBA32 with an RGB matrix and no chroma subsampling.");
