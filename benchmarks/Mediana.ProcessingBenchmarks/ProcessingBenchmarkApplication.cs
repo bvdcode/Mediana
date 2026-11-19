@@ -12,7 +12,8 @@ namespace Mediana.ProcessingBenchmarks
             {
                 "pipeline" => PipelineBenchmark.RunAsync(args[1..]),
                 "hls" => HlsBenchmark.RunAsync(args[1..]),
-                _ => throw new ArgumentException("Use pipeline input.mp4 output.ts width height [start-ms end-ms], hls input.mp4 output-directory width height segment-number|all, or no arguments for scaling.")
+                "packets" => PacketBenchmark.RunAsync(args[1..]),
+                _ => throw new ArgumentException("Use pipeline input.mp4 output.ts width height [start-ms end-ms], hls input.mp4 output-directory width height segment-number|all, packets input.mp4 file|memory iterations, or no arguments for scaling.")
             };
         }
     }

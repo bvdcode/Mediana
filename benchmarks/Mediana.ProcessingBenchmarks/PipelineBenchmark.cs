@@ -20,6 +20,11 @@ namespace Mediana.ProcessingBenchmarks
     {
         public static async Task RunAsync(string[] args)
         {
+            bool rateDistortion = args.Length > 0 && args[^1] == "--cabac-rd";
+            if (rateDistortion)
+            {
+                args = args[..^1];
+            }
             bool pooled = args.Length > 0 && args[^1] == "--pool";
             if (pooled) { args = args[..^1]; }
             if (args.Length is not (4 or 6)) { throw new ArgumentException("Use input.mp4 output.ts width height [start-ms end-ms]."); }
@@ -29,6 +34,15 @@ namespace Mediana.ProcessingBenchmarks
                 new(long.Parse(args[5], CultureInfo.InvariantCulture), new(1, 1000))) : null;
             MediaEngine engine = new MediaEngineBuilder().AddVideoDecoder(new H264DecoderFactory())
                 .AddAudioDecoder(new AacDecoderFactory()).Build();
+            H264EncoderOptions videoOptions = new();
+            if (rateDistortion)
+            {
+                videoOptions = videoOptions with
+                {
+                    EntropyCoding = H264EntropyCoding.Cabac,
+                    MacroblockAnalysis = H264MacroblockAnalysis.RateDistortion
+                };
+            }
             MediaBufferAllocator allocator = pooled ? new(1024L * 1024 * 1024, MemoryPool<byte>.Shared) : new(1024L * 1024 * 1024);
             using Process process = Process.GetCurrentProcess();
             long allocated = GC.GetTotalAllocatedBytes(true);
@@ -50,7 +64,7 @@ namespace Mediana.ProcessingBenchmarks
                     switch (stream.Kind)
                     {
                         case MediaKind.Video:
-                            requests.Add(new VideoEncodingRequest(stream.StreamIndex, stream.StreamIndex, new H264EncoderFactory(),
+                            requests.Add(new VideoEncodingRequest(stream.StreamIndex, stream.StreamIndex, new H264EncoderFactory(videoOptions),
                                 new VideoPreparationOptions { MaximumWidth = width, MaximumHeight = height }));
                             break;
                         case MediaKind.Audio:

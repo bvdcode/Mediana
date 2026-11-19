@@ -105,3 +105,23 @@ gave median CPU 35.938 s before and 34.903 s after, about 2.9% lower. Elapsed
 medians were 37.125 s and 35.921 s. Every output retained the hash above.
 This is a separate small whole-operation improvement. A tested 16-bit intermediate
 change did not improve full-pipeline throughput and is not included.
+
+## Complete pipeline profiling
+
+For full pipeline profiling, append `--pool --cabac-rd` after the existing pipeline
+arguments to use pooled media buffers with CABAC and rate-distortion analysis.
+Without `--cabac-rd`, encoding retains the default CAVLC/Fast settings. Both use
+QP26 and the encoder's default two-second keyframe interval.
+
+See the [complete CPU profile](../../docs/video-pipeline-profile.md) and
+[Runtime Async comparison](../../docs/runtime-async-performance.md).
+
+## Packet I/O measurements
+
+`packets input.mp4 file|memory iterations` repeatedly opens the MP4 index and reads
+every compressed packet without decoding. The file source uses asynchronous file
+I/O; the memory source preloads the input before the measured interval. Both use
+the same reader, stream adapter and pooled allocator. Output includes CPU and wall
+time, process peak RSS, total managed allocations, payload and input byte counts,
+and reads that were incomplete when the adapter received them. Peak RSS includes
+the preloaded input in memory mode. Compare like-for-like modes and iteration counts.

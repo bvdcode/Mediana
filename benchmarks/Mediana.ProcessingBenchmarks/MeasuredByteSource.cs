@@ -9,10 +9,16 @@ namespace Mediana.ProcessingBenchmarks
     {
         public long BytesRead { get; private set; }
         public long Reads { get; private set; }
+        public long PendingReads { get; private set; }
         public long? Length => source.Length;
         public async ValueTask<int> ReadAtAsync(long offset, Memory<byte> destination, CancellationToken cancellationToken = default)
         {
-            int count = await source.ReadAtAsync(offset, destination, cancellationToken).ConfigureAwait(false);
+            ValueTask<int> read = source.ReadAtAsync(offset, destination, cancellationToken);
+            if (!read.IsCompleted)
+            {
+                PendingReads++;
+            }
+            int count = await read.ConfigureAwait(false);
             BytesRead = checked(BytesRead + count);
             Reads++;
             return count;
@@ -20,7 +26,12 @@ namespace Mediana.ProcessingBenchmarks
 
         public async ValueTask<int> ReadAsync(Memory<byte> destination, CancellationToken cancellationToken = default)
         {
-            int count = await source.ReadAsync(destination, cancellationToken).ConfigureAwait(false);
+            ValueTask<int> read = source.ReadAsync(destination, cancellationToken);
+            if (!read.IsCompleted)
+            {
+                PendingReads++;
+            }
+            int count = await read.ConfigureAwait(false);
             BytesRead = checked(BytesRead + count);
             Reads++;
             return count;
