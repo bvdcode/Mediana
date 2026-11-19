@@ -12,6 +12,7 @@ from pathlib import Path
 
 
 def pixels(width: int, height: int, noise: bool) -> bytes:
+    """Create deterministic packed RGB samples."""
     if noise:
         return random.Random(741).randbytes(width * height * 3)
     return bytes(value for y in range(height) for x in range(width)
@@ -19,6 +20,7 @@ def pixels(width: int, height: int, noise: bool) -> bytes:
 
 
 def tiff(width: int, height: int, rows: int, rgb: bytes) -> bytes:
+    """Encode classic TIFF with independently compressed strips."""
     blocks = [zlib.compress(rgb[y * width * 3:min(y + rows, height) * width * 3])
               for y in range(0, height, rows)]
     entries = 10
@@ -46,6 +48,7 @@ def tiff(width: int, height: int, rows: int, rgb: bytes) -> bytes:
 
 
 def pdf(size: int, images: int) -> bytes:
+    """Build one PDF page containing independent Flate image objects."""
     content = b''.join(f'q {size} 0 0 {size} 0 0 cm /I{i} Do Q\n'.encode()
                        for i in range(images))
     resources = ' '.join(f'/I{i} {i + 5} 0 R' for i in range(images))
@@ -75,6 +78,7 @@ def pdf(size: int, images: int) -> bytes:
 
 
 def main() -> None:
+    """Write the workload corpus to the requested directory."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('directory', type=Path)
     directory: Path = parser.parse_args().directory

@@ -28,3 +28,5 @@ PNG hashes cover the complete PNG file. TIFF hashes cover RGBA pixels. PDF hashe
 cover every decoded image on the first page, in interpretation order. Inputs are
 synthetic workloads for comparing implementations; they do not establish format
 conformance or replace tests against independent image references.
+
+See [span compression and portable vector transform results](../../docs/compression-performance.md).
