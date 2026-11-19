@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Png/Mediana.Codecs.Png.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Tiff/Mediana.Codecs.Tiff.csproj" />
+    <ProjectReference Include="../../src/Mediana.Documents.Pdf/Mediana.Documents.Pdf.csproj" />
+  </ItemGroup>
+</Project>
