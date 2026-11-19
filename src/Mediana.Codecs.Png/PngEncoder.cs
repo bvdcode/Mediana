@@ -29,7 +29,7 @@ namespace Mediana.Codecs.Png
             int offset = WriteHeaders(writable.Memory.Span, input.Format, aspectRatio, cancellationToken);
             "IDAT"u8.CopyTo(writable.Memory.Span.Slice(offset + 4, 4));
             int compressedLength;
-            using (FixedMemoryWriteStream destination = new(writable.Memory.Slice(offset + 8, compressedCapacity)))
+            using (WritableMemoryStream destination = new(writable.Memory.Slice(offset + 8, compressedCapacity)))
             {
                 using (ZLibStream compressor = new(destination, CompressionLevel.Optimal, leaveOpen: true))
                 {
@@ -48,7 +48,7 @@ namespace Mediana.Codecs.Png
                         }
                     }
                 }
-                compressedLength = destination.WrittenCount;
+                compressedLength = checked((int)destination.Position);
             }
             PngChunk.Finish(writable.Memory.Span.Slice(offset), compressedLength, cancellationToken);
             offset += compressedLength + 12;

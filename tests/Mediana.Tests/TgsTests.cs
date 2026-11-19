@@ -16,6 +16,25 @@ namespace Mediana.Tests
             await TgsReferenceTestInput.VerifyAllAsync(Root);
         }
 
+        [Fact]
+        public void MillidegreeRotationMovesSampleAcrossRectangleBoundary()
+        {
+            byte[] json = System.Text.Encoding.UTF8.GetBytes("""
+                {"v":"5.7","w":512,"h":512,"fr":30,"ip":0,"op":1,"layers":[
+                  {"ty":4,"ip":0,"op":1,"ks":{"r":{"k":0.001}},"shapes":[
+                    {"ty":"rc","p":{"k":[350,100.5]},"s":{"k":[100,100]},"r":{"k":0}},
+                    {"ty":"fl","c":{"k":[1,1,1,1]},"o":{"k":100}}]}]}
+                """);
+            TgsDocument document = TgsReader.Read(json);
+            using PixelBuffer image = TgsRenderer.RenderFrame(document, 0,
+                new() { Width = 512, Height = 512, Supersampling = 1 });
+            (double sine, double cosine) = Math.SinCos(Math.PI / 180000);
+            double topAtSample = (50.5 + 350.5 * sine) / cosine;
+            Assert.InRange(topAtSample, 50.505, 50.507);
+            Assert.Equal(default, image[350, 50]);
+            Assert.Equal(new Rgba32(255, 255, 255, 255), image[350, 51]);
+        }
+
         [Theory]
         [InlineData("bounce-path-expression.tgs")]
         [InlineData("controller-expressions.tgs")]

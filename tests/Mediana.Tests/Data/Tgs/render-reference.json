@@ -141,21 +141,21 @@
     "file": "layer-controls.tgs",
     "size": 256,
     "frame": 40.25,
-    "sha256": "4aa74843ed27daf69fd5f3da91689d91e661b664419f99a11b37ea5ae895de72",
+    "sha256": "214ef3fce4053dcb03624cbd1169ab99d8df950573bcd4efa58eb877882e2e4c",
     "pixels": "layer-controls-frame-40.25.rgba.gz"
   },
   {
     "file": "layer-controls.tgs",
     "size": 256,
     "frame": 80.5,
-    "sha256": "d044b0547995e6362f2875356fec65f5e9e57f02a593d5d088c09e83c0f8b35a",
+    "sha256": "787a3e16b170b6016bc3cc762d54c4fa6c6431fc052aa84fef4c443e214a9c55",
     "pixels": "layer-controls-frame-80.5.rgba.gz"
   },
   {
     "file": "layer-controls.tgs",
     "size": 256,
     "frame": 120.75,
-    "sha256": "dd6612d8941b6920ac8b7565b5681c0241da78941dce70dc24649b7b70db4492",
+    "sha256": "451c9e22c920e1c1c01751b9c2f0980015d45d16f718a37c3aaa8aa5fb7216d8",
     "pixels": "layer-controls-frame-120.75.rgba.gz"
   },
   {

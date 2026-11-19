@@ -21,7 +21,7 @@
     <ProjectReference Include="../../src/Mediana.Drawing.Emoji.Fluent/Mediana.Drawing.Emoji.Fluent.csproj" />
     <ProjectReference Include="../../src/Mediana.Models.Mesh/Mediana.Models.Mesh.csproj" />
     <PackageReference Include="ConsoleAppFramework" Version="5.8.0" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
