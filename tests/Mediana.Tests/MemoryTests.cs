@@ -7,6 +7,33 @@ namespace Mediana.Tests
 {
     public class MemoryTests
     {
+        [Theory]
+        [InlineData(8, 4096)]
+        [InlineData(4096, 8)]
+        public void ImpossiblePooledRequestsFailBeforeRenting(int parentLimit, int scopeLimit)
+        {
+            using CountingMemoryPool pool = new();
+            MediaBufferAllocator parent = new(parentLimit, pool);
+            MediaBufferAllocator scope = parent.CreateScope(scopeLimit);
+            Assert.Throws<MediaMemoryLimitException>(() => scope.Allocate(1024));
+            Assert.Equal(0, pool.Rentals);
+            Assert.Equal(0, parent.AllocatedBytes);
+            Assert.Equal(0, scope.AllocatedBytes);
+        }
+
+        [Fact]
+        public void FailedRentalRollsBackEveryBudget()
+        {
+            using TestMemoryPool pool = new(8);
+            MediaBufferAllocator parent = new(1024, pool);
+            MediaBufferAllocator scope = parent.CreateScope(1024);
+            Assert.Throws<InvalidOperationException>(() => scope.Allocate(16));
+            Assert.Equal(0, parent.AllocatedBytes);
+            Assert.Equal(0, scope.AllocatedBytes);
+            using WritableMediaBuffer valid = scope.Allocate(8);
+            Assert.Equal(8, parent.AllocatedBytes);
+        }
+
         [Fact]
         public void WritableSpanSharesStorageAndPublicationPreservesRetainedLeases() =>
             WritableMediaSpanTestInput.VerifyPublication();

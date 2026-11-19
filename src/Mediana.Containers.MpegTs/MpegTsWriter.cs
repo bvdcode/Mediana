@@ -35,6 +35,8 @@ namespace Mediana.Containers.MpegTs
         private bool faulted;
         private bool disposed;
         private bool segmentPending;
+        private bool alignedSegment;
+        private readonly HashSet<int> finishedTracks = [];
 
         /// <summary>Bytes successfully written by this instance, including tables and clock packets across segment boundaries.</summary>
         public long BytesWritten { get; private set; }
@@ -93,7 +95,10 @@ namespace Mediana.Containers.MpegTs
             return new(destination, allocator, options, tracks);
         }
 
-        public async ValueTask WritePacketAsync(MediaPacket packet, CancellationToken cancellationToken = default)
+        public ValueTask WritePacketAsync(MediaPacket packet, CancellationToken cancellationToken = default) =>
+            WritePacketCoreAsync(packet, false, cancellationToken);
+
+        private async ValueTask WritePacketCoreAsync(MediaPacket packet, bool finalTrackPacket, CancellationToken cancellationToken)
         {
             Enter();
             bool success = false;
@@ -104,6 +109,10 @@ namespace Mediana.Containers.MpegTs
                 cancellationToken.ThrowIfCancellationRequested();
                 MpegTsTrack track = tracks.FirstOrDefault(candidate => candidate.StreamIndex == packet.StreamIndex)
                     ?? throw new ArgumentException("The packet stream is not configured in this TS program.", nameof(packet));
+                if (finishedTracks.Contains(packet.StreamIndex))
+                {
+                    throw new InvalidOperationException("The track has already written its final segment packet.");
+                }
                 if (packet.Data.Length > options.MaximumPacketBytes)
                 {
                     throw new NotSupportedException("The input packet exceeds the TS byte limit.");
@@ -147,11 +156,13 @@ namespace Mediana.Containers.MpegTs
                     framed.Memory.Length, pts, dts, track.Type == 0x1B);
                 int offset = 0;
                 int total = checked(headerLength + framed.Memory.Length);
+                int packetsRemaining = finalTrackPacket ? AlignedPacketCount(total, pcr.HasValue ? 8 : randomAccess ? 2 : 0, track.Counter) : 0;
                 while (offset < total)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     track.Counter = (track.Counter + 1) & 15;
-                    int count = FillPesPacket(track, framed.Memory.Span, headerLength, offset, pcr, randomAccess);
+                    int payloadLimit = finalTrackPacket ? total - offset - (--packetsRemaining) : MpegTsPacket.PayloadSize;
+                    int count = FillPesPacket(track, framed.Memory.Span, headerLength, offset, pcr, randomAccess, payloadLimit);
                     await WriteScratchAsync(cancellationToken).ConfigureAwait(false);
                     if (pcr.HasValue)
                     {
@@ -161,6 +172,7 @@ namespace Mediana.Containers.MpegTs
                     randomAccess = false;
                     offset += count;
                 }
+                if (finalTrackPacket) { finishedTracks.Add(track.StreamIndex); }
                 track.LastDecodeTime = dts;
                 lastDecodeTime = dts;
                 segmentPending = false;
@@ -187,6 +199,17 @@ namespace Mediana.Containers.MpegTs
                         throw new InvalidOperationException("An empty TS program cannot be completed.");
                     }
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (alignedSegment)
+                    {
+                        if (tracks.Any(track => track.LastDecodeTime.HasValue && !finishedTracks.Contains(track.StreamIndex)))
+                        {
+                            throw new InvalidOperationException("Every populated track must mark its final segment packet.");
+                        }
+                        while (patCounter != 15 || pmtCounter != 15)
+                        {
+                            await WriteTablesAsync(lastTables!.Value, cancellationToken).ConfigureAwait(false);
+                        }
+                    }
                     await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
                     completed = true;
                     scratch.Dispose();
@@ -209,11 +232,11 @@ namespace Mediana.Containers.MpegTs
             return ValueTask.CompletedTask;
         }
 
-        private int FillPesPacket(MpegTsTrack track, ReadOnlySpan<byte> data, int headerLength, int offset, long? pcr, bool randomAccess)
+        private int FillPesPacket(MpegTsTrack track, ReadOnlySpan<byte> data, int headerLength, int offset, long? pcr, bool randomAccess, int payloadLimit)
         {
             Span<byte> payload = stackalloc byte[MpegTsPacket.PayloadSize];
             int capacity = MpegTsPacket.PayloadSize - (pcr.HasValue ? 8 : randomAccess ? 2 : 0);
-            int count = Math.Min(capacity, headerLength + data.Length - offset);
+            int count = Math.Min(Math.Min(capacity, payloadLimit), headerLength + data.Length - offset);
             int headerBytes = Math.Clamp(headerLength - offset, 0, count);
             if (headerBytes != 0)
             {

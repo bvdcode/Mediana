@@ -3,7 +3,7 @@
 
 namespace Mediana.Core.Video
 {
-    public class VideoPixelFormat
+    public class VideoPixelFormat : IEquatable<VideoPixelFormat>
     {
         public VideoPixelFormat(string name, params VideoPlaneFormat[] planes)
         {
@@ -19,6 +19,33 @@ namespace Mediana.Core.Video
 
         public string Name { get; }
         public IReadOnlyList<VideoPlaneFormat> Planes { get; }
+
+        /// <summary>Compares sample interpretation and storage layout. Base formats use the ordinal name
+        /// as their sample interpretation identifier; planar formats describe it with typed components.</summary>
+        public bool Equals(VideoPixelFormat? other) => ReferenceEquals(this, other) ||
+            other is not null && GetType() == other.GetType() && EqualsInterpretation(other) &&
+            Planes.SequenceEqual(other.Planes);
+
+        protected virtual bool EqualsInterpretation(VideoPixelFormat other) => Name == other.Name;
+        protected virtual int InterpretationHashCode() => StringComparer.Ordinal.GetHashCode(Name);
+
+        public override bool Equals(object? obj) => obj is VideoPixelFormat other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            HashCode hash = new();
+            hash.Add(GetType());
+            hash.Add(InterpretationHashCode());
+            foreach (VideoPlaneFormat plane in Planes)
+            {
+                hash.Add(plane);
+            }
+            return hash.ToHashCode();
+        }
+
+        public static bool operator ==(VideoPixelFormat? left, VideoPixelFormat? right) =>
+            ReferenceEquals(left, right) || left is not null && left.Equals(right);
+        public static bool operator !=(VideoPixelFormat? left, VideoPixelFormat? right) => !(left == right);
 
         /// <summary>Red, green, blue and straight (unassociated) alpha bytes.</summary>
         public static VideoPixelFormat Rgba32 { get; } = new("rgba32", new VideoPlaneFormat(1, 1, 4));

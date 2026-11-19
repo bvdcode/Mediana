@@ -14,6 +14,14 @@ namespace Mediana.Core.Video
         public int HorizontalSubsampling { get; } = horizontalSubsampling;
         public int VerticalSubsampling { get; } = verticalSubsampling;
 
+        protected override bool EqualsInterpretation(VideoPixelFormat other) =>
+            other is PlanarVideoPixelFormat planar && ColorModel == planar.ColorModel &&
+            BitDepth == planar.BitDepth && HorizontalSubsampling == planar.HorizontalSubsampling &&
+            VerticalSubsampling == planar.VerticalSubsampling;
+
+        protected override int InterpretationHashCode() =>
+            HashCode.Combine(ColorModel, BitDepth, HorizontalSubsampling, VerticalSubsampling);
+
         private static VideoPlaneFormat[] CreatePlanes(PlanarColorModel colorModel, int bitDepth, int horizontal, int vertical)
         {
             ArgumentOutOfRangeException.ThrowIfLessThan(bitDepth, 8); ArgumentOutOfRangeException.ThrowIfGreaterThan(bitDepth, 16);

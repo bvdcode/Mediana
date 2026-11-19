@@ -25,7 +25,7 @@ namespace Mediana.Processing
             ArgumentNullException.ThrowIfNull(input);
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
-            if (!ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32))
+            if ((input.Format.PixelFormat != VideoPixelFormat.Rgba32))
             {
                 throw new NotSupportedException("This resize implementation supports the RGBA32 pixel format only.");
             }

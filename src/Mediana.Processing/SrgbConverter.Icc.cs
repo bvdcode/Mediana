@@ -27,7 +27,7 @@ namespace Mediana.Processing
             token.ThrowIfCancellationRequested();
             if (input.Format.ColorDescription is IccColorDescription profile)
             {
-                if (!ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32) ||
+                if ((input.Format.PixelFormat != VideoPixelFormat.Rgba32) ||
                     input.Format.Color.Matrix != MatrixCoefficients.Rgb || input.Format.Color.Range != ColorRange.Full)
                 {
                     throw new NotSupportedException("ICC conversion requires full-range straight RGBA32 samples.");

@@ -52,21 +52,44 @@ namespace Mediana.Codecs.Bmp
             return new(encoded.Span[2] == 2 ? "cur" : "ico", width, height, ImageDimensionUnit.Pixels, count,
                 metadata: new("image", children: [first.Metadata, .. pages]));
         }
-        public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
-            MediaBufferAllocator allocator, CancellationToken cancellationToken = default) => ValueTask.FromResult(Decode(encoded, request, allocator, cancellationToken));
+        public async ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
+            MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            ArgumentNullException.ThrowIfNull(allocator);
+            request.Validate(Features);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (request.Images is null)
+            {
+                return await BitmapImageDecoders.Default.DecodeAsync(encoded, request, allocator, cancellationToken).ConfigureAwait(false);
+            }
+            ReadOnlyMemory<byte> data = Entry(encoded, request.PageIndex, out _, out int width, out int height);
+            ImageDecodeRequest nested = request with { PageIndex = 0 };
+            VideoFrame frame = IsPng(data.Span)
+                ? await request.Images.DecodeAsync(data, nested, allocator, cancellationToken).ConfigureAwait(false)
+                : await BmpImageDecoder.DecodeDibAsync(new(data, -1, true), nested, allocator, cancellationToken).ConfigureAwait(false);
+            return BmpImageDecoder.ValidateDimensions(frame, width, height);
+        }
+
         public VideoFrame Decode(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(request); ArgumentNullException.ThrowIfNull(allocator);
-            request.Validate(Features); cancellationToken.ThrowIfCancellationRequested();
+            ArgumentNullException.ThrowIfNull(request);
+            ArgumentNullException.ThrowIfNull(allocator);
+            request.Validate(Features);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (request.Images is null)
+            {
+                return BitmapImageDecoders.Default.Decode(encoded, request, allocator, cancellationToken);
+            }
             ReadOnlyMemory<byte> data = Entry(encoded, request.PageIndex, out _, out int width, out int height);
             ImageDecodeRequest nested = request with { PageIndex = 0 };
-            VideoFrame frame = data.Span.StartsWith(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })
-                ? new PngImageDecoder(new() { MaximumPixels = request.MaximumPixels ?? Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength }).Decode(data, nested, allocator, cancellationToken)
+            VideoFrame frame = IsPng(data.Span)
+                ? request.Images.Decode(data, nested, allocator, cancellationToken)
                 : BmpImageDecoder.DecodeDib(new(data, -1, true), nested, allocator, cancellationToken);
-            if (frame.Format.Width != width || frame.Format.Height != height)
-            { frame.Dispose(); throw new InvalidDataException("Icon pixels disagree with the directory dimensions."); }
-            return frame;
+            return BmpImageDecoder.ValidateDimensions(frame, width, height);
         }
+
+        private static bool IsPng(ReadOnlySpan<byte> data) => data.StartsWith<byte>([137, 80, 78, 71, 13, 10, 26, 10]);
     }
 }

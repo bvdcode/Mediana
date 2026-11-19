@@ -52,7 +52,7 @@ namespace Mediana.Processing
 
         private static VideoColorInfo SelectDefaults(VideoFormat format, VideoColorInfo declared)
         {
-            if (ReferenceEquals(format.PixelFormat, VideoPixelFormat.Rgba32) ||
+            if ((format.PixelFormat == VideoPixelFormat.Rgba32) ||
                 format.PixelFormat is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Gbr })
             {
                 return VideoColorInfo.Srgb;

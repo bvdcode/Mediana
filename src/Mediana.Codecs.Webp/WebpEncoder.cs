@@ -78,7 +78,7 @@ namespace Mediana.Codecs.Webp
         {
             ArgumentNullException.ThrowIfNull(input);
             token.ThrowIfCancellationRequested();
-            if (!ReferenceEquals(input.Format.PixelFormat, VideoPixelFormat.Rgba32) || input.Format.GetColorInterpretation() != VideoColorInfo.Srgb)
+            if ((input.Format.PixelFormat != VideoPixelFormat.Rgba32) || input.Format.GetColorInterpretation() != VideoColorInfo.Srgb)
             {
                 throw new NotSupportedException("WebP encoding requires straight RGBA32 pixels in full-range sRGB.");
             }

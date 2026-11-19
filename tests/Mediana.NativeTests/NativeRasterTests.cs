@@ -5,6 +5,7 @@ using System.Text.Json;
 using Mediana.Codecs;
 using Mediana.Codecs.Bmp;
 using Mediana.Codecs.Gif;
+using Mediana.Codecs.Png;
 using Mediana.Codecs.Tiff;
 using Mediana.Codecs.Webp;
 using Mediana.Core.Memory;
@@ -18,7 +19,7 @@ namespace Mediana.NativeTests
         internal static async Task RunAsync()
         {
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Raster");
-            ImageDecodeContext registry = new([new BmpImageDecoder(), new IcoImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder()]);
+            ImageDecodeContext registry = new([new PngImageDecoder(), new BmpImageDecoder(), new IcoImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder()]);
             int verified = 0;
             foreach (string family in new[] { "bmp", "tiff", "webp" })
             {

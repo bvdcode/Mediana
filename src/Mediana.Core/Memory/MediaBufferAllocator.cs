@@ -68,15 +68,22 @@ namespace Mediana.Core.Memory
 
         private WritableMediaBuffer AllocatePooled(int length)
         {
-            IMemoryOwner<byte> owner = pool!.Rent(length);
-            int capacity = 0;
-            bool reserved = false, created = false;
+            Reserve(length);
+            int reservedBytes = length;
+            IMemoryOwner<byte>? owner = null;
+            bool created = false;
             try
             {
-                capacity = owner.Memory.Length;
-                Reserve(capacity);
-                reserved = true;
-                Memory<byte> data = owner.Memory[..length];
+                owner = pool!.Rent(length);
+                Memory<byte> rental = owner.Memory;
+                if (rental.Length < length)
+                {
+                    throw new InvalidOperationException("The pool returned less storage than requested.");
+                }
+                int additionalBytes = rental.Length - length;
+                Reserve(additionalBytes);
+                reservedBytes += additionalBytes;
+                Memory<byte> data = rental[..length];
                 data.Span.Clear();
                 WritableMediaBuffer buffer = new(new SharedMediaBuffer(data, this, owner));
                 created = true;
@@ -86,8 +93,8 @@ namespace Mediana.Core.Memory
             {
                 if (!created)
                 {
-                    try { owner.Dispose(); }
-                    finally { if (reserved) { Release(capacity); } }
+                    try { owner?.Dispose(); }
+                    finally { Release(reservedBytes); }
                 }
             }
         }

@@ -66,7 +66,6 @@ namespace Mediana.Execution
         public async ValueTask<DecodedMediaFrame?> ReadAsync(CancellationToken cancellationToken = default)
         {
             Enter();
-            bool success = false;
             try
             {
                 ObjectDisposedException.ThrowIf(disposed, this);
@@ -94,7 +93,6 @@ namespace Mediana.Execution
                         switch (output.Status)
                         {
                             case CodecOutputStatus.Available:
-                                success = true;
                                 return output.Value;
                             case CodecOutputStatus.EndOfStream when inputCompleted:
                                 ended[index] = true;
@@ -108,7 +106,6 @@ namespace Mediana.Execution
                     }
                     if (inputCompleted && active == 0)
                     {
-                        success = true;
                         return null;
                     }
                     using MediaPacket? packet = await reader.ReadPacketAsync(cancellationToken).ConfigureAwait(false);
@@ -130,20 +127,15 @@ namespace Mediana.Execution
                     }
                 }
             }
+            catch (Exception error)
+            {
+                faulted = true;
+                MediaResourceCleanup.DisposeAll(tracks, error);
+                throw;
+            }
             finally
             {
-                try
-                {
-                    if (!success)
-                    {
-                        faulted = true;
-                        ReleaseTracks();
-                    }
-                }
-                finally
-                {
-                    Volatile.Write(ref busy, 0);
-                }
+                Volatile.Write(ref busy, 0);
             }
         }
 
@@ -177,13 +169,7 @@ namespace Mediana.Execution
             return packet.Duration == duration ? null : PacketPresentationTiming.Apply(packet.Retain(), duration);
         }
 
-        private void ReleaseTracks()
-        {
-            foreach (MediaDecodeTrack track in tracks)
-            {
-                track.Dispose();
-            }
-        }
+        private void ReleaseTracks() => MediaResourceCleanup.DisposeAll(tracks);
 
         private void Enter()
         {

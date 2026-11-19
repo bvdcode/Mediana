@@ -47,14 +47,7 @@ namespace Mediana
                 if (!disposed)
                 {
                     disposed = true;
-                    try
-                    {
-                        group.Dispose();
-                    }
-                    finally
-                    {
-                        await container.DisposeAsync().ConfigureAwait(false);
-                    }
+                    await MediaResourceCleanup.DisposeAllAsync([group], container).ConfigureAwait(false);
                 }
             }
             finally

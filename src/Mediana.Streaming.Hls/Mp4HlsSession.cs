@@ -5,6 +5,7 @@ using Mediana.Containers.Mp4;
 using Mediana.Containers.MpegTs;
 using Mediana.Core;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
 using Mediana.IO;
 
 namespace Mediana.Streaming.Hls
@@ -16,13 +17,13 @@ namespace Mediana.Streaming.Hls
         private readonly Mp4Reader reader;
         private readonly MediaBufferAllocator allocator;
         private readonly Mp4HlsOptions options;
-        private readonly Mp4HlsEntry[] entries;
+        private readonly Mp4HlsSegment[] entries;
         private readonly int videoStreamIndex;
         private bool disposed;
         private int busy;
 
         private Mp4HlsSession(Mp4Reader reader, MediaBufferAllocator allocator, Mp4HlsOptions options,
-            EncodedStreamInfo[] streams, Mp4HlsEntry[] entries)
+            EncodedStreamInfo[] streams, Mp4HlsSegment[] entries)
         {
             this.reader = reader;
             this.allocator = allocator;
@@ -30,7 +31,7 @@ namespace Mediana.Streaming.Hls
             this.entries = entries;
             videoStreamIndex = streams[0].StreamIndex;
             Streams = Array.AsReadOnly(streams);
-            Segments = Array.AsReadOnly(entries.Select(entry => entry.Segment).ToArray());
+            Segments = Array.AsReadOnly(entries);
         }
 
         public IReadOnlyList<EncodedStreamInfo> Streams { get; }
@@ -41,8 +42,8 @@ namespace Mediana.Streaming.Hls
         public string CreateVodPlaylist(Func<int, string> segmentUri) =>
             HlsVodPlaylist.Create(Segments, static segment => segment.Duration, segmentUri, options.MaximumSegmentUriCharacters);
 
-        /// <summary>Inspects IDR candidates and scans the selected compressed packets once to establish transport state.
-        /// Retains bounded segment metadata and reader metadata, without storing media payloads or output segments.</summary>
+        /// <summary>Reads container indexes without scanning compressed payloads. Requested segments validate their IDR
+        /// and finish complete TS continuity-counter cycles without needing preceding segment bytes.</summary>
         public static async ValueTask<Mp4HlsSession> OpenAsync(IRandomAccessByteSource source, MediaBufferAllocator allocator,
             int videoStreamIndex, int? audioStreamIndex = null, Mp4HlsOptions? options = null,
             CancellationToken cancellationToken = default)
@@ -80,25 +81,11 @@ namespace Mediana.Streaming.Hls
                 {
                     streams = [reader.Streams[videoStreamIndex]];
                 }
-                Mp4AvcSegmentPlan video = await Mp4AvcSegmentPlan.CreateAsync(reader, videoStreamIndex, options.Planning, cancellationToken).ConfigureAwait(false);
+                Mp4AvcSegmentPlan video = await Mp4AvcSegmentPlan.CreateFromIndexAsync(reader, videoStreamIndex, options.Planning, cancellationToken).ConfigureAwait(false);
                 Mp4HlsAudioRange[]? audioRanges = audioStreamIndex.HasValue ?
                     Mp4HlsAudioIndex.Create(reader, audioStreamIndex.Value, video.Segments, cancellationToken) : null;
-                Mp4HlsEntry[] entries = new Mp4HlsEntry[video.Segments.Count];
-                MpegTsSegmentState? state = null;
-                for (int number = 0; number < entries.Length; number++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    Mp4HlsSegment segment = new(video.Segments[number], audioRanges?[number], number + 1 == entries.Length);
-                    entries[number] = new(segment, state);
-                    await using MpegTsWriter writer = state is null ? MpegTsWriter.Create(Stream.Null, streams, allocator, options.Transport) :
-                        MpegTsWriter.ResumeSegment(Stream.Null, state, allocator);
-                    await Mp4HlsPacketWriter.CopyAsync(reader, videoStreamIndex, segment, writer, cancellationToken).ConfigureAwait(false);
-                    if (number + 1 < entries.Length)
-                    {
-                        state = writer.CaptureSegmentState();
-                    }
-                    await writer.CompleteAsync(cancellationToken).ConfigureAwait(false);
-                }
+                Mp4HlsSegment[] entries = video.Segments.Select((segment, number) =>
+                    new Mp4HlsSegment(segment, audioRanges?[number], number + 1 == video.Segments.Count)).ToArray();
                 cancellationToken.ThrowIfCancellationRequested();
                 Mp4HlsSession session = new(reader, allocator, options, streams, entries);
                 success = true;
@@ -125,10 +112,22 @@ namespace Mediana.Streaming.Hls
                 ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(number, entries.Length);
                 ArgumentNullException.ThrowIfNull(destination);
                 cancellationToken.ThrowIfCancellationRequested();
-                Mp4HlsEntry entry = entries[number];
-                await using MpegTsWriter writer = entry.State is null ? MpegTsWriter.Create(destination, Streams, allocator, options.Transport) :
-                    MpegTsWriter.ResumeSegment(destination, entry.State, allocator);
-                await Mp4HlsPacketWriter.CopyAsync(reader, videoStreamIndex, entry.Segment, writer, cancellationToken).ConfigureAwait(false);
+                Mp4HlsSegment segment = entries[number];
+                MpegTsSegmentTimeline? preceding = null;
+                if (number > 0)
+                {
+                    Mp4HlsSegment previous = entries[number - 1];
+                    MediaTimestamp lastVideo = reader.GetSampleInfo(videoStreamIndex, previous.Video.FirstSample + previous.Video.SampleCount - 1, cancellationToken).DecodeTime;
+                    MediaTimestamp lastDecode = lastVideo;
+                    if (previous.Audio is Mp4HlsAudioRange audio && audio.SampleCount > 0)
+                    {
+                        MediaTimestamp lastAudio = reader.GetSampleInfo(audio.StreamIndex, audio.FirstSample + audio.SampleCount - 1, cancellationToken).DecodeTime;
+                        if (lastAudio.CompareTo(lastDecode) > 0) { lastDecode = lastAudio; }
+                    }
+                    preceding = new(lastDecode, lastVideo);
+                }
+                await using MpegTsWriter writer = MpegTsWriter.CreateIndexedSegment(destination, Streams, allocator, preceding, options.Transport);
+                await Mp4HlsPacketWriter.CopyAsync(reader, videoStreamIndex, segment, writer, cancellationToken, alignCounters: true).ConfigureAwait(false);
                 await writer.CompleteAsync(cancellationToken).ConfigureAwait(false);
             }
             finally
