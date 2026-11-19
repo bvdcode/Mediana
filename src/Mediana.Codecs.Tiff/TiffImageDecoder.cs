@@ -88,6 +88,7 @@ namespace Mediana.Codecs.Tiff
             { throw new InvalidDataException("TIFF block offsets and lengths disagree with its dimensions."); }
             using WritableMediaBuffer? associatedAlpha = samples.Alpha == 1 && samples.Depth == 16 && planes > 1
                 ? allocator.Allocate(checked(samples.Width * samples.Height * 2)) : null;
+            using TiffCompression decompressor = new();
             for (int planeIndex = 0; planeIndex < planes; planeIndex++)
             {
                 int plane = associatedAlpha is null ? planeIndex : planeIndex == 0 ? planes - 1 : planeIndex - 1;
@@ -112,7 +113,7 @@ namespace Mediana.Codecs.Tiff
                             checked((uint)page.Number(compression == 3 ? (ushort)292 : (ushort)293)), fillOrder == 2,
                             MemoryMarshal.Cast<byte, int>(workspace.Memory.Span), token);
                     }
-                    else { TiffCompression.Decode(encoded, decoded.Memory.Span, compression, token); }
+                    else { decompressor.Decode(encoded, decoded.Memory.Span, compression, token); }
                     if (compression is not (2 or 3 or 4) && page.Number(266, 1) == 2)
                     {
                         for (int i = 0; i < decoded.Memory.Length; i++) { decoded.Memory.Span[i] = Reverse(decoded.Memory.Span[i]); }
