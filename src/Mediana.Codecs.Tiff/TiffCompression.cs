@@ -1,13 +1,19 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers;
 using System.IO.Compression;
 
 namespace Mediana.Codecs.Tiff
 {
-    internal static class TiffCompression
+    internal class TiffCompression : IDisposable
     {
-        internal static void Decode(ReadOnlyMemory<byte> encoded, Span<byte> output, int compression, CancellationToken token)
+        private const int StepBytes = 16 * 1024;
+        private ZLibDecoder? _deflate;
+
+        public void Dispose() => _deflate?.Dispose();
+
+        internal void Decode(ReadOnlyMemory<byte> encoded, Span<byte> output, int compression, CancellationToken token)
         {
             switch (compression)
             {
@@ -18,21 +24,45 @@ namespace Mediana.Codecs.Tiff
                 case 5: Lzw(encoded.Span, output, token); break;
                 case 8:
                 case 32946:
-                    using (ReadOnlyMemoryStream input = new(encoded))
-                    using (ZLibStream zlib = new(input, CompressionMode.Decompress))
-                    {
-                        int position = 0;
-                        while (position < output.Length)
-                        {
-                            token.ThrowIfCancellationRequested();
-                            int read = zlib.Read(output.Slice(position, Math.Min(output.Length - position, 16384)));
-                            if (read == 0) { throw new InvalidDataException("Truncated TIFF deflate block."); }
-                            position += read;
-                        }
-                        if (zlib.ReadByte() != -1) { throw new InvalidDataException("TIFF deflate block exceeds its declared samples."); }
-                    }
+                    DecodeDeflate(encoded.Span, output, token);
                     break;
                 default: throw new NotSupportedException($"TIFF compression {compression} is not supported.");
+            }
+        }
+
+        private void DecodeDeflate(ReadOnlySpan<byte> source, Span<byte> output, CancellationToken token)
+        {
+            if (_deflate is null) { _deflate = new(); }
+            else { _deflate.Reset(); }
+            Span<byte> overflow = stackalloc byte[1];
+            while (true)
+            {
+                token.ThrowIfCancellationRequested();
+                bool complete = output.IsEmpty;
+                Span<byte> destination = complete ? overflow : output[..Math.Min(output.Length, StepBytes)];
+                OperationStatus status = _deflate.Decompress(source[..Math.Min(source.Length, StepBytes)], destination,
+                    out int consumed, out int written);
+                source = source[consumed..];
+                if (complete && written != 0)
+                {
+                    throw new InvalidDataException("TIFF deflate block exceeds its declared samples.");
+                }
+                output = output[written..];
+                switch (status)
+                {
+                    case OperationStatus.Done:
+                        if (!output.IsEmpty) { throw new InvalidDataException("Incomplete TIFF deflate samples."); }
+                        return;
+                    case OperationStatus.NeedMoreData:
+                        if (source.IsEmpty) { throw new InvalidDataException("Truncated TIFF deflate block."); }
+                        break;
+                    case OperationStatus.DestinationTooSmall:
+                        break;
+                    case OperationStatus.InvalidData:
+                        throw new InvalidDataException("Invalid TIFF deflate block or checksum.");
+                    default:
+                        throw new InvalidOperationException("Unknown zlib decoder status.");
+                }
             }
         }
         private static void PackBits(ReadOnlySpan<byte> input, Span<byte> output, CancellationToken token)

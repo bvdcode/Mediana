@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.IO.Compression;
 using Mediana.Core.Memory;
@@ -10,6 +11,7 @@ namespace Mediana.Codecs.Png
 {
     public static partial class PngEncoder
     {
+        private const int CompressionInputBytes = 16 * 1024;
         private const int HeaderBytes = 8 + 25 + 13 + 21;
         private const int ContainerBytes = HeaderBytes + 12 + 12;
         private static readonly VideoColorInfo Srgb = new(ColorPrimaries.Bt709, TransferFunction.Srgb,
@@ -24,31 +26,30 @@ namespace Mediana.Codecs.Png
             ArgumentNullException.ThrowIfNull(allocator);
             SampleAspectRatio aspectRatio = ValidateInput(input, cancellationToken);
             long filteredBytes = checked(((long)input.Format.Width * 4 + 1) * input.Format.Height);
-            int compressedCapacity = checked((int)(filteredBytes + (filteredBytes + 7) / 8 + (filteredBytes + 63) / 64 + 11));
+            int compressedCapacity = checked((int)ZLibEncoder.GetMaxCompressedLength(filteredBytes));
             using WritableMediaBuffer writable = allocator.Allocate(checked(compressedCapacity + ContainerBytes));
             int offset = WriteHeaders(writable.Memory.Span, input.Format, aspectRatio, cancellationToken);
             "IDAT"u8.CopyTo(writable.Memory.Span.Slice(offset + 4, 4));
-            int compressedLength;
-            using (WritableMemoryStream destination = new(writable.Memory.Slice(offset + 8, compressedCapacity)))
+            int compressedLength = 0;
+            using (ZLibEncoder compressor = new())
             {
-                using (ZLibStream compressor = new(destination, CompressionLevel.Optimal, leaveOpen: true))
+                Span<byte> destination = writable.Memory.Span.Slice(offset + 8, compressedCapacity);
+                ReadOnlySpan<byte> filter = [0];
+                for (int row = 0; row < input.Format.Height; row++)
                 {
-                    ReadOnlySpan<byte> filter = [0];
-                    for (int row = 0; row < input.Format.Height; row++)
+                    cancellationToken.ThrowIfCancellationRequested();
+                    compressedLength += Compress(compressor, filter, destination[compressedLength..], false);
+                    ReadOnlySpan<byte> pixels = input.GetRow(0, row);
+                    while (!pixels.IsEmpty)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        compressor.Write(filter);
-                        ReadOnlySpan<byte> pixels = input.GetRow(0, row);
-                        while (!pixels.IsEmpty)
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            int count = Math.Min(pixels.Length, 16 * 1024);
-                            compressor.Write(pixels.Slice(0, count));
-                            pixels = pixels.Slice(count);
-                        }
+                        int count = Math.Min(pixels.Length, CompressionInputBytes);
+                        compressedLength += Compress(compressor, pixels[..count], destination[compressedLength..], false);
+                        pixels = pixels[count..];
                     }
                 }
-                compressedLength = checked((int)destination.Position);
+                cancellationToken.ThrowIfCancellationRequested();
+                compressedLength += Compress(compressor, [], destination[compressedLength..], true);
             }
             PngChunk.Finish(writable.Memory.Span.Slice(offset), compressedLength, cancellationToken);
             offset += compressedLength + 12;
@@ -56,6 +57,16 @@ namespace Mediana.Codecs.Png
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer complete = writable.Publish();
             return complete.Slice(0, offset);
+        }
+
+        private static int Compress(ZLibEncoder compressor, ReadOnlySpan<byte> source, Span<byte> destination, bool final)
+        {
+            OperationStatus status = compressor.Compress(source, destination, out int consumed, out int written, final);
+            if (status != OperationStatus.Done || consumed != source.Length)
+            {
+                throw new InvalidOperationException("The PNG compressor exceeded its output capacity.");
+            }
+            return written;
         }
 
         private static SampleAspectRatio ValidateInput(VideoFrame input, CancellationToken cancellationToken)

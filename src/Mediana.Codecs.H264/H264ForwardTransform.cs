@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 
 namespace Mediana.Codecs.H264
 {
@@ -16,9 +15,9 @@ namespace Mediana.Codecs.H264
             {
                 throw new ArgumentException("The forward H.264 transform requires 16 samples.");
             }
-            if (Sse2.IsSupported)
+            if (Vector128.IsHardwareAccelerated)
             {
-                TransformSse2(residual, transformed);
+                TransformVector128(residual, transformed);
                 return;
             }
             residual.CopyTo(transformed);
@@ -32,7 +31,7 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private static void TransformSse2(ReadOnlySpan<int> residual, Span<int> transformed)
+        private static void TransformVector128(ReadOnlySpan<int> residual, Span<int> transformed)
         {
             Vector128<int> first = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(residual));
             Vector128<int> second = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(residual), 4);
@@ -66,14 +65,14 @@ namespace Mediana.Codecs.H264
         private static void Transpose(ref Vector128<int> first, ref Vector128<int> second,
             ref Vector128<int> third, ref Vector128<int> fourth)
         {
-            Vector128<long> upperLeft = Sse2.UnpackLow(first, second).AsInt64();
-            Vector128<long> upperRight = Sse2.UnpackHigh(first, second).AsInt64();
-            Vector128<long> lowerLeft = Sse2.UnpackLow(third, fourth).AsInt64();
-            Vector128<long> lowerRight = Sse2.UnpackHigh(third, fourth).AsInt64();
-            first = Sse2.UnpackLow(upperLeft, lowerLeft).AsInt32();
-            second = Sse2.UnpackHigh(upperLeft, lowerLeft).AsInt32();
-            third = Sse2.UnpackLow(upperRight, lowerRight).AsInt32();
-            fourth = Sse2.UnpackHigh(upperRight, lowerRight).AsInt32();
+            Vector128<long> upperLeft = Vector128.ZipLower(first, second).AsInt64();
+            Vector128<long> upperRight = Vector128.ZipUpper(first, second).AsInt64();
+            Vector128<long> lowerLeft = Vector128.ZipLower(third, fourth).AsInt64();
+            Vector128<long> lowerRight = Vector128.ZipUpper(third, fourth).AsInt64();
+            first = Vector128.ZipLower(upperLeft, lowerLeft).AsInt32();
+            second = Vector128.ZipUpper(upperLeft, lowerLeft).AsInt32();
+            third = Vector128.ZipLower(upperRight, lowerRight).AsInt32();
+            fourth = Vector128.ZipUpper(upperRight, lowerRight).AsInt32();
         }
 
         private static void TransformLine(Span<int> values, int offset, int stride)

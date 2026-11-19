@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.IO.Compression;
 using Mediana.IO;
 
 namespace Mediana.Documents.Pdf
@@ -15,11 +14,7 @@ namespace Mediana.Documents.Pdf
             {
                 case "FlateDecode":
                 case "Fl":
-                    using (ReadOnlyMemoryStream input = new(source))
-                    using (ZLibStream inflater = new(input, CompressionMode.Decompress))
-                    {
-                        result = BoundedStreamReader.Read(inflater, limit, token);
-                    }
+                    result = BoundedZLibDecoder.Decode(source.Span, limit, token);
                     return Predict(result, parameters, limit, token);
                 default: return PdfByteFilters.Decode(source.Span, filter, limit, token);
             }

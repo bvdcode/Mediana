@@ -112,9 +112,9 @@ the measurements above do not establish an overall performance improvement.
 | Feature | Applicable work | Status |
 | --- | --- | --- |
 | BCL memory streams | SVG/TGS/XML/PDF/TIFF input, buffered PNG output | Replaced the duplicate stream implementations |
-| Span-based ZLib/Deflate/GZip encoders and decoders, with `Reset` | PNG scanlines, TIFF strips, PDF compressed streams and TGS input | Candidate for fewer stream objects and reused compression workspace; throughput, truncation, budgets and cancellation need dedicated checks |
+| Span-based ZLib/Deflate/GZip encoders and decoders, with `Reset` | PNG scanlines, TIFF strips, PDF compressed streams and TGS input | PNG/TIFF/PDF implementations and [paired measurements](compression-performance.md) are available; TGS remains a candidate |
 | Runtime Async | HLS opens and asynchronous packet/source reads | Opt-in for Mediana methods; not enabled by this migration. Measure synchronous completions, real I/O suspension and Native AOT before adopting it |
-| Portable SIMD `Zip`, `Unzip` and `Concat` | Audio interleaving and video block transposes | Compare generated code with existing SSE2/AVX2 implementations before replacing them; API availability alone does not prove a speedup |
+| Portable SIMD `Zip`, `Unzip` and `Concat` | Audio interleaving and video block transposes | H.264 4×4 transpose uses `ZipLower`/`ZipUpper`, with identical x64 JIT instructions; other replacements still require measurement |
 | Hardware `Half` operations | Future half-float image/HDR processing | Requires suitable hardware and a matching precision contract; does not replace integer codec arithmetic |
 
 Sources: [.NET 11 overview](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-11/overview),
