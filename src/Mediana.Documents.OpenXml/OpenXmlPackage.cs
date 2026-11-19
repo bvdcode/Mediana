@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.IO;
 using System.IO.Compression;
 using System.Xml;
 using System.Xml.Linq;

@@ -7,7 +7,6 @@ using Mediana.Core.Memory;
 using Mediana.Core.Video;
 using Mediana.Drawing;
 using Mediana.Images.Svg;
-using Mediana.IO;
 
 namespace Mediana.Tests
 {

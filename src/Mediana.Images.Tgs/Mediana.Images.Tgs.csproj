@@ -2,6 +2,5 @@
   <ItemGroup>
     <ProjectReference Include="../Mediana.Drawing/Mediana.Drawing.csproj" />
     <ProjectReference Include="../Mediana.Codecs/Mediana.Codecs.csproj" />
-    <ProjectReference Include="../Mediana.IO/Mediana.IO.csproj" />
   </ItemGroup>
 </Project>

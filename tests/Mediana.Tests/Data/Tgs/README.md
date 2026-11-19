@@ -12,6 +12,8 @@ not independent Lottie conformance evidence.
 Mediana rejects expression-bearing compositions. Tests compare reference pixels
 for supported compositions and check explicit rejection for expression inputs.
 The `.rgba.gz` files contain the 33 supported reference images and reproduce
-the original manifest hashes. Every channel is compared, allowing one 8-bit
-code for RGB rounding and requiring exact alpha. Linux x64 Native AOT differs
-from ordinary .NET in four RGB channels across two pixels, each by one code.
+the manifest hashes. The three `layer-controls.tgs` frames use the .NET 11
+rotation behavior, which preserves a 0.001-degree rotation that .NET 10 rounded
+to zero. A separate geometric sampling test verifies this rotation.
+Managed and Linux x64 Native AOT tests compare every channel, allowing one 8-bit
+code for RGB rounding and requiring exact alpha.

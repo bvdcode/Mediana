@@ -1,6 +1,6 @@
 # Mediana
 
-Mediana is an MIT-licensed multimedia library under development for .NET 10.
+Mediana is an MIT-licensed multimedia library under development for .NET 11.
 Its media implementation is written in C#, with no FFmpeg, external media processes,
 native media libraries, or third-party runtime packages.
 
@@ -328,11 +328,15 @@ Reusable client operations are described in [Media operations](docs/media-operat
 
 ## Build and run
 
-Install a .NET 10 SDK. The repository accepts newer .NET 10 feature bands.
+Install a .NET 11 SDK. The repository accepts newer .NET 11 feature bands.
+
+Library packages require .NET 11. Native CLI downloads include their runtime.
+On x64, both require an x86-64-v2 processor, including SSE4.2 and POPCNT.
+See the [.NET 11 migration and performance results](docs/dotnet11.md).
 
 ```sh
 dotnet tool restore
-PACKAGE_VERSION=$(dotnet gitversion /showvariable SemVer)
+PACKAGE_VERSION=$(dotnet gitversion --show-variable SemVer)
 dotnet restore Mediana.slnx
 dotnet build Mediana.slnx -c Release --no-restore -p:Version="$PACKAGE_VERSION"
 dotnet test Mediana.slnx -c Release --no-build --no-restore

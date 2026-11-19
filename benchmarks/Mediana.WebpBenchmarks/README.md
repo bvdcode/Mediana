@@ -8,7 +8,7 @@ inputs only; Mediana's WebP runtime module does not reference them.
 
 ```sh
 dotnet build benchmarks/Mediana.WebpBenchmarks -c Release
-DOTNET_PROCESSOR_COUNT=2 DOTNET_TieredCompilation=0 dotnet benchmarks/Mediana.WebpBenchmarks/bin/Release/net10.0/Mediana.WebpBenchmarks.dll mediana gradient 1024 1024 0 artifacts/webp
+DOTNET_PROCESSOR_COUNT=2 DOTNET_TieredCompilation=0 dotnet benchmarks/Mediana.WebpBenchmarks/bin/Release/net11.0/Mediana.WebpBenchmarks.dll mediana gradient 1024 1024 0 artifacts/webp
 ```
 
 The six arguments are encoder, sample, width, height, iteration count and output
@@ -37,7 +37,7 @@ For independent lossy decoding, export a file and its original RGBA, then decode
 the WebP with FFmpeg instead of the benchmark's ImageSharp verifier:
 
 ```sh
-dotnet benchmarks/Mediana.WebpBenchmarks/bin/Release/net10.0/Mediana.WebpBenchmarks.dll export-lossy gradient 1024 1024 75 artifacts/webp/check
+dotnet benchmarks/Mediana.WebpBenchmarks/bin/Release/net11.0/Mediana.WebpBenchmarks.dll export-lossy gradient 1024 1024 75 artifacts/webp/check
 ffmpeg -v error -i artifacts/webp/check/output.webp -pix_fmt rgba -f rawvideo artifacts/webp/check/decoded.rgba
 ```
 

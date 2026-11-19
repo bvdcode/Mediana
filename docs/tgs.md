@@ -42,9 +42,10 @@ paths, samples and effect buffers; these are not a hard process-memory limit.
 
 Tests compare every channel for 33 frames from eleven supported animations:
 RGB allows one 8-bit code of rounding difference; alpha must match exactly.
-Compressed pixel references are verified against the original stored hashes.
-On Linux x64, ordinary .NET matches all original hashes; Native AOT differs in
-four RGB channels across two pixels, each by one code. Four expression-bearing
+Compressed pixel references are verified against their stored hashes.
+The three layer-control frames reflect .NET 11 preserving a 0.001-degree
+rotation that .NET 10 rounded to zero. A geometric sampling test checks this
+boundary independently of the stored images. Four expression-bearing
 compositions are rejection cases for the default reader. Three
 original synthetic animations also produce equal output from JSON and gzip at
 four positions each. Timing, frame limits, cancellation and malformed input

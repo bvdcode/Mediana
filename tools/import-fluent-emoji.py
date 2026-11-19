@@ -96,7 +96,7 @@ def main() -> None:
     parser.add_argument("checkout", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--include-skin-tones", action="store_true", help="Include additional skin-tone SVG variants")
-    parser.add_argument("--dotnet", default="dotnet", help=".NET 10 SDK executable for BCL Brotli compression")
+    parser.add_argument("--dotnet", default="dotnet", help=".NET 11 SDK executable for BCL Brotli compression")
     arguments = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     import_assets(arguments.checkout.resolve(), arguments.output.resolve(), arguments.include_skin_tones, arguments.dotnet)
