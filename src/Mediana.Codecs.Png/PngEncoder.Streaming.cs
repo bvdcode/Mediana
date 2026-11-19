@@ -30,35 +30,23 @@ namespace Mediana.Codecs.Png
             using WritableMediaBuffer scratch = allocator.Allocate(StreamPayloadBytes + 12);
             int headerLength = WriteHeaders(scratch.Memory.Span, source.Format, aspectRatio, cancellationToken);
             await destination.WriteAsync(scratch.Memory[..headerLength], cancellationToken).ConfigureAwait(false);
-            using PngIdatWriteStream chunks = new(destination, scratch.Memory, cancellationToken);
-            ZLibStream compressor = new(chunks, CompressionLevel.Optimal, leaveOpen: true);
-            bool rowsWritten = false;
-            try
+            PngIdatWriter chunks = new(destination, scratch.Memory, cancellationToken);
+            using ZLibEncoder compressor = new();
+            ReadOnlyMemory<byte> filter = new byte[1];
+            PlaneLayout plane = source.Planes[0];
+            for (int row = 0; row < source.Format.Height; row++)
             {
-                ReadOnlyMemory<byte> filter = new byte[1];
-                PlaneLayout plane = source.Planes[0];
-                for (int row = 0; row < source.Format.Height; row++)
+                await chunks.WriteAsync(compressor, filter, false).ConfigureAwait(false);
+                ReadOnlyMemory<byte> pixels = source.Data.Slice(checked(plane.Offset + row * plane.Stride), plane.RowBytes);
+                while (!pixels.IsEmpty)
                 {
-                    await compressor.WriteAsync(filter, cancellationToken).ConfigureAwait(false);
-                    ReadOnlyMemory<byte> pixels = source.Data.Slice(checked(plane.Offset + row * plane.Stride), plane.RowBytes);
-                    while (!pixels.IsEmpty)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        int count = Math.Min(pixels.Length, 16 * 1024);
-                        await compressor.WriteAsync(pixels[..count], cancellationToken).ConfigureAwait(false);
-                        pixels = pixels[count..];
-                    }
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int count = Math.Min(pixels.Length, CompressionInputBytes);
+                    await chunks.WriteAsync(compressor, pixels[..count], false).ConfigureAwait(false);
+                    pixels = pixels[count..];
                 }
-                rowsWritten = true;
             }
-            finally
-            {
-                if (!rowsWritten)
-                {
-                    chunks.Abort();
-                }
-                await compressor.DisposeAsync().ConfigureAwait(false);
-            }
+            await chunks.WriteAsync(compressor, ReadOnlyMemory<byte>.Empty, true).ConfigureAwait(false);
             await chunks.CompleteAsync().ConfigureAwait(false);
             int endLength = PngChunk.Write(scratch.Memory.Span, "IEND"u8, [], cancellationToken);
             await destination.WriteAsync(scratch.Memory[..endLength], cancellationToken).ConfigureAwait(false);
