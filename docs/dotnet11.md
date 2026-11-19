@@ -12,10 +12,10 @@ The x64 runtime baseline is x86-64-v2, including SSE4.2 and POPCNT.
   `System.IO.ReadOnlyMemoryStream`. Change the namespace at call sites; the
   backing memory still belongs to the caller. These public Mediana types are
   removed rather than retained as duplicate wrappers.
-- Buffered PNG encoding uses `System.IO.WritableMemoryStream` over its allocated
-  output memory. The custom fixed-capacity stream and unused module references
-  are removed. PNG framing, allocation ownership and cancellation remain covered
-  by the existing encoder tests.
+- The custom fixed-capacity PNG stream and unused module references are removed.
+  Buffered PNG encoding now uses the span-based `ZLibEncoder` directly over its
+  allocated output memory. PNG framing, allocation ownership and cancellation
+  remain covered by the existing encoder tests.
 - GitVersion.Tool 7 uses `--show-variable` and its migrated configuration schema.
   The old and new configurations produced the same `MajorMinorPatch` on both
   development and release histories at migration. Console logging uses
@@ -111,9 +111,9 @@ the measurements above do not establish an overall performance improvement.
 
 | Feature | Applicable work | Status |
 | --- | --- | --- |
-| BCL memory streams | SVG/TGS/XML/PDF/TIFF input, buffered PNG output | Replaced the duplicate stream implementations |
+| BCL memory streams | SVG/TGS/XML/PDF/TIFF input | Replaced the duplicate stream implementations |
 | Span-based ZLib/Deflate/GZip encoders and decoders, with `Reset` | PNG scanlines, TIFF strips, PDF compressed streams and TGS input | PNG/TIFF/PDF implementations and [paired measurements](compression-performance.md) are available; TGS remains a candidate |
-| Runtime Async | HLS opens and asynchronous packet/source reads | Opt-in for Mediana methods; not enabled by this migration. Measure synchronous completions, real I/O suspension and Native AOT before adopting it |
+| Runtime Async | HLS opens and asynchronous packet/source reads | Enabled by default after [JIT, Native AOT and ordinary-client comparisons](runtime-async-performance.md); reduces packet-reading CPU without establishing a general conversion speedup |
 | Portable SIMD `Zip`, `Unzip` and `Concat` | Audio interleaving and video block transposes | H.264 4×4 transpose uses `ZipLower`/`ZipUpper`, with identical x64 JIT instructions; other replacements still require measurement |
 | Hardware `Half` operations | Future half-float image/HDR processing | Requires suitable hardware and a matching precision contract; does not replace integer codec arithmetic |
 
