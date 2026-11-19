@@ -42,7 +42,14 @@ namespace Mediana.Tests
 
         private static void VerifyOutput(ReadOnlySpan<int> actual, ReadOnlySpan<int> expected, long before, bool measure, int test)
         {
-            if (measure && GC.GetAllocatedBytesForCurrentThread() != before) { throw new InvalidDataException("HEVC interpolation allocated working storage."); }
+            if (measure)
+            {
+                long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+                if (allocated != 0)
+                {
+                    throw new InvalidDataException($"HEVC interpolation case {test} allocated {allocated} bytes.");
+                }
+            }
             for (int i = 0; i < actual.Length; i++)
             {
                 if (actual[i] != expected[i]) { throw new InvalidDataException($"HEVC interpolation {test}/{i}: {actual[i]}, expected {expected[i]}."); }

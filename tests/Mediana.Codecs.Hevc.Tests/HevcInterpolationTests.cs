@@ -16,6 +16,7 @@ namespace Mediana.Codecs.Hevc.Tests
         [Fact]
         public void RepeatedInterpolationDoesNotAllocateManagedStorage()
         {
+            AllocationMeasurementTestInput.Verify();
             string root = Path.Combine(AppContext.BaseDirectory, "Data");
             HevcInterpolationTestInput.Verify(root);
             Assert.Equal(1280, HevcInterpolationTestInput.Verify(root, true));

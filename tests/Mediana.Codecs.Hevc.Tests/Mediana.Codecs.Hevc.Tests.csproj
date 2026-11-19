@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <IsPackable>false</IsPackable>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/AllocationMeasurementTestInput.cs" Link="AllocationMeasurementTestInput.cs" />
     <Compile Include="../Shared/HevcSeekTestInput.cs" Link="HevcSeekTestInput.cs" />
     <ProjectReference Include="../../src/Mediana/Mediana.csproj" />
     <Compile Include="../Shared/HevcDecoderTestInput.cs" Link="HevcDecoderTestInput.cs" />
