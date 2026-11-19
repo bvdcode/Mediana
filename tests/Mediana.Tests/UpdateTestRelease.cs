@@ -3,51 +3,52 @@
 
 using System.Net;
 using System.Security.Cryptography;
-using System.Text.Json.Nodes;
 using Mediana.Cli.Updates;
 
 namespace Mediana.Tests
 {
     internal class UpdateTestRelease(byte[] payload, string version = "1.2.3")
     {
-        public JsonObject Manifest { get; } = CreateManifest(payload, version);
+        public Uri ReleaseUri { get; set; } = new($"https://github.com/bvdcode/Mediana/releases/tag/v{version}");
+        public long? Size { get; set; } = payload.LongLength;
+        public string? ChecksumOverride { get; set; }
 
         public HttpResponseMessage Respond(HttpRequestMessage request)
         {
             Uri url = request.RequestUri ?? throw new InvalidOperationException("Missing request URL.");
-            Assert.Equal(HttpMethod.Get, request.Method);
             HttpResponseMessage response = new(HttpStatusCode.OK) { RequestMessage = request };
-            if (url.AbsoluteUri == "https://releases.splidex.com/mediana/latest.json")
+            if (url.AbsoluteUri == "https://github.com/bvdcode/Mediana/releases/latest")
             {
-                response.Content = new StringContent(Manifest.ToJsonString());
+                Assert.Equal(HttpMethod.Head, request.Method);
+                request.RequestUri = ReleaseUri;
                 return response;
             }
             foreach (ReleasePlatform platform in new[] { ReleasePlatform.WindowsX64, ReleasePlatform.LinuxX64, ReleasePlatform.MacOsArm64 })
             {
                 string name = ReleaseAssets.GetName(platform, Version.Parse(version));
-                if (url.AbsoluteUri == $"https://releases.splidex.com/mediana/{version}/{name}")
+                string downloadUrl = $"https://github.com/bvdcode/Mediana/releases/download/v{version}/{name}";
+                if (url.AbsoluteUri == downloadUrl + ".sha256")
                 {
-                    response.Content = new ByteArrayContent(payload);
+                    Assert.Equal(HttpMethod.Get, request.Method);
+                    response.Content = new StringContent(ChecksumOverride ?? $"{Convert.ToHexString(SHA256.HashData(payload))}  {name}\n");
+                    return response;
+                }
+                if (url.AbsoluteUri == downloadUrl)
+                {
+                    if (request.Method == HttpMethod.Head)
+                    {
+                        response.Content.Headers.ContentLength = Size;
+                    }
+                    else
+                    {
+                        Assert.Equal(HttpMethod.Get, request.Method);
+                        response.Content = new ByteArrayContent(payload);
+                    }
                     return response;
                 }
             }
             response.Dispose();
             throw new InvalidOperationException($"Unexpected update request: {request.Method} {url}");
-        }
-
-        private static JsonObject CreateManifest(byte[] payload, string version)
-        {
-            JsonArray assets = [];
-            foreach (ReleasePlatform platform in new[] { ReleasePlatform.WindowsX64, ReleasePlatform.LinuxX64, ReleasePlatform.MacOsArm64 })
-            {
-                assets.Add(new JsonObject
-                {
-                    ["name"] = ReleaseAssets.GetName(platform, Version.Parse(version)),
-                    ["size"] = payload.LongLength,
-                    ["sha256"] = Convert.ToHexString(SHA256.HashData(payload))
-                });
-            }
-            return new JsonObject { ["version"] = version, ["assets"] = assets };
         }
     }
 }
