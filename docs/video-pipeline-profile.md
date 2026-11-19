@@ -8,9 +8,10 @@ alone is not a sufficient optimization strategy for these conversions.
 ## Conditions and complete outputs
 
 Linux x64, Intel Core i5-12450H, SDK 11.0.100 / Native AOT 11.0.0, logical CPU 5,
-process nice -20 and `DOTNET_PROCESSOR_COUNT=1`. Runtime Async is not enabled for
-Mediana methods. Media buffers use `MemoryPool<byte>.Shared` through the public
-allocator. The operation finishes with zero retained media-buffer bytes.
+process nice -20 and `DOTNET_PROCESSOR_COUNT=1`. This profile predates enabling
+Runtime Async and uses ordinary async compilation for Mediana methods. Media
+buffers use `MemoryPool<byte>.Shared` through the public allocator. The operation
+finishes with zero retained media-buffer bytes.
 
 Both profiles use QP26, CABAC, rate-distortion macroblock analysis, a two-second
 keyframe interval and no rate-control target. The movie keeps its original

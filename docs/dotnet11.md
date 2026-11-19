@@ -113,7 +113,7 @@ the measurements above do not establish an overall performance improvement.
 | --- | --- | --- |
 | BCL memory streams | SVG/TGS/XML/PDF/TIFF input | Replaced the duplicate stream implementations |
 | Span-based ZLib/Deflate/GZip encoders and decoders, with `Reset` | PNG scanlines, TIFF strips, PDF compressed streams and TGS input | PNG/TIFF/PDF implementations and [paired measurements](compression-performance.md) are available; TGS remains a candidate |
-| Runtime Async | HLS opens and asynchronous packet/source reads | [JIT and Native AOT comparison](runtime-async-performance.md) found lower packet-reading overhead but no general conversion/HLS improvement; remains opt-in |
+| Runtime Async | HLS opens and asynchronous packet/source reads | Enabled by default after [JIT, Native AOT and ordinary-client comparisons](runtime-async-performance.md); reduces packet-reading CPU without establishing a general conversion speedup |
 | Portable SIMD `Zip`, `Unzip` and `Concat` | Audio interleaving and video block transposes | H.264 4×4 transpose uses `ZipLower`/`ZipUpper`, with identical x64 JIT instructions; other replacements still require measurement |
 | Hardware `Half` operations | Future half-float image/HDR processing | Requires suitable hardware and a matching precision contract; does not replace integer codec arithmetic |
 
