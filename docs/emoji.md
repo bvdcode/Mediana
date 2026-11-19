@@ -87,7 +87,7 @@ The source is pinned to Microsoft Fluent Emoji commit
 `1ffb34c752ecf5d402f04cfb4b392c77f57c54bc`. Original SVG bytes and SHA-256 hashes
 are preserved in the archive's manifest.
 
-To rebuild resources from that checkout with a .NET 10 SDK:
+To rebuild resources from that checkout with a .NET 11 SDK:
 
 ```sh
 python3 tools/import-fluent-emoji.py <fluent-emoji-checkout> src/Mediana.Drawing.Emoji.Fluent/Assets

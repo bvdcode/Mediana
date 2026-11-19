@@ -332,10 +332,11 @@ Install a .NET 11 SDK. The repository accepts newer .NET 11 feature bands.
 
 Library packages require .NET 11. Native CLI downloads include their runtime.
 On x64, both require an x86-64-v2 processor, including SSE4.2 and POPCNT.
+See the [.NET 11 migration and performance results](docs/dotnet11.md).
 
 ```sh
 dotnet tool restore
-PACKAGE_VERSION=$(dotnet gitversion /showvariable SemVer)
+PACKAGE_VERSION=$(dotnet gitversion --show-variable SemVer)
 dotnet restore Mediana.slnx
 dotnet build Mediana.slnx -c Release --no-restore -p:Version="$PACKAGE_VERSION"
 dotnet test Mediana.slnx -c Release --no-build --no-restore
