@@ -30,9 +30,15 @@ namespace Mediana.Tests
             H264SliceHeader basis = H264BidirectionalPredictionTestInput.Header();
             H264SequenceParameterSet sequence = basis.Sequence with
             {
-                WidthInMbs = 1, HeightInMapUnits = 2, Width = 16, Height = 64,
-                FrameMbsOnly = false, MbAdaptiveFrameField = true,
-                LumaBitDepth = depth, ChromaBitDepth = depth, ChromaFormat = chroma
+                WidthInMbs = 1,
+                HeightInMapUnits = 2,
+                Width = 16,
+                Height = 64,
+                FrameMbsOnly = false,
+                MbAdaptiveFrameField = true,
+                LumaBitDepth = depth,
+                ChromaBitDepth = depth,
+                ChromaFormat = chroma
             };
             H264SliceHeader header = basis with
             {
