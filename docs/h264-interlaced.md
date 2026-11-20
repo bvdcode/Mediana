@@ -134,3 +134,31 @@ conversion and horizontal RGBA scaling retain scan mode. Vertical scaling and
 orientation changes that rearrange field rows require deinterlacing first;
 progressive YUV preparation and H.264 encoding reject field storage rather than
 silently relabel it. Deinterlacing remains open.
+
+## Reference row layout
+
+Luma/chroma interpolation and border extension distinguish the source row width
+from its physical stride. The same 8-bit SIMD and 10-bit interpolation kernels
+can sample alternating field rows without reading the other field or allocating
+a full-frame intermediate. Packed references keep their existing sample layout.
+Managed and Native AOT checks cover all luma/chroma fractions, both row parities,
+borders and prediction block sizes. The 959 H.264 tests passed; all 16 motion
+compensation tests also passed with hardware intrinsics disabled.
+
+A complete-decode regression comparison used Native AOT on CPU 11, one reported
+processor, priority -20 and the shared BCL pool. Each process decoded four full
+150-frame sequences, hashed all output samples and checked that owned buffers
+were released after each pass. Every output hash matched FFmpeg. The table shows
+medians; variants ran sequentially in alternating order.
+
+| Source | Runs per variant | CPU before / after, s | Wall before / after, s | Peak RSS before / after, MiB | Allocations before / after, MiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Camera, 720p, 8-bit 4:2:0, repeat | 5 | 7.416 / 7.448 | 7.416 / 7.449 | 33.46 / 33.34 | 25.92 / 25.93 |
+| Camera, 720p, 10-bit 4:2:2 | 3 | 19.702 / 19.668 | 19.723 / 19.677 | 47.80 / 47.99 | 40.22 / 40.23 |
+
+The initial three-pair 8-bit run measured 7.449 / 7.690 seconds CPU (+3.24%).
+A five-pair repeat with reversed starting order measured +0.43%, with overlapping
+ranges (7.399–7.451 before, 7.369–7.465 after). The initial difference did not
+reproduce; this change does not establish an acceleration. The 10-bit difference
+was -0.17%. These measurements check the existing progressive path; mixed
+frame/field reference decoding remains unimplemented.

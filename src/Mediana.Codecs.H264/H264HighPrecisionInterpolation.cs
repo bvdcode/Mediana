@@ -9,26 +9,26 @@ namespace Mediana.Codecs.H264
         private const int ChromaBlockSize = 8;
         private const int FilterPadding = 5;
 
-        public static void Luma(ReadOnlySpan<ushort> samples, int stride, int rows, long x, long y,
+        public static void Luma(ReadOnlySpan<ushort> samples, int stride, int columns, int rows, long x, long y,
             int dx, int dy, int width, int height, Span<ushort> output, int maximum)
         {
             for (int top = 0; top < height; top += LumaBlockSize)
             {
                 for (int left = 0; left < width; left += LumaBlockSize)
                 {
-                    LumaTile(samples, stride, rows, x + left, y + top, dx, dy,
+                    LumaTile(samples, stride, columns, rows, x + left, y + top, dx, dy,
                         Math.Min(LumaBlockSize, width - left), Math.Min(LumaBlockSize, height - top),
                         width, output[(top * width + left)..], maximum);
                 }
             }
         }
 
-        private static void LumaTile(ReadOnlySpan<ushort> samples, int stride, int rows, long x, long y,
+        private static void LumaTile(ReadOnlySpan<ushort> samples, int stride, int columns, int rows, long x, long y,
             int dx, int dy, int width, int height, int outputStride, Span<ushort> output, int maximum)
         {
             int patchStride = width + FilterPadding;
             Span<ushort> patch = stackalloc ushort[(LumaBlockSize + FilterPadding) * (LumaBlockSize + FilterPadding)];
-            Copy(samples, stride, rows, x - 2, y - 2, patchStride, height + FilterPadding, patch);
+            Copy(samples, stride, columns, rows, x - 2, y - 2, patchStride, height + FilterPadding, patch);
             Span<int> horizontal = stackalloc int[LumaBlockSize * (LumaBlockSize + FilterPadding)];
             bool diagonal = dx != 0 && dy != 0 && (dx == 2 || dy == 2);
             if (diagonal)
@@ -93,26 +93,26 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        public static void Chroma(ReadOnlySpan<ushort> samples, int stride, int rows, long x, long y,
+        public static void Chroma(ReadOnlySpan<ushort> samples, int stride, int columns, int rows, long x, long y,
             int dx, int dy, int width, int height, Span<ushort> output)
         {
             for (int top = 0; top < height; top += ChromaBlockSize)
             {
                 for (int left = 0; left < width; left += ChromaBlockSize)
                 {
-                    ChromaTile(samples, stride, rows, x + left, y + top, dx, dy,
+                    ChromaTile(samples, stride, columns, rows, x + left, y + top, dx, dy,
                         Math.Min(ChromaBlockSize, width - left), Math.Min(ChromaBlockSize, height - top),
                         width, output[(top * width + left)..]);
                 }
             }
         }
 
-        private static void ChromaTile(ReadOnlySpan<ushort> samples, int stride, int rows, long x, long y,
+        private static void ChromaTile(ReadOnlySpan<ushort> samples, int stride, int columns, int rows, long x, long y,
             int dx, int dy, int width, int height, int outputStride, Span<ushort> output)
         {
             int patchStride = width + 1;
             Span<ushort> patch = stackalloc ushort[(ChromaBlockSize + 1) * (ChromaBlockSize + 1)];
-            Copy(samples, stride, rows, x, y, patchStride, height + 1, patch);
+            Copy(samples, stride, columns, rows, x, y, patchStride, height + 1, patch);
             int a = (8 - dx) * (8 - dy);
             int b = dx * (8 - dy);
             int c = (8 - dx) * dy;
@@ -128,7 +128,7 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        public static void Copy(ReadOnlySpan<ushort> samples, int stride, int rows, long x, long y,
+        public static void Copy(ReadOnlySpan<ushort> samples, int stride, int columns, int rows, long x, long y,
             int width, int height, Span<ushort> output)
         {
             for (int row = 0; row < height; row++)
@@ -136,7 +136,7 @@ namespace Mediana.Codecs.H264
                 int sourceRow = (int)Math.Clamp(y + row, 0, rows - 1) * stride;
                 for (int column = 0; column < width; column++)
                 {
-                    int sourceColumn = (int)Math.Clamp(x + column, 0, stride - 1);
+                    int sourceColumn = (int)Math.Clamp(x + column, 0, columns - 1);
                     output[row * width + column] = samples[sourceRow + sourceColumn];
                 }
             }

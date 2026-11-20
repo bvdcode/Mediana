@@ -18,7 +18,7 @@ namespace Mediana.Codecs.H264
             Copy(samples, layout.Stride, layout.RowBytes, layout.Height, x, y, width, height, output);
         }
 
-        private static void Copy(ReadOnlySpan<byte> samples, int stride, int rowBytes, int rows, long x, long y,
+        internal static void Copy(ReadOnlySpan<byte> samples, int stride, int rowBytes, int rows, long x, long y,
             int width, int height, Span<byte> output)
         {
             if (x >= 0 && x <= rowBytes - width && y >= 0 && y <= rows - height)

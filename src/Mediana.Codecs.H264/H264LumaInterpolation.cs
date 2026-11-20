@@ -9,7 +9,7 @@ namespace Mediana.Codecs.H264
         private const int Padding = 5;
         private const int FirstTap = 2;
 
-        public static void Apply(ReadOnlySpan<byte> samples, int stride, int rows, long x, long y,
+        public static void Apply(ReadOnlySpan<byte> samples, int stride, int columns, int rows, long x, long y,
             int dx, int dy, int width, int height, Span<byte> output)
         {
             for (int top = 0; top < height;)
@@ -21,7 +21,7 @@ namespace Mediana.Codecs.H264
                     long patchX = x + left - FirstTap;
                     long patchY = y + top - FirstTap;
                     Span<byte> destination = output[(top * width + left)..];
-                    if (patchX >= 0 && patchX <= stride - tileWidth - Padding &&
+                    if (patchX >= 0 && patchX <= columns - tileWidth - Padding &&
                         patchY >= 0 && patchY <= rows - tileHeight - Padding)
                     {
                         PredictTile(samples[((int)patchY * stride + (int)patchX)..], stride, dx, dy,
@@ -29,7 +29,7 @@ namespace Mediana.Codecs.H264
                     }
                     else
                     {
-                        PredictBorder(samples, stride, rows, patchX, patchY, dx, dy,
+                        PredictBorder(samples, stride, columns, rows, patchX, patchY, dx, dy,
                             tileWidth, tileHeight, width, destination);
                     }
                     left += tileWidth;
@@ -38,12 +38,12 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private static void PredictBorder(ReadOnlySpan<byte> samples, int stride, int rows, long x, long y,
+        private static void PredictBorder(ReadOnlySpan<byte> samples, int stride, int columns, int rows, long x, long y,
             int dx, int dy, int width, int height, int outputStride, Span<byte> output)
         {
             Span<byte> patch = stackalloc byte[(BlockSize + Padding) * (BlockSize + Padding)];
             int patchStride = width + Padding;
-            H264BorderExtension.Copy(samples, stride, rows, x, y, patchStride, height + Padding, patch);
+            H264BorderExtension.Copy(samples, stride, columns, rows, x, y, patchStride, height + Padding, patch);
             PredictTile(patch, patchStride, dx, dy, width, height, outputStride, output);
         }
 

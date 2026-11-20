@@ -22,11 +22,11 @@ namespace Mediana.Codecs.H264
                 Span<ushort> destination = MemoryMarshal.Cast<byte, ushort>(output);
                 if ((dx | dy) == 0)
                 {
-                    H264HighPrecisionInterpolation.Copy(pixels, reference.Width, reference.Height, sourceX, sourceY, width, height, destination);
+                    H264HighPrecisionInterpolation.Copy(pixels, reference.Width, reference.Width, reference.Height, sourceX, sourceY, width, height, destination);
                 }
                 else
                 {
-                    H264HighPrecisionInterpolation.Luma(pixels, reference.Width, reference.Height, sourceX, sourceY,
+                    H264HighPrecisionInterpolation.Luma(pixels, reference.Width, reference.Width, reference.Height, sourceX, sourceY,
                         dx, dy, width, height, destination, reference.MaximumSample);
                 }
                 return;
@@ -36,7 +36,7 @@ namespace Mediana.Codecs.H264
                 H264BorderExtension.Copy(samples, reference.Width, reference.Height, sourceX, sourceY, width, height, output);
                 return;
             }
-            H264LumaInterpolation.Apply(samples, reference.Width, reference.Height, sourceX, sourceY, dx, dy, width, height, output);
+            H264LumaInterpolation.Apply(samples, reference.Width, reference.Width, reference.Height, sourceX, sourceY, dx, dy, width, height, output);
         }
 
         public static void Chroma(H264Picture reference, int plane, int x, int y, int motionX, int motionY,
@@ -60,11 +60,11 @@ namespace Mediana.Codecs.H264
                 long sourceX = (long)x + (motionX >> 3);
                 if (((motionX & 7) | dy) == 0)
                 {
-                    H264HighPrecisionInterpolation.Copy(pixels, stride, rows, sourceX, sourceY, width, height, destination);
+                    H264HighPrecisionInterpolation.Copy(pixels, stride, stride, rows, sourceX, sourceY, width, height, destination);
                 }
                 else
                 {
-                    H264HighPrecisionInterpolation.Chroma(pixels, stride, rows, sourceX, sourceY, motionX & 7, dy, width, height, destination);
+                    H264HighPrecisionInterpolation.Chroma(pixels, stride, stride, rows, sourceX, sourceY, motionX & 7, dy, width, height, destination);
                 }
                 return;
             }
@@ -73,7 +73,7 @@ namespace Mediana.Codecs.H264
                 H264BorderExtension.Copy(samples, stride, rows, (long)x + (motionX >> 3), sourceY, width, height, output);
                 return;
             }
-            H264ChromaInterpolation.Apply(samples, stride, rows, (long)x + (motionX >> 3), sourceY,
+            H264ChromaInterpolation.Apply(samples, stride, stride, rows, (long)x + (motionX >> 3), sourceY,
                 motionX & 7, dy, width, height, output);
         }
 

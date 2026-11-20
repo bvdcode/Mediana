@@ -12,7 +12,7 @@ namespace Mediana.Codecs.H264
     {
         private const int BlockSize = 8;
 
-        public static void Apply(ReadOnlySpan<byte> samples, int stride, int rows, long x, long y,
+        public static void Apply(ReadOnlySpan<byte> samples, int stride, int columns, int rows, long x, long y,
             int dx, int dy, int width, int height, Span<byte> output)
         {
             Span<byte> patch = stackalloc byte[(BlockSize + 1) * (BlockSize + 1)];
@@ -30,7 +30,7 @@ namespace Mediana.Codecs.H264
                     scoped ReadOnlySpan<byte> region;
                     long sourceX = x + left;
                     long sourceY = y + top;
-                    if (sourceX >= 0 && sourceX < stride - tileWidth && sourceY >= 0 && sourceY < rows - tileHeight)
+                    if (sourceX >= 0 && sourceX < columns - tileWidth && sourceY >= 0 && sourceY < rows - tileHeight)
                     {
                         regionStride = stride;
                         region = samples[((int)sourceY * stride + (int)sourceX)..];
@@ -38,7 +38,7 @@ namespace Mediana.Codecs.H264
                     else
                     {
                         regionStride = tileWidth + 1;
-                        H264BorderExtension.Copy(samples, stride, rows, sourceX, sourceY,
+                        H264BorderExtension.Copy(samples, stride, columns, rows, sourceX, sourceY,
                             regionStride, tileHeight + 1, patch);
                         region = patch;
                     }
