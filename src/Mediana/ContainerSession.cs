@@ -90,14 +90,7 @@ namespace Mediana
             {
                 RequireActive();
                 cancellationToken.ThrowIfCancellationRequested();
-                if (Options.MaxPacketReads is long limit)
-                {
-                    if (packetReads == limit)
-                    {
-                        throw new InvalidOperationException($"The configured session limit of {limit} packet reads has been reached.");
-                    }
-                    packetReads++;
-                }
+                CountPacketRead();
                 packetsStarted = true;
                 MediaPacket? packet = await Reader.ReadPacketAsync(cancellationToken).ConfigureAwait(false);
                 succeeded = true;
@@ -144,6 +137,18 @@ namespace Mediana
             if (faulted)
             {
                 throw new InvalidOperationException("The container session has failed and must be disposed.");
+            }
+        }
+
+        private void CountPacketRead()
+        {
+            if (Options.MaxPacketReads is long limit)
+            {
+                if (packetReads == limit)
+                {
+                    throw new InvalidOperationException($"The configured session limit of {limit} packet reads has been reached.");
+                }
+                packetReads++;
             }
         }
 
