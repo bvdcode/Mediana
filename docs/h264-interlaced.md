@@ -212,3 +212,25 @@ frames match FFmpeg exactly, including POC, output timestamps and durations,
 in managed execution, Native AOT and ordinary async compilation. Five focused
 checks also cover parity mapping, negative odd motion, field selection and ties.
 The 982 H.264 tests pass. MBAFF and public interlaced decode/seek remain open.
+
+## Mixed reference regression measurement
+
+A Native AOT comparison measures the combined logical-reference, pixel-view and
+co-located-motion changes against the preceding row-stride implementation. The
+same two 150-frame 720p inputs are decoded four times per process, with pooled
+buffers, one reported processor, CPU 11 affinity and priority -20. Three runs per
+variant alternate in ABBAAB order, without overlapping local builds or encoding.
+All twelve runs produce 600 frames, match the FFmpeg sample hashes and release
+their allocator budget after each pass.
+
+| Source | CPU before / after, s | Wall before / after, s | Peak RSS before / after, MiB | Allocations before / after, MiB |
+| --- | ---: | ---: | ---: | ---: |
+| Camera, 8-bit 4:2:0 | 8.161 / 7.949 | 8.169 / 7.959 | 33.35 / 33.50 | 25.83 / 25.94 |
+| Camera, 10-bit 4:2:2 | 20.767 / 20.159 | 20.787 / 20.177 | 47.94 / 48.09 | 40.22 / 40.26 |
+
+CPU medians changed by -2.60% and -2.92%, but the ranges overlap: 8.089–9.013
+versus 7.422–8.167 seconds for 8-bit, and 20.204–22.054 versus 20.019–22.956
+seconds for 10-bit. These results show no observed regression on the two inputs;
+they do not establish an acceleration. Peak RSS increased by approximately
+0.15 MiB, and cumulative allocations remain comparable. These measurements cover
+progressive decoding; they do not establish mixed-interlace throughput.
