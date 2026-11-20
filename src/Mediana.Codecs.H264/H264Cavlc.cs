@@ -9,8 +9,9 @@ namespace Mediana.Codecs.H264
             int maximumPrefix = 19)
         {
             int maximum = coefficients.Length;
-            if (maximum is not (4 or 15 or 16) || neighborCount < -1 ||
-                (neighborCount == -1 && maximum != 4))
+            if (maximum is not (4 or 8 or 15 or 16) || neighborCount < -2 ||
+                (neighborCount < 0 && maximum != -neighborCount * 4) ||
+                (neighborCount >= 0 && maximum is 4 or 8))
             {
                 throw new ArgumentException("The H.264 residual block configuration is invalid.");
             }
@@ -76,9 +77,14 @@ namespace Mediana.Codecs.H264
             int zeros = 0;
             if (total < maximum)
             {
-                zeros = maximum == 4
-                    ? H264CavlcTables.ChromaZeros[total - 1].Read(ref bits)
-                    : H264CavlcTables.TotalZeros[total - 1].Read(ref bits);
+                H264Vlc table = maximum switch
+                {
+                    4 => H264CavlcTables.ChromaZeros[total - 1],
+                    8 => H264CavlcTables.Chroma422Zeros[total - 1],
+                    15 or 16 => H264CavlcTables.TotalZeros[total - 1],
+                    _ => throw new InvalidOperationException()
+                };
+                zeros = table.Read(ref bits);
                 if (zeros > maximum - total)
                 {
                     throw new InvalidDataException("The H.264 zero run exceeds the residual block size.");
@@ -119,6 +125,7 @@ namespace Mediana.Codecs.H264
             }
             int table = neighborCount switch
             {
+                -2 => 4,
                 -1 => 3,
                 < 2 => 0,
                 < 4 => 1,

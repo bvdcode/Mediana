@@ -11,7 +11,7 @@ namespace Mediana.Codecs.H264
         {
             H264InverseTransform.ValidateQp(qp);
             ReadLuma(ref bits, reader, target, x, y, type, pattern, qp, header.Picture.ConstrainedIntraPrediction);
-            ReadChroma(ref bits, reader, target, header.Picture, x / 2, y / 2, chromaMode, pattern >> 4, qp);
+            ReadChroma(ref bits, reader, target, header.Picture, x / 2, y / target.ChromaVerticalScale, chromaMode, pattern >> 4, qp);
         }
 
         private static void ReadLuma<TReader>(ref H264BitReader bits, TReader reader, H264Picture target, int x, int y, int type, int pattern, int qp, bool constrained)
@@ -75,10 +75,11 @@ namespace Mediana.Codecs.H264
             int x, int y, int mode, int pattern, int qp)
             where TReader : IH264ResidualReader
         {
-            Span<byte> prediction = stackalloc byte[128];
+            int samples = target.ChromaMacroblockSamples;
+            Span<byte> prediction = stackalloc byte[2 * samples];
             for (int plane = 1; plane <= 2; plane++)
             {
-                target.PredictMacroblock(plane, x, y, mode, prediction.Slice((plane - 1) * 64, 64), picture.ConstrainedIntraPrediction);
+                target.PredictMacroblock(plane, x, y, mode, prediction.Slice((plane - 1) * samples, samples), picture.ConstrainedIntraPrediction);
             }
             H264Residuals.ReadChroma(ref bits, reader, target, picture, x, y, pattern, qp, prediction);
         }

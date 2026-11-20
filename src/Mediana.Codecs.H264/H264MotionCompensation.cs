@@ -32,14 +32,17 @@ namespace Mediana.Codecs.H264
             ValidateOutput(width, height, output);
             ReadOnlySpan<byte> samples = reference.ReadPlane(plane);
             int stride = reference.Width / 2;
-            int rows = reference.Height / 2;
-            if (((motionX | motionY) & 7) == 0)
+            int verticalShift = 2 + reference.ChromaVerticalScale / 2;
+            int rows = reference.Height / reference.ChromaVerticalScale;
+            long sourceY = (long)y + (motionY >> verticalShift);
+            int dy = (motionY & ((1 << verticalShift) - 1)) << (3 - verticalShift);
+            if (((motionX & 7) | dy) == 0)
             {
-                H264BorderExtension.Copy(samples, stride, rows, (long)x + (motionX >> 3), (long)y + (motionY >> 3), width, height, output);
+                H264BorderExtension.Copy(samples, stride, rows, (long)x + (motionX >> 3), sourceY, width, height, output);
                 return;
             }
-            H264ChromaInterpolation.Apply(samples, stride, rows, (long)x + (motionX >> 3), (long)y + (motionY >> 3),
-                motionX & 7, motionY & 7, width, height, output);
+            H264ChromaInterpolation.Apply(samples, stride, rows, (long)x + (motionX >> 3), sourceY,
+                motionX & 7, dy, width, height, output);
         }
 
         private static void ValidateOutput(int width, int height, Span<byte> output)

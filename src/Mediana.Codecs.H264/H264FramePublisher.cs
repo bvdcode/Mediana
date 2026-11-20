@@ -21,10 +21,11 @@ namespace Mediana.Codecs.H264
             {
                 int scale = plane == 0 ? 1 : 2;
                 int startX = picture.Sequence.CropLeft / scale;
-                int startY = picture.Sequence.CropTop / scale;
+                int verticalScale = picture.VerticalScale(plane);
+                int startY = picture.Sequence.CropTop / verticalScale;
                 int stride = picture.Stride(plane);
                 layout[plane] = new(checked(offset + startY * stride + startX), stride, layout[plane].RowBytes, layout[plane].Height);
-                offset += checked(stride * (picture.Height / scale));
+                offset += checked(stride * (picture.Height / verticalScale));
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = picture.PublishPixels();

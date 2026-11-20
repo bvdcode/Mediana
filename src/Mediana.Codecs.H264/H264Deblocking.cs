@@ -74,9 +74,9 @@ namespace Mediana.Codecs.H264
                 for (int plane = 0; plane < 3; plane++)
                 {
                     int scale = plane == 0 ? 1 : 2;
-                    int size = 16 / scale;
-                    ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / scale, size, true, strengths[..16]);
-                    ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / scale, size, false, strengths[16..]);
+                    int verticalScale = picture.VerticalScale(plane);
+                    ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / verticalScale, true, strengths[..16]);
+                    ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / verticalScale, false, strengths[16..]);
                 }
             }
         }
@@ -85,7 +85,7 @@ namespace Mediana.Codecs.H264
             bool vertical, ref H264DeblockingContext context,
             scoped Span<byte> strengths)
         {
-            int edgeStep = picture.Transforms8x8[address] == 0 ? 4 : 8;
+            int edgeStep = picture.Transforms8x8[address] == 0 || picture.Sequence.ChromaFormat == 2 ? 4 : 8;
             int firstEdge = (vertical ? x == 0 : y == 0) ||
                 (header.DeblockingIdc == 2 && address - (vertical ? 1 : header.Sequence.WidthInMbs) < header.FirstMacroblock)
                 ? edgeStep : 0;
@@ -93,7 +93,7 @@ namespace Mediana.Codecs.H264
         }
 
         private static void ApplyEdges(H264Picture picture, H264SliceHeader header, int plane,
-            int address, int x, int y, int size, bool vertical, ReadOnlySpan<byte> strengths)
+            int address, int x, int y, bool vertical, ReadOnlySpan<byte> strengths)
         {
             if (!strengths.ContainsAnyExcept((byte)0))
             {
@@ -102,9 +102,14 @@ namespace Mediana.Codecs.H264
             int stride = picture.Stride(plane);
             int step = vertical ? 1 : stride;
             Span<byte> pixels = picture.Plane(plane);
-            int scale = plane == 0 ? 1 : 2;
+            int horizontalScale = plane == 0 ? 1 : 2;
+            int verticalScale = picture.VerticalScale(plane);
+            int scale = vertical ? horizontalScale : verticalScale;
+            int size = 16 / scale;
+            int segmentLength = 4 / (vertical ? verticalScale : horizontalScale);
+            int edgeStep = plane == 0 && picture.Transforms8x8[address] != 0 ? 8 : 4;
             int currentQp = Qp(picture, header.Picture, plane, address);
-            for (int edge = 0; edge < size; edge += 4)
+            for (int edge = 0; edge < size; edge += edgeStep)
             {
                 ReadOnlySpan<byte> edgeStrengths = strengths.Slice(edge * scale, 4);
                 if (!edgeStrengths.ContainsAnyExcept((byte)0))
@@ -124,7 +129,7 @@ namespace Mediana.Codecs.H264
                 }
                 int start = y * stride + x + edge * step;
                 H264DeblockingThresholds thresholds = new(alpha, beta, Tc1[indexA], Tc2[indexA], Tc3[indexA]);
-                H264DeblockingFilter.Apply(pixels, start, stride, vertical, plane != 0, edgeStrengths, thresholds);
+                H264DeblockingFilter.Apply(pixels, start, stride, vertical, plane != 0, segmentLength, edgeStrengths, thresholds);
             }
         }
 

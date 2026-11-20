@@ -21,7 +21,7 @@ namespace Mediana.Codecs.H264
             }
             int x = (address % header.Sequence.WidthInMbs) * 16;
             int y = (address / header.Sequence.WidthInMbs) * 16;
-            Span<byte> prediction = stackalloc byte[384];
+            Span<byte> prediction = stackalloc byte[target.MacroblockSamples];
             bool noSmallPartitions = true;
             if (skip)
             {
@@ -50,7 +50,7 @@ namespace Mediana.Codecs.H264
             }
             target.Quantizers[address] = (byte)qp;
             H264Residuals.ReadInterLuma(ref bits, target, x, y, pattern, qp, prediction[..256]);
-            H264Residuals.ReadChroma(ref bits, target, header.Picture, x / 2, y / 2, pattern >> 4, qp, prediction[256..]);
+            H264Residuals.ReadChroma(ref bits, target, header.Picture, x / 2, y / target.ChromaVerticalScale, pattern >> 4, qp, prediction[256..]);
         }
 
     }

@@ -12,7 +12,7 @@ namespace Mediana.Codecs.H264
                 return ReadLuma8x8(ref bits, x, y, coefficients);
             }
             return H264Cavlc.Read(ref bits, coefficients,
-                category == H264ResidualCategory.ChromaDc ? -1 : target.NeighbourCount(plane, x, y), 15);
+                category == H264ResidualCategory.ChromaDc ? -coefficients.Length / 4 : target.NeighbourCount(plane, x, y), 15);
         }
 
         private int ReadLuma8x8(ref H264BitReader bits, int x, int y, scoped Span<int> coefficients)

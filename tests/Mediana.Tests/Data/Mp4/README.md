@@ -443,3 +443,36 @@ The original 64x48 references use the same raw-video command with `avc-aac` or
 configuration-6 audio from `../AacMultichannel/layout-6.m4a`, using FFmpeg 6.1.1
 with `-map 0:v:0 -map 1:a:0 -c copy -map_metadata -1`. It exercises explicit
 mono/stereo downmix in audiovisual HLS, preserving the original coded payloads.
+
+## Progressive High 4:2:2 sequences
+
+Four independent FFmpeg 6.1.1/libx264 sequences contain 24 frames at 12 fps,
+82×74 visible pixels with coded border cropping, I/P/B pictures and three GOPs.
+CABAC and CAVLC QP22 cases use `testsrc2`; CABAC QP1 and CAVLC QP40 use
+changing luma/chroma ramps and two slices per picture. All use flat scaling lists.
+The `.yuv.gz` files contain complete independently decoded planar 8-bit 4:2:2
+sequences, compressed with gzip. Tests compare every visible sample, movie PTS,
+frame duration, every reverse seek and released buffer ownership.
+
+Reproduce the encoded streams with these commands:
+
+```sh
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf format=yuv422p -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=1 -pix_fmt yuv422p -movflags +faststart avc-high422-cabac.mp4
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf format=yuv422p -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=0 -pix_fmt yuv422p -movflags +faststart avc-high422-cavlc.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv422p,geq=lum='"'"'mod(X*17+Y*23+N*41,256)'"'"':cb='"'"'mod(X*7+Y*13+N*19,256)'"'"':cr='"'"'mod(X*31+Y*11+N*5,256)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 1 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=1 -pix_fmt yuv422p -movflags +faststart avc-high422-cabac-q1.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv422p,geq=lum='"'"'mod(X*17+Y*23+N*41,256)'"'"':cb='"'"'mod(X*7+Y*13+N*19,256)'"'"':cr='"'"'mod(X*31+Y*11+N*5,256)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 40 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=0 -pix_fmt yuv422p -movflags +faststart avc-high422-cavlc-q40.mp4
+```
+
+Decode each stream to raw `yuv422p` using FFmpeg with `-threads 1`,
+`-fps_mode passthrough` and `-f rawvideo`, then gzip the raw sequence.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-high422-cabac.mp4` | `7d2ff6a80988220cafd182af601a91bc26e56282516880568f393abedcf0c039` |
+| `avc-high422-cabac.yuv.gz` | `2f25e41049d1f3b1efc4351e78d295ebb3313fdf27e39095b27bf1852447b955` |
+| `avc-high422-cavlc.mp4` | `16568f864504287d2003e894307b0a0d3577026439b8d3b1d918b894fb2fdae2` |
+| `avc-high422-cavlc.yuv.gz` | `413b87da94d3a7407324c03d429727c9d19834aaf08e33e258f17f698c4b317b` |
+| `avc-high422-cabac-q1.mp4` | `c8c38e263515357460aa267124b1cda3dc64777cbfd51fa6ee10ae7decf8719b` |
+| `avc-high422-cabac-q1.yuv.gz` | `90b687f1a08f961489090f5757ac85200f1e8f38bafdf451aad9dd0311ad7339` |
+| `avc-high422-cavlc-q40.mp4` | `82a78da4c86a30092fae51d2657101788a7f3e46a9df1dbe8c13901433a78891` |
+| `avc-high422-cavlc-q40.yuv.gz` | `30a33b6ec0229c6300e06247141e815a40c355b61c1a922286bea19ce27a02b2` |

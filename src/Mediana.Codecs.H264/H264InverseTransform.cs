@@ -101,9 +101,14 @@ namespace Mediana.Codecs.H264
         public static void ChromaDc(ReadOnlySpan<int> scanned, int qp, Span<int> rasterDc)
         {
             ValidateQp(qp);
+            if (scanned.Length == 8 && rasterDc.Length == 8)
+            {
+                ChromaDc422(scanned, qp, rasterDc);
+                return;
+            }
             if (scanned.Length != 4 || rasterDc.Length != 4)
             {
-                throw new ArgumentException("The H.264 4:2:0 chroma DC transform requires four coefficients.");
+                throw new ArgumentException("The H.264 chroma DC transform requires matching blocks of four or eight coefficients.");
             }
             long a = (long)scanned[0] + scanned[1];
             long b = (long)scanned[0] - scanned[1];
@@ -113,6 +118,34 @@ namespace Mediana.Codecs.H264
             for (int index = 0; index < 4; index++)
             {
                 rasterDc[index] = checked((int)(((values[index] * ScaleEven[qp % 6]) << (qp / 6)) >> 1));
+            }
+        }
+
+        private static void ChromaDc422(ReadOnlySpan<int> scanned, int qp, Span<int> rasterDc)
+        {
+            ReadOnlySpan<int> scan = [0, 2, 1, 4, 6, 3, 5, 7];
+            Span<long> values = stackalloc long[8];
+            for (int index = 0; index < scanned.Length; index++)
+            {
+                values[scan[index]] = scanned[index];
+            }
+            for (int row = 0; row < 4; row++)
+            {
+                long left = values[row * 2];
+                long right = values[row * 2 + 1];
+                values[row * 2] = left + right;
+                values[row * 2 + 1] = left - right;
+            }
+            HadamardLine(values, 0, 2);
+            HadamardLine(values, 1, 2);
+            int dcQp = qp + 3;
+            int quotient = dcQp / 6;
+            for (int index = 0; index < values.Length; index++)
+            {
+                long value = values[index] * ScaleEven[dcQp % 6];
+                long scaled = quotient >= 2 ? value << (quotient - 2)
+                    : (value + (1 << (1 - quotient))) >> (2 - quotient);
+                rasterDc[index] = checked((int)scaled);
             }
         }
 

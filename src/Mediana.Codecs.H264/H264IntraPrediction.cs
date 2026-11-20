@@ -115,7 +115,7 @@ namespace Mediana.Codecs.H264
                     output[..256].Fill((byte)Dc(top, left));
                     return;
                 case 3:
-                    Plane(top, left, corner!.Value, output, 16);
+                    Plane(top, left, corner!.Value, output, 16, 16);
                     return;
                 default:
                     throw new InvalidDataException("Invalid H.264 intra 16x16 prediction mode.");
@@ -123,15 +123,23 @@ namespace Mediana.Codecs.H264
         }
 
         public static void Chroma8x8(int mode, ReadOnlySpan<byte> top, ReadOnlySpan<byte> left,
-            byte? corner, Span<byte> output)
+            byte? corner, Span<byte> output) =>
+            Chroma(mode, top, left, corner, output, 8);
+
+        public static void Chroma(int mode, ReadOnlySpan<byte> top, ReadOnlySpan<byte> left,
+            byte? corner, Span<byte> output, int height)
         {
+            if (height is not (8 or 16) || output.Length != 8 * height)
+            {
+                throw new ArgumentException("Invalid H.264 chroma prediction dimensions.");
+            }
             ValidateNeighbours(mode is 2 or 3, mode is 1 or 3, mode == 3, top, left, corner);
             if (mode == 3)
             {
-                Plane(top, left, corner!.Value, output, 8);
+                Plane(top, left, corner!.Value, output, 8, height);
                 return;
             }
-            for (int blockY = 0; blockY < 8; blockY += 4)
+            for (int blockY = 0; blockY < height; blockY += 4)
             {
                 for (int blockX = 0; blockX < 8; blockX += 4)
                 {
@@ -205,25 +213,29 @@ namespace Mediana.Codecs.H264
             return (y & 1) == 0 ? Half(a, b) : Quarter(a, b, c);
         }
 
-        private static void Plane(ReadOnlySpan<byte> top, ReadOnlySpan<byte> left, byte corner, Span<byte> output, int size)
+        private static void Plane(ReadOnlySpan<byte> top, ReadOnlySpan<byte> left, byte corner, Span<byte> output, int size, int height)
         {
             int half = size / 2;
+            int halfHeight = height / 2;
             int h = 0;
             int v = 0;
             for (int index = 0; index < half; index++)
             {
                 h += (index + 1) * (top[half + index] - Reference(top, corner, half - 2 - index));
-                v += (index + 1) * (left[half + index] - Reference(left, corner, half - 2 - index));
+            }
+            for (int index = 0; index < halfHeight; index++)
+            {
+                v += (index + 1) * (left[halfHeight + index] - Reference(left, corner, halfHeight - 2 - index));
             }
             int factor = size == 16 ? 5 : 34;
             int b = (factor * h + 32) >> 6;
-            int c = (factor * v + 32) >> 6;
-            int a = 16 * (top[size - 1] + left[size - 1]);
-            for (int y = 0; y < size; y++)
+            int c = ((height == 16 ? 5 : 34) * v + 32) >> 6;
+            int a = 16 * (top[size - 1] + left[height - 1]);
+            for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    output[y * size + x] = (byte)Math.Clamp((a + b * (x - half + 1) + c * (y - half + 1) + 16) >> 5, 0, 255);
+                    output[y * size + x] = (byte)Math.Clamp((a + b * (x - half + 1) + c * (y - halfHeight + 1) + 16) >> 5, 0, 255);
                 }
             }
         }

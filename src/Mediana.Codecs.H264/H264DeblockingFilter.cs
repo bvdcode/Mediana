@@ -9,11 +9,14 @@ namespace Mediana.Codecs.H264
     internal static class H264DeblockingFilter
     {
         public static void Apply(Span<byte> pixels, int start, int stride, bool vertical, bool chroma,
-            ReadOnlySpan<byte> strengths, in H264DeblockingThresholds thresholds)
+            ReadOnlySpan<byte> strengths, in H264DeblockingThresholds thresholds) =>
+            Apply(pixels, start, stride, vertical, chroma, chroma ? 2 : 4, strengths, thresholds);
+
+        public static void Apply(Span<byte> pixels, int start, int stride, bool vertical, bool chroma,
+            int segmentLength, ReadOnlySpan<byte> strengths, in H264DeblockingThresholds thresholds)
         {
             if (Sse2.IsSupported)
             {
-                int segmentLength = chroma ? 2 : 4;
                 int size = 4 * segmentLength;
                 for (int offset = 0; offset < size; offset += 8)
                 {
@@ -24,7 +27,7 @@ namespace Mediana.Codecs.H264
                     short secondClip = thresholds.Clipping(second);
                     Vector128<short> boundary;
                     Vector128<short> clipping;
-                    if (chroma)
+                    if (segmentLength == 2)
                     {
                         short third = strengths[2];
                         short fourth = strengths[3];
@@ -49,7 +52,6 @@ namespace Mediana.Codecs.H264
             }
             int step = vertical ? 1 : stride;
             int along = vertical ? stride : 1;
-            int length = chroma ? 2 : 4;
             for (int segment = 0; segment < 4; segment++)
             {
                 int strength = strengths[segment];
@@ -58,9 +60,9 @@ namespace Mediana.Codecs.H264
                 {
                     continue;
                 }
-                for (int offset = 0; offset < length; offset++)
+                for (int offset = 0; offset < segmentLength; offset++)
                 {
-                    Filter(pixels, start + (segment * length + offset) * along, step,
+                    Filter(pixels, start + (segment * segmentLength + offset) * along, step,
                         thresholds.Alpha, thresholds.Beta, tc, strength == 4, chroma);
                 }
             }

@@ -8,7 +8,7 @@ namespace Mediana.Codecs.H264
         public static void PredictPartition(H264Picture target, H264SliceHeader header, H264BidirectionalReferences references,
             H264PictureOrder order, int x, int y, int width, int height, H264PartitionMotion l0, H264PartitionMotion l1, Span<byte> prediction)
         {
-            if (header.Kind != H264SliceKind.B || prediction.Length != 384 || width <= 0 || height <= 0
+            if (header.Kind != H264SliceKind.B || prediction.Length != target.MacroblockSamples || width <= 0 || height <= 0
                 || x < 0 || y < 0 || x % 16 + width > 16 || y % 16 + height > 16)
             {
                 throw new InvalidDataException("Invalid H.264 B prediction partition.");
@@ -26,7 +26,7 @@ namespace Mediana.Codecs.H264
             for (int plane = 0; plane < 3; plane++)
             {
                 int scale = plane == 0 ? 1 : 2;
-                int count = width / scale * (height / scale);
+                int count = width / scale * (height / target.VerticalScale(plane));
                 Span<byte> samples0 = block0[..count];
                 Span<byte> samples1 = block1[..count];
                 if (reference0 is not null)
@@ -48,17 +48,17 @@ namespace Mediana.Codecs.H264
                         _ => throw new InvalidDataException("Invalid H.264 B weighted prediction mode.")
                     };
                     weights.Apply(samples0, samples1, samples0);
-                    H264PredictionBlock.Write(plane, x, y, width, height, samples0, prediction);
+                    H264PredictionBlock.Write(target, plane, x, y, width, height, samples0, prediction);
                 }
                 else if (reference0 is not null)
                 {
                     ApplySingle(header, H264ReferenceList.L0, l0.ReferenceIndex, plane, samples0);
-                    H264PredictionBlock.Write(plane, x, y, width, height, samples0, prediction);
+                    H264PredictionBlock.Write(target, plane, x, y, width, height, samples0, prediction);
                 }
                 else
                 {
                     ApplySingle(header, H264ReferenceList.L1, l1.ReferenceIndex, plane, samples1);
-                    H264PredictionBlock.Write(plane, x, y, width, height, samples1, prediction);
+                    H264PredictionBlock.Write(target, plane, x, y, width, height, samples1, prediction);
                 }
             }
         }

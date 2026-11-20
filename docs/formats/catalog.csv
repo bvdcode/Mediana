@@ -178,7 +178,7 @@ avc-main,Video codecs and substantial profiles,H.264 / AVC,Main,video-codec,.h26
 avc-extended,Video codecs and substantial profiles,H.264 / AVC,Extended,video-codec,.h264 .264,B,h264,
 avc-high,Video codecs and substantial profiles,H.264 / AVC,High,video-codec,.h264 .264,A,h264,Current progressive 8-bit 4:2:0 reconstruction uses default scaling matrices.
 avc-high10,Video codecs and substantial profiles,H.264 / AVC,High 10 / High 10 Intra,video-codec,.h264 .264,B,h264,Parsing profile identifiers is not 10-bit decoding support.
-avc-high422,Video codecs and substantial profiles,H.264 / AVC,High 4:2:2 / High 4:2:2 Intra,video-codec,.h264 .264,B,h264,
+avc-high422,Video codecs and substantial profiles,H.264 / AVC,High 4:2:2 / High 4:2:2 Intra,video-codec,.h264 .264,B,h264,Progressive 8-bit CABAC/CAVLC I/P/B decoding with flat scaling; 10-bit and interlaced reconstruction remain open.
 avc-high444,Video codecs and substantial profiles,H.264 / AVC,High 4:4:4 Predictive / Intra,video-codec,.h264 .264,B,h264,
 avc-cavlc444,Video codecs and substantial profiles,H.264 / AVC,CAVLC 4:4:4 Intra,video-codec,.h264 .264,C,h264,
 avc-interlaced,Video codecs and substantial profiles,H.264 / AVC,Field pictures / PAFF / MBAFF,video-codec,.h264 .264,B,h264,Tool-specific coverage across applicable profiles.

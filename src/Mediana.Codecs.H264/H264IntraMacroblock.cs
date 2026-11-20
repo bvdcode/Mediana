@@ -65,17 +65,19 @@ namespace Mediana.Codecs.H264
             {
                 int size = plane == 0 ? 16 : 8;
                 int planeX = plane == 0 ? x : x / 2;
-                int planeY = plane == 0 ? y : y / 2;
+                int verticalScale = target.VerticalScale(plane);
+                int planeY = y / verticalScale;
+                int height = 16 / verticalScale;
                 int stride = target.Stride(plane);
                 Span<byte> pixels = target.Plane(plane);
-                for (int row = 0; row < size; row++)
+                for (int row = 0; row < height; row++)
                 {
                     for (int column = 0; column < size; column++)
                     {
                         pixels[(planeY + row) * stride + planeX + column] = (byte)bits.ReadBits(8);
                     }
                 }
-                for (int row = 0; row < size; row += 4)
+                for (int row = 0; row < height; row += 4)
                 {
                     for (int column = 0; column < size; column += 4)
                     {

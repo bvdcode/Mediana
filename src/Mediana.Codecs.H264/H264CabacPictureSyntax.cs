@@ -161,7 +161,8 @@ namespace Mediana.Codecs.H264
             }
             int context;
             int scale = plane == 0 ? 16 : 8;
-            int address = y / scale * target.Sequence.WidthInMbs + x / scale;
+            int verticalScale = target.VerticalScale(plane);
+            int address = y / (16 / verticalScale) * target.Sequence.WidthInMbs + x / scale;
             bool intra = state.IsIntra(address);
             bool dc = category is H264ResidualCategory.Intra16LumaDc or H264ResidualCategory.ChromaDc;
             if (dc)
@@ -174,8 +175,8 @@ namespace Mediana.Codecs.H264
                 int position = target.BlockIndex(plane, x, y);
                 int unavailable = intra ? 1 : 0;
                 int sampleScale = plane == 0 ? 1 : 2;
-                context = !target.IsInCurrentSlice(x * sampleScale - 1, y * sampleScale) ? unavailable : counts[position - 1] != 0 ? 1 : 0;
-                context += 2 * (!target.IsInCurrentSlice(x * sampleScale, y * sampleScale - 1) ? unavailable : counts[position - target.Stride(plane) / 4] != 0 ? 1 : 0);
+                context = !target.IsInCurrentSlice(x * sampleScale - 1, y * verticalScale) ? unavailable : counts[position - 1] != 0 ? 1 : 0;
+                context += 2 * (!target.IsInCurrentSlice(x * sampleScale, y * verticalScale - 1) ? unavailable : counts[position - target.Stride(plane) / 4] != 0 ? 1 : 0);
             }
             int total = H264CabacResidual.Read(ref bits, reader, category, context, coefficients);
             if (dc && total != 0)

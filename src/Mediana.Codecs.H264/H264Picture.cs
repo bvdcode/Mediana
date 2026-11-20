@@ -30,7 +30,13 @@ namespace Mediana.Codecs.H264
             Width = sequence.CodedWidth;
             Height = sequence.CodedHeight;
             lumaBytes = checked(Width * Height);
-            chromaBytes = lumaBytes / 4;
+            ChromaVerticalScale = sequence.ChromaFormat switch
+            {
+                1 => 2,
+                2 => 1,
+                _ => throw new NotSupportedException("H.264 picture storage requires 4:2:0 or 4:2:2 chroma.")
+            };
+            chromaBytes = lumaBytes / (2 * ChromaVerticalScale);
             lumaBlocks = lumaBytes / 16;
             chromaBlocks = chromaBytes / 16;
             macroblocks = lumaBytes / 256;
@@ -61,6 +67,11 @@ namespace Mediana.Codecs.H264
         public H264SequenceParameterSet Sequence { get; }
         public int Width { get; }
         public int Height { get; }
+        public int ChromaVerticalScale { get; }
+        public int ChromaMacroblockHeight => 16 / ChromaVerticalScale;
+        public int ChromaMacroblockSamples => 8 * ChromaMacroblockHeight;
+        public int MacroblockSamples => 256 + 2 * ChromaMacroblockSamples;
+        public int VerticalScale(int plane) => plane == 0 ? 1 : ChromaVerticalScale;
         public bool HasBidirectionalMotion => referenceLists == 2;
         public int FirstMacroblock { get; set; }
         private int ModesOffset => lumaBlocks + chromaBlocks * 2;
@@ -85,8 +96,9 @@ namespace Mediana.Codecs.H264
             Span<byte> counts = Counts(plane);
             int index = BlockIndex(plane, x, y);
             int scale = plane == 0 ? 1 : 2;
-            bool hasLeft = IsInCurrentSlice(x * scale - 1, y * scale);
-            bool hasTop = IsInCurrentSlice(x * scale, y * scale - 1);
+            int verticalScale = VerticalScale(plane);
+            bool hasLeft = IsInCurrentSlice(x * scale - 1, y * verticalScale);
+            bool hasTop = IsInCurrentSlice(x * scale, y * verticalScale - 1);
             int left = hasLeft ? counts[index - 1] : 0;
             int top = hasTop ? counts[index - Stride(plane) / 4] : 0;
             return !hasLeft ? top : !hasTop ? left : (left + top + 1) >> 1;
@@ -169,32 +181,34 @@ namespace Mediana.Codecs.H264
         public void PredictMacroblock(int plane, int x, int y, int mode, Span<byte> output, bool constrained = false)
         {
             int size = plane == 0 ? 16 : 8;
+            int height = 16 / VerticalScale(plane);
             int stride = Stride(plane);
             Span<byte> pixels = Plane(plane);
             Span<byte> top = stackalloc byte[16];
             Span<byte> left = stackalloc byte[16];
             int scale = plane == 0 ? 1 : 2;
-            bool hasTop = IsAvailable(x * scale, y * scale - 1, constrained);
-            bool hasLeft = IsAvailable(x * scale - 1, y * scale, constrained);
+            int verticalScale = VerticalScale(plane);
+            bool hasTop = IsAvailable(x * scale, y * verticalScale - 1, constrained);
+            bool hasLeft = IsAvailable(x * scale - 1, y * verticalScale, constrained);
             if (hasTop)
             {
                 pixels.Slice((y - 1) * stride + x, size).CopyTo(top);
             }
             if (hasLeft)
             {
-                for (int index = 0; index < size; index++)
+                for (int index = 0; index < height; index++)
                 {
                     left[index] = pixels[(y + index) * stride + x - 1];
                 }
             }
-            byte? corner = IsAvailable(x * scale - 1, y * scale - 1, constrained) ? pixels[(y - 1) * stride + x - 1] : null;
+            byte? corner = IsAvailable(x * scale - 1, y * verticalScale - 1, constrained) ? pixels[(y - 1) * stride + x - 1] : null;
             if (plane == 0)
             {
                 H264IntraPrediction.Luma16x16(mode, hasTop ? top : [], hasLeft ? left : [], corner, output);
             }
             else
             {
-                H264IntraPrediction.Chroma8x8(mode, hasTop ? top[..8] : [], hasLeft ? left[..8] : [], corner, output);
+                H264IntraPrediction.Chroma(mode, hasTop ? top[..8] : [], hasLeft ? left[..height] : [], corner, output, height);
             }
         }
 

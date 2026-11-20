@@ -10,14 +10,17 @@ namespace Mediana.Tests
     public class H264PcmTests
     {
         [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public void PcmPreservesAllSamplesAndChecksAlignment(bool invalidAlignment)
+        [InlineData(false, 1)]
+        [InlineData(false, 2)]
+        [InlineData(true, 1)]
+        [InlineData(true, 2)]
+        public void PcmPreservesAllSamplesAndChecksAlignment(bool invalidAlignment, int chromaFormat)
         {
             H264SequenceParameterSet sequence = new()
             {
                 Id = 0,
-                Profile = 66,
+                Profile = chromaFormat == 1 ? 66 : 122,
+                ChromaFormat = chromaFormat,
                 FrameNumberBits = 4,
                 PictureOrderType = 2,
                 WidthInMbs = 1,
@@ -35,7 +38,8 @@ namespace Mediana.Tests
             // IDR I slice, QP 26, deblocking disabled, I_PCM macroblock and seven alignment bits.
             StringBuilder syntax = new("1011100001001010000011010");
             syntax.Append(invalidAlignment ? "1000000" : "0000000");
-            byte[] expected = new byte[384];
+            int chromaSamples = 64 * chromaFormat;
+            byte[] expected = new byte[256 + 2 * chromaSamples];
             for (int index = 0; index < expected.Length; index++)
             {
                 expected[index] = (byte)(index % 8 < 4 ? 0 : index % 256);
@@ -51,8 +55,8 @@ namespace Mediana.Tests
             {
                 using H264Picture actual = H264IntraDecoder.Decode(nal, configuration, allocator);
                 Assert.Equal(expected[..256], actual.Plane(0).ToArray());
-                Assert.Equal(expected[256..320], actual.Plane(1).ToArray());
-                Assert.Equal(expected[320..], actual.Plane(2).ToArray());
+                Assert.Equal(expected[256..(256 + chromaSamples)], actual.Plane(1).ToArray());
+                Assert.Equal(expected[(256 + chromaSamples)..], actual.Plane(2).ToArray());
                 Assert.All(actual.Counts(0).ToArray(), count => Assert.Equal(16, count));
                 Assert.All(actual.Modes.ToArray(), mode => Assert.Equal(2, mode));
                 Assert.Equal(0, actual.Quantizers[0]);

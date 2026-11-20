@@ -82,7 +82,7 @@ namespace Mediana.Codecs.H264
             }
             int x = address % header.Sequence.WidthInMbs * 16;
             int y = address / header.Sequence.WidthInMbs * 16;
-            Span<byte> prediction = stackalloc byte[384];
+            Span<byte> prediction = stackalloc byte[target.MacroblockSamples];
             bool noSmallPartitions = H264BidirectionalSyntax.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, order, x, y, type, prediction);
             H264InterMacroblock.ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions, skip);
         }

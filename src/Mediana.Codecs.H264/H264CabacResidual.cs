@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    /// <summary>Reads progressive 4:2:0 transform coefficients in scan order under H.264 clause 7.3.5.3.3.</summary>
+    /// <summary>Reads progressive transform coefficients in scan order under H.264 clause 7.3.5.3.3.</summary>
     internal static class H264CabacResidual
     {
         // Rec. ITU-T H.264, Table 9-43 (frame-coded 8x8 significance contexts).
@@ -21,7 +21,7 @@ namespace Mediana.Codecs.H264
                 H264ResidualCategory.Intra16LumaDc => (16, 105, 166, 227),
                 H264ResidualCategory.Intra16LumaAc => (15, 120, 181, 237),
                 H264ResidualCategory.Luma4x4 => (16, 134, 195, 247),
-                H264ResidualCategory.ChromaDc => (4, 149, 210, 257),
+                H264ResidualCategory.ChromaDc when coefficients.Length is 4 or 8 => (coefficients.Length, 149, 210, 257),
                 H264ResidualCategory.ChromaAc => (15, 152, 213, 266),
                 H264ResidualCategory.Luma8x8 => (64, 402, 417, 426),
                 _ => throw new ArgumentOutOfRangeException(nameof(category))
@@ -42,10 +42,11 @@ namespace Mediana.Codecs.H264
             int last = count - 1;
             for (int index = 0; index < count - 1; index++)
             {
-                int significantContext = significantBase + (count == 64 ? Significant8x8[index] : index);
+                int positionContext = category == H264ResidualCategory.ChromaDc ? Math.Min(index / (count / 4), 2) : index;
+                int significantContext = significantBase + (count == 64 ? Significant8x8[index] : positionContext);
                 if (reader.Read(ref bits, significantContext))
                 {
-                    int lastContext = lastBase + (count == 64 ? Last8x8(index) : index);
+                    int lastContext = lastBase + (count == 64 ? Last8x8(index) : positionContext);
                     if (reader.Read(ref bits, lastContext))
                     {
                         last = index;

@@ -354,7 +354,7 @@ avc-high,decode,partial,partial,partial,planned,planned,planned,../../tests/Medi
 avc-high,encode,planned,planned,planned,planned,planned,planned,
 avc-high10,decode,planned,planned,planned,planned,planned,planned,
 avc-high10,encode,planned,planned,planned,planned,planned,planned,
-avc-high422,decode,planned,planned,planned,planned,planned,planned,
+avc-high422,decode,partial,partial,partial,planned,partial,partial,../h264-chroma-422.md;../../tests/Mediana.Tests/Data/Mp4/README.md
 avc-high422,encode,planned,planned,planned,planned,planned,planned,
 avc-high444,decode,planned,planned,planned,planned,planned,planned,
 avc-high444,encode,planned,planned,planned,planned,planned,planned,

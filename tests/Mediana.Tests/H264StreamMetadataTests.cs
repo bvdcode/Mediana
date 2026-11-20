@@ -43,17 +43,17 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData("avc-high10.mp4")]
-        [InlineData("avc-high422.mp4")]
-        [InlineData("avc-high444.mp4")]
-        [InlineData("avc-interlaced.mp4")]
-        public async Task UnsupportedDecodingDoesNotMakeValidAvcConfigurationMalformed(string file)
+        [InlineData("avc-high10.mp4", false)]
+        [InlineData("avc-high422.mp4", true)]
+        [InlineData("avc-high444.mp4", false)]
+        [InlineData("avc-interlaced.mp4", false)]
+        public async Task DecodingCapabilitiesDoNotChangeConfigurationValidity(string file, bool canDecode)
         {
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata", file)));
             MediaInfo info = await MediaProbeTestInput.CreateEngine().ProbeAsync(source);
             H264Configuration parsed = H264Configuration.Parse(info.Streams[0].Configuration.Span, new H264DecoderOptions());
             Assert.Single(parsed.Sequences);
-            Assert.NotNull(new H264DecoderFactory().GetUnsupportedReason(info.Streams[0]));
+            Assert.Equal(canDecode, new H264DecoderFactory().GetUnsupportedReason(info.Streams[0]) is null);
             byte[] damaged = info.Streams[0].Configuration.ToArray();
             if (file is not "avc-interlaced.mp4")
             {

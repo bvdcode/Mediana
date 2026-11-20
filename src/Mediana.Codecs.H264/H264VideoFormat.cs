@@ -19,7 +19,13 @@ namespace Mediana.Codecs.H264
             }
             SampleAspectRatio? codecAspect = ReadSampleAspectRatio(vui);
             SampleAspectRatio? aspect = aspectRatioDescription?.Resolve(codecAspect) ?? codecAspect;
-            return new VideoFormat(sequence.Width, sequence.Height, VideoPixelFormat.Yuv420P8,
+            VideoPixelFormat pixels = sequence.ChromaFormat switch
+            {
+                1 => VideoPixelFormat.Yuv420P8,
+                2 => VideoPixelFormat.Yuv422P8,
+                _ => throw new NotSupportedException("The H.264 decoded chroma layout is unsupported.")
+            };
+            return new VideoFormat(sequence.Width, sequence.Height, pixels,
                 ReadColor(vui, topLocation), aspect, colorDescription);
         }
 
