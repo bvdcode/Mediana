@@ -14,6 +14,149 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync(string root)
         {
+            await H264PresentationRecoveryTestInput.VerifyAsync(Path.Combine(root, "..", "Metadata"));
+            foreach (string name in new[] { "avc-presentation-1", "avc-presentation-2", "avc-presentation-5", "avc-presentation-hrd" })
+            {
+                await H264PresentationTestInput.VerifyAsync(Path.Combine(root, name));
+            }
+            foreach (string name in new[] { "avc-mixed-cabac", "avc-mixed-cavlc" })
+            {
+                await H264FieldTestInput.VerifyMixedSequenceAsync(root, name);
+            }
+            foreach (string name in new[]
+            {
+                "avc-mixed-b-cabac-spatial", "avc-mixed-b-cavlc-spatial", "avc-mixed-b-cabac-temporal", "avc-mixed-b-cavlc-temporal"
+            })
+            {
+                await H264FieldTestInput.VerifyMixedBidirectionalSequenceAsync(root, name);
+            }
+            await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-pcm-field", true);
+            await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-pcm-adaptive", false);
+            await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-cabac-pcm-field", true);
+            await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-cabac-pcm-adaptive", false);
+            foreach (string name in new[]
+            {
+                "avc-mbaff-intra-cavlc", "avc-mbaff-intra-field", "avc-mbaff-intra-high10", "avc-mbaff-intra-422-10",
+                "avc-mbaff-intra-cabac", "avc-mbaff-intra-cabac-field", "avc-mbaff-intra-cabac-high10", "avc-mbaff-intra-cabac-422-10",
+                "avc-mbaff-intra-422", "avc-mbaff-intra-cabac-422"
+            })
+            {
+                bool requireFields = name is "avc-mbaff-intra-field" or "avc-mbaff-intra-cabac-field";
+                int fieldPairs = await H264FieldTestInput.VerifyMbaffIntraAsync(root, name, requireFields);
+                if (!requireFields && fieldPairs is not (> 0 and < 18))
+                {
+                    throw new InvalidDataException("The MBAFF intra fixture must exercise both pair structures.");
+                }
+            }
+            foreach (string name in new[] { "avc-mbaff-intra-8x8-10", "avc-mbaff-intra-cabac-8x8-10" })
+            {
+                await H264FieldTestInput.VerifyMbaffIntraAsync(root, name, true, true);
+            }
+            foreach (string name in new[]
+            {
+                "avc-mbaff-p-cavlc-field", "avc-mbaff-p-cavlc-adaptive", "avc-mbaff-p-cavlc-high10",
+                "avc-mbaff-p-cavlc-422-10", "avc-mbaff-p-cavlc-422"
+            })
+            {
+                await H264MbaffSequenceTestInput.VerifyPredictiveAsync(root, name, 6);
+            }
+            foreach (string name in new[]
+            {
+                "avc-mbaff-p-cabac-field", "avc-mbaff-p-cabac-adaptive", "avc-mbaff-p-cabac-high10",
+                "avc-mbaff-p-cabac-422-10", "avc-mbaff-p-cabac-422"
+            })
+            {
+                await H264MbaffSequenceTestInput.VerifyPredictiveAsync(root, name, 6, true);
+            }
+            foreach (string entropy in new[] { "cavlc", "cabac" })
+            {
+                foreach (string direct in new[] { "spatial", "temporal" })
+                {
+                    foreach (string variant in new[] { "field", "adaptive", "high10", "422-10", "422" })
+                    {
+                        await H264MbaffSequenceTestInput.VerifyPredictiveAsync(root, $"avc-mbaff-b-{entropy}-{direct}-{variant}",
+                            12, entropy == "cabac", [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 11]);
+                    }
+                }
+            }
+            foreach (string entropy in new[] { "cavlc", "cabac" })
+            {
+                foreach (string direct in new[] { "spatial", "temporal" })
+                {
+                    foreach (string variant in new[] { "field", "adaptive", "high10", "422-10", "422" })
+                    {
+                        VideoPixelFormat pixels = variant switch
+                        {
+                            "field" or "adaptive" => VideoPixelFormat.Yuv420P8,
+                            "high10" => VideoPixelFormat.Yuv420P10,
+                            "422-10" => VideoPixelFormat.Yuv422P10,
+                            "422" => VideoPixelFormat.Yuv422P8,
+                            _ => throw new InvalidDataException("Invalid H.264 test pixel format.")
+                        };
+                        string name = $"avc-mbaff-filter-{entropy}-{direct}-{variant}";
+                        await H264MbaffSequenceTestInput.VerifyPredictiveAsync(root, name, 12, entropy == "cabac",
+                            [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 11], true);
+                        await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), pixels, 96, 96, 12, 12,
+                            Enumerable.Repeat(VideoScanMode.TopFieldFirst, 12).ToArray());
+                    }
+                }
+            }
+            foreach (string entropy in new[] { "cavlc", "cabac" })
+            {
+                foreach (string direct in new[] { "spatial", "temporal" })
+                {
+                    foreach (string variant in new[] { "adaptive", "422-10" })
+                    {
+                        VideoPixelFormat pixels = variant switch
+                        {
+                            "adaptive" => VideoPixelFormat.Yuv420P8,
+                            "422-10" => VideoPixelFormat.Yuv422P10,
+                            _ => throw new InvalidDataException("Invalid H.264 test pixel format.")
+                        };
+                        await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, $"avc-mbaff-slices-{entropy}-{direct}-{variant}"),
+                            pixels, 96, 96, 12, 12, Enumerable.Repeat(VideoScanMode.TopFieldFirst, 12).ToArray());
+                    }
+                }
+            }
+            foreach ((string variant, VideoPixelFormat pixels) in new[]
+            {
+                ("420", VideoPixelFormat.Yuv420P8), ("420-10", VideoPixelFormat.Yuv420P10),
+                ("422", VideoPixelFormat.Yuv422P8), ("422-10", VideoPixelFormat.Yuv422P10)
+            })
+            {
+                foreach ((string order, VideoScanMode scan) in new[]
+                {
+                    ("tff", VideoScanMode.TopFieldFirst), ("bff", VideoScanMode.BottomFieldFirst)
+                })
+                {
+                    await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, $"avc-mbaff-x264-{variant}-{order}"),
+                        pixels, 94, 92, 12, 12, Enumerable.Repeat(scan, 12).ToArray());
+                }
+            }
+            foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
+            {
+                await H264FieldTestInput.VerifySequenceAsync(root, name);
+            }
+            foreach (string name in new[]
+            {
+                "avc-paff-b-cabac", "avc-paff-b-cavlc", "avc-paff-b-cabac-temporal", "avc-paff-b-cavlc-temporal",
+                "avc-paff-high10-cabac", "avc-paff-high422-cavlc", "avc-paff-high422-10-cabac"
+            })
+            {
+                await H264FieldTestInput.VerifySequenceAsync(root, name, [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 11]);
+            }
+            foreach (string name in new[] { "avc-high422-cabac", "avc-high422-cavlc", "avc-high422-cabac-q1", "avc-high422-cavlc-q40" })
+            {
+                await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), VideoPixelFormat.Yuv422P8, 82, 74, 24, 12);
+            }
+            foreach (string name in new[] { "avc-high10-cabac", "avc-high10-cavlc", "avc-high10-cabac-q1", "avc-high10-cavlc-q1" })
+            {
+                await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), VideoPixelFormat.Yuv420P10, 82, 74, 24, 12);
+            }
+            foreach (string name in new[] { "avc-high422-10-cabac", "avc-high422-10-cavlc", "avc-high422-10-cabac-q45", "avc-high422-10-cavlc-q1" })
+            {
+                await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), VideoPixelFormat.Yuv422P10, 82, 74, 24, 12);
+            }
             List<byte> baseline = [];
             for (int index = 0; index < 6; index++)
             {

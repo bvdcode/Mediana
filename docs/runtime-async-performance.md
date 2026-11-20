@@ -153,6 +153,18 @@ before zero.
 
 ## Reproduction and scope
 
+SDK 11.0.100 can omit CS4007 when a `Span<T>` or another `ref struct`
+survives an `await`; after suspension, that local can be reset to its default
+value. The issue and compiler correction are tracked in
+[Roslyn #86469](https://github.com/dotnet/roslyn/issues/86469) and
+[Roslyn #86486](https://github.com/dotnet/roslyn/pull/86486).
+Mediana keeps borrowed spans and bit readers within synchronous sections.
+The complete solution also builds with `runtime-async=off`, which preserves
+the compiler's lifetime diagnostics. CI runs that compilation in a separate
+artifact directory before building and testing the normal Runtime Async
+configuration. Release compilation of the complete solution with ordinary
+async produced zero warnings and errors on .NET SDK 11.0.100.
+
 Build control and candidate into separate artifact directories. For JIT, use
 `dotnet build benchmarks/Mediana.ProcessingBenchmarks -c Release`; for Native AOT,
 use `dotnet publish benchmarks/Mediana.ProcessingBenchmarks -c Release -r linux-x64

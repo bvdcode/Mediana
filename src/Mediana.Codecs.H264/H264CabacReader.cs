@@ -8,6 +8,7 @@ namespace Mediana.Codecs.H264
         private readonly H264CabacContext[] contexts;
         private readonly H264CabacContext[] transformContexts;
         private readonly H264CabacContext[] bidirectionalContexts;
+        private readonly H264CabacContext[] fieldContexts;
         private readonly H264SliceKind kind;
         private H264CabacDecoder decoder;
 
@@ -18,25 +19,31 @@ namespace Mediana.Codecs.H264
                 throw new NotSupportedException("The CABAC reader requires arithmetic entropy coding.");
             }
             kind = header.Kind;
+            int contextQp = new H264Quantizer(header.Sequence.LumaBitDepth).ContextValue(header.Qp);
             contexts = kind switch
             {
-                H264SliceKind.I => H264CabacIntraContexts.Create(header.Qp),
-                H264SliceKind.P or H264SliceKind.B => H264CabacPredictiveContexts.Create(header.Qp, header.CabacInitIdc),
+                H264SliceKind.I => H264CabacIntraContexts.Create(contextQp),
+                H264SliceKind.P or H264SliceKind.B => H264CabacPredictiveContexts.Create(contextQp, header.CabacInitIdc),
                 _ => throw new NotSupportedException("The CABAC reader supports I, P and B slices.")
             };
             bidirectionalContexts = kind switch
             {
-                H264SliceKind.B => H264CabacBidirectionalContexts.Create(header.Qp, header.CabacInitIdc),
+                H264SliceKind.B => H264CabacBidirectionalContexts.Create(contextQp, header.CabacInitIdc),
                 H264SliceKind.I or H264SliceKind.P => [],
                 _ => throw new NotSupportedException("The CABAC reader supports I, P and B slices.")
             };
-            transformContexts = H264CabacTransformContexts.Create(header.Qp, kind, header.CabacInitIdc);
+            transformContexts = H264CabacTransformContexts.Create(contextQp, kind, header.CabacInitIdc);
+            fieldContexts = header.Sequence.FrameMbsOnly ? [] : H264CabacFieldContexts.Create(contextQp, kind, header.CabacInitIdc);
             bits.AlignOne();
             decoder = new H264CabacDecoder(ref bits);
         }
 
         public bool Read(ref H264BitReader bits, int contextIndex)
         {
+            if (contextIndex is >= 277 and <= 398 or >= 436 and <= 459)
+            {
+                return decoder.ReadBin(ref bits, ref fieldContexts[H264CabacFieldContexts.GetIndex(contextIndex)]);
+            }
             if (kind == H264SliceKind.B && contextIndex is >= 24 and <= 39)
             {
                 return decoder.ReadBin(ref bits, ref bidirectionalContexts[contextIndex - 24]);

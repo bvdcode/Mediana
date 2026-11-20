@@ -8,6 +8,9 @@ namespace Mediana.Codecs.H264
         private H264SequenceParameterSet? Sequence { get; init; }
         private int PreviousFrameNumber { get; init; }
         private int PreviousReferenceFrameNumber { get; init; }
+        private H264PictureStructure PreviousStructure { get; init; }
+        private bool PreviousWasReference { get; init; }
+        private bool PreviousFieldPaired { get; init; }
         private int FrameNumberOffset { get; init; }
         private int ReferenceOrderMsb { get; init; }
         private int ReferenceOrderLsb { get; init; }
@@ -21,7 +24,14 @@ namespace Mediana.Codecs.H264
                 throw new NotSupportedException("H.264 picture ordering must begin with an IDR picture.");
             }
             int maximumNumber = 1 << sequence.FrameNumberBits;
-            if (!header.IsIdr && header.FrameNumber != (PreviousReferenceFrameNumber + 1) % maximumNumber)
+            bool fieldPicture = header.Layout.IsField;
+            bool reference = header.ReferenceIndicator != 0;
+            bool reset = header.MemoryOperations.Any(operation => operation.Operation == 5);
+            bool pairCandidate = !PreviousFieldPaired && H264FieldPairing.IsCandidate(PreviousStructure,
+                PreviousFrameNumber, PreviousWasReference, header);
+            bool complementaryField = pairCandidate && !reset;
+            if (!header.IsIdr && header.FrameNumber != (PreviousReferenceFrameNumber + 1) % maximumNumber &&
+                !(pairCandidate && reference))
             {
                 if (header.FrameNumber == PreviousReferenceFrameNumber || !sequence.FrameNumberGapsAllowed)
                 {
@@ -50,7 +60,7 @@ namespace Mediana.Codecs.H264
                         msb -= maximumLsb;
                     }
                     top = msb + header.PictureOrderLsb;
-                    bottom = top + header.DeltaPictureOrderBottom;
+                    bottom = fieldPicture ? top : top + header.DeltaPictureOrderBottom;
                     break;
                 case 1:
                     long absoluteFrame = sequence.PictureOrderCycle.Count == 0 ? 0 : frameOffset + header.FrameNumber;
@@ -77,12 +87,12 @@ namespace Mediana.Codecs.H264
                         expected += sequence.NonReferencePictureOrderOffset;
                     }
                     top = expected + header.DeltaPictureOrder0;
-                    bottom = top + sequence.TopToBottomPictureOrderOffset + header.DeltaPictureOrder1;
+                    bottom = top + sequence.TopToBottomPictureOrderOffset + (fieldPicture ? 0 : header.DeltaPictureOrder1);
                     break;
                 case 2:
                     top = header.IsIdr ? 0 : 2 * (frameOffset + header.FrameNumber) - (header.ReferenceIndicator == 0 ? 1 : 0);
                     bottom = top;
-                    if (!header.IsIdr && top <= Current.Value)
+                    if (!header.IsIdr && (top < Current.Value || (top == Current.Value && !complementaryField)))
                     {
                         throw new InvalidDataException("H.264 type-two picture order must increase between resets.");
                     }
@@ -90,27 +100,37 @@ namespace Mediana.Codecs.H264
                 default:
                     throw new InvalidDataException("Invalid H.264 picture order type.");
             }
-            H264PictureOrder order = new(Bounded(top), Bounded(bottom));
+            H264PictureOrder order = CreateOrder(top, bottom, header.Structure);
             if (header.IsIdr && order.Value != 0)
             {
                 throw new InvalidDataException("An H.264 IDR picture must start at picture order zero.");
             }
-            bool reset = header.MemoryOperations.Any(operation => operation.Operation == 5);
             if (reset)
             {
-                order = new H264PictureOrder(Bounded(top - order.Value), Bounded(bottom - order.Value));
+                order = CreateOrder(top - order.Value, bottom - order.Value, header.Structure);
             }
             return new H264PictureOrderState
             {
                 Sequence = sequence,
                 PreviousFrameNumber = reset ? 0 : header.FrameNumber,
                 PreviousReferenceFrameNumber = header.ReferenceIndicator == 0 ? PreviousReferenceFrameNumber : reset ? 0 : header.FrameNumber,
+                PreviousStructure = header.Structure,
+                PreviousWasReference = reference,
+                PreviousFieldPaired = complementaryField,
                 FrameNumberOffset = reset ? 0 : Bounded(frameOffset),
                 ReferenceOrderMsb = header.ReferenceIndicator == 0 ? ReferenceOrderMsb : reset ? 0 : Bounded(msb),
                 ReferenceOrderLsb = header.ReferenceIndicator == 0 ? ReferenceOrderLsb : reset ? order.Top : header.PictureOrderLsb,
                 Current = order
             };
         }
+
+        private static H264PictureOrder CreateOrder(long top, long bottom, H264PictureStructure structure) => structure switch
+        {
+            H264PictureStructure.Frame => new(Bounded(top), Bounded(bottom), structure),
+            H264PictureStructure.TopField => new(Bounded(top), 0, structure),
+            H264PictureStructure.BottomField => new(0, Bounded(bottom), structure),
+            _ => throw new ArgumentOutOfRangeException(nameof(structure))
+        };
 
         private static int Bounded(long value) => value is >= int.MinValue and <= int.MaxValue ? (int)value
             : throw new InvalidDataException("An H.264 picture order value exceeds the signed 32-bit range.");

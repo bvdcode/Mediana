@@ -28,6 +28,7 @@ namespace Mediana.Processing
             VideoPixelFormat outputPixelFormat, MediaBufferAllocator allocator)
         {
             ArgumentNullException.ThrowIfNull(inputFormat);
+            VideoScanGeometry.RequireProgressive(inputFormat);
             ArgumentNullException.ThrowIfNull(outputPixelFormat);
             ArgumentNullException.ThrowIfNull(allocator);
             inputDepth = SamplePrecision(inputFormat.PixelFormat); outputDepth = SamplePrecision(outputPixelFormat);
@@ -119,7 +120,7 @@ namespace Mediana.Processing
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new(OutputFormat, buffer, planes, input.Timestamp, input.Duration);
+            return new(OutputFormat, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
         }
 
         private int Interpolate(VideoFrame input, int plane, long x, long y)
@@ -183,7 +184,7 @@ namespace Mediana.Processing
         {
             bool sameColor = format.Color == inputFormat.Color && Equals(format.ColorDescription, inputFormat.ColorDescription);
             if (format.Width != inputFormat.Width || format.Height != inputFormat.Height ||
-                format.PixelFormat != inputFormat.PixelFormat || format.SampleAspectRatio != inputFormat.SampleAspectRatio ||
+                format.PixelFormat != inputFormat.PixelFormat || format.ScanMode != inputFormat.ScanMode || format.SampleAspectRatio != inputFormat.SampleAspectRatio ||
                 (!sameColor && format.GetColorInterpretation() != inputFormat.GetColorInterpretation()))
             {
                 throw new NotSupportedException("The input frame differs from the configured YUV transform.");

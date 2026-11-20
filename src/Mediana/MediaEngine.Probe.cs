@@ -22,12 +22,12 @@ namespace Mediana
             options ??= new MediaOpenOptions();
             options.Validate();
             cancellationToken.ThrowIfCancellationRequested();
-            if (imageDecoders.Length == 0)
+            if (imageDecoders.Length == 0 && imageInspectors.Length == 0)
             {
                 await using ContainerSession session = await OpenContainerAsync(source, options, cancellationToken).ConfigureAwait(false);
                 return await ReadContainerInfoAsync(session.Reader, session.Allocator, options.MaxProbeBytes, cancellationToken).ConfigureAwait(false);
             }
-            int probeLength = Math.Max(ImageProbeLength, containers.Select(factory => factory.ProbeLength).DefaultIfEmpty().Max());
+            int probeLength = Math.Max(ImageInspectionProbeLength, containers.Select(factory => factory.ProbeLength).DefaultIfEmpty().Max());
             if (probeLength > options.MaxProbeBytes)
             {
                 throw new NotSupportedException("Registered media recognition exceeds the configured probe byte limit.");
@@ -35,22 +35,18 @@ namespace Mediana
             MediaBufferAllocator allocator = new(options.BufferBudgetBytes);
             using WritableMediaBuffer writable = allocator.Allocate(probeLength);
             int read = await MediaInputProbe.ReadAsync(source, writable.Memory, cancellationToken).ConfigureAwait(false);
-            IImageDecoder? decoder = FindImageDecoder(writable.Memory.Span[..read], source.Length ?? (read < writable.Memory.Length ? read : null));
+            IImageInfoReader? reader = FindImageInfoReader(writable.Memory.Span[..read], source.Length ?? (read < writable.Memory.Length ? read : null));
             using MediaBuffer prefix = writable.Publish();
             await using IByteSource replay = MediaInputProbe.Replay(source, prefix, read);
-            IContainerReaderFactory? factory = decoder is null ? FindContainer(prefix.Memory.Span[..read]) : null;
+            IContainerReaderFactory? factory = reader is null ? FindContainer(prefix.Memory.Span[..read]) : null;
             if (factory is not null)
             {
                 await using IContainerReader container = await factory.OpenAsync(replay, allocator, cancellationToken).ConfigureAwait(false);
                 return await ReadContainerInfoAsync(container, allocator, options.MaxProbeBytes, cancellationToken).ConfigureAwait(false);
             }
             using MediaBuffer input = await EncodedImageInput.ReadAsync(replay, options.MaxImageInputBytes, allocator, cancellationToken).ConfigureAwait(false);
-            decoder ??= FindImageDecoder(input.Memory.Span[..Math.Min(ImageProbeLength, input.Memory.Length)], input.Memory.Length)
-                ?? throw new NotSupportedException("No registered media reader recognizes the input.");
-            if (decoder is not IImageInfoReader reader)
-            {
-                throw new NotSupportedException($"Image decoder '{decoder.ImplementationId}' does not expose image metadata.");
-            }
+            reader ??= FindImageInfoReader(input.Memory.Span[..Math.Min(ImageInspectionProbeLength, input.Memory.Length)], input.Memory.Length)
+                ?? throw new NotSupportedException("No registered media metadata reader recognizes the input.");
             ImageInfo image = await reader.ReadInfoAsync(input.Memory, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentNullException.ThrowIfNull(image);

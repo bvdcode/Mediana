@@ -9,6 +9,11 @@ namespace Mediana.NativeTests
     {
         public static async Task VerifyAsync(string root)
         {
+            foreach (string name in new[] { "fragment-relative.mp4", "fragment-absolute.mp4", "fragment-implicit.mp4", "fragment-signed.mp4", "fragment-hybrid.mp4" })
+            {
+                await Mp4FragmentVideoTestInput.VerifyAsync(name);
+            }
+            Console.WriteLine("PASS fragmented MP4 input: independent pixels, repeated seeks and released buffers.");
             await Mp4FragmentRecoveryTestInput.VerifyAsync();
             Console.WriteLine("PASS fragmented MP4 recovery: sample-group descriptions, fragment mappings and released buffers.");
             await FragmentHlsTestInput.VerifyAsync(root);

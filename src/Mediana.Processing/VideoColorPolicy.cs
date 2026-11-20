@@ -13,6 +13,27 @@ namespace Mediana.Processing
         {
             ArgumentNullException.ThrowIfNull(format);
             VideoColorInfo declared = format.GetColorInterpretation();
+            if (format.PixelFormat is not PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Yuv })
+            {
+                return declared;
+            }
+            if (format.ScanMode != VideoScanMode.Progressive && declared.FieldChromaLocations is VideoFieldChromaLocations fields)
+            {
+                ChromaLocation assumed = declared.ChromaLocation;
+                if (assumed == ChromaLocation.Unspecified)
+                {
+                    assumed = ChromaLocation.Left;
+                }
+                if (format.ScanMode != VideoScanMode.BottomField && fields.Top == ChromaLocation.Unspecified)
+                {
+                    fields = fields with { Top = assumed };
+                }
+                if (format.ScanMode != VideoScanMode.TopField && fields.Bottom == ChromaLocation.Unspecified)
+                {
+                    fields = fields with { Bottom = assumed };
+                }
+                return declared with { FieldChromaLocations = fields };
+            }
             if (declared.ChromaLocation == ChromaLocation.Unspecified &&
                 format.PixelFormat is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Yuv })
             {
@@ -46,21 +67,41 @@ namespace Mediana.Processing
             if (declared.Transfer == TransferFunction.Unspecified && resolved.Transfer != TransferFunction.Unspecified) { missing.Add("transfer"); }
             if (declared.Matrix == MatrixCoefficients.Unspecified && resolved.Matrix != MatrixCoefficients.Unspecified) { missing.Add("matrix"); }
             if (declared.ChromaLocation == ChromaLocation.Unspecified && resolved.ChromaLocation != ChromaLocation.Unspecified) { missing.Add("chroma location"); }
+            if (declared.FieldChromaLocations != resolved.FieldChromaLocations)
+            {
+                missing.Add("field chroma locations");
+            }
             bool preservesDeclarations =
                 (declared.Primaries == ColorPrimaries.Unspecified || declared.Primaries == resolved.Primaries) &&
                 (declared.Transfer == TransferFunction.Unspecified || declared.Transfer == resolved.Transfer) &&
                 (declared.Matrix == MatrixCoefficients.Unspecified || declared.Matrix == resolved.Matrix) &&
                 (declared.ChromaLocation == ChromaLocation.Unspecified || declared.ChromaLocation == resolved.ChromaLocation) &&
-                declared.Range == resolved.Range;
+                declared.Range == resolved.Range && PreservesFields(declared.FieldChromaLocations, resolved.FieldChromaLocations);
             if (missing.Count == 0 || !preservesDeclarations)
             {
                 warningHandler($"The configured color policy uses {resolved}. Source metadata was not modified.");
             }
             else
             {
-                warningHandler($"Missing source color metadata ({string.Join(", ", missing)}); processing uses primaries {resolved.Primaries}, transfer {resolved.Transfer}, matrix {resolved.Matrix}, chroma location {resolved.ChromaLocation}. Declared values were preserved.");
+                string fields = string.Empty;
+                if (declared.FieldChromaLocations != resolved.FieldChromaLocations)
+                {
+                    fields = $", field chroma locations {resolved.FieldChromaLocations}";
+                }
+                warningHandler($"Missing source color metadata ({string.Join(", ", missing)}); processing uses primaries {resolved.Primaries}, transfer {resolved.Transfer}, matrix {resolved.Matrix}, chroma location {resolved.ChromaLocation}{fields}. Declared values were preserved.");
             }
             return resolved;
+        }
+
+        private static bool PreservesFields(VideoFieldChromaLocations? declared, VideoFieldChromaLocations? resolved)
+        {
+            if (declared is not VideoFieldChromaLocations source)
+            {
+                return true;
+            }
+            return resolved is VideoFieldChromaLocations target &&
+                (source.Top == ChromaLocation.Unspecified || source.Top == target.Top) &&
+                (source.Bottom == ChromaLocation.Unspecified || source.Bottom == target.Bottom);
         }
     }
 }

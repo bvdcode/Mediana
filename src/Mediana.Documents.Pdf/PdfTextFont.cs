@@ -9,6 +9,7 @@ namespace Mediana.Documents.Pdf
     internal class PdfTextFont
     {
         private readonly Dictionary<int, string?> _characters = [];
+        private readonly PdfUnicodeMap? _unicode;
         private readonly Dictionary<int, double> _widths = [];
         private readonly double _defaultWidth;
         internal bool Composite { get; }
@@ -18,7 +19,7 @@ namespace Mediana.Documents.Pdf
             Composite = Get(source, "Subtype").Name() == "Type0";
             PdfValue unicode = source.Get("ToUnicode");
             if (includeMappings && unicode.Kind != PdfValueKind.Null)
-            { _characters = PdfUnicodeMap.Read(storage, unicode, Composite, token, charge, warning ?? (_ => { })); }
+            { _unicode = PdfUnicodeMap.Read(storage, unicode, Composite, token, charge, warning ?? (_ => { })); }
             PdfValue dictionary = source;
             if (Composite)
             {
@@ -56,10 +57,11 @@ namespace Mediana.Documents.Pdf
                 string fontName = Get(source, "BaseFont").Text;
                 if (includeMappings && unicode.Kind == PdfValueKind.Null && name == "" && (fontName.Contains("Symbol", StringComparison.Ordinal) || fontName.Contains("ZapfDingbats", StringComparison.Ordinal)))
                 { throw new NotSupportedException("Symbolic PDF text requires an explicit Unicode mapping."); }
-                HashSet<int> mapped = _characters.Keys.ToHashSet();
+                HashSet<int> mapped = [];
                 for (int code = 0; includeMappings && code < 256; code++)
                 {
-                    if (_characters.ContainsKey(code)) { continue; }
+                    if (_unicode is not null && _unicode.TryGetValue(code, out string? explicitValue))
+                    { _characters.Add(code, explicitValue); mapped.Add(code); continue; }
                     string? value = name switch
                     {
                         "WinAnsiEncoding" => char.ConvertFromUtf32(PdfCharacterNames.WinAnsi(code)),
@@ -100,7 +102,9 @@ namespace Mediana.Documents.Pdf
                 int code = Composite ? BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(i++, 2)) : bytes[i];
                 if (includeText)
                 {
-                    if (!_characters.TryGetValue(code, out string? value) || value is null) { throw new NotSupportedException("PDF character has no Unicode mapping: " + code); }
+                    string? value = null;
+                    bool mapped = Composite ? _unicode is not null && _unicode.TryGetValue(code, out value) : _characters.TryGetValue(code, out value);
+                    if (!mapped || value is null) { throw new NotSupportedException("PDF character has no Unicode mapping: " + code); }
                     text.Append(value);
                 }
                 advance += (_widths.GetValueOrDefault(code, _defaultWidth) * size / 1000 + characterSpace + (!Composite && code == 32 ? wordSpace : 0)) * horizontal;

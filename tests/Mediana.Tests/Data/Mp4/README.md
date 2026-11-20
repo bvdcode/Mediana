@@ -443,3 +443,594 @@ The original 64x48 references use the same raw-video command with `avc-aac` or
 configuration-6 audio from `../AacMultichannel/layout-6.m4a`, using FFmpeg 6.1.1
 with `-map 0:v:0 -map 1:a:0 -c copy -map_metadata -1`. It exercises explicit
 mono/stereo downmix in audiovisual HLS, preserving the original coded payloads.
+
+## Progressive High 4:2:2 sequences
+
+Four independent FFmpeg 6.1.1/libx264 sequences contain 24 frames at 12 fps,
+82×74 visible pixels with coded border cropping, I/P/B pictures and three GOPs.
+CABAC and CAVLC QP22 cases use `testsrc2`; CABAC QP1 and CAVLC QP40 use
+changing luma/chroma ramps and two slices per picture. All use flat scaling lists.
+The `.yuv.gz` files contain complete independently decoded planar 8-bit 4:2:2
+sequences, compressed with gzip. Tests compare every visible sample, movie PTS,
+frame duration, every reverse seek and released buffer ownership.
+
+Reproduce the encoded streams with these commands:
+
+```sh
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf format=yuv422p -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=1 -pix_fmt yuv422p -movflags +faststart avc-high422-cabac.mp4
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf format=yuv422p -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=0 -pix_fmt yuv422p -movflags +faststart avc-high422-cavlc.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv422p,geq=lum='"'"'mod(X*17+Y*23+N*41,256)'"'"':cb='"'"'mod(X*7+Y*13+N*19,256)'"'"':cr='"'"'mod(X*31+Y*11+N*5,256)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 1 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=1 -pix_fmt yuv422p -movflags +faststart avc-high422-cabac-q1.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv422p,geq=lum='"'"'mod(X*17+Y*23+N*41,256)'"'"':cb='"'"'mod(X*7+Y*13+N*19,256)'"'"':cr='"'"'mod(X*31+Y*11+N*5,256)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 40 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=0 -pix_fmt yuv422p -movflags +faststart avc-high422-cavlc-q40.mp4
+```
+
+Decode each stream to raw `yuv422p` using FFmpeg with `-threads 1`,
+`-fps_mode passthrough` and `-f rawvideo`, then gzip the raw sequence.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-high422-cabac.mp4` | `7d2ff6a80988220cafd182af601a91bc26e56282516880568f393abedcf0c039` |
+| `avc-high422-cabac.yuv.gz` | `2f25e41049d1f3b1efc4351e78d295ebb3313fdf27e39095b27bf1852447b955` |
+| `avc-high422-cavlc.mp4` | `16568f864504287d2003e894307b0a0d3577026439b8d3b1d918b894fb2fdae2` |
+| `avc-high422-cavlc.yuv.gz` | `413b87da94d3a7407324c03d429727c9d19834aaf08e33e258f17f698c4b317b` |
+| `avc-high422-cabac-q1.mp4` | `c8c38e263515357460aa267124b1cda3dc64777cbfd51fa6ee10ae7decf8719b` |
+| `avc-high422-cabac-q1.yuv.gz` | `90b687f1a08f961489090f5757ac85200f1e8f38bafdf451aad9dd0311ad7339` |
+| `avc-high422-cavlc-q40.mp4` | `82a78da4c86a30092fae51d2657101788a7f3e46a9df1dbe8c13901433a78891` |
+| `avc-high422-cavlc-q40.yuv.gz` | `30a33b6ec0229c6300e06247141e815a40c355b61c1a922286bea19ce27a02b2` |
+
+## Progressive 10-bit AVC sequences
+
+`avc-high10-*` and `avc-high422-10-*` contain 24 independently encoded and
+decoded frames at 12 fps, 82×74 visible samples. The references preserve all
+ten sample bits in little-endian 16-bit planar words. The corresponding
+`.yuv.gz` contains the complete raw sequence. CABAC/CAVLC, I/P/B ordering,
+QP1/22/45 and single/multiple slices are covered.
+
+Tests use the MP4 linear movie timeline and compare every frame's pixels,
+presentation time, duration and every reverse seek. The same sequence test
+runs in managed and Native AOT validation.
+
+Reproduction commands:
+
+```sh
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf 'format=yuv420p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=1 -pix_fmt yuv420p10le -movflags +faststart avc-high10-cabac.mp4
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf 'format=yuv420p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=0 -pix_fmt yuv420p10le -movflags +faststart avc-high10-cavlc.mp4
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf 'format=yuv422p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=1 -pix_fmt yuv422p10le -movflags +faststart avc-high422-10-cabac.mp4
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf 'format=yuv422p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=0 -pix_fmt yuv422p10le -movflags +faststart avc-high422-10-cavlc.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv420p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 1 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=1 -pix_fmt yuv420p10le -movflags +faststart avc-high10-cabac-q1.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv420p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 1 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=0 -pix_fmt yuv420p10le -movflags +faststart avc-high10-cavlc-q1.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv422p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 45 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=1 -pix_fmt yuv422p10le -movflags +faststart avc-high422-10-cabac-q45.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv422p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 1 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=0 -pix_fmt yuv422p10le -movflags +faststart avc-high422-10-cavlc-q1.mp4
+```
+
+Decode using FFmpeg `-threads 1 -fps_mode passthrough -f rawvideo`, choosing
+`yuv420p10le` or `yuv422p10le` to match the source, then gzip the raw sequence.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-high10-cabac.mp4` | `f425bfdf7e58ba814bb410115e630536abda51ddc5f629498fc7ee520362f691` |
+| `avc-high10-cabac.yuv.gz` | `d086e2e0005b43c8b94209cb5e6b8914dfdfa240de3e05ea98156a62daebb73d` |
+| `avc-high10-cavlc.mp4` | `2c081861df28fd00b0cd1168ffcdd4336db6c2b8215c895d7b596db4441728ad` |
+| `avc-high10-cavlc.yuv.gz` | `5f0e1e76c7dd273b36efb63d8d3b6f0437ffbefbdbca660ecd337df1c7568e47` |
+| `avc-high422-10-cabac.mp4` | `c7739bb0461528e352e2e8be3adee02ea1a5059134d4e59ff8b6512240a61aff` |
+| `avc-high422-10-cabac.yuv.gz` | `251377701406b7d78c57105d9e4fd080caefa21833ccddc3c226b2e3c4beca96` |
+| `avc-high422-10-cavlc.mp4` | `5652caac4d7257147041d3062f1205db6552202b2e40da7ff9265ca030357ddd` |
+| `avc-high422-10-cavlc.yuv.gz` | `120568039c346a53e55a1305002cdd838d228f456d27909ced7442af0070d7e4` |
+| `avc-high10-cabac-q1.mp4` | `8ace378bdaa119378a97808cb4ea796679c6f5a9cd7de6d54fc580d263b89055` |
+| `avc-high10-cabac-q1.yuv.gz` | `e2c9f0fa4bc4f057ae108571bf24526a664bcdd510f001a5a1b0d2de6f6a6cd6` |
+| `avc-high10-cavlc-q1.mp4` | `a1af4e7e4cfa0453d322c0b51a0c90ce1b7455bad574d11d11dfe2e94b9c3d2e` |
+| `avc-high10-cavlc-q1.yuv.gz` | `3513b07b9c56943f8ce397f63551dcdf64c3312306953da94d2f70b07161332e` |
+| `avc-high422-10-cabac-q45.mp4` | `41dbb9c2ef425ed76d8b85a320d9be16159981962ce585df09b2c914ac875216` |
+| `avc-high422-10-cabac-q45.yuv.gz` | `e1264fe236fad0b2f114feb358728d67386f0d516caaf824ec3ff40ec32cd17d` |
+| `avc-high422-10-cavlc-q1.mp4` | `eb392fc3a17bb854b90d36d1cb49ee38691fc4c142b4095a986ca14e316eb1fb` |
+| `avc-high422-10-cavlc-q1.yuv.gz` | `d7cb2c4161352ea3b4d20c6a9e123ae76c8b3fd4275a09386f2e352f00757750` |
+
+
+## Complementary field reconstruction
+
+`avc-paff-cabac.mp4` and `avc-paff-cavlc.mp4` contain twelve 96×96
+interlaced frames, coded as twenty-four separate fields by the JM 19.1
+reference encoder. Both use 4:2:0, two reference frames, QP 24 and three IDRs.
+The top field precedes the bottom field; each field occupies 1/24 second.
+The header tests verify picture structure, macroblock bounds, frame numbers,
+picture order, slice kinds and quantizers against FFmpeg `trace_headers`.
+The tests reconstruct all 48 I/P fields and compare every luma and chroma
+sample with the corresponding field from FFmpeg-decoded frames. The complete
+reference sequences are stored in the matching `.yuv.gz` files. Public
+interlaced output assembly and mixed frame/field reconstruction remain open.
+
+Generate a twelve-frame source using:
+
+```sh
+ffmpeg -f lavfi -i testsrc2=size=96x96:rate=24 -vf tinterlace=interleave_top -frames:v 12 -pix_fmt yuv420p -threads 1 -f rawvideo source.yuv
+```
+
+Use JM's `encoder.cfg` with `SourceWidth=96`, `SourceHeight=96`,
+`FramesToBeEncoded=12`, `FrameRate=12`, `NumberBFrames=0`,
+`HierarchicalCoding=0`, `NumberReferenceFrames=2`, `PicInterlace=1`,
+`MbInterlace=0`, `QPISlice=24`, `QPPSlice=24`, `QPBSlice=24`,
+`IDRPeriod=4`, `AdaptiveIntraPeriod=0` and `SymbolMode=1` for CABAC
+or `SymbolMode=0` for CAVLC. Set input, output and reconstruction paths
+explicitly. Package the elementary stream with:
+
+```sh
+ffmpeg -r 24 -i input.264 -c:v copy -bsf:v h264_metadata,setts=pts=N:dts=N:duration=1:time_base=1/24 output.mp4
+```
+
+`h264_metadata` serializes parameter sets without Annex B trailing zero
+bytes in the length-prefixed output. Independently decoded samples are
+unchanged by this serialization.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-paff-cabac.mp4` | `e4b31a4b8e8a3f1b651eb9c06156c983b4cd8b632eeedec564e2734d46c19ad0` |
+| `avc-paff-cavlc.mp4` | `cb649e57d0685984c6b0b8acc9c6e37ed5e8f901161dacb0aa858e0db558bd27` |
+
+| Decoded sequence | SHA-256 of gzip archive |
+| --- | --- |
+| `avc-paff-cabac.yuv.gz` | `cd00b5e129cdbcf426e1472b2f97afa84062ad09887404239fddd8ea137b84f1` |
+| `avc-paff-cavlc.yuv.gz` | `3910af25ddbf5f071c2fb4e818aa4091c1f8e04e06c38e13291e45372201d6f2` |
+
+The reference pixel stream is produced with `ffmpeg -threads 1 -i input.mp4
+-fps_mode passthrough -pix_fmt yuv420p -f rawvideo output.yuv`, then compressed
+with gzip using a zero modification time.
+
+
+### Bidirectional and high-precision fields
+
+Seven additional twelve-frame sequences use `NumberBFrames=1`, `IDRPeriod=0`
+and the other PAFF settings above. Each contains 24 fields. All 168 decoded
+fields match FFmpeg exactly, including spatial and temporal direct prediction.
+These checks also run in Native AOT.
+
+| Fixture stem | Entropy | Direct mode | Precision | Chroma |
+| --- | --- | --- | ---: | --- |
+| `avc-paff-b-cabac` | CABAC | Spatial | 8 | 4:2:0 |
+| `avc-paff-b-cavlc` | CAVLC | Spatial | 8 | 4:2:0 |
+| `avc-paff-b-cabac-temporal` | CABAC | Temporal | 8 | 4:2:0 |
+| `avc-paff-b-cavlc-temporal` | CAVLC | Temporal | 8 | 4:2:0 |
+| `avc-paff-high10-cabac` | CABAC | Temporal | 10 | 4:2:0 |
+| `avc-paff-high422-cavlc` | CAVLC | Temporal | 8 | 4:2:2 |
+| `avc-paff-high422-10-cabac` | CABAC | Temporal | 10 | 4:2:2 |
+
+Set `DirectModeType=0` for temporal or `1` for spatial prediction. Select
+`ProfileIDC=110` for High10, `122` for 4:2:2, and `100` otherwise.
+Set `YUVFormat=1` for 4:2:0 or `2` for 4:2:2, and set all four
+`SourceBitDepthLuma`, `SourceBitDepthChroma`, `OutputBitDepthLuma` and
+`OutputBitDepthChroma` values to the desired precision.
+
+Generate the source by inserting `format=yuv420p10le`, `format=yuv422p`
+or `format=yuv422p10le` before the `tinterlace` filter as appropriate.
+For 10-bit input, replace each little-endian sample `s` at zero-based sample
+index `i` with `(s & ~3) | (i % 4)` before encoding.
+
+Decode-order frame indices map to display-order indices
+`0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 11`. Package both fields of each frame
+with these presentation times and an initial decoding time of −2/24 seconds:
+
+```sh
+ffmpeg -r 24 -i input.264 -c:v copy -bsf:v "h264_metadata,setts=pts='if(eq(trunc(N/2),0)+eq(trunc(N/2),11),N,if(mod(trunc(N/2),2),N+2,N-2))':dts=N-2:duration=1:time_base=1/24" output.mp4
+```
+
+Decode using the matching `-pix_fmt` and `-fps_mode passthrough`; store the
+complete visible sample stream as gzip with a zero timestamp and no filename.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-paff-b-cabac-temporal.mp4` | `7a8f436c8f914d10e36562285bb4122db85ec818a11400a509191cc9a3dbfa41` |
+| `avc-paff-b-cabac-temporal.yuv.gz` | `743c8e698238c1145bcae95607674ceb660173fb3407a7974ebd1e04915efafd` |
+| `avc-paff-b-cabac.mp4` | `581826b734f4c0c54e21d9b12a90b5022b60d965050a9742ad347fe6db35ce8d` |
+| `avc-paff-b-cabac.yuv.gz` | `d5646ced8beb067ace9c292cf9c80d969e1d2f40169aa4c174768c337379ad5d` |
+| `avc-paff-b-cavlc-temporal.mp4` | `8c08f133a29397cfee9a7037abcf9b6c728ec6438cb9adcecaff4623ac7aceb5` |
+| `avc-paff-b-cavlc-temporal.yuv.gz` | `37271b7edc9b22f8f87ba143bd823bd39a02087a422dfa8c055da7df70eb134e` |
+| `avc-paff-b-cavlc.mp4` | `941a365613e99d8a5b7e26adf3ab42e67331ed8187de063db80ab775fb16b839` |
+| `avc-paff-b-cavlc.yuv.gz` | `0fbcd73aca3f05414077a74e2b3cbb6b396bcb5c3fa9455ef6124aa8d7da1c56` |
+| `avc-paff-high10-cabac.mp4` | `71f0c30015b5b5de60b5a8dc8218e41cd96b331263bf28e3109d9e4d4916992a` |
+| `avc-paff-high10-cabac.yuv.gz` | `d314788599271ecd780488d7f8bcbb31326f6aec12eda1402134f4c113dc6ecd` |
+| `avc-paff-high422-10-cabac.mp4` | `7140af96b8833231c6c7b7612d1e59528290d09c2b7da4ce35abb059486e95da` |
+| `avc-paff-high422-10-cabac.yuv.gz` | `f43ddc53dd5c65f8f27aae0bf82315bfd4a4f0eb1ca03e4060bb310cf62ecce4` |
+| `avc-paff-high422-cavlc.mp4` | `b34c2042cdfb4c5e4de920ca1f184c7056623eedec43adfca4182900d0cc339d` |
+| `avc-paff-high422-cavlc.yuv.gz` | `7f204043eaf85e5fbf6227647d8919c93aba32d44e2b194c6e608bb33c22456c` |
+
+### Mixed frame/field header fixtures
+
+`avc-mixed-cabac.mp4` and `avc-mixed-cavlc.mp4` contain 24 displayed
+96×96 YUV420P8 frames at 12 fps, encoded by JM 19.1. A 48-frame 24 fps
+`testsrc2` source supplies every second frame for the first and last eight output
+frames. For the middle eight, even rows come from that frame and odd rows from
+the following frame, circularly shifted left by one sixth of each plane width.
+
+JM uses `PicInterlace=2`, `MbInterlace=0`, two reference frames, no B frames,
+QP 24, `IDRPeriod=0`, `AdaptiveIntraPeriod=0`, `HMEEnable=0` and
+`EPZSUseHMEPredictors=0`. `SymbolMode` selects CABAC or CAVLC. Independent
+`trace_headers` output identifies eight frame pictures, eighteen field pictures
+and seven frame pictures. Both streams exercise frame-number wrap.
+
+The AVC samples retain one coded picture each. FFmpeg muxing applies
+`h264_metadata,setts` with a 1/24 time base and these expressions:
+
+```text
+pts=dts='if(lt(N,8),2*N,if(lt(N,26),N+8,2*N-18))'
+duration='if(lt(N,8),2,if(lt(N,26),1,2))'
+```
+
+FFmpeg decodes all 24 frames without errors; every presentation timestamp is
+exactly the frame index divided by 12. The header tests verify all 33 packets
+per file, their durations, picture structures and picture order. Reconstruction
+tests compare all 66 coded pictures and 48 assembled output frames against the
+independent decoded YUV data, including exact output timestamps and durations.
+The `.yuv.gz` references use `yuv420p` without frame-rate conversion, gzip timestamp
+zero and an empty embedded filename.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mixed-cabac.mp4` | `f7863d34ff894c66ab63e3c59f7d1898e944123fd4be97943cd4c2dd6e1301e8` |
+| `avc-mixed-cavlc.mp4` | `f661ffb8973566fbf0c1597eac2758c1944dad09833494e64e64fc9ffae18331` |
+
+| Decoded reference | SHA-256 |
+| --- | --- |
+| `avc-mixed-cabac.yuv.gz` | `1ef5a8581474cdda640cbcba22227c680489d4dbc75e5b6827380de01a5b6e21` |
+| `avc-mixed-cavlc.yuv.gz` | `34284dd9e87a6b1544874543614bb8c87758d894657552c80bdd0556fd63211a` |
+
+### Mixed frame and field B pictures
+
+The four `avc-mixed-b-*` sequences use the same 24-frame source and JM 19.1
+settings as the mixed I/P fixtures, with `NumberBFrames=1`. `DirectModeType=1`
+selects spatial direct prediction and `DirectModeType=0` temporal direct
+prediction. Both modes are encoded with CABAC and CAVLC. Each file contains
+15 frame pictures and 18 fields, producing 24 displayed frames.
+
+The `.poc` files record each coded picture order count from independent
+`trace_headers` output. Muxing uses that count as PTS, cumulative picture
+durations minus two ticks as DTS, and one/two ticks for field/frame durations
+on a 1/24 clock. FFmpeg decodes every frame without errors and reports output
+presentation time equal to the frame index divided by 12. Decoded references
+use `yuv420p`, gzip timestamp zero and an empty embedded filename.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mixed-b-cabac-spatial.mp4` | `ebdcc2ed749ed87ffb036d62fee4bf8e0f41de95dc0a13b664c156b960906172` |
+| `avc-mixed-b-cabac-spatial.poc` | `3e2e162c1990a861df3bff5e01e0b9676a272450cc7c961588caa288cc1061e1` |
+| `avc-mixed-b-cabac-spatial.yuv.gz` | `9074f13179e7013a224d86f2e204a2c546fff4a9d6fbe35e651f9188a5333cf3` |
+| `avc-mixed-b-cavlc-spatial.mp4` | `ca0294f38b8ce8c05d31b448999861dc8215d29724f515ea2889ded2d2b17dca` |
+| `avc-mixed-b-cavlc-spatial.poc` | `3e2e162c1990a861df3bff5e01e0b9676a272450cc7c961588caa288cc1061e1` |
+| `avc-mixed-b-cavlc-spatial.yuv.gz` | `47b2090201a12d0b2ccec1e1c3d1355497ea582411d007826c3c9a668c42b134` |
+| `avc-mixed-b-cabac-temporal.mp4` | `328b7235cac57bc9c4e890667a1075075118cd02f415f67de5b48d2a4ef493cf` |
+| `avc-mixed-b-cabac-temporal.poc` | `3e2e162c1990a861df3bff5e01e0b9676a272450cc7c961588caa288cc1061e1` |
+| `avc-mixed-b-cabac-temporal.yuv.gz` | `acd7e8001edca9836daec6f480bd01df7838e6a1b7b9143c4c0179cb98908712` |
+| `avc-mixed-b-cavlc-temporal.mp4` | `7297a879f79a6d3bb6d0a9a037274f06c39d072f8f1ae0156b7bb4879ea70b9b` |
+| `avc-mixed-b-cavlc-temporal.poc` | `3e2e162c1990a861df3bff5e01e0b9676a272450cc7c961588caa288cc1061e1` |
+| `avc-mixed-b-cavlc-temporal.yuv.gz` | `90dc704af8bb4099cbd39ce0938980c47323abe3507dc5f1edf64cc0dd13c59f` |
+
+### MBAFF PCM macroblocks
+
+`avc-mbaff-pcm-field` and `avc-mbaff-pcm-adaptive` contain one 96×96 YUV420P8
+picture each, encoded by JM 19.1 from the first mixed-sequence source frame.
+`PicInterlace=0`, `MbInterlace=1/2`, `SymbolMode=0`, `DisableIntra4x4=1`,
+`DisableIntra16x16=1`, `Transform8x8Mode=0` and `EnableIPCM=1` select PCM
+macroblocks with field-only/adaptive macroblock pairs. `ReferenceReorder=0`,
+`PocMemoryManagement=0`, `HMEEnable=0` and `EPZSUseHMEPredictors=0` disable encoder
+features incompatible with this configuration. `DFParametersFlag=1` and
+`DFDisableRefISlice=1` explicitly disable picture deblocking.
+
+FFmpeg `h264_metadata` normalizes NAL syntax when copying the Annex B input to
+MP4 at 12 fps. Independently decoded `yuv420p` references use gzip timestamp zero
+and an empty embedded filename. Tests compare every decoded sample, preserve
+pair field modes and verify release of all owned buffers. This does not cover
+MBAFF predictive macroblocks or deblocking.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mbaff-pcm-field.mp4` | `50faa9aca0e47e1522e1057218f7b085853693d5b7cd81f71cada61ccf144313` |
+| `avc-mbaff-pcm-field.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
+| `avc-mbaff-pcm-adaptive.mp4` | `50faa9aca0e47e1522e1057218f7b085853693d5b7cd81f71cada61ccf144313` |
+| `avc-mbaff-pcm-adaptive.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
+
+### MBAFF CAVLC intra prediction
+
+The four `avc-mbaff-intra-*` fixtures contain one 96×96 intra picture each,
+encoded by JM 19.1 with CAVLC, QP 24, `Transform8x8Mode=1` and disabled
+deblocking. The `field` case forces field pairs (`MbInterlace=1`); the other
+three use adaptive pairs (`MbInterlace=2`) and are checked to contain both
+pair structures. Precision/chroma coverage is 8-bit 4:2:0, 10-bit 4:2:0 and
+10-bit 4:2:2. Encoder reference reordering and POC memory management are disabled.
+
+Each input starts with the first 96×96 `testsrc2` frame. For every plane, odd rows
+copy the preceding row over the first third of the width; the remaining samples
+come from the odd row rotated left by one sixth of the width. Ten-bit input
+samples exercise all four low-bit combinations. FFmpeg `h264_metadata` normalizes
+NAL syntax during MP4 muxing at 12 fps. Independently decoded references match
+all reconstructed samples and use deterministic gzip headers.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mbaff-intra-cavlc.mp4` | `0457cecb1d5cc6bb4d445ee99ca5582009cbb6c73671ce957f205dbb4fcceeab` |
+| `avc-mbaff-intra-cavlc.yuv.gz` | `83104cdc49004134b6c9d69c71576bdc26e5b28262bb5420f154fd534cd7c79b` |
+| `avc-mbaff-intra-field.mp4` | `e726c13c518b7ba6b425fd371cd8f0ba8b4a2146451422adbed08aded0a0e616` |
+| `avc-mbaff-intra-field.yuv.gz` | `053040271f6edeff3a52482cbe377a7e3b68a9fdfd5252fce91eabdd10399b3d` |
+| `avc-mbaff-intra-high10.mp4` | `1f82bbe64f67d367da72caf6ebbd906ad5181713e66dc836a573f7d95236fa2f` |
+| `avc-mbaff-intra-high10.yuv.gz` | `f09c1f54b06356a6f60721dc89a7492aa1dc4f15f271560d2b02f8426b2968d4` |
+| `avc-mbaff-intra-422-10.mp4` | `5e8adeb2a900de7e1afc7578951b367d9681b381d9933c8e7fd46325afa30f59` |
+| `avc-mbaff-intra-422-10.yuv.gz` | `4f6903e9c2d3dee96d252418a67c573b053149f2ef6964c1f29ef4deaa0cfcb1` |
+
+## MBAFF CABAC and transform coverage
+
+The following JM 19.1 intra fixtures use the same 96×96 sources, QP 24,
+disabled deblocking and muxing procedure as the MBAFF intra fixtures above.
+The `cabac` files set `SymbolMode=1`. Additional 8-bit 4:2:2 adaptive files
+cover both entropy modes. The `8x8-10` files use 10-bit 4:2:2, field pairs
+and `DisableIntra4x4=1`, `DisableIntra16x16=1`, `IntraDisableInterOnly=0`;
+every macroblock is verified to use an 8×8 transform. The two CABAC PCM
+files use the earlier PCM source and settings with `SymbolMode=1` and
+exercise arithmetic-decoder restarts after each raw macroblock.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mbaff-intra-cabac.mp4` | `010a6ceb47d47ea2ee38c4a255a592407b1d43efe49a310e7c4e862369c7b7fe` |
+| `avc-mbaff-intra-cabac.yuv.gz` | `9924e4db4827e85c07c9a60f615d3bf73a0294573412b5b853e8d381ed5af1fd` |
+| `avc-mbaff-intra-cabac-field.mp4` | `ba450a094a05be0e058948ba0de3838795ee44fdacfd6292c1622207d39d98b5` |
+| `avc-mbaff-intra-cabac-field.yuv.gz` | `57616c4d6f8aa6c9639ef1ff243a617602b1e2a321d1776dc425f8c254f4cbf2` |
+| `avc-mbaff-intra-cabac-high10.mp4` | `805825a27d569ed3c36b4c24225fe626e77202dfc2cfc5d5dcdf5f3926273602` |
+| `avc-mbaff-intra-cabac-high10.yuv.gz` | `d287d0ffb614b9bbd26924632f07d1bb57f9f9d4f90f78ae489136733308a693` |
+| `avc-mbaff-intra-cabac-422-10.mp4` | `13ecd3ba1d1b4f92729fee38f9261893dfb6fe61a9009b28d54001649ed5c0c6` |
+| `avc-mbaff-intra-cabac-422-10.yuv.gz` | `08bdda307fc9b747a210b55768b6848d43c39ff0a59f212728dc30d1ffa06794` |
+| `avc-mbaff-intra-422.mp4` | `08d8911dcf9c6def37c33a3b2991a6b843e1240dc7d721a3947006c0190ae6cb` |
+| `avc-mbaff-intra-422.yuv.gz` | `f9eb096c9f9abf1d30f3fc78f66625051534af508a517c13b9ab93cce79e44ca` |
+| `avc-mbaff-intra-cabac-422.mp4` | `ddc8c7c34b2d023fc5fadea1e10612849a8fe4aac2453f6c4084130a0050a660` |
+| `avc-mbaff-intra-cabac-422.yuv.gz` | `93488f9ef6cc8eae6be23a11950f62ecc68ce76e916ca3fe7be7d9dcd2ea5b98` |
+| `avc-mbaff-intra-8x8-10.mp4` | `f24bd8925403bb684aeb5c369586eceeca67d1b3a97acea54c2fdb4a91be95c2` |
+| `avc-mbaff-intra-8x8-10.yuv.gz` | `4575d81860c094799173052d60b438668c569562768a1c8cca304b997fb9f9ee` |
+| `avc-mbaff-intra-cabac-8x8-10.mp4` | `638a2849e07c2cb1a22f907c1e359163ca9f024bf519a6c44351ff2e7a8ceb95` |
+| `avc-mbaff-intra-cabac-8x8-10.yuv.gz` | `d2bb4368783c7e04810a9cc89d327d4a06f9261350c2ce3c7c786e29e6fa7531` |
+| `avc-mbaff-cabac-pcm-field.mp4` | `e90d7c15d351d86f816cef19245900e9038d057f45c20dfa6ede84ae53beb150` |
+| `avc-mbaff-cabac-pcm-field.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
+| `avc-mbaff-cabac-pcm-adaptive.mp4` | `6ada78ffd3f6c5cba206905618447ccca280a5674398c5a555e15af690219a87` |
+| `avc-mbaff-cabac-pcm-adaptive.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
+
+## H.264 presentation sequences
+
+`avc-presentation-1`, `-2` and `-5` contain eight 96x96 progressive coded
+pictures generated with JM 19.1: CABAC, 8x8 transforms, two references, no
+B pictures, QP 24 and `SEIVUI32Pulldown` 1, 2 and 5. The display-structure
+patterns are respectively `0,5,6,0`, `0,0,7,0` and `3,5,4,6`. They exercise
+field order, repeated fields and frame doubling without duplicating decoded
+pixel surfaces. `avc-presentation-hrd` uses libx264 with `nal-hrd=cbr`,
+`pic-struct=1`, 128 kbit/s, a 256 kbit buffer, GOP 4 and B pictures.
+All inputs use the generated `testsrc2` pattern at 12 frames/s.
+
+FFmpeg 6.1.1 independently decoded the MP4 files with `-fps_mode passthrough`.
+The deterministic gzip files contain those eight YUV420P8 pictures; the CSV
+files record ffprobe PTS, duration, time base and the configured SEI structure.
+The public session checks every picture, timing and display hint, then seeks
+backward through all eight pictures and verifies buffer release. Both Native
+AOT and ordinary async compilation run these same checks.
+
+| MP4 fixture | SHA256 |
+| --- | --- |
+| `avc-presentation-1.mp4` | `5831ae6e887716d8e5fef13aba6020e76b53a30a6d77017d8baae849a3a1df9b` |
+| `avc-presentation-2.mp4` | `8144a6897356123272fead3c23b1bbba953e0001381e659ae2a67a3de4923fed` |
+| `avc-presentation-5.mp4` | `14779b504341fa693c6dac9037dd33542baa69d402ad162b3ad7d46425652434` |
+| `avc-presentation-hrd.mp4` | `9b7f8927de8e013d7c6067528775b951f398d886b677521ad11012123c2e858e` |
+
+## Independent chroma positions in PAFF
+
+`avc-paff-field-chroma.mp4` contains twelve 96×96 YUV420P8 field pairs at
+12 frames/s, encoded by JM 19.1 from generated `testsrc2` material. Parameters:
+PAFF, CABAC, one B frame, temporal direct mode, two references, QP 24. VUI
+explicitly sets the top-field chroma location to 2 and the bottom-field location
+to 4 (H.264 E.2.1 and Figure E-1). FFmpeg 6.1.1 independently decodes the
+reference samples stored in the deterministic `.yuv.gz` file. The public
+decoder test compares all samples, field coordinates, timestamps and durations
+during sequential playback and reverse seeks.
+
+SHA256: `f6016d7fcdc797b75371693cf22dbbf12a7fcf88b4a809663427a15fea8115a5`.
+
+### CAVLC MBAFF predictive sequences
+
+`avc-mbaff-p-cavlc-*.mp4` contain six 96×96 pictures at 12 frames/s,
+encoded by JM 19.1: one I picture followed by five P pictures, two references,
+QP 24, 8x8 transforms enabled, no deblocking, no weighted prediction, no
+reference-list reordering. The `field` and `422-10` variants force field-coded
+pairs; the remaining variants use adaptive frame/field pair selection. The
+variants cover 8/10-bit 4:2:0 and 4:2:2. Source material is generated `testsrc2`;
+alternate rows are locally repeated or horizontally shifted to exercise both
+pair structures. Ten-bit inputs also exercise the two low sample bits.
+
+FFmpeg 6.1.1 independently decodes the samples in each deterministic `.yuv.gz`
+file. Tests compare every decoded sample and require both pair structures in
+the adaptive variants. Separate synthetic tests cover weighted prediction,
+reference identities, field parity and reuse of pixel storage.
+
+| File | SHA256 |
+| --- | --- |
+| `avc-mbaff-p-cavlc-field.mp4` | `bdcc0c82a65cfe3f9163af67dd48813250ec2daee7621a3d1c72686c467945a1` |
+| `avc-mbaff-p-cavlc-field.yuv.gz` | `87b20ea927ad2eccb7d2f2595d26d852b7ac21439ca77dfdf4350511a531f1bc` |
+| `avc-mbaff-p-cavlc-adaptive.mp4` | `7dc58b7090539dbabe6f58e83352ca4f739b24375a206af06f46fbe8d043d07b` |
+| `avc-mbaff-p-cavlc-adaptive.yuv.gz` | `50a439ad0db898a0188d2122de5be9d43a18e7fca25dbca294ae54c5354d0dd5` |
+| `avc-mbaff-p-cavlc-high10.mp4` | `44d43444124345a40177216d6103fcf97b8f7f8c4ddf32f124acff8fc250dad9` |
+| `avc-mbaff-p-cavlc-high10.yuv.gz` | `339fcb74961ae3735000152f55a6a4fe0cddb9385b95e7d1089c952b96e48283` |
+| `avc-mbaff-p-cavlc-422-10.mp4` | `01f2699702cdd4435f04bf79b7a9089063986e22b88dcb786e6cc75b244c1f0b` |
+| `avc-mbaff-p-cavlc-422-10.yuv.gz` | `0d559624733651d5058497e44ce509bd21a98d58fd75d0746743f8d7b27bfc41` |
+| `avc-mbaff-p-cavlc-422.mp4` | `eb4b95e1458af1aed519a8f96da4feca68f80869eefc563eaea72d7adf600cc1` |
+| `avc-mbaff-p-cavlc-422.yuv.gz` | `8d85cc6d38c7afbfd24cd17445c7d38f226f889fc1c7527ffa67b32a4fc1e8e4` |
+
+### CABAC MBAFF predictive sequences
+
+`avc-mbaff-p-cabac-*.mp4` use the same generated source and picture geometry
+as the corresponding CAVLC predictive fixtures, encoded independently by JM
+19.1 with CABAC. The `field` and `422-10` variants use initialization 0;
+`adaptive` uses initialization 1; `high10` and `422` use initialization 2.
+Each sequence contains six pictures, one I picture and five P pictures, two
+references, QP 24 and no deblocking. FFmpeg 6.1.1 supplies the independent
+decoded samples. Tests compare all planes and confirm the expected pair modes.
+
+| File | SHA256 |
+| --- | --- |
+| `avc-mbaff-p-cabac-field.mp4` | `b48064c268ca2ac400f810f39556271574dffd92b4d6eb96d025362cde2c151b` |
+| `avc-mbaff-p-cabac-field.yuv.gz` | `46b3330c5373d2c24ae87df022c958575080ac4a0413c5474cb6af5f1234ddd3` |
+| `avc-mbaff-p-cabac-adaptive.mp4` | `4b2dcff0a96e9da58aa3ff65f38bb42c9eaf5a37590d4ab06ac286a0276a9247` |
+| `avc-mbaff-p-cabac-adaptive.yuv.gz` | `51719e923a1086d1125c9398686eb3a68921efa8db03df918c473d32bdff8b2a` |
+| `avc-mbaff-p-cabac-high10.mp4` | `1108ef70bb112576f47771de66f51185edb540b9661fce2fd459125219136e12` |
+| `avc-mbaff-p-cabac-high10.yuv.gz` | `7eadb5d66626c7746a8d9fbc537a7390daf6a637d125de7f6af6cc3344bc10d1` |
+| `avc-mbaff-p-cabac-422-10.mp4` | `fa1f4903efe0b73ecf6eacd4610ebba4735f12867df90d7833ab39d24e31ba5f` |
+| `avc-mbaff-p-cabac-422-10.yuv.gz` | `0bf074ad5aba1ce8741abaf1fe513c232b1e20648e750c56cc0e570da6fc92ec` |
+| `avc-mbaff-p-cabac-422.mp4` | `f2d7ebace4132bef01515ecccac781e96ee419e5f037ea4efd2ed712b825159c` |
+| `avc-mbaff-p-cabac-422.yuv.gz` | `a37885406d933d4e62c3b25e0702dcb1a226937c7e53a6a8a85de17c471df726` |
+
+### MBAFF bidirectional sequences
+
+`avc-mbaff-b-*.mp4` contain twelve 96×96 pictures at 12 frames/s encoded
+independently by JM 19.1. They cover CAVLC/CABAC, spatial/temporal direct mode,
+8/10-bit 4:2:0 and 4:2:2, adaptive pairs and forced field pairs. Inputs use the
+same generated source pattern as the predictive MBAFF fixtures. Parameters:
+one B frame, hierarchical coding disabled, two references, QP 24, 8x8 transforms
+enabled, no deblocking and no weighted prediction. Packet PTS follows the
+encoded picture order count; DTS increases by one frame per packet.
+
+Each deterministic `.yuv.gz` contains FFmpeg 6.1.1 decoded samples in display
+order. The tests compare all samples after reordering, including all 240
+pictures across the twenty variants. Synthetic tests separately verify
+explicit/implicit B weights and the colocated mapping in H.264 Table 8-8.
+
+| File | SHA256 |
+| --- | --- |
+| `avc-mbaff-b-cabac-spatial-422-10.mp4` | `da7149562f074aa314bb4af4a540fbfacc0ae0cabd16792e99247613dd490401` |
+| `avc-mbaff-b-cabac-spatial-422-10.yuv.gz` | `084a2c037a7a706a01ea56a2fa94c38433d0b2fb2b487f5988ea0571f4a4be30` |
+| `avc-mbaff-b-cabac-spatial-422.mp4` | `b7b46a9698b70641ff6c4a514ec93b1e40ffc76dabb117d93a6cc099baa30874` |
+| `avc-mbaff-b-cabac-spatial-422.yuv.gz` | `2cfa968e5c97112e004727bd6980090e33a1ad45192656b2292c6c1d6d67b15f` |
+| `avc-mbaff-b-cabac-spatial-adaptive.mp4` | `1cd89e84c9dcd852967bc9390b715f8db19eacabfdc98119dc9d099026398c65` |
+| `avc-mbaff-b-cabac-spatial-adaptive.yuv.gz` | `203082dd2d7cc5ac383022eaaf84d3005b0526aeac8d479a1a29960ee7cc32bd` |
+| `avc-mbaff-b-cabac-spatial-field.mp4` | `d664e607819d01f4c4a482c92e11bb16f6e14ce831abf711b28c8e937b1e8481` |
+| `avc-mbaff-b-cabac-spatial-field.yuv.gz` | `3d2cee5532c79d96108abadec6cbfda30f68312479a8653c05df2b136e07f0f9` |
+| `avc-mbaff-b-cabac-spatial-high10.mp4` | `469794a4e8a539b1a7a9a7763a4ea691d6d7bff33899aff1d4ddbcd27354dd54` |
+| `avc-mbaff-b-cabac-spatial-high10.yuv.gz` | `6749f225d2e78b2ca5c8b08635506db6bd8dc7ee223ec0edbc8ebaaaa7b928bf` |
+| `avc-mbaff-b-cabac-temporal-422-10.mp4` | `a1da8f959abf448eb4208a4b6fe8ae8fd6b5089d549208896d8d28ddb93c8968` |
+| `avc-mbaff-b-cabac-temporal-422-10.yuv.gz` | `ea827b053c4e7640207a62b711c27951f8419782fe174b74feebc66c518b1ea0` |
+| `avc-mbaff-b-cabac-temporal-422.mp4` | `58f944fdd36b5a1fc6808843015117319af4defd8bb89d1730a3fbf62d6f4044` |
+| `avc-mbaff-b-cabac-temporal-422.yuv.gz` | `6ce0ef7cdff19b194c760cde73edf86e022877b8a4a12a7243ccb031d1e7e1a1` |
+| `avc-mbaff-b-cabac-temporal-adaptive.mp4` | `e92d531ce3c76ecf35c94d46ab112f0332a196ec38b774c437c4c31b8fd7987d` |
+| `avc-mbaff-b-cabac-temporal-adaptive.yuv.gz` | `422a9d3684cbaf5e19e417fcf066d473ac95312a0b074a367f00ff0a3af81d60` |
+| `avc-mbaff-b-cabac-temporal-field.mp4` | `4d2a98e82fb6ee81b812fba3b6b70687a7ccfc2c9919ed9d4254087a6ba839b6` |
+| `avc-mbaff-b-cabac-temporal-field.yuv.gz` | `599fb167a5db54fae9995fd2e49f141fbf5f2cbf9497d4ebc708f7ab4ff450c0` |
+| `avc-mbaff-b-cabac-temporal-high10.mp4` | `db8a4b6f22d9d5b63c65ca28ad1ec2dd02d7898885cea3d2509bc88d1aee9c94` |
+| `avc-mbaff-b-cabac-temporal-high10.yuv.gz` | `1e055895e8913cbb5c7a0a54e4f102bc9f7c8c630d6da881f7274c62697e1221` |
+| `avc-mbaff-b-cavlc-spatial-422-10.mp4` | `eb9a4a606e41ce7583f410c8221da9287427b265c9b066c03221e7e2a7d43ace` |
+| `avc-mbaff-b-cavlc-spatial-422-10.yuv.gz` | `5816c674c378b3b9223f46fcdeabd59d5cca78ee45c08be5db139fff78860c36` |
+| `avc-mbaff-b-cavlc-spatial-422.mp4` | `1bf5d9b5e3bbfb01d02006c035735813debd96740256607dcbf066ae4e9b4c2e` |
+| `avc-mbaff-b-cavlc-spatial-422.yuv.gz` | `2f99ccc0c1796b9efab929eecd708bd26d7aba14f0b6d9cb125decc310df3478` |
+| `avc-mbaff-b-cavlc-spatial-adaptive.mp4` | `67a04826300954578d8e424b1cd40fd90abee3e16d744d856c1c26a967bd675e` |
+| `avc-mbaff-b-cavlc-spatial-adaptive.yuv.gz` | `09efda889ad3ee1c19c59acf506abe706561997e5cf819d29a5b4099429f8392` |
+| `avc-mbaff-b-cavlc-spatial-field.mp4` | `b27a463760fd9d322f6580362c07385faf24e620fe97e0b42a06c83c7295714c` |
+| `avc-mbaff-b-cavlc-spatial-field.yuv.gz` | `58ffc03bd23137f23e2791128e4b9a5187c092b82c17113a7bda8deac859f7a5` |
+| `avc-mbaff-b-cavlc-spatial-high10.mp4` | `0fa77eb4152f85b5b757ccee2eb36fa098809f7f1f8803956acadee4f7ab4c58` |
+| `avc-mbaff-b-cavlc-spatial-high10.yuv.gz` | `d03941b591edcf1723e4a18094ac7aef5deada669f233e90c53e46353e382a0a` |
+| `avc-mbaff-b-cavlc-temporal-422-10.mp4` | `5035aab9b756eb8b2c09e72298001d18fdf9089d1a729913ea694e4fbf9bb9b7` |
+| `avc-mbaff-b-cavlc-temporal-422-10.yuv.gz` | `854eeba9a2c2a92b27a2e6a7223e6bbe220fa7156129ce8eac407317fd7ef0ad` |
+| `avc-mbaff-b-cavlc-temporal-422.mp4` | `2a5ec58880d0f7cb05d036919c2fa67531646cfdbe2b224b54da9cd252eb51dc` |
+| `avc-mbaff-b-cavlc-temporal-422.yuv.gz` | `e653a9250b61c125e4f7a1c2ac1c69268bf3fedf492b92aaaa4df3cb3fc99a5a` |
+| `avc-mbaff-b-cavlc-temporal-adaptive.mp4` | `9db3ba0c2379314e0e6bbd975be4a3c98e5438e56fef0692a5e3de04756228a9` |
+| `avc-mbaff-b-cavlc-temporal-adaptive.yuv.gz` | `92b9457c9f7e7eee0708b9d15aedb248f8dc0551c3f32b1a1aaf338a149a8f6d` |
+| `avc-mbaff-b-cavlc-temporal-field.mp4` | `de7c7bc854f78aba6026419a9c4bc4bd8f03599413a7a124faf67bbea18f132c` |
+| `avc-mbaff-b-cavlc-temporal-field.yuv.gz` | `73d91c27468bd65c16fc2d996555b317ed491f09491139d68047ad4a89340c14` |
+| `avc-mbaff-b-cavlc-temporal-high10.mp4` | `2bdd41ccf4b60abc21ca078676a0a9500c6a2a91f01be54527b1db25e320db8f` |
+| `avc-mbaff-b-cavlc-temporal-high10.yuv.gz` | `8445b7d682ebf9bc0809b826c7306ff968981561be0a68c59dd752466e8a25b9` |
+
+## Filtered MBAFF sequences
+
+The twenty `avc-mbaff-filter-*` sequences use JM 19.1 with the same twelve-picture,
+96×96, 12 fps source and coding parameters as the bidirectional MBAFF fixtures,
+with deblocking enabled for all I/P/B pictures. They cover CAVLC/CABAC,
+spatial/temporal direct prediction, forced field and adaptive pairs, 8/10-bit
+4:2:0 and 4:2:2. QP is 24; the deblocking offsets are zero.
+
+The eight `avc-mbaff-slices-*` sequences use the adaptive source at 8-bit 4:2:0
+and 10-bit 4:2:2. JM parameters are `SliceMode=1`, `SliceArgument=6`, QP 31,
+chroma QP offset 3, alpha offset 2 and beta offset -1. Spatial-direct variants
+filter across slice boundaries (`disable_deblocking_filter_idc=0`); temporal-direct
+variants suppress cross-slice filtering (`disable_deblocking_filter_idc=2`).
+
+The eight `avc-mbaff-x264-*` sequences use FFmpeg 6.1.1/libx264 and twelve frames
+of `testsrc2=size=94x92:rate=24` through `tinterlace=interleave_top` or
+`interleave_bottom`. Output is 12 fps, with 8/10-bit 4:2:0 and 4:2:2. Encoding uses
+`medium`, QP 28, one thread, `+ilme+ildct` and
+`cabac=1:bframes=2:ref=3:keyint=6:scenecut=0:cqm=flat:weightp=0:weightb=1:slices=3:deblock=2,-1`,
+plus `tff=1` or `bff=1`. These sources exercise both field orders, cropping,
+implicit B weights, multiple slices and repeated random access points.
+
+Each deterministic `.yuv.gz` stores FFmpeg-decoded samples in presentation order.
+Public-session tests compare every pixel, timestamp, duration and field order,
+then seek backwards to each picture. The same cases run under Native AOT.
+
+| File | SHA256 |
+| --- | --- |
+| `avc-mbaff-filter-cabac-spatial-422-10.mp4` | `4be12f51e48313301609d88c8b9e358d03559eae2c3a40787c93e4ff40cec5e5` |
+| `avc-mbaff-filter-cabac-spatial-422-10.yuv.gz` | `96b28692cb283eb924ee042c08adbedf4c20b727172eea755c1a864d65db32b2` |
+| `avc-mbaff-filter-cabac-spatial-422.mp4` | `cc5635ab297e0d9544ea6ba6268c91104427f1b810ac3f8da13143aefe33dcde` |
+| `avc-mbaff-filter-cabac-spatial-422.yuv.gz` | `94fd18bf42192a1ae9a33d6c95460a079e13972b3e5344cbc2d831daf928c99c` |
+| `avc-mbaff-filter-cabac-spatial-adaptive.mp4` | `e8d0b7fea0c4cfb9b7d69a57e6386386e6f3f402e276ae078d226b639e2cdfb8` |
+| `avc-mbaff-filter-cabac-spatial-adaptive.yuv.gz` | `bc057c38ce698bd44023fc428b29ec8eb892501ea1f673570a0ea93115945106` |
+| `avc-mbaff-filter-cabac-spatial-field.mp4` | `96bbb9ebc640c674780ca2738728e439e9afccbc297574d662e938a9a7af595a` |
+| `avc-mbaff-filter-cabac-spatial-field.yuv.gz` | `42b893e6dacf320902f6399ec8dd7e23fe49863cb2ac25f45a77da53403b20f3` |
+| `avc-mbaff-filter-cabac-spatial-high10.mp4` | `fa51f30ba0d6758a41be4e1c578f2ba7cb3ae0ebe20167d60b72bbe2dfc498ef` |
+| `avc-mbaff-filter-cabac-spatial-high10.yuv.gz` | `8694189bb1b7e7b21c9029ebe3720c57c956b7508be7c46524ae478fa5dcd680` |
+| `avc-mbaff-filter-cabac-temporal-422-10.mp4` | `21b77e2a9eb881dbf321caca33ac4ae687f78bcbb19955f6f82505307665fc07` |
+| `avc-mbaff-filter-cabac-temporal-422-10.yuv.gz` | `0bc1c4d5295dedd137ad4df642bce6a88121227f80c95f2a3feb4eaabde8b77f` |
+| `avc-mbaff-filter-cabac-temporal-422.mp4` | `728590845f72a2846bd77b7210bbed6d09e8177f31b2c898350df0489f295ce2` |
+| `avc-mbaff-filter-cabac-temporal-422.yuv.gz` | `5fe3d89cc63f3e96d1315b59e4c25c18c0ff71b1c81aabcffacf3c6b0595e5fb` |
+| `avc-mbaff-filter-cabac-temporal-adaptive.mp4` | `0b819a3c88f2ada8697ca0f476e567a950081df65e154246dcfce0240ae7de08` |
+| `avc-mbaff-filter-cabac-temporal-adaptive.yuv.gz` | `a0b3bcdd29841f98ecd6c0233f9fd9c4271b14bff4f856aa41472d9343a3cc27` |
+| `avc-mbaff-filter-cabac-temporal-field.mp4` | `8b65ad97c6660501d3c3c24b47f2b041709bfe0a86591858a1e79fa3546ce273` |
+| `avc-mbaff-filter-cabac-temporal-field.yuv.gz` | `3a744697072859cc11af8678612788593620ec699e87b1bdba2cb6f4a1085bd9` |
+| `avc-mbaff-filter-cabac-temporal-high10.mp4` | `c30c4d4148cf9aaf2976daaf5d47b65598faa42bc4910f009a355196473d673f` |
+| `avc-mbaff-filter-cabac-temporal-high10.yuv.gz` | `95c6078b4d4cb95d498a23fb1bc3eac64a7193dcfad08eaad0c95dbf01f76b91` |
+| `avc-mbaff-filter-cavlc-spatial-422-10.mp4` | `10c29f300a7583b827cfadfef585ce9ee18becf7ae3bd304ffce3c606545805d` |
+| `avc-mbaff-filter-cavlc-spatial-422-10.yuv.gz` | `adaf6ce0ee69f8df1100d1d0b790b83ffe14851c88588a5ab163b3463be12db8` |
+| `avc-mbaff-filter-cavlc-spatial-422.mp4` | `085b79c80c95b37538ce338c0e43978b1542ebc63e26a55e4845031425545389` |
+| `avc-mbaff-filter-cavlc-spatial-422.yuv.gz` | `7ef54c1d8f33b2614aa0b53cf37dfd9d7a5e9c7cd6eb1df7d773acd9ed0ce57b` |
+| `avc-mbaff-filter-cavlc-spatial-adaptive.mp4` | `918ebfe35ccfe60ff3abb57e42ac02fa47b695392817fc2e86d770ad4108fe28` |
+| `avc-mbaff-filter-cavlc-spatial-adaptive.yuv.gz` | `a1fa85e4395a25c79b938e22aac5fca7bc5568071fc4d19489ae1f098ecc8386` |
+| `avc-mbaff-filter-cavlc-spatial-field.mp4` | `7dce546f7f197af05c74ff10b607a831138ffc8df8b43998252a265596bb8424` |
+| `avc-mbaff-filter-cavlc-spatial-field.yuv.gz` | `65b33194c79ec7b9b329ab45d0dacb7404beccf4ac5ce19f3f41416560928656` |
+| `avc-mbaff-filter-cavlc-spatial-high10.mp4` | `47cd5239c5e07285c8e6128abd924a150ce8312c8f770a68011aee57468d25d5` |
+| `avc-mbaff-filter-cavlc-spatial-high10.yuv.gz` | `b0918e13838cc056c05954e1b502909de7a8f182cbc185288bd0c85046f1fd24` |
+| `avc-mbaff-filter-cavlc-temporal-422-10.mp4` | `ae45de9761f7293ea0650e3aaf5a8650d019ba998dc8e6b1edc7542e0feb0cac` |
+| `avc-mbaff-filter-cavlc-temporal-422-10.yuv.gz` | `b04a4141f314f60f93de8f6877053c876e9e91202e106f1194de36a64ca3b4ca` |
+| `avc-mbaff-filter-cavlc-temporal-422.mp4` | `acbd088276f69eefa2b6c7e13010e173b067aa5c5ab663d61ef268ea1aa14179` |
+| `avc-mbaff-filter-cavlc-temporal-422.yuv.gz` | `2ba9562b89e20004d3583dec23740f6ab06498123ab43b17754baf01f0fcda8f` |
+| `avc-mbaff-filter-cavlc-temporal-adaptive.mp4` | `d41db88d4b033dac77c0feca13666916b3a38f2bf2d7ceef3cad8fa3591de768` |
+| `avc-mbaff-filter-cavlc-temporal-adaptive.yuv.gz` | `e5bf060a4bf7c55bb2d0278d29ed0e36c39d6e86bad7b80ca83e6ca9b6f60161` |
+| `avc-mbaff-filter-cavlc-temporal-field.mp4` | `7751c3139eba5bac349d99429eac54af72a69fe74a9ef5b579d5710b6cd00a07` |
+| `avc-mbaff-filter-cavlc-temporal-field.yuv.gz` | `ed24d007f2bc3c9894020afe1038d64ef52735981d57c0332e7d102209b99bdb` |
+| `avc-mbaff-filter-cavlc-temporal-high10.mp4` | `9da5531d816c8a82e3eea249207ad2bf78f34b6428c48159dc48bf57d3077db9` |
+| `avc-mbaff-filter-cavlc-temporal-high10.yuv.gz` | `4263e61daa54b9dcbe42bd60f24eeacaa9fb7cb81f3808e937c76c4a59e0ca06` |
+| `avc-mbaff-slices-cabac-spatial-422-10.mp4` | `57bdcee650b262236e2b1a1992e34e6526d7292aa32adea01196d0f2f57c41f1` |
+| `avc-mbaff-slices-cabac-spatial-422-10.yuv.gz` | `c9a9ab01be29ea7933de32c1297131d55045d5008bd2b43ef98546152536dfb9` |
+| `avc-mbaff-slices-cabac-spatial-adaptive.mp4` | `68e4f820abdeb4caf5b6c47a1cf558b86cfb99b7dd5afe2a6f5518cc778e4817` |
+| `avc-mbaff-slices-cabac-spatial-adaptive.yuv.gz` | `13cbab429c4f4c1d8b23ae3ffa301aa3b15a8015794fcb834261dffb4456bfe0` |
+| `avc-mbaff-slices-cabac-temporal-422-10.mp4` | `c540dc381958430787bbf1cd10a8d8e314f09aacfc5f8efa07b7053f058df874` |
+| `avc-mbaff-slices-cabac-temporal-422-10.yuv.gz` | `64bdd786a4c09ed6363a017fc76773c29b0d8009683230629298e95db487d947` |
+| `avc-mbaff-slices-cabac-temporal-adaptive.mp4` | `f5b29b46a2f0e7db5d71ba87fcc660d03b8e77497755add57e48b731bd781a7c` |
+| `avc-mbaff-slices-cabac-temporal-adaptive.yuv.gz` | `3623e8bb886d314ee490b480503830f12c5e2dcaf1355f5ad3975101f97a8a7c` |
+| `avc-mbaff-slices-cavlc-spatial-422-10.mp4` | `7da5be47b2f4385e6a4828ad9e4c95cf92a9be309a1acbe3451e7d1cd77e0ab0` |
+| `avc-mbaff-slices-cavlc-spatial-422-10.yuv.gz` | `7a2a550603d93698475ee282fbf8ed46509d8e09cb531d6395eff7c6283dbb3e` |
+| `avc-mbaff-slices-cavlc-spatial-adaptive.mp4` | `ccabd5773918074052ffcf55bdc23062d3f67bac03dd35192d4273a23d4388b3` |
+| `avc-mbaff-slices-cavlc-spatial-adaptive.yuv.gz` | `41a2744f816447366a4972104bfe67d77307f9d435bb243fe22e1f1163a9aaac` |
+| `avc-mbaff-slices-cavlc-temporal-422-10.mp4` | `56730b60329baffa5a1574f531457973bf7bb765af5a3eeedfd465002fbed3a9` |
+| `avc-mbaff-slices-cavlc-temporal-422-10.yuv.gz` | `e253b110cec3b930ab9072ac7ccd005e13bd2833ae8186d596d7c39d6372781e` |
+| `avc-mbaff-slices-cavlc-temporal-adaptive.mp4` | `4b132ac40250ceab28a874fc131ac73cff15fc103b219e0c6bca43e4906b40a0` |
+| `avc-mbaff-slices-cavlc-temporal-adaptive.yuv.gz` | `dc51bcd6c7353e3c78ec8fa4d957231372380e2574e052bb35619f7539544e91` |
+| `avc-mbaff-x264-420-10-bff.mp4` | `c53f35a1e1a11dc2f8f9b936c2a6c3cd1bfec23724807746f2a1f0f2f0546c1f` |
+| `avc-mbaff-x264-420-10-bff.yuv.gz` | `8d87268f1abcc582e37e80ba9143a8074a5b7b5b5f9b1b2a302ae490d4c70f9b` |
+| `avc-mbaff-x264-420-10-tff.mp4` | `1e1e934a33c25d88311f3aacd7ef8189109f8375986b2ae073ccc8d274cd05d0` |
+| `avc-mbaff-x264-420-10-tff.yuv.gz` | `64deb02b6ae38674ae629777191a0c47a4725961ad49ff57766028d72fe763b8` |
+| `avc-mbaff-x264-420-bff.mp4` | `703be75c21287bcd08bd163512e0fd2d8c60cce2038b7281418c07318230cb04` |
+| `avc-mbaff-x264-420-bff.yuv.gz` | `c51a9a11b3596cea0eb56b74d291b692b3b03885ea2b0a3a9b4b1da38777a145` |
+| `avc-mbaff-x264-420-tff.mp4` | `93a0f628060bc5d5af5ce44ab27f439a4e31002c7b0d5928aaf0bad56919bbdc` |
+| `avc-mbaff-x264-420-tff.yuv.gz` | `bf79af413c67e4759b6e12735a7cb1738c532b2129acbb7f826b7cc12bcb1f9e` |
+| `avc-mbaff-x264-422-10-bff.mp4` | `63388fcbcc4f22d70c02c8eda0dbf3d8bbf60de83cd9f7c9cdce69a21072cf28` |
+| `avc-mbaff-x264-422-10-bff.yuv.gz` | `dec356dce45d9f20daafd57740ea478a7c5bfa0ed29c2ca82004b9f5cf3d1b3a` |
+| `avc-mbaff-x264-422-10-tff.mp4` | `77af5958c4129064f5d2a1af0b847294202cb282b49f2d58bf3023b143d8312d` |
+| `avc-mbaff-x264-422-10-tff.yuv.gz` | `a2b0e25e305f69fade797cdd7ae6640195559d6da1f432652c5546607f5b4296` |
+| `avc-mbaff-x264-422-bff.mp4` | `06244ab19d1b776bd4bd747dd89943fde2980fd461b32681543250c8c6d96d25` |
+| `avc-mbaff-x264-422-bff.yuv.gz` | `ac17fc6c2ae2e505587300f414bf780097515cd9157915f0e16f6fb1e39a918d` |
+| `avc-mbaff-x264-422-tff.mp4` | `a0b1d6919381ee546bb2bc5767b7c2ed02b895aff6074f9ddaff924d1ae12c22` |
+| `avc-mbaff-x264-422-tff.yuv.gz` | `c9ecba819b34044faf9a3ff5674fc1921b8d69e16a0c5e384d8808dd70328aa3` |

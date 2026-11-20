@@ -18,21 +18,25 @@ namespace Mediana
         private readonly IContainerReaderFactory[] containers;
         private readonly IVideoDecoderFactory[] decoders;
         private readonly IImageDecoder[] imageDecoders;
+        private readonly IImageInspector[] imageInspectors;
         private readonly ImageDecodeContext imageContext;
         private readonly IAudioDecoderFactory[] audioDecoders;
         private readonly Dictionary<string, IStreamMetadataReader> metadataReaders;
 
         internal MediaEngine(IContainerReaderFactory[] containers, IVideoDecoderFactory[] decoders, IAudioDecoderFactory[] audioDecoders,
             IStreamMetadataReader[] metadataReaders, IImageDecoder[] imageDecoders,
-            IAudioEncoderFactory[] audioEncoders, IVideoEncoderFactory[] videoEncoders, IContainerWriterFactory[] writers, MediaResourceSet resources)
+            IAudioEncoderFactory[] audioEncoders, IVideoEncoderFactory[] videoEncoders, IContainerWriterFactory[] writers, MediaResourceSet resources, IImageInspector[] imageInspectors)
         {
             this.containers = containers;
             this.audioEncoders = audioEncoders.ToDictionary(item => item.CodecId, StringComparer.Ordinal);
             this.videoEncoders = videoEncoders.ToDictionary(item => item.CodecId, StringComparer.Ordinal);
             this.writers = writers.ToDictionary(item => item.FormatId, StringComparer.Ordinal);
             this.imageDecoders = imageDecoders;
+            this.imageInspectors = imageInspectors;
+            ImageInspectorImplementations = Array.AsReadOnly(imageInspectors.Select(item => item.ImplementationId).ToArray());
             imageContext = new(imageDecoders, resources: resources);
             ImageProbeLength = imageDecoders.Length == 0 ? 0 : imageDecoders.Max(item => item.ProbeLength);
+            ImageInspectionProbeLength = Math.Max(ImageProbeLength, imageInspectors.Select(item => item.ProbeLength).DefaultIfEmpty().Max());
             ImageDecoderImplementations = Array.AsReadOnly(imageDecoders.Select(item => item.ImplementationId).ToArray());
             this.decoders = decoders;
             this.audioDecoders = audioDecoders;
@@ -45,6 +49,8 @@ namespace Mediana
 
         /// <summary>Maximum prefix length requested by registered image recognizers, or zero when none are registered.</summary>
         public int ImageProbeLength { get; }
+        public int ImageInspectionProbeLength { get; }
+        public IReadOnlyList<string> ImageInspectorImplementations { get; }
         public IReadOnlyList<string> ImageDecoderImplementations { get; }
         public IReadOnlyList<string> StreamMetadataReaderImplementations { get; }
         public IReadOnlyList<string> ContainerImplementations { get; }

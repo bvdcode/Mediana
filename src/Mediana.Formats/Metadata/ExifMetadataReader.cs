@@ -16,10 +16,10 @@ namespace Mediana.Formats.Metadata
             cancellationToken.ThrowIfCancellationRequested();
             return Read(new TiffDirectoryReader(tiff), cancellationToken);
         }
-        internal static MediaMetadata Read(TiffDirectoryReader reader, CancellationToken token)
+        internal static MediaMetadata Read(TiffDirectoryReader reader, CancellationToken token, IReadOnlySet<ushort>? borrowedBinaryTags = null, string rootScope = "IFD0")
         {
             Stack<(ulong Offset, string Scope, bool Exit)> pending = new();
-            pending.Push((reader.FirstOffset, "IFD0", false));
+            pending.Push((reader.FirstOffset, rootScope, false));
             HashSet<ulong> active = [], completed = [];
             List<MediaMetadata> directories = [];
             while (pending.TryPop(out (ulong Offset, string Scope, bool Exit) directory))
@@ -36,7 +36,10 @@ namespace Mediana.Formats.Metadata
                 List<MediaProperty> properties = [];
                 foreach (TiffField field in source.Fields.Values)
                 {
-                    properties.Add(new("exif", ExifTagNames.Get(directory.Scope, field.Tag), field.Values(token)));
+                    string name = ExifTagNames.Get(directory.Scope, field.Tag);
+                    if (field.Type is 1 or 7 && borrowedBinaryTags?.Contains(field.Tag) == true)
+                    { properties.Add(new("exif", name + ".byte_length", field.Bytes.Length)); }
+                    else { properties.Add(new("exif", name, field.Values(token))); }
                     if (field.Tag is 330 or 34665 or 34853 or 40965)
                     {
                         if (field.Type is not (4 or 13 or 16 or 18) || (field.Tag != 330 && field.Count != 1))

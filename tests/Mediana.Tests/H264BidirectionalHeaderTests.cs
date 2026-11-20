@@ -58,9 +58,9 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData(1, 32)]
-        [InlineData(32, 1)]
-        [InlineData(32, 32)]
+        [InlineData(1, 16)]
+        [InlineData(16, 1)]
+        [InlineData(16, 16)]
         public void OverrideReadsBothReferenceCounts(int l0, int l1)
         {
             string counts = H264TestBits.Ue(l0 - 1) + H264TestBits.Ue(l1 - 1);
@@ -76,7 +76,7 @@ namespace Mediana.Tests
         [InlineData(false)]
         public void OverrideRejectsAnOutOfRangeCountInEitherList(bool list0)
         {
-            string counts = list0 ? H264TestBits.Ue(32) + "1" : "1" + H264TestBits.Ue(32);
+            string counts = list0 ? H264TestBits.Ue(16) + "1" : "1" + H264TestBits.Ue(16);
             byte[] payload = H264TestBits.Rbsp(Prefix + "1 1 " + counts);
             Assert.Throws<InvalidDataException>(() => Read(payload));
         }

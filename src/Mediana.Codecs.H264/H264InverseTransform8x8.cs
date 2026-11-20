@@ -5,30 +5,25 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264InverseTransform8x8
     {
-        // Rec. ITU-T H.264, Table 8-14 and clause 8.5.9 (flat scaling lists).
-        private static ReadOnlySpan<byte> Scan =>
-            [0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5,
-                12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28,
-                35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51,
-                58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63];
+        // Rec. ITU-T H.264, clause 8.5.9 (flat scaling lists).
         private static ReadOnlySpan<byte> Scales =>
             [20, 18, 32, 19, 25, 24, 22, 19, 35, 21, 28, 26,
                 26, 23, 42, 24, 33, 31, 28, 25, 45, 26, 35, 33,
                 32, 28, 51, 30, 40, 38, 36, 32, 58, 34, 46, 43];
 
-        public static void Residual(ReadOnlySpan<int> scanned, int qp, Span<int> residual)
+        public static void Residual(ReadOnlySpan<int> scanned, int qp, Span<int> residual, int bitDepth = 8, bool field = false)
         {
-            ArgumentOutOfRangeException.ThrowIfNegative(qp);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(qp, 51);
+            H264InverseTransform.ValidateQp(qp, bitDepth);
             if (scanned.Length != 64 || residual.Length != 64)
             {
                 throw new ArgumentException("The H.264 residual transform requires a complete 8x8 block.");
             }
             Span<long> values = stackalloc long[64];
             int quotient = qp / 6;
+            ReadOnlySpan<int> scan = H264CoefficientScans.EightByEight(field);
             for (int index = 0; index < 64; index++)
             {
-                int position = Scan[index];
+                int position = scan[index];
                 int row = position / 8;
                 int column = position % 8;
                 int category = ((row % 4), (column % 4)) switch

@@ -34,6 +34,11 @@ namespace Mediana.Processing
                 }
                 return ApplyRgba(input, map, aspectRatio, allocator, IccRgbTransform.Get(profile, token), token);
             }
+            if (input.Format.ColorDescription is RgbChromaticitiesColorDescription chromaticities)
+            {
+                SdrRgbTransform transform = new(RgbPrimariesTransform.ToSrgb(chromaticities.Chromaticities), input.Format.Color.Transfer);
+                return Apply(input, input.Format.Color, map, aspectRatio, allocator, transform, token);
+            }
             VideoColorInfo source = colorResolver?.Invoke(input.Format) ?? input.Format.GetColorInterpretation();
             if (toneMapping is not null && source.Transfer is TransferFunction.Pq or TransferFunction.Hlg)
             {
@@ -45,13 +50,14 @@ namespace Mediana.Processing
         private static VideoFrame ApplyRgba<TTransform>(VideoFrame input, NearestNeighborMap map, SampleAspectRatio? aspectRatio,
             MediaBufferAllocator allocator, TTransform transform, CancellationToken token) where TTransform : IRgbaPixelTransform
         {
-            VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio);
+            VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio, null,
+                VideoScanGeometry.Map(input.Format.ScanMode, map), VideoScanGeometry.FullFrameHeight(input.Format, map.OutputHeight));
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             RenderRgba(input, writable.Memory.Span, map, transform, token);
             token.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new(format, buffer, planes, input.Timestamp, input.Duration);
+            return new(format, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
         }
     }
 }

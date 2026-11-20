@@ -120,6 +120,45 @@ namespace Mediana.Tests
         public Task RealDeclaredRollDistancesAndPacketsSurviveReaderDisposal() =>
             Mp4RecoveryTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Aac"));
 
+        [Fact]
+        public void FragmentMappingsDistinguishTrackAndLocalDescriptions()
+        {
+            IReadOnlyList<Mp4SampleRecoveryGroup> global = Parse(Description(2, false, 1, -2));
+            byte[] local = Description(1, false, 0, -5);
+            byte[] mapping = Mapping(0, (2u, 1u), (3u, 0x10001u), (5u, 0u));
+            Mp4SampleRecoveryGroup group = Assert.Single(Mp4RecoveryGroupParser.Parse(
+                Boxes([.. local, .. mapping]), 10, new(), default, global));
+            Assert.Equal((short)-2, group.GetDistance(1));
+            Assert.Equal((short)-5, group.GetDistance(2));
+            Assert.Null(group.GetDistance(9));
+            Mp4SampleRecoveryGroup inherited = Assert.Single(Mp4RecoveryGroupParser.Parse(Boxes([]), 3, new(), default, global));
+            Assert.Equal((short)-2, inherited.GetDistance(2));
+            Assert.Throws<InvalidDataException>(() => Mp4RecoveryGroupParser.Parse(
+                Boxes(Mapping(0, (10u, 0x10001u))), 10, new(), default, global));
+            Assert.Throws<InvalidDataException>(() => Mp4RecoveryGroupParser.Parse(
+                Boxes(Mapping(0, (9u, 1u))), 10, new(), default, global));
+        }
+
+        [Fact]
+        public void FragmentRecoveryAggregationPreservesUnmappedSamplesAndRunBoundaries()
+        {
+            IReadOnlyList<Mp4SampleRecoveryGroup> first = Parse(Description(1, false, 0, -2), Mapping(0, (10u, 1u)));
+            IReadOnlyList<Mp4SampleRecoveryGroup> last = Parse(Description(1, false, 0, -5), Mapping(0, (10u, 1u)));
+            Mp4FragmentRecoveryIndex index = new(0, []);
+            index.Add(3, []);
+            index.Add(10, first);
+            index.Add(4, []);
+            index.Add(10, last);
+            Mp4SampleRecoveryGroup group = Assert.Single(index.Build());
+            Assert.Equal(27, group.SampleCount);
+            Assert.Null(group.GetDistance(2));
+            Assert.Equal((short)-2, group.GetDistance(3));
+            Assert.Equal((short)-2, group.GetDistance(12));
+            Assert.Null(group.GetDistance(16));
+            Assert.Equal((short)-5, group.GetDistance(17));
+            Assert.Equal((short)-5, group.GetDistance(26));
+        }
+
         private static IReadOnlyList<Mp4SampleRecoveryGroup> Parse(params byte[][] boxes) =>
             Mp4RecoveryGroupParser.Parse(Boxes(boxes.SelectMany(box => box).ToArray()), 10, new(), default);
 

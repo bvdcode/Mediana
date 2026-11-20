@@ -9,16 +9,22 @@ using Mediana.Core.Video;
 namespace Mediana.Codecs.H264
 {
     /// <summary>Decodes AVC length-prefixed packets containing a complete picture with slices in increasing macroblock order.
-    /// Supports progressive 8-bit YUV 4:2:0 CAVLC and CABAC I/P/B pictures with default scaling.
-    /// Both entropy modes support 4x4 and 8x8 transforms.</summary>
+    /// Supports progressive, picture-adaptive and macroblock-adaptive frame/field 8-bit and 10-bit YUV 4:2:0 and 4:2:2
+    /// CAVLC and CABAC I/P/B pictures with default scaling. Both entropy modes support 4x4 and 8x8 transforms.</summary>
     public class H264DecoderFactory : IVideoDecoderFactory, IRandomAccessDecoderFactory
     {
         private readonly H264DecoderOptions options;
+        private readonly Action<string>? warningHandler;
 
-        public H264DecoderFactory(H264DecoderOptions? options = null)
+        public H264DecoderFactory(H264DecoderOptions? options = null) : this(options, null)
+        {
+        }
+
+        public H264DecoderFactory(H264DecoderOptions? options, Action<string>? warningHandler)
         {
             this.options = options ?? new H264DecoderOptions();
             this.options.Validate();
+            this.warningHandler = warningHandler;
         }
 
         public string ImplementationId => "mediana.h264";
@@ -42,7 +48,8 @@ namespace Mediana.Codecs.H264
             return H264Support.GetUnsupportedReason(H264Configuration.Parse(stream.Configuration.Span, options));
         }
 
-        /// <summary>Outputs owned cropped YUV frames with the packet presentation time and duration.
+        /// <summary>Outputs owned cropped YUV surfaces with packet timing. Complementary fields form an interleaved frame
+        /// with the leading field's timestamp and the sum of both durations. Unpaired fields remain single-field surfaces.
         /// Calls must not overlap. Cancellation or failure requires Reset or disposal.
         /// Reset restores the original AVC configuration and requires a new IDR picture.</summary>
         public IMediaCodec<MediaPacket, VideoFrame> Create(EncodedStreamInfo stream, MediaBufferAllocator allocator)
@@ -60,7 +67,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException(reason);
             }
-            return new H264Decoder(stream.StreamIndex, configuration, allocator, options, stream.ColorDescription, stream.AspectRatioDescription);
+            return new H264Decoder(stream.StreamIndex, configuration, allocator, options, stream.ColorDescription, stream.AspectRatioDescription, warningHandler);
         }
     }
 }

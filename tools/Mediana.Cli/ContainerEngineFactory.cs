@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Microsoft.Extensions.Logging;
 using Mediana.Codecs.Av1;
 using Mediana.Codecs.H264;
 using Mediana.Codecs.Hevc;
@@ -24,16 +25,20 @@ namespace Mediana.Cli
 {
     internal static class ContainerEngineFactory
     {
-        public static MediaEngineBuilder CreateVideoBuilder(Mp4TimestampMode timestampMode = Mp4TimestampMode.Media) =>
-            CreateBuilder(timestampMode)
-                .AddVideoDecoder(new H264DecoderFactory())
+        public static MediaEngineBuilder CreateVideoBuilder(ILogger logger, Mp4TimestampMode timestampMode = Mp4TimestampMode.Media)
+        {
+            ArgumentNullException.ThrowIfNull(logger);
+            Action<string> warningHandler = message => logger.LogWarning("{Warning}", message);
+            return CreateBuilder(timestampMode)
+                .AddVideoDecoder(new H264DecoderFactory(new() { IgnoreInconsistentPictureTiming = true }, warningHandler))
                 .AddVideoDecoder(new HevcDecoderFactory())
-                .AddVideoDecoder(new MjpegDecoderFactory())
+                .AddVideoDecoder(new MjpegDecoderFactory(warningHandler: warningHandler))
                 .AddVideoDecoder(new Vp8DecoderFactory())
                 .AddVideoDecoder(new Vp9DecoderFactory())
                 .AddVideoDecoder(new Mpeg4DecoderFactory())
                 .AddVideoDecoder(new TheoraDecoderFactory())
                 .AddVideoDecoder(new Av1DecoderFactory());
+        }
 
         public static MediaEngineBuilder CreateBuilder(Mp4TimestampMode timestampMode = Mp4TimestampMode.Media) => new MediaEngineBuilder()
             .AddContainer(new AdtsReaderFactory())

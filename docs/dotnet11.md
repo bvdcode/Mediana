@@ -121,3 +121,5 @@ Sources: [.NET 11 overview](https://learn.microsoft.com/en-us/dotnet/core/whats-
 [runtime changes](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-11/runtime),
 [library changes](https://learn.microsoft.com/en-us/dotnet/core/whats-new/dotnet-11/libraries),
 [GitVersion 7 migration](https://github.com/GitTools/GitVersion/releases/tag/7.0.0).
+
+A subsequent [paired quantization experiment](h264-encoding-matrix.md#paired-quantization-experiment) used `Vector128.ZipLower` to prepare reusable SIMD coefficients. All outputs remained exact, but complete-encoding CPU gains were mixed with regressions, so the original implementation remains in use.

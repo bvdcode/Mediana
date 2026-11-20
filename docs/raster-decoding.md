@@ -1,13 +1,17 @@
 # Raster decoding and metadata
 
 All raster decoders implement `IImageDecoder` and `IImageInfoReader`. Recognition
-uses file signatures. The CLI and `ImageResources.DefaultDecoders` register the
+uses signatures or, for signatureless TGA, a validated structural header.
+The CLI and `ImageResources.DefaultDecoders` register the
 same decoder implementations; images embedded in SVG and documents use the
 supplied `ImageDecodeContext`.
 
 | Module | Decoded representations |
 | --- | --- |
-| `Mediana.Codecs.Bmp` | BMP palettes at 1/4/8 bits, RGB16/24/32, contiguous bitfields, RLE4/RLE8, top-down rows, OS/2 core and Windows V2–V5 headers; ICO/CUR PNG and DIB entries, alpha and AND masks |
+| `Mediana.Codecs.Qoi` | [QOI RGB/RGBA](qoi.md), complete opcodes and transfer declarations |
+| `Mediana.Codecs.Pnm` | [PBM/PGM/PPM](pnm.md), plain/binary, 16-bit samples and binary page sequences |
+| `Mediana.Codecs.Tga` | [TGA](tga.md), raw/RLE, palette, gray/alpha and RGB/alpha |
+| `Mediana.Codecs.Bmp` | BMP palettes at 1/4/8 bits, RGB16/24/32, contiguous bitfields, RLE4/RLE8, top-down rows, OS/2 core and Windows V2–V5 headers; ICO/CUR PNG and DIB entries, alpha and AND masks; [ANI sequences](ani.md) with step/time selection |
 | `Mediana.Codecs.Gif` | GIF87a/89a, global/local palettes, GIF LZW, four-pass interlace, transparent indices, disposal 0–3, frame delays and loop metadata |
 | `Mediana.Codecs.Tiff` | Classic TIFF and BigTIFF, both byte orders, strips/tiles, chunky/separate unsigned 1/2/4/8/16-bit samples, gray/RGB/palette/CMYK, straight/associated alpha and orientations 1–8 |
 | `Mediana.Codecs.Webp` | VP8 keyframes and VP8L, raw/compressed filtered alpha, extended RIFF, animation rectangles, source-over/replacement, disposal, timing, loop/background metadata |
@@ -82,6 +86,9 @@ mediana -i animation.gif frame.png --time-ms 120
 mediana -i animation.webp output.webp --animate
 ```
 
+Metadata-only [PCX and PSD/PSB inspection](image-inspection.md) is registered
+separately from raster decoders and exposes original embedded JPEG previews.
+
 ## Verification
 
 The procedural corpus covers 100 BMP/ICO, TIFF and WebP cases, plus GIF frame
@@ -106,3 +113,5 @@ Specifications: [GIF89a](https://www.w3.org/Graphics/GIF/spec-gif89a.txt),
 [VP8L](https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification),
 [VP8](https://www.rfc-editor.org/rfc/rfc6386),
 [DNG 1.6](https://helpx.adobe.com/content/dam/help/en/photoshop/pdf/dng_spec_1_6_0_0.pdf).
+
+OpenEXR scanline HALF/FLOAT, multipart selection, HDR sample preservation and exact supported compression variants are described in [OpenEXR decoding](openexr.md).

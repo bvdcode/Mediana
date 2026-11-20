@@ -17,6 +17,11 @@ namespace Mediana.Tests
         [InlineData("avc-tail.mov", Mp4TimestampMode.LinearMovie)]
         [InlineData("avc-multislice-cabac.mp4", Mp4TimestampMode.Media)]
         [InlineData("avc-multislice-cabac.mp4", Mp4TimestampMode.LinearMovie)]
+        [InlineData("fragment-relative.mp4", Mp4TimestampMode.Media)]
+        [InlineData("fragment-relative.mp4", Mp4TimestampMode.LinearMovie)]
+        [InlineData("fragment-signed.mp4", Mp4TimestampMode.Media)]
+        [InlineData("fragment-signed.mp4", Mp4TimestampMode.LinearMovie)]
+        [InlineData("fragment-hybrid.mp4", Mp4TimestampMode.LinearMovie)]
         public async Task CandidateLookupMatchesAllSampleMetadataWithoutReadingMediaOrMovingCursors(string name, Mp4TimestampMode mode)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);

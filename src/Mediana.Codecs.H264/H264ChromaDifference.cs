@@ -44,7 +44,7 @@ namespace Mediana.Codecs.H264
             {
                 return Integer(u, v, stride, source, stop);
             }
-            Vector128<short> horizontalWeight = Vector128.Create((short)dx);
+            Vector128<byte> horizontalWeight = H264ChromaInterpolation.HorizontalWeights(dx);
             Vector128<short> verticalWeight = Vector128.Create((short)dy);
             Vector128<short> topU = H264ChromaInterpolation.Horizontal8(u, 0, horizontalWeight);
             Vector128<short> topV = H264ChromaInterpolation.Horizontal8(v, 0, horizontalWeight);

@@ -24,7 +24,7 @@ namespace Mediana.Codecs.H264
             {
                 return H264CabacPictureDecoder.Decode(ref bits, header, references, order, allocator, cancellationToken);
             }
-            H264Picture result = new(header.Sequence, allocator, header.Kind);
+            H264Picture result = new(header.Sequence, allocator, header.Kind, header.Structure);
             bool complete = false;
             try
             {
@@ -48,25 +48,15 @@ namespace Mediana.Codecs.H264
             CancellationToken cancellationToken = default)
         {
             int qp = header.Qp;
-            int address = header.FirstMacroblock;
-            while (address < endMacroblock && bits.MoreRbspData())
+            H264AdaptiveReferences? adaptive = header.Layout.MacroblockAdaptiveFrameField ? new(references) : null;
+            H264CavlcSliceCursor cursor = new(header.Layout, header.Kind, header.FirstMacroblock, endMacroblock);
+            while (cursor.MoveNext(ref bits, result.Grid, out int address, out bool skipped))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                int skip = bits.ReadUe(endMacroblock - address);
-                for (int index = 0; index < skip; index++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    ReadMacroblock(ref bits, result, header, references, order, address++, ref qp, true);
-                }
-                if (address == endMacroblock || skip > 0 && !bits.MoreRbspData())
-                {
-                    break;
-                }
-                ReadMacroblock(ref bits, result, header, references, order, address++, ref qp, false);
-            }
-            if (address != endMacroblock)
-            {
-                throw new InvalidDataException("The H.264 slice does not cover its declared macroblock range.");
+                (int x, int y) = result.Grid.Position(address);
+                H264BidirectionalReferences selected = adaptive is null ? references
+                    : adaptive.Get(H264MacroblockPredictionContext.Create(result, x, y).Structure);
+                ReadMacroblock(ref bits, result, header, selected, order, address, ref qp, skipped);
             }
             bits.ReadTrailingBits();
         }
@@ -80,9 +70,8 @@ namespace Mediana.Codecs.H264
                 H264IntraMacroblock.Read(ref bits, target, header, address, type - 23, ref qp);
                 return;
             }
-            int x = address % header.Sequence.WidthInMbs * 16;
-            int y = address / header.Sequence.WidthInMbs * 16;
-            Span<byte> prediction = stackalloc byte[384];
+            (int x, int y) = target.Grid.Position(address);
+            Span<byte> prediction = stackalloc byte[target.MacroblockBytes];
             bool noSmallPartitions = H264BidirectionalSyntax.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, order, x, y, type, prediction);
             H264InterMacroblock.ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions, skip);
         }

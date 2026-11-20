@@ -3,9 +3,9 @@
 Mediana's target formats and independently tracked operations. This is a development map,
 not a claim that every listed format is currently supported. Priorities and scope may evolve.
 
-**469 variants · 1058 operations · 19 groups.**
+**469 variants · 1066 operations · 19 groups.**
 
-**Existing implementations: 115 variants · 146 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 134 variants · 167 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -23,14 +23,14 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | Group | Implemented variants | Target variants | Implemented operations | Target operations |
 | --- | ---: | ---: | ---: | ---: |
-| [Containers and packaging](#containers-and-packaging) | 17 | 44 | 19 | 88 |
+| [Containers and packaging](#containers-and-packaging) | 19 | 44 | 21 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 7 | 30 |
-| [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
+| [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 9 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
-| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 13 | 35 | 13 | 64 |
-| [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
+| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 26 | 35 | 26 | 71 |
+| [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 13 | 62 | 14 | 124 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 15 | 62 | 16 | 124 |
 | [Audio coding and sample representations](#audio-coding-and-sample-representations) | 16 | 63 | 22 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
@@ -48,7 +48,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
 | `mp4-classic` | MP4 / ISO BMFF — Non-fragmented files | .mp4 .m4a .m4v | R ◐ · W □ | A | Current reader maps AVC/HEVC/MPEG-4 Visual/AAC/MP3; other codec mappings remain separate work. [iso-bmff](sources.md#iso-bmff) | [aac-multichannel](../performance/README.md#aac-multichannel), [avc-decode-30m](../performance/README.md#avc-decode-30m), [remux-hls](../performance/README.md#remux-hls) |
-| `mp4-fragmented` | MP4 / ISO BMFF — Fragmented files | .mp4 .m4s | R □ · W □ | A | Includes initialization segments, fragment timing and incremental input. [iso-bmff](sources.md#iso-bmff) | — |
+| `mp4-fragmented` | MP4 / ISO BMFF — Fragmented files | .mp4 .m4s | R ◐ · W □ | A | Self-contained indexed fragment input with metadata, decoding and seeking; growing input and separate initialization resources remain open. [API](../mp4-fragmented-input.md). [iso-bmff](sources.md#iso-bmff) | — |
 | `mov` | QuickTime — Movie files | .mov .qt | R ◐ · W □ | A | Current MP4-family reader covers a subset; legacy QuickTime sample descriptions remain open. [quicktime](sources.md#quicktime) | — |
 | `3gp` | 3GPP — 3GP / 3G2 files | .3gp .3g2 | R □ · W □ | B | Validate their brands and track mappings independently of MP4. [iso-bmff](sources.md#iso-bmff), [discovery](sources.md#discovery) | — |
 | `matroska-indexed` | Matroska — Indexed file presentation | .mkv .mka .mks | R ◐ · W □ | A | Indexed AVC/HEVC/VP8/VP9/MJPEG/AAC/MP3 mappings; other codecs remain stored representations. [matroska](sources.md#matroska) | — |
@@ -83,7 +83,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `flac-native` | FLAC — Native file framing and metadata | .flac | R ◐ · W □ | A | FLAC codec operation is tracked separately. [flac](sources.md#flac) | [flac-track](../performance/README.md#flac-track), [flac-sustained](../performance/README.md#flac-sustained) |
 | `mp3-file` | MP3 — Layer III frame stream with metadata | .mp3 | R ◐ · W □ | A | Writer means framing/metadata and stream copy, not MP3 compression. [mpeg-audio](sources.md#mpeg-audio), [metadata](sources.md#metadata) | [mp3-long](../performance/README.md#mp3-long) |
 | `heif-wrapper` | HEIF — Image item graph and derived items | .heif .heic | R ◐ · W □ | A | Current HEIC item graph includes grids, identity, overlays, transforms and alpha. [heif](sources.md#heif) | [heic-photo-12mp](../performance/README.md#heic-photo-12mp), [heic-photo-200mp](../performance/README.md#heic-photo-200mp), [heic-preview](../performance/README.md#heic-preview) |
-| `avif-wrapper` | AVIF — HEIF AV1 image item mapping | .avif | R □ · W □ | A | Requires AV1 decoding/encoding in addition to item-graph support. [avif](sources.md#avif) | — |
+| `avif-wrapper` | AVIF — HEIF AV1 image item mapping | .avif | R ◐ · W □ | A | Requires AV1 decoding/encoding in addition to item-graph support. [avif](sources.md#avif) | — |
 | `jp2-wrapper` | JP2 — JPEG 2000 Part 1 file format | .jp2 | R ◐ · W □ | A | Current reader supports a subset of color and channel boxes. [jpeg2000](sources.md#jpeg2000) | [jp2-scan](../performance/README.md#jp2-scan) |
 | `jpx-wrapper` | JPX — JPEG 2000 Part 2 file format | .jpx .jpf | R □ · W □ | B | Composition, multiple codestreams and additional color/channel mappings. [jpeg2000](sources.md#jpeg2000) | — |
 | `mj2-wrapper` | Motion JPEG 2000 — JPEG 2000 Part 3 file format | .mj2 .mjp2 | R □ · W □ | C | [jpeg2000](sources.md#jpeg2000) | — |
@@ -116,7 +116,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
-| `jpeg-baseline` | JPEG — Baseline sequential Huffman DCT, 8-bit | .jpg .jpeg .jpe | D ◐ · E □ | A | Current grayscale/three-component decoding; encoder is open. [jpeg](sources.md#jpeg) | [jpeg-photo](../performance/README.md#jpeg-photo), [pdf-scan](../performance/README.md#pdf-scan) |
+| `jpeg-baseline` | JPEG — Baseline sequential Huffman DCT, 8-bit | .jpg .jpeg .jpe | D ◐ · E ◐ | A | Grayscale/three-component decoding and streamed baseline encoding with quality and 4:4:4/4:2:2/4:2:0 sampling. [jpeg](sources.md#jpeg) | [jpeg-photo](../performance/README.md#jpeg-photo), [pdf-scan](../performance/README.md#pdf-scan) |
 | `jpeg-sequential` | JPEG — Extended sequential Huffman DCT, 8/12-bit | .jpg .jpeg | D ◐ · E □ | B | Current SOF1 decoder is 8-bit; 12-bit precision remains open. [jpeg](sources.md#jpeg) | — |
 | `jpeg-progressive` | JPEG — Progressive Huffman DCT, 8/12-bit | .jpg .jpeg | D ◐ · E □ | A | Current SOF2 decoder is 8-bit; no encoder or 12-bit reconstruction yet. [jpeg](sources.md#jpeg) | [jpeg-photo-progressive](../performance/README.md#jpeg-photo-progressive) |
 | `jpeg-arithmetic` | JPEG — Arithmetic DCT coding | .jpg .jpeg | D □ · E □ | B | [jpeg](sources.md#jpeg) | — |
@@ -187,37 +187,37 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `tiff-deflate` | TIFF — Deflate compression and predictors | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff) | — |
 | `tiff-jpeg` | TIFF — JPEG compression mappings | .tif .tiff | D ◐ · E □ | B | Old and revised JPEG-in-TIFF representations need separate fixtures. [tiff](sources.md#tiff), [jpeg](sources.md#jpeg) | — |
 | `tiff-fax` | TIFF — CCITT fax compression | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff), [jbig](sources.md#jbig) | — |
-| `tga` | TGA — Raw/RLE truecolor, indexed and alpha | .tga | D □ · E □ | B | [discovery](sources.md#discovery) | — |
-| `pcx` | PCX — Palette / RGB RLE | .pcx | D □ · E □ | C | [discovery](sources.md#discovery) | — |
+| `tga` | TGA — Raw/RLE truecolor, indexed and alpha | .tga | D ◐ · E □ | B | [discovery](sources.md#discovery) | — |
+| `pcx` | PCX — Palette / RGB RLE | .pcx | R ◐ · D □ · E □ | C | Header metadata and palettes; raster decoding remains open. [discovery](sources.md#discovery) | — |
 | `sgi` | SGI RGB — Raw/RLE planar images | .sgi .rgb .rgba | D □ · E □ | C | [discovery](sources.md#discovery) | — |
-| `pbm` | Netpbm PBM — Plain/binary monochrome | .pbm | D □ · E □ | B | [pnm](sources.md#pnm) | — |
-| `pgm` | Netpbm PGM — Plain/binary grayscale | .pgm | D □ · E □ | B | [pnm](sources.md#pnm) | — |
-| `ppm` | Netpbm PPM — Plain/binary RGB | .ppm .pnm | D □ · E □ | B | [pnm](sources.md#pnm) | — |
+| `pbm` | Netpbm PBM — Plain/binary monochrome | .pbm | D ◐ · E □ | B | [pnm](sources.md#pnm) | — |
+| `pgm` | Netpbm PGM — Plain/binary grayscale | .pgm | D ◐ · E □ | B | [pnm](sources.md#pnm) | — |
+| `ppm` | Netpbm PPM — Plain/binary RGB | .ppm .pnm | D ◐ · E □ | B | [pnm](sources.md#pnm) | — |
 | `pam` | Netpbm PAM — Arbitrary tuple images | .pam | D □ · E □ | B | [pnm](sources.md#pnm) | — |
-| `qoi` | QOI — Lossless RGB/RGBA | .qoi | D □ · E □ | B | [qoi](sources.md#qoi) | — |
+| `qoi` | QOI — Lossless RGB/RGBA | .qoi | D ◐ · E □ | B | [qoi](sources.md#qoi) | — |
 | `farbfeld` | farbfeld — 16-bit RGBA | .ff | D □ · E □ | C | [discovery](sources.md#discovery) | — |
-| `psd` | Photoshop PSD — Composite, layers, masks and channels | .psd | D □ · E □ | B | Merged preview and full layer composition require independent coverage. [psd](sources.md#psd) | — |
-| `psb` | Photoshop PSB — Large-document structure | .psb | D □ · E □ | C | [psd](sources.md#psd) | — |
+| `psd` | Photoshop PSD — Composite, layers, masks and channels | .psd | R ◐ · D □ · E □ | B | Metadata and unchanged embedded JPEG access; merged raster and layer composition remain open. [psd](sources.md#psd) | — |
+| `psb` | Photoshop PSB — Large-document structure | .psb | R ◐ · D □ · E □ | C | Metadata and unchanged embedded JPEG access with 64-bit layer-section lengths. [psd](sources.md#psd) | — |
 | `ora` | OpenRaster — Layered image package | .ora | D □ · E □ | B | [discovery](sources.md#discovery) | — |
 | `xcf` | GIMP XCF — Layered image revisions | .xcf | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `icns` | Apple ICNS — Multi-resolution icons | .icns | D □ · E □ | B | [discovery](sources.md#discovery) | — |
 | `ico` | Windows ICO / CUR — Multi-image icons and cursors | .ico .cur | D ◐ · E □ | A | Embedded PNG and DIB entries are distinct payloads. [bmp-dds](sources.md#bmp-dds), [discovery](sources.md#discovery) | — |
-| `ani` | Windows ANI — Animated cursors | .ani | D □ · E □ | C | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
+| `ani` | Windows ANI — Animated cursors | .ani | D ◐ · E □ | C | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `dng` | Digital Negative — DNG raw and rendered previews | .dng | D □ · E □ | B | Raw sample decode, demosaic/color processing and embedded previews are different operations. [tiff](sources.md#tiff) | — |
 | `raw-cr2` | Canon RAW — CR2 | .cr2 | D □ | C | Camera-specific unpacking, metadata and color calibration need sourced coverage. [discovery](sources.md#discovery) | — |
-| `raw-cr3` | Canon RAW — CR3 / CRX | .cr3 | D □ | C | [discovery](sources.md#discovery) | — |
-| `raw-nef` | Nikon RAW — NEF / NRW | .nef .nrw | D □ | C | [discovery](sources.md#discovery) | — |
+| `raw-cr3` | Canon RAW — CR3 / CRX | .cr3 | R ◐ · D □ | C | [discovery](sources.md#discovery) | — |
+| `raw-nef` | Nikon RAW — NEF / NRW | .nef .nrw | R ◐ · D □ | C | [discovery](sources.md#discovery) | — |
 | `raw-arw` | Sony RAW — ARW / SR2 | .arw .sr2 | D □ | C | [discovery](sources.md#discovery) | — |
-| `raw-raf` | Fujifilm RAW — RAF Bayer / X-Trans | .raf | D □ | C | [discovery](sources.md#discovery) | — |
-| `raw-other` | Camera RAW — ORF / RW2 / PEF / SRW families | .orf .rw2 .pef .srw | D □ | C | Split by documented coding process and camera family before implementation. [discovery](sources.md#discovery) | — |
+| `raw-raf` | Fujifilm RAW — RAF Bayer / X-Trans | .raf | R ◐ · D □ | C | [discovery](sources.md#discovery) | — |
+| `raw-other` | Camera RAW — ORF / RW2 / PEF / SRW families | .orf .rw2 .pef .srw | R ◐ · D □ | C | Split by documented coding process and camera family before implementation. [discovery](sources.md#discovery) | — |
 
 ## HDR, scientific images and raw sample layouts
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
-| `exr-scanline` | OpenEXR — Scanline images | .exr | D □ · E □ | B | [openexr](sources.md#openexr) | — |
+| `exr-scanline` | OpenEXR — Scanline images | .exr | R ◐ · D ◐ · E □ | B | [openexr](sources.md#openexr) | — |
 | `exr-tiled` | OpenEXR — Tiled, mipmapped and ripmapped images | .exr | D □ · E □ | B | [openexr](sources.md#openexr) | — |
-| `exr-multipart` | OpenEXR — Multipart and multiview images | .exr | D □ · E □ | C | [openexr](sources.md#openexr) | — |
+| `exr-multipart` | OpenEXR — Multipart and multiview images | .exr | D ◐ · E □ | C | [openexr](sources.md#openexr) | — |
 | `exr-deep` | OpenEXR — Deep samples | .exr | D □ · E □ | C | [openexr](sources.md#openexr) | — |
 | `exr-compression` | OpenEXR — PIZ / ZIP / PXR24 / B44 / DWA families | .exr | D □ · E □ | B | Split each accepted compression family into its own row before implementation. [openexr](sources.md#openexr) | — |
 | `radiance-hdr` | Radiance HDR — RGBE / XYZE images | .hdr .pic | D □ · E □ | B | [discovery](sources.md#discovery) | — |
@@ -260,8 +260,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `avc-main` | H.264 / AVC — Main | .h264 .264 | D ◐ · E □ | A | Current progressive 8-bit 4:2:0 CABAC/CAVLC subset includes I/P/B pictures. [h264](sources.md#h264) | [avc-decode-30m](../performance/README.md#avc-decode-30m) |
 | `avc-extended` | H.264 / AVC — Extended | .h264 .264 | D □ · E □ | B | [h264](sources.md#h264) | — |
 | `avc-high` | H.264 / AVC — High | .h264 .264 | D ◐ · E □ | A | Current progressive 8-bit 4:2:0 reconstruction uses default scaling matrices. [h264](sources.md#h264) | — |
-| `avc-high10` | H.264 / AVC — High 10 / High 10 Intra | .h264 .264 | D □ · E □ | B | Parsing profile identifiers is not 10-bit decoding support. [h264](sources.md#h264) | — |
-| `avc-high422` | H.264 / AVC — High 4:2:2 / High 4:2:2 Intra | .h264 .264 | D □ · E □ | B | [h264](sources.md#h264) | — |
+| `avc-high10` | H.264 / AVC — High 10 / High 10 Intra | .h264 .264 | D ◐ · E □ | B | Progressive 10-bit 4:2:0 CABAC/CAVLC I/P/B decoding with flat scaling; interlaced reconstruction and custom scaling remain open. [h264](sources.md#h264) | — |
+| `avc-high422` | H.264 / AVC — High 4:2:2 / High 4:2:2 Intra | .h264 .264 | D ◐ · E □ | B | Progressive 8-bit and 10-bit CABAC/CAVLC I/P/B decoding with flat scaling; interlaced reconstruction and custom scaling remain open. [h264](sources.md#h264) | — |
 | `avc-high444` | H.264 / AVC — High 4:4:4 Predictive / Intra | .h264 .264 | D □ · E □ | B | [h264](sources.md#h264) | — |
 | `avc-cavlc444` | H.264 / AVC — CAVLC 4:4:4 Intra | .h264 .264 | D □ · E □ | C | [h264](sources.md#h264) | — |
 | `avc-interlaced` | H.264 / AVC — Field pictures / PAFF / MBAFF | .h264 .264 | D □ · E □ | B | Tool-specific coverage across applicable profiles. [h264](sources.md#h264) | — |

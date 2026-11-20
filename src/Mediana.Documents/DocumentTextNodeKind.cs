@@ -18,6 +18,7 @@ namespace Mediana.Documents
         Row,
         Cell,
         Header,
-        Footer
+        Footer,
+        SpeakerNotes
     }
 }

@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    /// <summary>Initializes progressive I-slice contexts under H.264 tables 9-12 and 9-16 through 9-21.</summary>
+    /// <summary>Initializes I-slice contexts under H.264 tables 9-12 and 9-16 through 9-21.</summary>
     internal static class H264CabacIntraContexts
     {
         private static readonly sbyte[] InitialValues =
@@ -54,7 +54,7 @@ namespace Mediana.Codecs.H264
             >= 3 and <= 10 => contextIndex - 3,
             >= 60 and <= 275 => contextIndex - 60 + 8,
             >= 399 and <= 401 => contextIndex - 399 + 224,
-            _ => throw new ArgumentOutOfRangeException(nameof(contextIndex), "The context is not an initialized progressive I-slice context.")
+            _ => throw new ArgumentOutOfRangeException(nameof(contextIndex), "The context is not an initialized I-slice context.")
         };
     }
 }

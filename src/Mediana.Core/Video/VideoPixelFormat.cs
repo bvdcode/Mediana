@@ -49,11 +49,15 @@ namespace Mediana.Core.Video
 
         /// <summary>Red, green, blue and straight (unassociated) alpha bytes.</summary>
         public static VideoPixelFormat Rgba32 { get; } = new("rgba32", new VideoPlaneFormat(1, 1, 4));
+        /// <summary>Native-endian IEEE float32 red, green, blue and premultiplied alpha. RGB retains negative and HDR values.</summary>
+        public static VideoPixelFormat RgbaFloat32Premultiplied { get; } = new("rgba-float32-premultiplied", new VideoPlaneFormat(1, 1, 16));
         public static VideoPixelFormat Yuv420P8 { get; } =
             new PlanarVideoPixelFormat("yuv420p8", PlanarColorModel.Yuv, 8, 2, 2);
         /// <summary>Planar Y/Cb/Cr with 4:2:0 subsampling. Samples occupy the low ten bits of native-endian unsigned 16-bit words.</summary>
         public static VideoPixelFormat Yuv420P10 { get; } =
             new PlanarVideoPixelFormat("yuv420p10", PlanarColorModel.Yuv, 10, 2, 2);
+        public static VideoPixelFormat Yuv422P8 { get; } = new PlanarVideoPixelFormat("yuv422p8", PlanarColorModel.Yuv, 8, 2, 1);
+        public static VideoPixelFormat Yuv422P10 { get; } = new PlanarVideoPixelFormat("yuv422p10", PlanarColorModel.Yuv, 10, 2, 1);
         public static VideoPixelFormat Yuv420P12 { get; } = new PlanarVideoPixelFormat("yuv420p12", PlanarColorModel.Yuv, 12, 2, 2);
     }
 }

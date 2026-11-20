@@ -60,7 +60,7 @@ namespace Mediana.Processing
             return declared.Matrix switch
             {
                 MatrixCoefficients.Bt709 => Hd,
-                MatrixCoefficients.Bt601 => Sd(format.Height),
+                MatrixCoefficients.Bt601 => Sd(format.FullFrameHeight ?? format.Height),
                 MatrixCoefficients.Smpte240M => Smpte,
                 MatrixCoefficients.Bt2020NonConstant or MatrixCoefficients.Bt2020Constant => Wide,
                 MatrixCoefficients.Unspecified => FromPrimaries(format, declared),
@@ -82,8 +82,11 @@ namespace Mediana.Processing
             _ => throw new ArgumentOutOfRangeException(nameof(format), "Invalid source color primaries.")
         };
 
-        private static VideoColorInfo Geometry(VideoFormat format) =>
-            format.Width <= MaximumSdWidth && format.Height <= MaximumSdHeight ? Sd(format.Height) : Hd;
+        private static VideoColorInfo Geometry(VideoFormat format)
+        {
+            int height = format.FullFrameHeight ?? format.Height;
+            return format.Width <= MaximumSdWidth && height <= MaximumSdHeight ? Sd(height) : Hd;
+        }
 
         private static VideoColorInfo Sd(int height) => height <= MaximumNtscHeight ? Ntsc : Pal;
     }

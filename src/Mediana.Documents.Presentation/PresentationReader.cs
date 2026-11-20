@@ -12,6 +12,21 @@ namespace Mediana.Documents.Presentation
         {
             options ??= new();
             OpenXmlPackage package = OpenXmlPackage.Open(input, options.Package, cancellationToken);
+            return Open(package, options, cancellationToken);
+        }
+
+        /// <summary>Opens a presentation from a readable seekable stream, reading only requested parts.
+        /// By default the caller retains the stream and must keep it unchanged until the presentation is disposed.</summary>
+        public static PresentationDocument Open(Stream input, PresentationReaderOptions? options = null, bool leaveOpen = true,
+            CancellationToken cancellationToken = default)
+        {
+            options ??= new();
+            OpenXmlPackage package = OpenXmlPackage.Open(input, options.Package, leaveOpen, cancellationToken);
+            return Open(package, options, cancellationToken);
+        }
+
+        private static PresentationDocument Open(OpenXmlPackage package, PresentationReaderOptions options, CancellationToken cancellationToken)
+        {
             bool completed = false;
             try
             {

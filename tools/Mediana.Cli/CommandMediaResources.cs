@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers;
 using Mediana.Core.Memory;
 
 namespace Mediana.Cli
@@ -13,6 +14,6 @@ namespace Mediana.Cli
             BufferBudgetBytes = long.MaxValue
         };
 
-        internal static MediaBufferAllocator CreateAllocator() => new(long.MaxValue);
+        internal static MediaBufferAllocator CreateAllocator() => new(long.MaxValue, MemoryPool<byte>.Shared);
     }
 }

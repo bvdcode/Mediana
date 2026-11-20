@@ -17,6 +17,7 @@ namespace Mediana
         private readonly List<IAudioDecoderFactory> audioDecoders = [];
         private readonly List<IStreamMetadataReader> metadataReaders = [];
         private readonly List<IImageDecoder> imageDecoders = [];
+        private readonly List<IImageInspector> imageInspectors = [];
         private readonly List<IAudioEncoderFactory> audioEncoders = [];
         private readonly List<IVideoEncoderFactory> videoEncoders = [];
         private readonly List<IContainerWriterFactory> writers = [];
@@ -104,6 +105,20 @@ namespace Mediana
             return this;
         }
 
+        /// <summary>Registers image metadata without requiring a pixel decoder. Explicit inspectors take precedence in metadata operations.</summary>
+        public MediaEngineBuilder AddImageInspector(IImageInspector reader)
+        {
+            ArgumentNullException.ThrowIfNull(reader);
+            ArgumentException.ThrowIfNullOrWhiteSpace(reader.ImplementationId);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(reader.ProbeLength);
+            if (imageInspectors.Any(item => item.ImplementationId == reader.ImplementationId))
+            {
+                throw new ArgumentException("An image metadata reader with the same identifier is already registered.", nameof(reader));
+            }
+            imageInspectors.Add(reader);
+            return this;
+        }
+
         public MediaEngineBuilder AddImageDecoder(IImageDecoder decoder)
         {
             ValidateImageDecoder(decoder);
@@ -145,6 +160,6 @@ namespace Mediana
             }
         }
 
-        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray(), imageDecoders.ToArray(), audioEncoders.ToArray(), videoEncoders.ToArray(), writers.ToArray(), resources);
+        public MediaEngine Build() => new(containers.ToArray(), decoders.ToArray(), audioDecoders.ToArray(), metadataReaders.ToArray(), imageDecoders.ToArray(), audioEncoders.ToArray(), videoEncoders.ToArray(), writers.ToArray(), resources, imageInspectors.ToArray());
     }
 }

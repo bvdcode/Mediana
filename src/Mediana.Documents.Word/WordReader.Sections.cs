@@ -67,6 +67,7 @@ namespace Mediana.Documents.Word
 
             WordMarginContent Margin(string kind, WordMarginContent? inherited)
             {
+                Dictionary<DocumentHeaderFooterVariant, string> partNames = inherited is null ? [] : new(inherited.PartNames);
                 Dictionary<string, IReadOnlyList<WordBlock>> contents = new(StringComparer.Ordinal);
                 foreach (XElement reference in properties.Elements(context.W + (kind + "Reference")))
                 {
@@ -78,10 +79,19 @@ namespace Mediana.Documents.Word
                     string id = (string?)reference.Attribute(context.R + "id") ?? throw new InvalidDataException("Missing Word header/footer relationship.");
                     string part = context.RelationshipPart(main, id);
                     contents.Add(variant, reader.Blocks(context.Xml(part), part));
+                    DocumentHeaderFooterVariant sourceVariant = variant switch
+                    {
+                        "default" => DocumentHeaderFooterVariant.Default,
+                        "first" => DocumentHeaderFooterVariant.First,
+                        "even" => DocumentHeaderFooterVariant.Even,
+                        _ => throw new InvalidDataException("Invalid Word header/footer type.")
+                    };
+                    partNames[sourceVariant] = part;
                 }
                 return new(contents.GetValueOrDefault("default") ?? inherited?.Default ?? Array.Empty<WordBlock>(),
                     contents.GetValueOrDefault("first") ?? inherited?.First ?? Array.Empty<WordBlock>(),
-                    contents.GetValueOrDefault("even") ?? inherited?.Even ?? Array.Empty<WordBlock>());
+                    contents.GetValueOrDefault("even") ?? inherited?.Even ?? Array.Empty<WordBlock>())
+                { PartNames = partNames };
             }
         }
     }

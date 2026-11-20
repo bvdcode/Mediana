@@ -14,8 +14,9 @@ namespace Mediana.Formats.Tiff
         internal bool LittleEndian { get; }
         internal bool BigTiff { get; }
         internal ulong FirstOffset { get; }
-        internal int HeaderLength => BigTiff ? 16 : 8;
-        internal TiffDirectoryReader(ReadOnlyMemory<byte> data)
+        internal int HeaderLength { get; }
+        internal TiffHeaderKind HeaderKind { get; }
+        internal TiffDirectoryReader(ReadOnlyMemory<byte> data, TiffHeaderKind headerKind = TiffHeaderKind.Standard)
         {
             this.data = data;
             LittleEndian = data.Span switch
@@ -24,15 +25,32 @@ namespace Mediana.Formats.Tiff
                 [77, 77, ..] => false,
                 _ => throw new InvalidDataException("Invalid Exif TIFF byte order.")
             };
+            HeaderKind = headerKind;
             ushort version = U16(2);
-            BigTiff = version switch
+            BigTiff = (headerKind, version) switch
             {
-                42 => false,
-                43 => true,
-                _ => throw new InvalidDataException("Invalid Exif TIFF identifier.")
+                (TiffHeaderKind.Standard, 42) => false,
+                (TiffHeaderKind.Standard, 43) => true,
+                (TiffHeaderKind.Olympus, 0x4f52 or 0x5352) => false,
+                (TiffHeaderKind.Panasonic, 0x55) => false,
+                _ => throw new InvalidDataException("Invalid TIFF identifier for its declared header kind.")
             };
+            HeaderLength = headerKind switch
+            {
+                TiffHeaderKind.Standard => BigTiff ? 16 : 8,
+                TiffHeaderKind.Olympus => 8,
+                TiffHeaderKind.Panasonic => 24,
+                _ => throw new ArgumentOutOfRangeException(nameof(headerKind))
+            };
+            if (headerKind == TiffHeaderKind.Panasonic && !Slice(8, 16).Span.SequenceEqual(
+                new byte[] { 0x88, 0xe7, 0x74, 0xd8, 0xf8, 0x25, 0x1d, 0x4d, 0x94, 0x7a, 0x6e, 0x77, 0x82, 0x2b, 0x5d, 0x6a }))
+            { throw new InvalidDataException("Invalid Panasonic RW2 identifier."); }
             if (BigTiff && (U16(4) != 8 || U16(6) != 0)) { throw new InvalidDataException("Invalid BigTIFF offset header."); }
             FirstOffset = BigTiff ? U64(8) : U32(4);
+        }
+        internal TiffDirectoryReader(ReadOnlyMemory<byte> data, bool littleEndian, ulong firstOffset, int headerLength)
+        {
+            this.data = data; LittleEndian = littleEndian; FirstOffset = firstOffset; HeaderLength = headerLength;
         }
         internal ReadOnlyMemory<byte> Slice(ulong offset, ulong length)
         {
@@ -64,7 +82,7 @@ namespace Mediana.Formats.Tiff
                     location = BigTiff ? U64(location) : U32(location);
                     if (location < (ulong)HeaderLength) { throw new InvalidDataException("Exif value overlaps the TIFF header."); }
                 }
-                if (!fields.TryAdd(tag, new(tag, type, elements, Slice(location, bytes), LittleEndian)))
+                if (!fields.TryAdd(tag, new(tag, type, elements, Slice(location, bytes), LittleEndian, location)))
                 { throw new InvalidDataException("Duplicate TIFF directory tag."); }
             }
             ulong next = offset + (uint)countSize + count * (uint)entrySize;

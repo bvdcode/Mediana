@@ -13,6 +13,9 @@ namespace Mediana
             VisualExportOptions options, MediaBufferAllocator allocator, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
+            using VideoFrame? progressive = options.InterlacedField is VideoFieldSelection selected && input.Format.ScanMode != VideoScanMode.Progressive
+                ? new VideoFieldPreparation(input.Format, selected, allocator, options.WarningHandler).Apply(input, token) : null;
+            input = progressive ?? input;
             bool fit = !preserveAspect || matrix != VideoDisplayMatrix.Identity ||
                 input.Format.Width > options.MaximumWidth || input.Format.Height > options.MaximumHeight;
             if (fit && input.Format.SampleAspectRatio is null && options.UnspecifiedSampleAspectRatio is SampleAspectRatio assumed)
@@ -20,7 +23,7 @@ namespace Mediana
                 assumed.Validate();
                 VideoFormat format = input.Format;
                 using VideoFrame interpreted = input.WithFormat(new(format.Width, format.Height, format.PixelFormat,
-                    format.Color, assumed, format.ColorDescription));
+                    format.Color, assumed, format.ColorDescription, format.ScanMode, format.FullFrameHeight));
                 options.WarningHandler?.Invoke($"Missing sample aspect ratio; processing uses {assumed.Numerator}:{assumed.Denominator}. Source metadata was not modified.");
                 return ApplyResolved(interpreted, matrix, preserveAspect, options, allocator, token);
             }

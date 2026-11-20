@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
+
 namespace Mediana.Codecs.H264
 {
     internal static class H264IntraMacroblock
@@ -12,12 +14,11 @@ namespace Mediana.Codecs.H264
 
         public static void Read(ref H264BitReader bits, H264Picture target, H264SliceHeader header, int address, int type, ref int qp)
         {
-            int x = (address % header.Sequence.WidthInMbs) * 16;
-            int y = (address / header.Sequence.WidthInMbs) * 16;
+            (int x, int y) = target.Grid.Position(address);
             if (type == 25)
             {
                 ReadPcm(ref bits, target, x, y);
-                target.Quantizers[address] = 0;
+                target.Quantizers[address] = (byte)target.LumaQuantizer.Offset;
                 return;
             }
             bool intra16 = type != 0;
@@ -52,7 +53,8 @@ namespace Mediana.Codecs.H264
                 : CodedPatterns[bits.ReadUe(47)];
             if (intra16 || pattern != 0)
             {
-                qp = (qp + bits.ReadSe(-26, 25) + 52) % 52;
+                H264Quantizer quantizer = target.LumaQuantizer;
+                qp = quantizer.ApplyDelta(qp, bits.ReadSe(quantizer.MinimumDelta, quantizer.MaximumDelta));
             }
             target.Quantizers[address] = (byte)qp;
             H264IntraReconstruction.Read(ref bits, new H264CavlcResidualReader(target), target, header, x, y, type, chromaMode, pattern, qp);
@@ -64,22 +66,34 @@ namespace Mediana.Codecs.H264
             for (int plane = 0; plane < 3; plane++)
             {
                 int size = plane == 0 ? 16 : 8;
-                int planeX = plane == 0 ? x : x / 2;
-                int planeY = plane == 0 ? y : y / 2;
+                int verticalScale = target.VerticalScale(plane);
+                int height = 16 / verticalScale;
+                int address = target.Grid.Address(x, y);
+                (int planeX, int planeY, int rowStep) = target.Grid.PixelOrigin(address, size, height);
                 int stride = target.Stride(plane);
                 Span<byte> pixels = target.Plane(plane);
-                for (int row = 0; row < size; row++)
+                for (int row = 0; row < height; row++)
                 {
                     for (int column = 0; column < size; column++)
                     {
-                        pixels[(planeY + row) * stride + planeX + column] = (byte)bits.ReadBits(8);
+                        int index = (planeY + row * rowStep) * stride + planeX + column;
+                        int bitDepth = plane == 0 ? target.Sequence.LumaBitDepth : target.Sequence.ChromaBitDepth;
+                        uint sample = bits.ReadBits(bitDepth);
+                        if (target.SampleBytes == 1)
+                        {
+                            pixels[index] = (byte)sample;
+                        }
+                        else
+                        {
+                            MemoryMarshal.Cast<byte, ushort>(pixels)[index] = (ushort)sample;
+                        }
                     }
                 }
-                for (int row = 0; row < size; row += 4)
+                for (int row = 0; row < height; row += 4)
                 {
                     for (int column = 0; column < size; column += 4)
                     {
-                        int position = target.BlockIndex(plane, planeX + column, planeY + row);
+                        int position = target.BlockIndex(plane, x / (plane == 0 ? 1 : 2) + column, y / verticalScale + row);
                         target.Counts(plane)[position] = 16;
                         if (plane == 0)
                         {

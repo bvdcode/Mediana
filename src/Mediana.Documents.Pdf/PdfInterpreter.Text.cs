@@ -147,9 +147,9 @@ namespace Mediana.Documents.Pdf
 
         private void ShowOutline(PdfOutlineFont font, int code)
         {
-            int glyph = font.Glyphs.GetValueOrDefault(code, -1);
+            (TrueTypeFont face, int glyph) = font.GlyphResolver?.Invoke(code)
+                ?? (font.GlyphFaces?.GetValueOrDefault(code) ?? font.Face, font.Glyphs.GetValueOrDefault(code, -1));
             if (glyph < 0) { _unsupported.Add("Unmapped PDF glyph encoding"); glyph = 0; }
-            TrueTypeFont face = font.GlyphFaces?.GetValueOrDefault(code) ?? font.Face;
             Matrix3x2 scale = Matrix3x2.CreateScale(_state.FontSize * _state.HorizontalScale / face.Units, _state.FontSize / face.Units);
             Matrix3x2 placement = scale * Matrix3x2.CreateTranslation(0, _state.Rise) * _text * _state.Transform;
             VectorPath source = _textResources.BorrowOutline(face, glyph);

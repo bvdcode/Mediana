@@ -78,6 +78,11 @@ jobs:
           dotnet-version: 11.0.x
       - name: Check license headers
         run: dotnet run --file UpdateLicense.cs -- . --check
+      - name: Validate async local lifetimes
+        if: matrix.rid == 'linux-x64'
+        run: |
+          trap 'rm -rf artifacts/async-lifetime-check' EXIT
+          dotnet build Mediana.slnx -c Release --artifacts-path artifacts/async-lifetime-check -p:Features=runtime-async=off -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true
       - run: dotnet restore Mediana.slnx
       - run: dotnet build Mediana.slnx -c Release --no-restore -p:Version="$PACKAGE_VERSION" -p:ContinuousIntegrationBuild=true
       - run: dotnet format Mediana.slnx --verify-no-changes --no-restore

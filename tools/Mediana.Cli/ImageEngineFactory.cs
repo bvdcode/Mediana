@@ -2,6 +2,11 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Microsoft.Extensions.Logging;
+using Mediana.Codecs.OpenExr;
+using Mediana.Codecs.Tga;
+using Mediana.Codecs.Pnm;
+using Mediana.Codecs.Qoi;
 using Mediana.Codecs.Bmp;
 using Mediana.Codecs.Gif;
 using Mediana.Codecs.Tiff;
@@ -19,6 +24,7 @@ using Mediana.Images.Heif;
 using Mediana.Images.Svg;
 using Mediana.Images.Tgs;
 using Mediana.Models.Mesh;
+using Mediana.Images.Metadata;
 using Mediana.Processing;
 
 namespace Mediana.Cli
@@ -27,7 +33,7 @@ namespace Mediana.Cli
     {
         private const int MaximumDocumentPreviewDimension = 1200;
 
-        public static MediaEngine CreateVisual() => AddDecoders(ContainerEngineFactory.CreateVideoBuilder(Mediana.Containers.Mp4.Mp4TimestampMode.LinearMovie)).Build();
+        public static MediaEngine CreateVisual(ILogger logger) => AddDecoders(ContainerEngineFactory.CreateVideoBuilder(logger, Mediana.Containers.Mp4.Mp4TimestampMode.LinearMovie)).Build();
 
         public static MediaEngine Create() => AddDecoders(new MediaEngineBuilder()).Build();
 
@@ -60,8 +66,19 @@ namespace Mediana.Cli
 
         internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
             .UseResources(CommandTextResources.Shared)
+            .AddImageInspector(new PcxMetadataReader())
+            .AddImageInspector(new PsdMetadataReader())
+            .AddImageInspector(new TiffImageMetadataReader())
+            .AddImageInspector(new RafMetadataReader())
+            .AddImageInspector(new Cr3MetadataReader())
+            .AddImageInspector(new AvifImageInspector(new HeicDecodeOptions(maxInputBytes: CommandImageResources.MaximumBufferLength)))
+            .AddImageDecoder(new OpenExrImageDecoder())
+            .AddImageDecoder(new TgaImageDecoder())
+            .AddImageDecoder(new PnmImageDecoder())
+            .AddImageDecoder(new QoiImageDecoder())
             .AddImageDecoder(new BmpImageDecoder())
             .AddImageDecoder(new IcoImageDecoder())
+            .AddImageDecoder(new AniImageDecoder())
             .AddImageDecoder(new GifImageDecoder())
             .AddImageDecoder(new TiffImageDecoder())
             .AddImageDecoder(new WebpImageDecoder())

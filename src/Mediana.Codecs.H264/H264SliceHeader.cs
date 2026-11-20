@@ -3,8 +3,10 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal record H264SliceHeader(H264SequenceParameterSet Sequence, H264PictureParameterSet Picture)
+    internal record H264SliceHeader(H264SequenceParameterSet Sequence, H264PictureParameterSet Picture,
+        H264PictureStructure Structure = H264PictureStructure.Frame)
     {
+        public H264PictureLayout Layout => new(Sequence, Structure);
         public H264SliceKind Kind { get; init; }
         public bool AllSlicesSameKind { get; init; }
         public bool IsIdr { get; init; }
@@ -28,6 +30,7 @@ namespace Mediana.Codecs.H264
         public bool AdaptiveMarking { get; init; }
         public IReadOnlyList<H264MemoryOperation> MemoryOperations { get; init; } = [];
         public int CabacInitIdc { get; init; }
+        /// <summary>Nonnegative QP prime, including the luma bit-depth offset.</summary>
         public int Qp { get; init; }
         public int DeblockingIdc { get; init; }
         public int AlphaOffset { get; init; }

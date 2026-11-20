@@ -9,13 +9,16 @@ namespace Mediana.Processing
     {
         public int? MaximumWidth { get; init; }
         public int? MaximumHeight { get; init; }
+        /// <summary>Explicit single-field spatial interpolation before resizing or encoding. Null preserves strict scan handling.
+        /// Produces one progressive frame per input at unchanged timing; it does not double the output frame rate.</summary>
+        public VideoFieldSelection? InterlacedField { get; init; }
         /// <summary>Explicitly replaces source color labels and their source-description interpretation without
         /// converting samples. Null uses the configured policy or preserves the decoded interpretation. Callers must establish the replacement
         /// from knowledge of the source; this option does not infer missing characteristics.</summary>
         public VideoColorInfo? SourceColorInterpretation { get; init; }
         /// <summary>Explicit color policy applied when no source interpretation is supplied. Null preserves strict decoded labels.</summary>
         public Func<VideoFormat, VideoColorInfo>? ColorResolver { get; init; }
-        /// <summary>Receives color-interpretation and sample-precision warnings once when a source format is configured.</summary>
+        /// <summary>Receives field-interpolation, color-interpretation and sample-precision warnings when a source format is configured.</summary>
         public Action<string>? WarningHandler { get; init; }
         /// <summary>Null preserves decoded precision. Selecting a lower sample precision explicitly permits rounded
         /// sample conversion; it does not permit changing colorimetry or tone mapping.</summary>

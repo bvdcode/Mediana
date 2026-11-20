@@ -130,3 +130,25 @@ Format references: [metadata locations](https://developer.apple.com/documentatio
 [language codes](https://developer.apple.com/documentation/quicktime-file-format/language_code_values),
 [extended language tags](https://developer.apple.com/documentation/quicktime-file-format/extended_language_tag_atom),
 [BCP 47 syntax](https://www.rfc-editor.org/rfc/rfc5646).
+
+## Inconsistent AVC presentation hint
+
+`avc-interlaced.mp4` contains one MBAFF picture with a top-then-bottom
+picture-timing hint (`pic_struct=3`), but top and bottom picture-order counts
+are 1 and 0. These values contradict H.264 Table D-1. The coded picture is
+96×80 YUV420P8, with sample aspect ratio 4:3 and duration 1/25 second.
+
+`avc-interlaced.yuv.gz` stores the 11,520 raw decoded sample bytes produced by
+FFmpeg 6.1.1, compressed with a zero gzip timestamp and no embedded filename:
+
+```sh
+ffmpeg -hide_banner -v error -nostdin -i avc-interlaced.mp4 -map 0:v:0 -pix_fmt yuv420p -f rawvideo avc-interlaced.yuv
+```
+
+The uncompressed SHA-256 is
+`5be109375d55fdf9f6eabfb9622583803d73a93a68baa30915b75626191e6bfe`.
+Recovery tests compare exact decoded samples, preserve packet timing and infer
+bottom-first presentation from coded picture order. FFmpeg instead reports the
+contradictory SEI field order; that indication is not the presentation reference.
+Strict decoding still rejects the inconsistent hint. Managed and Native AOT
+tests verify recovery, repeated seeks, retained frames and buffer release.

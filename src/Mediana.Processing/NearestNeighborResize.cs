@@ -32,7 +32,7 @@ namespace Mediana.Processing
             int outputWidth = map.OutputWidth;
             int outputHeight = map.OutputHeight;
             VideoFormat format = new(outputWidth, outputHeight, VideoPixelFormat.Rgba32, input.Format.Color, outputAspectRatio,
-                input.Format.ColorDescription);
+                input.Format.ColorDescription, VideoScanGeometry.Map(input.Format.ScanMode, map), VideoScanGeometry.FullFrameHeight(input.Format, outputHeight));
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             for (int y = 0; y < outputHeight; y++)
@@ -59,7 +59,7 @@ namespace Mediana.Processing
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration);
+            return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
         }
     }
 }

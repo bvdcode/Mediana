@@ -10,7 +10,7 @@ namespace Mediana.Codecs.H264
 {
     internal static partial class H264ForwardTransform
     {
-        private static ReadOnlySpan<int> Scan => [0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15];
+        private static ReadOnlySpan<int> Scan => H264CoefficientScans.Frame4x4;
         private static ReadOnlySpan<byte> ScanScales => [0, 1, 1, 0, 2, 0, 1, 1, 1, 1, 2, 0, 2, 1, 1, 2];
         private static ReadOnlySpan<int> Even => [13107, 11916, 10082, 9362, 8192, 7282];
         private static ReadOnlySpan<int> Mixed => [8066, 7490, 6554, 5825, 5243, 4559];

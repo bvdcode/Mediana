@@ -11,9 +11,9 @@ namespace Mediana.Documents.Word
         private readonly WordFormatReader _formats = new(context);
         private XNamespace W => context.W;
 
-        internal IReadOnlyList<WordBlock> Blocks(XElement parent, string part) => Blocks(parent.Elements(), part);
+        internal IReadOnlyList<WordBlock> Blocks(XElement parent, string part, XElement? tableStyle = null) => Blocks(parent.Elements(), part, tableStyle);
 
-        internal IReadOnlyList<WordBlock> Blocks(IEnumerable<XElement> elements, string part)
+        internal IReadOnlyList<WordBlock> Blocks(IEnumerable<XElement> elements, string part, XElement? tableStyle = null)
         {
             List<WordBlock> blocks = [];
             foreach (XElement element in elements)
@@ -22,12 +22,12 @@ namespace Mediana.Documents.Word
                 if (element.Name.Namespace != W) { throw new NotSupportedException("Unsupported Word block namespace: " + element.Name.NamespaceName); }
                 switch (element.Name.LocalName)
                 {
-                    case "p": context.CountBlock(); blocks.Add(Paragraph(element, part)); break;
+                    case "p": context.CountBlock(); blocks.Add(Paragraph(element, part, tableStyle)); break;
                     case "tbl": context.CountBlock(); blocks.Add(Table(element, part)); break;
                     case "sdt":
-                        if (element.Element(W + "sdtContent") is XElement content) { blocks.AddRange(Blocks(content, part)); }
+                        if (element.Element(W + "sdtContent") is XElement content) { blocks.AddRange(Blocks(content, part, tableStyle)); }
                         break;
-                    case "customXml" or "ins": blocks.AddRange(Blocks(element, part)); break;
+                    case "customXml" or "ins": blocks.AddRange(Blocks(element, part, tableStyle)); break;
                     case "sectPr" or "tcPr" or "bookmarkStart" or "bookmarkEnd" or "proofErr" or "permStart" or "permEnd": break;
                     default: throw new NotSupportedException("Unsupported Word block: " + element.Name.LocalName);
                 }
@@ -35,9 +35,9 @@ namespace Mediana.Documents.Word
             return blocks.AsReadOnly();
         }
 
-        private WordParagraph Paragraph(XElement element, string part)
+        private WordParagraph Paragraph(XElement element, string part, XElement? tableStyle)
         {
-            (XElement properties, WordRunFormat run) = styles.Paragraph(element.Element(W + "pPr"));
+            (XElement properties, WordRunFormat run) = styles.Paragraph(element.Element(W + "pPr"), tableStyle);
             List<WordInline> items = new(numbering.Prefix(properties, run));
             ReadInlines(element, part, run, items);
             WordRunFormat mark = _formats.Run(run, properties.Element(W + "rPr"), false);

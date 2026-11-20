@@ -1,6 +1,6 @@
 id,section,name,variant,kind,extensions,tier,specs,notes
 mp4-classic,Containers and packaging,MP4 / ISO BMFF,Non-fragmented files,container,.mp4 .m4a .m4v,A,iso-bmff,Current reader maps AVC/HEVC/MPEG-4 Visual/AAC/MP3; other codec mappings remain separate work.
-mp4-fragmented,Containers and packaging,MP4 / ISO BMFF,Fragmented files,container,.mp4 .m4s,A,iso-bmff,"Includes initialization segments, fragment timing and incremental input."
+mp4-fragmented,Containers and packaging,MP4 / ISO BMFF,Fragmented files,container,.mp4 .m4s,A,iso-bmff,"Self-contained indexed fragment input with metadata, decoding and seeking; growing input and separate initialization resources remain open. [API](../mp4-fragmented-input.md)."
 mov,Containers and packaging,QuickTime,Movie files,container,.mov .qt,A,quicktime,Current MP4-family reader covers a subset; legacy QuickTime sample descriptions remain open.
 3gp,Containers and packaging,3GPP,3GP / 3G2 files,container,.3gp .3g2,B,iso-bmff;discovery,Validate their brands and track mappings independently of MP4.
 matroska-indexed,Containers and packaging,Matroska,Indexed file presentation,container,.mkv .mka .mks,A,matroska,Indexed AVC/HEVC/VP8/VP9/MJPEG/AAC/MP3 mappings; other codecs remain stored representations.
@@ -58,7 +58,7 @@ aac-asc,Elementary streams and packet representations,AAC,Raw access units / Aud
 ac3-framing,Elementary streams and packet representations,AC-3 / E-AC-3,Syncframe streams,framing,.ac3 .eac3,B,etsi-audio,
 dts-framing,Elementary streams and packet representations,DTS,Core / extension stream framing,framing,.dts,C,discovery,
 y4m,Elementary streams and packet representations,YUV4MPEG2,Frame stream with explicit geometry,framing,.y4m,B,discovery,
-jpeg-baseline,JPEG families and monochrome coding,JPEG,"Baseline sequential Huffman DCT, 8-bit",image-codec,.jpg .jpeg .jpe,A,jpeg,Current grayscale/three-component decoding; encoder is open.
+jpeg-baseline,JPEG families and monochrome coding,JPEG,"Baseline sequential Huffman DCT, 8-bit",image-codec,.jpg .jpeg .jpe,A,jpeg,Grayscale/three-component decoding and streamed baseline encoding with quality and 4:4:4/4:2:2/4:2:0 sampling.
 jpeg-sequential,JPEG families and monochrome coding,JPEG,"Extended sequential Huffman DCT, 8/12-bit",image-codec,.jpg .jpeg,B,jpeg,Current SOF1 decoder is 8-bit; 12-bit precision remains open.
 jpeg-progressive,JPEG families and monochrome coding,JPEG,"Progressive Huffman DCT, 8/12-bit",image-codec,.jpg .jpeg,A,jpeg,Current SOF2 decoder is 8-bit; no encoder or 12-bit reconstruction yet.
 jpeg-arithmetic,JPEG families and monochrome coding,JPEG,Arithmetic DCT coding,image-codec,.jpg .jpeg,B,jpeg,
@@ -120,7 +120,7 @@ tiff-deflate,"Raster files, archives and camera images",TIFF,Deflate compression
 tiff-jpeg,"Raster files, archives and camera images",TIFF,JPEG compression mappings,image-codec,.tif .tiff,B,tiff;jpeg,Old and revised JPEG-in-TIFF representations need separate fixtures.
 tiff-fax,"Raster files, archives and camera images",TIFF,CCITT fax compression,image-codec,.tif .tiff,A,tiff;jbig,
 tga,"Raster files, archives and camera images",TGA,"Raw/RLE truecolor, indexed and alpha",image-codec,.tga,B,discovery,
-pcx,"Raster files, archives and camera images",PCX,Palette / RGB RLE,image-codec,.pcx,C,discovery,
+pcx,"Raster files, archives and camera images",PCX,Palette / RGB RLE,image-codec,.pcx,C,discovery,Header metadata and palettes; raster decoding remains open.
 sgi,"Raster files, archives and camera images",SGI RGB,Raw/RLE planar images,image-codec,.sgi .rgb .rgba,C,discovery,
 pbm,"Raster files, archives and camera images",Netpbm PBM,Plain/binary monochrome,image-codec,.pbm,B,pnm,
 pgm,"Raster files, archives and camera images",Netpbm PGM,Plain/binary grayscale,image-codec,.pgm,B,pnm,
@@ -128,8 +128,8 @@ ppm,"Raster files, archives and camera images",Netpbm PPM,Plain/binary RGB,image
 pam,"Raster files, archives and camera images",Netpbm PAM,Arbitrary tuple images,image-codec,.pam,B,pnm,
 qoi,"Raster files, archives and camera images",QOI,Lossless RGB/RGBA,image-codec,.qoi,B,qoi,
 farbfeld,"Raster files, archives and camera images",farbfeld,16-bit RGBA,image-codec,.ff,C,discovery,
-psd,"Raster files, archives and camera images",Photoshop PSD,"Composite, layers, masks and channels",image-codec,.psd,B,psd,Merged preview and full layer composition require independent coverage.
-psb,"Raster files, archives and camera images",Photoshop PSB,Large-document structure,image-codec,.psb,C,psd,
+psd,"Raster files, archives and camera images",Photoshop PSD,"Composite, layers, masks and channels",image-codec,.psd,B,psd,Metadata and unchanged embedded JPEG access; merged raster and layer composition remain open.
+psb,"Raster files, archives and camera images",Photoshop PSB,Large-document structure,image-codec,.psb,C,psd,Metadata and unchanged embedded JPEG access with 64-bit layer-section lengths.
 ora,"Raster files, archives and camera images",OpenRaster,Layered image package,image-codec,.ora,B,discovery,
 xcf,"Raster files, archives and camera images",GIMP XCF,Layered image revisions,image-codec,.xcf,C,discovery,
 icns,"Raster files, archives and camera images",Apple ICNS,Multi-resolution icons,image-codec,.icns,B,discovery,
@@ -177,8 +177,8 @@ avc-baseline,Video codecs and substantial profiles,H.264 / AVC,Baseline,video-co
 avc-main,Video codecs and substantial profiles,H.264 / AVC,Main,video-codec,.h264 .264,A,h264,Current progressive 8-bit 4:2:0 CABAC/CAVLC subset includes I/P/B pictures.
 avc-extended,Video codecs and substantial profiles,H.264 / AVC,Extended,video-codec,.h264 .264,B,h264,
 avc-high,Video codecs and substantial profiles,H.264 / AVC,High,video-codec,.h264 .264,A,h264,Current progressive 8-bit 4:2:0 reconstruction uses default scaling matrices.
-avc-high10,Video codecs and substantial profiles,H.264 / AVC,High 10 / High 10 Intra,video-codec,.h264 .264,B,h264,Parsing profile identifiers is not 10-bit decoding support.
-avc-high422,Video codecs and substantial profiles,H.264 / AVC,High 4:2:2 / High 4:2:2 Intra,video-codec,.h264 .264,B,h264,
+avc-high10,Video codecs and substantial profiles,H.264 / AVC,High 10 / High 10 Intra,video-codec,.h264 .264,B,h264,Progressive 10-bit 4:2:0 CABAC/CAVLC I/P/B decoding with flat scaling; interlaced reconstruction and custom scaling remain open.
+avc-high422,Video codecs and substantial profiles,H.264 / AVC,High 4:2:2 / High 4:2:2 Intra,video-codec,.h264 .264,B,h264,Progressive 8-bit and 10-bit CABAC/CAVLC I/P/B decoding with flat scaling; interlaced reconstruction and custom scaling remain open.
 avc-high444,Video codecs and substantial profiles,H.264 / AVC,High 4:4:4 Predictive / Intra,video-codec,.h264 .264,B,h264,
 avc-cavlc444,Video codecs and substantial profiles,H.264 / AVC,CAVLC 4:4:4 Intra,video-codec,.h264 .264,C,h264,
 avc-interlaced,Video codecs and substantial profiles,H.264 / AVC,Field pictures / PAFF / MBAFF,video-codec,.h264 .264,B,h264,Tool-specific coverage across applicable profiles.

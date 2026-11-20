@@ -21,8 +21,8 @@ namespace Mediana.Containers.Mp4
                 ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(packetIndex, Tracks[streamIndex].SampleCount);
                 cancellationToken.ThrowIfCancellationRequested();
                 Mp4SampleLocation sample = Locate(streamIndex, (int)packetIndex, cancellationToken);
-                Mp4SampleTable table = sampleTables[streamIndex];
-                if (table.Composition is null || table.Composition.Count <= 1)
+                IMp4SampleIndex table = sampleTables[streamIndex];
+                if (!table.RequiresPresentationTiming)
                 {
                     return timelines[streamIndex].MapDuration(sample.Duration);
                 }

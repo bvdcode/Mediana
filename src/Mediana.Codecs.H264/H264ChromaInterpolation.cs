@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace Mediana.Codecs.H264
 {
@@ -11,7 +12,7 @@ namespace Mediana.Codecs.H264
     {
         private const int BlockSize = 8;
 
-        public static void Apply(ReadOnlySpan<byte> samples, int stride, int rows, long x, long y,
+        public static void Apply(ReadOnlySpan<byte> samples, int stride, int columns, int rows, long x, long y,
             int dx, int dy, int width, int height, Span<byte> output)
         {
             Span<byte> patch = stackalloc byte[(BlockSize + 1) * (BlockSize + 1)];
@@ -29,7 +30,7 @@ namespace Mediana.Codecs.H264
                     scoped ReadOnlySpan<byte> region;
                     long sourceX = x + left;
                     long sourceY = y + top;
-                    if (sourceX >= 0 && sourceX < stride - tileWidth && sourceY >= 0 && sourceY < rows - tileHeight)
+                    if (sourceX >= 0 && sourceX < columns - tileWidth && sourceY >= 0 && sourceY < rows - tileHeight)
                     {
                         regionStride = stride;
                         region = samples[((int)sourceY * stride + (int)sourceX)..];
@@ -37,7 +38,7 @@ namespace Mediana.Codecs.H264
                     else
                     {
                         regionStride = tileWidth + 1;
-                        H264BorderExtension.Copy(samples, stride, rows, sourceX, sourceY,
+                        H264BorderExtension.Copy(samples, stride, columns, rows, sourceX, sourceY,
                             regionStride, tileHeight + 1, patch);
                         region = patch;
                     }
@@ -75,7 +76,7 @@ namespace Mediana.Codecs.H264
         private static void Predict8(ReadOnlySpan<byte> patch, int stride, int height, int dx, int dy,
             int outputStride, Span<byte> output)
         {
-            Vector128<short> horizontalWeight = Vector128.Create((short)dx);
+            Vector128<byte> horizontalWeight = HorizontalWeights(dx);
             Vector128<short> verticalWeight = Vector128.Create((short)dy);
             Vector128<short> top = Horizontal8(patch, 0, horizontalWeight);
             for (int row = 0; row < height; row++)
@@ -89,10 +90,21 @@ namespace Mediana.Codecs.H264
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static Vector128<short> Horizontal8(ReadOnlySpan<byte> patch, int position, Vector128<short> weight)
+        internal static Vector128<byte> HorizontalWeights(int fraction) =>
+            Vector128.ZipLower(Vector128.Create((byte)(8 - fraction)), Vector128.Create((byte)fraction));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static Vector128<short> Horizontal8(ReadOnlySpan<byte> patch, int position, Vector128<byte> weights)
         {
+            if (Ssse3.IsSupported)
+            {
+                Vector128<byte> samples = Vector128.ZipLower(
+                    H264VectorSamples.Read8(patch, position), H264VectorSamples.Read8(patch, position + 1));
+                return Ssse3.MultiplyAddAdjacent(samples, weights.AsSByte());
+            }
             Vector128<short> left = Read8(patch, position);
             Vector128<short> right = Read8(patch, position + 1);
+            Vector128<short> weight = Vector128.Create((short)weights.GetElement(1));
             return Vector128.ShiftLeft(left, 3) + (right - left) * weight;
         }
 

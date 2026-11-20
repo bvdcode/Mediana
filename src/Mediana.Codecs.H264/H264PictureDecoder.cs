@@ -24,7 +24,7 @@ namespace Mediana.Codecs.H264
             {
                 return H264CabacPictureDecoder.Decode(ref bits, header, new(references, []), default, allocator, cancellationToken);
             }
-            H264Picture result = new(header.Sequence, allocator, header.Kind);
+            H264Picture result = new(header.Sequence, allocator, header.Kind, header.Structure);
             bool complete = false;
             try
             {
@@ -48,39 +48,33 @@ namespace Mediana.Codecs.H264
             CancellationToken cancellationToken = default)
         {
             int qp = header.Qp;
-            int address = header.FirstMacroblock;
-            while (address < endMacroblock && bits.MoreRbspData())
+            H264AdaptiveReferences? adaptive = null;
+            if (header.Layout.MacroblockAdaptiveFrameField && header.Kind == H264SliceKind.P)
+            {
+                adaptive = new(new(references, []));
+            }
+            H264CavlcSliceCursor cursor = new(header.Layout, header.Kind, header.FirstMacroblock, endMacroblock);
+            while (cursor.MoveNext(ref bits, result.Grid, out int address, out bool skipped))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (header.Kind == H264SliceKind.P)
-                {
-                    int skip = bits.ReadUe(endMacroblock - address);
-                    for (int index = 0; index < skip; index++)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        H264InterMacroblock.Read(ref bits, result, header, references, address++, ref qp, skip: true);
-                    }
-                    if (address == endMacroblock || (skip > 0 && !bits.MoreRbspData()))
-                    {
-                        break;
-                    }
-                }
                 switch (header.Kind)
                 {
                     case H264SliceKind.I:
                         H264IntraMacroblock.Read(ref bits, result, header, address, bits.ReadUe(25), ref qp);
                         break;
                     case H264SliceKind.P:
-                        H264InterMacroblock.Read(ref bits, result, header, references, address, ref qp);
+                        IReadOnlyList<H264ReferencePicture?> active = references;
+                        if (adaptive is not null)
+                        {
+                            (int x, int y) = result.Grid.Position(address);
+                            H264MacroblockPredictionContext context = H264MacroblockPredictionContext.Create(result, x, y);
+                            active = adaptive.Get(context.Structure).L0;
+                        }
+                        H264InterMacroblock.Read(ref bits, result, header, active, address, ref qp, skipped);
                         break;
                     default:
                         throw new NotSupportedException("Only H.264 CAVLC I and P picture reconstruction is implemented.");
                 }
-                address++;
-            }
-            if (address != endMacroblock)
-            {
-                throw new InvalidDataException("The H.264 slice does not cover its declared macroblock range.");
             }
             bits.ReadTrailingBits();
         }

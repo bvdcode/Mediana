@@ -3,7 +3,7 @@
 
 namespace Mediana.Containers.Mp4
 {
-    internal class Mp4TrackCursor
+    internal class Mp4TrackCursor : IMp4SampleCursor
     {
         private readonly Mp4SampleTable table;
         private int sample;

@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core.Video;
+
 namespace Mediana.Codecs.H264
 {
     internal static class H264Support
     {
         public static string? GetUnsupportedHeaderReason(H264SequenceParameterSet sequence)
         {
-            if (!sequence.FrameMbsOnly || sequence.ChromaFormat != 1 || sequence.SeparateColourPlane ||
-                sequence.LumaBitDepth != 8 || sequence.ChromaBitDepth != 8)
+            if (sequence.ChromaFormat is not (1 or 2) || sequence.SeparateColourPlane ||
+                sequence.LumaBitDepth is not (8 or 10) || sequence.ChromaBitDepth != sequence.LumaBitDepth)
             {
-                return "Slice header parsing currently requires progressive 8-bit 4:2:0 pictures.";
+                return "Slice header parsing currently requires 8-bit or 10-bit 4:2:0 or 4:2:2 pictures.";
             }
             return null;
         }
@@ -24,7 +26,7 @@ namespace Mediana.Codecs.H264
             }
             if (sequence.ScalingMatrix || sequence.TransformBypass)
             {
-                return "Reconstruction currently requires progressive 8-bit 4:2:0 slices with default scaling.";
+                return "Reconstruction currently requires 8-bit or 10-bit 4:2:0 or 4:2:2 slices with default scaling.";
             }
             return null;
         }
@@ -62,12 +64,18 @@ namespace Mediana.Codecs.H264
                 {
                     return "The H.264 level has no supported decoded picture buffer limits.";
                 }
-                if ((sequence.Vui?.ChromaLocationTop ?? 0) != (sequence.Vui?.ChromaLocationBottom ?? 0))
+                if (sequence.FrameMbsOnly && sequence.ChromaFormat == 1 &&
+                    (sequence.Vui?.ChromaLocationTop ?? 0) != (sequence.Vui?.ChromaLocationBottom ?? 0))
                 {
-                    return "Different top and bottom field chroma locations are not supported.";
+                    return "Different top and bottom field chroma locations cannot be represented in a progressive video format.";
                 }
                 H264PictureBufferLimits.Read(sequence);
-                H264VideoFormat.Create(sequence);
+                VideoScanMode validationMode = sequence.FrameMbsOnly switch
+                {
+                    true => VideoScanMode.Progressive,
+                    false => VideoScanMode.TopField
+                };
+                H264VideoFormat.Create(sequence, scanMode: validationMode);
             }
             return null;
         }

@@ -11,6 +11,10 @@ namespace Mediana.Codecs.H264
         public int MaxNalsPerPacket { get; init; } = 1024;
         public int MaxReferenceOperations { get; init; } = 64;
 
+        /// <summary>Ignore optional picture-timing hints that contradict coded picture structure or order.
+        /// Presentation is inferred from the coded picture; the decoder reports the first occurrence through its warning handler.</summary>
+        public bool IgnoreInconsistentPictureTiming { get; init; }
+
         internal void Validate()
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPicturePixels);

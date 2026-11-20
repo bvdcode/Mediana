@@ -18,6 +18,8 @@ namespace Mediana.Formats.Video
         public uint? UnitsInTick { get; init; }
         public uint? TimeScale { get; init; }
         public bool FixedFrameRate { get; init; }
+        public H264HrdTiming? NalHrdTiming { get; init; }
+        public H264HrdTiming? VclHrdTiming { get; init; }
         public bool PictureStructurePresent { get; init; }
         public int MaxMotionLengthHorizontal { get; init; } = 15;
         public int MaxMotionLengthVertical { get; init; } = 15;

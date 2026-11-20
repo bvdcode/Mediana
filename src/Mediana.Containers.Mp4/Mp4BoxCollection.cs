@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Formats.IsoBmff;
+
 namespace Mediana.Containers.Mp4
 {
     internal class Mp4BoxCollection
@@ -9,35 +11,13 @@ namespace Mediana.Containers.Mp4
 
         public Mp4BoxCollection(ReadOnlyMemory<byte> data, Mp4ParseBudget budget, bool allowTerminator = false)
         {
-            int offset = 0;
-            while (offset < data.Length)
+            IsoBmffBoxReader reader = new(data);
+            while (!reader.Remaining.IsEmpty)
             {
-                ReadOnlySpan<byte> remaining = data.Span[offset..];
-                if (allowTerminator && remaining.Length == 4 && Mp4Binary.UInt32(remaining, 0) == 0)
-                {
-                    break;
-                }
+                if (allowTerminator && reader.Remaining.Length == 4 && Mp4Binary.UInt32(reader.Remaining.Span, 0) == 0) { break; }
                 budget.TakeBox();
-                uint shortSize = Mp4Binary.UInt32(remaining, 0);
-                string type = Mp4Binary.FourCc(remaining, 4);
-                int headerSize = shortSize == 1 ? 16 : 8;
-                ulong size = shortSize switch
-                {
-                    0 => (ulong)remaining.Length,
-                    1 => Mp4Binary.UInt64(remaining, 8),
-                    _ => shortSize
-                };
-                if (type == "uuid")
-                {
-                    headerSize += 16;
-                }
-                if (size < (ulong)headerSize || size > (ulong)remaining.Length)
-                {
-                    throw new InvalidDataException($"Invalid MP4 '{type}' box size.");
-                }
-                int length = (int)size;
-                boxes.Add(new Mp4Box(type, data.Slice(offset + headerSize, length - headerSize)));
-                offset += length;
+                reader.TryRead(out IsoBmffBox box);
+                boxes.Add(new(box.TypeName, box.Payload));
             }
         }
 

@@ -19,6 +19,7 @@ namespace Mediana.Cli
         {
             ColorResolver = PreviewColorPolicy.Resolve,
             ToneMapping = new(),
+            InterlacedField = VideoFieldSelection.Leading,
             UnspecifiedSampleAspectRatio = SampleAspectRatio.Square
         };
         internal static MediaOpenOptions ProbeOptions => CommandMediaResources.OpenOptions;

@@ -11,6 +11,20 @@ namespace Mediana.Tests
         private readonly string directory = Directory.CreateTempSubdirectory("mediana-image-encoding-").FullName;
 
         [Fact]
+        public async Task JpegUsesQualitySamplingAndWhiteBackgroundThroughTheCommonImageRoute()
+        {
+            string input = Path.Combine(AppContext.BaseDirectory, "Data", "Tgs", "geometry.json");
+            string output = Path.Combine(directory, "image.jpeg");
+            (int code, _, string error) = await CliTests.RunAsync(["-i", input, output, "--quality", "90", "--chroma-sampling", "Sampling444"]);
+            Assert.True(code == 0, error);
+            byte[] file = await File.ReadAllBytesAsync(output);
+            Assert.Equal(new byte[] { 255, 216 }, file[..2]);
+            Assert.Equal(new byte[] { 255, 217 }, file[^2..]);
+            using Mediana.Core.Video.VideoFrame frame = await new Mediana.Codecs.Jpeg.JpegImageDecoder().DecodeAsync(file, new(), new(1024 * 1024));
+            Assert.Equal(Mediana.Core.Video.VideoColorInfo.Srgb, frame.Format.GetColorInterpretation());
+        }
+
+        [Fact]
         public async Task LossyWebpUsesExplicitQualityAndCommonInputRecognition()
         {
             string input = Path.Combine(AppContext.BaseDirectory, "Data", "Tgs", "geometry.json");
@@ -49,6 +63,10 @@ namespace Mediana.Tests
         }
 
         [Theory]
+        [InlineData("output.jpg", "--image-compression", "Lossless")]
+        [InlineData("output.jpg", "--quality", "101")]
+        [InlineData("output.png", "--chroma-sampling", "Sampling444")]
+        [InlineData("output.webp", "--chroma-sampling", "Sampling444")]
         [InlineData("output.png", "--quality", "75")]
         [InlineData("output.webp", "--quality", "75")]
         [InlineData("output.webp", "--image-compression", "999")]

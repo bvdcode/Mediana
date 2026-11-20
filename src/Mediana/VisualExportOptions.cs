@@ -12,6 +12,8 @@ namespace Mediana
         public VisualOpenOptions Input { get; init; } = new();
         public int MaximumWidth { get; init; } = int.MaxValue;
         public int MaximumHeight { get; init; } = int.MaxValue;
+        /// <summary>Explicit single-field spatial interpolation for interlaced input. Null preserves the decoded scan structure.</summary>
+        public VideoFieldSelection? InterlacedField { get; init; }
         public Func<VideoFormat, VideoColorInfo>? ColorResolver { get; init; }
         /// <summary>Explicit PQ/HLG conversion to sRGB. Null keeps HDR conversion strict.</summary>
         public HdrToneMappingOptions? ToneMapping { get; init; }
@@ -25,6 +27,10 @@ namespace Mediana
             Input.Validate();
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumWidth);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumHeight);
+            if (InterlacedField is VideoFieldSelection selection && !Enum.IsDefined(selection))
+            {
+                throw new ArgumentOutOfRangeException(nameof(InterlacedField));
+            }
             UnspecifiedSampleAspectRatio?.Validate();
         }
     }

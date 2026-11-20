@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
+
 namespace Mediana.Codecs.H264
 {
     internal readonly record struct H264BiPredictionWeights
     {
-        private H264BiPredictionWeights(int weight0, int weight1, int offset, int denominator)
+        private H264BiPredictionWeights(int weight0, int weight1, int offsetSum, int denominator)
         {
             Weight0 = weight0;
             Weight1 = weight1;
-            Offset = offset;
+            OffsetSum = offsetSum;
+            Offset = (offsetSum + 1) >> 1;
             Denominator = denominator;
         }
 
         public int Weight0 { get; }
         public int Weight1 { get; }
         public int Offset { get; }
+        private int OffsetSum { get; }
         public int Denominator { get; }
         public static H264BiPredictionWeights Average => new(1, 1, 0, 0);
 
@@ -29,7 +33,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("Invalid H.264 explicit bidirectional prediction weights.");
             }
-            return new H264BiPredictionWeights(weight0, weight1, (offset0 + offset1 + 1) >> 1, denominator);
+            return new H264BiPredictionWeights(weight0, weight1, offset0 + offset1, denominator);
         }
 
         public static H264BiPredictionWeights Implicit(H264PictureOrder current, H264ReferencePicture l0, H264ReferencePicture l1)
@@ -48,7 +52,7 @@ namespace Mediana.Codecs.H264
             return weight1 is < -64 or > 128 ? equal : new H264BiPredictionWeights(64 - weight1, weight1, 0, 5);
         }
 
-        public void Apply(ReadOnlySpan<byte> l0, ReadOnlySpan<byte> l1, Span<byte> output)
+        public void Apply(ReadOnlySpan<byte> l0, ReadOnlySpan<byte> l1, Span<byte> output, int bitDepth = 8)
         {
             if (l0.Length != l1.Length || l0.Length != output.Length)
             {
@@ -59,6 +63,20 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentException("H.264 bidirectional prediction blocks cannot partially overlap their output.");
             }
             int rounding = 1 << Denominator;
+            if (bitDepth > 8)
+            {
+                ReadOnlySpan<ushort> first = MemoryMarshal.Cast<byte, ushort>(l0);
+                ReadOnlySpan<ushort> second = MemoryMarshal.Cast<byte, ushort>(l1);
+                Span<ushort> pixels = MemoryMarshal.Cast<byte, ushort>(output);
+                int maximum = (1 << bitDepth) - 1;
+                int scaledOffset = ((OffsetSum << (bitDepth - 8)) + 1) >> 1;
+                for (int index = 0; index < pixels.Length; index++)
+                {
+                    pixels[index] = (ushort)Math.Clamp(((first[index] * Weight0 + second[index] * Weight1 + rounding)
+                        >> (Denominator + 1)) + scaledOffset, 0, maximum);
+                }
+                return;
+            }
             int processed = H264BiPredictionVector.Apply(l0, l1, output, this);
             for (int index = processed; index < output.Length; index++)
             {

@@ -31,7 +31,11 @@ namespace Mediana.Tests
                         {
                             for (int padding = 0; padding < 2; padding++)
                             {
-                                branches |= VerifyEdge(random, strengths, limits, vertical, chroma, padding * 5);
+                                branches |= VerifyEdge(random, strengths, limits, vertical, chroma, chroma ? 2 : 4, padding * 5);
+                                if (chroma && vertical)
+                                {
+                                    branches |= VerifyEdge(random, strengths, limits, true, true, 4, padding * 5);
+                                }
                             }
                         }
                     }
@@ -63,9 +67,9 @@ namespace Mediana.Tests
         }
 
         private static int VerifyEdge(Random random, ReadOnlySpan<byte> strengths, H264DeblockingThresholds limits,
-            bool vertical, bool chroma, int padding)
+            bool vertical, bool chroma, int segmentLength, int padding)
         {
-            int length = chroma ? 8 : 16;
+            int length = 4 * segmentLength;
             int stride = (vertical ? 8 : length) + padding;
             int rows = vertical ? length : 8;
             int size = stride * rows;
@@ -100,13 +104,13 @@ namespace Mediana.Tests
                     pixels[position + step] = (byte)Math.Clamp(pixels[position] + limits.Beta + index % 3 - 1, 0, 255);
                 }
             }
-            return VerifyPixels(actual, size, stride, vertical, chroma, strengths, limits);
+            return VerifyPixels(actual, size, stride, vertical, chroma, segmentLength, strengths, limits);
         }
 
-        private static int VerifyPixels(byte[] actual, int size, int stride, bool vertical, bool chroma,
+        private static int VerifyPixels(byte[] actual, int size, int stride, bool vertical, bool chroma, int segmentLength,
             ReadOnlySpan<byte> strengths, H264DeblockingThresholds limits)
         {
-            int length = chroma ? 8 : 16;
+            int length = 4 * segmentLength;
             int start = vertical ? 4 : 4 * stride;
             int step = vertical ? 1 : stride;
             int along = vertical ? stride : 1;
@@ -115,10 +119,10 @@ namespace Mediana.Tests
             int branches = 0;
             for (int index = 0; index < length; index++)
             {
-                int strength = strengths[index / (chroma ? 2 : 4)];
+                int strength = strengths[index / segmentLength];
                 branches |= Reference(expected.AsSpan(13, size), start + index * along, step, strength, chroma, limits);
             }
-            H264DeblockingFilter.Apply(pixels, start, stride, vertical, chroma, strengths, limits);
+            H264DeblockingFilter.Apply(pixels, start, stride, vertical, chroma, segmentLength, strengths, limits);
             if (!actual.AsSpan().SequenceEqual(expected))
             {
                 throw new InvalidDataException($"Deblocking differs from the independent equations: vertical={vertical}, chroma={chroma}, alpha={limits.Alpha}, beta={limits.Beta}.");
@@ -167,7 +171,7 @@ namespace Mediana.Tests
                                         pixels[position + offset * step] = (byte)(128 + limits.Beta + adjustment);
                                     }
                                 }
-                                branches |= VerifyPixels(pixels, size, stride, vertical, chroma, strengths, limits);
+                                branches |= VerifyPixels(pixels, size, stride, vertical, chroma, chroma ? 2 : 4, strengths, limits);
                             }
                         }
                     }

@@ -36,7 +36,8 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("The H.264 weighted biprediction mode is invalid.");
             }
-            int initialQp = bits.ReadSe(-26, 25) + 26;
+            H264Quantizer quantizer = new(sequences[sequenceId].LumaBitDepth);
+            int initialQp = bits.ReadSe(-26 - quantizer.Offset, 25) + 26;
             bits.ReadSe(-26, 25);
             int chromaOffset = bits.ReadSe(-12, 12);
             bool deblocking = bits.ReadFlag();

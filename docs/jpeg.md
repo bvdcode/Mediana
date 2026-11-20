@@ -1,5 +1,7 @@
 # JPEG images
 
+For managed stream encoding, quality and sampling options, see [JPEG encoding](jpeg-encoding.md).
+
 `Mediana.Codecs.Jpeg` supplies `JpegImageDecoder`, an `IImageDecoder` and
 `IImageInfoReader` implementation. Register it with
 `MediaEngineBuilder.AddImageDecoder`. The CLI recognizes the JPEG signature for

@@ -12,7 +12,7 @@ namespace Mediana.Codecs.H264
             H264DecoderOptions options, CancellationToken cancellationToken)
         {
             H264SliceKind storageKind = slices.Any(slice => slice.Header.Kind == H264SliceKind.B) ? H264SliceKind.B : H264SliceKind.P;
-            H264Picture picture = new(slices[0].Header.Sequence, allocator, storageKind);
+            H264Picture picture = new(slices[0].Header.Sequence, allocator, storageKind, slices[0].Header.Structure);
             bool complete = false;
             try
             {

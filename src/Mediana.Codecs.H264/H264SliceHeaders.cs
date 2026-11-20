@@ -40,14 +40,14 @@ namespace Mediana.Codecs.H264
             }
             if (previous is not null)
             {
-                slices.Add(new H264SliceRegion(previous, checked(previous.Sequence.WidthInMbs * previous.Sequence.HeightInMapUnits)));
+                slices.Add(new H264SliceRegion(previous, previous.Layout.MacroblockCount));
             }
             return slices;
         }
 
         private static void ValidatePicture(H264SliceHeader first, H264SliceHeader next)
         {
-            if (first.FrameNumber != next.FrameNumber || first.Picture.Id != next.Picture.Id || first.IsIdr != next.IsIdr ||
+            if (first.Structure != next.Structure || first.FrameNumber != next.FrameNumber || first.Picture.Id != next.Picture.Id || first.IsIdr != next.IsIdr ||
                 first.IdrPictureId != next.IdrPictureId || (first.ReferenceIndicator == 0) != (next.ReferenceIndicator == 0) ||
                 first.PictureOrderLsb != next.PictureOrderLsb || first.DeltaPictureOrderBottom != next.DeltaPictureOrderBottom ||
                 first.DeltaPictureOrder0 != next.DeltaPictureOrder0 || first.DeltaPictureOrder1 != next.DeltaPictureOrder1)

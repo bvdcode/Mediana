@@ -17,6 +17,53 @@ namespace Mediana.Tests
 {
     internal static class DocumentReadersTestInput
     {
+        internal static void VerifyCompactUnicode()
+        {
+            const string identity = "begincmap 1 begincodespacerange <0000> <FFFF> endcodespacerange 1 beginbfrange <0000> <FFFF> <0000> endbfrange endcmap";
+            const string explicitMap = "begincmap 1 begincodespacerange <0000> <FFFF> endcodespacerange 3 beginbfchar <0041> <0041> <0042> <0042> <2023> <2023> endbfchar endcmap";
+            int resolutions = 0;
+            Drawing.Fonts.FontProgram primary = Drawing.Fonts.BundledFontPrograms.GetProgram("Canada1500");
+            Drawing.Fonts.FontProgram punctuation = Drawing.Fonts.BundledFontPrograms.GetProgram("Mediana Punctuation");
+            PdfReaderOptions options = new()
+            {
+                Text = new()
+                {
+                    SubstituteMissingFonts = true,
+                    FontProgramResolver = _ => primary,
+                    FallbackFontProgramResolver = (_, scalar) =>
+                    {
+                        Check(scalar == 0x2023, "PDF resolves only used characters");
+                        resolutions++;
+                        return punctuation;
+                    }
+                }
+            };
+            using PdfDocument document = PdfReader.Open(PdfTextTestData.Composite(identity), options);
+            Check(document.ReadText().Single().Text == "AB‣", "PDF compact Unicode extraction");
+            using PixelBuffer actual = PdfRenderer.Render(document, 1, new() { Dpi = 72, Supersampling = 1 });
+            Check(resolutions == 1, "PDF unused CMap entries do not load fonts");
+            using PdfDocument reference = PdfReader.Open(PdfTextTestData.Composite(explicitMap), options);
+            using PixelBuffer expected = PdfRenderer.Render(reference, 1, new() { Dpi = 72, Supersampling = 1 });
+            Check(actual.Pixels.Span.SequenceEqual(expected.Pixels.Span), "PDF compact mappings preserve rendered pixels");
+        }
+
+        internal static void VerifyOfficeStories()
+        {
+            foreach (bool strict in new[] { false, true })
+            {
+                DocumentTextOptions options = new() { IncludeHeaders = true, IncludeFooters = true, IncludeSpeakerNotes = true, PartCount = 1 };
+                DocumentTextBlock[] word = WordTextReader.Read(DocumentPackageTestData.WordStories(strict: strict), options).ToArray();
+                Check(word.Select(block => block.Text).SequenceEqual(new[] { "Body 1", "Заголовок 😀 é\t終\nline", "First", "Even", "Footer" }), "Word margin Unicode and order");
+                Check(word[1].SourceKind == DocumentTextSourceKind.Header && word[1].HeaderFooterVariant == DocumentHeaderFooterVariant.Default
+                    && word[1].PartName == "word/headers/default.xml" && word[1].Path[1].Kind == DocumentTextNodeKind.Header, "Word margin provenance");
+                using PresentationDocument deck = PresentationReader.Open(DocumentPackageTestData.PresentationNotes(strict: strict));
+                DocumentTextBlock[] slides = deck.ReadText(options).ToArray();
+                Check(slides.Select(block => block.Text).SequenceEqual(new[] { "Slide", "Заметки 😀 é\n終" }), "Presentation notes Unicode and placeholder filtering");
+                Check(slides[1].SourceKind == DocumentTextSourceKind.SpeakerNotes && slides[1].PartIndex == 0
+                    && slides[1].PartName == "ppt/notes/one.xml" && slides[1].Path[1].Kind == DocumentTextNodeKind.SpeakerNotes, "Presentation notes provenance");
+            }
+        }
+
         internal static async Task VerifyAsync()
         {
             await VerifyPresentationTextBoundsAsync("/", true);
@@ -36,7 +83,8 @@ namespace Mediana.Tests
                 Check(rows[0].Cells[5].Formula is { HasCachedValue: false, Kind: SpreadsheetFormulaKind.Shared, SharedIndex: 3 }, "XLSX missing formula cache");
                 Check(rows[1].Cells[0].Value.Text == "Unicode ● ▪ 😀" && rows[1].Cells[1].Value.Text == "", "XLSX inline and empty text");
                 Check(xlsx.ReadText(new() { PartCount = 1 }).Count() == 10, "XLSX bounded text selection");
-                using PresentationDocument deck = PresentationReader.Open(PresentationTestData.Create(badSecond: true, strict: strict));
+                using MemoryStream presentation = new(PresentationTestData.Create(badSecond: true, strict: strict));
+                using PresentationDocument deck = PresentationReader.Open(presentation);
                 DocumentTextBlock text = deck.ReadText().First();
                 Check(text.Text == "Привет ● ▪" && text.PartIndex == 0 && text.Structure == DocumentTextStructure.Declared, "PPTX selected text");
                 MediaBufferAllocator allocator = new(4 * 1024 * 1024);
@@ -82,6 +130,8 @@ namespace Mediana.Tests
             { Check(pdf.ReadText().First().Text == "😀fi", "PDF surrogate and multi-scalar ToUnicode"); }
             using (PdfDocument pdf = PdfReader.Open(PdfTextTestData.Create(tagged: true, actualText: true)))
             { Check(pdf.ReadText().First().Text == "Привет 😀", "PDF ActualText without glyph decoding"); }
+            VerifyCompactUnicode();
+            VerifyOfficeStories();
             OpenXmlImageDecoder adapter = new([new PresentationPageDecoder(renderOptions: new() { Dpi = 72, Supersampling = 1 })]);
             byte[] encodedPresentation = PresentationTestData.Create();
             Mediana.Core.Metadata.ImageInfo info = await adapter.ReadInfoAsync(encodedPresentation);

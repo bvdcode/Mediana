@@ -7,13 +7,14 @@ using System.Xml.Linq;
 
 namespace Mediana.Documents.OpenXml
 {
-    /// <summary>A bounded, read-only OPC package borrowing input memory until disposed.
+    /// <summary>A bounded, read-only OPC package borrowing input memory or a seekable stream until disposed.
     /// Instances have a single consumer. External relationships are never opened.</summary>
     public class OpenXmlPackage : IDisposable
     {
         private static readonly XNamespace Relationships = "http://schemas.openxmlformats.org/package/2006/relationships";
         private static readonly XNamespace ContentTypes = "http://schemas.openxmlformats.org/package/2006/content-types";
-        private readonly ReadOnlyMemoryStream _source;
+        private readonly Stream _source;
+        private readonly bool _ownsSource;
         private ZipArchive? _archive;
         private readonly OpenXmlPackageOptions _options;
         private readonly Dictionary<string, ZipArchiveEntry> _parts = new(StringComparer.OrdinalIgnoreCase);
@@ -22,26 +23,37 @@ namespace Mediana.Documents.OpenXml
         private int _xmlElements;
         private long _readBytes;
 
-        private OpenXmlPackage(ReadOnlyMemory<byte> input, OpenXmlPackageOptions options)
+        private OpenXmlPackage(Stream source, OpenXmlPackageOptions options, bool ownsSource)
         {
-            _source = new(input);
+            _source = source;
+            _ownsSource = ownsSource;
             _options = options;
         }
 
         /// <summary>Opens borrowed memory. Failed initialization releases all package resources.</summary>
         public static OpenXmlPackage Open(ReadOnlyMemory<byte> input, OpenXmlPackageOptions? options = null, CancellationToken cancellationToken = default)
         {
+            return Open(new ReadOnlyMemoryStream(input), options, leaveOpen: false, cancellationToken);
+        }
+
+        /// <summary>Opens a readable seekable stream without copying its contents. The package occupies the whole stream.
+        /// The caller must not move, mutate or dispose it while the package is in use. Nonseekable streams are rejected.</summary>
+        public static OpenXmlPackage Open(Stream input, OpenXmlPackageOptions? options = null, bool leaveOpen = true,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(input);
             options ??= new();
             if (options.MaximumInputBytes <= 0 || options.MaximumParts <= 0 || options.MaximumPartBytes <= 0
                 || options.MaximumUncompressedBytes <= 0 || options.MaximumXmlDepth <= 0 || options.MaximumXmlElements <= 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(options));
             }
-            if (input.Length > options.MaximumInputBytes) { throw new InvalidDataException("OPC input exceeds MaximumInputBytes."); }
-            OpenXmlPackage package = new(input, options);
+            if (!input.CanRead || !input.CanSeek) { throw new ArgumentException("OPC input must be readable and seekable.", nameof(input)); }
+            OpenXmlPackage package = new(input, options, !leaveOpen);
             bool completed = false;
             try
             {
+                if (input.Length > options.MaximumInputBytes) { throw new InvalidDataException("OPC input exceeds MaximumInputBytes."); }
                 package.Initialize(cancellationToken);
                 completed = true;
                 return package;
@@ -199,7 +211,7 @@ namespace Mediana.Documents.OpenXml
         {
             _archive?.Dispose();
             _archive = null;
-            _source.Dispose();
+            if (_ownsSource) { _source.Dispose(); }
         }
 
         private void Initialize(CancellationToken token)

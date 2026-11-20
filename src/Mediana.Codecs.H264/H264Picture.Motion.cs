@@ -20,6 +20,43 @@ namespace Mediana.Codecs.H264
             {
                 return new H264MotionSample(false, -1, 0, 0);
             }
+            return ReadMotion(list, indices, x, y);
+        }
+
+        public H264MotionSample NeighbourMotionAt(H264ReferenceList list, int currentX, int currentY, int x, int y)
+        {
+            if (Layout.MacroblockAdaptiveFrameField)
+            {
+                return AdaptiveNeighbourMotionAt(list, currentX, currentY, x, y);
+            }
+            return MotionAt(list, x, y);
+        }
+
+        private H264MotionSample AdaptiveNeighbourMotionAt(H264ReferenceList list, int currentX, int currentY, int x, int y)
+        {
+            Span<byte> indices = ReferenceIndices(list);
+            int current = Grid.Address(currentX, currentY);
+            (int originX, int originY) = Grid.Position(current);
+            H264NeighbourLocation? neighbour = Grid.Neighbour(current, x - originX, y - originY, 16, 16, FirstMacroblock);
+            if (neighbour is not H264NeighbourLocation location)
+            {
+                return new H264MotionSample(false, -1, 0, 0);
+            }
+            (int neighbourX, int neighbourY) = Grid.Position(location.Address);
+            H264MotionSample sample = ReadMotion(list, indices, neighbourX + location.X, neighbourY + location.Y);
+            if (sample.ReferenceIndex < 0 || Grid.IsField(current) == Grid.IsField(location.Address))
+            {
+                return sample;
+            }
+            if (Grid.IsField(current))
+            {
+                return sample with { ReferenceIndex = sample.ReferenceIndex * 2, Y = sample.Y / 2 };
+            }
+            return sample with { ReferenceIndex = sample.ReferenceIndex / 2, Y = sample.Y * 2 };
+        }
+
+        private H264MotionSample ReadMotion(H264ReferenceList list, ReadOnlySpan<byte> indices, int x, int y)
+        {
             int index = BlockIndex(0, x, y);
             if (Modes[index] == byte.MaxValue)
             {

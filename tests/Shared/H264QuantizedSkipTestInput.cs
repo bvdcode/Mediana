@@ -25,7 +25,7 @@ namespace Mediana.Tests
                 Height = 48
             };
             using (H264Picture reference = new(sequence, allocator, H264SliceKind.P))
-            using (H264CabacMacroblockState state = new(sequence, allocator))
+            using (H264CabacMacroblockState state = new(reference, allocator))
             {
                 Random random = new(38271);
                 for (int plane = 0; plane < 3; plane++) { random.NextBytes(reference.Plane(plane)); }
@@ -127,7 +127,7 @@ namespace Mediana.Tests
                     || prediction.ContainsAnyExcept((byte)173))
                 { throw new InvalidDataException("Skip probe accepted motion outside the configured range."); }
             }
-            using H264CabacMacroblockState slice = new(reference.Sequence, allocator, firstMacroblock: 4);
+            using H264CabacMacroblockState slice = new(reference, allocator, firstMacroblock: 4);
             slice.Types.Fill(H264CabacMacroblockState.Skipped);
             if (H264QuantizedSkipAnalysis.TryAnalyze(slice, source, reference, 4, 16, 16, 0, 0, 26, 16, prediction, interpolation))
             { throw new InvalidDataException("Skip probe used a neighbor before the slice."); }

@@ -8,6 +8,7 @@ using System.Text;
 using Mediana.Images.Heif.Binary;
 using Mediana.Images.Heif.Hevc;
 using Mediana.Core.Video;
+using Mediana.Formats.Video;
 
 namespace Mediana.Images.Heif.Container
 {
@@ -18,6 +19,8 @@ namespace Mediana.Images.Heif.Container
         public int Width { get; private set; }
         public int Height { get; private set; }
         public DecoderConfiguration? Configuration { get; private set; }
+        public Av1CodecConfigurationRecord? Av1Configuration { get; private set; }
+        public ReadOnlyMemory<byte> Av1ConfigurationBytes { get; private set; }
         public ColorEncoding? Color { get; private set; }
         public IccColorDescription? IccDescription { get; private set; }
         public ReadOnlyMemory<byte> IccProfile => IccDescription?.Profile ?? ReadOnlyMemory<byte>.Empty;
@@ -102,6 +105,11 @@ namespace Mediana.Images.Heif.Container
             else if (box.Type == HeifBox.Code("hvcC"))
             {
                 Configuration = DecoderConfiguration.Read(reader.Bytes(reader.Remaining));
+            }
+            else if (box.Type == HeifBox.Code("av1C"))
+            {
+                Av1ConfigurationBytes = reader.Bytes(reader.Remaining);
+                Av1Configuration = Av1CodecConfigurationRecord.Read(Av1ConfigurationBytes.Span);
             }
             else if (box.Type == HeifBox.Code("colr"))
             {

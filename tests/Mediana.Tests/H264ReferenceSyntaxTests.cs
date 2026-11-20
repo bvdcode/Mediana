@@ -38,6 +38,41 @@ namespace Mediana.Tests
             Assert.Throws<InvalidDataException>(() => ReadMarking([0], 16));
         }
 
+        [Theory]
+        [InlineData(false, 15)]
+        [InlineData(true, 31)]
+        public void FrameAndFieldReferenceNumbersHaveDifferentRanges(bool fieldPicture, int maximum)
+        {
+            string value = H264TestBits.Ue(maximum);
+            H264BitReader modifications = new(H264TestBits.Rbsp("1 1 " + value + " 011 " + value + " 00100"));
+            IReadOnlyList<H264ReferenceModification> list = H264ReferenceSyntax.ReadModifications(ref modifications,
+                2, maximum + 1, fieldPicture);
+            modifications.ReadTrailingBits();
+            Assert.Equal(new[] { new H264ReferenceModification(0, maximum), new H264ReferenceModification(2, maximum) }, list);
+            H264BitReader marking = new(H264TestBits.Rbsp("010 " + value + " 011 " + value + " 1"));
+            IReadOnlyList<H264MemoryOperation> operations = H264ReferenceSyntax.ReadMarking(ref marking,
+                maximum + 1, 2, fieldPicture);
+            marking.ReadTrailingBits();
+            Assert.Equal(new[] { new H264MemoryOperation(1, DifferenceMinusOne: maximum),
+                new H264MemoryOperation(2, LongTermPictureNumber: maximum) }, operations);
+            byte[] invalidModification = H264TestBits.Rbsp("1 011 " + H264TestBits.Ue(maximum + 1));
+            Assert.Throws<InvalidDataException>(() => ReadFieldModifications(invalidModification, maximum + 1, fieldPicture));
+            byte[] invalidMarking = H264TestBits.Rbsp("011 " + H264TestBits.Ue(maximum + 1));
+            Assert.Throws<InvalidDataException>(() => ReadFieldMarking(invalidMarking, maximum + 1, fieldPicture));
+        }
+
+        private static void ReadFieldModifications(byte[] payload, int maximumPictureNumber, bool fieldPicture)
+        {
+            H264BitReader bits = new(payload);
+            H264ReferenceSyntax.ReadModifications(ref bits, 1, maximumPictureNumber, fieldPicture);
+        }
+
+        private static void ReadFieldMarking(byte[] payload, int maximumPictureNumber, bool fieldPicture)
+        {
+            H264BitReader bits = new(payload);
+            H264ReferenceSyntax.ReadMarking(ref bits, maximumPictureNumber, 1, fieldPicture);
+        }
+
         private static void ReadMarking(byte[] payload, int limit)
         {
             H264BitReader bits = new(payload);

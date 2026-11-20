@@ -76,7 +76,42 @@ namespace Mediana.Tests
             string hrd = "1 00000000 111 00000000000000000000";
             H264VuiParameters value = Read("00000 1 " + hrd + " 1 " + hrd + " 1 1 0");
             Assert.True(value.PictureStructurePresent);
+            Assert.Equal(new H264HrdTiming(1, 1, 1, 0), value.NalHrdTiming);
+            Assert.Equal(value.NalHrdTiming, value.VclHrdTiming);
         }
+
+        [Theory]
+        [InlineData(true, false, 1, 32, 24, 0)]
+        [InlineData(false, true, 32, 1, 17, 31)]
+        [InlineData(true, true, 24, 16, 32, 24)]
+        public void PreservesHrdTimingLengths(bool nal, bool vcl, int initial, int removal, int output, int offset)
+        {
+            H264HrdTiming timing = new(initial, removal, output, offset);
+            string hrd = Hrd(timing);
+            H264VuiParameters value = Read("00000 " + (nal ? "1 " + hrd : "0 ") +
+                (vcl ? "1 " + hrd : "0 ") + "0 1 0");
+            Assert.Equal(nal ? timing : (H264HrdTiming?)null, value.NalHrdTiming);
+            Assert.Equal(vcl ? timing : (H264HrdTiming?)null, value.VclHrdTiming);
+            Assert.True(value.PictureStructurePresent);
+        }
+
+        [Theory]
+        [InlineData(23, 24, 24, 24)]
+        [InlineData(24, 23, 24, 24)]
+        [InlineData(24, 24, 23, 24)]
+        [InlineData(24, 24, 24, 23)]
+        public void RejectsDisagreeingNalAndVclTimingLengths(int initial, int removal, int output, int offset)
+        {
+            string nal = Hrd(new(24, 24, 24, 24));
+            string vcl = Hrd(new(initial, removal, output, offset));
+            Assert.Throws<InvalidDataException>(() => Read("00000 1 " + nal + "1 " + vcl + "0 1 0"));
+        }
+
+        private static string Hrd(H264HrdTiming timing) => "1 00000000 111 " +
+            Convert.ToString(timing.InitialRemovalDelayBits - 1, 2).PadLeft(5, '0') +
+            Convert.ToString(timing.RemovalDelayBits - 1, 2).PadLeft(5, '0') +
+            Convert.ToString(timing.OutputDelayBits - 1, 2).PadLeft(5, '0') +
+            Convert.ToString(timing.TimeOffsetBits, 2).PadLeft(5, '0') + " ";
 
         [Theory]
         [InlineData("1 00010001")]

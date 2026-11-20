@@ -29,7 +29,7 @@ namespace Mediana.Containers.Mp4
                 {
                     throw new NotSupportedException("MP4 MP3 configuration requires a first frame and a four-byte configuration budget.");
                 }
-                Mp4SampleLocation first = new Mp4TrackCursor(movie.Tables[index]).Current;
+                Mp4SampleLocation first = movie.Tables[index].CreateCursor().Current;
                 if (first.Size < Mp3FrameHeader.HeaderBytes)
                 {
                     throw new InvalidDataException("The first MP4 MPEG audio sample has a truncated frame header.");

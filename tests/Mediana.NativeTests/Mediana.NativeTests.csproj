@@ -9,6 +9,8 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.OpenExr/Mediana.Codecs.OpenExr.csproj" />
+    <ProjectReference Include="../../src/Mediana.Images.Metadata/Mediana.Images.Metadata.csproj" />
     <None Include="../Mediana.Tests/Data/H264DeblockingEncoding/*" Link="Data/H264DeblockingEncoding/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/Mpeg4TestInput.cs" Link="Mpeg4TestInput.cs" />
     <Compile Include="../Shared/Mpeg4ContainerTestInput.cs" Link="Mpeg4ContainerTestInput.cs" />
@@ -382,6 +384,15 @@
     <Compile Include="../Shared/VideoStreamMetadataTestInput.cs" Link="VideoStreamMetadataTestInput.cs" />
     <Compile Include="../Shared/H264MetadataTestInput.cs" Link="H264MetadataTestInput.cs" />
     <Compile Include="../Shared/H264MotionInterpolationTestInput.cs" Link="H264MotionInterpolationTestInput.cs" />
+    <Compile Include="../Shared/H264StridedInterpolationTestInput.cs" Link="H264StridedInterpolationTestInput.cs" />
+    <Compile Include="../Shared/H264MbaffMotionTestInput.cs" Link="H264MbaffMotionTestInput.cs" />
+    <Compile Include="../Shared/H264CavlcSliceTestInput.cs" Link="H264CavlcSliceTestInput.cs" />
+    <Compile Include="../Shared/H264ReferenceFieldViewTestInput.cs" Link="H264ReferenceFieldViewTestInput.cs" />
+    <Compile Include="../Shared/H264MbaffSequenceTestInput.cs" Link="H264MbaffSequenceTestInput.cs" />
+    <Compile Include="../Shared/H264AdaptivePredictionTestInput.cs" Link="H264AdaptivePredictionTestInput.cs" />
+    <Compile Include="../Shared/H264CabacPairTestInput.cs" Link="H264CabacPairTestInput.cs" />
+    <Compile Include="../Shared/H264ColocatedBlockTestInput.cs" Link="H264ColocatedBlockTestInput.cs" />
+    <Compile Include="../Shared/H264AdaptiveBidirectionalTestInput.cs" Link="H264AdaptiveBidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264ChromaInterpolationTestInput.cs" Link="H264ChromaInterpolationTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Wave/references.json" Link="Data/Wave/references.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-mp3-*.mp4.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -407,6 +418,8 @@
     <Compile Include="../Shared/Mp4SampleAccessTestInput.cs" Link="Mp4SampleAccessTestInput.cs" />
     <Compile Include="../Shared/HlsPlanTestInput.cs" Link="HlsPlanTestInput.cs" />
     <Compile Include="../Shared/HlsSessionTestInput.cs" Link="HlsSessionTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Mp4/fragment-*.mp4" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/Mp4FragmentVideoTestInput.cs" Link="Mp4FragmentVideoTestInput.cs" />
     <Compile Include="../Shared/Mp4FragmentRecoveryTestInput.cs" Link="Mp4FragmentRecoveryTestInput.cs" />
     <Compile Include="../Shared/FragmentHlsTestInput.cs" Link="FragmentHlsTestInput.cs" />
     <Compile Include="../Shared/OnDemandHlsTestInput.cs" Link="OnDemandHlsTestInput.cs" />
@@ -458,6 +471,17 @@
     <ProjectReference Include="../../src/Mediana.Containers.Ogg/Mediana.Containers.Ogg.csproj" />
     <None Include="../Mediana.Containers.Ogg.Tests/Data/*" Link="Data/Ogg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
+    <Compile Include="../Shared/H264ProfileSequenceTestInput.cs" Link="H264ProfileSequenceTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-mbaff-*.mp4;../Mediana.Tests/Data/Mp4/avc-mbaff-*.yuv.gz;
+                   ../Mediana.Tests/Data/Mp4/avc-paff-*.mp4;../Mediana.Tests/Data/Mp4/avc-paff-*.yuv.gz;
+                   ../Mediana.Tests/Data/Mp4/avc-mixed-*.mp4;../Mediana.Tests/Data/Mp4/avc-mixed-*.yuv.gz;../Mediana.Tests/Data/Mp4/avc-mixed-*.poc;
+                   ../Mediana.Tests/Data/Mp4/avc-high10-*.mp4;../Mediana.Tests/Data/Mp4/avc-high10-*.yuv.gz;
+                   ../Mediana.Tests/Data/Mp4/avc-high422-*.mp4;../Mediana.Tests/Data/Mp4/avc-high422-*.yuv.gz;
+                   ../Mediana.Tests/Data/Mp4/avc-presentation-*.mp4;../Mediana.Tests/Data/Mp4/avc-presentation-*.yuv.gz;../Mediana.Tests/Data/Mp4/avc-presentation-*.timing.csv"
+          Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Compile Include="../Shared/H264PresentationTestInput.cs" Link="H264PresentationTestInput.cs" />
+    <Compile Include="../Shared/H264PresentationRecoveryTestInput.cs" Link="H264PresentationRecoveryTestInput.cs" />
+    <Compile Include="../Shared/H264FieldTestInput.cs" Link="H264FieldTestInput.cs" />
     <Compile Include="../Shared/H264MultiSliceTestInput.cs" Link="H264MultiSliceTestInput.cs" />
     <Compile Include="../Shared/VideoSeekTestInput.cs" Link="VideoSeekTestInput.cs" />
     <Compile Include="../Shared/H264EncodingTestInput.cs" Link="H264EncodingTestInput.cs" />

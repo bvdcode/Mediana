@@ -25,7 +25,7 @@ namespace Mediana.Codecs.H264
             H264EncoderDeblocking.WriteHeader(bits, options.Deblocking);
             while ((bits.BitPosition & 7) != 0) { bits.WriteFlag(true); }
             H264CabacEncoder arithmetic = new(bits);
-            using H264CabacMacroblockState state = new(target.Sequence, allocator);
+            using H264CabacMacroblockState state = new(target, allocator);
             H264CabacEncodingSyntax syntax = new(arithmetic, state, target, keyFrame ? H264SliceKind.I : H264SliceKind.P, quantizer);
             using H264CabacPredictionWindow? motion = keyFrame ? null : new(target.Width, target.Height, false, allocator);
             switch (options.MacroblockAnalysis)

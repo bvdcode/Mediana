@@ -10,6 +10,7 @@ namespace Mediana.Documents.Pdf
         : PdfFont(Widths, DefaultWidth, Composite)
     {
         internal IReadOnlyDictionary<int, TrueTypeFont>? GlyphFaces { get; init; }
+        internal Func<int, (TrueTypeFont Face, int Glyph)>? GlyphResolver { get; init; }
         internal override double WidthScale => 0.001;
     }
 }

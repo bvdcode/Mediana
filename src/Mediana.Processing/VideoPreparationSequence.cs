@@ -25,8 +25,25 @@ namespace Mediana.Processing
             this.inputFormat = inputFormat;
             this.displayMatrix = displayMatrix;
             this.allocator = allocator;
-            this.options = options;
-            current = new(inputFormat, displayMatrix, allocator, options);
+            if (options?.WarningHandler is Action<string> warn)
+            {
+                HashSet<string> reported = new(StringComparer.Ordinal);
+                this.options = options with
+                {
+                    WarningHandler = message =>
+                    {
+                        if (reported.Add(message))
+                        {
+                            warn(message);
+                        }
+                    }
+                };
+            }
+            else
+            {
+                this.options = options;
+            }
+            current = new(inputFormat, displayMatrix, allocator, this.options);
             OutputFormat = current.OutputFormat;
         }
 
@@ -79,8 +96,7 @@ namespace Mediana.Processing
             }
         }
 
-        private static bool Matches(VideoFormat left, VideoFormat right, bool compareColor = true) => left.Width == right.Width && left.Height == right.Height &&
-            left.PixelFormat == right.PixelFormat && left.SampleAspectRatio == right.SampleAspectRatio &&
+        private static bool Matches(VideoFormat left, VideoFormat right, bool compareColor = true) => VideoFormatComparison.GeometryMatches(left, right) &&
             (!compareColor || left.GetColorInterpretation() == right.GetColorInterpretation());
 
         public void Dispose()

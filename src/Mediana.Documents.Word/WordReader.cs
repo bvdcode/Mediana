@@ -30,7 +30,7 @@ namespace Mediana.Documents.Word
             {
                 sections.Add(ReadSection(context, source, reader, main, sections.LastOrDefault(), even));
             }
-            return new(sections.AsReadOnly(), context.Warnings);
+            return new(sections.AsReadOnly(), context.Warnings) { PartName = main };
         }
 
         internal static WordPageSize ReadPageSize(OpenXmlPackage package, string main, WordReaderOptions options, CancellationToken token)

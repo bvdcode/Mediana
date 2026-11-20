@@ -26,12 +26,13 @@ namespace Mediana.Drawing.Fonts
         private static string ResourceName(string family, bool bold, bool italic)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(family);
+            if (family == "Mediana Punctuation") { return "MedianaPunctuation-Regular"; }
             if (family == "Noto Sans Symbols 2") { return "NotoSansSymbols2-Regular"; }
             string name = family switch
             {
                 "Aileron" => "Aileron",
                 "Canada1500" => "Canada1500",
-                _ => throw new ArgumentException("The bundled family must be Aileron, Canada1500 or Noto Sans Symbols 2.", nameof(family))
+                _ => throw new ArgumentException("The bundled family must be Aileron, Canada1500, Noto Sans Symbols 2 or Mediana Punctuation.", nameof(family))
             };
             string variant = (bold, italic) switch
             {

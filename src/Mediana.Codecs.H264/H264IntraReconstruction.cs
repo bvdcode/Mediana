@@ -9,29 +9,30 @@ namespace Mediana.Codecs.H264
             H264SliceHeader header, int x, int y, int type, int chromaMode, int pattern, int qp)
             where TReader : IH264ResidualReader
         {
-            H264InverseTransform.ValidateQp(qp);
+            H264InverseTransform.ValidateQp(qp, target.Sequence.LumaBitDepth);
             ReadLuma(ref bits, reader, target, x, y, type, pattern, qp, header.Picture.ConstrainedIntraPrediction);
-            ReadChroma(ref bits, reader, target, header.Picture, x / 2, y / 2, chromaMode, pattern >> 4, qp);
+            ReadChroma(ref bits, reader, target, header.Picture, x / 2, y / target.ChromaVerticalScale, chromaMode, pattern >> 4, qp);
         }
 
         private static void ReadLuma<TReader>(ref H264BitReader bits, TReader reader, H264Picture target, int x, int y, int type, int pattern, int qp, bool constrained)
             where TReader : IH264ResidualReader
         {
+            bool field = target.IsFieldMacroblock(x, y);
             bool intra16 = type != 0;
-            if (!intra16 && target.Transforms8x8[y / 16 * target.Sequence.WidthInMbs + x / 16] != 0)
+            if (!intra16 && target.Transforms8x8[target.Grid.Address(x, y)] != 0)
             {
                 H264Luma8x8Reconstruction.Read(ref bits, reader, target, x, y, pattern, qp, true, constrained, []);
                 return;
             }
             Span<int> coefficients = stackalloc int[16];
             Span<int> dc = stackalloc int[16];
-            Span<byte> macroPrediction = stackalloc byte[256];
-            Span<byte> prediction = stackalloc byte[16];
+            Span<byte> macroPrediction = stackalloc byte[target.LumaMacroblockBytes];
+            Span<byte> prediction = stackalloc byte[16 * target.SampleBytes];
             Span<int> residual = stackalloc int[16];
             if (intra16)
             {
                 reader.Read(ref bits, H264ResidualCategory.Intra16LumaDc, 0, x, y, coefficients);
-                H264InverseTransform.LumaDc(coefficients, qp, dc);
+                H264InverseTransform.LumaDc(coefficients, qp, dc, target.Sequence.LumaBitDepth, field: field);
                 target.PredictMacroblock(0, x, y, (type - 1) % 4, macroPrediction, constrained);
             }
             for (int index = 0; index < 16; index++)
@@ -51,11 +52,11 @@ namespace Mediana.Codecs.H264
                 {
                     if (count == 0 && dc[(blockY / 4) * 4 + blockX / 4] == 0)
                     {
-                        target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, macroPrediction[(blockY * 16 + blockX)..], 16);
+                        target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, macroPrediction[((blockY * 16 + blockX) * target.SampleBytes)..], 16);
                         continue;
                     }
-                    H264Residuals.CopyPrediction(macroPrediction, 16, blockX, blockY, prediction);
-                    H264InverseTransform.Residual4x4(block, qp, residual, dc[(blockY / 4) * 4 + blockX / 4]);
+                    H264Residuals.CopyPrediction(macroPrediction, 16, blockX, blockY, prediction, target.SampleBytes);
+                    H264InverseTransform.Residual4x4(block, qp, residual, dc[(blockY / 4) * 4 + blockX / 4], target.Sequence.LumaBitDepth, field: field);
                 }
                 else
                 {
@@ -65,7 +66,7 @@ namespace Mediana.Codecs.H264
                         target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, prediction, 4);
                         continue;
                     }
-                    H264InverseTransform.Residual4x4(block, qp, residual);
+                    H264InverseTransform.Residual4x4(block, qp, residual, bitDepth: target.Sequence.LumaBitDepth, field: field);
                 }
                 target.WriteBlock(0, x + blockX, y + blockY, prediction, residual);
             }
@@ -75,10 +76,11 @@ namespace Mediana.Codecs.H264
             int x, int y, int mode, int pattern, int qp)
             where TReader : IH264ResidualReader
         {
-            Span<byte> prediction = stackalloc byte[128];
+            int planeBytes = target.ChromaMacroblockBytes;
+            Span<byte> prediction = stackalloc byte[2 * planeBytes];
             for (int plane = 1; plane <= 2; plane++)
             {
-                target.PredictMacroblock(plane, x, y, mode, prediction.Slice((plane - 1) * 64, 64), picture.ConstrainedIntraPrediction);
+                target.PredictMacroblock(plane, x, y, mode, prediction.Slice((plane - 1) * planeBytes, planeBytes), picture.ConstrainedIntraPrediction);
             }
             H264Residuals.ReadChroma(ref bits, reader, target, picture, x, y, pattern, qp, prediction);
         }

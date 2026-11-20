@@ -94,7 +94,7 @@ namespace Mediana.Tests
                     }
                     if (entropy == H264EntropyCoding.Cabac && frame != 0) { bits.WriteUnsigned(0); }
                     bits.WriteSigned(0); bits.WriteUnsigned(1);
-                    using H264CabacMacroblockState? state = entropy == H264EntropyCoding.Cabac ? new(parsed.Sequences[0], allocator) : null;
+                    using H264CabacMacroblockState? state = entropy == H264EntropyCoding.Cabac ? new(reconstructed, allocator) : null;
                     H264CabacEncoder? arithmetic = null;
                     H264CabacEncodingSyntax? syntax = null;
                     if (state is not null)

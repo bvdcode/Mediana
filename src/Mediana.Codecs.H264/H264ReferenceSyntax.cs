@@ -5,7 +5,22 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264ReferenceSyntax
     {
-        public static IReadOnlyList<H264ReferenceModification> ReadModifications(ref H264BitReader bits, int activeCount, int maxFrameNumber)
+        internal const int MaximumFrameReferences = 16;
+        internal const int MaximumFieldReferences = 32;
+
+        public static int ReadActiveCount(ref H264BitReader bits, int defaultCount, bool overridden, bool fieldPicture)
+        {
+            int maximum = fieldPicture ? MaximumFieldReferences : MaximumFrameReferences;
+            int count = overridden ? bits.ReadUe(maximum - 1) + 1 : defaultCount;
+            if (count < 1 || count > maximum)
+            {
+                throw new InvalidDataException("The H.264 active reference count exceeds the picture's frame or field limit.");
+            }
+            return count;
+        }
+
+        public static IReadOnlyList<H264ReferenceModification> ReadModifications(ref H264BitReader bits, int activeCount,
+            int maximumPictureNumber, bool fieldPicture = false)
         {
             if (!bits.ReadFlag())
             {
@@ -25,15 +40,16 @@ namespace Mediana.Codecs.H264
                 }
                 int value = operation switch
                 {
-                    0 or 1 => bits.ReadUe(maxFrameNumber - 1),
-                    2 => bits.ReadUe(15),
+                    0 or 1 => bits.ReadUe(maximumPictureNumber - 1),
+                    2 => bits.ReadUe(fieldPicture ? 31 : 15),
                     _ => throw new InvalidDataException("Invalid H.264 reference list modification.")
                 };
                 result.Add(new H264ReferenceModification(operation, value));
             }
         }
 
-        public static IReadOnlyList<H264MemoryOperation> ReadMarking(ref H264BitReader bits, int maxFrameNumber, int maximumOperations)
+        public static IReadOnlyList<H264MemoryOperation> ReadMarking(ref H264BitReader bits, int maximumPictureNumber,
+            int maximumOperations, bool fieldPicture = false)
         {
             List<H264MemoryOperation> result = [];
             while (true)
@@ -47,8 +63,8 @@ namespace Mediana.Codecs.H264
                 {
                     throw new NotSupportedException("H.264 reference marking exceeds the configured operation limit.");
                 }
-                int difference = operation is 1 or 3 ? bits.ReadUe(maxFrameNumber - 1) : 0;
-                int longTermPicture = operation == 2 ? bits.ReadUe(15) : 0;
+                int difference = operation is 1 or 3 ? bits.ReadUe(maximumPictureNumber - 1) : 0;
+                int longTermPicture = operation == 2 ? bits.ReadUe(fieldPicture ? 31 : 15) : 0;
                 int longTermFrame = operation is 3 or 6 ? bits.ReadUe(15) : 0;
                 int maximumLongTerm = operation == 4 ? bits.ReadUe(16) : 0;
                 result.Add(new H264MemoryOperation(operation, difference, longTermPicture, longTermFrame, maximumLongTerm));

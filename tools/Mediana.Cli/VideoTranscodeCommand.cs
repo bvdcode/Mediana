@@ -19,7 +19,7 @@ namespace Mediana.Cli
         public static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? streamIndex, H264EncoderOptions options,
             int? maximumWidth, int? maximumHeight, bool videoOnly, ILogger logger, CancellationToken cancellationToken)
         {
-            MediaEngine engine = ContainerEngineFactory.CreateVideoBuilder(Mp4TimestampMode.LinearMovie)
+            MediaEngine engine = ContainerEngineFactory.CreateVideoBuilder(logger, Mp4TimestampMode.LinearMovie)
                 .AddVideoEncoder(new H264EncoderFactory(options)).AddContainerWriter(new MpegTsWriterFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             MediaBufferAllocator allocator = CommandMediaResources.CreateAllocator();
@@ -33,6 +33,7 @@ namespace Mediana.Cli
                     StreamIndex = streamIndex,
                     MaximumWidth = maximumWidth,
                     MaximumHeight = maximumHeight,
+                    InterlacedField = VideoFieldSelection.Leading,
                     OmitAudio = videoOnly,
                     OutputPixelFormat = VideoPixelFormat.Yuv420P8,
                     ColorResolver = VideoColorPolicy.ResolveForEncoding,

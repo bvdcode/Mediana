@@ -11,14 +11,15 @@ namespace Mediana.Processing
         private const double WhiteY = 0.3290;
         private static readonly RgbMatrix XyzToSrgb = ToXyz(0.640, 0.330, 0.300, 0.600, 0.150, 0.060).Inverse();
 
-        internal static RgbMatrix PcsD50ToSrgb { get; } = AdaptPcsD50();
+        internal static RgbMatrix PcsD50ToSrgb { get; } = AdaptWhiteToSrgb(0.9642, 0.8249);
 
-        private static RgbMatrix AdaptPcsD50()
+        private static RgbMatrix AdaptWhiteToSrgb(double whiteX, double whiteZ)
         {
             // ICC.1 Annex E: Bradford adaptation from PCS D50 to the sRGB D65 white.
             RgbMatrix bradford = new(0.8951, 0.2664, -0.1614, -0.7502, 1.7135, 0.0367, 0.0389, -0.0685, 1.0296);
-            (double sx, double sy, double sz) = bradford.Transform(0.9642, 1, 0.8249);
+            (double sx, double sy, double sz) = bradford.Transform(whiteX, 1, whiteZ);
             (double dx, double dy, double dz) = bradford.Transform(WhiteX / WhiteY, 1, (1 - WhiteX - WhiteY) / WhiteY);
+            if (sx == 0 || sy == 0 || sz == 0) { throw new ArgumentException("RGB white-point adaptation is singular."); }
             return XyzToSrgb.Multiply(bradford.Inverse().ScaleColumns(dx / sx, dy / sy, dz / sz).Multiply(bradford));
         }
 
@@ -42,6 +43,21 @@ namespace Mediana.Processing
                 return RgbMatrix.Identity;
             }
             return XyzToSrgb.Multiply(source);
+        }
+
+        internal static RgbMatrix ToSrgb(RgbChromaticities chromaticities)
+        {
+            chromaticities.Validate();
+            RgbMatrix basis = new(chromaticities.RedX / chromaticities.RedY, chromaticities.GreenX / chromaticities.GreenY,
+                chromaticities.BlueX / chromaticities.BlueY, 1, 1, 1,
+                (1 - chromaticities.RedX - chromaticities.RedY) / chromaticities.RedY,
+                (1 - chromaticities.GreenX - chromaticities.GreenY) / chromaticities.GreenY,
+                (1 - chromaticities.BlueX - chromaticities.BlueY) / chromaticities.BlueY);
+            double wx = chromaticities.WhiteX / chromaticities.WhiteY;
+            double wz = (1 - chromaticities.WhiteX - chromaticities.WhiteY) / chromaticities.WhiteY;
+            (double r, double g, double b) = basis.Inverse().Transform(wx, 1, wz);
+            RgbMatrix source = basis.ScaleColumns(r, g, b);
+            return AdaptWhiteToSrgb(wx, wz).Multiply(source);
         }
 
         private static RgbMatrix ToXyz(double rx, double ry, double gx, double gy, double bx, double by)

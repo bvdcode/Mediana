@@ -17,10 +17,15 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("Invalid active H.264 P reference list.");
             }
+            if (header.Layout.IsField)
+            {
+                return GetFieldList0(header);
+            }
             int maximum = 1 << header.Sequence.FrameNumberBits;
-            List<H264ReferencePicture?> list = references.Where(value => value.LongTermIndex is null)
+            IReadOnlyList<H264ReferencePicture> frames = GetFrames(references);
+            List<H264ReferencePicture?> list = frames.Where(value => value.LongTermIndex is null)
                 .OrderByDescending(value => value.PictureNumber(header.FrameNumber, maximum))
-                .Concat(references.Where(value => value.LongTermIndex is not null).OrderBy(value => value.LongTermIndex))
+                .Concat(frames.Where(value => value.LongTermIndex is not null).OrderBy(value => value.LongTermIndex))
                 .Cast<H264ReferencePicture?>().ToList();
             return ModifyList(list, header, header.ActiveReferencesL0, header.ReferenceModifications);
         }
@@ -33,8 +38,13 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("Invalid H.264 B reference lists.");
             }
-            H264ReferencePicture[] shortTerm = references.Where(value => value.LongTermIndex is null).ToArray();
-            H264ReferencePicture[] longTerm = references.Where(value => value.LongTermIndex is not null)
+            if (header.Layout.IsField)
+            {
+                return GetFieldBidirectionalLists(header, order);
+            }
+            IReadOnlyList<H264ReferencePicture> frames = GetFrames(references);
+            H264ReferencePicture[] shortTerm = frames.Where(value => value.LongTermIndex is null).ToArray();
+            H264ReferencePicture[] longTerm = frames.Where(value => value.LongTermIndex is not null)
                 .OrderBy(value => value.LongTermIndex).ToArray();
             List<H264ReferencePicture?> l0 = shortTerm.Where(value => value.Order.Value < order.Value)
                 .OrderByDescending(value => value.Order.Value)
@@ -53,16 +63,18 @@ namespace Mediana.Codecs.H264
                 ModifyList(l1, header, header.ActiveReferencesL1, header.ReferenceModificationsL1));
         }
 
-        private IReadOnlyList<H264ReferencePicture?> ModifyList(List<H264ReferencePicture?> list,
+        private static IReadOnlyList<H264ReferencePicture?> ModifyList(List<H264ReferencePicture?> list,
             H264SliceHeader header, int activeCount, IReadOnlyList<H264ReferenceModification> modifications)
         {
             if (activeCount is < 1 or > 32 || modifications.Count > activeCount)
             {
                 throw new InvalidDataException("Invalid H.264 active reference count or list modifications.");
             }
+            H264ReferencePicture[] candidates = modifications.Count == 0 ? [] : list.OfType<H264ReferencePicture>().ToArray();
             ResizeList(list, activeCount);
-            int maximum = 1 << header.Sequence.FrameNumberBits;
-            int predicted = header.FrameNumber;
+            H264ReferenceNumbering numbering = new(header);
+            int maximum = numbering.MaximumPictureNumber;
+            int predicted = numbering.CurrentPictureNumber;
             for (int index = 0; index < modifications.Count; index++)
             {
                 H264ReferenceModification modification = modifications[index];
@@ -78,11 +90,11 @@ namespace Mediana.Codecs.H264
                         int difference = modification.Value + 1;
                         predicted = modification.Operation == 0 ? (predicted - difference + maximum) % maximum
                             : (predicted + difference) % maximum;
-                        int number = predicted > header.FrameNumber ? predicted - maximum : predicted;
-                        selected = FindShort(references, number, header.FrameNumber, maximum);
+                        int number = predicted > numbering.CurrentPictureNumber ? predicted - maximum : predicted;
+                        selected = FindShort(candidates, number, numbering);
                         break;
                     case 2:
-                        selected = FindLong(references, modification.Value);
+                        selected = FindLong(candidates, modification.Value, numbering);
                         break;
                     default:
                         throw new InvalidDataException("Invalid H.264 reference list modification.");
@@ -90,7 +102,7 @@ namespace Mediana.Codecs.H264
                 list.Insert(index, selected);
                 for (int position = list.Count - 1; position > index; position--)
                 {
-                    if (ReferenceEquals(list[position]?.Picture, selected.Picture))
+                    if (ReferenceEquals(list[position]?.Identity, selected.Identity))
                     {
                         list.RemoveAt(position);
                     }

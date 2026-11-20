@@ -184,6 +184,27 @@ Ranges crossing the last-byte boundary are recovered by incrementing the full
 destination string, with a page warning. Missing mappings and unsupported
 multi-character destinations remain explicit rendering failures when used.
 
+The common text-extraction and rendering reader retains `bfrange` entries as
+intervals. It validates overlap, destination overflow, code-space coverage and
+operation limits before use, without allocating a string for every possible
+code. Composite fonts resolve and cache glyphs only for characters appearing
+in page text. Unused surrogate slots do not prevent rendering valid text.
+
+A 3.8 KiB vector page with an identity mapping covering 65,536 codes was measured
+through the direct API in Release on .NET 11, Server GC, two logical processors
+and 2x supersampling. Medians use 22 iterations after ten warmups. Input reading,
+PNG/WebP encoding and application adapters are excluded:
+
+| Maximum dimension | Before | Compact mappings | Managed bytes per render, before / after |
+| --- | ---: | ---: | ---: |
+| 200 px | 37.30 ms | 9.28 ms | 21,641,832 / 4,257,904 |
+| 2560 px | 600.81 ms | 561.09 ms | 557,164,152 / 539,772,492 |
+
+PNG outputs matched byte for byte at both sizes. Allocation counts are cumulative
+managed allocations, not peak working memory. These measurements cover this
+page and configuration; they do not measure the application's complete preview
+pipeline.
+
 Reader warnings are available on PdfDocument.Warnings, and page interpretation
 warnings on PdfPage.Warnings. PdfRenderOptions.WarningHandler receives page
 warnings before rasterization. The registered PdfImageDecoder forwards reader

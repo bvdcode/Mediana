@@ -7,14 +7,15 @@ namespace Mediana.Codecs.H264
     {
         public void WriteZeroResidualBlock(int plane, int x, int y, int size, ReadOnlySpan<byte> prediction, int predictionStride)
         {
-            int stride = Stride(plane);
+            (int offset, int stride) = SampleLocation(plane, x, y);
             Span<byte> pixels = Plane(plane);
             for (int row = 0; row < size; row++)
             {
-                prediction.Slice(row * predictionStride, size).CopyTo(pixels.Slice((y + row) * stride + x, size));
+                prediction.Slice(row * predictionStride * SampleBytes, size * SampleBytes)
+                    .CopyTo(pixels.Slice((offset + row * stride) * SampleBytes, size * SampleBytes));
             }
             int blockSize = size / 4;
-            int countStride = stride / 4;
+            int countStride = Stride(plane) / 4;
             int first = y / 4 * countStride + x / 4;
             Span<byte> counts = Counts(plane);
             for (int row = 0; row < blockSize; row++)

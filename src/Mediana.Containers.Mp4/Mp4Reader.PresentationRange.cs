@@ -19,6 +19,11 @@ namespace Mediana.Containers.Mp4
                 _ = Mp4LinearTimeline.Create(track.Stream.TimeBase, track.Edits, 0);
                 Mp4Edit edit = track.Edits[^1];
                 MediaTimestamp start = timelines[streamIndex].Map(edit.MediaTime);
+                if (fragmented && edit.Duration.Value == 0)
+                {
+                    long end = sampleTables[streamIndex].GetPresentationEnd(cancellationToken);
+                    return new(start, timelines[streamIndex].Map(Math.Max(edit.MediaTime, end)));
+                }
                 TimeBase clock = TimeBase.Common(start.ReduceClock().TimeBase,
                     new MediaTimestamp(edit.Duration.Value, edit.Duration.TimeBase).ReduceClock().TimeBase);
                 long position = start.Rescale(clock, TimestampRounding.TowardZero).Value;

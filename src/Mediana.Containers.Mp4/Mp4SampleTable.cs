@@ -3,7 +3,7 @@
 
 namespace Mediana.Containers.Mp4
 {
-    internal class Mp4SampleTable
+    internal class Mp4SampleTable : IMp4SampleIndex
     {
         private readonly ReadOnlyMemory<byte> sizes;
         private readonly uint constantSize;
@@ -70,6 +70,32 @@ namespace Mediana.Containers.Mp4
         public Mp4Table? Composition { get; }
         public bool SignedComposition { get; }
         public Mp4Table? SyncSamples { get; }
+
+        public bool RequiresPresentationTiming => Composition is not null && Composition.Count > 1;
+
+        public IMp4SampleCursor CreateCursor() => new Mp4TrackCursor(this);
+
+        public Mp4SampleLocation Locate(int sample, CancellationToken cancellationToken) =>
+            Mp4SampleLocator.Find(this, sample, cancellationToken);
+
+        public int? FindSeekSample(Int128 target, int beforeSample, CancellationToken cancellationToken) =>
+            Mp4SeekPointLookup.Find(this, target, beforeSample, cancellationToken);
+
+        public int FindSyncSample(int sample) => Mp4SyncSampleLookup.AtOrBefore(SyncSamples, sample);
+
+        public long GetPresentationEnd(CancellationToken cancellationToken)
+        {
+            IMp4SampleCursor cursor = CreateCursor();
+            long end = 0;
+            while (cursor.HasSample)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Mp4SampleLocation sample = cursor.Current;
+                end = Math.Max(end, checked(sample.PresentationTime + sample.Duration));
+                cursor.Advance(sample);
+            }
+            return end;
+        }
 
         public int SampleSize(int index)
         {
@@ -189,7 +215,7 @@ namespace Mediana.Containers.Mp4
                 PayloadBytes = checked(PayloadBytes + bytes);
                 sample += (int)count;
                 long offset = ChunkOffset(chunk);
-                if (!ContainsMediaRange(ranges, offset, bytes))
+                if (!Mp4MediaRanges.Contains(ranges, offset, bytes))
                 {
                     throw new InvalidDataException("An MP4 chunk extends outside a media data box.");
                 }
@@ -200,28 +226,5 @@ namespace Mediana.Containers.Mp4
             }
         }
 
-        private static bool ContainsMediaRange(IReadOnlyList<Mp4DataRange> ranges, long offset, long length)
-        {
-            int low = 0;
-            int high = ranges.Count - 1;
-            while (low <= high)
-            {
-                int middle = low + (high - low) / 2;
-                Mp4DataRange range = ranges[middle];
-                if (offset < range.Offset)
-                {
-                    high = middle - 1;
-                }
-                else if (offset - range.Offset > range.Length)
-                {
-                    low = middle + 1;
-                }
-                else
-                {
-                    return range.Contains(offset, length);
-                }
-            }
-            return false;
-        }
     }
 }
