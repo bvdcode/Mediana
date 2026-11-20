@@ -438,3 +438,39 @@ ranges overlap. The 720p CABAC control also varied substantially (8.304–10.104
 seconds). These measurements do not establish a general speed difference.
 All decoded hashes match the independent decoder; picture-buffer ownership
 returns to zero after every run.
+
+## CABAC predictive MBAFF reconstruction
+
+The reconstruction kernel also decodes MBAFF P slices with CABAC. Skip flags
+use the inferred pair mode until the coded mode is available. A skipped upper
+macroblock reads the lower skip flag and, when present, its field flag before
+reconstruction. This preserves the arithmetic payload order without changing
+the stored pair mode temporarily.
+
+Reference-index and vertical motion-difference contexts use the actual
+neighbour structure. The syntax-history buffer retains two rows of macroblock
+pairs; its storage scales with picture width. Progressive decoding retains
+its two-macroblock-row budget.
+
+Five JM 19.1 sequences cover all three CABAC initialization modes, 8/10-bit
+4:2:0 and 4:2:2, forced fields and adaptive pairs. All 30 pictures match FFmpeg
+sample for sample. An independent arithmetic-interval test checks 1,728
+combinations of skip flags, neighbour modes, slice starts and initialization
+for both P and B pair syntax. The compact history is checked against full
+picture storage across multiple widths, heights and slice starts, with no
+allocations during traversal. All 1,152 H.264 tests and the shared Native AOT
+profile validation pass. Bidirectional MBAFF reconstruction and mixed-edge
+deblocking remain open.
+
+Paired regression measurements use the previous CAVLC-MBAFF implementation
+as the baseline. Three alternating Native AOT runs decode and hash 600
+pictures each on the same fixed core. All decoded hashes match.
+
+| Input | CPU before → after | Wall before → after | Peak RSS before → after | Allocated/run before → after |
+| --- | ---: | ---: | ---: | ---: |
+| 720p CABAC | 7.587 → 7.467 s | 7.588 → 7.468 s | 33.70 → 33.82 MiB | 25.98 → 26.02 MiB |
+| 10-bit 4:2:2 CABAC | 19.740 → 20.066 s | 19.746 → 20.072 s | 48.31 → 48.32 MiB | 40.33 → 40.32 MiB |
+| 720p CAVLC | 7.190 → 7.250 s | 7.191 → 7.250 s | 33.83 → 33.62 MiB | 25.89 → 25.88 MiB |
+
+CPU ranges overlap for all three sources; these changes extend format
+coverage and do not establish a throughput improvement.

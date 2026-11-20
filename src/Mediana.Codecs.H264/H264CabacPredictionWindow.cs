@@ -15,17 +15,21 @@ namespace Mediana.Codecs.H264
         private readonly int rowMask;
         private readonly int listBytes;
         private readonly bool bidirectional;
+        private readonly int macroblockRows;
         private int currentRow = -1;
 
-        public H264CabacPredictionWindow(int width, int height, bool bidirectional, MediaBufferAllocator allocator)
+        public H264CabacPredictionWindow(int width, int height, bool bidirectional, MediaBufferAllocator allocator,
+            bool macroblockAdaptiveFrameField = false)
         {
-            if (width <= 0 || height <= 0 || ((width | height) & 15) != 0)
+            if (width <= 0 || height <= 0 || ((width | height) & 15) != 0 ||
+                (macroblockAdaptiveFrameField && (height & 31) != 0))
             {
-                throw new ArgumentOutOfRangeException(nameof(width), "CABAC history requires complete progressive macroblocks.");
+                throw new ArgumentOutOfRangeException(nameof(width), "CABAC history requires complete macroblocks or adaptive pairs.");
             }
             this.bidirectional = bidirectional;
+            macroblockRows = macroblockAdaptiveFrameField ? 2 : 1;
             columns = width / 4;
-            int rows = Math.Min(2, height / 16) * BlocksPerMacroblock;
+            int rows = Math.Min(2 * macroblockRows, height / 16) * BlocksPerMacroblock;
             rowMask = rows - 1;
             blocks = checked(columns * rows);
             listBytes = checked(blocks * (sizeof(short) * 2 + (bidirectional ? 1 : 0)));
@@ -51,13 +55,13 @@ namespace Mediana.Codecs.H264
 
         public void BeginMacroblock(int address)
         {
-            int row = address / (columns / BlocksPerMacroblock);
+            int row = address / (columns / BlocksPerMacroblock * macroblockRows);
             if (row == currentRow)
             {
                 return;
             }
-            int start = ((row * BlocksPerMacroblock) & rowMask) * columns;
-            int count = columns * BlocksPerMacroblock;
+            int start = ((row * BlocksPerMacroblock * macroblockRows) & rowMask) * columns;
+            int count = columns * BlocksPerMacroblock * macroblockRows;
             Clear(H264ReferenceList.L0, start, count);
             if (bidirectional)
             {

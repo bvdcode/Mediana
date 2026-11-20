@@ -48,6 +48,17 @@ namespace Mediana.Codecs.H264
 
         public int TypeCondition(int neighbour) => neighbour >= 0 && Types[neighbour] != 0 ? 1 : 0;
         public int SkipCondition(int neighbour) => neighbour >= 0 && Types[neighbour] != Skipped ? 1 : 0;
+
+        public int SkipContext(int address, bool? currentPairField = null)
+        {
+            if (currentPairField is null)
+            {
+                return SkipCondition(Left(address)) + SkipCondition(Top(address));
+            }
+            int left = picture.Grid.Neighbour(address, -1, 0, 16, 16, firstMacroblock, currentPairField)?.Address ?? -1;
+            int top = picture.Grid.Neighbour(address, 0, -1, 16, 16, firstMacroblock, currentPairField)?.Address ?? -1;
+            return SkipCondition(left) + SkipCondition(top);
+        }
         public int BidirectionalTypeCondition(int neighbour) => neighbour >= 0 && Types[neighbour] is not (Skipped or Direct) ? 1 : 0;
         public bool IsIntra(int address) => Types[address] <= 25;
 

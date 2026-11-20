@@ -43,6 +43,18 @@ namespace Mediana.Codecs.H264
             H264BidirectionalReferences references, H264PictureOrder order, H264Picture result, int endMacroblock,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
+            if (header.FirstMacroblock < 0 || endMacroblock <= header.FirstMacroblock || endMacroblock > header.Layout.MacroblockCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(endMacroblock));
+            }
+            if (header.Layout.MacroblockAdaptiveFrameField && ((header.FirstMacroblock | endMacroblock) & 1) != 0)
+            {
+                throw new InvalidDataException("An MBAFF slice must contain complete macroblock pairs.");
+            }
+            if (header.Layout.MacroblockAdaptiveFrameField && header.Kind == H264SliceKind.B)
+            {
+                throw new NotSupportedException("MBAFF bidirectional CABAC reconstruction is not implemented.");
+            }
             using H264CabacMacroblockState state = new(result, allocator, header.FirstMacroblock);
             H264CabacReader reader = new(ref bits, header);
             using H264CabacPredictionReader? predictionReader = header.Kind switch
@@ -52,31 +64,16 @@ namespace Mediana.Codecs.H264
                 _ => throw new NotSupportedException("CABAC reconstruction supports I, P and B slices.")
             };
             H264CabacPictureSyntax syntax = new(reader, result, state);
+            H264CabacPairSyntax pairSyntax = new(result, header, reader, state);
+            H264AdaptiveReferences? adaptive = header.Layout.MacroblockAdaptiveFrameField && header.Kind != H264SliceKind.I
+                ? new(references) : null;
             int qp = header.Qp;
             Span<byte> prediction = stackalloc byte[result.MacroblockBytes];
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (header.Layout.MacroblockAdaptiveFrameField)
-                {
-                    if (header.Kind != H264SliceKind.I)
-                    {
-                        throw new NotSupportedException("MBAFF predictive CABAC reconstruction is not implemented.");
-                    }
-                    if ((address & 1) == 0)
-                    {
-                        result.Grid.SetFieldPair(address, reader.Read(ref bits, state.FieldPairContext(address)));
-                    }
-                }
+                bool skipped = pairSyntax.ReadSkip(ref bits, address);
                 predictionReader?.BeginMacroblock(address);
-                int skipContext = state.SkipCondition(state.Left(address)) + state.SkipCondition(state.Top(address));
-                bool skipped = header.Kind switch
-                {
-                    H264SliceKind.I => false,
-                    H264SliceKind.P => H264CabacMacroblockSyntax.ReadSkip(ref bits, reader, skipContext),
-                    H264SliceKind.B => H264CabacMacroblockSyntax.ReadBidirectionalSkip(ref bits, reader, skipContext),
-                    _ => throw new NotSupportedException("CABAC reconstruction supports I, P and B slices.")
-                };
                 int type = header.Kind switch
                 {
                     H264SliceKind.I => syntax.ReadType(ref bits, address),
@@ -86,6 +83,8 @@ namespace Mediana.Codecs.H264
                     _ => throw new NotSupportedException("CABAC reconstruction supports I, P and B slices.")
                 };
                 (int x, int y) = result.Grid.Position(address);
+                H264BidirectionalReferences selected = adaptive is null ? references
+                    : adaptive.Get(H264MacroblockPredictionContext.Create(result, x, y).Structure);
                 bool inter = header.Kind switch
                 {
                     H264SliceKind.I => false,
@@ -105,15 +104,15 @@ namespace Mediana.Codecs.H264
                     H264CabacPredictionReader interReader = predictionReader ?? throw new InvalidOperationException("The CABAC inter reader is missing.");
                     if (header.Kind == H264SliceKind.B)
                     {
-                        noSmallPartitions = H264BidirectionalSyntax.Read(ref bits, interReader, result, header, references, order, x, y, type, prediction);
+                        noSmallPartitions = H264BidirectionalSyntax.Read(ref bits, interReader, result, header, selected, order, x, y, type, prediction);
                     }
                     else if (skipped)
                     {
-                        H264InterPrediction.Skip(result, header, references.L0, x, y, prediction);
+                        H264InterPrediction.Skip(result, header, selected.L0, x, y, prediction);
                     }
                     else
                     {
-                        noSmallPartitions = H264InterPrediction.Read(ref bits, interReader, result, header, references.L0, x, y, type, prediction);
+                        noSmallPartitions = H264InterPrediction.Read(ref bits, interReader, result, header, selected.L0, x, y, type, prediction);
                     }
                     int pattern = skipped ? 0 : syntax.ReadPattern(ref bits, address, 0);
                     if (!skipped && (pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions)

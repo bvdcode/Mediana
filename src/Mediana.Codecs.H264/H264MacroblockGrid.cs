@@ -101,20 +101,31 @@ namespace Mediana.Codecs.H264
             {
                 return (address % columns * width, address / columns * height, 1);
             }
+            return PairPixelOrigin(address, width, height, IsField(address));
+        }
+
+        private (int X, int Y, int RowStep) PairPixelOrigin(int address, int width, int height, bool field)
+        {
             int parity = address & 1;
-            bool field = IsField(address);
             int top = address / (2 * columns) * 2 * height;
             return (address / 2 % columns * width, top + (field ? parity : parity * height), field ? 2 : 1);
         }
 
-        public H264NeighbourLocation? Neighbour(int current, int x, int y, int width, int height, int firstMacroblock)
+        public H264NeighbourLocation? Neighbour(int current, int x, int y, int width, int height, int firstMacroblock,
+            bool? currentPairField = null)
         {
             ValidateAddress(current);
             if (x < -1 || x >= width * 2 || y < -1 || y >= height || (x >= width && y >= 0))
             {
                 return null;
             }
-            (int originX, int originY, int step) = PixelOrigin(current, width, height);
+            if (currentPairField.HasValue && !layout.MacroblockAdaptiveFrameField)
+            {
+                throw new ArgumentException("A pair mode can only be supplied for MBAFF neighbours.", nameof(currentPairField));
+            }
+            (int originX, int originY, int step) = currentPairField is bool mode
+                ? PairPixelOrigin(current, width, height, mode)
+                : PixelOrigin(current, width, height);
             int physicalX = originX + x;
             int physicalY = originY + y * step;
             if (physicalX < 0 || physicalX >= columns * width || physicalY < 0 || physicalY >= layout.MacroblockCount / columns * height)
@@ -131,7 +142,7 @@ namespace Mediana.Codecs.H264
                     return null;
                 }
                 int pairY = physicalY % (2 * height);
-                bool field = IsField(pair);
+                bool field = pair == (current & ~1) && currentPairField is bool currentMode ? currentMode : IsField(pair);
                 address = pair + (field ? pairY % 2 : pairY / height);
                 localY = field ? pairY / 2 : pairY % height;
             }

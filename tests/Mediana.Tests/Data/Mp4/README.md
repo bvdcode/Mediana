@@ -852,3 +852,26 @@ reference identities, field parity and reuse of pixel storage.
 | `avc-mbaff-p-cavlc-422-10.yuv.gz` | `0d559624733651d5058497e44ce509bd21a98d58fd75d0746743f8d7b27bfc41` |
 | `avc-mbaff-p-cavlc-422.mp4` | `eb4b95e1458af1aed519a8f96da4feca68f80869eefc563eaea72d7adf600cc1` |
 | `avc-mbaff-p-cavlc-422.yuv.gz` | `8d85cc6d38c7afbfd24cd17445c7d38f226f889fc1c7527ffa67b32a4fc1e8e4` |
+
+### CABAC MBAFF predictive sequences
+
+`avc-mbaff-p-cabac-*.mp4` use the same generated source and picture geometry
+as the corresponding CAVLC predictive fixtures, encoded independently by JM
+19.1 with CABAC. The `field` and `422-10` variants use initialization 0;
+`adaptive` uses initialization 1; `high10` and `422` use initialization 2.
+Each sequence contains six pictures, one I picture and five P pictures, two
+references, QP 24 and no deblocking. FFmpeg 6.1.1 supplies the independent
+decoded samples. Tests compare all planes and confirm the expected pair modes.
+
+| File | SHA256 |
+| --- | --- |
+| `avc-mbaff-p-cabac-field.mp4` | `b48064c268ca2ac400f810f39556271574dffd92b4d6eb96d025362cde2c151b` |
+| `avc-mbaff-p-cabac-field.yuv.gz` | `46b3330c5373d2c24ae87df022c958575080ac4a0413c5474cb6af5f1234ddd3` |
+| `avc-mbaff-p-cabac-adaptive.mp4` | `4b2dcff0a96e9da58aa3ff65f38bb42c9eaf5a37590d4ab06ac286a0276a9247` |
+| `avc-mbaff-p-cabac-adaptive.yuv.gz` | `51719e923a1086d1125c9398686eb3a68921efa8db03df918c473d32bdff8b2a` |
+| `avc-mbaff-p-cabac-high10.mp4` | `1108ef70bb112576f47771de66f51185edb540b9661fce2fd459125219136e12` |
+| `avc-mbaff-p-cabac-high10.yuv.gz` | `7eadb5d66626c7746a8d9fbc537a7390daf6a637d125de7f6af6cc3344bc10d1` |
+| `avc-mbaff-p-cabac-422-10.mp4` | `fa1f4903efe0b73ecf6eacd4610ebba4735f12867df90d7833ab39d24e31ba5f` |
+| `avc-mbaff-p-cabac-422-10.yuv.gz` | `0bf074ad5aba1ce8741abaf1fe513c232b1e20648e750c56cc0e570da6fc92ec` |
+| `avc-mbaff-p-cabac-422.mp4` | `f2d7ebace4132bef01515ecccac781e96ee419e5f037ea4efd2ed712b825159c` |
+| `avc-mbaff-p-cabac-422.yuv.gz` | `a37885406d933d4e62c3b25e0702dcb1a226937c7e53a6a8a85de17c471df726` |

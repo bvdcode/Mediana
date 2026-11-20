@@ -20,7 +20,8 @@ namespace Mediana.Tests
                         {
                             if (start < columns * rows)
                             {
-                                VerifyPicture(columns, rows, start, bidirectional);
+                                VerifyPicture(columns, rows, start, bidirectional, false);
+                                VerifyPicture(columns, rows, start * 2, bidirectional, true);
                             }
                         }
                     }
@@ -28,8 +29,10 @@ namespace Mediana.Tests
             }
         }
 
-        private static void VerifyPicture(int columns, int rows, int firstMacroblock, bool bidirectional)
+        private static void VerifyPicture(int columns, int rows, int firstMacroblock, bool bidirectional, bool adaptive)
         {
+            int unitRows = adaptive ? 2 : 1;
+            rows *= unitRows;
             int blockColumns = columns * 4;
             int pictureBlocks = blockColumns * rows * 4;
             int lists = bidirectional ? 2 : 1;
@@ -42,20 +45,20 @@ namespace Mediana.Tests
                 shadowY[list] = new short[pictureBlocks];
                 shadowConditions[list] = new byte[pictureBlocks];
             }
-            int budget = blockColumns * Math.Min(rows, 2) * 4 * (bidirectional ? 10 : 4);
+            int budget = blockColumns * Math.Min(rows, 2 * unitRows) * 4 * (bidirectional ? 10 : 4);
             MediaBufferAllocator allocator = new(budget);
-            using (H264CabacPredictionWindow window = new(columns * 16, rows * 16, bidirectional, allocator))
+            using (H264CabacPredictionWindow window = new(columns * 16, rows * 16, bidirectional, allocator, adaptive))
             {
                 if (allocator.AllocatedBytes != budget)
                 {
-                    throw new InvalidDataException("CABAC history did not use its exact two-row budget.");
+                    throw new InvalidDataException("CABAC history did not use its exact two-unit row budget.");
                 }
                 long before = GC.GetAllocatedBytesForCurrentThread();
                 for (int address = firstMacroblock; address < columns * rows; address++)
                 {
                     window.BeginMacroblock(address);
-                    int x = address % columns * 4;
-                    int y = address / columns * 4;
+                    int x = address / unitRows % columns * 4;
+                    int y = (address / (columns * unitRows) * unitRows + address % unitRows) * 4;
                     int partition = 1 << (address % 3);
                     for (int blockY = 0; blockY < 4; blockY += partition)
                     {
@@ -73,6 +76,16 @@ namespace Mediana.Tests
                                     shadowX[list], shadowY[list], shadowConditions[list], bidirectional);
                                 Check(window, referenceList, x + blockX, y + blockY - 1, blockColumns,
                                     shadowX[list], shadowY[list], shadowConditions[list], bidirectional);
+                                if (adaptive)
+                                {
+                                    Check(window, referenceList, x + blockX, y + blockY - 8, blockColumns,
+                                        shadowX[list], shadowY[list], shadowConditions[list], bidirectional);
+                                    if ((address & 1) == 0 && x > 0)
+                                    {
+                                        Check(window, referenceList, x - 1, y + blockY + 4, blockColumns,
+                                            shadowX[list], shadowY[list], shadowConditions[list], bidirectional);
+                                    }
+                                }
                                 bool coded = (address + blockX + blockY + list) % 5 > 1;
                                 if (!coded)
                                 {
@@ -134,7 +147,7 @@ namespace Mediana.Tests
             bool rejected = false;
             try
             {
-                using H264CabacPredictionWindow invalid = new(columns * 16, rows * 16, bidirectional, insufficient);
+                using H264CabacPredictionWindow invalid = new(columns * 16, rows * 16, bidirectional, insufficient, adaptive);
             }
             catch (MediaMemoryLimitException)
             {
