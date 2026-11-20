@@ -84,3 +84,21 @@ All 837 H.264 tests pass, including the independent matrix oracle for every QP; 
 | cuts-1080 | 13.358 / 14.841 | +11.11% |
 
 The change is not adopted: it improves some cases and regresses others, including scene changes. Host variation remains present, but the measurements do not establish a broadly useful gain. The original implementation remains in use. Smaller machine code and fewer arithmetic instructions alone are insufficient evidence of complete-encoding acceleration.
+
+## Performance-core 720p check
+
+A separate three-process-per-encoder ABBAAB series uses logical CPU 2 (a
+performance core), nice -20 and one encoding thread. The same 150-frame camera
+source, matched payloads and quality settings above are retained. Current
+Mediana output is byte-identical to the independently decoded matrix result.
+
+| Encoder | Median CPU, s | Median wall, s | Median peak RSS, MiB | Payload bytes | PSNR, dB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| x264 veryfast | 3.045 | 3.046 | 122.6 | 2,563,313 | 51.417 |
+| Mediana | 5.125 | 5.130 | 23.6 | 2,569,120 | 51.068 |
+
+The current complete operation processes approximately 29.2 frames/s. It is
+close to, but does not establish, the 720p30 target; it uses about 1.68 times the
+reference CPU in this series. The process-memory advantage remains. These
+results are for one five-second camera sequence, not a guarantee across all
+720p scenes or a long-duration throughput result.
