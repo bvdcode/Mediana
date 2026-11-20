@@ -71,6 +71,14 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException("Word reading must retain page, text and unit-bearing font size.");
             }
+            WordDocument styled = WordReader.Read(Create("<w:tbl><w:tblPr><w:tblStyle w:val='report'/><w:tblLook w:firstRow='1'/></w:tblPr><w:tblGrid><w:gridCol w:w='1000'/></w:tblGrid>"
+                + "<w:tr><w:tc><w:p/></w:tc></w:tr><w:tr><w:tc><w:p/></w:tc></w:tr></w:tbl>",
+                "<w:style w:type='table' w:styleId='report'><w:tblPr><w:tblBorders><w:top w:val='single' w:sz='8' w:color='4F81BD'/></w:tblBorders></w:tblPr>"
+                + "<w:tblStylePr w:type='band1Horz'><w:tcPr><w:shd w:fill='D3DFEE'/></w:tcPr></w:tblStylePr></w:style>"));
+            WordTable table = (WordTable)styled.Sections[0].Blocks[0];
+            if (table.Rows[0].Cells[0].Shading is not null || table.Rows[1].Cells[0].Shading != new Drawing.Rgba32(211, 223, 238)
+                || table.Rows[0].Cells[0].Borders.Top?.Color != new Drawing.Rgba32(79, 129, 189))
+            { throw new InvalidDataException("Word table styles must retain conditional fills and table borders."); }
         }
     }
 }
