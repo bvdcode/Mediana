@@ -9,8 +9,8 @@ using Mediana.Core.Video;
 namespace Mediana.Codecs.H264
 {
     /// <summary>Decodes AVC length-prefixed packets containing a complete picture with slices in increasing macroblock order.
-    /// Supports progressive 8-bit and 10-bit YUV 4:2:0 and 4:2:2 CAVLC and CABAC I/P/B pictures with default scaling.
-    /// Both entropy modes support 4x4 and 8x8 transforms.</summary>
+    /// Supports progressive and picture-adaptive frame/field 8-bit and 10-bit YUV 4:2:0 and 4:2:2
+    /// CAVLC and CABAC I/P/B pictures with default scaling. Both entropy modes support 4x4 and 8x8 transforms.</summary>
     public class H264DecoderFactory : IVideoDecoderFactory, IRandomAccessDecoderFactory
     {
         private readonly H264DecoderOptions options;
@@ -42,7 +42,8 @@ namespace Mediana.Codecs.H264
             return H264Support.GetUnsupportedReason(H264Configuration.Parse(stream.Configuration.Span, options));
         }
 
-        /// <summary>Outputs owned cropped YUV frames with the packet presentation time and duration.
+        /// <summary>Outputs owned cropped YUV surfaces with packet timing. Complementary fields form an interleaved frame
+        /// with the leading field's timestamp and the sum of both durations. Unpaired fields remain single-field surfaces.
         /// Calls must not overlap. Cancellation or failure requires Reset or disposal.
         /// Reset restores the original AVC configuration and requires a new IDR picture.</summary>
         public IMediaCodec<MediaPacket, VideoFrame> Create(EncodedStreamInfo stream, MediaBufferAllocator allocator)

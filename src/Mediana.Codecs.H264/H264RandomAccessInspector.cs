@@ -32,7 +32,7 @@ namespace Mediana.Codecs.H264
         }
 
         /// <summary>Ignores the container key-frame flag. Non-IDR slice headers, including B headers,
-        /// are not fully parsed. IDR headers require a progressive 8-bit 4:2:0 picture starting at macroblock zero.</summary>
+        /// are not fully parsed. IDR headers require a supported coded picture starting at macroblock zero.</summary>
         public bool IsIdr(MediaPacket packet, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(packet);

@@ -1,7 +1,12 @@
 # H.264 interlaced decoding
 
-The public decoder still rejects interlaced sequences. Macroblock-adaptive
-frame/field reconstruction, presentation metadata and deinterlacing remain open.
+The public decoder accepts picture-adaptive frame/field (PAFF) sequences,
+including mixed frame/field I/P/B pictures with CABAC or CAVLC, 8/10-bit samples
+and 4:2:0/4:2:2 chroma. It exposes actual sample geometry and presentation hints.
+Macroblock-adaptive frame/field (MBAFF) input remains rejected until predictive
+reconstruction and mixed-edge deblocking are complete. Automatic deinterlacing
+in the export pipeline remains open; explicit single-field spatial reconstruction
+is available through `VideoFieldInterpolator`.
 
 The shared slice-header reader distinguishes frame, top-field and bottom-field
 pictures. Picture layout derives the macroblock count, MBAFF pair addresses and
@@ -133,7 +138,8 @@ precedence and explicit color policies preserve known field locations. Color
 conversion and horizontal RGBA scaling retain scan mode. Vertical scaling and
 orientation changes that rearrange field rows require deinterlacing first;
 progressive YUV preparation and H.264 encoding reject field storage rather than
-silently relabel it. Deinterlacing remains open.
+silently relabel it. Explicit single-field interpolation is available separately;
+automatic deinterlacing in export remains open.
 
 ## Reference row layout
 
@@ -174,8 +180,8 @@ field. Reference marking is transactional, and removing one logical field keeps
 its physical storage alive while the other remains referenced.
 
 All 967 H.264 tests passed, including failed-marking rollback, frame-to-field
-list transitions, frame list reconstruction and allocator release. These checks alone do not enable mixed interlaced streams through the public
-decoder; macroblock-adaptive reconstruction and presentation remain open.
+list transitions, frame list reconstruction and allocator release. Public
+mixed-frame/field acceptance is also checked below; MBAFF remains separate.
 
 
 ## Mixed reference pixels
@@ -193,7 +199,7 @@ compare views against material pictures for
 8/10-bit 4:2:0/4:2:2, both field parities, every interpolation fraction and border
 extension, also with hardware intrinsics disabled. The 973 H.264 tests pass, and
 the standalone reference suite also passes with ordinary async compilation.
-MBAFF and public interlaced decode/seek acceptance remain open.
+MBAFF remains open; public PAFF decode and seek checks are described below.
 
 
 ## Mixed B-picture prediction
@@ -211,7 +217,8 @@ prediction with transitions between frame and field pictures. Each contains
 frames match FFmpeg exactly, including POC, output timestamps and durations,
 in managed execution, Native AOT and ordinary async compilation. Five focused
 checks also cover parity mapping, negative odd motion, field selection and ties.
-The 982 H.264 tests pass. MBAFF and public interlaced decode/seek remain open.
+The 982-test H.264 selection passes. MBAFF remains open; public PAFF decode
+and seek checks are described below.
 
 ## Mixed reference regression measurement
 
@@ -253,7 +260,7 @@ Two independently encoded JM 19.1 CAVLC PCM pictures match every FFmpeg-decoded
 sample in managed execution, Native AOT and ordinary async compilation. Field
 flags, PCM sample placement and allocator release are verified. All 1,022 H.264
 tests pass. Predictive MBAFF macroblocks, field-dependent entropy contexts and
-mixed-edge deblocking remain open; the public interlace guard remains in place.
+mixed-edge deblocking remain open; the public MBAFF guard remains in place.
 
 ## MBAFF intra prediction
 
@@ -266,7 +273,8 @@ Four JM 19.1 intra pictures cover 8-bit 4:2:0, High10 4:2:0 and 10-bit 4:2:2.
 Three adaptive pictures contain both frame and field pairs; a fourth uses
 field pairs throughout. All decoded samples match FFmpeg in managed execution,
 Native AOT and ordinary async compilation. The 1,026 H.264 tests pass.
-CABAC MBAFF, predictive macroblocks and mixed-edge deblocking remain open.
+CABAC intra coverage is described below. Predictive macroblocks and mixed-edge
+deblocking remain open.
 
 A full-decode regression check runs 600 progressive frames per process with the
 same frozen Native AOT client, one reported CPU, a fixed core and shared pooled
@@ -289,7 +297,8 @@ Sixteen independent JM 19.1 MBAFF pictures now match FFmpeg sample-for-sample
 in managed execution, Native AOT and ordinary async compilation. They cover
 both entropy modes, 8/10-bit 4:2:0 and 4:2:2, adaptive mixed pairs, forced field
 pairs, PCM and forced 8×8 transforms. All 1,036 H.264 tests pass. Predictive
-MBAFF slices, mixed-edge deblocking and public interlaced playback remain open.
+MBAFF slices and mixed-edge deblocking remain open. Public PAFF validation is
+described below.
 
 A repeated progressive 10-bit 4:2:2 check compares the CAVLC MBAFF geometry
 revision with the CABAC MBAFF revision. Each Native AOT process decodes 600
@@ -313,5 +322,28 @@ surfaces. Packet PTS and duration remain authoritative. Four independent
 JM/libx264 sources match FFmpeg pixels and timing in forward reading and
 reverse seeking, including repeated fields, frame doubling and HRD with
 B-picture reorder. These checks pass in managed execution, Native AOT and
-ordinary async compilation. The public interlace guard remains in place
-until sample presentation and the remaining reconstruction paths are ready.
+ordinary async compilation. The remaining reconstruction guard applies to MBAFF.
+
+## Public PAFF decoding and seeking
+
+The public `VideoSession` reconstructs fifteen independent PAFF and mixed
+frame/field sources. Every decoded sample, PTS, combined duration and scan mode
+matches the reference expectations through sequential reading and reverse
+seeking to every frame. The checks cover 252 output pictures and their reverse
+seeks, retained frames after session disposal, and complete release of buffers.
+All 1,128 H.264 tests pass; the same field cases pass in Native AOT and with
+ordinary async compilation.
+
+A ten-minute MP4 combines a repeated independent JM PAFF B-picture sequence
+with AAC audio. Native AOT decodes all 7,200 96×96 frames with exact FFmpeg
+SHA256 matches and validates the complete 600-second video timeline. The audio
+check covers 28,125 blocks and 28.8 million samples in the presentation range;
+one negative-timestamp AAC priming block remains visible in the raw session.
+The maximum block RMS difference from FFmpeg is 0.000006 dB; this is an energy
+comparison, not a bit-exact waveform claim.
+
+One hundred randomized joint A/V seeks return equal audio/video presentation
+timestamps and match the independent references. Another hundred requests
+between fields select the correct following complete picture. The shared
+allocator reports zero live bytes after both sessions are disposed. This small
+resolution checks long timelines and seek correctness, not HD throughput.

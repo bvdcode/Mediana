@@ -22,13 +22,13 @@ namespace Mediana.Codecs.H264
             {
                 return reason;
             }
-            if (!sequence.FrameMbsOnly)
+            if (sequence.MbAdaptiveFrameField)
             {
-                return "Interlaced H.264 reconstruction is not supported yet.";
+                return "Macroblock-adaptive frame/field H.264 reconstruction is not supported yet.";
             }
             if (sequence.ScalingMatrix || sequence.TransformBypass)
             {
-                return "Reconstruction currently requires progressive 8-bit or 10-bit 4:2:0 or 4:2:2 slices with default scaling.";
+                return "Reconstruction currently requires 8-bit or 10-bit 4:2:0 or 4:2:2 slices with default scaling.";
             }
             return null;
         }

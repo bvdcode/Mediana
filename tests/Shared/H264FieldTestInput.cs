@@ -103,6 +103,7 @@ namespace Mediana.Tests
             bool mixed, IReadOnlyList<int>? mixedOrder)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
+            H264SequenceParameterSet? sequence = null;
             using (H264ReferenceBuffer references = new())
             using (H264FrameQueue outputs = new(allocator))
             {
@@ -113,6 +114,7 @@ namespace Mediana.Tests
                 for (int packet = 0; packet < packetCount; packet++)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), packet);
+                    sequence ??= configuration.Sequences.Values.Single();
                     int displayIndex = mixedOrder is not null ? mixedOrder[packet] / 2 : mixed ? packet switch
                     {
                         < 8 => packet,
@@ -143,6 +145,26 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException("Field reference decoding retained its buffers.");
             }
+            await VerifyPublicAsync(root, name, mixed, sequence ?? throw new InvalidDataException("Missing field sequence."));
+        }
+
+        private static Task VerifyPublicAsync(string root, string name, bool mixed, H264SequenceParameterSet sequence)
+        {
+            int vertical = sequence.ChromaFormat switch
+            {
+                1 => 2,
+                2 => 1,
+                _ => throw new InvalidDataException("Unsupported reference chroma geometry.")
+            };
+            int count = mixed ? 24 : 12;
+            VideoScanMode[] scans = Enumerable.Range(0, count).Select(index => (mixed, index) switch
+            {
+                (false, _) or (true, >= 8 and < 17) => VideoScanMode.TopFieldFirst,
+                (true, _) => VideoScanMode.Progressive
+            }).ToArray();
+            return H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name),
+                new PlanarVideoPixelFormat("reference-yuv", PlanarColorModel.Yuv, sequence.LumaBitDepth, 2, vertical),
+                sequence.Width, sequence.Height, count, 12, scans);
         }
 
         private static H264PictureOrderState DecodeAndStore(H264Configuration configuration, ReadOnlySpan<byte> nal,
