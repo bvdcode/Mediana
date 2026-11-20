@@ -290,3 +290,11 @@ in managed execution, Native AOT and ordinary async compilation. They cover
 both entropy modes, 8/10-bit 4:2:0 and 4:2:2, adaptive mixed pairs, forced field
 pairs, PCM and forced 8×8 transforms. All 1,036 H.264 tests pass. Predictive
 MBAFF slices, mixed-edge deblocking and public interlaced playback remain open.
+
+A repeated progressive 10-bit 4:2:2 check compares the CAVLC MBAFF geometry
+revision with the CABAC MBAFF revision. Each Native AOT process decodes 600
+frames; three runs per revision alternate on one fixed core. CPU medians are
+19.701 and 19.726 seconds, with ranges 19.578–19.897 and 19.644–20.182 seconds.
+Peak RSS medians are 48.07 and 48.23 MiB; total managed allocations are 40.282
+and 40.275 MiB. All decoded hashes match FFmpeg. The overlapping ranges do not
+establish a throughput change.
