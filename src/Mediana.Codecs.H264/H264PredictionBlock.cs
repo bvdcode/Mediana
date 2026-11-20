@@ -10,7 +10,12 @@ namespace Mediana.Codecs.H264
         {
             if (reference.Structure != reference.Picture.Structure || reference.Companion is not null)
             {
-                throw new NotSupportedException("Prediction from a mixed frame/field reference view is not implemented yet.");
+                if (plane is 1 or 2 && reference.Picture.ChromaVerticalScale == 2)
+                {
+                    motionY += ChromaAdjustment(reference.Structure, current);
+                }
+                H264MixedPrediction.Read(reference, plane, x, y, width, height, motionX, motionY, samples);
+                return;
             }
             Read(reference.Picture, current, plane, x, y, width, height, motionX, motionY, samples);
         }
@@ -20,21 +25,23 @@ namespace Mediana.Codecs.H264
         {
             if (plane is 1 or 2 && reference.ChromaVerticalScale == 2)
             {
-                motionY += (reference.Structure, current) switch
-                {
-                    (H264PictureStructure.TopField, H264PictureStructure.BottomField) => 2,
-                    (H264PictureStructure.BottomField, H264PictureStructure.TopField) => -2,
-                    (H264PictureStructure.Frame, H264PictureStructure.Frame) or
-                    (H264PictureStructure.TopField, H264PictureStructure.TopField) or
-                    (H264PictureStructure.BottomField, H264PictureStructure.BottomField) => 0,
-                    (H264PictureStructure.Frame, H264PictureStructure.TopField or H264PictureStructure.BottomField) or
-                    (H264PictureStructure.TopField or H264PictureStructure.BottomField, H264PictureStructure.Frame) =>
-                        throw new NotSupportedException("Mixed frame and field prediction requires a matching reference view."),
-                    _ => throw new ArgumentOutOfRangeException(nameof(current))
-                };
+                motionY += ChromaAdjustment(reference.Structure, current);
             }
             Read(reference, plane, x, y, width, height, motionX, motionY, samples);
         }
+
+        private static int ChromaAdjustment(H264PictureStructure reference, H264PictureStructure current) => (reference, current) switch
+        {
+            (H264PictureStructure.TopField, H264PictureStructure.BottomField) => 2,
+            (H264PictureStructure.BottomField, H264PictureStructure.TopField) => -2,
+            (H264PictureStructure.Frame, H264PictureStructure.Frame) or
+            (H264PictureStructure.TopField, H264PictureStructure.TopField) or
+            (H264PictureStructure.BottomField, H264PictureStructure.BottomField) => 0,
+            (H264PictureStructure.Frame, H264PictureStructure.TopField or H264PictureStructure.BottomField) or
+            (H264PictureStructure.TopField or H264PictureStructure.BottomField, H264PictureStructure.Frame) =>
+                throw new NotSupportedException("Mixed frame and field prediction requires a matching reference view."),
+            _ => throw new ArgumentOutOfRangeException(nameof(current))
+        };
 
         public static void Read(H264Picture reference, int plane, int x, int y, int width, int height,
             int motionX, int motionY, Span<byte> samples)

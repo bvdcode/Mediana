@@ -655,10 +655,18 @@ duration='if(lt(N,8),2,if(lt(N,26),1,2))'
 
 FFmpeg decodes all 24 frames without errors; every presentation timestamp is
 exactly the frame index divided by 12. The header tests verify all 33 packets
-per file, their durations, picture structures and picture order. Full mixed
-frame/field reconstruction remains open.
+per file, their durations, picture structures and picture order. Reconstruction
+tests compare all 66 coded pictures and 48 assembled output frames against the
+independent decoded YUV data, including exact output timestamps and durations.
+The `.yuv.gz` references use `yuv420p` without frame-rate conversion, gzip timestamp
+zero and an empty embedded filename.
 
 | File | SHA-256 |
 | --- | --- |
 | `avc-mixed-cabac.mp4` | `f7863d34ff894c66ab63e3c59f7d1898e944123fd4be97943cd4c2dd6e1301e8` |
 | `avc-mixed-cavlc.mp4` | `f661ffb8973566fbf0c1597eac2758c1944dad09833494e64e64fc9ffae18331` |
+
+| Decoded reference | SHA-256 |
+| --- | --- |
+| `avc-mixed-cabac.yuv.gz` | `1ef5a8581474cdda640cbcba22227c680489d4dbc75e5b6827380de01a5b6e21` |
+| `avc-mixed-cavlc.yuv.gz` | `34284dd9e87a6b1544874543614bb8c87758d894657552c80bdd0556fd63211a` |

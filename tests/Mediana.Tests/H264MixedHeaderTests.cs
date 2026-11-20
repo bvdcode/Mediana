@@ -13,6 +13,12 @@ namespace Mediana.Tests
     public class H264MixedHeaderTests
     {
         [Theory]
+        [InlineData("avc-mixed-cabac")]
+        [InlineData("avc-mixed-cavlc")]
+        public Task MixedPicturesMatchIndependentReference(string name) =>
+            H264FieldTestInput.VerifyMixedSequenceAsync(Path.GetDirectoryName(Mp4TestData.PathFor(name + ".mp4"))!, name);
+
+        [Theory]
         [InlineData("avc-mixed-cabac.mp4", true)]
         [InlineData("avc-mixed-cavlc.mp4", false)]
         public async Task FrameFieldTransitionsPreservePacketTimingAndPictureOrder(string name, bool cabac)

@@ -1,7 +1,7 @@
 # H.264 interlaced decoding
 
-The public decoder still rejects interlaced sequences. Mixed frame/field reference
-views, macroblock-adaptive frame/field reconstruction and deinterlacing remain open.
+The public decoder still rejects interlaced sequences. Mixed B-picture co-located motion
+mapping, macroblock-adaptive frame/field reconstruction and deinterlacing remain open.
 
 The shared slice-header reader distinguishes frame, top-field and bottom-field
 pictures. Picture layout derives the macroblock count, MBAFF pair addresses and
@@ -160,8 +160,8 @@ The initial three-pair 8-bit run measured 7.449 / 7.690 seconds CPU (+3.24%).
 A five-pair repeat with reversed starting order measured +0.43%, with overlapping
 ranges (7.399–7.451 before, 7.369–7.465 after). The initial difference did not
 reproduce; this change does not establish an acceleration. The 10-bit difference
-was -0.17%. These measurements check the existing progressive path; mixed
-frame/field reference decoding remains unimplemented.
+was -0.17%. These measurements check the existing progressive path, before mixed-reference
+pixel prediction was added.
 
 ## Mixed reference marking
 
@@ -174,6 +174,24 @@ field. Reference marking is transactional, and removing one logical field keeps
 its physical storage alive while the other remains referenced.
 
 All 967 H.264 tests passed, including failed-marking rollback, frame-to-field
-list transitions, frame list reconstruction and allocator release. Mixed pixel
-prediction and co-located motion mapping remain open; these checks alone do not
-enable mixed interlaced streams through the public decoder.
+list transitions, frame list reconstruction and allocator release. These checks alone do not enable mixed interlaced streams through the public
+decoder; mixed B-picture co-located motion mapping remains open.
+
+
+## Mixed reference pixels
+
+Field views of material frames read alternating rows through the shared
+interpolation kernels. Frame views of separately stored fields gather only the
+prediction block and interpolation taps on the stack; they do not materialize a
+full reference frame. Integer prediction copies the selected rows directly.
+
+Two JM 19.1 mixed frame/field sequences exercise both CABAC and CAVLC, frame
+number wrap and transitions in both directions. All 66 coded pictures and 48
+assembled output frames match FFmpeg byte for byte, with exact presentation times
+and durations in both managed execution and Native AOT. Separate kernel checks
+compare views against material pictures for
+8/10-bit 4:2:0/4:2:2, both field parities, every interpolation fraction and border
+extension, also with hardware intrinsics disabled. The 973 H.264 tests pass, and
+the standalone reference suite also passes with ordinary async compilation.
+Mixed B-picture metadata mapping, MBAFF and
+public interlaced decode/seek acceptance remain open.

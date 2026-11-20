@@ -42,7 +42,12 @@ namespace Mediana.Tests
             }
         }
 
-        public static async Task VerifySequenceAsync(string root, string name, IReadOnlyList<int>? referenceFrames = null)
+        public static Task VerifySequenceAsync(string root, string name, IReadOnlyList<int>? referenceFrames = null) =>
+            VerifySequenceAsync(root, name, referenceFrames, false);
+
+        public static Task VerifyMixedSequenceAsync(string root, string name) => VerifySequenceAsync(root, name, null, true);
+
+        private static async Task VerifySequenceAsync(string root, string name, IReadOnlyList<int>? referenceFrames, bool mixed)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264ReferenceBuffer references = new())
@@ -50,25 +55,31 @@ namespace Mediana.Tests
             {
                 int published = 0;
                 H264PictureOrderState order = new();
-                for (int packet = 0; packet < 24; packet++)
+                int packetCount = mixed ? 33 : 24;
+                for (int packet = 0; packet < packetCount; packet++)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), packet);
-                    byte[] expected = await ReadReferenceAsync(root, name, referenceFrames is null ? packet / 2 : referenceFrames[packet / 2],
-                        configuration.Sequences.Values.Single());
-                    int displayIndex = referenceFrames is null ? packet / 2 : referenceFrames[packet / 2];
+                    int displayIndex = mixed ? packet switch
+                    {
+                        < 8 => packet,
+                        < 26 => 8 + (packet - 8) / 2,
+                        _ => packet - 9
+                    } : referenceFrames is null ? packet / 2 : referenceFrames[packet / 2];
+                    byte[] expected = await ReadReferenceAsync(root, name, displayIndex, configuration.Sequences.Values.Single());
                     order = DecodeAndStore(configuration, nal, expected, order, references, allocator, packet, outputs, displayIndex);
-                    if (packet == 23) { outputs.Drain(); }
+                    if (packet == packetCount - 1) { outputs.Drain(); }
                     while (outputs.Receive() is VideoFrame frame)
                     {
                         using (frame)
                         {
                             byte[] display = await ReadReferenceAsync(root, name, published, configuration.Sequences.Values.Single());
-                            VerifyOutput(frame, display, published);
+                            VideoScanMode scan = mixed && published is < 8 or >= 17 ? VideoScanMode.Progressive : VideoScanMode.TopFieldFirst;
+                            VerifyOutput(frame, display, published, scan);
                             published++;
                         }
                     }
                 }
-                if (published != 12) { throw new InvalidDataException("Incorrect number of assembled field pairs."); }
+                if (published != (mixed ? 24 : 12)) { throw new InvalidDataException("Incorrect number of assembled field pairs."); }
             }
             if (allocator.AllocatedBytes != 0)
             {
@@ -110,8 +121,10 @@ namespace Mediana.Tests
                 }
                 H264Deblocking.Apply(picture, [new H264SliceRegion(header, header.Layout.MacroblockCount)], default);
                 VerifyPicture(picture, expected, packet);
-                VideoFrame frame = H264FramePublisher.Publish(picture, new(displayIndex * 2 + (packet & 1), new(1, 24)),
-                    new(1, new(1, 24)), default);
+                int parity = header.Structure == H264PictureStructure.BottomField ? 1 : 0;
+                int duration = header.Structure == H264PictureStructure.Frame ? 2 : 1;
+                VideoFrame frame = H264FramePublisher.Publish(picture, new(displayIndex * 2 + parity, new(1, 24)),
+                    new(duration, new(1, 24)), default);
                 bool queued = false;
                 try
                 {
@@ -135,9 +148,9 @@ namespace Mediana.Tests
             }
         }
 
-        private static void VerifyOutput(VideoFrame frame, ReadOnlySpan<byte> expected, int index)
+        private static void VerifyOutput(VideoFrame frame, ReadOnlySpan<byte> expected, int index, VideoScanMode scan)
         {
-            if (frame.Format.ScanMode != VideoScanMode.TopFieldFirst || frame.Timestamp != new MediaTimestamp(index, new(1, 12)) ||
+            if (frame.Format.ScanMode != scan || frame.Timestamp != new MediaTimestamp(index, new(1, 12)) ||
                 frame.Duration is not MediaDuration duration || new MediaTimestamp(duration.Value, duration.TimeBase) != new MediaTimestamp(1, new(1, 12)))
             {
                 throw new InvalidDataException("Assembled field presentation order or timing differs from the source.");
@@ -162,10 +175,11 @@ namespace Mediana.Tests
         {
             int parity = picture.Structure switch
             {
-                H264PictureStructure.TopField => 0,
+                H264PictureStructure.Frame or H264PictureStructure.TopField => 0,
                 H264PictureStructure.BottomField => 1,
                 _ => throw new InvalidDataException("Expected a field picture.")
             };
+            int rowStep = picture.Layout.IsField ? 2 : 1;
             int referenceOffset = 0;
             for (int plane = 0; plane < 3; plane++)
             {
@@ -174,12 +188,12 @@ namespace Mediana.Tests
                 for (int row = 0; row < rows; row++)
                 {
                     ReadOnlySpan<byte> actual = picture.ReadPlane(plane).Slice(row * width, width);
-                    if (!actual.SequenceEqual(expected.Slice(referenceOffset + (row * 2 + parity) * width, width)))
+                    if (!actual.SequenceEqual(expected.Slice(referenceOffset + (row * rowStep + parity) * width, width)))
                     {
                         throw new InvalidDataException($"Field mismatch in packet {packet}, plane {plane}, row {row}.");
                     }
                 }
-                referenceOffset += rows * 2 * width;
+                referenceOffset += rows * rowStep * width;
             }
             if (referenceOffset != expected.Length)
             {

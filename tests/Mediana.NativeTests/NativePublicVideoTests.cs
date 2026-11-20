@@ -14,6 +14,10 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync(string root)
         {
+            foreach (string name in new[] { "avc-mixed-cabac", "avc-mixed-cavlc" })
+            {
+                await H264FieldTestInput.VerifyMixedSequenceAsync(root, name);
+            }
             foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
             {
                 await H264FieldTestInput.VerifySequenceAsync(root, name);
