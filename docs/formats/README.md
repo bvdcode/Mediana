@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 120 variants · 151 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 121 variants · 152 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -27,7 +27,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 7 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
-| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 18 | 35 | 18 | 64 |
+| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 19 | 35 | 19 | 64 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
 | [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 13 | 62 | 14 | 124 |
@@ -202,7 +202,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `xcf` | GIMP XCF — Layered image revisions | .xcf | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `icns` | Apple ICNS — Multi-resolution icons | .icns | D □ · E □ | B | [discovery](sources.md#discovery) | — |
 | `ico` | Windows ICO / CUR — Multi-image icons and cursors | .ico .cur | D ◐ · E □ | A | Embedded PNG and DIB entries are distinct payloads. [bmp-dds](sources.md#bmp-dds), [discovery](sources.md#discovery) | — |
-| `ani` | Windows ANI — Animated cursors | .ani | D □ · E □ | C | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
+| `ani` | Windows ANI — Animated cursors | .ani | D ◐ · E □ | C | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `dng` | Digital Negative — DNG raw and rendered previews | .dng | D □ · E □ | B | Raw sample decode, demosaic/color processing and embedded previews are different operations. [tiff](sources.md#tiff) | — |
 | `raw-cr2` | Canon RAW — CR2 | .cr2 | D □ | C | Camera-specific unpacking, metadata and color calibration need sourced coverage. [discovery](sources.md#discovery) | — |
 | `raw-cr3` | Canon RAW — CR3 / CRX | .cr3 | D □ | C | [discovery](sources.md#discovery) | — |

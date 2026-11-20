@@ -28,6 +28,8 @@ column uses `17*c`. The complete `.rgba` reference retains transparent RGB.
 its reference adds an opaque alpha channel without changing the sample values.
 The `tga-*` fixtures encode the same source in Pillow 12.3 RGB, RGBA, L, LA and
 palette modes, both raw and RLE. Complete decoded RGBA files are the oracle.
+`ani-sequence.ani` wraps the independent PNG/DIB icon fixtures in RIFF ACON,
+with stored-frame sequence 1,0,1 and durations 2,3,4 jiffies.
 
 `webp-vp8-odd-padding.webp` is an authored 33×35 RGBA pattern, with channel
 `c = (7*x + 11*y + 19*channel) mod 256`, encoded by Mediana as lossy WebP at

@@ -22,7 +22,7 @@ namespace Mediana.Imaging
     {
         /// <summary>Managed raster defaults (PNG, JPEG, WebP, GIF, TIFF, BMP, ICO, QOI, PNM and TGA). A supplied context replaces this registry, including for nested images.</summary>
         public static ImageDecodeContext DefaultDecoders { get; } = new([
-            new BmpImageDecoder(), new IcoImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder(), new QoiImageDecoder(), new PnmImageDecoder(), new TgaImageDecoder(),
+            new BmpImageDecoder(), new IcoImageDecoder(), new AniImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder(), new QoiImageDecoder(), new PnmImageDecoder(), new TgaImageDecoder(),
             new PngImageDecoder(new() { MaximumPixels = Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength }),
             new JpegImageDecoder(new() { MaximumPixels = Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength })]);
 

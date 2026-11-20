@@ -9,7 +9,7 @@ namespace Mediana.Codecs.Bmp
     internal static class BitmapImageDecoders
     {
         public static ImageDecodeContext Default { get; } = new([
-            new BmpImageDecoder(), new IcoImageDecoder(),
+            new BmpImageDecoder(), new IcoImageDecoder(), new AniImageDecoder(),
             new PngImageDecoder(new() { MaximumPixels = Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength }),
             new JpegImageDecoder(new() { MaximumPixels = Array.MaxLength / 4, MaximumEncodedBytes = Array.MaxLength })]);
     }

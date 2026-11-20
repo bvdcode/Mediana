@@ -68,6 +68,7 @@ namespace Mediana.Cli
             .AddImageDecoder(new QoiImageDecoder())
             .AddImageDecoder(new BmpImageDecoder())
             .AddImageDecoder(new IcoImageDecoder())
+            .AddImageDecoder(new AniImageDecoder())
             .AddImageDecoder(new GifImageDecoder())
             .AddImageDecoder(new TiffImageDecoder())
             .AddImageDecoder(new WebpImageDecoder())

@@ -269,7 +269,7 @@ icns,decode,planned,planned,planned,planned,planned,planned,
 icns,encode,planned,planned,planned,planned,planned,planned,
 ico,decode,partial,partial,partial,planned,partial,partial,../raster-decoding.md;../../tests/Mediana.Codecs.Raster.Tests/Data/README.md
 ico,encode,planned,planned,planned,planned,planned,planned,
-ani,decode,planned,planned,planned,planned,planned,planned,
+ani,decode,partial,partial,partial,planned,partial,partial,../ani.md;../../tests/Mediana.Codecs.Raster.Tests/AniDecoderTests.cs
 ani,encode,planned,planned,planned,planned,planned,planned,
 dng,decode,planned,planned,planned,planned,planned,planned,
 dng,encode,planned,planned,planned,planned,planned,planned,

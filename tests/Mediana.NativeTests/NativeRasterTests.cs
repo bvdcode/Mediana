@@ -22,7 +22,7 @@ namespace Mediana.NativeTests
         internal static async Task RunAsync()
         {
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Raster");
-            ImageDecodeContext registry = new([new PngImageDecoder(), new BmpImageDecoder(), new IcoImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder(), new QoiImageDecoder(), new PnmImageDecoder(), new TgaImageDecoder()]);
+            ImageDecodeContext registry = new([new PngImageDecoder(), new BmpImageDecoder(), new IcoImageDecoder(), new AniImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder(), new QoiImageDecoder(), new PnmImageDecoder(), new TgaImageDecoder()]);
             int verified = 0;
             foreach (string family in new[] { "bmp", "tiff", "webp", "qoi", "pnm", "tga" })
             {
@@ -69,9 +69,33 @@ namespace Mediana.NativeTests
                 }
             }
             await VerifyGifAsync(root, registry);
+            await VerifyAniAsync(root, registry);
             await VerifyRawMetadataAsync(root);
             await Mediana.Tests.IccColorTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Icc"));
             Console.WriteLine($"PASS raster decoding: {verified} BMP/ICO, TIFF and WebP cases, complete GIF/WebP sequences and TIFF-based RAW metadata.");
+        }
+        private static async Task VerifyAniAsync(string root, ImageDecodeContext registry)
+        {
+            byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(root, "ani-sequence.ani"));
+            MediaBufferAllocator allocator = new(16 * 1024 * 1024);
+            int step = 0;
+            int[] durations = [2, 3, 4];
+            long[] times = [0, 2, 5];
+            byte[] png = await File.ReadAllBytesAsync(Path.Combine(root, "icon-png-0.rgba"));
+            byte[] dib = await File.ReadAllBytesAsync(Path.Combine(root, "icon-bmp-0.rgba"));
+            await foreach (VideoFrame frame in registry.DecodeFramesAsync(encoded, new(), allocator))
+            {
+                using (frame)
+                {
+                    if (step >= 3 || frame.Timestamp?.Value != times[step] || frame.Duration?.Value != durations[step])
+                    {
+                        throw new InvalidDataException("ANI sequence timing differs.");
+                    }
+                    if (!frame.Data.Span.SequenceEqual(step == 1 ? dib : png)) { throw new InvalidDataException("ANI frame pixels differ."); }
+                    step++;
+                }
+            }
+            if (step != 3 || allocator.AllocatedBytes != 0) { throw new InvalidDataException("ANI sequence count or ownership differs."); }
         }
         private static async Task VerifyGifAsync(string root, ImageDecodeContext registry)
         {

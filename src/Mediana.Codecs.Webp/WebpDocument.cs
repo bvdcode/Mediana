@@ -5,6 +5,7 @@ using System.Buffers.Binary;
 using Mediana.Core.Metadata;
 using Mediana.Core.Video;
 using Mediana.Formats.Metadata;
+using Mediana.Formats.Riff;
 
 namespace Mediana.Codecs.Webp
 {
@@ -27,7 +28,7 @@ namespace Mediana.Codecs.Webp
             { throw new InvalidDataException("Invalid WebP RIFF extent."); }
             int flags = -1; bool animationHeader = false;
             ReadOnlyMemory<byte> image = default, alpha = default;
-            foreach (WebpChunk chunk in Chunks(encoded[12..], token))
+            foreach (RiffChunk chunk in Chunks(encoded[12..], token))
             {
                 switch (chunk.Type)
                 {
@@ -58,7 +59,7 @@ namespace Mediana.Codecs.Webp
                         if ((header[15] & ~3) != 0 || x > Width - w || y > Height - h)
                         { throw new InvalidDataException("WebP animation rectangle exceeds its canvas."); }
                         ReadOnlyMemory<byte> frameImage = default, frameAlpha = default; bool lossless = false;
-                        foreach (WebpChunk part in Chunks(chunk.Payload[16..], token))
+                        foreach (RiffChunk part in Chunks(chunk.Payload[16..], token))
                         {
                             switch (part.Type)
                             {
@@ -121,21 +122,8 @@ namespace Mediana.Codecs.Webp
             if (width == 0 || height == 0) { throw new InvalidDataException("Invalid VP8 image dimensions."); }
             return (width, height);
         }
-        internal static IEnumerable<WebpChunk> Chunks(ReadOnlyMemory<byte> data, CancellationToken token)
-        {
-            int offset = 0;
-            while (offset < data.Length)
-            {
-                token.ThrowIfCancellationRequested();
-                if (data.Length - offset < 8) { throw new InvalidDataException("Truncated WebP chunk header."); }
-                uint size = BinaryPrimitives.ReadUInt32LittleEndian(data.Span[(offset + 4)..]);
-                if ((ulong)size + (size & 1) > (ulong)(data.Length - offset - 8)) { throw new InvalidDataException("Truncated WebP chunk payload."); }
-                if ((size & 1) != 0 && data.Span[offset + 8 + (int)size] != 0) { throw new InvalidDataException("Invalid WebP chunk padding."); }
-                string type = System.Text.Encoding.ASCII.GetString(data.Span.Slice(offset, 4));
-                yield return new(type, data.Slice(offset + 8, (int)size));
-                offset += checked(8 + (int)size + (int)(size & 1));
-            }
-        }
+        internal static IEnumerable<RiffChunk> Chunks(ReadOnlyMemory<byte> data, CancellationToken token) =>
+            RiffChunkReader.Read(data, requireZeroPadding: true, cancellationToken: token);
         internal static int Read24(ReadOnlySpan<byte> data) => data[0] | data[1] << 8 | data[2] << 16;
         internal ImageInfo Inspect(CancellationToken token)
         {
