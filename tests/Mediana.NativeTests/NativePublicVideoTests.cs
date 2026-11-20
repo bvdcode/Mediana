@@ -25,6 +25,8 @@ namespace Mediana.NativeTests
             {
                 await H264FieldTestInput.VerifyMixedBidirectionalSequenceAsync(root, name);
             }
+            await H264FieldTestInput.VerifyMbaffPcmAsync(root, "avc-mbaff-pcm-field", true);
+            await H264FieldTestInput.VerifyMbaffPcmAsync(root, "avc-mbaff-pcm-adaptive", false);
             foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
             {
                 await H264FieldTestInput.VerifySequenceAsync(root, name);

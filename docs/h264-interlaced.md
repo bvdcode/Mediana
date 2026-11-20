@@ -234,3 +234,23 @@ seconds for 10-bit. These results show no observed regression on the two inputs;
 they do not establish an acceleration. Peak RSS increased by approximately
 0.15 MiB, and cumulative allocations remain comparable. These measurements cover
 progressive decoding; they do not establish mixed-interlace throughput.
+
+## MBAFF macroblock geometry
+
+A shared macroblock grid separates coded pair order, logical block coordinates
+and physical pixel rows. The pair-mode map is part of the picture's allocator
+budget. It uses one byte per MBAFF pair and no additional pixel surface. Field
+pairs use alternating rows; frame pairs use contiguous rows. Neighbour lookup
+applies picture bounds, slice boundaries and decoding order before accessing a
+pair's mode.
+
+Thirty-three checks cover the frame/field neighbour cases in H.264 Table 6-4.
+Geometry checks exercise every combination of six pair modes for luma, 4:2:0
+chroma and 4:2:2 chroma, covering every plane sample exactly once. Availability
+and immutable pair-mode checks also pass.
+
+Two independently encoded JM 19.1 CAVLC PCM pictures match every FFmpeg-decoded
+sample in managed execution, Native AOT and ordinary async compilation. Field
+flags, PCM sample placement and allocator release are verified. All 1,022 H.264
+tests pass. Predictive MBAFF macroblocks, field-dependent entropy contexts and
+mixed-edge deblocking remain open; the public interlace guard remains in place.

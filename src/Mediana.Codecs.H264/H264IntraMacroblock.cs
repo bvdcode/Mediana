@@ -14,13 +14,16 @@ namespace Mediana.Codecs.H264
 
         public static void Read(ref H264BitReader bits, H264Picture target, H264SliceHeader header, int address, int type, ref int qp)
         {
-            int x = (address % header.Sequence.WidthInMbs) * 16;
-            int y = (address / header.Sequence.WidthInMbs) * 16;
+            (int x, int y) = target.Grid.Position(address);
             if (type == 25)
             {
                 ReadPcm(ref bits, target, x, y);
                 target.Quantizers[address] = (byte)target.LumaQuantizer.Offset;
                 return;
+            }
+            if (target.Layout.MacroblockAdaptiveFrameField)
+            {
+                throw new NotSupportedException("MBAFF intra prediction is not implemented yet.");
             }
             bool intra16 = type != 0;
             bool transform8x8 = !intra16 && header.Picture.Transform8x8 && bits.ReadFlag();
@@ -67,17 +70,17 @@ namespace Mediana.Codecs.H264
             for (int plane = 0; plane < 3; plane++)
             {
                 int size = plane == 0 ? 16 : 8;
-                int planeX = plane == 0 ? x : x / 2;
                 int verticalScale = target.VerticalScale(plane);
-                int planeY = y / verticalScale;
                 int height = 16 / verticalScale;
+                int address = target.Grid.Address(x, y);
+                (int planeX, int planeY, int rowStep) = target.Grid.PixelOrigin(address, size, height);
                 int stride = target.Stride(plane);
                 Span<byte> pixels = target.Plane(plane);
                 for (int row = 0; row < height; row++)
                 {
                     for (int column = 0; column < size; column++)
                     {
-                        int index = (planeY + row) * stride + planeX + column;
+                        int index = (planeY + row * rowStep) * stride + planeX + column;
                         int bitDepth = plane == 0 ? target.Sequence.LumaBitDepth : target.Sequence.ChromaBitDepth;
                         uint sample = bits.ReadBits(bitDepth);
                         if (target.SampleBytes == 1)
@@ -94,7 +97,7 @@ namespace Mediana.Codecs.H264
                 {
                     for (int column = 0; column < size; column += 4)
                     {
-                        int position = target.BlockIndex(plane, planeX + column, planeY + row);
+                        int position = target.BlockIndex(plane, x / (plane == 0 ? 1 : 2) + column, y / verticalScale + row);
                         target.Counts(plane)[position] = 16;
                         if (plane == 0)
                         {

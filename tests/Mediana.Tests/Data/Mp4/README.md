@@ -700,3 +700,27 @@ use `yuv420p`, gzip timestamp zero and an empty embedded filename.
 | `avc-mixed-b-cavlc-temporal.mp4` | `7297a879f79a6d3bb6d0a9a037274f06c39d072f8f1ae0156b7bb4879ea70b9b` |
 | `avc-mixed-b-cavlc-temporal.poc` | `3e2e162c1990a861df3bff5e01e0b9676a272450cc7c961588caa288cc1061e1` |
 | `avc-mixed-b-cavlc-temporal.yuv.gz` | `90dc704af8bb4099cbd39ce0938980c47323abe3507dc5f1edf64cc0dd13c59f` |
+
+### MBAFF PCM macroblocks
+
+`avc-mbaff-pcm-field` and `avc-mbaff-pcm-adaptive` contain one 96×96 YUV420P8
+picture each, encoded by JM 19.1 from the first mixed-sequence source frame.
+`PicInterlace=0`, `MbInterlace=1/2`, `SymbolMode=0`, `DisableIntra4x4=1`,
+`DisableIntra16x16=1`, `Transform8x8Mode=0` and `EnableIPCM=1` select PCM
+macroblocks with field-only/adaptive macroblock pairs. `ReferenceReorder=0`,
+`PocMemoryManagement=0`, `HMEEnable=0` and `EPZSUseHMEPredictors=0` disable encoder
+features incompatible with this configuration. `DFParametersFlag=1` and
+`DFDisableRefISlice=1` explicitly disable picture deblocking.
+
+FFmpeg `h264_metadata` normalizes NAL syntax when copying the Annex B input to
+MP4 at 12 fps. Independently decoded `yuv420p` references use gzip timestamp zero
+and an empty embedded filename. Tests compare every decoded sample, preserve
+pair field modes and verify release of all owned buffers. This does not cover
+MBAFF predictive macroblocks or deblocking.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mbaff-pcm-field.mp4` | `50faa9aca0e47e1522e1057218f7b085853693d5b7cd81f71cada61ccf144313` |
+| `avc-mbaff-pcm-field.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
+| `avc-mbaff-pcm-adaptive.mp4` | `50faa9aca0e47e1522e1057218f7b085853693d5b7cd81f71cada61ccf144313` |
+| `avc-mbaff-pcm-adaptive.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |

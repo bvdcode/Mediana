@@ -55,11 +55,13 @@ namespace Mediana.Codecs.H264
             lumaBlocks = lumaSamples / 16;
             chromaBlocks = chromaBytes / (16 * SampleBytes);
             macroblocks = lumaSamples / 256;
-            storage = allocator.Allocate(checked(lumaBlocks * (2 + MotionBytesPerBlock * referenceLists)
-                + chromaBlocks * 2 + macroblocks * 2));
+            int metadataBytes = checked(lumaBlocks * (2 + MotionBytesPerBlock * referenceLists) + chromaBlocks * 2 + macroblocks * 2);
+            int fieldPairBytes = Layout.MacroblockAdaptiveFrameField ? macroblocks / 2 : 0;
+            storage = allocator.Allocate(checked(metadataBytes + fieldPairBytes));
             bool complete = false;
             try
             {
+                Grid = new(Layout, sequence.WidthInMbs, storage.Memory.Slice(metadataBytes, fieldPairBytes));
                 writablePixels = allocator.Allocate(checked(lumaBytes + chromaBytes * 2));
                 pixelMemory = writablePixels.Memory;
                 complete = true;
@@ -82,6 +84,7 @@ namespace Mediana.Codecs.H264
         public H264SequenceParameterSet Sequence { get; }
         public H264PictureStructure Structure { get; }
         public H264PictureLayout Layout { get; }
+        public H264MacroblockGrid Grid { get; }
         public H264Quantizer LumaQuantizer { get; }
         public H264Quantizer ChromaQuantizer { get; }
         public int Width { get; }

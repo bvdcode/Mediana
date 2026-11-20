@@ -68,6 +68,10 @@ namespace Mediana.Codecs.H264
                 switch (header.Kind)
                 {
                     case H264SliceKind.I:
+                        if (header.Layout.MacroblockAdaptiveFrameField && (address & 1) == 0)
+                        {
+                            result.Grid.SetFieldPair(address, bits.ReadFlag());
+                        }
                         H264IntraMacroblock.Read(ref bits, result, header, address, bits.ReadUe(25), ref qp);
                         break;
                     case H264SliceKind.P:
