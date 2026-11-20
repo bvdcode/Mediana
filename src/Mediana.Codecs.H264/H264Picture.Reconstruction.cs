@@ -11,7 +11,8 @@ namespace Mediana.Codecs.H264
             Span<byte> pixels = Plane(plane);
             for (int row = 0; row < size; row++)
             {
-                prediction.Slice(row * predictionStride, size).CopyTo(pixels.Slice((y + row) * stride + x, size));
+                prediction.Slice(row * predictionStride * SampleBytes, size * SampleBytes)
+                    .CopyTo(pixels.Slice(((y + row) * stride + x) * SampleBytes, size * SampleBytes));
             }
             int blockSize = size / 4;
             int countStride = stride / 4;

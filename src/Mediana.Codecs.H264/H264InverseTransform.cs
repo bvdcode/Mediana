@@ -17,9 +17,9 @@ namespace Mediana.Codecs.H264
             return new H264Quantizer(8).ChromaValue(lumaQp, offset);
         }
 
-        public static void Residual4x4(ReadOnlySpan<int> scanned, int qp, Span<int> residual, int? scaledDc = null)
+        public static void Residual4x4(ReadOnlySpan<int> scanned, int qp, Span<int> residual, int? scaledDc = null, int bitDepth = 8)
         {
-            ValidateQp(qp);
+            ValidateQp(qp, bitDepth);
             if (scanned.Length != (scaledDc is null ? 16 : 15) || residual.Length != 16)
             {
                 throw new ArgumentException("The H.264 residual transform requires a complete 4x4 block.");
@@ -65,9 +65,9 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        public static void LumaDc(ReadOnlySpan<int> scanned, int qp, Span<int> rasterDc)
+        public static void LumaDc(ReadOnlySpan<int> scanned, int qp, Span<int> rasterDc, int bitDepth = 8)
         {
-            ValidateQp(qp);
+            ValidateQp(qp, bitDepth);
             if (scanned.Length != 16 || rasterDc.Length != 16)
             {
                 throw new ArgumentException("The H.264 luma DC transform requires 16 coefficients.");
@@ -95,9 +95,9 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        public static void ChromaDc(ReadOnlySpan<int> scanned, int qp, Span<int> rasterDc)
+        public static void ChromaDc(ReadOnlySpan<int> scanned, int qp, Span<int> rasterDc, int bitDepth = 8)
         {
-            ValidateQp(qp);
+            ValidateQp(qp, bitDepth);
             if (scanned.Length == 8 && rasterDc.Length == 8)
             {
                 ChromaDc422(scanned, qp, rasterDc);
@@ -170,10 +170,10 @@ namespace Mediana.Codecs.H264
             values[offset + stride * 3] = d - c;
         }
 
-        internal static void ValidateQp(int qp)
+        internal static void ValidateQp(int qp, int bitDepth = 8)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(qp);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(qp, 51);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(qp, new H264Quantizer(bitDepth).Maximum);
         }
     }
 }

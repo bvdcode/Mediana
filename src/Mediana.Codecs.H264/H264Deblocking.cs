@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
+
 namespace Mediana.Codecs.H264
 {
     internal static class H264Deblocking
@@ -50,11 +52,11 @@ namespace Mediana.Codecs.H264
             int maximumQp = 0;
             foreach (byte qp in picture.Quantizers)
             {
-                maximumQp = Math.Max(maximumQp, qp);
+                maximumQp = Math.Max(maximumQp, qp - picture.LumaQuantizer.Offset);
             }
             maximumQp = Math.Max(maximumQp, Math.Max(
-                H264InverseTransform.ChromaQp(maximumQp, header.Picture.ChromaQpOffset),
-                H264InverseTransform.ChromaQp(maximumQp, header.Picture.SecondChromaQpOffset)));
+                picture.ChromaQuantizer.ChromaValue(maximumQp, header.Picture.ChromaQpOffset) - picture.ChromaQuantizer.Offset,
+                picture.ChromaQuantizer.ChromaValue(maximumQp, header.Picture.SecondChromaQpOffset) - picture.ChromaQuantizer.Offset));
             if (Alpha[Math.Clamp(maximumQp + header.AlphaOffset, 0, 51)] == 0 ||
                 Beta[Math.Clamp(maximumQp + header.BetaOffset, 0, 51)] == 0)
             {
@@ -129,7 +131,18 @@ namespace Mediana.Codecs.H264
                 }
                 int start = y * stride + x + edge * step;
                 H264DeblockingThresholds thresholds = new(alpha, beta, Tc1[indexA], Tc2[indexA], Tc3[indexA]);
-                H264DeblockingFilter.Apply(pixels, start, stride, vertical, plane != 0, segmentLength, edgeStrengths, thresholds);
+                if (picture.SampleBytes == 1)
+                {
+                    H264DeblockingFilter.Apply(pixels, start, stride, vertical, plane != 0, segmentLength, edgeStrengths, thresholds);
+                }
+                else
+                {
+                    int shift = picture.Sequence.LumaBitDepth - 8;
+                    H264DeblockingThresholds scaled = new(alpha << shift, beta << shift, Tc1[indexA] << shift,
+                        Tc2[indexA] << shift, Tc3[indexA] << shift);
+                    H264DeblockingFilter.ApplyScalar<ushort>(MemoryMarshal.Cast<byte, ushort>(pixels), start, stride,
+                        vertical, plane != 0, segmentLength, edgeStrengths, scaled, picture.MaximumSample);
+                }
             }
         }
 
@@ -143,9 +156,9 @@ namespace Mediana.Codecs.H264
 
         private static int Qp(H264Picture picture, H264PictureParameterSet parameters, int plane, int address) => plane switch
         {
-            0 => picture.Quantizers[address],
-            1 => H264InverseTransform.ChromaQp(picture.Quantizers[address], parameters.ChromaQpOffset),
-            2 => H264InverseTransform.ChromaQp(picture.Quantizers[address], parameters.SecondChromaQpOffset),
+            0 => picture.Quantizers[address] - picture.LumaQuantizer.Offset,
+            1 => picture.ChromaQuantizer.ChromaValue(picture.Quantizers[address] - picture.LumaQuantizer.Offset, parameters.ChromaQpOffset) - picture.ChromaQuantizer.Offset,
+            2 => picture.ChromaQuantizer.ChromaValue(picture.Quantizers[address] - picture.LumaQuantizer.Offset, parameters.SecondChromaQpOffset) - picture.ChromaQuantizer.Offset,
             _ => throw new ArgumentOutOfRangeException(nameof(plane))
         };
 

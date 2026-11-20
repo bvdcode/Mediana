@@ -16,10 +16,9 @@ namespace Mediana.Codecs.H264
                 26, 23, 42, 24, 33, 31, 28, 25, 45, 26, 35, 33,
                 32, 28, 51, 30, 40, 38, 36, 32, 58, 34, 46, 43];
 
-        public static void Residual(ReadOnlySpan<int> scanned, int qp, Span<int> residual)
+        public static void Residual(ReadOnlySpan<int> scanned, int qp, Span<int> residual, int bitDepth = 8)
         {
-            ArgumentOutOfRangeException.ThrowIfNegative(qp);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(qp, 51);
+            H264InverseTransform.ValidateQp(qp, bitDepth);
             if (scanned.Length != 64 || residual.Length != 64)
             {
                 throw new ArgumentException("The H.264 residual transform requires a complete 8x8 block.");

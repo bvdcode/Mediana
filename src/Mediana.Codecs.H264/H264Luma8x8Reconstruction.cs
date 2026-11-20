@@ -9,10 +9,10 @@ namespace Mediana.Codecs.H264
             int x, int y, int pattern, int qp, bool intra, bool constrained, scoped ReadOnlySpan<byte> macroPrediction)
             where TReader : IH264ResidualReader
         {
-            H264InverseTransform.ValidateQp(qp);
+            H264InverseTransform.ValidateQp(qp, target.Sequence.LumaBitDepth);
             Span<int> coefficients = stackalloc int[64];
             Span<int> residual = stackalloc int[64];
-            Span<byte> prediction = stackalloc byte[64];
+            Span<byte> prediction = stackalloc byte[64 * target.SampleBytes];
             for (int index = 0; index < 4; index++)
             {
                 int blockX = x + index % 2 * 8;
@@ -33,15 +33,16 @@ namespace Mediana.Codecs.H264
                 {
                     if (count == 0)
                     {
-                        target.WriteZeroResidualBlock(0, blockX, blockY, 8, macroPrediction[((blockY - y) * 16 + blockX - x)..], 16);
+                        target.WriteZeroResidualBlock(0, blockX, blockY, 8, macroPrediction[(((blockY - y) * 16 + blockX - x) * target.SampleBytes)..], 16);
                         continue;
                     }
                     for (int row = 0; row < 8; row++)
                     {
-                        macroPrediction.Slice((blockY - y + row) * 16 + blockX - x, 8).CopyTo(prediction.Slice(row * 8, 8));
+                        macroPrediction.Slice(((blockY - y + row) * 16 + blockX - x) * target.SampleBytes, 8 * target.SampleBytes)
+                            .CopyTo(prediction.Slice(row * 8 * target.SampleBytes, 8 * target.SampleBytes));
                     }
                 }
-                H264InverseTransform8x8.Residual(coefficients, qp, residual);
+                H264InverseTransform8x8.Residual(coefficients, qp, residual, target.Sequence.LumaBitDepth);
                 target.WriteLuma8x8(blockX, blockY, prediction, residual);
             }
         }

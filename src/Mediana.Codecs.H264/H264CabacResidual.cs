@@ -14,7 +14,7 @@ namespace Mediana.Codecs.H264
                 12, 13, 11, 6, 9, 14, 10, 9, 11, 12, 13, 11, 14, 10, 12];
 
         public static int Read(ref H264BitReader bits, H264CabacReader reader,
-            H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients)
+            H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients, int bitDepth = 8)
         {
             (int count, int significantBase, int lastBase, int levelBase) = category switch
             {
@@ -73,14 +73,15 @@ namespace Mediana.Codecs.H264
                     magnitude = prefix + 1;
                     if (prefix == 14)
                     {
-                        magnitude += ReadExpGolomb(ref bits, reader);
+                        magnitude += ReadExpGolomb(ref bits, reader, bitDepth + 7);
                     }
                 }
                 bool negative = reader.Bypass(ref bits);
                 int signed = negative ? -magnitude : magnitude;
-                if (signed is < short.MinValue or > short.MaxValue)
+                int magnitudeLimit = 1 << (bitDepth + 7);
+                if (signed < -magnitudeLimit || signed >= magnitudeLimit)
                 {
-                    throw new InvalidDataException("The H.264 CABAC coefficient exceeds the 8-bit transform precision.");
+                    throw new InvalidDataException("The H.264 CABAC coefficient exceeds the declared transform precision.");
                 }
                 coefficients[positions[index]] = signed;
                 if (magnitude == 1)
@@ -109,13 +110,13 @@ namespace Mediana.Codecs.H264
             _ => throw new ArgumentOutOfRangeException(nameof(index))
         };
 
-        private static int ReadExpGolomb(ref H264BitReader bits, H264CabacReader reader)
+        private static int ReadExpGolomb(ref H264BitReader bits, H264CabacReader reader, int maximumOrder)
         {
             int order = 0;
             int value = 0;
             while (reader.Bypass(ref bits))
             {
-                if (order >= 15)
+                if (order >= maximumOrder)
                 {
                     throw new InvalidDataException("The H.264 CABAC coefficient suffix exceeds the supported precision.");
                 }

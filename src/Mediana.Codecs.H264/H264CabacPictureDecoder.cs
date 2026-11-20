@@ -53,7 +53,7 @@ namespace Mediana.Codecs.H264
             };
             H264CabacPictureSyntax syntax = new(reader, result, state);
             int qp = header.Qp;
-            Span<byte> prediction = stackalloc byte[result.MacroblockSamples];
+            Span<byte> prediction = stackalloc byte[result.MacroblockBytes];
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -112,8 +112,8 @@ namespace Mediana.Codecs.H264
                     }
                     qp = syntax.ReadQuantizer(ref bits, 0, pattern, qp);
                     result.Quantizers[address] = (byte)qp;
-                    H264Residuals.ReadInterLuma(ref bits, syntax, result, x, y, pattern, qp, prediction[..256]);
-                    H264Residuals.ReadChroma(ref bits, syntax, result, header.Picture, x / 2, y / result.ChromaVerticalScale, pattern >> 4, qp, prediction[256..]);
+                    H264Residuals.ReadInterLuma(ref bits, syntax, result, x, y, pattern, qp, prediction[..result.LumaMacroblockBytes]);
+                    H264Residuals.ReadChroma(ref bits, syntax, result, header.Picture, x / 2, y / result.ChromaVerticalScale, pattern >> 4, qp, prediction[result.LumaMacroblockBytes..]);
                 }
                 else
                 {

@@ -57,6 +57,7 @@ namespace Mediana.Core.Video
         public static VideoPixelFormat Yuv420P10 { get; } =
             new PlanarVideoPixelFormat("yuv420p10", PlanarColorModel.Yuv, 10, 2, 2);
         public static VideoPixelFormat Yuv422P8 { get; } = new PlanarVideoPixelFormat("yuv422p8", PlanarColorModel.Yuv, 8, 2, 1);
+        public static VideoPixelFormat Yuv422P10 { get; } = new PlanarVideoPixelFormat("yuv422p10", PlanarColorModel.Yuv, 10, 2, 1);
         public static VideoPixelFormat Yuv420P12 { get; } = new PlanarVideoPixelFormat("yuv420p12", PlanarColorModel.Yuv, 12, 2, 2);
     }
 }

@@ -18,6 +18,14 @@ namespace Mediana.NativeTests
             {
                 await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), VideoPixelFormat.Yuv422P8, 82, 74, 24, 12);
             }
+            foreach (string name in new[] { "avc-high10-cabac", "avc-high10-cavlc", "avc-high10-cabac-q1", "avc-high10-cavlc-q1" })
+            {
+                await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), VideoPixelFormat.Yuv420P10, 82, 74, 24, 12);
+            }
+            foreach (string name in new[] { "avc-high422-10-cabac", "avc-high422-10-cavlc", "avc-high422-10-cabac-q45", "avc-high422-10-cavlc-q1" })
+            {
+                await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), VideoPixelFormat.Yuv422P10, 82, 74, 24, 12);
+            }
             List<byte> baseline = [];
             for (int index = 0; index < 6; index++)
             {

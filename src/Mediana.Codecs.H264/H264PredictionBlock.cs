@@ -27,16 +27,16 @@ namespace Mediana.Codecs.H264
             int destination = plane switch
             {
                 0 => 0,
-                1 => 256,
-                2 => 256 + target.ChromaMacroblockSamples,
+                1 => target.LumaMacroblockBytes,
+                2 => target.LumaMacroblockBytes + target.ChromaMacroblockBytes,
                 _ => throw new ArgumentOutOfRangeException(nameof(plane))
             };
             int scale = plane == 0 ? 1 : 2;
-            int stride = 16 / scale;
-            int blockWidth = width / scale;
+            int stride = 16 / scale * target.SampleBytes;
+            int blockWidth = width / scale * target.SampleBytes;
             int verticalScale = target.VerticalScale(plane);
             int blockHeight = height / verticalScale;
-            destination += (y % 16) / verticalScale * stride + (x % 16) / scale;
+            destination += (y % 16) / verticalScale * stride + (x % 16) / scale * target.SampleBytes;
             for (int row = 0; row < blockHeight; row++)
             {
                 samples.Slice(row * blockWidth, blockWidth).CopyTo(prediction.Slice(destination + row * stride, blockWidth));

@@ -3,6 +3,7 @@
 
 using Mediana.Codecs.H264;
 using Mediana.Core.Memory;
+using System.Runtime.InteropServices;
 
 namespace Mediana.Tests
 {
@@ -10,6 +11,7 @@ namespace Mediana.Tests
     {
         public static void Verify()
         {
+            VerifyHighPrecision();
             byte[] l0 = [0, 1, 2, 127, 128, 254, 255];
             byte[] l1 = [255, 254, 128, 127, 2, 1, 0];
             byte[] output = new byte[l0.Length];
@@ -39,6 +41,30 @@ namespace Mediana.Tests
             if (allocator.AllocatedBytes != 0)
             {
                 throw new InvalidOperationException("Bidirectional sample prediction verification retained picture storage.");
+            }
+        }
+
+        private static void VerifyHighPrecision()
+        {
+            ushort[] first = [0, 1, 2, 511, 512, 1022, 1023];
+            ushort[] second = [1023, 1022, 512, 511, 2, 1, 0];
+            Span<ushort> output = stackalloc ushort[first.Length];
+            H264WeightTable weights0 = new(1, 2, [new(-1, -3, 2, 1, 0, 1)]);
+            H264WeightTable weights1 = new(1, 2, [new(3, 2, 5, -4, 2, 0)]);
+            ushort[][] expected =
+            [
+                [765, 764, 382, 254, 0, 0, 0],
+                [633, 633, 315, 441, 123, 250, 250],
+                [258, 258, 130, 130, 3, 2, 2]
+            ];
+            for (int plane = 0; plane < 3; plane++)
+            {
+                H264BiPredictionWeights.Explicit(weights0, 0, weights1, 0, plane).Apply(
+                    MemoryMarshal.AsBytes(first.AsSpan()), MemoryMarshal.AsBytes(second.AsSpan()), MemoryMarshal.AsBytes(output), 10);
+                if (!output.SequenceEqual(expected[plane]))
+                {
+                    throw new InvalidDataException("H.264 weighted prediction must scale each offset before averaging at the declared precision.");
+                }
             }
         }
 

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
+
 namespace Mediana.Codecs.H264
 {
     internal static class H264IntraMacroblock
@@ -17,7 +19,7 @@ namespace Mediana.Codecs.H264
             if (type == 25)
             {
                 ReadPcm(ref bits, target, x, y);
-                target.Quantizers[address] = 0;
+                target.Quantizers[address] = (byte)target.LumaQuantizer.Offset;
                 return;
             }
             bool intra16 = type != 0;
@@ -75,7 +77,17 @@ namespace Mediana.Codecs.H264
                 {
                     for (int column = 0; column < size; column++)
                     {
-                        pixels[(planeY + row) * stride + planeX + column] = (byte)bits.ReadBits(8);
+                        int index = (planeY + row) * stride + planeX + column;
+                        int bitDepth = plane == 0 ? target.Sequence.LumaBitDepth : target.Sequence.ChromaBitDepth;
+                        uint sample = bits.ReadBits(bitDepth);
+                        if (target.SampleBytes == 1)
+                        {
+                            pixels[index] = (byte)sample;
+                        }
+                        else
+                        {
+                            MemoryMarshal.Cast<byte, ushort>(pixels)[index] = (ushort)sample;
+                        }
                     }
                 }
                 for (int row = 0; row < height; row += 4)

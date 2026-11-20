@@ -8,6 +8,27 @@ namespace Mediana.Tests
     public class H264CabacResidualTests
     {
         [Theory]
+        [InlineData(-131072)]
+        [InlineData(131071)]
+        public async Task TenBitCoefficientsUseTheExtendedMagnitudeRange(int value)
+        {
+            (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-aac.mp4"), 0);
+            H264BitReader headerBits = H264Nal.Payload(nal, H264Nal.Type(nal));
+            H264SliceHeader header = H264SliceHeaderReader.Read(ref headerBits, configuration, nal[0]);
+            byte[] states = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264", "cabac-intra-contexts.bin"));
+            H264CabacResidualWriter writer = new(header.Qp, states);
+            int[] coefficients = new int[16];
+            coefficients[7] = value;
+            writer.Write(2, 0, coefficients);
+            H264BitReader bits = new(writer.Finish());
+            H264CabacReader reader = new(ref bits, header);
+            int[] actual = new int[16];
+            Assert.Equal(1, H264CabacResidual.Read(ref bits, reader, H264ResidualCategory.Luma4x4, 0, actual, 10));
+            Assert.Equal(coefficients, actual);
+            Assert.True(reader.Termination(ref bits));
+        }
+
+        [Theory]
         [InlineData(0, 16, -1)]
         [InlineData(1, 15, -1)]
         [InlineData(2, 16, -1)]

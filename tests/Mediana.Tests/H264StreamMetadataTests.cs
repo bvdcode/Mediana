@@ -43,7 +43,7 @@ namespace Mediana.Tests
         }
 
         [Theory]
-        [InlineData("avc-high10.mp4", false)]
+        [InlineData("avc-high10.mp4", true)]
         [InlineData("avc-high422.mp4", true)]
         [InlineData("avc-high444.mp4", false)]
         [InlineData("avc-interlaced.mp4", false)]

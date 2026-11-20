@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
+
 namespace Mediana.Codecs.H264
 {
     internal record H264WeightTable(int LumaDenominator, int ChromaDenominator, IReadOnlyList<H264PredictionWeight> Entries)
@@ -46,10 +48,21 @@ namespace Mediana.Codecs.H264
             return new H264WeightTable(lumaDenominator, chromaDenominator, Array.AsReadOnly(weights));
         }
 
-        public void Apply(int reference, int plane, Span<byte> samples)
+        public void Apply(int reference, int plane, Span<byte> samples, int bitDepth = 8)
         {
             (int weight, int offset, int denominator) = Get(reference, plane);
             int rounding = denominator == 0 ? 0 : 1 << (denominator - 1);
+            if (bitDepth > 8)
+            {
+                Span<ushort> pixels = MemoryMarshal.Cast<byte, ushort>(samples);
+                int maximum = (1 << bitDepth) - 1;
+                int scaledOffset = offset << (bitDepth - 8);
+                for (int index = 0; index < pixels.Length; index++)
+                {
+                    pixels[index] = (ushort)Math.Clamp(((weight * pixels[index] + rounding) >> denominator) + scaledOffset, 0, maximum);
+                }
+                return;
+            }
             for (int index = 0; index < samples.Length; index++)
             {
                 samples[index] = (byte)Math.Clamp(((weight * samples[index] + rounding) >> denominator) + offset, 0, 255);

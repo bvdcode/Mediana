@@ -27,6 +27,6 @@ Reproduction commands and reference hashes are in the
 [MP4 fixture documentation](../tests/Mediana.Tests/Data/Mp4/README.md#progressive-high-422-sequences).
 The shared sequence checks run from managed tests and the Native AOT test runner.
 
-High10, 10-bit 4:2:2, interlaced reconstruction, custom scaling matrices and
-transform bypass remain separate decoder work. The encoder continues to accept
+[High10 and 10-bit 4:2:2](h264-high10.md) extend the same pipeline. Interlaced
+reconstruction, custom scaling matrices and transform bypass remain separate decoder work. The encoder continues to accept
 8-bit 4:2:0. This change does not establish a decoding performance comparison.

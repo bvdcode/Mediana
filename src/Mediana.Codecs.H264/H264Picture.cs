@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
 using Mediana.Core.Memory;
 
 namespace Mediana.Codecs.H264
@@ -29,19 +30,28 @@ namespace Mediana.Codecs.H264
             Sequence = sequence;
             LumaQuantizer = new H264Quantizer(sequence.LumaBitDepth);
             ChromaQuantizer = new H264Quantizer(sequence.ChromaBitDepth);
+            SampleBytes = sequence.LumaBitDepth <= 8 ? 1 : 2;
+            MaximumSample = (1 << sequence.LumaBitDepth) - 1;
             Width = sequence.CodedWidth;
             Height = sequence.CodedHeight;
-            lumaBytes = checked(Width * Height);
+            int lumaSamples = checked(Width * Height);
+            lumaBytes = checked(lumaSamples * SampleBytes);
             ChromaVerticalScale = sequence.ChromaFormat switch
             {
                 1 => 2,
                 2 => 1,
                 _ => throw new NotSupportedException("H.264 picture storage requires 4:2:0 or 4:2:2 chroma.")
             };
+            ChromaMacroblockHeight = 16 / ChromaVerticalScale;
+            ChromaMacroblockSamples = 8 * ChromaMacroblockHeight;
+            MacroblockSamples = 256 + 2 * ChromaMacroblockSamples;
+            LumaMacroblockBytes = 256 * SampleBytes;
+            ChromaMacroblockBytes = ChromaMacroblockSamples * SampleBytes;
+            MacroblockBytes = MacroblockSamples * SampleBytes;
             chromaBytes = lumaBytes / (2 * ChromaVerticalScale);
-            lumaBlocks = lumaBytes / 16;
-            chromaBlocks = chromaBytes / 16;
-            macroblocks = lumaBytes / 256;
+            lumaBlocks = lumaSamples / 16;
+            chromaBlocks = chromaBytes / (16 * SampleBytes);
+            macroblocks = lumaSamples / 256;
             storage = allocator.Allocate(checked(lumaBlocks * (2 + MotionBytesPerBlock * referenceLists)
                 + chromaBlocks * 2 + macroblocks * 2));
             bool complete = false;
@@ -72,9 +82,14 @@ namespace Mediana.Codecs.H264
         public int Width { get; }
         public int Height { get; }
         public int ChromaVerticalScale { get; }
-        public int ChromaMacroblockHeight => 16 / ChromaVerticalScale;
-        public int ChromaMacroblockSamples => 8 * ChromaMacroblockHeight;
-        public int MacroblockSamples => 256 + 2 * ChromaMacroblockSamples;
+        public int SampleBytes { get; }
+        public int LumaMacroblockBytes { get; }
+        public int ChromaMacroblockBytes { get; }
+        public int MacroblockBytes { get; }
+        public int MaximumSample { get; }
+        public int ChromaMacroblockHeight { get; }
+        public int ChromaMacroblockSamples { get; }
+        public int MacroblockSamples { get; }
         public int VerticalScale(int plane) => plane == 0 ? 1 : ChromaVerticalScale;
         public bool HasBidirectionalMotion => referenceLists == 2;
         public int FirstMacroblock { get; set; }
@@ -137,85 +152,6 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        public void PredictLuma4x4(int x, int y, int mode, Span<byte> output, bool constrained = false) =>
-            PredictLuma(x, y, mode, output, constrained, 4);
-
-        public void PredictLuma8x8(int x, int y, int mode, Span<byte> output, bool constrained) =>
-            PredictLuma(x, y, mode, output, constrained, 8);
-
-        private void PredictLuma(int x, int y, int mode, Span<byte> output, bool constrained, int size)
-        {
-            Span<byte> top = stackalloc byte[16];
-            Span<byte> left = stackalloc byte[8];
-            (bool hasTop, bool hasLeft, byte? corner) = ReadLumaNeighbours(x, y, size, top, left, constrained);
-            if (size == 8)
-            {
-                H264IntraPrediction.Luma8x8(mode, hasTop ? top : [], hasLeft ? left : [], corner, output);
-            }
-            else
-            {
-                H264IntraPrediction.Luma4x4(mode, hasTop ? top[..8] : [], hasLeft ? left[..4] : [], corner, output);
-            }
-        }
-
-        public (bool HasTop, bool HasLeft, byte? Corner) ReadLumaNeighbours(int x, int y, int size,
-            Span<byte> top, Span<byte> left, bool constrained = false)
-        {
-            Span<byte> pixels = Plane(0);
-            bool hasTop = IsAvailable(x, y - 1, constrained);
-            bool hasLeft = IsAvailable(x - 1, y, constrained);
-            if (hasTop)
-            {
-                for (int index = 0; index < size * 2; index++)
-                {
-                    top[index] = IsAvailable(x + index, y - 1, constrained) ? pixels[(y - 1) * Width + x + index] : top[size - 1];
-                }
-            }
-            if (hasLeft)
-            {
-                for (int index = 0; index < size; index++)
-                {
-                    left[index] = pixels[(y + index) * Width + x - 1];
-                }
-            }
-            byte? corner = IsAvailable(x - 1, y - 1, constrained) ? pixels[(y - 1) * Width + x - 1] : null;
-            return (hasTop, hasLeft, corner);
-        }
-
-        public void PredictMacroblock(int plane, int x, int y, int mode, Span<byte> output, bool constrained = false)
-        {
-            int size = plane == 0 ? 16 : 8;
-            int height = 16 / VerticalScale(plane);
-            int stride = Stride(plane);
-            Span<byte> pixels = Plane(plane);
-            Span<byte> top = stackalloc byte[16];
-            Span<byte> left = stackalloc byte[16];
-            int scale = plane == 0 ? 1 : 2;
-            int verticalScale = VerticalScale(plane);
-            bool hasTop = IsAvailable(x * scale, y * verticalScale - 1, constrained);
-            bool hasLeft = IsAvailable(x * scale - 1, y * verticalScale, constrained);
-            if (hasTop)
-            {
-                pixels.Slice((y - 1) * stride + x, size).CopyTo(top);
-            }
-            if (hasLeft)
-            {
-                for (int index = 0; index < height; index++)
-                {
-                    left[index] = pixels[(y + index) * stride + x - 1];
-                }
-            }
-            byte? corner = IsAvailable(x * scale - 1, y * verticalScale - 1, constrained) ? pixels[(y - 1) * stride + x - 1] : null;
-            if (plane == 0)
-            {
-                H264IntraPrediction.Luma16x16(mode, hasTop ? top : [], hasLeft ? left : [], corner, output);
-            }
-            else
-            {
-                H264IntraPrediction.Chroma(mode, hasTop ? top[..8] : [], hasLeft ? left[..height] : [], corner, output, height);
-            }
-        }
-
         public void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual) =>
             WriteBlock(plane, x, y, prediction, residual, 4);
 
@@ -226,7 +162,15 @@ namespace Mediana.Codecs.H264
         {
             int stride = Stride(plane);
             Span<byte> pixels = Plane(plane);
-            H264SampleReconstruction.Write(prediction, residual, size, pixels[(y * stride + x)..], stride);
+            if (SampleBytes == 1)
+            {
+                H264SampleReconstruction.Write(prediction, residual, size, pixels[(y * stride + x)..], stride);
+            }
+            else
+            {
+                H264HighPrecisionReconstruction.Write(MemoryMarshal.Cast<byte, ushort>(prediction), residual, size,
+                    MemoryMarshal.Cast<byte, ushort>(pixels)[(y * stride + x)..], stride, MaximumSample);
+            }
             if (plane == 0)
             {
                 for (int row = 0; row < size; row += 4)

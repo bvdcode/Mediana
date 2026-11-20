@@ -8,7 +8,7 @@ namespace Mediana.Codecs.H264
         public static void PredictPartition(H264Picture target, H264SliceHeader header, H264BidirectionalReferences references,
             H264PictureOrder order, int x, int y, int width, int height, H264PartitionMotion l0, H264PartitionMotion l1, Span<byte> prediction)
         {
-            if (header.Kind != H264SliceKind.B || prediction.Length != target.MacroblockSamples || width <= 0 || height <= 0
+            if (header.Kind != H264SliceKind.B || prediction.Length != target.MacroblockBytes || width <= 0 || height <= 0
                 || x < 0 || y < 0 || x % 16 + width > 16 || y % 16 + height > 16)
             {
                 throw new InvalidDataException("Invalid H.264 B prediction partition.");
@@ -21,12 +21,12 @@ namespace Mediana.Codecs.H264
             }
             target.SetMotion(H264ReferenceList.L0, x, y, width, height, l0.ReferenceIndex, l0.X, l0.Y);
             target.SetMotion(H264ReferenceList.L1, x, y, width, height, l1.ReferenceIndex, l1.X, l1.Y);
-            Span<byte> block0 = stackalloc byte[256];
-            Span<byte> block1 = stackalloc byte[256];
+            Span<byte> block0 = stackalloc byte[target.LumaMacroblockBytes];
+            Span<byte> block1 = stackalloc byte[target.LumaMacroblockBytes];
             for (int plane = 0; plane < 3; plane++)
             {
                 int scale = plane == 0 ? 1 : 2;
-                int count = width / scale * (height / target.VerticalScale(plane));
+                int count = width / scale * (height / target.VerticalScale(plane)) * target.SampleBytes;
                 Span<byte> samples0 = block0[..count];
                 Span<byte> samples1 = block1[..count];
                 if (reference0 is not null)
@@ -47,7 +47,7 @@ namespace Mediana.Codecs.H264
                         2 => H264BiPredictionWeights.Implicit(order, reference0, reference1),
                         _ => throw new InvalidDataException("Invalid H.264 B weighted prediction mode.")
                     };
-                    weights.Apply(samples0, samples1, samples0);
+                    weights.Apply(samples0, samples1, samples0, target.Sequence.LumaBitDepth);
                     H264PredictionBlock.Write(target, plane, x, y, width, height, samples0, prediction);
                 }
                 else if (reference0 is not null)
@@ -85,7 +85,7 @@ namespace Mediana.Codecs.H264
                 case 2:
                     return;
                 case 1:
-                    RequireWeights(header, list).Apply(reference, plane, samples);
+                    RequireWeights(header, list).Apply(reference, plane, samples, header.Sequence.LumaBitDepth);
                     return;
                 default:
                     throw new InvalidDataException("Invalid H.264 B weighted prediction mode.");

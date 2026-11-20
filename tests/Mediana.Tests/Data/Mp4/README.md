@@ -476,3 +476,50 @@ Decode each stream to raw `yuv422p` using FFmpeg with `-threads 1`,
 | `avc-high422-cabac-q1.yuv.gz` | `90b687f1a08f961489090f5757ac85200f1e8f38bafdf451aad9dd0311ad7339` |
 | `avc-high422-cavlc-q40.mp4` | `82a78da4c86a30092fae51d2657101788a7f3e46a9df1dbe8c13901433a78891` |
 | `avc-high422-cavlc-q40.yuv.gz` | `30a33b6ec0229c6300e06247141e815a40c355b61c1a922286bea19ce27a02b2` |
+
+## Progressive 10-bit AVC sequences
+
+`avc-high10-*` and `avc-high422-10-*` contain 24 independently encoded and
+decoded frames at 12 fps, 82×74 visible samples. The references preserve all
+ten sample bits in little-endian 16-bit planar words. The corresponding
+`.yuv.gz` contains the complete raw sequence. CABAC/CAVLC, I/P/B ordering,
+QP1/22/45 and single/multiple slices are covered.
+
+Tests use the MP4 linear movie timeline and compare every frame's pixels,
+presentation time, duration and every reverse seek. The same sequence test
+runs in managed and Native AOT validation.
+
+Reproduction commands:
+
+```sh
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf 'format=yuv420p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=1 -pix_fmt yuv420p10le -movflags +faststart avc-high10-cabac.mp4
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf 'format=yuv420p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=0 -pix_fmt yuv420p10le -movflags +faststart avc-high10-cavlc.mp4
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf 'format=yuv422p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=1 -pix_fmt yuv422p10le -movflags +faststart avc-high422-10-cabac.mp4
+ffmpeg -nostdin -v error -f lavfi -i testsrc2=size=82x74:rate=12 -vf 'format=yuv422p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -filter_threads 1 -frames:v 24 -c:v libx264 -preset medium -qp 22 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:cabac=0 -pix_fmt yuv422p10le -movflags +faststart avc-high422-10-cavlc.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv420p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 1 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=1 -pix_fmt yuv420p10le -movflags +faststart avc-high10-cabac-q1.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv420p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 1 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=0 -pix_fmt yuv420p10le -movflags +faststart avc-high10-cavlc-q1.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv422p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 45 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=1 -pix_fmt yuv422p10le -movflags +faststart avc-high422-10-cabac-q45.mp4
+ffmpeg -nostdin -v error -f lavfi -i 'nullsrc=s=82x74:r=12,format=yuv422p10le,geq=lum='"'"'mod(X*17+Y*23+N*41,1024)'"'"':cb='"'"'mod(X*7+Y*13+N*19,1024)'"'"':cr='"'"'mod(X*31+Y*11+N*5,1024)'"'"'' -frames:v 24 -c:v libx264 -preset medium -qp 1 -threads 1 -x264-params keyint=8:min-keyint=8:scenecut=0:bframes=2:b-adapt=0:ref=2:cqm=flat:slices=2:cabac=0 -pix_fmt yuv422p10le -movflags +faststart avc-high422-10-cavlc-q1.mp4
+```
+
+Decode using FFmpeg `-threads 1 -fps_mode passthrough -f rawvideo`, choosing
+`yuv420p10le` or `yuv422p10le` to match the source, then gzip the raw sequence.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-high10-cabac.mp4` | `f425bfdf7e58ba814bb410115e630536abda51ddc5f629498fc7ee520362f691` |
+| `avc-high10-cabac.yuv.gz` | `d086e2e0005b43c8b94209cb5e6b8914dfdfa240de3e05ea98156a62daebb73d` |
+| `avc-high10-cavlc.mp4` | `2c081861df28fd00b0cd1168ffcdd4336db6c2b8215c895d7b596db4441728ad` |
+| `avc-high10-cavlc.yuv.gz` | `5f0e1e76c7dd273b36efb63d8d3b6f0437ffbefbdbca660ecd337df1c7568e47` |
+| `avc-high422-10-cabac.mp4` | `c7739bb0461528e352e2e8be3adee02ea1a5059134d4e59ff8b6512240a61aff` |
+| `avc-high422-10-cabac.yuv.gz` | `251377701406b7d78c57105d9e4fd080caefa21833ccddc3c226b2e3c4beca96` |
+| `avc-high422-10-cavlc.mp4` | `5652caac4d7257147041d3062f1205db6552202b2e40da7ff9265ca030357ddd` |
+| `avc-high422-10-cavlc.yuv.gz` | `120568039c346a53e55a1305002cdd838d228f456d27909ced7442af0070d7e4` |
+| `avc-high10-cabac-q1.mp4` | `8ace378bdaa119378a97808cb4ea796679c6f5a9cd7de6d54fc580d263b89055` |
+| `avc-high10-cabac-q1.yuv.gz` | `e2c9f0fa4bc4f057ae108571bf24526a664bcdd510f001a5a1b0d2de6f6a6cd6` |
+| `avc-high10-cavlc-q1.mp4` | `a1af4e7e4cfa0453d322c0b51a0c90ce1b7455bad574d11d11dfe2e94b9c3d2e` |
+| `avc-high10-cavlc-q1.yuv.gz` | `3513b07b9c56943f8ce397f63551dcdf64c3312306953da94d2f70b07161332e` |
+| `avc-high422-10-cabac-q45.mp4` | `41dbb9c2ef425ed76d8b85a320d9be16159981962ce585df09b2c914ac875216` |
+| `avc-high422-10-cabac-q45.yuv.gz` | `e1264fe236fad0b2f114feb358728d67386f0d516caaf824ec3ff40ec32cd17d` |
+| `avc-high422-10-cavlc-q1.mp4` | `eb392fc3a17bb854b90d36d1cb49ee38691fc4c142b4095a986ca14e316eb1fb` |
+| `avc-high422-10-cavlc-q1.yuv.gz` | `d7cb2c4161352ea3b4d20c6a9e123ae76c8b3fd4275a09386f2e352f00757750` |

@@ -23,6 +23,10 @@ namespace Mediana.Tests
             H264IntraPrediction.Luma4x4(mode, [10, 20, 30, 40, 50, 60, 70, 80], [90, 100, 110, 120], 50, output);
             Assert.Equal(firstRow, output[..4]);
             Assert.Equal(lastRow, output[12..]);
+            ushort[] wide = new ushort[16];
+            H264IntraPrediction<ushort>.Luma4x4(mode, [522, 532, 542, 552, 562, 572, 582, 592], [602, 612, 622, 632], 562, wide, 1023);
+            Assert.Equal(firstRow.Select(sample => (ushort)(sample + 512)), wide[..4]);
+            Assert.Equal(lastRow.Select(sample => (ushort)(sample + 512)), wide[12..]);
         }
 
         [Fact]

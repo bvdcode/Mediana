@@ -28,7 +28,10 @@ namespace Mediana.Tests
                 .AddVideoDecoder(new H264DecoderFactory()).Build();
             await using RandomAccessStreamByteSource source = new(File.OpenRead(path + ".mp4"));
             await using VideoSession session = await engine.OpenVideoAsync(source, 0);
-            for (int index = 0; index < count; index++)
+            using VideoFrame retained = await session.ReadFrameAsync()
+                ?? throw new InvalidDataException("The H.264 profile sequence contains no frame.");
+            Verify(retained, reference.AsSpan(0, frameBytes), pixels, width, height, 0, fps);
+            for (int index = 1; index < count; index++)
             {
                 using VideoFrame frame = await session.ReadFrameAsync()
                     ?? throw new InvalidDataException("The H.264 profile sequence ended early.");
@@ -50,6 +53,8 @@ namespace Mediana.Tests
                 Verify(frame, reference.AsSpan(index * frameBytes, frameBytes), pixels, width, height, index, fps);
             }
             await session.DisposeAsync();
+            Verify(retained, reference.AsSpan(0, frameBytes), pixels, width, height, 0, fps);
+            retained.Dispose();
             if (session.AllocatedBufferBytes != 0)
             {
                 throw new InvalidOperationException("The H.264 profile session retained media buffers.");
