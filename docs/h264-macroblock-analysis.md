@@ -198,3 +198,5 @@ allocations. Every encoder reports zero retained media-buffer bytes at EOF.
 Repeated outputs have identical complete hashes within each configuration, and
 the unfiltered earlier/optimized outputs are identical to each other. Independent
 decoding processes the complete sequences for PSNR and SSIM.
+
+The broader [720p/1080p encoding matrix](h264-encoding-matrix.md) compares camera video, photograph motion, noise, text, animation and scene cuts at matched payload, with CPU, wall time and process memory measurements.
