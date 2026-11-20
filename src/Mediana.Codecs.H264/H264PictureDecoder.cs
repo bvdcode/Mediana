@@ -24,7 +24,7 @@ namespace Mediana.Codecs.H264
             {
                 return H264CabacPictureDecoder.Decode(ref bits, header, new(references, []), default, allocator, cancellationToken);
             }
-            H264Picture result = new(header.Sequence, allocator, header.Kind);
+            H264Picture result = new(header.Sequence, allocator, header.Kind, header.Structure);
             bool complete = false;
             try
             {

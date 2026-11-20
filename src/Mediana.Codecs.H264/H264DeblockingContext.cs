@@ -67,7 +67,7 @@ namespace Mediana.Codecs.H264
             int previous = current - (vertical ? 1 : stride);
             if (modes[previous] != H264Picture.InterMode || modes[current] != H264Picture.InterMode)
             {
-                return macroblockEdge ? 4 : 3;
+                return macroblockEdge && (vertical || !picture.Layout.IsField) ? 4 : 3;
             }
             bool previousMacroblock = ((vertical ? x : y) & 15) == 0;
             int previousAddress = previousMacroblock ? address - (vertical ? 1 : columns) : address;
@@ -101,10 +101,10 @@ namespace Mediana.Codecs.H264
                 && (p1 is null || Near(motionXL1, motionYL1, motionXL0, motionYL0, previous, current)) ? 0 : 1;
         }
 
-        private static bool Near(ReadOnlySpan<int> previousX, ReadOnlySpan<int> previousY,
+        private readonly bool Near(ReadOnlySpan<int> previousX, ReadOnlySpan<int> previousY,
             ReadOnlySpan<int> currentX, ReadOnlySpan<int> currentY, int previous, int current) =>
             Math.Abs((long)previousX[previous] - currentX[current]) < 4
-            && Math.Abs((long)previousY[previous] - currentY[current]) < 4;
+            && Math.Abs((long)previousY[previous] - currentY[current]) < (picture.Layout.IsField ? 2 : 4);
 
         private readonly bool HasResidual(int x, int y, int position, int macroblock)
         {

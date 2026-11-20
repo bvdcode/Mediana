@@ -18,7 +18,8 @@ namespace Mediana.Codecs.H264
         private readonly int referenceLists;
         private const int MotionBytesPerBlock = sizeof(byte) + 2 * sizeof(int);
 
-        public H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, H264SliceKind kind)
+        public H264Picture(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, H264SliceKind kind,
+            H264PictureStructure structure = H264PictureStructure.Frame)
         {
             referenceLists = kind switch
             {
@@ -28,12 +29,14 @@ namespace Mediana.Codecs.H264
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };
             Sequence = sequence;
+            Structure = structure;
+            Layout = new H264PictureLayout(sequence, structure);
             LumaQuantizer = new H264Quantizer(sequence.LumaBitDepth);
             ChromaQuantizer = new H264Quantizer(sequence.ChromaBitDepth);
             SampleBytes = sequence.LumaBitDepth <= 8 ? 1 : 2;
             MaximumSample = (1 << sequence.LumaBitDepth) - 1;
             Width = sequence.CodedWidth;
-            Height = sequence.CodedHeight;
+            Height = sequence.CodedHeight / (Layout.IsField ? 2 : 1);
             int lumaSamples = checked(Width * Height);
             lumaBytes = checked(lumaSamples * SampleBytes);
             ChromaVerticalScale = sequence.ChromaFormat switch
@@ -77,6 +80,8 @@ namespace Mediana.Codecs.H264
         }
 
         public H264SequenceParameterSet Sequence { get; }
+        public H264PictureStructure Structure { get; }
+        public H264PictureLayout Layout { get; }
         public H264Quantizer LumaQuantizer { get; }
         public H264Quantizer ChromaQuantizer { get; }
         public int Width { get; }

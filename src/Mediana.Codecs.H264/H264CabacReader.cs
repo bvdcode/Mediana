@@ -8,6 +8,7 @@ namespace Mediana.Codecs.H264
         private readonly H264CabacContext[] contexts;
         private readonly H264CabacContext[] transformContexts;
         private readonly H264CabacContext[] bidirectionalContexts;
+        private readonly H264CabacContext[] fieldContexts;
         private readonly H264SliceKind kind;
         private H264CabacDecoder decoder;
 
@@ -32,12 +33,17 @@ namespace Mediana.Codecs.H264
                 _ => throw new NotSupportedException("The CABAC reader supports I, P and B slices.")
             };
             transformContexts = H264CabacTransformContexts.Create(contextQp, kind, header.CabacInitIdc);
+            fieldContexts = header.Sequence.FrameMbsOnly ? [] : H264CabacFieldContexts.Create(contextQp, kind, header.CabacInitIdc);
             bits.AlignOne();
             decoder = new H264CabacDecoder(ref bits);
         }
 
         public bool Read(ref H264BitReader bits, int contextIndex)
         {
+            if (contextIndex is >= 277 and <= 398 or >= 436 and <= 459)
+            {
+                return decoder.ReadBin(ref bits, ref fieldContexts[H264CabacFieldContexts.GetIndex(contextIndex)]);
+            }
             if (kind == H264SliceKind.B && contextIndex is >= 24 and <= 39)
             {
                 return decoder.ReadBin(ref bits, ref bidirectionalContexts[contextIndex - 24]);

@@ -14,6 +14,13 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync(string root)
         {
+            foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
+            {
+                foreach (int packet in new[] { 0, 8, 16 })
+                {
+                    await H264FieldTestInput.VerifyIntraAsync(root, name, packet);
+                }
+            }
             foreach (string name in new[] { "avc-high422-cabac", "avc-high422-cavlc", "avc-high422-cabac-q1", "avc-high422-cavlc-q40" })
             {
                 await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), VideoPixelFormat.Yuv422P8, 82, 74, 24, 12);

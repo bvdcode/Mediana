@@ -31,7 +31,7 @@ namespace Mediana.Codecs.H264
             if (intra16)
             {
                 reader.Read(ref bits, H264ResidualCategory.Intra16LumaDc, 0, x, y, coefficients);
-                H264InverseTransform.LumaDc(coefficients, qp, dc, target.Sequence.LumaBitDepth);
+                H264InverseTransform.LumaDc(coefficients, qp, dc, target.Sequence.LumaBitDepth, field: target.Layout.IsField);
                 target.PredictMacroblock(0, x, y, (type - 1) % 4, macroPrediction, constrained);
             }
             for (int index = 0; index < 16; index++)
@@ -55,7 +55,7 @@ namespace Mediana.Codecs.H264
                         continue;
                     }
                     H264Residuals.CopyPrediction(macroPrediction, 16, blockX, blockY, prediction, target.SampleBytes);
-                    H264InverseTransform.Residual4x4(block, qp, residual, dc[(blockY / 4) * 4 + blockX / 4], target.Sequence.LumaBitDepth);
+                    H264InverseTransform.Residual4x4(block, qp, residual, dc[(blockY / 4) * 4 + blockX / 4], target.Sequence.LumaBitDepth, field: target.Layout.IsField);
                 }
                 else
                 {
@@ -65,7 +65,7 @@ namespace Mediana.Codecs.H264
                         target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, prediction, 4);
                         continue;
                     }
-                    H264InverseTransform.Residual4x4(block, qp, residual, bitDepth: target.Sequence.LumaBitDepth);
+                    H264InverseTransform.Residual4x4(block, qp, residual, bitDepth: target.Sequence.LumaBitDepth, field: target.Layout.IsField);
                 }
                 target.WriteBlock(0, x + blockX, y + blockY, prediction, residual);
             }

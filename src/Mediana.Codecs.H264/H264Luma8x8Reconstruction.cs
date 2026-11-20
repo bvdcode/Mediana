@@ -42,7 +42,7 @@ namespace Mediana.Codecs.H264
                             .CopyTo(prediction.Slice(row * 8 * target.SampleBytes, 8 * target.SampleBytes));
                     }
                 }
-                H264InverseTransform8x8.Residual(coefficients, qp, residual, target.Sequence.LumaBitDepth);
+                H264InverseTransform8x8.Residual(coefficients, qp, residual, target.Sequence.LumaBitDepth, field: target.Layout.IsField);
                 target.WriteLuma8x8(blockX, blockY, prediction, residual);
             }
         }

@@ -20,7 +20,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException(reason ?? "CABAC reconstruction requires a CABAC slice.");
             }
-            H264Picture result = new(header.Sequence, allocator, header.Kind);
+            H264Picture result = new(header.Sequence, allocator, header.Kind, header.Structure);
             bool complete = false;
             try
             {
@@ -43,7 +43,7 @@ namespace Mediana.Codecs.H264
             H264BidirectionalReferences references, H264PictureOrder order, H264Picture result, int endMacroblock,
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
-            using H264CabacMacroblockState state = new(header.Sequence, allocator, header.FirstMacroblock);
+            using H264CabacMacroblockState state = new(header.Sequence, allocator, header.FirstMacroblock, header.Structure);
             H264CabacReader reader = new(ref bits, header);
             using H264CabacPredictionReader? predictionReader = header.Kind switch
             {

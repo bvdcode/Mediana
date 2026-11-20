@@ -533,7 +533,10 @@ reference encoder. Both use 4:2:0, two reference frames, QP 24 and three IDRs.
 The top field precedes the bottom field; each field occupies 1/24 second.
 The header tests verify picture structure, macroblock bounds, frame numbers,
 picture order, slice kinds and quantizers against FFmpeg `trace_headers`.
-These checks cover syntax; complete interlaced reconstruction remains open.
+The tests also reconstruct all six IDR fields and compare every luma and chroma
+sample with the corresponding field from FFmpeg-decoded frames. The complete
+reference sequences are stored in the matching `.yuv.gz` files. Complete
+interlaced sequence reconstruction remains open.
 
 Generate a twelve-frame source using:
 
@@ -561,3 +564,12 @@ unchanged by this serialization.
 | --- | --- |
 | `avc-paff-cabac.mp4` | `e4b31a4b8e8a3f1b651eb9c06156c983b4cd8b632eeedec564e2734d46c19ad0` |
 | `avc-paff-cavlc.mp4` | `cb649e57d0685984c6b0b8acc9c6e37ed5e8f901161dacb0aa858e0db558bd27` |
+
+| Decoded sequence | SHA-256 of gzip archive |
+| --- | --- |
+| `avc-paff-cabac.yuv.gz` | `cd00b5e129cdbcf426e1472b2f97afa84062ad09887404239fddd8ea137b84f1` |
+| `avc-paff-cavlc.yuv.gz` | `3910af25ddbf5f071c2fb4e818aa4091c1f8e04e06c38e13291e45372201d6f2` |
+
+The reference pixel stream is produced with `ffmpeg -threads 1 -i input.mp4
+-fps_mode passthrough -pix_fmt yuv420p -f rawvideo output.yuv`, then compressed
+with gzip using a zero modification time and no stored filename.

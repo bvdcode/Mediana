@@ -146,7 +146,7 @@ namespace Mediana.Codecs.H264
         {
             if (category == H264ResidualCategory.Luma8x8)
             {
-                int count = H264CabacResidual.Read(ref bits, reader, category, 0, coefficients, target.Sequence.LumaBitDepth);
+                int count = H264CabacResidual.Read(ref bits, reader, category, 0, coefficients, target.Sequence.LumaBitDepth, field: target.Layout.IsField);
                 for (int row = 0; row < 2; row++)
                 {
                     for (int column = 0; column < 2; column++)
@@ -175,7 +175,7 @@ namespace Mediana.Codecs.H264
                 context = !target.IsInCurrentSlice(x * sampleScale - 1, y * verticalScale) ? unavailable : counts[position - 1] != 0 ? 1 : 0;
                 context += 2 * (!target.IsInCurrentSlice(x * sampleScale, y * verticalScale - 1) ? unavailable : counts[position - target.Stride(plane) / 4] != 0 ? 1 : 0);
             }
-            int total = H264CabacResidual.Read(ref bits, reader, category, context, coefficients, plane == 0 ? target.Sequence.LumaBitDepth : target.Sequence.ChromaBitDepth);
+            int total = H264CabacResidual.Read(ref bits, reader, category, context, coefficients, plane == 0 ? target.Sequence.LumaBitDepth : target.Sequence.ChromaBitDepth, field: target.Layout.IsField);
             if (dc && total != 0)
             {
                 state.DcFlags[address] |= (byte)(1 << plane);

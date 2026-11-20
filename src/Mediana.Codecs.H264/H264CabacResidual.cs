@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    /// <summary>Reads progressive transform coefficients in scan order under H.264 clause 7.3.5.3.3.</summary>
+    /// <summary>Reads frame and field transform coefficients in scan order under H.264 clause 7.3.5.3.3.</summary>
     internal static class H264CabacResidual
     {
         // Rec. ITU-T H.264, Table 9-43 (frame-coded 8x8 significance contexts).
@@ -13,8 +13,17 @@ namespace Mediana.Codecs.H264
                 7, 6, 11, 12, 13, 11, 6, 7, 8, 9, 14, 10, 9, 8, 6, 11,
                 12, 13, 11, 6, 9, 14, 10, 9, 11, 12, 13, 11, 14, 10, 12];
 
+        // Rec. ITU-T H.264, Table 9-43 (field-coded 8x8 significance contexts).
+        private static ReadOnlySpan<byte> Significant8x8Field =>
+        [
+            0, 1, 1, 2, 2, 3, 3, 4, 5, 6, 7, 7, 7, 8, 4, 5,
+            6, 9, 10, 10, 8, 11, 12, 11, 9, 9, 10, 10, 8, 11, 12, 11,
+            9, 9, 10, 10, 8, 11, 12, 11, 9, 9, 10, 10, 8, 13, 13, 9,
+            9, 10, 10, 8, 13, 13, 9, 9, 10, 10, 14, 14, 14, 14, 14,
+        ];
+
         public static int Read(ref H264BitReader bits, H264CabacReader reader,
-            H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients, int bitDepth = 8)
+            H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients, int bitDepth = 8, bool field = false)
         {
             (int count, int significantBase, int lastBase, int levelBase) = category switch
             {
@@ -26,6 +35,13 @@ namespace Mediana.Codecs.H264
                 H264ResidualCategory.Luma8x8 => (64, 402, 417, 426),
                 _ => throw new ArgumentOutOfRangeException(nameof(category))
             };
+            if (field)
+            {
+                int offset = category == H264ResidualCategory.Luma8x8 ? 34 : 172;
+                significantBase += offset;
+                lastBase += offset;
+            }
+            ReadOnlySpan<byte> significantPositions = field ? Significant8x8Field : Significant8x8;
             ArgumentOutOfRangeException.ThrowIfNegative(neighbourContext);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(neighbourContext, 3);
             if (coefficients.Length != count)
@@ -43,7 +59,7 @@ namespace Mediana.Codecs.H264
             for (int index = 0; index < count - 1; index++)
             {
                 int positionContext = category == H264ResidualCategory.ChromaDc ? Math.Min(index / (count / 4), 2) : index;
-                int significantContext = significantBase + (count == 64 ? Significant8x8[index] : positionContext);
+                int significantContext = significantBase + (count == 64 ? significantPositions[index] : positionContext);
                 if (reader.Read(ref bits, significantContext))
                 {
                     int lastContext = lastBase + (count == 64 ? Last8x8(index) : positionContext);

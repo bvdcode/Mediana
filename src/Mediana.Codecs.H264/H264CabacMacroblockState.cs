@@ -15,11 +15,12 @@ namespace Mediana.Codecs.H264
         private readonly int columns;
         private readonly int firstMacroblock;
 
-        public H264CabacMacroblockState(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, int firstMacroblock = 0)
+        public H264CabacMacroblockState(H264SequenceParameterSet sequence, MediaBufferAllocator allocator, int firstMacroblock = 0,
+            H264PictureStructure structure = H264PictureStructure.Frame)
         {
             this.firstMacroblock = firstMacroblock;
             columns = sequence.WidthInMbs;
-            count = checked(columns * sequence.HeightInMapUnits);
+            count = new H264PictureLayout(sequence, structure).MacroblockCount;
             storage = allocator.Allocate(checked(count * 4));
         }
 

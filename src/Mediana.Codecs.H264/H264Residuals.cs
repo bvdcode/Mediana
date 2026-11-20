@@ -39,7 +39,7 @@ namespace Mediana.Codecs.H264
                     continue;
                 }
                 target.Counts(0)[target.BlockIndex(0, x + blockX, y + blockY)] = (byte)count;
-                H264InverseTransform.Residual4x4(coefficients, qp, residual, bitDepth: target.Sequence.LumaBitDepth);
+                H264InverseTransform.Residual4x4(coefficients, qp, residual, bitDepth: target.Sequence.LumaBitDepth, field: target.Layout.IsField);
                 CopyPrediction(macroPrediction, 16, blockX, blockY, prediction, target.SampleBytes);
                 target.WriteBlock(0, x + blockX, y + blockY, prediction, residual);
             }
@@ -95,7 +95,7 @@ namespace Mediana.Codecs.H264
                         continue;
                     }
                     target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
-                    H264InverseTransform.Residual4x4(coefficients, chromaQp, residual, dc[index], target.Sequence.ChromaBitDepth);
+                    H264InverseTransform.Residual4x4(coefficients, chromaQp, residual, dc[index], target.Sequence.ChromaBitDepth, field: target.Layout.IsField);
                     CopyPrediction(macroPrediction.Slice((plane - 1) * planeBytes, planeBytes), 8, blockX, blockY, prediction, target.SampleBytes);
                     target.WriteBlock(plane, x + blockX, y + blockY, prediction, residual);
                 }

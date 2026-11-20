@@ -5,7 +5,6 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264InverseTransform
     {
-        private static ReadOnlySpan<int> Scan4x4 => [0, 1, 4, 8, 5, 2, 3, 6, 9, 12, 13, 10, 7, 11, 14, 15];
         private static ReadOnlySpan<int> ScaleEven => [10, 11, 13, 14, 16, 18];
         private static ReadOnlySpan<int> ScaleOdd => [16, 18, 20, 23, 25, 29];
         private static ReadOnlySpan<int> ScaleMixed => [13, 14, 16, 18, 20, 23];
@@ -17,7 +16,8 @@ namespace Mediana.Codecs.H264
             return new H264Quantizer(8).ChromaValue(lumaQp, offset);
         }
 
-        public static void Residual4x4(ReadOnlySpan<int> scanned, int qp, Span<int> residual, int? scaledDc = null, int bitDepth = 8)
+        public static void Residual4x4(ReadOnlySpan<int> scanned, int qp, Span<int> residual, int? scaledDc = null,
+            int bitDepth = 8, bool field = false)
         {
             ValidateQp(qp, bitDepth);
             if (scanned.Length != (scaledDc is null ? 16 : 15) || residual.Length != 16)
@@ -37,9 +37,10 @@ namespace Mediana.Codecs.H264
                 values[0] = scaledDc.Value;
             }
             int scanOffset = scaledDc is null ? 0 : 1;
+            ReadOnlySpan<int> scan = H264CoefficientScans.FourByFour(field);
             for (int index = 0; index < scanned.Length; index++)
             {
-                int position = Scan4x4[index + scanOffset];
+                int position = scan[index + scanOffset];
                 int row = position / 4;
                 int column = position % 4;
                 int scale = ((row & 1), (column & 1)) switch
@@ -65,7 +66,7 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        public static void LumaDc(ReadOnlySpan<int> scanned, int qp, Span<int> rasterDc, int bitDepth = 8)
+        public static void LumaDc(ReadOnlySpan<int> scanned, int qp, Span<int> rasterDc, int bitDepth = 8, bool field = false)
         {
             ValidateQp(qp, bitDepth);
             if (scanned.Length != 16 || rasterDc.Length != 16)
@@ -73,9 +74,10 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentException("The H.264 luma DC transform requires 16 coefficients.");
             }
             Span<long> values = stackalloc long[16];
+            ReadOnlySpan<int> scan = H264CoefficientScans.FourByFour(field);
             for (int index = 0; index < 16; index++)
             {
-                values[Scan4x4[index]] = scanned[index];
+                values[scan[index]] = scanned[index];
             }
             for (int row = 0; row < 4; row++)
             {
