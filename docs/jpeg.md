@@ -9,7 +9,7 @@ explicit or implicit `probe` and for `-i input output.png`, irrespective of the
 input filename extension.
 
 The decoder implements 8-bit Huffman DCT: baseline SOF0, extended sequential
-SOF1 and progressive SOF2. Grayscale and three-component images support
+SOF1 and progressive SOF2. Grayscale, three-component and four-component images support
 interleaved and separate component scans, sampling factors from one to four, optimized Huffman
 tables, byte stuffing and restart intervals with modulo-eight marker sequencing.
 SOF1/SOF2 also support table selectors two/three and 16-bit quantization entries.
@@ -53,6 +53,15 @@ full-range YCbCr with square pixels:
 JpegImageDecoder jpeg = new(sourceColorSpace: JpegColorSpace.YCbCr,
     sampleAspectRatio: SampleAspectRatio.Square);
 ```
+
+Four-component JPEG supports device CMYK, Adobe inverted CMYK (APP14 transform
+zero), and YCCK (transform two), including progressive and separate scans.
+Undeclared C/M/Y/K component identifiers select device CMYK; other undeclared
+four-component streams require a caller interpretation. Conversion uses the
+multiplicative device-ink model. Embedded CMYK ICC profiles require a
+four-component ICC transform and are rejected rather than applied to RGB samples.
+Independent libjpeg-turbo references cover every pixel of the four presentations
+in `tests/Mediana.Codecs.Raster.Tests/JpegCmykTests.cs`.
 
 Supplied color/aspect information must agree with any corresponding declaration.
 JFIF density determines sample aspect ratio as Ydensity/Xdensity. Without a density
@@ -200,7 +209,7 @@ the call and can be released after it returns. The component image exposes
 dimensions, component count and the original nullable Adobe APP14 transform.
 
 `JpegImage.WriteRgbaTo(destination, colorSpace, cancellationToken)` writes into
-caller-owned storage with an explicit RGB or YCbCr interpretation. It allocates
+caller-owned storage with an explicit RGB, YCbCr, CMYK, inverted CMYK or YCCK interpretation. It allocates
 no output array, writes exactly width × height × 4 bytes and preserves any tail.
 Grayscale ignores the three-component interpretation. Cancellation may leave
 the destination partially written; disposing the image releases the component
@@ -278,7 +287,7 @@ PNG encoding, logging and I/O. Peak RSS includes runtime and collection behavior
 it is separate from the exact live media-buffer budget.
 
 Arithmetic/lossless/hierarchical JPEG, 12-bit samples, DNL,
-CMYK/YCCK, custom Exif colorimetry without ICC, SPIFF and ICC LUT conversion are not
+custom Exif colorimetry without ICC, SPIFF and ICC LUT conversion are not
 implemented. These encodings are rejected explicitly by standalone decoding.
 PDF `DCTDecode` integration uses the container component API described above.
 

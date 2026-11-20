@@ -10,7 +10,7 @@ namespace Mediana.Codecs.Jpeg
     /// <summary>Decodes 8-bit sequential and progressive Huffman JPEG to independent RGBA32. Encoded input is borrowed;
     /// progressive coefficients, component samples and output are charged to the allocator. Chroma uses bilinear reconstruction at its declared sample positions.
     /// JFIF/Adobe/Exif declare component interpretation; Exif sRGB labels are retained and orientation applied.
-    /// Lossless/arithmetic, custom Exif colorimetry and CMYK/YCCK are currently unsupported.</summary>
+    /// Supports device CMYK and Adobe CMYK/YCCK. Lossless/arithmetic and custom Exif colorimetry are unsupported.</summary>
     public class JpegImageDecoder : ISynchronousImageDecoder, IImageInfoReader
     {
         private readonly JpegDecodeOptions options;
@@ -22,7 +22,8 @@ namespace Mediana.Codecs.Jpeg
         {
             this.options = options ?? new();
             this.options.Validate();
-            if (sourceColorSpace is not (null or JpegColorSpace.Rgb or JpegColorSpace.YCbCr))
+            if (sourceColorSpace is not (null or JpegColorSpace.Rgb or JpegColorSpace.YCbCr or
+                JpegColorSpace.Cmyk or JpegColorSpace.InvertedCmyk or JpegColorSpace.Ycck))
             {
                 throw new ArgumentOutOfRangeException(nameof(sourceColorSpace));
             }

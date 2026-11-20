@@ -209,9 +209,9 @@ namespace Mediana.Codecs.Jpeg
             {
                 throw new InvalidDataException("JPEG frame component count or length is invalid.");
             }
-            if (count is not (1 or 3))
+            if (count is not (1 or 3 or 4))
             {
-                throw new NotSupportedException("JPEG decoding currently supports grayscale and three-component color.");
+                throw new NotSupportedException("JPEG decoding requires grayscale, three-component or four-component color.");
             }
             components = new JpegComponent[count];
             for (int i = 0; i < count; i++)

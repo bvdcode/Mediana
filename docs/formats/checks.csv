@@ -129,7 +129,7 @@ jpeg-lossless,decode,planned,planned,planned,planned,planned,planned,
 jpeg-lossless,encode,planned,planned,planned,planned,planned,planned,
 jpeg-hierarchical,decode,planned,planned,planned,planned,planned,planned,
 jpeg-hierarchical,encode,planned,planned,planned,planned,planned,planned,
-jpeg-cmyk,decode,planned,planned,planned,planned,planned,planned,
+jpeg-cmyk,decode,partial,partial,partial,planned,partial,planned,../jpeg.md;../../tests/Mediana.Codecs.Raster.Tests/Data/cmyk-jpeg-fixtures.md
 jpeg-cmyk,encode,planned,planned,planned,planned,planned,planned,
 jpeg-mpo,decode,planned,planned,planned,planned,planned,planned,
 jpeg-mpo,encode,planned,planned,planned,planned,planned,planned,

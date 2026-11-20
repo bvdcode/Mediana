@@ -11,6 +11,31 @@ namespace Mediana.Codecs.Raster.Tests
 {
     public class TiffDecoderTests
     {
+        [Theory]
+        [InlineData("rgb-jpeg-regression")]
+        [InlineData("l-jpeg-regression")]
+        [InlineData("cmyk-jpeg-regression")]
+        [InlineData("ycbcr-jpeg-exif")]
+        public async Task JpegBlocksUseTiffColorAndGeometryInsteadOfStandaloneJpegMetadata(string name)
+        {
+            string root = Path.Combine(AppContext.BaseDirectory, "Data");
+            byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(root, name + ".tif"));
+            byte[] expected = await File.ReadAllBytesAsync(Path.Combine(root, name + ".rgba"));
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using (VideoFrame frame = await new TiffImageDecoder().DecodeAsync(encoded, new(), allocator))
+            {
+                Assert.Equal(37, frame.Format.Width);
+                Assert.Equal(29, frame.Format.Height);
+                Assert.Equal(expected.Length, frame.Data.Length);
+                for (int index = 0; index < expected.Length; index++)
+                {
+                    Assert.InRange(Math.Abs(expected[index] - frame.Data.Span[index]), 0, (index & 3) == 3 ? 0 : 4);
+                }
+                Assert.Equal(expected.Length, allocator.AllocatedBytes);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
         [Fact]
         public async Task CompressionByteOrdersPlanesTilesAndPagesMatchIndependentPixels()
         {

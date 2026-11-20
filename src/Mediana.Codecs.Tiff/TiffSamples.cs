@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using Mediana.Formats.Tiff;
+using Mediana.Formats.Color;
 
 namespace Mediana.Codecs.Tiff
 {
@@ -110,7 +111,7 @@ namespace Mediana.Codecs.Tiff
                 { target[3] = (byte)(((long)values[0] * 255 + ((1 << Depth) - 1) / 2) / ((1 << Depth) - 1)); }
                 else if (Photometric == 5)
                 {
-                    for (int c = 0; c < 3; c++) { target[c] = (byte)(((255 - values[c]) * (255 - values[3]) + 127) / 255); }
+                    (target[0], target[1], target[2]) = DeviceCmyk.ToRgb((byte)values[0], (byte)values[1], (byte)values[2], (byte)values[3]);
                 }
                 else
                 {

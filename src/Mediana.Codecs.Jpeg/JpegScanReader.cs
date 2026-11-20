@@ -8,16 +8,16 @@ namespace Mediana.Codecs.Jpeg
         internal static void Read(ReadOnlySpan<byte> header, JpegMarkerReader reader, JpegDocument image,
             bool decode, int restartInterval, CancellationToken token)
         {
-            if (header.Length < 4 || header[0] is < 1 or > 3 || header.Length != 4 + header[0] * 2 || image.Components.Count == 0)
+            if (header.Length < 4 || header[0] is < 1 or > 4 || header.Length != 4 + header[0] * 2 || image.Components.Count == 0)
             {
                 throw new InvalidDataException("JPEG scan header is invalid or precedes its frame.");
             }
             int count = header[0];
             JpegScanParameters scan = new(header[^3], header[^2], header[^1] >> 4, header[^1] & 15);
             scan.Validate(image.Progressive, count);
-            Span<int> indices = stackalloc int[3];
-            Span<int> dcTables = stackalloc int[3];
-            Span<int> acTables = stackalloc int[3];
+            Span<int> indices = stackalloc int[4];
+            Span<int> dcTables = stackalloc int[4];
+            Span<int> acTables = stackalloc int[4];
             int blocks = 0;
             for (int i = 0; i < count; i++)
             {
@@ -101,7 +101,7 @@ namespace Mediana.Codecs.Jpeg
                 rows = (first.Height + 7) / 8;
             }
             JpegEntropyReader bits = new(reader.Encoded.Span, reader.Position);
-            Span<int> predictors = stackalloc int[3];
+            Span<int> predictors = stackalloc int[4];
             predictors.Clear();
             Span<int> coefficients = stackalloc int[64];
             int restart = 0;
