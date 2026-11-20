@@ -9,6 +9,6 @@ namespace Mediana.Tests
         [InlineData("avc-mbaff-pcm-field", true)]
         [InlineData("avc-mbaff-pcm-adaptive", false)]
         public Task MacroblockPairsMatchIndependentDecodedPixels(string name, bool requireFields) =>
-            H264FieldTestInput.VerifyMbaffPcmAsync(Path.GetDirectoryName(Mp4TestData.PathFor(name + ".mp4"))!, name, requireFields);
+            H264FieldTestInput.VerifyMbaffIntraAsync(Path.GetDirectoryName(Mp4TestData.PathFor(name + ".mp4"))!, name, requireFields);
     }
 }

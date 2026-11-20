@@ -21,10 +21,6 @@ namespace Mediana.Codecs.H264
                 target.Quantizers[address] = (byte)target.LumaQuantizer.Offset;
                 return;
             }
-            if (target.Layout.MacroblockAdaptiveFrameField)
-            {
-                throw new NotSupportedException("MBAFF intra prediction is not implemented yet.");
-            }
             bool intra16 = type != 0;
             bool transform8x8 = !intra16 && header.Picture.Transform8x8 && bits.ReadFlag();
             target.Transforms8x8[address] = transform8x8 ? (byte)1 : (byte)0;

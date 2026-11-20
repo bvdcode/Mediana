@@ -11,7 +11,7 @@ namespace Mediana.Tests
 {
     internal static class H264FieldTestInput
     {
-        public static async Task VerifyMbaffPcmAsync(string root, string name, bool requireFields)
+        public static async Task<int> VerifyMbaffIntraAsync(string root, string name, bool requireFields)
         {
             (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), 0);
             byte[] expected = await ReadReferenceAsync(root, name, 0, configuration.Sequences.Values.Single());
@@ -19,9 +19,10 @@ namespace Mediana.Tests
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
             if (header.Kind != H264SliceKind.I || header.Picture.Cabac || !header.Layout.MacroblockAdaptiveFrameField || header.DeblockingEnabled)
             {
-                throw new InvalidDataException("Expected an independently encoded MBAFF CAVLC PCM picture without deblocking.");
+                throw new InvalidDataException("Expected an independently encoded MBAFF CAVLC intra picture without deblocking.");
             }
             MediaBufferAllocator allocator = new(1024 * 1024);
+            int fieldPairs = 0;
             using (H264Picture picture = new(header.Sequence, allocator, header.Kind, header.Structure))
             {
                 H264PictureDecoder.DecodeSlice(ref bits, header, [], picture, header.Layout.MacroblockCount);
@@ -29,6 +30,7 @@ namespace Mediana.Tests
                 for (int address = 0; address < header.Layout.MacroblockCount; address += 2)
                 {
                     bool field = picture.Grid.IsField(address);
+                    if (field) { fieldPairs++; }
                     if (picture.Grid.IsField(address + 1) != field || (requireFields && !field))
                     {
                         throw new InvalidDataException("The independently encoded MBAFF pair mode was not preserved.");
@@ -37,8 +39,9 @@ namespace Mediana.Tests
             }
             if (allocator.AllocatedBytes != 0)
             {
-                throw new InvalidDataException("MBAFF PCM reconstruction retained its buffers.");
+                throw new InvalidDataException("MBAFF intra reconstruction retained its buffers.");
             }
+            return fieldPairs;
         }
 
         public static async Task VerifyIntraAsync(string root, string name, int packet)

@@ -254,3 +254,16 @@ sample in managed execution, Native AOT and ordinary async compilation. Field
 flags, PCM sample placement and allocator release are verified. All 1,022 H.264
 tests pass. Predictive MBAFF macroblocks, field-dependent entropy contexts and
 mixed-edge deblocking remain open; the public interlace guard remains in place.
+
+## MBAFF intra prediction
+
+CAVLC intra reconstruction now maps prediction neighbours, coefficient counts,
+4x4 and 8x8 transform scans, and reconstructed samples through the picture's
+macroblock grid. Canonical block metadata is separate from physical frame or
+field row placement. No additional full-frame surface is allocated.
+
+Four JM 19.1 intra pictures cover 8-bit 4:2:0, High10 4:2:0 and 10-bit 4:2:2.
+Three adaptive pictures contain both frame and field pairs; a fourth uses
+field pairs throughout. All decoded samples match FFmpeg in managed execution,
+Native AOT and ordinary async compilation. The 1,026 H.264 tests pass.
+CABAC MBAFF, predictive macroblocks and mixed-edge deblocking remain open.

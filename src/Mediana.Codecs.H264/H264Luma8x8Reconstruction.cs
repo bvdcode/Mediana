@@ -10,6 +10,7 @@ namespace Mediana.Codecs.H264
             where TReader : IH264ResidualReader
         {
             H264InverseTransform.ValidateQp(qp, target.Sequence.LumaBitDepth);
+            bool field = target.IsFieldMacroblock(x, y);
             Span<int> coefficients = stackalloc int[64];
             Span<int> residual = stackalloc int[64];
             Span<byte> prediction = stackalloc byte[64 * target.SampleBytes];
@@ -42,7 +43,7 @@ namespace Mediana.Codecs.H264
                             .CopyTo(prediction.Slice(row * 8 * target.SampleBytes, 8 * target.SampleBytes));
                     }
                 }
-                H264InverseTransform8x8.Residual(coefficients, qp, residual, target.Sequence.LumaBitDepth, field: target.Layout.IsField);
+                H264InverseTransform8x8.Residual(coefficients, qp, residual, target.Sequence.LumaBitDepth, field: field);
                 target.WriteLuma8x8(blockX, blockY, prediction, residual);
             }
         }

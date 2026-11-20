@@ -25,8 +25,16 @@ namespace Mediana.NativeTests
             {
                 await H264FieldTestInput.VerifyMixedBidirectionalSequenceAsync(root, name);
             }
-            await H264FieldTestInput.VerifyMbaffPcmAsync(root, "avc-mbaff-pcm-field", true);
-            await H264FieldTestInput.VerifyMbaffPcmAsync(root, "avc-mbaff-pcm-adaptive", false);
+            await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-pcm-field", true);
+            await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-pcm-adaptive", false);
+            foreach (string name in new[] { "avc-mbaff-intra-cavlc", "avc-mbaff-intra-field", "avc-mbaff-intra-high10", "avc-mbaff-intra-422-10" })
+            {
+                int fieldPairs = await H264FieldTestInput.VerifyMbaffIntraAsync(root, name, name == "avc-mbaff-intra-field");
+                if (name != "avc-mbaff-intra-field" && fieldPairs is not (> 0 and < 18))
+                {
+                    throw new InvalidDataException("The MBAFF intra fixture must exercise both pair structures.");
+                }
+            }
             foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
             {
                 await H264FieldTestInput.VerifySequenceAsync(root, name);

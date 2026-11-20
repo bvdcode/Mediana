@@ -120,6 +120,10 @@ namespace Mediana.Codecs.H264
 
         public int NeighbourCount(int plane, int x, int y)
         {
+            if (Layout.MacroblockAdaptiveFrameField)
+            {
+                return MappedNeighbourCount(plane, x, y);
+            }
             Span<byte> counts = Counts(plane);
             int index = BlockIndex(plane, x, y);
             int scale = plane == 0 ? 1 : 2;
@@ -133,6 +137,10 @@ namespace Mediana.Codecs.H264
 
         public int PredictedMode(int x, int y, bool constrained = false)
         {
+            if (Layout.MacroblockAdaptiveFrameField)
+            {
+                return MappedPredictedMode(x, y, constrained);
+            }
             if (!IsInCurrentSlice(x - 1, y) || !IsInCurrentSlice(x, y - 1))
             {
                 return 2;
@@ -168,16 +176,16 @@ namespace Mediana.Codecs.H264
 
         private void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int size)
         {
-            int stride = Stride(plane);
+            (int offset, int stride) = SampleLocation(plane, x, y);
             Span<byte> pixels = Plane(plane);
             if (SampleBytes == 1)
             {
-                H264SampleReconstruction.Write(prediction, residual, size, pixels[(y * stride + x)..], stride);
+                H264SampleReconstruction.Write(prediction, residual, size, pixels[offset..], stride);
             }
             else
             {
                 H264HighPrecisionReconstruction.Write(MemoryMarshal.Cast<byte, ushort>(prediction), residual, size,
-                    MemoryMarshal.Cast<byte, ushort>(pixels)[(y * stride + x)..], stride, MaximumSample);
+                    MemoryMarshal.Cast<byte, ushort>(pixels)[offset..], stride, MaximumSample);
             }
             if (plane == 0)
             {

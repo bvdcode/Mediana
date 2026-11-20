@@ -724,3 +724,30 @@ MBAFF predictive macroblocks or deblocking.
 | `avc-mbaff-pcm-field.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
 | `avc-mbaff-pcm-adaptive.mp4` | `50faa9aca0e47e1522e1057218f7b085853693d5b7cd81f71cada61ccf144313` |
 | `avc-mbaff-pcm-adaptive.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
+
+### MBAFF CAVLC intra prediction
+
+The four `avc-mbaff-intra-*` fixtures contain one 96×96 intra picture each,
+encoded by JM 19.1 with CAVLC, QP 24, `Transform8x8Mode=1` and disabled
+deblocking. The `field` case forces field pairs (`MbInterlace=1`); the other
+three use adaptive pairs (`MbInterlace=2`) and are checked to contain both
+pair structures. Precision/chroma coverage is 8-bit 4:2:0, 10-bit 4:2:0 and
+10-bit 4:2:2. Encoder reference reordering and POC memory management are disabled.
+
+Each input starts with the first 96×96 `testsrc2` frame. For every plane, odd rows
+copy the preceding row over the first third of the width; the remaining samples
+come from the odd row rotated left by one sixth of the width. Ten-bit input
+samples exercise all four low-bit combinations. FFmpeg `h264_metadata` normalizes
+NAL syntax during MP4 muxing at 12 fps. Independently decoded references match
+all reconstructed samples and use deterministic gzip headers.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mbaff-intra-cavlc.mp4` | `0457cecb1d5cc6bb4d445ee99ca5582009cbb6c73671ce957f205dbb4fcceeab` |
+| `avc-mbaff-intra-cavlc.yuv.gz` | `83104cdc49004134b6c9d69c71576bdc26e5b28262bb5420f154fd534cd7c79b` |
+| `avc-mbaff-intra-field.mp4` | `e726c13c518b7ba6b425fd371cd8f0ba8b4a2146451422adbed08aded0a0e616` |
+| `avc-mbaff-intra-field.yuv.gz` | `053040271f6edeff3a52482cbe377a7e3b68a9fdfd5252fce91eabdd10399b3d` |
+| `avc-mbaff-intra-high10.mp4` | `1f82bbe64f67d367da72caf6ebbd906ad5181713e66dc836a573f7d95236fa2f` |
+| `avc-mbaff-intra-high10.yuv.gz` | `f09c1f54b06356a6f60721dc89a7492aa1dc4f15f271560d2b02f8426b2968d4` |
+| `avc-mbaff-intra-422-10.mp4` | `5e8adeb2a900de7e1afc7578951b367d9681b381d9933c8e7fd46325afa30f59` |
+| `avc-mbaff-intra-422-10.yuv.gz` | `4f6903e9c2d3dee96d252418a67c573b053149f2ef6964c1f29ef4deaa0cfcb1` |
