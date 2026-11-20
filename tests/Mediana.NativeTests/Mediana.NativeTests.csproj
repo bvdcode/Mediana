@@ -391,6 +391,8 @@
     <Compile Include="../Shared/H264MbaffSequenceTestInput.cs" Link="H264MbaffSequenceTestInput.cs" />
     <Compile Include="../Shared/H264AdaptivePredictionTestInput.cs" Link="H264AdaptivePredictionTestInput.cs" />
     <Compile Include="../Shared/H264CabacPairTestInput.cs" Link="H264CabacPairTestInput.cs" />
+    <Compile Include="../Shared/H264ColocatedBlockTestInput.cs" Link="H264ColocatedBlockTestInput.cs" />
+    <Compile Include="../Shared/H264AdaptiveBidirectionalTestInput.cs" Link="H264AdaptiveBidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264ChromaInterpolationTestInput.cs" Link="H264ChromaInterpolationTestInput.cs" />
     <None Include="../Mediana.Tests/Data/Wave/references.json" Link="Data/Wave/references.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-mp3-*.mp4.json" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

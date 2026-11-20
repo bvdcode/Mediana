@@ -875,3 +875,61 @@ decoded samples. Tests compare all planes and confirm the expected pair modes.
 | `avc-mbaff-p-cabac-422-10.yuv.gz` | `0bf074ad5aba1ce8741abaf1fe513c232b1e20648e750c56cc0e570da6fc92ec` |
 | `avc-mbaff-p-cabac-422.mp4` | `f2d7ebace4132bef01515ecccac781e96ee419e5f037ea4efd2ed712b825159c` |
 | `avc-mbaff-p-cabac-422.yuv.gz` | `a37885406d933d4e62c3b25e0702dcb1a226937c7e53a6a8a85de17c471df726` |
+
+### MBAFF bidirectional sequences
+
+`avc-mbaff-b-*.mp4` contain twelve 96×96 pictures at 12 frames/s encoded
+independently by JM 19.1. They cover CAVLC/CABAC, spatial/temporal direct mode,
+8/10-bit 4:2:0 and 4:2:2, adaptive pairs and forced field pairs. Inputs use the
+same generated source pattern as the predictive MBAFF fixtures. Parameters:
+one B frame, hierarchical coding disabled, two references, QP 24, 8x8 transforms
+enabled, no deblocking and no weighted prediction. Packet PTS follows the
+encoded picture order count; DTS increases by one frame per packet.
+
+Each deterministic `.yuv.gz` contains FFmpeg 6.1.1 decoded samples in display
+order. The tests compare all samples after reordering, including all 240
+pictures across the twenty variants. Synthetic tests separately verify
+explicit/implicit B weights and the colocated mapping in H.264 Table 8-8.
+
+| File | SHA256 |
+| --- | --- |
+| `avc-mbaff-b-cabac-spatial-422-10.mp4` | `da7149562f074aa314bb4af4a540fbfacc0ae0cabd16792e99247613dd490401` |
+| `avc-mbaff-b-cabac-spatial-422-10.yuv.gz` | `084a2c037a7a706a01ea56a2fa94c38433d0b2fb2b487f5988ea0571f4a4be30` |
+| `avc-mbaff-b-cabac-spatial-422.mp4` | `b7b46a9698b70641ff6c4a514ec93b1e40ffc76dabb117d93a6cc099baa30874` |
+| `avc-mbaff-b-cabac-spatial-422.yuv.gz` | `2cfa968e5c97112e004727bd6980090e33a1ad45192656b2292c6c1d6d67b15f` |
+| `avc-mbaff-b-cabac-spatial-adaptive.mp4` | `1cd89e84c9dcd852967bc9390b715f8db19eacabfdc98119dc9d099026398c65` |
+| `avc-mbaff-b-cabac-spatial-adaptive.yuv.gz` | `203082dd2d7cc5ac383022eaaf84d3005b0526aeac8d479a1a29960ee7cc32bd` |
+| `avc-mbaff-b-cabac-spatial-field.mp4` | `d664e607819d01f4c4a482c92e11bb16f6e14ce831abf711b28c8e937b1e8481` |
+| `avc-mbaff-b-cabac-spatial-field.yuv.gz` | `3d2cee5532c79d96108abadec6cbfda30f68312479a8653c05df2b136e07f0f9` |
+| `avc-mbaff-b-cabac-spatial-high10.mp4` | `469794a4e8a539b1a7a9a7763a4ea691d6d7bff33899aff1d4ddbcd27354dd54` |
+| `avc-mbaff-b-cabac-spatial-high10.yuv.gz` | `6749f225d2e78b2ca5c8b08635506db6bd8dc7ee223ec0edbc8ebaaaa7b928bf` |
+| `avc-mbaff-b-cabac-temporal-422-10.mp4` | `a1da8f959abf448eb4208a4b6fe8ae8fd6b5089d549208896d8d28ddb93c8968` |
+| `avc-mbaff-b-cabac-temporal-422-10.yuv.gz` | `ea827b053c4e7640207a62b711c27951f8419782fe174b74feebc66c518b1ea0` |
+| `avc-mbaff-b-cabac-temporal-422.mp4` | `58f944fdd36b5a1fc6808843015117319af4defd8bb89d1730a3fbf62d6f4044` |
+| `avc-mbaff-b-cabac-temporal-422.yuv.gz` | `6ce0ef7cdff19b194c760cde73edf86e022877b8a4a12a7243ccb031d1e7e1a1` |
+| `avc-mbaff-b-cabac-temporal-adaptive.mp4` | `e92d531ce3c76ecf35c94d46ab112f0332a196ec38b774c437c4c31b8fd7987d` |
+| `avc-mbaff-b-cabac-temporal-adaptive.yuv.gz` | `422a9d3684cbaf5e19e417fcf066d473ac95312a0b074a367f00ff0a3af81d60` |
+| `avc-mbaff-b-cabac-temporal-field.mp4` | `4d2a98e82fb6ee81b812fba3b6b70687a7ccfc2c9919ed9d4254087a6ba839b6` |
+| `avc-mbaff-b-cabac-temporal-field.yuv.gz` | `599fb167a5db54fae9995fd2e49f141fbf5f2cbf9497d4ebc708f7ab4ff450c0` |
+| `avc-mbaff-b-cabac-temporal-high10.mp4` | `db8a4b6f22d9d5b63c65ca28ad1ec2dd02d7898885cea3d2509bc88d1aee9c94` |
+| `avc-mbaff-b-cabac-temporal-high10.yuv.gz` | `1e055895e8913cbb5c7a0a54e4f102bc9f7c8c630d6da881f7274c62697e1221` |
+| `avc-mbaff-b-cavlc-spatial-422-10.mp4` | `eb9a4a606e41ce7583f410c8221da9287427b265c9b066c03221e7e2a7d43ace` |
+| `avc-mbaff-b-cavlc-spatial-422-10.yuv.gz` | `5816c674c378b3b9223f46fcdeabd59d5cca78ee45c08be5db139fff78860c36` |
+| `avc-mbaff-b-cavlc-spatial-422.mp4` | `1bf5d9b5e3bbfb01d02006c035735813debd96740256607dcbf066ae4e9b4c2e` |
+| `avc-mbaff-b-cavlc-spatial-422.yuv.gz` | `2f99ccc0c1796b9efab929eecd708bd26d7aba14f0b6d9cb125decc310df3478` |
+| `avc-mbaff-b-cavlc-spatial-adaptive.mp4` | `67a04826300954578d8e424b1cd40fd90abee3e16d744d856c1c26a967bd675e` |
+| `avc-mbaff-b-cavlc-spatial-adaptive.yuv.gz` | `09efda889ad3ee1c19c59acf506abe706561997e5cf819d29a5b4099429f8392` |
+| `avc-mbaff-b-cavlc-spatial-field.mp4` | `b27a463760fd9d322f6580362c07385faf24e620fe97e0b42a06c83c7295714c` |
+| `avc-mbaff-b-cavlc-spatial-field.yuv.gz` | `58ffc03bd23137f23e2791128e4b9a5187c092b82c17113a7bda8deac859f7a5` |
+| `avc-mbaff-b-cavlc-spatial-high10.mp4` | `0fa77eb4152f85b5b757ccee2eb36fa098809f7f1f8803956acadee4f7ab4c58` |
+| `avc-mbaff-b-cavlc-spatial-high10.yuv.gz` | `d03941b591edcf1723e4a18094ac7aef5deada669f233e90c53e46353e382a0a` |
+| `avc-mbaff-b-cavlc-temporal-422-10.mp4` | `5035aab9b756eb8b2c09e72298001d18fdf9089d1a729913ea694e4fbf9bb9b7` |
+| `avc-mbaff-b-cavlc-temporal-422-10.yuv.gz` | `854eeba9a2c2a92b27a2e6a7223e6bbe220fa7156129ce8eac407317fd7ef0ad` |
+| `avc-mbaff-b-cavlc-temporal-422.mp4` | `2a5ec58880d0f7cb05d036919c2fa67531646cfdbe2b224b54da9cd252eb51dc` |
+| `avc-mbaff-b-cavlc-temporal-422.yuv.gz` | `e653a9250b61c125e4f7a1c2ac1c69268bf3fedf492b92aaaa4df3cb3fc99a5a` |
+| `avc-mbaff-b-cavlc-temporal-adaptive.mp4` | `9db3ba0c2379314e0e6bbd975be4a3c98e5438e56fef0692a5e3de04756228a9` |
+| `avc-mbaff-b-cavlc-temporal-adaptive.yuv.gz` | `92b9457c9f7e7eee0708b9d15aedb248f8dc0551c3f32b1a1aaf338a149a8f6d` |
+| `avc-mbaff-b-cavlc-temporal-field.mp4` | `de7c7bc854f78aba6026419a9c4bc4bd8f03599413a7a124faf67bbea18f132c` |
+| `avc-mbaff-b-cavlc-temporal-field.yuv.gz` | `73d91c27468bd65c16fc2d996555b317ed491f09491139d68047ad4a89340c14` |
+| `avc-mbaff-b-cavlc-temporal-high10.mp4` | `2bdd41ccf4b60abc21ca078676a0a9500c6a2a91f01be54527b1db25e320db8f` |
+| `avc-mbaff-b-cavlc-temporal-high10.yuv.gz` | `8445b7d682ebf9bc0809b826c7306ff968981561be0a68c59dd752466e8a25b9` |

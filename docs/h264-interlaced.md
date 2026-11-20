@@ -474,3 +474,35 @@ pictures each on the same fixed core. All decoded hashes match.
 
 CPU ranges overlap for all three sources; these changes extend format
 coverage and do not establish a throughput improvement.
+
+## Bidirectional MBAFF reconstruction
+
+The reconstruction kernels support MBAFF B slices with CAVLC and CABAC,
+spatial and temporal direct modes. Colocated blocks follow H.264 Table 8-8
+for ordinary frames, separate fields and adaptive frames. Reference identities
+and vertical motion are mapped with the selected block structure; temporal
+scaling and implicit weights use the current field's picture order count.
+Explicit weights index the original frame weight table.
+
+CABAC syntax history preserves decoded reference indices before partition
+reconstruction. This allows frame neighbours to distinguish the first two
+field references from references to later frames without accessing incomplete
+reconstructed motion. The compact buffer size is unchanged.
+
+Twenty independent JM sequences, 240 pictures, match FFmpeg sample for sample.
+Synthetic tests cover the colocated mapping table and explicit/implicit
+weights for both field parities, 8/10-bit 4:2:0 and 4:2:2. All 1,174 H.264 tests
+and shared Native AOT validation pass. Public MBAFF decoding still awaits
+verified mixed-edge deblocking and public session/seek checks.
+
+Paired Native AOT measurements use three alternating runs per binary and
+600 decoded pictures per run. The baseline is the preceding CABAC P-pair
+implementation. All hashes match the independent decoder.
+
+| Input | CPU before → after | Wall before → after | Peak RSS before → after | Allocated/run before → after |
+| --- | ---: | ---: | ---: | ---: |
+| 720p CABAC | 7.887 → 7.928 s | 7.888 → 7.929 s | 33.74 → 33.92 MiB | 25.97 → 26.04 MiB |
+| 10-bit 4:2:2 CABAC | 20.103 → 20.261 s | 20.117 → 20.276 s | 48.61 → 48.43 MiB | 40.28 → 40.32 MiB |
+| 720p CAVLC | 7.323 → 7.278 s | 7.325 → 7.279 s | 33.77 → 33.37 MiB | 25.90 → 25.89 MiB |
+
+CPU ranges overlap for all inputs; no general speed improvement is claimed.

@@ -42,7 +42,7 @@ namespace Mediana.Codecs.H264
         public Span<short> MotionY(H264ReferenceList list) =>
             MemoryMarshal.Cast<byte, short>(storage.Span.Slice(ListOffset(list) + blocks * sizeof(short), blocks * sizeof(short)));
 
-        public Span<byte> ReferenceConditions(H264ReferenceList list)
+        public Span<byte> ReferenceContextIndices(H264ReferenceList list)
         {
             if (!bidirectional)
             {
@@ -76,7 +76,7 @@ namespace Mediana.Codecs.H264
             MotionY(list).Slice(start, count).Clear();
             if (bidirectional)
             {
-                ReferenceConditions(list).Slice(start, count).Clear();
+                ReferenceContextIndices(list).Slice(start, count).Clear();
             }
         }
 

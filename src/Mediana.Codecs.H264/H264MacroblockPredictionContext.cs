@@ -32,6 +32,8 @@ namespace Mediana.Codecs.H264
 
         public int ActiveReferenceCount(int count) => AdaptiveField ? checked(count * 2) : count;
 
+        public H264PictureOrder SelectOrder(H264PictureOrder order) => AdaptiveField ? order with { Structure = Structure } : order;
+
         public int WeightIndex(int index)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(index);

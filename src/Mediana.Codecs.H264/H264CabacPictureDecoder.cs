@@ -51,10 +51,6 @@ namespace Mediana.Codecs.H264
             {
                 throw new InvalidDataException("An MBAFF slice must contain complete macroblock pairs.");
             }
-            if (header.Layout.MacroblockAdaptiveFrameField && header.Kind == H264SliceKind.B)
-            {
-                throw new NotSupportedException("MBAFF bidirectional CABAC reconstruction is not implemented.");
-            }
             using H264CabacMacroblockState state = new(result, allocator, header.FirstMacroblock);
             H264CabacReader reader = new(ref bits, header);
             using H264CabacPredictionReader? predictionReader = header.Kind switch

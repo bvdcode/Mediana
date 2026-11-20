@@ -31,8 +31,9 @@ namespace Mediana.Codecs.H264
             }
             Span<int> indicesL0 = stackalloc int[count];
             Span<int> indicesL1 = stackalloc int[count];
-            ReadReferences(ref bits, reader, partitions, H264ReferenceList.L0, header.ActiveReferencesL0, type, x, y, indicesL0);
-            ReadReferences(ref bits, reader, partitions, H264ReferenceList.L1, header.ActiveReferencesL1, type, x, y, indicesL1);
+            H264MacroblockPredictionContext context = H264MacroblockPredictionContext.Create(target, x, y);
+            ReadReferences(ref bits, reader, partitions, H264ReferenceList.L0, context.ActiveReferenceCount(header.ActiveReferencesL0), type, x, y, indicesL0);
+            ReadReferences(ref bits, reader, partitions, H264ReferenceList.L1, context.ActiveReferenceCount(header.ActiveReferencesL1), type, x, y, indicesL1);
             Span<(int X, int Y)> differencesL0 = stackalloc (int, int)[16];
             Span<(int X, int Y)> differencesL1 = stackalloc (int, int)[16];
             ReadDifferences(ref bits, reader, partitions, H264ReferenceList.L0, type, x, y, differencesL0);

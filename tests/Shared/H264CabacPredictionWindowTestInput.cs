@@ -107,8 +107,9 @@ namespace Mediana.Tests
                                         shadowY[list][original] = valueY;
                                         if (bidirectional && (address + blockX + list) % 2 == 0)
                                         {
-                                            window.ReferenceConditions(referenceList)[position] = 1;
-                                            shadowConditions[list][original] = 1;
+                                            byte reference = (byte)(1 + (address + blockX + list) % 31);
+                                            window.ReferenceContextIndices(referenceList)[position] = reference;
+                                            shadowConditions[list][original] = reference;
                                         }
                                     }
                                 }
@@ -169,7 +170,7 @@ namespace Mediana.Tests
             int full = y * columns + x;
             int compact = window.BlockIndex(x * 4, y * 4);
             if (window.MotionX(list)[compact] != shadowX[full] || window.MotionY(list)[compact] != shadowY[full]
-                || (bidirectional && window.ReferenceConditions(list)[compact] != conditions[full]))
+                || (bidirectional && window.ReferenceContextIndices(list)[compact] != conditions[full]))
             {
                 throw new InvalidDataException("CABAC history differs from independent full-picture syntax storage.");
             }

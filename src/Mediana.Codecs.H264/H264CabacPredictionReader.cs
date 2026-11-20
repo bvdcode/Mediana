@@ -27,12 +27,12 @@ namespace Mediana.Codecs.H264
             int reference = H264CabacMacroblockSyntax.ReadReference(ref bits, reader, context, maximum);
             if (target.HasBidirectionalMotion && reference > 0)
             {
-                Span<byte> conditions = window.ReferenceConditions(list);
+                Span<byte> conditions = window.ReferenceContextIndices(list);
                 for (int row = y; row < y + height; row += 4)
                 {
                     for (int column = x; column < x + width; column += 4)
                     {
-                        conditions[window.BlockIndex(column, row)] = 1;
+                        conditions[window.BlockIndex(column, row)] = (byte)reference;
                     }
                 }
             }
@@ -80,7 +80,7 @@ namespace Mediana.Codecs.H264
             }
             if (target.HasBidirectionalMotion)
             {
-                return window.ReferenceConditions(list)[window.BlockIndex(x, y)];
+                return window.ReferenceContextIndices(list)[window.BlockIndex(x, y)] > 0 ? 1 : 0;
             }
             byte index = target.ReferenceIndices(list)[target.BlockIndex(0, x, y)];
             return index != byte.MaxValue && index > 0 ? 1 : 0;
@@ -117,12 +117,12 @@ namespace Mediana.Codecs.H264
             (int nx, int ny) = target.Grid.Position(neighbour.Address);
             nx += neighbour.X;
             ny += neighbour.Y;
-            if (target.HasBidirectionalMotion && window.ReferenceConditions(list)[window.BlockIndex(nx, ny)] == 0)
-            {
-                return 0;
-            }
             bool field = target.Grid.IsField(target.Grid.Address(currentX, currentY));
             int threshold = !field && target.Grid.IsField(neighbour.Address) ? 1 : 0;
+            if (target.HasBidirectionalMotion)
+            {
+                return window.ReferenceContextIndices(list)[window.BlockIndex(nx, ny)] > threshold ? 1 : 0;
+            }
             byte index = target.ReferenceIndices(list)[target.BlockIndex(0, nx, ny)];
             return index != byte.MaxValue && index > threshold ? 1 : 0;
         }

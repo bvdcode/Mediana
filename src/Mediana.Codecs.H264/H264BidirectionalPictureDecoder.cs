@@ -48,11 +48,15 @@ namespace Mediana.Codecs.H264
             CancellationToken cancellationToken = default)
         {
             int qp = header.Qp;
+            H264AdaptiveReferences? adaptive = header.Layout.MacroblockAdaptiveFrameField ? new(references) : null;
             H264CavlcSliceCursor cursor = new(header.Layout, header.Kind, header.FirstMacroblock, endMacroblock);
             while (cursor.MoveNext(ref bits, result.Grid, out int address, out bool skipped))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                ReadMacroblock(ref bits, result, header, references, order, address, ref qp, skipped);
+                (int x, int y) = result.Grid.Position(address);
+                H264BidirectionalReferences selected = adaptive is null ? references
+                    : adaptive.Get(H264MacroblockPredictionContext.Create(result, x, y).Structure);
+                ReadMacroblock(ref bits, result, header, selected, order, address, ref qp, skipped);
             }
             bits.ReadTrailingBits();
         }

@@ -140,7 +140,7 @@ namespace Mediana.Tests
             }
         }
 
-        private static void Fill(H264Picture picture, int start)
+        internal static void Fill(H264Picture picture, int start)
         {
             for (int plane = 0; plane < 3; plane++)
             {

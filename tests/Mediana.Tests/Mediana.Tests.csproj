@@ -313,6 +313,8 @@
     <Compile Include="../Shared/H264MbaffSequenceTestInput.cs" Link="H264MbaffSequenceTestInput.cs" />
     <Compile Include="../Shared/H264AdaptivePredictionTestInput.cs" Link="H264AdaptivePredictionTestInput.cs" />
     <Compile Include="../Shared/H264CabacPairTestInput.cs" Link="H264CabacPairTestInput.cs" />
+    <Compile Include="../Shared/H264ColocatedBlockTestInput.cs" Link="H264ColocatedBlockTestInput.cs" />
+    <Compile Include="../Shared/H264AdaptiveBidirectionalTestInput.cs" Link="H264AdaptiveBidirectionalTestInput.cs" />
     <Compile Include="../Shared/H264ChromaInterpolationTestInput.cs" Link="H264ChromaInterpolationTestInput.cs" />
     <Compile Include="../Shared/WavePcmTestInput.cs" Link="WavePcmTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />

@@ -67,6 +67,17 @@ namespace Mediana.NativeTests
             {
                 await H264MbaffSequenceTestInput.VerifyPredictiveAsync(root, name, 6, true);
             }
+            foreach (string entropy in new[] { "cavlc", "cabac" })
+            {
+                foreach (string direct in new[] { "spatial", "temporal" })
+                {
+                    foreach (string variant in new[] { "field", "adaptive", "high10", "422-10", "422" })
+                    {
+                        await H264MbaffSequenceTestInput.VerifyPredictiveAsync(root, $"avc-mbaff-b-{entropy}-{direct}-{variant}",
+                            12, entropy == "cabac", [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 11]);
+                    }
+                }
+            }
             foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
             {
                 await H264FieldTestInput.VerifySequenceAsync(root, name);
