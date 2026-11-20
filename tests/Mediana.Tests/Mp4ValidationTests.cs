@@ -119,11 +119,11 @@ namespace Mediana.Tests
         }
 
         [Fact]
-        public async Task FragmentedMovieIsRejectedBeforePacketDelivery()
+        public async Task MovieFragmentWithoutExtendsIsRejectedBeforePacketDelivery()
         {
             byte[] data = await Mp4TestData.ReadAsync();
             byte[] fragmentHeader = [0, 0, 0, 8, .. "moof"u8];
-            await AssertOpenFailureAsync<NotSupportedException>([.. data, .. fragmentHeader]);
+            await AssertOpenFailureAsync<InvalidDataException>([.. data, .. fragmentHeader]);
         }
 
         [Fact]

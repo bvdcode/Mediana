@@ -9,14 +9,10 @@ namespace Mediana.Containers.Mp4
 {
     internal static class Mp4MovieParser
     {
-        public static Mp4Movie Parse(ReadOnlyMemory<byte> metadata, IReadOnlyList<Mp4DataRange> dataRanges,
+        public static Mp4Movie Parse(ReadOnlyMemory<byte> metadata, IReadOnlyList<Mp4MovieFragment> fragments, IReadOnlyList<Mp4DataRange> dataRanges,
             Mp4ReadOptions options, Mp4ParseBudget budget, bool quickTime, DateTimeKind calendarKind, CancellationToken cancellationToken)
         {
             Mp4BoxCollection movie = new(metadata, budget);
-            if (movie.Optional("mvex") is not null)
-            {
-                throw new NotSupportedException("Fragmented MP4 is not supported.");
-            }
             if (movie.Optional("cmov") is not null)
             {
                 throw new NotSupportedException("Compressed QuickTime movie headers are not supported.");
@@ -99,7 +95,9 @@ namespace Mediana.Containers.Mp4
                 throw new InvalidDataException("The MP4 movie has no tracks.");
             }
             Mp4MetadataParser metadataParser = new(metadata, options, budget);
-            return new Mp4Movie(timeBase, duration, movieDates, movieMatrix, tracks.ToArray(), tables.ToArray(), metadataParser.Parse(movie, "moov"));
+            Mp4Movie result = new(timeBase, duration, movieDates, movieMatrix, tracks.ToArray(), tables.ToArray(), metadataParser.Parse(movie, "moov"), movie.Optional("mvex") is not null);
+            Mp4FragmentIndexParser.Apply(result, movie.Optional("mvex"), fragments, dataRanges, options, budget, cancellationToken);
+            return result;
         }
 
         private static (TimeBase, MediaDuration?, Mp4HeaderDates) ReadTimeHeader(Mp4Box box, int minimumV0, int minimumV1, DateTimeKind calendarKind)

@@ -83,6 +83,20 @@ namespace Mediana.Containers.Mp4
 
         public int FindSyncSample(int sample) => Mp4SyncSampleLookup.AtOrBefore(SyncSamples, sample);
 
+        public long GetPresentationEnd(CancellationToken cancellationToken)
+        {
+            IMp4SampleCursor cursor = CreateCursor();
+            long end = 0;
+            while (cursor.HasSample)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Mp4SampleLocation sample = cursor.Current;
+                end = Math.Max(end, checked(sample.PresentationTime + sample.Duration));
+                cursor.Advance(sample);
+            }
+            return end;
+        }
+
         public int SampleSize(int index)
         {
             uint size = constantSize == 0 ? Mp4Binary.UInt32(sizes.Span, index * 4) : constantSize;
@@ -201,7 +215,7 @@ namespace Mediana.Containers.Mp4
                 PayloadBytes = checked(PayloadBytes + bytes);
                 sample += (int)count;
                 long offset = ChunkOffset(chunk);
-                if (!ContainsMediaRange(ranges, offset, bytes))
+                if (!Mp4MediaRanges.Contains(ranges, offset, bytes))
                 {
                     throw new InvalidDataException("An MP4 chunk extends outside a media data box.");
                 }
@@ -212,28 +226,5 @@ namespace Mediana.Containers.Mp4
             }
         }
 
-        private static bool ContainsMediaRange(IReadOnlyList<Mp4DataRange> ranges, long offset, long length)
-        {
-            int low = 0;
-            int high = ranges.Count - 1;
-            while (low <= high)
-            {
-                int middle = low + (high - low) / 2;
-                Mp4DataRange range = ranges[middle];
-                if (offset < range.Offset)
-                {
-                    high = middle - 1;
-                }
-                else if (offset - range.Offset > range.Length)
-                {
-                    low = middle + 1;
-                }
-                else
-                {
-                    return range.Contains(offset, length);
-                }
-            }
-            return false;
-        }
     }
 }

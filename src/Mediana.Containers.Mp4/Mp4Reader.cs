@@ -9,7 +9,7 @@ using Mediana.IO;
 
 namespace Mediana.Containers.Mp4
 {
-    /// <summary>Reads non-fragmented, self-contained MP4/MOV tracks in decode order.
+    /// <summary>Reads self-contained MP4/MOV tracks in decode order.
     /// Packet timestamps use the selected timeline; every encoded sample is retained.
     /// Borrows the source. Each packet belongs to its caller.</summary>
     public partial class Mp4Reader : IIndexedPresentationTimingReader, IIndexedPrerollReader, IIndexedPacketTimingReader, IContainerPresentationReader
@@ -24,6 +24,7 @@ namespace Mediana.Containers.Mp4
         private readonly Mp4SampleLookup[] lookups;
         private readonly IMp4SampleIndex[] sampleTables;
         private readonly Mp4PresentationTiming?[] presentationTimings;
+        private readonly bool fragmented;
         private bool disposed;
         private int busy;
 
@@ -31,6 +32,7 @@ namespace Mediana.Containers.Mp4
             MediaBuffer metadata, Mp4Movie movie, Mp4TimestampMode timestampMode, string? majorBrand)
         {
             this.source = source;
+            fragmented = movie.IsFragmented;
             this.allocator = allocator;
             MajorBrand = majorBrand;
             sampleTables = movie.Tables;
@@ -113,7 +115,7 @@ namespace Mediana.Containers.Mp4
             {
                 calendarKind = DateTimeKind.Utc;
             }
-            Mp4Movie movie = Mp4MovieParser.Parse(layout.Metadata.Memory, layout.DataRanges,
+            Mp4Movie movie = Mp4MovieParser.Parse(layout.Movie, layout.Fragments, layout.DataRanges,
                 options, budget, layout.QuickTimeCompatible, calendarKind, cancellationToken);
             await Mp4AudioConfiguration.ReadAsync(movie, source, allocator, options, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();

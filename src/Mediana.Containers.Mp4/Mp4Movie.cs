@@ -7,5 +7,5 @@ using Mediana.Core.Video;
 namespace Mediana.Containers.Mp4
 {
     internal record Mp4Movie(TimeBase TimeBase, MediaDuration? Duration, Mp4HeaderDates HeaderDates, VideoDisplayMatrix DisplayMatrix,
-        Mp4TrackInfo[] Tracks, IMp4SampleIndex[] Tables, Mp4MetadataScope Metadata);
+        Mp4TrackInfo[] Tracks, IMp4SampleIndex[] Tables, Mp4MetadataScope Metadata, bool IsFragmented);
 }

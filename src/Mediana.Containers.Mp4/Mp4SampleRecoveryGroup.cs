@@ -12,13 +12,44 @@ namespace Mediana.Containers.Mp4
         private readonly short?[] distances;
 
         internal Mp4SampleRecoveryGroup(Mp4RecoveryKind kind, int sampleCount, short? defaultDistance,
-            IReadOnlyList<(int End, short? Distance)> runs)
+            IReadOnlyList<(int End, short? Distance)> runs, short[]? descriptions = null)
         {
+            Descriptions = descriptions ?? [];
             Kind = kind;
             SampleCount = sampleCount;
             DefaultDistance = defaultDistance;
             ends = runs.Select(run => run.End).ToArray();
             distances = runs.Select(run => run.Distance).ToArray();
+        }
+
+        internal ReadOnlyMemory<short> Descriptions { get; }
+
+        internal void AppendRuns(List<(int End, short? Distance)> runs, int start)
+        {
+            for (int index = 0; index < ends.Length; index++)
+            {
+                Append(runs, checked(start + ends[index]), distances[index]);
+            }
+            if (ends.Length == 0 || ends[^1] < SampleCount)
+            {
+                Append(runs, checked(start + SampleCount), DefaultDistance);
+            }
+        }
+
+        internal static void Append(List<(int End, short? Distance)> runs, int end, short? distance)
+        {
+            if (end == (runs.Count == 0 ? 0 : runs[^1].End))
+            {
+                return;
+            }
+            if (runs.Count != 0 && runs[^1].Distance == distance)
+            {
+                runs[^1] = (end, distance);
+            }
+            else
+            {
+                runs.Add((end, distance));
+            }
         }
 
         public Mp4RecoveryKind Kind { get; }

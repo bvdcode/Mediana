@@ -84,6 +84,18 @@ namespace Mediana.Containers.Mp4
         /// <summary>Declared encoded-sample recovery requirements, independent of PCM edits and codec startup delay.</summary>
         public IReadOnlyList<Mp4SampleRecoveryGroup> RecoveryGroups { get; }
 
+        internal Mp4TrackInfo WithIndex(IMp4SampleIndex index, IReadOnlyList<Mp4SampleRecoveryGroup> recoveryGroups)
+        {
+            ContainerPacketIndexInfo packets = new(index.SampleCount, index.PayloadBytes,
+                new MediaDuration(index.DecodeDurationTicks, Stream.TimeBase));
+            EncodedStreamInfo stream = new(Stream.StreamIndex, Stream.Kind, Stream.CodecId, Stream.Format,
+                Stream.TimeBase, Stream.Configuration.Span, Stream.DisplayMatrix, packets.DecodeDuration,
+                Stream.ColorDescription, Stream.AspectRatioDescription);
+            return new(TrackId, stream, SampleEntry, MediaDuration, PresentationDuration, Edits, Width, Height,
+                DeclaredAudioChannels, DeclaredAudioSampleRate, index.SampleCount, DisplayMatrix, packets, Language,
+                HeaderDates, MediaDates, MetadataScope, ColorDescriptions, recoveryGroups);
+        }
+
         internal Mp4TrackInfo WithStream(EncodedStreamInfo stream) => new(TrackId, stream, SampleEntry,
             MediaDuration, PresentationDuration, Edits, Width, Height, DeclaredAudioChannels,
             DeclaredAudioSampleRate, SampleCount, DisplayMatrix, PacketIndex, Language, HeaderDates, MediaDates, MetadataScope, ColorDescriptions, RecoveryGroups);

@@ -14,5 +14,6 @@ namespace Mediana.Containers.Mp4
         Mp4SampleLocation Locate(int sample, CancellationToken cancellationToken);
         int? FindSeekSample(Int128 target, int beforeSample, CancellationToken cancellationToken);
         int FindSyncSample(int sample);
+        long GetPresentationEnd(CancellationToken cancellationToken);
     }
 }

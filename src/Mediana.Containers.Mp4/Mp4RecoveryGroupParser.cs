@@ -8,7 +8,7 @@ namespace Mediana.Containers.Mp4
     internal static class Mp4RecoveryGroupParser
     {
         public static IReadOnlyList<Mp4SampleRecoveryGroup> Parse(Mp4BoxCollection boxes, int sampleCount,
-            Mp4ReadOptions options, CancellationToken token)
+            Mp4ReadOptions options, CancellationToken token, IReadOnlyList<Mp4SampleRecoveryGroup>? trackGroups = null)
         {
             List<Mp4SampleRecoveryGroup> groups = [];
             foreach (string type in new[] { "roll", "prol" })
@@ -16,7 +16,14 @@ namespace Mediana.Containers.Mp4
                 token.ThrowIfCancellationRequested();
                 Mp4Box? description = Find(boxes, "sgpd", type);
                 Mp4Box? mapping = Find(boxes, "sbgp", type);
-                if (description is null)
+                Mp4RecoveryKind groupKind = type switch
+                {
+                    "roll" => Mp4RecoveryKind.Roll,
+                    "prol" => Mp4RecoveryKind.PreRoll,
+                    _ => throw new InvalidDataException("Unknown MP4 recovery grouping type.")
+                };
+                Mp4SampleRecoveryGroup? inherited = trackGroups?.SingleOrDefault(group => group.Kind == groupKind);
+                if (description is null && inherited is null)
                 {
                     if (mapping is not null)
                     {
@@ -24,19 +31,16 @@ namespace Mediana.Containers.Mp4
                     }
                     continue;
                 }
-                (short[] entries, uint defaultIndex) = ReadDescriptions(description.Value.Payload.Span, options, token);
+                (short[] entries, uint defaultIndex) = description is null
+                    ? (Array.Empty<short>(), 0) : ReadDescriptions(description.Value.Payload.Span, options, token);
+                ReadOnlyMemory<short> global = trackGroups is null ? entries : inherited?.Descriptions ?? ReadOnlyMemory<short>.Empty;
+                short? defaultDistance = description is null ? inherited?.DefaultDistance : Distance(entries, defaultIndex);
                 List<(int End, short? Distance)> runs = [];
                 if (mapping is not null)
                 {
-                    ReadMapping(mapping.Value.Payload.Span, entries, sampleCount, options, runs, token);
+                    ReadMapping(mapping.Value.Payload.Span, global.Span, entries, trackGroups is not null, sampleCount, options, runs, token);
                 }
-                Mp4RecoveryKind kind = type switch
-                {
-                    "roll" => Mp4RecoveryKind.Roll,
-                    "prol" => Mp4RecoveryKind.PreRoll,
-                    _ => throw new InvalidDataException("Unknown MP4 recovery grouping type.")
-                };
-                groups.Add(new(kind, sampleCount, Distance(entries, defaultIndex), runs));
+                groups.Add(new(groupKind, sampleCount, defaultDistance, runs, entries));
             }
             return groups.AsReadOnly();
         }
@@ -114,7 +118,7 @@ namespace Mediana.Containers.Mp4
             return (entries, defaultIndex);
         }
 
-        private static void ReadMapping(ReadOnlySpan<byte> data, short[] entries, int sampleCount,
+        private static void ReadMapping(ReadOnlySpan<byte> data, ReadOnlySpan<short> entries, ReadOnlySpan<short> localEntries, bool fragment, int sampleCount,
             Mp4ReadOptions options, List<(int End, short? Distance)> runs, CancellationToken token)
         {
             byte version = Mp4Binary.Range(data, 0, 1)[0];
@@ -147,7 +151,9 @@ namespace Mediana.Containers.Mp4
             {
                 token.ThrowIfCancellationRequested();
                 uint samples = Mp4Binary.UInt32(data, offset);
-                short? distance = Distance(entries, Mp4Binary.UInt32(data, offset + 4));
+                uint groupIndex = Mp4Binary.UInt32(data, offset + 4);
+                short? distance = fragment && groupIndex >= 0x10000
+                    ? Distance(localEntries, groupIndex - 0x10000) : Distance(entries, groupIndex);
                 if (samples > sampleCount - end)
                 {
                     throw new InvalidDataException("MP4 recovery runs exceed the track sample count.");
@@ -159,15 +165,19 @@ namespace Mediana.Containers.Mp4
                 }
                 offset += 8;
             }
+            if (fragment && end != sampleCount)
+            {
+                throw new InvalidDataException("MP4 fragment recovery runs must cover every sample.");
+            }
         }
 
-        private static short? Distance(short[] entries, uint index)
+        private static short? Distance(ReadOnlySpan<short> entries, uint index)
         {
             if (index > entries.Length)
             {
                 throw new InvalidDataException("An MP4 recovery group references a missing description.");
             }
-            return index == 0 ? null : entries[index - 1];
+            return index == 0 ? null : entries[(int)index - 1];
         }
     }
 }
