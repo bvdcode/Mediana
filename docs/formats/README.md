@@ -57,7 +57,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `webm-live` | WebM — Incremental / live presentation | .webm | R □ · W □ | B | Track metadata, unknown sizes and incremental clusters need separate fixtures. [webm](sources.md#webm) | — |
 | `ogg` | Ogg — Single and multiplexed logical streams | .ogg .oga .ogv .opus .spx | R ◐ · W □ | A | Current indexed reader exposes Opus/Vorbis packets, headers, tags and granule timing; codec decoding and writing are separate. [ogg](sources.md#ogg) | [ogg-index](../performance/README.md#ogg-index) |
 | `ogg-chained` | Ogg — Chained logical streams | .ogg .opus | R ◐ · W □ | B | Current reader keeps chained links separately selectable; selecting a link does not concatenate links. [ogg](sources.md#ogg) | — |
-| `avi` | AVI — RIFF AVI 1.0 | .avi | R ◐ · W □ | B | Indexed MJPEG/MPEG-4 Visual/PCM input; declared packed DivX/Xvid normalizes into complete VOPs. [API](../avi.md). [riff](sources.md#riff) | — |
+| `avi` | AVI — RIFF AVI 1.0 | .avi | R ◐ · W □ | B | Indexed MJPEG/MPEG-4 Visual/PCM/MP3 input; declared packed DivX/Xvid normalizes into complete VOPs. [API](../avi.md). [riff](sources.md#riff) | — |
 | `avi-opendml` | AVI — OpenDML / AVI 2.0 | .avi | R ◐ · W □ | B | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `asf` | ASF — File and streaming structure | .asf .wmv .wma | R □ · W □ | B | [asf](sources.md#asf) | — |
 | `flv` | FLV — Classic file structure | .flv | R □ · W □ | B | [flv](sources.md#flv) | — |
@@ -338,7 +338,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `g722` | G.722 — Wideband sub-band coding | — | D □ · E □ | C | [itu-audio](sources.md#itu-audio) | — |
 | `mp1` | MPEG Audio — MPEG-1/2 Layer I | .mp1 | D □ · E □ | B | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `mp2` | MPEG Audio — MPEG-1/2 Layer II | .mp2 | D □ · E □ | B | [mpeg-audio](sources.md#mpeg-audio) | — |
-| `mp3-mpeg1` | MP3 — MPEG-1 Layer III | .mp3 | D ◐ · E □ | A | Current decoder covers mono/stereo/joint stereo; no MP3 encoder. [mpeg-audio](sources.md#mpeg-audio) | [mp3-long](../performance/README.md#mp3-long), [audio-resample](../performance/README.md#audio-resample) |
+| `mp3-mpeg1` | MP3 — MPEG-1 Layer III | .mp3 | D ◐ · E □ | A | Decoder covers mono/stereo/joint stereo; managed mono/stereo Layer III encoding and MP3 file output. [mpeg-audio](sources.md#mpeg-audio) | [mp3-long](../performance/README.md#mp3-long), [audio-resample](../performance/README.md#audio-resample) |
 | `mp3-mpeg2` | MP3 — MPEG-2 Layer III lower sampling rates | .mp3 | D ◐ · E □ | A | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `mp3-mpeg25` | MP3 — MPEG-2.5 Layer III extension | .mp3 | D ◐ · E □ | B | Widely used non-ISO extension; track it separately from MPEG-2. [mpeg-audio](sources.md#mpeg-audio), [discovery](sources.md#discovery) | — |
 | `aac-lc` | AAC — Low Complexity, 1024/960-sample modes | — | D ◐ · E ◐ | A | Current decode: supported 1024-sample configurations 1–7; encode: experimental mono/stereo 1024 only. [mpeg-audio](sources.md#mpeg-audio) | [aac-multichannel](../performance/README.md#aac-multichannel) |
