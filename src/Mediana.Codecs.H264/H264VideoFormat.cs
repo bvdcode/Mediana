@@ -42,7 +42,7 @@ namespace Mediana.Codecs.H264
             {
                 color = color with { FieldChromaLocations = new(Location(topLocation), Location(bottomLocation)) };
             }
-            return new VideoFormat(sequence.Width, height, pixels, color, aspect, colorDescription, scanMode);
+            return new VideoFormat(sequence.Width, height, pixels, color, aspect, colorDescription, scanMode, sequence.Height);
         }
 
         internal static SampleAspectRatio? ReadSampleAspectRatio(H264VuiParameters? vui) =>

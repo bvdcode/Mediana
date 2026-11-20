@@ -38,6 +38,10 @@ namespace Mediana.Processing
             {
                 throw new ArgumentException("The frame height does not match the stored field height and parity.", nameof(frameHeight));
             }
+            if (field.Format.FullFrameHeight is int declared && declared != frameHeight)
+            {
+                throw new ArgumentException("The frame height contradicts the field's declared full frame geometry.", nameof(frameHeight));
+            }
             VideoPixelFormat pixels = field.Format.PixelFormat;
             if (pixels is not PlanarVideoPixelFormat && pixels != VideoPixelFormat.Rgba32 && pixels != VideoPixelFormat.RgbaFloat32Premultiplied)
             {

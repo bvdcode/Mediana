@@ -14,6 +14,12 @@ namespace Mediana.Core.Video
 
         public VideoFormat(int width, int height, VideoPixelFormat pixelFormat, VideoColorInfo? color,
             SampleAspectRatio? sampleAspectRatio, VideoColorDescription? colorDescription, VideoScanMode scanMode)
+            : this(width, height, pixelFormat, color, sampleAspectRatio, colorDescription, scanMode, null)
+        {
+        }
+
+        public VideoFormat(int width, int height, VideoPixelFormat pixelFormat, VideoColorInfo? color,
+            SampleAspectRatio? sampleAspectRatio, VideoColorDescription? colorDescription, VideoScanMode scanMode, int? fullFrameHeight)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
@@ -23,6 +29,18 @@ namespace Mediana.Core.Video
                 throw new ArgumentOutOfRangeException(nameof(scanMode));
             }
             sampleAspectRatio?.Validate();
+            if (fullFrameHeight is int declaredHeight)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(declaredHeight);
+            }
+            FullFrameHeight = scanMode switch
+            {
+                VideoScanMode.Progressive or VideoScanMode.TopFieldFirst or VideoScanMode.BottomFieldFirst
+                    when fullFrameHeight is null || fullFrameHeight == height => height,
+                VideoScanMode.TopField when fullFrameHeight is null || ((long)fullFrameHeight.Value + 1) / 2 == height => fullFrameHeight,
+                VideoScanMode.BottomField when fullFrameHeight is null || fullFrameHeight.Value / 2 == height => fullFrameHeight,
+                _ => throw new ArgumentException("The full frame height does not match the stored rows and scan mode.", nameof(fullFrameHeight))
+            };
             Width = width;
             Height = height;
             PixelFormat = pixelFormat;
@@ -34,6 +52,8 @@ namespace Mediana.Core.Video
 
         public int Width { get; }
         public int Height { get; }
+        /// <summary>Full visible frame height. A single-field surface may leave it unknown; stored Height remains the number of field rows.</summary>
+        public int? FullFrameHeight { get; }
         public VideoPixelFormat PixelFormat { get; }
         public VideoScanMode ScanMode { get; }
         public VideoColorInfo Color { get; }

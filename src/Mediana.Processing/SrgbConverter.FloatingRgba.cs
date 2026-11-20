@@ -13,7 +13,7 @@ namespace Mediana.Processing
             MediaBufferAllocator allocator, TTransform transform, CancellationToken token) where TTransform : struct, IRgbPixelTransform
         {
             VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio, null,
-                VideoScanGeometry.Map(input.Format.ScanMode, map));
+                VideoScanGeometry.Map(input.Format.ScanMode, map), VideoScanGeometry.FullFrameHeight(input.Format, map.OutputHeight));
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             int cachedY = -1;

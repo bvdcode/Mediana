@@ -20,7 +20,7 @@ namespace Mediana
                 assumed.Validate();
                 VideoFormat format = input.Format;
                 using VideoFrame interpreted = input.WithFormat(new(format.Width, format.Height, format.PixelFormat,
-                    format.Color, assumed, format.ColorDescription, format.ScanMode));
+                    format.Color, assumed, format.ColorDescription, format.ScanMode, format.FullFrameHeight));
                 options.WarningHandler?.Invoke($"Missing sample aspect ratio; processing uses {assumed.Numerator}:{assumed.Denominator}. Source metadata was not modified.");
                 return ApplyResolved(interpreted, matrix, preserveAspect, options, allocator, token);
             }

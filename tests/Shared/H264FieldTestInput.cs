@@ -214,6 +214,10 @@ namespace Mediana.Tests
                 bool queued = false;
                 try
                 {
+                    if (frame.Format.FullFrameHeight != header.Sequence.Height)
+                    {
+                        throw new InvalidDataException("The decoded surface lost the sequence's full frame height.");
+                    }
                     references.Store(picture, header, nextOrder.Current);
                     stored = true;
                     outputs.Add(frame, nextOrder.Current, header);

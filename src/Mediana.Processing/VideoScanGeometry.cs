@@ -7,6 +7,13 @@ namespace Mediana.Processing
 {
     internal static class VideoScanGeometry
     {
+        public static int? FullFrameHeight(VideoFormat input, int outputHeight) => input.ScanMode switch
+        {
+            VideoScanMode.Progressive or VideoScanMode.TopFieldFirst or VideoScanMode.BottomFieldFirst => outputHeight,
+            VideoScanMode.TopField or VideoScanMode.BottomField => input.FullFrameHeight,
+            _ => throw new ArgumentOutOfRangeException(nameof(input))
+        };
+
         public static VideoScanMode Map(VideoScanMode mode, NearestNeighborMap map)
         {
             switch (mode)

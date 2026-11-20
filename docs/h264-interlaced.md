@@ -50,7 +50,8 @@ on an exact common clock. Unknown durations remain unknown.
 A pending field retains its pixel lease independently of the reference buffer.
 Pair assembly allocates one final interleaved surface and copies each visible row
 once. It does not allocate full-size intermediate surfaces. Unpaired fields are
-emitted with their actual field geometry; no missing field is synthesized. IDR
+emitted with their actual field geometry and known `FullFrameHeight`; no missing
+field is synthesized. IDR
 output-discard flags, reference resets, cancellation and failed output allocation
 preserve the queue's ownership contract.
 Additional tests cover all three POC types, parity-aware list modification,

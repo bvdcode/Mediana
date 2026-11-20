@@ -51,11 +51,32 @@ namespace Mediana.Tests
         public void SingleSurfacesUseTheirStoredSampleHeight(VideoScanMode mode)
         {
             VideoFormat format = new(6, 3, VideoPixelFormat.Yuv420P10, null, null, null, mode);
+            if (mode == VideoScanMode.Progressive) { Assert.Equal(3, format.FullFrameHeight); }
+            else { Assert.Null(format.FullFrameHeight); }
             PlaneLayout[] planes = format.CreateTightLayout();
             Assert.Equal(3, planes[0].Height);
             Assert.Equal(2, planes[1].Height);
             Assert.Equal(6, planes[1].RowBytes);
             Assert.Equal(60, planes[^1].EndOffset);
+        }
+
+        [Fact]
+        public void AFieldCanDeclareEitherMatchingFullHeightWithoutGuessing()
+        {
+            foreach (int height in new[] { 5, 6 })
+            {
+                VideoFormat top = new(6, 3, VideoPixelFormat.Yuv420P8, null, null, null, VideoScanMode.TopField, height);
+                Assert.Equal(height, top.FullFrameHeight);
+            }
+            foreach (int height in new[] { 6, 7 })
+            {
+                VideoFormat bottom = new(6, 3, VideoPixelFormat.Yuv420P8, null, null, null, VideoScanMode.BottomField, height);
+                Assert.Equal(height, bottom.FullFrameHeight);
+            }
+            Assert.Throws<ArgumentException>(() => new VideoFormat(6, 3, VideoPixelFormat.Yuv420P8, null, null, null, VideoScanMode.TopField, 7));
+            Assert.Throws<ArgumentException>(() => new VideoFormat(6, 3, VideoPixelFormat.Yuv420P8, null, null, null, VideoScanMode.BottomField, 5));
+            Assert.Throws<ArgumentException>(() => new VideoFormat(6, 3, VideoPixelFormat.Yuv420P8, null, null, null, VideoScanMode.Progressive, 6));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new VideoFormat(6, 3, VideoPixelFormat.Yuv420P8, null, null, null, VideoScanMode.TopField, 0));
         }
 
         [Fact]

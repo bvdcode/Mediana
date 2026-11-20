@@ -23,7 +23,14 @@ namespace Mediana.Tests
             {
                 FieldChromaLocations = new(ChromaLocation.Left, ChromaLocation.Center)
             };
-            VideoFormat format = new(4, 6, VideoPixelFormat.Yuv420P8, color, SampleAspectRatio.Square, null, mode);
+            int fullHeight = mode switch
+            {
+                VideoScanMode.TopFieldFirst or VideoScanMode.BottomFieldFirst => 6,
+                VideoScanMode.TopField => 11,
+                VideoScanMode.BottomField => 13,
+                _ => throw new ArgumentOutOfRangeException(nameof(mode))
+            };
+            VideoFormat format = new(4, 6, VideoPixelFormat.Yuv420P8, color, SampleAspectRatio.Square, null, mode, fullHeight);
             PlaneLayout[] planes = format.CreateTightLayout();
             using (WritableMediaBuffer writable = allocator.Allocate((int)planes[^1].EndOffset))
             {
@@ -33,9 +40,13 @@ namespace Mediana.Tests
                 using VideoFrame output = SrgbConverter.Apply(input, allocator);
                 Assert.Equal(mode, output.Format.ScanMode);
                 Assert.Equal(6, output.Format.Height);
+                Assert.Equal(fullHeight, output.Format.FullFrameHeight);
                 Assert.Equal(VideoColorInfo.Srgb, output.Format.Color);
                 using VideoFrame horizontal = RgbaResize.Apply(output, 2, 6, allocator);
                 Assert.Equal(mode, horizontal.Format.ScanMode);
+                Assert.Equal(fullHeight, horizontal.Format.FullFrameHeight);
+                using VideoFrame nearest = NearestNeighborResize.Apply(output, 3, 6, allocator);
+                Assert.Equal(fullHeight, nearest.Format.FullFrameHeight);
                 Assert.Throws<NotSupportedException>(() => RgbaResize.Apply(output, 2, 3, allocator));
                 Assert.Throws<NotSupportedException>(() => SrgbPreview.Fit(input, VideoDisplayMatrix.Identity, 2, 3, allocator));
             }

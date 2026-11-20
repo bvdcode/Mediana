@@ -45,6 +45,8 @@ namespace Mediana.Tests
                 Assert.Equal(height / 2, bottom.Format.Height);
                 Assert.Equal(VideoScanMode.TopField, top.Format.ScanMode);
                 Assert.Equal(VideoScanMode.BottomField, bottom.Format.ScanMode);
+                Assert.Equal(height, top.Format.FullFrameHeight);
+                Assert.Equal(height, bottom.Format.FullFrameHeight);
                 for (int plane = 0; plane < planes.Length; plane++)
                 {
                     for (int row = 0; row < top.Planes[plane].Height; row++)

@@ -72,7 +72,7 @@ namespace Mediana.Processing
                 return ApplyRgba(input, map, aspectRatio, allocator, transform, cancellationToken);
             }
             VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio, null,
-                VideoScanGeometry.Map(input.Format.ScanMode, map));
+                VideoScanGeometry.Map(input.Format.ScanMode, map), VideoScanGeometry.FullFrameHeight(input.Format, map.OutputHeight));
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             if (gbr)

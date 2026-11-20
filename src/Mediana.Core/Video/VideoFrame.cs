@@ -111,7 +111,7 @@ namespace Mediana.Core.Video
                 _ => throw new ArgumentOutOfRangeException(nameof(parity))
             };
             VideoFormat format = new(Format.Width, height, Format.PixelFormat, Format.Color, Format.SampleAspectRatio,
-                Format.ColorDescription, mode);
+                Format.ColorDescription, mode, Format.Height);
             PlaneLayout[] layout = format.CreateTightLayout();
             for (int plane = 0; plane < layout.Length; plane++)
             {

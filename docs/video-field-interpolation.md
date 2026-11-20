@@ -5,6 +5,13 @@ progressive surface from one explicitly selected field. Use `VideoFrame.GetField
 for an interleaved source. The full output height is required: a single field
 does not determine whether the original frame height was odd or even.
 
+`VideoFormat.FullFrameHeight` preserves this geometry when it is known. Frame
+surfaces use their visible height; standalone fields created without this
+information leave it null. `GetField` carries the source's full height, and the
+H.264 decoder supplies it from the sequence's visible dimensions. Color
+conversion and permitted horizontal resizing preserve it. An explicit
+interpolation height must agree with the declared full height.
+
 Existing field rows remain exact. Missing rows use linear interpolation within
 the same field; edges extend the nearest row. Integer averages round upward
 without overflow. Straight RGBA uses alpha-weighted colors, while premultiplied

@@ -191,6 +191,7 @@ namespace Mediana.Tests
             long before = allocator.AllocatedBytes;
             Assert.Throws<ArgumentException>(() => VideoFieldInterpolator.Apply(input, 3, allocator));
             Assert.Throws<ArgumentException>(() => VideoFieldInterpolator.Apply(top, 2, allocator));
+            Assert.Throws<ArgumentException>(() => VideoFieldInterpolator.Apply(top, 4, allocator));
             Assert.Throws<ArgumentException>(() => VideoFieldInterpolator.Apply(bottom, 4, allocator));
             Assert.Throws<OperationCanceledException>(() => VideoFieldInterpolator.Apply(top, 3, allocator, new(true)));
             MediaBufferAllocator small = new(1);

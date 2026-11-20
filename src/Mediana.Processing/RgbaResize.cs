@@ -55,7 +55,7 @@ namespace Mediana.Processing
             using WritableMediaBuffer rows = allocator.Allocate(checked(width * vertical.Capacity * 16));
             using WritableMediaBuffer scratch = allocator.Allocate(checked((input.Format.Width + width) * 16));
             VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, input.Format.Color,
-                input.Format.SampleAspectRatio, input.Format.ColorDescription, scanMode);
+                input.Format.SampleAspectRatio, input.Format.ColorDescription, scanMode, VideoScanGeometry.FullFrameHeight(input.Format, height));
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)layout[0].EndOffset));
             Span<Vector4> cache = MemoryMarshal.Cast<byte, Vector4>(rows.Memory.Span);

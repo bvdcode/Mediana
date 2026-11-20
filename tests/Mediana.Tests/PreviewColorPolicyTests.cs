@@ -9,6 +9,27 @@ namespace Mediana.Tests
     public class PreviewColorPolicyTests
     {
         [Theory]
+        [InlineData(480, ColorPrimaries.Smpte170M, MatrixCoefficients.Bt601)]
+        [InlineData(576, ColorPrimaries.Bt470Bg, MatrixCoefficients.Bt601)]
+        [InlineData(1080, ColorPrimaries.Bt709, MatrixCoefficients.Bt709)]
+        public void SingleFieldUsesKnownFullFrameGeometryForMissingColorLabels(int height, ColorPrimaries primaries, MatrixCoefficients matrix)
+        {
+            VideoFormat format = new(720, height / 2, VideoPixelFormat.Yuv420P8, null, SampleAspectRatio.Square,
+                null, VideoScanMode.TopField, height);
+            VideoColorInfo resolved = SdrPreviewColorPolicy.Resolve(format);
+            Assert.Equal(primaries, resolved.Primaries);
+            Assert.Equal(matrix, resolved.Matrix);
+        }
+
+        [Fact]
+        public void ADeclaredSdMatrixUsesFullFieldHeightToChooseItsMissingPrimaries()
+        {
+            VideoFormat format = new(720, 288, VideoPixelFormat.Yuv420P8, new(Matrix: MatrixCoefficients.Bt601),
+                null, null, VideoScanMode.BottomField, 576);
+            Assert.Equal(ColorPrimaries.Bt470Bg, SdrPreviewColorPolicy.Resolve(format).Primaries);
+        }
+
+        [Theory]
         [InlineData(640, 480, ColorPrimaries.Smpte170M, MatrixCoefficients.Bt601)]
         [InlineData(720, 480, ColorPrimaries.Smpte170M, MatrixCoefficients.Bt601)]
         [InlineData(720, 576, ColorPrimaries.Bt470Bg, MatrixCoefficients.Bt601)]
