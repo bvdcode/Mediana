@@ -178,6 +178,15 @@ namespace Mediana.Containers.Avi
         private async ValueTask<MediaPacket> ReadPacketCoreAsync(AviTrack track, long packetIndex, CancellationToken cancellationToken)
         {
             AviPacketEntry entry = track.Packets[packetIndex];
+            if (entry.SourceChunkIndex >= 0)
+            {
+                using WritableMediaBuffer audio = allocator.Allocate(entry.Length);
+                await ReadAudioBytesAsync(track.AudioChunks ?? throw new InvalidOperationException("The AVI audio chunk index is missing."),
+                    entry.SourceChunkIndex, checked((int)(entry.Offset - entry.ChunkDataOffset)), audio.Memory, cancellationToken).ConfigureAwait(false);
+                using MediaBuffer payload = audio.Publish();
+                ContainerPacketTiming audioTiming = GetPacketTiming(track.Stream.StreamIndex, packetIndex, cancellationToken);
+                return new(track.Stream.StreamIndex, payload, audioTiming.PresentationTime, audioTiming.DecodeTime, audioTiming.Duration, entry.KeyFrame);
+            }
             AviChunk chunk = await ReadChunkAsync(entry.ChunkDataOffset - 8, sourceLength, cancellationToken).ConfigureAwait(false);
             if (chunk.Id != entry.ChunkId || chunk.Length != entry.ChunkLength)
             {

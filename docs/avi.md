@@ -73,3 +73,29 @@ half-second segments each. All 12 pictures and 72,000 input PCM samples are
 processed, with 1,024 AAC priming samples and 704 padding samples. FFmpeg reads
 the master and both media playlists without errors. Managed and Native AOT
 checks compare every prepared PCM sample and timestamp and verify buffer release.
+
+
+## MP3 audio
+
+WAVE format tag `0x0055` maps to complete Layer III frames. The reader normalizes
+several frames in one chunk and frames spanning several chunks, including a
+header split between chunks. It retains source chunk ranges and validates each
+addressed chunk when reading a packet. Opening reads frame headers and builds
+sample-exact timing without retaining compressed audio or decoding it.
+Declared WAVE sample rate and channel count must match the frames. Coded timing
+uses `1 / sample rate`, independently of the AVI byte or frame clock. Reservoir
+back references determine the packet's restart indication; a container index
+flag does not establish independent MP3 decoding.
+
+The independent MJPEG/MP3 fixture matches every FFprobe packet hash. Structural
+tests cover chunk sizes from one byte to the complete audio stream. HLS exports
+have been independently decoded both with MP3 stream copy and with AAC encoding.
+
+## Segment requests
+
+`AvcHlsTranscodeSession` also accepts an indexed AVI reader, its registered
+MJPEG/MPEG-4 decoder and explicit output preparation. PCM audio can be supplied
+through `HlsAacEncoding`. Planning and initialization do not read compressed
+packets. The MJPEG/PCM test requests half-second audiovisual windows in order
+2, 0, 1, 2; each request reads only local payload and required audio warm-up,
+releases its work and reproduces identical bytes when repeated.

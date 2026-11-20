@@ -17,8 +17,9 @@ namespace Mediana.Containers.Avi
                 Stream.DisplayMatrix, Stream.CodedDuration, Stream.ColorDescription, Stream.AspectRatioDescription);
         }
         public uint SampleSize { get; } = sampleSize;
-        public long Start { get; } = start;
-        public long DeclaredLength { get; } = length;
+        public long Start { get; private set; } = start;
+        public MediaDuration DeclaredDuration { get; } = new(length, stream.TimeBase);
+        public AviPacketIndex? AudioChunks { get; private set; }
         public long Time { get; private set; } = start;
         public long PayloadBytes { get; private set; }
         public long Cursor { get; set; }
@@ -65,6 +66,20 @@ namespace Mediana.Containers.Avi
             Packets.Dispose(); Packets = replacement; PayloadBytes = payload;
         }
 
-        public void Dispose() => Packets.Dispose();
+        public void SetAudioPackets(AviPacketIndex replacement, EncodedStreamInfo stream, long start, long end)
+        {
+            AudioChunks = Packets;
+            Packets = replacement;
+            Stream = stream;
+            Start = start;
+            Time = end;
+            PresentationClock = stream.TimeBase;
+        }
+
+        public void Dispose()
+        {
+            try { Packets.Dispose(); }
+            finally { AudioChunks?.Dispose(); }
+        }
     }
 }
