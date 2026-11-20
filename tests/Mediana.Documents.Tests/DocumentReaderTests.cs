@@ -18,6 +18,21 @@ namespace Mediana.Documents.Tests
         [Fact] public Task PublicReadersPreserveValuesStructureAndPixels() => DocumentReadersTestInput.VerifyAsync();
         [Fact] public Task PictureFillsPreservePixelsSourcesAndOwnership() => PresentationImageFillTestInput.VerifyAsync();
         [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task TriangleBulletUsesSharedPunctuationOutlines(bool strict)
+        {
+            using PresentationDocument document = PresentationReader.Open(PresentationTestData.Create(strict: strict, titleText: "‣"));
+            Drawing.TextOptions text = new() { SubstituteMissingFonts = true };
+            using Drawing.PixelBuffer actual = await PresentationRenderer.RenderAsync(document, 0,
+                new() { Dpi = 72, Supersampling = 1, Text = text });
+            using Drawing.PixelBuffer reference = await PresentationRenderer.RenderAsync(document, 0,
+                new() { Dpi = 72, Supersampling = 1, Text = text with { FontProgramResolver = _ => Drawing.Fonts.BundledFontPrograms.GetProgram("Mediana Punctuation") } });
+            Assert.Equal(reference.Pixels.ToArray(), actual.Pixels.ToArray());
+            await Assert.ThrowsAsync<NotSupportedException>(async () => await PresentationRenderer.RenderAsync(document, 0,
+                new() { Text = new() }));
+        }
+        [Theory]
         [InlineData("<a:tile sx='0'/>", "")]
         [InlineData("<a:tile sy='-1'/>", "")]
         [InlineData("<a:tile sx='NaN'/>", "")]

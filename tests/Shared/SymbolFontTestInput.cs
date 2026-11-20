@@ -22,13 +22,14 @@ namespace Mediana.Tests
             TextOptions options = new() { SubstituteMissingFonts = true };
             TextRenderer text = new(options);
             Require(ReferenceEquals(text.ResolveGlyph(request, 'A').Font.SharedProgram, primary));
-            foreach (int scalar in new[] { 0x25CF, 0x25AA })
+            foreach (int scalar in new[] { 0x25CF, 0x25AA, 0x2023 })
             {
+                FontProgram expected = scalar == 0x2023 ? BundledFontPrograms.GetProgram("Mediana Punctuation") : symbols;
                 (TrueTypeFont font, int glyph) = text.ResolveGlyph(request, scalar);
                 Require(glyph != 0 && text.Outline(font, glyph).CommandCount > 0);
-                Require(ReferenceEquals(font.SharedProgram, symbols));
+                Require(ReferenceEquals(font.SharedProgram, expected));
                 Require(ReferenceEquals(font, text.ResolveGlyph(request, scalar).Font));
-                Require(ReferenceEquals(new TextRenderer(options).ResolveGlyph(request, scalar).Font.SharedProgram, symbols));
+                Require(ReferenceEquals(new TextRenderer(options).ResolveGlyph(request, scalar).Font.SharedProgram, expected));
                 foreach ((bool bold, bool italic) in new[] { (false, false), (true, false), (false, true), (true, true) })
                 { Require(ReferenceEquals(symbols, BundledFontPrograms.GetProgram(Symbols, bold, italic))); }
                 Require(new TextRenderer().ResolveGlyph(request, scalar).Glyph == 0);

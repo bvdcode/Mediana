@@ -187,6 +187,7 @@ namespace Mediana.Drawing
             "AILERON" => "Aileron",
             "CANADA1500" => "Canada1500",
             "NOTO SANS SYMBOLS 2" => "Noto Sans Symbols 2",
+            "MEDIANA PUNCTUATION" => "Mediana Punctuation",
             _ => null
         };
     }
