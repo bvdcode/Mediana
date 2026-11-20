@@ -267,3 +267,13 @@ Three adaptive pictures contain both frame and field pairs; a fourth uses
 field pairs throughout. All decoded samples match FFmpeg in managed execution,
 Native AOT and ordinary async compilation. The 1,026 H.264 tests pass.
 CABAC MBAFF, predictive macroblocks and mixed-edge deblocking remain open.
+
+A full-decode regression check runs 600 progressive frames per process with the
+same frozen Native AOT client, one reported CPU, a fixed core and shared pooled
+buffers. Three runs of each revision alternate before/after order. All decoded
+hashes match FFmpeg and each file releases its buffer leases. Median CPU time
+is 7.437 → 7.397 seconds for 720p 8-bit 4:2:0 and 19.688 → 19.557 seconds for
+720p 10-bit 4:2:2. These differences below 1% do not establish a speed gain.
+Peak RSS medians are 33.48 → 33.45 MiB and 47.91 → 48.00 MiB; total managed
+allocations are 25.9558 → 25.9569 MiB and 40.2508 → 40.2574 MiB, respectively.
+These measurements cover two progressive sources, not MBAFF throughput.
