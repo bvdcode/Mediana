@@ -7,8 +7,9 @@ using Mediana.Core.Metadata;
 
 namespace Mediana.Formats.Tiff
 {
-    internal class TiffField(ushort tag, ushort type, ulong count, ReadOnlyMemory<byte> bytes, bool littleEndian)
+    internal class TiffField(ushort tag, ushort type, ulong count, ReadOnlyMemory<byte> bytes, bool littleEndian, ulong offset)
     {
+        internal ulong Offset { get; } = offset;
         internal ushort Tag { get; } = tag;
         internal ushort Type { get; } = type;
         internal ulong Count { get; } = count;

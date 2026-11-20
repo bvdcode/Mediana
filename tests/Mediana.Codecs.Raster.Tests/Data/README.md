@@ -48,3 +48,10 @@ headers/resources and contain the same planar RGB image, a 7×5 Pillow JPEG
 thumbnail (`metadata-preview.jpg`), and an EXIF resource with example camera,
 orientation and date values. Pillow independently decodes the complete PSD
 merged image to the source RGB bytes. PSB exercises 64-bit layer-section lengths.
+
+`metadata-sensor-*` and `metadata-maker-*` are procedural metadata-only RAW
+fixtures. They declare distinct 4032×3024 sensor and 7×5 preview sizes; the
+preview bytes are the existing Pillow-produced `metadata-preview.jpg`.
+Both TIFF byte orders, EXIF capture fields and Nikon/Olympus/Pentax offset bases
+are checked against ExifTool. `metadata-sensor.raf` declares a separate crop.
+These fixtures contain no encoded sensor samples.

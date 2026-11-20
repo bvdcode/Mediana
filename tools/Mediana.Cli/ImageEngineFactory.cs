@@ -66,6 +66,8 @@ namespace Mediana.Cli
             .UseResources(CommandTextResources.Shared)
             .AddImageInspector(new PcxMetadataReader())
             .AddImageInspector(new PsdMetadataReader())
+            .AddImageInspector(new TiffImageMetadataReader())
+            .AddImageInspector(new RafMetadataReader())
             .AddImageDecoder(new TgaImageDecoder())
             .AddImageDecoder(new PnmImageDecoder())
             .AddImageDecoder(new QoiImageDecoder())

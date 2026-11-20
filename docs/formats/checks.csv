@@ -278,9 +278,12 @@ dng,decode,planned,planned,planned,planned,planned,planned,
 dng,encode,planned,planned,planned,planned,planned,planned,
 raw-cr2,decode,planned,planned,planned,planned,planned,planned,
 raw-cr3,decode,planned,planned,planned,planned,planned,planned,
+raw-nef,read,partial,partial,partial,planned,partial,partial,../image-inspection.md
 raw-nef,decode,planned,planned,planned,planned,planned,planned,
 raw-arw,decode,planned,planned,planned,planned,planned,planned,
+raw-raf,read,partial,partial,partial,planned,partial,partial,../image-inspection.md
 raw-raf,decode,planned,planned,planned,planned,planned,planned,
+raw-other,read,partial,partial,partial,planned,partial,partial,../image-inspection.md
 raw-other,decode,planned,planned,planned,planned,planned,planned,
 exr-scanline,decode,planned,planned,planned,planned,planned,planned,
 exr-scanline,encode,planned,planned,planned,planned,planned,planned,

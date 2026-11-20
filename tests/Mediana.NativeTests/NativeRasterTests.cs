@@ -72,6 +72,7 @@ namespace Mediana.NativeTests
             await VerifyGifAsync(root, registry);
             await VerifyAniAsync(root, registry);
             await VerifyRawMetadataAsync(root);
+            await NativeImageInspectionTests.RunAsync(root);
             await Mediana.Tests.IccColorTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Icc"));
             Console.WriteLine($"PASS raster decoding: {verified} BMP/ICO, TIFF and WebP cases, complete GIF/WebP sequences and TIFF-based RAW metadata.");
         }
