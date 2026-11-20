@@ -933,3 +933,104 @@ explicit/implicit B weights and the colocated mapping in H.264 Table 8-8.
 | `avc-mbaff-b-cavlc-temporal-field.yuv.gz` | `73d91c27468bd65c16fc2d996555b317ed491f09491139d68047ad4a89340c14` |
 | `avc-mbaff-b-cavlc-temporal-high10.mp4` | `2bdd41ccf4b60abc21ca078676a0a9500c6a2a91f01be54527b1db25e320db8f` |
 | `avc-mbaff-b-cavlc-temporal-high10.yuv.gz` | `8445b7d682ebf9bc0809b826c7306ff968981561be0a68c59dd752466e8a25b9` |
+
+## Filtered MBAFF sequences
+
+The twenty `avc-mbaff-filter-*` sequences use JM 19.1 with the same twelve-picture,
+96×96, 12 fps source and coding parameters as the bidirectional MBAFF fixtures,
+with deblocking enabled for all I/P/B pictures. They cover CAVLC/CABAC,
+spatial/temporal direct prediction, forced field and adaptive pairs, 8/10-bit
+4:2:0 and 4:2:2. QP is 24; the deblocking offsets are zero.
+
+The eight `avc-mbaff-slices-*` sequences use the adaptive source at 8-bit 4:2:0
+and 10-bit 4:2:2. JM parameters are `SliceMode=1`, `SliceArgument=6`, QP 31,
+chroma QP offset 3, alpha offset 2 and beta offset -1. Spatial-direct variants
+filter across slice boundaries (`disable_deblocking_filter_idc=0`); temporal-direct
+variants suppress cross-slice filtering (`disable_deblocking_filter_idc=2`).
+
+The eight `avc-mbaff-x264-*` sequences use FFmpeg 6.1.1/libx264 and twelve frames
+of `testsrc2=size=94x92:rate=24` through `tinterlace=interleave_top` or
+`interleave_bottom`. Output is 12 fps, with 8/10-bit 4:2:0 and 4:2:2. Encoding uses
+`medium`, QP 28, one thread, `+ilme+ildct` and
+`cabac=1:bframes=2:ref=3:keyint=6:scenecut=0:cqm=flat:weightp=0:weightb=1:slices=3:deblock=2,-1`,
+plus `tff=1` or `bff=1`. These sources exercise both field orders, cropping,
+implicit B weights, multiple slices and repeated random access points.
+
+Each deterministic `.yuv.gz` stores FFmpeg-decoded samples in presentation order.
+Public-session tests compare every pixel, timestamp, duration and field order,
+then seek backwards to each picture. The same cases run under Native AOT.
+
+| File | SHA256 |
+| --- | --- |
+| `avc-mbaff-filter-cabac-spatial-422-10.mp4` | `4be12f51e48313301609d88c8b9e358d03559eae2c3a40787c93e4ff40cec5e5` |
+| `avc-mbaff-filter-cabac-spatial-422-10.yuv.gz` | `96b28692cb283eb924ee042c08adbedf4c20b727172eea755c1a864d65db32b2` |
+| `avc-mbaff-filter-cabac-spatial-422.mp4` | `cc5635ab297e0d9544ea6ba6268c91104427f1b810ac3f8da13143aefe33dcde` |
+| `avc-mbaff-filter-cabac-spatial-422.yuv.gz` | `94fd18bf42192a1ae9a33d6c95460a079e13972b3e5344cbc2d831daf928c99c` |
+| `avc-mbaff-filter-cabac-spatial-adaptive.mp4` | `e8d0b7fea0c4cfb9b7d69a57e6386386e6f3f402e276ae078d226b639e2cdfb8` |
+| `avc-mbaff-filter-cabac-spatial-adaptive.yuv.gz` | `bc057c38ce698bd44023fc428b29ec8eb892501ea1f673570a0ea93115945106` |
+| `avc-mbaff-filter-cabac-spatial-field.mp4` | `96bbb9ebc640c674780ca2738728e439e9afccbc297574d662e938a9a7af595a` |
+| `avc-mbaff-filter-cabac-spatial-field.yuv.gz` | `42b893e6dacf320902f6399ec8dd7e23fe49863cb2ac25f45a77da53403b20f3` |
+| `avc-mbaff-filter-cabac-spatial-high10.mp4` | `fa51f30ba0d6758a41be4e1c578f2ba7cb3ae0ebe20167d60b72bbe2dfc498ef` |
+| `avc-mbaff-filter-cabac-spatial-high10.yuv.gz` | `8694189bb1b7e7b21c9029ebe3720c57c956b7508be7c46524ae478fa5dcd680` |
+| `avc-mbaff-filter-cabac-temporal-422-10.mp4` | `21b77e2a9eb881dbf321caca33ac4ae687f78bcbb19955f6f82505307665fc07` |
+| `avc-mbaff-filter-cabac-temporal-422-10.yuv.gz` | `0bc1c4d5295dedd137ad4df642bce6a88121227f80c95f2a3feb4eaabde8b77f` |
+| `avc-mbaff-filter-cabac-temporal-422.mp4` | `728590845f72a2846bd77b7210bbed6d09e8177f31b2c898350df0489f295ce2` |
+| `avc-mbaff-filter-cabac-temporal-422.yuv.gz` | `5fe3d89cc63f3e96d1315b59e4c25c18c0ff71b1c81aabcffacf3c6b0595e5fb` |
+| `avc-mbaff-filter-cabac-temporal-adaptive.mp4` | `0b819a3c88f2ada8697ca0f476e567a950081df65e154246dcfce0240ae7de08` |
+| `avc-mbaff-filter-cabac-temporal-adaptive.yuv.gz` | `a0b3bcdd29841f98ecd6c0233f9fd9c4271b14bff4f856aa41472d9343a3cc27` |
+| `avc-mbaff-filter-cabac-temporal-field.mp4` | `8b65ad97c6660501d3c3c24b47f2b041709bfe0a86591858a1e79fa3546ce273` |
+| `avc-mbaff-filter-cabac-temporal-field.yuv.gz` | `3a744697072859cc11af8678612788593620ec699e87b1bdba2cb6f4a1085bd9` |
+| `avc-mbaff-filter-cabac-temporal-high10.mp4` | `c30c4d4148cf9aaf2976daaf5d47b65598faa42bc4910f009a355196473d673f` |
+| `avc-mbaff-filter-cabac-temporal-high10.yuv.gz` | `95c6078b4d4cb95d498a23fb1bc3eac64a7193dcfad08eaad0c95dbf01f76b91` |
+| `avc-mbaff-filter-cavlc-spatial-422-10.mp4` | `10c29f300a7583b827cfadfef585ce9ee18becf7ae3bd304ffce3c606545805d` |
+| `avc-mbaff-filter-cavlc-spatial-422-10.yuv.gz` | `adaf6ce0ee69f8df1100d1d0b790b83ffe14851c88588a5ab163b3463be12db8` |
+| `avc-mbaff-filter-cavlc-spatial-422.mp4` | `085b79c80c95b37538ce338c0e43978b1542ebc63e26a55e4845031425545389` |
+| `avc-mbaff-filter-cavlc-spatial-422.yuv.gz` | `7ef54c1d8f33b2614aa0b53cf37dfd9d7a5e9c7cd6eb1df7d773acd9ed0ce57b` |
+| `avc-mbaff-filter-cavlc-spatial-adaptive.mp4` | `918ebfe35ccfe60ff3abb57e42ac02fa47b695392817fc2e86d770ad4108fe28` |
+| `avc-mbaff-filter-cavlc-spatial-adaptive.yuv.gz` | `a1fa85e4395a25c79b938e22aac5fca7bc5568071fc4d19489ae1f098ecc8386` |
+| `avc-mbaff-filter-cavlc-spatial-field.mp4` | `7dce546f7f197af05c74ff10b607a831138ffc8df8b43998252a265596bb8424` |
+| `avc-mbaff-filter-cavlc-spatial-field.yuv.gz` | `65b33194c79ec7b9b329ab45d0dacb7404beccf4ac5ce19f3f41416560928656` |
+| `avc-mbaff-filter-cavlc-spatial-high10.mp4` | `47cd5239c5e07285c8e6128abd924a150ce8312c8f770a68011aee57468d25d5` |
+| `avc-mbaff-filter-cavlc-spatial-high10.yuv.gz` | `b0918e13838cc056c05954e1b502909de7a8f182cbc185288bd0c85046f1fd24` |
+| `avc-mbaff-filter-cavlc-temporal-422-10.mp4` | `ae45de9761f7293ea0650e3aaf5a8650d019ba998dc8e6b1edc7542e0feb0cac` |
+| `avc-mbaff-filter-cavlc-temporal-422-10.yuv.gz` | `b04a4141f314f60f93de8f6877053c876e9e91202e106f1194de36a64ca3b4ca` |
+| `avc-mbaff-filter-cavlc-temporal-422.mp4` | `acbd088276f69eefa2b6c7e13010e173b067aa5c5ab663d61ef268ea1aa14179` |
+| `avc-mbaff-filter-cavlc-temporal-422.yuv.gz` | `2ba9562b89e20004d3583dec23740f6ab06498123ab43b17754baf01f0fcda8f` |
+| `avc-mbaff-filter-cavlc-temporal-adaptive.mp4` | `d41db88d4b033dac77c0feca13666916b3a38f2bf2d7ceef3cad8fa3591de768` |
+| `avc-mbaff-filter-cavlc-temporal-adaptive.yuv.gz` | `e5bf060a4bf7c55bb2d0278d29ed0e36c39d6e86bad7b80ca83e6ca9b6f60161` |
+| `avc-mbaff-filter-cavlc-temporal-field.mp4` | `7751c3139eba5bac349d99429eac54af72a69fe74a9ef5b579d5710b6cd00a07` |
+| `avc-mbaff-filter-cavlc-temporal-field.yuv.gz` | `ed24d007f2bc3c9894020afe1038d64ef52735981d57c0332e7d102209b99bdb` |
+| `avc-mbaff-filter-cavlc-temporal-high10.mp4` | `9da5531d816c8a82e3eea249207ad2bf78f34b6428c48159dc48bf57d3077db9` |
+| `avc-mbaff-filter-cavlc-temporal-high10.yuv.gz` | `4263e61daa54b9dcbe42bd60f24eeacaa9fb7cb81f3808e937c76c4a59e0ca06` |
+| `avc-mbaff-slices-cabac-spatial-422-10.mp4` | `57bdcee650b262236e2b1a1992e34e6526d7292aa32adea01196d0f2f57c41f1` |
+| `avc-mbaff-slices-cabac-spatial-422-10.yuv.gz` | `c9a9ab01be29ea7933de32c1297131d55045d5008bd2b43ef98546152536dfb9` |
+| `avc-mbaff-slices-cabac-spatial-adaptive.mp4` | `68e4f820abdeb4caf5b6c47a1cf558b86cfb99b7dd5afe2a6f5518cc778e4817` |
+| `avc-mbaff-slices-cabac-spatial-adaptive.yuv.gz` | `13cbab429c4f4c1d8b23ae3ffa301aa3b15a8015794fcb834261dffb4456bfe0` |
+| `avc-mbaff-slices-cabac-temporal-422-10.mp4` | `c540dc381958430787bbf1cd10a8d8e314f09aacfc5f8efa07b7053f058df874` |
+| `avc-mbaff-slices-cabac-temporal-422-10.yuv.gz` | `64bdd786a4c09ed6363a017fc76773c29b0d8009683230629298e95db487d947` |
+| `avc-mbaff-slices-cabac-temporal-adaptive.mp4` | `f5b29b46a2f0e7db5d71ba87fcc660d03b8e77497755add57e48b731bd781a7c` |
+| `avc-mbaff-slices-cabac-temporal-adaptive.yuv.gz` | `3623e8bb886d314ee490b480503830f12c5e2dcaf1355f5ad3975101f97a8a7c` |
+| `avc-mbaff-slices-cavlc-spatial-422-10.mp4` | `7da5be47b2f4385e6a4828ad9e4c95cf92a9be309a1acbe3451e7d1cd77e0ab0` |
+| `avc-mbaff-slices-cavlc-spatial-422-10.yuv.gz` | `7a2a550603d93698475ee282fbf8ed46509d8e09cb531d6395eff7c6283dbb3e` |
+| `avc-mbaff-slices-cavlc-spatial-adaptive.mp4` | `ccabd5773918074052ffcf55bdc23062d3f67bac03dd35192d4273a23d4388b3` |
+| `avc-mbaff-slices-cavlc-spatial-adaptive.yuv.gz` | `41a2744f816447366a4972104bfe67d77307f9d435bb243fe22e1f1163a9aaac` |
+| `avc-mbaff-slices-cavlc-temporal-422-10.mp4` | `56730b60329baffa5a1574f531457973bf7bb765af5a3eeedfd465002fbed3a9` |
+| `avc-mbaff-slices-cavlc-temporal-422-10.yuv.gz` | `e253b110cec3b930ab9072ac7ccd005e13bd2833ae8186d596d7c39d6372781e` |
+| `avc-mbaff-slices-cavlc-temporal-adaptive.mp4` | `4b132ac40250ceab28a874fc131ac73cff15fc103b219e0c6bca43e4906b40a0` |
+| `avc-mbaff-slices-cavlc-temporal-adaptive.yuv.gz` | `dc51bcd6c7353e3c78ec8fa4d957231372380e2574e052bb35619f7539544e91` |
+| `avc-mbaff-x264-420-10-bff.mp4` | `c53f35a1e1a11dc2f8f9b936c2a6c3cd1bfec23724807746f2a1f0f2f0546c1f` |
+| `avc-mbaff-x264-420-10-bff.yuv.gz` | `8d87268f1abcc582e37e80ba9143a8074a5b7b5b5f9b1b2a302ae490d4c70f9b` |
+| `avc-mbaff-x264-420-10-tff.mp4` | `1e1e934a33c25d88311f3aacd7ef8189109f8375986b2ae073ccc8d274cd05d0` |
+| `avc-mbaff-x264-420-10-tff.yuv.gz` | `64deb02b6ae38674ae629777191a0c47a4725961ad49ff57766028d72fe763b8` |
+| `avc-mbaff-x264-420-bff.mp4` | `703be75c21287bcd08bd163512e0fd2d8c60cce2038b7281418c07318230cb04` |
+| `avc-mbaff-x264-420-bff.yuv.gz` | `c51a9a11b3596cea0eb56b74d291b692b3b03885ea2b0a3a9b4b1da38777a145` |
+| `avc-mbaff-x264-420-tff.mp4` | `93a0f628060bc5d5af5ce44ab27f439a4e31002c7b0d5928aaf0bad56919bbdc` |
+| `avc-mbaff-x264-420-tff.yuv.gz` | `bf79af413c67e4759b6e12735a7cb1738c532b2129acbb7f826b7cc12bcb1f9e` |
+| `avc-mbaff-x264-422-10-bff.mp4` | `63388fcbcc4f22d70c02c8eda0dbf3d8bbf60de83cd9f7c9cdce69a21072cf28` |
+| `avc-mbaff-x264-422-10-bff.yuv.gz` | `dec356dce45d9f20daafd57740ea478a7c5bfa0ed29c2ca82004b9f5cf3d1b3a` |
+| `avc-mbaff-x264-422-10-tff.mp4` | `77af5958c4129064f5d2a1af0b847294202cb282b49f2d58bf3023b143d8312d` |
+| `avc-mbaff-x264-422-10-tff.yuv.gz` | `a2b0e25e305f69fade797cdd7ae6640195559d6da1f432652c5546607f5b4296` |
+| `avc-mbaff-x264-422-bff.mp4` | `06244ab19d1b776bd4bd747dd89943fde2980fd461b32681543250c8c6d96d25` |
+| `avc-mbaff-x264-422-bff.yuv.gz` | `ac17fc6c2ae2e505587300f414bf780097515cd9157915f0e16f6fb1e39a918d` |
+| `avc-mbaff-x264-422-tff.mp4` | `a0b1d6919381ee546bb2bc5767b7c2ed02b895aff6074f9ddaff924d1ae12c22` |
+| `avc-mbaff-x264-422-tff.yuv.gz` | `c9ecba819b34044faf9a3ff5674fc1921b8d69e16a0c5e384d8808dd70328aa3` |

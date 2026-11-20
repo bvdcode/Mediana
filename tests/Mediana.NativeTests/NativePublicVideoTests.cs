@@ -78,6 +78,60 @@ namespace Mediana.NativeTests
                     }
                 }
             }
+            foreach (string entropy in new[] { "cavlc", "cabac" })
+            {
+                foreach (string direct in new[] { "spatial", "temporal" })
+                {
+                    foreach (string variant in new[] { "field", "adaptive", "high10", "422-10", "422" })
+                    {
+                        VideoPixelFormat pixels = variant switch
+                        {
+                            "field" or "adaptive" => VideoPixelFormat.Yuv420P8,
+                            "high10" => VideoPixelFormat.Yuv420P10,
+                            "422-10" => VideoPixelFormat.Yuv422P10,
+                            "422" => VideoPixelFormat.Yuv422P8,
+                            _ => throw new InvalidDataException("Invalid H.264 test pixel format.")
+                        };
+                        string name = $"avc-mbaff-filter-{entropy}-{direct}-{variant}";
+                        await H264MbaffSequenceTestInput.VerifyPredictiveAsync(root, name, 12, entropy == "cabac",
+                            [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 11], true);
+                        await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), pixels, 96, 96, 12, 12,
+                            Enumerable.Repeat(VideoScanMode.TopFieldFirst, 12).ToArray());
+                    }
+                }
+            }
+            foreach (string entropy in new[] { "cavlc", "cabac" })
+            {
+                foreach (string direct in new[] { "spatial", "temporal" })
+                {
+                    foreach (string variant in new[] { "adaptive", "422-10" })
+                    {
+                        VideoPixelFormat pixels = variant switch
+                        {
+                            "adaptive" => VideoPixelFormat.Yuv420P8,
+                            "422-10" => VideoPixelFormat.Yuv422P10,
+                            _ => throw new InvalidDataException("Invalid H.264 test pixel format.")
+                        };
+                        await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, $"avc-mbaff-slices-{entropy}-{direct}-{variant}"),
+                            pixels, 96, 96, 12, 12, Enumerable.Repeat(VideoScanMode.TopFieldFirst, 12).ToArray());
+                    }
+                }
+            }
+            foreach ((string variant, VideoPixelFormat pixels) in new[]
+            {
+                ("420", VideoPixelFormat.Yuv420P8), ("420-10", VideoPixelFormat.Yuv420P10),
+                ("422", VideoPixelFormat.Yuv422P8), ("422-10", VideoPixelFormat.Yuv422P10)
+            })
+            {
+                foreach ((string order, VideoScanMode scan) in new[]
+                {
+                    ("tff", VideoScanMode.TopFieldFirst), ("bff", VideoScanMode.BottomFieldFirst)
+                })
+                {
+                    await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, $"avc-mbaff-x264-{variant}-{order}"),
+                        pixels, 94, 92, 12, 12, Enumerable.Repeat(scan, 12).ToArray());
+                }
+            }
             foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
             {
                 await H264FieldTestInput.VerifySequenceAsync(root, name);

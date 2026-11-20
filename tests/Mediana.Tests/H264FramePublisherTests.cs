@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs.H264;
+using Mediana.Core.Memory;
 using Mediana.Core.Video;
 
 namespace Mediana.Tests
@@ -89,6 +90,37 @@ namespace Mediana.Tests
             {
                 Vui = new H264VuiParameters { ChromaLocationTop = 0, ChromaLocationBottom = 2 }
             }));
+        }
+
+        [Theory]
+        [InlineData(VideoFieldParity.Top, VideoSourceScan.Unknown, VideoScanMode.TopFieldFirst)]
+        [InlineData(VideoFieldParity.Bottom, VideoSourceScan.Unknown, VideoScanMode.BottomFieldFirst)]
+        [InlineData(VideoFieldParity.Top, VideoSourceScan.Progressive, VideoScanMode.Progressive)]
+        [InlineData(VideoFieldParity.Bottom, VideoSourceScan.Progressive, VideoScanMode.Progressive)]
+        [InlineData(VideoFieldParity.Top, VideoSourceScan.Interlaced, VideoScanMode.TopFieldFirst)]
+        [InlineData(VideoFieldParity.Bottom, VideoSourceScan.Interlaced, VideoScanMode.BottomFieldFirst)]
+        [InlineData(VideoFieldParity.Top, VideoSourceScan.Mixed, VideoScanMode.TopFieldFirst)]
+        [InlineData(VideoFieldParity.Bottom, VideoSourceScan.Mixed, VideoScanMode.BottomFieldFirst)]
+        public void AdaptiveCodingPreservesPresentationAndExplicitProgressiveSource(
+            VideoFieldParity parity, VideoSourceScan sourceScan, VideoScanMode expected)
+        {
+            H264SequenceParameterSet sequence = Sequence() with
+            {
+                FrameMbsOnly = false,
+                MbAdaptiveFrameField = true,
+                CropLeft = 0,
+                CropTop = 0,
+                Width = 32,
+                Height = 64
+            };
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using H264Picture picture = new(sequence, allocator, H264SliceKind.I);
+            VideoFramePresentation presentation = VideoFramePresentation.Fields(parity, 2, sourceScan);
+            long allocated = allocator.AllocatedBytes;
+            using VideoFrame frame = H264FramePublisher.Publish(picture, null, null, default, presentation: presentation);
+            Assert.Equal(expected, frame.Format.ScanMode);
+            Assert.Equal(presentation, frame.Presentation);
+            Assert.Equal(allocated, allocator.AllocatedBytes);
         }
 
         private static H264SequenceParameterSet Sequence() => new()

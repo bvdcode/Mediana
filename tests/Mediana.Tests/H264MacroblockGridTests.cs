@@ -79,6 +79,8 @@ namespace Mediana.Tests
                         for (int column = 0; column < width; column++)
                         {
                             visits[(y + row * step) * width * 3 + x + column]++;
+                            Assert.Equal(new H264NeighbourLocation(address, column, row),
+                                grid.SampleLocation(x + column, y + row * step, width, height));
                         }
                     }
                 }

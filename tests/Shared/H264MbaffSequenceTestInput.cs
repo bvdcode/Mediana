@@ -8,7 +8,7 @@ namespace Mediana.Tests
 {
     internal static class H264MbaffSequenceTestInput
     {
-        public static async Task<(int Frames, int Fields)> VerifyPredictiveAsync(string root, string name, int count, bool cabac = false, int[]? displayOrder = null)
+        public static async Task<(int Frames, int Fields)> VerifyPredictiveAsync(string root, string name, int count, bool cabac = false, int[]? displayOrder = null, bool deblocking = false)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             H264PictureOrderState order = new();
@@ -22,7 +22,7 @@ namespace Mediana.Tests
                     H264SequenceParameterSet sequence = configuration.Sequences.Values.Single();
                     int displayIndex = displayOrder is null ? index : displayOrder[index];
                     byte[] expected = await H264FieldTestInput.ReadReferenceAsync(root, name, displayIndex, sequence);
-                    (order, int fields) = DecodeAndStore(configuration, nal, expected, order, references, allocator, index, cabac, displayOrder is not null);
+                    (order, int fields) = DecodeAndStore(configuration, nal, expected, order, references, allocator, index, cabac, displayOrder is not null, deblocking);
                     fieldPairs += fields;
                     framePairs += sequence.WidthInMbs * sequence.HeightInMapUnits - fields;
                 }
@@ -36,7 +36,7 @@ namespace Mediana.Tests
 
         private static (H264PictureOrderState Order, int Fields) DecodeAndStore(H264Configuration configuration,
             ReadOnlySpan<byte> nal, ReadOnlySpan<byte> expected, H264PictureOrderState order,
-            H264ReferenceBuffer references, MediaBufferAllocator allocator, int index, bool cabac, bool bidirectional)
+            H264ReferenceBuffer references, MediaBufferAllocator allocator, int index, bool cabac, bool bidirectional, bool deblocking)
         {
             H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
@@ -48,9 +48,9 @@ namespace Mediana.Tests
                 _ => throw new ArgumentOutOfRangeException(nameof(index))
             };
             if (!header.Layout.MacroblockAdaptiveFrameField || header.Kind != kind ||
-                header.Picture.Cabac != cabac || header.DeblockingEnabled)
+                header.Picture.Cabac != cabac || header.DeblockingEnabled != deblocking)
             {
-                throw new InvalidDataException("Expected an independent MBAFF I/P sequence with the requested entropy coding and no deblocking.");
+                throw new InvalidDataException("Expected an independent MBAFF sequence with the requested entropy coding and deblocking.");
             }
             H264PictureOrderState next = order.Advance(header);
             H264BidirectionalReferences lists = kind switch
@@ -78,6 +78,7 @@ namespace Mediana.Tests
                 {
                     H264PictureDecoder.DecodeSlice(ref bits, header, lists.L0, picture, header.Layout.MacroblockCount);
                 }
+                H264Deblocking.Apply(picture, header, CancellationToken.None, lists.L0, lists.L1);
                 H264FieldTestInput.VerifyPicture(picture, expected, index);
                 int fields = 0;
                 for (int address = 0; address < header.Layout.MacroblockCount; address += 2)

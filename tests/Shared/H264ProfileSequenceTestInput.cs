@@ -81,7 +81,14 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException($"The H.264 scan mode differs from the reference at frame {index}.");
             }
-            if (scan == VideoScanMode.TopFieldFirst && frame.Presentation != VideoFramePresentation.Fields(VideoFieldParity.Top, 2))
+            VideoFramePresentation? expectedPresentation = scan switch
+            {
+                VideoScanMode.TopFieldFirst => VideoFramePresentation.Fields(VideoFieldParity.Top, 2),
+                VideoScanMode.BottomFieldFirst => VideoFramePresentation.Fields(VideoFieldParity.Bottom, 2),
+                VideoScanMode.Progressive or VideoScanMode.TopField or VideoScanMode.BottomField or null => null,
+                _ => throw new ArgumentOutOfRangeException(nameof(scan))
+            };
+            if (expectedPresentation is not null && frame.Presentation != expectedPresentation)
             {
                 throw new InvalidDataException($"The H.264 field-pair presentation differs from the reference at frame {index}.");
             }

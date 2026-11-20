@@ -64,6 +64,11 @@ namespace Mediana.Codecs.H264
             }
             int columns = header.Sequence.WidthInMbs;
             H264DeblockingContext context = new(picture, references, referencesL1, singleReference);
+            if (picture.Layout.MacroblockAdaptiveFrameField)
+            {
+                H264AdaptiveDeblocking.Apply(picture, header, endMacroblock, ref context, cancellationToken);
+                return;
+            }
             Span<byte> strengths = stackalloc byte[32];
             for (int address = header.FirstMacroblock; address < endMacroblock; address++)
             {
@@ -120,28 +125,20 @@ namespace Mediana.Codecs.H264
                 }
                 int previousQp = edge == 0
                     ? Qp(picture, header.Picture, plane, address - (vertical ? 1 : header.Sequence.WidthInMbs)) : currentQp;
-                int averageQp = (previousQp + currentQp + 1) >> 1;
-                int indexA = Math.Clamp(averageQp + header.AlphaOffset, 0, 51);
-                int indexB = Math.Clamp(averageQp + header.BetaOffset, 0, 51);
-                int alpha = Alpha[indexA];
-                int beta = Beta[indexB];
-                if (alpha == 0 || beta == 0)
+                H264DeblockingThresholds thresholds = Thresholds(previousQp, currentQp, header);
+                if (thresholds.Alpha == 0 || thresholds.Beta == 0)
                 {
                     continue;
                 }
                 int start = y * stride + x + edge * step;
-                H264DeblockingThresholds thresholds = new(alpha, beta, Tc1[indexA], Tc2[indexA], Tc3[indexA]);
                 if (picture.SampleBytes == 1)
                 {
                     H264DeblockingFilter.Apply(pixels, start, stride, vertical, plane != 0, segmentLength, edgeStrengths, thresholds);
                 }
                 else
                 {
-                    int shift = picture.Sequence.LumaBitDepth - 8;
-                    H264DeblockingThresholds scaled = new(alpha << shift, beta << shift, Tc1[indexA] << shift,
-                        Tc2[indexA] << shift, Tc3[indexA] << shift);
                     H264DeblockingFilter.ApplyScalar<ushort>(MemoryMarshal.Cast<byte, ushort>(pixels), start, stride,
-                        vertical, plane != 0, segmentLength, edgeStrengths, scaled, picture.MaximumSample);
+                        vertical, plane != 0, segmentLength, edgeStrengths, thresholds, picture.MaximumSample);
                 }
             }
         }
@@ -152,6 +149,22 @@ namespace Mediana.Codecs.H264
             H264DeblockingContext context = new(picture, references, referencesL1);
             context.BeginMacroblock(y / 16 * picture.Sequence.WidthInMbs + x / 16);
             return context.Strength(x, y, vertical, macroblockEdge);
+        }
+
+        internal static H264DeblockingThresholds Thresholds(H264Picture picture, H264SliceHeader header, int plane,
+            int previousAddress, int currentAddress)
+        {
+            return Thresholds(Qp(picture, header.Picture, plane, previousAddress),
+                Qp(picture, header.Picture, plane, currentAddress), header);
+        }
+
+        private static H264DeblockingThresholds Thresholds(int previousQp, int currentQp, H264SliceHeader header)
+        {
+            int average = (previousQp + currentQp + 1) >> 1;
+            int indexA = Math.Clamp(average + header.AlphaOffset, 0, 51);
+            int indexB = Math.Clamp(average + header.BetaOffset, 0, 51);
+            int shift = header.Sequence.LumaBitDepth - 8;
+            return new(Alpha[indexA] << shift, Beta[indexB] << shift, Tc1[indexA] << shift, Tc2[indexA] << shift, Tc3[indexA] << shift);
         }
 
         private static int Qp(H264Picture picture, H264PictureParameterSet parameters, int plane, int address) => plane switch

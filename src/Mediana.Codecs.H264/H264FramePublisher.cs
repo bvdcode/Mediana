@@ -16,6 +16,13 @@ namespace Mediana.Codecs.H264
             cancellationToken.ThrowIfCancellationRequested();
             VideoScanMode scanMode = picture.Structure switch
             {
+                H264PictureStructure.Frame when picture.Layout.MacroblockAdaptiveFrameField &&
+                    presentation is { Unit: VideoPresentationUnit.Field, SourceScan: not VideoSourceScan.Progressive } => presentation.Value.FirstField switch
+                    {
+                        VideoFieldParity.Top => VideoScanMode.TopFieldFirst,
+                        VideoFieldParity.Bottom => VideoScanMode.BottomFieldFirst,
+                        _ => throw new InvalidDataException("An adaptive field presentation has no field order.")
+                    },
                 H264PictureStructure.Frame => VideoScanMode.Progressive,
                 H264PictureStructure.TopField => VideoScanMode.TopField,
                 H264PictureStructure.BottomField => VideoScanMode.BottomField,

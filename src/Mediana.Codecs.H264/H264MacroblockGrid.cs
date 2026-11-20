@@ -143,8 +143,9 @@ namespace Mediana.Codecs.H264
                 }
                 int pairY = physicalY % (2 * height);
                 bool field = pair == (current & ~1) && currentPairField is bool currentMode ? currentMode : IsField(pair);
-                address = pair + (field ? pairY % 2 : pairY / height);
-                localY = field ? pairY / 2 : pairY % height;
+                H264NeighbourLocation location = PairSample(pair, physicalX % width, pairY, height, field);
+                address = location.Address;
+                localY = location.Y;
             }
             else
             {
@@ -153,6 +154,23 @@ namespace Mediana.Codecs.H264
             }
             return address < firstMacroblock || address > current ? null : new(address, physicalX % width, localY);
         }
+
+        public H264NeighbourLocation? SampleLocation(int x, int y, int width, int height)
+        {
+            if (x < 0 || x >= columns * width || y < 0 || y >= layout.MacroblockCount / columns * height)
+            {
+                return null;
+            }
+            if (!layout.MacroblockAdaptiveFrameField)
+            {
+                return new(y / height * columns + x / width, x % width, y % height);
+            }
+            int pair = (y / (2 * height) * columns + x / width) * 2;
+            return PairSample(pair, x % width, y % (2 * height), height, IsField(pair));
+        }
+
+        private static H264NeighbourLocation PairSample(int pair, int x, int y, int height, bool field) =>
+            new(pair + (field ? y % 2 : y / height), x, field ? y / 2 : y % height);
 
         private void ValidateAddress(int address)
         {

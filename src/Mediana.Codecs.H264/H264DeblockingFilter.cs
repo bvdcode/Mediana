@@ -76,7 +76,7 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private static void Filter<TSample>(Span<TSample> pixels, int position, int step, int alpha, int beta,
+        internal static void Filter<TSample>(Span<TSample> pixels, int position, int step, int alpha, int beta,
             int tc0, bool strong, bool chroma, int maximum)
             where TSample : unmanaged, IBinaryInteger<TSample>
         {

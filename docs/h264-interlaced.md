@@ -1,508 +1,170 @@
 # H.264 interlaced decoding
 
-The public decoder accepts picture-adaptive frame/field (PAFF) sequences,
-including mixed frame/field I/P/B pictures with CABAC or CAVLC, 8/10-bit samples
-and 4:2:0/4:2:2 chroma. It exposes actual sample geometry and presentation hints.
-Macroblock-adaptive frame/field (MBAFF) input remains rejected until predictive
-reconstruction and mixed-edge deblocking are complete. Automatic deinterlacing
-in the export pipeline remains open; explicit single-field spatial reconstruction
-is available through `VideoFieldInterpolator`.
-
-The shared slice-header reader distinguishes frame, top-field and bottom-field
-pictures. Picture layout derives the macroblock count, MBAFF pair addresses and
-picture-number range from the sequence and picture structure. It does not change
-the sequence parameter set to represent a field as a progressive frame.
-
-Picture ordering handles all three POC types, complementary field pairs, frame
-number wrap and reference resets. Separate fields use only their own applicable
-field count. A repeated reference frame number is accepted only for an eligible
-adjacent field of opposite parity.
-
-Field storage uses half the coded frame height for pixel planes and block
-metadata. The reconstruction pipeline shares prediction and inverse transforms
-with progressive decoding, selecting the normative 4×4/8×8 field scans and
-field CABAC significance contexts. Deblocking uses field-specific horizontal
-intra strengths and motion-vector thresholds measured in frame sample units.
-The coefficient scan tables are shared with progressive transforms.
-
-The reference buffer groups complementary fields by a stable frame identity,
-independent of wrapping frame numbers. Sliding-window occupancy counts a pair
-as one frame and releases both fields together. Explicit marking can release
-one field, convert a pair to long-term reference, or reset the buffer. Invalid
-marking preserves the prior buffer and the caller's input ownership.
-
-Active slice reference counts follow H.264 7.4.3: at most 16 references for
-frame pictures and 32 for field pictures, including counts inherited from PPS.
-MBAFF slice headers use the frame limit before expansion for field macroblocks.
-
-Field reference lists sort frame entries before alternating field parity,
-skipping absent fields. Short-term and long-term picture numbers use the current
-field's parity. Inter-field 4:2:0 prediction adjusts the chroma motion vector
-according to Table 8-10; 4:2:2 keeps the luma vector's vertical displacement.
-
-Field views preserve reference identity and picture order without allocating
-pixel storage. A field can be selected from a material frame or a frame composed
-of two separately stored fields. Shared managed and Native AOT checks verify both
-forms at 8/10 bits, 4:2:0/4:2:2 and short/long-term reference marking.
-
-Nine JM 19.1 sequences contain twenty-four separately coded fields each at
-96×96 frame resolution. All 216 I/P/B fields match every independently decoded
-FFmpeg luma/chroma sample, in managed execution and Native AOT. Coverage includes
-CABAC, CAVLC, spatial/temporal direct B prediction, 8/10-bit precision and
-4:2:0/4:2:2 chroma. The 10-bit sources exercise all four low-bit combinations.
-The original two sequences also verify all 48 slice headers and POC values.
-The output queue also assembles these fields into 108 complete frames in presentation
-order, matching every reference sample in managed execution and Native AOT. Each
-pair retains the leading field's timestamp and combines its two known durations
-on an exact common clock. Unknown durations remain unknown.
-
-A pending field retains its pixel lease independently of the reference buffer.
-Pair assembly allocates one final interleaved surface and copies each visible row
-once. It does not allocate full-size intermediate surfaces. Unpaired fields are
-emitted with their actual field geometry and known `FullFrameHeight`; no missing
-field is synthesized. IDR
-output-discard flags, reference resets, cancellation and failed output allocation
-preserve the queue's ownership contract.
-Additional tests cover all three POC types, parity-aware list modification,
-frame-number wrap, long-term field assignment, buffer occupancy and transactional
-ownership on invalid marking.
-
-The full main test suite passes 4,529 tests. A separate Native AOT executable
-also passes the twelve existing progressive 4:2:2/High10 sequences and their
-reverse seeks, plus interpolation, prediction and deblocking vectors. These
-results establish the tested stages, not complete interlaced playback or seeking.
-Fixture generation and hashes are recorded in the
-[MP4 test data documentation](../tests/Mediana.Tests/Data/Mp4/README.md).
-
-## Progressive encoding regression
-
-A Native AOT comparison retains the same six 150-frame 720p/1080p inputs and
-encoder settings used by the [encoding matrix](h264-encoding-matrix.md).
-Each binary runs on logical CPU 11 with one processing thread and priority
-`nice -20`. Three runs per binary alternate in ABBAAB order; the animation
-case additionally repeats five runs per binary after a large timing spread.
-No other local build or reference encoding overlaps measured runs.
-
-| Source | CPU before / after, s | Wall before / after, s | Peak RSS before / after, MiB | Allocations before / after, MiB |
-| --- | ---: | ---: | ---: | ---: |
-| camera-720 | 6.944 / 6.957 | 7.057 / 6.958 | 23.4 / 23.6 | 14.89 / 14.95 |
-| noise-720 | 6.170 / 6.188 | 6.171 / 6.189 | 23.8 / 23.8 | 15.14 / 15.08 |
-| text-720 | 2.044 / 2.063 | 2.045 / 2.063 | 23.2 / 23.2 | 14.64 / 14.64 |
-| photo-pan-1080 | 9.922 / 10.015 | 9.927 / 10.019 | 37.2 / 37.2 | 37.83 / 37.83 |
-| animation-1080 | 7.516 / 7.576 | 7.529 / 7.581 | 36.8 / 36.8 | 37.33 / 37.21 |
-| cuts-1080 | 13.299 / 13.052 | 13.748 / 14.069 | 36.9 / 36.9 | 37.34 / 37.33 |
-
-All 46 complete encoded transport streams are byte-identical to their previous
-reference, preserving the decoded quality and file size. Retained allocator
-bytes are zero after each run. Across the five stable original cases and the
-animation repeat, median CPU changes range from −1.86% to +0.94%.
-The first animation comparison had 7.634–10.994 seconds CPU before and
-8.494–10.056 seconds after; its apparent 15.5% improvement is not treated
-as an acceleration result. The additional repeat gives 7.516 versus 7.576
-seconds (+0.81%). These measurements cover the effect on existing progressive
-encoding, not complete interlaced decoding throughput.
-
-
-## Progressive decoding regression
-
-A separate Native AOT client compares the decoder before and after field
-reference management and inter-field prediction. Three independent libx264
-`veryfast` inputs contain 150 frames each, with QP 24, GOP 60, two B frames and
-four reference frames. Each measured process decodes the complete file four
-times (600 frames), including container reading and a SHA-256 of all visible
-samples. All eighteen runs match independent FFmpeg decoding exactly and
-release their allocator budget after every session.
-
-Each variant runs three times in ABBAAB order, pinned to logical CPU 11 with
-`nice -20` and one processing CPU. No local builds or source encoding overlap
-timing. Values below are medians; allocations accumulate across all four passes.
-
-| Source | CPU before / after, s | Wall before / after, s | Peak RSS before / after, MiB | Allocations before / after, MiB |
-| --- | ---: | ---: | ---: | ---: |
-| camera-720 | 7.654 / 7.707 | 7.660 / 7.713 | 59.64 / 59.46 | 1234.40 / 1234.46 |
-| camera-422-10 | 20.120 / 20.078 | 20.132 / 20.088 | 110.89 / 111.04 | 2588.25 / 2588.28 |
-| noise-1080 | 92.705 / 93.979 | 92.793 / 94.077 | 112.44 / 111.46 | 3046.89 / 3046.98 |
-
-The camera-720 source uses 8-bit 4:2:0; camera-422-10 uses the same 720p camera
-frames converted to 10-bit 4:2:2. Noise-1080 uses a 1920×1080 test pattern with
-temporal uniform noise (`alls=18`, seed 1234). CPU median changes are +0.69%,
-−0.21% and +1.37%, respectively. The noisy-input after runs span 92.681–104.338
-seconds, versus 92.696–93.037 seconds before, so its timing is less stable.
-This is a regression check, not an acceleration claim. Peak memory and total
-allocations remain comparable; low retained memory does not imply low cumulative
-allocations. No field output composition or RGB conversion is included here.
-
-## Shared frame representation
-
-`VideoFormat.ScanMode` distinguishes progressive storage, interleaved field rows
-with top-first or bottom-first presentation, and a single stored field. Existing
-constructors retain progressive behavior. Interleaved chroma plane heights are
-calculated from each field separately, including odd and cropped dimensions.
-`VideoFrame.GetField` returns an independent strided lease over the same allocation;
-it preserves source timing without inventing a field timestamp or duration.
-
-`VideoColorInfo.FieldChromaLocations` can preserve separate field locations.
-The sRGB converter interpolates vertically within the selected field using the
-sampling grid in H.264 Annex E, including high-precision planar samples. CICP
-precedence and explicit color policies preserve known field locations. Color
-conversion and horizontal RGBA scaling retain scan mode. Vertical scaling and
-orientation changes that rearrange field rows require deinterlacing first;
-progressive YUV preparation and H.264 encoding reject field storage rather than
-silently relabel it. Explicit single-field interpolation is available separately;
-automatic deinterlacing in export remains open.
-
-## Reference row layout
-
-Luma/chroma interpolation and border extension distinguish the source row width
-from its physical stride. The same 8-bit SIMD and 10-bit interpolation kernels
-can sample alternating field rows without reading the other field or allocating
-a full-frame intermediate. Packed references keep their existing sample layout.
-Managed and Native AOT checks cover all luma/chroma fractions, both row parities,
-borders and prediction block sizes. The 959 H.264 tests passed; all 16 motion
-compensation tests also passed with hardware intrinsics disabled.
-
-A complete-decode regression comparison used Native AOT on CPU 11, one reported
-processor, priority -20 and the shared BCL pool. Each process decoded four full
-150-frame sequences, hashed all output samples and checked that owned buffers
-were released after each pass. Every output hash matched FFmpeg. The table shows
-medians; variants ran sequentially in alternating order.
-
-| Source | Runs per variant | CPU before / after, s | Wall before / after, s | Peak RSS before / after, MiB | Allocations before / after, MiB |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Camera, 720p, 8-bit 4:2:0, repeat | 5 | 7.416 / 7.448 | 7.416 / 7.449 | 33.46 / 33.34 | 25.92 / 25.93 |
-| Camera, 720p, 10-bit 4:2:2 | 3 | 19.702 / 19.668 | 19.723 / 19.677 | 47.80 / 47.99 | 40.22 / 40.23 |
-
-The initial three-pair 8-bit run measured 7.449 / 7.690 seconds CPU (+3.24%).
-A five-pair repeat with reversed starting order measured +0.43%, with overlapping
-ranges (7.399–7.451 before, 7.369–7.465 after). The initial difference did not
-reproduce; this change does not establish an acceleration. The 10-bit difference
-was -0.17%. These measurements check the existing progressive path, before mixed-reference
-pixel prediction was added.
-
-## Mixed reference marking
-
-Logical reference identities distinguish the two fields of a material frame
-without duplicating its pixel storage. Field lists alternate parity across frame
-entries; list modifications retain the other field when both share one buffer.
-Frame lists combine complete marked pairs and exclude unpaired fields, as required
-by H.264 clauses 8.2.4.1–8.2.4.3. Frame-mode memory operations cannot target a lone
-field. Reference marking is transactional, and removing one logical field keeps
-its physical storage alive while the other remains referenced.
-
-All 967 H.264 tests passed, including failed-marking rollback, frame-to-field
-list transitions, frame list reconstruction and allocator release. Public
-mixed-frame/field acceptance is also checked below; MBAFF remains separate.
-
-
-## Mixed reference pixels
-
-Field views of material frames read alternating rows through the shared
-interpolation kernels. Frame views of separately stored fields gather only the
-prediction block and interpolation taps on the stack; they do not materialize a
-full reference frame. Integer prediction copies the selected rows directly.
-
-Two JM 19.1 mixed frame/field sequences exercise both CABAC and CAVLC, frame
-number wrap and transitions in both directions. All 66 coded pictures and 48
-assembled output frames match FFmpeg byte for byte, with exact presentation times
-and durations in both managed execution and Native AOT. Separate kernel checks
-compare views against material pictures for
-8/10-bit 4:2:0/4:2:2, both field parities, every interpolation fraction and border
-extension, also with hardware intrinsics disabled. The 973 H.264 tests pass, and
-the standalone reference suite also passes with ordinary async compilation.
-MBAFF remains open; public PAFF decode and seek checks are described below.
-
-
-## Mixed B-picture prediction
-
-Co-located prediction selects the nearest reference field by picture order,
-choosing the bottom field on a tie. Block coordinates, reference identity and
-vertical temporal motion follow H.264 Table 8-8 and clauses 8.4.1.2.1–8.4.1.2.3.
-Frame-to-field motion divides toward zero, including negative odd vectors;
-field-to-frame motion doubles the vertical component. Spatial direct zero-motion
-tests use the original co-located vector before temporal scaling.
-
-Four independent JM 19.1 sequences cover CABAC/CAVLC and spatial/temporal direct
-prediction with transitions between frame and field pictures. Each contains
-15 B pictures among 33 coded pictures. All 132 coded pictures and 96 assembled
-frames match FFmpeg exactly, including POC, output timestamps and durations,
-in managed execution, Native AOT and ordinary async compilation. Five focused
-checks also cover parity mapping, negative odd motion, field selection and ties.
-The 982-test H.264 selection passes. MBAFF remains open; public PAFF decode
-and seek checks are described below.
-
-## Mixed reference regression measurement
-
-A Native AOT comparison measures the combined logical-reference, pixel-view and
-co-located-motion changes against the preceding row-stride implementation. The
-same two 150-frame 720p inputs are decoded four times per process, with pooled
-buffers, one reported processor, CPU 11 affinity and priority -20. Three runs per
-variant alternate in ABBAAB order, without overlapping local builds or encoding.
-All twelve runs produce 600 frames, match the FFmpeg sample hashes and release
-their allocator budget after each pass.
-
-| Source | CPU before / after, s | Wall before / after, s | Peak RSS before / after, MiB | Allocations before / after, MiB |
-| --- | ---: | ---: | ---: | ---: |
-| Camera, 8-bit 4:2:0 | 8.161 / 7.949 | 8.169 / 7.959 | 33.35 / 33.50 | 25.83 / 25.94 |
-| Camera, 10-bit 4:2:2 | 20.767 / 20.159 | 20.787 / 20.177 | 47.94 / 48.09 | 40.22 / 40.26 |
-
-CPU medians changed by -2.60% and -2.92%, but the ranges overlap: 8.089–9.013
-versus 7.422–8.167 seconds for 8-bit, and 20.204–22.054 versus 20.019–22.956
-seconds for 10-bit. These results show no observed regression on the two inputs;
-they do not establish an acceleration. Peak RSS increased by approximately
-0.15 MiB, and cumulative allocations remain comparable. These measurements cover
-progressive decoding; they do not establish mixed-interlace throughput.
-
-## MBAFF macroblock geometry
-
-A shared macroblock grid separates coded pair order, logical block coordinates
-and physical pixel rows. The pair-mode map is part of the picture's allocator
-budget. It uses one byte per MBAFF pair and no additional pixel surface. Field
-pairs use alternating rows; frame pairs use contiguous rows. Neighbour lookup
-applies picture bounds, slice boundaries and decoding order before accessing a
-pair's mode.
-
-Thirty-three checks cover the frame/field neighbour cases in H.264 Table 6-4.
-Geometry checks exercise every combination of six pair modes for luma, 4:2:0
-chroma and 4:2:2 chroma, covering every plane sample exactly once. Availability
-and immutable pair-mode checks also pass.
-
-Two independently encoded JM 19.1 CAVLC PCM pictures match every FFmpeg-decoded
-sample in managed execution, Native AOT and ordinary async compilation. Field
-flags, PCM sample placement and allocator release are verified. All 1,022 H.264
-tests pass. Predictive MBAFF macroblocks, field-dependent entropy contexts and
-mixed-edge deblocking remain open; the public MBAFF guard remains in place.
-
-## MBAFF intra prediction
-
-CAVLC intra reconstruction now maps prediction neighbours, coefficient counts,
-4x4 and 8x8 transform scans, and reconstructed samples through the picture's
-macroblock grid. Canonical block metadata is separate from physical frame or
-field row placement. No additional full-frame surface is allocated.
-
-Four JM 19.1 intra pictures cover 8-bit 4:2:0, High10 4:2:0 and 10-bit 4:2:2.
-Three adaptive pictures contain both frame and field pairs; a fourth uses
-field pairs throughout. All decoded samples match FFmpeg in managed execution,
-Native AOT and ordinary async compilation. The 1,026 H.264 tests pass.
-CABAC intra coverage is described below. Predictive macroblocks and mixed-edge
-deblocking remain open.
-
-A full-decode regression check runs 600 progressive frames per process with the
-same frozen Native AOT client, one reported CPU, a fixed core and shared pooled
-buffers. Three runs of each revision alternate before/after order. All decoded
-hashes match FFmpeg and each file releases its buffer leases. Median CPU time
-is 7.437 → 7.397 seconds for 720p 8-bit 4:2:0 and 19.688 → 19.557 seconds for
-720p 10-bit 4:2:2. These differences below 1% do not establish a speed gain.
-Peak RSS medians are 33.48 → 33.45 MiB and 47.91 → 48.00 MiB; total managed
-allocations are 25.9558 → 25.9569 MiB and 40.2508 → 40.2574 MiB, respectively.
-These measurements cover two progressive sources, not MBAFF throughput.
-
-## MBAFF CABAC intra reconstruction
-
-CABAC intra reconstruction now derives pair-mode, macroblock type, coded-block
-pattern, transform-size and coded-block contexts from the shared macroblock
-grid. Residual significance contexts use each pair's frame or field mode.
-Termination is read at pair boundaries; PCM restarts the arithmetic decoder.
-
-Sixteen independent JM 19.1 MBAFF pictures now match FFmpeg sample-for-sample
-in managed execution, Native AOT and ordinary async compilation. They cover
-both entropy modes, 8/10-bit 4:2:0 and 4:2:2, adaptive mixed pairs, forced field
-pairs, PCM and forced 8×8 transforms. All 1,036 H.264 tests pass. Predictive
-MBAFF slices and mixed-edge deblocking remain open. Public PAFF validation is
-described below.
-
-A repeated progressive 10-bit 4:2:2 check compares the CAVLC MBAFF geometry
-revision with the CABAC MBAFF revision. Each Native AOT process decodes 600
-frames; three runs per revision alternate on one fixed core. CPU medians are
-19.701 and 19.726 seconds, with ranges 19.578–19.897 and 19.644–20.182 seconds.
-Peak RSS medians are 48.07 and 48.23 MiB; total managed allocations are 40.282
-and 40.275 MiB. All decoded hashes match FFmpeg. The overlapping ranges do not
-establish a throughput change.
-
-## Picture presentation
-
-The decoder now preserves picture-timing SEI as `VideoFrame.Presentation`.
-It reads HRD-dependent fields using the active slice's SPS, validates the
-bounded payload and maps all nine display structures to frame or field
-sequences. Without an explicit structure it uses the H.264 D.2.3 inferred
-field order. Source scan indications remain separate from pixel layout;
-unknown source scan is not guessed from display cadence.
-
-Field pairing combines the display hints without creating repeated pixel
-surfaces. Packet PTS and duration remain authoritative. Four independent
-JM/libx264 sources match FFmpeg pixels and timing in forward reading and
-reverse seeking, including repeated fields, frame doubling and HRD with
-B-picture reorder. These checks pass in managed execution, Native AOT and
-ordinary async compilation. The remaining reconstruction guard applies to MBAFF.
-
-## Public PAFF decoding and seeking
-
-The public `VideoSession` reconstructs fifteen independent PAFF and mixed
-frame/field sources. Every decoded sample, PTS, combined duration and scan mode
-matches the reference expectations through sequential reading and reverse
-seeking to every frame. The checks cover 252 output pictures and their reverse
-seeks, retained frames after session disposal, and complete release of buffers.
-All 1,128 H.264 tests pass; the same field cases pass in Native AOT and with
-ordinary async compilation.
-
-A ten-minute MP4 combines a repeated independent JM PAFF B-picture sequence
-with AAC audio. Native AOT decodes all 7,200 96×96 frames with exact FFmpeg
-SHA256 matches and validates the complete 600-second video timeline. The audio
-check covers 28,125 blocks and 28.8 million samples in the presentation range;
-one negative-timestamp AAC priming block remains visible in the raw session.
-The maximum block RMS difference from FFmpeg is 0.000006 dB; this is an energy
-comparison, not a bit-exact waveform claim.
-
-One hundred randomized joint A/V seeks return equal audio/video presentation
-timestamps and match the independent references. Another hundred requests
-between fields select the correct following complete picture. The shared
-allocator reports zero live bytes after both sessions are disposed. This small
-resolution checks long timelines and seek correctness, not HD throughput.
-
-## Motion neighbours across adaptive pairs
-
-Spatial P/B prediction resolves neighbouring blocks through each macroblock
-pair's actual frame/field geometry. H.264 8.4.1.3.2 scaling applies to vertical
-vectors and reference indices when the neighbour uses a different mode. Negative
-odd vectors divide toward zero. Slice boundaries, undecoded blocks and absent
-references retain their distinct availability states.
-
-Shared managed and Native AOT checks cover both reference lists, all four
-frame/field combinations, both members of a pair, internal partitions, slice
-boundaries and 16×8 prediction. These primitives are part of predictive MBAFF
-work; complete predictive MBAFF decoding remains unavailable.
-
-## CAVLC macroblock-pair control
-
-I, P and B slices share the same skip-run and field-flag cursor. When a skipped
-upper macroblock precedes a coded lower macroblock, the cursor reads the lower
-macroblock's field flag before either is reconstructed. Fully skipped pairs use
-the left pair's mode, then the upper pair's mode, then frame mode, according to
-H.264 7.4.4. Neighbours outside the slice do not contribute. Partial pairs,
-truncated slices and excessive skip runs are rejected.
-
-All 1,134 H.264 tests pass. Shared managed and Native AOT checks cover coded,
-skipped and alternating macroblocks, runs across pair boundaries, inference
-priority, payload positions and slice boundaries. Independently encoded intra
-MBAFF and progressive/PAFF I/P/B sequences retain exact reference samples.
-
-## Regression comparison
-
-Separate .NET 11 Native AOT binaries, one fixed core, elevated process priority
-and three alternating runs per implementation. Each run decodes and hashes
-600 pictures from independently encoded sources. Measurements include the shared
-motion lookup and CAVLC cursor changes. Hashes match the reference decoder in
-every run; all media buffers are released.
-
-| Input | CPU median, before → after | Wall median, before → after | Peak RSS, before → after | Allocated/run, before → after |
-| --- | ---: | ---: | ---: | ---: |
-| 720p, 8-bit 4:2:0 CABAC | 7.599 → 7.425 s | 7.602 → 7.426 s | 33.88 → 33.86 MiB | 26.01 → 26.03 MiB |
-| 10-bit 4:2:2 CABAC | 19.702 → 19.994 s | 19.709 → 19.999 s | 48.32 → 48.27 MiB | 40.30 → 40.31 MiB |
-| 720p, 8-bit 4:2:0 CAVLC | 7.173 → 7.181 s | 7.174 → 7.181 s | 33.67 → 33.73 MiB | 25.87 → 25.87 MiB |
-
-The 8-bit CABAC CPU ranges are 7.598–7.692 versus 7.382–7.461 s. The other
-ranges overlap: 19.668–19.788 versus 19.725–20.118 s for 10-bit CABAC, and
-7.159–7.231 versus 7.130–7.257 s for CAVLC. The results do not establish a
-speed improvement across all inputs.
-
-## CAVLC predictive MBAFF reconstruction
-
-The reconstruction kernel decodes MBAFF P slices with frame-coded and
-field-coded macroblock pairs. Field reference lists reuse existing picture
-storage. Reference parity, motion coordinates, active-reference bounds and
-explicit prediction weights follow the selected macroblock structure. Stored
-reference identities preserve the distinction between the two fields.
-
-Five JM 19.1 sequences cover forced field pairs and adaptive pairs with
-8/10-bit 4:2:0 and 4:2:2. All 30 decoded pictures match FFmpeg sample for sample.
-Shared synthetic tests additionally cover all reference indices, weight-table
-selection, both fields and unchanged pixel-buffer allocations. All 1,146 H.264
-tests pass; these checks also pass under Native AOT.
-
-Public MBAFF decoding remains disabled until predictive CABAC, bidirectional
-colocated motion and mixed-structure deblocking are verified together.
-
-The following comparison isolates the predictive MBAFF changes from the
-preceding cursor implementation. The binaries use the same Native AOT setup
-and alternate three runs each, with 600 decoded pictures per run.
+The public decoder accepts picture-adaptive frame/field (PAFF) and
+macroblock-adaptive frame/field (MBAFF) I/P/B sequences with CABAC or CAVLC,
+8/10-bit samples and 4:2:0/4:2:2 chroma. Decoded frames carry actual sample
+geometry, timestamps, field order and picture presentation hints. The same
+`VideoSession` API handles sequential reading and seeking.
+
+## Picture layout and references
+
+The slice-header reader distinguishes frames, top fields and bottom fields.
+Picture layout derives macroblock counts, pair addresses and picture-number
+ranges from the sequence and picture structure. Separate fields use half the
+coded frame height for pixel planes and block metadata. Adaptive frames use
+one surface with per-pair frame/field geometry.
+
+Picture ordering handles all three POC types, complementary field pairs,
+frame-number wrap and reference resets. The reference buffer groups
+complementary fields by a stable frame identity. Sliding-window occupancy
+counts a pair as one frame; explicit marking can release either field, convert
+a pair to long-term references or reset the buffer. Invalid marking preserves
+the previous buffer and the caller's ownership.
+
+Reference lists alternate field parity after sorting frame entries. H.264
+7.4.3 limits active references to 16 for frames and 32 for fields. MBAFF slice
+headers use the frame limit before expansion for field macroblocks. Field
+views of material frames and separately stored field pairs retain reference
+identity and picture order without copying the pixel surface.
+
+Spatial motion prediction maps neighbours through their actual frame/field
+geometry. Vertical vectors and reference indices use the scaling in H.264
+8.4.1.3.2. Colocated direct prediction follows Table 8-8 for frames, separate
+fields and adaptive frames. Temporal scaling and implicit B weights use the
+selected field's POC; explicit weights index the original frame weight table.
+
+## Reconstruction and filtering
+
+Frame and field decoding share prediction, inverse transforms and interpolation
+kernels. Pair mode selects the normative 4×4/8×8 coefficient scans and CABAC
+significance contexts. CAVLC skip runs and CABAC skip/field flags preserve the
+specified pair syntax order. CABAC history retains two macroblock rows for
+ordinary pictures or two pair rows for MBAFF; storage scales with width.
+
+Deblocking resolves physical neighbours using the pair grid. Mixed frame/field
+edges use their own segment mapping, quantizers, boundary strengths and field
+motion thresholds. A frame macroblock below field-coded neighbours filters
+the two top-field boundaries separately. Slice-boundary suppression and
+per-slice alpha/beta offsets remain applicable.
+
+Uniform frame/frame and field/field edges reuse the existing filter kernels,
+including 8-bit SIMD. Mixed edges use individual sample filtering. Threshold
+calculation and reference/motion comparison are shared with ordinary decoding.
+Filtering does not allocate a second pixel surface.
+
+## Presentation and export
+
+`VideoFrame.Presentation` preserves picture-timing SEI, including all nine
+`pic_struct` values, repeated fields and repeated frames. In its absence the
+decoder uses the inferred structure from H.264 D.2.3. Source scan indications
+remain separate from presentation cadence. Packet PTS and duration remain
+authoritative; repeated presentation does not duplicate pixel storage.
+
+Complementary PAFF fields are assembled into full frames in presentation
+order. A pair retains its leading timestamp and combines known field
+durations. MBAFF frames with field presentation expose top-field-first or
+bottom-field-first scan order. Explicit progressive source scan retains
+progressive layout. Independent field chroma locations are preserved.
+
+`VideoPreparationOptions.InterlacedField` selects spatial reconstruction from
+the leading, top or bottom field. It produces one progressive image per input
+frame, preserves its timing and restores full height. This is a spatial
+single-field conversion, not motion-adaptive deinterlacing or frame-rate
+doubling. Library callers opt in. CLI preview, transcode and encoded HLS select
+the leading field and report the conversion as a warning. The preparation is
+shared by the library export pipeline.
+
+## Independent validation
+
+The checked-in fixtures and their provenance are described in
+[the MP4 fixture reference](../tests/Mediana.Tests/Data/Mp4/README.md).
+
+- Fifteen PAFF and mixed frame/field sequences validate 252 public output
+  pictures and reverse seeks, including every sample, timestamp, duration,
+  scan mode, retained-frame lifetime and buffer release.
+- MBAFF reconstruction cases cover PCM, 4×4/8×8 transforms, CAVLC/CABAC,
+  predictive and bidirectional pictures, spatial/temporal direct prediction,
+  forced fields and adaptive mixed pairs.
+- Twenty filtered JM 19.1 sequences validate 240 pictures at 8/10-bit
+  4:2:0/4:2:2. Eight additional sequences exercise multiple slices, nonzero
+  chroma and deblocking offsets, and filtering across or within slice boundaries.
+- Eight libx264 sequences validate cropped 94×92 images, both field orders,
+  implicit B weights, three slices and repeated random access points. All
+  twelve pictures per sequence match FFmpeg exactly.
+- Public MBAFF checks read each frame sequentially and seek backwards to every
+  frame, comparing samples, timestamps, durations and presentation. Shared
+  cases also run under Native AOT.
+- Synthetic checks cover all frame/field neighbour combinations, Table 8-8
+  colocated mappings, explicit/implicit weights, both field parities and
+  1,728 CABAC pair-flag combinations. Compact syntax history is compared with
+  full-picture storage without allocations during traversal.
+
+A ten-minute PAFF MP4 with AAC validates 7,200 video frames and 28.8 million
+audio samples. Every video frame matches FFmpeg SHA256. One hundred joint A/V
+seeks and one hundred requests between fields verify timestamp alignment and
+selection of the following complete picture. Audio block RMS differs by at
+most 0.000006 dB; this is an energy comparison, not a bit-exact waveform claim.
+The allocator returns to zero live bytes. Its 96×96 resolution validates long
+timelines and seeking, not HD throughput.
+
+The same long-run validation also passes for an MBAFF 10-bit 4:2:2 source
+with multiple slices and AAC: 7,201 pictures match independently decoded
+hashes, 28.8 million audio samples cover 600 seconds, and both sets of 100
+seeks pass. The copied source ends video one frame after the 600-second audio
+boundary (600.083333 seconds); validation preserves those distinct timelines.
+The maximum audio block RMS difference is 0.000001 dB and live buffer bytes
+return to zero.
+
+CLI checks cover a bottom-field-first PNG preview and High10 4:2:2 to H.264
+conversion. A two-second MBAFF/AAC input produces two HLS renditions with five
+aligned segments each. FFmpeg decodes both complete playlists without errors.
+Warnings report the selected field and 10-to-8-bit reduction.
+
+All 1,218 H.264 tests and the complete standard Linux Native AOT test executable
+pass. The Native AOT output includes the profile/field media, decoded samples,
+picture-order references and presentation timing tables.
+
+## Current format boundaries
+
+Reconstruction supports default scaling matrices and equal 8- or 10-bit luma
+and chroma precision. Custom scaling matrices, transform bypass, 4:4:4, separate
+colour planes and SP/SI slices remain unsupported. These are independent of
+PAFF/MBAFF picture structure. Contradictory picture-timing SEI is rejected by
+strict decoding even when the codec configuration is supported. The H.264 encoder produces progressive 8-bit
+4:2:0 output; interlaced input can use the preparation described above.
+
+## MBAFF filter performance
+
+The comparison measures the initial per-sample MBAFF filter against reuse of
+uniform-edge filter kernels. Both are Native AOT builds on .NET 11.0.100.
+Three runs of each binary alternate on one fixed physical core, with one
+reported processor and pooled image buffers. Each process decodes and hashes
+600 pictures from an independently encoded 150-picture 1280×720 source.
+Every decoded SHA256 matches FFmpeg; all buffer leases return to zero.
+These are two revisions of Mediana, not a comparison with FFmpeg throughput.
 
 | Input | CPU before → after | Wall before → after | Peak RSS before → after | Allocated/run before → after |
 | --- | ---: | ---: | ---: | ---: |
-| 720p CABAC | 9.620 → 9.886 s | 9.968 → 10.312 s | 33.97 → 33.76 MiB | 26.06 → 26.06 MiB |
-| 10-bit 4:2:2 CABAC, repeat | 19.928 → 19.998 s | 19.943 → 20.004 s | 48.29 → 48.33 MiB | 40.31 → 40.32 MiB |
-| 720p CAVLC | 7.171 → 7.235 s | 7.172 → 7.236 s | 33.71 → 33.75 MiB | 25.94 → 25.93 MiB |
+| 8-bit 4:2:0 | 60.380 → 31.160 s | 60.385 → 31.163 s | 36.63 → 36.66 MiB | 33.73 → 33.83 MiB |
+| 10-bit 4:2:2 | 25.632 → 25.511 s | 25.635 → 25.513 s | 51.22 → 51.33 MiB | 48.01 → 48.04 MiB |
 
-The initial 10-bit comparison had a 14% median difference while the unchanged
-control varied from 19.7 to 22.3 seconds and the new binary from 20.2 to 26.4
-seconds. A targeted repeat measured 19.928 versus 19.998 seconds (+0.35%);
-ranges overlap. The 720p CABAC control also varied substantially (8.304–10.104
-seconds). These measurements do not establish a general speed difference.
-All decoded hashes match the independent decoder; picture-buffer ownership
-returns to zero after every run.
+The 8-bit source uses 48.4% less CPU. The 10-bit source still uses scalar
+filtering and shows no established improvement: CPU medians differ by -0.47%,
+with overlapping run ranges. The speed gain uses existing SIMD instructions;
+it is not attributed to a new .NET 11 intrinsic.
 
-## CABAC predictive MBAFF reconstruction
+### Progressive regression comparison
 
-The reconstruction kernel also decodes MBAFF P slices with CABAC. Skip flags
-use the inferred pair mode until the coded mode is available. A skipped upper
-macroblock reads the lower skip flag and, when present, its field flag before
-reconstruction. This preserves the arithmetic payload order without changing
-the stored pair mode temporarily.
-
-Reference-index and vertical motion-difference contexts use the actual
-neighbour structure. The syntax-history buffer retains two rows of macroblock
-pairs; its storage scales with picture width. Progressive decoding retains
-its two-macroblock-row budget.
-
-Five JM 19.1 sequences cover all three CABAC initialization modes, 8/10-bit
-4:2:0 and 4:2:2, forced fields and adaptive pairs. All 30 pictures match FFmpeg
-sample for sample. An independent arithmetic-interval test checks 1,728
-combinations of skip flags, neighbour modes, slice starts and initialization
-for both P and B pair syntax. The compact history is checked against full
-picture storage across multiple widths, heights and slice starts, with no
-allocations during traversal. All 1,152 H.264 tests and the shared Native AOT
-profile validation pass. Bidirectional MBAFF reconstruction and mixed-edge
-deblocking remain open.
-
-Paired regression measurements use the previous CAVLC-MBAFF implementation
-as the baseline. Three alternating Native AOT runs decode and hash 600
-pictures each on the same fixed core. All decoded hashes match.
+The baseline is the preceding bidirectional MBAFF revision. Three alternating
+Native AOT runs per revision decode and hash 600 pictures per source on the
+same core. Every hash matches the independent reference. The shared threshold
+calculation retains QP reuse outside each ordinary macroblock's edge loop.
 
 | Input | CPU before → after | Wall before → after | Peak RSS before → after | Allocated/run before → after |
 | --- | ---: | ---: | ---: | ---: |
-| 720p CABAC | 7.587 → 7.467 s | 7.588 → 7.468 s | 33.70 → 33.82 MiB | 25.98 → 26.02 MiB |
-| 10-bit 4:2:2 CABAC | 19.740 → 20.066 s | 19.746 → 20.072 s | 48.31 → 48.32 MiB | 40.33 → 40.32 MiB |
-| 720p CAVLC | 7.190 → 7.250 s | 7.191 → 7.250 s | 33.83 → 33.62 MiB | 25.89 → 25.88 MiB |
+| 720p CABAC | 7.590 → 7.641 s | 7.591 → 7.642 s | 33.89 → 33.91 MiB | 26.04 → 26.00 MiB |
+| 10-bit 4:2:2 CABAC | 20.188 → 19.605 s | 20.190 → 19.607 s | 48.43 → 48.32 MiB | 40.33 → 40.31 MiB |
+| 720p CAVLC | 7.190 → 7.252 s | 7.191 → 7.254 s | 33.73 → 33.79 MiB | 25.87 → 25.92 MiB |
 
-CPU ranges overlap for all three sources; these changes extend format
-coverage and do not establish a throughput improvement.
-
-## Bidirectional MBAFF reconstruction
-
-The reconstruction kernels support MBAFF B slices with CAVLC and CABAC,
-spatial and temporal direct modes. Colocated blocks follow H.264 Table 8-8
-for ordinary frames, separate fields and adaptive frames. Reference identities
-and vertical motion are mapped with the selected block structure; temporal
-scaling and implicit weights use the current field's picture order count.
-Explicit weights index the original frame weight table.
-
-CABAC syntax history preserves decoded reference indices before partition
-reconstruction. This allows frame neighbours to distinguish the first two
-field references from references to later frames without accessing incomplete
-reconstructed motion. The compact buffer size is unchanged.
-
-Twenty independent JM sequences, 240 pictures, match FFmpeg sample for sample.
-Synthetic tests cover the colocated mapping table and explicit/implicit
-weights for both field parities, 8/10-bit 4:2:0 and 4:2:2. All 1,174 H.264 tests
-and shared Native AOT validation pass. Public MBAFF decoding still awaits
-verified mixed-edge deblocking and public session/seek checks.
-
-Paired Native AOT measurements use three alternating runs per binary and
-600 decoded pictures per run. The baseline is the preceding CABAC P-pair
-implementation. All hashes match the independent decoder.
-
-| Input | CPU before → after | Wall before → after | Peak RSS before → after | Allocated/run before → after |
-| --- | ---: | ---: | ---: | ---: |
-| 720p CABAC | 7.887 → 7.928 s | 7.888 → 7.929 s | 33.74 → 33.92 MiB | 25.97 → 26.04 MiB |
-| 10-bit 4:2:2 CABAC | 20.103 → 20.261 s | 20.117 → 20.276 s | 48.61 → 48.43 MiB | 40.28 → 40.32 MiB |
-| 720p CAVLC | 7.323 → 7.278 s | 7.325 → 7.279 s | 33.77 → 33.37 MiB | 25.90 → 25.89 MiB |
-
-CPU ranges overlap for all inputs; no general speed improvement is claimed.
+CPU ranges overlap for all three inputs; these results do not establish a
+progressive throughput change.

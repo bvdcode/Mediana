@@ -86,25 +86,31 @@ namespace Mediana.Codecs.H264
                 ? Resolve(H264ReferenceList.L1, previous, true, vertical, previousMacroblock) : null;
             H264PictureIdentity? q1 = picture.HasBidirectionalMotion
                 ? Resolve(H264ReferenceList.L1, current, false, vertical, previousMacroblock) : null;
+            return PredictionStrength(previous, current, p0, q0, p1, q1, picture.Layout.IsField ? 2 : 4);
+        }
+
+        private readonly int PredictionStrength(int previous, int current, H264PictureIdentity? p0, H264PictureIdentity? q0,
+            H264PictureIdentity? p1, H264PictureIdentity? q1, int verticalLimit)
+        {
             if ((p0 is null && p1 is null) || (q0 is null && q1 is null))
             {
                 throw new InvalidDataException("The H.264 inter edge has no prediction reference.");
             }
             if (ReferenceEquals(p0, q0) && ReferenceEquals(p1, q1)
-                && (p0 is null || Near(motionXL0, motionYL0, motionXL0, motionYL0, previous, current))
-                && (p1 is null || Near(motionXL1, motionYL1, motionXL1, motionYL1, previous, current)))
+                && (p0 is null || Near(motionXL0, motionYL0, motionXL0, motionYL0, previous, current, verticalLimit))
+                && (p1 is null || Near(motionXL1, motionYL1, motionXL1, motionYL1, previous, current, verticalLimit)))
             {
                 return 0;
             }
             return ReferenceEquals(p0, q1) && ReferenceEquals(p1, q0)
-                && (p0 is null || Near(motionXL0, motionYL0, motionXL1, motionYL1, previous, current))
-                && (p1 is null || Near(motionXL1, motionYL1, motionXL0, motionYL0, previous, current)) ? 0 : 1;
+                && (p0 is null || Near(motionXL0, motionYL0, motionXL1, motionYL1, previous, current, verticalLimit))
+                && (p1 is null || Near(motionXL1, motionYL1, motionXL0, motionYL0, previous, current, verticalLimit)) ? 0 : 1;
         }
 
-        private readonly bool Near(ReadOnlySpan<int> previousX, ReadOnlySpan<int> previousY,
-            ReadOnlySpan<int> currentX, ReadOnlySpan<int> currentY, int previous, int current) =>
+        private static bool Near(ReadOnlySpan<int> previousX, ReadOnlySpan<int> previousY,
+            ReadOnlySpan<int> currentX, ReadOnlySpan<int> currentY, int previous, int current, int verticalLimit) =>
             Math.Abs((long)previousX[previous] - currentX[current]) < 4
-            && Math.Abs((long)previousY[previous] - currentY[current]) < (picture.Layout.IsField ? 2 : 4);
+            && Math.Abs((long)previousY[previous] - currentY[current]) < verticalLimit;
 
         private readonly bool HasResidual(int x, int y, int position, int macroblock)
         {

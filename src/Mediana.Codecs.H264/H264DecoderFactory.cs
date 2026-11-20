@@ -9,7 +9,7 @@ using Mediana.Core.Video;
 namespace Mediana.Codecs.H264
 {
     /// <summary>Decodes AVC length-prefixed packets containing a complete picture with slices in increasing macroblock order.
-    /// Supports progressive and picture-adaptive frame/field 8-bit and 10-bit YUV 4:2:0 and 4:2:2
+    /// Supports progressive, picture-adaptive and macroblock-adaptive frame/field 8-bit and 10-bit YUV 4:2:0 and 4:2:2
     /// CAVLC and CABAC I/P/B pictures with default scaling. Both entropy modes support 4x4 and 8x8 transforms.</summary>
     public class H264DecoderFactory : IVideoDecoderFactory, IRandomAccessDecoderFactory
     {

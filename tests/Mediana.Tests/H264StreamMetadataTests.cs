@@ -46,7 +46,7 @@ namespace Mediana.Tests
         [InlineData("avc-high10.mp4", true)]
         [InlineData("avc-high422.mp4", true)]
         [InlineData("avc-high444.mp4", false)]
-        [InlineData("avc-interlaced.mp4", false)]
+        [InlineData("avc-interlaced.mp4", true)]
         public async Task DecodingCapabilitiesDoNotChangeConfigurationValidity(string file, bool canDecode)
         {
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(AppContext.BaseDirectory, "Data", "Metadata", file)));
