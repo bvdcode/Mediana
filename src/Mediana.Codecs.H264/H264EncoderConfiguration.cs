@@ -24,7 +24,7 @@ namespace Mediana.Codecs.H264
         public static byte[] Create(VideoFormat format, MediaBufferAllocator allocator, H264EncoderOptions options,
             out int parameterSetBytes)
         {
-            if (format.PixelFormat != VideoPixelFormat.Yuv420P8 || (format.Width & 1) != 0 || (format.Height & 1) != 0)
+            if (format.ScanMode != VideoScanMode.Progressive || format.PixelFormat != VideoPixelFormat.Yuv420P8 || (format.Width & 1) != 0 || (format.Height & 1) != 0)
             {
                 throw new NotSupportedException("H.264 encoding requires even-sized 8-bit planar YUV 4:2:0.");
             }

@@ -48,12 +48,14 @@ namespace Mediana.Processing
             {
                 throw new NotSupportedException("Linear-light resizing requires sRGB pixels. Convert to sRGB first or explicitly select encoded-channel filtering.");
             }
+            VideoScanMode scanMode = VideoScanGeometry.Map(input.Format.ScanMode,
+                new(input.Format.Width, input.Format.Height, width, height, OrthogonalTransform.Identity));
             using ResizeAxis horizontal = new(input.Format.Width, width, options.Filter, allocator, cancellationToken);
             using ResizeAxis vertical = new(input.Format.Height, height, options.Filter, allocator, cancellationToken);
             using WritableMediaBuffer rows = allocator.Allocate(checked(width * vertical.Capacity * 16));
             using WritableMediaBuffer scratch = allocator.Allocate(checked((input.Format.Width + width) * 16));
             VideoFormat format = new(width, height, VideoPixelFormat.Rgba32, input.Format.Color,
-                input.Format.SampleAspectRatio, input.Format.ColorDescription);
+                input.Format.SampleAspectRatio, input.Format.ColorDescription, scanMode);
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)layout[0].EndOffset));
             Span<Vector4> cache = MemoryMarshal.Cast<byte, Vector4>(rows.Memory.Span);

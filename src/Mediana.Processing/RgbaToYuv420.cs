@@ -24,6 +24,7 @@ namespace Mediana.Processing
         public RgbaToYuv420(VideoFormat inputFormat, RgbVideoConversionOptions options, MediaBufferAllocator allocator)
         {
             ArgumentNullException.ThrowIfNull(inputFormat);
+            VideoScanGeometry.RequireProgressive(inputFormat);
             ArgumentNullException.ThrowIfNull(options);
             ArgumentNullException.ThrowIfNull(allocator);
             VideoColorInfo color = inputFormat.GetColorInterpretation();
@@ -59,7 +60,7 @@ namespace Mediana.Processing
             ArgumentNullException.ThrowIfNull(input);
             cancellationToken.ThrowIfCancellationRequested();
             if (input.Format.Width != inputFormat.Width || input.Format.Height != inputFormat.Height ||
-                input.Format.PixelFormat != inputFormat.PixelFormat || input.Format.SampleAspectRatio != inputFormat.SampleAspectRatio ||
+                input.Format.PixelFormat != inputFormat.PixelFormat || input.Format.ScanMode != inputFormat.ScanMode || input.Format.SampleAspectRatio != inputFormat.SampleAspectRatio ||
                 input.Format.GetColorInterpretation() != inputFormat.GetColorInterpretation())
             { throw new NotSupportedException("The input frame differs from the configured RGB video conversion."); }
             PlaneLayout[] planes = OutputFormat.CreateTightLayout();

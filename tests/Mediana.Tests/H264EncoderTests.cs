@@ -13,6 +13,20 @@ namespace Mediana.Tests
     public class H264EncoderTests
     {
         [Theory]
+        [InlineData(VideoScanMode.TopFieldFirst)]
+        [InlineData(VideoScanMode.BottomFieldFirst)]
+        [InlineData(VideoScanMode.TopField)]
+        [InlineData(VideoScanMode.BottomField)]
+        public void ProgressiveEncodingDoesNotRelabelFieldSamples(VideoScanMode mode)
+        {
+            MediaBufferAllocator allocator = new(4096);
+            VideoFormat progressive = Format(4, 8);
+            VideoFormat fields = new(4, 8, progressive.PixelFormat, progressive.Color, progressive.SampleAspectRatio, null, mode);
+            Assert.Throws<NotSupportedException>(() => H264Encoder.Create(fields, new(1, 1000), allocator, new(), 0));
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Theory]
         [InlineData("avc-multislice-cabac", 26, 18)]
         [InlineData("avc-multislice-cavlc", 38, 18)]
         [InlineData("avc-weighted", 18, 12)]

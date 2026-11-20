@@ -50,7 +50,8 @@ namespace Mediana.Processing
         private static VideoFrame ApplyRgba<TTransform>(VideoFrame input, NearestNeighborMap map, SampleAspectRatio? aspectRatio,
             MediaBufferAllocator allocator, TTransform transform, CancellationToken token) where TTransform : IRgbaPixelTransform
         {
-            VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio);
+            VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio, null,
+                VideoScanGeometry.Map(input.Format.ScanMode, map));
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             RenderRgba(input, writable.Memory.Span, map, transform, token);

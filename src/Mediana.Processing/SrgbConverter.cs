@@ -71,7 +71,8 @@ namespace Mediana.Processing
             {
                 return ApplyRgba(input, map, aspectRatio, allocator, transform, cancellationToken);
             }
-            VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio);
+            VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio, null,
+                VideoScanGeometry.Map(input.Format.ScanMode, map));
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
             if (gbr)
@@ -79,8 +80,8 @@ namespace Mediana.Processing
                 if (planar!.BitDepth > 8) { RenderGbr<ushort, TTransform>(input, writable.Span, map, planar.BitDepth, transform, cancellationToken); }
                 else { RenderGbr<byte, TTransform>(input, writable.Span, map, planar.BitDepth, transform, cancellationToken); }
             }
-            else if (planar!.BitDepth > 8) { RenderYuv<ushort, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
-            else { RenderYuv<byte, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor.ChromaLocation, transform, cancellationToken); }
+            else if (planar!.BitDepth > 8) { RenderYuv<ushort, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor, transform, cancellationToken); }
+            else { RenderYuv<byte, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor, transform, cancellationToken); }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration);
@@ -97,7 +98,7 @@ namespace Mediana.Processing
         }
 
         private static void RenderYuv<TSample, TTransform>(VideoFrame input, Span<byte> output, NearestNeighborMap map, YuvRgbMatrix matrix,
-            ChromaLocation location, TTransform transform, CancellationToken cancellationToken)
+            VideoColorInfo color, TTransform transform, CancellationToken cancellationToken)
             where TSample : unmanaged, IBinaryInteger<TSample> where TTransform : struct, IRgbPixelTransform
         {
             int cachedRow = -1;
@@ -119,8 +120,8 @@ namespace Mediana.Processing
                     if (sourceY != cachedRow)
                     {
                         luma = MemoryMarshal.Cast<byte, TSample>(input.GetRow(0, sourceY));
-                        cb = new(input, 1, sourceY, location);
-                        cr = new(input, 2, sourceY, location);
+                        cb = new(input, 1, sourceY, color.ChromaLocation, color.FieldChromaLocations);
+                        cr = new(input, 2, sourceY, color.ChromaLocation, color.FieldChromaLocations);
                         cachedRow = sourceY;
                     }
                     (double red, double green, double blue) = matrix.Convert(double.CreateChecked(luma[sourceX]), cb.Sample(sourceX), cr.Sample(sourceX));

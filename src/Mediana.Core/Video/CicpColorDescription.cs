@@ -47,7 +47,7 @@ namespace Mediana.Core.Video
                 false => ColorRange.Limited,
                 null => codecColor.Range
             };
-            return new VideoColorInfo(primaries, transfer, matrix, range, codecColor.ChromaLocation);
+            return codecColor with { Primaries = primaries, Transfer = transfer, Matrix = matrix, Range = range };
         }
 
         private NotSupportedException UnsupportedCodes() =>

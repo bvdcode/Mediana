@@ -10,6 +10,9 @@ namespace Mediana.Core.Video
         ColorRange Range = ColorRange.Unspecified,
         ChromaLocation ChromaLocation = ChromaLocation.Unspecified)
     {
+        /// <summary>Optional independent field locations. ChromaLocation applies when no field-specific locations are supplied.</summary>
+        public VideoFieldChromaLocations? FieldChromaLocations { get; init; }
+
         /// <summary>Full-range straight sRGB without chroma subsampling.</summary>
         public static VideoColorInfo Srgb { get; } = new(ColorPrimaries.Bt709, TransferFunction.Srgb,
             MatrixCoefficients.Rgb, ColorRange.Full, ChromaLocation.Unspecified);

@@ -106,3 +106,21 @@ seconds, versus 92.696–93.037 seconds before, so its timing is less stable.
 This is a regression check, not an acceleration claim. Peak memory and total
 allocations remain comparable; low retained memory does not imply low cumulative
 allocations. No field output composition or RGB conversion is included here.
+
+## Shared frame representation
+
+`VideoFormat.ScanMode` distinguishes progressive storage, interleaved field rows
+with top-first or bottom-first presentation, and a single stored field. Existing
+constructors retain progressive behavior. Interleaved chroma plane heights are
+calculated from each field separately, including odd and cropped dimensions.
+`VideoFrame.GetField` returns an independent strided lease over the same allocation;
+it preserves source timing without inventing a field timestamp or duration.
+
+`VideoColorInfo.FieldChromaLocations` can preserve separate field locations.
+The sRGB converter interpolates vertically within the selected field using the
+sampling grid in H.264 Annex E, including high-precision planar samples. CICP
+precedence and explicit color policies preserve known field locations. Color
+conversion and horizontal RGBA scaling retain scan mode. Vertical scaling and
+orientation changes that rearrange field rows require deinterlacing first;
+progressive YUV preparation and H.264 encoding reject field storage rather than
+silently relabel it. Output assembly and deinterlacing remain open.

@@ -209,7 +209,7 @@ namespace Mediana.Codecs.H264
         private MediaTimestamp ValidateFrame(VideoFrame input)
         {
             if (input.Format.Width != format.Width || input.Format.Height != format.Height ||
-                input.Format.PixelFormat != format.PixelFormat || input.Format.GetColorInterpretation() != color ||
+                input.Format.ScanMode != format.ScanMode || input.Format.PixelFormat != format.PixelFormat || input.Format.GetColorInterpretation() != color ||
                 input.Format.SampleAspectRatio != format.SampleAspectRatio)
             {
                 throw new NotSupportedException("The input frame differs from the H.264 encoder configuration.");

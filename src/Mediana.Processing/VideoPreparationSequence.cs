@@ -80,7 +80,7 @@ namespace Mediana.Processing
         }
 
         private static bool Matches(VideoFormat left, VideoFormat right, bool compareColor = true) => left.Width == right.Width && left.Height == right.Height &&
-            left.PixelFormat == right.PixelFormat && left.SampleAspectRatio == right.SampleAspectRatio &&
+            left.PixelFormat == right.PixelFormat && left.ScanMode == right.ScanMode && left.SampleAspectRatio == right.SampleAspectRatio &&
             (!compareColor || left.GetColorInterpretation() == right.GetColorInterpretation());
 
         public void Dispose()

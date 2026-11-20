@@ -38,7 +38,7 @@ namespace Mediana.Processing
             if (interpretation is not null)
             {
                 interpretedInput = new(inputFormat.Width, inputFormat.Height, inputFormat.PixelFormat,
-                    interpretation, inputFormat.SampleAspectRatio);
+                    interpretation, inputFormat.SampleAspectRatio, null, inputFormat.ScanMode);
             }
             VideoFormat planar = interpretedInput ?? inputFormat;
             if ((inputFormat.PixelFormat == VideoPixelFormat.Rgba32 || inputFormat.PixelFormat is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Gbr }) && options.RgbConversion is not null)
@@ -99,7 +99,7 @@ namespace Mediana.Processing
             if (interpretedInput is null) { return null; }
             VideoFormat actual = input.Format;
             if (actual.Width != interpretedInput.Width || actual.Height != interpretedInput.Height ||
-                actual.PixelFormat != interpretedInput.PixelFormat || actual.SampleAspectRatio != interpretedInput.SampleAspectRatio)
+                actual.PixelFormat != interpretedInput.PixelFormat || actual.ScanMode != interpretedInput.ScanMode || actual.SampleAspectRatio != interpretedInput.SampleAspectRatio)
             {
                 throw new NotSupportedException("The input frame differs from the configured video preparation geometry.");
             }

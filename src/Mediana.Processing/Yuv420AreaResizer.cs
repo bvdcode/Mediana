@@ -36,6 +36,7 @@ namespace Mediana.Processing
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(inputFormat);
+            VideoScanGeometry.RequireProgressive(inputFormat);
             ArgumentNullException.ThrowIfNull(allocator);
             cancellationToken.ThrowIfCancellationRequested();
             ArgumentOutOfRangeException.ThrowIfLessThan(width, 2);
@@ -87,6 +88,7 @@ namespace Mediana.Processing
             MediaBufferAllocator allocator, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(inputFormat);
+            VideoScanGeometry.RequireProgressive(inputFormat);
             (int width, int height) = ResizeGeometry.FitEven(inputFormat, maximumWidth, maximumHeight);
             return Create(inputFormat, width, height, allocator, cancellationToken);
         }
@@ -109,7 +111,7 @@ namespace Mediana.Processing
                 ArgumentNullException.ThrowIfNull(input);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (input.Format.Width != inputFormat.Width || input.Format.Height != inputFormat.Height ||
-                    input.Format.PixelFormat != inputFormat.PixelFormat || input.Format.Color != inputFormat.Color ||
+                    input.Format.PixelFormat != inputFormat.PixelFormat || input.Format.ScanMode != inputFormat.ScanMode || input.Format.Color != inputFormat.Color ||
                     !Equals(input.Format.ColorDescription, inputFormat.ColorDescription) ||
                     input.Format.SampleAspectRatio != inputFormat.SampleAspectRatio)
                 {
