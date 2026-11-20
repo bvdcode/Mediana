@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using Mediana.Core.Video;
+
 namespace Mediana.Codecs.H264
 {
     internal static class H264Support
@@ -66,12 +68,18 @@ namespace Mediana.Codecs.H264
                 {
                     return "The H.264 level has no supported decoded picture buffer limits.";
                 }
-                if (sequence.ChromaFormat == 1 && (sequence.Vui?.ChromaLocationTop ?? 0) != (sequence.Vui?.ChromaLocationBottom ?? 0))
+                if (sequence.FrameMbsOnly && sequence.ChromaFormat == 1 &&
+                    (sequence.Vui?.ChromaLocationTop ?? 0) != (sequence.Vui?.ChromaLocationBottom ?? 0))
                 {
-                    return "Different top and bottom field chroma locations are not supported.";
+                    return "Different top and bottom field chroma locations cannot be represented in a progressive video format.";
                 }
                 H264PictureBufferLimits.Read(sequence);
-                H264VideoFormat.Create(sequence);
+                VideoScanMode validationMode = sequence.FrameMbsOnly switch
+                {
+                    true => VideoScanMode.Progressive,
+                    false => VideoScanMode.TopField
+                };
+                H264VideoFormat.Create(sequence, scanMode: validationMode);
             }
             return null;
         }

@@ -810,3 +810,16 @@ AOT and ordinary async compilation run these same checks.
 | `avc-presentation-2.mp4` | `8144a6897356123272fead3c23b1bbba953e0001381e659ae2a67a3de4923fed` |
 | `avc-presentation-5.mp4` | `14779b504341fa693c6dac9037dd33542baa69d402ad162b3ad7d46425652434` |
 | `avc-presentation-hrd.mp4` | `9b7f8927de8e013d7c6067528775b951f398d886b677521ad11012123c2e858e` |
+
+## Independent chroma positions in PAFF
+
+`avc-paff-field-chroma.mp4` contains twelve 96×96 YUV420P8 field pairs at
+12 frames/s, encoded by JM 19.1 from generated `testsrc2` material. Parameters:
+PAFF, CABAC, one B frame, temporal direct mode, two references, QP 24. VUI
+explicitly sets the top-field chroma location to 2 and the bottom-field location
+to 4 (H.264 E.2.1 and Figure E-1). FFmpeg 6.1.1 independently decodes the
+reference samples stored in the deterministic `.yuv.gz` file. The public
+decoder test compares all samples, field coordinates, timestamps and durations
+during sequential playback and reverse seeks.
+
+SHA256: `f6016d7fcdc797b75371693cf22dbbf12a7fcf88b4a809663427a15fea8115a5`.

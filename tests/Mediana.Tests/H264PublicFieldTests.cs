@@ -7,6 +7,13 @@ namespace Mediana.Tests
 {
     public class H264PublicFieldTests
     {
+        [Fact]
+        public Task PreservesIndependentFieldChromaLocationsAcrossDecodingAndSeek() =>
+            H264ProfileSequenceTestInput.VerifyAsync(Mp4TestData.PathFor("avc-paff-field-chroma"),
+                VideoPixelFormat.Yuv420P8, 96, 96, 12, 12,
+                Enumerable.Repeat(VideoScanMode.TopFieldFirst, 12).ToArray(),
+                new(ChromaLocation.TopLeft, ChromaLocation.BottomLeft));
+
         [Theory]
         [InlineData("avc-paff-cabac", 8, 2, 12)]
         [InlineData("avc-paff-cavlc", 8, 2, 12)]
