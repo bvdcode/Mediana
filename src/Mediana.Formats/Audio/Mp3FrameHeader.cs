@@ -15,8 +15,11 @@ namespace Mediana.Formats.Audio
         private static ReadOnlySpan<int> Mpeg1BitRates => [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320];
         private static ReadOnlySpan<int> LowRateBitRates => [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160];
 
+        private readonly uint word;
+
         private Mp3FrameHeader(uint word)
         {
+            this.word = word;
             if ((word & 0xffe00000) != 0xffe00000)
             {
                 throw new InvalidDataException("The MPEG audio sync bits are invalid.");
@@ -121,6 +124,37 @@ namespace Mediana.Formats.Audio
         public int Emphasis { get; }
         public bool HasCrc { get; }
         public bool HasPadding { get; }
+
+        /// <summary>Creates standard Layer III framing without CRC, emphasis or joint-stereo extensions.</summary>
+        public static Mp3FrameHeader Create(int sampleRate, int channels, int bitRate, bool padding = false)
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(channels, 1);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(channels, 2);
+            int version = sampleRate switch
+            {
+                32000 or 44100 or 48000 => 3,
+                16000 or 22050 or 24000 => 2,
+                8000 or 11025 or 12000 => 0,
+                _ => throw new ArgumentOutOfRangeException(nameof(sampleRate))
+            };
+            int rate = sampleRate switch
+            {
+                44100 or 22050 or 11025 => 0,
+                48000 or 24000 or 12000 => 1,
+                32000 or 16000 or 8000 => 2,
+                _ => throw new ArgumentOutOfRangeException(nameof(sampleRate))
+            };
+            ReadOnlySpan<int> rates = version == 3 ? Mpeg1BitRates : LowRateBitRates;
+            int index = bitRate % 1000 == 0 ? rates.IndexOf(bitRate / 1000) : -1;
+            if (index <= 0) { throw new ArgumentOutOfRangeException(nameof(bitRate), "The MP3 bit rate must be a standard rate for the selected MPEG version."); }
+            return new(0xffe30000u | (uint)(version << 19 | index << 12 | rate << 10 | (padding ? 512 : 0) | (channels == 1 ? 192 : 0)));
+        }
+
+        public void Write(Span<byte> destination)
+        {
+            if (destination.Length != HeaderBytes) { throw new ArgumentException("An MP3 header requires exactly four bytes.", nameof(destination)); }
+            BinaryPrimitives.WriteUInt32BigEndian(destination, word);
+        }
 
         public static Mp3FrameHeader Read(ReadOnlySpan<byte> data)
         {
