@@ -35,7 +35,7 @@ namespace Mediana.Images.Metadata
             foreach (TiffDirectory directory in document.Reader.Directories)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                previews.ReadDirectory(document.Reader, directory);
+                previews.ReadDirectory(document.Reader, directory, includeJpegStrips: document.Info.FormatId != "tiff");
                 if (kind == TiffHeaderKind.Panasonic)
                 {
                     foreach (ushort tag in new ushort[] { 46, 295 })

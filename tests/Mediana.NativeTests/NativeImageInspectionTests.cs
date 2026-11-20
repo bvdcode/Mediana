@@ -27,6 +27,11 @@ namespace Mediana.NativeTests
                     { throw new InvalidDataException("RAW inspection differs from its declared sensor and original preview."); }
                 }
             }
+            byte[] cr3 = await File.ReadAllBytesAsync(Path.Combine(root, "metadata-sensor.cr3"));
+            ImageInspection canon = new Cr3MetadataReader().Inspect(cr3);
+            if (canon.Info.Width != 3024 || canon.Info.Height != 4032 || canon.Previews.Count != 3
+                || canon.Previews.Any(preview => !preview.Encoded.Span.SequenceEqual(jpeg)))
+            { throw new InvalidDataException("Canon RAW inspection differs."); }
             byte[] raf = await File.ReadAllBytesAsync(Path.Combine(root, "metadata-sensor.raf"));
             ImageInspection result = new RafMetadataReader().Inspect(raf);
             if (result.Info.Width != 4032 || result.Info.Height != 3024 || result.Previews.Count != 1

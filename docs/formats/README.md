@@ -3,9 +3,9 @@
 Mediana's target formats and independently tracked operations. This is a development map,
 not a claim that every listed format is currently supported. Priorities and scope may evolve.
 
-**469 variants · 1064 operations · 19 groups.**
+**469 variants · 1065 operations · 19 groups.**
 
-**Existing implementations: 130 variants · 162 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 131 variants · 163 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -27,7 +27,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 7 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 9 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
-| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 25 | 35 | 25 | 70 |
+| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 26 | 35 | 26 | 71 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
 | [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 14 | 62 | 15 | 124 |
@@ -205,7 +205,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `ani` | Windows ANI — Animated cursors | .ani | D ◐ · E □ | C | [riff](sources.md#riff), [discovery](sources.md#discovery) | — |
 | `dng` | Digital Negative — DNG raw and rendered previews | .dng | D □ · E □ | B | Raw sample decode, demosaic/color processing and embedded previews are different operations. [tiff](sources.md#tiff) | — |
 | `raw-cr2` | Canon RAW — CR2 | .cr2 | D □ | C | Camera-specific unpacking, metadata and color calibration need sourced coverage. [discovery](sources.md#discovery) | — |
-| `raw-cr3` | Canon RAW — CR3 / CRX | .cr3 | D □ | C | [discovery](sources.md#discovery) | — |
+| `raw-cr3` | Canon RAW — CR3 / CRX | .cr3 | R ◐ · D □ | C | [discovery](sources.md#discovery) | — |
 | `raw-nef` | Nikon RAW — NEF / NRW | .nef .nrw | R ◐ · D □ | C | [discovery](sources.md#discovery) | — |
 | `raw-arw` | Sony RAW — ARW / SR2 | .arw .sr2 | D □ | C | [discovery](sources.md#discovery) | — |
 | `raw-raf` | Fujifilm RAW — RAF Bayer / X-Trans | .raf | R ◐ · D □ | C | [discovery](sources.md#discovery) | — |

@@ -11,6 +11,7 @@ namespace Mediana.Images.Heif.Binary
     {
         public int Position { get; private set; }
         public int Remaining => data.Length - Position;
+        public ReadOnlyMemory<byte> Unread => data[Position..];
 
         public byte U8()
         {

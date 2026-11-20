@@ -277,6 +277,7 @@ ani,encode,planned,planned,planned,planned,planned,planned,
 dng,decode,planned,planned,planned,planned,planned,planned,
 dng,encode,planned,planned,planned,planned,planned,planned,
 raw-cr2,decode,planned,planned,planned,planned,planned,planned,
+raw-cr3,read,partial,partial,partial,planned,partial,partial,../image-inspection.md
 raw-cr3,decode,planned,planned,planned,planned,planned,planned,
 raw-nef,read,partial,partial,partial,planned,partial,partial,../image-inspection.md
 raw-nef,decode,planned,planned,planned,planned,planned,planned,

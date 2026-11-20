@@ -16,10 +16,10 @@ namespace Mediana.Formats.Metadata
             cancellationToken.ThrowIfCancellationRequested();
             return Read(new TiffDirectoryReader(tiff), cancellationToken);
         }
-        internal static MediaMetadata Read(TiffDirectoryReader reader, CancellationToken token, IReadOnlySet<ushort>? borrowedBinaryTags = null)
+        internal static MediaMetadata Read(TiffDirectoryReader reader, CancellationToken token, IReadOnlySet<ushort>? borrowedBinaryTags = null, string rootScope = "IFD0")
         {
             Stack<(ulong Offset, string Scope, bool Exit)> pending = new();
-            pending.Push((reader.FirstOffset, "IFD0", false));
+            pending.Push((reader.FirstOffset, rootScope, false));
             HashSet<ulong> active = [], completed = [];
             List<MediaMetadata> directories = [];
             while (pending.TryPop(out (ulong Offset, string Scope, bool Exit) directory))

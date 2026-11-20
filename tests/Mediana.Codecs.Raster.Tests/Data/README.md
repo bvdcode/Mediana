@@ -61,3 +61,8 @@ RGB reference. `metadata-oriented-thumbnail.avif` is a procedural HEIF container
 using independently encoded AV1 primary/thumbnail items; it adds a 90-degree
 clockwise transform, EXIF and an original 7×5 thumbnail. ExifTool confirms the
 stored dimensions, transform and capture fields.
+
+`metadata-sensor.cr3` is a procedural Canon ISO BMFF fixture with independently
+encoded JPEG data in THMB, PRVW and an indexed CRAW/JPEG sample. EXIF, GPS and
+Canon sensor declarations deliberately distinguish 4032×3024 sensor, 4000×3000
+rendered image and 7×5 preview. ExifTool independently reads these declarations.

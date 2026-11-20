@@ -139,3 +139,27 @@ HEIF decoding and metadata tests also pass after sharing the AVIF property path.
 
 References: [AVIF specification](https://aomediacodec.github.io/av1-avif/),
 [AV1 ISO media binding](https://aomediacodec.github.io/av1-isobmff/).
+
+## Canon CR3
+
+`Cr3MetadataReader` reads Canon's ISO BMFF metadata UUID, reusing the shared
+TIFF reader for CMT1 (IFD0), CMT2 (Exif), CMT3 (MakerNotes) and CMT4 (GPS).
+Sensor dimensions and borders come from Canon SensorInfo. CMT1's rendered image
+size remains a separate declaration; it does not replace sensor dimensions.
+EXIF orientation determines the primary presentation dimensions.
+
+JPEG previews are returned unchanged from THMB and PRVW boxes and indexed JPEG
+samples in CRAW tracks. The latter reuse the MP4 sample/chunk index, including
+64-bit offsets, bounds against media-data extents, and sample count validation.
+The CRX sensor stream is not decoded. This metadata module references the managed
+MP4 container module to share its index implementation. CR3 burst-specific timed
+capture updates and HEVC preview extraction are not interpreted.
+
+The procedural CR3 fixture distinguishes sensor, rendered-image and preview
+geometry. It contains separate THMB, PRVW and indexed JPEG samples, with ExifTool
+confirming sensor dimensions, orientation and GPS fields. Tests compare all
+original JPEG bytes and reject corrupt preview lengths and sample extents.
+The bounded ISO BMFF box reader is shared by CR3, HEIF and in-memory MP4 tables.
+
+References: [Canon CR3 structure](https://github.com/lclevy/canon_cr3/blob/master/readme.md),
+[ExifTool Canon metadata](https://github.com/exiftool/exiftool/blob/master/lib/Image/ExifTool/Canon.pm).
