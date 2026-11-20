@@ -5,6 +5,7 @@ namespace Mediana.Cli
 {
     internal enum AudioCodecMode
     {
-        Aac
+        Aac,
+        Mp3
     }
 }

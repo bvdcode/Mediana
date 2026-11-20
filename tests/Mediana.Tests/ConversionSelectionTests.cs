@@ -13,6 +13,7 @@ namespace Mediana.Tests
         [Fact]
         public void OutputSelectionProducesTypedOperations()
         {
+            Assert.Equal(AudioCodecMode.Mp3, Assert.IsType<AudioConversionRequest>(Defaults.Create("out.mp3")).Codec);
             Assert.IsType<WaveConversionRequest>(Defaults.Create("out.WAVE"));
             Assert.IsType<CopyConversionRequest>(Defaults.Create("out.ts"));
             Assert.IsType<ImageConversionRequest>(Defaults.Create("out.png"));
