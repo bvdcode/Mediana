@@ -9,6 +9,7 @@ namespace Mediana.Codecs.H264
         private H264SequenceParameterSet? sequence;
         private int maximumLongTermIndex = -1;
         private bool disposed;
+        private H264ReferenceField? previousField;
 
         public int Count => references.Count;
 
@@ -17,40 +18,37 @@ namespace Mediana.Codecs.H264
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             ValidateSequence(header);
-            if (picture.Sequence != header.Sequence)
+            if (picture.Sequence != header.Sequence || picture.Structure != header.Structure || order.Structure != header.Structure)
             {
                 throw new InvalidDataException("The decoded H.264 picture does not match its sequence.");
             }
             if (header.ReferenceIndicator == 0)
             {
                 picture.Dispose();
+                previousField = null;
                 return;
             }
+            H264ReferenceField? complementary = previousField is H264ReferenceField previousReference && previousReference.Complements(header)
+                ? previousReference : null;
+            H264PictureIdentity frameIdentity = complementary?.FrameIdentity ?? picture.Identity;
             List<H264ReferencePicture> next = header.IsIdr ? [] : [.. references];
             int nextMaximum = header.IsIdr ? (header.LongTermReference ? 0 : -1) : maximumLongTermIndex;
             int? longTermIndex = header.IsIdr && header.LongTermReference ? 0 : null;
             int frameNumber = header.FrameNumber;
-            int maximumFrames = Math.Max(header.Sequence.ReferenceFrames, 1);
-            int maximumNumber = 1 << header.Sequence.FrameNumberBits;
             if (!header.IsIdr && header.AdaptiveMarking)
             {
-                ApplyMarking(next, header, ref nextMaximum, ref longTermIndex, ref frameNumber);
+                ApplyMarking(next, header, frameIdentity, ref nextMaximum, ref longTermIndex, ref frameNumber);
             }
-            else if (!header.IsIdr && next.Count == maximumFrames)
+            else if (!header.IsIdr)
             {
-                H264ReferencePicture? oldest = next.Where(value => value.LongTermIndex is null)
-                    .MinBy(value => value.PictureNumber(header.FrameNumber, maximumNumber));
-                if (oldest is null)
-                {
-                    throw new InvalidDataException("The H.264 sliding window has no short-term picture to release.");
-                }
-                next.Remove(oldest);
+                ApplySlidingWindow(next, header, frameIdentity);
             }
-            if (next.Count >= maximumFrames || (longTermIndex is null && next.Any(value => value.LongTermIndex is null && value.FrameNumber == frameNumber)))
+            if (complementary is { LongTermIndex: int previousLongTerm } && longTermIndex != previousLongTerm)
             {
-                throw new InvalidDataException("H.264 reference marking exceeds the reference limit or repeats a short-term frame number.");
+                throw new InvalidDataException("Complementary H.264 reference fields must use the same long-term index.");
             }
-            next.Add(new H264ReferencePicture(picture, frameNumber, order, longTermIndex));
+            next.Add(new H264ReferencePicture(picture, frameNumber, order, longTermIndex) { FrameIdentity = frameIdentity });
+            ValidateReferences(next, header);
             foreach (H264ReferencePicture previous in references)
             {
                 if (!next.Any(value => ReferenceEquals(value.Picture, previous.Picture)))
@@ -61,6 +59,8 @@ namespace Mediana.Codecs.H264
             references = next;
             maximumLongTermIndex = nextMaximum;
             sequence = header.Sequence;
+            previousField = header.Layout.IsField && complementary is null
+                ? new H264ReferenceField(frameIdentity, frameNumber, header.Structure, longTermIndex) : null;
         }
 
         public void Dispose()
@@ -75,88 +75,79 @@ namespace Mediana.Codecs.H264
             }
             references.Clear();
             sequence = null;
+            previousField = null;
             disposed = true;
         }
 
-        private static void ApplyMarking(List<H264ReferencePicture> next, H264SliceHeader header,
-            ref int maximumLongTerm, ref int? currentLongTerm, ref int frameNumber)
+        private static void ApplySlidingWindow(List<H264ReferencePicture> next, H264SliceHeader header, H264PictureIdentity currentIdentity)
         {
-            IReadOnlyList<H264MemoryOperation> operations = header.MemoryOperations;
-            if (operations.Any(value => value.Operation == 5) && operations.Any(value => value.Operation is 1 or 2 or 3))
+            if (next.Any(value => value.FrameIdentity == currentIdentity && value.LongTermIndex is null))
             {
-                throw new InvalidDataException("H.264 reference reset cannot be combined with operations 1 through 3.");
+                return;
             }
-            int seen = 0;
+            if (CountFrames(next) < Math.Max(header.Sequence.ReferenceFrames, 1))
+            {
+                return;
+            }
             int maximumNumber = 1 << header.Sequence.FrameNumberBits;
-            foreach (H264MemoryOperation operation in operations)
+            H264ReferencePicture? oldest = next.Where(value => value.LongTermIndex is null)
+                .MinBy(value => value.PictureNumber(header.FrameNumber, maximumNumber));
+            if (oldest is null)
             {
-                int flag = 1 << operation.Operation;
-                if (operation.Operation is 4 or 5 or 6 && (seen & flag) != 0)
-                {
-                    throw new InvalidDataException("An H.264 reference marking operation occurs more than once.");
-                }
-                seen |= flag;
-                int targetNumber = header.FrameNumber - (operation.DifferenceMinusOne + 1);
-                switch (operation.Operation)
-                {
-                    case 1:
-                        next.Remove(FindShort(next, targetNumber, header.FrameNumber, maximumNumber));
-                        break;
-                    case 2:
-                        next.Remove(FindLong(next, operation.LongTermPictureNumber));
-                        break;
-                    case 3:
-                        ValidateLongIndex(operation.LongTermFrameIndex, maximumLongTerm, currentLongTerm);
-                        H264ReferencePicture selected = FindShort(next, targetNumber, header.FrameNumber, maximumNumber);
-                        next.RemoveAll(value => value.LongTermIndex == operation.LongTermFrameIndex);
-                        next.Remove(selected);
-                        next.Add(selected with { LongTermIndex = operation.LongTermFrameIndex });
-                        break;
-                    case 4:
-                        int newMaximum = operation.MaxLongTermFrameIndexPlusOne - 1;
-                        if (operation.MaxLongTermFrameIndexPlusOne > header.Sequence.ReferenceFrames ||
-                            (currentLongTerm is not null && currentLongTerm.Value > newMaximum))
-                        {
-                            throw new InvalidDataException("The H.264 long-term reference range is invalid.");
-                        }
-                        maximumLongTerm = newMaximum;
-                        next.RemoveAll(value => value.LongTermIndex is not null && value.LongTermIndex.Value > newMaximum);
-                        break;
-                    case 5:
-                        if (currentLongTerm is not null)
-                        {
-                            throw new InvalidDataException("H.264 reference reset cannot follow current-picture long-term assignment.");
-                        }
-                        next.Clear();
-                        maximumLongTerm = -1;
-                        frameNumber = 0;
-                        break;
-                    case 6:
-                        ValidateLongIndex(operation.LongTermFrameIndex, maximumLongTerm, currentLongTerm);
-                        currentLongTerm = operation.LongTermFrameIndex;
-                        next.RemoveAll(value => value.LongTermIndex == operation.LongTermFrameIndex);
-                        break;
-                    default:
-                        throw new InvalidDataException("Invalid H.264 reference memory operation.");
-                }
+                throw new InvalidDataException("The H.264 sliding window has no short-term picture to release.");
             }
+            next.RemoveAll(value => value.FrameIdentity == oldest.FrameIdentity);
         }
 
-        private static void ValidateLongIndex(int index, int maximum, int? current)
+        private static void ValidateReferences(List<H264ReferencePicture> next, H264SliceHeader header)
         {
-            if (index < 0 || index > maximum || current == index)
+            if (CountFrames(next) > Math.Max(header.Sequence.ReferenceFrames, 1))
             {
-                throw new InvalidDataException("The H.264 long-term reference index is unavailable.");
+                throw new InvalidDataException("H.264 reference marking exceeds the reference frame limit.");
+            }
+            for (int index = 0; index < next.Count; index++)
+            {
+                H264ReferencePicture current = next[index];
+                for (int previous = 0; previous < index; previous++)
+                {
+                    H264ReferencePicture other = next[previous];
+                    if (current.FrameIdentity == other.FrameIdentity)
+                    {
+                        if (!current.Picture.Layout.IsField || !other.Picture.Layout.IsField ||
+                            current.Picture.Structure == other.Picture.Structure || current.LongTermIndex != other.LongTermIndex)
+                        {
+                            throw new InvalidDataException("Invalid complementary H.264 reference field marking.");
+                        }
+                    }
+                    else if (current.LongTermIndex is null && other.LongTermIndex is null && current.FrameNumber == other.FrameNumber)
+                    {
+                        throw new InvalidDataException("H.264 reference marking repeats a short-term frame number.");
+                    }
+                }
             }
         }
 
-        private static H264ReferencePicture FindShort(IEnumerable<H264ReferencePicture> list, int number, int current, int maximum) =>
-            list.FirstOrDefault(value => value.LongTermIndex is null && value.PictureNumber(current, maximum) == number)
-            ?? throw new InvalidDataException("The H.264 short-term reference picture is missing.");
-
-        private static H264ReferencePicture FindLong(IEnumerable<H264ReferencePicture> list, int number) =>
-            list.FirstOrDefault(value => value.LongTermIndex == number)
-            ?? throw new InvalidDataException("The H.264 long-term reference picture is missing.");
+        private static int CountFrames(List<H264ReferencePicture> list)
+        {
+            int count = 0;
+            for (int index = 0; index < list.Count; index++)
+            {
+                bool first = true;
+                for (int previous = 0; previous < index; previous++)
+                {
+                    if (list[index].FrameIdentity == list[previous].FrameIdentity)
+                    {
+                        first = false;
+                        break;
+                    }
+                }
+                if (first)
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
 
         private void ValidateSequence(H264SliceHeader header)
         {
