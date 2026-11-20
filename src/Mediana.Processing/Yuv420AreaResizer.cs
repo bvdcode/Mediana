@@ -134,7 +134,7 @@ namespace Mediana.Processing
                         }
                     }
                     using MediaBuffer copy = output.Publish();
-                    return new VideoFrame(OutputFormat, copy, planes, input.Timestamp, input.Duration);
+                    return new VideoFrame(OutputFormat, copy, planes, input.Timestamp, input.Duration, input.Presentation);
                 }
                 ReadOnlySpan<AreaSampleRange> all = MemoryMarshal.Cast<byte, AreaSampleRange>(ranges.Memory.Span);
                 int offset = 0;
@@ -153,7 +153,7 @@ namespace Mediana.Processing
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 using MediaBuffer buffer = output.Publish();
-                return new VideoFrame(OutputFormat, buffer, planes, input.Timestamp, input.Duration);
+                return new VideoFrame(OutputFormat, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
             }
             finally
             {

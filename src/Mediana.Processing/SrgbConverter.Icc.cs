@@ -57,7 +57,7 @@ namespace Mediana.Processing
             RenderRgba(input, writable.Memory.Span, map, transform, token);
             token.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new(format, buffer, planes, input.Timestamp, input.Duration);
+            return new(format, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
         }
     }
 }

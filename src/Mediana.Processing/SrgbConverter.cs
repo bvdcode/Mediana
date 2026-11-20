@@ -84,7 +84,7 @@ namespace Mediana.Processing
             else { RenderYuv<byte, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor, transform, cancellationToken); }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration);
+            return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
         }
 
         private static bool CanRetain(VideoFrame input, VideoColorInfo sourceColor, NearestNeighborMap map,

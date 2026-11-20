@@ -59,7 +59,7 @@ namespace Mediana.Processing
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration);
+            return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
         }
     }
 }

@@ -94,7 +94,7 @@ namespace Mediana.Processing
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new VideoFrame(format, buffer, layout, input.Timestamp, input.Duration);
+            return new VideoFrame(format, buffer, layout, input.Timestamp, input.Duration, input.Presentation);
         }
 
         private static void DecodeRow(ReadOnlySpan<byte> input, Span<Vector4> output, bool linear, CancellationToken token)

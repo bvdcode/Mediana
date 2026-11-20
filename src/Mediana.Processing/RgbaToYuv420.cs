@@ -110,7 +110,7 @@ namespace Mediana.Processing
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new(OutputFormat, buffer, planes, input.Timestamp, input.Duration);
+            return new(OutputFormat, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
         }
 
         private int Sample(ReadOnlySpan<byte> row, int x)
