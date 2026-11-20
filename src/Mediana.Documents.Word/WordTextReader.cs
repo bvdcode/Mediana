@@ -10,7 +10,7 @@ using System.Xml.Linq;
 namespace Mediana.Documents.Word
 {
     /// <summary>Extracts DOCX text without pagination, font loading or image decoding. Input is borrowed during enumeration.</summary>
-    public class WordTextReader(ReadOnlyMemory<byte> input, OpenXmlPackageOptions? packageOptions = null) : IDocumentTextSource
+    public partial class WordTextReader(ReadOnlyMemory<byte> input, OpenXmlPackageOptions? packageOptions = null) : IDocumentTextSource
     {
         private const string WordNamespace = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
         private const string StrictWordNamespace = "http://purl.oclc.org/ooxml/wordprocessingml/main";
@@ -25,13 +25,26 @@ namespace Mediana.Documents.Word
             using OpenXmlPackage package = OpenXmlPackage.Open(input, packageOptions, cancellationToken);
             string main = package.MainPart(cancellationToken);
             if (package.ContentType(main) != WordReader.DocumentContentType) { throw new NotSupportedException("The OPC main part is not a DOCX document."); }
+            foreach (DocumentTextBlock block in ReadPart(package, main, "document", 0, null, options, budget, cancellationToken)) { yield return block; }
+        }
+
+        private static IEnumerable<DocumentTextBlock> ReadPart(OpenXmlPackage package, string main, string rootName,
+            int section, DocumentTextPathSegment? margin, DocumentTextOptions options, DocumentTextBudget budget, CancellationToken cancellationToken)
+        {
             using XmlReader reader = package.OpenXmlReader(main, cancellationToken);
             reader.MoveToContent();
-            if (reader.LocalName != "document" || reader.NamespaceURI is not (WordNamespace or StrictWordNamespace))
+            if (reader.LocalName != rootName || reader.NamespaceURI is not (WordNamespace or StrictWordNamespace))
             { throw new InvalidDataException("Invalid Word document namespace or root."); }
             XNamespace ns = reader.NamespaceURI;
-            int section = 0, bodyDepth = -1, excludedDepth = -1;
+            int bodyDepth = margin is null ? -1 : reader.Depth, excludedDepth = -1;
             List<WordTextContainer> containers = [];
+            WordTextMargins margins = new(package, main, options);
+            bool terminalSection = false;
+            if (margin is DocumentTextPathSegment segment)
+            {
+                containers.Add(new(DocumentTextNodeKind.Section, section, -1));
+                containers.Add(new(segment.Kind, segment.Index, bodyDepth));
+            }
             while (reader.Read())
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -48,7 +61,14 @@ namespace Mediana.Documents.Word
                 if (bodyDepth < 0) { continue; }
                 if (reader.NodeType == XmlNodeType.EndElement)
                 {
-                    if (reader.Depth == bodyDepth) { yield break; }
+                    if (reader.Depth == bodyDepth)
+                    {
+                        if (margin is null && !terminalSection)
+                        {
+                            foreach (DocumentTextBlock block in margins.Read(null, section, budget, cancellationToken)) { yield return block; }
+                        }
+                        yield break;
+                    }
                     if (containers.Count > 1 && containers[^1].Depth == reader.Depth) { containers.RemoveAt(containers.Count - 1); }
                     continue;
                 }
@@ -81,6 +101,14 @@ namespace Mediana.Documents.Word
                     }
                     continue;
                 }
+                if (margin is null && reader.LocalName == "sectPr" && containers.Count == 1)
+                {
+                    XElement properties;
+                    using (XmlReader subtree = reader.ReadSubtree()) { properties = XElement.Load(subtree); }
+                    foreach (DocumentTextBlock block in margins.Read(properties, section, budget, cancellationToken)) { yield return block; }
+                    terminalSection = true;
+                    continue;
+                }
                 if (reader.LocalName != "p") { continue; }
                 int paragraphIndex = containers[^1].NextIndex++;
                 XElement paragraph;
@@ -103,8 +131,9 @@ namespace Mediana.Documents.Word
                         foreach (DocumentTextBlock nested in NestedBlocks(box, ns, nestedPath, section, main, budget, cancellationToken)) { yield return nested; }
                     }
                 }
-                if (paragraph.Element(ns + "pPr")?.Element(ns + "sectPr") is not null)
+                if (margin is null && containers.Count == 1 && paragraph.Element(ns + "pPr")?.Element(ns + "sectPr") is XElement sectionProperties)
                 {
+                    foreach (DocumentTextBlock block in margins.Read(sectionProperties, section, budget, cancellationToken)) { yield return block; }
                     section++;
                     if (options.PartCount is int count && (long)section - options.StartPartIndex >= count) { yield break; }
                     containers[0] = new(DocumentTextNodeKind.Section, section, bodyDepth);
