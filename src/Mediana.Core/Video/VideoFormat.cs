@@ -8,14 +8,25 @@ namespace Mediana.Core.Video
     {
         public VideoFormat(int width, int height, VideoPixelFormat pixelFormat, VideoColorInfo? color = null,
             SampleAspectRatio? sampleAspectRatio = null, VideoColorDescription? colorDescription = null)
+            : this(width, height, pixelFormat, color, sampleAspectRatio, colorDescription, VideoScanMode.Progressive)
+        {
+        }
+
+        public VideoFormat(int width, int height, VideoPixelFormat pixelFormat, VideoColorInfo? color,
+            SampleAspectRatio? sampleAspectRatio, VideoColorDescription? colorDescription, VideoScanMode scanMode)
         {
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
             ArgumentNullException.ThrowIfNull(pixelFormat);
+            if (!Enum.IsDefined(scanMode))
+            {
+                throw new ArgumentOutOfRangeException(nameof(scanMode));
+            }
             sampleAspectRatio?.Validate();
             Width = width;
             Height = height;
             PixelFormat = pixelFormat;
+            ScanMode = scanMode;
             Color = color ?? new VideoColorInfo();
             SampleAspectRatio = sampleAspectRatio;
             ColorDescription = colorDescription;
@@ -24,6 +35,7 @@ namespace Mediana.Core.Video
         public int Width { get; }
         public int Height { get; }
         public VideoPixelFormat PixelFormat { get; }
+        public VideoScanMode ScanMode { get; }
         public VideoColorInfo Color { get; }
         public SampleAspectRatio? SampleAspectRatio { get; }
         /// <summary>Optional source description. Color retains the codec's labels.</summary>
@@ -40,12 +52,22 @@ namespace Mediana.Core.Video
             {
                 VideoPlaneFormat plane = PixelFormat.Planes[i];
                 int width = checked((int)(((long)Width + plane.HorizontalSubsampling - 1) / plane.HorizontalSubsampling));
-                int height = checked((int)(((long)Height + plane.VerticalSubsampling - 1) / plane.VerticalSubsampling));
+                int height = PlaneHeight(plane.VerticalSubsampling);
                 int stride = checked(width * plane.BytesPerElement);
                 result[i] = new PlaneLayout(offset, stride, stride, height);
                 offset = checked(offset + stride * height);
             }
             return result;
         }
+
+        private int PlaneHeight(int verticalSubsampling) => ScanMode switch
+        {
+            VideoScanMode.Progressive or VideoScanMode.TopField or VideoScanMode.BottomField =>
+                checked((int)(((long)Height + verticalSubsampling - 1) / verticalSubsampling)),
+            VideoScanMode.TopFieldFirst or VideoScanMode.BottomFieldFirst =>
+                checked((int)((((long)Height + 1) / 2 + verticalSubsampling - 1) / verticalSubsampling +
+                    ((long)Height / 2 + verticalSubsampling - 1) / verticalSubsampling)),
+            _ => throw new InvalidOperationException("The video scan mode is invalid.")
+        };
     }
 }
