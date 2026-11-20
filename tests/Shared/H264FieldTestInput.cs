@@ -43,11 +43,19 @@ namespace Mediana.Tests
         }
 
         public static Task VerifySequenceAsync(string root, string name, IReadOnlyList<int>? referenceFrames = null) =>
-            VerifySequenceAsync(root, name, referenceFrames, false);
+            VerifySequenceAsync(root, name, referenceFrames, false, null);
 
-        public static Task VerifyMixedSequenceAsync(string root, string name) => VerifySequenceAsync(root, name, null, true);
+        public static Task VerifyMixedSequenceAsync(string root, string name) => VerifySequenceAsync(root, name, null, true, null);
 
-        private static async Task VerifySequenceAsync(string root, string name, IReadOnlyList<int>? referenceFrames, bool mixed)
+        public static async Task VerifyMixedBidirectionalSequenceAsync(string root, string name)
+        {
+            string[] lines = await File.ReadAllLinesAsync(Path.Combine(root, name + ".poc"));
+            int[] order = lines.Select(value => int.Parse(value, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            await VerifySequenceAsync(root, name, null, true, order);
+        }
+
+        private static async Task VerifySequenceAsync(string root, string name, IReadOnlyList<int>? referenceFrames,
+            bool mixed, IReadOnlyList<int>? mixedOrder)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264ReferenceBuffer references = new())
@@ -55,26 +63,31 @@ namespace Mediana.Tests
             {
                 int published = 0;
                 H264PictureOrderState order = new();
-                int packetCount = mixed ? 33 : 24;
+                int packetCount = mixedOrder?.Count ?? (mixed ? 33 : 24);
+                Dictionary<int, VideoScanMode> scanModes = [];
                 for (int packet = 0; packet < packetCount; packet++)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), packet);
-                    int displayIndex = mixed ? packet switch
+                    int displayIndex = mixedOrder is not null ? mixedOrder[packet] / 2 : mixed ? packet switch
                     {
                         < 8 => packet,
                         < 26 => 8 + (packet - 8) / 2,
                         _ => packet - 9
                     } : referenceFrames is null ? packet / 2 : referenceFrames[packet / 2];
                     byte[] expected = await ReadReferenceAsync(root, name, displayIndex, configuration.Sequences.Values.Single());
-                    order = DecodeAndStore(configuration, nal, expected, order, references, allocator, packet, outputs, displayIndex);
+                    order = DecodeAndStore(configuration, nal, expected, order, references, allocator, packet, outputs, displayIndex, out VideoScanMode scan);
+                    scanModes[displayIndex] = scan;
+                    if (mixedOrder is not null && order.Current.Value != mixedOrder[packet])
+                    {
+                        throw new InvalidDataException("Mixed picture order differs from the independent header trace.");
+                    }
                     if (packet == packetCount - 1) { outputs.Drain(); }
                     while (outputs.Receive() is VideoFrame frame)
                     {
                         using (frame)
                         {
                             byte[] display = await ReadReferenceAsync(root, name, published, configuration.Sequences.Values.Single());
-                            VideoScanMode scan = mixed && published is < 8 or >= 17 ? VideoScanMode.Progressive : VideoScanMode.TopFieldFirst;
-                            VerifyOutput(frame, display, published, scan);
+                            VerifyOutput(frame, display, published, scanModes[published]);
                             published++;
                         }
                     }
@@ -89,10 +102,16 @@ namespace Mediana.Tests
 
         private static H264PictureOrderState DecodeAndStore(H264Configuration configuration, ReadOnlySpan<byte> nal,
             ReadOnlySpan<byte> expected, H264PictureOrderState order, H264ReferenceBuffer references, MediaBufferAllocator allocator, int packet,
-            H264FrameQueue outputs, int displayIndex)
+            H264FrameQueue outputs, int displayIndex, out VideoScanMode scan)
         {
             H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+            scan = header.Structure switch
+            {
+                H264PictureStructure.Frame => VideoScanMode.Progressive,
+                H264PictureStructure.TopField or H264PictureStructure.BottomField => VideoScanMode.TopFieldFirst,
+                _ => throw new InvalidDataException("Unexpected picture structure.")
+            };
             H264PictureOrderState nextOrder = order.Advance(header);
             H264BidirectionalReferences lists = header.Kind switch
             {

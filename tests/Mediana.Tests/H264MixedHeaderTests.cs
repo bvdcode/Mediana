@@ -19,6 +19,14 @@ namespace Mediana.Tests
             H264FieldTestInput.VerifyMixedSequenceAsync(Path.GetDirectoryName(Mp4TestData.PathFor(name + ".mp4"))!, name);
 
         [Theory]
+        [InlineData("avc-mixed-b-cabac-spatial")]
+        [InlineData("avc-mixed-b-cavlc-spatial")]
+        [InlineData("avc-mixed-b-cabac-temporal")]
+        [InlineData("avc-mixed-b-cavlc-temporal")]
+        public Task MixedBidirectionalPicturesMatchIndependentReference(string name) =>
+            H264FieldTestInput.VerifyMixedBidirectionalSequenceAsync(Path.GetDirectoryName(Mp4TestData.PathFor(name + ".mp4"))!, name);
+
+        [Theory]
         [InlineData("avc-mixed-cabac.mp4", true)]
         [InlineData("avc-mixed-cavlc.mp4", false)]
         public async Task FrameFieldTransitionsPreservePacketTimingAndPictureOrder(string name, bool cabac)

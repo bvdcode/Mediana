@@ -1,7 +1,7 @@
 # H.264 interlaced decoding
 
-The public decoder still rejects interlaced sequences. Mixed B-picture co-located motion
-mapping, macroblock-adaptive frame/field reconstruction and deinterlacing remain open.
+The public decoder still rejects interlaced sequences. Macroblock-adaptive
+frame/field reconstruction, presentation metadata and deinterlacing remain open.
 
 The shared slice-header reader distinguishes frame, top-field and bottom-field
 pictures. Picture layout derives the macroblock count, MBAFF pair addresses and
@@ -175,7 +175,7 @@ its physical storage alive while the other remains referenced.
 
 All 967 H.264 tests passed, including failed-marking rollback, frame-to-field
 list transitions, frame list reconstruction and allocator release. These checks alone do not enable mixed interlaced streams through the public
-decoder; mixed B-picture co-located motion mapping remains open.
+decoder; macroblock-adaptive reconstruction and presentation remain open.
 
 
 ## Mixed reference pixels
@@ -193,5 +193,22 @@ compare views against material pictures for
 8/10-bit 4:2:0/4:2:2, both field parities, every interpolation fraction and border
 extension, also with hardware intrinsics disabled. The 973 H.264 tests pass, and
 the standalone reference suite also passes with ordinary async compilation.
-Mixed B-picture metadata mapping, MBAFF and
-public interlaced decode/seek acceptance remain open.
+MBAFF and public interlaced decode/seek acceptance remain open.
+
+
+## Mixed B-picture prediction
+
+Co-located prediction selects the nearest reference field by picture order,
+choosing the bottom field on a tie. Block coordinates, reference identity and
+vertical temporal motion follow H.264 Table 8-8 and clauses 8.4.1.2.1–8.4.1.2.3.
+Frame-to-field motion divides toward zero, including negative odd vectors;
+field-to-frame motion doubles the vertical component. Spatial direct zero-motion
+tests use the original co-located vector before temporal scaling.
+
+Four independent JM 19.1 sequences cover CABAC/CAVLC and spatial/temporal direct
+prediction with transitions between frame and field pictures. Each contains
+15 B pictures among 33 coded pictures. All 132 coded pictures and 96 assembled
+frames match FFmpeg exactly, including POC, output timestamps and durations,
+in managed execution, Native AOT and ordinary async compilation. Five focused
+checks also cover parity mapping, negative odd motion, field selection and ties.
+The 982 H.264 tests pass. MBAFF and public interlaced decode/seek remain open.

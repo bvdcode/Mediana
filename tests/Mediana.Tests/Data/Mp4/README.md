@@ -670,3 +670,33 @@ zero and an empty embedded filename.
 | --- | --- |
 | `avc-mixed-cabac.yuv.gz` | `1ef5a8581474cdda640cbcba22227c680489d4dbc75e5b6827380de01a5b6e21` |
 | `avc-mixed-cavlc.yuv.gz` | `34284dd9e87a6b1544874543614bb8c87758d894657552c80bdd0556fd63211a` |
+
+### Mixed frame and field B pictures
+
+The four `avc-mixed-b-*` sequences use the same 24-frame source and JM 19.1
+settings as the mixed I/P fixtures, with `NumberBFrames=1`. `DirectModeType=1`
+selects spatial direct prediction and `DirectModeType=0` temporal direct
+prediction. Both modes are encoded with CABAC and CAVLC. Each file contains
+15 frame pictures and 18 fields, producing 24 displayed frames.
+
+The `.poc` files record each coded picture order count from independent
+`trace_headers` output. Muxing uses that count as PTS, cumulative picture
+durations minus two ticks as DTS, and one/two ticks for field/frame durations
+on a 1/24 clock. FFmpeg decodes every frame without errors and reports output
+presentation time equal to the frame index divided by 12. Decoded references
+use `yuv420p`, gzip timestamp zero and an empty embedded filename.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mixed-b-cabac-spatial.mp4` | `ebdcc2ed749ed87ffb036d62fee4bf8e0f41de95dc0a13b664c156b960906172` |
+| `avc-mixed-b-cabac-spatial.poc` | `3e2e162c1990a861df3bff5e01e0b9676a272450cc7c961588caa288cc1061e1` |
+| `avc-mixed-b-cabac-spatial.yuv.gz` | `9074f13179e7013a224d86f2e204a2c546fff4a9d6fbe35e651f9188a5333cf3` |
+| `avc-mixed-b-cavlc-spatial.mp4` | `ca0294f38b8ce8c05d31b448999861dc8215d29724f515ea2889ded2d2b17dca` |
+| `avc-mixed-b-cavlc-spatial.poc` | `3e2e162c1990a861df3bff5e01e0b9676a272450cc7c961588caa288cc1061e1` |
+| `avc-mixed-b-cavlc-spatial.yuv.gz` | `47b2090201a12d0b2ccec1e1c3d1355497ea582411d007826c3c9a668c42b134` |
+| `avc-mixed-b-cabac-temporal.mp4` | `328b7235cac57bc9c4e890667a1075075118cd02f415f67de5b48d2a4ef493cf` |
+| `avc-mixed-b-cabac-temporal.poc` | `3e2e162c1990a861df3bff5e01e0b9676a272450cc7c961588caa288cc1061e1` |
+| `avc-mixed-b-cabac-temporal.yuv.gz` | `acd7e8001edca9836daec6f480bd01df7838e6a1b7b9143c4c0179cb98908712` |
+| `avc-mixed-b-cavlc-temporal.mp4` | `7297a879f79a6d3bb6d0a9a037274f06c39d072f8f1ae0156b7bb4879ea70b9b` |
+| `avc-mixed-b-cavlc-temporal.poc` | `3e2e162c1990a861df3bff5e01e0b9676a272450cc7c961588caa288cc1061e1` |
+| `avc-mixed-b-cavlc-temporal.yuv.gz` | `90dc704af8bb4099cbd39ce0938980c47323abe3507dc5f1edf64cc0dd13c59f` |

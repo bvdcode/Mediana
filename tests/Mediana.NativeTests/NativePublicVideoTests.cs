@@ -18,6 +18,13 @@ namespace Mediana.NativeTests
             {
                 await H264FieldTestInput.VerifyMixedSequenceAsync(root, name);
             }
+            foreach (string name in new[]
+            {
+                "avc-mixed-b-cabac-spatial", "avc-mixed-b-cavlc-spatial", "avc-mixed-b-cabac-temporal", "avc-mixed-b-cavlc-temporal"
+            })
+            {
+                await H264FieldTestInput.VerifyMixedBidirectionalSequenceAsync(root, name);
+            }
             foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
             {
                 await H264FieldTestInput.VerifySequenceAsync(root, name);

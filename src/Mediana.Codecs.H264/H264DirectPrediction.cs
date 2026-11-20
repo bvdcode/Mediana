@@ -18,6 +18,7 @@ namespace Mediana.Codecs.H264
         {
             H264ReferencePicture colocated = references.L1.Count > 0 && references.L1[0] is H264ReferencePicture reference
                 ? reference : throw new InvalidDataException("H.264 direct prediction has no co-located picture.");
+            H264ColocatedPicture source = new(colocated, target.Structure, order);
             int mbX = x / 16 * 16;
             int mbY = y / 16 * 16;
             (int reference0, int reference1) = header.DirectSpatialMotionPrediction ?
@@ -40,7 +41,8 @@ namespace Mediana.Codecs.H264
                 {
                     int colX = header.Sequence.Direct8x8Inference ? mbX + ((x + column) % 16 == 0 ? 0 : 12) : x + column;
                     int colY = header.Sequence.Direct8x8Inference ? mbY + ((y + row) % 16 == 0 ? 0 : 12) : y + row;
-                    (H264ReferenceList list, H264MotionSample motion) = Colocated(colocated.Picture, colX, colY);
+                    colY = source.MapRow(colY);
+                    (H264ReferenceList list, H264MotionSample motion) = Colocated(source.Picture, colX, colY);
                     H264PartitionMotion l0;
                     H264PartitionMotion l1;
                     if (header.DirectSpatialMotionPrediction)
@@ -51,12 +53,14 @@ namespace Mediana.Codecs.H264
                     }
                     else
                     {
-                        int macroblock = colY / 16 * colocated.Picture.Sequence.WidthInMbs + colX / 16;
-                        int mapped = motion.ReferenceIndex < 0 ? 0 : MapReference(colocated.Picture.ReferenceIdentity(list, motion.ReferenceIndex, macroblock), references.L0);
+                        int macroblock = colY / 16 * source.Picture.Sequence.WidthInMbs + colX / 16;
+                        int mapped = motion.ReferenceIndex < 0 ? 0 : MapReference(source.MapIdentity(
+                            source.Picture.ReferenceIdentity(list, motion.ReferenceIndex, macroblock)), references.L0);
                         H264ReferencePicture past = references.L0.Count > mapped && references.L0[mapped] is H264ReferencePicture value
                             ? value : throw new InvalidDataException("H.264 temporal direct prediction has no mapped reference.");
                         int dx = motion.X;
-                        int dy = motion.Y;
+                        int motionY = source.MapVerticalMotion(motion.Y);
+                        int dy = motionY;
                         int futureX = 0;
                         int futureY = 0;
                         int td = (int)Math.Clamp((long)colocated.Order.Value - past.Order.Value, -128, 127);
@@ -66,9 +70,9 @@ namespace Mediana.Codecs.H264
                             int tx = (16384 + Math.Abs(td / 2)) / td;
                             int scale = Math.Clamp((tb * tx + 32) >> 6, -1024, 1023);
                             dx = (scale * motion.X + 128) >> 8;
-                            dy = (scale * motion.Y + 128) >> 8;
+                            dy = (scale * motionY + 128) >> 8;
                             futureX = dx - motion.X;
-                            futureY = dy - motion.Y;
+                            futureY = dy - motionY;
                         }
                         l0 = new H264PartitionMotion(mapped, dx, dy);
                         l1 = new H264PartitionMotion(0, futureX, futureY);
