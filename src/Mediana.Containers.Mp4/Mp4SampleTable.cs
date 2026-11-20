@@ -3,7 +3,7 @@
 
 namespace Mediana.Containers.Mp4
 {
-    internal class Mp4SampleTable
+    internal class Mp4SampleTable : IMp4SampleIndex
     {
         private readonly ReadOnlyMemory<byte> sizes;
         private readonly uint constantSize;
@@ -70,6 +70,18 @@ namespace Mediana.Containers.Mp4
         public Mp4Table? Composition { get; }
         public bool SignedComposition { get; }
         public Mp4Table? SyncSamples { get; }
+
+        public bool RequiresPresentationTiming => Composition is not null && Composition.Count > 1;
+
+        public IMp4SampleCursor CreateCursor() => new Mp4TrackCursor(this);
+
+        public Mp4SampleLocation Locate(int sample, CancellationToken cancellationToken) =>
+            Mp4SampleLocator.Find(this, sample, cancellationToken);
+
+        public int? FindSeekSample(Int128 target, int beforeSample, CancellationToken cancellationToken) =>
+            Mp4SeekPointLookup.Find(this, target, beforeSample, cancellationToken);
+
+        public int FindSyncSample(int sample) => Mp4SyncSampleLookup.AtOrBefore(SyncSamples, sample);
 
         public int SampleSize(int index)
         {

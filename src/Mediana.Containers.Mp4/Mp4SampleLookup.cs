@@ -3,13 +3,13 @@
 
 namespace Mediana.Containers.Mp4
 {
-    internal class Mp4SampleLookup(Mp4SampleTable table)
+    internal class Mp4SampleLookup(IMp4SampleIndex table)
     {
-        private Mp4TrackCursor cursor = new(table);
+        private IMp4SampleCursor cursor = table.CreateCursor();
         private int sample;
 
         public int? FindSeekSample(Int128 target, int beforeSample, CancellationToken cancellationToken) =>
-            Mp4SeekPointLookup.Find(table, target, beforeSample, cancellationToken);
+            table.FindSeekSample(target, beforeSample, cancellationToken);
 
         public Mp4SampleLocation Find(int index, CancellationToken cancellationToken)
         {
@@ -18,7 +18,7 @@ namespace Mediana.Containers.Mp4
             cancellationToken.ThrowIfCancellationRequested();
             if (index == 0 && sample != 0)
             {
-                cursor = new(table);
+                cursor = table.CreateCursor();
                 sample = 0;
             }
             if (index == sample + 1)
@@ -26,7 +26,7 @@ namespace Mediana.Containers.Mp4
                 cursor.Advance(cursor.Current);
                 sample = index;
             }
-            return index == sample ? cursor.Current : Mp4SampleLocator.Find(table, index, cancellationToken);
+            return index == sample ? cursor.Current : table.Locate(index, cancellationToken);
         }
     }
 }

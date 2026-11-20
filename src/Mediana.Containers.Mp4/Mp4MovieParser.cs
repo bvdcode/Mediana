@@ -26,7 +26,7 @@ namespace Mediana.Containers.Mp4
             VideoDisplayMatrix movieMatrix = Mp4DisplayMatrixParser.Read(movieHeader.Payload.Span,
                 movieHeader.Payload.Span[0] == 0 ? 36 : 48);
             List<Mp4TrackInfo> tracks = [];
-            List<Mp4SampleTable> tables = [];
+            List<IMp4SampleIndex> tables = [];
             HashSet<uint> trackIds = [];
             foreach (Mp4Box box in movie.Boxes.Where(box => box.Type == "trak"))
             {

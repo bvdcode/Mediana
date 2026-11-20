@@ -44,7 +44,7 @@ namespace Mediana.Containers.Mp4
                 int start = Math.Max(0, output - preceding);
                 if (requiresSync && start != 0)
                 {
-                    start = Mp4SyncSampleLookup.AtOrBefore(sampleTables[streamIndex].SyncSamples, start);
+                    start = sampleTables[streamIndex].FindSyncSample(start);
                     if (start < 0)
                     {
                         throw new NotSupportedException("No sync packet is available before the MP4 preroll position.");

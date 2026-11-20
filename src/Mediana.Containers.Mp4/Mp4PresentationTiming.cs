@@ -12,7 +12,7 @@ namespace Mediana.Containers.Mp4
 
         private Mp4PresentationTiming(MediaBuffer? corrections) => this.corrections = corrections?.Retain();
 
-        public static Mp4PresentationTiming Create(Mp4SampleTable table, MediaBufferAllocator allocator,
+        public static Mp4PresentationTiming Create(IMp4SampleIndex table, MediaBufferAllocator allocator,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -22,7 +22,7 @@ namespace Mediana.Containers.Mp4
             Span<long> timestamps = MemoryMarshal.Cast<byte, long>(scratch.Memory.Span[..(count * sizeof(long))]);
             Span<int> indices = MemoryMarshal.Cast<byte, int>(scratch.Memory.Span[(count * sizeof(long))..]);
             Span<long> durations = MemoryMarshal.Cast<byte, long>(output.Memory.Span);
-            Mp4TrackCursor cursor = new(table);
+            IMp4SampleCursor cursor = table.CreateCursor();
             for (int index = 0; index < count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
