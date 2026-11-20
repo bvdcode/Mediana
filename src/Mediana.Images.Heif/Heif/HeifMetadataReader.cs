@@ -5,11 +5,12 @@ using System.Buffers.Binary;
 using System.Globalization;
 using Mediana.Core.Metadata;
 using Mediana.Formats.Metadata;
+using Mediana.Formats.Video;
 using Mediana.Images.Heif.Hevc;
 
 namespace Mediana.Images.Heif.Container
 {
-    internal static class HeifMetadataReader
+    internal static partial class HeifMetadataReader
     {
         internal static MediaMetadata Read(HeifContainer container, ImageProperties primary, CancellationToken token)
         {
@@ -59,6 +60,8 @@ namespace Mediana.Images.Heif.Container
                 children.Add(new("encoding/" + encodingIndex.ToString(CultureInfo.InvariantCulture), encoding));
                 encodingIndex++;
             }
+            AddAv1Encoding(container, children, token);
+            AddImageRelationships(container, children, token);
             if (item.Type == HeifBox.Code("grid"))
             {
                 GridImageDecoder.ReadInputs(container, item, primary, out int rows, out int columns);
@@ -72,7 +75,7 @@ namespace Mediana.Images.Heif.Container
             return new("image", properties, children);
         }
 
-        private static void AddProperties(ImageProperties image, List<MediaProperty> properties)
+        internal static void AddProperties(ImageProperties image, List<MediaProperty> properties)
         {
             if (!image.PixelDepths.IsEmpty)
             {
@@ -94,7 +97,7 @@ namespace Mediana.Images.Heif.Container
             }
         }
 
-        private static void AddTransforms(ImageProperties image, List<MediaMetadata> children)
+        internal static void AddTransforms(ImageProperties image, List<MediaMetadata> children)
         {
             foreach (HeifBox transform in image.Transforms)
             {

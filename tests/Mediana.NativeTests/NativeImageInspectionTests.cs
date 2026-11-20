@@ -3,6 +3,7 @@
 
 using Mediana.Codecs;
 using Mediana.Images.Metadata;
+using Mediana.Images.Heif;
 
 namespace Mediana.NativeTests
 {
@@ -37,6 +38,12 @@ namespace Mediana.NativeTests
                 Core.Metadata.ImageInfo info = await engine.InspectImageAsync(file);
                 if (info.Width != 37 || info.Height != 29) { throw new InvalidDataException("Image inspection dimensions differ."); }
             }
+            byte[] avif = await File.ReadAllBytesAsync(Path.Combine(root, "metadata-oriented-thumbnail.avif"));
+            AvifImageInspector avifReader = new(new(maxPixels: 1));
+            Core.Metadata.ImageInfo avifInfo = await avifReader.ReadInfoAsync(avif);
+            IReadOnlyList<EncodedImagePreview> thumbnails = await avifReader.ReadPreviewsAsync(avif);
+            if (avifInfo.Width != 29 || avifInfo.Height != 37 || thumbnails.Count != 1 || thumbnails[0].Info.FormatId != "av1")
+            { throw new InvalidDataException("AVIF transforms or thumbnail differ."); }
             Console.WriteLine("PASS PCX, PSD/PSB, TIFF RAW and RAF metadata and original previews.");
         }
     }

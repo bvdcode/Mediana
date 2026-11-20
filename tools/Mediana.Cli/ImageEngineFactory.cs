@@ -68,6 +68,7 @@ namespace Mediana.Cli
             .AddImageInspector(new PsdMetadataReader())
             .AddImageInspector(new TiffImageMetadataReader())
             .AddImageInspector(new RafMetadataReader())
+            .AddImageInspector(new AvifImageInspector(new HeicDecodeOptions(maxInputBytes: CommandImageResources.MaximumBufferLength)))
             .AddImageDecoder(new TgaImageDecoder())
             .AddImageDecoder(new PnmImageDecoder())
             .AddImageDecoder(new QoiImageDecoder())

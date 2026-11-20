@@ -117,12 +117,12 @@ namespace Mediana.Images.Heif.Container
             fileProperties.Add(new("isobmff", "major_brand", TypeName(major)));
             fileProperties.Add(new("isobmff", "minor_version", reader.U32()));
             List<MediaPropertyValue> compatible = [];
-            bool supported = (major == HeifBox.Code("heic")) || (major == HeifBox.Code("heix"));
+            bool supported = IsImageBrand(major);
             while (reader.Remaining > 0)
             {
                 uint brand = reader.U32();
                 compatible.Add(TypeName(brand));
-                supported |= (brand == HeifBox.Code("heic")) || (brand == HeifBox.Code("heix"));
+                supported |= IsImageBrand(brand);
             }
             if (compatible.Count != 0)
             {
@@ -131,9 +131,12 @@ namespace Mediana.Images.Heif.Container
 
             if (!supported)
             {
-                throw new UnsupportedHeicFeatureException("file brands without HEVC images");
+                throw new UnsupportedHeicFeatureException("file brands without supported HEIF images");
             }
         }
+
+        private static bool IsImageBrand(uint brand) => brand == HeifBox.Code("heic") || brand == HeifBox.Code("heix")
+            || brand == HeifBox.Code("avif") || brand == HeifBox.Code("avis");
 
         private void ReadMeta(HeifBox box)
         {

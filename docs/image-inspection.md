@@ -112,3 +112,30 @@ Format references: [ExifTool TIFF/Exif](https://github.com/exiftool/exiftool/blo
 [Panasonic RAW](https://github.com/exiftool/exiftool/blob/master/lib/Image/ExifTool/PanasonicRaw.pm),
 [MakerNote layouts](https://github.com/exiftool/exiftool/blob/master/lib/Image/ExifTool/MakerNotes.pm),
 [Fujifilm RAF](https://github.com/exiftool/exiftool/blob/master/lib/Image/ExifTool/FujiFilm.pm).
+
+## AVIF
+
+`AvifImageInspector`, in `Mediana.Images.Heif`, uses the shared HEIF item and
+property parser. It reads the primary image's stored and transformed dimensions,
+AV1 profile/level/bit depth and chroma sampling, CICP/ICC, EXIF/GPS, grid layout,
+item types and thumbnail/auxiliary relationships. It performs no AV1 pixel decode
+and does not apply the configured pixel-decoding limit. Input and item limits
+remain caller-configurable. The item-based primary presentation is inspected;
+sequence track timing and layered-image selection are not interpreted.
+
+Thumbnail extraction returns original `av1` OBU item payloads with their `av1C`
+configuration in `av1.configuration` metadata and their presentation transforms.
+These are elementary coded image items, not standalone `.avif` files. A single
+extent is borrowed; multiple extents are assembled without re-encoding. Derived
+thumbnail item types remain visible through item relationships but are not
+exported as elementary AV1 thumbnails.
+
+Pillow/libavif independently encoded the 37×29 reference image. A procedural
+container with independently encoded AV1 items verifies rotation, separate 7×5
+thumbnail, EXIF and original payload access. ExifTool agrees with the stored
+size, rotation and capture fields. Tests reject malformed configuration records,
+truncated boxes and invalid file-type headers; cancellation is checked. Existing
+HEIF decoding and metadata tests also pass after sharing the AVIF property path.
+
+References: [AVIF specification](https://aomediacodec.github.io/av1-avif/),
+[AV1 ISO media binding](https://aomediacodec.github.io/av1-isobmff/).

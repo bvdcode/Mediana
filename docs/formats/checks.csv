@@ -71,7 +71,7 @@ mp3-file,read,partial,partial,partial,planned,planned,planned,../../tests/Median
 mp3-file,write,planned,planned,planned,planned,planned,planned,
 heif-wrapper,read,partial,partial,partial,planned,planned,planned,../heif.md;../../tests/Mediana.Tests/Data/Heif/README.md
 heif-wrapper,write,planned,planned,planned,planned,planned,planned,
-avif-wrapper,read,planned,planned,planned,planned,planned,planned,
+avif-wrapper,read,partial,partial,partial,planned,partial,partial,../image-inspection.md
 avif-wrapper,write,planned,planned,planned,planned,planned,planned,
 jp2-wrapper,read,partial,partial,partial,planned,planned,planned,../jpeg2000.md;../../tests/Mediana.Tests/Data/Jpeg2000/README.md
 jp2-wrapper,write,planned,planned,planned,planned,planned,planned,

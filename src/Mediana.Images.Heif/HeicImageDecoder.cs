@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using System.Buffers.Binary;
 using Mediana.Codecs;
 using Mediana.Core.Metadata;
 using Mediana.Images.Heif.Container;
@@ -28,48 +27,9 @@ namespace Mediana.Images.Heif
         public int ProbeLength => 512;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.SingleImage;
 
-        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null)
-        {
-            if (prefix.Length < 16 || !prefix.Slice(4, 4).SequenceEqual("ftyp"u8))
-            {
-                return false;
-            }
-            uint size = BinaryPrimitives.ReadUInt32BigEndian(prefix);
-            int header = 8;
-            ulong declaredSize = size;
-            if (size == 1)
-            {
-                if (prefix.Length < 24)
-                {
-                    return false;
-                }
-                declaredSize = BinaryPrimitives.ReadUInt64BigEndian(prefix[8..]);
-                header = 16;
-            }
-            if (size == 0)
-            {
-                declaredSize = (ulong)prefix.Length;
-            }
-            if (declaredSize < (ulong)header + 8)
-            {
-                return false;
-            }
-            int end = (int)Math.Min(declaredSize, (ulong)prefix.Length);
-            for (int offset = header; offset <= end - 4; offset += 4)
-            {
-                if (offset == header + 4)
-                {
-                    continue;
-                }
-                ReadOnlySpan<byte> brand = prefix.Slice(offset, 4);
-                if (brand.SequenceEqual("heic"u8) || brand.SequenceEqual("heix"u8) || brand.SequenceEqual("hevc"u8)
-                    || brand.SequenceEqual("hevx"u8) || brand.SequenceEqual("mif1"u8) || brand.SequenceEqual("msf1"u8))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) =>
+            HeifFileType.ContainsBrand(prefix, [HeifBox.Code("heic"), HeifBox.Code("heix"), HeifBox.Code("hevc"),
+                HeifBox.Code("hevx"), HeifBox.Code("mif1"), HeifBox.Code("msf1")]);
 
         /// <summary>Reads transformed primary-image dimensions without decoding pixels or applying the decode pixel limit.
         /// Encoded input, item-count and structural validation limits still apply.</summary>

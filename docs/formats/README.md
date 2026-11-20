@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1064 operations · 19 groups.**
 
-**Existing implementations: 129 variants · 161 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 130 variants · 162 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -23,7 +23,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | Group | Implemented variants | Target variants | Implemented operations | Target operations |
 | --- | ---: | ---: | ---: | ---: |
-| [Containers and packaging](#containers-and-packaging) | 18 | 44 | 20 | 88 |
+| [Containers and packaging](#containers-and-packaging) | 19 | 44 | 21 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 7 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 9 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
@@ -83,7 +83,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `flac-native` | FLAC — Native file framing and metadata | .flac | R ◐ · W □ | A | FLAC codec operation is tracked separately. [flac](sources.md#flac) | [flac-track](../performance/README.md#flac-track), [flac-sustained](../performance/README.md#flac-sustained) |
 | `mp3-file` | MP3 — Layer III frame stream with metadata | .mp3 | R ◐ · W □ | A | Writer means framing/metadata and stream copy, not MP3 compression. [mpeg-audio](sources.md#mpeg-audio), [metadata](sources.md#metadata) | [mp3-long](../performance/README.md#mp3-long) |
 | `heif-wrapper` | HEIF — Image item graph and derived items | .heif .heic | R ◐ · W □ | A | Current HEIC item graph includes grids, identity, overlays, transforms and alpha. [heif](sources.md#heif) | [heic-photo-12mp](../performance/README.md#heic-photo-12mp), [heic-photo-200mp](../performance/README.md#heic-photo-200mp), [heic-preview](../performance/README.md#heic-preview) |
-| `avif-wrapper` | AVIF — HEIF AV1 image item mapping | .avif | R □ · W □ | A | Requires AV1 decoding/encoding in addition to item-graph support. [avif](sources.md#avif) | — |
+| `avif-wrapper` | AVIF — HEIF AV1 image item mapping | .avif | R ◐ · W □ | A | Requires AV1 decoding/encoding in addition to item-graph support. [avif](sources.md#avif) | — |
 | `jp2-wrapper` | JP2 — JPEG 2000 Part 1 file format | .jp2 | R ◐ · W □ | A | Current reader supports a subset of color and channel boxes. [jpeg2000](sources.md#jpeg2000) | [jp2-scan](../performance/README.md#jp2-scan) |
 | `jpx-wrapper` | JPX — JPEG 2000 Part 2 file format | .jpx .jpf | R □ · W □ | B | Composition, multiple codestreams and additional color/channel mappings. [jpeg2000](sources.md#jpeg2000) | — |
 | `mj2-wrapper` | Motion JPEG 2000 — JPEG 2000 Part 3 file format | .mj2 .mjp2 | R □ · W □ | C | [jpeg2000](sources.md#jpeg2000) | — |

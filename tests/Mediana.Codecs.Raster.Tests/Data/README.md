@@ -55,3 +55,9 @@ preview bytes are the existing Pillow-produced `metadata-preview.jpg`.
 Both TIFF byte orders, EXIF capture fields and Nikon/Olympus/Pentax offset bases
 are checked against ExifTool. `metadata-sensor.raf` declares a separate crop.
 These fixtures contain no encoded sensor samples.
+
+`metadata-reference.avif` is encoded by Pillow/libavif from the existing 37×29
+RGB reference. `metadata-oriented-thumbnail.avif` is a procedural HEIF container
+using independently encoded AV1 primary/thumbnail items; it adds a 90-degree
+clockwise transform, EXIF and an original 7×5 thumbnail. ExifTool confirms the
+stored dimensions, transform and capture fields.

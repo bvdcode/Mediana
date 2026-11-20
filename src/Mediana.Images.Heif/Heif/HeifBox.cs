@@ -4,7 +4,6 @@
 using Mediana.Images.Heif.Binary;
 using System;
 using System.IO;
-using System.Text;
 
 namespace Mediana.Images.Heif.Container
 {
@@ -45,8 +44,8 @@ namespace Mediana.Images.Heif.Container
                 throw new ArgumentException("A box type contains four characters.", nameof(text));
             }
 
-            byte[] bytes = Encoding.ASCII.GetBytes(text);
-            return ((uint)bytes[0] << 24) | ((uint)bytes[1] << 16) | ((uint)bytes[2] << 8) | bytes[3];
+            if ((text[0] | text[1] | text[2] | text[3]) > 127) { throw new ArgumentException("A box type must contain ASCII characters.", nameof(text)); }
+            return ((uint)text[0] << 24) | ((uint)text[1] << 16) | ((uint)text[2] << 8) | text[3];
         }
     }
 }
