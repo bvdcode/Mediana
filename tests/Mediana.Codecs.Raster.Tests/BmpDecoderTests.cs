@@ -38,6 +38,25 @@ namespace Mediana.Codecs.Raster.Tests
             }
         }
 
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        public void IconProbeRequiresANonemptyDirectoryWithinTheKnownLength(byte kind)
+        {
+            IcoImageDecoder decoder = new();
+            byte[] header = [0, 0, kind, 0, 0, 0];
+            Assert.False(decoder.CanDecode(header));
+            Assert.False(decoder.CanDecode(header, 1024));
+            header[4] = 1;
+            Assert.True(decoder.CanDecode(header));
+            Assert.False(decoder.CanDecode(header, 21));
+            Assert.True(decoder.CanDecode(header, 22));
+            header[4] = byte.MaxValue;
+            header[5] = byte.MaxValue;
+            Assert.False(decoder.CanDecode(header, 6 + 16L * ushort.MaxValue - 1));
+            Assert.True(decoder.CanDecode(header, 6 + 16L * ushort.MaxValue));
+        }
+
         [Fact]
         public async Task ProbeDoesNotReadBitmapPixelsAndPageSelectionIsValidated()
         {

@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using System.Text.Json;
+using Mediana.Codecs.Bmp;
 using Mediana.Codecs.Tga;
 using Mediana.Core.Memory;
 using Mediana.Core.Metadata;
@@ -17,7 +18,7 @@ namespace Mediana.Codecs.Raster.Tests
         {
             string root = Path.Combine(AppContext.BaseDirectory, "Data");
             using JsonDocument manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, "tga-manifest.json")));
-            ImageDecodeContext context = new([new TgaImageDecoder()]);
+            ImageDecodeContext context = new([new IcoImageDecoder(), new TgaImageDecoder()]);
             foreach (JsonElement item in manifest.RootElement.EnumerateArray())
             {
                 byte[] data = await File.ReadAllBytesAsync(Path.Combine(root, item.GetProperty("file").GetString()!));

@@ -16,8 +16,16 @@ namespace Mediana.Codecs.Bmp
         public string ImplementationId => "ico.managed.image";
         public int ProbeLength => 6;
         public ImageDecoderFeatures Features => ImageDecoderFeatures.Pages;
-        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) =>
-            prefix.Length >= 6 && prefix[0] == 0 && prefix[1] == 0 && prefix[2] is 1 or 2 && prefix[3] == 0;
+        public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null)
+        {
+            if (prefix.Length < 6 || prefix[0] != 0 || prefix[1] != 0 || prefix[2] is not (1 or 2) || prefix[3] != 0)
+            {
+                return false;
+            }
+            int count = BinaryPrimitives.ReadUInt16LittleEndian(prefix[4..]);
+            return count > 0 && (encodedLength is null || encodedLength >= 6L + 16L * count);
+        }
+
         private static ReadOnlyMemory<byte> Entry(ReadOnlyMemory<byte> encoded, int number, out int count, out int width, out int height)
         {
             ReadOnlySpan<byte> data = encoded.Span;
