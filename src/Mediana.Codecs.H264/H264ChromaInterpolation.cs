@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace Mediana.Codecs.H264
 {
@@ -75,7 +76,7 @@ namespace Mediana.Codecs.H264
         private static void Predict8(ReadOnlySpan<byte> patch, int stride, int height, int dx, int dy,
             int outputStride, Span<byte> output)
         {
-            Vector128<short> horizontalWeight = Vector128.Create((short)dx);
+            Vector128<byte> horizontalWeight = HorizontalWeights(dx);
             Vector128<short> verticalWeight = Vector128.Create((short)dy);
             Vector128<short> top = Horizontal8(patch, 0, horizontalWeight);
             for (int row = 0; row < height; row++)
@@ -89,10 +90,21 @@ namespace Mediana.Codecs.H264
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static Vector128<short> Horizontal8(ReadOnlySpan<byte> patch, int position, Vector128<short> weight)
+        internal static Vector128<byte> HorizontalWeights(int fraction) =>
+            Vector128.ZipLower(Vector128.Create((byte)(8 - fraction)), Vector128.Create((byte)fraction));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static Vector128<short> Horizontal8(ReadOnlySpan<byte> patch, int position, Vector128<byte> weights)
         {
+            if (Ssse3.IsSupported)
+            {
+                Vector128<byte> samples = Vector128.ZipLower(
+                    H264VectorSamples.Read8(patch, position), H264VectorSamples.Read8(patch, position + 1));
+                return Ssse3.MultiplyAddAdjacent(samples, weights.AsSByte());
+            }
             Vector128<short> left = Read8(patch, position);
             Vector128<short> right = Read8(patch, position + 1);
+            Vector128<short> weight = Vector128.Create((short)weights.GetElement(1));
             return Vector128.ShiftLeft(left, 3) + (right - left) * weight;
         }
 

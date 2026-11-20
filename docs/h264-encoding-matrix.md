@@ -102,3 +102,38 @@ close to, but does not establish, the 720p30 target; it uses about 1.68 times th
 reference CPU in this series. The process-memory advantage remains. These
 results are for one five-second camera sequence, not a guarantee across all
 720p scenes or a long-duration throughput result.
+
+## Paired chroma interpolation
+
+Horizontal eight-column chroma filtering pairs adjacent byte samples with
+.NET 11 `Vector128.ZipLower` and uses SSSE3 unsigned-byte/signed-byte multiply-add
+on supported processors. Weights are prepared once per block. Their sum is
+eight, so the largest intermediate is 2,040; signed 16-bit saturation cannot
+alter a valid sample. The existing portable arithmetic remains available on
+other processors. Both decoding and encoding use the same interpolation kernel.
+
+The native chroma-comparison function is 420 bytes instead of 436. Its four
+horizontal sample multiplications use `pmaddubsw`; the two remaining `pmullw`
+instructions perform vertical interpolation. The H.264 test selection passes
+880 tests. Each of the SSSE3-disabled and fully scalar controls passes 23 focused
+tests. Standalone Native AOT checks cover 660,480 chroma-comparison cases, all
+interpolation phases and the complete progressive 4:2:2/High10 reference streams.
+
+A further ABBAAB series contains three fresh processes per version for each of
+the six complete inputs, on the same CPU 11 and settings as the precision
+[regression comparison](h264-high10.md#eight-bit-encoding-regression-measurement).
+All 36 complete transport hashes match.
+
+| Input | Original / paired CPU, s | Original / paired wall, s | Original / paired peak RSS, MiB | Original / paired allocation, MiB |
+| --- | ---: | ---: | ---: | ---: |
+| camera-720 | 6.959 / 6.953 | 6.960 / 6.960 | 23.625 / 23.625 | 14.955 / 14.957 |
+| noise-720 | 6.252 / 6.226 | 6.255 / 6.227 | 23.750 / 23.625 | 15.142 / 15.080 |
+| text-720 | 2.087 / 2.059 | 2.088 / 2.060 | 23.250 / 23.250 | 14.645 / 14.647 |
+| photo-pan-1080 | 10.188 / 9.984 | 10.330 / 9.989 | 37.250 / 37.125 | 37.832 / 37.833 |
+| animation-1080 | 7.764 / 7.726 | 7.783 / 8.268 | 36.750 / 36.750 | 37.213 / 37.218 |
+| cuts-1080 | 12.981 / 12.996 | 12.984 / 13.187 | 36.875 / 36.750 | 37.333 / 37.210 |
+
+CPU changes range from -2.00% to +0.11%. This is a small kernel improvement,
+not evidence of a large or universal throughput increase. Memory remains
+comparable, and byte-identical output preserves the previous independent quality
+measurements. The remaining x264 gap is not closed by this change.
