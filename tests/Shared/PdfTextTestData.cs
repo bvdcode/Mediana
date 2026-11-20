@@ -22,6 +22,15 @@ namespace Mediana.Tests
                 Stream(cmap ?? "/CIDInit /ProcSet findresource begin 12 dict begin begincmap 1 begincodespacerange <00> <FF> endcodespacerange 2 beginbfchar <01> <D83DDE00> <02> <00660069> endbfchar endcmap end end"),Stream(badSecond ? "BT /F1 12 Tf (unterminated" : "BT /F1 12 Tf 1 0 0 1 20 100 Tm (Second page) Tj ET")];
             return Build(objects);
         }
+        internal static byte[] Composite(string cmap, string text = "004100422023") => Build(
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 120 60] /Resources << /Font << /F 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type0 /BaseFont /Preview /Encoding /Identity-H /DescendantFonts [7 0 R] /ToUnicode 6 0 R >>",
+            Stream("BT /F 12 Tf 1 0 0 1 10 30 Tm <" + text + "> Tj ET"), Stream(cmap),
+            "<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Preview /DW 600 >>"
+        ]);
+
         internal static byte[] Build(IReadOnlyList<string> objects)
         {
             using MemoryStream buffer = new();

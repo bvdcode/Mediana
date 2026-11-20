@@ -21,7 +21,8 @@ namespace Mediana.Documents.Pdf
             TrueTypeFont? face = _textResources.ResolveFont(request, token);
             if (face is null) { return null; }
             ChargeResolvedFont(face);
-            Dictionary<int, int> characters = unicode.Kind == PdfValueKind.Null ? [] : ReadToUnicode(unicode, composite);
+            PdfUnicodeMap? characters = unicode.Kind == PdfValueKind.Null ? null
+                : PdfUnicodeMap.Read(storage, unicode, composite, token, ChargeOperations, message => _warnings.Add(message));
             Dictionary<int, int> glyphs = [];
             Dictionary<int, TrueTypeFont> glyphFaces = [];
             HashSet<TrueTypeFont> substitutedFaces = [];
@@ -30,8 +31,7 @@ namespace Mediana.Documents.Pdf
             if (composite)
             {
                 (widths, defaultWidth) = CompositeWidths(dictionary);
-                ChargeOperations(characters.Count);
-                foreach ((int code, int scalar) in characters) { glyphs[code] = ResolveGlyph(code, scalar); }
+                ChargeOperations(characters?.Count ?? 0);
             }
             else
             {
@@ -40,7 +40,7 @@ namespace Mediana.Documents.Pdf
                 if (baseName is not ("" or "StandardEncoding" or "WinAnsiEncoding")) { return null; }
                 for (int code = 0; code < 256; code++)
                 {
-                    int scalar = characters.TryGetValue(code, out int mapped) ? mapped
+                    int scalar = characters is not null && characters.TryGetScalar(code, out int mapped) ? mapped
                         : baseName == "WinAnsiEncoding" ? WinAnsi(code)
                         : code switch { 39 => 0x2019, 96 => 0x2018, >= 32 and <= 126 => code, _ => -1 };
                     glyphs[code] = ResolveGlyph(code, scalar);
@@ -51,7 +51,7 @@ namespace Mediana.Documents.Pdf
                     if (difference.Kind == PdfValueKind.Number) { current = difference.Integer(); continue; }
                     if ((uint)current > 255) { throw new InvalidDataException("Invalid PDF encoding Differences."); }
                     string glyphName = difference.Name();
-                    if (!characters.ContainsKey(current))
+                    if (characters is null || !characters.TryGetScalar(current, out _))
                     {
                         glyphFaces.Remove(current);
                         glyphs[current] = glyphName == ".notdef" ? 0 : ResolveGlyph(current, GlyphCode(glyphName));
@@ -77,7 +77,21 @@ namespace Mediana.Documents.Pdf
                 }
             }
             _warnings.Add("Unembedded PDF font '" + name + "' uses a caller-supplied font program.");
-            return new PdfOutlineFont(face, glyphs, widths, defaultWidth, composite) { GlyphFaces = glyphFaces };
+            return new PdfOutlineFont(face, glyphs, widths, defaultWidth, composite)
+            {
+                GlyphFaces = glyphFaces,
+                GlyphResolver = composite ? ResolveComposite : null
+            };
+
+            (TrueTypeFont Face, int Glyph) ResolveComposite(int code)
+            {
+                if (!glyphs.TryGetValue(code, out int glyph))
+                {
+                    glyph = characters is not null && characters.TryGetScalar(code, out int scalar) ? ResolveGlyph(code, scalar) : -1;
+                    glyphs.Add(code, glyph);
+                }
+                return (glyphFaces.GetValueOrDefault(code, face), glyph);
+            }
             int ResolveGlyph(int code, int scalar)
             {
                 if (scalar < 0) { return -1; }
