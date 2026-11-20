@@ -17,6 +17,15 @@ using PixelBuffer slide = await PresentationRenderer.RenderAsync(presentation, 0
 
 Slide indexes are zero based. `Slides`, `Width` and `Height` describe the presentation without rendering. Dimensions use points. `PresentationPageDecoder` registers page decoding with `OpenXmlImageDecoder`; the CLI supports `mediana -i presentation.pptx preview.png --page 1`.
 
+`PresentationReader.Open` also accepts a readable seekable `Stream`. The shared `OpenXmlPackage.Open` uses the same stream contract. ZIP directory metadata is indexed once; only requested XML and image parts are read. The compressed package is not copied into a managed array:
+
+```csharp
+using FileStream input = File.OpenRead("presentation.pptx");
+using PresentationDocument presentation = PresentationReader.Open(input, cancellationToken: token);
+```
+
+Streams are borrowed by default. Keep them unchanged and open until the document is disposed; `leaveOpen: false` transfers disposal responsibility, including failed initialization. Nonseekable inputs are rejected. Package byte, part and XML limits remain active; configure `PresentationReaderOptions.Package` for larger inputs. `MaximumInputBytes` is a 64-bit bound for stream inputs.
+
 The renderer reads the selected slide, its layout, master and theme. It uses Drawing for shapes, text and inline artwork, and the shared image registry for embedded pictures. Registering a decoder through `Images` also makes it available to the presentation. Pictures receive the same allocation budget and sRGB preparation as other documents. `TextResources` and `TextOptions` are shared with Word, SVG and PDF.
 
 Picture fills (`blipFill`) use the same decoding and image cache for shapes, backgrounds, table cells and picture objects. Relationships resolve in the part declaring the fill, including inherited layouts, masters and theme styles. Source cropping, destination insets, geometry clipping, stretched fills, tiled fills, tile alignment/offsets/mirroring and fixed opacity reduction are supported. Tiling samples the retained frame directly without creating an expanded texture buffer.
@@ -84,6 +93,8 @@ Limits reject excessive output instead of truncating it. Use `StartPartIndex`/`P
 Document tests cover independent CFB and OPC parsers, sparse coordinates, typed values, cached formulas, shared-string continuation, Unicode mappings, declared/reconstructed reading order, cancellation and early disposal. Presentation checks compare reference pixels, inherited placeholders, automatic text sizing, per-axis overflow, shared image decoding and single-buffer publication. Picture-fill checks cover inherited resource ownership, cropping, clipping, rotation, tiling, opacity, malformed geometry, allocation limits and cancellation cleanup. The public-reader and positive picture-fill checks also run in the Native AOT executable.
 
 Text extraction passed on 18 DOCX and 14 PPTX documents and two independent BIFF8 workbooks. First-slide previews succeeded for all 14 presentations with picture fills, common ICC matrix/TRC conversion and the CLI's explicit JFIF chroma-conflict policy. All six distinct embedded RGB profiles matched LittleCMS conversion within one 8-bit RGB level; alpha matched exactly. Large-file checks use explicitly increased package limits; default limits remain unchanged.
+
+A 1.53 GiB PPTX completed first-slide rendering from a file stream under a 1.5 GiB managed heap limit. At 200 px the process peaked at 65.7 MiB and completed reading, rendering and PNG writing in 265 ms; at 2560 px it peaked at 181.2 MiB and completed in 579 ms. These are individual Release runs on .NET 11 with two logical processors and Server GC. The selected slide, configured package/raster limits and image content determine working memory; the package size alone does not establish a render-memory bound.
 
 ## Specifications
 

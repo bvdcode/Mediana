@@ -149,6 +149,16 @@ keep and widow controls; table grids, cell spans, borders and shading; inline
 PNG/JPEG pictures; and default/first/even headers and footers. Stored field
 results are displayed; fields are not recalculated.
 
+Table formatting resolves the selected or default table style and its `basedOn`
+chain. `tblLook` flags control row/column bands and edge regions; corner regions
+have final conditional priority. Cell margins, stored RGB shading, borders,
+paragraph properties and run formatting flow into the existing layout. Direct
+cell properties override inherited cell properties. Bottom and right borders
+remain inside their cells so subsequent shaded rows or cells cannot erase them.
+Tests cover inheritance, condition precedence, band sizes, direct overrides,
+malformed conditions and raster pixels. The report fixture retains its blue
+banding and horizontal borders.
+
 All pages of seventeen DOCX documents were rendered through the public library
 API. Their first pages were also rendered through the managed and Native AOT CLI
 and visually compared with LibreOffice output. Tests check page selection,

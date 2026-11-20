@@ -41,3 +41,13 @@ Font collections and bundled faces retain immutable `FontProgram` objects.
 without copying bytes or repeating table parsing. Every renderer creates its own
 `TrueTypeFont` caches. The byte-based resolver properties accept external font
 programs when a caller does not already have parsed resources.
+
+With `SubstituteMissingFonts` enabled, missing characters consult the caller's
+fallback resolver, then the bundled `FallbackFamilies`. The defaults include
+Noto Sans Symbols 2 and Mediana Punctuation. The latter is an unhinted WOFF
+punctuation subset derived from Noto Sans, occupying 4,980 encoded bytes and
+covering the triangular bullet `‣` (U+2023). Its Unicode outlines use the same
+shared font selection in Word, presentations, SVG and external PDF fonts;
+no symbol replacement is specific to a document format. A selected font's
+available glyphs keep priority, and disabling substitution retains strict
+font selection.
