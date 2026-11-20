@@ -7,10 +7,20 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264Presentation
     {
-        public static VideoFramePresentation Create(H264SliceHeader header, H264PictureOrder order, H264PictureTiming? timing)
+        public static VideoFramePresentation Create(H264SliceHeader header, H264PictureOrder order, H264PictureTiming? timing,
+            bool ignoreInconsistentTiming, out bool ignoredTiming)
         {
             H264DisplayStructure structure = timing?.DisplayStructure ?? InferStructure(header, order);
-            ValidateStructure(structure, header, order);
+            ignoredTiming = !IsConsistent(structure, header, order);
+            if (ignoredTiming)
+            {
+                if (!ignoreInconsistentTiming)
+                {
+                    throw new InvalidDataException("The H.264 picture-timing display structure contradicts its coded picture or field order.");
+                }
+                structure = InferStructure(header, order);
+                timing = null;
+            }
             VideoSourceScan source = ReadSourceScan(timing?.SourceScanTypes ?? H264SourceScanTypes.None);
             return structure switch
             {
@@ -59,10 +69,10 @@ namespace Mediana.Codecs.H264
             _ => throw new ArgumentOutOfRangeException(nameof(header))
         };
 
-        private static void ValidateStructure(H264DisplayStructure structure, H264SliceHeader header, H264PictureOrder order)
+        private static bool IsConsistent(H264DisplayStructure structure, H264SliceHeader header, H264PictureOrder order)
         {
             bool frame = header.Structure == H264PictureStructure.Frame;
-            bool valid = structure switch
+            return structure switch
             {
                 H264DisplayStructure.Frame => frame && order.Top == order.Bottom,
                 H264DisplayStructure.TopField => header.Structure == H264PictureStructure.TopField,
@@ -73,10 +83,6 @@ namespace Mediana.Codecs.H264
                     frame && order.Top == order.Bottom && header.Sequence.Vui?.FixedFrameRate == true,
                 _ => throw new ArgumentOutOfRangeException(nameof(structure))
             };
-            if (!valid)
-            {
-                throw new InvalidDataException("The H.264 picture-timing display structure contradicts its coded picture or field order.");
-            }
         }
 
         private static VideoSourceScan ReadSourceScan(H264SourceScanTypes scans) => scans switch

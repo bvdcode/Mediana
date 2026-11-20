@@ -31,11 +31,15 @@ namespace Mediana.Tests
         {
             H264SliceHeader header = await HeaderAsync(field);
             VideoFramePresentation presentation = H264Presentation.Create(header, new(top, bottom, header.Structure),
-                new((H264DisplayStructure)code, H264SourceScanTypes.Progressive));
+                new((H264DisplayStructure)code, H264SourceScanTypes.Progressive), false, out _);
             Assert.Equal(unit, presentation.Unit);
             Assert.Equal(count, presentation.DisplayCount);
             Assert.Equal(first, presentation.FirstField);
             Assert.Equal(VideoSourceScan.Progressive, presentation.SourceScan);
+            VideoFramePresentation compatible = H264Presentation.Create(header, new(top, bottom, header.Structure),
+                new((H264DisplayStructure)code, H264SourceScanTypes.Progressive), true, out bool ignored);
+            Assert.False(ignored);
+            Assert.Equal(presentation, compatible);
         }
 
         [Theory]
@@ -48,7 +52,7 @@ namespace Mediana.Tests
             VideoPresentationUnit unit, int count, VideoFieldParity? first)
         {
             H264SliceHeader header = await HeaderAsync(field);
-            VideoFramePresentation presentation = H264Presentation.Create(header, new(top, bottom, header.Structure), null);
+            VideoFramePresentation presentation = H264Presentation.Create(header, new(top, bottom, header.Structure), null, false, out _);
             Assert.Equal(unit, presentation.Unit);
             Assert.Equal(count, presentation.DisplayCount);
             Assert.Equal(first, presentation.FirstField);
@@ -68,7 +72,7 @@ namespace Mediana.Tests
         {
             H264SliceHeader header = await HeaderAsync(null);
             VideoFramePresentation presentation = H264Presentation.Create(header, new(0, 1),
-                new(H264DisplayStructure.TopBottom, (H264SourceScanTypes)flags));
+                new(H264DisplayStructure.TopBottom, (H264SourceScanTypes)flags), false, out _);
             Assert.Equal(VideoPresentationUnit.Field, presentation.Unit);
             Assert.Equal(expected, presentation.SourceScan);
         }
@@ -85,7 +89,22 @@ namespace Mediana.Tests
         {
             H264SliceHeader header = await HeaderAsync(field, fixedRate);
             Assert.Throws<InvalidDataException>(() => H264Presentation.Create(header, new(top, bottom, header.Structure),
-                new((H264DisplayStructure)code, H264SourceScanTypes.None)));
+                new((H264DisplayStructure)code, H264SourceScanTypes.None), false, out _));
+            H264PictureOrder order = new(top, bottom, header.Structure);
+            VideoFramePresentation inferred = H264Presentation.Create(header, order, null, false, out _);
+            VideoFramePresentation recovered = H264Presentation.Create(header, order,
+                new((H264DisplayStructure)code, H264SourceScanTypes.Progressive), true, out bool ignored);
+            Assert.True(ignored);
+            Assert.Equal(inferred, recovered);
+            Assert.Equal(VideoSourceScan.Unknown, recovered.SourceScan);
+        }
+
+        [Fact]
+        public async Task RecoveryDoesNotAcceptUnknownDisplayStructures()
+        {
+            H264SliceHeader header = await HeaderAsync(null);
+            Assert.Throws<ArgumentOutOfRangeException>(() => H264Presentation.Create(header, new(0, 0),
+                new((H264DisplayStructure)255, H264SourceScanTypes.None), true, out _));
         }
 
         [Fact]

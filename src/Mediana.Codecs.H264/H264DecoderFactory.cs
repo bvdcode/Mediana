@@ -14,11 +14,17 @@ namespace Mediana.Codecs.H264
     public class H264DecoderFactory : IVideoDecoderFactory, IRandomAccessDecoderFactory
     {
         private readonly H264DecoderOptions options;
+        private readonly Action<string>? warningHandler;
 
-        public H264DecoderFactory(H264DecoderOptions? options = null)
+        public H264DecoderFactory(H264DecoderOptions? options = null) : this(options, null)
+        {
+        }
+
+        public H264DecoderFactory(H264DecoderOptions? options, Action<string>? warningHandler)
         {
             this.options = options ?? new H264DecoderOptions();
             this.options.Validate();
+            this.warningHandler = warningHandler;
         }
 
         public string ImplementationId => "mediana.h264";
@@ -61,7 +67,7 @@ namespace Mediana.Codecs.H264
             {
                 throw new NotSupportedException(reason);
             }
-            return new H264Decoder(stream.StreamIndex, configuration, allocator, options, stream.ColorDescription, stream.AspectRatioDescription);
+            return new H264Decoder(stream.StreamIndex, configuration, allocator, options, stream.ColorDescription, stream.AspectRatioDescription, warningHandler);
         }
     }
 }

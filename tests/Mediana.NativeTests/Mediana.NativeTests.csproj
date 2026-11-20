@@ -480,6 +480,7 @@
                    ../Mediana.Tests/Data/Mp4/avc-presentation-*.mp4;../Mediana.Tests/Data/Mp4/avc-presentation-*.yuv.gz;../Mediana.Tests/Data/Mp4/avc-presentation-*.timing.csv"
           Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264PresentationTestInput.cs" Link="H264PresentationTestInput.cs" />
+    <Compile Include="../Shared/H264PresentationRecoveryTestInput.cs" Link="H264PresentationRecoveryTestInput.cs" />
     <Compile Include="../Shared/H264FieldTestInput.cs" Link="H264FieldTestInput.cs" />
     <Compile Include="../Shared/H264MultiSliceTestInput.cs" Link="H264MultiSliceTestInput.cs" />
     <Compile Include="../Shared/VideoSeekTestInput.cs" Link="VideoSeekTestInput.cs" />

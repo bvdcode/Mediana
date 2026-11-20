@@ -210,7 +210,7 @@ namespace Mediana.Tests
                 int parity = header.Structure == H264PictureStructure.BottomField ? 1 : 0;
                 int duration = header.Structure == H264PictureStructure.Frame ? 2 : 1;
                 VideoFrame frame = H264FramePublisher.Publish(picture, new(displayIndex * 2 + parity, new(1, 24)),
-                    new(duration, new(1, 24)), default, presentation: H264Presentation.Create(header, nextOrder.Current, null));
+                    new(duration, new(1, 24)), default, presentation: H264Presentation.Create(header, nextOrder.Current, null, false, out _));
                 bool queued = false;
                 try
                 {

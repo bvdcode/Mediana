@@ -9,13 +9,14 @@ namespace Mediana.Codecs.H264
 {
     internal class H264Decoder(int streamIndex, H264Configuration initialConfiguration,
         MediaBufferAllocator allocator, H264DecoderOptions options, VideoColorDescription? colorDescription = null,
-        VideoAspectRatioDescription? aspectRatioDescription = null) : IMediaCodec<MediaPacket, VideoFrame>
+        VideoAspectRatioDescription? aspectRatioDescription = null, Action<string>? warningHandler = null) : IMediaCodec<MediaPacket, VideoFrame>
     {
         private readonly H264Configuration startupConfiguration = initialConfiguration;
         private H264Configuration configuration = initialConfiguration;
         private H264ReferenceBuffer references = new();
         private H264FrameQueue frames = new(allocator);
         private H264PictureOrderState order = new();
+        private bool reportedPictureTiming;
         private bool inputCompleted;
         private bool endStream;
         private bool faulted;
@@ -165,7 +166,13 @@ namespace Mediana.Codecs.H264
             }
             H264PictureOrderState nextOrder = order.Advance(header);
             H264PictureTiming? timing = H264SeiReader.ReadPictureTiming(unit.PictureTimingNal.Span, header.Sequence.Vui, cancellationToken);
-            VideoFramePresentation presentation = H264Presentation.Create(header, nextOrder.Current, timing);
+            VideoFramePresentation presentation = H264Presentation.Create(header, nextOrder.Current, timing,
+                options.IgnoreInconsistentPictureTiming, out bool ignoredTiming);
+            if (ignoredTiming && !reportedPictureTiming)
+            {
+                warningHandler?.Invoke("Ignored an inconsistent H.264 picture-timing display hint; presentation follows the coded picture structure and field order.");
+                reportedPictureTiming = true;
+            }
             H264Picture picture = H264MultiSliceDecoder.Decode(unit, slices, references, nextOrder.Current, allocator, options, cancellationToken);
             VideoFrame? frame = null;
             bool stored = false;

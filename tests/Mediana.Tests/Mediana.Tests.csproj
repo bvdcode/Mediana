@@ -338,6 +338,7 @@
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/H264ProfileSequenceTestInput.cs" Link="H264ProfileSequenceTestInput.cs" />
     <Compile Include="../Shared/H264PresentationTestInput.cs" Link="H264PresentationTestInput.cs" />
+    <Compile Include="../Shared/H264PresentationRecoveryTestInput.cs" Link="H264PresentationRecoveryTestInput.cs" />
     <Compile Include="../Shared/H264FieldTestInput.cs" Link="H264FieldTestInput.cs" />
     <Compile Include="../Shared/H264MultiSliceTestInput.cs" Link="H264MultiSliceTestInput.cs" />
     <Compile Include="../Shared/VideoSeekTestInput.cs" Link="VideoSeekTestInput.cs" />
