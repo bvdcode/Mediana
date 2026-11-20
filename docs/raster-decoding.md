@@ -113,3 +113,5 @@ Specifications: [GIF89a](https://www.w3.org/Graphics/GIF/spec-gif89a.txt),
 [VP8L](https://developers.google.com/speed/webp/docs/webp_lossless_bitstream_specification),
 [VP8](https://www.rfc-editor.org/rfc/rfc6386),
 [DNG 1.6](https://helpx.adobe.com/content/dam/help/en/photoshop/pdf/dng_spec_1_6_0_0.pdf).
+
+OpenEXR scanline HALF/FLOAT, multipart selection, HDR sample preservation and exact supported compression variants are described in [OpenEXR decoding](openexr.md).

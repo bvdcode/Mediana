@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Mediana.Codecs.OpenExr;
 using Mediana.Codecs.Tga;
 using Mediana.Codecs.Pnm;
 using Mediana.Codecs.Qoi;
@@ -70,6 +71,7 @@ namespace Mediana.Cli
             .AddImageInspector(new RafMetadataReader())
             .AddImageInspector(new Cr3MetadataReader())
             .AddImageInspector(new AvifImageInspector(new HeicDecodeOptions(maxInputBytes: CommandImageResources.MaximumBufferLength)))
+            .AddImageDecoder(new OpenExrImageDecoder())
             .AddImageDecoder(new TgaImageDecoder())
             .AddImageDecoder(new PnmImageDecoder())
             .AddImageDecoder(new QoiImageDecoder())

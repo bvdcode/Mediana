@@ -22,6 +22,7 @@ namespace Mediana.NativeTests
         internal static async Task RunAsync()
         {
             await NativeJpegEncodingTests.RunAsync();
+            await NativeOpenExrTests.RunAsync();
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Raster");
             ImageDecodeContext registry = new([new PngImageDecoder(), new BmpImageDecoder(), new IcoImageDecoder(), new AniImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder(), new QoiImageDecoder(), new PnmImageDecoder(), new TgaImageDecoder()]);
             int verified = 0;

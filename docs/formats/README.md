@@ -3,9 +3,9 @@
 Mediana's target formats and independently tracked operations. This is a development map,
 not a claim that every listed format is currently supported. Priorities and scope may evolve.
 
-**469 variants · 1065 operations · 19 groups.**
+**469 variants · 1066 operations · 19 groups.**
 
-**Existing implementations: 132 variants · 164 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 134 variants · 167 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -28,7 +28,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 9 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 26 | 35 | 26 | 71 |
-| [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
+| [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
 | [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 15 | 62 | 16 | 124 |
 | [Audio coding and sample representations](#audio-coding-and-sample-representations) | 16 | 63 | 22 | 128 |
@@ -215,9 +215,9 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
-| `exr-scanline` | OpenEXR — Scanline images | .exr | D □ · E □ | B | [openexr](sources.md#openexr) | — |
+| `exr-scanline` | OpenEXR — Scanline images | .exr | R ◐ · D ◐ · E □ | B | [openexr](sources.md#openexr) | — |
 | `exr-tiled` | OpenEXR — Tiled, mipmapped and ripmapped images | .exr | D □ · E □ | B | [openexr](sources.md#openexr) | — |
-| `exr-multipart` | OpenEXR — Multipart and multiview images | .exr | D □ · E □ | C | [openexr](sources.md#openexr) | — |
+| `exr-multipart` | OpenEXR — Multipart and multiview images | .exr | D ◐ · E □ | C | [openexr](sources.md#openexr) | — |
 | `exr-deep` | OpenEXR — Deep samples | .exr | D □ · E □ | C | [openexr](sources.md#openexr) | — |
 | `exr-compression` | OpenEXR — PIZ / ZIP / PXR24 / B44 / DWA families | .exr | D □ · E □ | B | Split each accepted compression family into its own row before implementation. [openexr](sources.md#openexr) | — |
 | `radiance-hdr` | Radiance HDR — RGBE / XYZE images | .hdr .pic | D □ · E □ | B | [discovery](sources.md#discovery) | — |

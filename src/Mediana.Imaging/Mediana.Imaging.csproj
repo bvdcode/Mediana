@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../Mediana.Codecs.OpenExr/Mediana.Codecs.OpenExr.csproj" />
     <ProjectReference Include="../Mediana.Images.Metadata/Mediana.Images.Metadata.csproj" />
     <ProjectReference Include="../Mediana.Codecs.Tga/Mediana.Codecs.Tga.csproj" />
     <ProjectReference Include="../Mediana.Codecs.Pnm/Mediana.Codecs.Pnm.csproj" />

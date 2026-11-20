@@ -66,3 +66,15 @@ stored dimensions, transform and capture fields.
 encoded JPEG data in THMB, PRVW and an indexed CRAW/JPEG sample. EXIF, GPS and
 Canon sensor declarations deliberately distinguish 4032×3024 sensor, 4000×3000
 rendered image and 7×5 preview. ExifTool independently reads these declarations.
+
+`exr-{half,float}-{none,rle,zip1,zip16}.exr` were encoded with FFmpeg from a
+procedural 17×19 premultiplied linear RGBA chart, including negative and HDR
+samples. An explicit square-pixel aspect writes the required EXR attribute.
+`exr-{half,float}.rgba-f32` contains complete native reference decoding exported
+as little-endian interleaved float RGBA; OpenEXR 3.5.4 independently matches it.
+`exr-multipart.exr` and its two reference planes were written/read by OpenEXR
+3.5.4: mixed HALF/FLOAT, extra UINT channel, named color layer, Y-only second
+part, negative origin, distinct display window, 3:2 pixel aspect and P3 primaries.
+`exr-nonfinite.exr` retains valid IEEE infinities/NaN and extended-range Y samples.
+
+`exr-unicode.exr` is written and decoded with OpenEXR 3.5.4. Its selected U+10000 layer and an auxiliary U+E000 channel verify UTF-8 channel ordering; every selected pixel is RGBA (0.25, 0.5, 1, 0.5).

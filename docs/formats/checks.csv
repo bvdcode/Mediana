@@ -286,11 +286,12 @@ raw-raf,read,partial,partial,partial,planned,partial,partial,../image-inspection
 raw-raf,decode,planned,planned,planned,planned,planned,planned,
 raw-other,read,partial,partial,partial,planned,partial,partial,../image-inspection.md
 raw-other,decode,planned,planned,planned,planned,planned,planned,
-exr-scanline,decode,planned,planned,planned,planned,planned,planned,
+exr-scanline,read,partial,partial,partial,planned,partial,partial,../openexr.md
+exr-scanline,decode,partial,partial,partial,partial,partial,partial,../openexr.md
 exr-scanline,encode,planned,planned,planned,planned,planned,planned,
 exr-tiled,decode,planned,planned,planned,planned,planned,planned,
 exr-tiled,encode,planned,planned,planned,planned,planned,planned,
-exr-multipart,decode,planned,planned,planned,planned,planned,planned,
+exr-multipart,decode,partial,partial,partial,planned,partial,partial,../openexr.md
 exr-multipart,encode,planned,planned,planned,planned,planned,planned,
 exr-deep,decode,planned,planned,planned,planned,planned,planned,
 exr-deep,encode,planned,planned,planned,planned,planned,planned,
