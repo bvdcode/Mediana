@@ -34,6 +34,11 @@ namespace Mediana.Processing
                 }
                 return ApplyRgba(input, map, aspectRatio, allocator, IccRgbTransform.Get(profile, token), token);
             }
+            if (input.Format.ColorDescription is RgbChromaticitiesColorDescription chromaticities)
+            {
+                SdrRgbTransform transform = new(RgbPrimariesTransform.ToSrgb(chromaticities.Chromaticities), input.Format.Color.Transfer);
+                return Apply(input, input.Format.Color, map, aspectRatio, allocator, transform, token);
+            }
             VideoColorInfo source = colorResolver?.Invoke(input.Format) ?? input.Format.GetColorInterpretation();
             if (toneMapping is not null && source.Transfer is TransferFunction.Pq or TransferFunction.Hlg)
             {

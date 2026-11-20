@@ -13,7 +13,7 @@ namespace Mediana.Processing
         private static readonly VideoColorInfo SrgbColor = new(ColorPrimaries.Bt709, TransferFunction.Srgb,
             MatrixCoefficients.Rgb, ColorRange.Full, ChromaLocation.Unspecified);
 
-        /// <summary>Converts SDR planar integer YUV/GBR or straight RGBA32 to full-range straight sRGB RGBA32.
+        /// <summary>Converts SDR planar integer YUV/GBR, straight RGBA32 or premultiplied float32 RGBA to full-range straight sRGB RGBA32.
         /// Uses supported ICC v2/v4 matrix/TRC profiles or known source color parameters.
         /// Borrows input; returns an independently disposable frame.
         /// Unchanged tightly packed sRGB storage retains its original allocation budget without copying.
@@ -51,16 +51,18 @@ namespace Mediana.Processing
             PlanarVideoPixelFormat? planar = input.Format.PixelFormat as PlanarVideoPixelFormat;
             bool yuv = planar?.ColorModel == PlanarColorModel.Yuv;
             bool gbr = planar?.ColorModel == PlanarColorModel.Gbr;
+            bool floating = input.Format.PixelFormat == VideoPixelFormat.RgbaFloat32Premultiplied;
             YuvRgbMatrix matrix = default;
             if (yuv)
             {
                 matrix = YuvRgbMatrix.Create(sourceColor.Matrix, sourceColor.Range, planar!.BitDepth);
             }
-            else if ((!gbr && (input.Format.PixelFormat != VideoPixelFormat.Rgba32)) || sourceColor.Matrix != MatrixCoefficients.Rgb ||
+            else if ((!gbr && !floating && (input.Format.PixelFormat != VideoPixelFormat.Rgba32)) || sourceColor.Matrix != MatrixCoefficients.Rgb ||
                 sourceColor.Range != ColorRange.Full || sourceColor.ChromaLocation != ChromaLocation.Unspecified)
             {
                 throw new NotSupportedException("RGB conversion requires full-range straight RGBA32 with an RGB matrix and no chroma subsampling.");
             }
+            if (floating) { return ApplyFloatingRgba(input, map, aspectRatio, allocator, transform, cancellationToken); }
             if (!yuv && !gbr && CanRetain(input, sourceColor, map, aspectRatio))
             {
                 return input.Retain();

@@ -10,10 +10,12 @@ namespace Mediana.Processing
         private readonly RgbMatrix matrix;
         private readonly TransferFunction transfer;
 
-        public SdrRgbTransform(ColorPrimaries primaries, TransferFunction transfer)
+        public SdrRgbTransform(ColorPrimaries primaries, TransferFunction transfer) : this(RgbPrimariesTransform.ToSrgb(primaries), transfer) { }
+
+        internal SdrRgbTransform(RgbMatrix matrix, TransferFunction transfer)
         {
-            matrix = RgbPrimariesTransform.ToSrgb(primaries);
             SdrTransfer.Decode(0, transfer);
+            this.matrix = matrix;
             this.transfer = transfer;
         }
 
