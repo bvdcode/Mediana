@@ -20,9 +20,9 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentOutOfRangeException(nameof(structure));
             }
             if (Structure == structure) { return this; }
-            if (Structure != H264PictureStructure.Frame || Picture.Structure != H264PictureStructure.Frame || Companion is not null)
+            if (Structure != H264PictureStructure.Frame)
             {
-                throw new InvalidOperationException("Only a material frame can be split into reference fields.");
+                throw new InvalidOperationException("Only a frame reference can be split into fields.");
             }
             H264PictureOrder order = structure switch
             {
@@ -30,7 +30,26 @@ namespace Mediana.Codecs.H264
                 H264PictureStructure.BottomField => new(0, Order.Bottom, structure),
                 _ => throw new ArgumentOutOfRangeException(nameof(structure))
             };
-            return this with { Structure = structure, Order = order };
+            return this with { Picture = SelectFieldPicture(structure), Structure = structure, Order = order, Companion = null };
+        }
+
+        private H264Picture SelectFieldPicture(H264PictureStructure structure)
+        {
+            if (Picture.Structure == H264PictureStructure.Frame && Companion is null)
+            {
+                return Picture;
+            }
+            if (Picture.Structure == H264PictureStructure.TopField &&
+                Companion is { Structure: H264PictureStructure.BottomField } bottom && bottom.Sequence == Picture.Sequence)
+            {
+                return structure switch
+                {
+                    H264PictureStructure.TopField => Picture,
+                    H264PictureStructure.BottomField => bottom,
+                    _ => throw new ArgumentOutOfRangeException(nameof(structure))
+                };
+            }
+            throw new InvalidOperationException("The frame reference does not contain matching complementary fields.");
         }
 
         public static H264ReferencePicture GetFrame(H264ReferencePicture top, H264ReferencePicture bottom)

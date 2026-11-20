@@ -9,6 +9,9 @@ namespace Mediana.Tests
     public partial class H264FieldReferenceTests
     {
         [Fact]
+        public void FieldViewsReuseMaterialFramesAndPairedFieldPictures() => H264ReferenceFieldViewTestInput.Verify();
+
+        [Fact]
         public void SlidingWindowCountsPairsAndReleasesBothFieldsTogether()
         {
             MediaBufferAllocator allocator = new(1024 * 1024);

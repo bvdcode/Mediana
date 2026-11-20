@@ -40,6 +40,11 @@ skipping absent fields. Short-term and long-term picture numbers use the current
 field's parity. Inter-field 4:2:0 prediction adjusts the chroma motion vector
 according to Table 8-10; 4:2:2 keeps the luma vector's vertical displacement.
 
+Field views preserve reference identity and picture order without allocating
+pixel storage. A field can be selected from a material frame or a frame composed
+of two separately stored fields. Shared managed and Native AOT checks verify both
+forms at 8/10 bits, 4:2:0/4:2:2 and short/long-term reference marking.
+
 Nine JM 19.1 sequences contain twenty-four separately coded fields each at
 96×96 frame resolution. All 216 I/P/B fields match every independently decoded
 FFmpeg luma/chroma sample, in managed execution and Native AOT. Coverage includes
