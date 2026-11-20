@@ -1,7 +1,7 @@
 # H.264 interlaced decoding
 
-The public decoder still rejects interlaced sequences. Field reference management,
-combining complementary fields for output and macroblock-adaptive frame/field
+The public decoder still rejects interlaced sequences. Combining complementary fields
+for output, mixed frame/field reference views and macroblock-adaptive frame/field
 reconstruction remain open.
 
 The shared slice-header reader distinguishes frame, top-field and bottom-field
@@ -21,15 +21,28 @@ field CABAC significance contexts. Deblocking uses field-specific horizontal
 intra strengths and motion-vector thresholds measured in frame sample units.
 The coefficient scan tables are shared with progressive transforms.
 
-Two JM 19.1 sequences contain twenty-four separately coded fields each at
-96×96 frame resolution, with CABAC and CAVLC variants. All 48 slice headers and
-POC values pass. All six intra fields match every independently decoded FFmpeg
-luma/chroma sample. These same pixel checks pass in Native AOT. Additional tests
-cover 8/10-bit field storage, 4:2:0/4:2:2 geometry, reference-number bounds,
-POC types 0/1/2 and deblocking strength. Thirty-seven field and layout tests
-also pass with hardware intrinsics disabled.
+The reference buffer groups complementary fields by a stable frame identity,
+independent of wrapping frame numbers. Sliding-window occupancy counts a pair
+as one frame and releases both fields together. Explicit marking can release
+one field, convert a pair to long-term reference, or reset the buffer. Invalid
+marking preserves the prior buffer and the caller's input ownership.
 
-The full main test suite passes 4,504 tests. A separate Native AOT executable
+Field reference lists sort frame entries before alternating field parity,
+skipping absent fields. Short-term and long-term picture numbers use the current
+field's parity. Inter-field 4:2:0 prediction adjusts the chroma motion vector
+according to Table 8-10; 4:2:2 keeps the luma vector's vertical displacement.
+
+Nine JM 19.1 sequences contain twenty-four separately coded fields each at
+96×96 frame resolution. All 216 I/P/B fields match every independently decoded
+FFmpeg luma/chroma sample, in managed execution and Native AOT. Coverage includes
+CABAC, CAVLC, spatial/temporal direct B prediction, 8/10-bit precision and
+4:2:0/4:2:2 chroma. The 10-bit sources exercise all four low-bit combinations.
+The original two sequences also verify all 48 slice headers and POC values.
+Additional tests cover all three POC types, parity-aware list modification,
+frame-number wrap, long-term field assignment, buffer occupancy and transactional
+ownership on invalid marking.
+
+The full main test suite passes 4,529 tests. A separate Native AOT executable
 also passes the twelve existing progressive 4:2:2/High10 sequences and their
 reverse seeks, plus interpolation, prediction and deblocking vectors. These
 results establish the tested stages, not complete interlaced playback or seeking.

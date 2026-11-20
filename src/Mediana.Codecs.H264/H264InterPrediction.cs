@@ -114,7 +114,7 @@ namespace Mediana.Codecs.H264
                 int blockWidth = width / scale;
                 int blockHeight = height / target.VerticalScale(plane);
                 Span<byte> samples = block[..(blockWidth * blockHeight * target.SampleBytes)];
-                H264PredictionBlock.Read(reference.Picture, plane, x, y, width, height, motionX, motionY, samples);
+                H264PredictionBlock.Read(reference.Picture, target.Structure, plane, x, y, width, height, motionX, motionY, samples);
                 header.Weights?.Apply(referenceIndex, plane, samples, target.Sequence.LumaBitDepth);
                 H264PredictionBlock.Write(target, plane, x, y, width, height, samples, prediction);
             }

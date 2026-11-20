@@ -31,11 +31,11 @@ namespace Mediana.Codecs.H264
                 Span<byte> samples1 = block1[..count];
                 if (reference0 is not null)
                 {
-                    H264PredictionBlock.Read(reference0.Picture, plane, x, y, width, height, l0.X, l0.Y, samples0);
+                    H264PredictionBlock.Read(reference0.Picture, target.Structure, plane, x, y, width, height, l0.X, l0.Y, samples0);
                 }
                 if (reference1 is not null)
                 {
-                    H264PredictionBlock.Read(reference1.Picture, plane, x, y, width, height, l1.X, l1.Y, samples1);
+                    H264PredictionBlock.Read(reference1.Picture, target.Structure, plane, x, y, width, height, l1.X, l1.Y, samples1);
                 }
                 if (reference0 is not null && reference1 is not null)
                 {

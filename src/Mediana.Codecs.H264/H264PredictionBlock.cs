@@ -5,6 +5,27 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264PredictionBlock
     {
+        public static void Read(H264Picture reference, H264PictureStructure current, int plane, int x, int y, int width, int height,
+            int motionX, int motionY, Span<byte> samples)
+        {
+            if (plane is 1 or 2 && reference.ChromaVerticalScale == 2)
+            {
+                motionY += (reference.Structure, current) switch
+                {
+                    (H264PictureStructure.TopField, H264PictureStructure.BottomField) => 2,
+                    (H264PictureStructure.BottomField, H264PictureStructure.TopField) => -2,
+                    (H264PictureStructure.Frame, H264PictureStructure.Frame) or
+                    (H264PictureStructure.TopField, H264PictureStructure.TopField) or
+                    (H264PictureStructure.BottomField, H264PictureStructure.BottomField) => 0,
+                    (H264PictureStructure.Frame, H264PictureStructure.TopField or H264PictureStructure.BottomField) or
+                    (H264PictureStructure.TopField or H264PictureStructure.BottomField, H264PictureStructure.Frame) =>
+                        throw new NotSupportedException("Mixed frame and field prediction requires a matching reference view."),
+                    _ => throw new ArgumentOutOfRangeException(nameof(current))
+                };
+            }
+            Read(reference, plane, x, y, width, height, motionX, motionY, samples);
+        }
+
         public static void Read(H264Picture reference, int plane, int x, int y, int width, int height,
             int motionX, int motionY, Span<byte> samples)
         {

@@ -9,6 +9,24 @@ namespace Mediana.Tests
     public class H264FieldReconstructionTests
     {
         [Theory]
+        [InlineData("avc-paff-cabac")]
+        [InlineData("avc-paff-cavlc")]
+        public Task PredictiveFieldsMatchEveryIndependentDecodedSample(string name) =>
+            H264FieldTestInput.VerifySequenceAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name);
+
+        [Theory]
+        [InlineData("avc-paff-b-cabac")]
+        [InlineData("avc-paff-b-cavlc")]
+        [InlineData("avc-paff-b-cabac-temporal")]
+        [InlineData("avc-paff-b-cavlc-temporal")]
+        [InlineData("avc-paff-high10-cabac")]
+        [InlineData("avc-paff-high422-cavlc")]
+        [InlineData("avc-paff-high422-10-cabac")]
+        public Task BidirectionalFieldsMatchEveryIndependentDecodedSample(string name) =>
+            H264FieldTestInput.VerifySequenceAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4"), name,
+                [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 11]);
+
+        [Theory]
         [InlineData("avc-paff-cabac", 0)]
         [InlineData("avc-paff-cabac", 8)]
         [InlineData("avc-paff-cabac", 16)]

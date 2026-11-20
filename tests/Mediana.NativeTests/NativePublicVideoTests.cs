@@ -16,10 +16,15 @@ namespace Mediana.NativeTests
         {
             foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
             {
-                foreach (int packet in new[] { 0, 8, 16 })
-                {
-                    await H264FieldTestInput.VerifyIntraAsync(root, name, packet);
-                }
+                await H264FieldTestInput.VerifySequenceAsync(root, name);
+            }
+            foreach (string name in new[]
+            {
+                "avc-paff-b-cabac", "avc-paff-b-cavlc", "avc-paff-b-cabac-temporal", "avc-paff-b-cavlc-temporal",
+                "avc-paff-high10-cabac", "avc-paff-high422-cavlc", "avc-paff-high422-10-cabac"
+            })
+            {
+                await H264FieldTestInput.VerifySequenceAsync(root, name, [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 11]);
             }
             foreach (string name in new[] { "avc-high422-cabac", "avc-high422-cavlc", "avc-high422-cabac-q1", "avc-high422-cavlc-q40" })
             {
