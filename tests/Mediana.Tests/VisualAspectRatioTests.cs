@@ -9,8 +9,10 @@ namespace Mediana.Tests
 {
     public class VisualAspectRatioTests
     {
-        [Fact]
-        public async Task UndeclaredAspectRatioRequiresAnExplicitInterpretationAndRetainsSourcePixels()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task UndeclaredAspectRatioRequiresAnExplicitInterpretationAndRetainsSourcePixels(bool preserveAspect)
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (MediaBuffer buffer = Copy(allocator, [255, 0, 0, 255, 0, 0, 255, 255]))
@@ -19,10 +21,11 @@ namespace Mediana.Tests
                 using VideoFrame frame = new(format, buffer, format.CreateTightLayout());
                 using MemoryStream encoded = new();
                 await Assert.ThrowsAsync<NotSupportedException>(() => MediaEngine.ExportImageAsync(frame, encoded, new PngImageEncoder(),
-                    allocator, VideoDisplayMatrix.Identity));
+                    allocator, VideoDisplayMatrix.Identity, preserveSampleAspectRatio: preserveAspect));
                 List<string> warnings = [];
                 VisualExportOptions options = new() { UnspecifiedSampleAspectRatio = SampleAspectRatio.Square, WarningHandler = warnings.Add };
-                await MediaEngine.ExportImageAsync(frame, encoded, new PngImageEncoder(), allocator, VideoDisplayMatrix.Identity, options: options);
+                await MediaEngine.ExportImageAsync(frame, encoded, new PngImageEncoder(), allocator, VideoDisplayMatrix.Identity,
+                    preserveSampleAspectRatio: preserveAspect, options: options);
                 using VideoFrame output = await new PngImageDecoder().DecodeAsync(encoded.ToArray(), new(), allocator);
                 Assert.Equal(frame.Data.ToArray(), output.Data.ToArray());
                 Assert.Equal(SampleAspectRatio.Square, output.Format.SampleAspectRatio);

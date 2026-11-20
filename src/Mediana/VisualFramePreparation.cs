@@ -16,9 +16,7 @@ namespace Mediana
             using VideoFrame? progressive = options.InterlacedField is VideoFieldSelection selected && input.Format.ScanMode != VideoScanMode.Progressive
                 ? new VideoFieldPreparation(input.Format, selected, allocator, options.WarningHandler).Apply(input, token) : null;
             input = progressive ?? input;
-            bool fit = !preserveAspect || matrix != VideoDisplayMatrix.Identity ||
-                input.Format.Width > options.MaximumWidth || input.Format.Height > options.MaximumHeight;
-            if (fit && input.Format.SampleAspectRatio is null && options.UnspecifiedSampleAspectRatio is SampleAspectRatio assumed)
+            if (input.Format.SampleAspectRatio is null && options.UnspecifiedSampleAspectRatio is SampleAspectRatio assumed)
             {
                 assumed.Validate();
                 VideoFormat format = input.Format;
