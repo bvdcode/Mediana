@@ -108,7 +108,7 @@ namespace Mediana.Tests
         }
 
         private static string[] Labels(IReadOnlyList<H264ReferencePicture?> list) => list.Select(value => value is null ? "-" :
-            value.FrameNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + (value.Picture.Structure switch
+            value.FrameNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + (value.Structure switch
             {
                 H264PictureStructure.TopField => "T",
                 H264PictureStructure.BottomField => "B",

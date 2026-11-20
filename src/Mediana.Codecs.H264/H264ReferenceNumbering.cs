@@ -21,9 +21,9 @@ namespace Mediana.Codecs.H264
             return Header.Layout.IsField ? 2 * index + Parity(reference) : index;
         }
 
-        private int Parity(H264ReferencePicture reference) => reference.Picture.Structure switch
+        private int Parity(H264ReferencePicture reference) => reference.Structure switch
         {
-            H264PictureStructure.TopField or H264PictureStructure.BottomField => reference.Picture.Structure == Header.Structure ? 1 : 0,
+            H264PictureStructure.TopField or H264PictureStructure.BottomField => reference.Structure == Header.Structure ? 1 : 0,
             H264PictureStructure.Frame => throw new NotSupportedException("A frame reference must be separated into fields before field prediction."),
             _ => throw new ArgumentOutOfRangeException(nameof(reference))
         };

@@ -27,13 +27,13 @@ namespace Mediana.Codecs.H264
                 switch (operation.Operation)
                 {
                     case 1:
-                        RemoveReference(next, FindShort(next, targetNumber, numbering), header.Layout.IsField);
+                        RemoveReference(next, FindShort(header.Layout.IsField ? next : GetFrames(next), targetNumber, numbering), header.Layout.IsField);
                         break;
                     case 2:
-                        RemoveReference(next, FindLong(next, operation.LongTermPictureNumber, numbering), header.Layout.IsField);
+                        RemoveReference(next, FindLong(header.Layout.IsField ? next : GetFrames(next), operation.LongTermPictureNumber, numbering), header.Layout.IsField);
                         break;
                     case 3:
-                        H264ReferencePicture selected = FindShort(next, targetNumber, numbering);
+                        H264ReferencePicture selected = FindShort(header.Layout.IsField ? next : GetFrames(next), targetNumber, numbering);
                         ValidateLongIndex(operation.LongTermFrameIndex, maximumLongTerm,
                             selected.FrameIdentity == currentIdentity ? null : currentLongTerm);
                         ValidateFieldAssignment(next, selected, operation.LongTermFrameIndex, numbering, currentIdentity);

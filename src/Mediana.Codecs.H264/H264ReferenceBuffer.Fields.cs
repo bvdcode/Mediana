@@ -51,28 +51,25 @@ namespace Mediana.Codecs.H264
         private static void AppendFields(List<H264ReferencePicture?> destination,
             IEnumerable<IGrouping<H264PictureIdentity, H264ReferencePicture>> groups, H264PictureStructure current)
         {
-            H264ReferencePicture[] ordered = groups.SelectMany(group => group).ToArray();
-            if (ordered.Any(value => !value.Picture.Layout.IsField))
-            {
-                throw new NotSupportedException("A frame reference must be separated into fields before field prediction.");
-            }
+            List<H264ReferencePicture> ordered = groups.SelectMany(group => group).ToList();
+            SeparateFields(ordered);
             int same = 0;
             int opposite = 0;
-            while (same < ordered.Length || opposite < ordered.Length)
+            while (same < ordered.Count || opposite < ordered.Count)
             {
-                while (same < ordered.Length && ordered[same].Picture.Structure != current)
+                while (same < ordered.Count && ordered[same].Structure != current)
                 {
                     same++;
                 }
-                if (same < ordered.Length)
+                if (same < ordered.Count)
                 {
                     destination.Add(ordered[same++]);
                 }
-                while (opposite < ordered.Length && ordered[opposite].Picture.Structure == current)
+                while (opposite < ordered.Count && ordered[opposite].Structure == current)
                 {
                     opposite++;
                 }
-                if (opposite < ordered.Length)
+                if (opposite < ordered.Count)
                 {
                     destination.Add(ordered[opposite++]);
                 }

@@ -162,3 +162,18 @@ ranges (7.399–7.451 before, 7.369–7.465 after). The initial difference did n
 reproduce; this change does not establish an acceleration. The 10-bit difference
 was -0.17%. These measurements check the existing progressive path; mixed
 frame/field reference decoding remains unimplemented.
+
+## Mixed reference marking
+
+Logical reference identities distinguish the two fields of a material frame
+without duplicating its pixel storage. Field lists alternate parity across frame
+entries; list modifications retain the other field when both share one buffer.
+Frame lists combine complete marked pairs and exclude unpaired fields, as required
+by H.264 clauses 8.2.4.1–8.2.4.3. Frame-mode memory operations cannot target a lone
+field. Reference marking is transactional, and removing one logical field keeps
+its physical storage alive while the other remains referenced.
+
+All 967 H.264 tests passed, including failed-marking rollback, frame-to-field
+list transitions, frame list reconstruction and allocator release. Mixed pixel
+prediction and co-located motion mapping remain open; these checks alone do not
+enable mixed interlaced streams through the public decoder.

@@ -168,7 +168,7 @@ namespace Mediana.Codecs.H264
             }
             else if (referenceIndex < references.Count && references[referenceIndex] is H264ReferencePicture reference)
             {
-                identity = reference.Picture.Identity;
+                identity = reference.Identity;
             }
             else
             {

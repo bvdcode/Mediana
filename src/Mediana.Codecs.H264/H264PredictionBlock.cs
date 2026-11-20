@@ -5,6 +5,16 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264PredictionBlock
     {
+        public static void Read(H264ReferencePicture reference, H264PictureStructure current, int plane, int x, int y, int width, int height,
+            int motionX, int motionY, Span<byte> samples)
+        {
+            if (reference.Structure != reference.Picture.Structure || reference.Companion is not null)
+            {
+                throw new NotSupportedException("Prediction from a mixed frame/field reference view is not implemented yet.");
+            }
+            Read(reference.Picture, current, plane, x, y, width, height, motionX, motionY, samples);
+        }
+
         public static void Read(H264Picture reference, H264PictureStructure current, int plane, int x, int y, int width, int height,
             int motionX, int motionY, Span<byte> samples)
         {

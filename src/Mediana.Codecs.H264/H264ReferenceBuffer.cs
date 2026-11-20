@@ -32,6 +32,10 @@ namespace Mediana.Codecs.H264
                 ? previousReference : null;
             H264PictureIdentity frameIdentity = complementary?.FrameIdentity ?? picture.Identity;
             List<H264ReferencePicture> next = header.IsIdr ? [] : [.. references];
+            if (header.Layout.IsField)
+            {
+                SeparateFields(next);
+            }
             int nextMaximum = header.IsIdr ? (header.LongTermReference ? 0 : -1) : maximumLongTermIndex;
             int? longTermIndex = header.IsIdr && header.LongTermReference ? 0 : null;
             int frameNumber = header.FrameNumber;
@@ -49,13 +53,7 @@ namespace Mediana.Codecs.H264
             }
             next.Add(new H264ReferencePicture(picture, frameNumber, order, longTermIndex) { FrameIdentity = frameIdentity });
             ValidateReferences(next, header);
-            foreach (H264ReferencePicture previous in references)
-            {
-                if (!next.Any(value => ReferenceEquals(value.Picture, previous.Picture)))
-                {
-                    previous.Picture.Dispose();
-                }
-            }
+            ReleaseUnusedPictures(next);
             references = next;
             maximumLongTermIndex = nextMaximum;
             sequence = header.Sequence;
@@ -69,10 +67,7 @@ namespace Mediana.Codecs.H264
             {
                 return;
             }
-            foreach (H264ReferencePicture reference in references)
-            {
-                reference.Picture.Dispose();
-            }
+            ReleaseUnusedPictures([]);
             references.Clear();
             sequence = null;
             previousField = null;
@@ -113,8 +108,8 @@ namespace Mediana.Codecs.H264
                     H264ReferencePicture other = next[previous];
                     if (current.FrameIdentity == other.FrameIdentity)
                     {
-                        if (!current.Picture.Layout.IsField || !other.Picture.Layout.IsField ||
-                            current.Picture.Structure == other.Picture.Structure || current.LongTermIndex != other.LongTermIndex)
+                        if (current.Structure == H264PictureStructure.Frame || other.Structure == H264PictureStructure.Frame ||
+                            current.Structure == other.Structure || current.LongTermIndex != other.LongTermIndex)
                         {
                             throw new InvalidDataException("Invalid complementary H.264 reference field marking.");
                         }

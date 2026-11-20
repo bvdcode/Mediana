@@ -67,7 +67,7 @@ namespace Mediana.Codecs.H264
             H264PictureIdentity?[] result = new H264PictureIdentity?[references.Count];
             for (int index = 0; index < result.Length; index++)
             {
-                result[index] = references[index]?.Picture.Identity;
+                result[index] = references[index]?.Identity;
             }
             return result;
         }

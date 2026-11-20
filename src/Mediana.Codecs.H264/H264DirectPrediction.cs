@@ -139,7 +139,7 @@ namespace Mediana.Codecs.H264
         {
             for (int index = 0; index < references.Count; index++)
             {
-                if (references[index] is H264ReferencePicture reference && ReferenceEquals(reference.Picture.Identity, identity))
+                if (references[index] is H264ReferencePicture reference && ReferenceEquals(reference.Identity, identity))
                 {
                     return index;
                 }
