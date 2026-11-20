@@ -17,7 +17,7 @@ namespace Mediana.Containers.Mp3
     /// <summary>Forward-only Layer III frames and ID3 metadata; borrows its source at the file start.
     /// Packets include complete frame headers and share bit-reservoir dependencies. Coded timestamps
     /// preserve delay/padding. No PCM decoding, CRC checking, gapless trimming or resynchronization.</summary>
-    public partial class Mp3Reader : IContainerReader
+    public partial class Mp3Reader : IContainerPresentationReader
     {
         private readonly IByteSource source;
         private readonly MediaBufferAllocator allocator;

@@ -274,6 +274,7 @@
     <Compile Include="../Shared/Mp3DecodeTestInput.cs" Link="Mp3DecodeTestInput.cs" />
     <Compile Include="../Shared/Mp3HuffmanTestInput.cs" Link="Mp3HuffmanTestInput.cs" />
     <Compile Include="../Shared/Mp3EncodeTestInput.cs" Link="Mp3EncodeTestInput.cs" />
+    <Compile Include="../Shared/Mp3FileTestInput.cs" Link="Mp3FileTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Mp3/Mediana.Codecs.Mp3.csproj" />
     <Compile Include="../Shared/Mp3SyntaxTestInput.cs" Link="Mp3SyntaxTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp3/Mediana.Containers.Mp3.csproj" />
