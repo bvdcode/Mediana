@@ -75,9 +75,9 @@ namespace Mediana.Documents.Word
                     commands.Add(new WordGroupPaint(paint, cellX + cell.Left, cell.Top,
                         row.ExactHeight ? cellWidth - cell.Left - cell.Right : null, row.ExactHeight ? Math.Max(0, height - cell.Top - cell.Bottom) : null));
                     Border(cell.Borders.Left, cellX, 0, true);
-                    Border(cell.Borders.Right, cellX + cellWidth, 0, true);
+                    Border(cell.Borders.Right, cellX + cellWidth - (cell.Borders.Right?.Width ?? 0), 0, true);
                     Border(cell.Borders.Top, cellX, 0, false);
-                    Border(cell.Borders.Bottom, cellX, height, false);
+                    Border(cell.Borders.Bottom, cellX, height - (cell.Borders.Bottom?.Width ?? 0), false);
                     void Border(WordBorder? border, double bx, double by, bool vertical)
                     {
                         if (border is null || border.Width == 0) { return; }

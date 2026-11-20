@@ -12,6 +12,7 @@ namespace Mediana.Documents.Word
         private readonly Dictionary<string, XElement> _styles;
         private readonly XElement? _defaults;
         private readonly string? _defaultParagraph;
+        private readonly string? _defaultTable;
         private XNamespace W => _context.W;
 
         internal WordStyles(WordReadContext context, string main)
@@ -32,6 +33,8 @@ namespace Mediana.Documents.Word
                     context.Warn("Word style identifiers were assigned according to ECMA-376; the first definition retains a duplicated identifier.");
                 }
                 _styles.Add(id, style);
+                if (context.Attribute(style, "type") == "table" && context.Attribute(style, "default") is "1" or "true" or "on")
+                { _defaultTable = id; }
                 if (context.Attribute(style, "type") is null or "paragraph" && context.Attribute(style, "default") is "1" or "true" or "on")
                 {
                     _defaultParagraph = id;
@@ -40,11 +43,13 @@ namespace Mediana.Documents.Word
             _defaults = root?.Element(W + "docDefaults");
         }
 
-        internal (XElement Properties, WordRunFormat Run) Paragraph(XElement? direct)
+        internal (XElement Properties, WordRunFormat Run) Paragraph(XElement? direct, XElement? table = null)
         {
             XElement properties = new(W + "pPr");
             Merge(properties, _defaults?.Element(W + "pPrDefault")?.Element(W + "pPr"));
             WordRunFormat run = _formats.Run(new(), _defaults?.Element(W + "rPrDefault")?.Element(W + "rPr"), false);
+            Merge(properties, table?.Element(W + "pPr"));
+            run = _formats.Run(run, table?.Element(W + "rPr"), false);
             foreach (XElement style in Chain(_context.Value(direct?.Element(W + "pStyle")) ?? _defaultParagraph, "paragraph"))
             {
                 Merge(properties, style.Element(W + "pPr"));
@@ -63,6 +68,9 @@ namespace Mediana.Documents.Word
             }
             return _formats.Run(result, direct, false);
         }
+
+        internal WordTableStyle Table(XElement? direct) => new(_context,
+            Chain(_context.Value(direct?.Element(W + "tblStyle")) ?? _defaultTable, "table").ToArray(), direct);
 
         private IEnumerable<XElement> Chain(string? id, string type)
         {

@@ -9,13 +9,12 @@ namespace Mediana.Documents.Word
     {
         private WordTable Table(XElement table, string part)
         {
-            XElement? properties = table.Element(W + "tblPr");
+            WordTableStyle style = styles.Table(table.Element(W + "tblPr"));
+            XElement properties = style.Properties;
             double[] columns = table.Element(W + "tblGrid")?.Elements(W + "gridCol")
                 .Select(item => WordFormatReader.Positive(context.Length(item, "w"))).ToArray()
                 ?? throw new NotSupportedException("Word tables require an explicit column grid.");
             if (columns.Length == 0) { throw new InvalidDataException("Empty Word table grid."); }
-            XElement? defaultMargins = properties?.Element(W + "tblCellMar");
-            XElement? tableBorders = properties?.Element(W + "tblBorders");
             List<WordTableRow> rows = [];
             XElement[] sourceRows = table.Elements(W + "tr").ToArray();
             for (int rowIndex = 0; rowIndex < sourceRows.Length; rowIndex++)
@@ -30,17 +29,23 @@ namespace Mediana.Documents.Word
                     if (cellProperties?.Element(W + "vMerge") is not null) { throw new NotSupportedException("Vertically merged Word cells are not supported."); }
                     int span = WordReadContext.Integer(context.Value(cellProperties?.Element(W + "gridSpan")) ?? "1");
                     if (span < 1 || span > columns.Length - column) { throw new InvalidDataException("Invalid Word cell grid span."); }
+                    XElement formatting = style.Cell(rowIndex, sourceRows.Length, column, span, columns.Length);
+                    XElement? tableProperties = formatting.Element(W + "tblPr");
+                    XElement effectiveCell = new(W + "tcPr");
+                    WordStyles.Merge(effectiveCell, formatting.Element(W + "tcPr"));
+                    WordStyles.Merge(effectiveCell, cellProperties);
+                    XElement? tableBorders = tableProperties?.Element(W + "tblBorders");
                     XElement margins = new(W + "tcMar");
-                    WordStyles.Merge(margins, defaultMargins);
-                    WordStyles.Merge(margins, cellProperties?.Element(W + "tcMar"));
+                    WordStyles.Merge(margins, tableProperties?.Element(W + "tblCellMar"));
+                    WordStyles.Merge(margins, effectiveCell.Element(W + "tcMar"));
                     XElement borders = new(W + "tcBorders");
                     CopyBorder("top", rowIndex == 0 ? "top" : "insideH");
                     CopyBorder("bottom", rowIndex == sourceRows.Length - 1 ? "bottom" : "insideH");
                     CopyBorder("left", column == 0 ? "left" : "insideV");
                     CopyBorder("right", column + span == columns.Length ? "right" : "insideV");
-                    WordStyles.Merge(borders, cellProperties?.Element(W + "tcBorders"));
-                    cells.Add(new(Blocks(cell, part), span, Margin("left", 5.4), Margin("right", 5.4), Margin("top", 0), Margin("bottom", 0),
-                        _formats.Shading(cellProperties?.Element(W + "shd")), _formats.Borders(borders)));
+                    WordStyles.Merge(borders, effectiveCell.Element(W + "tcBorders"));
+                    cells.Add(new(Blocks(cell, part, formatting), span, Margin("left", 5.4), Margin("right", 5.4), Margin("top", 0), Margin("bottom", 0),
+                        _formats.Shading(effectiveCell.Element(W + "shd") ?? tableProperties?.Element(W + "shd")), _formats.Borders(borders)));
                     column += span;
 
                     double Margin(string name, double defaultValue) => context.Length(margins.Element(W + name), "w", defaultValue);
