@@ -66,7 +66,7 @@ namespace Mediana.Codecs.H264
                 {
                     return "The H.264 level has no supported decoded picture buffer limits.";
                 }
-                if ((sequence.Vui?.ChromaLocationTop ?? 0) != (sequence.Vui?.ChromaLocationBottom ?? 0))
+                if (sequence.ChromaFormat == 1 && (sequence.Vui?.ChromaLocationTop ?? 0) != (sequence.Vui?.ChromaLocationBottom ?? 0))
                 {
                     return "Different top and bottom field chroma locations are not supported.";
                 }

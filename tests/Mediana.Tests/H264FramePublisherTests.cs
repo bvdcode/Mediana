@@ -45,6 +45,27 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void FourTwoTwoUsesCositedChromaRegardlessOfFourTwoZeroVuiLocations()
+        {
+            H264SequenceParameterSet sequence = Sequence() with
+            {
+                Profile = 122,
+                Level = 30,
+                ChromaFormat = 2,
+                Vui = new H264VuiParameters { ChromaLocationTop = 1, ChromaLocationBottom = 5 }
+            };
+            H264PictureParameterSet picture = new(0, 0, false, false, 26, 0, 0, true, false, false, false, 1, 1, false, 0);
+            H264Configuration configuration = new(4, new Dictionary<int, H264SequenceParameterSet> { [0] = sequence },
+                new Dictionary<int, H264PictureParameterSet> { [0] = picture });
+            Assert.Null(H264Support.GetUnsupportedReason(configuration));
+            Assert.Equal(ChromaLocation.TopLeft, H264VideoFormat.Create(sequence).Color.ChromaLocation);
+            H264SequenceMetadata metadata = new(sequence);
+            Assert.Equal(ChromaLocation.TopLeft, metadata.Color.ChromaLocation);
+            Assert.Equal(1, metadata.TopFieldChromaLocation);
+            Assert.Equal(5, metadata.BottomFieldChromaLocation);
+        }
+
+        [Fact]
         public void KeepsUnspecifiedAspectAndReservedColorCodesUnspecified()
         {
             VideoFormat absent = H264VideoFormat.Create(Sequence());

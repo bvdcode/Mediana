@@ -127,6 +127,13 @@ namespace Mediana.Tests
                         throw new InvalidDataException("The progressive 4:2:0 chroma location differs.");
                     }
                 }
+                else if (sampling is VideoChromaSampling.Sampling422 or VideoChromaSampling.Sampling444)
+                {
+                    if (sequence.Color.ChromaLocation != ChromaLocation.TopLeft)
+                    {
+                        throw new InvalidDataException("H.264 4:2:2 and 4:4:4 chroma samples must be cosited with luma.");
+                    }
+                }
                 else if (sequence.Color.ChromaLocation != ChromaLocation.Unspecified)
                 {
                     throw new InvalidDataException("A single progressive 4:2:0 location was assigned outside its scope.");

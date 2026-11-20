@@ -74,6 +74,10 @@ namespace Mediana.Codecs.H264
 
         private static int? CommonChromaLocation(H264SequenceParameterSet sequence)
         {
+            if (sequence.ChromaFormat is 2 or 3)
+            {
+                return 2;
+            }
             if (sequence.ChromaFormat != 1 || !sequence.FrameMbsOnly)
             {
                 return null;

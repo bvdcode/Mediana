@@ -11,8 +11,12 @@ namespace Mediana.Codecs.H264
             VideoAspectRatioDescription? aspectRatioDescription = null)
         {
             H264VuiParameters vui = sequence.Vui ?? new H264VuiParameters();
-            int topLocation = vui.ChromaLocationTop ?? 0;
-            int bottomLocation = vui.ChromaLocationBottom ?? 0;
+            (int topLocation, int bottomLocation) = sequence.ChromaFormat switch
+            {
+                1 => (vui.ChromaLocationTop ?? 0, vui.ChromaLocationBottom ?? 0),
+                2 => (2, 2),
+                _ => throw new NotSupportedException("The H.264 decoded chroma layout is unsupported.")
+            };
             if (topLocation != bottomLocation)
             {
                 throw new NotSupportedException("Different top and bottom field chroma locations are not represented in a progressive video format.");
