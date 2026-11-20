@@ -26,6 +26,8 @@ Pillow 12.3. Channels are `(19*x + 31*y + 23*c) mod 256`, except every ninth
 column uses `17*c`. The complete `.rgba` reference retains transparent RGB.
 `pnm-reference.ppm` stores the same pattern's RGB channels using Pillow 12.3;
 its reference adds an opaque alpha channel without changing the sample values.
+The `tga-*` fixtures encode the same source in Pillow 12.3 RGB, RGBA, L, LA and
+palette modes, both raw and RLE. Complete decoded RGBA files are the oracle.
 
 `webp-vp8-odd-padding.webp` is an authored 33×35 RGBA pattern, with channel
 `c = (7*x + 11*y + 19*channel) mod 256`, encoded by Mediana as lossy WebP at

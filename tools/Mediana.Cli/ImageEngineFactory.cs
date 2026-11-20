@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Mediana.Codecs.Tga;
 using Mediana.Codecs.Pnm;
 using Mediana.Codecs.Qoi;
 using Mediana.Codecs.Bmp;
@@ -62,6 +63,7 @@ namespace Mediana.Cli
 
         internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
             .UseResources(CommandTextResources.Shared)
+            .AddImageDecoder(new TgaImageDecoder())
             .AddImageDecoder(new PnmImageDecoder())
             .AddImageDecoder(new QoiImageDecoder())
             .AddImageDecoder(new BmpImageDecoder())

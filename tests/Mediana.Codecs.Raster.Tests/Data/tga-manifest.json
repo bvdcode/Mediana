@@ -1,0 +1,42 @@
+[
+  {
+    "file": "tga-rgba-raw.tga",
+    "pixels": "tga-rgba-raw.rgba"
+  },
+  {
+    "file": "tga-rgba-rle.tga",
+    "pixels": "tga-rgba-rle.rgba"
+  },
+  {
+    "file": "tga-rgb-raw.tga",
+    "pixels": "tga-rgb-raw.rgba"
+  },
+  {
+    "file": "tga-rgb-rle.tga",
+    "pixels": "tga-rgb-rle.rgba"
+  },
+  {
+    "file": "tga-l-raw.tga",
+    "pixels": "tga-l-raw.rgba"
+  },
+  {
+    "file": "tga-l-rle.tga",
+    "pixels": "tga-l-rle.rgba"
+  },
+  {
+    "file": "tga-la-raw.tga",
+    "pixels": "tga-la-raw.rgba"
+  },
+  {
+    "file": "tga-la-rle.tga",
+    "pixels": "tga-la-rle.rgba"
+  },
+  {
+    "file": "tga-p-raw.tga",
+    "pixels": "tga-p-raw.rgba"
+  },
+  {
+    "file": "tga-p-rle.tga",
+    "pixels": "tga-p-rle.rgba"
+  }
+]
