@@ -6,7 +6,7 @@ namespace Mediana.Cli
 {
     internal record ImageConversionOptions(ImageOutputSettings Encoding, bool Animate, long TimeMs, int Page)
     {
-        public bool IsSpecified => Encoding.Compression is not null || Encoding.Quality is not null || Animate || TimeMs != 0 || Page != 1;
+        public bool IsSpecified => Encoding.Compression is not null || Encoding.Quality is not null || Encoding.ChromaSampling is not null || Animate || TimeMs != 0 || Page != 1;
         public ConversionRequest Create(string output)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(TimeMs);

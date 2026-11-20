@@ -3,6 +3,8 @@
 
 using Mediana.Codecs;
 using Mediana.Codecs.Png;
+using Mediana.Codecs.Jpeg;
+using Mediana.Core.Metadata;
 using Mediana.Codecs.Webp;
 
 namespace Mediana.Cli
@@ -12,6 +14,8 @@ namespace Mediana.Cli
         private static readonly IReadOnlyDictionary<string, Func<ImageOutputSettings, IImageEncoder>> Encoders = new Dictionary<string, Func<ImageOutputSettings, IImageEncoder>>(StringComparer.OrdinalIgnoreCase)
         {
             [".png"] = Png,
+            [".jpg"] = Jpeg,
+            [".jpeg"] = Jpeg,
             [".webp"] = settings => new WebpImageEncoder(Webp(settings))
         };
 
@@ -23,7 +27,7 @@ namespace Mediana.Cli
 
         internal static IImageEncoder ForPath(string path, ImageOutputSettings? settings = null) =>
             Encoders.TryGetValue(Path.GetExtension(path), out Func<ImageOutputSettings, IImageEncoder>? create)
-                ? create(settings ?? new()) : throw new NotSupportedException("Image output requires a registered extension: .png or .webp.");
+                ? create(settings ?? new()) : throw new NotSupportedException("Image output requires a registered extension: .png, .jpg, .jpeg or .webp.");
 
         internal static IImageSequenceEncoder SequenceForPath(string path, ImageOutputSettings settings) =>
             Sequences.TryGetValue(Path.GetExtension(path), out Func<ImageOutputSettings, IImageSequenceEncoder>? create)
@@ -31,15 +35,30 @@ namespace Mediana.Cli
 
         private static IImageEncoder Png(ImageOutputSettings settings)
         {
-            if (settings.Compression is not (null or ImageCompressionMode.Lossless) || settings.Quality is not null)
+            if (settings.Compression is not (null or ImageCompressionMode.Lossless) || settings.Quality is not null || settings.ChromaSampling is not null)
             {
-                throw new NotSupportedException("PNG uses lossless compression and does not accept a lossy quality setting.");
+                throw new NotSupportedException("PNG uses lossless compression and does not accept quality or chroma sampling settings.");
             }
             return new PngImageEncoder();
         }
 
+        private static IImageEncoder Jpeg(ImageOutputSettings settings)
+        {
+            if (settings.Compression is not (null or ImageCompressionMode.Lossy))
+            {
+                throw new NotSupportedException("JPEG uses lossy compression.");
+            }
+            return new JpegImageEncoder(new()
+            {
+                Quality = settings.Quality ?? 75,
+                ChromaSampling = settings.ChromaSampling ?? VideoChromaSampling.Sampling420,
+                BackgroundColor = new(255, 255, 255)
+            });
+        }
+
         private static WebpEncodingOptions Webp(ImageOutputSettings settings)
         {
+            if (settings.ChromaSampling is not null) { throw new NotSupportedException("WebP does not accept a chroma sampling setting."); }
             if (settings.Quality is < 0 or > 100) { throw new ArgumentOutOfRangeException(nameof(settings), "Image quality must be between 0 and 100."); }
             WebpCompression compression = settings.Compression switch
             {
