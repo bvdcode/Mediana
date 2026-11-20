@@ -14,7 +14,7 @@ namespace Mediana.Cli
         internal static async Task<int> RunAsync(string input, CommandOutputFile outputFile, int? stream, long milliseconds,
             ILogger logger, TextWriter writer, IImageSequenceEncoder encoder, CancellationToken token)
         {
-            MediaEngine engine = ImageEngineFactory.CreateVisual();
+            MediaEngine engine = ImageEngineFactory.CreateVisual(logger);
             await using RandomAccessStreamByteSource source = new(File.OpenRead(input));
             MediaBufferAllocator allocator = CommandImageResources.CreateAllocator();
             VisualExportOptions options = CommandImageResources.ExportOptions with

@@ -60,6 +60,20 @@ decoder uses the inferred structure from H.264 D.2.3. Source scan indications
 remain separate from presentation cadence. Packet PTS and duration remain
 authoritative; repeated presentation does not duplicate pixel storage.
 
+Strict decoding rejects a picture-timing display hint that contradicts the
+coded picture structure or field order. Applications can explicitly enable
+`H264DecoderOptions.IgnoreInconsistentPictureTiming` and pass a warning handler
+to `H264DecoderFactory`. Recovery discards the inconsistent optional hint and
+infers presentation from coded structure and picture-order counts. It preserves
+packet timestamps, duration and reconstructed samples. Malformed SEI remains
+an error. The warning is emitted once per decoder, including across seeks.
+
+CLI preview, animation, video conversion and HLS commands enable this policy
+and log its warning. An independently decoded contradictory MBAFF fixture
+verifies identical raw samples, repeated seeks and retained-frame ownership.
+Separate CLI processes each emit one warning; FFmpeg reads their PNG, TS and
+HLS outputs, and libwebp confirms the animation's pixels and duration.
+
 Complementary PAFF fields are assembled into full frames in presentation
 order. A pair retains its leading timestamp and combines known field
 durations. MBAFF frames with field presentation expose top-field-first or
@@ -120,8 +134,8 @@ conversion. A two-second MBAFF/AAC input produces two HLS renditions with five
 aligned segments each. FFmpeg decodes both complete playlists without errors.
 Warnings report the selected field and 10-to-8-bit reduction.
 
-All 1,218 H.264 tests and the complete standard Linux Native AOT test executable
-pass. The Native AOT output includes the profile/field media, decoded samples,
+All 1,641 selected H.264 and CLI tests and the complete standard Linux Native AOT
+test executable pass. The Native AOT output includes the profile/field media, decoded samples,
 picture-order references and presentation timing tables.
 
 ## Current format boundaries
@@ -129,8 +143,7 @@ picture-order references and presentation timing tables.
 Reconstruction supports default scaling matrices and equal 8- or 10-bit luma
 and chroma precision. Custom scaling matrices, transform bypass, 4:4:4, separate
 colour planes and SP/SI slices remain unsupported. These are independent of
-PAFF/MBAFF picture structure. Contradictory picture-timing SEI is rejected by
-strict decoding even when the codec configuration is supported. The H.264 encoder produces progressive 8-bit
+PAFF/MBAFF picture structure. The H.264 encoder produces progressive 8-bit
 4:2:0 output; interlaced input can use the preparation described above.
 
 ## MBAFF filter performance
@@ -168,3 +181,16 @@ calculation retains QP reuse outside each ordinary macroblock's edge loop.
 
 CPU ranges overlap for all three inputs; these results do not establish a
 progressive throughput change.
+
+### Compatible presentation policy
+
+Three alternating Native AOT runs compare the preceding strict-only revision
+with the explicit recovery option enabled. Each run decodes and hashes 600
+valid pictures on the same core; every sample hash matches the reference.
+
+| Input | CPU before → after | Wall before → after | Peak RSS before → after | Allocated/run before → after |
+| --- | ---: | ---: | ---: | ---: |
+| 720p progressive | 7.553 → 7.460 s | 7.554 → 7.461 s | 33.82 → 33.81 MiB | 26.04 → 26.01 MiB |
+| 720p MBAFF | 30.990 → 31.083 s | 30.996 → 31.086 s | 36.48 → 36.62 MiB | 33.81 → 33.82 MiB |
+
+CPU ranges overlap for both inputs. No throughput change is established.

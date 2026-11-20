@@ -19,7 +19,7 @@ namespace Mediana.Cli
                 Images = CommandImageResources.OpenOptions,
                 Request = new() { PageIndex = page - 1, Time = new MediaTimestamp(milliseconds, new TimeBase(1, 1000)) }
             };
-            return await ImagePreviewCommand.RunAsync(ImageEngineFactory.CreateVisual(), source, outputFile, logger, encoder,
+            return await ImagePreviewCommand.RunAsync(ImageEngineFactory.CreateVisual(logger), source, outputFile, logger, encoder,
                 options.Request, token, options);
         }
     }

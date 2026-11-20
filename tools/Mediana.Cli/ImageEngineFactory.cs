@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs;
+using Microsoft.Extensions.Logging;
 using Mediana.Codecs.OpenExr;
 using Mediana.Codecs.Tga;
 using Mediana.Codecs.Pnm;
@@ -32,7 +33,7 @@ namespace Mediana.Cli
     {
         private const int MaximumDocumentPreviewDimension = 1200;
 
-        public static MediaEngine CreateVisual() => AddDecoders(ContainerEngineFactory.CreateVideoBuilder(Mediana.Containers.Mp4.Mp4TimestampMode.LinearMovie)).Build();
+        public static MediaEngine CreateVisual(ILogger logger) => AddDecoders(ContainerEngineFactory.CreateVideoBuilder(logger, Mediana.Containers.Mp4.Mp4TimestampMode.LinearMovie)).Build();
 
         public static MediaEngine Create() => AddDecoders(new MediaEngineBuilder()).Build();
 
