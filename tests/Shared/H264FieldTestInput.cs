@@ -11,22 +11,34 @@ namespace Mediana.Tests
 {
     internal static class H264FieldTestInput
     {
-        public static async Task<int> VerifyMbaffIntraAsync(string root, string name, bool requireFields)
+        public static async Task<int> VerifyMbaffIntraAsync(string root, string name, bool requireFields, bool require8x8 = false)
         {
             (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), 0);
             byte[] expected = await ReadReferenceAsync(root, name, 0, configuration.Sequences.Values.Single());
             H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
-            if (header.Kind != H264SliceKind.I || header.Picture.Cabac || !header.Layout.MacroblockAdaptiveFrameField || header.DeblockingEnabled)
+            if (header.Kind != H264SliceKind.I || !header.Layout.MacroblockAdaptiveFrameField || header.DeblockingEnabled)
             {
-                throw new InvalidDataException("Expected an independently encoded MBAFF CAVLC intra picture without deblocking.");
+                throw new InvalidDataException("Expected an independently encoded MBAFF intra picture without deblocking.");
             }
             MediaBufferAllocator allocator = new(1024 * 1024);
             int fieldPairs = 0;
             using (H264Picture picture = new(header.Sequence, allocator, header.Kind, header.Structure))
             {
-                H264PictureDecoder.DecodeSlice(ref bits, header, [], picture, header.Layout.MacroblockCount);
+                if (header.Picture.Cabac)
+                {
+                    H264CabacPictureDecoder.DecodeSlice(ref bits, header, new([], []), new(0, 0, header.Structure),
+                        picture, header.Layout.MacroblockCount, allocator);
+                }
+                else
+                {
+                    H264PictureDecoder.DecodeSlice(ref bits, header, [], picture, header.Layout.MacroblockCount);
+                }
                 VerifyPicture(picture, expected);
+                if (require8x8 && picture.Transforms8x8.ContainsAnyExcept((byte)1))
+                {
+                    throw new InvalidDataException("Expected every MBAFF macroblock to use an 8x8 transform.");
+                }
                 for (int address = 0; address < header.Layout.MacroblockCount; address += 2)
                 {
                     bool field = picture.Grid.IsField(address);

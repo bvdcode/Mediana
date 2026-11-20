@@ -29,7 +29,7 @@ namespace Mediana.Tests
                 byte[] prediction = new byte[256];
                 picture.PredictMacroblock(0, 16, 16, 2, prediction);
                 Assert.All(prediction, value => Assert.Equal(128, value));
-                using H264CabacMacroblockState state = new(sequence, allocator, 4);
+                using H264CabacMacroblockState state = new(picture, allocator, 4);
                 Assert.Equal(-1, state.Left(4));
                 Assert.Equal(-1, state.Top(4));
                 Assert.Equal(4, state.Left(5));

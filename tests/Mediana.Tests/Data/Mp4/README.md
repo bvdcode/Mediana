@@ -751,3 +751,37 @@ all reconstructed samples and use deterministic gzip headers.
 | `avc-mbaff-intra-high10.yuv.gz` | `f09c1f54b06356a6f60721dc89a7492aa1dc4f15f271560d2b02f8426b2968d4` |
 | `avc-mbaff-intra-422-10.mp4` | `5e8adeb2a900de7e1afc7578951b367d9681b381d9933c8e7fd46325afa30f59` |
 | `avc-mbaff-intra-422-10.yuv.gz` | `4f6903e9c2d3dee96d252418a67c573b053149f2ef6964c1f29ef4deaa0cfcb1` |
+
+## MBAFF CABAC and transform coverage
+
+The following JM 19.1 intra fixtures use the same 96×96 sources, QP 24,
+disabled deblocking and muxing procedure as the MBAFF intra fixtures above.
+The `cabac` files set `SymbolMode=1`. Additional 8-bit 4:2:2 adaptive files
+cover both entropy modes. The `8x8-10` files use 10-bit 4:2:2, field pairs
+and `DisableIntra4x4=1`, `DisableIntra16x16=1`, `IntraDisableInterOnly=0`;
+every macroblock is verified to use an 8×8 transform. The two CABAC PCM
+files use the earlier PCM source and settings with `SymbolMode=1` and
+exercise arithmetic-decoder restarts after each raw macroblock.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mbaff-intra-cabac.mp4` | `010a6ceb47d47ea2ee38c4a255a592407b1d43efe49a310e7c4e862369c7b7fe` |
+| `avc-mbaff-intra-cabac.yuv.gz` | `9924e4db4827e85c07c9a60f615d3bf73a0294573412b5b853e8d381ed5af1fd` |
+| `avc-mbaff-intra-cabac-field.mp4` | `ba450a094a05be0e058948ba0de3838795ee44fdacfd6292c1622207d39d98b5` |
+| `avc-mbaff-intra-cabac-field.yuv.gz` | `57616c4d6f8aa6c9639ef1ff243a617602b1e2a321d1776dc425f8c254f4cbf2` |
+| `avc-mbaff-intra-cabac-high10.mp4` | `805825a27d569ed3c36b4c24225fe626e77202dfc2cfc5d5dcdf5f3926273602` |
+| `avc-mbaff-intra-cabac-high10.yuv.gz` | `d287d0ffb614b9bbd26924632f07d1bb57f9f9d4f90f78ae489136733308a693` |
+| `avc-mbaff-intra-cabac-422-10.mp4` | `13ecd3ba1d1b4f92729fee38f9261893dfb6fe61a9009b28d54001649ed5c0c6` |
+| `avc-mbaff-intra-cabac-422-10.yuv.gz` | `08bdda307fc9b747a210b55768b6848d43c39ff0a59f212728dc30d1ffa06794` |
+| `avc-mbaff-intra-422.mp4` | `08d8911dcf9c6def37c33a3b2991a6b843e1240dc7d721a3947006c0190ae6cb` |
+| `avc-mbaff-intra-422.yuv.gz` | `f9eb096c9f9abf1d30f3fc78f66625051534af508a517c13b9ab93cce79e44ca` |
+| `avc-mbaff-intra-cabac-422.mp4` | `ddc8c7c34b2d023fc5fadea1e10612849a8fe4aac2453f6c4084130a0050a660` |
+| `avc-mbaff-intra-cabac-422.yuv.gz` | `93488f9ef6cc8eae6be23a11950f62ecc68ce76e916ca3fe7be7d9dcd2ea5b98` |
+| `avc-mbaff-intra-8x8-10.mp4` | `f24bd8925403bb684aeb5c369586eceeca67d1b3a97acea54c2fdb4a91be95c2` |
+| `avc-mbaff-intra-8x8-10.yuv.gz` | `4575d81860c094799173052d60b438668c569562768a1c8cca304b997fb9f9ee` |
+| `avc-mbaff-intra-cabac-8x8-10.mp4` | `638a2849e07c2cb1a22f907c1e359163ca9f024bf519a6c44351ff2e7a8ceb95` |
+| `avc-mbaff-intra-cabac-8x8-10.yuv.gz` | `d2bb4368783c7e04810a9cc89d327d4a06f9261350c2ce3c7c786e29e6fa7531` |
+| `avc-mbaff-cabac-pcm-field.mp4` | `e90d7c15d351d86f816cef19245900e9038d057f45c20dfa6ede84ae53beb150` |
+| `avc-mbaff-cabac-pcm-field.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
+| `avc-mbaff-cabac-pcm-adaptive.mp4` | `6ada78ffd3f6c5cba206905618447ccca280a5674398c5a555e15af690219a87` |
+| `avc-mbaff-cabac-pcm-adaptive.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |

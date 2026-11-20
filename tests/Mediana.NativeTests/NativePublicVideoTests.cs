@@ -27,13 +27,25 @@ namespace Mediana.NativeTests
             }
             await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-pcm-field", true);
             await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-pcm-adaptive", false);
-            foreach (string name in new[] { "avc-mbaff-intra-cavlc", "avc-mbaff-intra-field", "avc-mbaff-intra-high10", "avc-mbaff-intra-422-10" })
+            await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-cabac-pcm-field", true);
+            await H264FieldTestInput.VerifyMbaffIntraAsync(root, "avc-mbaff-cabac-pcm-adaptive", false);
+            foreach (string name in new[]
             {
-                int fieldPairs = await H264FieldTestInput.VerifyMbaffIntraAsync(root, name, name == "avc-mbaff-intra-field");
-                if (name != "avc-mbaff-intra-field" && fieldPairs is not (> 0 and < 18))
+                "avc-mbaff-intra-cavlc", "avc-mbaff-intra-field", "avc-mbaff-intra-high10", "avc-mbaff-intra-422-10",
+                "avc-mbaff-intra-cabac", "avc-mbaff-intra-cabac-field", "avc-mbaff-intra-cabac-high10", "avc-mbaff-intra-cabac-422-10",
+                "avc-mbaff-intra-422", "avc-mbaff-intra-cabac-422"
+            })
+            {
+                bool requireFields = name is "avc-mbaff-intra-field" or "avc-mbaff-intra-cabac-field";
+                int fieldPairs = await H264FieldTestInput.VerifyMbaffIntraAsync(root, name, requireFields);
+                if (!requireFields && fieldPairs is not (> 0 and < 18))
                 {
                     throw new InvalidDataException("The MBAFF intra fixture must exercise both pair structures.");
                 }
+            }
+            foreach (string name in new[] { "avc-mbaff-intra-8x8-10", "avc-mbaff-intra-cabac-8x8-10" })
+            {
+                await H264FieldTestInput.VerifyMbaffIntraAsync(root, name, true, true);
             }
             foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
             {

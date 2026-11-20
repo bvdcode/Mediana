@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    /// <summary>Initializes progressive P-slice contexts under H.264 tables 9-13 and 9-15 through 9-21.</summary>
+    /// <summary>Initializes P-slice contexts under H.264 tables 9-13 and 9-15 through 9-21.</summary>
     internal static class H264CabacPredictiveContexts
     {
         private const int ContextCount = 252;
@@ -128,7 +128,7 @@ namespace Mediana.Codecs.H264
             >= 11 and <= 23 => contextIndex - 11,
             >= 40 and <= 275 => contextIndex - 40 + 13,
             >= 399 and <= 401 => contextIndex - 399 + 249,
-            _ => throw new ArgumentOutOfRangeException(nameof(contextIndex), "The context is not an initialized progressive P-slice context.")
+            _ => throw new ArgumentOutOfRangeException(nameof(contextIndex), "The context is not an initialized P-slice context.")
         };
     }
 }

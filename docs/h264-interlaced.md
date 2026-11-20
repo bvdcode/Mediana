@@ -277,3 +277,16 @@ is 7.437 → 7.397 seconds for 720p 8-bit 4:2:0 and 19.688 → 19.557 seconds fo
 Peak RSS medians are 33.48 → 33.45 MiB and 47.91 → 48.00 MiB; total managed
 allocations are 25.9558 → 25.9569 MiB and 40.2508 → 40.2574 MiB, respectively.
 These measurements cover two progressive sources, not MBAFF throughput.
+
+## MBAFF CABAC intra reconstruction
+
+CABAC intra reconstruction now derives pair-mode, macroblock type, coded-block
+pattern, transform-size and coded-block contexts from the shared macroblock
+grid. Residual significance contexts use each pair's frame or field mode.
+Termination is read at pair boundaries; PCM restarts the arithmetic decoder.
+
+Sixteen independent JM 19.1 MBAFF pictures now match FFmpeg sample-for-sample
+in managed execution, Native AOT and ordinary async compilation. They cover
+both entropy modes, 8/10-bit 4:2:0 and 4:2:2, adaptive mixed pairs, forced field
+pairs, PCM and forced 8×8 transforms. All 1,036 H.264 tests pass. Predictive
+MBAFF slices, mixed-edge deblocking and public interlaced playback remain open.

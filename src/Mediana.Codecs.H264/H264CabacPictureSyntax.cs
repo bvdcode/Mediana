@@ -7,10 +7,9 @@ namespace Mediana.Codecs.H264
     {
         private int previousDelta;
 
-        public void ReadPcm(ref H264BitReader bits, H264SliceHeader header, int address)
+        public void ReadPcm(ref H264BitReader bits, int address)
         {
-            int x = address % header.Sequence.WidthInMbs * 16;
-            int y = address / header.Sequence.WidthInMbs * 16;
+            (int x, int y) = target.Grid.Position(address);
             H264IntraMacroblock.ReadPcm(ref bits, target, x, y);
             state.Types[address] = 25;
             state.Patterns[address] = 47;
@@ -33,8 +32,7 @@ namespace Mediana.Codecs.H264
             {
                 ReadTransform(ref bits, address);
             }
-            int x = address % header.Sequence.WidthInMbs * 16;
-            int y = address / header.Sequence.WidthInMbs * 16;
+            (int x, int y) = target.Grid.Position(address);
             bool transform8x8 = target.Transforms8x8[address] != 0;
             int blocks = transform8x8 ? 4 : 16;
             for (int index = 0; index < blocks; index++)
@@ -144,9 +142,12 @@ namespace Mediana.Codecs.H264
 
         public int Read(ref H264BitReader bits, H264ResidualCategory category, int plane, int x, int y, scoped Span<int> coefficients)
         {
+            int horizontalScale = plane == 0 ? 1 : 2;
+            int verticalScale = target.VerticalScale(plane);
+            bool field = target.IsFieldMacroblock(x * horizontalScale, y * verticalScale);
             if (category == H264ResidualCategory.Luma8x8)
             {
-                int count = H264CabacResidual.Read(ref bits, reader, category, 0, coefficients, target.Sequence.LumaBitDepth, field: target.Layout.IsField);
+                int count = H264CabacResidual.Read(ref bits, reader, category, 0, coefficients, target.Sequence.LumaBitDepth, field: field);
                 for (int row = 0; row < 2; row++)
                 {
                     for (int column = 0; column < 2; column++)
@@ -157,14 +158,16 @@ namespace Mediana.Codecs.H264
                 return count;
             }
             int context;
-            int scale = plane == 0 ? 16 : 8;
-            int verticalScale = target.VerticalScale(plane);
-            int address = y / (16 / verticalScale) * target.Sequence.WidthInMbs + x / scale;
+            int address = target.Grid.Address(x * horizontalScale, y * verticalScale);
             bool intra = state.IsIntra(address);
             bool dc = category is H264ResidualCategory.Intra16LumaDc or H264ResidualCategory.ChromaDc;
             if (dc)
             {
                 context = state.DcCondition(state.Left(address), plane, intra) + 2 * state.DcCondition(state.Top(address), plane, intra);
+            }
+            else if (target.Layout.MacroblockAdaptiveFrameField)
+            {
+                context = target.MappedCodedBlockContext(plane, x, y, intra);
             }
             else
             {
@@ -175,7 +178,7 @@ namespace Mediana.Codecs.H264
                 context = !target.IsInCurrentSlice(x * sampleScale - 1, y * verticalScale) ? unavailable : counts[position - 1] != 0 ? 1 : 0;
                 context += 2 * (!target.IsInCurrentSlice(x * sampleScale, y * verticalScale - 1) ? unavailable : counts[position - target.Stride(plane) / 4] != 0 ? 1 : 0);
             }
-            int total = H264CabacResidual.Read(ref bits, reader, category, context, coefficients, plane == 0 ? target.Sequence.LumaBitDepth : target.Sequence.ChromaBitDepth, field: target.Layout.IsField);
+            int total = H264CabacResidual.Read(ref bits, reader, category, context, coefficients, plane == 0 ? target.Sequence.LumaBitDepth : target.Sequence.ChromaBitDepth, field: field);
             if (dc && total != 0)
             {
                 state.DcFlags[address] |= (byte)(1 << plane);

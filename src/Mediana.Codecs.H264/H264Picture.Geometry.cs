@@ -52,6 +52,17 @@ namespace Mediana.Codecs.H264
             return left is null ? topCount : top is null ? leftCount : (leftCount + topCount + 1) >> 1;
         }
 
+        public int MappedCodedBlockContext(int plane, int x, int y, bool intra)
+        {
+            int unavailable = intra ? 1 : 0;
+            H264NeighbourLocation? left = Neighbour(plane, x, y, -1, 0);
+            H264NeighbourLocation? top = Neighbour(plane, x, y, 0, -1);
+            Span<byte> counts = Counts(plane);
+            int leftFlag = left is H264NeighbourLocation l ? (counts[NeighbourBlockIndex(plane, l)] != 0 ? 1 : 0) : unavailable;
+            int topFlag = top is H264NeighbourLocation t ? (counts[NeighbourBlockIndex(plane, t)] != 0 ? 1 : 0) : unavailable;
+            return leftFlag + 2 * topFlag;
+        }
+
         private int MappedPredictedMode(int x, int y, bool constrained)
         {
             if (Neighbour(0, x, y, -1, 0) is not H264NeighbourLocation left ||
