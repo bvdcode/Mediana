@@ -47,6 +47,23 @@ namespace Mediana.Tests
             Check(actual.Pixels.Span.SequenceEqual(expected.Pixels.Span), "PDF compact mappings preserve rendered pixels");
         }
 
+        internal static void VerifyOfficeStories()
+        {
+            foreach (bool strict in new[] { false, true })
+            {
+                DocumentTextOptions options = new() { IncludeHeaders = true, IncludeFooters = true, IncludeSpeakerNotes = true, PartCount = 1 };
+                DocumentTextBlock[] word = WordTextReader.Read(DocumentPackageTestData.WordStories(strict: strict), options).ToArray();
+                Check(word.Select(block => block.Text).SequenceEqual(new[] { "Body 1", "Заголовок 😀 é\t終\nline", "First", "Even", "Footer" }), "Word margin Unicode and order");
+                Check(word[1].SourceKind == DocumentTextSourceKind.Header && word[1].HeaderFooterVariant == DocumentHeaderFooterVariant.Default
+                    && word[1].PartName == "word/headers/default.xml" && word[1].Path[1].Kind == DocumentTextNodeKind.Header, "Word margin provenance");
+                using PresentationDocument deck = PresentationReader.Open(DocumentPackageTestData.PresentationNotes(strict: strict));
+                DocumentTextBlock[] slides = deck.ReadText(options).ToArray();
+                Check(slides.Select(block => block.Text).SequenceEqual(new[] { "Slide", "Заметки 😀 é\n終" }), "Presentation notes Unicode and placeholder filtering");
+                Check(slides[1].SourceKind == DocumentTextSourceKind.SpeakerNotes && slides[1].PartIndex == 0
+                    && slides[1].PartName == "ppt/notes/one.xml" && slides[1].Path[1].Kind == DocumentTextNodeKind.SpeakerNotes, "Presentation notes provenance");
+            }
+        }
+
         internal static async Task VerifyAsync()
         {
             await VerifyPresentationTextBoundsAsync("/", true);
@@ -114,6 +131,7 @@ namespace Mediana.Tests
             using (PdfDocument pdf = PdfReader.Open(PdfTextTestData.Create(tagged: true, actualText: true)))
             { Check(pdf.ReadText().First().Text == "Привет 😀", "PDF ActualText without glyph decoding"); }
             VerifyCompactUnicode();
+            VerifyOfficeStories();
             OpenXmlImageDecoder adapter = new([new PresentationPageDecoder(renderOptions: new() { Dpi = 72, Supersampling = 1 })]);
             byte[] encodedPresentation = PresentationTestData.Create();
             Mediana.Core.Metadata.ImageInfo info = await adapter.ReadInfoAsync(encodedPresentation);

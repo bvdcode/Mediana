@@ -82,6 +82,53 @@ foreach (DocumentTextBlock block in document.ReadText(
 
 DOCX text follows body order, excluding deleted/moved-away content and field instructions. PPTX follows stored slide shape order. Neither requires fonts, pagination or embedded-image decoding. Spreadsheet text follows sheet, row and cell order.
 
+Office text extraction can include auxiliary text explicitly:
+
+```csharp
+DocumentTextOptions options = new()
+{
+    IncludeHeaders = true,
+    IncludeFooters = true,
+    IncludeSpeakerNotes = true
+};
+foreach (DocumentTextBlock block in document.ReadText(options, token))
+{
+    DocumentTextSourceKind source = block.SourceKind;
+    string? packagePart = block.PartName;
+    DocumentHeaderFooterVariant? variant = block.HeaderFooterVariant;
+}
+```
+
+All three switches default to `false`. DOCX emits each selected section's body,
+then headers, then footers. Each margin uses default, first and even variant
+order; variants omitted by a section inherit their preceding section's part.
+Every stored or inherited variant is included, even when page-layout settings
+would hide it. A reused part is emitted for each selected section and variant;
+text extraction does not paginate or repeat it for physical pages. `PartIndex`
+remains the section index and `PartName` identifies the actual source XML part.
+`HeaderFooterVariant` records the variant. Paths include a `Header` or `Footer`
+ancestor whose index is 0 for default, 1 for first and 2 for even, followed by
+paragraph, table/cell or text-box structure. `WordDocument.ReadText` supports
+the same switches for already parsed documents; `WordTextReader` reads text
+directly without requiring page geometry, fonts or image content.
+
+PPTX emits notes after the selected slide's text. `SourceKind` is
+`SpeakerNotes`, `PartName` points to the notes part, and the path retains the
+slide, a `SpeakerNotes` ancestor and shape/table/paragraph positions. Stored
+body and custom shape text is included; date, header, footer, slide-number and
+slide-image placeholders are excluded from speaker notes. Notes masters,
+themes, font programs and image parts are not opened for text extraction.
+
+The same block/character limits cover body and auxiliary text. Disabled parts
+are not opened. Cancellation is checked while reading and between blocks;
+`Take`, `First` or disposing an enumerator stops before subsequent paragraphs,
+auxiliary parts and selected document parts are processed. Both Strict and
+Transitional Open XML packages preserve Unicode, stored field results, tabs,
+line breaks and declared structure. Tests cover inherited and overridden
+variants, selected sections, notes placeholders, malformed optional parts,
+source metadata, output budgets and early completion.
+
+
 `PdfDocument.ReadText` uses ToUnicode maps, simple font encodings and ActualText without opening font programs or rasterizing images. Logical tags supply `DocumentTextStructure.Declared`. Untagged lines use geometric ordering and are marked `Reconstructed`; this does not claim semantic reconstruction of columns, headings or tables. PDF inline-image content streams and composite encodings other than Identity-H remain open.
 
 Enumerators release their active part readers when disposed, including on `break`, `Take` or cancellation. A workbook/presentation borrows its input until disposed. A PDF opened with `PdfReader.Open` also borrows its memory; `ReadAsync` owns the bytes read from the caller's stream. Do not mutate borrowed data or dispose its document while enumerating.
@@ -105,3 +152,6 @@ A 1.53 GiB PPTX completed first-slide rendering from a file stream under a 1.5 G
 - [MS-CFB](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-cfb/53989ce4-7b05-4f8d-829b-d08d6148375b)
 - [MS-XLS](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-xls/cd03cb5f-ca02-4934-a391-bb674cb8aa06)
 - [PDF 1.7 reference, sections 5.9 and 10.6–10.8](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.7old.pdf)
+
+- [Microsoft Word header references and inheritance](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.wordprocessing.headerreference)
+- [Microsoft presentation placeholder types](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.presentation.placeholdervalues)
