@@ -52,7 +52,8 @@ namespace Mediana.Codecs.H264
                 : CodedPatterns[bits.ReadUe(47)];
             if (intra16 || pattern != 0)
             {
-                qp = (qp + bits.ReadSe(-26, 25) + 52) % 52;
+                H264Quantizer quantizer = target.LumaQuantizer;
+                qp = quantizer.ApplyDelta(qp, bits.ReadSe(quantizer.MinimumDelta, quantizer.MaximumDelta));
             }
             target.Quantizers[address] = (byte)qp;
             H264IntraReconstruction.Read(ref bits, new H264CavlcResidualReader(target), target, header, x, y, type, chromaMode, pattern, qp);

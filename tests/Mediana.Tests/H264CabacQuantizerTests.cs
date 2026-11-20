@@ -8,15 +8,22 @@ namespace Mediana.Tests
 {
     public class H264CabacQuantizerTests
     {
-        [Fact]
-        public async Task EveryQuantizerDeltaMatchesUnaryIntervalsAndWrapsAtBothEnds()
+        [Theory]
+        [InlineData(8)]
+        [InlineData(10)]
+        [InlineData(12)]
+        [InlineData(14)]
+        public async Task EveryQuantizerDeltaMatchesUnaryIntervalsAndWrapsAtBothEnds(int bitDepth)
         {
             (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor("avc-aac.mp4"), 0);
             H264BitReader input = H264Nal.Payload(nal, H264Nal.Type(nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref input, configuration, nal[0]);
+            H264Quantizer quantizer = new(bitDepth);
+            int contextQp = header.Qp;
+            header = header with { Sequence = header.Sequence with { LumaBitDepth = bitDepth }, Qp = quantizer.FromSyntax(contextQp) };
             byte[] states = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264", "cabac-intra-contexts.bin"));
-            H264CabacResidualWriter writer = new(header.Qp, states);
-            int[] deltas = Enumerable.Range(-26, 52).ToArray();
+            H264CabacResidualWriter writer = new(contextQp, states);
+            int[] deltas = Enumerable.Range(quantizer.MinimumDelta, quantizer.Maximum + 1).ToArray();
             bool previous = false;
             foreach (int delta in deltas)
             {
@@ -34,7 +41,7 @@ namespace Mediana.Tests
                 int qp = 0;
                 foreach (int delta in deltas)
                 {
-                    int expected = (qp + delta + 52) % 52;
+                    int expected = (qp + delta + quantizer.Maximum + 1) % (quantizer.Maximum + 1);
                     qp = syntax.ReadQuantizer(ref bits, 1, 0, qp);
                     Assert.Equal(expected, qp);
                 }

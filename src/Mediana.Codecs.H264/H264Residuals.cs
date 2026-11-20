@@ -79,7 +79,7 @@ namespace Mediana.Codecs.H264
             for (int plane = 1; plane <= 2; plane++)
             {
                 int offset = plane == 1 ? picture.ChromaQpOffset : picture.SecondChromaQpOffset;
-                int chromaQp = H264InverseTransform.ChromaQp(qp, offset);
+                int chromaQp = target.ChromaQuantizer.ChromaValue(qp - target.LumaQuantizer.Offset, offset);
                 H264InverseTransform.ChromaDc(dcCoefficients.Slice((plane - 1) * blocks, blocks), chromaQp, dc);
                 for (int index = 0; index < blocks; index++)
                 {

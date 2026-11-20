@@ -121,6 +121,7 @@ namespace Mediana.Codecs.H264
 
         public int ReadQuantizer(ref H264BitReader bits, int type, int pattern, int qp)
         {
+            H264Quantizer quantizer = target.LumaQuantizer;
             int delta = 0;
             if (type != 0 || pattern != 0)
             {
@@ -129,20 +130,16 @@ namespace Mediana.Codecs.H264
                     int mapped = 1;
                     while (reader.Read(ref bits, mapped == 1 ? 62 : 63))
                     {
-                        if (++mapped > 52)
+                        if (++mapped > quantizer.Maximum + 1)
                         {
                             throw new InvalidDataException("The H.264 CABAC quantizer delta exceeds its permitted range.");
                         }
                     }
                     delta = (mapped & 1) == 0 ? -(mapped / 2) : (mapped + 1) / 2;
-                    if (delta is < -26 or > 25)
-                    {
-                        throw new InvalidDataException("The H.264 CABAC quantizer delta exceeds its permitted range.");
-                    }
                 }
             }
             previousDelta = delta;
-            return (qp + delta + 52) % 52;
+            return quantizer.ApplyDelta(qp, delta);
         }
 
         public int Read(ref H264BitReader bits, H264ResidualCategory category, int plane, int x, int y, scoped Span<int> coefficients)

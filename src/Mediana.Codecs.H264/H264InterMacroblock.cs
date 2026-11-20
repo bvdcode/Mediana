@@ -46,7 +46,8 @@ namespace Mediana.Codecs.H264
             }
             if (pattern != 0)
             {
-                qp = (qp + bits.ReadSe(-26, 25) + 52) % 52;
+                H264Quantizer quantizer = target.LumaQuantizer;
+                qp = quantizer.ApplyDelta(qp, bits.ReadSe(quantizer.MinimumDelta, quantizer.MaximumDelta));
             }
             target.Quantizers[address] = (byte)qp;
             H264Residuals.ReadInterLuma(ref bits, target, x, y, pattern, qp, prediction[..256]);

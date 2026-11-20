@@ -100,11 +100,8 @@ namespace Mediana.Codecs.H264
             {
                 cabacInitIdc = bits.ReadUe(2);
             }
-            int qp = picture.InitialQp + bits.ReadSe(-51, 51);
-            if (qp is < 0 or > 51)
-            {
-                throw new InvalidDataException("The H.264 slice quantizer is outside the 8-bit range.");
-            }
+            H264Quantizer quantizer = new(sequence.LumaBitDepth);
+            int qp = quantizer.FromSyntax(picture.InitialQp + bits.ReadSe(-quantizer.Maximum, quantizer.Maximum));
             int disableDeblocking = picture.DeblockingControlPresent ? bits.ReadUe(2) : 0;
             int alphaOffset = 0;
             int betaOffset = 0;

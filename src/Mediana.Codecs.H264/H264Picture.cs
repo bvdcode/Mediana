@@ -27,6 +27,8 @@ namespace Mediana.Codecs.H264
                 _ => throw new ArgumentOutOfRangeException(nameof(kind))
             };
             Sequence = sequence;
+            LumaQuantizer = new H264Quantizer(sequence.LumaBitDepth);
+            ChromaQuantizer = new H264Quantizer(sequence.ChromaBitDepth);
             Width = sequence.CodedWidth;
             Height = sequence.CodedHeight;
             lumaBytes = checked(Width * Height);
@@ -65,6 +67,8 @@ namespace Mediana.Codecs.H264
         }
 
         public H264SequenceParameterSet Sequence { get; }
+        public H264Quantizer LumaQuantizer { get; }
+        public H264Quantizer ChromaQuantizer { get; }
         public int Width { get; }
         public int Height { get; }
         public int ChromaVerticalScale { get; }

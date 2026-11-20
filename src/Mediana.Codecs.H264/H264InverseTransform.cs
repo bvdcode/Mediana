@@ -9,15 +9,12 @@ namespace Mediana.Codecs.H264
         private static ReadOnlySpan<int> ScaleEven => [10, 11, 13, 14, 16, 18];
         private static ReadOnlySpan<int> ScaleOdd => [16, 18, 20, 23, 25, 29];
         private static ReadOnlySpan<int> ScaleMixed => [13, 14, 16, 18, 20, 23];
-        private static ReadOnlySpan<int> ChromaQuantizers =>
-            [29, 30, 31, 32, 32, 33, 34, 34, 35, 35, 36, 36, 37, 37, 37, 38, 38, 38, 39, 39, 39, 39];
 
         public static int ChromaQp(int lumaQp, int offset)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(lumaQp);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(lumaQp, 51);
-            int index = Math.Clamp(lumaQp + offset, 0, 51);
-            return index < 30 ? index : ChromaQuantizers[index - 30];
+            return new H264Quantizer(8).ChromaValue(lumaQp, offset);
         }
 
         public static void Residual4x4(ReadOnlySpan<int> scanned, int qp, Span<int> residual, int? scaledDc = null)

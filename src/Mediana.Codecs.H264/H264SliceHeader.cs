@@ -28,6 +28,7 @@ namespace Mediana.Codecs.H264
         public bool AdaptiveMarking { get; init; }
         public IReadOnlyList<H264MemoryOperation> MemoryOperations { get; init; } = [];
         public int CabacInitIdc { get; init; }
+        /// <summary>Nonnegative QP prime, including the luma bit-depth offset.</summary>
         public int Qp { get; init; }
         public int DeblockingIdc { get; init; }
         public int AlphaOffset { get; init; }

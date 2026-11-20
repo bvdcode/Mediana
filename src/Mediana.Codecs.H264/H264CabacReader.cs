@@ -18,19 +18,20 @@ namespace Mediana.Codecs.H264
                 throw new NotSupportedException("The CABAC reader requires arithmetic entropy coding.");
             }
             kind = header.Kind;
+            int contextQp = new H264Quantizer(header.Sequence.LumaBitDepth).ContextValue(header.Qp);
             contexts = kind switch
             {
-                H264SliceKind.I => H264CabacIntraContexts.Create(header.Qp),
-                H264SliceKind.P or H264SliceKind.B => H264CabacPredictiveContexts.Create(header.Qp, header.CabacInitIdc),
+                H264SliceKind.I => H264CabacIntraContexts.Create(contextQp),
+                H264SliceKind.P or H264SliceKind.B => H264CabacPredictiveContexts.Create(contextQp, header.CabacInitIdc),
                 _ => throw new NotSupportedException("The CABAC reader supports I, P and B slices.")
             };
             bidirectionalContexts = kind switch
             {
-                H264SliceKind.B => H264CabacBidirectionalContexts.Create(header.Qp, header.CabacInitIdc),
+                H264SliceKind.B => H264CabacBidirectionalContexts.Create(contextQp, header.CabacInitIdc),
                 H264SliceKind.I or H264SliceKind.P => [],
                 _ => throw new NotSupportedException("The CABAC reader supports I, P and B slices.")
             };
-            transformContexts = H264CabacTransformContexts.Create(header.Qp, kind, header.CabacInitIdc);
+            transformContexts = H264CabacTransformContexts.Create(contextQp, kind, header.CabacInitIdc);
             bits.AlignOne();
             decoder = new H264CabacDecoder(ref bits);
         }
