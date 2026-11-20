@@ -31,6 +31,10 @@ as one frame and releases both fields together. Explicit marking can release
 one field, convert a pair to long-term reference, or reset the buffer. Invalid
 marking preserves the prior buffer and the caller's input ownership.
 
+Active slice reference counts follow H.264 7.4.3: at most 16 references for
+frame pictures and 32 for field pictures, including counts inherited from PPS.
+MBAFF slice headers use the frame limit before expansion for field macroblocks.
+
 Field reference lists sort frame entries before alternating field parity,
 skipping absent fields. Short-term and long-term picture numbers use the current
 field's parity. Inter-field 4:2:0 prediction adjusts the chroma motion vector

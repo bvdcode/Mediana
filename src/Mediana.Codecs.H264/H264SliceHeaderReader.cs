@@ -66,10 +66,12 @@ namespace Mediana.Codecs.H264
             if (kind is H264SliceKind.P or H264SliceKind.B)
             {
                 bool overrideReferences = bits.ReadFlag();
-                activeReferencesL0 = overrideReferences ? bits.ReadUe(31) + 1 : picture.DefaultReferencesL0;
+                activeReferencesL0 = H264ReferenceSyntax.ReadActiveCount(ref bits, picture.DefaultReferencesL0,
+                    overrideReferences, layout.IsField);
                 if (kind == H264SliceKind.B)
                 {
-                    activeReferencesL1 = overrideReferences ? bits.ReadUe(31) + 1 : picture.DefaultReferencesL1;
+                    activeReferencesL1 = H264ReferenceSyntax.ReadActiveCount(ref bits, picture.DefaultReferencesL1,
+                        overrideReferences, layout.IsField);
                 }
                 modifications = H264ReferenceSyntax.ReadModifications(ref bits, activeReferencesL0, layout.MaximumPictureNumber, layout.IsField);
                 if (kind == H264SliceKind.B)

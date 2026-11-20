@@ -5,6 +5,20 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264ReferenceSyntax
     {
+        private const int MaximumFrameReferences = 16;
+        private const int MaximumFieldReferences = 32;
+
+        public static int ReadActiveCount(ref H264BitReader bits, int defaultCount, bool overridden, bool fieldPicture)
+        {
+            int maximum = fieldPicture ? MaximumFieldReferences : MaximumFrameReferences;
+            int count = overridden ? bits.ReadUe(maximum - 1) + 1 : defaultCount;
+            if (count < 1 || count > maximum)
+            {
+                throw new InvalidDataException("The H.264 active reference count exceeds the picture's frame or field limit.");
+            }
+            return count;
+        }
+
         public static IReadOnlyList<H264ReferenceModification> ReadModifications(ref H264BitReader bits, int activeCount,
             int maximumPictureNumber, bool fieldPicture = false)
         {
