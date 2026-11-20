@@ -630,3 +630,35 @@ complete visible sample stream as gzip with a zero timestamp and no filename.
 | `avc-paff-high422-10-cabac.yuv.gz` | `f43ddc53dd5c65f8f27aae0bf82315bfd4a4f0eb1ca03e4060bb310cf62ecce4` |
 | `avc-paff-high422-cavlc.mp4` | `b34c2042cdfb4c5e4de920ca1f184c7056623eedec43adfca4182900d0cc339d` |
 | `avc-paff-high422-cavlc.yuv.gz` | `7f204043eaf85e5fbf6227647d8919c93aba32d44e2b194c6e608bb33c22456c` |
+
+### Mixed frame/field header fixtures
+
+`avc-mixed-cabac.mp4` and `avc-mixed-cavlc.mp4` contain 24 displayed
+96×96 YUV420P8 frames at 12 fps, encoded by JM 19.1. A 48-frame 24 fps
+`testsrc2` source supplies every second frame for the first and last eight output
+frames. For the middle eight, even rows come from that frame and odd rows from
+the following frame, circularly shifted left by one sixth of each plane width.
+
+JM uses `PicInterlace=2`, `MbInterlace=0`, two reference frames, no B frames,
+QP 24, `IDRPeriod=0`, `AdaptiveIntraPeriod=0`, `HMEEnable=0` and
+`EPZSUseHMEPredictors=0`. `SymbolMode` selects CABAC or CAVLC. Independent
+`trace_headers` output identifies eight frame pictures, eighteen field pictures
+and seven frame pictures. Both streams exercise frame-number wrap.
+
+The AVC samples retain one coded picture each. FFmpeg muxing applies
+`h264_metadata,setts` with a 1/24 time base and these expressions:
+
+```text
+pts=dts='if(lt(N,8),2*N,if(lt(N,26),N+8,2*N-18))'
+duration='if(lt(N,8),2,if(lt(N,26),1,2))'
+```
+
+FFmpeg decodes all 24 frames without errors; every presentation timestamp is
+exactly the frame index divided by 12. The header tests verify all 33 packets
+per file, their durations, picture structures and picture order. Full mixed
+frame/field reconstruction remains open.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-mixed-cabac.mp4` | `f7863d34ff894c66ab63e3c59f7d1898e944123fd4be97943cd4c2dd6e1301e8` |
+| `avc-mixed-cavlc.mp4` | `f661ffb8973566fbf0c1597eac2758c1944dad09833494e64e64fc9ffae18331` |
