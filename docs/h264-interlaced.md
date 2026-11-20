@@ -76,3 +76,33 @@ The first animation comparison had 7.634–10.994 seconds CPU before and
 as an acceleration result. The additional repeat gives 7.516 versus 7.576
 seconds (+0.81%). These measurements cover the effect on existing progressive
 encoding, not complete interlaced decoding throughput.
+
+
+## Progressive decoding regression
+
+A separate Native AOT client compares the decoder before and after field
+reference management and inter-field prediction. Three independent libx264
+`veryfast` inputs contain 150 frames each, with QP 24, GOP 60, two B frames and
+four reference frames. Each measured process decodes the complete file four
+times (600 frames), including container reading and a SHA-256 of all visible
+samples. All eighteen runs match independent FFmpeg decoding exactly and
+release their allocator budget after every session.
+
+Each variant runs three times in ABBAAB order, pinned to logical CPU 11 with
+`nice -20` and one processing CPU. No local builds or source encoding overlap
+timing. Values below are medians; allocations accumulate across all four passes.
+
+| Source | CPU before / after, s | Wall before / after, s | Peak RSS before / after, MiB | Allocations before / after, MiB |
+| --- | ---: | ---: | ---: | ---: |
+| camera-720 | 7.654 / 7.707 | 7.660 / 7.713 | 59.64 / 59.46 | 1234.40 / 1234.46 |
+| camera-422-10 | 20.120 / 20.078 | 20.132 / 20.088 | 110.89 / 111.04 | 2588.25 / 2588.28 |
+| noise-1080 | 92.705 / 93.979 | 92.793 / 94.077 | 112.44 / 111.46 | 3046.89 / 3046.98 |
+
+The camera-720 source uses 8-bit 4:2:0; camera-422-10 uses the same 720p camera
+frames converted to 10-bit 4:2:2. Noise-1080 uses a 1920×1080 test pattern with
+temporal uniform noise (`alls=18`, seed 1234). CPU median changes are +0.69%,
+−0.21% and +1.37%, respectively. The noisy-input after runs span 92.681–104.338
+seconds, versus 92.696–93.037 seconds before, so its timing is less stable.
+This is a regression check, not an acceleration claim. Peak memory and total
+allocations remain comparable; low retained memory does not imply low cumulative
+allocations. No field output composition or RGB conversion is included here.
