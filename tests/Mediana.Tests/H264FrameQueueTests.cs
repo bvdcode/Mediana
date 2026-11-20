@@ -13,7 +13,7 @@ namespace Mediana.Tests
         public void ReordersPicturesWithTheirOriginalTimestampAndDrainsTheTail()
         {
             MediaBufferAllocator allocator = new(1024);
-            using (H264FrameQueue queue = new())
+            using (H264FrameQueue queue = new(allocator))
             {
                 Add(queue, allocator, 0, idr: true);
                 Add(queue, allocator, 6);
@@ -39,7 +39,7 @@ namespace Mediana.Tests
         public void IdrFlushesOrDiscardsPriorPendingFrames(bool discard)
         {
             MediaBufferAllocator allocator = new(1024);
-            using (H264FrameQueue queue = new())
+            using (H264FrameQueue queue = new(allocator))
             {
                 Add(queue, allocator, 0, idr: true);
                 Add(queue, allocator, 4);
@@ -62,7 +62,7 @@ namespace Mediana.Tests
         public void MemoryResetDrainsPriorOrderBeforeStartingAnotherOrderEpoch()
         {
             MediaBufferAllocator allocator = new(1024);
-            using (H264FrameQueue queue = new())
+            using (H264FrameQueue queue = new(allocator))
             {
                 Add(queue, allocator, 0, idr: true);
                 Add(queue, allocator, 4);
@@ -84,7 +84,7 @@ namespace Mediana.Tests
         public void BackpressureAndInvalidOrderDoNotTakeInputOwnership()
         {
             MediaBufferAllocator allocator = new(1024);
-            using (H264FrameQueue queue = new())
+            using (H264FrameQueue queue = new(allocator))
             {
                 Add(queue, allocator, 0, idr: true);
                 using VideoFrame duplicate = FrameFixture.Create(allocator, 9);
@@ -103,7 +103,7 @@ namespace Mediana.Tests
         public void ReturnedFramesSurviveQueueDisposalAndTypeTwoDoesNotDelayOutput()
         {
             MediaBufferAllocator allocator = new(1024);
-            H264FrameQueue queue = new();
+            H264FrameQueue queue = new(allocator);
             VideoFrame input = FrameFixture.Create(allocator, 7);
             queue.Add(input, new(0, 0), Header() with { IsIdr = true, Sequence = Header().Sequence with { PictureOrderType = 2 } });
             using VideoFrame output = Assert.IsType<VideoFrame>(queue.Receive());

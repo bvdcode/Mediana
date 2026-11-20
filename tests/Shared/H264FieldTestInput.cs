@@ -4,6 +4,8 @@
 using System.IO.Compression;
 using Mediana.Codecs.H264;
 using Mediana.Core.Memory;
+using Mediana.Core.Timing;
+using Mediana.Core.Video;
 
 namespace Mediana.Tests
 {
@@ -44,15 +46,29 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(1024 * 1024);
             using (H264ReferenceBuffer references = new())
+            using (H264FrameQueue outputs = new(allocator))
             {
+                int published = 0;
                 H264PictureOrderState order = new();
                 for (int packet = 0; packet < 24; packet++)
                 {
                     (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), packet);
                     byte[] expected = await ReadReferenceAsync(root, name, referenceFrames is null ? packet / 2 : referenceFrames[packet / 2],
                         configuration.Sequences.Values.Single());
-                    order = DecodeAndStore(configuration, nal, expected, order, references, allocator, packet);
+                    int displayIndex = referenceFrames is null ? packet / 2 : referenceFrames[packet / 2];
+                    order = DecodeAndStore(configuration, nal, expected, order, references, allocator, packet, outputs, displayIndex);
+                    if (packet == 23) { outputs.Drain(); }
+                    while (outputs.Receive() is VideoFrame frame)
+                    {
+                        using (frame)
+                        {
+                            byte[] display = await ReadReferenceAsync(root, name, published, configuration.Sequences.Values.Single());
+                            VerifyOutput(frame, display, published);
+                            published++;
+                        }
+                    }
                 }
+                if (published != 12) { throw new InvalidDataException("Incorrect number of assembled field pairs."); }
             }
             if (allocator.AllocatedBytes != 0)
             {
@@ -61,7 +77,8 @@ namespace Mediana.Tests
         }
 
         private static H264PictureOrderState DecodeAndStore(H264Configuration configuration, ReadOnlySpan<byte> nal,
-            ReadOnlySpan<byte> expected, H264PictureOrderState order, H264ReferenceBuffer references, MediaBufferAllocator allocator, int packet)
+            ReadOnlySpan<byte> expected, H264PictureOrderState order, H264ReferenceBuffer references, MediaBufferAllocator allocator, int packet,
+            H264FrameQueue outputs, int displayIndex)
         {
             H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
             H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
@@ -93,8 +110,20 @@ namespace Mediana.Tests
                 }
                 H264Deblocking.Apply(picture, [new H264SliceRegion(header, header.Layout.MacroblockCount)], default);
                 VerifyPicture(picture, expected, packet);
-                references.Store(picture, header, nextOrder.Current);
-                stored = true;
+                VideoFrame frame = H264FramePublisher.Publish(picture, new(displayIndex * 2 + (packet & 1), new(1, 24)),
+                    new(1, new(1, 24)), default);
+                bool queued = false;
+                try
+                {
+                    references.Store(picture, header, nextOrder.Current);
+                    stored = true;
+                    outputs.Add(frame, nextOrder.Current, header);
+                    queued = true;
+                }
+                finally
+                {
+                    if (!queued) { frame.Dispose(); }
+                }
                 return nextOrder;
             }
             finally
@@ -104,6 +133,29 @@ namespace Mediana.Tests
                     picture.Dispose();
                 }
             }
+        }
+
+        private static void VerifyOutput(VideoFrame frame, ReadOnlySpan<byte> expected, int index)
+        {
+            if (frame.Format.ScanMode != VideoScanMode.TopFieldFirst || frame.Timestamp != new MediaTimestamp(index, new(1, 12)) ||
+                frame.Duration is not MediaDuration duration || new MediaTimestamp(duration.Value, duration.TimeBase) != new MediaTimestamp(1, new(1, 12)))
+            {
+                throw new InvalidDataException("Assembled field presentation order or timing differs from the source.");
+            }
+            int offset = 0;
+            for (int plane = 0; plane < frame.Planes.Count; plane++)
+            {
+                for (int row = 0; row < frame.Planes[plane].Height; row++)
+                {
+                    ReadOnlySpan<byte> actual = frame.GetRow(plane, row);
+                    if (!actual.SequenceEqual(expected.Slice(offset, actual.Length)))
+                    {
+                        throw new InvalidDataException($"Assembled field mismatch in frame {index}, plane {plane}, row {row}.");
+                    }
+                    offset += actual.Length;
+                }
+            }
+            if (offset != expected.Length) { throw new InvalidDataException("Unexpected assembled frame dimensions."); }
         }
 
         private static void VerifyPicture(H264Picture picture, ReadOnlySpan<byte> expected, int packet = 0)

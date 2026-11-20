@@ -27,9 +27,8 @@ namespace Mediana.Codecs.H264
             bool fieldPicture = header.Layout.IsField;
             bool reference = header.ReferenceIndicator != 0;
             bool reset = header.MemoryOperations.Any(operation => operation.Operation == 5);
-            bool pairCandidate = !header.IsIdr && fieldPicture && PreviousStructure != H264PictureStructure.Frame &&
-                PreviousStructure != header.Structure && !PreviousFieldPaired && PreviousFrameNumber == header.FrameNumber &&
-                PreviousWasReference == reference;
+            bool pairCandidate = !PreviousFieldPaired && H264FieldPairing.IsCandidate(PreviousStructure,
+                PreviousFrameNumber, PreviousWasReference, header);
             bool complementaryField = pairCandidate && !reset;
             if (!header.IsIdr && header.FrameNumber != (PreviousReferenceFrameNumber + 1) % maximumNumber &&
                 !(pairCandidate && reference))

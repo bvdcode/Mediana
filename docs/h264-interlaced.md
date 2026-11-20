@@ -1,8 +1,7 @@
 # H.264 interlaced decoding
 
-The public decoder still rejects interlaced sequences. Combining complementary fields
-for output, mixed frame/field reference views and macroblock-adaptive frame/field
-reconstruction remain open.
+The public decoder still rejects interlaced sequences. Mixed frame/field reference
+views, macroblock-adaptive frame/field reconstruction and deinterlacing remain open.
 
 The shared slice-header reader distinguishes frame, top-field and bottom-field
 pictures. Picture layout derives the macroblock count, MBAFF pair addresses and
@@ -38,6 +37,17 @@ FFmpeg luma/chroma sample, in managed execution and Native AOT. Coverage include
 CABAC, CAVLC, spatial/temporal direct B prediction, 8/10-bit precision and
 4:2:0/4:2:2 chroma. The 10-bit sources exercise all four low-bit combinations.
 The original two sequences also verify all 48 slice headers and POC values.
+The output queue also assembles these fields into 108 complete frames in presentation
+order, matching every reference sample in managed execution and Native AOT. Each
+pair retains the leading field's timestamp and combines its two known durations
+on an exact common clock. Unknown durations remain unknown.
+
+A pending field retains its pixel lease independently of the reference buffer.
+Pair assembly allocates one final interleaved surface and copies each visible row
+once. It does not allocate full-size intermediate surfaces. Unpaired fields are
+emitted with their actual field geometry; no missing field is synthesized. IDR
+output-discard flags, reference resets, cancellation and failed output allocation
+preserve the queue's ownership contract.
 Additional tests cover all three POC types, parity-aware list modification,
 frame-number wrap, long-term field assignment, buffer occupancy and transactional
 ownership on invalid marking.
@@ -123,4 +133,4 @@ precedence and explicit color policies preserve known field locations. Color
 conversion and horizontal RGBA scaling retain scan mode. Vertical scaling and
 orientation changes that rearrange field rows require deinterlacing first;
 progressive YUV preparation and H.264 encoding reject field storage rather than
-silently relabel it. Output assembly and deinterlacing remain open.
+silently relabel it. Deinterlacing remains open.

@@ -14,7 +14,7 @@ namespace Mediana.Codecs.H264
         private readonly H264Configuration startupConfiguration = initialConfiguration;
         private H264Configuration configuration = initialConfiguration;
         private H264ReferenceBuffer references = new();
-        private H264FrameQueue frames = new();
+        private H264FrameQueue frames = new(allocator);
         private H264PictureOrderState order = new();
         private bool inputCompleted;
         private bool endStream;
@@ -118,7 +118,7 @@ namespace Mediana.Codecs.H264
                 ObjectDisposedException.ThrowIf(disposed, this);
                 frames.Dispose();
                 references.Dispose();
-                frames = new H264FrameQueue();
+                frames = new H264FrameQueue(allocator);
                 references = new H264ReferenceBuffer();
                 order = new H264PictureOrderState();
                 configuration = startupConfiguration;
@@ -175,7 +175,7 @@ namespace Mediana.Codecs.H264
                 cancellationToken.ThrowIfCancellationRequested();
                 references.Store(picture, header, nextOrder.Current);
                 stored = true;
-                frames.Add(frame, nextOrder.Current, header);
+                frames.Add(frame, nextOrder.Current, header, cancellationToken);
                 queued = true;
                 order = nextOrder;
             }
