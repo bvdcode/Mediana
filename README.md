@@ -213,6 +213,7 @@ From the download or extraction directory on Linux/macOS:
 ./mediana probe artwork.svg
 ./mediana cover audio.mp3 cover.png
 ./mediana -i audio.mp3 out.wav
+./mediana -i video.mp4 audio.mp3
 ./mediana -i photo.heic out.png
 ./mediana -i photo.heic out.webp
 ./mediana -i artwork.svg out.webp --image-compression Lossy --quality 80
@@ -286,7 +287,7 @@ The command-line arguments match the source examples below: replace
 `dotnet run --project tools/Mediana.Cli -c Release --` with the executable.
 
 The main command is `mediana -i input output`. Input content determines its
-format; the output extension selects WAVE PCM16 (`.wav` or `.wave`), PNG (`.png`), WebP (`.webp`) or
+format; the output extension selects WAVE PCM16 (`.wav` or `.wave`), MP3 (`.mp3`), PNG (`.png`), WebP (`.webp`) or
 MPEG-TS (`.ts`, stream copy by default). WAVE conversion preserves sample rate and channel
 order and performs no resampling or dithering. RIFF output must fit its 32-bit
 size fields; RF64 is not supported. Named multichannel audio must follow WAVE
@@ -805,7 +806,7 @@ one resource observation, not a controlled throughput comparison.
 
 ## Reading MP3 metadata, frames and pictures
 
-The source-only `Mediana.Containers.Mp3` module reads MPEG-1/2/2.5 Layer III
+The `Mediana.Containers.Mp3` module reads MPEG-1/2/2.5 Layer III
 files from a sequential source, including short reads and unknown source length.
 It reads one leading ID3v2.3/v2.4 tag, text and original APIC picture bytes,
 Xing/Info declarations and a final ID3v1 tag. The sample exposes:
@@ -833,9 +834,11 @@ Metadata/frame sizes and counts are bounded. Unsynchronisation, grouping,
 v2.4 data-length indicators and plain extended headers are handled. Compressed
 or encrypted ID3 frames, extended CRC/update/restriction fields, ID3v2.2,
 VBRI, free-format frame discovery, junk resynchronization, stream format changes,
-seeking, MPEG CRC verification and gapless interpretation are not supported.
-The decoder below verifies MPEG CRCs and enables PCM and waveform export. MP3
-encoding and MP3 transport-stream writing remain unsupported.
+seeking and container-level MPEG CRC verification are not supported.
+The decoder below verifies MPEG CRCs and enables PCM and waveform export.
+Explicit ID3 iTunSMPB presentation selection is available through the shared
+prepared audio source. [Managed Layer III encoding and MP3 file output](docs/mp3-encoding.md)
+use the same registered reader/decoder pipeline; MPEG-TS supports complete MP3 frames.
 
 The [MP3 reference corpus](tests/Mediana.Tests/Data/Mp3/README.md) verifies every
 packet's bytes and coded timing, text, picture contents, trailing tags and

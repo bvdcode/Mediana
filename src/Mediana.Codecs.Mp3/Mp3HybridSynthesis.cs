@@ -8,8 +8,8 @@ namespace Mediana.Codecs.Mp3
         private static readonly double[] LongMatrix = CreateMatrix(18);
         private static readonly double[] ShortMatrix = CreateMatrix(6);
         private static readonly double[][] Windows = [CreateWindow(0), CreateWindow(1), CreateWindow(2), CreateWindow(3)];
-        private static readonly double[] AliasCosines = CreateAlias(false);
-        private static readonly double[] AliasSines = CreateAlias(true);
+        internal static readonly double[] AliasCosines = CreateAlias(false);
+        internal static readonly double[] AliasSines = CreateAlias(true);
 
         public static void Process(Span<double> spectrum, Mp3GranuleInfo info, int sampleRate,
             Span<double> overlap, Span<double> output)

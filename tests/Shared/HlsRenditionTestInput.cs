@@ -94,7 +94,7 @@ namespace Mediana.Tests
             await using RandomAccessStreamByteSource source = new(File.OpenRead(Path.Combine(root, "avc-aac.mp4")));
             await using VideoSession session = await Engine().OpenVideoAsync(source, 0);
             MediaBufferAllocator allocator = new(32 * 1024 * 1024);
-            MediaEngine audioEngine = new MediaEngineBuilder().AddAudioDecoder(new AacDecoderFactory()).Build();
+            MediaEngine audioEngine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie })).AddAudioDecoder(new AacDecoderFactory()).Build();
             await using HlsAacAudioSource audio = await HlsAacAudioSource.OpenAsync(audioEngine, source, 1, [64000, 128000], null, allocator);
             HlsPackageTestOutput output = new();
             HlsRenditionOptions options = Options with

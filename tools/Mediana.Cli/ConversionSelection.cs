@@ -23,11 +23,12 @@ namespace Mediana.Cli
             if (Image.IsSpecified) { return Image.Create(output); }
             return extension switch
             {
+                ".mp3" => Audio.Create(extension),
                 ".wav" or ".wave" => new WaveConversionRequest(),
                 ".png" or ".webp" or ".jpg" or ".jpeg" => Image.Create(output),
                 ".ts" => new CopyConversionRequest(),
                 _ => throw new NotSupportedException("Cannot select an output format from the extension '" + Path.GetExtension(output)
-                    + "'. Use .wav or .wave (PCM16), .png, .jpg, .jpeg or .webp (one image/frame/page), or .ts (AVC/AAC/MP3 stream copy).")
+                    + "'. Use .wav or .wave (PCM16), .png, .jpg, .jpeg or .webp (one image/frame/page), .mp3 (Layer III audio), or .ts (AVC/AAC/MP3 stream copy).")
             };
         }
     }

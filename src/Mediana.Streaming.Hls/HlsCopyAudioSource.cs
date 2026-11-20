@@ -10,38 +10,51 @@ using Mediana.IO;
 
 namespace Mediana.Streaming.Hls
 {
-    /// <summary>Indexed MP4 audio packet delivery to HLS destinations without re-encoding.
+    /// <summary>Indexed audio packet delivery to HLS destinations without re-encoding.
     /// Owns its reader and pending packet, borrows input and destinations. Operations must not overlap.</summary>
     public class HlsCopyAudioSource : HlsAudioSource
     {
-        private readonly Mp4Reader reader;
-        private int sample;
+        private readonly ContainerSession reader;
+        private readonly long packetCount;
+        private long sample;
         private MediaPacket? pending;
         private bool disposed;
         public override long PacketsWritten { get; protected set; }
         public override EncodedStreamInfo Stream { get; }
 
-        private HlsCopyAudioSource(Mp4Reader reader, EncodedStreamInfo stream)
+        private HlsCopyAudioSource(ContainerSession reader, EncodedStreamInfo stream, long packetCount)
         {
             this.reader = reader;
+            this.packetCount = packetCount;
             Stream = stream;
         }
 
-        public static async ValueTask<HlsCopyAudioSource> OpenAsync(IRandomAccessByteSource source, int streamIndex,
-            MediaBufferAllocator allocator, CancellationToken token)
+        /// <summary>Opens MP4/MOV with movie-timeline timestamps. Use the engine overload for registered container formats.</summary>
+        public static ValueTask<HlsCopyAudioSource> OpenAsync(IRandomAccessByteSource source, int streamIndex,
+            MediaBufferAllocator allocator, CancellationToken token) =>
+            OpenAsync(new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory(new()
+                { TimestampMode = Mp4TimestampMode.LinearMovie })).Build(), source, streamIndex, allocator, token);
+
+        public static async ValueTask<HlsCopyAudioSource> OpenAsync(MediaEngine engine, IRandomAccessByteSource source, int streamIndex,
+            MediaBufferAllocator allocator, CancellationToken token = default)
         {
-            Mp4Reader reader = await Mp4Reader.OpenAsync(source, allocator,
-                new() { TimestampMode = Mp4TimestampMode.LinearMovie }, token).ConfigureAwait(false);
+            ArgumentNullException.ThrowIfNull(engine);
+            ArgumentNullException.ThrowIfNull(allocator);
+            ArgumentOutOfRangeException.ThrowIfNegative(streamIndex);
+            ContainerSession reader = await engine.OpenContainerAsync(source, allocator,
+                new() { BufferBudgetBytes = allocator.LimitBytes }, token).ConfigureAwait(false);
             bool success = false;
             try
             {
-                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(streamIndex, reader.Streams.Count);
-                EncodedStreamInfo stream = reader.Streams[streamIndex];
-                if (stream.Kind != MediaKind.Audio || stream.CodecId is not ("aac" or "mp3") || reader.Tracks[streamIndex].SampleCount == 0)
+                EncodedStreamInfo stream = reader.Streams.SingleOrDefault(item => item.StreamIndex == streamIndex)
+                    ?? throw new ArgumentOutOfRangeException(nameof(streamIndex));
+                if (stream.Kind != MediaKind.Audio || stream.CodecId is not ("aac" or "mp3"))
                 {
                     throw new NotSupportedException("HLS audio copy requires a nonempty AAC-LC or MPEG-1/2 Layer III track.");
                 }
-                HlsCopyAudioSource result = new(reader, stream);
+                long count = reader.GetPacketCount(streamIndex);
+                if (count == 0) { throw new NotSupportedException("HLS audio copy requires a nonempty audio track."); }
+                HlsCopyAudioSource result = new(reader, stream, count);
                 success = true;
                 return result;
             }
@@ -56,12 +69,22 @@ namespace Mediana.Streaming.Hls
 
         private async ValueTask<MediaPacket?> ReadPacketAsync(CancellationToken token)
         {
-            if (sample == reader.Tracks[Stream.StreamIndex].SampleCount)
+            if (sample == packetCount)
             {
                 return null;
             }
             MediaPacket packet = await reader.ReadPacketAtAsync(Stream.StreamIndex, sample, token).ConfigureAwait(false);
             sample++;
+            if (packet.DecodeTime is null)
+            {
+                try
+                {
+                    MediaTimestamp time = packet.PresentationTime
+                        ?? throw new NotSupportedException("HLS audio copy requires a known packet timestamp.");
+                    return packet.RetainWithTiming(time, time, packet.Duration);
+                }
+                finally { packet.Dispose(); }
+            }
             return packet;
         }
 

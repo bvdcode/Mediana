@@ -52,6 +52,10 @@ namespace Mediana.Core
         /// <summary>Returns an independently owned lease of the immutable payload without copying.
         /// It survives packet disposal and retains the original backing allocation and its budget.</summary>
         public MediaBuffer RetainData() => buffer.Retain();
+
+        /// <summary>Creates an independently owned packet with replacement timing, retaining payload and all side data without copying.</summary>
+        public MediaPacket RetainWithTiming(MediaTimestamp? presentationTime, MediaTimestamp? decodeTime, MediaDuration? duration) =>
+            new(StreamIndex, buffer, presentationTime, decodeTime, duration, IsKeyFrame, sideData);
         public int SideDataCount => sideData?.Length ?? 0;
 
         public MediaPacketSideDataView GetSideData(int index)

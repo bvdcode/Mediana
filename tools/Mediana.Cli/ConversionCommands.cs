@@ -9,7 +9,7 @@ namespace Mediana.Cli
 {
     internal class ConversionCommands(ILogger logger, TextWriter writer, CliOperation operation, CommandOutputPolicy outputs) : MediaCommands(outputs)
     {
-        /// <summary>Inspect media: mediana -i input. Convert media: mediana -i input output.wav|output.png|output.jpg|output.webp|output.ts.</summary>
+        /// <summary>Inspect media: mediana -i input. Convert media: mediana -i input output.wav|output.mp3|output.png|output.jpg|output.webp|output.ts.</summary>
         /// <param name="output">Optional output file. Omit to inspect the input; its extension selects the conversion format.</param>
         /// <param name="input">-i, Existing input file; its content determines the input format.</param>
         /// <param name="stream">Audio or video stream index; defaults to the first stream of the required kind.</param>
@@ -22,9 +22,9 @@ namespace Mediana.Cli
         /// <param name="height">Maximum encoded video storage height; rounded down to an even size without enlargement.</param>
         /// <param name="videoBitRate">Constrained variable AVC packet rate in bits/second; omit for fixed QP.</param>
         /// <param name="videoBufferMs">Video packet buffer duration in milliseconds; requires video-bit-rate, defaults to 2000.</param>
-        /// <param name="audioCodec">Encode an audio-only TS file with AAC-LC.</param>
-        /// <param name="audioBitRate">Raw AAC bitrate ceiling in bits/second; defaults to 128000.</param>
-        /// <param name="audioChannels">Explicitly downmix encoded AAC to 1 or 2 channels with normalized ITU coefficients; LFE is omitted. Requires audio-codec Aac.</param>
+        /// <param name="audioCodec">Select AAC-LC for .ts or Layer III for .mp3 audio output.</param>
+        /// <param name="audioBitRate">Audio bitrate in bits/second; defaults to 128000.</param>
+        /// <param name="audioChannels">Explicitly downmix encoded audio to 1 or 2 channels with normalized ITU coefficients; LFE is omitted.</param>
         /// <param name="imageCompression">Image compression: Lossless or Lossy; defaults to the output format preference.</param>
         /// <param name="quality">Lossy image quality from 0 to 100. Defaults to 75; WebP requires image-compression Lossy.</param>
         /// <param name="chromaSampling">JPEG sampling: Sampling420 (default), Sampling422, Sampling444 or Monochrome.</param>

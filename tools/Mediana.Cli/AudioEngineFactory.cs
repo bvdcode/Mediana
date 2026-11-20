@@ -8,14 +8,15 @@ using Mediana.Codecs.Opus;
 using Mediana.Codecs.Vorbis;
 using Mediana.Codecs.Flac;
 using Mediana.Codecs.Pcm;
+using Mediana.Containers.Mp4;
 
 namespace Mediana.Cli
 {
     internal static class AudioEngineFactory
     {
-        public static MediaEngine Create() => CreateBuilder().Build();
+        public static MediaEngine Create(Mp4TimestampMode timestampMode = Mp4TimestampMode.Media) => CreateBuilder(timestampMode).Build();
 
-        public static MediaEngineBuilder CreateBuilder() => ContainerEngineFactory.CreateBuilder()
+        public static MediaEngineBuilder CreateBuilder(Mp4TimestampMode timestampMode = Mp4TimestampMode.Media) => ContainerEngineFactory.CreateBuilder(timestampMode)
             .AddAudioDecoder(new FlacDecoderFactory())
             .AddAudioDecoder(new PcmDecoderFactory())
             .AddAudioDecoder(new AiffPcmDecoderFactory())

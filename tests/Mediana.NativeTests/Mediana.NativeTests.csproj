@@ -61,6 +61,7 @@
     <Compile Include="../Shared/HlsPackageTestOutput.cs" Link="HlsPackageTestOutput.cs" />
     <Compile Include="../Shared/DocumentResourceTestInput.cs" Link="DocumentResourceTestInput.cs" />
     <Compile Include="../Shared/HlsAudioPreparationTestInput.cs" Link="HlsAudioPreparationTestInput.cs" />
+    <Compile Include="../Shared/HlsContainerAudioTestInput.cs" Link="HlsContainerAudioTestInput.cs" />
     <Compile Include="../Shared/EmbeddedImageTestInput.cs" Link="EmbeddedImageTestInput.cs" />
     <Compile Include="../Shared/EmbeddedTestImageDecoder.cs" Link="EmbeddedTestImageDecoder.cs" />
     <Compile Include="../Shared/FluentEmojiTestInput.cs" Link="FluentEmojiTestInput.cs" />
@@ -272,6 +273,8 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Jpeg2000/Mediana.Codecs.Jpeg2000.csproj" />
     <Compile Include="../Shared/Mp3DecodeTestInput.cs" Link="Mp3DecodeTestInput.cs" />
     <Compile Include="../Shared/Mp3HuffmanTestInput.cs" Link="Mp3HuffmanTestInput.cs" />
+    <Compile Include="../Shared/Mp3EncodeTestInput.cs" Link="Mp3EncodeTestInput.cs" />
+    <Compile Include="../Shared/Mp3FileTestInput.cs" Link="Mp3FileTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Mp3/Mediana.Codecs.Mp3.csproj" />
     <Compile Include="../Shared/Mp3SyntaxTestInput.cs" Link="Mp3SyntaxTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Containers.Mp3/Mediana.Containers.Mp3.csproj" />

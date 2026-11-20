@@ -27,8 +27,8 @@ namespace Mediana.Cli
             int[] sourceRates = separateAudio ? audioBitRates.Distinct().ToArray() : audioBitRates;
             await using HlsAudioSource? audio = audioIndex is int index ? audioCodec switch
             {
-                null => await HlsCopyAudioSource.OpenAsync(source, index, allocator, token),
-                AudioCodecMode.Aac => await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(), source, index, sourceRates, audioChannels, allocator, token),
+                null => await HlsCopyAudioSource.OpenAsync(engine, source, index, allocator, token),
+                AudioCodecMode.Aac => await HlsAacAudioSource.OpenAsync(AudioEngineFactory.Create(Mp4TimestampMode.LinearMovie), source, index, sourceRates, audioChannels, allocator, token),
                 _ => throw new ArgumentOutOfRangeException(nameof(audioCodec))
             } : null;
             HlsRenditionOptions options = new()

@@ -11,6 +11,37 @@ namespace Mediana.Tests
     public class MediaPacketSideDataTests
     {
         [Fact]
+        public void ReplacementTimingPreservesPayloadSideDataAndIndependentOwnership()
+        {
+            MediaBufferAllocator allocator = new(32);
+            MediaPacket retained;
+            using (WritableMediaBuffer writable = allocator.Allocate(32))
+            using (MediaBuffer buffer = writable.Publish())
+            using (MediaPacketSideData side = new("transport.protection", buffer))
+            using (MediaPacket packet = new(2, buffer, new(0, new(1, 48000)), duration: new(1024, new(1, 48000)),
+                isKeyFrame: true, sideData: [side]))
+            {
+                retained = packet.RetainWithTiming(new(7, new(1, 48000)), new(3, new(1, 48000)), new(512, new(1, 48000)));
+                Assert.Equal(packet.Data, retained.Data);
+                Assert.Equal(packet.GetSideData(0), retained.GetSideData(0));
+                Assert.Null(packet.DecodeTime);
+                packet.Dispose();
+                Assert.Throws<ObjectDisposedException>(() => packet.RetainWithTiming(null, null, null));
+            }
+            using (retained)
+            {
+                Assert.Equal(32, allocator.AllocatedBytes);
+                Assert.Equal(2, retained.StreamIndex);
+                Assert.Equal(new MediaTimestamp(7, new(1, 48000)), retained.PresentationTime);
+                Assert.Equal(new MediaTimestamp(3, new(1, 48000)), retained.DecodeTime);
+                Assert.Equal(new MediaDuration(512, new(1, 48000)), retained.Duration);
+                Assert.True(retained.IsKeyFrame);
+                Assert.Equal(32, retained.GetSideData(0).Data.Length);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
         public void PayloadAndSideDataShareOneBackingAllocationAcrossPacketRetains()
         {
             MediaBufferAllocator allocator = new(32);

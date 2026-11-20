@@ -20,12 +20,24 @@ recording or decode again for another bitrate. Equal bitrates reuse the same AAC
 encoder and packets, including nonadjacent variants in the requested order.
 
 `Mediana.Streaming.Hls` exposes this preparation as `HlsAacPcmSource` and
-`HlsAacAudioSource`. The caller supplies a `MediaEngine` with audio decoders and
-the shared allocator; container factory registration is not required. The MP4
-reader is opened once for edits and packet indexing, then transferred to
-`MediaEngine.OpenAudio(reader, allocator, streamIndex)`. Decoder creation failure
-leaves reader ownership with the caller. The source remains borrowed throughout.
-`HlsCopyAudioSource` exposes the corresponding indexed audio-copy path.
+`HlsAacAudioSource`. The caller supplies a `MediaEngine` with registered container
+readers and audio decoders, plus the shared allocator. The container is opened
+once, its optional `IContainerPresentationReader` interval is queried, and
+ownership transfers to `MediaEngine.OpenAudio(container, streamIndex)`.
+Preparation selects sample instants in that interval on the reader's packet
+timeline. For MP4/MOV synchronized movie output, register `Mp4ReaderFactory`
+with `Mp4TimestampMode.LinearMovie`, consistently with the video reader.
+The source remains borrowed throughout. AVI PCM and other registered audio
+inputs use the same preparation without MP4-specific branches.
+
+`HlsCopyAudioSource.OpenAsync(engine, ...)` exposes indexed AAC/MP3 delivery
+through the same container registry. It reads only selected audio packets;
+the reader must expose indexed packet access. The overload without an engine
+opens MP4/MOV on the movie timeline.
+AAC and MP3 access units do not reorder presentation: when a container supplies
+PTS without a separate DTS, transport delivery uses that PTS for both clocks.
+The payload, duration and packet side data remain unchanged. Missing both
+timestamps is an error.
 
 The PCM source applies explicit movie edit windows and `AudioEncodingPcm` once.
 It does not own unrelated allocations in the shared budget. Each returned frame

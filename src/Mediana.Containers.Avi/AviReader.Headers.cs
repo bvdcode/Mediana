@@ -86,11 +86,12 @@ namespace Mediana.Containers.Avi
             foreach (AviTrack track in tracks)
             {
                 if (track.Stream.CodecId == Mpeg4VisualConfiguration.CodecId) { await ReadVisualClocksAsync(track, cancellationToken).ConfigureAwait(false); }
+                if (track.Stream.CodecId == Mp3FrameHeader.CodecId) { await ReadMp3IndexAsync(track, cancellationToken).ConfigureAwait(false); }
                 TimeBase clock = track.Stream.TimeBase;
                 streams.Add(track.Stream);
                 FrameRate? rate = null;
                 if (track.Stream.Kind == MediaKind.Video) { rate = new(clock.Denominator, clock.Numerator); }
-                metadata.Add(new(track.Stream.StreamIndex, new(track.DeclaredLength, clock), packetIndex:
+                metadata.Add(new(track.Stream.StreamIndex, track.DeclaredDuration, packetIndex:
                     new(track.Packets.Count, track.PayloadBytes, new(track.Time - track.Start, clock)), averageFrameRate: rate));
             }
             Streams = streams.AsReadOnly();
@@ -200,6 +201,10 @@ namespace Mediana.Containers.Avi
                     return new(streamIndex, MediaKind.Video, NativeId(compression), NativeFormat, clock, format, codedDuration: duration);
                 case 0x73647561:
                     if (format.Length < 16) { throw new InvalidDataException("An AVI audio stream requires a complete WAVE format."); }
+                    if (BinaryPrimitives.ReadUInt16LittleEndian(format) == 0x55)
+                    {
+                        return new(streamIndex, MediaKind.Audio, Mp3FrameHeader.CodecId, StreamFormats.Mp3, clock, format, codedDuration: duration);
+                    }
                     PcmConfiguration? pcm = PcmConfiguration.ReadWaveFormat(format, out _);
                     if (pcm is not null)
                     {

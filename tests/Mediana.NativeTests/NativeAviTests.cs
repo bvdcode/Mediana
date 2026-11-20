@@ -19,6 +19,10 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await Mediana.Tests.HlsContainerAudioTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Avi"));
+            await Mediana.Tests.Mp3FileTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Avi", "mjpeg-pcm.avi"), 72000);
+            await Mediana.Tests.Mp3FileTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp4", "avc-aac.mp4"));
+            Console.WriteLine("PASS MP3 file output: AVI/MP4 decoding, managed encoding, Xing/ID3 selection and exact audible sample counts.");
             string path = Path.Combine(AppContext.BaseDirectory, "Data", "Avi", "mjpeg-pcm.avi");
             using FileStream input = File.OpenRead(path);
             await using RandomAccessStreamByteSource source = new(input, leaveOpen: true);

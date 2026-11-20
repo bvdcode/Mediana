@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using Mediana.Codecs.Aac;
+using Mediana.Containers.Mp4;
 using Mediana.Core.Audio;
 using Mediana.Core.Memory;
 using Mediana.IO;
@@ -15,7 +16,7 @@ namespace Mediana.Tests
         {
             await using FileStream file = File.OpenRead(Path.Combine(root, "lc-mono-48.m4a"));
             await using RandomAccessStreamByteSource source = new(file, leaveOpen: true);
-            MediaEngine engine = new MediaEngineBuilder().AddAudioDecoder(new AacDecoderFactory()).Build();
+            MediaEngine engine = new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory(new() { TimestampMode = Mp4TimestampMode.LinearMovie })).AddAudioDecoder(new AacDecoderFactory()).Build();
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
             using WritableMediaBuffer unrelated = allocator.Allocate(16);
             long samples = 0;
