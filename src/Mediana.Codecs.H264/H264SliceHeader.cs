@@ -3,8 +3,10 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal record H264SliceHeader(H264SequenceParameterSet Sequence, H264PictureParameterSet Picture)
+    internal record H264SliceHeader(H264SequenceParameterSet Sequence, H264PictureParameterSet Picture,
+        H264PictureStructure Structure = H264PictureStructure.Frame)
     {
+        public H264PictureLayout Layout => new(Sequence, Structure);
         public H264SliceKind Kind { get; init; }
         public bool AllSlicesSameKind { get; init; }
         public bool IsIdr { get; init; }

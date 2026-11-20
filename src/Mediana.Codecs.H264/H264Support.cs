@@ -7,10 +7,10 @@ namespace Mediana.Codecs.H264
     {
         public static string? GetUnsupportedHeaderReason(H264SequenceParameterSet sequence)
         {
-            if (!sequence.FrameMbsOnly || sequence.ChromaFormat is not (1 or 2) || sequence.SeparateColourPlane ||
+            if (sequence.ChromaFormat is not (1 or 2) || sequence.SeparateColourPlane ||
                 sequence.LumaBitDepth is not (8 or 10) || sequence.ChromaBitDepth != sequence.LumaBitDepth)
             {
-                return "Slice header parsing currently requires progressive 8-bit or 10-bit 4:2:0 or 4:2:2 pictures.";
+                return "Slice header parsing currently requires 8-bit or 10-bit 4:2:0 or 4:2:2 pictures.";
             }
             return null;
         }
@@ -21,6 +21,10 @@ namespace Mediana.Codecs.H264
             if (reason is not null)
             {
                 return reason;
+            }
+            if (!sequence.FrameMbsOnly)
+            {
+                return "Interlaced H.264 reconstruction is not supported yet.";
             }
             if (sequence.ScalingMatrix || sequence.TransformBypass)
             {

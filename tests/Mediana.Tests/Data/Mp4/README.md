@@ -523,3 +523,41 @@ Decode using FFmpeg `-threads 1 -fps_mode passthrough -f rawvideo`, choosing
 | `avc-high422-10-cabac-q45.yuv.gz` | `e1264fe236fad0b2f114feb358728d67386f0d516caaf824ec3ff40ec32cd17d` |
 | `avc-high422-10-cavlc-q1.mp4` | `eb392fc3a17bb854b90d36d1cb49ee38691fc4c142b4095a986ca14e316eb1fb` |
 | `avc-high422-10-cavlc-q1.yuv.gz` | `d7cb2c4161352ea3b4d20c6a9e123ae76c8b3fd4275a09386f2e352f00757750` |
+
+
+## Complementary field slice headers
+
+`avc-paff-cabac.mp4` and `avc-paff-cavlc.mp4` contain twelve 96×96
+interlaced frames, coded as twenty-four separate fields by the JM 19.1
+reference encoder. Both use 4:2:0, two reference frames, QP 24 and three IDRs.
+The top field precedes the bottom field; each field occupies 1/24 second.
+The header tests verify picture structure, macroblock bounds, frame numbers,
+picture order, slice kinds and quantizers against FFmpeg `trace_headers`.
+These checks cover syntax; complete interlaced reconstruction remains open.
+
+Generate a twelve-frame source using:
+
+```sh
+ffmpeg -f lavfi -i testsrc2=size=96x96:rate=24 -vf tinterlace=interleave_top -frames:v 12 -pix_fmt yuv420p -threads 1 -f rawvideo source.yuv
+```
+
+Use JM's `encoder.cfg` with `SourceWidth=96`, `SourceHeight=96`,
+`FramesToBeEncoded=12`, `FrameRate=12`, `NumberBFrames=0`,
+`HierarchicalCoding=0`, `NumberReferenceFrames=2`, `PicInterlace=1`,
+`MbInterlace=0`, `QPISlice=24`, `QPPSlice=24`, `QPBSlice=24`,
+`IDRPeriod=4`, `AdaptiveIntraPeriod=0` and `SymbolMode=1` for CABAC
+or `SymbolMode=0` for CAVLC. Set input, output and reconstruction paths
+explicitly. Package the elementary stream with:
+
+```sh
+ffmpeg -r 24 -i input.264 -c:v copy -bsf:v h264_metadata,setts=pts=N:dts=N:duration=1:time_base=1/24 output.mp4
+```
+
+`h264_metadata` serializes parameter sets without Annex B trailing zero
+bytes in the length-prefixed output. Independently decoded samples are
+unchanged by this serialization.
+
+| File | SHA-256 |
+| --- | --- |
+| `avc-paff-cabac.mp4` | `e4b31a4b8e8a3f1b651eb9c06156c983b4cd8b632eeedec564e2734d46c19ad0` |
+| `avc-paff-cavlc.mp4` | `cb649e57d0685984c6b0b8acc9c6e37ed5e8f901161dacb0aa858e0db558bd27` |

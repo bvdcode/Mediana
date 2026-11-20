@@ -37,14 +37,21 @@ namespace Mediana.Codecs.H264
                 throw new InvalidDataException("The H.264 slice references an unknown picture parameter set.");
             }
             H264SequenceParameterSet sequence = configuration.Sequences[picture.SequenceId];
-            ValidateConfiguration(sequence, firstMacroblock);
+            ValidateConfiguration(sequence);
             int frameNumber = (int)bits.ReadBits(sequence.FrameNumberBits);
+            H264PictureStructure structure = H264PictureStructure.Frame;
+            if (!sequence.FrameMbsOnly && bits.ReadFlag())
+            {
+                structure = bits.ReadFlag() ? H264PictureStructure.BottomField : H264PictureStructure.TopField;
+            }
+            H264PictureLayout layout = new(sequence, structure);
+            firstMacroblock = layout.FirstMacroblockAddress(firstMacroblock);
             if (idr && frameNumber != 0)
             {
                 throw new InvalidDataException("An H.264 IDR picture must have frame_num equal to zero.");
             }
             int? idrPictureId = idr ? bits.ReadUe(65535) : null;
-            (int orderLsb, int deltaBottom, int delta0, int delta1) = ReadPictureOrder(ref bits, sequence, picture);
+            (int orderLsb, int deltaBottom, int delta0, int delta1) = ReadPictureOrder(ref bits, sequence, picture, layout.IsField);
             if (picture.RedundantPictureCountPresent && bits.ReadUe(127) != 0)
             {
                 throw new NotSupportedException("Redundant H.264 slices are not supported.");
@@ -64,10 +71,10 @@ namespace Mediana.Codecs.H264
                 {
                     activeReferencesL1 = overrideReferences ? bits.ReadUe(31) + 1 : picture.DefaultReferencesL1;
                 }
-                modifications = H264ReferenceSyntax.ReadModifications(ref bits, activeReferencesL0, 1 << sequence.FrameNumberBits);
+                modifications = H264ReferenceSyntax.ReadModifications(ref bits, activeReferencesL0, layout.MaximumPictureNumber, layout.IsField);
                 if (kind == H264SliceKind.B)
                 {
-                    modificationsL1 = H264ReferenceSyntax.ReadModifications(ref bits, activeReferencesL1, 1 << sequence.FrameNumberBits);
+                    modificationsL1 = H264ReferenceSyntax.ReadModifications(ref bits, activeReferencesL1, layout.MaximumPictureNumber, layout.IsField);
                 }
                 if ((kind == H264SliceKind.P && picture.WeightedPrediction)
                     || (kind == H264SliceKind.B && picture.WeightedBiPrediction == 1))
@@ -91,7 +98,7 @@ namespace Mediana.Codecs.H264
                     adaptiveMarking = bits.ReadFlag();
                     if (adaptiveMarking)
                     {
-                        operations = H264ReferenceSyntax.ReadMarking(ref bits, 1 << sequence.FrameNumberBits, limits.MaxReferenceOperations);
+                        operations = H264ReferenceSyntax.ReadMarking(ref bits, layout.MaximumPictureNumber, limits.MaxReferenceOperations, layout.IsField);
                     }
                 }
             }
@@ -110,7 +117,7 @@ namespace Mediana.Codecs.H264
                 alphaOffset = bits.ReadSe(-6, 6) * 2;
                 betaOffset = bits.ReadSe(-6, 6) * 2;
             }
-            return new H264SliceHeader(sequence, picture)
+            return new H264SliceHeader(sequence, picture, structure)
             {
                 Kind = kind,
                 AllSlicesSameKind = sliceType >= 5,
@@ -143,7 +150,7 @@ namespace Mediana.Codecs.H264
         }
 
         private static (int Lsb, int DeltaBottom, int Delta0, int Delta1) ReadPictureOrder(ref H264BitReader bits,
-            H264SequenceParameterSet sequence, H264PictureParameterSet picture)
+            H264SequenceParameterSet sequence, H264PictureParameterSet picture, bool fieldPicture)
         {
             int lsb = 0;
             int deltaBottom = 0;
@@ -152,7 +159,7 @@ namespace Mediana.Codecs.H264
             if (sequence.PictureOrderType == 0)
             {
                 lsb = (int)bits.ReadBits(sequence.PictureOrderBits);
-                if (picture.BottomFieldPictureOrderPresent)
+                if (picture.BottomFieldPictureOrderPresent && !fieldPicture)
                 {
                     deltaBottom = bits.ReadSe();
                 }
@@ -160,7 +167,7 @@ namespace Mediana.Codecs.H264
             if (sequence.PictureOrderType == 1 && !sequence.DeltaPictureOrderAlwaysZero)
             {
                 delta0 = bits.ReadSe();
-                if (picture.BottomFieldPictureOrderPresent)
+                if (picture.BottomFieldPictureOrderPresent && !fieldPicture)
                 {
                     delta1 = bits.ReadSe();
                 }
@@ -168,12 +175,8 @@ namespace Mediana.Codecs.H264
             return (lsb, deltaBottom, delta0, delta1);
         }
 
-        private static void ValidateConfiguration(H264SequenceParameterSet sequence, int firstMacroblock)
+        private static void ValidateConfiguration(H264SequenceParameterSet sequence)
         {
-            if (firstMacroblock >= sequence.WidthInMbs * sequence.HeightInMapUnits)
-            {
-                throw new InvalidDataException("The H.264 first macroblock is outside the picture.");
-            }
             string? reason = H264Support.GetUnsupportedHeaderReason(sequence);
             if (reason is not null)
             {
