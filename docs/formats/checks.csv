@@ -1,7 +1,7 @@
 format_id,operation,implementation,samples,correctness,cpu,memory,aot,evidence
 mp4-classic,read,partial,partial,partial,planned,planned,partial,../architecture.md;../../tests/Mediana.Tests/Data/Mp4/README.md
 mp4-classic,write,planned,planned,planned,planned,planned,planned,
-mp4-fragmented,read,planned,planned,planned,planned,planned,planned,
+mp4-fragmented,read,partial,partial,partial,planned,partial,partial,../mp4-fragmented-input.md;../../tests/Mediana.Tests/Data/Mp4/fragment-input.md
 mp4-fragmented,write,planned,planned,planned,planned,planned,planned,
 mov,read,partial,partial,partial,planned,planned,planned,../architecture.md;../../tests/Mediana.Tests/Data/Mp4/README.md
 mov,write,planned,planned,planned,planned,planned,planned,

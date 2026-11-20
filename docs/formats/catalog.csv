@@ -1,6 +1,6 @@
 id,section,name,variant,kind,extensions,tier,specs,notes
 mp4-classic,Containers and packaging,MP4 / ISO BMFF,Non-fragmented files,container,.mp4 .m4a .m4v,A,iso-bmff,Current reader maps AVC/HEVC/MPEG-4 Visual/AAC/MP3; other codec mappings remain separate work.
-mp4-fragmented,Containers and packaging,MP4 / ISO BMFF,Fragmented files,container,.mp4 .m4s,A,iso-bmff,"Includes initialization segments, fragment timing and incremental input."
+mp4-fragmented,Containers and packaging,MP4 / ISO BMFF,Fragmented files,container,.mp4 .m4s,A,iso-bmff,"Self-contained indexed fragment input with metadata, decoding and seeking; growing input and separate initialization resources remain open. [API](../mp4-fragmented-input.md)."
 mov,Containers and packaging,QuickTime,Movie files,container,.mov .qt,A,quicktime,Current MP4-family reader covers a subset; legacy QuickTime sample descriptions remain open.
 3gp,Containers and packaging,3GPP,3GP / 3G2 files,container,.3gp .3g2,B,iso-bmff;discovery,Validate their brands and track mappings independently of MP4.
 matroska-indexed,Containers and packaging,Matroska,Indexed file presentation,container,.mkv .mka .mks,A,matroska,Indexed AVC/HEVC/VP8/VP9/MJPEG/AAC/MP3 mappings; other codecs remain stored representations.

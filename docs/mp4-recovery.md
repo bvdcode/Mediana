@@ -1,7 +1,7 @@
 # MP4 recovery groups
 
 `Mp4TrackInfo.RecoveryGroups` preserves supported `roll` and `prol` sample-group
-declarations from non-fragmented MP4/MOV files. They describe decoder recovery
+declarations from ordinary and fragmented MP4/MOV files. They describe decoder recovery
 history in encoded track samples, independently of media edits and encoder delay.
 The [MP4 Registration Authority](https://mp4ra.org/registered-types/sample-groups)
 registers the grouping identifiers.
@@ -84,3 +84,5 @@ through the public HLS session. All 30 fragments retained identical media payloa
 packet timestamps, durations and flags when recovery metadata was added. Each
 track mapped all 2814 encoded audio samples, including initial priming. Full
 file/HTTP playback and seeking passed independent decoding checks.
+
+Fragment mappings resolve track-level descriptions separately from fragment-local descriptions. Their runs are combined into global decode-order sample indices, so preroll can cross fragment boundaries. See [fragmented input](mp4-fragmented-input.md).

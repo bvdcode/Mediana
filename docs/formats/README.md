@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 121 variants · 152 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 122 variants · 153 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -23,7 +23,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | Group | Implemented variants | Target variants | Implemented operations | Target operations |
 | --- | ---: | ---: | ---: | ---: |
-| [Containers and packaging](#containers-and-packaging) | 17 | 44 | 19 | 88 |
+| [Containers and packaging](#containers-and-packaging) | 18 | 44 | 20 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 7 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
@@ -48,7 +48,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
 | `mp4-classic` | MP4 / ISO BMFF — Non-fragmented files | .mp4 .m4a .m4v | R ◐ · W □ | A | Current reader maps AVC/HEVC/MPEG-4 Visual/AAC/MP3; other codec mappings remain separate work. [iso-bmff](sources.md#iso-bmff) | [aac-multichannel](../performance/README.md#aac-multichannel), [avc-decode-30m](../performance/README.md#avc-decode-30m), [remux-hls](../performance/README.md#remux-hls) |
-| `mp4-fragmented` | MP4 / ISO BMFF — Fragmented files | .mp4 .m4s | R □ · W □ | A | Includes initialization segments, fragment timing and incremental input. [iso-bmff](sources.md#iso-bmff) | — |
+| `mp4-fragmented` | MP4 / ISO BMFF — Fragmented files | .mp4 .m4s | R ◐ · W □ | A | Self-contained indexed fragment input with metadata, decoding and seeking; growing input and separate initialization resources remain open. [API](../mp4-fragmented-input.md). [iso-bmff](sources.md#iso-bmff) | — |
 | `mov` | QuickTime — Movie files | .mov .qt | R ◐ · W □ | A | Current MP4-family reader covers a subset; legacy QuickTime sample descriptions remain open. [quicktime](sources.md#quicktime) | — |
 | `3gp` | 3GPP — 3GP / 3G2 files | .3gp .3g2 | R □ · W □ | B | Validate their brands and track mappings independently of MP4. [iso-bmff](sources.md#iso-bmff), [discovery](sources.md#discovery) | — |
 | `matroska-indexed` | Matroska — Indexed file presentation | .mkv .mka .mks | R ◐ · W □ | A | Indexed AVC/HEVC/VP8/VP9/MJPEG/AAC/MP3 mappings; other codecs remain stored representations. [matroska](sources.md#matroska) | — |
