@@ -6,6 +6,7 @@ using Mediana.Codecs.Pnm;
 using Mediana.Core.Memory;
 using Mediana.Core.Metadata;
 using Mediana.Core.Video;
+using Mediana.Processing;
 
 namespace Mediana.Codecs.Raster.Tests
 {
@@ -51,10 +52,28 @@ namespace Mediana.Codecs.Raster.Tests
             using VideoFrame second = await decoder.DecodeAsync(encoded, new() { PageIndex = 1 }, allocator);
             Assert.Equal(new byte[] { 10, 32, 35, 255 }, first.Data.ToArray());
             Assert.Equal(new byte[] { 128, 128, 128, 255 }, second.Data.ToArray());
-            Assert.Equal(TransferFunction.Bt709, first.Format.Color.Transfer);
+            Assert.Equal(TransferFunction.Bt709Oetf, first.Format.Color.Transfer);
             ImageInfo info = await decoder.ReadInfoAsync(encoded);
             Assert.Equal(2, info.PageCount); Assert.Equal(2, info.Metadata.Children.Count);
             await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => await decoder.DecodeAsync(encoded, new() { PageIndex = 2 }, allocator));
+        }
+
+        [Theory]
+        [InlineData("P2\n3 1\n255\n8 128 255\n")]
+        [InlineData("P2\n3 1\n1023\n32 514 1023\n")]
+        [InlineData("P3\n1 1\n255\n8 128 255\n")]
+        public void OpticalBt709SamplesConvertToSrgbWithoutReferenceDisplayDarkening(string source)
+        {
+            MediaBufferAllocator allocator = new(1024);
+            using (VideoFrame decoded = new PnmImageDecoder().Decode(Encoding.ASCII.GetBytes(source), new(), allocator))
+            using (VideoFrame srgb = SrgbConverter.Apply(decoded, allocator))
+            {
+                byte[] expected = decoded.Format.Width == 1 ? [20, 140, 255, 255]
+                    : [20, 20, 20, 255, 140, 140, 140, 255, 255, 255, 255, 255];
+                Assert.Equal(expected, srgb.Data.ToArray());
+                Assert.Equal(VideoColorInfo.Srgb, srgb.Format.Color);
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
         }
 
         [Theory]

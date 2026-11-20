@@ -14,6 +14,7 @@ namespace Mediana.Processing
             {
                 // Ideal BT.1886 reference display: normalized white 1, black 0, gamma 2.4.
                 TransferFunction.Bt709 or TransferFunction.Smpte240M => Math.Pow(value, 2.4),
+                TransferFunction.Bt709Oetf => value < 0.081 ? value / 4.5 : Math.Pow((value + 0.099) / 1.099, 1 / 0.45),
                 TransferFunction.Srgb => value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4),
                 TransferFunction.Linear => value,
                 TransferFunction.Gamma22 => Math.Pow(value, 2.2),
