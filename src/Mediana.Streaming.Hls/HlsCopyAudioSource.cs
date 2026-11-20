@@ -33,7 +33,7 @@ namespace Mediana.Streaming.Hls
         public static ValueTask<HlsCopyAudioSource> OpenAsync(IRandomAccessByteSource source, int streamIndex,
             MediaBufferAllocator allocator, CancellationToken token) =>
             OpenAsync(new MediaEngineBuilder().AddContainer(new Mp4ReaderFactory(new()
-                { TimestampMode = Mp4TimestampMode.LinearMovie })).Build(), source, streamIndex, allocator, token);
+            { TimestampMode = Mp4TimestampMode.LinearMovie })).Build(), source, streamIndex, allocator, token);
 
         public static async ValueTask<HlsCopyAudioSource> OpenAsync(MediaEngine engine, IRandomAccessByteSource source, int streamIndex,
             MediaBufferAllocator allocator, CancellationToken token = default)

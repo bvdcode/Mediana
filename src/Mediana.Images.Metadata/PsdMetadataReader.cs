@@ -51,7 +51,8 @@ namespace Mediana.Images.Metadata
                 List<MediaMetadata> nested = [];
                 switch (id)
                 {
-                    case 1058: case 1059:
+                    case 1058:
+                    case 1059:
                         nested.Add(ExifMetadataReader.Read(payload, cancellationToken));
                         break;
                     case 1039:
@@ -60,7 +61,8 @@ namespace Mediana.Images.Metadata
                     case 1060:
                         resource.Add(new("xmp", "packet", Encoding.UTF8.GetString(payload.Span)));
                         break;
-                    case 1033: case 1036:
+                    case 1033:
+                    case 1036:
                         ReadThumbnail(payload, id, resource, previews, cancellationToken);
                         break;
                 }

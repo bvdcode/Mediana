@@ -50,11 +50,18 @@ namespace Mediana.Tests
             {
                 Sequence = basis.Sequence with
                 {
-                    Width = 32, Height = 64, WidthInMbs = 2, HeightInMapUnits = 2,
-                    FrameMbsOnly = false, MbAdaptiveFrameField = true
+                    Width = 32,
+                    Height = 64,
+                    WidthInMbs = 2,
+                    HeightInMapUnits = 2,
+                    FrameMbsOnly = false,
+                    MbAdaptiveFrameField = true
                 },
                 Picture = basis.Picture with { Cabac = true },
-                Kind = kind, Qp = 26, CabacInitIdc = initialization, FirstMacroblock = first
+                Kind = kind,
+                Qp = 26,
+                CabacInitIdc = initialization,
+                FirstMacroblock = first
             };
             using H264Picture picture = new(header.Sequence, allocator, kind);
             using H264CabacMacroblockState state = new(picture, allocator, first);
