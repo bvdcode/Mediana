@@ -48,25 +48,11 @@ namespace Mediana.Codecs.H264
             CancellationToken cancellationToken = default)
         {
             int qp = header.Qp;
-            int address = header.FirstMacroblock;
-            while (address < endMacroblock && bits.MoreRbspData())
+            H264CavlcSliceCursor cursor = new(header.Layout, header.Kind, header.FirstMacroblock, endMacroblock);
+            while (cursor.MoveNext(ref bits, result.Grid, out int address, out bool skipped))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                int skip = bits.ReadUe(endMacroblock - address);
-                for (int index = 0; index < skip; index++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    ReadMacroblock(ref bits, result, header, references, order, address++, ref qp, true);
-                }
-                if (address == endMacroblock || skip > 0 && !bits.MoreRbspData())
-                {
-                    break;
-                }
-                ReadMacroblock(ref bits, result, header, references, order, address++, ref qp, false);
-            }
-            if (address != endMacroblock)
-            {
-                throw new InvalidDataException("The H.264 slice does not cover its declared macroblock range.");
+                ReadMacroblock(ref bits, result, header, references, order, address, ref qp, skipped);
             }
             bits.ReadTrailingBits();
         }
@@ -80,8 +66,7 @@ namespace Mediana.Codecs.H264
                 H264IntraMacroblock.Read(ref bits, target, header, address, type - 23, ref qp);
                 return;
             }
-            int x = address % header.Sequence.WidthInMbs * 16;
-            int y = address / header.Sequence.WidthInMbs * 16;
+            (int x, int y) = target.Grid.Position(address);
             Span<byte> prediction = stackalloc byte[target.MacroblockBytes];
             bool noSmallPartitions = H264BidirectionalSyntax.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, order, x, y, type, prediction);
             H264InterMacroblock.ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions, skip);

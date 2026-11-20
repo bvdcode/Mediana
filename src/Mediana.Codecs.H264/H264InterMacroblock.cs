@@ -19,8 +19,7 @@ namespace Mediana.Codecs.H264
                 H264IntraMacroblock.Read(ref bits, target, header, address, type - 5, ref qp);
                 return;
             }
-            int x = (address % header.Sequence.WidthInMbs) * 16;
-            int y = (address / header.Sequence.WidthInMbs) * 16;
+            (int x, int y) = target.Grid.Position(address);
             Span<byte> prediction = stackalloc byte[target.MacroblockBytes];
             bool noSmallPartitions = true;
             if (skip)
@@ -37,8 +36,7 @@ namespace Mediana.Codecs.H264
         public static void ReadResidual(ref H264BitReader bits, H264Picture target, H264SliceHeader header, int address,
             ref int qp, scoped ReadOnlySpan<byte> prediction, bool noSmallPartitions, bool skip)
         {
-            int x = address % header.Sequence.WidthInMbs * 16;
-            int y = address / header.Sequence.WidthInMbs * 16;
+            (int x, int y) = target.Grid.Position(address);
             int pattern = skip ? 0 : CodedPatterns[bits.ReadUe(47)];
             if ((pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions && bits.ReadFlag())
             {

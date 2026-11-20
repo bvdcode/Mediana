@@ -48,43 +48,21 @@ namespace Mediana.Codecs.H264
             CancellationToken cancellationToken = default)
         {
             int qp = header.Qp;
-            int address = header.FirstMacroblock;
-            while (address < endMacroblock && bits.MoreRbspData())
+            H264CavlcSliceCursor cursor = new(header.Layout, header.Kind, header.FirstMacroblock, endMacroblock);
+            while (cursor.MoveNext(ref bits, result.Grid, out int address, out bool skipped))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (header.Kind == H264SliceKind.P)
-                {
-                    int skip = bits.ReadUe(endMacroblock - address);
-                    for (int index = 0; index < skip; index++)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        H264InterMacroblock.Read(ref bits, result, header, references, address++, ref qp, skip: true);
-                    }
-                    if (address == endMacroblock || (skip > 0 && !bits.MoreRbspData()))
-                    {
-                        break;
-                    }
-                }
                 switch (header.Kind)
                 {
                     case H264SliceKind.I:
-                        if (header.Layout.MacroblockAdaptiveFrameField && (address & 1) == 0)
-                        {
-                            result.Grid.SetFieldPair(address, bits.ReadFlag());
-                        }
                         H264IntraMacroblock.Read(ref bits, result, header, address, bits.ReadUe(25), ref qp);
                         break;
                     case H264SliceKind.P:
-                        H264InterMacroblock.Read(ref bits, result, header, references, address, ref qp);
+                        H264InterMacroblock.Read(ref bits, result, header, references, address, ref qp, skipped);
                         break;
                     default:
                         throw new NotSupportedException("Only H.264 CAVLC I and P picture reconstruction is implemented.");
                 }
-                address++;
-            }
-            if (address != endMacroblock)
-            {
-                throw new InvalidDataException("The H.264 slice does not cover its declared macroblock range.");
             }
             bits.ReadTrailingBits();
         }

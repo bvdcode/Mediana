@@ -362,16 +362,35 @@ frame/field combinations, both members of a pair, internal partitions, slice
 boundaries and 16×8 prediction. These primitives are part of predictive MBAFF
 work; complete predictive MBAFF decoding remains unavailable.
 
-A regression comparison used separate .NET 11 Native AOT binaries, one fixed
-core, elevated process priority and three alternating runs per implementation.
-Each run decodes and hashes 600 pictures from independent sources. Hashes match
-the reference decoder in every run; all media buffers are released.
+## CAVLC macroblock-pair control
+
+I, P and B slices share the same skip-run and field-flag cursor. When a skipped
+upper macroblock precedes a coded lower macroblock, the cursor reads the lower
+macroblock's field flag before either is reconstructed. Fully skipped pairs use
+the left pair's mode, then the upper pair's mode, then frame mode, according to
+H.264 7.4.4. Neighbours outside the slice do not contribute. Partial pairs,
+truncated slices and excessive skip runs are rejected.
+
+All 1,134 H.264 tests pass. Shared managed and Native AOT checks cover coded,
+skipped and alternating macroblocks, runs across pair boundaries, inference
+priority, payload positions and slice boundaries. Independently encoded intra
+MBAFF and progressive/PAFF I/P/B sequences retain exact reference samples.
+
+## Regression comparison
+
+Separate .NET 11 Native AOT binaries, one fixed core, elevated process priority
+and three alternating runs per implementation. Each run decodes and hashes
+600 pictures from independently encoded sources. Measurements include the shared
+motion lookup and CAVLC cursor changes. Hashes match the reference decoder in
+every run; all media buffers are released.
 
 | Input | CPU median, before → after | Wall median, before → after | Peak RSS, before → after | Allocated/run, before → after |
 | --- | ---: | ---: | ---: | ---: |
-| 720p, 8-bit 4:2:0 | 7.512 → 7.489 s | 7.516 → 7.494 s | 33.82 → 33.75 MiB | 26.01 → 25.97 MiB |
-| 10-bit 4:2:2 | 19.700 → 19.941 s | 19.705 → 19.943 s | 48.40 → 48.29 MiB | 40.28 → 40.31 MiB |
+| 720p, 8-bit 4:2:0 CABAC | 7.599 → 7.425 s | 7.602 → 7.426 s | 33.88 → 33.86 MiB | 26.01 → 26.03 MiB |
+| 10-bit 4:2:2 CABAC | 19.702 → 19.994 s | 19.709 → 19.999 s | 48.32 → 48.27 MiB | 40.30 → 40.31 MiB |
+| 720p, 8-bit 4:2:0 CAVLC | 7.173 → 7.181 s | 7.174 → 7.181 s | 33.67 → 33.73 MiB | 25.87 → 25.87 MiB |
 
-CPU ranges overlap: 7.406–7.685 versus 7.477–7.556 s, and 19.669–20.095
-versus 19.709–20.205 s. This comparison does not establish a speed improvement
-or a sustained slowdown.
+The 8-bit CABAC CPU ranges are 7.598–7.692 versus 7.382–7.461 s. The other
+ranges overlap: 19.668–19.788 versus 19.725–20.118 s for 10-bit CABAC, and
+7.159–7.231 versus 7.130–7.257 s for CAVLC. The results do not establish a
+speed improvement across all inputs.

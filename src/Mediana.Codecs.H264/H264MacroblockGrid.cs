@@ -55,6 +55,22 @@ namespace Mediana.Codecs.H264
             };
         }
 
+        public bool InferFieldPair(int address, int firstMacroblock)
+        {
+            ValidateAddress(address);
+            if (!layout.MacroblockAdaptiveFrameField || (address & 1) != 0)
+            {
+                throw new ArgumentException("Field-pair inference requires an MBAFF pair address.", nameof(address));
+            }
+            int left = address - 2;
+            if (address / 2 % columns != 0 && left >= firstMacroblock)
+            {
+                return IsField(left);
+            }
+            int top = address - columns * 2;
+            return top >= firstMacroblock && IsField(top);
+        }
+
         public (int X, int Y) Position(int address)
         {
             ValidateAddress(address);
