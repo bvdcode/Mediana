@@ -21,6 +21,12 @@ and ARW and that Sony make alone does not identify an ordinary TIFF as RAW.
 
 No runtime decoding dependency on these reference tools is required.
 
+`qoi-reference.qoi` is a procedural 37×29 straight RGBA image encoded by
+Pillow 12.3. Channels are `(19*x + 31*y + 23*c) mod 256`, except every ninth
+column uses `17*c`. The complete `.rgba` reference retains transparent RGB.
+`pnm-reference.ppm` stores the same pattern's RGB channels using Pillow 12.3;
+its reference adds an opaque alpha channel without changing the sample values.
+
 `webp-vp8-odd-padding.webp` is an authored 33×35 RGBA pattern, with channel
 `c = (7*x + 11*y + 19*channel) mod 256`, encoded by Mediana as lossy WebP at
 quality 2. Its ALPH payload is 184 bytes and its VP8 payload is 275 bytes, followed

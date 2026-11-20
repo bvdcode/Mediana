@@ -3,6 +3,8 @@
 
 using System.Text.Json;
 using Mediana.Codecs;
+using Mediana.Codecs.Pnm;
+using Mediana.Codecs.Qoi;
 using Mediana.Codecs.Bmp;
 using Mediana.Codecs.Gif;
 using Mediana.Codecs.Png;
@@ -19,9 +21,9 @@ namespace Mediana.NativeTests
         internal static async Task RunAsync()
         {
             string root = Path.Combine(AppContext.BaseDirectory, "Data", "Raster");
-            ImageDecodeContext registry = new([new PngImageDecoder(), new BmpImageDecoder(), new IcoImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder()]);
+            ImageDecodeContext registry = new([new PngImageDecoder(), new BmpImageDecoder(), new IcoImageDecoder(), new GifImageDecoder(), new TiffImageDecoder(), new WebpImageDecoder(), new QoiImageDecoder(), new PnmImageDecoder()]);
             int verified = 0;
-            foreach (string family in new[] { "bmp", "tiff", "webp" })
+            foreach (string family in new[] { "bmp", "tiff", "webp", "qoi", "pnm" })
             {
                 using JsonDocument manifest = JsonDocument.Parse(await File.ReadAllBytesAsync(Path.Combine(root, family + "-manifest.json")));
                 foreach (JsonElement entry in manifest.RootElement.EnumerateArray())
