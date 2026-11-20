@@ -56,3 +56,20 @@ The packed Xvid corpus also checks full decoding, reverse seeking to every
 picture, previews and whole/interval AVC encoding against independent output
 from the original AVI. Structural tests cover split-chunk extent validation,
 placeholder clocks, display durations, cancellation and released index storage.
+
+## Audiovisual HLS
+
+The shared HLS audio preparation opens AVI through its registered reader and
+decodes PCM through the same audio registry used by other media operations.
+The CLI can encode MJPEG/PCM input as H.264/AAC HLS with several video sizes:
+
+```text
+mediana hls encode input.avi output-directory --audio-stream 1 --audio-codec Aac --segment-ms 6000 --widths 1280 640
+```
+
+Stream indices are selected from `mediana probe input.avi`. The independent
+1.5-second MJPEG/PCM fixture produces two variants with three aligned
+half-second segments each. All 12 pictures and 72,000 input PCM samples are
+processed, with 1,024 AAC priming samples and 704 padding samples. FFmpeg reads
+the master and both media playlists without errors. Managed and Native AOT
+checks compare every prepared PCM sample and timestamp and verify buffer release.

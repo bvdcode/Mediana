@@ -19,6 +19,7 @@ namespace Mediana.NativeTests
     {
         public static async Task RunAsync()
         {
+            await Mediana.Tests.HlsContainerAudioTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Avi"));
             string path = Path.Combine(AppContext.BaseDirectory, "Data", "Avi", "mjpeg-pcm.avi");
             using FileStream input = File.OpenRead(path);
             await using RandomAccessStreamByteSource source = new(input, leaveOpen: true);

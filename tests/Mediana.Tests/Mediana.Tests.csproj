@@ -37,6 +37,7 @@
     <Compile Include="../Shared/DocumentResourceTestInput.cs" Link="DocumentResourceTestInput.cs" />
     <None Include="../Mediana.Containers.Avi.Tests/Data/*.avi" Link="Data/Avi/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/HlsAudioPreparationTestInput.cs" Link="HlsAudioPreparationTestInput.cs" />
+    <Compile Include="../Shared/HlsContainerAudioTestInput.cs" Link="HlsContainerAudioTestInput.cs" />
     <Compile Include="../Shared/EmbeddedImageTestInput.cs" Link="EmbeddedImageTestInput.cs" />
     <Compile Include="../Shared/EmbeddedTestImageDecoder.cs" Link="EmbeddedTestImageDecoder.cs" />
     <None Include="Data/Emoji/*" CopyToOutputDirectory="PreserveNewest" />
