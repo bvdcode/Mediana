@@ -12,6 +12,7 @@ namespace Mediana.Tests
         [InlineData("avc-paff-cavlc.mp4", false)]
         public async Task ReferenceEncoderFieldHeadersMatchIndependentTrace(string file, bool cabac)
         {
+            H264PictureOrderState order = new();
             for (int packet = 0; packet < 24; packet++)
             {
                 (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Mp4TestData.PathFor(file), packet);
@@ -32,6 +33,9 @@ namespace Mediana.Tests
                 Assert.Equal(idr, header.IsIdr);
                 Assert.Equal(idr ? H264SliceKind.I : H264SliceKind.P, header.Kind);
                 Assert.True(bits.MoreRbspData());
+                order = order.Advance(header);
+                Assert.Equal(packet % 8, order.Current.Value);
+                Assert.Equal(header.Structure, order.Current.Structure);
             }
         }
 
