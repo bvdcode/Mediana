@@ -44,7 +44,7 @@ namespace Mediana.Codecs.Jpeg
                     {
                         throw new InvalidDataException("JPEG AC coefficient size or zero run is invalid.");
                     }
-                    coefficients[JpegInverseTransform.Zigzag[position++]] = bits.Receive(size);
+                    coefficients[JpegTransform.Zigzag[position++]] = bits.Receive(size);
                 }
             }
         }

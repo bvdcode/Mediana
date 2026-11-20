@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1058 operations · 19 groups.**
 
-**Existing implementations: 122 variants · 153 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 122 variants · 154 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -25,7 +25,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | --- | ---: | ---: | ---: | ---: |
 | [Containers and packaging](#containers-and-packaging) | 18 | 44 | 20 | 88 |
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 7 | 30 |
-| [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 8 | 46 |
+| [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 9 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 19 | 35 | 19 | 64 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
@@ -116,7 +116,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 
 | ID | Format / variant | Extensions | Operations | Tier | Scope / sources | Comparisons |
 | --- | --- | --- | --- | :---: | --- | --- |
-| `jpeg-baseline` | JPEG — Baseline sequential Huffman DCT, 8-bit | .jpg .jpeg .jpe | D ◐ · E □ | A | Current grayscale/three-component decoding; encoder is open. [jpeg](sources.md#jpeg) | [jpeg-photo](../performance/README.md#jpeg-photo), [pdf-scan](../performance/README.md#pdf-scan) |
+| `jpeg-baseline` | JPEG — Baseline sequential Huffman DCT, 8-bit | .jpg .jpeg .jpe | D ◐ · E ◐ | A | Grayscale/three-component decoding and streamed baseline encoding with quality and 4:4:4/4:2:2/4:2:0 sampling. [jpeg](sources.md#jpeg) | [jpeg-photo](../performance/README.md#jpeg-photo), [pdf-scan](../performance/README.md#pdf-scan) |
 | `jpeg-sequential` | JPEG — Extended sequential Huffman DCT, 8/12-bit | .jpg .jpeg | D ◐ · E □ | B | Current SOF1 decoder is 8-bit; 12-bit precision remains open. [jpeg](sources.md#jpeg) | — |
 | `jpeg-progressive` | JPEG — Progressive Huffman DCT, 8/12-bit | .jpg .jpeg | D ◐ · E □ | A | Current SOF2 decoder is 8-bit; no encoder or 12-bit reconstruction yet. [jpeg](sources.md#jpeg) | [jpeg-photo-progressive](../performance/README.md#jpeg-photo-progressive) |
 | `jpeg-arithmetic` | JPEG — Arithmetic DCT coding | .jpg .jpeg | D □ · E □ | B | [jpeg](sources.md#jpeg) | — |

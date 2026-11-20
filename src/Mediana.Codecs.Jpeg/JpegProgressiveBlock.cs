@@ -84,7 +84,7 @@ namespace Mediana.Codecs.Jpeg
                 {
                     throw new InvalidDataException("Progressive JPEG AC coefficient exceeds ten bits.");
                 }
-                coefficients[JpegInverseTransform.Zigzag[position++]] = value;
+                coefficients[JpegTransform.Zigzag[position++]] = value;
             }
         }
 
@@ -121,7 +121,7 @@ namespace Mediana.Codecs.Jpeg
                 }
                 while (position <= scan.Last)
                 {
-                    ref int coefficient = ref coefficients[JpegInverseTransform.Zigzag[position]];
+                    ref int coefficient = ref coefficients[JpegTransform.Zigzag[position]];
                     if (coefficient != 0)
                     {
                         Refine(ref bits, ref coefficient, step);
@@ -146,14 +146,14 @@ namespace Mediana.Codecs.Jpeg
                 }
                 if (value != 0)
                 {
-                    coefficients[JpegInverseTransform.Zigzag[position++]] = value;
+                    coefficients[JpegTransform.Zigzag[position++]] = value;
                 }
             }
             if (endOfBands != 0)
             {
                 while (position <= scan.Last)
                 {
-                    ref int coefficient = ref coefficients[JpegInverseTransform.Zigzag[position++]];
+                    ref int coefficient = ref coefficients[JpegTransform.Zigzag[position++]];
                     if (coefficient != 0)
                     {
                         Refine(ref bits, ref coefficient, step);

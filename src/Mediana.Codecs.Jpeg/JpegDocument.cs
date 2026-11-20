@@ -291,7 +291,7 @@ namespace Mediana.Codecs.Jpeg
                     {
                         throw new InvalidDataException("JPEG quantization values must be nonzero.");
                     }
-                    table[JpegInverseTransform.Zigzag[i]] = value;
+                    table[JpegTransform.Zigzag[i]] = value;
                 }
                 if (lockedQuantization[index] && !table.AsSpan().SequenceEqual(quantization[index]))
                 {

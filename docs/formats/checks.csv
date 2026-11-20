@@ -118,7 +118,7 @@ dts-framing,write,planned,planned,planned,planned,planned,planned,
 y4m,read,planned,planned,planned,planned,planned,planned,
 y4m,write,planned,planned,planned,planned,planned,planned,
 jpeg-baseline,decode,partial,partial,partial,partial,partial,planned,../jpeg.md;../../tests/Mediana.Tests/Data/Jpeg/README.md;../performance/results/2026-11-06-expanded/README.md
-jpeg-baseline,encode,planned,planned,planned,planned,planned,planned,
+jpeg-baseline,encode,partial,partial,partial,partial,partial,partial,../jpeg-encoding.md
 jpeg-sequential,decode,partial,partial,partial,planned,planned,planned,../jpeg.md;../../tests/Mediana.Tests/Data/Jpeg/README.md
 jpeg-sequential,encode,planned,planned,planned,planned,planned,planned,
 jpeg-progressive,decode,partial,partial,partial,partial,partial,planned,../jpeg.md;../../tests/Mediana.Tests/Data/Jpeg/README.md;../performance/results/2026-11-06-expanded/README.md

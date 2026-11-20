@@ -58,7 +58,7 @@ aac-asc,Elementary streams and packet representations,AAC,Raw access units / Aud
 ac3-framing,Elementary streams and packet representations,AC-3 / E-AC-3,Syncframe streams,framing,.ac3 .eac3,B,etsi-audio,
 dts-framing,Elementary streams and packet representations,DTS,Core / extension stream framing,framing,.dts,C,discovery,
 y4m,Elementary streams and packet representations,YUV4MPEG2,Frame stream with explicit geometry,framing,.y4m,B,discovery,
-jpeg-baseline,JPEG families and monochrome coding,JPEG,"Baseline sequential Huffman DCT, 8-bit",image-codec,.jpg .jpeg .jpe,A,jpeg,Current grayscale/three-component decoding; encoder is open.
+jpeg-baseline,JPEG families and monochrome coding,JPEG,"Baseline sequential Huffman DCT, 8-bit",image-codec,.jpg .jpeg .jpe,A,jpeg,Grayscale/three-component decoding and streamed baseline encoding with quality and 4:4:4/4:2:2/4:2:0 sampling.
 jpeg-sequential,JPEG families and monochrome coding,JPEG,"Extended sequential Huffman DCT, 8/12-bit",image-codec,.jpg .jpeg,B,jpeg,Current SOF1 decoder is 8-bit; 12-bit precision remains open.
 jpeg-progressive,JPEG families and monochrome coding,JPEG,"Progressive Huffman DCT, 8/12-bit",image-codec,.jpg .jpeg,A,jpeg,Current SOF2 decoder is 8-bit; no encoder or 12-bit reconstruction yet.
 jpeg-arithmetic,JPEG families and monochrome coding,JPEG,Arithmetic DCT coding,image-codec,.jpg .jpeg,B,jpeg,

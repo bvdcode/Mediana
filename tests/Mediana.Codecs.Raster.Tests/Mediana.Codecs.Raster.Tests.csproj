@@ -4,6 +4,8 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Processing/Mediana.Processing.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Jpeg/Mediana.Codecs.Jpeg.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Tga/Mediana.Codecs.Tga.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Pnm/Mediana.Codecs.Pnm.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Qoi/Mediana.Codecs.Qoi.csproj" />

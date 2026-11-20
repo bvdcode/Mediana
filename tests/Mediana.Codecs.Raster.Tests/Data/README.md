@@ -36,3 +36,8 @@ with stored-frame sequence 1,0,1 and durations 2,3,4 jiffies.
 quality 2. Its ALPH payload is 184 bytes and its VP8 payload is 275 bytes, followed
 by the required zero RIFF padding byte. The independent complete RGBA reference
 uses Pillow 12.3/libwebp. It exercises an odd final VP8 chunk in an extended file.
+
+`jpeg-encode-reference.rgba` is the complete Pillow 12.3/libjpeg decode of
+Mediana baseline JPEG encoding of `qoi-reference.rgba`: quality 75, 4:2:0,
+white alpha background, square samples. Comparison allows three RGB code values
+for decoder IDCT and chroma reconstruction rounding; alpha must match exactly.
