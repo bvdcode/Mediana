@@ -62,15 +62,10 @@ namespace Mediana
             ValidateDestination(destination);
             ArgumentNullException.ThrowIfNull(allocator);
             options ??= new();
-            await using AudioSession session = await OpenAudioAsync(source, allocator, options.Input, options.StreamIndex, cancellationToken).ConfigureAwait(false);
-            using AudioFrame first = await session.ReadFrameAsync(cancellationToken).ConfigureAwait(false)
-                ?? throw new InvalidDataException("The input contains no decoded audio samples.");
-            AudioEncodingPcm converter = new(first.Format, options.Channels);
-            using AudioFrame prepared = converter.Apply(first, allocator, cancellationToken);
-            using IMediaEncoder<AudioFrame> encoder = CreateAudioEncoder(codecId, prepared.Format, new(1, prepared.Format.SampleRate), allocator);
+            await using PreparedAudioSource session = await PreparedAudioSource.OpenAsync(this, source, allocator, options, cancellationToken).ConfigureAwait(false);
+            using IMediaEncoder<AudioFrame> encoder = CreateAudioEncoder(codecId, session.Format, new(1, session.Format.SampleRate), allocator);
             using CountingWriteStream output = new(destination);
             await using IContainerWriter writer = CreateContainerWriter(containerFormatId, output, [encoder.Stream], allocator);
-            bool opening = true;
             long samples = 0;
             MediaOperationProgress result = await MediaOperations.EncodeAudioAsync(ReadAsync, encoder, writer,
                 update => progress?.Invoke(new(update.ProcessedDuration, output.BytesWritten, update.IsComplete, session.Stream.CodedDuration)),
@@ -80,16 +75,7 @@ namespace Mediana
 
             async ValueTask<AudioFrame?> ReadAsync(CancellationToken token)
             {
-                AudioFrame? result;
-                if (opening)
-                {
-                    opening = false; result = prepared.Retain(); prepared.Dispose(); first.Dispose();
-                }
-                else
-                {
-                    using AudioFrame? frame = await session.ReadFrameAsync(token).ConfigureAwait(false);
-                    result = frame is null ? null : converter.Apply(frame, allocator, token);
-                }
+                AudioFrame? result = await session.ReadFrameAsync(token).ConfigureAwait(false);
                 if (result is not null) { samples = checked(samples + result.SamplesPerChannel); }
                 return result;
             }
