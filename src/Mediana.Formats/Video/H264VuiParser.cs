@@ -68,12 +68,16 @@ namespace Mediana.Formats.Video
             bool nalHrd = bits.ReadFlag();
             if (nalHrd)
             {
-                ReadHrd(ref bits);
+                result = result with { NalHrdTiming = ReadHrd(ref bits) };
             }
             bool vclHrd = bits.ReadFlag();
             if (vclHrd)
             {
-                ReadHrd(ref bits);
+                result = result with { VclHrdTiming = ReadHrd(ref bits) };
+            }
+            if (nalHrd && vclHrd && result.NalHrdTiming != result.VclHrdTiming)
+            {
+                throw new InvalidDataException("The H.264 NAL and VCL HRD timing field lengths must agree.");
             }
             if (nalHrd || vclHrd)
             {
@@ -104,7 +108,7 @@ namespace Mediana.Formats.Video
             return result;
         }
 
-        private static void ReadHrd(ref H264BitReader bits)
+        private static H264HrdTiming ReadHrd(ref H264BitReader bits)
         {
             int cpbCount = bits.ReadUe(31) + 1;
             bits.ReadBits(4);
@@ -115,10 +119,8 @@ namespace Mediana.Formats.Video
                 bits.ReadUe();
                 bits.ReadFlag();
             }
-            bits.ReadBits(5);
-            bits.ReadBits(5);
-            bits.ReadBits(5);
-            bits.ReadBits(5);
+            return new((int)bits.ReadBits(5) + 1, (int)bits.ReadBits(5) + 1,
+                (int)bits.ReadBits(5) + 1, (int)bits.ReadBits(5));
         }
     }
 }
