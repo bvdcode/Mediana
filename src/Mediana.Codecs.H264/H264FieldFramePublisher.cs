@@ -40,10 +40,10 @@ namespace Mediana.Codecs.H264
             {
                 leading = second;
             }
-            VideoScanMode scanMode = leading.Format.ScanMode switch
+            (VideoScanMode scanMode, VideoFieldParity leadingParity) = leading.Format.ScanMode switch
             {
-                VideoScanMode.TopField => VideoScanMode.TopFieldFirst,
-                VideoScanMode.BottomField => VideoScanMode.BottomFieldFirst,
+                VideoScanMode.TopField => (VideoScanMode.TopFieldFirst, VideoFieldParity.Top),
+                VideoScanMode.BottomField => (VideoScanMode.BottomFieldFirst, VideoFieldParity.Bottom),
                 _ => throw new InvalidOperationException("A field is required for presentation order.")
             };
             VideoFormat format = new(a.Width, checked(a.Height + b.Height), a.PixelFormat, a.Color,
@@ -62,7 +62,8 @@ namespace Mediana.Codecs.H264
             }
             token.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
-            return new(format, buffer, layout, leading.Timestamp, CombineDuration(first.Frame.Duration, second.Duration));
+            VideoFramePresentation? presentation = H264Presentation.CombineFields(first.Frame.Presentation, second.Presentation, leadingParity);
+            return new(format, buffer, layout, leading.Timestamp, CombineDuration(first.Frame.Duration, second.Duration), presentation);
         }
 
         private static MediaDuration? CombineDuration(MediaDuration? first, MediaDuration? second)

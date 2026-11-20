@@ -298,3 +298,20 @@ frames; three runs per revision alternate on one fixed core. CPU medians are
 Peak RSS medians are 48.07 and 48.23 MiB; total managed allocations are 40.282
 and 40.275 MiB. All decoded hashes match FFmpeg. The overlapping ranges do not
 establish a throughput change.
+
+## Picture presentation
+
+The decoder now preserves picture-timing SEI as `VideoFrame.Presentation`.
+It reads HRD-dependent fields using the active slice's SPS, validates the
+bounded payload and maps all nine display structures to frame or field
+sequences. Without an explicit structure it uses the H.264 D.2.3 inferred
+field order. Source scan indications remain separate from pixel layout;
+unknown source scan is not guessed from display cadence.
+
+Field pairing combines the display hints without creating repeated pixel
+surfaces. Packet PTS and duration remain authoritative. Four independent
+JM/libx264 sources match FFmpeg pixels and timing in forward reading and
+reverse seeking, including repeated fields, frame doubling and HRD with
+B-picture reorder. These checks pass in managed execution, Native AOT and
+ordinary async compilation. The public interlace guard remains in place
+until sample presentation and the remaining reconstruction paths are ready.

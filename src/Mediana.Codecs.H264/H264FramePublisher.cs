@@ -11,7 +11,7 @@ namespace Mediana.Codecs.H264
     {
         public static VideoFrame Publish(H264Picture picture,
             MediaTimestamp? timestamp, MediaDuration? duration, CancellationToken cancellationToken, VideoColorDescription? colorDescription = null,
-            VideoAspectRatioDescription? aspectRatioDescription = null)
+            VideoAspectRatioDescription? aspectRatioDescription = null, VideoFramePresentation? presentation = null)
         {
             cancellationToken.ThrowIfCancellationRequested();
             VideoScanMode scanMode = picture.Structure switch
@@ -36,7 +36,7 @@ namespace Mediana.Codecs.H264
             }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = picture.PublishPixels();
-            return new VideoFrame(format, buffer, layout, timestamp, duration);
+            return new VideoFrame(format, buffer, layout, timestamp, duration, presentation);
         }
     }
 }

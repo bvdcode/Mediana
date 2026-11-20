@@ -188,7 +188,7 @@ namespace Mediana.Tests
                 int parity = header.Structure == H264PictureStructure.BottomField ? 1 : 0;
                 int duration = header.Structure == H264PictureStructure.Frame ? 2 : 1;
                 VideoFrame frame = H264FramePublisher.Publish(picture, new(displayIndex * 2 + parity, new(1, 24)),
-                    new(duration, new(1, 24)), default);
+                    new(duration, new(1, 24)), default, presentation: H264Presentation.Create(header, nextOrder.Current, null));
                 bool queued = false;
                 try
                 {
@@ -214,6 +214,21 @@ namespace Mediana.Tests
 
         private static void VerifyOutput(VideoFrame frame, ReadOnlySpan<byte> expected, int index, VideoScanMode scan)
         {
+            if (frame.Presentation is not VideoFramePresentation presentation || presentation.SourceScan != VideoSourceScan.Unknown)
+            {
+                throw new InvalidDataException("Field output must preserve its inferred presentation without declaring a source scan type.");
+            }
+            VideoFieldParity? leading = scan switch
+            {
+                VideoScanMode.Progressive => null,
+                VideoScanMode.TopFieldFirst => VideoFieldParity.Top,
+                VideoScanMode.BottomFieldFirst => VideoFieldParity.Bottom,
+                _ => throw new ArgumentOutOfRangeException(nameof(scan))
+            };
+            if (leading is VideoFieldParity parity && presentation != VideoFramePresentation.Fields(parity, 2))
+            {
+                throw new InvalidDataException("Paired output has an incorrect field presentation sequence.");
+            }
             if (frame.Format.ScanMode != scan || frame.Timestamp != new MediaTimestamp(index, new(1, 12)) ||
                 frame.Duration is not MediaDuration duration || new MediaTimestamp(duration.Value, duration.TimeBase) != new MediaTimestamp(1, new(1, 12)))
             {

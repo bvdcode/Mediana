@@ -785,3 +785,28 @@ exercise arithmetic-decoder restarts after each raw macroblock.
 | `avc-mbaff-cabac-pcm-field.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
 | `avc-mbaff-cabac-pcm-adaptive.mp4` | `6ada78ffd3f6c5cba206905618447ccca280a5674398c5a555e15af690219a87` |
 | `avc-mbaff-cabac-pcm-adaptive.yuv.gz` | `b7353b7835174aeac335953340b62799f94d3718ea8b9528f3b76a9f6299d288` |
+
+## H.264 presentation sequences
+
+`avc-presentation-1`, `-2` and `-5` contain eight 96x96 progressive coded
+pictures generated with JM 19.1: CABAC, 8x8 transforms, two references, no
+B pictures, QP 24 and `SEIVUI32Pulldown` 1, 2 and 5. The display-structure
+patterns are respectively `0,5,6,0`, `0,0,7,0` and `3,5,4,6`. They exercise
+field order, repeated fields and frame doubling without duplicating decoded
+pixel surfaces. `avc-presentation-hrd` uses libx264 with `nal-hrd=cbr`,
+`pic-struct=1`, 128 kbit/s, a 256 kbit buffer, GOP 4 and B pictures.
+All inputs use the generated `testsrc2` pattern at 12 frames/s.
+
+FFmpeg 6.1.1 independently decoded the MP4 files with `-fps_mode passthrough`.
+The deterministic gzip files contain those eight YUV420P8 pictures; the CSV
+files record ffprobe PTS, duration, time base and the configured SEI structure.
+The public session checks every picture, timing and display hint, then seeks
+backward through all eight pictures and verifies buffer release. Both Native
+AOT and ordinary async compilation run these same checks.
+
+| MP4 fixture | SHA256 |
+| --- | --- |
+| `avc-presentation-1.mp4` | `5831ae6e887716d8e5fef13aba6020e76b53a30a6d77017d8baae849a3a1df9b` |
+| `avc-presentation-2.mp4` | `8144a6897356123272fead3c23b1bbba953e0001381e659ae2a67a3de4923fed` |
+| `avc-presentation-5.mp4` | `14779b504341fa693c6dac9037dd33542baa69d402ad162b3ad7d46425652434` |
+| `avc-presentation-hrd.mp4` | `9b7f8927de8e013d7c6067528775b951f398d886b677521ad11012123c2e858e` |

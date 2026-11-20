@@ -164,6 +164,8 @@ namespace Mediana.Codecs.H264
                 throw new NotSupportedException(reason);
             }
             H264PictureOrderState nextOrder = order.Advance(header);
+            H264PictureTiming? timing = H264SeiReader.ReadPictureTiming(unit.PictureTimingNal.Span, header.Sequence.Vui, cancellationToken);
+            VideoFramePresentation presentation = H264Presentation.Create(header, nextOrder.Current, timing);
             H264Picture picture = H264MultiSliceDecoder.Decode(unit, slices, references, nextOrder.Current, allocator, options, cancellationToken);
             VideoFrame? frame = null;
             bool stored = false;
@@ -171,7 +173,7 @@ namespace Mediana.Codecs.H264
             try
             {
                 frame = H264FramePublisher.Publish(picture, packet.PresentationTime, packet.Duration, cancellationToken,
-                    colorDescription, aspectRatioDescription);
+                    colorDescription, aspectRatioDescription, presentation);
                 cancellationToken.ThrowIfCancellationRequested();
                 references.Store(picture, header, nextOrder.Current);
                 stored = true;
