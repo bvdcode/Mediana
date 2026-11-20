@@ -6,6 +6,9 @@ namespace Mediana.Documents
     /// <summary>Part selection is applied before reading content. Limits reject excessive output; use Take or break for early completion.</summary>
     public record DocumentTextOptions
     {
+        public bool IncludeHeaders { get; init; }
+        public bool IncludeFooters { get; init; }
+        public bool IncludeSpeakerNotes { get; init; }
         public Action<string>? WarningHandler { get; init; }
         public int StartPartIndex { get; init; }
         public int? PartCount { get; init; }
