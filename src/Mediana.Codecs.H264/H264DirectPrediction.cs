@@ -98,12 +98,12 @@ namespace Mediana.Codecs.H264
 
         private static int SpatialReference(H264Picture target, H264ReferenceList list, int x, int y)
         {
-            H264MotionSample a = target.MotionAt(list, x - 1, y);
-            H264MotionSample b = target.MotionAt(list, x, y - 1);
-            H264MotionSample c = target.MotionAt(list, x + 16, y - 1);
+            H264MotionSample a = target.NeighbourMotionAt(list, x, y, x - 1, y);
+            H264MotionSample b = target.NeighbourMotionAt(list, x, y, x, y - 1);
+            H264MotionSample c = target.NeighbourMotionAt(list, x, y, x + 16, y - 1);
             if (!c.Available)
             {
-                c = target.MotionAt(list, x - 1, y - 1);
+                c = target.NeighbourMotionAt(list, x, y, x - 1, y - 1);
             }
             return Minimum(a.ReferenceIndex, Minimum(b.ReferenceIndex, c.ReferenceIndex));
         }

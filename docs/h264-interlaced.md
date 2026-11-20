@@ -348,3 +348,30 @@ timestamps and match the independent references. Another hundred requests
 between fields select the correct following complete picture. The shared
 allocator reports zero live bytes after both sessions are disposed. This small
 resolution checks long timelines and seek correctness, not HD throughput.
+
+## Motion neighbours across adaptive pairs
+
+Spatial P/B prediction resolves neighbouring blocks through each macroblock
+pair's actual frame/field geometry. H.264 8.4.1.3.2 scaling applies to vertical
+vectors and reference indices when the neighbour uses a different mode. Negative
+odd vectors divide toward zero. Slice boundaries, undecoded blocks and absent
+references retain their distinct availability states.
+
+Shared managed and Native AOT checks cover both reference lists, all four
+frame/field combinations, both members of a pair, internal partitions, slice
+boundaries and 16×8 prediction. These primitives are part of predictive MBAFF
+work; complete predictive MBAFF decoding remains unavailable.
+
+A regression comparison used separate .NET 11 Native AOT binaries, one fixed
+core, elevated process priority and three alternating runs per implementation.
+Each run decodes and hashes 600 pictures from independent sources. Hashes match
+the reference decoder in every run; all media buffers are released.
+
+| Input | CPU median, before → after | Wall median, before → after | Peak RSS, before → after | Allocated/run, before → after |
+| --- | ---: | ---: | ---: | ---: |
+| 720p, 8-bit 4:2:0 | 7.512 → 7.489 s | 7.516 → 7.494 s | 33.82 → 33.75 MiB | 26.01 → 25.97 MiB |
+| 10-bit 4:2:2 | 19.700 → 19.941 s | 19.705 → 19.943 s | 48.40 → 48.29 MiB | 40.28 → 40.31 MiB |
+
+CPU ranges overlap: 7.406–7.685 versus 7.477–7.556 s, and 19.669–20.095
+versus 19.709–20.205 s. This comparison does not establish a speed improvement
+or a sustained slowdown.

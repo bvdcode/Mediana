@@ -9,6 +9,9 @@ namespace Mediana.Tests
     public class H264MotionCompensationTests
     {
         [Fact]
+        public void AdaptiveFieldMotionNeighboursUseTheirOwnGeometryAndScale() => H264MbaffMotionTestInput.Verify();
+
+        [Fact]
         public void FieldRowStrideDoesNotChangeInterpolationOrBorderExtension() => H264StridedInterpolationTestInput.Verify();
 
         [Fact]
