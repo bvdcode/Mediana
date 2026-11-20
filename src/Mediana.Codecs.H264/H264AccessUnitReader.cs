@@ -18,6 +18,7 @@ namespace Mediana.Codecs.H264
             bool seenNal = false;
             bool endSequence = false;
             bool endStream = false;
+            ReadOnlyMemory<byte> pictureTimingNal = default;
             while (reader.TryRead(out ReadOnlyMemory<byte> nal))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -55,6 +56,17 @@ namespace Mediana.Codecs.H264
                         {
                             configuration = configuration.WithParameterSet(nal.Span, options);
                         }
+                        else if (type == 6)
+                        {
+                            if (H264SeiReader.Validate(nal.Span, cancellationToken))
+                            {
+                                if (!pictureTimingNal.IsEmpty)
+                                {
+                                    throw new InvalidDataException("An H.264 access unit contains multiple picture-timing messages.");
+                                }
+                                pictureTimingNal = nal;
+                            }
+                        }
                         else
                         {
                             ReadAuxiliary(nal.Span, type, cancellationToken);
@@ -77,7 +89,7 @@ namespace Mediana.Codecs.H264
                 }
                 seenNal = true;
             }
-            return new H264AccessUnit(configuration, slices, endSequence, endStream);
+            return new H264AccessUnit(configuration, slices, endSequence, endStream, pictureTimingNal);
         }
 
         private static void ReadAuxiliary(ReadOnlySpan<byte> nal, int type, CancellationToken cancellationToken)
@@ -89,21 +101,6 @@ namespace Mediana.Codecs.H264
             H264BitReader bits = H264Nal.Payload(nal, type);
             switch (type)
             {
-                case 6:
-                    do
-                    {
-                        ReadExtended(ref bits, int.MaxValue);
-                        int length = ReadExtended(ref bits, nal.Length);
-                        for (int index = 0; index < length; index++)
-                        {
-                            if ((index & 255) == 0)
-                            {
-                                cancellationToken.ThrowIfCancellationRequested();
-                            }
-                            bits.ReadBits(8);
-                        }
-                    } while (bits.MoreRbspData());
-                    break;
                 case 9:
                     bits.ReadBits(3);
                     break;
@@ -121,22 +118,6 @@ namespace Mediana.Codecs.H264
                     throw new InvalidOperationException("Unexpected H.264 auxiliary NAL type.");
             }
             bits.ReadTrailingBits();
-        }
-
-        private static int ReadExtended(ref H264BitReader bits, int maximum)
-        {
-            int value = 0;
-            int next;
-            do
-            {
-                next = (int)bits.ReadBits(8);
-                if (next > maximum - value)
-                {
-                    throw new InvalidDataException("The H.264 SEI field exceeds its permitted length.");
-                }
-                value += next;
-            } while (next == 255);
-            return value;
         }
     }
 }
