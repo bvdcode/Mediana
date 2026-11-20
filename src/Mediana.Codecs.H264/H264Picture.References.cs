@@ -28,9 +28,21 @@ namespace Mediana.Codecs.H264
                 H264ReferenceList.L1 => slice.L1,
                 _ => throw new ArgumentOutOfRangeException(nameof(list))
             };
-            if ((uint)index >= (uint)identities.Length || identities[index] is not H264PictureIdentity identity)
+            bool adaptiveField = Layout.MacroblockAdaptiveFrameField && Grid.IsField(macroblock);
+            int storedIndex = adaptiveField ? index >> 1 : index;
+            if ((uint)storedIndex >= (uint)identities.Length || identities[storedIndex] is not H264PictureIdentity identity)
             {
                 throw new InvalidDataException("The H.264 co-located motion has no reference identity.");
+            }
+            if (adaptiveField)
+            {
+                H264PictureStructure structure = ((macroblock + index) & 1) switch
+                {
+                    0 => H264PictureStructure.TopField,
+                    1 => H264PictureStructure.BottomField,
+                    _ => throw new InvalidOperationException("Invalid H.264 reference field parity.")
+                };
+                return identity.ForStructure(structure);
             }
             return identity;
         }

@@ -823,3 +823,32 @@ decoder test compares all samples, field coordinates, timestamps and durations
 during sequential playback and reverse seeks.
 
 SHA256: `f6016d7fcdc797b75371693cf22dbbf12a7fcf88b4a809663427a15fea8115a5`.
+
+### CAVLC MBAFF predictive sequences
+
+`avc-mbaff-p-cavlc-*.mp4` contain six 96×96 pictures at 12 frames/s,
+encoded by JM 19.1: one I picture followed by five P pictures, two references,
+QP 24, 8x8 transforms enabled, no deblocking, no weighted prediction, no
+reference-list reordering. The `field` and `422-10` variants force field-coded
+pairs; the remaining variants use adaptive frame/field pair selection. The
+variants cover 8/10-bit 4:2:0 and 4:2:2. Source material is generated `testsrc2`;
+alternate rows are locally repeated or horizontally shifted to exercise both
+pair structures. Ten-bit inputs also exercise the two low sample bits.
+
+FFmpeg 6.1.1 independently decodes the samples in each deterministic `.yuv.gz`
+file. Tests compare every decoded sample and require both pair structures in
+the adaptive variants. Separate synthetic tests cover weighted prediction,
+reference identities, field parity and reuse of pixel storage.
+
+| File | SHA256 |
+| --- | --- |
+| `avc-mbaff-p-cavlc-field.mp4` | `bdcc0c82a65cfe3f9163af67dd48813250ec2daee7621a3d1c72686c467945a1` |
+| `avc-mbaff-p-cavlc-field.yuv.gz` | `87b20ea927ad2eccb7d2f2595d26d852b7ac21439ca77dfdf4350511a531f1bc` |
+| `avc-mbaff-p-cavlc-adaptive.mp4` | `7dc58b7090539dbabe6f58e83352ca4f739b24375a206af06f46fbe8d043d07b` |
+| `avc-mbaff-p-cavlc-adaptive.yuv.gz` | `50a439ad0db898a0188d2122de5be9d43a18e7fca25dbca294ae54c5354d0dd5` |
+| `avc-mbaff-p-cavlc-high10.mp4` | `44d43444124345a40177216d6103fcf97b8f7f8c4ddf32f124acff8fc250dad9` |
+| `avc-mbaff-p-cavlc-high10.yuv.gz` | `339fcb74961ae3735000152f55a6a4fe0cddb9385b95e7d1089c952b96e48283` |
+| `avc-mbaff-p-cavlc-422-10.mp4` | `01f2699702cdd4435f04bf79b7a9089063986e22b88dcb786e6cc75b244c1f0b` |
+| `avc-mbaff-p-cavlc-422-10.yuv.gz` | `0d559624733651d5058497e44ce509bd21a98d58fd75d0746743f8d7b27bfc41` |
+| `avc-mbaff-p-cavlc-422.mp4` | `eb4b95e1458af1aed519a8f96da4feca68f80869eefc563eaea72d7adf600cc1` |
+| `avc-mbaff-p-cavlc-422.yuv.gz` | `8d85cc6d38c7afbfd24cd17445c7d38f226f889fc1c7527ffa67b32a4fc1e8e4` |

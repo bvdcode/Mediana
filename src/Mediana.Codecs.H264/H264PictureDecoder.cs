@@ -48,6 +48,11 @@ namespace Mediana.Codecs.H264
             CancellationToken cancellationToken = default)
         {
             int qp = header.Qp;
+            H264AdaptiveReferences? adaptive = null;
+            if (header.Layout.MacroblockAdaptiveFrameField && header.Kind == H264SliceKind.P)
+            {
+                adaptive = new(new(references, []));
+            }
             H264CavlcSliceCursor cursor = new(header.Layout, header.Kind, header.FirstMacroblock, endMacroblock);
             while (cursor.MoveNext(ref bits, result.Grid, out int address, out bool skipped))
             {
@@ -58,7 +63,14 @@ namespace Mediana.Codecs.H264
                         H264IntraMacroblock.Read(ref bits, result, header, address, bits.ReadUe(25), ref qp);
                         break;
                     case H264SliceKind.P:
-                        H264InterMacroblock.Read(ref bits, result, header, references, address, ref qp, skipped);
+                        IReadOnlyList<H264ReferencePicture?> active = references;
+                        if (adaptive is not null)
+                        {
+                            (int x, int y) = result.Grid.Position(address);
+                            H264MacroblockPredictionContext context = H264MacroblockPredictionContext.Create(result, x, y);
+                            active = adaptive.Get(context.Structure).L0;
+                        }
+                        H264InterMacroblock.Read(ref bits, result, header, active, address, ref qp, skipped);
                         break;
                     default:
                         throw new NotSupportedException("Only H.264 CAVLC I and P picture reconstruction is implemented.");

@@ -276,7 +276,7 @@ namespace Mediana.Tests
             if (offset != expected.Length) { throw new InvalidDataException("Unexpected assembled frame dimensions."); }
         }
 
-        private static void VerifyPicture(H264Picture picture, ReadOnlySpan<byte> expected, int packet = 0)
+        internal static void VerifyPicture(H264Picture picture, ReadOnlySpan<byte> expected, int packet = 0)
         {
             int parity = picture.Structure switch
             {
@@ -306,7 +306,7 @@ namespace Mediana.Tests
             }
         }
 
-        private static async Task<byte[]> ReadReferenceAsync(string root, string name, int frame, H264SequenceParameterSet sequence)
+        internal static async Task<byte[]> ReadReferenceAsync(string root, string name, int frame, H264SequenceParameterSet sequence)
         {
             await using FileStream input = File.OpenRead(Path.Combine(root, name + ".yuv.gz"));
             await using GZipStream archive = new(input, CompressionMode.Decompress);

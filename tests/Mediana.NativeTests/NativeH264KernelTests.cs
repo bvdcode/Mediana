@@ -37,6 +37,7 @@ namespace Mediana.NativeTests
             H264MbaffMotionTestInput.Verify();
             H264CavlcSliceTestInput.Verify();
             H264ReferenceFieldViewTestInput.Verify();
+            H264AdaptivePredictionTestInput.Verify();
             H264LumaNeighborhoodTestInput.Verify();
             H264ShortInterpolationTestInput.Verify();
             H264SampleDifferenceTestInput.Verify();

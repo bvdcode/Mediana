@@ -51,6 +51,14 @@ namespace Mediana.NativeTests
             {
                 await H264FieldTestInput.VerifyMbaffIntraAsync(root, name, true, true);
             }
+            foreach (string name in new[]
+            {
+                "avc-mbaff-p-cavlc-field", "avc-mbaff-p-cavlc-adaptive", "avc-mbaff-p-cavlc-high10",
+                "avc-mbaff-p-cavlc-422-10", "avc-mbaff-p-cavlc-422"
+            })
+            {
+                await H264MbaffSequenceTestInput.VerifyPredictiveAsync(root, name, 6);
+            }
             foreach (string name in new[] { "avc-paff-cabac", "avc-paff-cavlc" })
             {
                 await H264FieldTestInput.VerifySequenceAsync(root, name);

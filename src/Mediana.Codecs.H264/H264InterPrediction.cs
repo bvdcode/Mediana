@@ -28,6 +28,8 @@ namespace Mediana.Codecs.H264
             subtypes.Clear();
             indices.Clear();
             bool noSmallPartitions = true;
+            H264MacroblockPredictionContext context = H264MacroblockPredictionContext.Create(target, x, y);
+            int activeCount = context.ActiveReferenceCount(header.ActiveReferencesL0);
             if (partitions == 4)
             {
                 for (int part = 0; part < partitions; part++)
@@ -40,9 +42,9 @@ namespace Mediana.Codecs.H264
             {
                 (int partX, int partY) = Position(x, y, type, part);
                 (int width, int height) = Size(type, 0);
-                if (type != 4 && header.ActiveReferencesL0 > 1)
+                if (type != 4 && activeCount > 1)
                 {
-                    indices[part] = reader.ReadReference(ref bits, H264ReferenceList.L0, partX, partY, width, height, header.ActiveReferencesL0 - 1);
+                    indices[part] = reader.ReadReference(ref bits, H264ReferenceList.L0, partX, partY, width, height, activeCount - 1);
                 }
                 target.SetReference(H264ReferenceList.L0, partX, partY, width, height, indices[part]);
             }
@@ -107,6 +109,7 @@ namespace Mediana.Codecs.H264
                 throw new InvalidDataException("The H.264 partition uses an unavailable reference picture.");
             }
             target.SetMotion(H264ReferenceList.L0, x, y, width, height, referenceIndex, motionX, motionY);
+            H264MacroblockPredictionContext context = H264MacroblockPredictionContext.Create(target, x, y);
             Span<byte> block = stackalloc byte[target.LumaMacroblockBytes];
             for (int plane = 0; plane < 3; plane++)
             {
@@ -114,8 +117,8 @@ namespace Mediana.Codecs.H264
                 int blockWidth = width / scale;
                 int blockHeight = height / target.VerticalScale(plane);
                 Span<byte> samples = block[..(blockWidth * blockHeight * target.SampleBytes)];
-                H264PredictionBlock.Read(reference, target.Structure, plane, x, y, width, height, motionX, motionY, samples);
-                header.Weights?.Apply(referenceIndex, plane, samples, target.Sequence.LumaBitDepth);
+                H264PredictionBlock.Read(reference, context.Structure, plane, context.X, context.Y, width, height, motionX, motionY, samples);
+                header.Weights?.Apply(context.WeightIndex(referenceIndex), plane, samples, target.Sequence.LumaBitDepth);
                 H264PredictionBlock.Write(target, plane, x, y, width, height, samples, prediction);
             }
         }

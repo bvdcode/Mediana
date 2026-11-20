@@ -403,3 +403,38 @@ The 8-bit CABAC CPU ranges are 7.598–7.692 versus 7.382–7.461 s. The other
 ranges overlap: 19.668–19.788 versus 19.725–20.118 s for 10-bit CABAC, and
 7.159–7.231 versus 7.130–7.257 s for CAVLC. The results do not establish a
 speed improvement across all inputs.
+
+## CAVLC predictive MBAFF reconstruction
+
+The reconstruction kernel decodes MBAFF P slices with frame-coded and
+field-coded macroblock pairs. Field reference lists reuse existing picture
+storage. Reference parity, motion coordinates, active-reference bounds and
+explicit prediction weights follow the selected macroblock structure. Stored
+reference identities preserve the distinction between the two fields.
+
+Five JM 19.1 sequences cover forced field pairs and adaptive pairs with
+8/10-bit 4:2:0 and 4:2:2. All 30 decoded pictures match FFmpeg sample for sample.
+Shared synthetic tests additionally cover all reference indices, weight-table
+selection, both fields and unchanged pixel-buffer allocations. All 1,146 H.264
+tests pass; these checks also pass under Native AOT.
+
+Public MBAFF decoding remains disabled until predictive CABAC, bidirectional
+colocated motion and mixed-structure deblocking are verified together.
+
+The following comparison isolates the predictive MBAFF changes from the
+preceding cursor implementation. The binaries use the same Native AOT setup
+and alternate three runs each, with 600 decoded pictures per run.
+
+| Input | CPU before → after | Wall before → after | Peak RSS before → after | Allocated/run before → after |
+| --- | ---: | ---: | ---: | ---: |
+| 720p CABAC | 9.620 → 9.886 s | 9.968 → 10.312 s | 33.97 → 33.76 MiB | 26.06 → 26.06 MiB |
+| 10-bit 4:2:2 CABAC, repeat | 19.928 → 19.998 s | 19.943 → 20.004 s | 48.29 → 48.33 MiB | 40.31 → 40.32 MiB |
+| 720p CAVLC | 7.171 → 7.235 s | 7.172 → 7.236 s | 33.71 → 33.75 MiB | 25.94 → 25.93 MiB |
+
+The initial 10-bit comparison had a 14% median difference while the unchanged
+control varied from 19.7 to 22.3 seconds and the new binary from 20.2 to 26.4
+seconds. A targeted repeat measured 19.928 versus 19.998 seconds (+0.35%);
+ranges overlap. The 720p CABAC control also varied substantially (8.304–10.104
+seconds). These measurements do not establish a general speed difference.
+All decoded hashes match the independent decoder; picture-buffer ownership
+returns to zero after every run.

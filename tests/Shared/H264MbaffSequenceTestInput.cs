@@ -1,0 +1,83 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Vadim Belov <https://belov.us>
+
+using Mediana.Codecs.H264;
+using Mediana.Core.Memory;
+
+namespace Mediana.Tests
+{
+    internal static class H264MbaffSequenceTestInput
+    {
+        public static async Task<(int Frames, int Fields)> VerifyPredictiveAsync(string root, string name, int count)
+        {
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            H264PictureOrderState order = new();
+            int framePairs = 0;
+            int fieldPairs = 0;
+            using (H264ReferenceBuffer references = new())
+            {
+                for (int index = 0; index < count; index++)
+                {
+                    (H264Configuration configuration, byte[] nal) = await H264TestInput.ReadSliceAsync(Path.Combine(root, name + ".mp4"), index);
+                    H264SequenceParameterSet sequence = configuration.Sequences.Values.Single();
+                    byte[] expected = await H264FieldTestInput.ReadReferenceAsync(root, name, index, sequence);
+                    (order, int fields) = DecodeAndStore(configuration, nal, expected, order, references, allocator, index);
+                    fieldPairs += fields;
+                    framePairs += sequence.WidthInMbs * sequence.HeightInMapUnits - fields;
+                }
+            }
+            if (allocator.AllocatedBytes != 0)
+            {
+                throw new InvalidOperationException("MBAFF predictive reconstruction retained picture storage.");
+            }
+            return (framePairs, fieldPairs);
+        }
+
+        private static (H264PictureOrderState Order, int Fields) DecodeAndStore(H264Configuration configuration,
+            ReadOnlySpan<byte> nal, ReadOnlySpan<byte> expected, H264PictureOrderState order,
+            H264ReferenceBuffer references, MediaBufferAllocator allocator, int index)
+        {
+            H264BitReader bits = H264Nal.Payload(nal, H264Nal.Type(nal));
+            H264SliceHeader header = H264SliceHeaderReader.Read(ref bits, configuration, nal[0]);
+            H264SliceKind kind = index switch
+            {
+                0 => H264SliceKind.I,
+                > 0 => H264SliceKind.P,
+                _ => throw new ArgumentOutOfRangeException(nameof(index))
+            };
+            if (!header.Layout.MacroblockAdaptiveFrameField || header.Kind != kind ||
+                header.Picture.Cabac || header.DeblockingEnabled)
+            {
+                throw new InvalidDataException("Expected an independent CAVLC MBAFF I/P sequence without deblocking.");
+            }
+            H264PictureOrderState next = order.Advance(header);
+            IReadOnlyList<H264ReferencePicture?> list = references.GetList0(header);
+            H264Picture picture = new(header.Sequence, allocator, header.Kind, header.Structure);
+            bool stored = false;
+            try
+            {
+                picture.CaptureReferences(0, list, []);
+                H264PictureDecoder.DecodeSlice(ref bits, header, list, picture, header.Layout.MacroblockCount);
+                H264FieldTestInput.VerifyPicture(picture, expected, index);
+                int fields = 0;
+                for (int address = 0; address < header.Layout.MacroblockCount; address += 2)
+                {
+                    if (picture.Grid.IsField(address))
+                    {
+                        fields++;
+                    }
+                }
+                references.Store(picture, header, next.Current);
+                stored = true;
+                return (next, fields);
+            }
+            finally
+            {
+                if (!stored)
+                {
+                    picture.Dispose();
+                }
+            }
+        }
+    }
+}

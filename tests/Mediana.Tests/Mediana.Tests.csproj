@@ -310,6 +310,8 @@
     <Compile Include="../Shared/H264MbaffMotionTestInput.cs" Link="H264MbaffMotionTestInput.cs" />
     <Compile Include="../Shared/H264CavlcSliceTestInput.cs" Link="H264CavlcSliceTestInput.cs" />
     <Compile Include="../Shared/H264ReferenceFieldViewTestInput.cs" Link="H264ReferenceFieldViewTestInput.cs" />
+    <Compile Include="../Shared/H264MbaffSequenceTestInput.cs" Link="H264MbaffSequenceTestInput.cs" />
+    <Compile Include="../Shared/H264AdaptivePredictionTestInput.cs" Link="H264AdaptivePredictionTestInput.cs" />
     <Compile Include="../Shared/H264ChromaInterpolationTestInput.cs" Link="H264ChromaInterpolationTestInput.cs" />
     <Compile Include="../Shared/WavePcmTestInput.cs" Link="WavePcmTestInput.cs" />
     <ProjectReference Include="../../src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />

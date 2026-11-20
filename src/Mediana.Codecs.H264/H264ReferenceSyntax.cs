@@ -5,8 +5,8 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264ReferenceSyntax
     {
-        private const int MaximumFrameReferences = 16;
-        private const int MaximumFieldReferences = 32;
+        internal const int MaximumFrameReferences = 16;
+        internal const int MaximumFieldReferences = 32;
 
         public static int ReadActiveCount(ref H264BitReader bits, int defaultCount, bool overridden, bool fieldPicture)
         {
