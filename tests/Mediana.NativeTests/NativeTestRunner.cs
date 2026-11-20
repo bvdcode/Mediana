@@ -91,14 +91,7 @@ namespace Mediana.NativeTests
             Console.WriteLine("PASS JBIG2: 98 authored pixel references match all packed page bytes.");
             await Jpeg2000ReferenceTestInput.VerifyAllAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Jpeg2000"));
             Console.WriteLine("PASS JPEG 2000: 70 independent component references, including native precision and signed samples.");
-            await Mp3DecodeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3"));
-            await Console.Out.WriteLineAsync("PASS MP3 PCM: complete real files and all-rate stereo/window vectors, every sample, timing and retained ownership match.");
-            Mp3HuffmanTestInput.Verify(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3", "huffman-codes.tsv"));
-            Console.WriteLine("PASS MP3 Huffman: all 1410 normative codewords, escape variants, signs, bit alignments and bounded quadruple endings match.");
-            await Mp3SyntaxTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3"));
-            await Console.Out.WriteLineAsync("PASS MP3 spectrum: all 846 frames, protected-field CRCs, window parameters, scalefactors, complete bit-reservoir bytes and quantized coefficients match.");
-            await Mp3ReferenceTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Mp3"));
-            await Console.Out.WriteLineAsync("PASS MP3 framing: all independent MPEG1/2/2.5 packets, timestamps, ID3 text, picture bytes, trailing tags and ownership match.");
+            await NativeMp3EncodingTests.RunAsync();
             foreach (string name in FlacDecodeTestInput.Names)
             {
                 await FlacDecodeTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Flac"), name, 127);
