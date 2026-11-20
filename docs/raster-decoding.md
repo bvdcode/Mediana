@@ -86,6 +86,9 @@ mediana -i animation.gif frame.png --time-ms 120
 mediana -i animation.webp output.webp --animate
 ```
 
+Metadata-only [PCX and PSD/PSB inspection](image-inspection.md) is registered
+separately from raster decoders and exposes original embedded JPEG previews.
+
 ## Verification
 
 The procedural corpus covers 100 BMP/ICO, TIFF and WebP cases, plus GIF frame

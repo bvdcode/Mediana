@@ -37,12 +37,16 @@ namespace Mediana.Codecs.Jpeg
         public bool CanDecode(ReadOnlySpan<byte> prefix, long? encodedLength = null) => prefix.Length >= 3 && prefix[0] == 255 && prefix[1] == 216 && prefix[2] == 255;
 
         public ValueTask<ImageInfo> ReadInfoAsync(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
+            => ValueTask.FromResult(ReadInfo(encoded, cancellationToken));
+
+        /// <summary>Reads image metadata without decoding component samples.</summary>
+        public ImageInfo ReadInfo(ReadOnlyMemory<byte> encoded, CancellationToken cancellationToken = default)
         {
             using JpegDocument image = new(encoded, options, sourceColorSpace, sampleAspectRatio, cancellationToken);
             image.Read(null);
             bool swap = image.Metadata.Orientation.SwapsAxes;
-            return ValueTask.FromResult(new ImageInfo("jpeg", swap ? image.Height : image.Width, swap ? image.Width : image.Height,
-                ImageDimensionUnit.Pixels, metadata: image.Metadata.Inspect(image)));
+            return new ImageInfo("jpeg", swap ? image.Height : image.Width, swap ? image.Width : image.Height,
+                ImageDimensionUnit.Pixels, metadata: image.Metadata.Inspect(image));
         }
 
         public ValueTask<VideoFrame> DecodeAsync(ReadOnlyMemory<byte> encoded, ImageDecodeRequest request,

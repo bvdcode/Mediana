@@ -22,6 +22,7 @@ using Mediana.Images.Heif;
 using Mediana.Images.Svg;
 using Mediana.Images.Tgs;
 using Mediana.Models.Mesh;
+using Mediana.Images.Metadata;
 using Mediana.Processing;
 
 namespace Mediana.Cli
@@ -63,6 +64,8 @@ namespace Mediana.Cli
 
         internal static MediaEngineBuilder AddStillImageDecoders(MediaEngineBuilder builder) => builder
             .UseResources(CommandTextResources.Shared)
+            .AddImageInspector(new PcxMetadataReader())
+            .AddImageInspector(new PsdMetadataReader())
             .AddImageDecoder(new TgaImageDecoder())
             .AddImageDecoder(new PnmImageDecoder())
             .AddImageDecoder(new QoiImageDecoder())

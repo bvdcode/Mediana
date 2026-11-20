@@ -41,3 +41,10 @@ uses Pillow 12.3/libwebp. It exercises an odd final VP8 chunk in an extended fil
 Mediana baseline JPEG encoding of `qoi-reference.rgba`: quality 75, 4:2:0,
 white alpha background, square samples. Comparison allows three RGB code values
 for decoder IDCT and chroma reconstruction rounding; alpha must match exactly.
+
+`metadata-reference.pcx` is Pillow 12.3 RGB PCX encoding of the procedural
+37×29 QOI reference. `metadata-reference.psd` and `.psb` use Adobe's documented
+headers/resources and contain the same planar RGB image, a 7×5 Pillow JPEG
+thumbnail (`metadata-preview.jpg`), and an EXIF resource with example camera,
+orientation and date values. Pillow independently decodes the complete PSD
+merged image to the source RGB bytes. PSB exercises 64-bit layer-section lengths.

@@ -241,6 +241,7 @@ tiff-fax,decode,partial,partial,partial,planned,partial,partial,../raster-decodi
 tiff-fax,encode,planned,planned,planned,planned,planned,planned,
 tga,decode,partial,partial,partial,planned,partial,partial,../tga.md;../../tests/Mediana.Codecs.Raster.Tests/Data/README.md
 tga,encode,planned,planned,planned,planned,planned,planned,
+pcx,read,partial,partial,partial,planned,planned,partial,../image-inspection.md
 pcx,decode,planned,planned,planned,planned,planned,planned,
 pcx,encode,planned,planned,planned,planned,planned,planned,
 sgi,decode,planned,planned,planned,planned,planned,planned,
@@ -257,8 +258,10 @@ qoi,decode,partial,partial,partial,planned,partial,partial,../qoi.md;../../tests
 qoi,encode,planned,planned,planned,planned,planned,planned,
 farbfeld,decode,planned,planned,planned,planned,planned,planned,
 farbfeld,encode,planned,planned,planned,planned,planned,planned,
+psd,read,partial,partial,partial,planned,planned,partial,../image-inspection.md
 psd,decode,planned,planned,planned,planned,planned,planned,
 psd,encode,planned,planned,planned,planned,planned,planned,
+psb,read,partial,partial,partial,planned,planned,partial,../image-inspection.md
 psb,decode,planned,planned,planned,planned,planned,planned,
 psb,encode,planned,planned,planned,planned,planned,planned,
 ora,decode,planned,planned,planned,planned,planned,planned,

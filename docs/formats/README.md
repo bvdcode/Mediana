@@ -3,9 +3,9 @@
 Mediana's target formats and independently tracked operations. This is a development map,
 not a claim that every listed format is currently supported. Priorities and scope may evolve.
 
-**469 variants · 1058 operations · 19 groups.**
+**469 variants · 1061 operations · 19 groups.**
 
-**Existing implementations: 122 variants · 154 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 125 variants · 157 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -27,7 +27,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Elementary streams and packet representations](#elementary-streams-and-packet-representations) | 4 | 15 | 7 | 30 |
 | [JPEG families and monochrome coding](#jpeg-families-and-monochrome-coding) | 8 | 23 | 9 | 46 |
 | [Web images and modern still-image coding](#web-images-and-modern-still-image-coding) | 12 | 26 | 17 | 52 |
-| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 19 | 35 | 19 | 64 |
+| [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 22 | 35 | 22 | 67 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 0 | 16 | 0 | 32 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
 | [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 13 | 62 | 14 | 124 |
@@ -188,7 +188,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `tiff-jpeg` | TIFF — JPEG compression mappings | .tif .tiff | D ◐ · E □ | B | Old and revised JPEG-in-TIFF representations need separate fixtures. [tiff](sources.md#tiff), [jpeg](sources.md#jpeg) | — |
 | `tiff-fax` | TIFF — CCITT fax compression | .tif .tiff | D ◐ · E □ | A | [tiff](sources.md#tiff), [jbig](sources.md#jbig) | — |
 | `tga` | TGA — Raw/RLE truecolor, indexed and alpha | .tga | D ◐ · E □ | B | [discovery](sources.md#discovery) | — |
-| `pcx` | PCX — Palette / RGB RLE | .pcx | D □ · E □ | C | [discovery](sources.md#discovery) | — |
+| `pcx` | PCX — Palette / RGB RLE | .pcx | R ◐ · D □ · E □ | C | Header metadata and palettes; raster decoding remains open. [discovery](sources.md#discovery) | — |
 | `sgi` | SGI RGB — Raw/RLE planar images | .sgi .rgb .rgba | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `pbm` | Netpbm PBM — Plain/binary monochrome | .pbm | D ◐ · E □ | B | [pnm](sources.md#pnm) | — |
 | `pgm` | Netpbm PGM — Plain/binary grayscale | .pgm | D ◐ · E □ | B | [pnm](sources.md#pnm) | — |
@@ -196,8 +196,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `pam` | Netpbm PAM — Arbitrary tuple images | .pam | D □ · E □ | B | [pnm](sources.md#pnm) | — |
 | `qoi` | QOI — Lossless RGB/RGBA | .qoi | D ◐ · E □ | B | [qoi](sources.md#qoi) | — |
 | `farbfeld` | farbfeld — 16-bit RGBA | .ff | D □ · E □ | C | [discovery](sources.md#discovery) | — |
-| `psd` | Photoshop PSD — Composite, layers, masks and channels | .psd | D □ · E □ | B | Merged preview and full layer composition require independent coverage. [psd](sources.md#psd) | — |
-| `psb` | Photoshop PSB — Large-document structure | .psb | D □ · E □ | C | [psd](sources.md#psd) | — |
+| `psd` | Photoshop PSD — Composite, layers, masks and channels | .psd | R ◐ · D □ · E □ | B | Metadata and unchanged embedded JPEG access; merged raster and layer composition remain open. [psd](sources.md#psd) | — |
+| `psb` | Photoshop PSB — Large-document structure | .psb | R ◐ · D □ · E □ | C | Metadata and unchanged embedded JPEG access with 64-bit layer-section lengths. [psd](sources.md#psd) | — |
 | `ora` | OpenRaster — Layered image package | .ora | D □ · E □ | B | [discovery](sources.md#discovery) | — |
 | `xcf` | GIMP XCF — Layered image revisions | .xcf | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `icns` | Apple ICNS — Multi-resolution icons | .icns | D □ · E □ | B | [discovery](sources.md#discovery) | — |

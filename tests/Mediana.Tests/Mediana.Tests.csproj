@@ -5,6 +5,7 @@
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Images.Metadata/Mediana.Images.Metadata.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Adts/Mediana.Containers.Adts.csproj" />
     <Compile Include="../Shared/AdtsMultiBlockTestInput.cs" Link="AdtsMultiBlockTestInput.cs" />
     <Compile Include="../Shared/AdtsTransportCopyTestInput.cs" Link="AdtsTransportCopyTestInput.cs" />

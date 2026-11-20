@@ -120,7 +120,7 @@ tiff-deflate,"Raster files, archives and camera images",TIFF,Deflate compression
 tiff-jpeg,"Raster files, archives and camera images",TIFF,JPEG compression mappings,image-codec,.tif .tiff,B,tiff;jpeg,Old and revised JPEG-in-TIFF representations need separate fixtures.
 tiff-fax,"Raster files, archives and camera images",TIFF,CCITT fax compression,image-codec,.tif .tiff,A,tiff;jbig,
 tga,"Raster files, archives and camera images",TGA,"Raw/RLE truecolor, indexed and alpha",image-codec,.tga,B,discovery,
-pcx,"Raster files, archives and camera images",PCX,Palette / RGB RLE,image-codec,.pcx,C,discovery,
+pcx,"Raster files, archives and camera images",PCX,Palette / RGB RLE,image-codec,.pcx,C,discovery,Header metadata and palettes; raster decoding remains open.
 sgi,"Raster files, archives and camera images",SGI RGB,Raw/RLE planar images,image-codec,.sgi .rgb .rgba,C,discovery,
 pbm,"Raster files, archives and camera images",Netpbm PBM,Plain/binary monochrome,image-codec,.pbm,B,pnm,
 pgm,"Raster files, archives and camera images",Netpbm PGM,Plain/binary grayscale,image-codec,.pgm,B,pnm,
@@ -128,8 +128,8 @@ ppm,"Raster files, archives and camera images",Netpbm PPM,Plain/binary RGB,image
 pam,"Raster files, archives and camera images",Netpbm PAM,Arbitrary tuple images,image-codec,.pam,B,pnm,
 qoi,"Raster files, archives and camera images",QOI,Lossless RGB/RGBA,image-codec,.qoi,B,qoi,
 farbfeld,"Raster files, archives and camera images",farbfeld,16-bit RGBA,image-codec,.ff,C,discovery,
-psd,"Raster files, archives and camera images",Photoshop PSD,"Composite, layers, masks and channels",image-codec,.psd,B,psd,Merged preview and full layer composition require independent coverage.
-psb,"Raster files, archives and camera images",Photoshop PSB,Large-document structure,image-codec,.psb,C,psd,
+psd,"Raster files, archives and camera images",Photoshop PSD,"Composite, layers, masks and channels",image-codec,.psd,B,psd,Metadata and unchanged embedded JPEG access; merged raster and layer composition remain open.
+psb,"Raster files, archives and camera images",Photoshop PSB,Large-document structure,image-codec,.psb,C,psd,Metadata and unchanged embedded JPEG access with 64-bit layer-section lengths.
 ora,"Raster files, archives and camera images",OpenRaster,Layered image package,image-codec,.ora,B,discovery,
 xcf,"Raster files, archives and camera images",GIMP XCF,Layered image revisions,image-codec,.xcf,C,discovery,
 icns,"Raster files, archives and camera images",Apple ICNS,Multi-resolution icons,image-codec,.icns,B,discovery,
