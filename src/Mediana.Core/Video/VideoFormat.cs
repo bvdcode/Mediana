@@ -64,6 +64,45 @@ namespace Mediana.Core.Video
         /// <summary>Applies the source description's precedence without modifying the stored metadata or sample values.</summary>
         public VideoColorInfo GetColorInterpretation() => ColorDescription?.Resolve(Color) ?? Color;
 
+        /// <summary>Describes a field view without creating pixel storage. Progressive chroma cannot be reinterpreted as independent fields.</summary>
+        public VideoFormat GetFieldFormat(VideoFieldParity parity)
+        {
+            int offset = parity switch
+            {
+                VideoFieldParity.Top => 0,
+                VideoFieldParity.Bottom => 1,
+                _ => throw new ArgumentOutOfRangeException(nameof(parity))
+            };
+            switch (ScanMode)
+            {
+                case VideoScanMode.TopField when parity == VideoFieldParity.Top:
+                case VideoScanMode.BottomField when parity == VideoFieldParity.Bottom:
+                    return this;
+                case VideoScanMode.TopField:
+                case VideoScanMode.BottomField:
+                    throw new ArgumentException("The requested field is not present in this surface.", nameof(parity));
+                case VideoScanMode.Progressive:
+                    throw new InvalidOperationException("Progressive chroma cannot be interpreted as independent fields without resampling.");
+                case VideoScanMode.TopFieldFirst:
+                case VideoScanMode.BottomFieldFirst:
+                    break;
+                default:
+                    throw new InvalidOperationException("The video scan mode is invalid.");
+            }
+            int height = checked((int)(((long)Height + 1 - offset) / 2));
+            if (height == 0)
+            {
+                throw new ArgumentException("The requested field has no visible rows.", nameof(parity));
+            }
+            VideoScanMode mode = parity switch
+            {
+                VideoFieldParity.Top => VideoScanMode.TopField,
+                VideoFieldParity.Bottom => VideoScanMode.BottomField,
+                _ => throw new ArgumentOutOfRangeException(nameof(parity))
+            };
+            return new(Width, height, PixelFormat, Color, SampleAspectRatio, ColorDescription, mode, Height);
+        }
+
         public PlaneLayout[] CreateTightLayout()
         {
             PlaneLayout[] result = new PlaneLayout[PixelFormat.Planes.Count];

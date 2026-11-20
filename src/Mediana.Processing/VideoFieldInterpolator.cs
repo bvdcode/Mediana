@@ -18,9 +18,15 @@ namespace Mediana.Processing
         {
             ArgumentNullException.ThrowIfNull(field);
             ArgumentNullException.ThrowIfNull(allocator);
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(frameHeight);
             cancellationToken.ThrowIfCancellationRequested();
-            VideoFieldParity parity = field.Format.ScanMode switch
+            (VideoFormat format, int offset) = Describe(field.Format, frameHeight);
+            return Apply(field, format, offset, allocator, cancellationToken);
+        }
+
+        internal static (VideoFormat Format, int Offset) Describe(VideoFormat field, int frameHeight)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(frameHeight);
+            VideoFieldParity parity = field.ScanMode switch
             {
                 VideoScanMode.TopField => VideoFieldParity.Top,
                 VideoScanMode.BottomField => VideoFieldParity.Bottom,
@@ -34,23 +40,29 @@ namespace Mediana.Processing
                 VideoFieldParity.Bottom => 1,
                 _ => throw new ArgumentOutOfRangeException(nameof(field))
             };
-            if (((long)frameHeight + 1 - offset) / 2 != field.Format.Height)
+            if (((long)frameHeight + 1 - offset) / 2 != field.Height)
             {
                 throw new ArgumentException("The frame height does not match the stored field height and parity.", nameof(frameHeight));
             }
-            if (field.Format.FullFrameHeight is int declared && declared != frameHeight)
+            if (field.FullFrameHeight is int declared && declared != frameHeight)
             {
                 throw new ArgumentException("The frame height contradicts the field's declared full frame geometry.", nameof(frameHeight));
             }
-            VideoPixelFormat pixels = field.Format.PixelFormat;
+            VideoPixelFormat pixels = field.PixelFormat;
             if (pixels is not PlanarVideoPixelFormat && pixels != VideoPixelFormat.Rgba32 && pixels != VideoPixelFormat.RgbaFloat32Premultiplied)
             {
                 throw new NotSupportedException("Field reconstruction requires planar integer or RGBA pixels.");
             }
-            VideoColorInfo color = field.Format.Color;
+            VideoColorInfo color = field.Color;
             ChromaLocation location = color.FieldChromaLocations?.GetLocation(parity) ?? color.ChromaLocation;
             color = color with { ChromaLocation = location, FieldChromaLocations = null };
-            VideoFormat format = new(field.Format.Width, frameHeight, pixels, color, field.Format.SampleAspectRatio, field.Format.ColorDescription);
+            return (new(field.Width, frameHeight, pixels, color, field.SampleAspectRatio, field.ColorDescription), offset);
+        }
+
+        internal static VideoFrame Apply(VideoFrame field, VideoFormat format, int offset, MediaBufferAllocator allocator, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            VideoPixelFormat pixels = format.PixelFormat;
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)layout[^1].EndOffset));
             for (int plane = 0; plane < layout.Length; plane++)

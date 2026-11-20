@@ -33,6 +33,7 @@ namespace Mediana.Cli
                     StreamIndex = streamIndex,
                     MaximumWidth = maximumWidth,
                     MaximumHeight = maximumHeight,
+                    InterlacedField = VideoFieldSelection.Leading,
                     OmitAudio = videoOnly,
                     OutputPixelFormat = VideoPixelFormat.Yuv420P8,
                     ColorResolver = VideoColorPolicy.ResolveForEncoding,

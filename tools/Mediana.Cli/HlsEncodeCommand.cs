@@ -42,6 +42,7 @@ namespace Mediana.Cli
                 {
                     OutputPixelFormat = VideoPixelFormat.Yuv420P8,
                     ColorResolver = VideoColorPolicy.ResolveForEncoding,
+                    InterlacedField = VideoFieldSelection.Leading,
                     WarningHandler = message => logger.LogWarning("{Warning}", message),
                     RgbConversion = new()
                 },

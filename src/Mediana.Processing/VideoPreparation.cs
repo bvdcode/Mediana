@@ -14,6 +14,7 @@ namespace Mediana.Processing
     {
         private readonly Yuv420FrameTransform transform;
         private readonly VideoFormat? interpretedInput;
+        private readonly VideoFieldPreparation? fields;
         private readonly RgbaToYuv420? rgb;
         private readonly Yuv420AreaResizer? resizer;
         private bool disposed;
@@ -41,6 +42,11 @@ namespace Mediana.Processing
                     interpretation, inputFormat.SampleAspectRatio, null, inputFormat.ScanMode, inputFormat.FullFrameHeight);
             }
             VideoFormat planar = interpretedInput ?? inputFormat;
+            if (options.InterlacedField is VideoFieldSelection selection)
+            {
+                fields = new(planar, selection, allocator, options.WarningHandler);
+                planar = fields.OutputFormat;
+            }
             if ((inputFormat.PixelFormat == VideoPixelFormat.Rgba32 || inputFormat.PixelFormat is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Gbr }) && options.RgbConversion is not null)
             {
                 rgb = new(planar, options.RgbConversion, allocator);
@@ -86,9 +92,11 @@ namespace Mediana.Processing
                 ArgumentNullException.ThrowIfNull(input);
                 cancellationToken.ThrowIfCancellationRequested();
                 using VideoFrame? interpreted = Interpret(input);
-                using VideoFrame? converted = rgb?.Apply(interpreted ?? input, cancellationToken);
-                if (resizer is null) { return transform.Apply(converted ?? interpreted ?? input, cancellationToken); }
-                using VideoFrame transformed = transform.Apply(converted ?? interpreted ?? input, cancellationToken);
+                using VideoFrame? progressive = fields is { RequiresInterpolation: true } preparation
+                    ? preparation.Apply(interpreted ?? input, cancellationToken) : null;
+                using VideoFrame? converted = rgb?.Apply(progressive ?? interpreted ?? input, cancellationToken);
+                if (resizer is null) { return transform.Apply(converted ?? progressive ?? interpreted ?? input, cancellationToken); }
+                using VideoFrame transformed = transform.Apply(converted ?? progressive ?? interpreted ?? input, cancellationToken);
                 return resizer.ResizeOrRetain(transformed, cancellationToken);
             }
             finally { Volatile.Write(ref busy, 0); }

@@ -27,6 +27,25 @@ become one frame display with the original source-scan indication.
 This spatial interpolation does not recover missing vertical detail or use
 neighbouring pictures for motion-adaptive reconstruction.
 
+## Preparing images and encoded video
+
+`VideoFieldPreparation` configures reconstruction from known source geometry.
+`VideoFieldSelection.Leading` follows the declared field order; `Top` and `Bottom`
+select an explicit field. Progressive input retains its pixels without an output
+surface. Interlaced input allocates one progressive surface, preserving timestamps
+and durations. An unavailable field or unknown full height is rejected.
+
+Set `VideoPreparationOptions.InterlacedField` for video encoding or
+`VisualExportOptions.InterlacedField` for image export. Field reconstruction runs
+before color conversion, orientation and resizing. Both library options are null
+by default. `VideoPreparationSequence` can accept alternating frame and field
+surfaces when their prepared output format remains equal; repeated interpretation
+warnings are reported once per sequence.
+
+The CLI selects the leading field with a warning for image previews, transcoding
+and HLS encoding. Output retains the source frame cadence: this operation does not
+double the frame rate or synthesize field timestamps.
+
 ## Validation
 
 The 52 field, scan and presentation tests pass in Release, including 13 field
@@ -34,6 +53,12 @@ interpolation tests. The latter also pass with hardware intrinsics disabled.
 Coverage includes all 65,536 pairs of 8-bit values, complementary 16-bit values,
 odd sizes, padded rows, independent field chroma locations, alpha, large floating
 values, cancellation, memory limits and independent disposal.
+
+The configured processing paths pass 1,198 H.264, field, scan, preparation and
+preview tests. Independent decoding of a mixed frame/field MPEG-TS output and two
+HLS resolutions completes without errors, preserving the expected frame count
+and AAC priming offset. Native AOT validation covers preparation, timing,
+pixel ownership and PNG export.
 
 ## Scalar and vector comparison
 

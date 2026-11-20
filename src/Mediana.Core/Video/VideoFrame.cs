@@ -77,41 +77,17 @@ namespace Mediana.Core.Video
         /// Timing remains that of the source surface; no field duration or timestamp is inferred.</summary>
         public VideoFrame GetField(VideoFieldParity parity)
         {
+            VideoFormat format = Format.GetFieldFormat(parity);
+            if (Format.ScanMode is VideoScanMode.TopField or VideoScanMode.BottomField)
+            {
+                return Retain();
+            }
             int offset = parity switch
             {
                 VideoFieldParity.Top => 0,
                 VideoFieldParity.Bottom => 1,
                 _ => throw new ArgumentOutOfRangeException(nameof(parity))
             };
-            switch (Format.ScanMode)
-            {
-                case VideoScanMode.TopField when parity == VideoFieldParity.Top:
-                case VideoScanMode.BottomField when parity == VideoFieldParity.Bottom:
-                    return Retain();
-                case VideoScanMode.TopField:
-                case VideoScanMode.BottomField:
-                    throw new ArgumentException("The requested field is not present in this surface.", nameof(parity));
-                case VideoScanMode.Progressive:
-                    throw new InvalidOperationException("Progressive chroma cannot be interpreted as independent fields without resampling.");
-                case VideoScanMode.TopFieldFirst:
-                case VideoScanMode.BottomFieldFirst:
-                    break;
-                default:
-                    throw new InvalidOperationException("The video scan mode is invalid.");
-            }
-            int height = checked((int)(((long)Format.Height + 1 - offset) / 2));
-            if (height == 0)
-            {
-                throw new ArgumentException("The requested field has no visible rows.", nameof(parity));
-            }
-            VideoScanMode mode = parity switch
-            {
-                VideoFieldParity.Top => VideoScanMode.TopField,
-                VideoFieldParity.Bottom => VideoScanMode.BottomField,
-                _ => throw new ArgumentOutOfRangeException(nameof(parity))
-            };
-            VideoFormat format = new(Format.Width, height, Format.PixelFormat, Format.Color, Format.SampleAspectRatio,
-                Format.ColorDescription, mode, Format.Height);
             PlaneLayout[] layout = format.CreateTightLayout();
             for (int plane = 0; plane < layout.Length; plane++)
             {
