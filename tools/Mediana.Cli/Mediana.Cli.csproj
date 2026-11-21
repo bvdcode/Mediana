@@ -11,6 +11,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/Mediana.Codecs.Dts/Mediana.Codecs.Dts.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.OpenExr/Mediana.Codecs.OpenExr.csproj" />
     <ProjectReference Include="../../src/Mediana.Images.Metadata/Mediana.Images.Metadata.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Mpeg4Visual/Mediana.Codecs.Mpeg4Visual.csproj" />
@@ -48,6 +49,8 @@
     <ProjectReference Include="../../src/Mediana.Containers.Ac3/Mediana.Containers.Ac3.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Ac3/Mediana.Codecs.Ac3.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Flac/Mediana.Codecs.Flac.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Alac/Mediana.Codecs.Alac.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.ProRes/Mediana.Codecs.ProRes.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Flac/Mediana.Containers.Flac.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />

@@ -7,10 +7,9 @@ using Mediana.Core.Video;
 
 namespace Mediana.Processing
 {
-    internal class IccRgbTransform : IRgbaPixelTransform
+    internal class IccRgbTransform : IPackedPixelTransform
     {
         private static readonly ConditionalWeakTable<IccColorDescription, IccRgbTransform> Cache = new();
-        private static readonly byte[] SrgbEncoding = CreateEncoding();
         private readonly Vector3[] red = new Vector3[256];
         private readonly Vector3[] green = new Vector3[256];
         private readonly Vector3[] blue = new Vector3[256];
@@ -43,19 +42,10 @@ namespace Mediana.Processing
                 throw new InvalidDataException("ICC grayscale profile requires replicated gray samples.");
             }
             Vector3 linear = red[source[0]] + green[source[1]] + blue[source[2]];
-            destination[0] = Encode(linear.X);
-            destination[1] = Encode(linear.Y);
-            destination[2] = Encode(linear.Z);
+            destination[0] = IccSrgbEncoding.Encode(linear.X);
+            destination[1] = IccSrgbEncoding.Encode(linear.Y);
+            destination[2] = IccSrgbEncoding.Encode(linear.Z);
             destination[3] = source[3];
-        }
-
-        private static byte Encode(float linear) => SrgbEncoding[(int)(Math.Clamp(linear, 0, 1) * (SrgbEncoding.Length - 1) + 0.5f)];
-
-        private static byte[] CreateEncoding()
-        {
-            byte[] values = new byte[ushort.MaxValue + 1];
-            for (int i = 0; i < values.Length; i++) { values[i] = SdrTransfer.EncodeSrgb((double)i / ushort.MaxValue); }
-            return values;
         }
     }
 }

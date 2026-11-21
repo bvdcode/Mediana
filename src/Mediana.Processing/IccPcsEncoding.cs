@@ -3,8 +3,10 @@
 
 namespace Mediana.Processing
 {
-    internal interface IRgbaPixelTransform
+    internal enum IccPcsEncoding
     {
-        void WritePixel(Span<byte> destination, ReadOnlySpan<byte> source);
+        Xyz,
+        Lab,
+        LegacyLab
     }
 }

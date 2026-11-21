@@ -13,6 +13,8 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Av1 { get; } = new("av1.codec-configuration-record", "av1.low-overhead.access-unit", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Vp9 { get; } = new("none", "vp9.access-unit", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Vp8 { get; } = new("none", "vp8.complete-frame", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat ProRes { get; } = new("none", "prores.frame", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat Dts { get; } = new("none", "dts.core-frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mjpeg { get; } = new("none", "jpeg.complete-picture", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Aac { get; } = new("aac.audio-specific-config", "aac.raw-data-block", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat AacAdts { get; } = new("aac.audio-specific-config", "aac.adts-frame", EncodedPacketBoundary.TransportFrame);
@@ -22,6 +24,7 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Ac3Mp4 { get; } = new("ac3.dac3", "ac3.syncframe", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Eac3Mp4 { get; } = new("eac3.dec3", "eac3.syncframes", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mp3 { get; } = new("mpeg-audio.frame-header", "mpeg-audio.layer-iii-frame", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat Alac { get; } = new("alac.specific-config", "alac.access-unit", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Flac { get; } = new("flac.stream-info", "flac.frames", EncodedPacketBoundary.ArbitraryBytes);
         public static EncodedStreamFormat Opus { get; } = new("opus.identification-header", "opus.packet", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mpeg4Visual { get; } = new("mpeg4.visual.headers", "mpeg4.visual.vop", EncodedPacketBoundary.AccessUnit);

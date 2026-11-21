@@ -62,6 +62,7 @@ namespace Mediana.OperationComparison
             }
             return arguments[0] switch
             {
+                "audio" => AudioComparison.RunAsync(arguments[1], arguments[2]),
                 "video" => VideoComparison.RunAsync(arguments[1], arguments[2]),
                 "video-yuv" => VideoComparison.RunAsync(arguments[1], arguments[2], true, true),
                 "video-pooled" => VideoComparison.RunAsync(arguments[1], arguments[2], true),

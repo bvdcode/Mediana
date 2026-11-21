@@ -87,6 +87,9 @@ playback, out-of-order requests, two-minute audio synchronization and bounded co
 | `Mediana.Codecs.Pcm` | Integer/float PCM conversion to native-endian audio frames |
 | `Mediana.Codecs.Flac` | Lossless FLAC PCM, predictors/Rice, stereo decorrelation and frame CRC |
 | `Mediana.Codecs.Aac` | AAC-LC through 7.1 wide, mono/stereo SBR, parametric stereo and experimental mono/stereo AAC-LC encoding ([HE-AAC](docs/he-aac-decoding.md)) |
+| `Mediana.Codecs.Alac` | Managed Apple Lossless decoding, M4A metadata and indexed seeking; [details](docs/alac.md) |
+| `Mediana.Codecs.Dts` | Managed DTS Core decoding, MKV metadata and indexed seeking; [details](docs/dts.md) |
+| `Mediana.Codecs.ProRes` | Six ProRes profiles, MOV decoding and full alpha precision; [details](docs/prores.md) |
 | `Mediana.Codecs.Ac3` | Managed AC-3/E-AC-3 transforms, coupling, spectral extension, transient processing and dependent channels ([API](src/Mediana.Codecs.Ac3/README.md)) |
 | `Mediana.Codecs.Av1` | Managed eight-bit Main intra/compound inter reconstruction, loop filters and indexed MP4/Matroska input ([coverage](src/Mediana.Codecs.Av1/README.md)) |
 | `Mediana.Codecs.Mpeg4Visual` | Managed MPEG-4 Part 2 I/P/B video, half/quarter-pixel motion and indexed AVI/MP4 seeking ([API](docs/mpeg4-visual.md)) |

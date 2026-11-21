@@ -30,7 +30,8 @@ namespace Mediana.Containers.Mp4
             }
             return (kind, entry.Type) switch
             {
-                (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1" or "av01" or "mp4v") => ParseVideo(entry, budget, quickTime),
+                (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1" or "av01" or "mp4v" or "apco" or "apcs" or "apcn" or "apch" or "ap4h" or "ap4x") => ParseVideo(entry, budget, quickTime),
+                (MediaKind.Audio, "alac") => ParseAlac(entry, budget),
                 (MediaKind.Audio, "mp4a") => ParseAudio(entry, budget),
                 (MediaKind.Audio, "ac-3" or "ec-3") => ParseAc3(entry, budget),
                 (MediaKind.Data, "tmcd") => ParseTimecode(entry),
@@ -65,6 +66,13 @@ namespace Mediana.Containers.Mp4
         {
             switch (sampleType)
             {
+                case "apco":
+                case "apcs":
+                case "apcn":
+                case "apch":
+                case "ap4h":
+                case "ap4x":
+                    return (ProResFrameHeader.CodecId, StreamFormats.ProRes, ReadOnlyMemory<byte>.Empty);
                 case "mp4v":
                     ReadOnlyMemory<byte> visual = Mp4ElementaryStreamDescriptor.ReadVisualConfiguration(children.Required("esds").Payload);
                     return (Mpeg4VisualConfiguration.CodecId, StreamFormats.Mpeg4Visual, visual);
@@ -105,6 +113,19 @@ namespace Mediana.Containers.Mp4
             };
             return new Mp4SampleDescription(entry.Type, codecId, format, configuration,
                 AudioChannels: channels, AudioSampleRate: rate);
+        }
+
+        private static Mp4SampleDescription ParseAlac(Mp4Box entry, Mp4ParseBudget budget)
+        {
+            (_, int headerLength, _, _) = Mp4SoundDescriptionHeader.Read(entry.Payload.Span);
+            Mp4BoxCollection children = new(entry.Payload[headerLength..], budget);
+            RejectEncryption(children);
+            ReadOnlyMemory<byte> payload = children.Required("alac").Payload;
+            Mp4Binary.FullBox(payload.Span);
+            ReadOnlyMemory<byte> configuration = payload[4..];
+            AlacConfiguration parsed = AlacConfiguration.Read(configuration.Span);
+            return new(entry.Type, AlacConfiguration.CodecId, StreamFormats.Alac, configuration,
+                AudioChannels: parsed.ChannelCount, AudioSampleRate: parsed.SampleRate);
         }
 
         private static Mp4SampleDescription ParseAc3(Mp4Box entry, Mp4ParseBudget budget)

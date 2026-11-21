@@ -27,7 +27,9 @@ namespace Mediana
             await using AudioSession session = await OpenAudioAsync(source, allocator, options.Input, options.StreamIndex, cancellationToken).ConfigureAwait(false);
             using AudioFrame first = await session.ReadFrameAsync(cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidDataException("The input contains no decoded audio samples.");
-            AudioFormat format = new(first.Format.SampleRate, options.SampleFormat, AudioStorageLayout.Interleaved, first.Format.Channels.ToArray());
+            AudioFormat proposed = new(first.Format.SampleRate, options.SampleFormat, AudioStorageLayout.Interleaved, first.Format.Channels.ToArray());
+            AudioFormat format = factory.SelectFormat(proposed);
+            AudioFramePreparation preparation = new(first.Format, format);
             using CountingWriteStream output = new(destination);
             await using IAudioFrameWriter writer = await factory.CreateAsync(output, format, allocator, cancellationToken).ConfigureAwait(false);
             long samples = 0;
@@ -46,7 +48,7 @@ namespace Mediana
 
             async ValueTask WriteAsync(AudioFrame frame)
             {
-                using AudioFrame pcm = AudioSampleConverter.ConvertOrRetain(frame, options.SampleFormat, AudioStorageLayout.Interleaved, allocator, cancellationToken);
+                using AudioFrame pcm = preparation.PrepareOrRetain(frame, allocator, cancellationToken);
                 await writer.WriteFrameAsync(pcm, cancellationToken).ConfigureAwait(false);
                 samples = checked(samples + pcm.SamplesPerChannel);
                 progress?.Invoke(new(new(samples, new TimeBase(1, format.SampleRate)), output.BytesWritten, false, session.Stream.CodedDuration));

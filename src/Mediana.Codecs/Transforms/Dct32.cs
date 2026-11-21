@@ -3,9 +3,9 @@
 
 using System.Runtime.CompilerServices;
 
-namespace Mediana.Codecs.Mp3
+namespace Mediana.Codecs.Transforms
 {
-    internal static class Mp3Dct32
+    internal static class Dct32
     {
         private static readonly double[] Factors = CreateFactors();
 

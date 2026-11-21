@@ -13,8 +13,8 @@ namespace Mediana.Processing
         private static readonly VideoColorInfo SrgbColor = new(ColorPrimaries.Bt709, TransferFunction.Srgb,
             MatrixCoefficients.Rgb, ColorRange.Full, ChromaLocation.Unspecified);
 
-        /// <summary>Converts SDR planar integer YUV/GBR, straight RGBA32 or premultiplied float32 RGBA to full-range straight sRGB RGBA32.
-        /// Uses supported ICC v2/v4 matrix/TRC profiles or known source color parameters.
+        /// <summary>Converts SDR planar integer YUV/GBR, straight RGBA32, ICC-tagged CMYK32 or premultiplied float32 RGBA to full-range straight sRGB RGBA32.
+        /// Uses supported ICC v2/v4 matrix/TRC or CMYK LUT profiles, or known source color parameters.
         /// Borrows input; returns an independently disposable frame.
         /// Unchanged tightly packed sRGB storage retains its original allocation budget without copying.
         /// Clips nominal source RGB before display transfer and target RGB to the sRGB gamut.
@@ -69,7 +69,7 @@ namespace Mediana.Processing
             }
             if (!yuv && !gbr)
             {
-                return ApplyRgba(input, map, aspectRatio, allocator, transform, cancellationToken);
+                return ApplyPacked(input, map, aspectRatio, allocator, transform, cancellationToken);
             }
             VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio, null,
                 VideoScanGeometry.Map(input.Format.ScanMode, map), VideoScanGeometry.FullFrameHeight(input.Format, map.OutputHeight));
@@ -82,6 +82,10 @@ namespace Mediana.Processing
             }
             else if (planar!.BitDepth > 8) { RenderYuv<ushort, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor, transform, cancellationToken); }
             else { RenderYuv<byte, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor, transform, cancellationToken); }
+            if (planar.AlphaBitDepth != 0)
+            {
+                ApplyPlanarAlpha(input, writable.Memory.Span, map, planar.AlphaBitDepth, cancellationToken);
+            }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
@@ -130,8 +134,8 @@ namespace Mediana.Processing
             }
         }
 
-        private static void RenderRgba<TTransform>(VideoFrame input, Span<byte> output, NearestNeighborMap map, TTransform transform,
-            CancellationToken cancellationToken) where TTransform : IRgbaPixelTransform
+        private static void RenderPacked<TTransform>(VideoFrame input, Span<byte> output, NearestNeighborMap map, TTransform transform,
+            CancellationToken cancellationToken) where TTransform : IPackedPixelTransform
         {
             int cachedRow = -1;
             ReadOnlySpan<byte> source = default;

@@ -4,9 +4,12 @@
 using Mediana.Codecs.Aac;
 using Mediana.Codecs.Ac3;
 using Mediana.Codecs.Flac;
+using Mediana.Codecs.Alac;
+using Mediana.Codecs.Dts;
 using Mediana.Codecs.H264;
 using Mediana.Codecs.Mp3;
 using Mediana.Codecs.Pcm;
+using Mediana.Codecs.ProRes;
 
 namespace Mediana.Cli
 {
@@ -16,6 +19,9 @@ namespace Mediana.Cli
             .AddStreamMetadataReader(new PcmStreamMetadataReader())
             .AddStreamMetadataReader(new AiffPcmStreamMetadataReader())
             .AddStreamMetadataReader(new FlacStreamMetadataReader())
+            .AddStreamMetadataReader(new AlacStreamMetadataReader())
+            .AddStreamMetadataReader(new DtsStreamMetadataReader())
+            .AddStreamMetadataReader(new ProResStreamMetadataReader())
             .AddStreamMetadataReader(new Mp3StreamMetadataReader())
             .AddStreamMetadataReader(new AacStreamMetadataReader())
             .AddStreamMetadataReader(new Ac3StreamMetadataReader())

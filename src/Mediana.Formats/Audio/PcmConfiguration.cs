@@ -35,6 +35,21 @@ namespace Mediana.Formats.Audio
         public bool IsSigned8Bit { get; }
         public int BlockAlignment => Format.Channels.Count * SourceBitsPerSample / 8;
 
+        /// <summary>Selects interleaved storage with named speakers in WAVE mask order.
+        /// Unassigned channels retain their input order; unknown or mixed speaker labels are rejected.</summary>
+        public static AudioFormat SelectWaveFormat(AudioFormat proposed)
+        {
+            ArgumentNullException.ThrowIfNull(proposed);
+            string[] channels = proposed.Channels.ToArray();
+            if (channels.All(label => Array.IndexOf(speakers, label) >= 0))
+            {
+                Array.Sort(channels, static (first, second) => Array.IndexOf(speakers, first).CompareTo(Array.IndexOf(speakers, second)));
+            }
+            AudioFormat selected = new(proposed.SampleRate, proposed.SampleFormat, AudioStorageLayout.Interleaved, channels);
+            _ = WriteWaveFormat(selected);
+            return selected;
+        }
+
         /// <summary>Encodes an interleaved PCM description without changing its channel order.
         /// Named extensible channels must follow WAVE speaker-bit order, followed by any discrete channels.</summary>
         public static byte[] WriteWaveFormat(AudioFormat format)
@@ -55,6 +70,7 @@ namespace Mediana.Formats.Audio
             uint mask = 0;
             int previousBit = -1;
             bool discrete = false;
+            bool zeroBasedDiscrete = format.Channels[0] == "discrete-0";
             if (!basic)
             {
                 for (int index = 0; index < format.Channels.Count; index++)
@@ -66,7 +82,7 @@ namespace Mediana.Formats.Audio
                         mask |= 1U << bit;
                         previousBit = bit;
                     }
-                    else if (label == $"discrete-{index + 1}")
+                    else if (label == $"discrete-{(zeroBasedDiscrete ? index : index + 1)}")
                     {
                         discrete = true;
                     }

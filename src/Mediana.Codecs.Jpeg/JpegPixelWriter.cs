@@ -12,25 +12,23 @@ namespace Mediana.Codecs.Jpeg
         internal static VideoFrame Create(JpegDocument image, MediaBufferAllocator allocator, CancellationToken token)
         {
             bool deviceCmyk = image.Components.Count == 4;
+            bool preserveCmyk = deviceCmyk && image.Metadata.HasIcc;
             VideoColorInfo color = !deviceCmyk && image.Metadata.IsSrgb
                 ? VideoColorInfo.Srgb : new(Matrix: MatrixCoefficients.Rgb, Range: ColorRange.Full);
             VideoColorDescription? description = null;
             if (image.Metadata.HasIcc)
             {
-                if (deviceCmyk)
-                {
-                    throw new NotSupportedException("CMYK JPEG ICC profiles require a four-component color transform.");
-                }
                 description = image.Metadata.CreateIccDescription();
             }
             else if (!deviceCmyk && image.Metadata.Uncalibrated) { description = new JpegExifColorDescription(); }
+            if (preserveCmyk) { color = new(Range: ColorRange.Full); }
             bool swap = image.Metadata.Orientation.SwapsAxes;
             VideoFormat format = new(swap ? image.Height : image.Width, swap ? image.Width : image.Height,
-                VideoPixelFormat.Rgba32, color, image.Metadata.Aspect, description);
+                preserveCmyk ? VideoPixelFormat.Cmyk32 : VideoPixelFormat.Rgba32, color, image.Metadata.Aspect, description);
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer output = allocator.Allocate(checked((int)layout[0].EndOffset));
             Write(new(image.Width, image.Height, image.MaximumHorizontal, image.MaximumVertical, image.Components),
-                output.Memory.Span, image.Metadata.ColorSpace, token, image.Metadata.Orientation, image.Metadata.Centered);
+                output.Memory.Span, image.Metadata.ColorSpace, token, image.Metadata.Orientation, image.Metadata.Centered, preserveCmyk);
             using MediaBuffer buffer = output.Publish();
             return new VideoFrame(format, buffer, layout);
         }
@@ -39,11 +37,11 @@ namespace Mediana.Codecs.Jpeg
             Write(image, pixels, color, token, OrthogonalTransform.Identity, true);
 
         private static void Write(in JpegSampleLayout image, Span<byte> pixels, JpegColorSpace color, CancellationToken token,
-            OrthogonalTransform orientation, bool centered)
+            OrthogonalTransform orientation, bool centered, bool preserveCmyk = false)
         {
             if (pixels.Length < (long)image.Width * image.Height * 4)
             {
-                throw new ArgumentException("The JPEG RGBA destination is too short.", nameof(pixels));
+                throw new ArgumentException("The JPEG pixel destination is too short.", nameof(pixels));
             }
             token.ThrowIfCancellationRequested();
             int width = orientation.SwapsAxes ? image.Height : image.Width;
@@ -124,10 +122,11 @@ namespace Mediana.Codecs.Jpeg
                                 default:
                                     throw new ArgumentOutOfRangeException(nameof(color));
                             }
-                            (pixel[0], pixel[1], pixel[2]) = DeviceCmyk.ToRgb(pixel[0], pixel[1], pixel[2], (byte)black);
+                            if (preserveCmyk) { pixel[3] = (byte)black; }
+                            else { (pixel[0], pixel[1], pixel[2]) = DeviceCmyk.ToRgb(pixel[0], pixel[1], pixel[2], (byte)black); }
                         }
                     }
-                    pixel[3] = 255;
+                    if (!preserveCmyk) { pixel[3] = 255; }
                 }
             }
             token.ThrowIfCancellationRequested();

@@ -9,6 +9,13 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/DtsWaveExportTestInput.cs" Link="DtsWaveExportTestInput.cs" />
+    <None Include="../Mediana.Codecs.Dts.Tests/Data/*" Link="Data/Dts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Dts/Mediana.Codecs.Dts.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Alac/Mediana.Codecs.Alac.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.ProRes/Mediana.Codecs.ProRes.csproj" />
+    <None Include="../Mediana.Codecs.Alac.Tests/Data/*" Link="Data/Alac/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Mediana.Codecs.ProRes.Tests/Data/*" Link="Data/ProRes/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Codecs.OpenExr/Mediana.Codecs.OpenExr.csproj" />
     <ProjectReference Include="../../src/Mediana.Images.Metadata/Mediana.Images.Metadata.csproj" />
     <None Include="../Mediana.Tests/Data/H264DeblockingEncoding/*" Link="Data/H264DeblockingEncoding/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
@@ -33,6 +40,9 @@
     <Compile Include="../Mediana.Tests/Mp4EditTestData.cs" Link="Mp4EditTestData.cs" />
     <Compile Include="../Shared/YuvFramePreparationTestInput.cs" Link="YuvFramePreparationTestInput.cs" />
     <Compile Include="../Shared/IccColorTestInput.cs" Link="IccColorTestInput.cs" />
+    <Compile Include="../Shared/IccCmykTestInput.cs" Link="IccCmykTestInput.cs" />
+    <Compile Include="../Shared/JpegCmykIccTestInput.cs" Link="JpegCmykIccTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/IccCmyk/*" Link="Data/IccCmyk/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Icc/*" Link="Data/Icc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/DocumentPackageTestData.cs" Link="DocumentPackageTestData.cs" />
     <Compile Include="../Shared/XlsxWorkbookTestData.cs" Link="XlsxWorkbookTestData.cs" />

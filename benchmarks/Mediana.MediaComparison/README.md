@@ -158,3 +158,18 @@ EOF, checks encoder completion and reports CPU, elapsed time, process peak RSS,
 managed allocation totals and encoded packet bytes. It checks that all owned
 media storage has been released. This separates encoding from source decoding;
 whole-operation transcode measurements remain a separate workload.
+
+The operation client also measures complete ALAC/M4A and DTS Core/MKV audio:
+
+```sh
+dotnet publish benchmarks/Mediana.MediaComparison/Operations/Mediana.OperationComparison.csproj -c Release -r linux-x64 -o artifacts/operations
+artifacts/operations/Mediana.OperationComparison audio input.m4a output.sha256
+artifacts/operations/Mediana.OperationComparison audio input.mkv output.sha256
+```
+
+It decodes to EOF with pooled media storage, hashes native-endian interleaved PCM,
+and reports samples, elapsed time, CPU, total managed allocations, process peak RSS
+and retained allocator bytes. Compare complete fresh processes, with identical
+sample representation and explicit reference threading. ALAC output is signed32;
+DTS Core output is float32 in coded speaker order. Hashes across different lossy
+reconstructions require a separate numerical PCM comparison.

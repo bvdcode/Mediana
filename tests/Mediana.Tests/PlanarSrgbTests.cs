@@ -57,9 +57,9 @@ namespace Mediana.Tests
         {
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate((int)layout[^1].EndOffset);
-            int bytes = format.PixelFormat.Planes[0].BytesPerElement;
-            for (int plane = 0; plane < 3; plane++)
+            for (int plane = 0; plane < layout.Length; plane++)
             {
+                int bytes = format.PixelFormat.Planes[plane].BytesPerElement;
                 PlaneLayout target = layout[plane];
                 for (int y = 0; y < target.Height; y++)
                 {

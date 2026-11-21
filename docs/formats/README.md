@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1066 operations · 19 groups.**
 
-**Existing implementations: 136 variants · 169 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 140 variants · 173 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -30,8 +30,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 26 | 35 | 26 | 71 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 16 | 62 | 17 | 124 |
-| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 16 | 63 | 22 | 128 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 18 | 62 | 19 | 124 |
+| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 18 | 63 | 24 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
 | [Fonts and text presentation resources](#fonts-and-text-presentation-resources) | 6 | 14 | 7 | 27 |
@@ -122,7 +122,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `jpeg-arithmetic` | JPEG — Arithmetic DCT coding | .jpg .jpeg | D □ · E □ | B | [jpeg](sources.md#jpeg) | — |
 | `jpeg-lossless` | JPEG — Predictive lossless, Huffman/arithmetic | .jpg .jpeg | D □ · E □ | B | Original JPEG lossless is distinct from JPEG-LS and JPEG XL. [jpeg](sources.md#jpeg) | — |
 | `jpeg-hierarchical` | JPEG — Hierarchical modes | .jpg .jpeg | D □ · E □ | C | [jpeg](sources.md#jpeg) | — |
-| `jpeg-cmyk` | JPEG — Four-component CMYK / YCCK presentation | .jpg .jpeg | D ◐ · E □ | A | Device CMYK, Adobe inverted CMYK and YCCK decoding with independent pixel references; CMYK ICC transforms remain open. [jpeg](sources.md#jpeg), [metadata](sources.md#metadata) | — |
+| `jpeg-cmyk` | JPEG — Four-component CMYK / YCCK presentation | .jpg .jpeg | D ◐ · E □ | A | Device CMYK, Adobe inverted CMYK and YCCK; embedded CMYK ICC v2/v4 AToB LUT conversion to sRGB with independent pixel references. [jpeg](sources.md#jpeg), [metadata](sources.md#metadata) | — |
 | `jpeg-mpo` | MPO — Multi-picture JPEG | .mpo | D □ · E □ | B | [jpeg](sources.md#jpeg), [metadata](sources.md#metadata), [discovery](sources.md#discovery) | — |
 | `jpegls-lossless` | JPEG-LS — Part 1 lossless | .jls | D □ · E □ | B | [jpegls](sources.md#jpegls) | — |
 | `jpegls-near` | JPEG-LS — Part 1 near-lossless | .jls | D □ · E □ | B | [jpegls](sources.md#jpegls) | — |
@@ -302,8 +302,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `vp6` | VP6 — Legacy web video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `vp7` | VP7 — Legacy video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `avs-family` | AVS — AVS1 / AVS2 / AVS3 families | — | D □ · E □ | C | These are separate standards; split them before implementation. [discovery](sources.md#discovery) | — |
-| `prores-422` | ProRes — 422 Proxy/LT/standard/HQ | — | D □ · E □ | B | Profiles share a family; preserve chroma/precision and select normative bitstream sources. [prores](sources.md#prores) | — |
-| `prores-4444` | ProRes — 4444 / 4444 XQ with alpha | — | D □ · E □ | B | [prores](sources.md#prores) | — |
+| `prores-422` | ProRes — 422 Proxy/LT/standard/HQ | — | D ◐ · E □ | B | Profiles share a family; preserve chroma/precision and select normative bitstream sources. [prores](sources.md#prores) | — |
+| `prores-4444` | ProRes — 4444 / 4444 XQ with alpha | — | D ◐ · E □ | B | [prores](sources.md#prores) | — |
 | `dnxhd` | DNxHD — HD editing profiles | — | D □ · E □ | C | [mxf](sources.md#mxf), [discovery](sources.md#discovery) | — |
 | `dnxhr` | DNxHR — Resolution-independent profiles | — | D □ · E □ | C | [mxf](sources.md#mxf), [discovery](sources.md#discovery) | — |
 | `dv` | DV — DV25 / DV50 / DV100 | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
@@ -353,7 +353,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `mpeg-surround` | MPEG Surround — Spatial audio coding extension | — | D □ · E □ | C | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `mpegh-audio` | MPEG-H 3D Audio — Channel/object/scene-based audio | — | D □ · E □ | C | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `flac-codec` | FLAC — Lossless sample coding | .flac | D ◐ · E □ | A | Current decoder has fixed/LPC prediction, Rice residuals, stereo decorrelation and CRC checks. [flac](sources.md#flac) | [flac-track](../performance/README.md#flac-track), [flac-sustained](../performance/README.md#flac-sustained) |
-| `alac` | Apple Lossless — ALAC sample coding | — | D □ · E □ | A | [alac](sources.md#alac) | — |
+| `alac` | Apple Lossless — ALAC sample coding | — | D ◐ · E □ | A | [alac](sources.md#alac) | — |
 | `opus-silk` | Opus — SILK speech mode | — | D ◐ · E □ | A | Public managed decoder covers SILK speech, DTX and mode transitions with independent PCM references; explicit loss/FEC APIs remain separate. [opus](sources.md#opus) | — |
 | `opus-celt` | Opus — CELT transform mode | — | D ◐ · E □ | A | Public managed 48 kHz Float32 decoding covers CELT, transitions and retained-state recovery with independent libopus references. [opus](sources.md#opus) | — |
 | `opus-hybrid` | Opus — Hybrid and mode transitions | — | D ◐ · E □ | A | Public managed decoder reconstructs hybrid frames and mode transitions, including redundancy and missing transition intervals; independent references cover the implemented scope. [opus](sources.md#opus) | — |
@@ -371,7 +371,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `truehd` | Dolby TrueHD — MLP-derived HD coding | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `ac3` | AC-3 — Dolby Digital | — | D □ · E □ | B | [etsi-audio](sources.md#etsi-audio) | — |
 | `eac3` | E-AC-3 — Dolby Digital Plus | — | D □ · E □ | B | [etsi-audio](sources.md#etsi-audio) | — |
-| `dts-core` | DTS — Core coding | — | D □ · E □ | B | [discovery](sources.md#discovery) | — |
+| `dts-core` | DTS — Core coding | — | D ◐ · E □ | B | [discovery](sources.md#discovery) | — |
 | `dts-hd` | DTS-HD — High-resolution / lossless extensions | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `amr-nb` | AMR — Narrowband | .amr | D □ · E □ | B | [etsi-audio](sources.md#etsi-audio) | — |
 | `amr-wb` | AMR-WB — Wideband | .awb | D □ · E □ | B | [etsi-audio](sources.md#etsi-audio) | — |

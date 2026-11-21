@@ -27,12 +27,18 @@ namespace Mediana.Processing
             token.ThrowIfCancellationRequested();
             if (input.Format.ColorDescription is IccColorDescription profile)
             {
+                if (input.Format.PixelFormat == VideoPixelFormat.Cmyk32)
+                {
+                    if (input.Format.Color.Range != ColorRange.Full || input.Format.Color.Matrix != MatrixCoefficients.Unspecified)
+                    { throw new NotSupportedException("ICC CMYK conversion requires full-range ink coverage without an RGB or YUV matrix."); }
+                    return ApplyPacked(input, map, aspectRatio, allocator, IccCmykTransform.Get(profile, token), token);
+                }
                 if ((input.Format.PixelFormat != VideoPixelFormat.Rgba32) ||
                     input.Format.Color.Matrix != MatrixCoefficients.Rgb || input.Format.Color.Range != ColorRange.Full)
                 {
                     throw new NotSupportedException("ICC conversion requires full-range straight RGBA32 samples.");
                 }
-                return ApplyRgba(input, map, aspectRatio, allocator, IccRgbTransform.Get(profile, token), token);
+                return ApplyPacked(input, map, aspectRatio, allocator, IccRgbTransform.Get(profile, token), token);
             }
             if (input.Format.ColorDescription is RgbChromaticitiesColorDescription chromaticities)
             {
@@ -47,14 +53,14 @@ namespace Mediana.Processing
             return Apply(input, source, map, aspectRatio, allocator, token);
         }
 
-        private static VideoFrame ApplyRgba<TTransform>(VideoFrame input, NearestNeighborMap map, SampleAspectRatio? aspectRatio,
-            MediaBufferAllocator allocator, TTransform transform, CancellationToken token) where TTransform : IRgbaPixelTransform
+        private static VideoFrame ApplyPacked<TTransform>(VideoFrame input, NearestNeighborMap map, SampleAspectRatio? aspectRatio,
+            MediaBufferAllocator allocator, TTransform transform, CancellationToken token) where TTransform : IPackedPixelTransform
         {
             VideoFormat format = new(map.OutputWidth, map.OutputHeight, VideoPixelFormat.Rgba32, SrgbColor, aspectRatio, null,
                 VideoScanGeometry.Map(input.Format.ScanMode, map), VideoScanGeometry.FullFrameHeight(input.Format, map.OutputHeight));
             PlaneLayout[] planes = format.CreateTightLayout();
             using WritableMediaBuffer writable = allocator.Allocate(checked((int)planes[0].EndOffset));
-            RenderRgba(input, writable.Memory.Span, map, transform, token);
+            RenderPacked(input, writable.Memory.Span, map, transform, token);
             token.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new(format, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
