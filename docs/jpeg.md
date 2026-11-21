@@ -57,9 +57,11 @@ JpegImageDecoder jpeg = new(sourceColorSpace: JpegColorSpace.YCbCr,
 Four-component JPEG supports device CMYK, Adobe inverted CMYK (APP14 transform
 zero), and YCCK (transform two), including progressive and separate scans.
 Undeclared C/M/Y/K component identifiers select device CMYK; other undeclared
-four-component streams require a caller interpretation. Conversion uses the
-multiplicative device-ink model. Embedded CMYK ICC profiles require a
-four-component ICC transform and are rejected rather than applied to RGB samples.
+four-component streams require a caller interpretation. Without an ICC profile,
+conversion uses the multiplicative device-ink model. With a profile, the decoder
+returns owned `Cmyk32` ink samples and the original `IccColorDescription`.
+Common sRGB processing applies the four-component ICC transform before publishing
+RGBA32; no intermediate device-RGB conversion loses the K channel.
 Unprofiled CMYK/YCCK reconstruction produces device RGB with unspecified primaries
 and transfer. Source Exif color labels remain available through inspection; they
 do not describe the RGB produced by this ink conversion. In particular,
@@ -80,7 +82,7 @@ that entropy data or color conversion will decode successfully.
 Numbered ICC parts are checked for consistency and completeness, then assembled
 in order into one owned `IccColorDescription`. The frame retains the original
 profile after input memory is released. Common sRGB processing applies supported
-ICC v2/v4 RGB and gray matrix/TRC profiles; the CLI never replaces the profile
+ICC v2/v4 RGB/gray matrix/TRC profiles and CMYK AToB LUT profiles; the CLI never replaces the profile
 with its missing-label policy. See [ICC conversion](icc-color.md).
 
 ## Exif presentation
@@ -295,7 +297,7 @@ PNG encoding, logging and I/O. Peak RSS includes runtime and collection behavior
 it is separate from the exact live media-buffer budget.
 
 Arithmetic/lossless/hierarchical JPEG, 12-bit samples, DNL,
-custom Exif colorimetry without ICC, SPIFF and ICC LUT conversion are not
+custom Exif colorimetry without ICC, SPIFF and RGB/gray ICC LUT conversion are not
 implemented. These encodings are rejected explicitly by standalone decoding.
 PDF `DCTDecode` integration uses the container component API described above.
 

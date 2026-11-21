@@ -64,7 +64,7 @@ jpeg-progressive,JPEG families and monochrome coding,JPEG,"Progressive Huffman D
 jpeg-arithmetic,JPEG families and monochrome coding,JPEG,Arithmetic DCT coding,image-codec,.jpg .jpeg,B,jpeg,
 jpeg-lossless,JPEG families and monochrome coding,JPEG,"Predictive lossless, Huffman/arithmetic",image-codec,.jpg .jpeg,B,jpeg,Original JPEG lossless is distinct from JPEG-LS and JPEG XL.
 jpeg-hierarchical,JPEG families and monochrome coding,JPEG,Hierarchical modes,image-codec,.jpg .jpeg,C,jpeg,
-jpeg-cmyk,JPEG families and monochrome coding,JPEG,Four-component CMYK / YCCK presentation,image-codec,.jpg .jpeg,A,jpeg;metadata,"Device CMYK, Adobe inverted CMYK and YCCK decoding with independent pixel references; CMYK ICC transforms remain open."
+jpeg-cmyk,JPEG families and monochrome coding,JPEG,Four-component CMYK / YCCK presentation,image-codec,.jpg .jpeg,A,jpeg;metadata,"Device CMYK, Adobe inverted CMYK and YCCK; embedded CMYK ICC v2/v4 AToB LUT conversion to sRGB with independent pixel references."
 jpeg-mpo,JPEG families and monochrome coding,MPO,Multi-picture JPEG,image-codec,.mpo,B,jpeg;metadata;discovery,
 jpegls-lossless,JPEG families and monochrome coding,JPEG-LS,Part 1 lossless,image-codec,.jls,B,jpegls,
 jpegls-near,JPEG families and monochrome coding,JPEG-LS,Part 1 near-lossless,image-codec,.jls,B,jpegls,

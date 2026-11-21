@@ -122,7 +122,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `jpeg-arithmetic` | JPEG — Arithmetic DCT coding | .jpg .jpeg | D □ · E □ | B | [jpeg](sources.md#jpeg) | — |
 | `jpeg-lossless` | JPEG — Predictive lossless, Huffman/arithmetic | .jpg .jpeg | D □ · E □ | B | Original JPEG lossless is distinct from JPEG-LS and JPEG XL. [jpeg](sources.md#jpeg) | — |
 | `jpeg-hierarchical` | JPEG — Hierarchical modes | .jpg .jpeg | D □ · E □ | C | [jpeg](sources.md#jpeg) | — |
-| `jpeg-cmyk` | JPEG — Four-component CMYK / YCCK presentation | .jpg .jpeg | D ◐ · E □ | A | Device CMYK, Adobe inverted CMYK and YCCK decoding with independent pixel references; CMYK ICC transforms remain open. [jpeg](sources.md#jpeg), [metadata](sources.md#metadata) | — |
+| `jpeg-cmyk` | JPEG — Four-component CMYK / YCCK presentation | .jpg .jpeg | D ◐ · E □ | A | Device CMYK, Adobe inverted CMYK and YCCK; embedded CMYK ICC v2/v4 AToB LUT conversion to sRGB with independent pixel references. [jpeg](sources.md#jpeg), [metadata](sources.md#metadata) | — |
 | `jpeg-mpo` | MPO — Multi-picture JPEG | .mpo | D □ · E □ | B | [jpeg](sources.md#jpeg), [metadata](sources.md#metadata), [discovery](sources.md#discovery) | — |
 | `jpegls-lossless` | JPEG-LS — Part 1 lossless | .jls | D □ · E □ | B | [jpegls](sources.md#jpegls) | — |
 | `jpegls-near` | JPEG-LS — Part 1 near-lossless | .jls | D □ · E □ | B | [jpegls](sources.md#jpegls) | — |
