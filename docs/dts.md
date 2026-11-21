@@ -45,3 +45,9 @@ median 5.1 process time from 2.152 s to 1.219 s and CPU from 2.875 s to 1.899 s,
 with approximately 24.3 MB peak RSS before and after. Stereo process time fell
 from 0.806 s to 0.547 s. These are five paired fresh-process runs with alternating
 order on an i5-12450H; they cover generated audio rather than a broad media corpus.
+
+PCM export negotiates the writer's channel order through
+`IAudioFrameWriterFactory.SelectFormat`. WAVE selects speaker-mask order, and the
+shared `AudioFramePreparation` combines permutation and sample conversion in one
+allocation. Direct decoding retains coded order. This is independent of the
+input codec and requires no format-specific CLI conversion code.

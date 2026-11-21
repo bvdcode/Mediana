@@ -19,6 +19,10 @@ namespace Mediana.Tests
 {
     public class MatroskaDtsTests
     {
+        [Fact]
+        public Task WaveExportPreservesEverySpeakerAndSample() =>
+            DtsWaveExportTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Dts"));
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
