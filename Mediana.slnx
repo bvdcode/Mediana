@@ -6,6 +6,7 @@
     <Project Path="samples/Mediana.Sample/Mediana.Sample.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Mediana.Codecs.ProRes/Mediana.Codecs.ProRes.csproj" />
     <Project Path="src/Mediana.Codecs.Alac/Mediana.Codecs.Alac.csproj" />
     <Project Path="src/Mediana.Codecs.OpenExr/Mediana.Codecs.OpenExr.csproj" />
     <Project Path="src/Mediana.Images.Metadata/Mediana.Images.Metadata.csproj" />
@@ -72,6 +73,7 @@
     <Project Path="src/Mediana/Mediana.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Mediana.Codecs.ProRes.Tests/Mediana.Codecs.ProRes.Tests.csproj" />
     <Project Path="tests/Mediana.Codecs.Alac.Tests/Mediana.Codecs.Alac.Tests.csproj" />
     <Project Path="tests/Mediana.Codecs.Ac3.Tests/Mediana.Codecs.Ac3.Tests.csproj" />
     <Project Path="tests/Mediana.Codecs.Av1.Tests/Mediana.Codecs.Av1.Tests.csproj" />

@@ -441,9 +441,9 @@ vp7,decode,planned,planned,planned,planned,planned,planned,
 vp7,encode,planned,planned,planned,planned,planned,planned,
 avs-family,decode,planned,planned,planned,planned,planned,planned,
 avs-family,encode,planned,planned,planned,planned,planned,planned,
-prores-422,decode,planned,planned,planned,planned,planned,planned,
+prores-422,decode,partial,partial,partial,partial,partial,partial,../prores.md;../../tests/Mediana.Codecs.ProRes.Tests/Data/README.md
 prores-422,encode,planned,planned,planned,planned,planned,planned,
-prores-4444,decode,planned,planned,planned,planned,planned,planned,
+prores-4444,decode,partial,partial,partial,partial,partial,partial,../prores.md;../../tests/Mediana.Codecs.ProRes.Tests/Data/README.md
 prores-4444,encode,planned,planned,planned,planned,planned,planned,
 dnxhd,decode,planned,planned,planned,planned,planned,planned,
 dnxhd,encode,planned,planned,planned,planned,planned,planned,

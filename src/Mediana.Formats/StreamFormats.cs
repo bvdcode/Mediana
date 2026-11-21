@@ -13,6 +13,7 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Av1 { get; } = new("av1.codec-configuration-record", "av1.low-overhead.access-unit", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Vp9 { get; } = new("none", "vp9.access-unit", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Vp8 { get; } = new("none", "vp8.complete-frame", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat ProRes { get; } = new("none", "prores.frame", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mjpeg { get; } = new("none", "jpeg.complete-picture", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Aac { get; } = new("aac.audio-specific-config", "aac.raw-data-block", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat AacAdts { get; } = new("aac.audio-specific-config", "aac.adts-frame", EncodedPacketBoundary.TransportFrame);

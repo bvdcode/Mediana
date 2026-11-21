@@ -49,6 +49,7 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Ac3/Mediana.Codecs.Ac3.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Flac/Mediana.Codecs.Flac.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Alac/Mediana.Codecs.Alac.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.ProRes/Mediana.Codecs.ProRes.csproj" />
     <ProjectReference Include="../../src/Mediana.Containers.Flac/Mediana.Containers.Flac.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Aac/Mediana.Codecs.Aac.csproj" />
     <ProjectReference Include="../../src/Mediana.Codecs.Pcm/Mediana.Codecs.Pcm.csproj" />

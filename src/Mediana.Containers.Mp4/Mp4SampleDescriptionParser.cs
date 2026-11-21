@@ -30,7 +30,7 @@ namespace Mediana.Containers.Mp4
             }
             return (kind, entry.Type) switch
             {
-                (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1" or "av01" or "mp4v") => ParseVideo(entry, budget, quickTime),
+                (MediaKind.Video, "avc1" or "avc3" or "hvc1" or "hev1" or "av01" or "mp4v" or "apco" or "apcs" or "apcn" or "apch" or "ap4h" or "ap4x") => ParseVideo(entry, budget, quickTime),
                 (MediaKind.Audio, "alac") => ParseAlac(entry, budget),
                 (MediaKind.Audio, "mp4a") => ParseAudio(entry, budget),
                 (MediaKind.Audio, "ac-3" or "ec-3") => ParseAc3(entry, budget),
@@ -66,6 +66,13 @@ namespace Mediana.Containers.Mp4
         {
             switch (sampleType)
             {
+                case "apco":
+                case "apcs":
+                case "apcn":
+                case "apch":
+                case "ap4h":
+                case "ap4x":
+                    return (ProResFrameHeader.CodecId, StreamFormats.ProRes, ReadOnlyMemory<byte>.Empty);
                 case "mp4v":
                     ReadOnlyMemory<byte> visual = Mp4ElementaryStreamDescriptor.ReadVisualConfiguration(children.Required("esds").Payload);
                     return (Mpeg4VisualConfiguration.CodecId, StreamFormats.Mpeg4Visual, visual);

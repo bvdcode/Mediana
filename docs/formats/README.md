@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1066 operations · 19 groups.**
 
-**Existing implementations: 137 variants · 170 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 139 variants · 172 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -30,7 +30,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 26 | 35 | 26 | 71 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 16 | 62 | 17 | 124 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 18 | 62 | 19 | 124 |
 | [Audio coding and sample representations](#audio-coding-and-sample-representations) | 17 | 63 | 23 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
@@ -302,8 +302,8 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `vp6` | VP6 — Legacy web video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `vp7` | VP7 — Legacy video | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `avs-family` | AVS — AVS1 / AVS2 / AVS3 families | — | D □ · E □ | C | These are separate standards; split them before implementation. [discovery](sources.md#discovery) | — |
-| `prores-422` | ProRes — 422 Proxy/LT/standard/HQ | — | D □ · E □ | B | Profiles share a family; preserve chroma/precision and select normative bitstream sources. [prores](sources.md#prores) | — |
-| `prores-4444` | ProRes — 4444 / 4444 XQ with alpha | — | D □ · E □ | B | [prores](sources.md#prores) | — |
+| `prores-422` | ProRes — 422 Proxy/LT/standard/HQ | — | D ◐ · E □ | B | Profiles share a family; preserve chroma/precision and select normative bitstream sources. [prores](sources.md#prores) | — |
+| `prores-4444` | ProRes — 4444 / 4444 XQ with alpha | — | D ◐ · E □ | B | [prores](sources.md#prores) | — |
 | `dnxhd` | DNxHD — HD editing profiles | — | D □ · E □ | C | [mxf](sources.md#mxf), [discovery](sources.md#discovery) | — |
 | `dnxhr` | DNxHR — Resolution-independent profiles | — | D □ · E □ | C | [mxf](sources.md#mxf), [discovery](sources.md#discovery) | — |
 | `dv` | DV — DV25 / DV50 / DV100 | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
