@@ -123,7 +123,7 @@ namespace Mediana.Containers.Matroska
                 _ => MediaKind.Data
             };
             if (((track.CodecId is "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_MJPEG" or "V_VP8" or "V_VP9" or "V_AV1") && track.Type != 1) ||
-                ((track.CodecId is "A_AAC" or "A_MPEG/L3" or "A_AC3" or "A_EAC3") && track.Type != 2))
+                ((track.CodecId is "A_AAC" or "A_MPEG/L3" or "A_AC3" or "A_EAC3" or "A_DTS") && track.Type != 2))
             {
                 throw new InvalidDataException("The Matroska codec and track type disagree.");
             }
@@ -153,9 +153,10 @@ namespace Mediana.Containers.Matroska
                 (1, "V_MJPEG") => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null),
                 (2, "A_AAC") => (kind, AacConfiguration.CodecId, StreamFormats.Aac, null),
                 (2, "A_MPEG/L3") => (kind, Mp3FrameHeader.CodecId, StreamFormats.Mp3, null),
+                (2, "A_DTS") => (kind, DtsFrameHeader.CodecId, StreamFormats.Dts, null),
                 (2, "A_AC3") => (kind, Ac3FrameHeader.CodecId, StreamFormats.Ac3, null),
                 (2, "A_EAC3") => (kind, Ac3FrameHeader.EnhancedCodecId, StreamFormats.Eac3Syncframe, null),
-                (_, "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_AV1" or "V_MJPEG" or "V_VP8" or "V_VP9" or "A_AAC" or "A_MPEG/L3" or "A_AC3" or "A_EAC3") =>
+                (_, "V_MPEG4/ISO/AVC" or "V_MPEGH/ISO/HEVC" or "V_AV1" or "V_MJPEG" or "V_VP8" or "V_VP9" or "A_AAC" or "A_MPEG/L3" or "A_AC3" or "A_EAC3" or "A_DTS") =>
                     throw new InvalidDataException("The Matroska codec and track type disagree."),
                 _ => (kind, track.CodecId, MatroskaStreamFormats.StoredFrames, null)
             };

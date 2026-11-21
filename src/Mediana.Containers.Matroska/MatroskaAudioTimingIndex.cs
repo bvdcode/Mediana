@@ -13,7 +13,7 @@ using Mediana.IO;
 namespace Mediana.Containers.Matroska
 {
     /// <summary>Exact self-describing audio clocks, obtained from bounded frame prefixes without decoding payloads.</summary>
-    internal class MatroskaAudioTimingIndex : IDisposable
+    internal partial class MatroskaAudioTimingIndex : IDisposable
     {
         private readonly WritableMediaBuffer?[] storage;
         private readonly AudioStreamMetadata?[] metadata;
@@ -37,11 +37,16 @@ namespace Mediana.Containers.Matroska
             try
             {
                 using MatroskaBlockReader blocks = new(source, allocator, options.MaximumBlockHeaderBytes, options.MaximumFrameBytes);
-                using WritableMediaBuffer prefix = allocator.Allocate(Eac3FrameMetadata.MaximumPrefixBytes);
+                using WritableMediaBuffer prefix = allocator.Allocate(Math.Max(Eac3FrameMetadata.MaximumPrefixBytes, DtsFrameHeader.MaximumHeaderBytes));
                 for (int stream = 0; stream < tracks.Count; stream++)
                 {
                     string codec = configurations[stream].Stream.CodecId;
                     if (!RequiresTiming(configurations[stream].Stream)) { continue; }
+                    if (codec == DtsFrameHeader.CodecId)
+                    {
+                        await result.ReadDtsStreamAsync(stream, source, index, blocks, tracks[stream].Audio!.Value, prefix.Memory, token).ConfigureAwait(false);
+                        continue;
+                    }
                     long count = index.GetPacketCount(stream);
                     if (count == 0) { continue; }
                     int entryBytes = Unsafe.SizeOf<MatroskaAudioFrameTiming>();
@@ -116,11 +121,16 @@ namespace Mediana.Containers.Matroska
         public bool HasStream(int stream) => storage[stream] is not null;
 
         private static bool RequiresTiming(EncodedStreamInfo stream) =>
-            stream.Format == StreamFormats.Ac3 || stream.Format == StreamFormats.Eac3Syncframe;
+            stream.Format == StreamFormats.Ac3 || stream.Format == StreamFormats.Eac3Syncframe || stream.Format == StreamFormats.Dts;
 
         public void ValidatePacket(int stream, long packet, ReadOnlySpan<byte> data, MatroskaTrack track)
         {
             MatroskaAudioFrameTiming timing = Entries(stream)[checked((int)packet)];
+            if (track.CodecId == "A_DTS")
+            {
+                ValidateDtsPacket(data, timing);
+                return;
+            }
             Ac3FrameHeader header = Ac3FrameHeader.Read(data);
             if (header.IsEnhanced != (track.CodecId == "A_EAC3") || header.FrameBytes != data.Length ||
                 header.FrameBytes != timing.FrameBytes || header.SamplesPerFrame != timing.Samples ||
