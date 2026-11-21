@@ -533,7 +533,7 @@ mpegh-audio,decode,planned,planned,planned,planned,planned,planned,
 mpegh-audio,encode,planned,planned,planned,planned,planned,planned,
 flac-codec,decode,partial,partial,partial,partial,partial,partial,../../tests/Mediana.Tests/Data/Flac/README.md;../performance/results/2026-11-06/README.md;../performance/results/2026-11-06-expanded/README.md
 flac-codec,encode,planned,planned,planned,planned,planned,planned,
-alac,decode,partial,partial,partial,planned,partial,partial,../alac.md;../../tests/Mediana.Codecs.Alac.Tests/Data/README.md
+alac,decode,partial,partial,partial,partial,partial,partial,../alac.md;../../tests/Mediana.Codecs.Alac.Tests/Data/README.md
 alac,encode,planned,planned,planned,planned,planned,planned,
 opus-silk,decode,partial,partial,partial,planned,planned,partial,../opus-decoding.md;../../src/Mediana.Codecs.Opus/OpusDecoderFactory.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusDecoderTests.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusFrameDecoderTests.cs
 opus-silk,encode,planned,planned,planned,planned,planned,planned,
@@ -569,7 +569,7 @@ ac3,decode,planned,planned,planned,planned,planned,planned,
 ac3,encode,planned,planned,planned,planned,planned,planned,
 eac3,decode,planned,planned,planned,planned,planned,planned,
 eac3,encode,planned,planned,planned,planned,planned,planned,
-dts-core,decode,planned,planned,planned,planned,planned,planned,
+dts-core,decode,partial,partial,partial,partial,partial,partial,../dts.md;../../tests/Mediana.Codecs.Dts.Tests/Data/README.md
 dts-core,encode,planned,planned,planned,planned,planned,planned,
 dts-hd,decode,planned,planned,planned,planned,planned,planned,
 dts-hd,encode,planned,planned,planned,planned,planned,planned,

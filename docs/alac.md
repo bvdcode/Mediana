@@ -24,3 +24,12 @@ samples, retained output, backpressure, truncation, cancellation and reset.
 
 Format references: [Apple ALAC](https://macosforge.github.io/alac/),
 [ALAC magic-cookie description](https://github.com/macosforge/alac/blob/master/ALACMagicCookieDescription.txt).
+
+A Native AOT full decode-and-SHA-256 measurement on 60-second, 48 kHz stereo files
+used about 17 MB peak process RSS. Across three fresh processes, median CPU was
+0.290 s for tones and 0.216 s for deterministic noise; FFmpeg 6.1.1 used 0.290 s
+and 0.210 s respectively, with about 54 MB peak RSS. Median elapsed times were
+0.240/0.194 s for Mediana and 0.187/0.136 s for FFmpeg. Both measurements include
+process startup and complete PCM hashing. Mediana used pooled buffers; FFmpeg
+used one configured decoder, output and filter thread. These short generated
+workloads do not establish performance across arbitrary music recordings.

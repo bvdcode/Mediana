@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1066 operations · 19 groups.**
 
-**Existing implementations: 139 variants · 172 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 140 variants · 173 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -31,7 +31,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
 | [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 18 | 62 | 19 | 124 |
-| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 17 | 63 | 23 | 128 |
+| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 18 | 63 | 24 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
 | [Fonts and text presentation resources](#fonts-and-text-presentation-resources) | 6 | 14 | 7 | 27 |
@@ -371,7 +371,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `truehd` | Dolby TrueHD — MLP-derived HD coding | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `ac3` | AC-3 — Dolby Digital | — | D □ · E □ | B | [etsi-audio](sources.md#etsi-audio) | — |
 | `eac3` | E-AC-3 — Dolby Digital Plus | — | D □ · E □ | B | [etsi-audio](sources.md#etsi-audio) | — |
-| `dts-core` | DTS — Core coding | — | D □ · E □ | B | [discovery](sources.md#discovery) | — |
+| `dts-core` | DTS — Core coding | — | D ◐ · E □ | B | [discovery](sources.md#discovery) | — |
 | `dts-hd` | DTS-HD — High-resolution / lossless extensions | — | D □ · E □ | C | [discovery](sources.md#discovery) | — |
 | `amr-nb` | AMR — Narrowband | .amr | D □ · E □ | B | [etsi-audio](sources.md#etsi-audio) | — |
 | `amr-wb` | AMR-WB — Wideband | .awb | D □ · E □ | B | [etsi-audio](sources.md#etsi-audio) | — |
