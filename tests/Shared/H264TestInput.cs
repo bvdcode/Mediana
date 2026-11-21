@@ -23,7 +23,14 @@ namespace Mediana.Tests
                     ReadOnlySpan<byte> actual = frame.GetRow(plane, row);
                     if (actual.Length > expected.Length - offset || !actual.SequenceEqual(expected.Slice(offset, actual.Length)))
                     {
-                        throw new InvalidDataException($"H.264 output mismatch in plane {plane}, row {row}.");
+                        int column = 0;
+                        int length = Math.Min(actual.Length, expected.Length - offset);
+                        while (column < length && actual[column] == expected[offset + column])
+                        {
+                            column++;
+                        }
+                        string difference = column < length ? $"; byte {column}: actual {actual[column]}, expected {expected[offset + column]}" : "; row extent differs";
+                        throw new InvalidDataException($"H.264 output mismatch in plane {plane}, row {row}{difference}.");
                     }
                     offset += actual.Length;
                 }

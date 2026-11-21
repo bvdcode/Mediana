@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1066 operations · 19 groups.**
 
-**Existing implementations: 135 variants · 168 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 136 variants · 169 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -30,7 +30,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [Raster files, archives and camera images](#raster-files-archives-and-camera-images) | 26 | 35 | 26 | 71 |
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
-| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 15 | 62 | 16 | 124 |
+| [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 16 | 62 | 17 | 124 |
 | [Audio coding and sample representations](#audio-coding-and-sample-representations) | 16 | 63 | 22 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
@@ -262,7 +262,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `avc-high` | H.264 / AVC — High | .h264 .264 | D ◐ · E □ | A | Current progressive 8-bit 4:2:0 reconstruction uses default scaling matrices. [h264](sources.md#h264) | — |
 | `avc-high10` | H.264 / AVC — High 10 / High 10 Intra | .h264 .264 | D ◐ · E □ | B | Progressive 10-bit 4:2:0 CABAC/CAVLC I/P/B decoding with flat scaling; interlaced reconstruction and custom scaling remain open. [h264](sources.md#h264) | — |
 | `avc-high422` | H.264 / AVC — High 4:2:2 / High 4:2:2 Intra | .h264 .264 | D ◐ · E □ | B | Progressive 8-bit and 10-bit CABAC/CAVLC I/P/B decoding with flat scaling; interlaced reconstruction and custom scaling remain open. [h264](sources.md#h264) | — |
-| `avc-high444` | H.264 / AVC — High 4:4:4 Predictive / Intra | .h264 .264 | D □ · E □ | B | [h264](sources.md#h264) | — |
+| `avc-high444` | H.264 / AVC — High 4:4:4 Predictive / Intra | .h264 .264 | D ◐ · E □ | B | 8/10-bit YUV and RGB CABAC/CAVLC I/P/B and MBAFF decoding with flat scaling; separate planes and transform bypass remain open. [API](../h264-chroma-444.md). [h264](sources.md#h264) | — |
 | `avc-cavlc444` | H.264 / AVC — CAVLC 4:4:4 Intra | .h264 .264 | D □ · E □ | C | [h264](sources.md#h264) | — |
 | `avc-interlaced` | H.264 / AVC — Field pictures / PAFF / MBAFF | .h264 .264 | D □ · E □ | B | Tool-specific coverage across applicable profiles. [h264](sources.md#h264) | — |
 | `avc-svc` | H.264 / AVC — Scalable extension profiles | .h264 | D □ · E □ | C | [h264](sources.md#h264) | — |

@@ -113,7 +113,7 @@ namespace Mediana.Codecs.H264
             Span<byte> block = stackalloc byte[target.LumaMacroblockBytes];
             for (int plane = 0; plane < 3; plane++)
             {
-                int scale = plane == 0 ? 1 : 2;
+                int scale = target.HorizontalScale(plane);
                 int blockWidth = width / scale;
                 int blockHeight = height / target.VerticalScale(plane);
                 Span<byte> samples = block[..(blockWidth * blockHeight * target.SampleBytes)];

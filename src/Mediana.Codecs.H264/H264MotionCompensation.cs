@@ -8,10 +8,10 @@ namespace Mediana.Codecs.H264
     internal static class H264MotionCompensation
     {
         public static void Luma(H264Picture reference, int x, int y, int motionX, int motionY,
-            int width, int height, Span<byte> output)
+            int width, int height, Span<byte> output, int plane = 0)
         {
             ValidateOutput(width, height, output, reference.SampleBytes);
-            ReadOnlySpan<byte> samples = reference.ReadPlane(0);
+            ReadOnlySpan<byte> samples = reference.ReadPlane(plane);
             long sourceX = (long)x + (motionX >> 2);
             long sourceY = (long)y + (motionY >> 2);
             int dx = motionX & 3;

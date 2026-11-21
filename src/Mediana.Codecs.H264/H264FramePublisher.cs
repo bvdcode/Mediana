@@ -33,7 +33,7 @@ namespace Mediana.Codecs.H264
             int offset = 0;
             for (int plane = 0; plane < layout.Length; plane++)
             {
-                int scale = plane == 0 ? 1 : 2;
+                int scale = picture.HorizontalScale(plane);
                 int startX = picture.Sequence.CropLeft / scale * picture.SampleBytes;
                 int verticalScale = picture.VerticalScale(plane);
                 int startY = picture.Sequence.CropTop / verticalScale / (picture.Layout.IsField ? 2 : 1);

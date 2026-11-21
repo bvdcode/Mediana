@@ -58,6 +58,10 @@ namespace Mediana.Core.Video
             new PlanarVideoPixelFormat("yuv420p10", PlanarColorModel.Yuv, 10, 2, 2);
         public static VideoPixelFormat Yuv422P8 { get; } = new PlanarVideoPixelFormat("yuv422p8", PlanarColorModel.Yuv, 8, 2, 1);
         public static VideoPixelFormat Yuv422P10 { get; } = new PlanarVideoPixelFormat("yuv422p10", PlanarColorModel.Yuv, 10, 2, 1);
+        public static VideoPixelFormat Yuv444P8 { get; } = new PlanarVideoPixelFormat("yuv444p8", PlanarColorModel.Yuv, 8);
+        public static VideoPixelFormat Yuv444P10 { get; } = new PlanarVideoPixelFormat("yuv444p10", PlanarColorModel.Yuv, 10);
+        public static VideoPixelFormat GbrP8 { get; } = new PlanarVideoPixelFormat("gbrp8", PlanarColorModel.Gbr, 8);
+        public static VideoPixelFormat GbrP10 { get; } = new PlanarVideoPixelFormat("gbrp10", PlanarColorModel.Gbr, 10);
         public static VideoPixelFormat Yuv420P12 { get; } = new PlanarVideoPixelFormat("yuv420p12", PlanarColorModel.Yuv, 12, 2, 2);
     }
 }

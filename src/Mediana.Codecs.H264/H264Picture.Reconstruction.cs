@@ -22,7 +22,7 @@ namespace Mediana.Codecs.H264
             {
                 counts.Slice(first + row * countStride, blockSize).Clear();
             }
-            if (plane == 0)
+            if (plane == 0 || FullResolutionChroma)
             {
                 Span<byte> modes = Modes;
                 for (int row = 0; row < blockSize; row++)

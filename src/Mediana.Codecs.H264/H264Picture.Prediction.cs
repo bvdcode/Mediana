@@ -8,30 +8,30 @@ namespace Mediana.Codecs.H264
 {
     internal partial class H264Picture
     {
-        public void PredictLuma4x4(int x, int y, int mode, Span<byte> output, bool constrained = false) =>
-            PredictLuma(x, y, mode, output, constrained, 4);
+        public void PredictLuma4x4(int x, int y, int mode, Span<byte> output, bool constrained = false, int plane = 0) =>
+            PredictLuma(x, y, mode, output, constrained, 4, plane);
 
-        public void PredictLuma8x8(int x, int y, int mode, Span<byte> output, bool constrained) =>
-            PredictLuma(x, y, mode, output, constrained, 8);
+        public void PredictLuma8x8(int x, int y, int mode, Span<byte> output, bool constrained, int plane = 0) =>
+            PredictLuma(x, y, mode, output, constrained, 8, plane);
 
-        private void PredictLuma(int x, int y, int mode, Span<byte> output, bool constrained, int size)
+        private void PredictLuma(int x, int y, int mode, Span<byte> output, bool constrained, int size, int plane)
         {
             if (SampleBytes == 1)
             {
-                PredictLuma<byte>(x, y, mode, output, constrained, size);
+                PredictLuma<byte>(x, y, mode, output, constrained, size, plane);
             }
             else
             {
-                PredictLuma<ushort>(x, y, mode, MemoryMarshal.Cast<byte, ushort>(output), constrained, size);
+                PredictLuma<ushort>(x, y, mode, MemoryMarshal.Cast<byte, ushort>(output), constrained, size, plane);
             }
         }
 
-        private void PredictLuma<TSample>(int x, int y, int mode, Span<TSample> output, bool constrained, int size)
+        private void PredictLuma<TSample>(int x, int y, int mode, Span<TSample> output, bool constrained, int size, int plane)
             where TSample : unmanaged, IBinaryInteger<TSample>
         {
             Span<TSample> top = stackalloc TSample[16];
             Span<TSample> left = stackalloc TSample[8];
-            (bool hasTop, bool hasLeft, TSample? corner) = ReadLumaNeighbours(x, y, size, top, left, constrained);
+            (bool hasTop, bool hasLeft, TSample? corner) = ReadLumaNeighbours(x, y, size, top, left, constrained, plane);
             if (size == 8)
             {
                 H264IntraPrediction<TSample>.Luma8x8(mode, hasTop ? top : [], hasLeft ? left : [], corner, output, MaximumSample);
@@ -47,14 +47,14 @@ namespace Mediana.Codecs.H264
             ReadLumaNeighbours<byte>(x, y, size, top, left, constrained);
 
         private (bool HasTop, bool HasLeft, TSample? Corner) ReadLumaNeighbours<TSample>(int x, int y, int size,
-            Span<TSample> top, Span<TSample> left, bool constrained)
+            Span<TSample> top, Span<TSample> left, bool constrained, int plane = 0)
             where TSample : unmanaged
         {
             if (Layout.MacroblockAdaptiveFrameField)
             {
-                return ReadMappedNeighbours(0, x, y, size, size, size * 2, top, left, constrained);
+                return ReadMappedNeighbours(plane, x, y, size, size, size * 2, top, left, constrained);
             }
-            Span<TSample> pixels = MemoryMarshal.Cast<byte, TSample>(Plane(0));
+            Span<TSample> pixels = MemoryMarshal.Cast<byte, TSample>(Plane(plane));
             bool hasTop = IsAvailable(x, y - 1, constrained);
             bool hasLeft = IsAvailable(x - 1, y, constrained);
             if (hasTop)
@@ -90,12 +90,12 @@ namespace Mediana.Codecs.H264
         private void PredictMacroblock<TSample>(int plane, int x, int y, int mode, Span<TSample> output, bool constrained)
             where TSample : unmanaged, IBinaryInteger<TSample>
         {
-            int size = plane == 0 ? 16 : 8;
+            int size = 16 / HorizontalScale(plane);
             int height = 16 / VerticalScale(plane);
             Span<TSample> top = stackalloc TSample[16];
             Span<TSample> left = stackalloc TSample[16];
             (bool hasTop, bool hasLeft, TSample? corner) = ReadMacroblockNeighbours(plane, x, y, size, height, top, left, constrained);
-            if (plane == 0)
+            if (plane == 0 || FullResolutionChroma)
             {
                 H264IntraPrediction<TSample>.Luma16x16(mode, hasTop ? top : [], hasLeft ? left : [], corner, output, MaximumSample);
             }
@@ -114,7 +114,7 @@ namespace Mediana.Codecs.H264
             }
             int stride = Stride(plane);
             Span<TSample> pixels = MemoryMarshal.Cast<byte, TSample>(Plane(plane));
-            int scale = plane == 0 ? 1 : 2;
+            int scale = HorizontalScale(plane);
             int verticalScale = VerticalScale(plane);
             bool hasTop = IsAvailable(x * scale, y * verticalScale - 1, constrained);
             bool hasLeft = IsAvailable(x * scale - 1, y * verticalScale, constrained);

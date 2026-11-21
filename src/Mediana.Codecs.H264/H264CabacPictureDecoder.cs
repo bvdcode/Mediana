@@ -117,8 +117,7 @@ namespace Mediana.Codecs.H264
                     }
                     qp = syntax.ReadQuantizer(ref bits, 0, pattern, qp);
                     result.Quantizers[address] = (byte)qp;
-                    H264Residuals.ReadInterLuma(ref bits, syntax, result, x, y, pattern, qp, prediction[..result.LumaMacroblockBytes]);
-                    H264Residuals.ReadChroma(ref bits, syntax, result, header.Picture, x / 2, y / result.ChromaVerticalScale, pattern >> 4, qp, prediction[result.LumaMacroblockBytes..]);
+                    H264Residuals.ReadInter(ref bits, syntax, result, header.Picture, x, y, pattern, qp, prediction);
                 }
                 else
                 {

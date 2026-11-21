@@ -12,6 +12,11 @@ namespace Mediana.Codecs.H264
             [47, 31, 15, 0, 23, 27, 29, 30, 7, 11, 13, 14, 39, 43, 45, 46, 16, 3, 5, 10, 12, 19, 21, 26,
                 28, 35, 37, 42, 44, 1, 2, 4, 8, 17, 18, 20, 24, 6, 9, 22, 25, 32, 33, 34, 36, 40, 38, 41];
 
+        private static ReadOnlySpan<byte> FullResolutionPatterns => [15, 0, 7, 11, 13, 14, 3, 5, 10, 12, 1, 2, 4, 8, 6, 9];
+
+        internal static int ReadPattern(ref H264BitReader bits, H264Picture target) => target.FullResolutionChroma
+            ? FullResolutionPatterns[bits.ReadUe(15)] : CodedPatterns[bits.ReadUe(47)];
+
         public static void Read(ref H264BitReader bits, H264Picture target, H264SliceHeader header, int address, int type, ref int qp)
         {
             (int x, int y) = target.Grid.Position(address);
@@ -48,9 +53,9 @@ namespace Mediana.Codecs.H264
                     target.SetLumaMode(x + blockX, y + blockY, mode);
                 }
             }
-            int chromaMode = bits.ReadUe(3);
+            int chromaMode = target.FullResolutionChroma ? 0 : bits.ReadUe(3);
             int pattern = intra16 ? (((type - 1) / 12) * 15) + ((((type - 1) / 4) % 3) << 4)
-                : CodedPatterns[bits.ReadUe(47)];
+                : ReadPattern(ref bits, target);
             if (intra16 || pattern != 0)
             {
                 H264Quantizer quantizer = target.LumaQuantizer;
@@ -65,7 +70,7 @@ namespace Mediana.Codecs.H264
             bits.AlignZero();
             for (int plane = 0; plane < 3; plane++)
             {
-                int size = plane == 0 ? 16 : 8;
+                int size = 16 / target.HorizontalScale(plane);
                 int verticalScale = target.VerticalScale(plane);
                 int height = 16 / verticalScale;
                 int address = target.Grid.Address(x, y);
@@ -93,7 +98,7 @@ namespace Mediana.Codecs.H264
                 {
                     for (int column = 0; column < size; column += 4)
                     {
-                        int position = target.BlockIndex(plane, x / (plane == 0 ? 1 : 2) + column, y / verticalScale + row);
+                        int position = target.BlockIndex(plane, x / target.HorizontalScale(plane) + column, y / verticalScale + row);
                         target.Counts(plane)[position] = 16;
                         if (plane == 0)
                         {

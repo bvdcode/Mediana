@@ -475,6 +475,7 @@
     <None Include="../Mediana.Containers.Ogg.Tests/Data/*" Link="Data/Ogg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/H264TestInput.cs" Link="H264TestInput.cs" />
     <Compile Include="../Shared/H264ProfileSequenceTestInput.cs" Link="H264ProfileSequenceTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/Mp4/avc-444-*.mp4;../Mediana.Tests/Data/Mp4/avc-444-*.yuv.gz" Link="Data/Mp4/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Mp4/avc-mbaff-*.mp4;../Mediana.Tests/Data/Mp4/avc-mbaff-*.yuv.gz;
                    ../Mediana.Tests/Data/Mp4/avc-paff-*.mp4;../Mediana.Tests/Data/Mp4/avc-paff-*.yuv.gz;
                    ../Mediana.Tests/Data/Mp4/avc-mixed-*.mp4;../Mediana.Tests/Data/Mp4/avc-mixed-*.yuv.gz;../Mediana.Tests/Data/Mp4/avc-mixed-*.poc;

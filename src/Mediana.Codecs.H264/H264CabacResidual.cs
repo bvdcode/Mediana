@@ -23,7 +23,7 @@ namespace Mediana.Codecs.H264
         ];
 
         public static int Read(ref H264BitReader bits, H264CabacReader reader,
-            H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients, int bitDepth = 8, bool field = false)
+            H264ResidualCategory category, int neighbourContext, scoped Span<int> coefficients, int bitDepth = 8, bool field = false, int? fullResolutionPlane = null)
         {
             (int count, int significantBase, int lastBase, int levelBase) = category switch
             {
@@ -35,7 +35,41 @@ namespace Mediana.Codecs.H264
                 H264ResidualCategory.Luma8x8 => (64, 402, 417, 426),
                 _ => throw new ArgumentOutOfRangeException(nameof(category))
             };
-            if (field)
+            int? codedBase = category == H264ResidualCategory.Luma8x8 ? null : 85 + (int)category * 4;
+            if (fullResolutionPlane is int plane)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegative(plane);
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(plane, 2);
+                if (category == H264ResidualCategory.Luma8x8)
+                {
+                    codedBase = 1012 + plane * 4;
+                }
+                if (plane != 0)
+                {
+                    int offset = category switch
+                    {
+                        H264ResidualCategory.Intra16LumaDc => 0,
+                        H264ResidualCategory.Intra16LumaAc => 15,
+                        H264ResidualCategory.Luma4x4 => 29,
+                        H264ResidualCategory.Luma8x8 => 0,
+                        _ => throw new ArgumentOutOfRangeException(nameof(category))
+                    };
+                    if (category == H264ResidualCategory.Luma8x8)
+                    {
+                        significantBase = (plane == 1 ? 660 : 718) + (field ? 15 : 0);
+                        lastBase = (plane == 1 ? 690 : 748) + (field ? 9 : 0);
+                        levelBase = plane == 1 ? 708 : 766;
+                    }
+                    else
+                    {
+                        codedBase = (plane == 1 ? 460 : 472) + (int)category * 4;
+                        significantBase = (plane == 1 ? 484 : 528) + offset + (field ? 292 : 0);
+                        lastBase = (plane == 1 ? 572 : 616) + offset + (field ? 292 : 0);
+                        levelBase = (plane == 1 ? 952 : 982) + (int)category * 10;
+                    }
+                }
+            }
+            if (field && fullResolutionPlane is not (1 or 2))
             {
                 int offset = category == H264ResidualCategory.Luma8x8 ? 34 : 172;
                 significantBase += offset;
@@ -49,7 +83,7 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentException("The coefficient count does not match the CABAC block category.", nameof(coefficients));
             }
             coefficients.Clear();
-            if (category != H264ResidualCategory.Luma8x8 && !reader.Read(ref bits, 85 + (int)category * 4 + neighbourContext))
+            if (codedBase is int codedContext && !reader.Read(ref bits, codedContext + neighbourContext))
             {
                 return 0;
             }

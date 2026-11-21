@@ -17,7 +17,7 @@ namespace Mediana.Codecs.H264
             {
                 return (y * stride + x, stride);
             }
-            int horizontalScale = plane == 0 ? 1 : 2;
+            int horizontalScale = HorizontalScale(plane);
             int verticalScale = VerticalScale(plane);
             int width = 16 / horizontalScale;
             int height = 16 / verticalScale;
@@ -26,9 +26,9 @@ namespace Mediana.Codecs.H264
             return ((originY + y % height * step) * stride + originX + x % width, stride * step);
         }
 
-        private H264NeighbourLocation? Neighbour(int plane, int x, int y, int offsetX, int offsetY)
+        public H264NeighbourLocation? Neighbour(int plane, int x, int y, int offsetX, int offsetY)
         {
-            int horizontalScale = plane == 0 ? 1 : 2;
+            int horizontalScale = HorizontalScale(plane);
             int verticalScale = VerticalScale(plane);
             int width = 16 / horizontalScale;
             int height = 16 / verticalScale;
@@ -39,7 +39,7 @@ namespace Mediana.Codecs.H264
         private int NeighbourBlockIndex(int plane, H264NeighbourLocation neighbour)
         {
             (int x, int y) = Grid.Position(neighbour.Address);
-            return BlockIndex(plane, x / (plane == 0 ? 1 : 2) + neighbour.X, y / VerticalScale(plane) + neighbour.Y);
+            return BlockIndex(plane, x / HorizontalScale(plane) + neighbour.X, y / VerticalScale(plane) + neighbour.Y);
         }
 
         private int MappedNeighbourCount(int plane, int x, int y)
@@ -116,7 +116,7 @@ namespace Mediana.Codecs.H264
             {
                 return false;
             }
-            int horizontalScale = plane == 0 ? 1 : 2;
+            int horizontalScale = HorizontalScale(plane);
             int verticalScale = VerticalScale(plane);
             H264NeighbourLocation luma = neighbour with { X = neighbour.X * horizontalScale, Y = neighbour.Y * verticalScale };
             byte mode = Modes[NeighbourBlockIndex(0, luma)];

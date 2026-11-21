@@ -179,7 +179,7 @@ avc-extended,Video codecs and substantial profiles,H.264 / AVC,Extended,video-co
 avc-high,Video codecs and substantial profiles,H.264 / AVC,High,video-codec,.h264 .264,A,h264,Current progressive 8-bit 4:2:0 reconstruction uses default scaling matrices.
 avc-high10,Video codecs and substantial profiles,H.264 / AVC,High 10 / High 10 Intra,video-codec,.h264 .264,B,h264,Progressive 10-bit 4:2:0 CABAC/CAVLC I/P/B decoding with flat scaling; interlaced reconstruction and custom scaling remain open.
 avc-high422,Video codecs and substantial profiles,H.264 / AVC,High 4:2:2 / High 4:2:2 Intra,video-codec,.h264 .264,B,h264,Progressive 8-bit and 10-bit CABAC/CAVLC I/P/B decoding with flat scaling; interlaced reconstruction and custom scaling remain open.
-avc-high444,Video codecs and substantial profiles,H.264 / AVC,High 4:4:4 Predictive / Intra,video-codec,.h264 .264,B,h264,
+avc-high444,Video codecs and substantial profiles,H.264 / AVC,High 4:4:4 Predictive / Intra,video-codec,.h264 .264,B,h264,"8/10-bit YUV and RGB CABAC/CAVLC I/P/B and MBAFF decoding with flat scaling; separate planes and transform bypass remain open. [API](../h264-chroma-444.md)."
 avc-cavlc444,Video codecs and substantial profiles,H.264 / AVC,CAVLC 4:4:4 Intra,video-codec,.h264 .264,C,h264,
 avc-interlaced,Video codecs and substantial profiles,H.264 / AVC,Field pictures / PAFF / MBAFF,video-codec,.h264 .264,B,h264,Tool-specific coverage across applicable profiles.
 avc-svc,Video codecs and substantial profiles,H.264 / AVC,Scalable extension profiles,video-codec,.h264,C,h264,

@@ -9,10 +9,10 @@ namespace Mediana.Codecs.H264
     {
         public static string? GetUnsupportedHeaderReason(H264SequenceParameterSet sequence)
         {
-            if (sequence.ChromaFormat is not (1 or 2) || sequence.SeparateColourPlane ||
+            if (sequence.ChromaFormat is not (1 or 2 or 3) || sequence.SeparateColourPlane ||
                 sequence.LumaBitDepth is not (8 or 10) || sequence.ChromaBitDepth != sequence.LumaBitDepth)
             {
-                return "Slice header parsing currently requires 8-bit or 10-bit 4:2:0 or 4:2:2 pictures.";
+                return "Slice header parsing currently requires 8-bit or 10-bit 4:2:0, 4:2:2 or 4:4:4 pictures.";
             }
             return null;
         }
@@ -26,7 +26,7 @@ namespace Mediana.Codecs.H264
             }
             if (sequence.ScalingMatrix || sequence.TransformBypass)
             {
-                return "Reconstruction currently requires 8-bit or 10-bit 4:2:0 or 4:2:2 slices with default scaling.";
+                return "Reconstruction currently requires 8-bit or 10-bit 4:2:0, 4:2:2 or 4:4:4 slices with default scaling.";
             }
             return null;
         }
