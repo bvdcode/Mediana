@@ -82,7 +82,7 @@ namespace Mediana.Processing
                     }
                     else
                     {
-                        Average(first, field.GetRow(plane, upper + 1), output, pixels, cancellationToken);
+                        Average(first, field.GetRow(plane, upper + 1), output, pixels, plane, cancellationToken);
                     }
                 }
             }
@@ -93,7 +93,7 @@ namespace Mediana.Processing
         }
 
         private static void Average(ReadOnlySpan<byte> first, ReadOnlySpan<byte> second, Span<byte> output,
-            VideoPixelFormat pixels, CancellationToken token)
+            VideoPixelFormat pixels, int plane, CancellationToken token)
         {
             if (pixels == VideoPixelFormat.Rgba32)
             {
@@ -109,7 +109,7 @@ namespace Mediana.Processing
                     destination[index] = a[index] * 0.5f + b[index] * 0.5f;
                 }
             }
-            else if (pixels is PlanarVideoPixelFormat { BitDepth: > 8 })
+            else if (pixels is PlanarVideoPixelFormat planar && (plane == 3 ? planar.AlphaBitDepth : planar.BitDepth) > 8)
             {
                 ReadOnlySpan<ushort> a = MemoryMarshal.Cast<byte, ushort>(first), b = MemoryMarshal.Cast<byte, ushort>(second);
                 Span<ushort> destination = MemoryMarshal.Cast<byte, ushort>(output);

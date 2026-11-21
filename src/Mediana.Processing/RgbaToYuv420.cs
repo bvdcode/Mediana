@@ -29,6 +29,10 @@ namespace Mediana.Processing
             ArgumentNullException.ThrowIfNull(allocator);
             VideoColorInfo color = inputFormat.GetColorInterpretation();
             PlanarVideoPixelFormat? planar = inputFormat.PixelFormat as PlanarVideoPixelFormat;
+            if (planar is { AlphaBitDepth: > 0 })
+            {
+                throw new NotSupportedException("RGB video conversion requires explicit alpha compositing before conversion.");
+            }
             planarRgb = planar?.ColorModel == PlanarColorModel.Gbr;
             sourceBytes = planarRgb && planar!.BitDepth > 8 ? 2 : 1;
             sourceMaximum = planarRgb ? (1 << planar!.BitDepth) - 1 : 255;

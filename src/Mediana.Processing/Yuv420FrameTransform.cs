@@ -34,6 +34,10 @@ namespace Mediana.Processing
             inputDepth = SamplePrecision(inputFormat.PixelFormat); outputDepth = SamplePrecision(outputPixelFormat);
             PlanarVideoPixelFormat inputPixels = (PlanarVideoPixelFormat)inputFormat.PixelFormat, outputPixels = (PlanarVideoPixelFormat)outputPixelFormat;
             if (outputPixels.HorizontalSubsampling != 2 || outputPixels.VerticalSubsampling != 2) { throw new NotSupportedException("YUV420 transform output requires 4:2:0 subsampling."); }
+            if (inputPixels.AlphaBitDepth != 0 || outputPixels.AlphaBitDepth != 0)
+            {
+                throw new NotSupportedException("YUV420 preparation requires explicit alpha compositing before conversion.");
+            }
             inputSubsamplingX = inputPixels.HorizontalSubsampling; inputSubsamplingY = inputPixels.VerticalSubsampling;
             resampleChroma = inputSubsamplingX != 2 || inputSubsamplingY != 2;
             inputBytes = inputDepth == 8 ? 1 : 2; outputBytes = outputDepth == 8 ? 1 : 2;

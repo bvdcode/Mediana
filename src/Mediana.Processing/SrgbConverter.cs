@@ -82,6 +82,10 @@ namespace Mediana.Processing
             }
             else if (planar!.BitDepth > 8) { RenderYuv<ushort, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor, transform, cancellationToken); }
             else { RenderYuv<byte, TTransform>(input, writable.Memory.Span, map, matrix, sourceColor, transform, cancellationToken); }
+            if (planar.AlphaBitDepth != 0)
+            {
+                ApplyPlanarAlpha(input, writable.Memory.Span, map, planar.AlphaBitDepth, cancellationToken);
+            }
             cancellationToken.ThrowIfCancellationRequested();
             using MediaBuffer buffer = writable.Publish();
             return new VideoFrame(format, buffer, planes, input.Timestamp, input.Duration, input.Presentation);
