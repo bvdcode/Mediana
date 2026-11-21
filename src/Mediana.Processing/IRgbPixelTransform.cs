@@ -3,7 +3,7 @@
 
 namespace Mediana.Processing
 {
-    internal interface IRgbPixelTransform : IRgbaPixelTransform
+    internal interface IRgbPixelTransform : IPackedPixelTransform
     {
         void Write(Span<byte> destination, double red, double green, double blue, byte alpha);
     }

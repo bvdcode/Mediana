@@ -65,9 +65,14 @@ namespace Mediana.Tests
             byte[] exif = JpegTestData.Insert(input, 225, ExifColor(65535));
             byte[] profiled = JpegTestData.Insert(exif, 226, [.. "ICC_PROFILE\0"u8, 1, 1, 0]);
             MediaBufferAllocator allocator = new(1024 * 1024);
-            NotSupportedException error = await Assert.ThrowsAsync<NotSupportedException>(async () =>
-                await new JpegImageDecoder().DecodeAsync(profiled, new(), allocator));
-            Assert.Contains("four-component color transform", error.Message, StringComparison.Ordinal);
+            using (VideoFrame decoded = await new JpegImageDecoder().DecodeAsync(profiled, new(), allocator))
+            {
+                Assert.Equal(VideoPixelFormat.Cmyk32, decoded.Format.PixelFormat);
+                Assert.Equal(new byte[] { 0 }, Assert.IsType<IccColorDescription>(decoded.Format.ColorDescription).Profile.ToArray());
+                Assert.Throws<InvalidDataException>(() => SrgbConverter.ApplyWithColorPolicy(decoded,
+                    _ => throw new InvalidOperationException("Invalid ICC must not invoke the color-label policy."), allocator));
+                Assert.Equal(decoded.Data.Length, allocator.AllocatedBytes);
+            }
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 

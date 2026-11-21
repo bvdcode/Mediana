@@ -33,6 +33,9 @@
     <Compile Include="../Mediana.Tests/Mp4EditTestData.cs" Link="Mp4EditTestData.cs" />
     <Compile Include="../Shared/YuvFramePreparationTestInput.cs" Link="YuvFramePreparationTestInput.cs" />
     <Compile Include="../Shared/IccColorTestInput.cs" Link="IccColorTestInput.cs" />
+    <Compile Include="../Shared/IccCmykTestInput.cs" Link="IccCmykTestInput.cs" />
+    <Compile Include="../Shared/JpegCmykIccTestInput.cs" Link="JpegCmykIccTestInput.cs" />
+    <None Include="../Mediana.Tests/Data/IccCmyk/*" Link="Data/IccCmyk/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Tests/Data/Icc/*" Link="Data/Icc/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/DocumentPackageTestData.cs" Link="DocumentPackageTestData.cs" />
     <Compile Include="../Shared/XlsxWorkbookTestData.cs" Link="XlsxWorkbookTestData.cs" />

@@ -13,6 +13,8 @@ namespace Mediana.NativeTests
             await NativeMjpegTests.RunAsync();
             await NativeAviTests.RunAsync();
             string root = Path.Combine(AppContext.BaseDirectory, "Data");
+            await IccCmykTestInput.VerifyAsync(Path.Combine(root, "IccCmyk"));
+            await JpegCmykIccTestInput.VerifyAsync(Path.Combine(root, "IccCmyk"), Path.Combine(root, "Raster"));
             await JpegDecodeTestInput.VerifyCorpusAsync(Path.Combine(root, "Jpeg"));
             await JpegDecodeTestInput.VerifyIntegrityAsync(Path.Combine(root, "Jpeg"));
             await JpegDecodeTestInput.VerifyResourcesAsync();

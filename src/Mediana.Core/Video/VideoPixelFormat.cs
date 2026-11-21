@@ -49,6 +49,8 @@ namespace Mediana.Core.Video
 
         /// <summary>Red, green, blue and straight (unassociated) alpha bytes.</summary>
         public static VideoPixelFormat Rgba32 { get; } = new("rgba32", new VideoPlaneFormat(1, 1, 4));
+        /// <summary>Cyan, magenta, yellow and black ink coverage bytes: zero is no ink, 255 is full ink. No alpha channel.</summary>
+        public static VideoPixelFormat Cmyk32 { get; } = new("cmyk32", new VideoPlaneFormat(1, 1, 4));
         /// <summary>Native-endian IEEE float32 red, green, blue and premultiplied alpha. RGB retains negative and HDR values.</summary>
         public static VideoPixelFormat RgbaFloat32Premultiplied { get; } = new("rgba-float32-premultiplied", new VideoPlaneFormat(1, 1, 16));
         public static VideoPixelFormat Yuv420P8 { get; } =

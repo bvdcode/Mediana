@@ -28,6 +28,8 @@
     <Compile Include="../Shared/PresentationTestData.cs" Link="PresentationTestData.cs" />
     <None Include="../Mediana.Containers.Ogg.Tests/Data/*.ogg" Link="Data/Ogg/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/IccColorTestInput.cs" Link="IccColorTestInput.cs" />
+    <Compile Include="../Shared/IccCmykTestInput.cs" Link="IccCmykTestInput.cs" />
+    <Compile Include="../Shared/JpegCmykIccTestInput.cs" Link="JpegCmykIccTestInput.cs" />
     <None Include="Data/Icc/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Mediana.Codecs.Raster.Tests/Data/*" Link="Data/Raster/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../Shared/SymbolFontTestInput.cs" Link="SymbolFontTestInput.cs" />
