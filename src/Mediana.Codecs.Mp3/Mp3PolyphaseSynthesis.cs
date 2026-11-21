@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Numerics;
+using Mediana.Codecs.Transforms;
 
 namespace Mediana.Codecs.Mp3
 {
@@ -21,7 +22,7 @@ namespace Mediana.Codecs.Mp3
                     samples[subband] = subbands[subband * 18 + time];
                 }
                 position = (position - 64) & 1023;
-                Mp3Dct32.Transform(samples);
+                Dct32.Transform(samples);
                 for (int index = 0; index < 16; index++)
                 {
                     history[position + index] = (float)samples[16 + index];

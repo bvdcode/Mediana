@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
-using Mediana.Codecs.Mp3;
+using Mediana.Codecs.Transforms;
 
 namespace Mediana.Tests
 {
-    public class Mp3TransformTests
+    public class Dct32Tests
     {
         [Fact]
         public void FactoredDctMatchesEveryBasisVectorAndDenseSignals()
@@ -19,7 +19,7 @@ namespace Mediana.Tests
                         : Math.Sin((vector + 1) * (index + 0.5)) * Math.Cos(index / 7.0);
                 }
                 double[] actual = input.ToArray();
-                Mp3Dct32.Transform(actual);
+                Dct32.Transform(actual);
                 for (int frequency = 0; frequency < 32; frequency++)
                 {
                     double expected = 0;
