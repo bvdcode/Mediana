@@ -5,7 +5,7 @@ not a claim that every listed format is currently supported. Priorities and scop
 
 **469 variants · 1066 operations · 19 groups.**
 
-**Existing implementations: 136 variants · 169 operations.** These counts include implemented subsets; exact scope is recorded below.
+**Existing implementations: 137 variants · 170 operations.** These counts include implemented subsets; exact scope is recorded below.
 
 [How to use the checklist and verify completion](guide.md) · [Specifications](sources.md) ·
 [Format definitions (CSV)](catalog.csv) · [Operation checklist (CSV)](checks.csv) · [Representative performance comparisons](../performance/README.md) · [Render.NET coverage and remaining modules](../rendering-coverage.md)
@@ -31,7 +31,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | [HDR, scientific images and raw sample layouts](#hdr-scientific-images-and-raw-sample-layouts) | 2 | 16 | 3 | 33 |
 | [GPU texture coding](#gpu-texture-coding) | 0 | 14 | 0 | 28 |
 | [Video codecs and substantial profiles](#video-codecs-and-substantial-profiles) | 16 | 62 | 17 | 124 |
-| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 16 | 63 | 22 | 128 |
+| [Audio coding and sample representations](#audio-coding-and-sample-representations) | 17 | 63 | 23 | 128 |
 | [Vector graphics and 2D animation](#vector-graphics-and-2d-animation) | 3 | 11 | 6 | 33 |
 | [Documents, spreadsheets and presentations](#documents-spreadsheets-and-presentations) | 10 | 39 | 15 | 115 |
 | [Fonts and text presentation resources](#fonts-and-text-presentation-resources) | 6 | 14 | 7 | 27 |
@@ -353,7 +353,7 @@ Verify the tables with `python3 tools/format-catalog.py --check`.
 | `mpeg-surround` | MPEG Surround — Spatial audio coding extension | — | D □ · E □ | C | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `mpegh-audio` | MPEG-H 3D Audio — Channel/object/scene-based audio | — | D □ · E □ | C | [mpeg-audio](sources.md#mpeg-audio) | — |
 | `flac-codec` | FLAC — Lossless sample coding | .flac | D ◐ · E □ | A | Current decoder has fixed/LPC prediction, Rice residuals, stereo decorrelation and CRC checks. [flac](sources.md#flac) | [flac-track](../performance/README.md#flac-track), [flac-sustained](../performance/README.md#flac-sustained) |
-| `alac` | Apple Lossless — ALAC sample coding | — | D □ · E □ | A | [alac](sources.md#alac) | — |
+| `alac` | Apple Lossless — ALAC sample coding | — | D ◐ · E □ | A | [alac](sources.md#alac) | — |
 | `opus-silk` | Opus — SILK speech mode | — | D ◐ · E □ | A | Public managed decoder covers SILK speech, DTX and mode transitions with independent PCM references; explicit loss/FEC APIs remain separate. [opus](sources.md#opus) | — |
 | `opus-celt` | Opus — CELT transform mode | — | D ◐ · E □ | A | Public managed 48 kHz Float32 decoding covers CELT, transitions and retained-state recovery with independent libopus references. [opus](sources.md#opus) | — |
 | `opus-hybrid` | Opus — Hybrid and mode transitions | — | D ◐ · E □ | A | Public managed decoder reconstructs hybrid frames and mode transitions, including redundancy and missing transition intervals; independent references cover the implemented scope. [opus](sources.md#opus) | — |

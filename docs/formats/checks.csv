@@ -533,7 +533,7 @@ mpegh-audio,decode,planned,planned,planned,planned,planned,planned,
 mpegh-audio,encode,planned,planned,planned,planned,planned,planned,
 flac-codec,decode,partial,partial,partial,partial,partial,partial,../../tests/Mediana.Tests/Data/Flac/README.md;../performance/results/2026-11-06/README.md;../performance/results/2026-11-06-expanded/README.md
 flac-codec,encode,planned,planned,planned,planned,planned,planned,
-alac,decode,planned,planned,planned,planned,planned,planned,
+alac,decode,partial,partial,partial,planned,partial,partial,../alac.md;../../tests/Mediana.Codecs.Alac.Tests/Data/README.md
 alac,encode,planned,planned,planned,planned,planned,planned,
 opus-silk,decode,partial,partial,partial,planned,planned,partial,../opus-decoding.md;../../src/Mediana.Codecs.Opus/OpusDecoderFactory.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusDecoderTests.cs;../../tests/Mediana.Codecs.Opus.Tests/OpusFrameDecoderTests.cs
 opus-silk,encode,planned,planned,planned,planned,planned,planned,

@@ -7,6 +7,7 @@ using Mediana.Codecs.Mp3;
 using Mediana.Codecs.Opus;
 using Mediana.Codecs.Vorbis;
 using Mediana.Codecs.Flac;
+using Mediana.Codecs.Alac;
 using Mediana.Codecs.Pcm;
 using Mediana.Containers.Mp4;
 
@@ -18,6 +19,7 @@ namespace Mediana.Cli
 
         public static MediaEngineBuilder CreateBuilder(Mp4TimestampMode timestampMode = Mp4TimestampMode.Media) => ContainerEngineFactory.CreateBuilder(timestampMode)
             .AddAudioDecoder(new FlacDecoderFactory())
+            .AddAudioDecoder(new AlacDecoderFactory())
             .AddAudioDecoder(new PcmDecoderFactory())
             .AddAudioDecoder(new AiffPcmDecoderFactory())
             .AddAudioDecoder(new AacDecoderFactory())

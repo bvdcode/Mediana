@@ -22,6 +22,7 @@ namespace Mediana.Formats
         public static EncodedStreamFormat Ac3Mp4 { get; } = new("ac3.dac3", "ac3.syncframe", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Eac3Mp4 { get; } = new("eac3.dec3", "eac3.syncframes", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mp3 { get; } = new("mpeg-audio.frame-header", "mpeg-audio.layer-iii-frame", EncodedPacketBoundary.AccessUnit);
+        public static EncodedStreamFormat Alac { get; } = new("alac.specific-config", "alac.access-unit", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Flac { get; } = new("flac.stream-info", "flac.frames", EncodedPacketBoundary.ArbitraryBytes);
         public static EncodedStreamFormat Opus { get; } = new("opus.identification-header", "opus.packet", EncodedPacketBoundary.AccessUnit);
         public static EncodedStreamFormat Mpeg4Visual { get; } = new("mpeg4.visual.headers", "mpeg4.visual.vop", EncodedPacketBoundary.AccessUnit);
