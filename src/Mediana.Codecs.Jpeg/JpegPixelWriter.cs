@@ -11,17 +11,19 @@ namespace Mediana.Codecs.Jpeg
     {
         internal static VideoFrame Create(JpegDocument image, MediaBufferAllocator allocator, CancellationToken token)
         {
-            VideoColorInfo color = image.Metadata.IsSrgb ? VideoColorInfo.Srgb : new(Matrix: MatrixCoefficients.Rgb, Range: ColorRange.Full);
+            bool deviceCmyk = image.Components.Count == 4;
+            VideoColorInfo color = !deviceCmyk && image.Metadata.IsSrgb
+                ? VideoColorInfo.Srgb : new(Matrix: MatrixCoefficients.Rgb, Range: ColorRange.Full);
             VideoColorDescription? description = null;
             if (image.Metadata.HasIcc)
             {
-                if (image.Components.Count == 4)
+                if (deviceCmyk)
                 {
                     throw new NotSupportedException("CMYK JPEG ICC profiles require a four-component color transform.");
                 }
                 description = image.Metadata.CreateIccDescription();
             }
-            else if (image.Metadata.Uncalibrated) { description = new JpegExifColorDescription(); }
+            else if (!deviceCmyk && image.Metadata.Uncalibrated) { description = new JpegExifColorDescription(); }
             bool swap = image.Metadata.Orientation.SwapsAxes;
             VideoFormat format = new(swap ? image.Height : image.Width, swap ? image.Width : image.Height,
                 VideoPixelFormat.Rgba32, color, image.Metadata.Aspect, description);

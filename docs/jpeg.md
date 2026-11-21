@@ -60,6 +60,14 @@ Undeclared C/M/Y/K component identifiers select device CMYK; other undeclared
 four-component streams require a caller interpretation. Conversion uses the
 multiplicative device-ink model. Embedded CMYK ICC profiles require a
 four-component ICC transform and are rejected rather than applied to RGB samples.
+Unprofiled CMYK/YCCK reconstruction produces device RGB with unspecified primaries
+and transfer. Source Exif color labels remain available through inspection; they
+do not describe the RGB produced by this ink conversion. In particular,
+`ColorSpace=65535` does not attach an Exif RGB conversion restriction to that
+output. The existing `SdrPreviewColorPolicy.Resolve` can interpret these RGB
+samples for display, including through `ImageResources.DecodeAsync`. CLI preview
+uses that policy and reports its missing-label interpretation. Strict sRGB
+conversion still requires an explicit interpretation of unprofiled device RGB.
 Independent libjpeg-turbo references cover every pixel of the four presentations
 in `tests/Mediana.Codecs.Raster.Tests/JpegCmykTests.cs`.
 
@@ -133,13 +141,13 @@ independent centered references, in both APP0/APP1 orders. They verify the stric
 default, unchanged co-sited files, pixel-limit propagation, combined warnings,
 and buffer release if the diagnostic handler stops decoding.
 
-Exif `ColorSpace=1` labels the reconstructed pixels as sRGB. Explicitly
-uncalibrated color produces `JpegExifColorDescription`, whose conversion fails
+For grayscale and three-component input, Exif `ColorSpace=1` labels the
+reconstructed pixels as sRGB. Explicitly uncalibrated color produces `JpegExifColorDescription`, whose conversion fails
 until calibrated interpretation is supported. Custom Exif transfer functions,
 chromaticities, gamma, YCbCr coefficients and reference levels are unsupported.
 An ICC profile takes precedence over Exif color labels and custom colorimetry.
 Supported ICC transforms use the common sRGB converter. Uncalibrated declarations
-and unsupported ICC models do not use the CLI missing-label policy.
+for these inputs and unsupported ICC models do not use the CLI missing-label policy.
 
 These semantics follow CIPA DC-008-2026 (Exif 3.1), clauses 4.4.2–4.4.3,
 4.6.2, 4.6.5.1.6, 4.6.5.1.8–9, 4.6.5.1.13 and 4.6.6.2, available from
