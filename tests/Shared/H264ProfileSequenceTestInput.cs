@@ -92,6 +92,12 @@ namespace Mediana.Tests
             {
                 throw new InvalidDataException($"The H.264 field-pair presentation differs from the reference at frame {index}.");
             }
+            if (pixels is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Gbr } &&
+                (frame.Format.Color.Matrix != MatrixCoefficients.Rgb || frame.Format.Color.ChromaLocation != ChromaLocation.Unspecified ||
+                frame.Format.Color.FieldChromaLocations is not null))
+            {
+                throw new InvalidDataException("Planar RGB output must not declare subsampled chroma positions.");
+            }
             H264TestInput.VerifyFrame(frame, reference);
         }
     }

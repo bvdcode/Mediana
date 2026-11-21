@@ -24,7 +24,7 @@ namespace Mediana.Processing
                 TransferFunction.Pq => (HdrTransfer.Pq, false),
                 TransferFunction.Hlg when primaries == ColorPrimaries.Bt2020 => (HdrTransfer.Hlg, true),
                 TransferFunction.Hlg => throw new NotSupportedException("HLG reference display conversion requires BT.2020 primaries."),
-                TransferFunction.Unspecified or TransferFunction.Srgb or TransferFunction.Bt709 or TransferFunction.Gamma22 or
+                TransferFunction.Unspecified or TransferFunction.Srgb or TransferFunction.Bt709 or TransferFunction.Bt709Oetf or TransferFunction.Gamma22 or
                     TransferFunction.Gamma28 or TransferFunction.Smpte240M or TransferFunction.Linear or TransferFunction.Log100 or
                     TransferFunction.Log316 or TransferFunction.Iec61966_2_4 or TransferFunction.Bt1361Extended or TransferFunction.Smpte428 =>
                     throw new ArgumentException("HDR tone mapping requires PQ or HLG input.", nameof(function)),

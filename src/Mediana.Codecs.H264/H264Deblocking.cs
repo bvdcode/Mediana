@@ -80,7 +80,7 @@ namespace Mediana.Codecs.H264
                 FillStrengths(picture, header, address, lumaX, lumaY, false, ref context, strengths[16..]);
                 for (int plane = 0; plane < 3; plane++)
                 {
-                    int scale = plane == 0 ? 1 : 2;
+                    int scale = picture.HorizontalScale(plane);
                     int verticalScale = picture.VerticalScale(plane);
                     ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / verticalScale, true, strengths[..16]);
                     ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / verticalScale, false, strengths[16..]);
@@ -109,12 +109,12 @@ namespace Mediana.Codecs.H264
             int stride = picture.Stride(plane);
             int step = vertical ? 1 : stride;
             Span<byte> pixels = picture.Plane(plane);
-            int horizontalScale = plane == 0 ? 1 : 2;
+            int horizontalScale = picture.HorizontalScale(plane);
             int verticalScale = picture.VerticalScale(plane);
             int scale = vertical ? horizontalScale : verticalScale;
             int size = 16 / scale;
             int segmentLength = 4 / (vertical ? verticalScale : horizontalScale);
-            int edgeStep = plane == 0 && picture.Transforms8x8[address] != 0 ? 8 : 4;
+            int edgeStep = (plane == 0 || picture.FullResolutionChroma) && picture.Transforms8x8[address] != 0 ? 8 : 4;
             int currentQp = Qp(picture, header.Picture, plane, address);
             for (int edge = 0; edge < size; edge += edgeStep)
             {
@@ -133,12 +133,12 @@ namespace Mediana.Codecs.H264
                 int start = y * stride + x + edge * step;
                 if (picture.SampleBytes == 1)
                 {
-                    H264DeblockingFilter.Apply(pixels, start, stride, vertical, plane != 0, segmentLength, edgeStrengths, thresholds);
+                    H264DeblockingFilter.Apply(pixels, start, stride, vertical, plane != 0 && !picture.FullResolutionChroma, segmentLength, edgeStrengths, thresholds);
                 }
                 else
                 {
                     H264DeblockingFilter.ApplyScalar<ushort>(MemoryMarshal.Cast<byte, ushort>(pixels), start, stride,
-                        vertical, plane != 0, segmentLength, edgeStrengths, thresholds, picture.MaximumSample);
+                        vertical, plane != 0 && !picture.FullResolutionChroma, segmentLength, edgeStrengths, thresholds, picture.MaximumSample);
                 }
             }
         }

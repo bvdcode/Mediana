@@ -33,31 +33,37 @@ namespace Mediana.Codecs.Jpeg
         /// <summary>Original APP14 transform code: 0 (none), 1 (YCbCr), 2 (YCCK), or null when absent.</summary>
         public int? AdobeColorTransform { get; }
 
-        internal JpegColorSpace GetComponentColorSpace() => AdobeColorTransform switch
+        internal JpegColorSpace GetComponentColorSpace() => (ComponentCount, AdobeColorTransform) switch
         {
-            0 => JpegColorSpace.Rgb,
-            1 => JpegColorSpace.YCbCr,
-            null when samples.Components.Count == 3 && samples.Components[0].Id == (byte)'R' &&
+            (4, 0) => JpegColorSpace.InvertedCmyk,
+            (4, 2) => JpegColorSpace.Ycck,
+            (4, null) => JpegColorSpace.Cmyk,
+            (1 or 3, 0) => JpegColorSpace.Rgb,
+            (1 or 3, 1) => JpegColorSpace.YCbCr,
+            (3, null) when samples.Components[0].Id == (byte)'R' &&
                 samples.Components[1].Id == (byte)'G' && samples.Components[2].Id == (byte)'B' => JpegColorSpace.Rgb,
-            null => JpegColorSpace.YCbCr,
-            2 => throw new NotSupportedException("JPEG YCCK components cannot be decoded as RGB or YCbCr."),
-            _ => throw new InvalidDataException("The JPEG Adobe component transform is invalid.")
+            (1 or 3, null) => JpegColorSpace.YCbCr,
+            _ => throw new InvalidDataException("The JPEG Adobe component transform conflicts with its component count.")
         };
 
         /// <summary>Writes straight RGBA8 into caller-owned storage using the explicit component interpretation.
-        /// Grayscale ignores the three-component interpretation. Writes exactly Width*Height*4 bytes and
+        /// Grayscale accepts RGB or YCbCr interpretation. Four-component input requires CMYK or YCCK. Writes exactly Width*Height*4 bytes and
         /// preserves any destination tail. No output allocation or metadata-derived color conversion occurs.
         /// The caller keeps the destination valid; cancellation may leave a partially written destination.</summary>
         public void WriteRgbaTo(Span<byte> destination, JpegColorSpace colorSpace, CancellationToken cancellationToken = default)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
-            bool rgb = colorSpace switch
+            int requiredComponents = colorSpace switch
             {
-                JpegColorSpace.Rgb => true,
-                JpegColorSpace.YCbCr => false,
+                JpegColorSpace.Rgb or JpegColorSpace.YCbCr => 3,
+                JpegColorSpace.Cmyk or JpegColorSpace.InvertedCmyk or JpegColorSpace.Ycck => 4,
                 _ => throw new ArgumentOutOfRangeException(nameof(colorSpace))
             };
-            JpegPixelWriter.Write(samples, destination, rgb, cancellationToken);
+            if (ComponentCount != requiredComponents && (ComponentCount != 1 || requiredComponents != 3))
+            {
+                throw new ArgumentException("JPEG component count differs from the requested color interpretation.", nameof(colorSpace));
+            }
+            JpegPixelWriter.Write(samples, destination, colorSpace, cancellationToken);
         }
 
         public void Dispose()

@@ -31,10 +31,10 @@ namespace Mediana.Codecs.H264
         private static void ApplyMacroblock<TSample>(H264Picture picture, H264SliceHeader header, int address, int plane,
             Span<TSample> pixels, ref H264DeblockingContext context) where TSample : unmanaged, IBinaryInteger<TSample>
         {
-            int width = plane == 0 ? 16 : 8;
+            int width = 16 / picture.HorizontalScale(plane);
             int height = 16 / picture.VerticalScale(plane);
             (int x, int y, int rowStep) = picture.Grid.PixelOrigin(address, width, height);
-            int edgeStep = plane == 0 && picture.Transforms8x8[address] != 0 ? 8 : 4;
+            int edgeStep = (plane == 0 || picture.FullResolutionChroma) && picture.Transforms8x8[address] != 0 ? 8 : 4;
             for (int edge = 0; edge < width; edge += edgeStep)
             {
                 FilterEdge(picture, header, address, plane, pixels, x + edge, y, rowStep, true, ref context);
@@ -56,7 +56,7 @@ namespace Mediana.Codecs.H264
             Span<TSample> pixels, int x, int y, int rowStep, bool vertical, ref H264DeblockingContext context)
             where TSample : unmanaged, IBinaryInteger<TSample>
         {
-            int horizontalScale = plane == 0 ? 1 : 2;
+            int horizontalScale = picture.HorizontalScale(plane);
             int verticalScale = picture.VerticalScale(plane);
             int width = 16 / horizontalScale;
             int height = 16 / verticalScale;
@@ -101,7 +101,7 @@ namespace Mediana.Codecs.H264
                 }
                 H264DeblockingThresholds thresholds = H264Deblocking.Thresholds(picture, header, plane, p.Address, q.Address);
                 H264DeblockingFilter.Filter(pixels, qy * stride + qx, step, thresholds.Alpha, thresholds.Beta,
-                    thresholds.Clipping(strength), strength == 4, plane != 0, picture.MaximumSample);
+                    thresholds.Clipping(strength), strength == 4, plane != 0 && !picture.FullResolutionChroma, picture.MaximumSample);
             }
         }
 
@@ -109,7 +109,7 @@ namespace Mediana.Codecs.H264
             Span<TSample> pixels, int x, int y, int rowStep, bool vertical, int previousAddress, ref H264DeblockingContext context)
             where TSample : unmanaged, IBinaryInteger<TSample>
         {
-            int horizontalScale = plane == 0 ? 1 : 2;
+            int horizontalScale = picture.HorizontalScale(plane);
             int verticalScale = picture.VerticalScale(plane);
             int segmentLength = 4 / (vertical ? verticalScale : horizontalScale);
             Span<byte> strengths = stackalloc byte[4];
@@ -135,12 +135,12 @@ namespace Mediana.Codecs.H264
             if (typeof(TSample) == typeof(byte))
             {
                 H264DeblockingFilter.Apply(MemoryMarshal.Cast<TSample, byte>(pixels), y * stride + x,
-                    stride * rowStep, vertical, plane != 0, segmentLength, strengths, thresholds);
+                    stride * rowStep, vertical, plane != 0 && !picture.FullResolutionChroma, segmentLength, strengths, thresholds);
             }
             else
             {
                 H264DeblockingFilter.ApplyScalar(pixels, y * stride + x, stride * rowStep, vertical,
-                    plane != 0, segmentLength, strengths, thresholds, picture.MaximumSample);
+                    plane != 0 && !picture.FullResolutionChroma, segmentLength, strengths, thresholds, picture.MaximumSample);
             }
         }
     }

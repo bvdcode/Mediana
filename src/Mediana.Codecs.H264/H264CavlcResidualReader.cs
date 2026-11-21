@@ -9,7 +9,7 @@ namespace Mediana.Codecs.H264
         {
             if (category == H264ResidualCategory.Luma8x8)
             {
-                return ReadLuma8x8(ref bits, x, y, coefficients);
+                return ReadLuma8x8(ref bits, plane, x, y, coefficients);
             }
             return H264Cavlc.Read(ref bits, coefficients,
                 category == H264ResidualCategory.ChromaDc ? -coefficients.Length / 4 : target.NeighbourCount(plane, x, y), MaximumPrefix(plane));
@@ -21,7 +21,7 @@ namespace Mediana.Codecs.H264
             _ => 11 + (plane == 0 ? target.Sequence.LumaBitDepth : target.Sequence.ChromaBitDepth)
         };
 
-        private int ReadLuma8x8(ref H264BitReader bits, int x, int y, scoped Span<int> coefficients)
+        private int ReadLuma8x8(ref H264BitReader bits, int plane, int x, int y, scoped Span<int> coefficients)
         {
             if (coefficients.Length != 64)
             {
@@ -33,8 +33,8 @@ namespace Mediana.Codecs.H264
             {
                 int blockX = x + index % 2 * 4;
                 int blockY = y + index / 2 * 4;
-                int count = H264Cavlc.Read(ref bits, block, target.NeighbourCount(0, blockX, blockY), MaximumPrefix(0));
-                target.Counts(0)[target.BlockIndex(0, blockX, blockY)] = (byte)count;
+                int count = H264Cavlc.Read(ref bits, block, target.NeighbourCount(plane, blockX, blockY), MaximumPrefix(plane));
+                target.Counts(plane)[target.BlockIndex(plane, blockX, blockY)] = (byte)count;
                 total += count;
                 for (int position = 0; position < 16; position++)
                 {

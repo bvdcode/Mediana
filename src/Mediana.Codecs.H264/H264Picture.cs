@@ -42,16 +42,17 @@ namespace Mediana.Codecs.H264
             ChromaVerticalScale = sequence.ChromaFormat switch
             {
                 1 => 2,
-                2 => 1,
-                _ => throw new NotSupportedException("H.264 picture storage requires 4:2:0 or 4:2:2 chroma.")
+                2 or 3 => 1,
+                _ => throw new NotSupportedException("H.264 picture storage requires 4:2:0, 4:2:2 or 4:4:4 chroma.")
             };
+            ChromaHorizontalScale = sequence.ChromaFormat == 3 ? 1 : 2;
             ChromaMacroblockHeight = 16 / ChromaVerticalScale;
-            ChromaMacroblockSamples = 8 * ChromaMacroblockHeight;
+            ChromaMacroblockSamples = 16 / ChromaHorizontalScale * ChromaMacroblockHeight;
             MacroblockSamples = 256 + 2 * ChromaMacroblockSamples;
             LumaMacroblockBytes = 256 * SampleBytes;
             ChromaMacroblockBytes = ChromaMacroblockSamples * SampleBytes;
             MacroblockBytes = MacroblockSamples * SampleBytes;
-            chromaBytes = lumaBytes / (2 * ChromaVerticalScale);
+            chromaBytes = lumaBytes / (ChromaHorizontalScale * ChromaVerticalScale);
             lumaBlocks = lumaSamples / 16;
             chromaBlocks = chromaBytes / (16 * SampleBytes);
             macroblocks = lumaSamples / 256;
@@ -90,6 +91,9 @@ namespace Mediana.Codecs.H264
         public int Width { get; }
         public int Height { get; }
         public int ChromaVerticalScale { get; }
+        public int ChromaHorizontalScale { get; }
+        public bool FullResolutionChroma => ChromaHorizontalScale == 1;
+        public int HorizontalScale(int plane) => plane == 0 ? 1 : ChromaHorizontalScale;
         public int SampleBytes { get; }
         public int LumaMacroblockBytes { get; }
         public int ChromaMacroblockBytes { get; }
@@ -116,7 +120,7 @@ namespace Mediana.Codecs.H264
         };
 
         public int BlockIndex(int plane, int x, int y) => (y / 4) * (Stride(plane) / 4) + x / 4;
-        public int Stride(int plane) => plane == 0 ? Width : Width / 2;
+        public int Stride(int plane) => Width / HorizontalScale(plane);
 
         public int NeighbourCount(int plane, int x, int y)
         {
@@ -126,7 +130,7 @@ namespace Mediana.Codecs.H264
             }
             Span<byte> counts = Counts(plane);
             int index = BlockIndex(plane, x, y);
-            int scale = plane == 0 ? 1 : 2;
+            int scale = HorizontalScale(plane);
             int verticalScale = VerticalScale(plane);
             bool hasLeft = IsInCurrentSlice(x * scale - 1, y * verticalScale);
             bool hasTop = IsInCurrentSlice(x * scale, y * verticalScale - 1);
@@ -171,8 +175,8 @@ namespace Mediana.Codecs.H264
         public void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual) =>
             WriteBlock(plane, x, y, prediction, residual, 4);
 
-        public void WriteLuma8x8(int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual) =>
-            WriteBlock(0, x, y, prediction, residual, 8);
+        public void WriteLuma8x8(int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int plane = 0) =>
+            WriteBlock(plane, x, y, prediction, residual, 8);
 
         private void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int size)
         {
@@ -187,7 +191,7 @@ namespace Mediana.Codecs.H264
                 H264HighPrecisionReconstruction.Write(MemoryMarshal.Cast<byte, ushort>(prediction), residual, size,
                     MemoryMarshal.Cast<byte, ushort>(pixels)[offset..], stride, MaximumSample);
             }
-            if (plane == 0)
+            if (plane == 0 || FullResolutionChroma)
             {
                 for (int row = 0; row < size; row += 4)
                 {

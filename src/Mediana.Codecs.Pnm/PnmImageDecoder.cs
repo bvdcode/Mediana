@@ -53,7 +53,7 @@ namespace Mediana.Codecs.Pnm
             {
                 throw new InvalidDataException("PNM source exceeds MaximumPixels.");
             }
-            VideoColorInfo color = image.Bitmap ? VideoColorInfo.Srgb : VideoColorInfo.Srgb with { Transfer = TransferFunction.Bt709 };
+            VideoColorInfo color = image.Bitmap ? VideoColorInfo.Srgb : VideoColorInfo.Srgb with { Transfer = TransferFunction.Bt709Oetf };
             VideoFormat format = new(image.Width, image.Height, VideoPixelFormat.Rgba32, color, SampleAspectRatio.Square);
             PlaneLayout[] layout = format.CreateTightLayout();
             using WritableMediaBuffer output = allocator.Allocate(checked((int)layout[0].EndOffset));

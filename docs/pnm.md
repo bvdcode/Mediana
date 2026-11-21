@@ -14,8 +14,10 @@ PBM uses most-significant-bit-first pixels, black=1, white=0, and discards row
 padding bits. PGM/PPM support maximum values 1–65535, with big-endian 16-bit
 binary samples when the maximum is greater than 255. Samples are normalized and
 rounded to RGBA8; source precision remains in metadata. PGM/PPM preserve their
-specified full-range BT.709 color interpretation. PBM endpoints are sRGB black
-and white. There is no inferred alternate gamma interpretation.
+specified full-range BT.709 optical encoding (`TransferFunction.Bt709Oetf`).
+Conversion to sRGB inverts the piecewise optical transfer function, including
+its linear toe; it does not use the BT.1886 reference-display curve. PBM endpoints
+are sRGB black and white. There is no inferred alternate gamma interpretation.
 
 The binary header consumes exactly the single whitespace separator defined by
 the format. Raster bytes equal to whitespace or `#` are data. Invalid integers,

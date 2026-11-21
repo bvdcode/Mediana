@@ -141,7 +141,7 @@ picture-order references and presentation timing tables.
 ## Current format boundaries
 
 Reconstruction supports default scaling matrices and equal 8- or 10-bit luma
-and chroma precision. Custom scaling matrices, transform bypass, 4:4:4, separate
+and chroma precision. Custom scaling matrices, transform bypass, separate
 colour planes and SP/SI slices remain unsupported. These are independent of
 PAFF/MBAFF picture structure. The H.264 encoder produces progressive 8-bit
 4:2:0 output; interlaced input can use the preparation described above.

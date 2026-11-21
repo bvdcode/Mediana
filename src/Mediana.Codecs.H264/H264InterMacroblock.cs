@@ -10,6 +10,11 @@ namespace Mediana.Codecs.H264
             [0, 16, 1, 2, 4, 8, 32, 3, 5, 10, 12, 15, 47, 7, 11, 13, 14, 6, 9, 31, 35, 37, 42, 44,
                 33, 34, 36, 40, 39, 43, 45, 46, 17, 18, 20, 24, 19, 21, 26, 28, 23, 27, 29, 30, 22, 25, 38, 41];
 
+        private static ReadOnlySpan<byte> FullResolutionPatterns => [0, 1, 2, 4, 8, 3, 5, 10, 12, 15, 7, 11, 13, 14, 6, 9];
+
+        private static int ReadPattern(ref H264BitReader bits, H264Picture target) => target.FullResolutionChroma
+            ? FullResolutionPatterns[bits.ReadUe(15)] : CodedPatterns[bits.ReadUe(47)];
+
         public static void Read(ref H264BitReader bits, H264Picture target, H264SliceHeader header,
             IReadOnlyList<H264ReferencePicture?> references, int address, ref int qp, bool skip = false)
         {
@@ -37,7 +42,7 @@ namespace Mediana.Codecs.H264
             ref int qp, scoped ReadOnlySpan<byte> prediction, bool noSmallPartitions, bool skip)
         {
             (int x, int y) = target.Grid.Position(address);
-            int pattern = skip ? 0 : CodedPatterns[bits.ReadUe(47)];
+            int pattern = skip ? 0 : ReadPattern(ref bits, target);
             if ((pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions && bits.ReadFlag())
             {
                 target.Transforms8x8[address] = 1;
@@ -48,8 +53,7 @@ namespace Mediana.Codecs.H264
                 qp = quantizer.ApplyDelta(qp, bits.ReadSe(quantizer.MinimumDelta, quantizer.MaximumDelta));
             }
             target.Quantizers[address] = (byte)qp;
-            H264Residuals.ReadInterLuma(ref bits, target, x, y, pattern, qp, prediction[..target.LumaMacroblockBytes]);
-            H264Residuals.ReadChroma(ref bits, target, header.Picture, x / 2, y / target.ChromaVerticalScale, pattern >> 4, qp, prediction[target.LumaMacroblockBytes..]);
+            H264Residuals.ReadInter(ref bits, new H264CavlcResidualReader(target), target, header.Picture, x, y, pattern, qp, prediction);
         }
 
     }

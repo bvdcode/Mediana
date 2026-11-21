@@ -5,23 +5,43 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264Residuals
     {
+        public static void ReadInter<TReader>(ref H264BitReader bits, TReader reader, H264Picture target,
+            H264PictureParameterSet picture, int x, int y, int pattern, int qp, scoped ReadOnlySpan<byte> prediction)
+            where TReader : IH264ResidualReader
+        {
+            ReadInterLuma(ref bits, reader, target, x, y, pattern, qp, prediction[..target.LumaMacroblockBytes]);
+            if (target.FullResolutionChroma)
+            {
+                for (int plane = 1; plane < 3; plane++)
+                {
+                    int offset = plane == 1 ? picture.ChromaQpOffset : picture.SecondChromaQpOffset;
+                    int chromaQp = target.ChromaQuantizer.ChromaValue(qp - target.LumaQuantizer.Offset, offset);
+                    ReadInterLuma(ref bits, reader, target, x, y, pattern, chromaQp,
+                        prediction.Slice(plane * target.LumaMacroblockBytes, target.LumaMacroblockBytes), plane);
+                }
+                return;
+            }
+            ReadChroma(ref bits, reader, target, picture, x / target.ChromaHorizontalScale,
+                y / target.ChromaVerticalScale, pattern >> 4, qp, prediction[target.LumaMacroblockBytes..]);
+        }
+
         public static void ReadInterLuma(ref H264BitReader bits, H264Picture target, int x, int y,
             int pattern, int qp, scoped ReadOnlySpan<byte> macroPrediction) =>
             ReadInterLuma(ref bits, new H264CavlcResidualReader(target), target, x, y, pattern, qp, macroPrediction);
 
         public static void ReadInterLuma<TReader>(ref H264BitReader bits, TReader reader, H264Picture target, int x, int y,
-            int pattern, int qp, scoped ReadOnlySpan<byte> macroPrediction)
+            int pattern, int qp, scoped ReadOnlySpan<byte> macroPrediction, int plane = 0)
             where TReader : IH264ResidualReader
         {
             H264InverseTransform.ValidateQp(qp, target.Sequence.LumaBitDepth);
             if ((pattern & 15) == 0)
             {
-                target.WriteZeroResidualBlock(0, x, y, 16, macroPrediction, 16);
+                target.WriteZeroResidualBlock(plane, x, y, 16, macroPrediction, 16);
                 return;
             }
             if (target.Transforms8x8[target.Grid.Address(x, y)] != 0)
             {
-                H264Luma8x8Reconstruction.Read(ref bits, reader, target, x, y, pattern, qp, false, false, macroPrediction);
+                H264Luma8x8Reconstruction.Read(ref bits, reader, target, x, y, pattern, qp, false, false, macroPrediction, plane);
                 return;
             }
             bool field = target.IsFieldMacroblock(x, y);
@@ -33,16 +53,16 @@ namespace Mediana.Codecs.H264
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
                 coefficients.Clear();
                 int count = (pattern & (1 << (index / 4))) != 0
-                    ? reader.Read(ref bits, H264ResidualCategory.Luma4x4, 0, x + blockX, y + blockY, coefficients) : 0;
+                    ? reader.Read(ref bits, H264ResidualCategory.Luma4x4, plane, x + blockX, y + blockY, coefficients) : 0;
                 if (count == 0)
                 {
-                    target.WriteZeroResidualBlock(0, x + blockX, y + blockY, 4, macroPrediction[((blockY * 16 + blockX) * target.SampleBytes)..], 16);
+                    target.WriteZeroResidualBlock(plane, x + blockX, y + blockY, 4, macroPrediction[((blockY * 16 + blockX) * target.SampleBytes)..], 16);
                     continue;
                 }
-                target.Counts(0)[target.BlockIndex(0, x + blockX, y + blockY)] = (byte)count;
+                target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
                 H264InverseTransform.Residual4x4(coefficients, qp, residual, bitDepth: target.Sequence.LumaBitDepth, field: field);
                 CopyPrediction(macroPrediction, 16, blockX, blockY, prediction, target.SampleBytes);
-                target.WriteBlock(0, x + blockX, y + blockY, prediction, residual);
+                target.WriteBlock(plane, x + blockX, y + blockY, prediction, residual);
             }
         }
 

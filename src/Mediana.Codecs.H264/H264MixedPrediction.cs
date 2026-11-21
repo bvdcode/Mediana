@@ -22,7 +22,7 @@ namespace Mediana.Codecs.H264
             int horizontalScale = plane switch
             {
                 0 => 1,
-                1 or 2 => 2,
+                1 or 2 => picture.ChromaHorizontalScale,
                 _ => throw new ArgumentOutOfRangeException(nameof(plane))
             };
             int verticalScale = picture.VerticalScale(plane);
@@ -32,13 +32,13 @@ namespace Mediana.Codecs.H264
             {
                 throw new ArgumentException("The H.264 prediction output must match its block dimensions.", nameof(output));
             }
-            int horizontalShift = plane == 0 ? 2 : 3;
-            int verticalShift = plane == 0 ? 2 : 2 + verticalScale / 2;
+            int horizontalShift = plane == 0 || picture.FullResolutionChroma ? 2 : 3;
+            int verticalShift = plane == 0 || picture.FullResolutionChroma ? 2 : 2 + verticalScale / 2;
             long sourceX = (long)x / horizontalScale + (motionX >> horizontalShift);
             long sourceY = (long)y / verticalScale + (motionY >> verticalShift);
             int dx = motionX & ((1 << horizontalShift) - 1);
             int dy = motionY & ((1 << verticalShift) - 1);
-            if (plane != 0)
+            if (plane != 0 && !picture.FullResolutionChroma)
             {
                 dy <<= 3 - verticalShift;
             }
@@ -63,8 +63,8 @@ namespace Mediana.Codecs.H264
             long x, long y, int dx, int dy, int width, int height, Span<byte> output)
         {
             Span<byte> patch = stackalloc byte[(MaximumBlockSize + LumaPadding) * (MaximumBlockSize + LumaPadding) * sizeof(ushort)];
-            int padding = plane == 0 ? LumaPadding : 1;
-            int first = plane == 0 ? LumaFirstTap : 0;
+            int padding = plane == 0 || picture.FullResolutionChroma ? LumaPadding : 1;
+            int first = plane == 0 || picture.FullResolutionChroma ? LumaFirstTap : 0;
             int columns = width + padding;
             int rows = height + padding;
             Span<byte> samples = patch[..(columns * rows * picture.SampleBytes)];
@@ -77,7 +77,7 @@ namespace Mediana.Codecs.H264
         {
             if (picture.SampleBytes == 1)
             {
-                if (plane == 0)
+                if (plane == 0 || picture.FullResolutionChroma)
                 {
                     H264LumaInterpolation.Apply(samples, stride, columns, rows, x, y, dx, dy, width, height, output);
                 }
@@ -90,7 +90,7 @@ namespace Mediana.Codecs.H264
             {
                 ReadOnlySpan<ushort> pixels = MemoryMarshal.Cast<byte, ushort>(samples);
                 Span<ushort> destination = MemoryMarshal.Cast<byte, ushort>(output);
-                if (plane == 0)
+                if (plane == 0 || picture.FullResolutionChroma)
                 {
                     H264HighPrecisionInterpolation.Luma(pixels, stride, columns, rows, x, y, dx, dy, width, height, destination, picture.MaximumSample);
                 }

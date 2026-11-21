@@ -51,6 +51,10 @@ namespace Mediana.Codecs.H264
                 case 0:
                     H264MotionCompensation.Luma(reference, x, y, motionX, motionY, width, height, samples);
                     break;
+                case 1 when reference.FullResolutionChroma:
+                case 2 when reference.FullResolutionChroma:
+                    H264MotionCompensation.Luma(reference, x, y, motionX, motionY, width, height, samples, plane);
+                    break;
                 case 1:
                 case 2:
                     H264MotionCompensation.Chroma(reference, plane, x / 2, y / reference.ChromaVerticalScale, motionX, motionY, width / 2, height / reference.ChromaVerticalScale, samples);
@@ -69,7 +73,7 @@ namespace Mediana.Codecs.H264
                 2 => target.LumaMacroblockBytes + target.ChromaMacroblockBytes,
                 _ => throw new ArgumentOutOfRangeException(nameof(plane))
             };
-            int scale = plane == 0 ? 1 : 2;
+            int scale = target.HorizontalScale(plane);
             int stride = 16 / scale * target.SampleBytes;
             int blockWidth = width / scale * target.SampleBytes;
             int verticalScale = target.VerticalScale(plane);

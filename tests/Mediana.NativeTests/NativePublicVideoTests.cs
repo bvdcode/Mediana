@@ -157,6 +157,21 @@ namespace Mediana.NativeTests
             {
                 await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, name), VideoPixelFormat.Yuv422P10, 82, 74, 24, 12);
             }
+            foreach (int depth in new[] { 8, 10 })
+            {
+                VideoPixelFormat pixels = depth switch
+                {
+                    8 => VideoPixelFormat.Yuv444P8,
+                    10 => VideoPixelFormat.Yuv444P10,
+                    _ => throw new InvalidDataException("Invalid H.264 reference precision.")
+                };
+                foreach (string coding in new[] { "cavlc-i", "cabac-i", "cavlc-b", "cabac-b", "cabac-q45", "mbaff" })
+                {
+                    int height = coding == "mbaff" ? 76 : 75;
+                    await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, $"avc-444-{depth}-{coding}"), pixels, 83, height, 18, 12);
+                }
+            }
+            await H264ProfileSequenceTestInput.VerifyAsync(Path.Combine(root, "avc-444-rgb"), VideoPixelFormat.GbrP8, 83, 75, 18, 12);
             List<byte> baseline = [];
             for (int index = 0; index < 6; index++)
             {

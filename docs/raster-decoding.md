@@ -18,7 +18,9 @@ supplied `ImageDecodeContext`.
 
 TIFF compression includes uncompressed samples, PackBits, TIFF LZW, zlib/Deflate,
 CCITT modified Huffman, Group 3/4 and JPEG compression 7 with shared JPEG tables.
-JPEG YCbCr blocks use the TIFF photometric declaration. Non-JPEG subsampled
+JPEG gray, RGB, YCbCr and CMYK blocks use the TIFF photometric declaration and
+orientation; embedded JPEG presentation metadata does not override the enclosing
+TIFF. Upright full-width strips write directly into the final output allocation. Non-JPEG subsampled
 YCbCr, legacy JPEG compression 6, signed/floating-point samples and CCITT
 uncompressed extensions remain open. GIF plain-text rendering remains open.
 The pixel output of these decoders is straight RGBA8. Sixteen-bit TIFF samples

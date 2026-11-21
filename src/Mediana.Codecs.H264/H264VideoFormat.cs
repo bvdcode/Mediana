@@ -14,7 +14,7 @@ namespace Mediana.Codecs.H264
             (int topLocation, int bottomLocation) = sequence.ChromaFormat switch
             {
                 1 => (vui.ChromaLocationTop ?? 0, vui.ChromaLocationBottom ?? 0),
-                2 => (2, 2),
+                2 or 3 => (2, 2),
                 _ => throw new NotSupportedException("The H.264 decoded chroma layout is unsupported.")
             };
             if (scanMode == VideoScanMode.Progressive && topLocation != bottomLocation)
@@ -29,6 +29,10 @@ namespace Mediana.Codecs.H264
                 (2, 8) => VideoPixelFormat.Yuv422P8,
                 (1, 10) => VideoPixelFormat.Yuv420P10,
                 (2, 10) => VideoPixelFormat.Yuv422P10,
+                (3, 8) when vui.MatrixCoefficients == 0 => VideoPixelFormat.GbrP8,
+                (3, 10) when vui.MatrixCoefficients == 0 => VideoPixelFormat.GbrP10,
+                (3, 8) => VideoPixelFormat.Yuv444P8,
+                (3, 10) => VideoPixelFormat.Yuv444P10,
                 _ => throw new NotSupportedException("The H.264 decoded chroma layout is unsupported.")
             };
             int height = scanMode switch
@@ -37,8 +41,9 @@ namespace Mediana.Codecs.H264
                 VideoScanMode.TopField or VideoScanMode.BottomField => sequence.Height / 2,
                 _ => throw new ArgumentOutOfRangeException(nameof(scanMode))
             };
-            VideoColorInfo color = ReadColor(vui, topLocation == bottomLocation ? topLocation : null);
-            if (scanMode != VideoScanMode.Progressive)
+            bool rgb = pixels is PlanarVideoPixelFormat { ColorModel: PlanarColorModel.Gbr };
+            VideoColorInfo color = ReadColor(vui, !rgb && topLocation == bottomLocation ? topLocation : null);
+            if (scanMode != VideoScanMode.Progressive && !rgb)
             {
                 color = color with { FieldChromaLocations = new(Location(topLocation), Location(bottomLocation)) };
             }

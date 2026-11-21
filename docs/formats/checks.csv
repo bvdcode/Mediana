@@ -129,7 +129,7 @@ jpeg-lossless,decode,planned,planned,planned,planned,planned,planned,
 jpeg-lossless,encode,planned,planned,planned,planned,planned,planned,
 jpeg-hierarchical,decode,planned,planned,planned,planned,planned,planned,
 jpeg-hierarchical,encode,planned,planned,planned,planned,planned,planned,
-jpeg-cmyk,decode,planned,planned,planned,planned,planned,planned,
+jpeg-cmyk,decode,partial,partial,partial,planned,partial,planned,../jpeg.md;../../tests/Mediana.Codecs.Raster.Tests/Data/cmyk-jpeg-fixtures.md
 jpeg-cmyk,encode,planned,planned,planned,planned,planned,planned,
 jpeg-mpo,decode,planned,planned,planned,planned,planned,planned,
 jpeg-mpo,encode,planned,planned,planned,planned,planned,planned,
@@ -361,7 +361,7 @@ avc-high10,decode,partial,partial,partial,planned,partial,partial,../h264-high10
 avc-high10,encode,planned,planned,planned,planned,planned,planned,
 avc-high422,decode,partial,partial,partial,planned,partial,partial,../h264-chroma-422.md;../h264-high10.md;../../tests/Mediana.Tests/Data/Mp4/README.md
 avc-high422,encode,planned,planned,planned,planned,planned,planned,
-avc-high444,decode,planned,planned,planned,planned,planned,planned,
+avc-high444,decode,partial,partial,partial,planned,partial,partial,../h264-chroma-444.md;../../tests/Mediana.Tests/Data/Mp4/chroma-444.md
 avc-high444,encode,planned,planned,planned,planned,planned,planned,
 avc-cavlc444,decode,planned,planned,planned,planned,planned,planned,
 avc-cavlc444,encode,planned,planned,planned,planned,planned,planned,

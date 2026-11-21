@@ -13,6 +13,26 @@ namespace Mediana.Tests
         private readonly string directory = Directory.CreateTempSubdirectory("mediana-png-").FullName;
 
         [Fact]
+        public async Task TgaWithoutPixelAspectRatioUsesTheSharedPreviewPolicy()
+        {
+            string input = Path.Combine(directory, "input.tga");
+            string output = Path.Combine(directory, "output.png");
+            byte[] encoded = new byte[21];
+            encoded[2] = 2;
+            encoded[12] = 1;
+            encoded[14] = 1;
+            encoded[16] = 24;
+            encoded[17] = 32;
+            encoded[18] = 211;
+            encoded[19] = 37;
+            encoded[20] = 13;
+            await File.WriteAllBytesAsync(input, encoded);
+            (int code, _, string error) = await CliTests.RunAsync(["-i", input, output]);
+            Assert.True(code == 0, error);
+            PngTestInput.VerifyPreview(await File.ReadAllBytesAsync(output), 1, 1, [13, 37, 211, 255], 1, (x, y) => (x, y), 0);
+        }
+
+        [Fact]
         public async Task ExplicitSvgCommandKeepsTheEmbeddedDecoderRegistry()
         {
             string input = Path.Combine(directory, "input.svg");

@@ -18,6 +18,8 @@ namespace Mediana.Core.Video
         Log316,
         Iec61966_2_4,
         Bt1361Extended,
-        Smpte428
+        Smpte428,
+        /// <summary>BT.709 opto-electronic encoding, decoded with its inverse rather than the BT.1886 reference display.</summary>
+        Bt709Oetf
     }
 }

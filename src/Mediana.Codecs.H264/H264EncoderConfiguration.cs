@@ -175,7 +175,7 @@ namespace Mediana.Codecs.H264
         private static int Transfer(TransferFunction value) => value switch
         {
             TransferFunction.Unspecified => 2,
-            TransferFunction.Bt709 => 1,
+            TransferFunction.Bt709 or TransferFunction.Bt709Oetf => 1,
             TransferFunction.Gamma22 => 4,
             TransferFunction.Gamma28 => 5,
             TransferFunction.Smpte240M => 7,

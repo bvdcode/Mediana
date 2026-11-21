@@ -17,7 +17,7 @@ namespace Mediana.Codecs.Jpeg
         private bool exifCustomColor;
         private ushort? exifColorSpace;
         private readonly bool[] iccSeen = new bool[256];
-        internal bool IsRgb { get; private set; }
+        internal JpegColorSpace ColorSpace { get; private set; } = JpegColorSpace.YCbCr;
         internal bool HasIcc => iccCount != 0;
         internal int? AdobeColorTransform => adobeTransform;
         internal SampleAspectRatio? Aspect { get; private set; }
@@ -130,6 +130,10 @@ namespace Mediana.Codecs.Jpeg
             }
             if (jfif)
             {
+                if (components.Count == 4)
+                {
+                    throw new InvalidDataException("JFIF does not declare four-component JPEG color.");
+                }
                 for (int i = 0; i < components.Count; i++)
                 {
                     if (components[i].Id != i + 1)
@@ -154,9 +158,33 @@ namespace Mediana.Codecs.Jpeg
                 }
                 return;
             }
-            if (adobeTransform == 2)
+            if (components.Count == 4)
             {
-                throw new NotSupportedException("JPEG YCCK color conversion is not supported.");
+                JpegColorSpace? fourComponentColor = adobeTransform switch
+                {
+                    0 => JpegColorSpace.InvertedCmyk,
+                    2 => JpegColorSpace.Ycck,
+                    1 => throw new InvalidDataException("A four-component JPEG cannot declare the Adobe YCbCr transform."),
+                    null when components[0].Id == 'C' && components[1].Id == 'M' &&
+                        components[2].Id == 'Y' && components[3].Id == 'K' => JpegColorSpace.Cmyk,
+                    null => null,
+                    _ => throw new InvalidDataException("Invalid JPEG Adobe color transform.")
+                };
+                if (sourceColorSpace is JpegColorSpace.Rgb or JpegColorSpace.YCbCr ||
+                    fourComponentColor is not null && sourceColorSpace is not null && fourComponentColor != sourceColorSpace)
+                {
+                    throw new InvalidDataException("JPEG component count or declaration conflicts with the supplied color interpretation.");
+                }
+                if (fourComponentColor is null && sourceColorSpace is null && requireColor)
+                {
+                    throw new NotSupportedException("Four-component JPEG color requires a CMYK declaration or caller interpretation.");
+                }
+                ColorSpace = fourComponentColor ?? sourceColorSpace ?? JpegColorSpace.Cmyk;
+                return;
+            }
+            if (adobeTransform == 2 || sourceColorSpace is JpegColorSpace.Cmyk or JpegColorSpace.InvertedCmyk or JpegColorSpace.Ycck)
+            {
+                throw new InvalidDataException("Four-component JPEG color cannot be applied to three components.");
             }
             if (!jfif && !exif && adobeTransform is null && sourceColorSpace is null)
             {
@@ -180,10 +208,10 @@ namespace Mediana.Codecs.Jpeg
             {
                 throw new InvalidDataException("JPEG color declaration conflicts with the supplied interpretation.");
             }
-            IsRgb = (declared ?? sourceColorSpace) switch
+            ColorSpace = (declared ?? sourceColorSpace) switch
             {
-                JpegColorSpace.Rgb => true,
-                JpegColorSpace.YCbCr => false,
+                JpegColorSpace.Rgb => JpegColorSpace.Rgb,
+                JpegColorSpace.YCbCr => JpegColorSpace.YCbCr,
                 _ => throw new InvalidDataException("JPEG component color interpretation is missing or invalid.")
             };
         }

@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Mediana.Codecs;
 using Mediana.Codecs.Tga;
+using Mediana.Codecs.Jpeg;
 using Mediana.Codecs.Pnm;
 using Mediana.Codecs.Qoi;
 using Mediana.Codecs.Bmp;
@@ -14,6 +15,7 @@ using Mediana.Codecs.Webp;
 using Mediana.Core.Memory;
 using Mediana.Core.Metadata;
 using Mediana.Core.Video;
+using Mediana.Processing;
 
 namespace Mediana.NativeTests
 {
@@ -71,12 +73,69 @@ namespace Mediana.NativeTests
                 }
             }
             await VerifyGifAsync(root, registry);
+            await VerifyCmykAsync(root);
+            await VerifyPnmColorAsync();
             await VerifyAniAsync(root, registry);
             await VerifyRawMetadataAsync(root);
             await NativeImageInspectionTests.RunAsync(root);
             await Mediana.Tests.IccColorTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Icc"));
             Console.WriteLine($"PASS raster decoding: {verified} BMP/ICO, TIFF and WebP cases, complete GIF/WebP sequences and TIFF-based RAW metadata.");
         }
+
+        private static async Task VerifyPnmColorAsync()
+        {
+            byte[] encoded = [.. "P5\n3 1\n255\n"u8, 8, 128, 255];
+            MediaBufferAllocator allocator = new(1024);
+            using (VideoFrame source = await new PnmImageDecoder().DecodeAsync(encoded, new(), allocator))
+            using (VideoFrame converted = SrgbConverter.ApplyWithColorPolicy(source, null, allocator))
+            {
+                byte[] expected = [20, 20, 20, 255, 140, 140, 140, 255, 255, 255, 255, 255];
+                if (!converted.GetRow(0, 0).SequenceEqual(expected))
+                {
+                    throw new InvalidDataException("PNM optical transfer differs from the sRGB reference.");
+                }
+            }
+            if (allocator.AllocatedBytes != 0)
+            {
+                throw new InvalidDataException("PNM color conversion retained storage.");
+            }
+        }
+
+        private static async Task VerifyCmykAsync(string root)
+        {
+            foreach (string name in new[] { "cmyk-adobe.jpg", "cmyk-progressive.jpg", "cmyk-plain.jpg", "ycck-multiscan.jpg",
+                "rgb-jpeg-regression.tif", "l-jpeg-regression.tif", "cmyk-jpeg-regression.tif", "ycbcr-jpeg-exif.tif" })
+            {
+                byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(root, name));
+                byte[] reference = await File.ReadAllBytesAsync(Path.Combine(root, Path.ChangeExtension(name, ".rgba")));
+                IImageDecoder decoder = Path.GetExtension(name) switch
+                {
+                    ".jpg" => new JpegImageDecoder(),
+                    ".tif" => new TiffImageDecoder(),
+                    _ => throw new InvalidDataException("Invalid CMYK reference image.")
+                };
+                MediaBufferAllocator allocator = new(1024 * 1024);
+                using (VideoFrame frame = await decoder.DecodeAsync(encoded, new(), allocator))
+                {
+                    if (frame.Format.Width != 37 || frame.Format.Height != 29 || frame.Data.Length != reference.Length)
+                    {
+                        throw new InvalidDataException("JPEG component image dimensions differ: " + name);
+                    }
+                    for (int index = 0; index < reference.Length; index++)
+                    {
+                        if (Math.Abs(reference[index] - frame.Data.Span[index]) > ((index & 3) == 3 ? 0 : 4))
+                        {
+                            throw new InvalidDataException("JPEG component image pixels differ: " + name);
+                        }
+                    }
+                }
+                if (allocator.AllocatedBytes != 0)
+                {
+                    throw new InvalidDataException("JPEG component decoding retained storage: " + name);
+                }
+            }
+        }
+
         private static async Task VerifyAniAsync(string root, ImageDecodeContext registry)
         {
             byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(root, "ani-sequence.ani"));
