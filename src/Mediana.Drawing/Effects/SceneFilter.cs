@@ -81,7 +81,7 @@ namespace Mediana.Drawing
 
             if (name == "SourceAlpha")
             {
-                PixelBuffer alpha = ScenePixels.Map(source, (x, y) => new Vector4(0, 0, 0, source[x, y].A / 255f), false, context);
+                PixelBuffer alpha = ScenePixels.ExtractAlpha(source, context);
                 results[name] = alpha;
                 return alpha;
             }
@@ -109,10 +109,11 @@ namespace Mediana.Drawing
                     pixels.Slice(row - 3 + (rights[y] * 4), (image.Width - rights[y]) * 4).Clear();
                     for (int x = lefts[y]; x < rights[y]; x++)
                     {
-                        Rgba32 color = image[x, y];
                         Span<byte> pixel = pixels.Slice(row - 3 + (x * 4), 4);
-                        pixel.Clear();
-                        PixelCompositor.Blend(pixel, 0, color, ColorBlendMode.Normal);
+                        if (pixel[3] == 0)
+                        {
+                            pixel.Clear();
+                        }
                     }
 
                     continue;
@@ -146,7 +147,7 @@ namespace Mediana.Drawing
 
             if (requested.Contains("BackgroundAlpha"))
             {
-                results["BackgroundAlpha"] = ScenePixels.Map(source, (x, y) => new Vector4(0, 0, 0, background[x, y].A / 255f), false, context);
+                results["BackgroundAlpha"] = ScenePixels.ExtractAlpha(background, context);
             }
 
             void Paint(string name, ScenePaint? paint, float opacity)

@@ -25,6 +25,7 @@ namespace Mediana.Drawing
                 for (int x = 0; x < source.Width; x++)
                 {
                     int i = ((y * source.Width) + x) * 4;
+                    if (pixels[i + 3] == 0) { continue; }
                     float alpha = values[i + 3] / 255f;
                     if (Luminance)
                     {

@@ -29,6 +29,10 @@ namespace Mediana.Drawing
         internal static Vector4 Read(ReadOnlySpan<byte> data, int offset, bool linear = false, bool premultiplied = true)
         {
             float alpha = data[offset + 3] / 255f;
+            if (premultiplied && alpha == 0)
+            {
+                return Vector4.Zero;
+            }
             Vector4 color = new Vector4(data[offset] / 255f, data[offset + 1] / 255f, data[offset + 2] / 255f, alpha);
             if (linear)
             {
@@ -108,9 +112,10 @@ namespace Mediana.Drawing
             void Row(int y)
             {
                 context.Token.ThrowIfCancellationRequested();
+                Span<byte> row = output.Pixels.Span.Slice(y * output.Width * 4, output.Width * 4);
                 for (int x = 0; x < output.Width; x++)
                 {
-                    Write(output.Pixels.Span, ((y * output.Width) + x) * 4, sample(x, y), linear, premultiplied);
+                    Write(row, x * 4, sample(x, y), linear, premultiplied);
                 }
             }
 
@@ -126,6 +131,23 @@ namespace Mediana.Drawing
                 }
             }
 
+            return output;
+        }
+
+        internal static PixelBuffer ExtractAlpha(PixelBuffer input, SceneRenderContext context)
+        {
+            PixelBuffer output = context.CreateBuffer(input.Width, input.Height);
+            ReadOnlySpan<byte> source = input.Pixels.Span;
+            Span<byte> destination = output.Pixels.Span;
+            for (int y = 0; y < input.Height; y++)
+            {
+                context.Token.ThrowIfCancellationRequested();
+                int end = (y + 1) * input.Width * 4;
+                for (int i = y * input.Width * 4 + 3; i < end; i += 4)
+                {
+                    destination[i] = source[i];
+                }
+            }
             return output;
         }
 

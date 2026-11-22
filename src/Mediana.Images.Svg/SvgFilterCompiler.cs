@@ -34,7 +34,7 @@ namespace Mediana.Images.Svg
         private static PixelBuffer Execute(XElement p, PixelBuffer input, PixelBuffer second, Func<string, PixelBuffer> resolve, PixelBuffer source, Matrix3x2 units, Matrix3x2 matrix, (float X, float Y, float Width, float Height) region, (float X, float Y, float Width, float Height) inputRegion, bool linear, SceneRenderContext context, bool overwrite, SceneNode? image) => ColorOperations.Contains(p.Name.LocalName) ? ExecuteColor(p, input, second, resolve, source, linear, context, overwrite) : p.Name.LocalName switch
         {
             "feGaussianBlur" => SceneFilterKernels.Gaussian(input, Pair(p, "stdDeviation"), units, linear, Text(p, "edgeMode", "none"), context, overwrite),
-            "feOffset" => Offset(input, Vector2.TransformNormal(new Vector2(Number(p, "dx"), Number(p, "dy")), units), linear, context),
+            "feOffset" => SceneFilterKernels.Offset(input, Vector2.TransformNormal(new Vector2(Number(p, "dx"), Number(p, "dy")), units), linear, context),
             "feDropShadow" => DropShadow(p, input, units, linear, context),
             "feMorphology" => Morphology(p, input, units, linear, context, overwrite),
             "feConvolveMatrix" => Convolve(p, input, units, linear, context),
