@@ -56,7 +56,7 @@ namespace Mediana.Tests
                 Check(word.Select(block => block.Text).SequenceEqual(new[] { "Body 1", "Заголовок 😀 é\t終\nline", "First", "Even", "Footer" }), "Word margin Unicode and order");
                 Check(word[1].SourceKind == DocumentTextSourceKind.Header && word[1].HeaderFooterVariant == DocumentHeaderFooterVariant.Default
                     && word[1].PartName == "word/headers/default.xml" && word[1].Path[1].Kind == DocumentTextNodeKind.Header, "Word margin provenance");
-                using PresentationDocument deck = PresentationReader.Open(DocumentPackageTestData.PresentationNotes(strict: strict));
+                using PresentationDocument deck = PresentationReader.Open(DocumentPackageTestData.PresentationNotes(strict: strict, slideSize: ""));
                 DocumentTextBlock[] slides = deck.ReadText(options).ToArray();
                 Check(slides.Select(block => block.Text).SequenceEqual(new[] { "Slide", "Заметки 😀 é\n終" }), "Presentation notes Unicode and placeholder filtering");
                 Check(slides[1].SourceKind == DocumentTextSourceKind.SpeakerNotes && slides[1].PartIndex == 0

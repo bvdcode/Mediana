@@ -15,7 +15,7 @@ using PixelBuffer slide = await PresentationRenderer.RenderAsync(presentation, 0
     new() { MaximumWidth = 1200, MaximumHeight = 1200, Text = text }, token);
 ```
 
-Slide indexes are zero based. `Slides`, `Width` and `Height` describe the presentation without rendering. Dimensions use points. `PresentationPageDecoder` registers page decoding with `OpenXmlImageDecoder`; the CLI supports `mediana -i presentation.pptx preview.png --page 1`.
+Slide indexes are zero based. `Slides` describes the presentation without rendering. `Width` and `Height` use points and validate the declared slide size when accessed. Opening a presentation and extracting slide text or speaker notes do not require `p:sldSz` or valid numeric dimensions. Rendering and image metadata still require valid dimensions; no default slide size is substituted. `PresentationPageDecoder` registers page decoding with `OpenXmlImageDecoder`; the CLI supports `mediana -i presentation.pptx preview.png --page 1`.
 
 `PresentationReader.Open` also accepts a readable seekable `Stream`. The shared `OpenXmlPackage.Open` uses the same stream contract. ZIP directory metadata is indexed once; only requested XML and image parts are read. The compressed package is not copied into a managed array:
 

@@ -12,10 +12,16 @@ namespace Mediana.Documents.Presentation
         private readonly bool _ownsPackage;
         private readonly Dictionary<string, PresentationPart> _sharedParts = new(StringComparer.Ordinal);
         private readonly Dictionary<string, PresentationPart> _themes = new(StringComparer.Ordinal);
+        private readonly XElement? _slideSize;
+        private (double Width, double Height)? _dimensions;
         internal PresentationReaderOptions Options { get; }
         internal XElement Defaults { get; }
-        public double Width { get; }
-        public double Height { get; }
+        /// <summary>Slide width in points. Requires valid declared slide dimensions.</summary>
+        /// <exception cref="InvalidDataException">Slide dimensions are missing or invalid.</exception>
+        public double Width => Dimensions.Width;
+        /// <summary>Slide height in points. Requires valid declared slide dimensions.</summary>
+        /// <exception cref="InvalidDataException">Slide dimensions are missing or invalid.</exception>
+        public double Height => Dimensions.Height;
         public IReadOnlyList<PresentationSlideInfo> Slides { get; }
         internal OpenXmlPackage Package => _package ?? throw new ObjectDisposedException(nameof(PresentationDocument));
         internal PresentationDocument(OpenXmlPackage package, string main, PresentationReaderOptions options, bool ownsPackage, CancellationToken token)
@@ -27,9 +33,7 @@ namespace Mediana.Documents.Presentation
             XNamespace p = root.Name.Namespace;
             if (root.Name.LocalName != "presentation" || p != OpenXmlNamespaces.Presentation && p != OpenXmlNamespaces.StrictPresentation)
             { throw new InvalidDataException("Invalid PresentationML root."); }
-            XElement size = root.Element(p + "sldSz") ?? throw new InvalidDataException("Presentation slide size is missing.");
-            Width = PresentationXml.Points(size, "cx"); Height = PresentationXml.Points(size, "cy");
-            if (Width <= 0 || Height <= 0) { throw new InvalidDataException("Invalid presentation slide size."); }
+            _slideSize = root.Element(p + "sldSz") is XElement size ? new XElement(size) : null;
             Defaults = root.Element(p + "defaultTextStyle") ?? new XElement(p + "defaultTextStyle");
             Dictionary<string, OpenXmlRelationship> relationships = package.ReadRelationships(main, token).ToDictionary(item => item.Id, StringComparer.Ordinal);
             HashSet<string> ids = new(StringComparer.Ordinal);
@@ -44,6 +48,19 @@ namespace Mediana.Documents.Presentation
                 slides.Add(new(slides.Count, package.CanonicalPart(OpenXmlPackage.Resolve(main, relation))));
             }
             Slides = slides.AsReadOnly();
+        }
+        private (double Width, double Height) Dimensions
+        {
+            get
+            {
+                if (_dimensions is { } dimensions) { return dimensions; }
+                XElement size = _slideSize ?? throw new InvalidDataException("Presentation slide size is missing.");
+                double width = PresentationXml.Points(size, "cx"), height = PresentationXml.Points(size, "cy");
+                if (width <= 0 || height <= 0) { throw new InvalidDataException("Invalid presentation slide size."); }
+                dimensions = (width, height);
+                _dimensions = dimensions;
+                return dimensions;
+            }
         }
         internal PresentationPart ReadPart(string name, string rootName, CancellationToken token)
         {
