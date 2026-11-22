@@ -235,7 +235,7 @@ namespace Mediana.Tests
         {
             MediaBufferAllocator allocator = new(32768);
             AudioSignalSource source = new(allocator, 48000, 1, (_, _) => 0.5, [1]);
-            source.Timestamp = position => new MediaTimestamp(position, new TimeBase(1, int.MaxValue));
+            source.Timestamp = position => new MediaTimestamp(position + 1, new TimeBase(1, int.MaxValue));
             Assert.Throws<ArgumentOutOfRangeException>(() => new AudioResampler(source.ReadAsync, 0, allocator));
             Assert.Throws<ArgumentOutOfRangeException>(() => new AudioResampler(source.ReadAsync, 400, allocator, new AudioResampleOptions { CutoffRatio = double.NaN }));
             await using AudioResampler resampler = new(source.ReadAsync, 400, allocator);
