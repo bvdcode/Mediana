@@ -45,12 +45,13 @@ namespace Mediana.Tests
             return Create(Documents.Word.WordReader.DocumentContentType, "word/main.xml", parts);
         }
 
-        internal static byte[] PresentationNotes(string? notes = null, bool strict = false, string? notesRelationship = null)
+        internal static byte[] PresentationNotes(string? notes = null, bool strict = false, string? notesRelationship = null,
+            string slideSize = "<p:sldSz cx='1828800' cy='1371600'/>")
         {
             string attributes = "xmlns:p='http://schemas.openxmlformats.org/presentationml/2006/main' xmlns:a='http://schemas.openxmlformats.org/drawingml/2006/main' xmlns:r='" + Office.TrimEnd('/') + "'";
             Dictionary<string, string> parts = new()
             {
-                ["ppt/main.xml"] = "<p:presentation " + attributes + "><p:sldIdLst><p:sldId id='256' r:id='s'/><p:sldId id='257' r:id='bad'/></p:sldIdLst><p:sldSz cx='1828800' cy='1371600'/></p:presentation>",
+                ["ppt/main.xml"] = "<p:presentation " + attributes + "><p:sldIdLst><p:sldId id='256' r:id='s'/><p:sldId id='257' r:id='bad'/></p:sldIdLst>" + slideSize + "</p:presentation>",
                 ["ppt/_rels/main.xml.rels"] = Relations(("s", "slide", "slides/one.xml"), ("bad", "slide", "slides/bad.xml")),
                 ["ppt/slides/one.xml"] = "<p:sld " + attributes + "><p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r><a:t>Slide</a:t></a:r></a:p></p:txBody></p:sp><p:pic><p:blipFill><a:blip r:embed='broken'/></p:blipFill></p:pic></p:spTree></p:cSld></p:sld>",
                 ["ppt/slides/bad.xml"] = "<broken",
