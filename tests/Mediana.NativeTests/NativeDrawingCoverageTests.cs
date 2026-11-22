@@ -20,6 +20,10 @@ namespace Mediana.NativeTests
                     Mediana.Tests.SceneFilterPixelTestInput.VerifyTransfer(linear, overwrite);
                 }
                 Mediana.Tests.SceneFilterPixelTestInput.VerifyOffsets(linear);
+                foreach (string edge in new[] { "none", "duplicate", "wrap" })
+                {
+                    Mediana.Tests.SceneFilterPixelTestInput.VerifyGaussian(linear, edge);
+                }
             }
             Mediana.Tests.SceneFilterPixelTestInput.VerifyCancellation();
             Mediana.Tests.TranslatedImageTestInput.Verify();

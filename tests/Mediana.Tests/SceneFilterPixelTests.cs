@@ -26,5 +26,14 @@ namespace Mediana.Tests
 
         [Fact]
         public void FiltersHonorCancellation() => SceneFilterPixelTestInput.VerifyCancellation();
+
+        [Theory]
+        [InlineData(false, "none")]
+        [InlineData(true, "none")]
+        [InlineData(false, "duplicate")]
+        [InlineData(true, "duplicate")]
+        [InlineData(false, "wrap")]
+        [InlineData(true, "wrap")]
+        public void GaussianMatchesFullScalarConvolution(bool linear, string edge) => SceneFilterPixelTestInput.VerifyGaussian(linear, edge);
     }
 }
