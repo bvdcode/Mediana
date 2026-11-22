@@ -35,5 +35,8 @@ namespace Mediana.Tests
         [InlineData(false, "wrap")]
         [InlineData(true, "wrap")]
         public void GaussianMatchesFullScalarConvolution(bool linear, string edge) => SceneFilterPixelTestInput.VerifyGaussian(linear, edge);
+
+        [Fact]
+        public void GaussianScratchHonorsBudgetAndReleasesReservations() => SceneFilterPixelTestInput.VerifyGaussianBudget();
     }
 }

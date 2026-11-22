@@ -26,6 +26,7 @@ namespace Mediana.NativeTests
                 }
             }
             Mediana.Tests.SceneFilterPixelTestInput.VerifyCancellation();
+            Mediana.Tests.SceneFilterPixelTestInput.VerifyGaussianBudget();
             Mediana.Tests.TranslatedImageTestInput.Verify();
             Mediana.Tests.TranslatedImageTestInput.VerifyStridedFrame();
             using PixelBuffer pixels = new(96, 96);

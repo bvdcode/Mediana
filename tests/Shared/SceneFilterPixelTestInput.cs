@@ -92,11 +92,13 @@ namespace Mediana.Tests
             RequireCanceled(() => SceneFilterKernels.ColorMatrix(new float[20], input, false, context, true));
             RequireCanceled(() => SceneFilterKernels.Transfer([x => x, x => x, x => x, x => x], input, false, context, true));
             RequireCanceled(() => SceneFilterKernels.GaussianAxis(input, new(3, 0), false, "none", context));
+            RequireCanceled(() => SceneFilterKernels.GaussianAxis(input, new(2, 3), true, "wrap", context));
         }
 
         internal static void VerifyGaussian(bool linear, string edge)
         {
-            Vector2[] axes = [new(.01f, 0), new(.34f, 0), new(1.7f, 0), new(-7.3f, 0), new(0, 2.1f), new(0, -9.7f), new(32, 0)];
+            Vector2[] axes = [new(.01f, 0), new(.34f, 0), new(1.7f, 0), new(-7.3f, 0), new(0, 2.1f), new(0, -9.7f), new(32, 0),
+                new(1.7f, 2.3f), new(-7.3f, 1.4f), new(.002f, 3.1f), new(3.7f, -.002f), new(-2.3f, -4.1f), new(200, -158)];
             foreach ((int width, int height) in new[] { (1, 1), (7, 3), (19, 17), (43, 9) })
             {
                 for (int pattern = 0; pattern < 3; pattern++)
@@ -144,6 +146,22 @@ namespace Mediana.Tests
                     }
                 }
             }
+        }
+
+        internal static void VerifyGaussianBudget()
+        {
+            using PixelBuffer input = new(8, 5);
+            input.Clear(new(27, 94, 185, 128));
+            using SceneRenderContext context = new(new() { MaximumEffectBytes = 1024 }, default);
+            bool rejected = false;
+            using (SceneBufferScope scope = context.BeginBuffers())
+            {
+                try { SceneFilterKernels.GaussianAxis(input, new(2, 3), false, "wrap", context); }
+                catch (InvalidOperationException exception) when (exception.Message.Contains("MaximumEffectBytes", StringComparison.Ordinal))
+                { rejected = true; }
+            }
+            Require(rejected);
+            using IDisposable reservation = context.Reserve(256, 1, 1);
         }
 
         private static PixelBuffer Input()
