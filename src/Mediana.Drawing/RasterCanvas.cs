@@ -98,6 +98,12 @@ namespace Mediana.Drawing
             PixelBuffer? alphaMask, byte[]? shapeMask, CancellationToken cancellationToken)
         {
             PixelBuffer buffer = layer._target;
+            if (isolated && alphaMask is null && shapeMask is null && layer._coverage is null && layer._shape is null &&
+                TryDrawTranslatedImage(buffer.Pixels.Span, buffer.Width, buffer.Height, buffer.Width * 4,
+                    Matrix3x2.Identity, opacity, blendMode, cancellationToken))
+            {
+                return;
+            }
             for (int y = 0; y < buffer.Height; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -267,6 +273,11 @@ namespace Mediana.Drawing
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (!Matrix3x2.Invert(transform, out Matrix3x2 inverse))
+            {
+                return;
+            }
+
+            if (TryDrawTranslatedImage(pixels.Span, width, height, stride, transform, opacity, blendMode, cancellationToken))
             {
                 return;
             }
