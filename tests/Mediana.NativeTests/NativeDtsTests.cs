@@ -55,7 +55,10 @@ namespace Mediana.NativeTests
                 }
             }
             await Mediana.Tests.DtsWaveExportTestInput.VerifyAsync(root);
-            Console.WriteLine("PASS DTS: complete PCM, six-channel WAVE export, reverse seeks and released storage.");
+            await Mediana.Tests.DtsWaveformTestInput.VerifyAsync(root, "stereo", 48000, 2);
+            await Mediana.Tests.DtsWaveformTestInput.VerifyAsync(root, "surround", 48000, 6);
+            await Mediana.Tests.DtsWaveformTestInput.VerifyAsync(root, "mono44100", 44100, 1);
+            Console.WriteLine("PASS DTS: complete PCM, six-channel WAVE export, 400 Hz waveform, reverse seeks and released storage.");
         }
 
         private static void Verify(AudioFrame frame, ReadOnlySpan<byte> reference)

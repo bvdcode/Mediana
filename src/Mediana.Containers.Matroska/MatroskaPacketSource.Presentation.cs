@@ -16,6 +16,7 @@ namespace Mediana.Containers.Matroska
         {
             audioTiming = await MatroskaAudioTimingIndex.CreateAsync(source, allocator, index, tracks,
                 configurations, options, token).ConfigureAwait(false);
+            InitializeAudioTimeline(token);
             presentation = await MatroskaPresentationIndex.CreateAsync(source, allocator, index, this,
                 configurations, options, token).ConfigureAwait(false);
         }

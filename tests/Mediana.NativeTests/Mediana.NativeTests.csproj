@@ -9,6 +9,7 @@
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Shared/DtsWaveformTestInput.cs" Link="DtsWaveformTestInput.cs" />
     <Compile Include="../Shared/DtsWaveExportTestInput.cs" Link="DtsWaveExportTestInput.cs" />
     <None Include="../Mediana.Codecs.Dts.Tests/Data/*" Link="Data/Dts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <ProjectReference Include="../../src/Mediana.Codecs.Dts/Mediana.Codecs.Dts.csproj" />

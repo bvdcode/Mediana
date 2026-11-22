@@ -20,6 +20,7 @@ namespace Mediana.Processing.Audio
             this.inputRate = inputRate;
             if (origin is MediaTimestamp timestamp)
             {
+                timestamp = timestamp.ReduceClock();
                 int denominator = LeastCommonMultiple(LeastCommonMultiple(inputRate, outputRate), timestamp.TimeBase.Denominator);
                 timeBase = new TimeBase(1, denominator);
                 originTicks = timestamp.Rescale(timeBase, TimestampRounding.TowardZero).Value;

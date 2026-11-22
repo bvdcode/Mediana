@@ -24,6 +24,18 @@ sample durations, and a shorter BlockDuration trims only the final frame.
 API. Opening still visits each compressed frame prefix; it does not read every
 complete payload.
 
+For indexed self-describing audio, the Matroska reader combines decoded sample
+counts with the track's timestamp precision. Continuous packets use exact sample
+positions within one track tick of stored timestamps, accounting for rounding
+of both the initial and current block. Larger gaps and overlaps remain explicit. Laced frame positions use their exact
+sample durations. The same indexed positions serve sequential reading and seeks.
+This accounts for the container's [timestamp scale and rounding](https://www.matroska.org/technical/notes.html#timestamps)
+without relaxing the PCM processor's continuity checks.
+
+Complete DTS-to-waveform tests cover 400 Hz mono analysis of 48 kHz stereo and 5.1
+and 44.1 kHz mono. Window times, final sample counts, RMS/peak levels against
+independent PCM, and released storage are checked in managed and Native AOT runs.
+
 Seeking accounts for synthesis history and inter-frame ADPCM dependencies.
 Independent restart points receive bounded synthesis preroll. When prediction
 continues from preceding frames, the session starts at an earlier independent
