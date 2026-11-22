@@ -11,6 +11,7 @@ using Mediana.Core.Metadata;
 using Mediana.Core.Timing;
 using Mediana.Formats.Audio;
 using Mediana.IO;
+using Mediana.Processing.Audio;
 using static Mediana.Tests.MatroskaIndexTestData;
 using static Mediana.Tests.MatroskaMetadataTestData;
 using static Mediana.Tests.MatroskaReaderTestData;
@@ -22,6 +23,46 @@ namespace Mediana.Tests
         [Fact]
         public Task WaveExportPreservesEverySpeakerAndSample() =>
             DtsWaveExportTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data", "Dts"));
+
+        [Theory]
+        [InlineData(0, 0)]
+        [InlineData(123, 0)]
+        [InlineData(-123, 0)]
+        [InlineData(0, 10)]
+        [InlineData(0, -10)]
+        public async Task RoundedBlockClocksPreserveSampleTimeAndRealDiscontinuities(short origin, short shift)
+        {
+            byte[] frame = await FirstFrameAsync();
+            byte[] data = Create([.. Block(timestamp: origin, payload: frame),
+                .. Block(timestamp: (short)(origin + 11 + shift), payload: frame),
+                .. Block(timestamp: (short)(origin + 21 + shift), payload: frame)]);
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using EbmlElementTestSource source = new(data);
+            await using MatroskaReader container = await MatroskaReader.OpenAsync(source, allocator);
+            MediaTimestamp second = shift == 0 ? new(origin * 48 + 512, new(1, 48000)) : new(origin + 11 + shift, new(1, 1000));
+            Assert.Equal(second, container.GetPacketTiming(0, 1).PresentationTime);
+            using (MediaPacket packet = await container.ReadPacketAtAsync(0, 1))
+            {
+                Assert.Equal(second, packet.PresentationTime);
+            }
+            MediaEngine engine = new MediaEngineBuilder().AddAudioDecoder(new DtsDecoderFactory()).Build();
+            await using AudioSession session = engine.OpenAudio(container, allocator);
+            await using AudioWaveformReader waveform = new(session.ReadFrameAsync, [0.5, 0.5], new(400, 40), allocator);
+            if (shift != 0)
+            {
+                InvalidDataException error = await Assert.ThrowsAsync<InvalidDataException>(async () => await waveform.ReadLevelAsync());
+                Assert.Contains("PCM timestamp discontinuity", error.Message);
+            }
+            else
+            {
+                AudioLevel level = (await waveform.ReadLevelAsync())!.Value;
+                Assert.Equal(new MediaTimestamp(origin, new(1, 1000)), level.Timestamp);
+                Assert.Equal(13, level.SampleCount);
+                Assert.Null(await waveform.ReadLevelAsync());
+            }
+            await session.DisposeAsync();
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
 
         [Theory]
         [InlineData(false)]
@@ -51,7 +92,7 @@ namespace Mediana.Tests
                 Assert.Equal(new MediaDuration(512, new(1, 48000)), reader.GetPacketTiming(0, 0).Duration);
                 MediaDuration last = reader.GetPacketTiming(0, 1).Duration!.Value;
                 Assert.Equal(0, new MediaTimestamp(last.Value, last.TimeBase).CompareTo(new(clipped ? 448 : 512, new(1, 48000))));
-                Assert.Equal(new MediaTimestamp(10666667, new(1, 1000000000)), reader.GetPacketTiming(0, 1).PresentationTime);
+                Assert.Equal(new MediaTimestamp(512, new(1, 48000)), reader.GetPacketTiming(0, 1).PresentationTime);
                 Assert.Equal(calls, source.ReadCalls);
                 source.ExcludedReadRanges = null;
                 using IMediaCodec<MediaPacket, AudioFrame> decoder = new DtsDecoderFactory().Create(reader.Streams[0], allocator);
@@ -61,6 +102,24 @@ namespace Mediana.Tests
                     decoder.TrySend(packet);
                     using AudioFrame pcm = decoder.Receive().Value;
                     Assert.Equal(clipped && index == 1 ? 448 : 512, pcm.SamplesPerChannel);
+                }
+            }
+            Assert.Equal(0, allocator.AllocatedBytes);
+        }
+
+        [Fact]
+        public async Task RoundingOfTheFirstBlockDoesNotAccumulateClockDrift()
+        {
+            byte[] frame = await FirstFrameAsync();
+            byte[] blocks = new short[] { 6, 17, 28, 38, 49, 60 }
+                .SelectMany(time => Block(timestamp: time, payload: frame)).ToArray();
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            await using EbmlElementTestSource source = new(Create(blocks));
+            await using (MatroskaReader reader = await MatroskaReader.OpenAsync(source, allocator))
+            {
+                for (int packet = 5; packet >= 0; packet--)
+                {
+                    Assert.Equal(new MediaTimestamp(288 + packet * 512, new(1, 48000)), reader.GetPacketTiming(0, packet).PresentationTime);
                 }
             }
             Assert.Equal(0, allocator.AllocatedBytes);

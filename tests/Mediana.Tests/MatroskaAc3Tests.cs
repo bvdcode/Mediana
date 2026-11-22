@@ -164,7 +164,7 @@ namespace Mediana.Tests
             await using (MatroskaReader reader = await MatroskaReader.OpenAsync(source, allocator))
             {
                 long readCalls = source.ReadCalls;
-                MediaTimestamp[] pts = [new(0, new(1, 1000000000)), new(5333333, new(1, 1000000000)), new(16000000, new(1, 1000000000))];
+                MediaTimestamp[] pts = [new(0, new(1, 48000)), new(256, new(1, 48000)), new(768, new(1, 48000))];
                 for (int index = 2; index >= 0; index--)
                 {
                     ContainerPacketTiming timing = reader.GetPacketTiming(0, index);

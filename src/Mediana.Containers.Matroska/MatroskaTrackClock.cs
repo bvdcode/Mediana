@@ -72,6 +72,20 @@ namespace Mediana.Containers.Matroska
 
         public static TimeBase TimeBase { get; } = new(1, (int)NanosecondsPerSecond);
 
+        public bool MatchesTimestampPrecision(MediaTimestamp actual, MediaTimestamp expected)
+        {
+            if (unitTrackScale && actual.TimeBase == TimeBase)
+            {
+                Int128 error = (Int128)actual.Value * expected.TimeBase.Denominator
+                    - (Int128)expected.Value * expected.TimeBase.Numerator * NanosecondsPerSecond;
+                return Int128.Abs(error) <= (Int128)segmentScale * expected.TimeBase.Denominator;
+            }
+            BigInteger difference = BigInteger.Abs((BigInteger)actual.Value * actual.TimeBase.Numerator * expected.TimeBase.Denominator
+                - (BigInteger)expected.Value * expected.TimeBase.Numerator * actual.TimeBase.Denominator);
+            BigInteger denominator = (BigInteger)actual.TimeBase.Denominator * expected.TimeBase.Denominator;
+            return difference * NanosecondsPerSecond * trackTickDenominator <= denominator * trackTickNumerator;
+        }
+
         public MediaTimestamp GetPresentationTime(ulong clusterTimestamp, short relativeTimestamp,
             MediaDuration? contiguousOffset = null)
         {

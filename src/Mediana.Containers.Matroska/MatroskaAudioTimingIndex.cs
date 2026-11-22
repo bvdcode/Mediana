@@ -9,6 +9,7 @@ using Mediana.Core;
 using Mediana.Formats;
 using Mediana.Formats.Audio;
 using Mediana.IO;
+using Mediana.Core.Timing;
 
 namespace Mediana.Containers.Matroska
 {
@@ -119,6 +120,12 @@ namespace Mediana.Containers.Matroska
         public AudioStreamMetadata? GetMetadata(int stream) => metadata[stream];
 
         public bool HasStream(int stream) => storage[stream] is not null;
+
+        public void SetPresentationTime(int stream, long packet, MediaTimestamp timestamp)
+        {
+            ref MatroskaAudioFrameTiming timing = ref Entries(stream)[checked((int)packet)];
+            timing = timing with { PresentationTime = timestamp };
+        }
 
         private static bool RequiresTiming(EncodedStreamInfo stream) =>
             stream.Format == StreamFormats.Ac3 || stream.Format == StreamFormats.Eac3Syncframe || stream.Format == StreamFormats.Dts;

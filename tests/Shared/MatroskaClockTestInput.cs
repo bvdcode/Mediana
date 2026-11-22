@@ -101,6 +101,7 @@ namespace Mediana.Tests
             {
                 _ = clock.GetPresentationTime((ulong)index, -17, offset);
                 _ = clock.GetTrackDuration((ulong)index);
+                _ = clock.MatchesTimestampPrecision(new(index, MatroskaTrackClock.TimeBase), new(index, new(1, 48000)));
             }
             long sum = 0;
             long before = GC.GetAllocatedBytesForCurrentThread();
@@ -108,6 +109,7 @@ namespace Mediana.Tests
             {
                 sum += clock.GetPresentationTime((ulong)index, -17, offset).Value;
                 sum += clock.GetTrackDuration((ulong)index).Value;
+                _ = clock.MatchesTimestampPrecision(new(index, MatroskaTrackClock.TimeBase), new(index, new(1, 48000)));
             }
             long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
             Require(allocated == 0 && sum > 0);

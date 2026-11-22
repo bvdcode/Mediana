@@ -12,6 +12,13 @@ namespace Mediana.Codecs.Dts.Tests
     public class DtsDecodeTests
     {
         [Theory]
+        [InlineData("stereo", 48000, 2)]
+        [InlineData("surround", 48000, 6)]
+        [InlineData("mono44100", 44100, 1)]
+        public Task CompleteWaveformAt400HzPreservesSamplesAndWindowTimes(string name, int rate, int channels) =>
+            Mediana.Tests.DtsWaveformTestInput.VerifyAsync(Path.Combine(AppContext.BaseDirectory, "Data"), name, rate, channels);
+
+        [Theory]
         [InlineData("stereo")]
         [InlineData("surround")]
         [InlineData("mono44100")]

@@ -227,6 +227,10 @@ namespace Mediana.Containers.Matroska
             MediaDuration? duration = block.FrameCount == 1 && extra?.DurationTicks is ulong ticks ? clock.GetTrackDuration(ticks) : period;
             if (audio is MatroskaAudioFrameTiming exact)
             {
+                if (exact.PresentationTime.TimeBase != default)
+                {
+                    pts = exact.PresentationTime;
+                }
                 duration = new(exact.Samples, new(1, exact.SampleRate));
                 if (extra?.DurationTicks is ulong declared && exact.IsFinalFrameSetInBlock)
                 {
