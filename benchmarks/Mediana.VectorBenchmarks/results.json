@@ -1,0 +1,3839 @@
+{
+  "BaselineCommit": "43bf6feb",
+  "Runtime": ".NET 11.0.0, Linux x64, Release",
+  "Processor": "Intel Core i5-12450H; affinity 0-7; DOTNET_PROCESSOR_COUNT=4; tiered compilation disabled",
+  "Cases": [
+    {
+      "Case": "effects-preview.svg-200-.5-1-preview",
+      "Before": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 182.2886,
+          "MedianBatchMilliseconds": 50.562,
+          "ElapsedMillisecondsPerImage": 51.531249999999986,
+          "CpuMillisecondsPerImage": 64.874,
+          "AllocatedBytesPerImage": 3166107,
+          "PeakWorkingSetBytes": 83767296,
+          "Collections": [
+            22,
+            14,
+            12
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": "754CDBA79374EFD990579BFE30BAA4DA56C2B8573B49EDBC7DF807E65D8BF33B"
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 179.03539999999998,
+          "MedianBatchMilliseconds": 41.4788,
+          "ElapsedMillisecondsPerImage": 42.26705749999999,
+          "CpuMillisecondsPerImage": 54.810024999999996,
+          "AllocatedBytesPerImage": 3180405,
+          "PeakWorkingSetBytes": 81940480,
+          "Collections": [
+            23,
+            14,
+            13
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": "754CDBA79374EFD990579BFE30BAA4DA56C2B8573B49EDBC7DF807E65D8BF33B"
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 199.2731,
+          "MedianBatchMilliseconds": 40.9287,
+          "ElapsedMillisecondsPerImage": 41.023635,
+          "CpuMillisecondsPerImage": 52.6186,
+          "AllocatedBytesPerImage": 3180408,
+          "PeakWorkingSetBytes": 84307968,
+          "Collections": [
+            22,
+            15,
+            12
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": "754CDBA79374EFD990579BFE30BAA4DA56C2B8573B49EDBC7DF807E65D8BF33B"
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 215.17790000000002,
+          "MedianBatchMilliseconds": 30.8351,
+          "ElapsedMillisecondsPerImage": 38.3693325,
+          "CpuMillisecondsPerImage": 26.575274999999998,
+          "AllocatedBytesPerImage": 3039271,
+          "PeakWorkingSetBytes": 83800064,
+          "Collections": [
+            22,
+            16,
+            13
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": "754CDBA79374EFD990579BFE30BAA4DA56C2B8573B49EDBC7DF807E65D8BF33B"
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 488.4063,
+          "MedianBatchMilliseconds": 31.4706,
+          "ElapsedMillisecondsPerImage": 34.40479,
+          "CpuMillisecondsPerImage": 27.735875,
+          "AllocatedBytesPerImage": 3075173,
+          "PeakWorkingSetBytes": 83177472,
+          "Collections": [
+            22,
+            13,
+            12
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": "754CDBA79374EFD990579BFE30BAA4DA56C2B8573B49EDBC7DF807E65D8BF33B"
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 148.787,
+          "MedianBatchMilliseconds": 12.8824,
+          "ElapsedMillisecondsPerImage": 12.941955000000002,
+          "CpuMillisecondsPerImage": 17.001275,
+          "AllocatedBytesPerImage": 3167004,
+          "PeakWorkingSetBytes": 84303872,
+          "Collections": [
+            22,
+            16,
+            12
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": "754CDBA79374EFD990579BFE30BAA4DA56C2B8573B49EDBC7DF807E65D8BF33B"
+        }
+      ]
+    },
+    {
+      "Case": "effects-preview.svg-200-.5-1-render",
+      "Before": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 137.1454,
+          "MedianBatchMilliseconds": 41.0318,
+          "ElapsedMillisecondsPerImage": 41.13210250000001,
+          "CpuMillisecondsPerImage": 54.2822,
+          "AllocatedBytesPerImage": 1093248,
+          "PeakWorkingSetBytes": 80830464,
+          "Collections": [
+            5,
+            1,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 143.1356,
+          "MedianBatchMilliseconds": 41.7195,
+          "ElapsedMillisecondsPerImage": 41.6744525,
+          "CpuMillisecondsPerImage": 55.000725,
+          "AllocatedBytesPerImage": 1092859,
+          "PeakWorkingSetBytes": 80785408,
+          "Collections": [
+            5,
+            1,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 130.7386,
+          "MedianBatchMilliseconds": 40.822,
+          "ElapsedMillisecondsPerImage": 40.9962725,
+          "CpuMillisecondsPerImage": 54.32375,
+          "AllocatedBytesPerImage": 1092108,
+          "PeakWorkingSetBytes": 80908288,
+          "Collections": [
+            5,
+            1,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 120.4029,
+          "MedianBatchMilliseconds": 11.9023,
+          "ElapsedMillisecondsPerImage": 11.91584,
+          "CpuMillisecondsPerImage": 16.506875,
+          "AllocatedBytesPerImage": 1081590,
+          "PeakWorkingSetBytes": 81100800,
+          "Collections": [
+            5,
+            2,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 119.1729,
+          "MedianBatchMilliseconds": 12.6363,
+          "ElapsedMillisecondsPerImage": 12.747492499999996,
+          "CpuMillisecondsPerImage": 17.892825,
+          "AllocatedBytesPerImage": 1080179,
+          "PeakWorkingSetBytes": 80642048,
+          "Collections": [
+            5,
+            1,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 134.9578,
+          "MedianBatchMilliseconds": 12.1097,
+          "ElapsedMillisecondsPerImage": 12.314352499999998,
+          "CpuMillisecondsPerImage": 17.353375,
+          "AllocatedBytesPerImage": 1080627,
+          "PeakWorkingSetBytes": 80850944,
+          "Collections": [
+            5,
+            1,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "effects-preview.svg-200-.5-4-render",
+      "Before": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 125.1279,
+          "MedianBatchMilliseconds": 62.5265,
+          "ElapsedMillisecondsPerImage": 16.23026,
+          "CpuMillisecondsPerImage": 67.80121666666666,
+          "AllocatedBytesPerImage": 1038502,
+          "PeakWorkingSetBytes": 101572608,
+          "Collections": [
+            13,
+            1,
+            0
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 153.3269,
+          "MedianBatchMilliseconds": 67.0005,
+          "ElapsedMillisecondsPerImage": 16.146884999999997,
+          "CpuMillisecondsPerImage": 66.60949166666667,
+          "AllocatedBytesPerImage": 1038338,
+          "PeakWorkingSetBytes": 102719488,
+          "Collections": [
+            13,
+            1,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 129.6105,
+          "MedianBatchMilliseconds": 69.6667,
+          "ElapsedMillisecondsPerImage": 17.319895,
+          "CpuMillisecondsPerImage": 71.90506666666667,
+          "AllocatedBytesPerImage": 1052950,
+          "PeakWorkingSetBytes": 98779136,
+          "Collections": [
+            14,
+            2,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 107.1425,
+          "MedianBatchMilliseconds": 16.9614,
+          "ElapsedMillisecondsPerImage": 4.447195833333334,
+          "CpuMillisecondsPerImage": 18.65083333333333,
+          "AllocatedBytesPerImage": 1022930,
+          "PeakWorkingSetBytes": 111620096,
+          "Collections": [
+            13,
+            1,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 108.48830000000001,
+          "MedianBatchMilliseconds": 21.4393,
+          "ElapsedMillisecondsPerImage": 5.451008333333334,
+          "CpuMillisecondsPerImage": 20.642366666666664,
+          "AllocatedBytesPerImage": 1007397,
+          "PeakWorkingSetBytes": 106045440,
+          "Collections": [
+            12,
+            1,
+            0
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 119.8859,
+          "MedianBatchMilliseconds": 19.1311,
+          "ElapsedMillisecondsPerImage": 4.862959166666668,
+          "CpuMillisecondsPerImage": 19.285208333333333,
+          "AllocatedBytesPerImage": 1001023,
+          "PeakWorkingSetBytes": 109170688,
+          "Collections": [
+            13,
+            1,
+            1
+          ],
+          "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "effects-preview.svg-64-.5-1-render",
+      "Before": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 38,
+          "FirstCallMilliseconds": 93.38430000000001,
+          "MedianBatchMilliseconds": 4.586,
+          "ElapsedMillisecondsPerImage": 4.57262,
+          "CpuMillisecondsPerImage": 6.37545,
+          "AllocatedBytesPerImage": 546634,
+          "PeakWorkingSetBytes": 73404416,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "558FE8D915B4D51546B9625BA43E8BA1C89E8ED696BFE985CD121065E20024E0",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 38,
+          "FirstCallMilliseconds": 104.964,
+          "MedianBatchMilliseconds": 4.6179,
+          "ElapsedMillisecondsPerImage": 4.59689,
+          "CpuMillisecondsPerImage": 6.21735,
+          "AllocatedBytesPerImage": 540227,
+          "PeakWorkingSetBytes": 73216000,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "558FE8D915B4D51546B9625BA43E8BA1C89E8ED696BFE985CD121065E20024E0",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 38,
+          "FirstCallMilliseconds": 91.2093,
+          "MedianBatchMilliseconds": 4.1362,
+          "ElapsedMillisecondsPerImage": 4.130207499999999,
+          "CpuMillisecondsPerImage": 5.726675,
+          "AllocatedBytesPerImage": 541265,
+          "PeakWorkingSetBytes": 73285632,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "558FE8D915B4D51546B9625BA43E8BA1C89E8ED696BFE985CD121065E20024E0",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 38,
+          "FirstCallMilliseconds": 95.7137,
+          "MedianBatchMilliseconds": 1.4314,
+          "ElapsedMillisecondsPerImage": 1.5559499999999997,
+          "CpuMillisecondsPerImage": 2.4778,
+          "AllocatedBytesPerImage": 534333,
+          "PeakWorkingSetBytes": 73596928,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "558FE8D915B4D51546B9625BA43E8BA1C89E8ED696BFE985CD121065E20024E0",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 38,
+          "FirstCallMilliseconds": 98.1391,
+          "MedianBatchMilliseconds": 1.4053,
+          "ElapsedMillisecondsPerImage": 1.440565,
+          "CpuMillisecondsPerImage": 2.3264500000000004,
+          "AllocatedBytesPerImage": 526095,
+          "PeakWorkingSetBytes": 73494528,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "558FE8D915B4D51546B9625BA43E8BA1C89E8ED696BFE985CD121065E20024E0",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 38,
+          "FirstCallMilliseconds": 96.5733,
+          "MedianBatchMilliseconds": 1.5017,
+          "ElapsedMillisecondsPerImage": 1.5444175000000004,
+          "CpuMillisecondsPerImage": 2.506625,
+          "AllocatedBytesPerImage": 533436,
+          "PeakWorkingSetBytes": 73560064,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "558FE8D915B4D51546B9625BA43E8BA1C89E8ED696BFE985CD121065E20024E0",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "effects-preview.svg-640-.5-1-render",
+      "Before": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 500.2495,
+          "MedianBatchMilliseconds": 417.6396,
+          "ElapsedMillisecondsPerImage": 425.8557333333333,
+          "CpuMillisecondsPerImage": 559.4888333333333,
+          "AllocatedBytesPerImage": 5250612,
+          "PeakWorkingSetBytes": 122597376,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "67245217909AB2C8BB252C50B88E39D059143EB9F6C6716ECDF8D085A03F4743",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 519.2137,
+          "MedianBatchMilliseconds": 398.1638,
+          "ElapsedMillisecondsPerImage": 403.62043333333327,
+          "CpuMillisecondsPerImage": 535.6269166666667,
+          "AllocatedBytesPerImage": 5250669,
+          "PeakWorkingSetBytes": 122703872,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "67245217909AB2C8BB252C50B88E39D059143EB9F6C6716ECDF8D085A03F4743",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 530.8569,
+          "MedianBatchMilliseconds": 402.2283,
+          "ElapsedMillisecondsPerImage": 395.8617416666668,
+          "CpuMillisecondsPerImage": 518.4420833333334,
+          "AllocatedBytesPerImage": 5250544,
+          "PeakWorkingSetBytes": 122798080,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "67245217909AB2C8BB252C50B88E39D059143EB9F6C6716ECDF8D085A03F4743",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 234.3909,
+          "MedianBatchMilliseconds": 283.1968,
+          "ElapsedMillisecondsPerImage": 269.09228333333334,
+          "CpuMillisecondsPerImage": 240.9561666666667,
+          "AllocatedBytesPerImage": 5166461,
+          "PeakWorkingSetBytes": 125796352,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "67245217909AB2C8BB252C50B88E39D059143EB9F6C6716ECDF8D085A03F4743",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 529.3047,
+          "MedianBatchMilliseconds": 290.7309,
+          "ElapsedMillisecondsPerImage": 229.22844999999998,
+          "CpuMillisecondsPerImage": 218.71883333333335,
+          "AllocatedBytesPerImage": 5201418,
+          "PeakWorkingSetBytes": 115281920,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "67245217909AB2C8BB252C50B88E39D059143EB9F6C6716ECDF8D085A03F4743",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 214.8384,
+          "MedianBatchMilliseconds": 114.3246,
+          "ElapsedMillisecondsPerImage": 113.89213333333333,
+          "CpuMillisecondsPerImage": 159.3535,
+          "AllocatedBytesPerImage": 5238926,
+          "PeakWorkingSetBytes": 120934400,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "67245217909AB2C8BB252C50B88E39D059143EB9F6C6716ECDF8D085A03F4743",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "effects.tgs-200-.5-1-preview",
+      "Before": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 312.3345,
+          "MedianBatchMilliseconds": 66.4902,
+          "ElapsedMillisecondsPerImage": 66.82055,
+          "CpuMillisecondsPerImage": 70.606975,
+          "AllocatedBytesPerImage": 1789893,
+          "PeakWorkingSetBytes": 87687168,
+          "Collections": [
+            5,
+            2,
+            2
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": "369D67743A6DCFDDB23516446DA7604742FB9E5279A40BA7919515946CE7F046"
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 331.4565,
+          "MedianBatchMilliseconds": 68.9802,
+          "ElapsedMillisecondsPerImage": 68.25733499999998,
+          "CpuMillisecondsPerImage": 72.054675,
+          "AllocatedBytesPerImage": 1790372,
+          "PeakWorkingSetBytes": 85708800,
+          "Collections": [
+            7,
+            4,
+            4
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": "369D67743A6DCFDDB23516446DA7604742FB9E5279A40BA7919515946CE7F046"
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 342.3298,
+          "MedianBatchMilliseconds": 65.6837,
+          "ElapsedMillisecondsPerImage": 66.5703225,
+          "CpuMillisecondsPerImage": 70.28099999999999,
+          "AllocatedBytesPerImage": 1790395,
+          "PeakWorkingSetBytes": 85831680,
+          "Collections": [
+            7,
+            4,
+            4
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": "369D67743A6DCFDDB23516446DA7604742FB9E5279A40BA7919515946CE7F046"
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 268.9468,
+          "MedianBatchMilliseconds": 14.7945,
+          "ElapsedMillisecondsPerImage": 15.056664999999999,
+          "CpuMillisecondsPerImage": 16.87535,
+          "AllocatedBytesPerImage": 1778905,
+          "PeakWorkingSetBytes": 85856256,
+          "Collections": [
+            7,
+            4,
+            4
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": "369D67743A6DCFDDB23516446DA7604742FB9E5279A40BA7919515946CE7F046"
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 273.51419999999996,
+          "MedianBatchMilliseconds": 13.6108,
+          "ElapsedMillisecondsPerImage": 13.709432499999997,
+          "CpuMillisecondsPerImage": 15.37385,
+          "AllocatedBytesPerImage": 1778975,
+          "PeakWorkingSetBytes": 85938176,
+          "Collections": [
+            7,
+            4,
+            4
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": "369D67743A6DCFDDB23516446DA7604742FB9E5279A40BA7919515946CE7F046"
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 308.7375,
+          "MedianBatchMilliseconds": 14.8292,
+          "ElapsedMillisecondsPerImage": 15.003572499999999,
+          "CpuMillisecondsPerImage": 16.51515,
+          "AllocatedBytesPerImage": 1778269,
+          "PeakWorkingSetBytes": 85803008,
+          "Collections": [
+            7,
+            4,
+            4
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": "369D67743A6DCFDDB23516446DA7604742FB9E5279A40BA7919515946CE7F046"
+        }
+      ]
+    },
+    {
+      "Case": "effects.tgs-200-.5-1-render",
+      "Before": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 277.3166,
+          "MedianBatchMilliseconds": 64.6561,
+          "ElapsedMillisecondsPerImage": 64.644835,
+          "CpuMillisecondsPerImage": 68.7933,
+          "AllocatedBytesPerImage": 385856,
+          "PeakWorkingSetBytes": 70414336,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 321.9078,
+          "MedianBatchMilliseconds": 65.9922,
+          "ElapsedMillisecondsPerImage": 66.1810475,
+          "CpuMillisecondsPerImage": 70.0958,
+          "AllocatedBytesPerImage": 385820,
+          "PeakWorkingSetBytes": 66949120,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 282.7144,
+          "MedianBatchMilliseconds": 64.0607,
+          "ElapsedMillisecondsPerImage": 63.844257500000005,
+          "CpuMillisecondsPerImage": 67.50245,
+          "AllocatedBytesPerImage": 385793,
+          "PeakWorkingSetBytes": 67031040,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 244.889,
+          "MedianBatchMilliseconds": 13.947,
+          "ElapsedMillisecondsPerImage": 13.907802499999999,
+          "CpuMillisecondsPerImage": 15.752799999999999,
+          "AllocatedBytesPerImage": 374421,
+          "PeakWorkingSetBytes": 70909952,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 303.0838,
+          "MedianBatchMilliseconds": 13.7966,
+          "ElapsedMillisecondsPerImage": 13.781035000000003,
+          "CpuMillisecondsPerImage": 15.609200000000001,
+          "AllocatedBytesPerImage": 374424,
+          "PeakWorkingSetBytes": 71020544,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 224.1065,
+          "MedianBatchMilliseconds": 12.3707,
+          "ElapsedMillisecondsPerImage": 12.375224999999999,
+          "CpuMillisecondsPerImage": 13.933275,
+          "AllocatedBytesPerImage": 374395,
+          "PeakWorkingSetBytes": 71180288,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "effects.tgs-200-.5-4-render",
+      "Before": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 272.2831,
+          "MedianBatchMilliseconds": 97.5189,
+          "ElapsedMillisecondsPerImage": 23.819695000000003,
+          "CpuMillisecondsPerImage": 86.129275,
+          "AllocatedBytesPerImage": 360569,
+          "PeakWorkingSetBytes": 83189760,
+          "Collections": [
+            7,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 298.5373,
+          "MedianBatchMilliseconds": 104.8813,
+          "ElapsedMillisecondsPerImage": 25.139058333333328,
+          "CpuMillisecondsPerImage": 90.92235000000001,
+          "AllocatedBytesPerImage": 363631,
+          "PeakWorkingSetBytes": 85712896,
+          "Collections": [
+            7,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 276.0361,
+          "MedianBatchMilliseconds": 102.7296,
+          "ElapsedMillisecondsPerImage": 24.446984166666663,
+          "CpuMillisecondsPerImage": 86.94045833333332,
+          "AllocatedBytesPerImage": 356087,
+          "PeakWorkingSetBytes": 85737472,
+          "Collections": [
+            7,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 237.0499,
+          "MedianBatchMilliseconds": 23.0626,
+          "ElapsedMillisecondsPerImage": 5.662674166666667,
+          "CpuMillisecondsPerImage": 19.45156666666667,
+          "AllocatedBytesPerImage": 352781,
+          "PeakWorkingSetBytes": 84066304,
+          "Collections": [
+            7,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 229.9057,
+          "MedianBatchMilliseconds": 24.7363,
+          "ElapsedMillisecondsPerImage": 6.0249775,
+          "CpuMillisecondsPerImage": 19.66531666666667,
+          "AllocatedBytesPerImage": 337234,
+          "PeakWorkingSetBytes": 84037632,
+          "Collections": [
+            6,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 226.1805,
+          "MedianBatchMilliseconds": 19.272,
+          "ElapsedMillisecondsPerImage": 5.0368233333333325,
+          "CpuMillisecondsPerImage": 16.95335,
+          "AllocatedBytesPerImage": 335830,
+          "PeakWorkingSetBytes": 81747968,
+          "Collections": [
+            6,
+            1,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "effects.tgs-200-.9-1-render",
+      "Before": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.9,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 294.1819,
+          "MedianBatchMilliseconds": 68.1043,
+          "ElapsedMillisecondsPerImage": 69.01285666666666,
+          "CpuMillisecondsPerImage": 73.2565,
+          "AllocatedBytesPerImage": 385805,
+          "PeakWorkingSetBytes": 70385664,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.9,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 279.7972,
+          "MedianBatchMilliseconds": 64.7436,
+          "ElapsedMillisecondsPerImage": 64.97010333333331,
+          "CpuMillisecondsPerImage": 68.3533,
+          "AllocatedBytesPerImage": 385901,
+          "PeakWorkingSetBytes": 70529024,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.9,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 274.901,
+          "MedianBatchMilliseconds": 62.4336,
+          "ElapsedMillisecondsPerImage": 63.12873333333334,
+          "CpuMillisecondsPerImage": 66.57923333333333,
+          "AllocatedBytesPerImage": 385818,
+          "PeakWorkingSetBytes": 67104768,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.9,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 242.8576,
+          "MedianBatchMilliseconds": 13.5728,
+          "ElapsedMillisecondsPerImage": 13.5922,
+          "CpuMillisecondsPerImage": 15.3551,
+          "AllocatedBytesPerImage": 374377,
+          "PeakWorkingSetBytes": 70955008,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.9,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 230.3944,
+          "MedianBatchMilliseconds": 12.7149,
+          "ElapsedMillisecondsPerImage": 12.762476666666663,
+          "CpuMillisecondsPerImage": 14.390233333333333,
+          "AllocatedBytesPerImage": 374369,
+          "PeakWorkingSetBytes": 71184384,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.9,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 228.7198,
+          "MedianBatchMilliseconds": 12.3597,
+          "ElapsedMillisecondsPerImage": 12.436443333333337,
+          "CpuMillisecondsPerImage": 13.961266666666667,
+          "AllocatedBytesPerImage": 373932,
+          "PeakWorkingSetBytes": 70815744,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "effects.tgs-200-0-1-render",
+      "Before": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 275.5767,
+          "MedianBatchMilliseconds": 62.914,
+          "ElapsedMillisecondsPerImage": 63.18103333333334,
+          "CpuMillisecondsPerImage": 66.46613333333333,
+          "AllocatedBytesPerImage": 385903,
+          "PeakWorkingSetBytes": 70459392,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 266.3575,
+          "MedianBatchMilliseconds": 62.7284,
+          "ElapsedMillisecondsPerImage": 63.180916666666675,
+          "CpuMillisecondsPerImage": 67.14426666666667,
+          "AllocatedBytesPerImage": 385828,
+          "PeakWorkingSetBytes": 70795264,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 277.5364,
+          "MedianBatchMilliseconds": 64.5252,
+          "ElapsedMillisecondsPerImage": 65.23334333333334,
+          "CpuMillisecondsPerImage": 69.2936,
+          "AllocatedBytesPerImage": 385814,
+          "PeakWorkingSetBytes": 70234112,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 257.5585,
+          "MedianBatchMilliseconds": 12.8271,
+          "ElapsedMillisecondsPerImage": 12.74819,
+          "CpuMillisecondsPerImage": 14.3069,
+          "AllocatedBytesPerImage": 374353,
+          "PeakWorkingSetBytes": 71155712,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 224.8635,
+          "MedianBatchMilliseconds": 12.5523,
+          "ElapsedMillisecondsPerImage": 12.659503333333333,
+          "CpuMillisecondsPerImage": 14.222000000000001,
+          "AllocatedBytesPerImage": 374400,
+          "PeakWorkingSetBytes": 70995968,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0,
+          "Concurrency": 1,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 228.3296,
+          "MedianBatchMilliseconds": 12.8778,
+          "ElapsedMillisecondsPerImage": 12.812716666666665,
+          "CpuMillisecondsPerImage": 14.554766666666666,
+          "AllocatedBytesPerImage": 374430,
+          "PeakWorkingSetBytes": 71016448,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "015B8667BCAE10AF1DE6DFE09766BE6C84915B56B3AAC5D084404B64B49EE6B1",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "effects.tgs-64-.5-1-render",
+      "Before": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 211.7009,
+          "MedianBatchMilliseconds": 7.1979,
+          "ElapsedMillisecondsPerImage": 7.191970000000002,
+          "CpuMillisecondsPerImage": 7.773325,
+          "AllocatedBytesPerImage": 304793,
+          "PeakWorkingSetBytes": 66969600,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "EA40D20C13B98DC804C54F37FCD6BBCB43487F755538EC17D1191E298234F3E9",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 241.859,
+          "MedianBatchMilliseconds": 6.9057,
+          "ElapsedMillisecondsPerImage": 7.0709525,
+          "CpuMillisecondsPerImage": 7.655975,
+          "AllocatedBytesPerImage": 304487,
+          "PeakWorkingSetBytes": 67026944,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "EA40D20C13B98DC804C54F37FCD6BBCB43487F755538EC17D1191E298234F3E9",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 222.9767,
+          "MedianBatchMilliseconds": 6.8281,
+          "ElapsedMillisecondsPerImage": 6.9153025,
+          "CpuMillisecondsPerImage": 7.48845,
+          "AllocatedBytesPerImage": 304407,
+          "PeakWorkingSetBytes": 66949120,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "EA40D20C13B98DC804C54F37FCD6BBCB43487F755538EC17D1191E298234F3E9",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 216.3593,
+          "MedianBatchMilliseconds": 1.74,
+          "ElapsedMillisecondsPerImage": 1.7447300000000006,
+          "CpuMillisecondsPerImage": 1.925425,
+          "AllocatedBytesPerImage": 285324,
+          "PeakWorkingSetBytes": 66908160,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "EA40D20C13B98DC804C54F37FCD6BBCB43487F755538EC17D1191E298234F3E9",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 217.0194,
+          "MedianBatchMilliseconds": 1.7126,
+          "ElapsedMillisecondsPerImage": 1.7202925,
+          "CpuMillisecondsPerImage": 1.969925,
+          "AllocatedBytesPerImage": 289002,
+          "PeakWorkingSetBytes": 67170304,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "EA40D20C13B98DC804C54F37FCD6BBCB43487F755538EC17D1191E298234F3E9",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 231.5916,
+          "MedianBatchMilliseconds": 1.946,
+          "ElapsedMillisecondsPerImage": 2.0435425,
+          "CpuMillisecondsPerImage": 2.4409,
+          "AllocatedBytesPerImage": 294274,
+          "PeakWorkingSetBytes": 67428352,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "EA40D20C13B98DC804C54F37FCD6BBCB43487F755538EC17D1191E298234F3E9",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "effects.tgs-640-.5-1-render",
+      "Before": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 885.6616,
+          "MedianBatchMilliseconds": 662.2481,
+          "ElapsedMillisecondsPerImage": 658.8600916666667,
+          "CpuMillisecondsPerImage": 702.9713333333334,
+          "AllocatedBytesPerImage": 612606,
+          "PeakWorkingSetBytes": 115130368,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "4A3077443E1003496168079A03EFB711AB02EEFCF9729B76B995FD846B1BD64E",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 912.2676,
+          "MedianBatchMilliseconds": 642.8615,
+          "ElapsedMillisecondsPerImage": 650.8630833333333,
+          "CpuMillisecondsPerImage": 690.5197499999999,
+          "AllocatedBytesPerImage": 612540,
+          "PeakWorkingSetBytes": 115273728,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "4A3077443E1003496168079A03EFB711AB02EEFCF9729B76B995FD846B1BD64E",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 890.9879,
+          "MedianBatchMilliseconds": 659.2963,
+          "ElapsedMillisecondsPerImage": 661.9187416666667,
+          "CpuMillisecondsPerImage": 700.5276666666667,
+          "AllocatedBytesPerImage": 612572,
+          "PeakWorkingSetBytes": 115204096,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "4A3077443E1003496168079A03EFB711AB02EEFCF9729B76B995FD846B1BD64E",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 374.3081,
+          "MedianBatchMilliseconds": 133.7352,
+          "ElapsedMillisecondsPerImage": 135.47588333333331,
+          "CpuMillisecondsPerImage": 151.32283333333334,
+          "AllocatedBytesPerImage": 601033,
+          "PeakWorkingSetBytes": 115773440,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "4A3077443E1003496168079A03EFB711AB02EEFCF9729B76B995FD846B1BD64E",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 358.3439,
+          "MedianBatchMilliseconds": 132.0561,
+          "ElapsedMillisecondsPerImage": 132.95736666666667,
+          "CpuMillisecondsPerImage": 150.40958333333333,
+          "AllocatedBytesPerImage": 601089,
+          "PeakWorkingSetBytes": 115511296,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "4A3077443E1003496168079A03EFB711AB02EEFCF9729B76B995FD846B1BD64E",
+          "WebpHash": ""
+        },
+        {
+          "Input": "effects.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 360.2239,
+          "MedianBatchMilliseconds": 142.0493,
+          "ElapsedMillisecondsPerImage": 142.0968333333333,
+          "CpuMillisecondsPerImage": 159.78425000000001,
+          "AllocatedBytesPerImage": 601048,
+          "PeakWorkingSetBytes": 115441664,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "4A3077443E1003496168079A03EFB711AB02EEFCF9729B76B995FD846B1BD64E",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "geometry.tgs-200-.25-1-render",
+      "Before": [
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 150.2264,
+          "MedianBatchMilliseconds": 0.692,
+          "ElapsedMillisecondsPerImage": 0.68705,
+          "CpuMillisecondsPerImage": 0.6878,
+          "AllocatedBytesPerImage": 287816,
+          "PeakWorkingSetBytes": 66158592,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E21EF00ED3B0D55B9B27CB40F12FEF1B0150AE401045CC3AF73491F1C27DCBC5",
+          "WebpHash": ""
+        },
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 137.9845,
+          "MedianBatchMilliseconds": 0.6626,
+          "ElapsedMillisecondsPerImage": 0.6426800000000001,
+          "CpuMillisecondsPerImage": 0.6433,
+          "AllocatedBytesPerImage": 287816,
+          "PeakWorkingSetBytes": 65748992,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E21EF00ED3B0D55B9B27CB40F12FEF1B0150AE401045CC3AF73491F1C27DCBC5",
+          "WebpHash": ""
+        },
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 139.9383,
+          "MedianBatchMilliseconds": 0.6649,
+          "ElapsedMillisecondsPerImage": 0.6540200000000002,
+          "CpuMillisecondsPerImage": 0.65095,
+          "AllocatedBytesPerImage": 287816,
+          "PeakWorkingSetBytes": 65695744,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E21EF00ED3B0D55B9B27CB40F12FEF1B0150AE401045CC3AF73491F1C27DCBC5",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 147.1811,
+          "MedianBatchMilliseconds": 0.6754,
+          "ElapsedMillisecondsPerImage": 0.6570900000000001,
+          "CpuMillisecondsPerImage": 0.6557000000000001,
+          "AllocatedBytesPerImage": 287816,
+          "PeakWorkingSetBytes": 65568768,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E21EF00ED3B0D55B9B27CB40F12FEF1B0150AE401045CC3AF73491F1C27DCBC5",
+          "WebpHash": ""
+        },
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 138.0085,
+          "MedianBatchMilliseconds": 0.6726,
+          "ElapsedMillisecondsPerImage": 0.6610500000000001,
+          "CpuMillisecondsPerImage": 0.6596,
+          "AllocatedBytesPerImage": 287816,
+          "PeakWorkingSetBytes": 65748992,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E21EF00ED3B0D55B9B27CB40F12FEF1B0150AE401045CC3AF73491F1C27DCBC5",
+          "WebpHash": ""
+        },
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 138.3234,
+          "MedianBatchMilliseconds": 0.7029,
+          "ElapsedMillisecondsPerImage": 0.6927399999999999,
+          "CpuMillisecondsPerImage": 0.69335,
+          "AllocatedBytesPerImage": 287816,
+          "PeakWorkingSetBytes": 65662976,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E21EF00ED3B0D55B9B27CB40F12FEF1B0150AE401045CC3AF73491F1C27DCBC5",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "geometry.tgs-640-.75-1-render",
+      "Before": [
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 144.2962,
+          "MedianBatchMilliseconds": 4.5685,
+          "ElapsedMillisecondsPerImage": 4.448433333333333,
+          "CpuMillisecondsPerImage": 4.4511666666666665,
+          "AllocatedBytesPerImage": 511072,
+          "PeakWorkingSetBytes": 79347712,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "5C126B91C50E3122B025B3A08126AE75E36F38BA93912C39BDABBDB8BADC0E33",
+          "WebpHash": ""
+        },
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 140.8244,
+          "MedianBatchMilliseconds": 4.7383,
+          "ElapsedMillisecondsPerImage": 4.667016666666667,
+          "CpuMillisecondsPerImage": 4.670166666666667,
+          "AllocatedBytesPerImage": 511072,
+          "PeakWorkingSetBytes": 79360000,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "5C126B91C50E3122B025B3A08126AE75E36F38BA93912C39BDABBDB8BADC0E33",
+          "WebpHash": ""
+        },
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 175.5224,
+          "MedianBatchMilliseconds": 4.0258,
+          "ElapsedMillisecondsPerImage": 3.995566666666667,
+          "CpuMillisecondsPerImage": 3.9943333333333335,
+          "AllocatedBytesPerImage": 511072,
+          "PeakWorkingSetBytes": 79405056,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "5C126B91C50E3122B025B3A08126AE75E36F38BA93912C39BDABBDB8BADC0E33",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 140.6658,
+          "MedianBatchMilliseconds": 4.0681,
+          "ElapsedMillisecondsPerImage": 4.052650000000001,
+          "CpuMillisecondsPerImage": 4.042333333333334,
+          "AllocatedBytesPerImage": 511072,
+          "PeakWorkingSetBytes": 79437824,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "5C126B91C50E3122B025B3A08126AE75E36F38BA93912C39BDABBDB8BADC0E33",
+          "WebpHash": ""
+        },
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 141.0825,
+          "MedianBatchMilliseconds": 4.1062,
+          "ElapsedMillisecondsPerImage": 4.07905,
+          "CpuMillisecondsPerImage": 4.0815,
+          "AllocatedBytesPerImage": 511072,
+          "PeakWorkingSetBytes": 79335424,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "5C126B91C50E3122B025B3A08126AE75E36F38BA93912C39BDABBDB8BADC0E33",
+          "WebpHash": ""
+        },
+        {
+          "Input": "geometry.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 141.7362,
+          "MedianBatchMilliseconds": 4.2134,
+          "ElapsedMillisecondsPerImage": 4.149516666666667,
+          "CpuMillisecondsPerImage": 4.137,
+          "AllocatedBytesPerImage": 511072,
+          "PeakWorkingSetBytes": 79597568,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "5C126B91C50E3122B025B3A08126AE75E36F38BA93912C39BDABBDB8BADC0E33",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "orbit.tgs-200-.5-1-preview",
+      "Before": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 228.7273,
+          "MedianBatchMilliseconds": 2.9784,
+          "ElapsedMillisecondsPerImage": 2.935115,
+          "CpuMillisecondsPerImage": 3.013725,
+          "AllocatedBytesPerImage": 2012597,
+          "PeakWorkingSetBytes": 66801664,
+          "Collections": [
+            18,
+            14,
+            14
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": "02ED64FE8DA9A6B6E7C2C958A1E9F8992830017C32A3C183446FDF4189FE3627"
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 210.09290000000001,
+          "MedianBatchMilliseconds": 2.6318,
+          "ElapsedMillisecondsPerImage": 2.612545,
+          "CpuMillisecondsPerImage": 2.6847000000000003,
+          "AllocatedBytesPerImage": 2012353,
+          "PeakWorkingSetBytes": 73781248,
+          "Collections": [
+            16,
+            12,
+            12
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": "02ED64FE8DA9A6B6E7C2C958A1E9F8992830017C32A3C183446FDF4189FE3627"
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 200.90789999999998,
+          "MedianBatchMilliseconds": 2.9255,
+          "ElapsedMillisecondsPerImage": 3.0262775,
+          "CpuMillisecondsPerImage": 3.09145,
+          "AllocatedBytesPerImage": 2011850,
+          "PeakWorkingSetBytes": 66703360,
+          "Collections": [
+            17,
+            13,
+            13
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": "02ED64FE8DA9A6B6E7C2C958A1E9F8992830017C32A3C183446FDF4189FE3627"
+        }
+      ],
+      "After": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 206.9453,
+          "MedianBatchMilliseconds": 2.912,
+          "ElapsedMillisecondsPerImage": 2.8920649999999997,
+          "CpuMillisecondsPerImage": 2.980025,
+          "AllocatedBytesPerImage": 2012047,
+          "PeakWorkingSetBytes": 67235840,
+          "Collections": [
+            17,
+            13,
+            13
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": "02ED64FE8DA9A6B6E7C2C958A1E9F8992830017C32A3C183446FDF4189FE3627"
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 203.7917,
+          "MedianBatchMilliseconds": 2.8095,
+          "ElapsedMillisecondsPerImage": 2.9295275000000003,
+          "CpuMillisecondsPerImage": 3.0227250000000003,
+          "AllocatedBytesPerImage": 2011733,
+          "PeakWorkingSetBytes": 66904064,
+          "Collections": [
+            17,
+            13,
+            13
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": "02ED64FE8DA9A6B6E7C2C958A1E9F8992830017C32A3C183446FDF4189FE3627"
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "preview",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 202.4633,
+          "MedianBatchMilliseconds": 2.5416,
+          "ElapsedMillisecondsPerImage": 2.6431949999999995,
+          "CpuMillisecondsPerImage": 2.697725,
+          "AllocatedBytesPerImage": 2012249,
+          "PeakWorkingSetBytes": 66990080,
+          "Collections": [
+            17,
+            13,
+            13
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": "02ED64FE8DA9A6B6E7C2C958A1E9F8992830017C32A3C183446FDF4189FE3627"
+        }
+      ]
+    },
+    {
+      "Case": "orbit.tgs-200-.5-1-render",
+      "Before": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 162.7232,
+          "MedianBatchMilliseconds": 1.6975,
+          "ElapsedMillisecondsPerImage": 1.7441974999999998,
+          "CpuMillisecondsPerImage": 1.7535250000000002,
+          "AllocatedBytesPerImage": 606032,
+          "PeakWorkingSetBytes": 69558272,
+          "Collections": [
+            3,
+            1,
+            1
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 164.1995,
+          "MedianBatchMilliseconds": 1.6263,
+          "ElapsedMillisecondsPerImage": 1.6533075000000004,
+          "CpuMillisecondsPerImage": 1.6614,
+          "AllocatedBytesPerImage": 606032,
+          "PeakWorkingSetBytes": 69566464,
+          "Collections": [
+            3,
+            1,
+            1
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 160.032,
+          "MedianBatchMilliseconds": 1.744,
+          "ElapsedMillisecondsPerImage": 1.7801274999999996,
+          "CpuMillisecondsPerImage": 1.786025,
+          "AllocatedBytesPerImage": 606033,
+          "PeakWorkingSetBytes": 69386240,
+          "Collections": [
+            3,
+            1,
+            1
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 161.3452,
+          "MedianBatchMilliseconds": 1.6055,
+          "ElapsedMillisecondsPerImage": 1.6449050000000003,
+          "CpuMillisecondsPerImage": 1.6520499999999998,
+          "AllocatedBytesPerImage": 606032,
+          "PeakWorkingSetBytes": 69468160,
+          "Collections": [
+            3,
+            1,
+            1
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 153.6362,
+          "MedianBatchMilliseconds": 1.7829,
+          "ElapsedMillisecondsPerImage": 1.8732974999999996,
+          "CpuMillisecondsPerImage": 1.8821750000000002,
+          "AllocatedBytesPerImage": 606032,
+          "PeakWorkingSetBytes": 69656576,
+          "Collections": [
+            3,
+            1,
+            1
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 161.9554,
+          "MedianBatchMilliseconds": 1.6312,
+          "ElapsedMillisecondsPerImage": 1.6744100000000004,
+          "CpuMillisecondsPerImage": 1.68195,
+          "AllocatedBytesPerImage": 606032,
+          "PeakWorkingSetBytes": 69562368,
+          "Collections": [
+            3,
+            1,
+            1
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "orbit.tgs-200-.5-4-render",
+      "Before": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 178.3874,
+          "MedianBatchMilliseconds": 2.9319,
+          "ElapsedMillisecondsPerImage": 0.764245,
+          "CpuMillisecondsPerImage": 2.5060833333333337,
+          "AllocatedBytesPerImage": 606068,
+          "PeakWorkingSetBytes": 85811200,
+          "Collections": [
+            9,
+            3,
+            0
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 169.2243,
+          "MedianBatchMilliseconds": 3.0044,
+          "ElapsedMillisecondsPerImage": 0.7647483333333333,
+          "CpuMillisecondsPerImage": 2.46285,
+          "AllocatedBytesPerImage": 606068,
+          "PeakWorkingSetBytes": 86196224,
+          "Collections": [
+            9,
+            3,
+            0
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 161.5338,
+          "MedianBatchMilliseconds": 2.9992,
+          "ElapsedMillisecondsPerImage": 0.7717141666666666,
+          "CpuMillisecondsPerImage": 2.503825,
+          "AllocatedBytesPerImage": 606068,
+          "PeakWorkingSetBytes": 85450752,
+          "Collections": [
+            9,
+            4,
+            0
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 160.1889,
+          "MedianBatchMilliseconds": 2.8414,
+          "ElapsedMillisecondsPerImage": 0.7262691666666665,
+          "CpuMillisecondsPerImage": 2.3239083333333337,
+          "AllocatedBytesPerImage": 606068,
+          "PeakWorkingSetBytes": 81936384,
+          "Collections": [
+            9,
+            4,
+            0
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 176.6002,
+          "MedianBatchMilliseconds": 3.1007,
+          "ElapsedMillisecondsPerImage": 0.7889466666666667,
+          "CpuMillisecondsPerImage": 2.565433333333333,
+          "AllocatedBytesPerImage": 606068,
+          "PeakWorkingSetBytes": 86228992,
+          "Collections": [
+            9,
+            3,
+            0
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 4,
+          "Rounds": 30,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 176.094,
+          "MedianBatchMilliseconds": 2.7616,
+          "ElapsedMillisecondsPerImage": 0.6458375000000002,
+          "CpuMillisecondsPerImage": 2.1507583333333335,
+          "AllocatedBytesPerImage": 606068,
+          "PeakWorkingSetBytes": 84725760,
+          "Collections": [
+            9,
+            3,
+            0
+          ],
+          "PixelHash": "9D655A6115B6A790C9E5F20EAAC8328E65A7D4968E8448DF75D952B49E2E7F99",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "orbit.tgs-64-.5-1-render",
+      "Before": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 177.79670000000002,
+          "MedianBatchMilliseconds": 0.4529,
+          "ElapsedMillisecondsPerImage": 0.5062649999999997,
+          "CpuMillisecondsPerImage": 0.5066499999999999,
+          "AllocatedBytesPerImage": 381472,
+          "PeakWorkingSetBytes": 65523712,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "CADB5D3197531B76A059EC5D5734D6BF72957A2F8861258530E5245F484CAFAF",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 171.2654,
+          "MedianBatchMilliseconds": 0.4303,
+          "ElapsedMillisecondsPerImage": 0.5107950000000001,
+          "CpuMillisecondsPerImage": 0.511225,
+          "AllocatedBytesPerImage": 381472,
+          "PeakWorkingSetBytes": 65646592,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "CADB5D3197531B76A059EC5D5734D6BF72957A2F8861258530E5245F484CAFAF",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 158.9889,
+          "MedianBatchMilliseconds": 0.4607,
+          "ElapsedMillisecondsPerImage": 0.5374899999999999,
+          "CpuMillisecondsPerImage": 0.538725,
+          "AllocatedBytesPerImage": 381504,
+          "PeakWorkingSetBytes": 65695744,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "CADB5D3197531B76A059EC5D5734D6BF72957A2F8861258530E5245F484CAFAF",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 157.5534,
+          "MedianBatchMilliseconds": 0.4278,
+          "ElapsedMillisecondsPerImage": 0.46113499999999996,
+          "CpuMillisecondsPerImage": 0.4612,
+          "AllocatedBytesPerImage": 381472,
+          "PeakWorkingSetBytes": 65916928,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "CADB5D3197531B76A059EC5D5734D6BF72957A2F8861258530E5245F484CAFAF",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 160.5105,
+          "MedianBatchMilliseconds": 0.4259,
+          "ElapsedMillisecondsPerImage": 0.463185,
+          "CpuMillisecondsPerImage": 0.46362500000000006,
+          "AllocatedBytesPerImage": 381472,
+          "PeakWorkingSetBytes": 65695744,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "CADB5D3197531B76A059EC5D5734D6BF72957A2F8861258530E5245F484CAFAF",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 64,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 40,
+          "Width": 64,
+          "Height": 64,
+          "FirstCallMilliseconds": 180.9225,
+          "MedianBatchMilliseconds": 0.463,
+          "ElapsedMillisecondsPerImage": 0.5602950000000002,
+          "CpuMillisecondsPerImage": 0.5509000000000001,
+          "AllocatedBytesPerImage": 381472,
+          "PeakWorkingSetBytes": 65515520,
+          "Collections": [
+            2,
+            0,
+            0
+          ],
+          "PixelHash": "CADB5D3197531B76A059EC5D5734D6BF72957A2F8861258530E5245F484CAFAF",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "orbit.tgs-640-.5-1-render",
+      "Before": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 208.0911,
+          "MedianBatchMilliseconds": 14.2633,
+          "ElapsedMillisecondsPerImage": 14.189950000000001,
+          "CpuMillisecondsPerImage": 14.190333333333333,
+          "AllocatedBytesPerImage": 2235216,
+          "PeakWorkingSetBytes": 99512320,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "C7B1F7AC32A54E28498E2F0D112346B6D521C94D0512C91A0D394B28C2022482",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 175.3803,
+          "MedianBatchMilliseconds": 13.1111,
+          "ElapsedMillisecondsPerImage": 13.139458333333332,
+          "CpuMillisecondsPerImage": 13.105333333333334,
+          "AllocatedBytesPerImage": 2235216,
+          "PeakWorkingSetBytes": 99463168,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "C7B1F7AC32A54E28498E2F0D112346B6D521C94D0512C91A0D394B28C2022482",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 195.4758,
+          "MedianBatchMilliseconds": 13.1052,
+          "ElapsedMillisecondsPerImage": 13.065716666666667,
+          "CpuMillisecondsPerImage": 13.067666666666668,
+          "AllocatedBytesPerImage": 2235216,
+          "PeakWorkingSetBytes": 99684352,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "C7B1F7AC32A54E28498E2F0D112346B6D521C94D0512C91A0D394B28C2022482",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 172.3281,
+          "MedianBatchMilliseconds": 13.3235,
+          "ElapsedMillisecondsPerImage": 13.22288333333333,
+          "CpuMillisecondsPerImage": 13.224833333333335,
+          "AllocatedBytesPerImage": 2235216,
+          "PeakWorkingSetBytes": 99430400,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "C7B1F7AC32A54E28498E2F0D112346B6D521C94D0512C91A0D394B28C2022482",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 178.7604,
+          "MedianBatchMilliseconds": 13.183,
+          "ElapsedMillisecondsPerImage": 13.257516666666666,
+          "CpuMillisecondsPerImage": 13.259333333333332,
+          "AllocatedBytesPerImage": 2235216,
+          "PeakWorkingSetBytes": 99401728,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "C7B1F7AC32A54E28498E2F0D112346B6D521C94D0512C91A0D394B28C2022482",
+          "WebpHash": ""
+        },
+        {
+          "Input": "orbit.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.5,
+          "Concurrency": 1,
+          "Rounds": 12,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 176.0914,
+          "MedianBatchMilliseconds": 14.2977,
+          "ElapsedMillisecondsPerImage": 14.227291666666668,
+          "CpuMillisecondsPerImage": 14.228583333333333,
+          "AllocatedBytesPerImage": 2235216,
+          "PeakWorkingSetBytes": 99737600,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "C7B1F7AC32A54E28498E2F0D112346B6D521C94D0512C91A0D394B28C2022482",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "trimmed-groups-blur.tgs-200-.25-1-render",
+      "Before": [
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 181.8232,
+          "MedianBatchMilliseconds": 11.1901,
+          "ElapsedMillisecondsPerImage": 11.23161,
+          "CpuMillisecondsPerImage": 20.58715,
+          "AllocatedBytesPerImage": 285554,
+          "PeakWorkingSetBytes": 68009984,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E291C74477E271B1E8DD33667A72A20052E587704CE1B0BB0D7D9544FE189F2E",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 181.8353,
+          "MedianBatchMilliseconds": 11.1199,
+          "ElapsedMillisecondsPerImage": 11.134535000000001,
+          "CpuMillisecondsPerImage": 20.7971,
+          "AllocatedBytesPerImage": 285637,
+          "PeakWorkingSetBytes": 67624960,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "E291C74477E271B1E8DD33667A72A20052E587704CE1B0BB0D7D9544FE189F2E",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 204.3596,
+          "MedianBatchMilliseconds": 11.6946,
+          "ElapsedMillisecondsPerImage": 11.70971,
+          "CpuMillisecondsPerImage": 21.2164,
+          "AllocatedBytesPerImage": 285708,
+          "PeakWorkingSetBytes": 67723264,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "E291C74477E271B1E8DD33667A72A20052E587704CE1B0BB0D7D9544FE189F2E",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 180.0332,
+          "MedianBatchMilliseconds": 4.2341,
+          "ElapsedMillisecondsPerImage": 4.34918,
+          "CpuMillisecondsPerImage": 12.14795,
+          "AllocatedBytesPerImage": 282400,
+          "PeakWorkingSetBytes": 67813376,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E291C74477E271B1E8DD33667A72A20052E587704CE1B0BB0D7D9544FE189F2E",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 181.2211,
+          "MedianBatchMilliseconds": 4.1246,
+          "ElapsedMillisecondsPerImage": 4.11828,
+          "CpuMillisecondsPerImage": 10.9604,
+          "AllocatedBytesPerImage": 282480,
+          "PeakWorkingSetBytes": 67686400,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E291C74477E271B1E8DD33667A72A20052E587704CE1B0BB0D7D9544FE189F2E",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 178.2634,
+          "MedianBatchMilliseconds": 4.1804,
+          "ElapsedMillisecondsPerImage": 4.348185,
+          "CpuMillisecondsPerImage": 11.7209,
+          "AllocatedBytesPerImage": 282505,
+          "PeakWorkingSetBytes": 67719168,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "E291C74477E271B1E8DD33667A72A20052E587704CE1B0BB0D7D9544FE189F2E",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "trimmed-groups-blur.tgs-640-.75-1-render",
+      "Before": [
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 680.204,
+          "MedianBatchMilliseconds": 505.7609,
+          "ElapsedMillisecondsPerImage": 498.68634999999995,
+          "CpuMillisecondsPerImage": 1697.438,
+          "AllocatedBytesPerImage": 1080682,
+          "PeakWorkingSetBytes": 95371264,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "29DFD1878AA253457F579564B81BD907C66C8B8E958A8FD96A2189A00E0BE841",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 678.9674,
+          "MedianBatchMilliseconds": 499.028,
+          "ElapsedMillisecondsPerImage": 498.4344333333333,
+          "CpuMillisecondsPerImage": 1677.6396666666667,
+          "AllocatedBytesPerImage": 1071789,
+          "PeakWorkingSetBytes": 95629312,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "29DFD1878AA253457F579564B81BD907C66C8B8E958A8FD96A2189A00E0BE841",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 698.2361,
+          "MedianBatchMilliseconds": 507.1514,
+          "ElapsedMillisecondsPerImage": 500.8659333333333,
+          "CpuMillisecondsPerImage": 1673.1756666666668,
+          "AllocatedBytesPerImage": 1062920,
+          "PeakWorkingSetBytes": 95649792,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "29DFD1878AA253457F579564B81BD907C66C8B8E958A8FD96A2189A00E0BE841",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 584.4471,
+          "MedianBatchMilliseconds": 418.5109,
+          "ElapsedMillisecondsPerImage": 414.24421666666666,
+          "CpuMillisecondsPerImage": 1540.9526666666668,
+          "AllocatedBytesPerImage": 1077618,
+          "PeakWorkingSetBytes": 95506432,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "29DFD1878AA253457F579564B81BD907C66C8B8E958A8FD96A2189A00E0BE841",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 563.0521,
+          "MedianBatchMilliseconds": 451.3465,
+          "ElapsedMillisecondsPerImage": 442.0945666666667,
+          "CpuMillisecondsPerImage": 1664.0168333333334,
+          "AllocatedBytesPerImage": 1073136,
+          "PeakWorkingSetBytes": 95399936,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "29DFD1878AA253457F579564B81BD907C66C8B8E958A8FD96A2189A00E0BE841",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-groups-blur.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 619.8345,
+          "MedianBatchMilliseconds": 422.562,
+          "ElapsedMillisecondsPerImage": 417.98183333333327,
+          "CpuMillisecondsPerImage": 1578.981,
+          "AllocatedBytesPerImage": 1041981,
+          "PeakWorkingSetBytes": 95641600,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "29DFD1878AA253457F579564B81BD907C66C8B8E958A8FD96A2189A00E0BE841",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "trimmed-translucent-groups.tgs-200-.25-1-render",
+      "Before": [
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 238.5493,
+          "MedianBatchMilliseconds": 21.3113,
+          "ElapsedMillisecondsPerImage": 21.413919999999997,
+          "CpuMillisecondsPerImage": 21.41815,
+          "AllocatedBytesPerImage": 1514552,
+          "PeakWorkingSetBytes": 78344192,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "8E675C7C3F80C6B5E5697FEA42495D06DFBB183278D70F09CD506510815FE22C",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 205.7252,
+          "MedianBatchMilliseconds": 22.0601,
+          "ElapsedMillisecondsPerImage": 21.816969999999998,
+          "CpuMillisecondsPerImage": 21.821199999999997,
+          "AllocatedBytesPerImage": 1514552,
+          "PeakWorkingSetBytes": 77598720,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "8E675C7C3F80C6B5E5697FEA42495D06DFBB183278D70F09CD506510815FE22C",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 207.8933,
+          "MedianBatchMilliseconds": 22.2847,
+          "ElapsedMillisecondsPerImage": 22.21023,
+          "CpuMillisecondsPerImage": 22.212899999999998,
+          "AllocatedBytesPerImage": 1514552,
+          "PeakWorkingSetBytes": 77668352,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "8E675C7C3F80C6B5E5697FEA42495D06DFBB183278D70F09CD506510815FE22C",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 203.1095,
+          "MedianBatchMilliseconds": 6.1539,
+          "ElapsedMillisecondsPerImage": 6.22804,
+          "CpuMillisecondsPerImage": 6.2289,
+          "AllocatedBytesPerImage": 1509944,
+          "PeakWorkingSetBytes": 77565952,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "8E675C7C3F80C6B5E5697FEA42495D06DFBB183278D70F09CD506510815FE22C",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 217.1116,
+          "MedianBatchMilliseconds": 5.9916,
+          "ElapsedMillisecondsPerImage": 6.045490000000001,
+          "CpuMillisecondsPerImage": 6.0465,
+          "AllocatedBytesPerImage": 1509944,
+          "PeakWorkingSetBytes": 77299712,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "8E675C7C3F80C6B5E5697FEA42495D06DFBB183278D70F09CD506510815FE22C",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 200,
+          "FirstCallMilliseconds": 206.8408,
+          "MedianBatchMilliseconds": 6.836,
+          "ElapsedMillisecondsPerImage": 6.776025,
+          "CpuMillisecondsPerImage": 6.777150000000001,
+          "AllocatedBytesPerImage": 1509944,
+          "PeakWorkingSetBytes": 77336576,
+          "Collections": [
+            3,
+            0,
+            0
+          ],
+          "PixelHash": "8E675C7C3F80C6B5E5697FEA42495D06DFBB183278D70F09CD506510815FE22C",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "trimmed-translucent-groups.tgs-640-.75-1-render",
+      "Before": [
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 335.9362,
+          "MedianBatchMilliseconds": 154.4744,
+          "ElapsedMillisecondsPerImage": 152.11855,
+          "CpuMillisecondsPerImage": 152.12916666666666,
+          "AllocatedBytesPerImage": 1823880,
+          "PeakWorkingSetBytes": 119451648,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "66DF9D8D0FF557447505A29AA2A2B087F9FF5228F3609A4A8F8113EF0801FFEB",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 341.811,
+          "MedianBatchMilliseconds": 150.5218,
+          "ElapsedMillisecondsPerImage": 150.3104,
+          "CpuMillisecondsPerImage": 150.0535,
+          "AllocatedBytesPerImage": 1823880,
+          "PeakWorkingSetBytes": 119672832,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "66DF9D8D0FF557447505A29AA2A2B087F9FF5228F3609A4A8F8113EF0801FFEB",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 344.5726,
+          "MedianBatchMilliseconds": 154.4942,
+          "ElapsedMillisecondsPerImage": 153.75575,
+          "CpuMillisecondsPerImage": 153.61633333333333,
+          "AllocatedBytesPerImage": 1823880,
+          "PeakWorkingSetBytes": 119717888,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "66DF9D8D0FF557447505A29AA2A2B087F9FF5228F3609A4A8F8113EF0801FFEB",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 214.0459,
+          "MedianBatchMilliseconds": 35.2932,
+          "ElapsedMillisecondsPerImage": 34.90865,
+          "CpuMillisecondsPerImage": 34.81633333333333,
+          "AllocatedBytesPerImage": 1819272,
+          "PeakWorkingSetBytes": 119627776,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "66DF9D8D0FF557447505A29AA2A2B087F9FF5228F3609A4A8F8113EF0801FFEB",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 220.4895,
+          "MedianBatchMilliseconds": 36.4676,
+          "ElapsedMillisecondsPerImage": 35.850566666666666,
+          "CpuMillisecondsPerImage": 35.853,
+          "AllocatedBytesPerImage": 1819272,
+          "PeakWorkingSetBytes": 119644160,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "66DF9D8D0FF557447505A29AA2A2B087F9FF5228F3609A4A8F8113EF0801FFEB",
+          "WebpHash": ""
+        },
+        {
+          "Input": "trimmed-translucent-groups.tgs",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 640,
+          "FirstCallMilliseconds": 250.6111,
+          "MedianBatchMilliseconds": 36.2937,
+          "ElapsedMillisecondsPerImage": 36.427283333333335,
+          "CpuMillisecondsPerImage": 36.4395,
+          "AllocatedBytesPerImage": 1819272,
+          "PeakWorkingSetBytes": 119300096,
+          "Collections": [
+            1,
+            0,
+            0
+          ],
+          "PixelHash": "66DF9D8D0FF557447505A29AA2A2B087F9FF5228F3609A4A8F8113EF0801FFEB",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "vector-preview.svg-200-.25-1-render",
+      "Before": [
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 59.56270000000001,
+          "MedianBatchMilliseconds": 6.5322,
+          "ElapsedMillisecondsPerImage": 6.60372,
+          "CpuMillisecondsPerImage": 6.607349999999999,
+          "AllocatedBytesPerImage": 956373,
+          "PeakWorkingSetBytes": 72572928,
+          "Collections": [
+            2,
+            1,
+            1
+          ],
+          "PixelHash": "D03967AD9E35584BC30EEA4DF0219CCC059DF3301C9ECA9D72039DAA769005C9",
+          "WebpHash": ""
+        },
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 65.7646,
+          "MedianBatchMilliseconds": 7.2715,
+          "ElapsedMillisecondsPerImage": 7.226299999999999,
+          "CpuMillisecondsPerImage": 7.22975,
+          "AllocatedBytesPerImage": 956373,
+          "PeakWorkingSetBytes": 72019968,
+          "Collections": [
+            2,
+            1,
+            1
+          ],
+          "PixelHash": "D03967AD9E35584BC30EEA4DF0219CCC059DF3301C9ECA9D72039DAA769005C9",
+          "WebpHash": ""
+        },
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 60.257000000000005,
+          "MedianBatchMilliseconds": 6.8174,
+          "ElapsedMillisecondsPerImage": 6.743474999999999,
+          "CpuMillisecondsPerImage": 6.756749999999999,
+          "AllocatedBytesPerImage": 956373,
+          "PeakWorkingSetBytes": 71888896,
+          "Collections": [
+            2,
+            1,
+            1
+          ],
+          "PixelHash": "D03967AD9E35584BC30EEA4DF0219CCC059DF3301C9ECA9D72039DAA769005C9",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 60.3226,
+          "MedianBatchMilliseconds": 6.1228,
+          "ElapsedMillisecondsPerImage": 6.1691,
+          "CpuMillisecondsPerImage": 6.1786,
+          "AllocatedBytesPerImage": 956373,
+          "PeakWorkingSetBytes": 72073216,
+          "Collections": [
+            2,
+            1,
+            1
+          ],
+          "PixelHash": "D03967AD9E35584BC30EEA4DF0219CCC059DF3301C9ECA9D72039DAA769005C9",
+          "WebpHash": ""
+        },
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 59.4333,
+          "MedianBatchMilliseconds": 5.8224,
+          "ElapsedMillisecondsPerImage": 5.870085,
+          "CpuMillisecondsPerImage": 5.8728,
+          "AllocatedBytesPerImage": 956373,
+          "PeakWorkingSetBytes": 71770112,
+          "Collections": [
+            2,
+            1,
+            1
+          ],
+          "PixelHash": "D03967AD9E35584BC30EEA4DF0219CCC059DF3301C9ECA9D72039DAA769005C9",
+          "WebpHash": ""
+        },
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 200,
+          "Scale": 2,
+          "Position": 0.25,
+          "Concurrency": 1,
+          "Rounds": 20,
+          "Width": 200,
+          "Height": 120,
+          "FirstCallMilliseconds": 57.7329,
+          "MedianBatchMilliseconds": 6.0516,
+          "ElapsedMillisecondsPerImage": 6.0413700000000015,
+          "CpuMillisecondsPerImage": 6.0531999999999995,
+          "AllocatedBytesPerImage": 956373,
+          "PeakWorkingSetBytes": 71806976,
+          "Collections": [
+            2,
+            1,
+            1
+          ],
+          "PixelHash": "D03967AD9E35584BC30EEA4DF0219CCC059DF3301C9ECA9D72039DAA769005C9",
+          "WebpHash": ""
+        }
+      ]
+    },
+    {
+      "Case": "vector-preview.svg-640-.75-1-render",
+      "Before": [
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 122.2255,
+          "MedianBatchMilliseconds": 64.0395,
+          "ElapsedMillisecondsPerImage": 63.866899999999994,
+          "CpuMillisecondsPerImage": 63.8765,
+          "AllocatedBytesPerImage": 4907224,
+          "PeakWorkingSetBytes": 98131968,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "BE88D7920E89826EFF0E9898D74FB92BCD7D2700D5E6447680482EF9D1E46537",
+          "WebpHash": ""
+        },
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 118.6132,
+          "MedianBatchMilliseconds": 64.3246,
+          "ElapsedMillisecondsPerImage": 64.11618333333334,
+          "CpuMillisecondsPerImage": 64.12416666666667,
+          "AllocatedBytesPerImage": 4907224,
+          "PeakWorkingSetBytes": 98078720,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "BE88D7920E89826EFF0E9898D74FB92BCD7D2700D5E6447680482EF9D1E46537",
+          "WebpHash": ""
+        },
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 129.5528,
+          "MedianBatchMilliseconds": 68.4567,
+          "ElapsedMillisecondsPerImage": 67.80416666666667,
+          "CpuMillisecondsPerImage": 67.77433333333333,
+          "AllocatedBytesPerImage": 4907224,
+          "PeakWorkingSetBytes": 98287616,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "BE88D7920E89826EFF0E9898D74FB92BCD7D2700D5E6447680482EF9D1E46537",
+          "WebpHash": ""
+        }
+      ],
+      "After": [
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 116.05,
+          "MedianBatchMilliseconds": 61.9101,
+          "ElapsedMillisecondsPerImage": 61.03976666666666,
+          "CpuMillisecondsPerImage": 60.977833333333336,
+          "AllocatedBytesPerImage": 4907224,
+          "PeakWorkingSetBytes": 98664448,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "BE88D7920E89826EFF0E9898D74FB92BCD7D2700D5E6447680482EF9D1E46537",
+          "WebpHash": ""
+        },
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 114.5283,
+          "MedianBatchMilliseconds": 59.0046,
+          "ElapsedMillisecondsPerImage": 58.51103333333333,
+          "CpuMillisecondsPerImage": 58.521833333333326,
+          "AllocatedBytesPerImage": 4907224,
+          "PeakWorkingSetBytes": 98304000,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "BE88D7920E89826EFF0E9898D74FB92BCD7D2700D5E6447680482EF9D1E46537",
+          "WebpHash": ""
+        },
+        {
+          "Input": "vector-preview.svg",
+          "Mode": "render",
+          "Size": 640,
+          "Scale": 2,
+          "Position": 0.75,
+          "Concurrency": 1,
+          "Rounds": 6,
+          "Width": 640,
+          "Height": 384,
+          "FirstCallMilliseconds": 121.664,
+          "MedianBatchMilliseconds": 58.3903,
+          "ElapsedMillisecondsPerImage": 61.87188333333334,
+          "CpuMillisecondsPerImage": 61.87833333333333,
+          "AllocatedBytesPerImage": 4907224,
+          "PeakWorkingSetBytes": 98525184,
+          "Collections": [
+            0,
+            0,
+            0
+          ],
+          "PixelHash": "BE88D7920E89826EFF0E9898D74FB92BCD7D2700D5E6447680482EF9D1E46537",
+          "WebpHash": ""
+        }
+      ]
+    }
+  ],
+  "ImplementationCommits": [
+    "6b24a31a",
+    "4ce5360b"
+  ],
+  "Supplemental": [
+    {
+      "Case": "effects-preview.svg-200-0.5-1-preview-100-rounds",
+      "Before": {
+        "Input": "effects-preview.svg",
+        "Mode": "preview",
+        "Size": 200,
+        "Scale": 2,
+        "Position": 0.5,
+        "Concurrency": 1,
+        "Rounds": 100,
+        "Width": 200,
+        "Height": 120,
+        "FirstCallMilliseconds": 184.6493,
+        "MedianBatchMilliseconds": 39.426,
+        "ElapsedMillisecondsPerImage": 39.68202599999998,
+        "CpuMillisecondsPerImage": 51.25071,
+        "AllocatedBytesPerImage": 3181150,
+        "PeakWorkingSetBytes": 84361216,
+        "Collections": [
+          62,
+          41,
+          35
+        ],
+        "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+        "WebpHash": "754CDBA79374EFD990579BFE30BAA4DA56C2B8573B49EDBC7DF807E65D8BF33B"
+      },
+      "After": {
+        "Input": "effects-preview.svg",
+        "Mode": "preview",
+        "Size": 200,
+        "Scale": 2,
+        "Position": 0.5,
+        "Concurrency": 1,
+        "Rounds": 100,
+        "Width": 200,
+        "Height": 120,
+        "FirstCallMilliseconds": 180.7591,
+        "MedianBatchMilliseconds": 13.8973,
+        "ElapsedMillisecondsPerImage": 13.966775999999996,
+        "CpuMillisecondsPerImage": 18.594649999999998,
+        "AllocatedBytesPerImage": 3168068,
+        "PeakWorkingSetBytes": 81903616,
+        "Collections": [
+          63,
+          38,
+          37
+        ],
+        "PixelHash": "3DB918F235938E4012DBF5305857BDB733AE93F4BD0D788F94B72871F11A0BC1",
+        "WebpHash": "754CDBA79374EFD990579BFE30BAA4DA56C2B8573B49EDBC7DF807E65D8BF33B"
+      }
+    }
+  ]
+}

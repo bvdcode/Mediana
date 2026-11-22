@@ -55,7 +55,9 @@ namespace Mediana.Drawing
                 () => (Samples: new Vector4[padded], Prefix: new Vector4[padded], Suffix: new Vector4[padded]),
                 (line, _, scratch) =>
                 {
-                    ReadAxisLine(input, scratch.Samples, line, radius, horizontal, reverse, linear, "none", context);
+                    (int first, int last) = ReadAxisLine(input, scratch.Samples, line, radius, horizontal, reverse, linear, "none", context);
+                    if (last < first) { return scratch; }
+                    int start = Math.Max(0, first - (2 * radius)), end = Math.Min(length - 1, last);
                     for (int i = 0; i < padded; i++)
                     {
                         scratch.Prefix[i] = i % window == 0 ? scratch.Samples[i] : Extremum(scratch.Prefix[i - 1], scratch.Samples[i], dilate);
@@ -63,7 +65,7 @@ namespace Mediana.Drawing
                         scratch.Suffix[j] = j == padded - 1 || (j + 1) % window == 0 ? scratch.Samples[j] : Extremum(scratch.Suffix[j + 1], scratch.Samples[j], dilate);
                     }
 
-                    for (int x = 0; x < length; x++)
+                    for (int x = start; x <= end; x++)
                     {
                         Vector4 value = Extremum(scratch.Suffix[x], scratch.Prefix[x + window - 1], dilate);
                         WriteAxisPixel(result, x, line, horizontal, reverse, value, linear);
@@ -81,10 +83,22 @@ namespace Mediana.Drawing
             context.Token.ThrowIfCancellationRequested();
             int length = horizontal ? input.Width : input.Height;
             int first = samples.Length, last = -1;
+            ReadOnlySpan<byte> pixels = input.Pixels.Span;
+            int step = horizontal ? 4 : input.Width * 4;
+            int origin = horizontal ? line * input.Width * 4 : line * 4;
             for (int i = 0; i < samples.Length; i++)
             {
                 int coordinate = reverse ? length - 1 - (i - radius) : i - radius;
-                Vector4 value = horizontal ? ScenePixels.At(input, coordinate, line, linear, edge) : ScenePixels.At(input, line, coordinate, linear, edge);
+                if ((uint)coordinate >= length)
+                {
+                    switch (edge)
+                    {
+                        case "duplicate": coordinate = Math.Clamp(coordinate, 0, length - 1); break;
+                        case "wrap": coordinate = ((coordinate % length) + length) % length; break;
+                        default: samples[i] = Vector4.Zero; continue;
+                    }
+                }
+                Vector4 value = ScenePixels.Read(pixels, origin + coordinate * step, linear);
                 samples[i] = value;
                 if (value != Vector4.Zero)
                 {

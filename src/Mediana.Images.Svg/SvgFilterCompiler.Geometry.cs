@@ -20,7 +20,6 @@ namespace Mediana.Images.Svg
         private static PixelBuffer Morphology(XElement p, PixelBuffer input, Matrix3x2 units, bool linear, SceneRenderContext context, bool overwrite)
             => SceneFilterKernels.Morphology(Pair(p, "radius"), Text(p, "operator", "erode") == "dilate", input, units, linear, context, overwrite);
 
-        private static PixelBuffer Offset(PixelBuffer input, Vector2 delta, bool linear, SceneRenderContext context) => ScenePixels.Map(input, (x, y) => ScenePixels.Sample(input, x - delta.X, y - delta.Y, linear), linear, context);
 
 
 

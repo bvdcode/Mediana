@@ -12,6 +12,18 @@ namespace Mediana.NativeTests
     {
         internal static void Run()
         {
+            foreach (bool linear in new[] { false, true })
+            {
+                foreach (bool overwrite in new[] { false, true })
+                {
+                    Mediana.Tests.SceneFilterPixelTestInput.VerifyMatrices(linear, overwrite);
+                    Mediana.Tests.SceneFilterPixelTestInput.VerifyTransfer(linear, overwrite);
+                }
+                Mediana.Tests.SceneFilterPixelTestInput.VerifyOffsets(linear);
+            }
+            Mediana.Tests.SceneFilterPixelTestInput.VerifyCancellation();
+            Mediana.Tests.TranslatedImageTestInput.Verify();
+            Mediana.Tests.TranslatedImageTestInput.VerifyStridedFrame();
             using PixelBuffer pixels = new(96, 96);
             RasterCanvas canvas = new(pixels);
             canvas.FillPathAntialiased(new VectorPath().Rectangle(.25f, .5f, 3.5f, 2.75f), new(23, 57, 139), Matrix3x2.Identity);

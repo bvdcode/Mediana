@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(VectorReferenceDirectory)' == ''">
+    <ProjectReference Include="../../src/Mediana.Images.Svg/Mediana.Images.Svg.csproj" />
+    <ProjectReference Include="../../src/Mediana.Images.Tgs/Mediana.Images.Tgs.csproj" />
+    <ProjectReference Include="../../src/Mediana.Codecs.Webp/Mediana.Codecs.Webp.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(VectorReferenceDirectory)' != ''">
+    <Reference Include="$(VectorReferenceDirectory)/Mediana*.dll" />
+  </ItemGroup>
+</Project>
