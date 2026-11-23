@@ -23,13 +23,14 @@ namespace Mediana.Codecs.H264
             bits.WriteSigned(qp - initialQuantizer);
             H264EncoderDeblocking.WriteHeader(bits, deblocking);
             int previousQuantizer = qp;
+            H264SourcePicture sourcePicture = new(input);
             Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
             for (int y = 0; y < reconstructed.Height; y += 16)
             {
                 for (int x = 0; x < reconstructed.Width; x += 16)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    H264SourceMacroblock source = new(input, x, y, samples);
+                    H264SourceMacroblock source = new(sourcePicture, x, y, samples);
                     int quantizer = qp;
                     while (true)
                     {
