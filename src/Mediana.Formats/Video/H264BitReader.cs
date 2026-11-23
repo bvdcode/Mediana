@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 
 namespace Mediana.Formats.Video
@@ -11,42 +12,24 @@ namespace Mediana.Formats.Video
         private readonly ReadOnlySpan<byte> data = payload;
         private int offset;
         private int available;
-        private int current;
+        private ulong buffer;
         private int zeros;
         private int preventionBytes;
 
-        public bool ByteAligned => available == 0;
-        public int BitPosition => checked((offset - preventionBytes) * 8 - available);
+        public bool ByteAligned => (available & 7) == 0;
+        public int BitPosition => checked((int)(((long)offset - preventionBytes) * 8 - available));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public uint ReadBits(int count)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(count);
             ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 32);
-            if (count <= available)
+            if (count > available)
             {
-                available -= count;
-                return (uint)(current >> available) & ((1u << count) - 1);
+                Fill(count);
             }
-            return ReadAcrossBytes(count);
-        }
-
-        private uint ReadAcrossBytes(int count)
-        {
-            uint value = 0;
-            while (count > 0)
-            {
-                if (available == 0)
-                {
-                    current = ReadByte();
-                    available = 8;
-                }
-                int take = Math.Min(available, count);
-                value = (value << take) | (uint)((current >> (available - take)) & ((1 << take) - 1));
-                available -= take;
-                count -= take;
-            }
-            return value;
+            available -= count;
+            return (uint)((buffer >> available) & ((1UL << count) - 1));
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -54,10 +37,32 @@ namespace Mediana.Formats.Video
         {
             if (available == 0)
             {
-                current = ReadByte();
-                available = 8;
+                Fill(1);
             }
-            return (current >> --available) & 1;
+            return (int)(buffer >> --available) & 1;
+        }
+
+        private void Fill(int count)
+        {
+            do
+            {
+                if (data.Length - offset >= sizeof(uint) && zeros < 2)
+                {
+                    uint word = BinaryPrimitives.ReadUInt32BigEndian(data[offset..]);
+                    // A run of nonzero bytes cannot contain or start an emulation-prevention sequence.
+                    if ((unchecked(word - 0x01010101u) & ~word & 0x80808080u) == 0)
+                    {
+                        buffer = (buffer << 32) | word;
+                        available += 32;
+                        offset += sizeof(uint);
+                        zeros = 0;
+                        return;
+                    }
+                }
+                buffer = (buffer << 8) | (uint)ReadByte();
+                available += 8;
+            }
+            while (available < count);
         }
 
         public bool ReadFlag() => ReadBit() != 0;
@@ -119,7 +124,7 @@ namespace Mediana.Formats.Video
                 throw new InvalidDataException("The H.264 RBSP stop bit is missing.");
             }
             AlignZero();
-            if (offset != data.Length)
+            if (available != 0 || offset != data.Length)
             {
                 throw new InvalidDataException("Unexpected bytes follow the H.264 RBSP trailing bits.");
             }
@@ -139,10 +144,10 @@ namespace Mediana.Formats.Video
         /// <summary>Discards unused bits in the arithmetic terminal byte and validates following zero words.</summary>
         public void ReadCabacPadding()
         {
-            available = 0;
-            while (offset < data.Length)
+            available -= available & 7;
+            while (available != 0 || offset < data.Length)
             {
-                if (zeros == 2 && data[offset] == 3 && offset == data.Length - 1)
+                if (available == 0 && zeros == 2 && offset == data.Length - 1 && data[offset] == 3)
                 {
                     offset++;
                     preventionBytes++;
@@ -170,6 +175,7 @@ namespace Mediana.Formats.Video
         {
             if (offset == data.Length)
             {
+                available = 0;
                 throw new InvalidDataException("The H.264 bitstream is truncated.");
             }
             int value = data[offset++];
@@ -179,6 +185,7 @@ namespace Mediana.Formats.Video
                 {
                     if (offset == data.Length || data[offset] > 3)
                     {
+                        available = 0;
                         throw new InvalidDataException("The H.264 emulation prevention byte is invalid.");
                     }
                     value = data[offset++];
@@ -187,6 +194,7 @@ namespace Mediana.Formats.Video
                 }
                 else if (value < 3)
                 {
+                    available = 0;
                     throw new InvalidDataException("An H.264 emulation prevention byte is missing.");
                 }
             }

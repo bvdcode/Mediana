@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
 namespace Mediana.Codecs.H264
 {
     /// <summary>Decodes arithmetic bins under H.264 clauses 9.3.1.2 and 9.3.3.2.</summary>
@@ -27,6 +30,7 @@ namespace Mediana.Codecs.H264
         internal int Range => range;
         internal int Offset => offset;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ReadBin(ref H264BitReader reader, ref H264CabacContext context)
         {
             EnsureActive();
@@ -88,15 +92,9 @@ namespace Mediana.Codecs.H264
 
         private void Normalize(ref H264BitReader reader)
         {
-            while (range < 256)
-            {
-                range <<= 1;
-                offset = (offset << 1) | reader.ReadBit();
-            }
-            if (offset >= range)
-            {
-                throw new InvalidDataException("The H.264 CABAC offset exceeds the normalized range.");
-            }
+            int shift = 8 - BitOperations.Log2((uint)range);
+            range <<= shift;
+            offset = (offset << shift) | (int)reader.ReadBits(shift);
         }
 
         private void EnsureActive()
