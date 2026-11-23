@@ -58,15 +58,17 @@ namespace Mediana.Codecs.H264
         private H264MotionSample ReadMotion(H264ReferenceList list, ReadOnlySpan<byte> indices, int x, int y)
         {
             int index = BlockIndex(0, x, y);
-            if (Modes[index] == byte.MaxValue)
+            byte mode = Modes[index];
+            if (mode == byte.MaxValue)
             {
                 return new H264MotionSample(false, -1, 0, 0);
             }
-            if ((Modes[index] & 127) != InterMode || indices[index] == byte.MaxValue)
+            int reference = indices[index];
+            if ((mode & 127) != InterMode || reference == byte.MaxValue)
             {
                 return new H264MotionSample(true, -1, 0, 0);
             }
-            return new H264MotionSample(true, indices[index], MotionX(list)[index], MotionY(list)[index]);
+            return new H264MotionSample(true, reference, MotionX(list)[index], MotionY(list)[index]);
         }
 
         public void SetMotion(H264ReferenceList list, int x, int y, int width, int height, int reference, int motionX, int motionY)
@@ -76,15 +78,23 @@ namespace Mediana.Codecs.H264
             Span<int> vectorsX = MotionX(list);
             Span<int> vectorsY = MotionY(list);
             byte indexValue = reference == -1 ? byte.MaxValue : (byte)reference;
-            for (int row = y; row < y + height; row += 4)
+            Span<byte> modes = Modes;
+            if (reference == -1)
             {
-                for (int column = x; column < x + width; column += 4)
+                motionX = 0;
+                motionY = 0;
+            }
+            int stride = Width / 4;
+            int start = BlockIndex(0, x, y);
+            int columns = width / 4;
+            for (int row = 0; row < height; row += 4, start += stride)
+            {
+                for (int index = start; index < start + columns; index++)
                 {
-                    int index = BlockIndex(0, column, row);
-                    Modes[index] = InterMode | 128;
+                    modes[index] = InterMode | 128;
                     indices[index] = indexValue;
-                    vectorsX[index] = reference == -1 ? 0 : motionX;
-                    vectorsY[index] = reference == -1 ? 0 : motionY;
+                    vectorsX[index] = motionX;
+                    vectorsY[index] = motionY;
                 }
             }
         }
@@ -94,12 +104,10 @@ namespace Mediana.Codecs.H264
             ValidateMotionPartition(x, y, width, height, reference);
             Span<byte> indices = ReferenceIndices(list);
             byte value = reference == -1 ? byte.MaxValue : (byte)reference;
-            for (int row = y; row < y + height; row += 4)
+            int start = BlockIndex(0, x, y);
+            for (int row = 0; row < height; row += 4, start += Width / 4)
             {
-                for (int column = x; column < x + width; column += 4)
-                {
-                    indices[BlockIndex(0, column, row)] = value;
-                }
+                indices.Slice(start, width / 4).Fill(value);
             }
         }
 

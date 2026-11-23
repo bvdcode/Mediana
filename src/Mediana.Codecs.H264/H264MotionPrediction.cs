@@ -10,11 +10,36 @@ namespace Mediana.Codecs.H264
         {
             H264MotionSample a = picture.NeighbourMotionAt(list, x, y, x - 1, y);
             H264MotionSample b = picture.NeighbourMotionAt(list, x, y, x, y - 1);
-            H264MotionSample c = picture.NeighbourMotionAt(list, x, y, x + width, y - 1);
-            if (!c.Available)
+            H264MotionSample c = TopRight(picture, list, x, y, width);
+            return Predict(a, b, c, width, height, reference, partition);
+        }
+
+        public static H264PartitionMotion SpatialDirect(H264Picture picture, H264ReferenceList list, int x, int y)
+        {
+            H264MotionSample a = picture.NeighbourMotionAt(list, x, y, x - 1, y);
+            H264MotionSample b = picture.NeighbourMotionAt(list, x, y, x, y - 1);
+            H264MotionSample c = TopRight(picture, list, x, y, 16);
+            int reference = MinimumReference(a.ReferenceIndex, MinimumReference(b.ReferenceIndex, c.ReferenceIndex));
+            if (reference < 0)
             {
-                c = picture.NeighbourMotionAt(list, x, y, x - 1, y - 1);
+                return H264PartitionMotion.None;
             }
+            (int dx, int dy) = Predict(a, b, c, 16, 16, reference, 0);
+            return new H264PartitionMotion(reference, dx, dy);
+        }
+
+        private static int MinimumReference(int first, int second) =>
+            first >= 0 && second >= 0 ? Math.Min(first, second) : Math.Max(first, second);
+
+        private static H264MotionSample TopRight(H264Picture picture, H264ReferenceList list, int x, int y, int width)
+        {
+            H264MotionSample sample = picture.NeighbourMotionAt(list, x, y, x + width, y - 1);
+            return sample.Available ? sample : picture.NeighbourMotionAt(list, x, y, x - 1, y - 1);
+        }
+
+        private static (int X, int Y) Predict(H264MotionSample a, H264MotionSample b, H264MotionSample c,
+            int width, int height, int reference, int partition)
+        {
             if (width == 16 && height == 8)
             {
                 if (partition == 0 && b.ReferenceIndex == reference)
