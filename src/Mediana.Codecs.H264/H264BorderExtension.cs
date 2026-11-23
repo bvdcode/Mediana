@@ -23,10 +23,7 @@ namespace Mediana.Codecs.H264
         {
             if (x >= 0 && x <= rowBytes - width && y >= 0 && y <= rows - height)
             {
-                for (int row = 0; row < height; row++)
-                {
-                    samples.Slice(((int)y + row) * stride + (int)x, width).CopyTo(output.Slice(row * width, width));
-                }
+                H264BlockRows.Copy(samples[((int)y * stride + (int)x)..], stride, output, width, width, height);
                 return;
             }
             int left = (int)Math.Clamp(-x, 0, width);

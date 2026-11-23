@@ -110,16 +110,14 @@ namespace Mediana.Codecs.H264
             }
             target.SetMotion(H264ReferenceList.L0, x, y, width, height, referenceIndex, motionX, motionY);
             H264MacroblockPredictionContext context = H264MacroblockPredictionContext.Create(target, x, y);
-            Span<byte> block = stackalloc byte[target.LumaMacroblockBytes];
+            Span<byte> scratch = width == 16 ? [] : stackalloc byte[target.LumaMacroblockBytes];
             for (int plane = 0; plane < 3; plane++)
             {
-                int scale = target.HorizontalScale(plane);
-                int blockWidth = width / scale;
-                int blockHeight = height / target.VerticalScale(plane);
-                Span<byte> samples = block[..(blockWidth * blockHeight * target.SampleBytes)];
+                H264PredictionPartition partition = new(target, plane, x, y, width, height, prediction);
+                Span<byte> samples = partition.PackedSamples(scratch);
                 H264PredictionBlock.Read(reference, context.Structure, plane, context.X, context.Y, width, height, motionX, motionY, samples);
                 header.Weights?.Apply(context.WeightIndex(referenceIndex), plane, samples, target.Sequence.LumaBitDepth);
-                H264PredictionBlock.Write(target, plane, x, y, width, height, samples, prediction);
+                partition.Complete(samples);
             }
         }
     }

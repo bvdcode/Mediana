@@ -22,24 +22,20 @@ namespace Mediana.Codecs.H264
             target.SetMotion(H264ReferenceList.L0, x, y, width, height, l0.ReferenceIndex, l0.X, l0.Y);
             target.SetMotion(H264ReferenceList.L1, x, y, width, height, l1.ReferenceIndex, l1.X, l1.Y);
             H264MacroblockPredictionContext context = H264MacroblockPredictionContext.Create(target, x, y);
-            Span<byte> block0 = stackalloc byte[target.LumaMacroblockBytes];
-            Span<byte> block1 = stackalloc byte[target.LumaMacroblockBytes];
+            Span<byte> scratch = width == 16 ? [] : stackalloc byte[target.LumaMacroblockBytes];
+            Span<byte> second = reference0 is not null && reference1 is not null ? stackalloc byte[target.LumaMacroblockBytes] : [];
             for (int plane = 0; plane < 3; plane++)
             {
-                int scale = target.HorizontalScale(plane);
-                int count = width / scale * (height / target.VerticalScale(plane)) * target.SampleBytes;
-                Span<byte> samples0 = block0[..count];
-                Span<byte> samples1 = block1[..count];
+                H264PredictionPartition partition = new(target, plane, x, y, width, height, prediction);
+                Span<byte> samples = partition.PackedSamples(scratch);
                 if (reference0 is not null)
                 {
-                    H264PredictionBlock.Read(reference0, context.Structure, plane, context.X, context.Y, width, height, l0.X, l0.Y, samples0);
-                }
-                if (reference1 is not null)
-                {
-                    H264PredictionBlock.Read(reference1, context.Structure, plane, context.X, context.Y, width, height, l1.X, l1.Y, samples1);
+                    H264PredictionBlock.Read(reference0, context.Structure, plane, context.X, context.Y, width, height, l0.X, l0.Y, samples);
                 }
                 if (reference0 is not null && reference1 is not null)
                 {
+                    Span<byte> samples1 = second[..samples.Length];
+                    H264PredictionBlock.Read(reference1, context.Structure, plane, context.X, context.Y, width, height, l1.X, l1.Y, samples1);
                     H264BiPredictionWeights weights = header.Picture.WeightedBiPrediction switch
                     {
                         0 => H264BiPredictionWeights.Average,
@@ -48,19 +44,18 @@ namespace Mediana.Codecs.H264
                         2 => H264BiPredictionWeights.Implicit(context.SelectOrder(order), reference0, reference1),
                         _ => throw new InvalidDataException("Invalid H.264 B weighted prediction mode.")
                     };
-                    weights.Apply(samples0, samples1, samples0, target.Sequence.LumaBitDepth);
-                    H264PredictionBlock.Write(target, plane, x, y, width, height, samples0, prediction);
+                    weights.Apply(samples, samples1, samples, target.Sequence.LumaBitDepth);
                 }
                 else if (reference0 is not null)
                 {
-                    ApplySingle(header, H264ReferenceList.L0, context.WeightIndex(l0.ReferenceIndex), plane, samples0);
-                    H264PredictionBlock.Write(target, plane, x, y, width, height, samples0, prediction);
+                    ApplySingle(header, H264ReferenceList.L0, context.WeightIndex(l0.ReferenceIndex), plane, samples);
                 }
                 else
                 {
-                    ApplySingle(header, H264ReferenceList.L1, context.WeightIndex(l1.ReferenceIndex), plane, samples1);
-                    H264PredictionBlock.Write(target, plane, x, y, width, height, samples1, prediction);
+                    H264PredictionBlock.Read(reference1!, context.Structure, plane, context.X, context.Y, width, height, l1.X, l1.Y, samples);
+                    ApplySingle(header, H264ReferenceList.L1, context.WeightIndex(l1.ReferenceIndex), plane, samples);
                 }
+                partition.Complete(samples);
             }
         }
 
