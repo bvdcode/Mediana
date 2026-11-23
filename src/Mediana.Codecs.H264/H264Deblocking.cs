@@ -49,16 +49,9 @@ namespace Mediana.Codecs.H264
                 return;
             }
             cancellationToken.ThrowIfCancellationRequested();
-            int maximumQp = 0;
-            foreach (byte qp in picture.Quantizers)
-            {
-                maximumQp = Math.Max(maximumQp, qp - picture.LumaQuantizer.Offset);
-            }
-            maximumQp = Math.Max(maximumQp, Math.Max(
-                picture.ChromaQuantizer.ChromaValue(maximumQp, header.Picture.ChromaQpOffset) - picture.ChromaQuantizer.Offset,
-                picture.ChromaQuantizer.ChromaValue(maximumQp, header.Picture.SecondChromaQpOffset) - picture.ChromaQuantizer.Offset));
-            if (Alpha[Math.Clamp(maximumQp + header.AlphaOffset, 0, 51)] == 0 ||
-                Beta[Math.Clamp(maximumQp + header.BetaOffset, 0, 51)] == 0)
+            ReadOnlySpan<byte> quantizers = picture.Quantizers;
+            int firstFilterable = FirstFilterableQuantizer(picture, header);
+            if (!quantizers.ContainsAnyInRange((byte)firstFilterable, byte.MaxValue))
             {
                 return;
             }
@@ -74,6 +67,12 @@ namespace Mediana.Codecs.H264
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 int lumaX = address % columns * 16;
+                if (quantizers[address] < firstFilterable
+                    && (lumaX == 0 || quantizers[address - 1] < firstFilterable)
+                    && (address < columns || quantizers[address - columns] < firstFilterable))
+                {
+                    continue;
+                }
                 int lumaY = address / columns * 16;
                 context.BeginMacroblock(address);
                 FillStrengths(picture, header, address, lumaX, lumaY, true, ref context, strengths[..16]);
@@ -86,6 +85,23 @@ namespace Mediana.Codecs.H264
                     ApplyEdges(picture, header, plane, address, lumaX / scale, lumaY / verticalScale, false, strengths[16..]);
                 }
             }
+        }
+
+        private static int FirstFilterableQuantizer(H264Picture picture, H264SliceHeader header)
+        {
+            int chromaOffset = Math.Max(header.Picture.ChromaQpOffset, header.Picture.SecondChromaQpOffset);
+            for (int qp = 0; qp <= picture.LumaQuantizer.Maximum; qp++)
+            {
+                int luma = qp - picture.LumaQuantizer.Offset;
+                int chroma = picture.ChromaQuantizer.ChromaValue(luma, chromaOffset) - picture.ChromaQuantizer.Offset;
+                int highest = Math.Max(luma, chroma);
+                if (Alpha[Math.Clamp(highest + header.AlphaOffset, 0, 51)] != 0
+                    && Beta[Math.Clamp(highest + header.BetaOffset, 0, 51)] != 0)
+                {
+                    return qp;
+                }
+            }
+            return picture.LumaQuantizer.Maximum + 1;
         }
 
         private static void FillStrengths(H264Picture picture, H264SliceHeader header, int address, int x, int y,
