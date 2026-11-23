@@ -18,8 +18,17 @@ namespace Mediana.Codecs.H264
             uniformPrediction = null;
             uniformValidated = false;
             strengths.Clear();
+            int firstInterior = Math.Max(firstEdge, edgeStep);
             for (int edge = firstEdge; edge < 16; edge += edgeStep)
             {
+                if (edge == firstInterior)
+                {
+                    int first = y / 4 * stride + x / 4;
+                    if (HasOnlyPredictedSamples(first) && UniformPrediction(first, vertical))
+                    {
+                        break;
+                    }
+                }
                 for (int segment = 0; segment < 4; segment++)
                 {
                     int sampleX = x + (vertical ? edge : segment * 4);
@@ -27,6 +36,20 @@ namespace Mediana.Codecs.H264
                     strengths[edge + segment] = (byte)Strength(sampleX, sampleY, vertical, edge == 0, true);
                 }
             }
+        }
+
+        private readonly bool HasOnlyPredictedSamples(int first)
+        {
+            const uint interModes = H264Picture.InterMode * 0x01010101u;
+            for (int row = 0; row < 4; row++)
+            {
+                int start = first + row * stride;
+                if (MemoryMarshal.Read<uint>(modes[start..]) != interModes || MemoryMarshal.Read<uint>(counts[start..]) != 0)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private bool UniformPrediction(int position, bool vertical)

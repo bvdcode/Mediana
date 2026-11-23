@@ -44,7 +44,7 @@ namespace Mediana.Codecs.H264
             {
                 context = context.NextMostProbable();
             }
-            Normalize(ref reader);
+            if (range < 256) { Normalize(ref reader); }
             return value;
         }
 
@@ -82,7 +82,7 @@ namespace Mediana.Codecs.H264
                 terminated = true;
                 return true;
             }
-            Normalize(ref reader);
+            if (range < 256) { Normalize(ref reader); }
             return false;
         }
 

@@ -62,7 +62,10 @@ namespace Mediana.Codecs.H264
             {
                 context = context.NextMostProbable();
             }
-            Normalize();
+            if (range < 256)
+            {
+                Normalize();
+            }
             BinCount = checked(BinCount + 1);
         }
 
@@ -113,7 +116,7 @@ namespace Mediana.Codecs.H264
                 low += range;
                 range = 2;
             }
-            Normalize();
+            if (range < 256) { Normalize(); }
             if (value)
             {
                 PutBit((low & 512) != 0);

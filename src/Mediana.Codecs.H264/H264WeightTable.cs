@@ -51,6 +51,10 @@ namespace Mediana.Codecs.H264
         public void Apply(int reference, int plane, Span<byte> samples, int bitDepth = 8)
         {
             (int weight, int offset, int denominator) = Get(reference, plane);
+            if (bitDepth == 8 && offset == 0 && weight == 1 << denominator)
+            {
+                return;
+            }
             int rounding = denominator == 0 ? 0 : 1 << (denominator - 1);
             if (bitDepth > 8)
             {
