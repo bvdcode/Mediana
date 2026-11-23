@@ -37,7 +37,10 @@ namespace Mediana.Tests
                     {
                         picture.Plane(0).Fill((byte)(index * 31));
                         prepared.Prepare(picture, default);
-                        Assert.False(prepared.Diagonal.ContainsAnyExcept((byte)(index * 31)));
+                        H264LumaNeighborhood neighborhood = new(prepared, 16, 16);
+                        byte[] diagonal = new byte[256];
+                        neighborhood.Select(2, 2).Write(diagonal);
+                        Assert.False(diagonal.AsSpan().ContainsAnyExcept((byte)(index * 31)));
                         Assert.Equal(preparedBytes, allocator.AllocatedBytes);
                     }
                 }
@@ -90,7 +93,9 @@ namespace Mediana.Tests
                                 for (int dx = -3; dx <= 3; dx++)
                                 {
                                     output.AsSpan().Fill(183);
-                                    int error = neighborhood.Evaluate(dx, dy, comparison, output.AsSpan(3, 256), int.MaxValue);
+                                    H264LumaCandidate candidate = neighborhood.Select(dx, dy);
+                                    candidate.Write(output.AsSpan(3, 256));
+                                    int error = candidate.Difference(comparison, int.MaxValue);
                                     int expectedError = 0;
                                     for (int row = 0; row < 16; row++)
                                     {

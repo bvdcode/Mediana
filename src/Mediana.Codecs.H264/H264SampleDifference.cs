@@ -13,11 +13,16 @@ namespace Mediana.Codecs.H264
         public static int Sum16x16(ReadOnlySpan<byte> source, ReadOnlySpan<byte> prediction, int stride, int stop)
         {
             int sum = 0;
-            for (int row = 0; row < 16; row++)
+            for (int row = 0; row < 16; row += 4)
             {
-                Vector128<byte> left = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(source), (nuint)(row * 16));
-                Vector128<byte> right = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(prediction), (nuint)(row * stride));
-                sum += Sum16(left, right);
+                Vector128<ushort> partial = Vector128<ushort>.Zero;
+                for (int offset = 0; offset < 4; offset++)
+                {
+                    Vector128<byte> left = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(source), (nuint)((row + offset) * 16));
+                    Vector128<byte> right = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(prediction), (nuint)((row + offset) * stride));
+                    partial += Accumulate16(left, right);
+                }
+                sum += Total(partial);
                 if (sum > stop)
                 {
                     break;
@@ -27,15 +32,21 @@ namespace Mediana.Codecs.H264
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Sum16(Vector128<byte> left, Vector128<byte> right)
+        public static int Sum16(Vector128<byte> left, Vector128<byte> right) => Total(Accumulate16(left, right));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<ushort> Accumulate16(Vector128<byte> left, Vector128<byte> right)
         {
             if (Sse2.IsSupported)
             {
-                Vector128<ushort> sums = Sse2.SumAbsoluteDifferences(left, right);
-                return sums.GetElement(0) + sums.GetElement(4);
+                return Sse2.SumAbsoluteDifferences(left, right);
             }
             Vector128<byte> difference = Vector128.Subtract(Vector128.Max(left, right), Vector128.Min(left, right));
-            return Vector128.Sum(Vector128.WidenLower(difference)) + Vector128.Sum(Vector128.WidenUpper(difference));
+            return Vector128.WidenLower(difference) + Vector128.WidenUpper(difference);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Total(Vector128<ushort> sums) => Sse2.IsSupported
+            ? sums.GetElement(0) + sums.GetElement(4) : Vector128.Sum(sums);
     }
 }

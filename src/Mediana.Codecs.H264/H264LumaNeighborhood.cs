@@ -79,6 +79,7 @@ namespace Mediana.Codecs.H264
 
         internal H264LumaNeighborhood(H264MotionReference reference, int x, int y)
         {
+            reference.PrepareNeighborhood(x, y);
             samples = reference.Samples;
             horizontal = reference.Horizontal;
             vertical = reference.Vertical;
@@ -89,78 +90,36 @@ namespace Mediana.Codecs.H264
             halfOrigin = (y + reference.Range) * halfStride + x + reference.Range;
         }
 
-        /// <summary>Stops after the first row exceeding the error limit. An error within the limit guarantees a complete output block.</summary>
-        public int Evaluate(int x, int y, ReadOnlySpan<byte> comparison, Span<byte> output, int maximumError)
+        public H264LumaCandidate Select(int x, int y)
         {
             if (x is < -3 or > 3 || y is < -3 or > 3)
             {
                 throw new ArgumentOutOfRangeException(nameof(x), "The luma candidate must fit its prepared neighborhood.");
             }
-            if (comparison.Length != Block * Block || output.Length != Block * Block)
-            {
-                throw new ArgumentException("The luma comparison and prediction must be complete 16x16 blocks.");
-            }
             int left = x >> 2;
             int top = y >> 2;
             int integer = sampleOrigin + top * sampleStride + left;
             int half = halfOrigin + top * halfStride + left;
-            switch (x & 3, y & 3)
+            return (x & 3, y & 3) switch
             {
-                case (0, 0): return Copy(samples, sampleStride, integer, comparison, output, maximumError);
-                case (1, 0): return Average(samples, sampleStride, integer, horizontal, halfStride, half, comparison, output, maximumError);
-                case (2, 0): return Copy(horizontal, halfStride, half, comparison, output, maximumError);
-                case (3, 0): return Average(horizontal, halfStride, half, samples, sampleStride, integer + 1, comparison, output, maximumError);
-                case (0, 1): return Average(samples, sampleStride, integer, vertical, halfStride, half, comparison, output, maximumError);
-                case (1, 1): return Average(horizontal, halfStride, half, vertical, halfStride, half, comparison, output, maximumError);
-                case (2, 1): return Average(horizontal, halfStride, half, diagonal, halfStride, half, comparison, output, maximumError);
-                case (3, 1): return Average(horizontal, halfStride, half, vertical, halfStride, half + 1, comparison, output, maximumError);
-                case (0, 2): return Copy(vertical, halfStride, half, comparison, output, maximumError);
-                case (1, 2): return Average(vertical, halfStride, half, diagonal, halfStride, half, comparison, output, maximumError);
-                case (2, 2): return Copy(diagonal, halfStride, half, comparison, output, maximumError);
-                case (3, 2): return Average(diagonal, halfStride, half, vertical, halfStride, half + 1, comparison, output, maximumError);
-                case (0, 3): return Average(vertical, halfStride, half, samples, sampleStride, integer + sampleStride, comparison, output, maximumError);
-                case (1, 3): return Average(vertical, halfStride, half, horizontal, halfStride, half + halfStride, comparison, output, maximumError);
-                case (2, 3): return Average(diagonal, halfStride, half, horizontal, halfStride, half + halfStride, comparison, output, maximumError);
-                case (3, 3): return Average(vertical, halfStride, half + 1, horizontal, halfStride, half + halfStride, comparison, output, maximumError);
-                default: throw new InvalidOperationException("An H.264 luma fraction is outside its two-bit range.");
-            }
-        }
-
-        private static int Copy(ReadOnlySpan<byte> source, int stride, int start, ReadOnlySpan<byte> comparison, Span<byte> output, int maximumError)
-        {
-            int error = 0;
-            for (int row = 0; row < Block; row++)
-            {
-                Vector128<byte> prediction = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(source), (nuint)(start + row * stride));
-                Vector128<byte> original = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(comparison), (nuint)(row * Block));
-                error += H264SampleDifference.Sum16(original, prediction);
-                prediction.StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)(row * Block));
-                if (error > maximumError)
-                {
-                    break;
-                }
-            }
-            return error;
-        }
-
-        private static int Average(ReadOnlySpan<byte> first, int firstStride, int firstStart,
-            ReadOnlySpan<byte> second, int secondStride, int secondStart, ReadOnlySpan<byte> comparison, Span<byte> output, int maximumError)
-        {
-            int error = 0;
-            for (int row = 0; row < Block; row++)
-            {
-                Vector128<byte> a = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(first), (nuint)(firstStart + row * firstStride));
-                Vector128<byte> b = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(second), (nuint)(secondStart + row * secondStride));
-                Vector128<byte> rounded = H264SampleAverage.Rounded(a, b);
-                Vector128<byte> original = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(comparison), (nuint)(row * Block));
-                error += H264SampleDifference.Sum16(original, rounded);
-                rounded.StoreUnsafe(ref MemoryMarshal.GetReference(output), (nuint)(row * Block));
-                if (error > maximumError)
-                {
-                    break;
-                }
-            }
-            return error;
+                (0, 0) => new(samples[integer..], sampleStride),
+                (1, 0) => new(samples[integer..], sampleStride, horizontal[half..], halfStride),
+                (2, 0) => new(horizontal[half..], halfStride),
+                (3, 0) => new(horizontal[half..], halfStride, samples[(integer + 1)..], sampleStride),
+                (0, 1) => new(samples[integer..], sampleStride, vertical[half..], halfStride),
+                (1, 1) => new(horizontal[half..], halfStride, vertical[half..], halfStride),
+                (2, 1) => new(horizontal[half..], halfStride, diagonal[half..], halfStride),
+                (3, 1) => new(horizontal[half..], halfStride, vertical[(half + 1)..], halfStride),
+                (0, 2) => new(vertical[half..], halfStride),
+                (1, 2) => new(vertical[half..], halfStride, diagonal[half..], halfStride),
+                (2, 2) => new(diagonal[half..], halfStride),
+                (3, 2) => new(diagonal[half..], halfStride, vertical[(half + 1)..], halfStride),
+                (0, 3) => new(vertical[half..], halfStride, samples[(integer + sampleStride)..], sampleStride),
+                (1, 3) => new(vertical[half..], halfStride, horizontal[(half + halfStride)..], halfStride),
+                (2, 3) => new(diagonal[half..], halfStride, horizontal[(half + halfStride)..], halfStride),
+                (3, 3) => new(vertical[(half + 1)..], halfStride, horizontal[(half + halfStride)..], halfStride),
+                _ => throw new InvalidOperationException("An H.264 luma fraction is outside its two-bit range.")
+            };
         }
     }
 }
