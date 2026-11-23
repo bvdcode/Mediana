@@ -99,9 +99,8 @@ namespace Mediana.Codecs.Aac
                     int count = candidateBits[index];
                     if (count < 0)
                     {
-                        bands[band] = candidate;
-                        count = AacChannelEncoder.Count(bands.Slice(channel * channelBands, channelBands), bandsPerGroup, sectionBits);
-                        bands[band] = saved;
+                        count = AacBandRate.CountReplacement(bands.Slice(channel * channelBands, channelBands),
+                            band % channelBands, candidate, channelBits[channel], bandsPerGroup, sectionBits);
                         candidateBits[index] = count;
                     }
                     if (count == int.MaxValue)
