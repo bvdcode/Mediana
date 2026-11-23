@@ -59,7 +59,7 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private static H264ReferencePicture? Resolve(IReadOnlyList<H264ReferencePicture?> references, H264PartitionMotion motion)
+        internal static H264ReferencePicture? Resolve(IReadOnlyList<H264ReferencePicture?> references, H264PartitionMotion motion)
         {
             if (motion.ReferenceIndex == -1)
             {

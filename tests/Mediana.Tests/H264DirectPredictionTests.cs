@@ -12,6 +12,35 @@ namespace Mediana.Tests
         public void DirectRegionsPreserveEveryPixelAndBothMotionLists() => H264DirectRegionTestInput.Verify();
 
         [Theory]
+        [InlineData(8, 8)]
+        [InlineData(8, 16)]
+        [InlineData(16, 16)]
+        public void StationaryPredictionBlendsVisibleColumnsAtEveryImplicitWeight(int width, int height)
+        {
+            int stride = width + 5;
+            int length = (height - 1) * stride + width;
+            byte[] past = new byte[length];
+            byte[] future = new byte[length];
+            byte[] result = new byte[length];
+            for (int index = 0; index < length; index++)
+            {
+                past[index] = (byte)(index * 73 + 17);
+                future[index] = (byte)(255 - past[index]);
+            }
+            for (int weight = 0; weight <= 64; weight++)
+            {
+                Array.Fill(result, (byte)91);
+                H264StationaryBiPrediction.BlendRows(past, future, result, stride, width, height, weight);
+                for (int index = 0; index < length; index++)
+                {
+                    int expected = index % stride < width
+                        ? (past[index] * (64 - weight) + future[index] * weight + 32) >> 6 : 91;
+                    Assert.Equal((byte)expected, result[index]);
+                }
+            }
+        }
+
+        [Theory]
         [InlineData(false, false)]
         [InlineData(false, true)]
         [InlineData(true, false)]

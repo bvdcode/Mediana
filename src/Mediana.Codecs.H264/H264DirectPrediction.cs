@@ -13,8 +13,34 @@ namespace Mediana.Codecs.H264
             H264PictureOrder order, int x, int y, Span<byte> prediction)
             => PredictRegion(target, header, references, order, x, y, 16, prediction);
 
+        public static void ReconstructSkip(H264Picture target, H264SliceHeader header, H264BidirectionalReferences references,
+            H264PictureOrder order, int x, int y, Span<byte> prediction)
+            => PredictRegion(target, header, references, order, x, y, 16, prediction, reconstruct: true);
+
         private static void PredictRegion(H264Picture target, H264SliceHeader header, H264BidirectionalReferences references,
-            H264PictureOrder order, int x, int y, int regionSize, Span<byte> prediction)
+            H264PictureOrder order, int x, int y, int regionSize, Span<byte> prediction, bool reconstruct = false)
+        {
+            Span<H264DirectMotion> motions = stackalloc H264DirectMotion[16];
+            int count = ReadMotion(target, header, references, order, x, y, regionSize, motions);
+            if (reconstruct && count == 1 && H264StationaryBiPrediction.TryWrite(target, header, references, order, x, y, motions[0]))
+            {
+                return;
+            }
+            int size = count == 1 ? regionSize : header.Sequence.Direct8x8Inference ? 8 : 4;
+            int columns = regionSize / size;
+            for (int index = 0; index < count; index++)
+            {
+                H264BidirectionalPrediction.PredictPartition(target, header, references, order, x + index % columns * size,
+                    y + index / columns * size, size, size, motions[index].L0, motions[index].L1, prediction);
+            }
+            if (reconstruct)
+            {
+                target.WriteInterPrediction(x, y, prediction);
+            }
+        }
+
+        private static int ReadMotion(H264Picture target, H264SliceHeader header, H264BidirectionalReferences references,
+            H264PictureOrder order, int x, int y, int regionSize, Span<H264DirectMotion> motions)
         {
             H264ReferencePicture colocated = references.L1.Count > 0 && references.L1[0] is H264ReferencePicture reference
                 ? reference : throw new InvalidDataException("H.264 direct prediction has no co-located picture.");
@@ -37,13 +63,11 @@ namespace Mediana.Codecs.H264
                 colocatedZero = new(ApplyColocatedZero(spatial.L0), ApplyColocatedZero(spatial.L1));
                 if ((spatial == colocatedZero || colocated.LongTermIndex is not null) && source.SharesFrameGrid)
                 {
-                    H264BidirectionalPrediction.PredictPartition(target, header, references, order, x, y, regionSize, regionSize,
-                        spatial.L0, spatial.L1, prediction);
-                    return;
+                    motions[0] = spatial;
+                    return 1;
                 }
             }
             int size = header.Sequence.Direct8x8Inference ? 8 : 4;
-            Span<H264DirectMotion> motions = stackalloc H264DirectMotion[16];
             int count = 0;
             bool uniform = true;
             for (int row = 0; row < regionSize; row += size)
@@ -91,18 +115,7 @@ namespace Mediana.Codecs.H264
                     motions[count++] = direct;
                 }
             }
-            if (uniform)
-            {
-                H264BidirectionalPrediction.PredictPartition(target, header, references, order, x, y, regionSize, regionSize,
-                    motions[0].L0, motions[0].L1, prediction);
-                return;
-            }
-            int columns = regionSize / size;
-            for (int index = 0; index < count; index++)
-            {
-                H264BidirectionalPrediction.PredictPartition(target, header, references, order, x + index % columns * size,
-                    y + index / columns * size, size, size, motions[index].L0, motions[index].L1, prediction);
-            }
+            return uniform ? 1 : count;
         }
 
         private static H264PartitionMotion ApplyColocatedZero(H264PartitionMotion predicted) =>

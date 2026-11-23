@@ -9,17 +9,7 @@ namespace Mediana.Codecs.H264
     {
         public void WriteStationarySkip(H264Picture reference, int x, int y, int blocks = 1)
         {
-            // Unvisited macroblocks have zero coefficient counts and motion vectors.
-            int blockStride = Width / 4;
-            int first = y / 4 * blockStride + x / 4;
-            Span<byte> modes = Modes;
-            Span<byte> indices = ReferenceIndices(H264ReferenceList.L0);
-            for (int row = 0; row < 4; row++)
-            {
-                int start = first + row * blockStride;
-                modes.Slice(start, 4 * blocks).Fill(InterMode);
-                indices.Slice(start, 4 * blocks).Clear();
-            }
+            MarkStationarySkip(x, y, blocks, 0, -1);
             for (int plane = 0; plane < 3; plane++)
             {
                 int horizontal = HorizontalScale(plane);
@@ -28,6 +18,23 @@ namespace Mediana.Codecs.H264
                 int offset = y / vertical * stride + x / horizontal * SampleBytes;
                 H264BlockRows.Copy(reference.ReadPlane(plane)[offset..], stride, Plane(plane)[offset..], stride,
                     16 / horizontal * SampleBytes * blocks, 16 / vertical);
+            }
+        }
+
+        public void MarkStationarySkip(int x, int y, int blocks, int reference0, int reference1)
+        {
+            // Unvisited macroblocks have zero coefficients and vectors, with both reference indices unavailable.
+            Span<byte> modes = Modes;
+            Span<byte> past = reference0 >= 0 ? ReferenceIndices(H264ReferenceList.L0) : [];
+            Span<byte> future = reference1 >= 0 ? ReferenceIndices(H264ReferenceList.L1) : [];
+            int start = BlockIndex(0, x, y);
+            int stride = Width / 4;
+            int count = 4 * blocks;
+            for (int row = 0; row < 4; row++, start += stride)
+            {
+                modes.Slice(start, count).Fill(InterMode);
+                if (!past.IsEmpty) { past.Slice(start, count).Fill((byte)reference0); }
+                if (!future.IsEmpty) { future.Slice(start, count).Fill((byte)reference1); }
             }
         }
 

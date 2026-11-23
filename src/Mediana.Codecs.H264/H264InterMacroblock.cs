@@ -33,14 +33,14 @@ namespace Mediana.Codecs.H264
                 return;
             }
             bool noSmallPartitions = H264InterPrediction.Read(ref bits, new H264CavlcPredictionReader(), target, header, references, x, y, type, prediction);
-            ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions, false);
+            ReadResidual(ref bits, target, header, address, ref qp, prediction, noSmallPartitions);
         }
 
         public static void ReadResidual(ref H264BitReader bits, H264Picture target, H264SliceHeader header, int address,
-            ref int qp, scoped ReadOnlySpan<byte> prediction, bool noSmallPartitions, bool skip)
+            ref int qp, scoped ReadOnlySpan<byte> prediction, bool noSmallPartitions)
         {
             (int x, int y) = target.Grid.Position(address);
-            int pattern = skip ? 0 : ReadPattern(ref bits, target);
+            int pattern = ReadPattern(ref bits, target);
             if ((pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions && bits.ReadFlag())
             {
                 target.Transforms8x8[address] = 1;

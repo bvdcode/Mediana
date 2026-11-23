@@ -97,8 +97,7 @@ namespace Mediana.Codecs.H264
                             H264InterPrediction.ReconstructSkip(result, header, selected.L0, x, y, prediction);
                             break;
                         case H264SliceKind.B:
-                            H264DirectPrediction.PredictMacroblock(result, header, selected, order, x, y, prediction);
-                            result.WriteInterPrediction(x, y, prediction);
+                            H264DirectPrediction.ReconstructSkip(result, header, selected, order, x, y, prediction);
                             break;
                         default:
                             throw new InvalidDataException("Only P and B slices can contain skipped macroblocks.");
