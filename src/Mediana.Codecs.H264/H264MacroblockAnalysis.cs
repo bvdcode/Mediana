@@ -6,7 +6,7 @@ namespace Mediana.Codecs.H264
     /// <summary>Controls the prediction modes considered by the H.264 encoder.</summary>
     public enum H264MacroblockAnalysis
     {
-        /// <summary>Uses motion-compensated prediction for predictive pictures.</summary>
+        /// <summary>Uses motion search and, with CABAC, compares spatial and temporal prediction errors in predictive pictures.</summary>
         Fast,
         /// <summary>Probes quantized skip and compares selected Intra16 candidates by reconstruction error and CABAC rate.</summary>
         RateDistortion

@@ -116,11 +116,7 @@ namespace Mediana.Codecs.H264
                 int mode = H264Intra16ModeSearch.Select(source, target, x, y, prediction[..256]);
                 target.PredictMacroblock(0, x, y, mode, prediction[..256]);
                 int chromaMode = H264ChromaModeSearch.Select(target, x, y, source.Chroma, prediction[256..]);
-                int intraPattern = H264Intra16Encoder.AnalyzePrediction(source, quantizer, prediction, coefficients);
-                syntax.WriteIntra16Type(address, mode, intraPattern);
-                syntax.WriteChromaMode(address, chromaMode);
-                syntax.WriteQuantizerDelta(0);
-                H264Intra16Encoder.TryWrite(syntax, target, x, y, quantizer, intraPattern, prediction, coefficients);
+                H264Intra16Encoder.WriteCabac(syntax, source, target, address, x, y, quantizer, mode, chromaMode, prediction, coefficients);
                 return;
             }
             syntax.WriteIntraType(address);
@@ -144,7 +140,7 @@ namespace Mediana.Codecs.H264
                 ? (0, 0) : H264MotionPrediction.Skip(target, x, y);
             int motionX;
             int motionY;
-            bool zeroResidual;
+            int temporalDifference;
             bool skip = TAnalysis.Enabled
                 ? analysis!.TrySkip(source, reference, address, x, y, skipX, skipY, searchRange, prediction, interpolation)
                 : skipX == 0 && skipY == 0 && !source.Luma.ContainsAnyExcept(source.Luma[0]) &&
@@ -153,16 +149,22 @@ namespace Mediana.Codecs.H264
             {
                 motionX = skipX;
                 motionY = skipY;
-                zeroResidual = true;
+                temporalDifference = 0;
             }
             else
             {
-                (motionX, motionY, zeroResidual) = H264MotionSearch.Select<TAnalysis>(source, reference, target, x, y,
+                (motionX, motionY, temporalDifference) = H264MotionSearch.SelectWithDifference<TAnalysis>(source, reference, target, x, y,
                     searchRange, prediction, token, interpolation);
             }
             int pattern = 0;
-            if (!zeroResidual)
+            if (temporalDifference != 0)
             {
+                if (!TAnalysis.Enabled && H264FastIntraCandidate.TryWrite(syntax, source, target, address, x, y,
+                    quantizer, temporalDifference, coefficients))
+                {
+                    stationary?.Record(address, source.Samples, false);
+                    return;
+                }
                 pattern = H264InterEncoder.AnalyzeLuma(source.Luma, quantizer, prediction[..256], coefficients[..256]);
                 pattern |= H264ChromaEncoder.Analyze(source.Chroma, quantizer, prediction[256..], coefficients[256..]) << 4;
             }

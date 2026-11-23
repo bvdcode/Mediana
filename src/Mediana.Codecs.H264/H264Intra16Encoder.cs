@@ -27,6 +27,16 @@ namespace Mediana.Codecs.H264
             return TryWrite(new H264CavlcEncodingSyntax(bits, target), target, x, y, qp, pattern, prediction, coefficients);
         }
 
+        public static void WriteCabac(H264CabacEncodingSyntax syntax, H264SourceMacroblock source, H264Picture target,
+            int address, int x, int y, int quantizer, int mode, int chromaMode, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+        {
+            int intraPattern = AnalyzePrediction(source, quantizer, prediction, coefficients);
+            syntax.WriteIntra16Type(address, mode, intraPattern);
+            syntax.WriteChromaMode(address, chromaMode);
+            syntax.WriteQuantizerDelta(0);
+            TryWrite(syntax, target, x, y, quantizer, intraPattern, prediction, coefficients);
+        }
+
         public static int Analyze(H264SourceMacroblock source, H264Picture target, int x, int y, int qp, int mode,
             Span<byte> prediction, Span<int> coefficients)
         {

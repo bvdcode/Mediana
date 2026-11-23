@@ -7,7 +7,7 @@ namespace Mediana.Codecs.H264
     {
         /// <summary>Base QP, from 0 through 51. Macroblocks may increase QP to satisfy Baseline syntax and bit limits.</summary>
         public int Quantizer { get; init; } = 26;
-        /// <summary>CAVLC uses Baseline profile; CABAC uses Main profile without changing prediction or quantization.</summary>
+        /// <summary>CAVLC uses Baseline profile; CABAC uses Main profile and supports intra prediction in P pictures.</summary>
         public H264EntropyCoding EntropyCoding { get; init; } = H264EntropyCoding.Cavlc;
         /// <summary>Prediction analysis policy. Rate-distortion analysis requires CABAC; quality, compression and cost depend on the content.</summary>
         public H264MacroblockAnalysis MacroblockAnalysis { get; init; } = H264MacroblockAnalysis.Fast;

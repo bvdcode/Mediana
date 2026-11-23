@@ -7,7 +7,13 @@ namespace Mediana.Codecs.H264
     {
         public static int Select(H264SourceMacroblock source, H264Picture target, int x, int y, Span<byte> prediction)
         {
-            int selected = 2, minimum = int.MaxValue;
+            return Select(source, target, x, y, prediction, out _);
+        }
+
+        public static int Select(H264SourceMacroblock source, H264Picture target, int x, int y, Span<byte> prediction, out int minimum)
+        {
+            int selected = 2;
+            minimum = int.MaxValue;
             for (int mode = 0; mode < 4; mode++)
             {
                 bool available = mode switch
@@ -21,7 +27,7 @@ namespace Mediana.Codecs.H264
                 if (!available) { continue; }
                 target.PredictMacroblock(0, x, y, mode, prediction);
                 int difference = H264SampleDifference.Sum16x16(source.Luma, prediction, 16, minimum);
-                if (difference == 0) { return mode; }
+                if (difference == 0) { minimum = 0; return mode; }
                 if (difference < minimum) { minimum = difference; selected = mode; }
             }
             return selected;

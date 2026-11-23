@@ -23,8 +23,8 @@
     "stderr": "",
     "bytes": 187680,
     "completePixelsEqual": true,
-    "transport_sha256": "7f95f1a7b7842c37f832c60cd01130a397d3cfa53de3ea0dc5ebffb45fc63884",
-    "pixels_sha256": "d98914a2a42b3fd892310f19f3fb54807abbb27df1cb84c313985b1e70aacf67"
+    "transport_sha256": "5278f0676afc252fe06290e0a3d41e96f48b9b211aaf81ea6b13a5c8cf9bfc02",
+    "pixels_sha256": "e37159d6596e12b50f6f82b79b0dd22cfd4f0d32522754c81a9fc3250b75b632"
   },
   {
     "case": "cabac-1-qp0",
@@ -32,8 +32,8 @@
     "stderr": "",
     "bytes": 187680,
     "completePixelsEqual": true,
-    "transport_sha256": "b3624492c78b94f705d9015779f32f21dace372de52a76b3f8b125ce3ceeaf71",
-    "pixels_sha256": "ad5801e5ad54e778faf0edc8b67f829d52c29970cbb927473c6d54c78b295e3d"
+    "transport_sha256": "3d4bfc7dbfd0dfc7452dc730569c1afa58fcf077e26cbababf136ce4dec1ea28",
+    "pixels_sha256": "66931270c42b4d840060046ab050413e71539ba42e0a1fc18ac7df012cbf003a"
   },
   {
     "case": "cabac-1-qp12",
@@ -41,8 +41,8 @@
     "stderr": "",
     "bytes": 187680,
     "completePixelsEqual": true,
-    "transport_sha256": "028c2f3bb7f877afef9fa42176b479fe4893a86a7b566c273c4d5a164cb932d2",
-    "pixels_sha256": "de4100b8057f738d259da9f9059198f0fb5af26b73455e025147be0a49651916"
+    "transport_sha256": "e064515d0497f8590c9c8726748732b540407cffe867c8d424610fb3ef9ea7cf",
+    "pixels_sha256": "3a228b22b280ad661c47142bb175ddf79c41e03d3e9f3ce691f116cc9d1f8fcc"
   },
   {
     "case": "cabac-1-qp26-32000",
@@ -50,8 +50,8 @@
     "stderr": "",
     "bytes": 187680,
     "completePixelsEqual": true,
-    "transport_sha256": "a18b94d9dcfc76dd576e4f6f55db462139c20932e65aaaec8e3115bcd1a2091a",
-    "pixels_sha256": "1e9430cf860b9f2b9e149b551bd0ccdb917247101115eff1b103b9d9c510e2f4"
+    "transport_sha256": "3bce5a38a29526cda2f49aace21ba77418a72d922fd9a497ede3266c135fd085",
+    "pixels_sha256": "e71c90cf7e2069b1ff06c789d3ae25d2f7ee95cd76188b5bba0a7f69ad22f28f"
   },
   {
     "case": "cabac-1-qp26",
@@ -59,8 +59,8 @@
     "stderr": "",
     "bytes": 187680,
     "completePixelsEqual": true,
-    "transport_sha256": "382a4355601fa9916c4435d0d5c6c0fbd6a496f4de98741ed72688f163d01bb7",
-    "pixels_sha256": "677909d6a2311296f2dc30e2b4fde6db7007e90eb04abfd210e9bf49c38cd758"
+    "transport_sha256": "60f8c71947d9b3a60995a454940fbccbdaa50e930e2c77ac798829872a95129f",
+    "pixels_sha256": "7e332bfbacd1d5e41a1b1fb657e45fe9edcb7d431b296892446587e2ebfded30"
   },
   {
     "case": "cabac-1-qp38",
@@ -68,8 +68,8 @@
     "stderr": "",
     "bytes": 187680,
     "completePixelsEqual": true,
-    "transport_sha256": "f3c56f423a04e0c6e68cf176acb58701e57da952faae374947328326578a25e1",
-    "pixels_sha256": "a28dde258f6026db4a59b8870e84513001aaf69ced75830fa9e36a36da6c860c"
+    "transport_sha256": "ca113c9d9d6eb78cd50ab376f7c03dfe3663a8164127ddda8273d68bdaf59568",
+    "pixels_sha256": "ef9c3ea4ecdf6e96ecc6d97913bbf7461562d4a9d810a494ae1dec1e26f903e2"
   },
   {
     "case": "cabac-1-qp51",
@@ -77,8 +77,8 @@
     "stderr": "",
     "bytes": 187680,
     "completePixelsEqual": true,
-    "transport_sha256": "16065b04e58c26454b6ae331f8c3e1cef22bb3563af94a9fdf71e38544c168dc",
-    "pixels_sha256": "88efe92afa393aaf4e053874097a457152441f5e89f255a57eed968cbb9ef51e"
+    "transport_sha256": "f986e97deb67cc2263e44ab93ffa98bf45de5da80264bcdafa47b5cbdb554b91",
+    "pixels_sha256": "55380f3753d1ee63564d6f5d06ac062391baf98a28da1231fafbb7975ae883a4"
   },
   {
     "case": "cabac-2-qp0",
@@ -86,8 +86,8 @@
     "stderr": "",
     "bytes": 184320,
     "completePixelsEqual": true,
-    "transport_sha256": "c28f68fa49553cac4bd16466e55e41679dd4bf0625539462467f4e2d17c7e325",
-    "pixels_sha256": "5d8368740bd39011ba9d5ce3dacc85375c78f53c3cf2ab2015a30956faa22254"
+    "transport_sha256": "20f9218d399599969ca5ebbdc2225364a1abb2ce89c521e792f76847abb0244d",
+    "pixels_sha256": "5466cc8016672c8e98449a46f701c7efdfb5dcf6598ef4de605394ce24f37dbd"
   },
   {
     "case": "cabac-2-qp26",
@@ -95,8 +95,8 @@
     "stderr": "",
     "bytes": 184320,
     "completePixelsEqual": true,
-    "transport_sha256": "454b02a71c95a8030159d0884b229fce5dd919b11cef6d8b1505cba43ae6ea88",
-    "pixels_sha256": "2ad3f2cbce2316cda2ac822b7ca694c48e926160a236204ce744c5306e58cff2"
+    "transport_sha256": "f1268998488b41b8f12ca23c1bdbc912112b801eaf796a429550ac4d3c50f628",
+    "pixels_sha256": "2f4bc2cfccbca5d9a9eef80b3bd34a0c650918fc66d42229c0ed795f2956310a"
   },
   {
     "case": "cabac-2-qp51",
@@ -113,8 +113,8 @@
     "stderr": "",
     "bytes": 204000,
     "completePixelsEqual": true,
-    "transport_sha256": "8e15442171944440f55d1cc6d17f39072be0162e17d807fa498bd36e5d1e9499",
-    "pixels_sha256": "7b73ae62df4064364e50c580488c47d6330f29331e4b8cfd0ff55b55d151ecee"
+    "transport_sha256": "8cb7b3e57e221d0e1760e5d20ac0dc2c82bdbe643150e7fbbe6aa30782db1217",
+    "pixels_sha256": "547a8be0a0e93b12146c2066589fb9db254f71605ad82d6b565a0867b9b96a9c"
   },
   {
     "case": "cabac-3-qp51-40000",
@@ -122,7 +122,7 @@
     "stderr": "",
     "bytes": 204000,
     "completePixelsEqual": true,
-    "transport_sha256": "e48dc8bd865f52d2ea16ddf68eabd6e469797c71ad20f7f839fb8301035c58df",
-    "pixels_sha256": "edcacfcea29ec591eea9bd765f77844d926da4ca8ae2326023b9071c59115b4b"
+    "transport_sha256": "b734c0aef019eaadbc993c48f920c899ae26e71f7dc781bb3ea0143c9fa50315",
+    "pixels_sha256": "e7f189bc4e1a17998050e80be0f8cc2977509781d179c826b36a33a064176bf5"
   }
 ]

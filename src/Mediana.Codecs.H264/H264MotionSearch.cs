@@ -41,13 +41,23 @@ namespace Mediana.Codecs.H264
             int x, int y, int range, Span<byte> prediction, CancellationToken token, H264MotionReference? interpolation = null)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
+            (int motionX, int motionY, int difference) = SelectWithDifference<TAnalysis>(input, reference, target,
+                x, y, range, prediction, token, interpolation);
+            return (motionX, motionY, difference == 0);
+        }
+
+        public static (int X, int Y, int Difference) SelectWithDifference<TAnalysis>(H264SourceMacroblock input,
+            H264Picture reference, H264Picture target, int x, int y, int range, Span<byte> prediction,
+            CancellationToken token, H264MotionReference? interpolation)
+            where TAnalysis : struct, IH264MacroblockAnalysisStrategy
+        {
             token.ThrowIfCancellationRequested();
             (int predictedX, int predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
             H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), input.Samples, prediction, interpolation);
             if (search.best == 0 && predictedX == 0 && predictedY == 0)
             {
                 input.Samples.CopyTo(prediction);
-                return (0, 0, true);
+                return (0, 0, 0);
             }
             // With a zero predictor the integer diamond stays at the origin on a tie.
             // A constant six-tap footprint also makes every fractional refinement identical.
@@ -59,7 +69,7 @@ namespace Mediana.Codecs.H264
                 prediction[..256].Fill(luma);
                 prediction.Slice(256, 64).Fill(blue);
                 prediction.Slice(320, 64).Fill(red);
-                return (0, 0, false);
+                return (0, 0, search.best);
             }
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
             if (TAnalysis.Enabled) { search.Seed(target, range); }
@@ -73,7 +83,7 @@ namespace Mediana.Codecs.H264
             {
                 search.WritePrediction();
             }
-            return (search.motionX, search.motionY, search.best == 0);
+            return (search.motionX, search.motionY, search.best);
         }
 
         private void Scan(int range, CancellationToken token)

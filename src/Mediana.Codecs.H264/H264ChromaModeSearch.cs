@@ -10,10 +10,15 @@ namespace Mediana.Codecs.H264
     {
         public static int Select(H264Picture target, int x, int y, ReadOnlySpan<byte> source, Span<byte> prediction)
         {
+            return Select(target, x, y, source, prediction, out _);
+        }
+
+        public static int Select(H264Picture target, int x, int y, ReadOnlySpan<byte> source, Span<byte> prediction, out int best)
+        {
             bool left = target.IsInCurrentSlice(x - 1, y);
             bool top = target.IsInCurrentSlice(x, y - 1);
             Span<byte> candidate = stackalloc byte[128];
-            int best = int.MaxValue;
+            best = int.MaxValue;
             int selected = 0;
             for (int mode = 0; mode < 4; mode++)
             {
