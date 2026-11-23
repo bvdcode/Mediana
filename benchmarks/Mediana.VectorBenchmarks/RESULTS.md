@@ -27,7 +27,7 @@ Other sizes and scenes:
 
 - At 64 px, effect-heavy SVG and TGS rendering improved 3.20× and 3.97×.
 - At 640 px, TGS effects improved 4.93×; translucent trimmed groups improved 4.26×. The SVG effects case had substantial elapsed-time variation; its median CPU time fell from 535.63 to 218.72 ms/image.
-- The larger rotated-blur scene improved only 1.20× elapsed and 1.06× CPU; its convolution cost remains a separate optimization opportunity.
+- The larger blur scene improved only 1.20× elapsed and 1.06× CPU; its convolution cost remains a separate optimization opportunity.
 - Geometry-only TGS and the simple orbit scene remained approximately unchanged, including 2% slower medians in two cases. The improvements primarily affect filtering and compositing.
 - Cumulative allocations generally declined slightly. Peak process memory was mostly comparable, with a 7.2 MiB increase in the concurrent SVG case. These changes do not establish a general reduction in peak memory.
 
