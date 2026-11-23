@@ -20,8 +20,13 @@ namespace Mediana.NativeTests
                     Mediana.Tests.SceneFilterPixelTestInput.VerifyTransfer(linear, overwrite);
                 }
                 Mediana.Tests.SceneFilterPixelTestInput.VerifyOffsets(linear);
+                foreach (string edge in new[] { "none", "duplicate", "wrap" })
+                {
+                    Mediana.Tests.SceneFilterPixelTestInput.VerifyGaussian(linear, edge);
+                }
             }
             Mediana.Tests.SceneFilterPixelTestInput.VerifyCancellation();
+            Mediana.Tests.SceneFilterPixelTestInput.VerifyGaussianBudget();
             Mediana.Tests.TranslatedImageTestInput.Verify();
             Mediana.Tests.TranslatedImageTestInput.VerifyStridedFrame();
             using PixelBuffer pixels = new(96, 96);

@@ -97,6 +97,16 @@ namespace Mediana.Codecs.H264
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<byte> Diagonal4Samples(ReadOnlySpan<short> horizontal, int stride, int start)
+        {
+            Vector128<int> outer = Read4(horizontal, start) + Read4(horizontal, start + 5 * stride);
+            Vector128<int> middle = Read4(horizontal, start + stride) + Read4(horizontal, start + 4 * stride);
+            Vector128<int> inner = Read4(horizontal, start + 2 * stride) + Read4(horizontal, start + 3 * stride);
+            Vector128<int> sum = outer - middle * Vector128.Create(5) + inner * Vector128.Create(20);
+            return Pack(Vector128.ShiftRightArithmetic(sum + Vector128.Create(512), 10), Vector128<int>.Zero);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Vector128<int> Diagonal4(ReadOnlySpan<int> horizontal, int stride, int start)
         {
             Vector128<int> outer = Read4(horizontal, start) + Read4(horizontal, start + 5 * stride);
@@ -138,5 +148,9 @@ namespace Mediana.Codecs.H264
 
         private static Vector128<int> Read4(ReadOnlySpan<int> horizontal, int start) =>
             Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)start);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static Vector128<int> Read4(ReadOnlySpan<short> horizontal, int start) =>
+            Vector128.WidenLower(Vector64.LoadUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)start).ToVector128());
     }
 }

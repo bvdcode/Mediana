@@ -91,6 +91,77 @@ namespace Mediana.Tests
             RequireCanceled(() => SceneFilterKernels.Offset(input, Vector2.Zero, false, context));
             RequireCanceled(() => SceneFilterKernels.ColorMatrix(new float[20], input, false, context, true));
             RequireCanceled(() => SceneFilterKernels.Transfer([x => x, x => x, x => x, x => x], input, false, context, true));
+            RequireCanceled(() => SceneFilterKernels.GaussianAxis(input, new(3, 0), false, "none", context));
+            RequireCanceled(() => SceneFilterKernels.GaussianAxis(input, new(2, 3), true, "wrap", context));
+        }
+
+        internal static void VerifyGaussian(bool linear, string edge)
+        {
+            Vector2[] axes = [new(.01f, 0), new(.34f, 0), new(1.7f, 0), new(-7.3f, 0), new(0, 2.1f), new(0, -9.7f), new(32, 0),
+                new(1.7f, 2.3f), new(-7.3f, 1.4f), new(.002f, 3.1f), new(3.7f, -.002f), new(-2.3f, -4.1f), new(200, -158)];
+            foreach ((int width, int height) in new[] { (1, 1), (7, 3), (19, 17), (43, 9) })
+            {
+                for (int pattern = 0; pattern < 3; pattern++)
+                {
+                    using PixelBuffer input = new(width, height);
+                    Random random = new(1729);
+                    random.NextBytes(input.Pixels.Span);
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            if (pattern == 2 || (pattern == 1 && (x < width / 3 || x > width / 2 || y == 0)))
+                            { input[x, y] = input[x, y] with { A = 0 }; }
+                        }
+                    }
+                    foreach (Vector2 axis in axes)
+                    {
+                        float sigma = axis.Length();
+                        int radius = (int)MathF.Ceiling(sigma * 3);
+                        float[] weights = new float[2 * radius + 1];
+                        float total = 0;
+                        for (int i = -radius; i <= radius; i++)
+                        {
+                            weights[i + radius] = MathF.Exp(-(i * i) / (2 * sigma * sigma));
+                            total += weights[i + radius];
+                        }
+                        for (int i = 0; i < weights.Length; i++) { weights[i] /= total; }
+                        using PixelBuffer expected = new(width, height);
+                        Vector2 direction = axis / sigma;
+                        for (int y = 0; y < height; y++)
+                        {
+                            for (int x = 0; x < width; x++)
+                            {
+                                Vector4 sum = Vector4.Zero;
+                                for (int i = -radius; i <= radius; i++)
+                                { sum += ScenePixels.Sample(input, x + direction.X * i, y + direction.Y * i, linear, edge) * weights[i + radius]; }
+                                ScenePixels.Write(expected.Pixels.Span, (y * width + x) * 4, sum, linear);
+                            }
+                        }
+                        using SceneRenderContext context = new(new(), default);
+                        using SceneBufferScope scope = context.BeginBuffers();
+                        PixelBuffer actual = SceneFilterKernels.GaussianAxis(input, axis, linear, edge, context);
+                        if (!actual.Pixels.Span.SequenceEqual(expected.Pixels.Span))
+                        { throw new InvalidDataException($"Gaussian pixels differ: {width}x{height}, pattern {pattern}, axis {axis}, linear {linear}, edge {edge}."); }
+                    }
+                }
+            }
+        }
+
+        internal static void VerifyGaussianBudget()
+        {
+            using PixelBuffer input = new(8, 5);
+            input.Clear(new(27, 94, 185, 128));
+            using SceneRenderContext context = new(new() { MaximumEffectBytes = 1024 }, default);
+            bool rejected = false;
+            using (SceneBufferScope scope = context.BeginBuffers())
+            {
+                try { SceneFilterKernels.GaussianAxis(input, new(2, 3), false, "wrap", context); }
+                catch (InvalidOperationException exception) when (exception.Message.Contains("MaximumEffectBytes", StringComparison.Ordinal))
+                { rejected = true; }
+            }
+            Require(rejected);
+            using IDisposable reservation = context.Reserve(256, 1, 1);
         }
 
         private static PixelBuffer Input()

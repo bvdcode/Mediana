@@ -36,7 +36,7 @@ namespace Mediana.Codecs.H264
             }
         }
 
-        private static void PrepareHorizontal(ReadOnlySpan<byte> samples, int stride, int width, int height, Span<int> horizontal)
+        private static void PrepareHorizontal(ReadOnlySpan<byte> samples, int stride, int width, int height, Span<short> horizontal)
         {
             for (int row = 0; row < height + Padding; row++)
             {
@@ -44,23 +44,22 @@ namespace Mediana.Codecs.H264
                 for (; column <= width - Vector128<short>.Count; column += Vector128<short>.Count)
                 {
                     Vector128<short> sum = H264LumaFilter.Sum8(samples, row * stride + column, 1);
-                    Vector128.WidenLower(sum).StoreUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(row * width + column));
-                    Vector128.WidenUpper(sum).StoreUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(row * width + column + Vector128<int>.Count));
+                    sum.StoreUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(row * width + column));
                 }
                 if (column <= width - Vector128<int>.Count)
                 {
                     Vector128<short> sum = H264LumaFilter.Sum4(samples, row * stride + column, 1);
-                    Vector128.WidenLower(sum).StoreUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(row * width + column));
+                    sum.GetLower().StoreUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(row * width + column));
                     column += Vector128<int>.Count;
                 }
                 for (; column < width; column++)
                 {
-                    horizontal[row * width + column] = HorizontalSum(samples, row * stride + column);
+                    horizontal[row * width + column] = (short)HorizontalSum(samples, row * stride + column);
                 }
             }
         }
 
-        private static void FilterDiagonalBlock(ReadOnlySpan<int> horizontal, int width, int height, int outputStride, Span<byte> output)
+        private static void FilterDiagonalBlock(ReadOnlySpan<short> horizontal, int width, int height, int outputStride, Span<byte> output)
         {
             for (int row = 0; row < height; row++)
             {
@@ -76,12 +75,12 @@ namespace Mediana.Codecs.H264
                 }
                 for (; column < width; column++)
                 {
-                    output[row * outputStride + column] = (byte)Diagonal(horizontal, width, row * width + column);
+                    output[row * outputStride + column] = (byte)H264LumaFilter.Diagonal(horizontal, width, row * width + column);
                 }
             }
         }
 
-        private static void AverageHorizontalBlock(ReadOnlySpan<int> horizontal, int width, int firstRow,
+        private static void AverageHorizontalBlock(ReadOnlySpan<short> horizontal, int width, int firstRow,
             int height, int outputStride, Span<byte> output)
         {
             for (int row = 0; row < height; row++)
@@ -90,14 +89,13 @@ namespace Mediana.Codecs.H264
                 int column = 0;
                 for (; column <= width - Vector128<short>.Count; column += Vector128<short>.Count)
                 {
-                    Vector128<int> lower = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(start + column));
-                    Vector128<int> upper = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(start + column + Vector128<int>.Count));
-                    Write8(output, row * outputStride + column, H264LumaFilter.Half8(Vector128.Narrow(lower, upper)), true);
+                    Vector128<short> values = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(start + column));
+                    Write8(output, row * outputStride + column, H264LumaFilter.Half8(values), true);
                 }
                 if (column <= width - Vector128<int>.Count)
                 {
-                    Vector128<int> values = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(start + column));
-                    Vector128<byte> value = H264LumaFilter.Half8(Vector128.Narrow(values, Vector128<int>.Zero));
+                    Vector128<short> values = Vector64.LoadUnsafe(ref MemoryMarshal.GetReference(horizontal), (nuint)(start + column)).ToVector128();
+                    Vector128<byte> value = H264LumaFilter.Half8(values);
                     Write4(output, row * outputStride + column, value, true);
                     column += Vector128<int>.Count;
                 }

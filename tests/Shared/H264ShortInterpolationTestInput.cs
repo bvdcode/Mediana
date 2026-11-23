@@ -84,6 +84,8 @@ namespace Mediana.Tests
             storage.CopyTo(original, 0);
             ReadOnlySpan<short> source = storage.AsSpan(offset, 5 * stride + Lanes);
             Vector128<byte> actual = H264LumaFilter.Diagonal8(source, stride, 0);
+            Vector128<byte> first = H264LumaFilter.Diagonal4Samples(source[..(5 * stride + 4)], stride, 0);
+            Vector128<byte> second = H264LumaFilter.Diagonal4Samples(source[4..], stride, 0);
             for (int lane = 0; lane < Lanes; lane++)
             {
                 long sum = 0;
@@ -92,7 +94,9 @@ namespace Mediana.Tests
                     sum += (long)Taps[row] * source[row * stride + lane];
                 }
                 int expected = (int)Math.Clamp((sum + 512) >> 10, 0, 255);
-                if (actual.GetElement(lane) != expected || H264LumaFilter.Diagonal(source, stride, lane) != expected)
+                int fourLane = lane < 4 ? first.GetElement(lane) : second.GetElement(lane - 4);
+                if (actual.GetElement(lane) != expected || fourLane != expected ||
+                    H264LumaFilter.Diagonal(source, stride, lane) != expected)
                 {
                     throw new InvalidDataException("Short diagonal interpolation differs from the wide scalar convolution.");
                 }

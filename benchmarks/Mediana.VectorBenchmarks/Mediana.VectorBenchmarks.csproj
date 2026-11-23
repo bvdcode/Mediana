@@ -9,6 +9,6 @@
     <ProjectReference Include="../../src/Mediana.Codecs.Webp/Mediana.Codecs.Webp.csproj" />
   </ItemGroup>
   <ItemGroup Condition="'$(VectorReferenceDirectory)' != ''">
-    <Reference Include="$(VectorReferenceDirectory)/Mediana*.dll" />
+    <Reference Include="$(VectorReferenceDirectory)/Mediana*.dll" Exclude="$(VectorReferenceDirectory)/$(AssemblyName).dll" />
   </ItemGroup>
 </Project>

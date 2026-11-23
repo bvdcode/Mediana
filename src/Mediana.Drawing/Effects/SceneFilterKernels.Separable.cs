@@ -25,8 +25,14 @@ namespace Mediana.Drawing
                 {
                     (int first, int last) = ReadAxisLine(input, samples, line, radius, horizontal, reverse, linear, edge, context);
                     int start = Math.Max(0, first - (2 * radius)), end = Math.Min(length - 1, last);
-                    for (int x = start; x <= end; x++)
+                    int x = start;
+                    if (Vector.IsHardwareAccelerated)
                     {
+                        x = GaussianVectorizedLine(result, samples, kernel, line, start, end, first, last, horizontal, reverse, linear, context);
+                    }
+                    for (; x <= end; x++)
+                    {
+                        context.Token.ThrowIfCancellationRequested();
                         Vector4 sum = Vector4.Zero;
                         int kernelStart = Math.Max(0, first - x), kernelEnd = Math.Min(kernel.Length - 1, last - x);
                         for (int i = kernelStart; i <= kernelEnd; i++)
