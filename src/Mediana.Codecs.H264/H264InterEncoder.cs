@@ -22,6 +22,7 @@ namespace Mediana.Codecs.H264
             bits.WriteFlag(false);
             bits.WriteSigned(quantizer - options.Quantizer);
             H264EncoderDeblocking.WriteHeader(bits, options.Deblocking);
+            H264SourcePicture sourcePicture = new(input);
             Span<byte> samples = stackalloc byte[H264SourceMacroblock.ByteCount];
             Span<byte> prediction = stackalloc byte[384];
             Span<int> coefficients = stackalloc int[256 + H264ChromaEncoder.CoefficientCount];
@@ -32,7 +33,7 @@ namespace Mediana.Codecs.H264
                 for (int x = 0; x < target.Width; x += 16)
                 {
                     token.ThrowIfCancellationRequested();
-                    H264SourceMacroblock source = new(input, x, y, samples);
+                    H264SourceMacroblock source = new(sourcePicture, x, y, samples);
                     (int motionX, int motionY, bool exact) = H264MotionSearch.Select(source, reference, target, x, y,
                         options.MotionSearchRange, prediction, token, interpolation);
                     (int skipX, int skipY) = H264MotionPrediction.Skip(target, x, y);
@@ -43,11 +44,7 @@ namespace Mediana.Codecs.H264
                     while (true)
                     {
                         int pattern = 0;
-                        if (exact)
-                        {
-                            coefficients.Clear();
-                        }
-                        else
+                        if (!exact)
                         {
                             pattern = AnalyzeLuma(source.Luma, macroblockQuantizer, prediction[..256], coefficients[..256]);
                             pattern |= H264ChromaEncoder.Analyze(source.Chroma, macroblockQuantizer, prediction[256..], coefficients[256..]) << 4;
@@ -113,6 +110,17 @@ namespace Mediana.Codecs.H264
 
         internal static int AnalyzeLuma(ReadOnlySpan<byte> source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
         {
+            if (!source.ContainsAnyExcept(source[0]) && !prediction.ContainsAnyExcept(prediction[0]))
+            {
+                int dc = H264ForwardTransform.QuantizeConstantBlock(source[0] - prediction[0], qp, false);
+                coefficients.Clear();
+                if (dc == 0) { return 0; }
+                for (int index = 0; index < 256; index += 16)
+                {
+                    coefficients[index] = dc;
+                }
+                return 15;
+            }
             int pattern = 0;
             for (int index = 0; index < 16; index += 2)
             {

@@ -19,6 +19,56 @@ namespace Mediana.Tests
         [Fact]
         public void QuantizationMatchesScalarEquationsAtAllQuantizersAndRoundingBoundaries() => H264ForwardQuantizationTestInput.Verify();
 
+        [Fact]
+        public void ConstantResidualsMatchTheFullTransformAtEveryQuantizer()
+        {
+            Span<int> samples = stackalloc int[16];
+            Span<int> transformed = stackalloc int[16];
+            Span<int> luma = stackalloc int[16];
+            Span<int> dc = stackalloc int[4];
+            Span<int> chroma = stackalloc int[4];
+            for (int qp = 0; qp <= 51; qp++)
+            {
+                for (int difference = -255; difference <= 255; difference++)
+                {
+                    samples.Fill(difference);
+                    H264ForwardTransform.Transform4x4(samples, transformed);
+                    H264ForwardTransform.Quantize4x4(transformed, qp, luma);
+                    dc.Fill(transformed[0]);
+                    H264ForwardTransform.ChromaDc(dc, qp, chroma);
+                    Assert.Equal(luma[0], H264ForwardTransform.QuantizeConstantBlock(difference, qp, false));
+                    Assert.Equal(chroma[0], H264ForwardTransform.QuantizeConstantBlock(difference, qp, true));
+                    Assert.False(luma[1..].ContainsAnyExcept(0));
+                    Assert.False(chroma[1..].ContainsAnyExcept(0));
+                }
+            }
+        }
+
+        [Fact]
+        public void SkipBoundsQuantizeToZeroEvenAtTheLargestTransformResponse()
+        {
+            int[][] signs = [[1, 1, 1, 1], [1, 1, -1, -1], [1, -1, -1, 1], [1, -1, 1, -1]];
+            Span<int> samples = stackalloc int[16];
+            Span<int> transformed = stackalloc int[16];
+            Span<int> levels = stackalloc int[16];
+            for (int qp = 0; qp <= 51; qp++)
+            {
+                H264SkipResidualBounds bounds = H264ForwardTransform.GetSkipBounds(qp);
+                foreach (int[] row in signs)
+                {
+                    foreach (int[] column in signs)
+                    {
+                        for (int i = 0; i < 16; i++) { samples[i] = row[i / 4] * column[i % 4] * bounds.Luma; }
+                        H264ForwardTransform.Transform4x4(samples, transformed);
+                        H264ForwardTransform.Quantize4x4(transformed, qp, levels);
+                        Assert.False(levels.ContainsAnyExcept(0));
+                    }
+                }
+                int chromaQp = H264InverseTransform.ChromaQp(qp, 0);
+                Assert.Equal(0, H264ForwardTransform.QuantizeConstantBlock(bounds.Chroma, chromaQp, true));
+            }
+        }
+
         [Theory]
         [InlineData(-1)]
         [InlineData(52)]

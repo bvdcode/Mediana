@@ -15,6 +15,14 @@ namespace Mediana.Codecs.H264
             {
                 ReadOnlySpan<byte> planeSource = source.Slice((plane - 1) * 64, 64);
                 ReadOnlySpan<byte> planePrediction = prediction.Slice((plane - 1) * 64, 64);
+                if (!planeSource.ContainsAnyExcept(planeSource[0]) && !planePrediction.ContainsAnyExcept(planePrediction[0]))
+                {
+                    coefficients.Slice((plane - 1) * 60, 60).Clear();
+                    Span<int> dc = coefficients.Slice(120 + (plane - 1) * 4, 4);
+                    dc.Clear();
+                    dc[0] = H264ForwardTransform.QuantizeConstantBlock(planeSource[0] - planePrediction[0], chromaQp, true);
+                    continue;
+                }
                 for (int index = 0; index < 4; index += 2)
                 {
                     int blockX = index % 2 * 4;
