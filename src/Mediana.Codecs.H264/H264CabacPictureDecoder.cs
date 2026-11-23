@@ -131,7 +131,15 @@ namespace Mediana.Codecs.H264
                     }
                     qp = syntax.ReadQuantizer(ref bits, 0, pattern, qp);
                     result.Quantizers[address] = (byte)qp;
-                    H264Residuals.ReadInter(ref bits, syntax, result, header.Picture, x, y, pattern, qp, prediction);
+                    if (pattern == 0)
+                    {
+                        result.WriteInterPrediction(x, y, prediction);
+                    }
+                    else
+                    {
+                        H264CabacResidualReader residuals = new(reader, result, state, address);
+                        H264Residuals.ReadInter(ref bits, residuals, result, header.Picture, x, y, pattern, qp, prediction);
+                    }
                 }
                 else
                 {
@@ -152,7 +160,8 @@ namespace Mediana.Codecs.H264
                         int pattern = syntax.ReadPattern(ref bits, address, intraType);
                         qp = syntax.ReadQuantizer(ref bits, intraType, pattern, qp);
                         result.Quantizers[address] = (byte)qp;
-                        H264IntraReconstruction.Read(ref bits, syntax, result, header, x, y, intraType, state.ChromaModes[address], pattern, qp);
+                        H264CabacResidualReader residuals = new(reader, result, state, address);
+                        H264IntraReconstruction.Read(ref bits, residuals, result, header, x, y, intraType, state.ChromaModes[address], pattern, qp);
                     }
                 }
                 bool ended = (!header.Layout.MacroblockAdaptiveFrameField || (address & 1) != 0) && reader.Termination(ref bits);

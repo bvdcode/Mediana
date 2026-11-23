@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal class H264CabacPictureSyntax(H264CabacReader reader, H264Picture target, H264CabacMacroblockState state) : IH264ResidualReader
+    internal class H264CabacPictureSyntax(H264CabacReader reader, H264Picture target, H264CabacMacroblockState state)
     {
         private int previousDelta;
 
@@ -147,81 +147,6 @@ namespace Mediana.Codecs.H264
             }
             previousDelta = delta;
             return quantizer.ApplyDelta(qp, delta);
-        }
-
-        private int Coded8x8Context(int plane, int x, int y)
-        {
-            bool intra = state.IsIntra(target.Grid.Address(x, y));
-            return Coded8x8Neighbour(plane, x, y, -1, 0, intra) +
-                2 * Coded8x8Neighbour(plane, x, y, 0, -1, intra);
-        }
-
-        private int Coded8x8Neighbour(int plane, int x, int y, int dx, int dy, bool intra)
-        {
-            if (target.Neighbour(plane, x, y, dx, dy) is not H264NeighbourLocation neighbour)
-            {
-                return intra ? 1 : 0;
-            }
-            if (state.Types[neighbour.Address] == 25)
-            {
-                return 1;
-            }
-            if (target.Transforms8x8[neighbour.Address] == 0)
-            {
-                return 0;
-            }
-            (int originX, int originY) = target.Grid.Position(neighbour.Address);
-            return target.Counts(plane)[target.BlockIndex(plane, originX + neighbour.X, originY + neighbour.Y)] == 0 ? 0 : 1;
-        }
-
-        public int Read(ref H264BitReader bits, H264ResidualCategory category, int plane, int x, int y, scoped Span<int> coefficients)
-        {
-            int horizontalScale = target.HorizontalScale(plane);
-            int verticalScale = target.VerticalScale(plane);
-            bool field = target.IsFieldMacroblock(x * horizontalScale, y * verticalScale);
-            if (category == H264ResidualCategory.Luma8x8)
-            {
-                int count = H264CabacResidual.Read(ref bits, reader, category,
-                    target.FullResolutionChroma ? Coded8x8Context(plane, x, y) : 0,
-                    coefficients, target.Sequence.LumaBitDepth, field: field,
-                    fullResolutionPlane: target.FullResolutionChroma ? plane : null);
-                for (int row = 0; row < 2; row++)
-                {
-                    for (int column = 0; column < 2; column++)
-                    {
-                        target.Counts(plane)[target.BlockIndex(plane, x + column * 4, y + row * 4)] = count == 0 ? (byte)0 : (byte)1;
-                    }
-                }
-                return count;
-            }
-            int context;
-            int address = target.Grid.Address(x * horizontalScale, y * verticalScale);
-            bool intra = state.IsIntra(address);
-            bool dc = category is H264ResidualCategory.Intra16LumaDc or H264ResidualCategory.ChromaDc;
-            if (dc)
-            {
-                context = state.DcCondition(state.Left(address), plane, intra) + 2 * state.DcCondition(state.Top(address), plane, intra);
-            }
-            else if (target.Layout.MacroblockAdaptiveFrameField)
-            {
-                context = target.MappedCodedBlockContext(plane, x, y, intra);
-            }
-            else
-            {
-                Span<byte> counts = target.Counts(plane);
-                int position = target.BlockIndex(plane, x, y);
-                int unavailable = intra ? 1 : 0;
-                int sampleScale = target.HorizontalScale(plane);
-                context = !target.IsInCurrentSlice(x * sampleScale - 1, y * verticalScale) ? unavailable : counts[position - 1] != 0 ? 1 : 0;
-                context += 2 * (!target.IsInCurrentSlice(x * sampleScale, y * verticalScale - 1) ? unavailable : counts[position - target.Stride(plane) / 4] != 0 ? 1 : 0);
-            }
-            int total = H264CabacResidual.Read(ref bits, reader, category, context, coefficients, plane == 0 ? target.Sequence.LumaBitDepth : target.Sequence.ChromaBitDepth, field: field,
-                fullResolutionPlane: target.FullResolutionChroma ? plane : null);
-            if (dc && total != 0)
-            {
-                state.DcFlags[address] |= (byte)(1 << plane);
-            }
-            return total;
         }
     }
 }
