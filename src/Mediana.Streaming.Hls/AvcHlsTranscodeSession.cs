@@ -146,7 +146,13 @@ namespace Mediana.Streaming.Hls
 
         /// <summary>Seeks through the existing index and encodes only the selected window after necessary decoder preroll.
         /// Any failed output must be discarded. Cancellation and output failures do not change later requests.</summary>
-        public async ValueTask<HlsMediaSegment> WriteSegmentAsync(int number, Stream destination, CancellationToken cancellationToken = default)
+        public ValueTask<HlsMediaSegment> WriteSegmentAsync(int number, Stream destination, CancellationToken cancellationToken = default) =>
+            WriteSegmentAsync(number, destination, false, cancellationToken);
+
+        /// <summary>Optionally prepare one following video frame while encoding its predecessor.
+        /// Both stages finish before control returns to the packet writer.</summary>
+        public async ValueTask<HlsMediaSegment> WriteSegmentAsync(int number, Stream destination, bool overlapVideoPreparation,
+            CancellationToken cancellationToken)
         {
             Enter();
             try
@@ -159,7 +165,8 @@ namespace Mediana.Streaming.Hls
                 cancellationToken.ThrowIfCancellationRequested();
                 HlsVideoWindow window = Windows[number];
                 List<MediaTrackRequest> requests = [new VideoEncodingRequest(inputStream.StreamIndex, track.Stream.StreamIndex,
-                    new H264EncoderFactory(options), preparationOptions, track.TimeBase, VideoIntervalAlignment.CompleteFrames)];
+                    new H264EncoderFactory(options), preparationOptions, track.TimeBase, VideoIntervalAlignment.CompleteFrames)
+                    { OverlapPreparation = overlapVideoPreparation }];
                 if (audio?.CreateRequest(window) is MediaTrackRequest audioRequest) { requests.Add(audioRequest); }
                 await using MediaProcessingSession processing = await engine.OpenProcessingAsync(reader, requests, allocator,
                     new() { Selection = new(window.Start, window.End) }, cancellationToken).ConfigureAwait(false);

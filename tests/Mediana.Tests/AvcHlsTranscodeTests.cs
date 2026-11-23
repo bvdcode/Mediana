@@ -39,8 +39,10 @@ namespace Mediana.Tests
             Assert.Equal(new TimeBase(1, 5), session.Stream.TimeBase);
         }
 
-        [Fact]
-        public async Task ColdRequestsReadOnlyTheRequestedGopAndEncodeExactlyItsFramesInAnyOrder()
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task ColdRequestsReadOnlyTheRequestedGopAndEncodeExactlyItsFramesInAnyOrder(bool overlap)
         {
             byte[] input = await Mp4TestData.ReadAsync("hls-on-demand.mp4");
             MediaBufferAllocator allocator = new(4 * 1024 * 1024);
@@ -61,7 +63,7 @@ namespace Mediana.Tests
                 {
                     source.Reads.Clear();
                     using MemoryStream fragment = new();
-                    HlsMediaSegment segment = await session.WriteSegmentAsync(number, fragment);
+                    HlsMediaSegment segment = await session.WriteSegmentAsync(number, fragment, overlap, CancellationToken.None);
                     Assert.Equal(number, segment.Number);
                     Assert.Equal(new MediaTimestamp(number, new(1, 1)), segment.Start);
                     Assert.Equal(fragment.Length, segment.ByteLength);
