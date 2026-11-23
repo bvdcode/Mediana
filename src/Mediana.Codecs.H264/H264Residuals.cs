@@ -9,6 +9,12 @@ namespace Mediana.Codecs.H264
             H264PictureParameterSet picture, int x, int y, int pattern, int qp, scoped ReadOnlySpan<byte> prediction)
             where TReader : IH264ResidualReader
         {
+            if (pattern == 0)
+            {
+                H264InverseTransform.ValidateQp(qp, target.Sequence.LumaBitDepth);
+                target.WriteInterPrediction(x, y, prediction);
+                return;
+            }
             ReadInterLuma(ref bits, reader, target, x, y, pattern, qp, prediction[..target.LumaMacroblockBytes]);
             if (target.FullResolutionChroma)
             {

@@ -124,6 +124,8 @@ namespace Mediana.Codecs.H264
             return pattern;
         }
 
+        public void ResetQuantizerDelta() => previousDelta = 0;
+
         public int ReadQuantizer(ref H264BitReader bits, int type, int pattern, int qp)
         {
             H264Quantizer quantizer = target.LumaQuantizer;

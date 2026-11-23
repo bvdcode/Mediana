@@ -88,9 +88,27 @@ namespace Mediana.Codecs.H264
                     H264SliceKind.B => type < 23,
                     _ => throw new NotSupportedException("CABAC reconstruction supports I, P and B slices.")
                 };
-                if (inter)
+                if (skipped)
                 {
-                    state.Types[address] = skipped ? H264CabacMacroblockState.Skipped : header.Kind switch
+                    state.Types[address] = H264CabacMacroblockState.Skipped;
+                    switch (header.Kind)
+                    {
+                        case H264SliceKind.P:
+                            H264InterPrediction.ReconstructSkip(result, header, selected.L0, x, y, prediction);
+                            break;
+                        case H264SliceKind.B:
+                            H264DirectPrediction.PredictMacroblock(result, header, selected, order, x, y, prediction);
+                            result.WriteInterPrediction(x, y, prediction);
+                            break;
+                        default:
+                            throw new InvalidDataException("Only P and B slices can contain skipped macroblocks.");
+                    }
+                    syntax.ResetQuantizerDelta();
+                    result.Quantizers[address] = (byte)qp;
+                }
+                else if (inter)
+                {
+                    state.Types[address] = header.Kind switch
                     {
                         H264SliceKind.P => H264CabacMacroblockState.Inter,
                         H264SliceKind.B => type == 0 ? H264CabacMacroblockState.Direct : H264CabacMacroblockState.Inter,
@@ -102,16 +120,12 @@ namespace Mediana.Codecs.H264
                     {
                         noSmallPartitions = H264BidirectionalSyntax.Read(ref bits, interReader, result, header, selected, order, x, y, type, prediction);
                     }
-                    else if (skipped)
-                    {
-                        H264InterPrediction.Skip(result, header, selected.L0, x, y, prediction);
-                    }
                     else
                     {
                         noSmallPartitions = H264InterPrediction.Read(ref bits, interReader, result, header, selected.L0, x, y, type, prediction);
                     }
-                    int pattern = skipped ? 0 : syntax.ReadPattern(ref bits, address, 0);
-                    if (!skipped && (pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions)
+                    int pattern = syntax.ReadPattern(ref bits, address, 0);
+                    if ((pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions)
                     {
                         syntax.ReadTransform(ref bits, address);
                     }

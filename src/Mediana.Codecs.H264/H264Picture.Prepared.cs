@@ -15,9 +15,7 @@ namespace Mediana.Codecs.H264
                 for (int row = 0; row < size; row++)
                 { samples.Slice(offset + row * size, size).CopyTo(target.Slice((y / scale + row) * Stride(plane) + x / scale, size)); }
             }
-            for (int row = 0; row < 16; row += 4)
-                for (int column = 0; column < 16; column += 4)
-                { Modes[BlockIndex(0, x + column, y + row)] &= 127; }
+            MarkReconstructed(BlockIndex(0, x, y), Width / 4, 4);
         }
     }
 }

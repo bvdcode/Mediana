@@ -193,13 +193,7 @@ namespace Mediana.Codecs.H264
             }
             if (plane == 0 || FullResolutionChroma)
             {
-                for (int row = 0; row < size; row += 4)
-                {
-                    for (int column = 0; column < size; column += 4)
-                    {
-                        Modes[BlockIndex(0, x + column, y + row)] &= 127;
-                    }
-                }
+                MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, size / 4);
             }
         }
 
