@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.CompilerServices;
+
 namespace Mediana.Codecs.H264
 {
     internal partial class H264CabacSyntax<TWriter>
@@ -33,6 +35,9 @@ namespace Mediana.Codecs.H264
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void WriteResidualBin(bool value, int context) => writer.WriteBin(value, ref contexts[context + residualContextOffset]);
+
         private int WriteResidual(H264ResidualCategory category, int neighbourContext, ReadOnlySpan<int> coefficients)
         {
             (int count, int significantBase, int lastBase, int levelBase) = category switch
@@ -46,22 +51,19 @@ namespace Mediana.Codecs.H264
                 _ => throw new ArgumentOutOfRangeException(nameof(category))
             };
             if (coefficients.Length != count) { throw new ArgumentException("Coefficient count does not match its CABAC category.", nameof(coefficients)); }
-            int total = 0, last = -1;
-            for (int index = 0; index < coefficients.Length; index++)
+            int last = coefficients.LastIndexOfAnyExcept(0);
+            if (last >= 0 && coefficients.ContainsAnyExceptInRange((int)short.MinValue, (int)short.MaxValue))
             {
-                if (coefficients[index] == 0) { continue; }
-                if (coefficients[index] is < short.MinValue or > short.MaxValue)
-                { throw new NotSupportedException("The H.264 CABAC coefficient exceeds 8-bit transform precision."); }
-                total++; last = index;
+                throw new NotSupportedException("The H.264 CABAC coefficient exceeds 8-bit transform precision.");
             }
-            WriteBin(total != 0, 85 + (int)category * 4 + neighbourContext);
+            WriteResidualBin(last >= 0, 85 + (int)category * 4 + neighbourContext);
             if (last < 0) { return 0; }
             for (int index = 0; index < count - 1; index++)
             {
                 bool significant = coefficients[index] != 0;
-                WriteBin(significant, significantBase + index);
+                WriteResidualBin(significant, significantBase + index);
                 if (!significant) { continue; }
-                WriteBin(index == last, lastBase + index);
+                WriteResidualBin(index == last, lastBase + index);
                 if (index == last) { break; }
             }
             int equalOne = 0, greaterOne = 0;
@@ -71,13 +73,13 @@ namespace Mediana.Codecs.H264
                 if (signed == 0) { continue; }
                 int magnitude = Math.Abs(signed);
                 int firstContext = greaterOne == 0 ? Math.Min(4, 1 + equalOne) : 0;
-                WriteBin(magnitude > 1, levelBase + firstContext);
+                WriteResidualBin(magnitude > 1, levelBase + firstContext);
                 if (magnitude > 1)
                 {
                     int continuation = levelBase + 5 + Math.Min(category == H264ResidualCategory.ChromaDc ? 3 : 4, greaterOne);
                     for (int prefix = 1; prefix < 14; prefix++)
                     {
-                        WriteBin(magnitude > prefix + 1, continuation);
+                        WriteResidualBin(magnitude > prefix + 1, continuation);
                         if (magnitude == prefix + 1) { break; }
                     }
                     if (magnitude >= 15) { WriteExpGolomb(magnitude - 15, 0); }
@@ -85,7 +87,7 @@ namespace Mediana.Codecs.H264
                 writer.WriteBypass(signed < 0);
                 if (magnitude == 1) { equalOne++; } else { greaterOne++; }
             }
-            return total;
+            return equalOne + greaterOne;
         }
     }
 }

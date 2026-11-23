@@ -12,7 +12,7 @@ namespace Mediana.Codecs.H264
 
         public static H264EncodedPicture Encode(VideoFrame input, H264SequenceParameterSet sequence, H264PictureParameterSet parameters, H264Picture? reference,
             bool keyFrame, int frameNumber, int idrId, MediaBufferAllocator allocator, H264EncoderOptions options,
-            H264FrameRateBudget budget, ref H264Picture? workspace, CancellationToken token, H264MotionReference? interpolation = null)
+            H264FrameRateBudget budget, ref H264Picture? workspace, CancellationToken token, H264MotionReference? interpolation = null, H264StationaryHistory? stationary = null)
         {
             int maximumBytes = Math.Min(options.MaximumPacketBytes, budget.MaximumBytes);
             if (maximumBytes < 8)
@@ -45,7 +45,7 @@ namespace Mediana.Codecs.H264
                         data = options.EntropyCoding switch
                         {
                             H264EntropyCoding.Cabac => H264CabacPictureEncoder.Encode(input, picture, reference, keyFrame, frameNumber,
-                                idrId, quantizer, allocator, options, maximumBytes, out bytes, token, interpolation),
+                                idrId, quantizer, allocator, options, maximumBytes, out bytes, token, interpolation, stationary),
                             H264EntropyCoding.Cavlc when keyFrame => H264IntraEncoder.Encode(input, picture, quantizer, options.Quantizer,
                                 idrId, allocator, maximumBytes, options.RateControl is not null, out bytes, token, options.Deblocking),
                             H264EntropyCoding.Cavlc => H264InterEncoder.Encode(input, picture, reference!, frameNumber, quantizer, allocator,

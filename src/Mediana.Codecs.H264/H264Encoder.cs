@@ -29,6 +29,7 @@ namespace Mediana.Codecs.H264
         private H264Picture? reference;
         private H264Picture? workspace;
         private H264MotionReference? motionReference;
+        private H264StationaryHistory? stationary;
         private int frameNumber;
         private bool completed;
         private bool disposed;
@@ -103,8 +104,14 @@ namespace Mediana.Codecs.H264
                     motionReference ??= new(reference!, options.MotionSearchRange, allocator);
                     motionReference.Prepare(reference!, cancellationToken);
                 }
+                if (!keyFrame && options.EntropyCoding == H264EntropyCoding.Cabac &&
+                    options.MacroblockAnalysis == H264MacroblockAnalysis.Fast && options.Deblocking is null && rateController is null)
+                {
+                    stationary ??= new(sequence.WidthInMbs, sequence.HeightInMapUnits, allocator);
+                }
                 using H264EncodedPicture encoded = H264PictureEncoder.Encode(input, sequence, parameters, reference, keyFrame, number, idrId,
-                    allocator, options, budget, ref workspace, cancellationToken, motionReference);
+                    allocator, options, budget, ref workspace, cancellationToken, motionReference, keyFrame ? null : stationary);
+                if (keyFrame) { stationary?.Reset(); }
                 levelBudget.Commit(timestamp.Value, keyFrame, encoded.Data.Memory.Length);
                 pending = new MediaPacket(Stream.StreamIndex, encoded.Data, timestamp, timestamp, input.Duration, isKeyFrame: keyFrame);
                 rateController?.Commit(timestamp, encoded.Quantizer, encoded.Data.Memory.Length, keyFrame);
@@ -282,6 +289,8 @@ namespace Mediana.Codecs.H264
             workspace = null;
             motionReference?.Dispose();
             motionReference = null;
+            stationary?.Dispose();
+            stationary = null;
         }
 
         private void Enter()

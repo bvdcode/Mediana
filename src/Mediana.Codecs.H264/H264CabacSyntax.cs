@@ -11,6 +11,7 @@ namespace Mediana.Codecs.H264
         protected readonly H264Picture target;
         protected readonly H264CabacContext[] contexts;
         private readonly H264SliceKind kind;
+        private readonly int residualContextOffset;
         public int PreviousDelta { get; set; }
         public int ContextCount => contexts.Length;
 
@@ -27,21 +28,20 @@ namespace Mediana.Codecs.H264
                 H264SliceKind.P => H264CabacPredictiveContexts.Create(quantizer, 0),
                 _ => throw new NotSupportedException("CABAC encoding supports I and P slices.")
             };
+            residualContextOffset = GetContextIndex(85) - 85;
         }
 
         public void CopyContexts(Span<H264CabacContext> destination) => contexts.CopyTo(destination);
         public void RestoreContexts(ReadOnlySpan<H264CabacContext> source) => source.CopyTo(contexts);
 
-        public void WriteBin(bool value, int context)
+        public void WriteBin(bool value, int context) => writer.WriteBin(value, ref contexts[GetContextIndex(context)]);
+
+        private int GetContextIndex(int context) => kind switch
         {
-            int index = kind switch
-            {
-                H264SliceKind.I => H264CabacIntraContexts.GetIndex(context),
-                H264SliceKind.P => H264CabacPredictiveContexts.GetIndex(context),
-                _ => throw new NotSupportedException("CABAC encoding supports I and P slices.")
-            };
-            writer.WriteBin(value, ref contexts[index]);
-        }
+            H264SliceKind.I => H264CabacIntraContexts.GetIndex(context),
+            H264SliceKind.P => H264CabacPredictiveContexts.GetIndex(context),
+            _ => throw new NotSupportedException("CABAC encoding supports I and P slices.")
+        };
 
         public void WriteIntraType(int address)
         {
@@ -94,9 +94,14 @@ namespace Mediana.Codecs.H264
             for (int bit = 0; bit < 3; bit++) { WriteBin((remaining & (1 << bit)) != 0, 69); }
         }
 
-        public void WriteChromaMode(int address)
+        public void WriteChromaMode(int address, int mode = 0)
         {
-            WriteBin(false, 64 + state.ChromaModeCondition(state.Left(address)) + state.ChromaModeCondition(state.Top(address)));
+            ArgumentOutOfRangeException.ThrowIfNegative(mode);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(mode, 3);
+            WriteBin(mode != 0, 64 + state.ChromaModeCondition(state.Left(address)) + state.ChromaModeCondition(state.Top(address)));
+            if (mode >= 1) { WriteBin(mode >= 2, 67); }
+            if (mode >= 2) { WriteBin(mode == 3, 67); }
+            state.ChromaModes[address] = (byte)mode;
         }
 
         public void WriteSkip(int address, bool skipped)

@@ -21,6 +21,7 @@ namespace Mediana.Codecs.H264
                 if (!available) { continue; }
                 target.PredictMacroblock(0, x, y, mode, prediction);
                 int difference = H264SampleDifference.Sum16x16(source.Luma, prediction, 16, minimum);
+                if (difference == 0) { return mode; }
                 if (difference < minimum) { minimum = difference; selected = mode; }
             }
             return selected;

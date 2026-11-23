@@ -37,6 +37,11 @@ namespace Mediana.Codecs.H264
             {
                 target.PredictMacroblock(plane, x / 2, y / 2, 0, prediction.Slice(256 + (plane - 1) * 64, 64));
             }
+            return AnalyzePrediction(source, qp, prediction, coefficients);
+        }
+
+        public static int AnalyzePrediction(H264SourceMacroblock source, int qp, ReadOnlySpan<byte> prediction, Span<int> coefficients)
+        {
             Span<int> luma = coefficients[..240];
             Span<int> rawDc = stackalloc int[16];
             for (int index = 0; index < 16; index += 2)
