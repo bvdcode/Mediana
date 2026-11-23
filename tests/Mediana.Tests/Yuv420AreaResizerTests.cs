@@ -54,6 +54,31 @@ namespace Mediana.Tests
             Assert.Equal(0, allocator.AllocatedBytes);
         }
 
+        [Theory]
+        [InlineData(54, 12, 36, 8, ChromaLocation.Left)]
+        [InlineData(63, 15, 42, 10, ChromaLocation.BottomLeft)]
+        [InlineData(48, 16, 24, 8, ChromaLocation.Center)]
+        [InlineData(36, 14, 36, 10, ChromaLocation.Top)]
+        public void PackedRowsAndTailsMatchAnalyticBoxIntegrals(int width, int height, int outputWidth,
+            int outputHeight, ChromaLocation location)
+        {
+            MediaBufferAllocator allocator = new(65536);
+            using VideoFrame input = CreateFrame(width, height, location, allocator, true, true);
+            using Yuv420AreaResizer resizer = Yuv420AreaResizer.Create(input.Format, outputWidth, outputHeight, allocator);
+            using VideoFrame output = resizer.Apply(input);
+            for (int plane = 0; plane < output.Planes.Count; plane++)
+            {
+                PlaneLayout layout = output.Planes[plane];
+                for (int y = 0; y < layout.Height; y++)
+                {
+                    for (int x = 0; x < layout.RowBytes; x++)
+                    {
+                        Assert.Equal(Reference(input, plane, x, y, layout.RowBytes, layout.Height), output.GetRow(plane, y)[x]);
+                    }
+                }
+            }
+        }
+
         [Fact]
         public void VariedRatiosAndRepeatedFramesMatchIndependentAreaIntegrals()
         {
