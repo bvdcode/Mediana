@@ -13,6 +13,7 @@ namespace Mediana.Tests
         private readonly Queue<VideoFrame> frames = [];
         private bool completed;
         private int part;
+        public Action<CancellationToken>? Sending { get; init; }
         public bool IsDisposed { get; private set; }
         public EncodedStreamInfo Stream { get; } = new(0, MediaKind.Video, "fixture.split",
             new("none", "fixture.parts", EncodedPacketBoundary.ArbitraryBytes), new(1, 1));
@@ -20,6 +21,7 @@ namespace Mediana.Tests
         public CodecInputStatus TrySend(VideoFrame input, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            Sending?.Invoke(cancellationToken);
             if (completed || frames.Count >= 2)
             {
                 return CodecInputStatus.OutputRequired;
