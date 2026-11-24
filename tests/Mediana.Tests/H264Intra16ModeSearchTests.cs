@@ -43,7 +43,8 @@ namespace Mediana.Tests
                     for (int index = 0; index < 256; index++) { difference += Math.Abs(source.Luma[index] - prediction[index]); }
                     if (difference < minimum) { minimum = difference; expected = mode; }
                 }
-                Assert.Equal(expected, H264Intra16ModeSearch.Select(source, picture, x, y, prediction));
+                Assert.Equal(expected, H264Intra16ModeSearch.Select(source, picture, x, y, prediction, out int actualMinimum));
+                Assert.Equal(minimum, actualMinimum);
             }
         }
     }

@@ -130,6 +130,13 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        internal bool TryReadLuma16Neighbours(int x, int y, Span<byte> top, Span<byte> left, out byte corner)
+        {
+            (bool hasTop, bool hasLeft, byte? topLeft) = ReadMacroblockNeighbours(0, x, y, 16, 16, top, left, false);
+            corner = topLeft.GetValueOrDefault();
+            return hasTop && hasLeft && topLeft.HasValue;
+        }
+
         private void PredictMacroblock<TSample>(int plane, int x, int y, int mode, Span<TSample> output, bool constrained)
             where TSample : unmanaged, IBinaryInteger<TSample>
         {
