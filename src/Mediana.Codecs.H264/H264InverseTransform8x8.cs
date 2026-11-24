@@ -11,6 +11,14 @@ namespace Mediana.Codecs.H264
                 26, 23, 42, 24, 33, 31, 28, 25, 45, 26, 35, 33,
                 32, 28, 51, 30, 40, 38, 36, 32, 58, 34, 46, 43];
 
+        public static int DcResidual(int level, int qp)
+        {
+            int shift = qp / 6 - 2;
+            long scaled = (long)level * Scales[(qp % 6) * 6];
+            scaled = shift >= 0 ? scaled << shift : (scaled + (1 << (-shift - 1))) >> -shift;
+            return checked((int)((scaled + 32) >> 6));
+        }
+
         public static void Residual(ReadOnlySpan<int> scanned, int qp, Span<int> residual, int bitDepth = 8, bool field = false)
         {
             H264InverseTransform.ValidateQp(qp, bitDepth);

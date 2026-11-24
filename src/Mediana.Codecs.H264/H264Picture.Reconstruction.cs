@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace Mediana.Codecs.H264
 {
@@ -59,6 +60,44 @@ namespace Mediana.Codecs.H264
             if (plane == 0 || FullResolutionChroma)
             {
                 MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, size / 4);
+            }
+        }
+
+        public void WriteConstant8x8(int plane, int x, int y, ReadOnlySpan<byte> prediction, int predictionStride, int delta)
+        {
+            (int offset, int stride) = SampleLocation(plane, x, y);
+            Span<byte> pixels = Plane(plane);
+            int amount = Math.Abs(Math.Clamp(delta, -MaximumSample, MaximumSample));
+            if (SampleBytes == 1)
+            {
+                Vector128<byte> change = Vector128.Create((byte)amount);
+                for (int row = 0; row < 8; row += 2)
+                {
+                    ulong first = MemoryMarshal.Read<ulong>(prediction[(row * predictionStride)..]);
+                    ulong second = MemoryMarshal.Read<ulong>(prediction[((row + 1) * predictionStride)..]);
+                    Vector128<byte> samples = Vector128.Create(first, second).AsByte();
+                    Vector128<byte> result = delta >= 0 ? Vector128.AddSaturate(samples, change) : Vector128.SubtractSaturate(samples, change);
+                    first = result.AsUInt64().GetElement(0);
+                    second = result.AsUInt64().GetElement(1);
+                    MemoryMarshal.Write(pixels[(offset + row * stride)..], in first);
+                    MemoryMarshal.Write(pixels[(offset + (row + 1) * stride)..], in second);
+                }
+            }
+            else
+            {
+                Vector128<ushort> change = Vector128.Create((ushort)amount);
+                Vector128<ushort> maximum = Vector128.Create((ushort)MaximumSample);
+                for (int row = 0; row < 8; row++)
+                {
+                    Vector128<ushort> samples = MemoryMarshal.Read<Vector128<ushort>>(prediction[(row * predictionStride * sizeof(ushort))..]);
+                    Vector128<ushort> result = delta >= 0 ? Vector128.Min(Vector128.AddSaturate(samples, change), maximum)
+                        : Vector128.SubtractSaturate(samples, change);
+                    MemoryMarshal.Write(pixels[((offset + row * stride) * sizeof(ushort))..], in result);
+                }
+            }
+            if (plane == 0 || FullResolutionChroma)
+            {
+                MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, 2);
             }
         }
 
