@@ -42,6 +42,36 @@ namespace Mediana.Codecs.H264
             }
         }
 
+        public void ReconstructSimpleIntra8x8(int plane, int x, int y, int mode, bool constrained, int delta, bool uncoded)
+        {
+            (int offset, int stride) = SampleLocation(plane, x, y);
+            Span<byte> pixels = Plane(plane)[(offset * SampleBytes)..];
+            if (SampleBytes == 1)
+            {
+                ReconstructSimpleIntra8x8<byte>(plane, x, y, mode, constrained, delta, pixels, stride);
+            }
+            else
+            {
+                ReconstructSimpleIntra8x8<ushort>(plane, x, y, mode, constrained, delta,
+                    MemoryMarshal.Cast<byte, ushort>(pixels), stride);
+            }
+            if (uncoded)
+            {
+                ClearBlockCounts(plane, x, y, 8, 8);
+            }
+            MarkReconstructed(BlockIndex(plane, x, y), Stride(plane) / 4, 2);
+        }
+
+        private void ReconstructSimpleIntra8x8<TSample>(int plane, int x, int y, int mode, bool constrained,
+            int delta, Span<TSample> pixels, int stride) where TSample : unmanaged, IBinaryInteger<TSample>
+        {
+            Span<TSample> top = stackalloc TSample[16];
+            Span<TSample> left = stackalloc TSample[8];
+            (bool hasTop, bool hasLeft, TSample? corner) = ReadLumaNeighbours(x, y, 8, top, left, constrained, plane);
+            H264IntraPrediction<TSample>.WriteSimple8x8(mode, hasTop ? top : [], hasLeft ? left : [], corner,
+                pixels, stride, MaximumSample, delta);
+        }
+
         public (bool HasTop, bool HasLeft, byte? Corner) ReadLumaNeighbours(int x, int y, int size,
             Span<byte> top, Span<byte> left, bool constrained = false) =>
             ReadLumaNeighbours<byte>(x, y, size, top, left, constrained);

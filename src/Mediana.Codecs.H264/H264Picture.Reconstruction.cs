@@ -107,6 +107,11 @@ namespace Mediana.Codecs.H264
             (int offset, int stride) = SampleLocation(plane, x, y);
             H264BlockRows.Copy(prediction, predictionStride * SampleBytes, Plane(plane)[(offset * SampleBytes)..],
                 stride * SampleBytes, width * SampleBytes, height);
+            ClearBlockCounts(plane, x, y, width, height);
+        }
+
+        private void ClearBlockCounts(int plane, int x, int y, int width, int height)
+        {
             int countStride = Stride(plane) / 4;
             int first = BlockIndex(plane, x, y);
             Span<byte> counts = Counts(plane);

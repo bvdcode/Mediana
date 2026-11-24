@@ -54,6 +54,45 @@ namespace Mediana.Tests
         }
 
         [Fact]
+        public void StridedSimplePredictionAddsSignedDcOnlyInsideBlock()
+        {
+            ushort[] top = [200, 204, 208, 212, 216, 220, 224, 228, 252, 252, 252, 252, 252, 252, 252, 252];
+            ushort[] left = [400, 392, 384, 376, 368, 360, 352, 344];
+            int[] filteredTop = [201, 204, 208, 212, 216, 220, 224, 233];
+            int[] filteredLeft = [348, 392, 384, 376, 368, 360, 352, 346];
+            const int mean = 290;
+            const int stride = 19;
+            const int origin = 3;
+            ushort[] pixels = new ushort[stride * 9];
+            for (int mode = 0; mode < 3; mode++)
+            {
+                foreach (int delta in new[] { int.MinValue, -209, 0, 670, int.MaxValue })
+                {
+                    Array.Fill(pixels, ushort.MaxValue);
+                    H264IntraPrediction<ushort>.WriteSimple8x8(mode, top, left, 200, pixels.AsSpan(origin), stride, 1023, delta);
+                    for (int index = 0; index < pixels.Length; index++)
+                    {
+                        int x = index % stride - origin;
+                        int y = index / stride;
+                        long expected = ushort.MaxValue;
+                        if (x >= 0 && x < 8 && y < 8)
+                        {
+                            int prediction = mode switch
+                            {
+                                0 => filteredTop[x],
+                                1 => filteredLeft[y],
+                                2 => mean,
+                                _ => throw new InvalidOperationException()
+                            };
+                            expected = Math.Clamp((long)prediction + delta, 0, 1023);
+                        }
+                        Assert.Equal((ushort)expected, pixels[index]);
+                    }
+                }
+            }
+        }
+
+        [Fact]
         public async Task AllDirectionalModesMatchEveryIndependentPredictedSample() =>
             await H264EightByEightTestInput.VerifyPredictionVectorsAsync(Path.Combine(AppContext.BaseDirectory, "Data", "H264"));
 

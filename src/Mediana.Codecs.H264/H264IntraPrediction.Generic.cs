@@ -17,6 +17,11 @@ namespace Mediana.Codecs.H264
             {
                 throw new ArgumentException("H.264 intra 8x8 prediction requires 16 top, eight left and 64 output samples.");
             }
+            if ((uint)mode <= 2)
+            {
+                WriteSimple8x8(mode, top, left, corner, output, 8, maximum, 0);
+                return;
+            }
             Span<TSample> filteredTop = stackalloc TSample[16];
             Span<TSample> filteredLeft = stackalloc TSample[8];
             FilterReferences(top, corner, filteredTop);
@@ -30,13 +35,66 @@ namespace Mediana.Codecs.H264
             Luma(mode, top.IsEmpty ? [] : filteredTop, left.IsEmpty ? [] : filteredLeft, filteredCorner, output, 8, maximum);
         }
 
+        public static void WriteSimple8x8(int mode, ReadOnlySpan<TSample> top, ReadOnlySpan<TSample> left,
+            TSample? corner, Span<TSample> output, int stride, int maximum, int delta)
+        {
+            if (!IsLumaModeAvailable(mode, !top.IsEmpty, !left.IsEmpty, corner is not null))
+            {
+                throw new InvalidDataException("An H.264 intra prediction references unavailable neighbours.");
+            }
+            Span<TSample> above = stackalloc TSample[8];
+            Span<TSample> beside = stackalloc TSample[8];
+            if (mode != 1)
+            {
+                FilterReferences(top, corner, above);
+            }
+            if (mode != 0)
+            {
+                FilterReferences(left, corner, beside);
+            }
+            delta = Math.Clamp(delta, -maximum, maximum);
+            switch (mode)
+            {
+                case 0:
+                    if (delta != 0)
+                    {
+                        for (int column = 0; column < 8; column++)
+                        {
+                            above[column] = TSample.CreateTruncating(Math.Clamp(Read(above, column) + delta, 0, maximum));
+                        }
+                    }
+                    for (int row = 0; row < 8; row++)
+                    {
+                        above.CopyTo(output[(row * stride)..]);
+                    }
+                    return;
+                case 1:
+                    for (int row = 0; row < 8; row++)
+                    {
+                        TSample value = TSample.CreateTruncating(Math.Clamp(Read(beside, row) + delta, 0, maximum));
+                        output.Slice(row * stride, 8).Fill(value);
+                    }
+                    return;
+                case 2:
+                    int dc = Dc(top.IsEmpty ? [] : above, left.IsEmpty ? [] : beside, maximum);
+                    TSample sample = TSample.CreateTruncating(Math.Clamp(dc + delta, 0, maximum));
+                    for (int row = 0; row < 8; row++)
+                    {
+                        output.Slice(row * stride, 8).Fill(sample);
+                    }
+                    return;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+        }
+
         private static void FilterReferences(ReadOnlySpan<TSample> source, TSample? corner, Span<TSample> output)
         {
             if (source.IsEmpty)
             {
                 return;
             }
-            for (int index = 0; index < source.Length; index++)
+            for (int index = 0; index < output.Length; index++)
             {
                 int previous = int.CreateTruncating(index == 0 ? corner ?? source[0] : source[index - 1]);
                 output[index] = TSample.CreateTruncating(Quarter(previous, Read(source, index), Read(source, Math.Min(index + 1, source.Length - 1))));

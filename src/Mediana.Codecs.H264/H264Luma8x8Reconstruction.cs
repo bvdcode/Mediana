@@ -24,7 +24,14 @@ namespace Mediana.Codecs.H264
                 int predictionStride;
                 if (intra)
                 {
-                    target.PredictLuma8x8(blockX, blockY, target.Modes[target.BlockIndex(0, blockX, blockY)] & 127, prediction, constrained, plane);
+                    int mode = target.Modes[target.BlockIndex(0, blockX, blockY)] & 127;
+                    if (mode <= 2 && (count == 0 || (count == 1 && coefficients[0] != 0)))
+                    {
+                        int correction = count == 0 ? 0 : H264InverseTransform8x8.DcResidual(coefficients[0], qp);
+                        target.ReconstructSimpleIntra8x8(plane, blockX, blockY, mode, constrained, correction, count == 0);
+                        continue;
+                    }
+                    target.PredictLuma8x8(blockX, blockY, mode, prediction, constrained, plane);
                     predicted = prediction;
                     predictionStride = 8;
                 }
