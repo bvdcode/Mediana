@@ -3,7 +3,7 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal static class H264InverseTransform
+    internal static partial class H264InverseTransform
     {
         private static ReadOnlySpan<int> ScaleEven => [10, 11, 13, 14, 16, 18];
         private static ReadOnlySpan<int> ScaleOdd => [16, 18, 20, 23, 25, 29];

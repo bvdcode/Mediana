@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using Mediana.Core.Memory;
 
 namespace Mediana.Codecs.H264
@@ -174,6 +175,30 @@ namespace Mediana.Codecs.H264
 
         public void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual) =>
             WriteBlock(plane, x, y, prediction, residual, 4);
+
+        public void Reconstruct4x4(int plane, int x, int y, ReadOnlySpan<byte> prediction, int predictionStride,
+            ReadOnlySpan<int> levels, int qp, int? scaledDc = null, bool field = false)
+        {
+            if (Vector128.IsHardwareAccelerated && SampleBytes == 1 && !field)
+            {
+                (int offset, int stride) = SampleLocation(plane, x, y);
+                if (H264InverseTransform.TryReconstructFrame4x4(levels, qp, scaledDc, prediction, predictionStride,
+                    Plane(plane)[offset..], stride))
+                {
+                    if (plane == 0 || FullResolutionChroma)
+                    {
+                        Modes[BlockIndex(plane, x, y)] &= 127;
+                    }
+                    return;
+                }
+            }
+            Span<int> residual = stackalloc int[16];
+            Span<byte> block = stackalloc byte[16 * SampleBytes];
+            H264InverseTransform.Residual4x4(levels, qp, residual, scaledDc,
+                plane == 0 ? Sequence.LumaBitDepth : Sequence.ChromaBitDepth, field);
+            H264Residuals.CopyPrediction(prediction, predictionStride, 0, 0, block, SampleBytes);
+            WriteBlock(plane, x, y, block, residual);
+        }
 
         public void WriteLuma8x8(int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int plane = 0) =>
             WriteBlock(plane, x, y, prediction, residual, 8);

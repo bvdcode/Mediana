@@ -149,8 +149,6 @@ namespace Mediana.Codecs.H264
                 target.WriteZeroResidualBlock(0, x, y, 16, prediction, 16);
                 return true;
             }
-            Span<byte> block = stackalloc byte[16];
-            Span<int> residual = stackalloc int[16];
             for (int index = 0; index < 16; index++)
             {
                 (int blockX, int blockY) = H264Picture.LumaBlockPosition(index);
@@ -167,9 +165,7 @@ namespace Mediana.Codecs.H264
                     continue;
                 }
                 target.Counts(0)[target.BlockIndex(0, x + blockX, y + blockY)] = (byte)count;
-                H264InverseTransform.Residual4x4(levels, qp, residual);
-                H264Residuals.CopyPrediction(prediction, 16, blockX, blockY, block);
-                target.WriteBlock(0, x + blockX, y + blockY, block, residual);
+                target.Reconstruct4x4(0, x + blockX, y + blockY, prediction[(blockY * 16 + blockX)..], 16, levels, qp);
             }
             return true;
         }

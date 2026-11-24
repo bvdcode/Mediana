@@ -37,9 +37,9 @@ namespace Mediana.Codecs.H264
             Vector128<int> second = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(residual), 4);
             Vector128<int> third = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(residual), 8);
             Vector128<int> fourth = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(residual), 12);
-            Transpose(ref first, ref second, ref third, ref fourth);
+            H264TransformMatrix.Transpose(ref first, ref second, ref third, ref fourth);
             TransformVectors(ref first, ref second, ref third, ref fourth);
-            Transpose(ref first, ref second, ref third, ref fourth);
+            H264TransformMatrix.Transpose(ref first, ref second, ref third, ref fourth);
             TransformVectors(ref first, ref second, ref third, ref fourth);
             first.StoreUnsafe(ref MemoryMarshal.GetReference(transformed));
             second.StoreUnsafe(ref MemoryMarshal.GetReference(transformed), 4);
@@ -59,20 +59,6 @@ namespace Mediana.Codecs.H264
             second = Vector128.ShiftLeft(outerDifference, 1) + innerDifference;
             third = outerSum - innerSum;
             fourth = outerDifference - Vector128.ShiftLeft(innerDifference, 1);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Transpose(ref Vector128<int> first, ref Vector128<int> second,
-            ref Vector128<int> third, ref Vector128<int> fourth)
-        {
-            Vector128<long> upperLeft = Vector128.ZipLower(first, second).AsInt64();
-            Vector128<long> upperRight = Vector128.ZipUpper(first, second).AsInt64();
-            Vector128<long> lowerLeft = Vector128.ZipLower(third, fourth).AsInt64();
-            Vector128<long> lowerRight = Vector128.ZipUpper(third, fourth).AsInt64();
-            first = Vector128.ZipLower(upperLeft, lowerLeft).AsInt32();
-            second = Vector128.ZipUpper(upperLeft, lowerLeft).AsInt32();
-            third = Vector128.ZipLower(upperRight, lowerRight).AsInt32();
-            fourth = Vector128.ZipUpper(upperRight, lowerRight).AsInt32();
         }
 
         private static void TransformLine(Span<int> values, int offset, int stride)

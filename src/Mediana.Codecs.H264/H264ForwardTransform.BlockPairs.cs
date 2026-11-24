@@ -113,7 +113,7 @@ namespace Mediana.Codecs.H264
         private static void WritePairScan(Vector128<int> first, Vector128<int> second,
             Vector128<int> third, Vector128<int> fourth, Span<int> output)
         {
-            Transpose(ref first, ref second, ref third, ref fourth);
+            H264TransformMatrix.Transpose(ref first, ref second, ref third, ref fourth);
             WriteQuantizedScan(first, second, third, fourth, output);
         }
     }

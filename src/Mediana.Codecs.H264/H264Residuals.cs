@@ -52,8 +52,6 @@ namespace Mediana.Codecs.H264
             }
             bool field = target.IsFieldMacroblock(x, y);
             Span<int> coefficients = stackalloc int[16];
-            Span<int> residual = stackalloc int[16];
-            Span<byte> prediction = stackalloc byte[16 * target.SampleBytes];
             for (int group = 0; group < 4; group++)
             {
                 int groupX = group % 2 * 8;
@@ -77,9 +75,8 @@ namespace Mediana.Codecs.H264
                         continue;
                     }
                     target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
-                    H264InverseTransform.Residual4x4(coefficients, qp, residual, bitDepth: target.Sequence.LumaBitDepth, field: field);
-                    CopyPrediction(macroPrediction, 16, blockX, blockY, prediction, target.SampleBytes);
-                    target.WriteBlock(plane, x + blockX, y + blockY, prediction, residual);
+                    target.Reconstruct4x4(plane, x + blockX, y + blockY,
+                        macroPrediction[((blockY * 16 + blockX) * target.SampleBytes)..], 16, coefficients, qp, field: field);
                 }
             }
         }
@@ -111,8 +108,6 @@ namespace Mediana.Codecs.H264
             Span<int> coefficients = stackalloc int[15];
             Span<int> dcCoefficients = stackalloc int[2 * blocks];
             Span<int> dc = stackalloc int[blocks];
-            Span<int> residual = stackalloc int[16];
-            Span<byte> prediction = stackalloc byte[16 * target.SampleBytes];
             dcCoefficients.Clear();
             reader.Read(ref bits, H264ResidualCategory.ChromaDc, 1, x, y, dcCoefficients[..blocks]);
             reader.Read(ref bits, H264ResidualCategory.ChromaDc, 2, x, y, dcCoefficients[blocks..]);
@@ -135,9 +130,9 @@ namespace Mediana.Codecs.H264
                         continue;
                     }
                     target.Counts(plane)[target.BlockIndex(plane, x + blockX, y + blockY)] = (byte)count;
-                    H264InverseTransform.Residual4x4(coefficients, chromaQp, residual, dc[index], target.Sequence.ChromaBitDepth, field: field);
-                    CopyPrediction(macroPrediction.Slice((plane - 1) * planeBytes, planeBytes), 8, blockX, blockY, prediction, target.SampleBytes);
-                    target.WriteBlock(plane, x + blockX, y + blockY, prediction, residual);
+                    target.Reconstruct4x4(plane, x + blockX, y + blockY,
+                        macroPrediction[((plane - 1) * planeBytes + (blockY * 8 + blockX) * target.SampleBytes)..],
+                        8, coefficients, chromaQp, dc[index], field);
                 }
             }
         }
