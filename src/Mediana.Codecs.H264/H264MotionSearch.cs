@@ -56,6 +56,13 @@ namespace Mediana.Codecs.H264
             H264Picture reference, H264Picture target, int x, int y, int range, Span<byte> prediction,
             CancellationToken token, H264MotionReference? interpolation, int quantizer = 0)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
+            => SelectWithDifference<TAnalysis>(input, reference, target, x, y, range, prediction,
+                token, interpolation, quantizer, out _);
+
+        public static (int X, int Y, int Difference) SelectWithDifference<TAnalysis>(H264SourceMacroblock input,
+            H264Picture reference, H264Picture target, int x, int y, int range, Span<byte> prediction,
+            CancellationToken token, H264MotionReference? interpolation, int quantizer, out int estimatedVectorBits)
+            where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             token.ThrowIfCancellationRequested();
             (int predictedX, int predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
@@ -67,6 +74,7 @@ namespace Mediana.Codecs.H264
             if (search.best == 0 && predictedX == 0 && predictedY == 0)
             {
                 input.Samples.CopyTo(prediction);
+                estimatedVectorBits = search.bestVectorBits;
                 return (0, 0, 0);
             }
             // With a zero predictor the integer diamond stays at the origin on a tie.
@@ -79,6 +87,7 @@ namespace Mediana.Codecs.H264
                 prediction[..256].Fill(luma);
                 prediction.Slice(256, 64).Fill(blue);
                 prediction.Slice(320, 64).Fill(red);
+                estimatedVectorBits = search.bestVectorBits;
                 return (0, 0, search.best);
             }
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
@@ -105,6 +114,7 @@ namespace Mediana.Codecs.H264
             {
                 search.WritePrediction();
             }
+            estimatedVectorBits = search.bestVectorBits;
             return (search.motionX, search.motionY, search.best);
         }
 
