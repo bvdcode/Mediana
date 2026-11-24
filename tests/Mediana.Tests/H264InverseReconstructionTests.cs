@@ -19,11 +19,14 @@ namespace Mediana.Tests
             int[] residual = new int[16];
             byte[] prediction = new byte[predictionStride * 3 + 4];
             byte[] actual = new byte[stride * 4 + 5];
+            byte[] alignedPrediction = new byte[stride * 4];
+            byte[] source = new byte[stride * 4];
             for (int qp = 0; qp <= 51; qp++)
             {
                 for (int index = 0; index < 35; index++)
                 {
                     random.NextBytes(prediction);
+                    random.NextBytes(source);
                     Array.Clear(levels);
                     if (index < levels.Length)
                     {
@@ -44,14 +47,26 @@ namespace Mediana.Tests
                     H264InverseTransform.Residual4x4(levels, qp, residual, dc);
                     actual.AsSpan().Fill(117);
                     byte[] expected = actual.ToArray();
+                    int expectedError = 0;
                     for (int y = 0; y < 4; y++)
                     {
+                        prediction.AsSpan(y * predictionStride, 4).CopyTo(alignedPrediction.AsSpan(y * stride, 4));
                         for (int x = 0; x < 4; x++)
                         {
-                            expected[3 + y * stride + x] = (byte)Math.Clamp(prediction[y * predictionStride + x] + residual[4 * y + x], 0, 255);
+                            int offset = y * stride + x;
+                            byte sample = (byte)Math.Clamp(alignedPrediction[offset] + residual[4 * y + x], 0, 255);
+                            expected[3 + offset] = sample;
+                            int error = source[offset] - sample;
+                            expectedError += error * error;
                         }
                     }
                     Assert.True(H264InverseTransform.TryReconstructFrame4x4(levels, qp, dc, prediction, predictionStride, actual.AsSpan(3), stride));
+                    Assert.Equal(expected, actual);
+
+                    actual.AsSpan().Fill(117);
+                    Assert.True(H264InverseTransform.TryReconstructAndMeasure(levels, qp, dc, alignedPrediction, source,
+                        actual.AsSpan(3), stride, out int measuredError));
+                    Assert.Equal(expectedError, measuredError);
                     Assert.Equal(expected, actual);
                 }
             }

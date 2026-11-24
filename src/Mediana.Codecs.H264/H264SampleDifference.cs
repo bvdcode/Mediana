@@ -32,6 +32,22 @@ namespace Mediana.Codecs.H264
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int SumSquared16(Vector128<byte> left, Vector128<byte> right)
+        {
+            Vector128<short> low = Vector128.WidenLower(left).AsInt16() - Vector128.WidenLower(right).AsInt16();
+            Vector128<short> high = Vector128.WidenUpper(left).AsInt16() - Vector128.WidenUpper(right).AsInt16();
+            if (Sse2.IsSupported)
+            {
+                return Vector128.Sum(Sse2.MultiplyAddAdjacent(low, low) + Sse2.MultiplyAddAdjacent(high, high));
+            }
+            Vector128<int> a = Vector128.WidenLower(low);
+            Vector128<int> b = Vector128.WidenUpper(low);
+            Vector128<int> c = Vector128.WidenLower(high);
+            Vector128<int> d = Vector128.WidenUpper(high);
+            return Vector128.Sum(a * a + b * b + c * c + d * d);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Sum16(Vector128<byte> left, Vector128<byte> right) => Total(Accumulate16(left, right));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

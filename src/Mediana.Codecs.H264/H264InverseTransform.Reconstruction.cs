@@ -14,12 +14,40 @@ namespace Mediana.Codecs.H264
         internal static bool TryReconstructFrame4x4(ReadOnlySpan<int> scanned, int qp, int? scaledDc,
             ReadOnlySpan<byte> prediction, int predictionStride, Span<byte> pixels, int stride)
         {
+            if (!TryReconstructVector(scanned, qp, scaledDc, prediction, predictionStride, out Vector128<byte> result))
+            {
+                return false;
+            }
+            StoreRows(result, pixels, stride);
+            return true;
+        }
+
+        internal static bool TryReconstructAndMeasure(ReadOnlySpan<int> scanned, int qp, int? scaledDc,
+            ReadOnlySpan<byte> prediction, ReadOnlySpan<byte> source, Span<byte> pixels, int stride, out int error)
+        {
+            Vector128<byte> result;
+            if (scanned.IsEmpty && scaledDc is null)
+            {
+                result = LoadRows(prediction, stride);
+            }
+            else if (!TryReconstructVector(scanned, qp, scaledDc, prediction, stride, out result))
+            {
+                error = 0;
+                return false;
+            }
+            StoreRows(result, pixels, stride);
+            error = H264SampleDifference.SumSquared16(LoadRows(source, stride), result);
+            return true;
+        }
+
+        private static bool TryReconstructVector(ReadOnlySpan<int> scanned, int qp, int? scaledDc,
+            ReadOnlySpan<byte> prediction, int predictionStride, out Vector128<byte> result)
+        {
             ReadOnlySpan<int> ac = scaledDc.HasValue ? scanned : scanned[1..];
             int index = qp % 6;
             int shift = qp / 6;
             int even = ScaleEven[index] << shift;
             long dc = scaledDc ?? (long)scanned[0] * even;
-            Vector128<byte> result;
             if (!ac.ContainsAnyExcept(0))
             {
                 int delta = checked((int)((dc + 32) >> 6));
@@ -32,6 +60,7 @@ namespace Mediana.Codecs.H264
                 // Even the largest 8-bit scale (29 << 8) keeps these levels inside the butterfly bound.
                 if (dc is < -MaximumVectorInput or > MaximumVectorInput || ac.ContainsAnyExceptInRange(-16384, 16384))
                 {
+                    result = default;
                     return false;
                 }
                 int mixed = ScaleMixed[index] << shift;
@@ -54,13 +83,17 @@ namespace Mediana.Codecs.H264
                 result = Vector128.NarrowWithSaturation(Vector128.Max(top, Vector128<short>.Zero).AsUInt16(),
                     Vector128.Max(bottom, Vector128<short>.Zero).AsUInt16());
             }
+            return true;
+        }
+
+        private static void StoreRows(Vector128<byte> result, Span<byte> pixels, int stride)
+        {
             Vector128<uint> rows = result.AsUInt32();
             for (int row = 0; row < 4; row++)
             {
                 uint samples = rows.GetElement(row);
                 MemoryMarshal.Write(pixels[(row * stride)..], in samples);
             }
-            return true;
         }
 
         private static Vector128<byte> LoadRows(ReadOnlySpan<byte> source, int stride) =>
