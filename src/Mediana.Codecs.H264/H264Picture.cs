@@ -164,13 +164,11 @@ namespace Mediana.Codecs.H264
 
         public void SetLuma8x8Mode(int x, int y, int mode)
         {
-            for (int row = 0; row < 8; row += 4)
-            {
-                for (int column = 0; column < 8; column += 4)
-                {
-                    SetLumaMode(x + column, y + row, mode);
-                }
-            }
+            int first = BlockIndex(0, x, y);
+            Span<byte> modes = Modes;
+            byte pending = (byte)(mode | 128);
+            modes.Slice(first, 2).Fill(pending);
+            modes.Slice(first + Width / 4, 2).Fill(pending);
         }
 
         public void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual) =>
@@ -236,7 +234,14 @@ namespace Mediana.Codecs.H264
         public bool IsInCurrentSlice(int x, int y) => x >= 0 && x < Width && y >= 0 && y < Height &&
             y / 16 * Sequence.WidthInMbs + x / 16 >= FirstMacroblock;
 
-        private bool IsAvailable(int x, int y, bool constrained) => IsInCurrentSlice(x, y) &&
-            Modes[BlockIndex(0, x, y)] < 128 && (!constrained || Modes[BlockIndex(0, x, y)] != InterMode);
+        private bool IsAvailable(int x, int y, bool constrained)
+        {
+            if (!IsInCurrentSlice(x, y))
+            {
+                return false;
+            }
+            byte mode = Modes[BlockIndex(0, x, y)];
+            return mode < 128 && (!constrained || mode != InterMode);
+        }
     }
 }

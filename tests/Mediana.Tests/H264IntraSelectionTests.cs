@@ -9,6 +9,37 @@ namespace Mediana.Tests
 {
     public class H264IntraSelectionTests
     {
+        [Theory]
+        [InlineData(8, false)]
+        [InlineData(8, true)]
+        [InlineData(24, false)]
+        public void TopRightGroupsRespectIntraAvailabilityAndPictureEdges(int x, bool constrained)
+        {
+            using H264Picture picture = new(new H264SequenceParameterSet
+            {
+                WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true
+            }, new MediaBufferAllocator(65536), H264SliceKind.I);
+            picture.Modes.Clear();
+            Span<byte> pixels = picture.Plane(0);
+            for (int column = 0; column < picture.Width; column++)
+            {
+                pixels[7 * picture.Width + column] = (byte)column;
+            }
+            if (x + 8 < picture.Width)
+            {
+                picture.Modes[picture.BlockIndex(0, x + 8, 7)] = H264Picture.InterMode;
+                picture.Modes[picture.BlockIndex(0, x + 12, 7)] = byte.MaxValue;
+            }
+            Span<byte> top = stackalloc byte[16];
+            Span<byte> left = stackalloc byte[8];
+            Assert.True(picture.ReadLumaNeighbours(x, 8, 8, top, left, constrained).HasTop);
+            int available = constrained || x + 8 == picture.Width ? 8 : 12;
+            for (int i = 0; i < top.Length; i++)
+            {
+                Assert.Equal((byte)(x + (i < available ? i : 7)), top[i]);
+            }
+        }
+
         [Fact]
         public void PredictedFirstTraversalPreservesScalarMinimumAndEveryTie()
         {

@@ -59,9 +59,22 @@ namespace Mediana.Codecs.H264
             bool hasLeft = IsAvailable(x - 1, y, constrained);
             if (hasTop)
             {
-                for (int index = 0; index < size * 2; index++)
+                int length = size * 2;
+                int topRow = (y - 1) * Width + x;
+                // Reconstruction and intra availability are stored per 4x4 block.
+                for (int index = 0; index < length;)
                 {
-                    top[index] = IsAvailable(x + index, y - 1, constrained) ? pixels[(y - 1) * Width + x + index] : top[size - 1];
+                    int count = Math.Min(4 - ((x + index) & 3), length - index);
+                    Span<TSample> group = top.Slice(index, count);
+                    if (index == 0 || IsAvailable(x + index, y - 1, constrained))
+                    {
+                        pixels.Slice(topRow + index, count).CopyTo(group);
+                    }
+                    else
+                    {
+                        group.Fill(top[size - 1]);
+                    }
+                    index += count;
                 }
             }
             if (hasLeft)
