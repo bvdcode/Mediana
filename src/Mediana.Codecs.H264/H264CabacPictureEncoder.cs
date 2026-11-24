@@ -28,7 +28,8 @@ namespace Mediana.Codecs.H264
                 case H264MacroblockAnalysis.Fast:
                     WriteBlocks<H264FastMacroblockAnalysis>(input, target, reference, keyFrame, quantizer,
                         options.MotionSearchRange, syntax, arithmetic, motion, token, interpolation, null, stationary,
-                        compareMotionRate: options.RateControl is null, lumaOffset: lumaOffset);
+                        compareMotionRate: options.RateControl is null, lumaOffset: lumaOffset,
+                        coalesceReferenceRuns: !keyFrame && options.Deblocking is not null && options.RateControl is null && lumaOffset == 0);
                     break;
                 case H264MacroblockAnalysis.RateDistortion when keyFrame:
                     WriteBlocks<H264FastMacroblockAnalysis>(input, target, reference, true, quantizer,
@@ -79,7 +80,8 @@ namespace Mediana.Codecs.H264
         private static void WriteBlocks<TAnalysis>(VideoFrame input, H264Picture target, H264Picture? reference,
             bool keyFrame, int quantizer, int searchRange, H264CabacEncodingSyntax syntax, H264CabacEncoder arithmetic,
             H264CabacPredictionWindow? motion, CancellationToken token, H264MotionReference? interpolation,
-            H264RateDistortionAnalysis? analysis, H264StationaryHistory? stationary, bool compareMotionRate = false, int lumaOffset = 0)
+            H264RateDistortionAnalysis? analysis, H264StationaryHistory? stationary, bool compareMotionRate = false,
+            int lumaOffset = 0, bool coalesceReferenceRuns = false)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             H264SourcePicture sourcePicture = new(input);
@@ -87,6 +89,7 @@ namespace Mediana.Codecs.H264
             Span<byte> prediction = stackalloc byte[384];
             Span<int> coefficients = stackalloc int[256 + H264ChromaEncoder.CoefficientCount];
             H264SkipResidualBounds bounds = H264ForwardTransform.GetSkipBounds(quantizer);
+            ReadOnlySpan<H264MacroblockFlags> referenceFlags = coalesceReferenceRuns ? reference!.MacroblockFlags : [];
             int address = 0;
             for (int y = 0; y < target.Height; y += 16)
             {
@@ -94,12 +97,20 @@ namespace Mediana.Codecs.H264
                 {
                     token.ThrowIfCancellationRequested();
                     int run = lumaOffset == 0 ? stationary?.MatchingRun(sourcePicture, address, x, y) ?? 0 : 0;
-                    if (run != 0 && IsStationaryPredictor(target, stationary, address, x, y))
+                    bool useReference = !referenceFlags.IsEmpty && (referenceFlags[address] & H264MacroblockFlags.StationarySkip) != 0;
+                    if ((run != 0 || useReference) && IsStationaryPredictor(target, stationary, address, x, y))
                     {
-                        WriteStationaryRun(syntax, arithmetic, motion!, target, reference!, x, y, address, run, quantizer, token);
-                        x += (run - 1) * 16;
-                        address += run - 1;
-                        continue;
+                        if (useReference)
+                        {
+                            run = sourcePicture.MatchingStationaryRun(reference!, x, y, bounds);
+                        }
+                        if (run != 0)
+                        {
+                            WriteStationaryRun(syntax, arithmetic, motion!, target, reference!, x, y, address, run, quantizer, token);
+                            x += (run - 1) * 16;
+                            address += run - 1;
+                            continue;
+                        }
                     }
                     H264SourceMacroblock source = new(sourcePicture, x, y, samples);
                     if (keyFrame) { WriteIntra(syntax, source, target, address, x, y, quantizer, prediction, coefficients); }

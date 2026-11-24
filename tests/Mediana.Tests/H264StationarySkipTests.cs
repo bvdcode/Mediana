@@ -9,6 +9,28 @@ namespace Mediana.Tests
 {
     public class H264StationarySkipTests
     {
+        [Fact]
+        public void StridedReferenceRunStopsAtChromaMismatchAndCroppedEdges()
+        {
+            MediaBufferAllocator allocator = new(65536);
+            VideoFormat format = H264EncoderTests.Format(50, 34);
+            using H264Encoder encoder = H264Encoder.Create(format, new(1, 1000), allocator);
+            H264Configuration configuration = H264Configuration.Parse(encoder.Stream.Configuration.Span, new());
+            using H264Picture reference = new(configuration.Sequences[0], allocator, H264SliceKind.P);
+            using VideoFrame frame = H264EncoderTests.Frame(format, allocator, 0);
+            CopyFrameToReference(frame, reference);
+            H264SourcePicture source = new(frame);
+            H264SkipResidualBounds bounds = H264ForwardTransform.GetSkipBounds(30);
+
+            Assert.Equal(3, source.MatchingStationaryRun(reference, 0, 0, bounds));
+            Assert.Equal(0, source.MatchingStationaryRun(reference, 48, 0, bounds));
+            Assert.Equal(0, source.MatchingStationaryRun(reference, 0, 32, bounds));
+
+            reference.Plane(2)[7 * reference.Stride(2) + 16] += 20;
+            Assert.Equal(2, source.MatchingStationaryRun(reference, 0, 0, bounds));
+            Assert.Equal(0, source.MatchingStationaryRun(reference, 32, 0, bounds));
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(1)]
