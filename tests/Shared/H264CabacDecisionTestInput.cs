@@ -65,8 +65,7 @@ namespace Mediana.Tests
                             H264CabacContext context = new(state, symbol != 0);
                             if (decoder.ReadBin(ref bits, ref context) != expectedSymbol || decoder.Range != expectedRange
                                 || decoder.Offset != expectedOffset || context.State != expectedState
-                                || context.MostProbableSymbol != expectedMps || bits.BitPosition != expectedBits.BitPosition
-                                || bits.ByteAligned != expectedBits.ByteAligned)
+                                || context.MostProbableSymbol != expectedMps || decoder.GetBitPosition(ref bits) != expectedBits.BitPosition)
                             {
                                 throw new InvalidDataException("CABAC decision differs from normative probability, transition or arithmetic tables.");
                             }

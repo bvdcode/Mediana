@@ -42,6 +42,19 @@ namespace Mediana.Formats.Video
             return (int)(buffer >> --available) & 1;
         }
 
+        internal uint ReadCabacLookahead(int required, int maximum, out int count)
+        {
+            if (required > available)
+            {
+                Fill(required);
+            }
+            count = Math.Min(maximum, available);
+            available -= count;
+            return (uint)(buffer >> available) & ((1u << count) - 1);
+        }
+
+        internal void ReturnCabacLookahead(int count) => available += count;
+
         private void Fill(int count)
         {
             do

@@ -17,10 +17,12 @@ namespace Mediana.Codecs.H264
             packed = (byte)((state << 1) | (mostProbableSymbol ? 1 : 0));
         }
 
-        private H264CabacContext(byte packed)
+        internal H264CabacContext(byte packed)
         {
             this.packed = packed;
         }
+
+        internal byte Packed => packed;
 
         public byte State => (byte)(packed >> 1);
         public bool MostProbableSymbol => (packed & 1) != 0;

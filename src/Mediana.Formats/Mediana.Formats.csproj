@@ -2,6 +2,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Mediana.Images.Metadata" />
     <InternalsVisibleTo Include="Mediana.Codecs.Aac" />
+    <InternalsVisibleTo Include="Mediana.Codecs.H264" />
     <InternalsVisibleTo Include="Mediana.Codecs.Opus" />
     <InternalsVisibleTo Include="Mediana.Codecs.Ac3" />
     <InternalsVisibleTo Include="Mediana.Codecs.Vorbis" />
