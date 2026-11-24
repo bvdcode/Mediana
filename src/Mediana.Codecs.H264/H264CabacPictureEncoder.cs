@@ -143,8 +143,7 @@ namespace Mediana.Codecs.H264
             int temporalDifference;
             bool skip = TAnalysis.Enabled
                 ? analysis!.TrySkip(source, reference, address, x, y, skipX, skipY, searchRange, prediction, interpolation)
-                : skipX == 0 && skipY == 0 && !source.Luma.ContainsAnyExcept(source.Luma[0]) &&
-                    bounds.TryPredict(source, reference, x, y, prediction);
+                : skipX == 0 && skipY == 0 && bounds.AllowsStationarySkip(source, reference, x, y);
             if (skip)
             {
                 motionX = skipX;
