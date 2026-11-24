@@ -34,7 +34,7 @@ namespace Mediana.Codecs.H264
         {
             bool field = target.IsFieldMacroblock(x, y);
             bool intra16 = type != 0;
-            if (!intra16 && target.Transforms8x8[target.Grid.Address(x, y)] != 0)
+            if (!intra16 && target.Uses8x8Transform(target.Grid.Address(x, y)))
             {
                 H264Luma8x8Reconstruction.Read(ref bits, reader, target, x, y, pattern, qp, true, constrained, [], plane);
                 return;

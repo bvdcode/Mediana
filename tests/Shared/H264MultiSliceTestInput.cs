@@ -65,9 +65,9 @@ namespace Mediana.Tests
                     {
                         int presentation = gopStart + next.Current.Value / 2;
                         H264TestInput.VerifyPicture(picture, expected.AsSpan(presentation * PictureBytes, PictureBytes), pictures);
-                        foreach (byte transform in picture.Transforms8x8)
+                        foreach (H264MacroblockFlags flags in picture.MacroblockFlags)
                         {
-                            transformed += transform;
+                            transformed += flags.HasFlag(H264MacroblockFlags.Transform8x8) ? 1 : 0;
                         }
                         references.Store(picture, header, next.Current);
                         stored = true;

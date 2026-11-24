@@ -25,6 +25,7 @@ namespace Mediana.Codecs.H264
         public void MarkStationarySkip(int x, int y, int blocks, int reference0, int reference1)
         {
             // Unvisited macroblocks have zero coefficients and vectors, with both reference indices unavailable.
+            MacroblockFlags.Slice(y / 16 * Sequence.WidthInMbs + x / 16, blocks).Fill(H264MacroblockFlags.StationarySkip);
             Span<byte> modes = Modes;
             Span<byte> past = reference0 >= 0 ? ReferenceIndices(H264ReferenceList.L0) : [];
             Span<byte> future = reference1 >= 0 ? ReferenceIndices(H264ReferenceList.L1) : [];

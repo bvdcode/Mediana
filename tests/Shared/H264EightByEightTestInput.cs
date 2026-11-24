@@ -104,9 +104,9 @@ namespace Mediana.Tests
                 H264TestInput.VerifyPicture(picture, expected, header.FrameNumber);
                 int intra = 0;
                 int inter = 0;
-                for (int address = 0; address < picture.Transforms8x8.Length; address++)
+                for (int address = 0; address < picture.MacroblockFlags.Length; address++)
                 {
-                    if (picture.Transforms8x8[address] == 0)
+                    if (!picture.Uses8x8Transform(address))
                     {
                         continue;
                     }

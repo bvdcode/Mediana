@@ -108,7 +108,7 @@ namespace Mediana.Codecs.H264
             bool vertical, ref H264DeblockingContext context,
             scoped Span<byte> strengths)
         {
-            int edgeStep = picture.Transforms8x8[address] == 0 || picture.Sequence.ChromaFormat == 2 ? 4 : 8;
+            int edgeStep = !picture.Uses8x8Transform(address) || picture.Sequence.ChromaFormat == 2 ? 4 : 8;
             int firstEdge = (vertical ? x == 0 : y == 0) ||
                 (header.DeblockingIdc == 2 && address - (vertical ? 1 : header.Sequence.WidthInMbs) < header.FirstMacroblock)
                 ? edgeStep : 0;
@@ -130,7 +130,7 @@ namespace Mediana.Codecs.H264
             int scale = vertical ? horizontalScale : verticalScale;
             int size = 16 / scale;
             int segmentLength = 4 / (vertical ? verticalScale : horizontalScale);
-            int edgeStep = (plane == 0 || picture.FullResolutionChroma) && picture.Transforms8x8[address] != 0 ? 8 : 4;
+            int edgeStep = (plane == 0 || picture.FullResolutionChroma) && picture.Uses8x8Transform(address) ? 8 : 4;
             int currentQp = Qp(picture, header.Picture, plane, address);
             for (int edge = 0; edge < size; edge += edgeStep)
             {

@@ -110,7 +110,16 @@ namespace Mediana.Codecs.H264
         public Span<byte> Modes => storage.Span.Slice(ModesOffset, lumaBlocks);
         private int QuantizersOffset => ModesOffset + lumaBlocks * (1 + MotionBytesPerBlock * referenceLists);
         public Span<byte> Quantizers => storage.Span.Slice(QuantizersOffset, macroblocks);
-        public Span<byte> Transforms8x8 => storage.Span.Slice(QuantizersOffset + macroblocks, macroblocks);
+        public Span<H264MacroblockFlags> MacroblockFlags =>
+            MemoryMarshal.Cast<byte, H264MacroblockFlags>(storage.Span.Slice(QuantizersOffset + macroblocks, macroblocks));
+
+        public bool Uses8x8Transform(int address) => MacroblockFlags[address].HasFlag(H264MacroblockFlags.Transform8x8);
+
+        public void Set8x8Transform(int address, bool enabled)
+        {
+            ref H264MacroblockFlags flags = ref MacroblockFlags[address];
+            flags = enabled ? flags | H264MacroblockFlags.Transform8x8 : flags & ~H264MacroblockFlags.Transform8x8;
+        }
 
         public Span<byte> Counts(int index) => index switch
         {

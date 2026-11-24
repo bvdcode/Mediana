@@ -18,8 +18,19 @@ namespace Mediana.Codecs.H264
             uniformPrediction = null;
             uniformValidated = false;
             strengths.Clear();
+            int endEdge = 16;
+            if (flags[address].HasFlag(H264MacroblockFlags.StationarySkip))
+            {
+                // The interior of a stationary skipped block shares one prediction and has no coded residuals.
+                endEdge = edgeStep;
+                if (firstEdge == 0 && flags[address - (vertical ? 1 : columns)].HasFlag(H264MacroblockFlags.StationarySkip))
+                {
+                    strengths[..4].Fill((byte)Strength(x, y, vertical, macroblockEdge: true));
+                    return;
+                }
+            }
             int firstInterior = Math.Max(firstEdge, edgeStep);
-            for (int edge = firstEdge; edge < 16; edge += edgeStep)
+            for (int edge = firstEdge; edge < endEdge; edge += edgeStep)
             {
                 if (edge == firstInterior)
                 {

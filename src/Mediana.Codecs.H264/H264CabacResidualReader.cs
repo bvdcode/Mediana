@@ -27,7 +27,7 @@ namespace Mediana.Codecs.H264
             {
                 return 1;
             }
-            if (target.Transforms8x8[neighbour.Address] == 0)
+            if (!target.Uses8x8Transform(neighbour.Address))
             {
                 return 0;
             }

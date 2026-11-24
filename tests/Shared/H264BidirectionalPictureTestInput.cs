@@ -121,9 +121,9 @@ namespace Mediana.Tests
                     {
                         if (header.Kind == H264SliceKind.B)
                         {
-                            foreach (byte transform in picture.Transforms8x8)
+                            foreach (H264MacroblockFlags flags in picture.MacroblockFlags)
                             {
-                                transformedBBlocks += transform;
+                                transformedBBlocks += flags.HasFlag(H264MacroblockFlags.Transform8x8) ? 1 : 0;
                             }
                         }
                         int presentation = gopStart + order.Current.Value / 2;

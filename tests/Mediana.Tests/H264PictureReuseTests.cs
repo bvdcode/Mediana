@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Runtime.InteropServices;
 using Mediana.Codecs.H264;
 using Mediana.Core;
 using Mediana.Core.Memory;
@@ -25,7 +26,7 @@ namespace Mediana.Tests
             picture.FirstMacroblock = 3;
             picture.Modes.Fill(42);
             picture.Quantizers.Fill(51);
-            picture.Transforms8x8.Fill(1);
+            picture.MacroblockFlags.Fill(H264MacroblockFlags.Transform8x8);
             picture.ReferenceIndices(H264ReferenceList.L0).Fill(7);
             picture.MotionX(H264ReferenceList.L0).Fill(-37);
             picture.MotionY(H264ReferenceList.L0).Fill(25);
@@ -41,7 +42,7 @@ namespace Mediana.Tests
             Assert.False(picture.Modes.ContainsAnyExcept(byte.MaxValue));
             Assert.False(picture.ReferenceIndices(H264ReferenceList.L0).ContainsAnyExcept(byte.MaxValue));
             Assert.False(picture.Quantizers.ContainsAnyExcept((byte)0));
-            Assert.False(picture.Transforms8x8.ContainsAnyExcept((byte)0));
+            Assert.False(MemoryMarshal.AsBytes(picture.MacroblockFlags).ContainsAnyExcept((byte)0));
             Assert.False(picture.MotionX(H264ReferenceList.L0).ContainsAnyExcept(0));
             Assert.False(picture.MotionY(H264ReferenceList.L0).ContainsAnyExcept(0));
             Assert.False(picture.MotionAt(H264ReferenceList.L0, 0, 0).Available);

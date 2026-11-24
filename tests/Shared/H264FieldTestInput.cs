@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using Mediana.Codecs.H264;
 using Mediana.Core.Memory;
 using Mediana.Core.Timing;
@@ -35,7 +36,7 @@ namespace Mediana.Tests
                     H264PictureDecoder.DecodeSlice(ref bits, header, [], picture, header.Layout.MacroblockCount);
                 }
                 VerifyPicture(picture, expected);
-                if (require8x8 && picture.Transforms8x8.ContainsAnyExcept((byte)1))
+                if (require8x8 && MemoryMarshal.AsBytes(picture.MacroblockFlags).ContainsAnyExcept((byte)H264MacroblockFlags.Transform8x8))
                 {
                     throw new InvalidDataException("Expected every MBAFF macroblock to use an 8x8 transform.");
                 }

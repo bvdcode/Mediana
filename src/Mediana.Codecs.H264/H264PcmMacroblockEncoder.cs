@@ -40,7 +40,7 @@ namespace Mediana.Codecs.H264
             }
             int address = y / 16 * target.Sequence.WidthInMbs + x / 16;
             target.Quantizers[address] = 0;
-            target.Transforms8x8[address] = 0;
+            target.MacroblockFlags[address] = H264MacroblockFlags.None;
             return true;
         }
 

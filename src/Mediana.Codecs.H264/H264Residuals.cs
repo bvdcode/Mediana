@@ -45,7 +45,7 @@ namespace Mediana.Codecs.H264
                 target.WriteZeroResidualBlock(plane, x, y, 16, macroPrediction, 16);
                 return;
             }
-            if (target.Transforms8x8[target.Grid.Address(x, y)] != 0)
+            if (target.Uses8x8Transform(target.Grid.Address(x, y)))
             {
                 H264Luma8x8Reconstruction.Read(ref bits, reader, target, x, y, pattern, qp, false, false, macroPrediction, plane);
                 return;

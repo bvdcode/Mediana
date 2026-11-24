@@ -149,7 +149,7 @@ namespace Mediana.Tests
             using (H264Picture picture = DecodePayload(payload, header, allocator))
             {
                 H264TestInput.VerifyPicture(picture, Enumerable.Repeat((byte)128, 1536).ToArray());
-                Assert.All(picture.Transforms8x8.ToArray(), flag => Assert.Equal(1, flag));
+                Assert.All(picture.MacroblockFlags.ToArray(), flag => Assert.Equal(H264MacroblockFlags.Transform8x8, flag));
                 Assert.All(picture.Counts(0).ToArray(), count => Assert.Equal(0, count));
             }
             Assert.Equal(0, allocator.AllocatedBytes);

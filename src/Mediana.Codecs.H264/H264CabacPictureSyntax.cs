@@ -33,7 +33,7 @@ namespace Mediana.Codecs.H264
                 ReadTransform(ref bits, address);
             }
             (int x, int y) = target.Grid.Position(address);
-            bool transform8x8 = target.Transforms8x8[address] != 0;
+            bool transform8x8 = target.Uses8x8Transform(address);
             int blocks = transform8x8 ? 4 : 16;
             for (int index = 0; index < blocks; index++)
             {
@@ -86,8 +86,8 @@ namespace Mediana.Codecs.H264
         {
             int left = state.Left(address);
             int top = state.Top(address);
-            int context = 399 + (left < 0 ? 0 : target.Transforms8x8[left]) + (top < 0 ? 0 : target.Transforms8x8[top]);
-            target.Transforms8x8[address] = reader.Read(ref bits, context) ? (byte)1 : (byte)0;
+            int context = 399 + (left >= 0 && target.Uses8x8Transform(left) ? 1 : 0) + (top >= 0 && target.Uses8x8Transform(top) ? 1 : 0);
+            target.Set8x8Transform(address, reader.Read(ref bits, context));
         }
 
         public int ReadPattern(ref H264BitReader bits, int address, int type)

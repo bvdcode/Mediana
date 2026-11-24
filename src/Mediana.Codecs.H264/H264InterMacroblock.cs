@@ -43,7 +43,7 @@ namespace Mediana.Codecs.H264
             int pattern = ReadPattern(ref bits, target);
             if ((pattern & 15) != 0 && header.Picture.Transform8x8 && noSmallPartitions && bits.ReadFlag())
             {
-                target.Transforms8x8[address] = 1;
+                target.Set8x8Transform(address, true);
             }
             if (pattern != 0)
             {

@@ -28,7 +28,7 @@ namespace Mediana.Codecs.H264
             }
             bool intra16 = type != 0;
             bool transform8x8 = !intra16 && header.Picture.Transform8x8 && bits.ReadFlag();
-            target.Transforms8x8[address] = transform8x8 ? (byte)1 : (byte)0;
+            target.Set8x8Transform(address, transform8x8);
             int blockCount = transform8x8 ? 4 : 16;
             for (int index = 0; index < blockCount; index++)
             {

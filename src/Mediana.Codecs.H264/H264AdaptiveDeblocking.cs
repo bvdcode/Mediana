@@ -34,7 +34,7 @@ namespace Mediana.Codecs.H264
             int width = 16 / picture.HorizontalScale(plane);
             int height = 16 / picture.VerticalScale(plane);
             (int x, int y, int rowStep) = picture.Grid.PixelOrigin(address, width, height);
-            int edgeStep = (plane == 0 || picture.FullResolutionChroma) && picture.Transforms8x8[address] != 0 ? 8 : 4;
+            int edgeStep = (plane == 0 || picture.FullResolutionChroma) && picture.Uses8x8Transform(address) ? 8 : 4;
             for (int edge = 0; edge < width; edge += edgeStep)
             {
                 FilterEdge(picture, header, address, plane, pixels, x + edge, y, rowStep, true, ref context);

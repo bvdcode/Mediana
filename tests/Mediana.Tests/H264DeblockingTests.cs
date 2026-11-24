@@ -38,6 +38,52 @@ namespace Mediana.Tests
         }
 
         [Theory]
+        [InlineData(false, false, false)]
+        [InlineData(false, true, false)]
+        [InlineData(false, true, true)]
+        [InlineData(true, false, false)]
+        [InlineData(true, true, false)]
+        [InlineData(true, true, true)]
+        public void StationaryEdgesMatchIndividualStrengths(bool vertical, bool neighbourStationary, bool sameReference)
+        {
+            H264SequenceParameterSet sequence = new() { WidthInMbs = 2, HeightInMapUnits = 2, FrameMbsOnly = true };
+            MediaBufferAllocator allocator = new(1024 * 1024);
+            using H264Picture picture = new(sequence, allocator, H264SliceKind.P);
+            using H264Picture first = new(sequence, allocator, H264SliceKind.P);
+            using H264Picture second = new(sequence, allocator, H264SliceKind.P);
+            H264PictureOrder order = new(0, 0);
+            H264ReferencePicture[] references = [new(first, 0, order), new(sameReference ? first : second, 1, order)];
+            picture.Modes.Fill(H264Picture.InterMode);
+            picture.ReferenceIndices(H264ReferenceList.L0).Clear();
+            picture.MarkStationarySkip(16, 16, 1, 0, -1);
+            int neighbourX = vertical ? 0 : 16;
+            int neighbourY = vertical ? 16 : 0;
+            if (neighbourStationary)
+            {
+                picture.MarkStationarySkip(neighbourX, neighbourY, 1, 1, -1);
+            }
+            else
+            {
+                int position = picture.BlockIndex(0, vertical ? 12 : 20, vertical ? 20 : 12);
+                picture.Counts(0)[position] = 1;
+            }
+            H264DeblockingContext context = new(picture, references, null);
+            context.BeginMacroblock(3);
+            Span<byte> strengths = stackalloc byte[16];
+            context.FillStrengths(16, 16, vertical, 0, 4, strengths);
+            for (int edge = 0; edge < 16; edge += 4)
+            {
+                for (int segment = 0; segment < 4; segment++)
+                {
+                    int x = 16 + (vertical ? edge : segment * 4);
+                    int y = 16 + (vertical ? segment * 4 : edge);
+                    int expected = H264Deblocking.BoundaryStrength(picture, x, y, vertical, edge == 0, references);
+                    Assert.Equal(expected, strengths[edge + segment]);
+                }
+            }
+        }
+
+        [Theory]
         [InlineData(false, 84, 96)]
         [InlineData(true, 85, 95)]
         public void InterEdgesUseTheirOwnClippingThreshold(bool residual, byte p0, byte q0)
@@ -88,7 +134,7 @@ namespace Mediana.Tests
             H264ReferencePicture[] references = [new(reference, 0, new H264PictureOrder(0, 0))];
             Assert.Equal(0, H264Deblocking.BoundaryStrength(picture, 16, 0, true, true, references));
             Assert.Equal(0, H264Deblocking.BoundaryStrength(picture, 16, 8, false, false, references));
-            picture.Transforms8x8[1] = 1;
+            picture.Set8x8Transform(1, true);
             Assert.Equal(2, H264Deblocking.BoundaryStrength(picture, 16, 0, true, true, references));
             Assert.Equal(2, H264Deblocking.BoundaryStrength(picture, 16, 8, false, false, references));
             Assert.Equal(1, picture.Counts(0)[picture.BlockIndex(0, 20, 4)]);
@@ -105,7 +151,7 @@ namespace Mediana.Tests
             using H264Picture picture = new(header.Sequence, allocator, header.Kind);
             picture.Modes.Fill(2);
             picture.Quantizers.Fill(36);
-            picture.Transforms8x8.Fill(transform8x8 ? (byte)1 : (byte)0);
+            picture.MacroblockFlags.Fill(transform8x8 ? H264MacroblockFlags.Transform8x8 : H264MacroblockFlags.None);
             for (int y = 0; y < 16; y++)
             {
                 for (int x = 0; x < 32; x++)
