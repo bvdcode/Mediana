@@ -51,13 +51,8 @@ namespace Mediana.Codecs.H264
                     target.WriteConstant8x8(plane, blockX, blockY, predicted, predictionStride, delta);
                     continue;
                 }
-                if (!intra)
-                {
-                    H264BlockRows.Copy(predicted, predictionStride * target.SampleBytes, prediction,
-                        8 * target.SampleBytes, 8 * target.SampleBytes, 8);
-                }
                 H264InverseTransform8x8.Residual(coefficients, qp, residual, target.Sequence.LumaBitDepth, field: field);
-                target.WriteLuma8x8(blockX, blockY, prediction, residual, plane);
+                target.WriteLuma8x8(blockX, blockY, predicted, predictionStride, residual, plane);
             }
         }
     }

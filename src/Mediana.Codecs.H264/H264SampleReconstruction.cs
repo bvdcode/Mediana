@@ -9,8 +9,19 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264SampleReconstruction
     {
-        public static void Write(ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int size, Span<byte> pixels, int stride)
+        public static void Write(ReadOnlySpan<byte> prediction, int predictionStride, ReadOnlySpan<int> residual, int size, Span<byte> pixels, int stride)
         {
+            if (size == 8 && Vector128.IsHardwareAccelerated)
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    Vector128<byte> samples = Vector128.CreateScalar(MemoryMarshal.Read<ulong>(prediction[(row * predictionStride)..])).AsByte();
+                    ReadOnlySpan<int> values = residual[(row * 8)..];
+                    ulong reconstructed = Reconstruct(samples, Vector128.Create(values), Vector128.Create(values[4..])).AsUInt64().GetElement(0);
+                    MemoryMarshal.Write(pixels[(row * stride)..], in reconstructed);
+                }
+                return;
+            }
             if (Vector128.IsHardwareAccelerated)
             {
                 for (int row = 0; row < size; row++)
@@ -18,7 +29,8 @@ namespace Mediana.Codecs.H264
                     for (int column = 0; column < size; column += 4)
                     {
                         int offset = row * size + column;
-                        Vector128<byte> samples = Reconstruct(ReadFour(prediction[offset..]), residual.Slice(offset, 4));
+                        Vector128<byte> samples = Reconstruct(ReadFour(prediction[(row * predictionStride + column)..]),
+                            Vector128.Create(residual[offset..]), Vector128<int>.Zero);
                         WriteFour(samples, pixels[(row * stride + column)..]);
                     }
                 }
@@ -29,7 +41,7 @@ namespace Mediana.Codecs.H264
                 for (int column = 0; column < size; column++)
                 {
                     int offset = row * size + column;
-                    pixels[row * stride + column] = (byte)Math.Clamp((long)prediction[offset] + residual[offset], 0, 255);
+                    pixels[row * stride + column] = (byte)Math.Clamp((long)prediction[row * predictionStride + column] + residual[offset], 0, 255);
                 }
             }
         }
@@ -43,7 +55,7 @@ namespace Mediana.Codecs.H264
                 for (int row = 0; row < 4; row++)
                 {
                     int offset = row * stride;
-                    Vector128<byte> samples = Reconstruct(ReadFour(prediction[offset..]), residual.Slice(row * 4, 4));
+                    Vector128<byte> samples = Reconstruct(ReadFour(prediction[offset..]), Vector128.Create(residual[(row * 4)..]), Vector128<int>.Zero);
                     WriteFour(samples, reconstruction[offset..]);
                     Vector128<short> difference = Vector128.WidenLower(ReadFour(source[offset..])).AsInt16()
                         - Vector128.WidenLower(samples).AsInt16();
@@ -74,20 +86,15 @@ namespace Mediana.Codecs.H264
             return error;
         }
 
-        private static Vector128<byte> Reconstruct(Vector128<byte> prediction, ReadOnlySpan<int> residual)
+        private static Vector128<byte> Reconstruct(Vector128<byte> prediction, Vector128<int> lowerResidual, Vector128<int> upperResidual)
         {
-            Vector128<int> values = Vector128.Create(residual);
+            Vector128<short> bounded = Vector128.NarrowWithSaturation(lowerResidual, upperResidual);
+            Vector128<short> samples = Vector128.AddSaturate(Vector128.WidenLower(prediction).AsInt16(), bounded);
             if (Sse2.IsSupported)
             {
-                Vector128<short> bounded = Sse2.PackSignedSaturate(values, Vector128<int>.Zero);
-                Vector128<short> samples = Sse2.AddSaturate(Vector128.WidenLower(prediction).AsInt16(), bounded);
                 return Sse2.PackUnsignedSaturate(samples, Vector128<short>.Zero);
             }
-            Vector128<int> clipped = Vector128.Clamp(values, Vector128.Create(-255), Vector128.Create(255));
-            Vector128<int> sums = Vector128.WidenLower(Vector128.WidenLower(prediction)).AsInt32() + clipped;
-            Vector128<uint> samples32 = Vector128.Clamp(sums, Vector128<int>.Zero, Vector128.Create(255)).AsUInt32();
-            Vector128<ushort> samples16 = Vector128.Narrow(samples32, Vector128<uint>.Zero);
-            return Vector128.Narrow(samples16, Vector128<ushort>.Zero);
+            return Vector128.NarrowWithSaturation(Vector128.Max(samples, Vector128<short>.Zero).AsUInt16(), Vector128<ushort>.Zero);
         }
 
         private static Vector128<byte> ReadFour(ReadOnlySpan<byte> samples) =>

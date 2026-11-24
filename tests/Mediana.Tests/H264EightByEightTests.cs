@@ -46,7 +46,7 @@ namespace Mediana.Tests
                 {
                     coefficients[0] = level;
                     H264InverseTransform8x8.Residual(coefficients, qp, residual, depth);
-                    expected.WriteLuma8x8(8, 16, tight, residual, 1);
+                    expected.WriteLuma8x8(8, 16, tight, 8, residual, 1);
                     actual.WriteConstant8x8(1, 8, 16, strided, 16, H264InverseTransform8x8.DcResidual(level, qp));
                     Assert.True(expected.ReadPlane(1).SequenceEqual(actual.ReadPlane(1)));
                 }

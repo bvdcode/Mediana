@@ -172,7 +172,7 @@ namespace Mediana.Codecs.H264
         }
 
         public void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual) =>
-            WriteBlock(plane, x, y, prediction, residual, 4);
+            WriteBlock(plane, x, y, prediction, 4, residual, 4);
 
         public void Reconstruct4x4(int plane, int x, int y, ReadOnlySpan<byte> prediction, int predictionStride,
             ReadOnlySpan<int> levels, int qp, int? scaledDc = null, bool field = false)
@@ -191,27 +191,25 @@ namespace Mediana.Codecs.H264
                 }
             }
             Span<int> residual = stackalloc int[16];
-            Span<byte> block = stackalloc byte[16 * SampleBytes];
             H264InverseTransform.Residual4x4(levels, qp, residual, scaledDc,
                 plane == 0 ? Sequence.LumaBitDepth : Sequence.ChromaBitDepth, field);
-            H264Residuals.CopyPrediction(prediction, predictionStride, 0, 0, block, SampleBytes);
-            WriteBlock(plane, x, y, block, residual);
+            WriteBlock(plane, x, y, prediction, predictionStride, residual, 4);
         }
 
-        public void WriteLuma8x8(int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int plane = 0) =>
-            WriteBlock(plane, x, y, prediction, residual, 8);
+        public void WriteLuma8x8(int x, int y, ReadOnlySpan<byte> prediction, int predictionStride, ReadOnlySpan<int> residual, int plane) =>
+            WriteBlock(plane, x, y, prediction, predictionStride, residual, 8);
 
-        private void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, ReadOnlySpan<int> residual, int size)
+        private void WriteBlock(int plane, int x, int y, ReadOnlySpan<byte> prediction, int predictionStride, ReadOnlySpan<int> residual, int size)
         {
             (int offset, int stride) = SampleLocation(plane, x, y);
             Span<byte> pixels = Plane(plane);
             if (SampleBytes == 1)
             {
-                H264SampleReconstruction.Write(prediction, residual, size, pixels[offset..], stride);
+                H264SampleReconstruction.Write(prediction, predictionStride, residual, size, pixels[offset..], stride);
             }
             else
             {
-                H264HighPrecisionReconstruction.Write(MemoryMarshal.Cast<byte, ushort>(prediction), residual, size,
+                H264HighPrecisionReconstruction.Write(MemoryMarshal.Cast<byte, ushort>(prediction), predictionStride, residual, size,
                     MemoryMarshal.Cast<byte, ushort>(pixels)[offset..], stride, MaximumSample);
             }
             if (plane == 0 || FullResolutionChroma)
