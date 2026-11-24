@@ -189,7 +189,10 @@ namespace Mediana.Processing
             ReadOnlySpan<AreaSampleRange> horizontal, ReadOnlySpan<AreaSampleRange> vertical,
             Span<long> workspace, CancellationToken cancellationToken)
         {
-            long denominator = 16L * input.Format.Width * input.Format.Height;
+            ulong denominator = 16UL * (ulong)input.Format.Width * (ulong)input.Format.Height;
+            ulong rounding = denominator / 2;
+            // Rounding the reciprocal up can overestimate the quotient by at most one.
+            ulong reciprocal = ulong.MaxValue / denominator + 1;
             int extentDenominator = plane == 0 ? 1 : 2;
             Span<long> filtered = workspace[..horizontal.Length];
             Span<long> sums = workspace.Slice(horizontal.Length, horizontal.Length);
@@ -216,7 +219,9 @@ namespace Mediana.Processing
                 Span<byte> outputRow = output.Slice(y * stride, horizontal.Length);
                 for (int x = 0; x < sums.Length; x++)
                 {
-                    outputRow[x] = (byte)((sums[x] + denominator / 2) / denominator);
+                    ulong sum = (ulong)sums[x] + rounding;
+                    ulong quotient = Math.BigMul(sum, reciprocal, out _);
+                    outputRow[x] = (byte)(quotient * denominator > sum ? quotient - 1 : quotient);
                 }
             }
         }

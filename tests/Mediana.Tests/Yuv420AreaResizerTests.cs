@@ -116,11 +116,13 @@ namespace Mediana.Tests
             }
         }
 
-        [Fact]
-        public void CenteredCheckerboardReducesToAnAverageInsteadOfAliasing()
+        [Theory]
+        [InlineData(8, 8)]
+        [InlineData(2048, 1152)]
+        public void CenteredCheckerboardReducesToAnAverageInsteadOfAliasing(int width, int height)
         {
-            MediaBufferAllocator allocator = new(65536);
-            using VideoFrame input = CreateFrame(8, 8, ChromaLocation.Center, allocator, false, checkerboard: true);
+            MediaBufferAllocator allocator = new(8 * 1024 * 1024);
+            using VideoFrame input = CreateFrame(width, height, ChromaLocation.Center, allocator, false, checkerboard: true);
             using Yuv420AreaResizer resizer = Yuv420AreaResizer.Create(input.Format, 2, 2, allocator);
             using VideoFrame output = resizer.Apply(input);
             Assert.All(output.Data.ToArray(), value => Assert.Equal(128, value));
