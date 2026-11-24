@@ -35,7 +35,18 @@ namespace Mediana.Codecs.Aac
             int channelBands = boundaries.Length - 1;
             Span<AacBandQuantization> bands = stackalloc AacBandQuantization[channels * channelBands];
             Span<AacBandQuantization> candidates = stackalloc AacBandQuantization[bands.Length * 2];
-            AacBandAllocator allocation = new(spectrum, powered, energy, window, quantized, bands, candidates);
+            Span<AacBandZeroThreshold> zeroThresholds = stackalloc AacBandZeroThreshold[bands.Length];
+            for (int channel = 0; channel < channels; channel++)
+            {
+                double normalization = channels == 1 ? 0 : energy[channel];
+                for (int band = 0; band < channelBands; band++)
+                {
+                    int offset = channel * ChannelBins + boundaries[band];
+                    zeroThresholds[channel * channelBands + band] = AacBandZeroThreshold.Measure(
+                        spectrum.Slice(offset, boundaries[band + 1] - boundaries[band]), normalization);
+                }
+            }
+            AacBandAllocator allocation = new(spectrum, powered, energy, window, quantized, bands, candidates, zeroThresholds);
             allocation.Allocate(Math.Max(0, (int)required), budget, token);
             for (int channel = 0; channel < channels; channel++)
             {
@@ -47,7 +58,15 @@ namespace Mediana.Codecs.Aac
                     AacBandQuantization selected = bands[channel * channelBands + band];
                     int start = channel * ChannelBins + boundaries[band];
                     int length = boundaries[band + 1] - boundaries[band];
-                    _ = AacQuantizer.Quantize(spectrum.Slice(start, length), powered.Slice(start, length), quantized.Slice(start, length), selected.Scale);
+                    Span<int> output = quantized.Slice(start, length);
+                    if (selected.Book == 0)
+                    {
+                        output.Clear();
+                    }
+                    else
+                    {
+                        _ = AacQuantizer.Quantize(spectrum.Slice(start, length), powered.Slice(start, length), output, selected.Scale);
+                    }
                     books[channel * ChannelBands + band] = selected.Book;
                     scales[channel * ChannelBands + band] = (byte)selected.Scale;
                     if (first && selected.Book != 0)

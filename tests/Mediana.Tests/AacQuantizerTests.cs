@@ -25,13 +25,32 @@ namespace Mediana.Tests
                                 expected = candidate;
                             }
                         }
-                        Assert.Equal(expected, AacQuantizer.CoarsestNonzeroScale([0, value, 0], maximumScale));
+                        Assert.Equal(expected, AacBandZeroThreshold.Measure([0, value, 0], 0).CoarsestNonzeroScale(maximumScale));
                     }
                 }
             }
-            Assert.Equal(-1, AacQuantizer.CoarsestNonzeroScale([0, -0d], 255));
-            Assert.Equal(-1, AacQuantizer.CoarsestNonzeroScale([double.Epsilon], 255));
-            Assert.Equal(-1, AacQuantizer.CoarsestNonzeroScale([1], -1));
+            Assert.Equal(-1, AacBandZeroThreshold.Measure([0, -0d], 0).LastNonzeroScale);
+            Assert.Equal(-1, AacBandZeroThreshold.Measure([double.Epsilon], 0).LastNonzeroScale);
+            Assert.Equal(-1, AacBandZeroThreshold.Measure([1], 0).CoarsestNonzeroScale(-1));
+        }
+
+        [Theory]
+        [InlineData(0.0)]
+        [InlineData(107.25)]
+        public void CachedZeroBandErrorMatchesEverySilentQuantization(double normalization)
+        {
+            double[] spectrum = [0, -0.5, 3.25, -1.0625, 0.125, -0.000001];
+            double[] powered = spectrum.Select(value => Math.Pow(Math.Abs(value), 0.75)).ToArray();
+            int[] levels = new int[spectrum.Length];
+            AacBandZeroThreshold band = AacBandZeroThreshold.Measure(spectrum, normalization);
+            for (int scale = band.LastNonzeroScale + 1; scale <= AacQuantizer.MaximumScale; scale++)
+            {
+                double error = AacQuantizer.Quantize(spectrum, powered, levels, scale);
+                Assert.Equal(band.ZeroError, normalization == 0 ? error : error / normalization);
+                Assert.All(levels, value => Assert.Equal(0, value));
+            }
+            _ = AacQuantizer.Quantize(spectrum, powered, levels, band.LastNonzeroScale);
+            Assert.Contains(levels, value => value != 0);
         }
 
         [Theory]

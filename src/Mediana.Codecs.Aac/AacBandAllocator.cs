@@ -11,6 +11,7 @@ namespace Mediana.Codecs.Aac
         private readonly ReadOnlySpan<double> spectrum;
         private readonly ReadOnlySpan<double> powered;
         private readonly ReadOnlySpan<double> energy;
+        private readonly ReadOnlySpan<AacBandZeroThreshold> zeroThresholds;
         private readonly ReadOnlySpan<int> boundaries;
         private readonly int bandsPerGroup;
         private readonly int sectionBits;
@@ -19,7 +20,7 @@ namespace Mediana.Codecs.Aac
         private readonly Span<AacBandQuantization> candidates;
 
         public AacBandAllocator(ReadOnlySpan<double> spectrum, ReadOnlySpan<double> powered, ReadOnlySpan<double> energy, AacEncodingWindow window,
-            Span<int> scratch, Span<AacBandQuantization> bands, Span<AacBandQuantization> candidates)
+            Span<int> scratch, Span<AacBandQuantization> bands, Span<AacBandQuantization> candidates, ReadOnlySpan<AacBandZeroThreshold> zeroThresholds)
         {
             this.spectrum = spectrum;
             this.powered = powered;
@@ -30,6 +31,7 @@ namespace Mediana.Codecs.Aac
             this.scratch = scratch;
             this.bands = bands;
             this.candidates = candidates;
+            this.zeroThresholds = zeroThresholds;
         }
 
         public void Allocate(int minimumScale, int budget, CancellationToken token)
@@ -230,6 +232,11 @@ namespace Mediana.Codecs.Aac
 
         private AacBandQuantization Measure(int band, int scale)
         {
+            AacBandZeroThreshold threshold = zeroThresholds[band];
+            if (scale > threshold.LastNonzeroScale)
+            {
+                return new(scale, 0, 0, threshold.ZeroError);
+            }
             int channelBands = boundaries.Length - 1;
             int localBand = band % channelBands;
             int start = band / channelBands * boundaries[^1] + boundaries[localBand];
@@ -292,10 +299,7 @@ namespace Mediana.Codecs.Aac
             int directions = 2;
             if (current.Book == 0 && includePlateaus)
             {
-                int channelBands = boundaries.Length - 1;
-                int local = band % channelBands;
-                int start = band / channelBands * boundaries[^1] + boundaries[local];
-                refinement = AacQuantizer.CoarsestNonzeroScale(spectrum.Slice(start, boundaries[local + 1] - boundaries[local]), refinement);
+                refinement = zeroThresholds[band].CoarsestNonzeroScale(refinement);
                 directions = 1;
                 candidates[band * 2 + 1] = new(current.Scale, 0, 0, double.PositiveInfinity);
             }
