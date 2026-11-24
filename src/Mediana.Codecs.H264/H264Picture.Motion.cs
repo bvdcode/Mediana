@@ -15,12 +15,12 @@ namespace Mediana.Codecs.H264
 
         public H264MotionSample MotionAt(H264ReferenceList list, int x, int y)
         {
-            Span<byte> indices = ReferenceIndices(list);
+            Span<byte> motion = MotionStorage(list);
             if (!IsInCurrentSlice(x, y))
             {
                 return new H264MotionSample(false, -1, 0, 0);
             }
-            return ReadMotion(list, indices, x, y);
+            return ReadMotion(motion, x, y);
         }
 
         public H264MotionSample NeighbourMotionAt(H264ReferenceList list, int currentX, int currentY, int x, int y)
@@ -34,7 +34,7 @@ namespace Mediana.Codecs.H264
 
         private H264MotionSample AdaptiveNeighbourMotionAt(H264ReferenceList list, int currentX, int currentY, int x, int y)
         {
-            Span<byte> indices = ReferenceIndices(list);
+            Span<byte> motion = MotionStorage(list);
             int current = Grid.Address(currentX, currentY);
             (int originX, int originY) = Grid.Position(current);
             H264NeighbourLocation? neighbour = Grid.Neighbour(current, x - originX, y - originY, 16, 16, FirstMacroblock);
@@ -43,7 +43,7 @@ namespace Mediana.Codecs.H264
                 return new H264MotionSample(false, -1, 0, 0);
             }
             (int neighbourX, int neighbourY) = Grid.Position(location.Address);
-            H264MotionSample sample = ReadMotion(list, indices, neighbourX + location.X, neighbourY + location.Y);
+            H264MotionSample sample = ReadMotion(motion, neighbourX + location.X, neighbourY + location.Y);
             if (sample.ReferenceIndex < 0 || Grid.IsField(current) == Grid.IsField(location.Address))
             {
                 return sample;
@@ -55,7 +55,7 @@ namespace Mediana.Codecs.H264
             return sample with { ReferenceIndex = sample.ReferenceIndex / 2, Y = sample.Y * 2 };
         }
 
-        private H264MotionSample ReadMotion(H264ReferenceList list, ReadOnlySpan<byte> indices, int x, int y)
+        private H264MotionSample ReadMotion(ReadOnlySpan<byte> motion, int x, int y)
         {
             int index = BlockIndex(0, x, y);
             byte mode = Modes[index];
@@ -63,20 +63,23 @@ namespace Mediana.Codecs.H264
             {
                 return new H264MotionSample(false, -1, 0, 0);
             }
-            int reference = indices[index];
+            int reference = motion[index];
             if ((mode & 127) != InterMode || reference == byte.MaxValue)
             {
                 return new H264MotionSample(true, -1, 0, 0);
             }
-            return new H264MotionSample(true, reference, MotionX(list)[index], MotionY(list)[index]);
+            ReadOnlySpan<int> vectors = MemoryMarshal.Cast<byte, int>(motion[lumaBlocks..]);
+            return new H264MotionSample(true, reference, vectors[index], vectors[lumaBlocks + index]);
         }
 
         public void SetMotion(H264ReferenceList list, int x, int y, int width, int height, int reference, int motionX, int motionY)
         {
             ValidateMotionPartition(x, y, width, height, reference);
-            Span<byte> indices = ReferenceIndices(list);
-            Span<int> vectorsX = MotionX(list);
-            Span<int> vectorsY = MotionY(list);
+            Span<byte> motion = MotionStorage(list);
+            Span<byte> indices = motion[..lumaBlocks];
+            Span<int> vectors = MemoryMarshal.Cast<byte, int>(motion[lumaBlocks..]);
+            Span<int> vectorsX = vectors[..lumaBlocks];
+            Span<int> vectorsY = vectors[lumaBlocks..];
             byte indexValue = reference == -1 ? byte.MaxValue : (byte)reference;
             Span<byte> modes = Modes;
             if (reference == -1)
@@ -110,6 +113,9 @@ namespace Mediana.Codecs.H264
                 indices.Slice(start, width / 4).Fill(value);
             }
         }
+
+        private Span<byte> MotionStorage(H264ReferenceList list) =>
+            storage.Span.Slice(MotionOffset(list), lumaBlocks * MotionBytesPerBlock);
 
         private int MotionOffset(H264ReferenceList list)
         {
