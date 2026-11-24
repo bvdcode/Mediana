@@ -2,13 +2,13 @@
   {
     "case": "Cabac-Fast-0-qp0-a-6-b-6",
     "decodedBytes": 122880,
-    "transportSha256": "cec4a907b395efcd456ab049345f7ebb346acf1b61a5016713ae1222a1abd5d8",
+    "transportSha256": "0b07fd7f7636a4b0270d66cf03d9d8dd583bfd8c8aa626fdbfbc26e3b057d9a9",
     "decodedSha256": "a0a9a75db809fed935e3bd65a4674f6d9dbf4917f859f1032d9fea00e931f142"
   },
   {
     "case": "Cabac-Fast-1-qp26-a0-b0",
     "decodedBytes": 187680,
-    "transportSha256": "f8ab5eb55456080dca5989320a8cf2842ce836cae3604dff1fdf22d4c78145ad",
+    "transportSha256": "230893a6ecccebd391f49a5af101828eb41bb31643ff21ea7b26eb8158ab740c",
     "decodedSha256": "003d154994c510c567af3dadfd0f186cdc10aecf331f9f87b4d9832156990f01"
   },
   {

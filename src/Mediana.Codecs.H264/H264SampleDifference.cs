@@ -10,6 +10,18 @@ namespace Mediana.Codecs.H264
 {
     internal static class H264SampleDifference
     {
+        public static int SumPackedMacroblock(ReadOnlySpan<byte> source, ReadOnlySpan<byte> prediction)
+        {
+            Vector128<ushort> partial = Vector128<ushort>.Zero;
+            ref byte left = ref MemoryMarshal.GetReference(source[..H264SourceMacroblock.ByteCount]);
+            ref byte right = ref MemoryMarshal.GetReference(prediction[..H264SourceMacroblock.ByteCount]);
+            for (nuint i = 0; i < H264SourceMacroblock.ByteCount; i += (nuint)Vector128<byte>.Count)
+            {
+                partial += Accumulate16(Vector128.LoadUnsafe(ref left, i), Vector128.LoadUnsafe(ref right, i));
+            }
+            return Total(partial);
+        }
+
         public static int Sum16x16(ReadOnlySpan<byte> source, ReadOnlySpan<byte> prediction, int stride, int stop)
         {
             int sum = 0;

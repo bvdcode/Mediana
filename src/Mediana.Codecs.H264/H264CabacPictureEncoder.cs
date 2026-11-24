@@ -13,16 +13,11 @@ namespace Mediana.Codecs.H264
             H264EncoderOptions options, int maximumBytes, out int encodedLength, CancellationToken token,
             H264MotionReference? interpolation, H264StationaryHistory? stationary)
         {
+            int lumaOffset = !keyFrame && H264LumaPredictionOffset.IsEnabled(options)
+                ? H264LumaPredictionOffset.Estimate(input, reference!, token) : 0;
             using H264BitWriter bits = new(allocator, maximumBytes, keyFrame ? (byte)0x65 : (byte)0x41,
                 lengthPrefixed: true, measureOverflow: true);
-            bits.WriteUnsigned(0); bits.WriteUnsigned(keyFrame ? 7U : 5U); bits.WriteUnsigned(0);
-            bits.WriteBits((uint)frameNumber, 4);
-            if (keyFrame) { bits.WriteUnsigned((uint)idrId); }
-            else { bits.WriteFlag(false); }
-            bits.WriteFlag(false); bits.WriteFlag(false);
-            if (!keyFrame) { bits.WriteUnsigned(0); }
-            bits.WriteSigned(quantizer - options.Quantizer);
-            H264EncoderDeblocking.WriteHeader(bits, options.Deblocking);
+            WriteHeader(bits, keyFrame, frameNumber, idrId, lumaOffset, quantizer, options);
             while ((bits.BitPosition & 7) != 0) { bits.WriteFlag(true); }
             H264CabacEncoder arithmetic = new(bits);
             using H264CabacMacroblockState state = new(target, allocator);
@@ -33,7 +28,7 @@ namespace Mediana.Codecs.H264
                 case H264MacroblockAnalysis.Fast:
                     WriteBlocks<H264FastMacroblockAnalysis>(input, target, reference, keyFrame, quantizer,
                         options.MotionSearchRange, syntax, arithmetic, motion, token, interpolation, null, stationary,
-                        compareMotionRate: options.RateControl is null);
+                        compareMotionRate: options.RateControl is null, lumaOffset: lumaOffset);
                     break;
                 case H264MacroblockAnalysis.RateDistortion when keyFrame:
                     WriteBlocks<H264FastMacroblockAnalysis>(input, target, reference, true, quantizer,
@@ -53,10 +48,38 @@ namespace Mediana.Codecs.H264
             return result;
         }
 
+        private static void WriteHeader(H264BitWriter bits, bool keyFrame, int frameNumber, int idrId,
+            int lumaOffset, int quantizer, H264EncoderOptions options)
+        {
+            bits.WriteUnsigned(0);
+            bits.WriteUnsigned(keyFrame ? 7U : 5U);
+            bits.WriteUnsigned(lumaOffset == 0 ? 0 : H264EncoderConfiguration.WeightedPictureId);
+            bits.WriteBits((uint)frameNumber, 4);
+            if (keyFrame)
+            {
+                bits.WriteUnsigned((uint)idrId);
+                bits.WriteFlag(false);
+                bits.WriteFlag(false);
+            }
+            else
+            {
+                bits.WriteFlag(false);
+                bits.WriteFlag(false);
+                if (lumaOffset != 0)
+                {
+                    H264LumaPredictionOffset.WriteTable(bits, lumaOffset);
+                }
+                bits.WriteFlag(false);
+                bits.WriteUnsigned(0);
+            }
+            bits.WriteSigned(quantizer - options.Quantizer);
+            H264EncoderDeblocking.WriteHeader(bits, options.Deblocking);
+        }
+
         private static void WriteBlocks<TAnalysis>(VideoFrame input, H264Picture target, H264Picture? reference,
             bool keyFrame, int quantizer, int searchRange, H264CabacEncodingSyntax syntax, H264CabacEncoder arithmetic,
             H264CabacPredictionWindow? motion, CancellationToken token, H264MotionReference? interpolation,
-            H264RateDistortionAnalysis? analysis, H264StationaryHistory? stationary, bool compareMotionRate = false)
+            H264RateDistortionAnalysis? analysis, H264StationaryHistory? stationary, bool compareMotionRate = false, int lumaOffset = 0)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             H264SourcePicture sourcePicture = new(input);
@@ -70,7 +93,7 @@ namespace Mediana.Codecs.H264
                 for (int x = 0; x < target.Width; x += 16, address++)
                 {
                     token.ThrowIfCancellationRequested();
-                    int run = stationary?.MatchingRun(sourcePicture, address, x, y) ?? 0;
+                    int run = lumaOffset == 0 ? stationary?.MatchingRun(sourcePicture, address, x, y) ?? 0 : 0;
                     if (run != 0 && IsStationaryPredictor(target, stationary, address, x, y))
                     {
                         WriteStationaryRun(syntax, arithmetic, motion!, target, reference!, x, y, address, run, quantizer, token);
@@ -83,7 +106,7 @@ namespace Mediana.Codecs.H264
                     else
                     {
                         WriteInter<TAnalysis>(syntax, source, target, reference!, motion!, address, x, y, quantizer,
-                            searchRange, prediction, coefficients, token, interpolation, analysis, bounds, stationary, compareMotionRate);
+                            searchRange, prediction, coefficients, token, interpolation, analysis, bounds, stationary, compareMotionRate, lumaOffset);
                     }
                     target.Quantizers[address] = (byte)quantizer;
                     arithmetic.WriteTermination(address == target.Quantizers.Length - 1);
@@ -135,7 +158,8 @@ namespace Mediana.Codecs.H264
         private static void WriteInter<TAnalysis>(H264CabacEncodingSyntax syntax, H264SourceMacroblock source, H264Picture target,
             H264Picture reference, H264CabacPredictionWindow motion, int address, int x, int y, int quantizer,
             int searchRange, Span<byte> prediction, Span<int> coefficients, CancellationToken token, H264MotionReference? interpolation,
-            H264RateDistortionAnalysis? analysis, H264SkipResidualBounds bounds, H264StationaryHistory? stationary, bool compareMotionRate)
+            H264RateDistortionAnalysis? analysis, H264SkipResidualBounds bounds, H264StationaryHistory? stationary, bool compareMotionRate,
+            int lumaOffset)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             motion.BeginMacroblock(address);
@@ -145,19 +169,24 @@ namespace Mediana.Codecs.H264
             int motionY;
             int temporalDifference;
             int estimatedVectorBits = 0;
-            bool skip = TAnalysis.Enabled
+            bool skip = lumaOffset == 0 && (TAnalysis.Enabled
                 ? analysis!.TrySkip(source, reference, address, x, y, skipX, skipY, searchRange, prediction, interpolation)
-                : skipX == 0 && skipY == 0 && bounds.AllowsStationarySkip(source, reference, x, y);
+                : skipX == 0 && skipY == 0 && bounds.AllowsStationarySkip(source, reference, x, y));
             if (skip)
             {
                 motionX = skipX;
                 motionY = skipY;
                 temporalDifference = 0;
             }
-            else
+            else if (lumaOffset == 0)
             {
                 (motionX, motionY, temporalDifference) = H264MotionSearch.SelectWithDifference<TAnalysis>(source, reference, target, x, y,
                     searchRange, prediction, token, interpolation, quantizer, out estimatedVectorBits);
+            }
+            else
+            {
+                (motionX, motionY, temporalDifference) = SearchWeighted(source, target, reference, x, y, searchRange,
+                    prediction, token, interpolation, quantizer, lumaOffset, out estimatedVectorBits);
             }
             int pattern = 0;
             if (temporalDifference != 0)
@@ -174,9 +203,10 @@ namespace Mediana.Codecs.H264
             if (TAnalysis.Enabled && analysis!.TryWrite(syntax, source, motion, x, y, pattern,
                 motionX, motionY, prediction, coefficients)) { return; }
             bool skipped = pattern == 0 && motionX == skipX && motionY == skipY;
-            stationary?.Record(address, source.Samples, skipped && motionX == 0 && motionY == 0);
+            bool stationarySkip = skipped && motionX == 0 && motionY == 0 && lumaOffset == 0;
+            stationary?.Record(address, source.Samples, stationarySkip);
             syntax.WriteSkip(address, skipped);
-            if (skipped && motionX == 0 && motionY == 0)
+            if (stationarySkip)
             {
                 target.WriteStationarySkip(reference, x, y);
                 return;
@@ -193,6 +223,20 @@ namespace Mediana.Codecs.H264
             target.SetMotion(H264ReferenceList.L0, x, y, 16, 16, 0, motionX, motionY);
             H264InterEncoder.TryWriteLuma(syntax, target, x, y, quantizer, pattern, prediction[..256], coefficients[..256]);
             H264ChromaEncoder.TryWrite(syntax, target, x / 2, y / 2, quantizer, pattern >> 4, prediction[256..], coefficients[256..]);
+        }
+
+        private static (int X, int Y, int Difference) SearchWeighted(H264SourceMacroblock source, H264Picture target,
+            H264Picture reference, int x, int y, int searchRange, Span<byte> prediction, CancellationToken token,
+            H264MotionReference? interpolation, int quantizer, int lumaOffset, out int estimatedVectorBits)
+        {
+            Span<byte> adjusted = stackalloc byte[H264SourceMacroblock.ByteCount];
+            source.Samples.CopyTo(adjusted);
+            H264LumaPredictionOffset.Apply(adjusted[..256], -lumaOffset);
+            (int motionX, int motionY, _) = H264MotionSearch.SelectWithDifference<H264FastMacroblockAnalysis>(
+                new H264SourceMacroblock(adjusted), reference, target, x, y, searchRange, prediction, token, interpolation,
+                quantizer, out estimatedVectorBits);
+            H264LumaPredictionOffset.Apply(prediction[..256], lumaOffset);
+            return (motionX, motionY, H264SampleDifference.SumPackedMacroblock(source.Samples, prediction));
         }
 
         private static void WriteMotion(H264CabacEncodingSyntax syntax, H264CabacPredictionWindow window,
