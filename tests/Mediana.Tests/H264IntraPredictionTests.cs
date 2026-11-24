@@ -64,5 +64,37 @@ namespace Mediana.Tests
             Assert.Equal(0, output[0]);
             Assert.Equal(255, output[255]);
         }
+
+        [Theory]
+        [InlineData(8, 8)]
+        [InlineData(8, 16)]
+        [InlineData(16, 16)]
+        public void BytePlaneMatchesScalarWithPositiveAndNegativeGradients(int width, int height)
+        {
+            byte[] top = new byte[width];
+            byte[] left = new byte[height];
+            byte[] actual = new byte[width * height];
+            ushort[] expected = new ushort[actual.Length];
+            Random random = new(512);
+            for (int trial = 0; trial < 64; trial++)
+            {
+                random.NextBytes(top);
+                random.NextBytes(left);
+                byte corner = (byte)random.Next(256);
+                ushort[] wideTop = Array.ConvertAll(top, sample => (ushort)sample);
+                ushort[] wideLeft = Array.ConvertAll(left, sample => (ushort)sample);
+                if (width == 16)
+                {
+                    H264IntraPrediction.Luma16x16(3, top, left, corner, actual);
+                    H264IntraPrediction<ushort>.Luma16x16(3, wideTop, wideLeft, corner, expected, byte.MaxValue);
+                }
+                else
+                {
+                    H264IntraPrediction.Chroma(3, top, left, corner, actual, height);
+                    H264IntraPrediction<ushort>.Chroma(3, wideTop, wideLeft, corner, expected, height, byte.MaxValue);
+                }
+                Assert.Equal(expected.Select(sample => (byte)sample), actual);
+            }
+        }
     }
 }

@@ -2,6 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System.Numerics;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 
 namespace Mediana.Codecs.H264
 {
@@ -191,39 +193,47 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentException("Invalid H.264 chroma prediction dimensions.");
             }
             ValidateNeighbours(mode is 2 or 3, mode is 1 or 3, mode == 3, top, left, corner);
-            if (mode == 3)
+            switch (mode)
             {
-                Plane(top, left, corner!.Value, output, 8, height, maximum);
-                return;
+                case 0:
+                    ChromaDc(top, left, output, height, maximum);
+                    return;
+                case 1:
+                    for (int row = 0; row < height; row++)
+                    {
+                        output.Slice(row * 8, 8).Fill(left[row]);
+                    }
+                    return;
+                case 2:
+                    ReadOnlySpan<TSample> rowSamples = top[..8];
+                    for (int row = 0; row < height; row++)
+                    {
+                        rowSamples.CopyTo(output[(row * 8)..]);
+                    }
+                    return;
+                case 3:
+                    Plane(top, left, corner!.Value, output, 8, height, maximum);
+                    return;
+                default:
+                    throw new InvalidDataException("Invalid H.264 chroma prediction mode.");
             }
-            for (int blockY = 0; blockY < height; blockY += 4)
+        }
+
+        private static void ChromaDc(ReadOnlySpan<TSample> top, ReadOnlySpan<TSample> left,
+            Span<TSample> output, int height, int maximum)
+        {
+            ReadOnlySpan<TSample> topLeft = top.IsEmpty ? [] : top[..4];
+            ReadOnlySpan<TSample> topRight = top.IsEmpty ? [] : top.Slice(4, 4);
+            for (int row = 0; row < height; row += 4)
             {
-                for (int blockX = 0; blockX < 8; blockX += 4)
+                ReadOnlySpan<TSample> beside = left.IsEmpty ? [] : left.Slice(row, 4);
+                TSample a = TSample.CreateTruncating(Dc(row != 0 && !beside.IsEmpty ? [] : topLeft, beside, maximum));
+                TSample b = TSample.CreateTruncating(Dc(topRight, row == 0 && !topRight.IsEmpty ? [] : beside, maximum));
+                Span<TSample> band = output.Slice(row * 8, 32);
+                for (int offset = 0; offset < band.Length; offset += 8)
                 {
-                    ReadOnlySpan<TSample> blockTop = top.IsEmpty ? [] : top.Slice(blockX, 4);
-                    ReadOnlySpan<TSample> blockLeft = left.IsEmpty ? [] : left.Slice(blockY, 4);
-                    if (blockX > 0 && blockY == 0 && !blockTop.IsEmpty)
-                    {
-                        blockLeft = [];
-                    }
-                    if (blockY > 0 && blockX == 0 && !blockLeft.IsEmpty)
-                    {
-                        blockTop = [];
-                    }
-                    int dc = Dc(blockTop, blockLeft, maximum);
-                    for (int y = blockY; y < blockY + 4; y++)
-                    {
-                        for (int x = blockX; x < blockX + 4; x++)
-                        {
-                            output[y * 8 + x] = mode switch
-                            {
-                                0 => TSample.CreateTruncating(dc),
-                                1 => left[y],
-                                2 => top[x],
-                                _ => throw new InvalidDataException("Invalid H.264 chroma prediction mode.")
-                            };
-                        }
-                    }
+                    band.Slice(offset, 4).Fill(a);
+                    band.Slice(offset + 4, 4).Fill(b);
                 }
             }
         }
@@ -287,15 +297,47 @@ namespace Mediana.Codecs.H264
             int factor = size == 16 ? 5 : 34;
             int b = (factor * h + 32) >> 6;
             int c = ((height == 16 ? 5 : 34) * v + 32) >> 6;
-            int a = 16 * (Read(top, size - 1) + Read(left, height - 1));
+            int a = 16 * (Read(top, size - 1) + Read(left, height - 1)) + b * (1 - half) + c * (1 - halfHeight) + 16;
+            if (typeof(TSample) == typeof(byte) && Vector128.IsHardwareAccelerated)
+            {
+                WriteBytePlane(MemoryMarshal.Cast<TSample, byte>(output[..(size * height)]), size, a, b, c, maximum);
+                return;
+            }
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    output[y * size + x] = TSample.CreateTruncating(Math.Clamp((a + b * (x - half + 1) + c * (y - halfHeight + 1) + 16) >> 5, 0, maximum));
+                    output[y * size + x] = TSample.CreateTruncating(Math.Clamp((a + b * x + c * y) >> 5, 0, maximum));
                 }
             }
         }
+
+        private static void WriteBytePlane(Span<byte> output, int size, int a, int b, int c, int maximum)
+        {
+            // For 8-bit references, even the steepest 8- and 16-sample gradients fit in signed 16-bit lanes.
+            Vector128<short> columns = Vector128.Create((short)0, 1, 2, 3, 4, 5, 6, 7);
+            Vector128<short> left = columns * Vector128.Create((short)b) + Vector128.Create((short)a);
+            Vector128<short> down = Vector128.Create((short)c);
+            Vector128<short> rightOffset = Vector128.Create((short)(8 * b));
+            Vector128<short> cap = Vector128.Create((short)maximum);
+            for (int offset = 0; offset < output.Length; offset += size)
+            {
+                Vector128<ushort> low = ClipBytePlane(left, cap);
+                if (size == 8)
+                {
+                    H264VectorSamples.Write8(output, offset, Vector128.Narrow(low, low));
+                }
+                else
+                {
+                    Vector128<byte> row = Vector128.Narrow(low, ClipBytePlane(left + rightOffset, cap));
+                    row.StoreUnsafe(ref output[offset]);
+                }
+                left += down;
+            }
+        }
+
+        private static Vector128<ushort> ClipBytePlane(Vector128<short> samples, Vector128<short> maximum) =>
+            Vector128.Min(Vector128.Max(Vector128.ShiftRightArithmetic(samples, 5), Vector128<short>.Zero), maximum).AsUInt16();
 
         private static int Dc(ReadOnlySpan<TSample> top, ReadOnlySpan<TSample> left, int maximum)
         {
