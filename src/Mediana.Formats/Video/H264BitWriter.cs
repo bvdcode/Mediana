@@ -45,6 +45,22 @@ namespace Mediana.Formats.Video
             {
                 throw new ArgumentOutOfRangeException(nameof(value));
             }
+            if (count == 32 && partialBits == 0)
+            {
+                uint word = (uint)value;
+                bool hasZeroByte = (unchecked(word - 0x01010101u) & ~word & 0x80808080u) != 0;
+                if (!hasZeroByte && (zeroBytes < 2 || word >> 24 > 3) && length <= maximumBytes - 4)
+                {
+                    Span<byte> buffer = storage.Span;
+                    if (length <= buffer.Length - 4)
+                    {
+                        BinaryPrimitives.WriteUInt32BigEndian(buffer[length..], word);
+                        length += 4;
+                        zeroBytes = 0;
+                        return;
+                    }
+                }
+            }
             while (count > 0)
             {
                 int take = Math.Min(8 - partialBits, count);

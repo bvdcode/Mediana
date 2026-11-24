@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.Numerics;
+using System.Runtime.CompilerServices;
+
 namespace Mediana.Codecs.H264
 {
     /// <summary>Encodes arithmetic bins under H.264 clause 9.3.4. Borrows the unfinished NAL writer.</summary>
     internal class H264CabacEncoder
     {
+        private const int WordBits = sizeof(uint) * 8;
+        private const int IntervalBits = 9;
         private readonly H264BitWriter bits;
         private int range = 510;
-        private int low;
-        private long outstanding;
-        private ulong outputBits;
-        private int outputCount;
-        private bool firstBit = true;
+        private ulong low;
+        private int pendingBits;
+        private uint heldWord;
+        private bool hasHeldWord;
+        private long outstandingWords;
         private bool terminated;
 
         public H264CabacEncoder(H264BitWriter bits)
@@ -29,20 +34,21 @@ namespace Mediana.Codecs.H264
 
         public int CurrentRange => range;
         public H264CabacRateSample RateSample => new(
-            checked(bits.BitPosition + outputCount + outstanding + (firstBit ? 0 : 1)), range);
+            terminated ? checked(bits.BitPosition + 1) :
+                checked(bits.BitPosition + pendingBits + (outstandingWords + (hasHeldWord ? 1 : 0)) * WordBits), range);
 
         public H264CabacEncoderCheckpoint CreateCheckpoint() => new(bits.CreateCheckpoint(), range, low,
-            outstanding, outputBits, outputCount, firstBit, terminated, BinCount);
+            pendingBits, heldWord, hasHeldWord, outstandingWords, terminated, BinCount);
 
         public void Restore(in H264CabacEncoderCheckpoint checkpoint)
         {
             bits.Restore(checkpoint.Writer);
             range = checkpoint.Range;
             low = checkpoint.Low;
-            outstanding = checkpoint.Outstanding;
-            outputBits = checkpoint.OutputBits;
-            outputCount = checkpoint.OutputCount;
-            firstBit = checkpoint.FirstBit;
+            pendingBits = checkpoint.PendingBits;
+            heldWord = checkpoint.HeldWord;
+            hasHeldWord = checkpoint.HasHeldWord;
+            outstandingWords = checkpoint.OutstandingWords;
             terminated = checkpoint.Terminated;
             BinCount = checkpoint.BinCount;
         }
@@ -54,7 +60,7 @@ namespace Mediana.Codecs.H264
             range -= lps;
             if (value != context.MostProbableSymbol)
             {
-                low += range;
+                low += (uint)range;
                 range = lps;
                 context = context.NextLeastProbable();
             }
@@ -72,21 +78,8 @@ namespace Mediana.Codecs.H264
         public void WriteBypass(bool value)
         {
             EnsureActive();
-            low = (low << 1) + (value ? range : 0);
-            if (low >= 1024)
-            {
-                PutBit(true);
-                low -= 1024;
-            }
-            else if (low < 512)
-            {
-                PutBit(false);
-            }
-            else
-            {
-                low -= 512;
-                outstanding = checked(outstanding + 1);
-            }
+            low = (low << 1) + (value ? (uint)range : 0);
+            Advance(1);
             BinCount = checked(BinCount + 1);
         }
 
@@ -99,9 +92,15 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentOutOfRangeException(nameof(value));
             }
             EnsureActive();
-            for (int index = count - 1; index >= 0; index--)
+            BinCount = checked(BinCount + count);
+            while (count > 0)
             {
-                WriteBypass((value & (1u << index)) != 0);
+                // A partial word, the coding interval and 16 more bins fit in the 64-bit accumulator.
+                int chunk = Math.Min(count, 16);
+                count -= chunk;
+                uint bins = (value >> count) & ((1u << chunk) - 1);
+                low = (low << chunk) + (ulong)(uint)range * bins;
+                Advance(chunk);
             }
         }
 
@@ -113,20 +112,19 @@ namespace Mediana.Codecs.H264
             range -= 2;
             if (value)
             {
-                low += range;
+                low += (uint)range;
                 range = 2;
             }
-            if (range < 256) { Normalize(); }
+            if (range < 256)
+            {
+                Normalize();
+            }
             if (value)
             {
-                PutBit((low & 512) != 0);
-                if (outputCount != 0)
-                {
-                    bits.WriteBits(outputBits, outputCount);
-                    outputBits = 0;
-                    outputCount = 0;
-                }
-                bits.WriteBits((uint)(((low >> 7) & 3) | 1), 2);
+                int suffixBits = pendingBits + 1;
+                EmitHeld((uint)(low >> (suffixBits + 8)));
+                ulong suffix = (low >> 8) & ((1UL << suffixBits) - 1);
+                bits.WriteBits((suffix << 1) | 1, suffixBits + 1);
                 int alignment = (int)((8 - (bits.BitPosition & 7)) & 7);
                 bits.WriteBits(0, alignment);
                 terminated = true;
@@ -134,74 +132,54 @@ namespace Mediana.Codecs.H264
             BinCount = checked(BinCount + 1);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Normalize()
         {
-            while (range < 256)
+            int shift = IntervalBits - 1 - BitOperations.Log2((uint)range);
+            range <<= shift;
+            low <<= shift;
+            Advance(shift);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Advance(int count)
+        {
+            pendingBits += count;
+            if (pendingBits >= WordBits)
             {
-                if (low < 256)
-                {
-                    PutBit(false);
-                }
-                else if (low >= 512)
-                {
-                    PutBit(true);
-                    low -= 512;
-                }
-                else
-                {
-                    low -= 256;
-                    outstanding = checked(outstanding + 1);
-                }
-                range <<= 1;
-                low <<= 1;
+                FlushWord();
             }
         }
 
-        private void PutBit(bool value)
+        private void FlushWord()
         {
-            if (firstBit)
+            pendingBits -= WordBits;
+            // Keep the preceding word until a following digit settles its carry, even across a run of all ones.
+            int shift = pendingBits + IntervalBits;
+            ulong digit = low >> shift;
+            low &= (1UL << shift) - 1;
+            if (hasHeldWord && digit == uint.MaxValue)
             {
-                firstBit = false;
-            }
-            else
-            {
-                outputBits = (outputBits << 1) | (value ? 1UL : 0);
-                if (++outputCount == 64)
-                {
-                    bits.WriteBits(outputBits, 64);
-                    outputBits = 0;
-                    outputCount = 0;
-                }
-            }
-            while (outstanding != 0)
-            {
-                int count = (int)Math.Min(outstanding, 64);
-                ulong word = value ? 0 : ulong.MaxValue >> (64 - count);
-                BufferBits(word, count);
-                outstanding -= count;
-            }
-        }
-
-        private void BufferBits(ulong word, int count)
-        {
-            int space = 64 - outputCount;
-            if (count < space)
-            {
-                outputBits = (outputBits << count) | word;
-                outputCount += count;
+                outstandingWords = checked(outstandingWords + 1);
                 return;
             }
-            if (space == 64)
+            EmitHeld((uint)(digit >> WordBits));
+            heldWord = (uint)digit;
+            hasHeldWord = true;
+        }
+
+        private void EmitHeld(uint carry)
+        {
+            if (!hasHeldWord)
             {
-                bits.WriteBits(word, 64);
+                return;
             }
-            else
+            bits.WriteBits(heldWord + carry, WordBits);
+            while (outstandingWords > 0)
             {
-                bits.WriteBits((outputBits << space) | (word >> (count - space)), 64);
+                bits.WriteBits(carry == 0 ? uint.MaxValue : 0, WordBits);
+                outstandingWords--;
             }
-            int remaining = count - space;
-            outputBits = remaining == 0 ? 0 : word & ((1UL << remaining) - 1);
-            outputCount = remaining;
         }
 
         private void EnsureActive()

@@ -11,6 +11,31 @@ namespace Mediana.Tests
         [Fact]
         public void StreamingOutputFitsIndependentExactIntervalsForEveryState() => H264CabacEncodingTestInput.Verify();
 
+        [Theory]
+        [InlineData(0u, "4112992221ffffffffffffffffffffffff11fe80")]
+        [InlineData(255u, "411299222200000300000300000300000300000300000fff80")]
+        public void RestoredCarryResolvesAcrossThreeOutstandingWords(uint suffix, string expected)
+        {
+            using H264BitWriter bits = new(new MediaBufferAllocator(128), 128, 0x41);
+            H264CabacEncoder encoder = new(bits);
+            encoder.WriteBypassBits(0x12abcdef, 32);
+            for (int i = 0; i < 3; i++)
+            {
+                encoder.WriteBypassBits(0xefefefef, 32);
+            }
+            H264CabacEncoderCheckpoint checkpoint = encoder.CreateCheckpoint();
+            H264CabacRateSample rate = encoder.RateSample;
+            encoder.WriteBypassBits(suffix ^ 255, 8);
+            encoder.WriteTermination(true);
+            encoder.Restore(checkpoint);
+            Assert.Equal(rate, encoder.RateSample);
+            Assert.Equal(128, encoder.BinCount);
+            encoder.WriteBypassBits(suffix, 8);
+            encoder.WriteTermination(true);
+            using MediaBuffer packet = bits.TryFinishCompletedRbsp()!;
+            Assert.Equal(Convert.FromHexString(expected), packet.Memory.ToArray());
+        }
+
         [Fact]
         public void EmptyTerminationMatchesTheNormativeFlush()
         {

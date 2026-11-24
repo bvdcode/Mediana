@@ -3,6 +3,6 @@
 
 namespace Mediana.Codecs.H264
 {
-    internal readonly record struct H264CabacEncoderCheckpoint(H264BitWriterCheckpoint Writer, int Range, int Low,
-        long Outstanding, ulong OutputBits, int OutputCount, bool FirstBit, bool Terminated, long BinCount);
+    internal readonly record struct H264CabacEncoderCheckpoint(H264BitWriterCheckpoint Writer, int Range, ulong Low,
+        int PendingBits, uint HeldWord, bool HasHeldWord, long OutstandingWords, bool Terminated, long BinCount);
 }
