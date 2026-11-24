@@ -9,6 +9,7 @@ namespace Mediana.Codecs.H264
 {
     internal class H264MotionReference : IDisposable
     {
+        internal const int LocalSearchRange = 16;
         private const int TileWidth = 64;
         private const int TileHeight = 32;
         private readonly int tileColumns;
@@ -19,6 +20,7 @@ namespace Mediana.Codecs.H264
         private readonly int rows;
         private readonly int pictureWidth;
         private readonly int pictureHeight;
+        private readonly int quarterBytes;
 
         public H264MotionReference(H264Picture picture, int range, MediaBufferAllocator allocator)
         {
@@ -33,9 +35,13 @@ namespace Mediana.Codecs.H264
             planeBytes = checked(HalfStride * rows);
             tileColumns = (HalfStride + TileWidth - 1) / TileWidth;
             tileCount = checked(tileColumns * ((rows + TileHeight - 1) / TileHeight));
-            storage = allocator.Allocate(checked(sampleBytes + planeBytes * 3 + TileWidth * 12 * sizeof(short) + tileCount));
+            quarterBytes = range > LocalSearchRange ? checked((pictureWidth / H264QuarterLuma.Scale) * (pictureHeight / H264QuarterLuma.Scale)) : 0;
+            storage = allocator.Allocate(checked(sampleBytes + planeBytes * 3 + TileWidth * 12 * sizeof(short) + quarterBytes + tileCount));
         }
 
+        private Span<byte> QuarterPlane => storage.Span[^(tileCount + quarterBytes)..^tileCount];
+        public ReadOnlySpan<byte> QuarterLuma => QuarterPlane;
+        public bool HasQuarterLuma => quarterBytes != 0;
         public int Range { get; }
         public int SampleStride { get; }
         public int HalfStride { get; }
@@ -51,6 +57,10 @@ namespace Mediana.Codecs.H264
                 throw new ArgumentException("The motion reference dimensions changed.", nameof(picture));
             }
             token.ThrowIfCancellationRequested();
+            if (HasQuarterLuma)
+            {
+                H264QuarterLuma.Reduce(picture.ReadPlane(0), pictureWidth, pictureHeight, QuarterPlane, token);
+            }
             Span<byte> samples = storage.Span[..sampleBytes];
             H264BorderExtension.Copy(picture.ReadPlane(0), picture.Width, picture.Height,
                 -Range - 2, -Range - 2, SampleStride, rows + 5, samples);

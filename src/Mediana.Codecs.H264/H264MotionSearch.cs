@@ -13,12 +13,15 @@ namespace Mediana.Codecs.H264
         private readonly ReadOnlySpan<byte> source;
         private readonly Span<byte> prediction;
         private readonly H264MotionReference? interpolation;
+        private readonly int motionBitWeight;
+        private int bestCost;
+        private int bestVectorBits;
         private int best;
         private int motionX;
         private int motionY;
 
         private H264MotionSearch(H264Picture reference, (int X, int Y) position, (int X, int Y) predicted,
-            ReadOnlySpan<byte> source, Span<byte> prediction, H264MotionReference? interpolation)
+            ReadOnlySpan<byte> source, Span<byte> prediction, H264MotionReference? interpolation, int motionBitWeight)
         {
             this.reference = reference;
             this.position = position;
@@ -26,11 +29,14 @@ namespace Mediana.Codecs.H264
             this.source = source;
             this.prediction = prediction;
             this.interpolation = interpolation;
+            this.motionBitWeight = motionBitWeight;
             motionX = 0;
             motionY = 0;
             ReadOnlySpan<byte> luma = reference.ReadPlane(0)[(position.Y * reference.Width + position.X)..];
             best = H264SampleDifference.Sum16x16(source[..256], luma, reference.Width, int.MaxValue)
                 + H264ChromaDifference.Sum8x8(reference, position.X, position.Y, 0, 0, source[256..], int.MaxValue);
+            bestVectorBits = VectorBits(-predicted.X, -predicted.Y);
+            bestCost = best + motionBitWeight * bestVectorBits;
         }
 
         public static (int X, int Y, bool Exact) Select(H264SourceMacroblock input, H264Picture reference, H264Picture target,
@@ -48,12 +54,16 @@ namespace Mediana.Codecs.H264
 
         public static (int X, int Y, int Difference) SelectWithDifference<TAnalysis>(H264SourceMacroblock input,
             H264Picture reference, H264Picture target, int x, int y, int range, Span<byte> prediction,
-            CancellationToken token, H264MotionReference? interpolation)
+            CancellationToken token, H264MotionReference? interpolation, int quantizer = 0)
             where TAnalysis : struct, IH264MacroblockAnalysisStrategy
         {
             token.ThrowIfCancellationRequested();
             (int predictedX, int predictedY) = H264MotionPrediction.Predict(target, H264ReferenceList.L0, x, y, 16, 16, 0, 0);
-            H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), input.Samples, prediction, interpolation);
+            H264MotionReference? wideReference = range > H264MotionReference.LocalSearchRange && interpolation is { HasQuarterLuma: true }
+                ? interpolation : null;
+            int motionBitWeight = wideReference is not null && quantizer > 0
+                ? 1 << Math.Max(0, (quantizer - 18) / 6) : 0;
+            H264MotionSearch search = new(reference, (x, y), (predictedX, predictedY), input.Samples, prediction, interpolation, motionBitWeight);
             if (search.best == 0 && predictedX == 0 && predictedY == 0)
             {
                 input.Samples.CopyTo(prediction);
@@ -61,7 +71,7 @@ namespace Mediana.Codecs.H264
             }
             // With a zero predictor the integer diamond stays at the origin on a tie.
             // A constant six-tap footprint also makes every fractional refinement identical.
-            if (!TAnalysis.Enabled && range != 0 && predictedX == 0 && predictedY == 0 &&
+            if (wideReference is null && !TAnalysis.Enabled && range != 0 && predictedX == 0 && predictedY == 0 &&
                 H264ConstantRegion.TryReadExtendedBlock(reference, 0, x, y, 16, 3, out byte luma) &&
                 H264ConstantRegion.TryReadExtendedBlock(reference, 1, x / 2, y / 2, 8, 1, out byte blue) &&
                 H264ConstantRegion.TryReadExtendedBlock(reference, 2, x / 2, y / 2, 8, 1, out byte red))
@@ -72,7 +82,19 @@ namespace Mediana.Codecs.H264
                 return (0, 0, search.best);
             }
             search.Evaluate(Math.Clamp(predictedX / 4, -range, range) * 4, Math.Clamp(predictedY / 4, -range, range) * 4);
-            if (TAnalysis.Enabled) { search.Seed(target, range); }
+            if (TAnalysis.Enabled || wideReference is not null)
+            {
+                search.Seed(target, range);
+            }
+            if (wideReference is not null && search.best >= 2 * H264SourceMacroblock.ByteCount)
+            {
+                H264CoarseMotionSearch coarse = new(wideReference.QuarterLuma, reference.Width / H264QuarterLuma.Scale,
+                    reference.Height / H264QuarterLuma.Scale,
+                    H264QuarterLuma.ReduceMacroblock(input.Samples), (x / H264QuarterLuma.Scale, y / H264QuarterLuma.Scale),
+                    (predictedX, predictedY));
+                (int coarseX, int coarseY) = coarse.Find(range);
+                search.Evaluate(coarseX, coarseY);
+            }
             search.Scan(range, token);
             search.Refine<TAnalysis>(range, token, interpolation);
             if (search.best == 0)
@@ -175,7 +197,7 @@ namespace Mediana.Codecs.H264
                     int nextY = centerY + offsetsY[direction] * step;
                     if (Math.Abs(nextX) <= limit && Math.Abs(nextY) <= limit && (nextX != motionX || nextY != motionY))
                     {
-                        int difference = neighborhood.Select(nextX - originX, nextY - originY).Difference(source[..256], best);
+                        int difference = neighborhood.Select(nextX - originX, nextY - originY).Difference(source[..256], bestCost);
                         Compare(nextX, nextY, difference);
                     }
                 }
@@ -195,18 +217,18 @@ namespace Mediana.Codecs.H264
                 if (((nextX | nextY) & 3) == 0)
                 {
                     int start = checked(((int)y + interpolation.Range + 2) * interpolation.SampleStride + (int)x + interpolation.Range + 2);
-                    Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], interpolation.Samples[start..], interpolation.SampleStride, best));
+                    Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], interpolation.Samples[start..], interpolation.SampleStride, bestCost));
                     return;
                 }
                 H264LumaNeighborhood block = new(interpolation, (int)x, (int)y);
-                int difference = block.Select(nextX & 3, nextY & 3).Difference(source[..256], best);
+                int difference = block.Select(nextX & 3, nextY & 3).Difference(source[..256], bestCost);
                 Compare(nextX, nextY, difference);
                 return;
             }
             if (((nextX | nextY) & 3) == 0 && x >= 0 && x <= reference.Width - 16 && y >= 0 && y <= reference.Height - 16)
             {
                 ReadOnlySpan<byte> luma = reference.ReadPlane(0).Slice((int)y * reference.Width + (int)x, 15 * reference.Width + 16);
-                Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], luma, reference.Width, best));
+                Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], luma, reference.Width, bestCost));
                 return;
             }
             EvaluateUncached(nextX, nextY);
@@ -216,19 +238,28 @@ namespace Mediana.Codecs.H264
         {
             Span<byte> candidate = stackalloc byte[256];
             H264PredictionBlock.Read(reference, 0, position.X, position.Y, 16, 16, nextX, nextY, candidate);
-            Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], candidate, 16, best));
+            Compare(nextX, nextY, H264SampleDifference.Sum16x16(source[..256], candidate, 16, bestCost));
         }
 
         private void Compare(int nextX, int nextY, int difference)
         {
-            if (difference > best)
+            if (difference > bestCost)
             {
                 return;
             }
-            difference += H264ChromaDifference.Sum8x8(reference, position.X, position.Y, nextX, nextY, source[256..], best - difference);
-            if (difference < best || (difference == best &&
-                VectorBits(nextX - predicted.X, nextY - predicted.Y) < VectorBits(motionX - predicted.X, motionY - predicted.Y)))
+            int vectorBits = VectorBits(nextX - predicted.X, nextY - predicted.Y);
+            int vectorCost = motionBitWeight * vectorBits;
+            int remaining = bestCost - vectorCost - difference;
+            if (remaining < 0)
             {
+                return;
+            }
+            difference += H264ChromaDifference.Sum8x8(reference, position.X, position.Y, nextX, nextY, source[256..], remaining);
+            int cost = difference + vectorCost;
+            if (cost < bestCost || (cost == bestCost && vectorBits < bestVectorBits))
+            {
+                bestCost = cost;
+                bestVectorBits = vectorBits;
                 best = difference;
                 motionX = nextX;
                 motionY = nextY;
@@ -248,7 +279,7 @@ namespace Mediana.Codecs.H264
             H264PredictionBlock.Read(reference, 2, position.X, position.Y, 16, 16, motionX, motionY, prediction.Slice(320, 64));
         }
 
-        private static int VectorBits(int x, int y) => SignedBits(x) + SignedBits(y);
+        internal static int VectorBits(int x, int y) => SignedBits(x) + SignedBits(y);
         private static int SignedBits(int value) => BitOperations.Log2((uint)(Math.Abs(value) * 2 + (value <= 0 ? 1 : 0))) * 2 + 1;
 
         private static void Predict(H264Picture reference, int x, int y, int motionX, int motionY, Span<byte> prediction)

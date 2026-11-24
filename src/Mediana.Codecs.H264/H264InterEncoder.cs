@@ -34,8 +34,8 @@ namespace Mediana.Codecs.H264
                 {
                     token.ThrowIfCancellationRequested();
                     H264SourceMacroblock source = new(sourcePicture, x, y, samples);
-                    (int motionX, int motionY, bool exact) = H264MotionSearch.Select(source, reference, target, x, y,
-                        options.MotionSearchRange, prediction, token, interpolation);
+                    (int motionX, int motionY, int difference) = H264MotionSearch.SelectWithDifference<H264FastMacroblockAnalysis>(source, reference, target, x, y,
+                        options.MotionSearchRange, prediction, token, interpolation, quantizer);
                     (int skipX, int skipY) = H264MotionPrediction.Skip(target, x, y);
                     int predictedX = 0;
                     int predictedY = 0;
@@ -44,7 +44,7 @@ namespace Mediana.Codecs.H264
                     while (true)
                     {
                         int pattern = 0;
-                        if (!exact)
+                        if (difference != 0)
                         {
                             pattern = AnalyzeLuma(source.Luma, macroblockQuantizer, prediction[..256], coefficients[..256]);
                             pattern |= H264ChromaEncoder.Analyze(source.Chroma, macroblockQuantizer, prediction[256..], coefficients[256..]) << 4;

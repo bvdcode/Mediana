@@ -153,7 +153,7 @@ namespace Mediana.Codecs.H264
             else
             {
                 (motionX, motionY, temporalDifference) = H264MotionSearch.SelectWithDifference<TAnalysis>(source, reference, target, x, y,
-                    searchRange, prediction, token, interpolation);
+                    searchRange, prediction, token, interpolation, quantizer);
             }
             int pattern = 0;
             if (temporalDifference != 0)
