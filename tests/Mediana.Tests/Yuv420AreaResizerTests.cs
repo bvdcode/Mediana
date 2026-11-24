@@ -59,6 +59,8 @@ namespace Mediana.Tests
         [InlineData(63, 15, 42, 10, ChromaLocation.BottomLeft)]
         [InlineData(48, 16, 24, 8, ChromaLocation.Center)]
         [InlineData(36, 14, 36, 10, ChromaLocation.Top)]
+        [InlineData(77, 59, 42, 36, ChromaLocation.Left)]
+        [InlineData(83, 43, 58, 30, ChromaLocation.BottomLeft)]
         public void PackedRowsAndTailsMatchAnalyticBoxIntegrals(int width, int height, int outputWidth,
             int outputHeight, ChromaLocation location)
         {

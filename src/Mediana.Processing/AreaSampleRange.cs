@@ -7,6 +7,68 @@ namespace Mediana.Processing
     {
         public long Weight(int sample, long interiorWeight) => sample == First ? FirstWeight : sample == Last ? LastWeight : interiorWeight;
 
+        public static bool FitsGatherWindow(ReadOnlySpan<AreaSampleRange> ranges, int packedWidth, int lanes,
+            int sourceWidth, CancellationToken token)
+        {
+            const int window = 16;
+            if (sourceWidth < window || packedWidth == 0)
+            {
+                return false;
+            }
+            for (int x = 0; x < packedWidth; x += lanes)
+            {
+                if ((x & 1023) == 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                }
+                int start = Math.Min(ranges[x].First, sourceWidth - window);
+                if (ranges[x + lanes - 1].Last - start >= window)
+                {
+                    return false;
+                }
+            }
+            for (int x = 0; x < packedWidth; x++)
+            {
+                if ((x & 1023) == 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                }
+                if (ranges[x].Last - ranges[x].First > 2)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static long CommonUnit(ReadOnlySpan<AreaSampleRange> ranges, long interior, long total, CancellationToken token)
+        {
+            long unit = Gcd(interior, total);
+            for (int i = 0; i < ranges.Length && unit > 1; i++)
+            {
+                if ((i & 1023) == 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                }
+                AreaSampleRange range = ranges[i];
+                unit = Gcd(unit, range.FirstWeight);
+                if (range.Last != range.First)
+                {
+                    unit = Gcd(unit, range.LastWeight);
+                }
+            }
+            return unit;
+        }
+
+        private static long Gcd(long a, long b)
+        {
+            while (b != 0)
+            {
+                (a, b) = (b, a % b);
+            }
+            return a;
+        }
+
         public static void Fill(Span<AreaSampleRange> output, int sourceSize, int phaseQuarters, CancellationToken cancellationToken)
             => Fill(output, sourceSize, sourceSize, 1, phaseQuarters, cancellationToken);
 

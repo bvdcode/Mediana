@@ -17,8 +17,8 @@ namespace Mediana.Processing
         private readonly MediaBufferAllocator allocator;
         private readonly WritableMediaBuffer ranges;
         private readonly WritableMediaBuffer? workspace;
-        private readonly AreaPlaneFilter? lumaFilter;
-        private readonly AreaPlaneFilter? chromaFilter;
+        private readonly IAreaPlaneFilter? lumaFilter;
+        private readonly IAreaPlaneFilter? chromaFilter;
         private bool disposed;
         private int busy;
 
@@ -35,12 +35,21 @@ namespace Mediana.Processing
                 Span<AreaSampleRange> all = MemoryMarshal.Cast<byte, AreaSampleRange>(ranges.Span);
                 int width = outputFormat.Width;
                 int height = outputFormat.Height;
-                lumaFilter = AreaPlaneFilter.Compile(all[..width], all.Slice(width, height), inputFormat.Width,
+                lumaFilter = CompilePlane(all[..width], all.Slice(width, height), inputFormat.Width,
                     inputFormat.Width, inputFormat.Height, 1, cancellationToken);
                 int chroma = width + height;
-                chromaFilter = AreaPlaneFilter.Compile(all.Slice(chroma, width / 2), all[(chroma + width / 2)..],
+                chromaFilter = CompilePlane(all.Slice(chroma, width / 2), all[(chroma + width / 2)..],
                     (inputFormat.Width + 1) / 2, inputFormat.Width, inputFormat.Height, 2, cancellationToken);
             }
+        }
+
+        private static IAreaPlaneFilter? CompilePlane(Span<AreaSampleRange> horizontal, Span<AreaSampleRange> vertical,
+            int sourceWidth, int frameWidth, int frameHeight, int extentDenominator, CancellationToken token)
+        {
+            IAreaPlaneFilter? compact = AreaPlaneFilter.Compile(horizontal, vertical, sourceWidth,
+                frameWidth, frameHeight, extentDenominator, token);
+            return compact ?? AreaInt32PlaneFilter.Compile(horizontal, vertical, sourceWidth,
+                frameWidth, frameHeight, extentDenominator, token);
         }
 
         public VideoFormat OutputFormat { get; }
@@ -160,7 +169,7 @@ namespace Mediana.Processing
                 ReadOnlySpan<AreaSampleRange> chromaY = all[offset..];
                 for (int plane = 0; plane < 3; plane++)
                 {
-                    AreaPlaneFilter? filter = plane == 0 ? lumaFilter : chromaFilter;
+                    IAreaPlaneFilter? filter = plane == 0 ? lumaFilter : chromaFilter;
                     Span<byte> pixels = output.Span[planes[plane].Offset..];
                     ReadOnlySpan<AreaSampleRange> horizontal = plane == 0 ? lumaX : chromaX;
                     ReadOnlySpan<AreaSampleRange> vertical = plane == 0 ? lumaY : chromaY;
@@ -171,8 +180,7 @@ namespace Mediana.Processing
                     }
                     else
                     {
-                        filter.Render(input, plane, pixels, planes[plane].Stride, horizontal, vertical,
-                            MemoryMarshal.Cast<byte, ushort>(workspace.Span), cancellationToken);
+                        filter.Render(input, plane, pixels, planes[plane].Stride, horizontal, vertical, workspace.Span, cancellationToken);
                     }
                 }
                 cancellationToken.ThrowIfCancellationRequested();

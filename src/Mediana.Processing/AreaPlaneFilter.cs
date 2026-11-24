@@ -9,7 +9,7 @@ using Mediana.Core.Video;
 namespace Mediana.Processing
 {
     internal class AreaPlaneFilter(long horizontalUnit, long verticalUnit, long horizontalInterior,
-        long verticalInterior, ushort denominator)
+        long verticalInterior, ushort denominator) : IAreaPlaneFilter
     {
         // A compact gather occupies less space than its eight scalar ranges. Unpacked tail ranges follow it.
         public static AreaPlaneFilter? Compile(Span<AreaSampleRange> horizontal, ReadOnlySpan<AreaSampleRange> vertical,
@@ -22,31 +22,17 @@ namespace Mediana.Processing
             }
             long horizontalInterior = 4L * horizontal.Length * extentDenominator;
             long verticalInterior = 4L * vertical.Length * extentDenominator;
-            long unitX = CommonUnit(horizontal, horizontalInterior, 4L * frameWidth, token);
-            long unitY = CommonUnit(vertical, verticalInterior, 4L * frameHeight, token);
+            long unitX = AreaSampleRange.CommonUnit(horizontal, horizontalInterior, 4L * frameWidth, token);
+            long unitY = AreaSampleRange.CommonUnit(vertical, verticalInterior, 4L * frameHeight, token);
             long weightX = 4L * frameWidth / unitX;
             long weightY = 4L * frameHeight / unitY;
             if (weightX > 127 || weightY > 255 / weightX)
             {
                 return null;
             }
-            for (int x = 0; x < packedWidth; x += AreaSampleGather.Lanes)
+            if (!AreaSampleRange.FitsGatherWindow(horizontal, packedWidth, AreaSampleGather.Lanes, sourceWidth, token))
             {
-                if ((x & 1023) == 0) { token.ThrowIfCancellationRequested(); }
-                int start = Math.Min(horizontal[x].First, sourceWidth - 16);
-                if (horizontal[x + AreaSampleGather.Lanes - 1].Last - start >= 16)
-                {
-                    return null;
-                }
-            }
-            for (int i = 0; i < horizontal.Length; i++)
-            {
-                if ((i & 1023) == 0) { token.ThrowIfCancellationRequested(); }
-                AreaSampleRange range = horizontal[i];
-                if (range.Last - range.First > 2)
-                {
-                    return null;
-                }
+                return null;
             }
             Span<AreaSampleGather> kernels = MemoryMarshal.Cast<AreaSampleRange, AreaSampleGather>(horizontal[..packedWidth]);
             for (int x = 0; x < packedWidth; x += AreaSampleGather.Lanes)
@@ -57,38 +43,14 @@ namespace Mediana.Processing
             return new(unitX, unitY, horizontalInterior, verticalInterior, (ushort)(weightX * weightY));
         }
 
-        private static long CommonUnit(ReadOnlySpan<AreaSampleRange> ranges, long interior, long total, CancellationToken token)
-        {
-            long unit = Gcd(interior, total);
-            for (int i = 0; i < ranges.Length; i++)
-            {
-                if ((i & 1023) == 0) { token.ThrowIfCancellationRequested(); }
-                AreaSampleRange range = ranges[i];
-                unit = Gcd(unit, range.FirstWeight);
-                if (range.Last != range.First)
-                {
-                    unit = Gcd(unit, range.LastWeight);
-                }
-            }
-            return unit;
-        }
-
-        private static long Gcd(long a, long b)
-        {
-            while (b != 0)
-            {
-                (a, b) = (b, a % b);
-            }
-            return a;
-        }
-
         public void Render(VideoFrame input, int plane, Span<byte> output, int stride,
             ReadOnlySpan<AreaSampleRange> horizontal, ReadOnlySpan<AreaSampleRange> vertical,
-            Span<ushort> scratch, CancellationToken token)
+            Span<byte> workspace, CancellationToken token)
         {
             int width = horizontal.Length;
             int packedWidth = width / AreaSampleGather.Lanes * AreaSampleGather.Lanes;
             ReadOnlySpan<AreaSampleGather> gathers = MemoryMarshal.Cast<AreaSampleRange, AreaSampleGather>(horizontal[..packedWidth]);
+            Span<ushort> scratch = MemoryMarshal.Cast<byte, ushort>(workspace);
             Span<ushort> filtered = scratch[..width];
             Span<ushort> sums = scratch.Slice(width, width);
             int cached = -1;
