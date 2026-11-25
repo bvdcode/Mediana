@@ -196,3 +196,58 @@ accounted for 69% of the new frame time in these runs.
 | --- | ---: | ---: | ---: | ---: |
 | Spot triangles | 1.50 → 0.71 | 3.52 → 2.56 | 5.10 → 2.69 | 12.33 → 13.30 |
 | Dog assembly | 9.44 → 4.60 | 7.00 → 4.92 | 8.81 → 5.50 | 6.25 → 6.73 |
+
+## Screen-space ambient occlusion during rotation
+
+Starting at `085eec8d`, four JIT runs per configuration isolated the effects
+on triangulated Spot at 384 × 384, one sample per pixel. Each run timed the
+shading and output stage over 36 angles after 12 warm-up frames. The camera
+and shadow-map depth passes were timed separately. Median shading time was
+2.94 ms/frame with both effects off, 5.10 ms with shadow filtering alone,
+9.55 ms with ambient occlusion alone and 11.46 ms with both enabled.
+
+The ambient occlusion kernel now evaluates four directions together on CPUs
+with 128-bit SIMD. It samples the same eight directions at three distances,
+keeps a separate horizon for each direction, and sums them in the original
+order. The scalar path reads the same sampling pattern. Both use a fixed-size
+table per frame.
+
+Across nine configurations, all 168 rotated RGBA frames matched the baseline
+byte for byte in each of JIT, Native AOT and JIT with hardware intrinsics
+disabled. Cases include odd dimensions, both Spot meshes, the Dog assembly,
+one to sixteen samples per pixel and all four combinations of shading effects.
+
+Whole-frame measurements use four alternating baseline/candidate process pairs
+per case on the two pinned cores above. Each process renders 12 warm-up frames,
+then 72 measured frames on Spot triangles, 20 on Spot quads or 36 on Dog.
+The table reports medians of per-process measurements. P95 is the 95th
+percentile frame time within a process. All cases except Spot quads use pooling.
+
+| Runtime and workload | Mean ms/frame | P95 ms/frame | CPU ms/frame | Peak RSS, MiB |
+| --- | ---: | ---: | ---: | ---: |
+| JIT, Spot triangles, 384 × 384, 1 sample, ambient occlusion only | 23.63 → 20.68 | 32.78 → 28.26 | 24.00 → 19.77 | 51.3 → 51.4 |
+| JIT, Spot triangles, 384 × 384, 1 sample, full | 32.43 → 27.05 | 45.31 → 40.44 | 32.88 → 27.71 | 52.8 → 53.0 |
+| JIT, Spot quads, 512 × 512, 4 samples, full | 93.78 → 86.64 | 116.93 → 111.51 | 160.96 → 141.70 | 122.2 → 122.1 |
+| JIT, Dog assembly, 384 × 384, 1 sample, full | 23.33 → 22.41 | 27.69 → 28.73 | 28.69 → 26.91 | 128.9 → 128.8 |
+| Native AOT, Spot triangles, 384 × 384, 1 sample, ambient occlusion only | 12.91 → 10.37 | 16.32 → 12.28 | 21.35 → 16.97 | 26.5 → 26.1 |
+| Native AOT, Spot triangles, 384 × 384, 1 sample, full | 30.96 → 25.79 | 46.81 → 33.60 | 29.55 → 24.60 | 27.9 → 28.0 |
+| Native AOT, Spot quads, 512 × 512, 4 samples, full | 182.10 → 140.74 | 219.09 → 176.01 | 174.44 → 156.05 | 96.0 → 96.0 |
+| Native AOT, Dog assembly, 384 × 384, 1 sample, full | 29.27 → 29.63 | 38.53 → 45.38 | 35.04 → 32.29 | 98.4 → 98.2 |
+
+Two additional pairs of instrumented JIT runs on Spot timed shading and output.
+With ambient occlusion enabled and shadows off, shading took 11.83 → 8.79 ms.
+With both effects off it took 3.70 → 3.61 ms. Subtracting the latter gives an
+estimated ambient occlusion cost of 8.13 → 5.18 ms/frame. With both effects
+enabled the measured shading stage took 15.08 → 11.58 ms.
+
+Dog showed smaller, inconsistent elapsed-time changes. Four more JIT process
+pairs at 144 frames each measured 27.50 → 28.04 ms/frame elapsed, 36.35 → 39.88 ms
+at P95, and 32.64 → 32.30 ms/frame CPU. Peak RSS was approximately 128.9 MiB in both versions.
+Managed allocation varied from about 3.9 to 31.2 KB/frame across processes in
+both builds.
+
+With all hardware intrinsics disabled, three JIT process pairs on 384 × 384
+Spot with ambient occlusion alone took 213.50 → 230.88 ms/frame elapsed and
+352.75 → 367.52 ms/frame CPU (36 frames per process). This mode uses scalar
+offsets and the scalar neighbor loop. The measured speedup applies to the
+hardware-accelerated path.
