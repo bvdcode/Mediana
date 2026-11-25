@@ -7,6 +7,8 @@ namespace Mediana.Streaming.Hls
 {
     internal static class HlsClock
     {
+        public static TimeBase Transport { get; } = new(1, 90000);
+
         public static long ExactTicks(MediaTimestamp timestamp, TimeBase clock)
         {
             MediaTimestamp scaled = timestamp.Rescale(clock, TimestampRounding.TowardZero);
@@ -17,7 +19,7 @@ namespace Mediana.Streaming.Hls
             return scaled.Value;
         }
 
-        public static TimeBase Common(TimeBase video, TimeBase audio)
+        public static TimeBase? Common(TimeBase video, TimeBase audio)
         {
             if (video == audio)
             {
@@ -30,11 +32,7 @@ namespace Mediana.Streaming.Hls
                 (a, b) = (b, a % b);
             }
             long denominator = (long)(video.Denominator / a) * audio.Denominator;
-            if (denominator > int.MaxValue)
-            {
-                throw new NotSupportedException("The audio and video clocks require an HLS time base exceeding the supported denominator.");
-            }
-            return new(1, (int)denominator);
+            return denominator <= int.MaxValue ? new(1, (int)denominator) : null;
         }
     }
 }

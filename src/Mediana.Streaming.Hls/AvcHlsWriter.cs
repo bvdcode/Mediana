@@ -12,18 +12,22 @@ namespace Mediana.Streaming.Hls
 {
     /// <summary>Streams one AVC video track and optional AAC/MP3 audio into IDR-aligned MPEG-TS segments.
     /// Requires per-track nonoverlapping PTS = DTS, positive durations and global decode order with video first at ties. Borrows packets and allocator;
-    /// owns streams returned by the destination factory. Failure faults the writer; discard partial output.</summary>
+    /// owns streams returned by the destination factory. Segment times use the MPEG-TS 90 kHz clock when the
+    /// track clocks cannot share a 32-bit denominator. Failure faults the writer; discard partial output.</summary>
     public partial class AvcHlsWriter : IContainerWriter
     {
         private readonly EncodedStreamInfo stream;
         private readonly HlsAudioTrack? audio;
-        private readonly TimeBase clock;
+        private readonly TimeBase videoClock;
+        private readonly TimeBase audioClock;
+        private readonly TimeBase segmentClock;
         private readonly AvcHlsWriteOptions options;
         private readonly H264RandomAccessInspector inspector;
         private readonly HlsSegmentOutput output;
-        private long? lastEnd;
-        private long? audioEnd;
-        private long? lastDecodeTime;
+        private MediaTimestamp? lastEnd;
+        private MediaTimestamp? audioEnd;
+        private MediaTimestamp? lastDecodeTime;
+        private long videoSegmentStart;
         private bool lastWasAudio;
 
         private AvcHlsWriter(EncodedStreamInfo stream, HlsAudioTrack? audio, Func<int, CancellationToken, ValueTask<Stream>> openSegment,
@@ -38,10 +42,13 @@ namespace Mediana.Streaming.Hls
         {
             this.stream = stream;
             this.audio = audio;
-            clock = audio is null ? stream.TimeBase : HlsClock.Common(stream.TimeBase, audio.Stream.TimeBase);
+            TimeBase? common = audio is null ? stream.TimeBase : HlsClock.Common(stream.TimeBase, audio.Stream.TimeBase);
+            videoClock = common ?? stream.TimeBase;
+            audioClock = common ?? audio!.Stream.TimeBase;
+            segmentClock = common ?? HlsClock.Transport;
             this.options = options;
             inspector = new(stream);
-            output = new(audio is null ? [stream] : [stream, audio.Stream], clock, openSegment, allocator, options.Transport, options.MaximumSegments, captureState);
+            output = new(audio is null ? [stream] : [stream, audio.Stream], segmentClock, openSegment, allocator, options.Transport, options.MaximumSegments, captureState);
         }
 
         public IReadOnlyList<HlsMediaSegment> Segments => output.Segments;
@@ -125,7 +132,12 @@ namespace Mediana.Streaming.Hls
                     {
                         throw new InvalidOperationException("Every configured HLS track must contain at least one access unit.");
                     }
-                    await output.CompleteAsync(Math.Max(lastEnd.Value, audioEnd ?? lastEnd.Value), cancellationToken).ConfigureAwait(false);
+                    MediaTimestamp end = lastEnd.Value;
+                    if (audioEnd is MediaTimestamp soundEnd && soundEnd.CompareTo(end) > 0)
+                    {
+                        end = soundEnd;
+                    }
+                    await output.CompleteAsync(SegmentTicks(end), cancellationToken).ConfigureAwait(false);
                 }
                 success = true;
             }
@@ -134,6 +146,9 @@ namespace Mediana.Streaming.Hls
                 output.FinishOperation(success);
             }
         }
+
+        private long SegmentTicks(MediaTimestamp timestamp) => timestamp.TimeBase == segmentClock
+            ? timestamp.Value : timestamp.Rescale(segmentClock, TimestampRounding.NearestEven).Value;
 
         /// <summary>Creates a VOD playlist after successful completion. Only video-only output declares independent segments.
         /// Leading audio priming is retained; the playlist starts at the first video PTS and includes any final audio tail.</summary>
